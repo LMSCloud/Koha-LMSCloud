@@ -16,8 +16,9 @@
 
 use Modern::Perl;
 use File::Basename;
-use Test::More tests => 4;
+use Test::More tests => 5;
 use Test::MockModule;
+use Test::NoWarnings;
 use Test::Warn;
 
 use t::lib::Mocks;
@@ -26,7 +27,6 @@ use t::lib::TestBuilder;
 use Koha::Database;
 use C4::Circulation qw();
 use Koha::CirculationRules;
-use Koha::Plugins::Methods;
 use Koha::Recalls;
 
 BEGIN {
@@ -80,9 +80,9 @@ subtest 'after_recall_action hook' => sub {
         }
     });
 
-    C4::Circulation::AddIssue( $patron2->unblessed, $item->barcode );
+    C4::Circulation::AddIssue( $patron2, $item->barcode );
 
-    warning_like {
+    warnings_like {
       Koha::Recalls->add_recall({
           patron => $patron1,
           biblio => $biblio,
@@ -92,9 +92,12 @@ subtest 'after_recall_action hook' => sub {
           interface => 'COMMANDLINE',
       });
     }
-    qr/after_recall_action called with action: add, ref: Koha::Recall/,
+    [
+        qr/transform_prepared_letter called with letter content/,
+        qr/after_recall_action called with action: add, ref: Koha::Recall/
+    ],
       '->add_recall calls the after_recall_action hook with action add';
 
-    Koha::Plugins::Methods->delete;
+    Koha::Plugins->RemovePlugins;
     $schema->storage->txn_rollback;
 };

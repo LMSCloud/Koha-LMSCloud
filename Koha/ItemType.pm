@@ -84,7 +84,7 @@ sub delete {
 
 sub image_location {
     my ( $self, $interface ) = @_;
-    return C4::Koha::getitemtypeimagelocation( $interface, $self->SUPER::imageurl );
+    return C4::Koha::getitemtypeimagelocation( $interface, $self->imageurl );
 }
 
 =head3 translated_description

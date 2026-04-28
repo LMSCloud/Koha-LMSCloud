@@ -38,6 +38,7 @@ use Koha::SimpleMARC qw( read_field );
 use Koha::XSLT::Base;
 use Koha::CsvProfiles;
 use Koha::AuthorisedValues;
+use Koha::TemplateUtils qw( process_tt );
 use Carp qw( carp croak );
 
 use vars qw(@ISA @EXPORT);
@@ -57,6 +58,7 @@ use vars qw(@ISA @EXPORT);
   marc2madsxml
   marc2bibtex
   marc2csv
+  marc2cites
   marcrecord2csv
   changeEncoding
 );
@@ -460,11 +462,9 @@ sub marcrecord2csv {
     # Getting the record
     my $biblio = Koha::Biblios->find($biblionumber);
     return unless $biblio;
-    my $record = eval {
-        $biblio->metadata->record(
-            { embed_items => 1, itemnumbers => $itemnumbers } );
-    };
+    my $record = eval { $biblio->metadata->record( { embed_items => 1, itemnumbers => $itemnumbers } ); };
     return unless $record;
+
     # Getting the framework
     my $frameworkcode = $biblio->frameworkcode;
 
@@ -564,13 +564,10 @@ sub marcrecord2csv {
 
         # TT tags exist
         if ( $content =~ m|\[\%.*\%\]| ) {
-            my $tt = Template->new();
-            my $template = $content;
             # Replace 00X and 0XX with X or XX
             $content =~ s|fields.00(\d)|fields.$1|g;
             $content =~ s|fields.0(\d{2})|fields.$1|g;
-            my $tt_output;
-            $tt->process( \$content, $field_list, \$tt_output );
+            my $tt_output = process_tt( $content, $field_list );
             push @csv_rows, $tt_output;
         } else {
             for my $tag ( @$tags ) {
@@ -578,9 +575,12 @@ sub marcrecord2csv {
                 # If it is a subfield
                 my @loop_values;
                 if (defined $tag->{subfieldtag} ) {
-                    my $av = Koha::AuthorisedValues->search_by_marc_field({ frameworkcode => $frameworkcode, tagfield => $tag->{fieldtag}, tagsubfield => $tag->{subfieldtag}, });
-                    $av = $av->count ? $av->unblessed : [];
-                    my $av_description_mapping = { map { ( $_->{authorised_value} => $_->{lib} ) } @$av };
+                    my $av_description_mapping = Koha::AuthorisedValues->get_descriptions_by_marc_field(
+                        {
+                            frameworkcode => $frameworkcode, tagfield => $tag->{fieldtag},
+                            tagsubfield   => $tag->{subfieldtag},
+                        }
+                    );
                     # For each field
                     foreach my $field (@fields) {
                         my @subfields = $field->subfield( $tag->{subfieldtag} );
@@ -591,21 +591,26 @@ sub marcrecord2csv {
 
                 # Or a field
                 } else {
-                    my $av = Koha::AuthorisedValues->search_by_marc_field({ frameworkcode => $frameworkcode, tagfield => $tag->{fieldtag}, });
-                    $av = $av->count ? $av->unblessed : [];
-                    my $authvalues = { map { ( $_->{authorised_value} => $_->{lib} ) } @$av };
 
                     foreach my $field ( @fields ) {
                         my $value;
 
                         # If it is a control field
                         if ($field->is_control_field) {
+                            my $authvalues = Koha::AuthorisedValues->get_descriptions_by_marc_field(
+                                { frameworkcode => $frameworkcode, tagfield => $tag->{fieldtag}, } );
                             $value = defined $authvalues->{$field->as_string} ? $authvalues->{$field->as_string} : $field->as_string;
                         } else {
                             # If it is a field, we gather all subfields, joined by the subfield separator
                             my @subvaluesarray;
                             my @subfields = $field->subfields;
                             foreach my $subfield (@subfields) {
+                                my $authvalues = Koha::AuthorisedValues->get_descriptions_by_marc_field(
+                                    {
+                                        frameworkcode => $frameworkcode, tagfield => $tag->{fieldtag},
+                                        tagsubfield   => $subfield->[0],
+                                    }
+                                );
                                 push (@subvaluesarray, defined $authvalues->{$subfield->[1]} ? $authvalues->{$subfield->[1]} : $subfield->[1]);
                             }
                             $value = join ($subfieldseparator, @subvaluesarray);
@@ -788,16 +793,7 @@ sub marc2bibtex {
         );
     }
 
-    my $BibtexExportAdditionalFields = C4::Context->preference('BibtexExportAdditionalFields');
-    my $additional_fields;
-    if ($BibtexExportAdditionalFields) {
-        $BibtexExportAdditionalFields = "$BibtexExportAdditionalFields\n\n";
-        $additional_fields = eval { YAML::XS::Load(Encode::encode_utf8($BibtexExportAdditionalFields)); };
-        if ($@) {
-            warn "Unable to parse BibtexExportAdditionalFields : $@";
-            $additional_fields = undef;
-        }
-    }
+    my $additional_fields = C4::Context->yaml_preference('BibtexExportAdditionalFields');
 
     if ( $additional_fields && $additional_fields->{'@'} ) {
         my ( $f, $sf ) = split( /\$/, $additional_fields->{'@'} );
@@ -847,6 +843,118 @@ sub marc2bibtex {
     $tex .= "}\n";
 
     return $tex;
+}
+
+
+=head2 marc2cites - Convert from MARC21 and UNIMARC to citations
+
+  my $cites = marc2cites($record);
+
+Returns hashref of citation from MARC data, suitable to pass to templates.
+Hash keys store citation system names, hash values citation string.
+
+C<$record> - a MARC::Record object
+
+=cut
+
+sub marc2cites {
+    my $record      = shift;
+    my $marcflavour = C4::Context->preference("marcflavour");
+    my %cites       = ();
+    my @authors     = ();
+    my $re_clean    = qr/(^[\.,:;\/\-\s]+|[\.,:;\/\-\s]+$)/;
+
+    my @authorFields = ( '100', '110', '111', '700', '710', '711' );
+    @authorFields = ( '700', '701', '702', '710', '711', '721' ) if ( $marcflavour eq "UNIMARC" );
+
+    foreach my $ftag (@authorFields) {
+        foreach my $field ( $record->field($ftag) ) {
+            my $author = '';
+            if ( $marcflavour eq "UNIMARC" ) {
+                $author = join ', ',
+                    ( $field->subfield("a"), $field->subfield("b") );
+            } else {
+                $author = $field->subfield("a");
+            }
+            if ( $author =~ /([^,]+),?(.*)/ ) {
+                my %a;
+                ( $a{'surname'} = $1 ) =~ s/$re_clean//g;
+                $a{'forenames'} = [ map { my $t = $_; $t =~ s/$re_clean//g; $t } split ' ', $2 ];
+                push( @authors, \%a );
+            }
+        }
+    }
+
+    my %publication;
+    if ( $marcflavour eq "UNIMARC" ) {
+        %publication = (
+            title     => $record->subfield( "200", "a" ) || "",
+            place     => $record->subfield( "210", "a" ) || "",
+            publisher => $record->subfield( "210", "c" ) || "",
+            date      => $record->subfield( "210", "d" ) || $record->subfield( "210", "h" ) || ""
+        );
+    } else {
+        %publication = (
+            title     => $record->subfield( "245", "a" ) || "",
+            place     => $record->subfield( "264", "a" ) || $record->subfield( "260", "a" ) || "",
+            publisher => $record->subfield( "264", "b" ) || $record->subfield( "260", "b" ) || "",
+            date      => $record->subfield( "264", "c" )
+                || $record->subfield( "260", "c" )
+                || $record->subfield( "260", "g" )
+                || ""
+        );
+    }
+
+    $publication{$_} =~ s/$re_clean//g for keys %publication;
+    $publication{'date'} =~ s/[\D-]//g;
+
+    my $i       = $#authors;
+    my $last    = 0;
+    my $seclast = 0;
+    for my $author (@authors) {
+        $cites{'Harvard'} .= $author->{'surname'} . ' ';
+        $cites{'Harvard'} .= substr( $_, 0, 1 ) . '. ' for @{ $author->{'forenames'} };
+        $cites{'Harvard'} =~ s/\s+$//;
+        $cites{'Harvard'} .= $last ? '' : ( $seclast ? ' and ' : ', ' );
+        $cites{'Chicago'} .= $author->{'surname'} . ' ';
+        $cites{'Chicago'} .= $_ . ' ' for @{ $author->{'forenames'} };
+        $cites{'Chicago'} =~ s/\s+$//;
+        $cites{'Chicago'} .= $last ? '' : ( $seclast ? ' and ' : ', ' );
+        $cites{'MLA'}     .= $author->{'surname'} . ' ';
+        $cites{'MLA'}     .= $_ . ' ' for @{ $author->{'forenames'} };
+        $cites{'MLA'} =~ s/\s+$//;
+        $cites{'MLA'} .= $last ? '' : ( $seclast ? ' and ' : ', ' );
+        $cites{'APA'} .= $author->{'surname'} . ' ';
+        $cites{'APA'} .= substr( $_, 0, 1 ) . '. ' for @{ $author->{'forenames'} };
+        $cites{'APA'} =~ s/\s+$//;
+        $cites{'APA'} .= $last ? '' : ( $seclast ? ' & ' : ', ' );
+        $seclast = $#authors > 1 && $i-- == 2;
+        $last    = $i == 0;
+    }
+    $cites{$_} =~ s/([^\.])$/$1./ for keys %cites;
+
+    if ( $publication{date} ) {
+        $cites{'Harvard'} .= ' (' . $publication{'date'} . '). ';
+        $cites{'Chicago'} .= ' ' . $publication{'date'} . '. ';
+        $cites{'MLA'}     .= ' ' . $publication{'title'} . '. ';
+        $cites{'APA'}     .= ' (' . $publication{'date'} . '). ';
+    }
+    $cites{'Harvard'} .= $publication{'title'} . '. ';
+    $cites{'Chicago'} .= $publication{'title'} . '. ';
+    $cites{'MLA'}     .= $publication{'place'} . ': ';
+    $cites{'APA'}     .= $publication{'title'} . '. ';
+    $cites{'Harvard'} .= $publication{'place'} . ': ';
+    $cites{'Chicago'} .= $publication{'place'} . ': ';
+    $cites{'MLA'}     .= $publication{'publisher'} . '. ';
+    $cites{'APA'}     .= $publication{'place'} . ': ';
+    $cites{'Harvard'} .= $publication{'publisher'};
+    $cites{'Chicago'} .= $publication{'publisher'};
+    $cites{'MLA'}     .= $publication{'date'};
+    $cites{'APA'}     .= $publication{'publisher'};
+    $cites{$_} =~ s/  +/ /        for keys %cites;
+    $cites{$_} =~ s/([^\.])$/$1./ for keys %cites;
+
+    return \%cites;
 }
 
 

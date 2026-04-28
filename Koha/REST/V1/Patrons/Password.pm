@@ -44,12 +44,11 @@ sub set {
 
     my $c = shift->openapi->valid_input or return;
 
-    my $patron = Koha::Patrons->find( $c->validation->param('patron_id') );
-    my $body   = $c->validation->param('body');
+    my $patron = Koha::Patrons->find( $c->param('patron_id') );
+    my $body   = $c->req->json;
 
-    unless ($patron) {
-        return $c->render( status => 404, openapi => { error => "Patron not found." } );
-    }
+    return $c->render_resource_not_found("Patron")
+        unless $patron;
 
     my $password   = $body->{password}   // "";
     my $password_2 = $body->{password_2} // "";
@@ -87,8 +86,8 @@ sub set_public {
 
     my $c = shift->openapi->valid_input or return;
 
-    my $body      = $c->validation->param('body');
-    my $patron_id = $c->validation->param('patron_id');
+    my $body      = $c->req->json;
+    my $patron_id = $c->param('patron_id');
 
     my $user = $c->stash('koha.user');
 

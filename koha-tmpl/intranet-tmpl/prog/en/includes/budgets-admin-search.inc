@@ -1,29 +1,30 @@
+[% USE raw %]
 [% USE Koha %]
+[% PROCESS 'html_helpers.inc' %]
 [% USE Branches %]
 <!-- budgets-admin-search.inc -->
-
-<div id="header_search" role="tablist">
-    <div class="tab-content">
-        <div id="budgets_search" role="tabpanel" class="tab-pane active">
-            <form action="/cgi-bin/koha/admin/aqbudgets.pl" method="post">
+[% WRAPPER tabs id="header_search" %]
+    [% WRAPPER tab_panels %]
+        [% WRAPPER tab_panel tabname="budgets_search" bt_active= 1 %]
+            <form action="/cgi-bin/koha/admin/aqbudgets.pl" method="get">
                 <input type="hidden" name="budget_period_id" value="[% budget_period_id | html %]" />
 
                 <div class="form-title">
-                    <label class="control-label">Search funds</label>
+                    <label class="control-label" for="filter_budgetname"><span class="control-text">Search funds</span> <i class="fa-solid fa-fw fa-credit-card"></i></label>
                 </div>
 
                 <div class="form-content">
                     <input class="query form-control" type="text" name="filter_budgetname" id="filter_budgetname" value="[% filter_budgetname | html %]" placeholder="Search funds" />
 
-                    <button type="button" class="form-extra-content-toggle"><i class="fa fa-sliders"></i></button>
+                    <button type="button" class="form-extra-content-toggle" title="More options"><i class="form-extra-content-icon fa-solid fa-sliders" aria-hidden="true"></i></button>
                 </div>
 
-                <button type="submit"><i class="fa fa-arrow-right"></i></button>
+                <button type="submit" aria-label="Search"><i class="fa fa-arrow-right"></i></button>
 
                 <div class="form-extra-content">
                     <label for="filter_budgetbranch">Library</label>
 
-                    <select name="filter_budgetbranch" id="filter_budgetbranch" class="form-control">
+                    <select name="filter_budgetbranch" id="filter_budgetbranch" class="form-select">
                         <option value="">All libraries</option>
                         [% FOREACH branchloo IN Branches.all( selected => selected_branchcode ) %]
                             [% IF branchloo.selected %]
@@ -35,7 +36,7 @@
                     </select>
                 </div>
             </form>
-        </div>
+        [% END # /tab_panel %]
 
         [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
             [% INCLUDE 'patron-search-box.inc' %]
@@ -44,21 +45,21 @@
             [% INCLUDE 'catalogue-search-box.inc' %]
         [% END %]
 
-    </div><!-- /.tab-content -->
-    <ul class="nav nav-tabs" role="tablist">
-        <li role="presentation" class="active">
-            <a title="Search funds" href="#budgets_search" aria-controls="budgets_search" aria-expanded="true" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-credit-card"></i> <span class="tab-title">Search funds</span></a>
-        </li>
+    [% END # /tab_panels %]
+    [% WRAPPER tabs_nav %]
+        [% WRAPPER tab_item tabname= "budgets_search" bt_active= 1 %]
+            <i class="fa-solid fa-fw fa-credit-card"></i> <span class="tab-title">Search funds</span>
+        [% END %]
         [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
-            <li role="presentation">
-                <a title="Check out" href="#circ_search" aria-controls="circ_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-upload"></i> <span class="tab-title">Check out</span></a>
-            </li>
+            [% WRAPPER tab_item tabname= "circ_search" %]
+                <i class="fa fa-fw fa-upload" aria-hidden="true"></i> <span class="tab-title">Check out</span>
+            [% END %]
         [% END %]
         [% IF ( CAN_user_catalogue ) %]
-            <li role="presentation">
-                <a title="Search catalog" href="#catalog_search" aria-controls="catalog_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-fw fa-search"></i> <span class="tab-title">Search catalog</span></a>
-            </li>
+            [% WRAPPER tab_item tabname= "catalog_search" %]
+                <i class="fa fa-fw fa-search" aria-hidden="true"></i> <span class="tab-title">Search catalog</span>
+            [% END %]
         [% END %]
-    </ul>
-</div><!-- /#header_search -->
+    [% END # /tabs_nav %]
+[% END # /WRAPPER tabs %]
 <!-- /budgets-admin-search.inc -->

@@ -1,3 +1,5 @@
+[% USE raw %]
+[% PROCESS 'html_helpers.inc' %]
 <!-- authorities-search.inc -->
 
 [% BLOCK orderby %]
@@ -5,7 +7,7 @@
         <label class="control-label">
             Order by
 
-            <select name="orderby" class="form-control">
+            <select name="orderby" class="form-select">
                 [% IF ( orderby == 'HeadingAsc' ) %]
                     <option value="HeadingAsc" selected="selected">Heading A-Z</option>
                 [% ELSE %]
@@ -31,7 +33,7 @@
         <label class="control-label">
             Operator
 
-            <select name="operator" class="form-control">
+            <select name="operator" class="form-select">
                 [% IF ( operator == 'contains' ) %]
                     <option value="contains" selected="selected">contains</option>
                 [% ELSE %]
@@ -56,7 +58,7 @@
     <div>
         <label>
             Authority type
-            <select name="authtypecode" class="form-control">
+            <select name="authtypecode" class="form-select">
                 [% IF (marcflavour == 'UNIMARC' ) %]<option value="">All authority types</option>[% END %]
                 [% FOREACH authority_type IN authority_types %]
                     [% IF authority_type.authtypecode == authtypecode %]
@@ -70,9 +72,9 @@
     </div>
 [% END %]
 
-<div id="header_search" role="tablist">
-    <div class="tab-content">
-        <div id="mainmain_heading" role="tabpanel" class="tab-pane active">
+[% WRAPPER tabs id="header_search" %]
+    [% WRAPPER tab_panels %]
+        [% WRAPPER tab_panel tabname="mainmain_heading" bt_active= 1 %]
             <form action="/cgi-bin/koha/authorities/authorities-home.pl" method="get">
                 <input type="hidden" name="op" value="do_search" />
                 <input type="hidden" name="type" value="intranet" />
@@ -81,25 +83,25 @@
                 <input type="hidden" name="excluding" value="" />
 
                 <div class="form-title">
-                    <label class="control-label">Search main heading ($a only)</label>
+                    <label class="control-label" for="value_mainentry"><span class="control-text">Search main heading</span> <i class="fa fa-fw fa-main-heading-a" aria-hidden="true"></i></label>
                 </div>
 
                 <div class="form-content">
                     <input id="value_mainentry" class="form-control head-searchbox" type="text" name="value" value="[% value | html %]" placeholder="Search main heading ($a only)" />
-                    <button type="button" class="form-extra-content-toggle"><i class="fa fa-sliders"></i></button>
+                    <button type="button" class="form-extra-content-toggle" title="More options"><i class="form-extra-content-icon fa-solid fa-sliders" aria-hidden="true"></i></button>
                 </div>
 
-                <button type="submit"><i class="fa fa-arrow-right"></i></button>
+                <button type="submit" aria-label="Search"><i class="fa fa-arrow-right"></i></button>
 
-                <span class="form-extra-content">
+                <div class="form-extra-content">
                     [% INCLUDE authtype %]
                     [% INCLUDE operator %]
                     [% INCLUDE orderby %]
-                </span>
+                </div>
             </form>
-        </div>
+        [% END # /tab_panel %]
 
-        <div id="main_heading" role="tabpanel" class="tab-pane">
+        [% WRAPPER tab_panel tabname="main_heading" %]
             <form action="/cgi-bin/koha/authorities/authorities-home.pl" method="get">
                 <input type="hidden" name="marclist" value="mainentry" />
                 <input type="hidden" name="and_or" value="and" />
@@ -108,50 +110,50 @@
                 <input type="hidden" name="type" value="intranet" />
 
                 <div class="form-title">
-                    <label class="control-label">Search main heading</label>
+                    <label class="control-label" for="value_mainheading"><span class="control-text">Search main heading</span> <i class="fa fa-fw fa-header" aria-hidden="true"></i></label>
                 </div>
 
                 <div class="form-content">
                     <input id="value_mainheading" class="form-control head-searchbox" type="text" name="value" value="[% value | html %]" placeholder="Search main heading" />
-                    <button type="button" class="form-extra-content-toggle"><i class="fa fa-sliders"></i></button>
+                    <button type="button" class="form-extra-content-toggle" title="More options"><i class="form-extra-content-icon fa-solid fa-sliders" aria-hidden="true"></i></button>
                 </div>
 
-                <button type="submit"><i class="fa fa-arrow-right"></i></button>
+                <button type="submit" aria-label="Search"><i class="fa fa-arrow-right"></i></button>
 
-                <span class="form-extra-content">
+                <div class="form-extra-content">
                     [% INCLUDE authtype %]
                     [% INCLUDE operator %]
                     [% INCLUDE orderby %]
-                </span>
+                </div>
             </form>
-        </div>
+        [% END # /tab_panel %]
 
-        <div id="matchheading_search" role="tabpanel" class="tab-pane">
+        [% WRAPPER tab_panel tabname="matchheading_search" %]
             <form action="/cgi-bin/koha/authorities/authorities-home.pl" method="get">
                 <input type="hidden" name="op" value="do_search" />
                 <input type="hidden" name="type" value="intranet" />
                 <input type="hidden" name="marclist" value="match" />
 
                 <div class="form-title">
-                    <label class="control-label">Search all headings</label>
+                    <label class="control-label" for="value_matchheading"><span class="control-text">Search all headings</span> <i class="fa fa-fw fa-align-center" aria-hidden="true"></i></label>
                 </div>
 
                 <div class="form-content">
                     <input id="value_matchheading" class="form-control head-searchbox" type="text" name="value" value="[% value | html %]" placeholder="Search any heading" />
-                    <button type="button" class="form-extra-content-toggle"><i class="fa fa-sliders"></i></button>
+                    <button type="button" class="form-extra-content-toggle" title="More options"><i class="form-extra-content-icon fa-solid fa-sliders" aria-hidden="true"></i></button>
                 </div>
 
-                <button type="submit"><i class="fa fa-arrow-right"></i></button>
+                <button type="submit" aria-label="Search"><i class="fa fa-arrow-right"></i></button>
 
-                <span class="form-extra-content">
+                <div class="form-extra-content">
                     [% INCLUDE authtype %]
                     [% INCLUDE operator %]
                     [% INCLUDE orderby %]
-                </span>
+                </div>
             </form>
-        </div>
+        [% END # /tab_panel %]
 
-        <div id="entire_record" role="tabpanel" class="tab-pane">
+        [% WRAPPER tab_panel tabname="entire_record" %]
             <form action="/cgi-bin/koha/authorities/authorities-home.pl" method="get">
                 <input type="hidden" name="op" value="do_search" />
                 <input type="hidden" name="type" value="intranet" />
@@ -160,39 +162,38 @@
                 <input type="hidden" name="excluding" value="" />
 
                 <div class="form-title">
-                    <label class="control-label">Search entire record</label>
+                    <label class="control-label" for="value_anywhere"><span class="control-text">Search entire record</span> <i class="fa-solid fa-fw fa-folder-open" aria-hidden="true"></i></label>
                 </div>
 
                 <div class="form-content">
                     <input id="value_anywhere" class="form-control head-searchbox" type="text" name="value" value="[% value | html %]" placeholder="Search any authority field" />
-                    <button type="button" class="form-extra-content-toggle"><i class="fa fa-sliders"></i></button>
+                    <button type="button" class="form-extra-content-toggle" title="More options"><i class="form-extra-content-icon fa-solid fa-sliders" aria-hidden="true"></i></button>
                 </div>
 
-                <button type="submit"><i class="fa fa-arrow-right"></i></button>
+                <button type="submit" aria-label="Search"><i class="fa fa-arrow-right"></i></button>
 
-                <span class="form-extra-content">
+                <div class="form-extra-content">
                     [% INCLUDE authtype %]
                     [% INCLUDE operator %]
                     [% INCLUDE orderby %]
-                </span>
+                </div>
             </form>
-        </div>
+        [% END # /tab_panel %]
 
-    </div><!-- /.tab-content -->
-    <ul class="nav nav-tabs" role="tablist">
-        <li role="presentation" class="active">
-            <a title="Search main heading ($a only)" href="#mainmain_heading" aria-controls="mainmain_heading" role="tab"  aria-expanded="true" data-toggle="tab" class="keep_text"><i style="font-weight:bold">$a</i> <span class="tab-title">Main heading ($a only)</span></a>
-        </li>
-        <li role="presentation">
-            <a title="Search main heading" href="#main_heading" aria-controls="main_heading" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-header"></i> <span class="tab-title">Main heading</span></a>
-        </li>
-        <li role="presentation">
-            <a title="Search all headings" href="#matchheading_search" aria-controls="matchheading_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-align-center"></i> <span class="tab-title">All headings</span></a>
-        </li>
-        <li role="presentation">
-            <a title="Search entire record" href="#entire_record" aria-controls="entire_record" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-folder-open-o"></i> <span class="tab-title">Entire record</span></a>
-        </li>
-        <li role="presentation">
-    </ul>
-</div><!-- /#header_search -->
+    [% END # /tab_panels %]
+    [% WRAPPER tabs_nav %]
+        [% WRAPPER tab_item tabname= "mainmain_heading" bt_active= 1 %]
+            <i class="fa fa-fw fa-main-heading-a" aria-hidden="true"></i> <span class="tab-title">Main heading ($a only)</span>
+        [% END %]
+        [% WRAPPER tab_item tabname= "main_heading" %]
+            <i class="fa fa-fw fa-header" aria-hidden="true"></i> <span class="tab-title">Main heading</span>
+        [% END %]
+        [% WRAPPER tab_item tabname= "matchheading_search" %]
+            <i class="fa fa-fw fa-align-center" aria-hidden="true"></i> <span class="tab-title">All headings</span>
+        [% END %]
+        [% WRAPPER tab_item tabname= "entire_record" %]
+            <i class="fa-solid fa-fw fa-folder-open" aria-hidden="true"></i> <span class="tab-title">Entire record</span>
+        [% END %]
+    [% END # /tabs_nav %]
+[% END # /WRAPPER tabs %]
 <!-- /authorities-search.inc -->

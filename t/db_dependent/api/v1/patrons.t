@@ -35,6 +35,7 @@ use Koha::Exceptions::Patron::Attribute;
 use Koha::Old::Patrons;
 use Koha::Patron::Attributes;
 use Koha::Patron::Debarments qw( AddDebarment );
+use Koha::Notice::Messages;
 
 use JSON qw(encode_json);
 
@@ -43,6 +44,33 @@ my $builder = t::lib::TestBuilder->new;
 
 my $t = Test::Mojo->new('Koha::REST::V1');
 t::lib::Mocks::mock_preference( 'RESTBasicAuth', 1 );
+
+### Mock Letters
+my $mocked_letters = Test::MockModule->new('C4::Letters');
+$mocked_letters->mock(
+    'GetPreparedLetter',
+    sub {
+        return 1;
+    }
+);
+my $message_has_content = 1;
+my $letter_enqueued;
+$mocked_letters->mock(
+    'EnqueueLetter',
+    sub {
+        $letter_enqueued = $message_has_content ? 1 : 0;
+
+        # return a 'message_id'
+        return $message_has_content ? 42 : undef;
+    }
+);
+$mocked_letters->mock(
+    'SendQueuedMessages',
+    sub {
+        my $params = shift;
+        return 1;
+    }
+);
 
 subtest 'list() tests' => sub {
 
@@ -54,22 +82,49 @@ subtest 'list() tests' => sub {
 
     subtest 'librarian access tests' => sub {
 
-        plan tests => 19;
+        plan tests => 15;
 
         $schema->storage->txn_begin;
 
         my $librarian = $builder->build_object(
             {
                 class => 'Koha::Patrons',
-                value => { flags => 2**4 }    # borrowers flag = 4
+                value => { flags => 2 ** 2 }     # catalog only, no additional permissions
             }
         );
+
+        # Ensure our librarian can see users from all branches (once list_borrowers is added)
+        $builder->build(
+            {
+                source => 'UserPermission',
+                value  => {
+                    borrowernumber => $librarian->borrowernumber,
+                    module_bit     => 4,
+                    code           => 'view_borrower_infos_from_any_libraries',
+                },
+             }
+        );
+
         my $password = 'thePassword123';
         $librarian->set_password( { password => $password, skip_validation => 1 } );
         my $userid = $librarian->userid;
 
+        $t->get_ok("//$userid:$password@/api/v1/patrons/")
+          ->status_is(403, 'Basic librarian unable to see patrons');
+
+        $builder->build(
+            {
+                source => 'UserPermission',
+                value  => {
+                    borrowernumber => $librarian->borrowernumber,
+                    module_bit     => 4,
+                    code           => 'list_borrowers',
+                },
+             }
+        );
+
         $t->get_ok("//$userid:$password@/api/v1/patrons")
-          ->status_is(200);
+          ->status_is(200, 'list_borrowers makes /patrons accessible');
 
         $t->get_ok("//$userid:$password@/api/v1/patrons?cardnumber=" . $librarian->cardnumber)
           ->status_is(200)
@@ -83,19 +138,33 @@ subtest 'list() tests' => sub {
           ->status_is(200)
           ->json_is('/0/address2' => $librarian->address2);
 
-        my $patron = $builder->build_object({ class => 'Koha::Patrons' });
-        AddDebarment({ borrowernumber => $patron->borrowernumber });
+        subtest 'restricted & expired' => sub {
 
-        $t->get_ok("//$userid:$password@/api/v1/patrons?restricted=" . Mojo::JSON->true . "&cardnumber=" . $patron->cardnumber )
-          ->status_is(200)
-          ->json_has('/0/restricted')
-          ->json_is( '/0/restricted' => Mojo::JSON->true )
-          ->json_hasnt('/1');
+            plan tests => 13;
 
-        $t->get_ok( "//$userid:$password@/api/v1/patrons?"
-              . 'q={"extended_attributes.type":"CODE"}' =>
-              { 'x-koha-embed' => 'extended_attributes' } )
-          ->status_is( 200, "Works, doesn't explode" );
+            my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+            AddDebarment( { borrowernumber => $patron->borrowernumber } );
+
+            $t->get_ok("//$userid:$password@/api/v1/patrons?restricted=" . Mojo::JSON->true . "&cardnumber=" . $patron->cardnumber )
+              ->status_is(200)
+              ->json_has('/0/restricted')
+              ->json_is( '/0/restricted' => Mojo::JSON->true )
+              ->json_has('/0/expired')
+              ->json_is( '/0/expired' => Mojo::JSON->false )
+              ->json_hasnt('/1');
+
+            $patron->dateexpiry(dt_from_string->subtract(days => 2))->store;
+            $t->get_ok("//$userid:$password@/api/v1/patrons/" . $patron->borrowernumber)
+              ->status_is(200)
+              ->json_has('/expired')
+              ->json_is( '/expired' => Mojo::JSON->true );
+
+            $t->get_ok( "//$userid:$password@/api/v1/patrons?"
+                  . 'q={"extended_attributes.type":"CODE"}' =>
+                  { 'x-koha-embed' => 'extended_attributes' } )
+              ->status_is( 200, "Works, doesn't explode" );
+        };
 
         subtest 'searching date and date-time fields' => sub {
 
@@ -203,31 +272,59 @@ subtest 'list() tests' => sub {
 
 subtest 'get() tests' => sub {
 
-    plan tests => 3;
+    plan tests => 4;
 
     $schema->storage->txn_begin;
     unauthorized_access_tests('GET', -1, undef);
     $schema->storage->txn_rollback;
 
     subtest 'librarian access tests' => sub {
-        plan tests => 6;
+
+        plan tests => 8;
 
         $schema->storage->txn_begin;
 
         my $librarian = $builder->build_object(
             {
                 class => 'Koha::Patrons',
-                value => { flags => 2**4 }    # borrowers flag = 4
+                value => { flags => 2 ** 2 }     # catalog only, no additional permissions
             }
         );
+
+        # Ensure our librarian can see users from all branches (once list_borrowers is added)
+        $builder->build(
+            {
+                source => 'UserPermission',
+                value  => {
+                    borrowernumber => $librarian->borrowernumber,
+                    module_bit     => 4,
+                    code           => 'view_borrower_infos_from_any_libraries',
+                },
+             }
+        );
+
         my $password = 'thePassword123';
         $librarian->set_password( { password => $password, skip_validation => 1 } );
         my $userid = $librarian->userid;
 
-        my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+        my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
 
         $t->get_ok("//$userid:$password@/api/v1/patrons/" . $patron->id)
-          ->status_is(200)
+          ->status_is(403, 'Basic librarian unable to see patrons');
+
+        $builder->build(
+            {
+                source => 'UserPermission',
+                value  => {
+                    borrowernumber => $librarian->borrowernumber,
+                    module_bit     => 4,
+                    code           => 'list_borrowers',
+                },
+             }
+        );
+
+        $t->get_ok("//$userid:$password@/api/v1/patrons/" . $patron->id)
+          ->status_is(200, 'list_borrowers permission makes patron visible')
           ->json_is('/patron_id'        => $patron->id)
           ->json_is('/category_id'      => $patron->categorycode )
           ->json_is('/surname'          => $patron->surname)
@@ -282,9 +379,35 @@ subtest 'get() tests' => sub {
           ->status_is(200)
           ->json_is( '/patron_id' => $patron_1->id );
 
-        $t->get_ok("//$userid:$password@/api/v1/patrons/" . $patron_2->id )
-          ->status_is(404)
-          ->json_is({ error => "Patron not found." });
+        $t->get_ok( "//$userid:$password@/api/v1/patrons/" . $patron_2->id )->status_is(404)
+            ->json_is( '/error' => 'Patron not found' );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest '+strings' => sub {
+
+        plan tests => 4;
+
+        $schema->storage->txn_begin;
+
+        my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+        my $librarian = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => { flags => 2**4 }    # borrowers flag = 4
+            }
+        );
+        my $password = 'thePassword123';
+        $librarian->set_password( { password => $password, skip_validation => 1 } );
+        my $userid = $librarian->userid;
+
+        $t->get_ok( "//$userid:$password@/api/v1/patrons/" . $patron->id => { "x-koha-embed" => "+strings" } )
+            ->status_is(200)
+            ->json_has( '/_strings/library_id' => { str => $patron->library->branchname, type => 'library' } )
+            ->json_has(
+            '/_strings/category_id' => { str => $patron->category->description, type => 'patron_category' } );
 
         $schema->storage->txn_rollback;
     };
@@ -295,14 +418,20 @@ subtest 'add() tests' => sub {
 
     $schema->storage->txn_begin;
 
-    my $patron = $builder->build_object( { class => 'Koha::Patrons' } )->to_api;
+    my $librarian = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 2**4 }    # borrowers flag = 4
+        }
+    );
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } )->to_api({ user => $librarian });
 
     unauthorized_access_tests('POST', undef, $patron);
 
     $schema->storage->txn_rollback;
 
     subtest 'librarian access tests' => sub {
-        plan tests => 25;
+        plan tests => 37;
 
         $schema->storage->txn_begin;
 
@@ -316,34 +445,20 @@ subtest 'add() tests' => sub {
 
         # Mock early, so existing mandatory attributes don't break all the tests
         my $mocked_patron = Test::MockModule->new('Koha::Patron');
-        $mocked_patron->mock(
-            'extended_attributes',
-            sub {
 
-                if ($extended_attrs_exception) {
-                    if ( $extended_attrs_exception eq 'Koha::Exceptions::Patron::Attribute::NonRepeatable'
-                        or $extended_attrs_exception eq 'Koha::Exceptions::Patron::Attribute::UniqueIDConstraint'
-                      )
-                    {
-                        $extended_attrs_exception->throw(
-                            attribute => Koha::Patron::Attribute->new(
-                                { code => $code, attribute => $attr }
-                            )
-                        );
-                    }
-                    else {
-                        $extended_attrs_exception->throw( type => $type );
-                    }
-                }
-                return [];
+        my $librarian = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => { flags => 2**4 }    # borrowers flag = 4
             }
         );
 
-        my $patron = $builder->build_object({ class => 'Koha::Patrons' });
-        my $newpatron = $patron->to_api;
+        my $patron    = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $newpatron = $patron->to_api({ user => $librarian });
         # delete RO attributes
         delete $newpatron->{patron_id};
         delete $newpatron->{restricted};
+        delete $newpatron->{expired};
         delete $newpatron->{anonymized};
 
         # Create a library just to make sure its ID doesn't exist on the DB
@@ -352,25 +467,26 @@ subtest 'add() tests' => sub {
         # Delete library
         $library_to_delete->delete;
 
-        my $librarian = $builder->build_object(
-            {
-                class => 'Koha::Patrons',
-                value => { flags => 2**4 }    # borrowers flag = 4
-            }
-        );
         my $password = 'thePassword123';
         $librarian->set_password( { password => $password, skip_validation => 1 } );
         my $userid = $librarian->userid;
 
         $newpatron->{library_id} = $deleted_library_id;
 
-        warning_like {
-            $t->post_ok("//$userid:$password@/api/v1/patrons" => json => $newpatron)
-              ->status_is(409)
-              ->json_is('/error' => "Duplicate ID"); }
-            qr/DBD::mysql::st execute failed: Duplicate entry/;
+        # Test duplicate userid constraint
+        $t->post_ok( "//$userid:$password@/api/v1/patrons" => json => $newpatron )->status_is(400)
+          ->json_is('/error' => "Problem with ". $newpatron->{userid} );
 
         $newpatron->{library_id} = $patron->branchcode;
+
+        # Test duplicate cardnumber constraint
+        $newpatron->{userid} = undef;    # force regeneration
+        warning_like {
+            $t->post_ok( "//$userid:$password@/api/v1/patrons" => json => $newpatron )->status_is(409)
+                ->json_has( '/error', 'Fails when trying to POST duplicate cardnumber' )
+                ->json_like( '/conflict' => qr/(borrowers\.)?cardnumber/ );
+        }
+        qr/DBD::mysql::st execute failed: Duplicate entry '(.*?)' for key '(borrowers\.)?cardnumber'/;
 
         # Create a library just to make sure its ID doesn't exist on the DB
         my $category_to_delete = $builder->build_object({ class => 'Koha::Patron::Categories' });
@@ -393,10 +509,11 @@ subtest 'add() tests' => sub {
         delete $newpatron->{falseproperty};
 
         my $patron_to_delete = $builder->build_object({ class => 'Koha::Patrons' });
-        $newpatron = $patron_to_delete->to_api;
+        $newpatron = $patron_to_delete->to_api({ user => $librarian });
         # delete RO attributes
         delete $newpatron->{patron_id};
         delete $newpatron->{restricted};
+        delete $newpatron->{expired};
         delete $newpatron->{anonymized};
         $patron_to_delete->delete;
 
@@ -405,29 +522,88 @@ subtest 'add() tests' => sub {
         # Set a date-time field
         $newpatron->{last_seen} = output_pref({ dt => dt_from_string->add( days => -1 ), dateformat => 'rfc3339' });
 
-        $t->post_ok("//$userid:$password@/api/v1/patrons" => json => $newpatron)
+        # Test welcome email sending with AutoEmailNewUser = 0 but welcome_yes override
+        t::lib::Mocks::mock_preference( 'AutoEmailNewUser', 0 );
+        $letter_enqueued = 0;
+        $t->post_ok(
+            "//$userid:$password@/api/v1/patrons" => { 'x-koha-override' => 'welcome_yes' } => json => $newpatron )
           ->status_is(201, 'Patron created successfully')
           ->header_like(
             Location => qr|^\/api\/v1\/patrons/\d*|,
-            'SWAGGER3.4.1'
+            'REST3.4.1'
           )
           ->json_has('/patron_id', 'got a patron_id')
-          ->json_is( '/cardnumber'    => $newpatron->{ cardnumber })
-          ->json_is( '/surname'       => $newpatron->{ surname })
-          ->json_is( '/firstname'     => $newpatron->{ firstname })
-          ->json_is( '/date_of_birth' => $newpatron->{ date_of_birth }, 'Date field set (Bug 28585)' )
-          ->json_is( '/last_seen'     => $newpatron->{ last_seen }, 'Date-time field set (Bug 28585)' );
+          ->json_is( '/cardnumber'    => $newpatron->{cardnumber})
+          ->json_is( '/surname'       => $newpatron->{surname})
+          ->json_is( '/firstname'     => $newpatron->{firstname})
+          ->json_is( '/date_of_birth' => $newpatron->{date_of_birth}, 'Date field set (Bug 28585)' )
+          ->json_is( '/last_seen'     => $newpatron->{last_seen}, 'Date-time field set (Bug 28585)' );
 
-        warning_like {
-            $t->post_ok("//$userid:$password@/api/v1/patrons" => json => $newpatron)
-              ->status_is(409)
-              ->json_has( '/error', 'Fails when trying to POST duplicate cardnumber' )
-              ->json_like( '/conflict' => qr/(borrowers\.)?cardnumber/ ); }
-            qr/DBD::mysql::st execute failed: Duplicate entry '(.*?)' for key '(borrowers\.)?cardnumber'/;
+        my $p = Koha::Patrons->find( { cardnumber => $newpatron->{cardnumber} } );
+        is( $letter_enqueued, 1, "Patron got welcome notice due to welcome_yes override" );
+
+        # Test when AutoEmailNewUser = 1 but welcome_no override
+        $newpatron->{cardnumber} = "NewCard12345";
+        $newpatron->{userid}     = "newuserid";
+        $letter_enqueued         = 0;
+        t::lib::Mocks::mock_preference( 'AutoEmailNewUser', 1 );
+        $t->post_ok(
+            "//$userid:$password@/api/v1/patrons" => { 'x-koha-override' => 'welcome_no' } => json => $newpatron )
+            ->status_is( 201, 'Patron created successfully with welcome_no override' );
+        is( $letter_enqueued, 0, "No welcome notice sent due to welcome_no override" );
+
+        # Test when AutoEmailNewUser = 1 with no overrides
+        $newpatron->{cardnumber} = "NewCard54321";
+        $newpatron->{userid}     = "newuserid2";
+        $letter_enqueued         = 0;
+        t::lib::Mocks::mock_preference( 'AutoEmailNewUser', 1 );
+        $t->post_ok( "//$userid:$password@/api/v1/patrons" => json => $newpatron )
+            ->status_is( 201, 'Patron created successfully with AutoEmailNewUser = 1' );
+        is( $letter_enqueued, 1, "Welcome notice sent due to AutoEmailNewUser = 1" );
+
+        # Test case when patron has no valid email address
+        $mocked_patron->mock( 'notice_email_address', sub { return; } );
+        $newpatron->{cardnumber} = "NewCard99999";
+        $newpatron->{userid}     = "newuserid3";
+        $letter_enqueued         = 0;
+        t::lib::Mocks::mock_preference( 'AutoEmailNewUser', 1 );
+        $t->post_ok( "//$userid:$password@/api/v1/patrons" => json => $newpatron )
+            ->status_is( 201, 'Patron created successfully but email will not be sent' );
+        is( $letter_enqueued, 0, "No welcome notice sent due to missing email address" );
+        $mocked_patron->unmock('notice_email_address');
+
+        # Test case when notice template returns an empty string
+        $newpatron->{cardnumber} = "NewCardPidgeon";
+        $newpatron->{userid}     = "newuserid4";
+        $letter_enqueued         = 0;
+        $message_has_content     = 0;
+        t::lib::Mocks::mock_preference( 'AutoEmailNewUser', 1 );
+        $t->post_ok( "//$userid:$password@/api/v1/patrons" => json => $newpatron )
+            ->status_is( 201, 'Patron created successfully with AutoEmailNewUser = 1 and empty WELCOME notice' );
+        is( $letter_enqueued, 0, "Welcome not sent as it would be empty" );
+        $message_has_content = 1;
 
         subtest 'extended_attributes handling tests' => sub {
 
-            plan tests => 19;
+            plan tests => 29;
+
+            $mocked_patron->mock(
+                'extended_attributes',
+                sub {
+
+                    if ($extended_attrs_exception) {
+                        if (   $extended_attrs_exception eq 'Koha::Exceptions::Patron::Attribute::NonRepeatable'
+                            or $extended_attrs_exception eq 'Koha::Exceptions::Patron::Attribute::UniqueIDConstraint' )
+                        {
+                            $extended_attrs_exception->throw(
+                                attribute => Koha::Patron::Attribute->new( { code => $code, attribute => $attr } ) );
+                        } else {
+                            $extended_attrs_exception->throw( type => $type );
+                        }
+                    }
+                    return [];
+                }
+            );
 
             my $patrons_count = Koha::Patrons->search->count;
 
@@ -446,6 +622,23 @@ subtest 'add() tests' => sub {
                   "Missing mandatory extended attribute (type=$type)" );
 
             is( Koha::Patrons->search->count, $patrons_count, 'No patron added' );
+
+            # Bug 40219: Test that welcome email is not sent when extended attribute validation fails
+            t::lib::Mocks::mock_preference( 'AutoEmailNewUser', 1 );
+            $letter_enqueued          = 0;
+            $extended_attrs_exception = 'Koha::Exceptions::Patron::MissingMandatoryExtendedAttribute';
+            $t->post_ok(
+                "//$userid:$password\@/api/v1/patrons" => json => {
+                    "firstname"   => "Bug",
+                    "surname"     => "FortyZeroTwoOneNine",
+                    "address"     => "Somewhere",
+                    "category_id" => "ST",
+                    "city"        => "TestCity",
+                    "library_id"  => "MPL",
+                    "email"       => 'bug40219@test.com'
+                }
+            )->status_is(400)->json_is( '/error' => "Missing mandatory extended attribute (type=$type)" );
+            is( $letter_enqueued, 0, 'Bug 40219: No welcome email sent when extended attribute validation fails' );
 
             $extended_attrs_exception = 'Koha::Exceptions::Patron::Attribute::InvalidType';
             $t->post_ok(
@@ -521,6 +714,28 @@ subtest 'add() tests' => sub {
                     }
                 }
             );
+            my $non_repeatable = $builder->build_object(
+                {
+                    class => 'Koha::Patron::Attribute::Types',
+                    value => {
+                        mandatory     => 0,
+                        repeatable    => 0,
+                        unique_id     => 0,
+                        category_code => 'ST'
+                    }
+                }
+            );
+            my $unique_id = $builder->build_object(
+                {
+                    class => 'Koha::Patron::Attribute::Types',
+                    value => {
+                        mandatory     => 0,
+                        repeatable    => 1,
+                        unique_id     => 1,
+                        category_code => 'ST'
+                    }
+                }
+            );
 
             my $patron_id = $t->post_ok(
                 "//$userid:$password@/api/v1/patrons" => json => {
@@ -535,17 +750,49 @@ subtest 'add() tests' => sub {
                         { type => $repeatable_1->code, value => 'b' },
                         { type => $repeatable_1->code, value => 'c' },
                         { type => $repeatable_2->code, value => 'd' },
-                        { type => $repeatable_2->code, value => 'e' }
+                        { type => $repeatable_2->code,   value => 'e' },
+                        { type => $non_repeatable->code, value => 'single' },
+                        { type => $unique_id->code,      value => 'unique1' }
                     ]
                 }
             )->status_is(201, 'Patron added')->tx->res->json->{patron_id};
-            my $extended_attributes = join( ' ', sort map {$_->attribute} Koha::Patrons->find($patron_id)->extended_attributes->as_list);
-            is( $extended_attributes, 'a b c d e', 'Extended attributes are stored correctly');
+            my $extended_attributes =
+                join( ' ', sort map { $_->attribute } Koha::Patrons->find($patron_id)->extended_attributes->as_list );
+            is( $extended_attributes, 'a b c d e single unique1', 'Extended attributes are stored correctly' );
+
+            # Test non-repeatable constraint in real scenario
+            $t->post_ok(
+                "//$userid:$password@/api/v1/patrons" => json => {
+                    "firstname"           => "Another",
+                    "surname"             => "User",
+                    "address"             => "Somewhere",
+                    "category_id"         => "ST",
+                    "city"                => "Konstanz",
+                    "library_id"          => "MPL",
+                    "extended_attributes" => [
+                        { type => $non_repeatable->code, value => 'first' },
+                        { type => $non_repeatable->code, value => 'second' }
+                    ]
+                }
+            )->status_is(400)->json_like( '/error' => qr/Tried to add more than one non-repeatable attributes/ );
+
+            # Test unique ID constraint in real scenario
+            $t->post_ok(
+                "//$userid:$password@/api/v1/patrons" => json => {
+                    "firstname"           => "Another",
+                    "surname"             => "User",
+                    "address"             => "Somewhere",
+                    "category_id"         => "ST",
+                    "city"                => "Konstanz",
+                    "library_id"          => "MPL",
+                    "extended_attributes" => [ { type => $unique_id->code, value => 'unique1' } ]
+                }
+            )->status_is(400)->json_like( '/error' => qr/Your action breaks a unique constraint on the attribute/ );
         };
 
         subtest 'default patron messaging preferences handling' => sub {
 
-            plan tests => 3;
+            plan tests => 6;
 
             t::lib::Mocks::mock_preference( 'EnhancedMessagingPreferences', 1 );
 
@@ -578,6 +825,30 @@ subtest 'add() tests' => sub {
                 } ,
                 'Default messaging preferences set correctly'
             );
+
+            # Test with EnhancedMessagingPreferences disabled
+            t::lib::Mocks::mock_preference( 'EnhancedMessagingPreferences', 0 );
+
+            my $patron_id2 = $t->post_ok(
+                "//$userid:$password@/api/v1/patrons" => json => {
+                    "firstname"   => "David",
+                    "surname"     => "Nolan",
+                    "address"     => "Elsewhere",
+                    "category_id" => "ST",
+                    "city"        => "Bigtown",
+                    "library_id"  => "MPL",
+                }
+            )->status_is( 201, 'Patron added with EnhancedMessagingPreferences disabled' )
+                ->tx->res->json->{patron_id};
+
+            # No messaging preferences should be set
+            my $no_messaging_preferences = C4::Members::Messaging::GetMessagingPreferences(
+                { borrowernumber => $patron_id2, message_name => 'Item_Due' } );
+
+            ok(
+                !$no_messaging_preferences->{transports}->{email},
+                'No email messaging preferences set when EnhancedMessagingPreferences disabled'
+            );
         };
 
         $schema->storage->txn_rollback;
@@ -592,7 +863,8 @@ subtest 'update() tests' => sub {
     $schema->storage->txn_rollback;
 
     subtest 'librarian access tests' => sub {
-        plan tests => 45;
+
+        plan tests => 44;
 
         $schema->storage->txn_begin;
 
@@ -618,10 +890,11 @@ subtest 'update() tests' => sub {
 
         my $patron_1  = $authorized_patron;
         my $patron_2  = $unauthorized_patron;
-        my $newpatron = $unauthorized_patron->to_api;
+        my $newpatron = $unauthorized_patron->to_api({ user => $authorized_patron });
         # delete RO attributes
         delete $newpatron->{patron_id};
         delete $newpatron->{restricted};
+        delete $newpatron->{expired};
         delete $newpatron->{anonymized};
 
         $t->put_ok("//$userid:$password@/api/v1/patrons/-1" => json => $newpatron)
@@ -677,12 +950,9 @@ subtest 'update() tests' => sub {
         $newpatron->{cardnumber} = $patron_1->cardnumber;
         $newpatron->{userid}     = $patron_1->userid;
 
-        warning_like {
-            $t->put_ok( "//$userid:$password@/api/v1/patrons/" . $patron_2->borrowernumber => json => $newpatron )
-              ->status_is(409)
-              ->json_has( '/error', "Fails when trying to update to an existing cardnumber or userid")
-              ->json_like( '/conflict' => qr/(borrowers\.)?cardnumber/ ); }
-            qr/DBD::mysql::st execute failed: Duplicate entry '(.*?)' for key '(borrowers\.)?cardnumber'/;
+        $t->put_ok( "//$userid:$password@/api/v1/patrons/" . $patron_2->borrowernumber => json => $newpatron )
+          ->status_is(400)
+          ->json_has( '/error', "Problem with userid ". $patron_1->userid );
 
         $newpatron->{ cardnumber } = $patron_1->id . $patron_2->id;
         $newpatron->{ userid }     = "user" . $patron_1->id.$patron_2->id;
@@ -698,9 +968,10 @@ subtest 'update() tests' => sub {
           ->status_is(200, 'Patron updated successfully');
 
         # Put back the RO attributes
-        $newpatron->{patron_id} = $unauthorized_patron->to_api->{patron_id};
-        $newpatron->{restricted} = $unauthorized_patron->to_api->{restricted};
-        $newpatron->{anonymized} = $unauthorized_patron->to_api->{anonymized};
+        $newpatron->{patron_id} = $unauthorized_patron->to_api({ user => $authorized_patron })->{patron_id};
+        $newpatron->{restricted} = $unauthorized_patron->to_api({ user => $authorized_patron })->{restricted};
+        $newpatron->{expired} = $unauthorized_patron->to_api({ user => $authorized_patron })->{expired};
+        $newpatron->{anonymized} = $unauthorized_patron->to_api({ user => $authorized_patron })->{anonymized};
 
         my $got = $result->tx->res->json;
         my $updated_on_got = delete $got->{updated_on};
@@ -731,6 +1002,7 @@ subtest 'update() tests' => sub {
         # delete RO attributes
         delete $newpatron->{patron_id};
         delete $newpatron->{restricted};
+        delete $newpatron->{expired};
         delete $newpatron->{anonymized};
 
         # attempt to update
@@ -788,6 +1060,127 @@ subtest 'update() tests' => sub {
           ->json_is( '/date_of_birth' => $newpatron->{ date_of_birth }, 'Date field set (Bug 28585)' )
           ->json_is( '/last_seen'     => $newpatron->{ last_seen }, 'Date-time field set (Bug 28585)' );
 
+        subtest "extended_attributes tests" => sub {
+
+            plan tests => 26;
+
+            my $attr_type_repeatable = $builder->build_object(
+                {
+                    class => 'Koha::Patron::Attribute::Types',
+                    value => { repeatable => 1, unique_id => 0, mandatory => 0, category_code => undef }
+                }
+            );
+
+            my $attr_type_unique = $builder->build_object(
+                {
+                    class => 'Koha::Patron::Attribute::Types',
+                    value => { repeatable => 0, unique_id => 1, mandatory => 0, category_code => undef }
+                }
+            );
+
+            my $attr_type_mandatory = $builder->build_object(
+                {
+                    class => 'Koha::Patron::Attribute::Types',
+                    value => { repeatable => 0, unique_id => 0, mandatory => 1, category_code => undef }
+                }
+            );
+
+            my $deleted_attr_type = $builder->build_object( { class => 'Koha::Patron::Attribute::Types' } );
+            my $deleted_attr_code = $deleted_attr_type->code;
+            $deleted_attr_type->delete;
+
+            # Make the mandatory attribute mandatory for the patron
+            $builder->build(
+                {
+                    source => 'BorrowerAttributeTypesBranch',
+                    value  => {
+                        bat_code     => $attr_type_mandatory->code,
+                        b_branchcode => undef,
+                    }
+                }
+            );
+
+            $newpatron->{extended_attributes} = [
+                { type => $deleted_attr_code, value => 'potato' },
+            ];
+
+            $t->put_ok( "//$userid:$password@/api/v1/patrons/"
+                    . $superlibrarian->borrowernumber => { 'x-koha-embed' => 'extended_attributes' } => json =>
+                    $newpatron )->status_is(400)
+                ->json_is( '/error'      => 'Tried to use an invalid attribute type. type=' . $deleted_attr_code )
+                ->json_is( '/error_code' => 'invalid_attribute_type' );
+
+            # Add a 'unique' attribute to force failure
+            my $unique_attr = $builder->build_object(
+                { class => 'Koha::Patron::Attributes', value => { code => $attr_type_unique->code } } );
+
+            $newpatron->{extended_attributes} = [
+                { type => $attr_type_repeatable->code, value => 'a' },
+                { type => $attr_type_repeatable->code, value => 'b' },
+                { type => $attr_type_mandatory->code,  value => 'thing' },
+                { type => $attr_type_unique->code,     value => $unique_attr->attribute }
+            ];
+
+            $t->put_ok( "//$userid:$password@/api/v1/patrons/"
+                    . $superlibrarian->borrowernumber => { 'x-koha-embed' => 'extended_attributes' } => json =>
+                    $newpatron )->status_is(400)
+                ->json_is( '/error' => 'Your action breaks a unique constraint on the attribute. type='
+                    . $attr_type_unique->code
+                    . ' value='
+                    . $unique_attr->attribute )->json_is( '/error_code' => 'attribute_not_unique' );
+
+            $newpatron->{extended_attributes} = [
+                { type => $attr_type_repeatable->code, value => 'a' },
+                { type => $attr_type_repeatable->code, value => 'b' },
+                { type => $attr_type_mandatory->code,  value => 'thing' },
+                { type => $attr_type_unique->code,     value => $unique_attr->attribute }
+            ];
+
+            $t->put_ok( "//$userid:$password@/api/v1/patrons/"
+                    . $superlibrarian->borrowernumber => { 'x-koha-embed' => 'extended_attributes' } => json =>
+                    $newpatron )->status_is(400)
+                ->json_is( '/error' => 'Your action breaks a unique constraint on the attribute. type='
+                    . $attr_type_unique->code
+                    . ' value='
+                    . $unique_attr->attribute )->json_is( '/error_code' => 'attribute_not_unique' );
+
+            $newpatron->{extended_attributes} = [
+                { type => $attr_type_repeatable->code, value => 'a' },
+                { type => $attr_type_mandatory->code,  value => 'ping' },
+                { type => $attr_type_mandatory->code,  value => 'pong' },
+            ];
+
+            $t->put_ok( "//$userid:$password@/api/v1/patrons/"
+                    . $superlibrarian->borrowernumber => { 'x-koha-embed' => 'extended_attributes' } => json =>
+                    $newpatron )->status_is(400)
+                ->json_is( '/error' => 'Tried to add more than one non-repeatable attributes. type='
+                    . $attr_type_mandatory->code
+                    . ' value=pong' )->json_is( '/error_code' => 'non_repeatable_attribute' );
+
+            my $unique_value = $unique_attr->attribute;
+            $unique_attr->delete;
+
+            $newpatron->{extended_attributes} = [
+                { type => $attr_type_repeatable->code, value => 'a' },
+                { type => $attr_type_repeatable->code, value => 'b' },
+                { type => $attr_type_mandatory->code,  value => 'thing' },
+                { type => $attr_type_unique->code,     value => $unique_value }
+            ];
+
+            my $extended_attributes =
+                $t->put_ok( "//$userid:$password@/api/v1/patrons/"
+                    . $superlibrarian->borrowernumber => { 'x-koha-embed' => 'extended_attributes' } => json =>
+                    $newpatron )->status_is(200)->tx->res->json->{extended_attributes};
+
+            my @sorted_extended_attributes =
+                sort { $a->{extended_attribute_id} <=> $b->{extended_attribute_id} } @{$extended_attributes};
+
+            foreach my $i ( 0 .. 3 ) {
+                is( $newpatron->{extended_attributes}->[$i]->{type}, $sorted_extended_attributes[$i]->{type} );
+                is( $newpatron->{extended_attributes}->[$i]->{code}, $sorted_extended_attributes[$i]->{code} );
+            }
+        };
+
         $schema->storage->txn_rollback;
     };
 };
@@ -800,7 +1193,8 @@ subtest 'delete() tests' => sub {
     $schema->storage->txn_rollback;
 
     subtest 'librarian access test' => sub {
-        plan tests => 18;
+
+        plan tests => 21;
 
         $schema->storage->txn_begin;
 
@@ -880,9 +1274,21 @@ subtest 'delete() tests' => sub {
         # Remove guarantee
         $patron->guarantee_relationships->delete;
 
+        $patron->protected(1)->store();
+
+        $t->delete_ok( "//$userid:$password@/api/v1/patrons/" . $patron->borrowernumber )
+            ->status_is( 409, 'Protected patron cannot be deleted' )->json_is(
+            {
+                error      => 'Protected patrons cannot be deleted',
+                error_code => 'is_protected'
+            }
+            );
+
+        $patron->protected(0)->store();
+
         $t->delete_ok("//$userid:$password@/api/v1/patrons/" . $patron->borrowernumber)
-          ->status_is(204, 'SWAGGER3.2.4')
-          ->content_is('', 'SWAGGER3.3.4');
+          ->status_is(204, 'REST3.2.4')
+          ->content_is('', 'REST3.3.4');
 
         my $deleted_patrons = Koha::Old::Patrons->search({ borrowernumber =>  $patron->borrowernumber });
         is( $deleted_patrons->count, 1, 'The patron has been moved to the vault' );

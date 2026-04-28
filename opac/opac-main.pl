@@ -28,7 +28,6 @@ use C4::Members;
 use C4::Overdues qw( checkoverdues );
 use Koha::Checkouts;
 use Koha::Holds;
-use Koha::AdditionalContents;
 use Koha::Patron::Messages;
 
 my $input = CGI->new;
@@ -70,26 +69,9 @@ elsif (C4::Context->userenv and defined $input->param('branch') and length $inpu
    $homebranch = "";
 }
 
-my $news_id = $input->param('news_id');
-my $koha_news;
 
-if (defined $news_id){
-    $koha_news = Koha::AdditionalContents->search({ idnew => $news_id, location => ['opac_only', 'staff_and_opac'] }); # get news that is not staff-only news
-    if ( $koha_news->count > 0){
-        $template->param( news_item => $koha_news->next );
-    } else {
-        $template->param( single_news_error => 1 );
-    }
-} else {
-    $koha_news = Koha::AdditionalContents->search_for_display(
-        {
-            category   => 'news',
-            location   => ['opac_only', 'staff_and_opac'],
-            lang       => $template->lang,
-            library_id => $homebranch,
-        }
-    );
-}
+my $news_id = $input->param('news_id');
+$template->param( news_id => $news_id );
 
 # For dashboard
 my $patron = Koha::Patrons->find( $borrowernumber );
@@ -106,7 +88,12 @@ if ( $patron ) {
             });
     my $patron_note = $patron->opacnote;
     my $total = $patron->account->balance;
-    if  ( $checkouts > 0 || $overdues_count > 0 || $holds_pending > 0 || $holds_waiting > 0 || $total > 0 || $patron_note || $patron_messages->count ) {
+    my $saving_display = C4::Context->preference('OPACShowSavings');
+    my $savings = 0;
+    if ( $saving_display =~ /summary/ ) {
+        $savings = $patron->get_savings;
+    }
+    if  ( $checkouts > 0 || $overdues_count > 0 || $holds_pending > 0 || $holds_waiting > 0 || $total > 0 || $patron_note || $patron_messages->count || $savings > 0 ) {
         $template->param(
             dashboard_info => 1,
             checkouts           => $checkouts,
@@ -116,13 +103,13 @@ if ( $patron ) {
             total_owing         => $total,
             patron_messages     => $patron_messages,
             opacnote            => $patron_note,
+            savings             => $savings,
         );
     }
 }
 
+$template->param( branchcode => $homebranch ) if $homebranch;
 $template->param(
-    koha_news           => $koha_news,
-    branchcode          => $homebranch,
     daily_quote         => Koha::Quotes->get_daily_quote(),
 );
 

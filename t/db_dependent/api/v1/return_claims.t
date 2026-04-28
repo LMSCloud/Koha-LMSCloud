@@ -62,7 +62,7 @@ subtest 'claim_returned() tests' => sub {
     t::lib::Mocks::mock_userenv({ branchcode => $librarian->branchcode });
 
     my $item  = $builder->build_sample_item;
-    my $issue = AddIssue( $patron->unblessed, $item->barcode, dt_from_string->add( weeks => 2 ) );
+    my $issue = AddIssue( $patron, $item->barcode, dt_from_string->add( weeks => 2 ) );
 
     t::lib::Mocks::mock_preference( 'ClaimReturnedChargeFee', 'ask' );
     t::lib::Mocks::mock_preference( 'ClaimReturnedLostValue', '99' );
@@ -72,12 +72,13 @@ subtest 'claim_returned() tests' => sub {
         "//$userid:$password@/api/v1/return_claims" => json => {
             item_id         => $item->itemnumber,
             charge_lost_fee => Mojo::JSON->false,
+            refund_lost_fee => Mojo::JSON->false,
             created_by      => $librarian->id,
             notes           => "This is a test note."
         }
     )->status_is(201)->header_like(
         Location => qr|^\/api\/v1\/return_claims/\d*|,
-        'SWAGGER3.4.1'
+        'REST3.4.1'
     );
 
     my $claim_id = $t->tx->res->json->{claim_id};
@@ -88,6 +89,7 @@ subtest 'claim_returned() tests' => sub {
             "//$userid:$password@/api/v1/return_claims" => json => {
                 item_id         => $item->itemnumber,
                 charge_lost_fee => Mojo::JSON->false,
+                refund_lost_fee => Mojo::JSON->false,
                 created_by      => $librarian->id,
                 notes           => "This is a test note."
             }
@@ -101,6 +103,7 @@ subtest 'claim_returned() tests' => sub {
         "//$userid:$password@/api/v1/return_claims" => json => {
             item_id         => $item->itemnumber,
             charge_lost_fee => Mojo::JSON->false,
+            refund_lost_fee => Mojo::JSON->false,
             created_by      => $librarian->id,
             notes           => "This is a test note."
         }
@@ -131,7 +134,7 @@ subtest 'update_notes() tests' => sub {
     t::lib::Mocks::mock_userenv( { branchcode => $item->homebranch } )
       ;    # needed by AddIssue
 
-    my $issue = AddIssue( $librarian->unblessed, $item->barcode,
+    my $issue = AddIssue( $librarian, $item->barcode,
         dt_from_string->add( weeks => 2 ) );
 
     my $claim = $issue->claim_returned(
@@ -197,7 +200,7 @@ subtest 'resolve_claim() tests' => sub {
     my $ClaimReturnedLostValue = 1;
     t::lib::Mocks::mock_preference('ClaimReturnedLostValue', $ClaimReturnedLostValue);
 
-    my $issue = AddIssue( $librarian->unblessed, $item->barcode, dt_from_string->add( weeks => 2 ) );
+    my $issue = AddIssue( $librarian, $item->barcode, dt_from_string->add( weeks => 2 ) );
 
     my $claim = $issue->claim_returned(
         {
@@ -278,7 +281,7 @@ subtest 'delete() tests' => sub {
 
     t::lib::Mocks::mock_userenv({ branchcode => $item->homebranch });
 
-    my $issue = C4::Circulation::AddIssue( $librarian->unblessed,
+    my $issue = C4::Circulation::AddIssue( $librarian,
         $item->barcode, dt_from_string->add( weeks => 2 ) );
 
     my $claim = $issue->claim_returned(
@@ -290,8 +293,8 @@ subtest 'delete() tests' => sub {
 
     # Test deleting a return claim
     $t->delete_ok("//$userid:$password@/api/v1/return_claims/" . $claim->id)
-      ->status_is( 204, 'SWAGGER3.2.4' )
-      ->content_is( '', 'SWAGGER3.3.4' );
+      ->status_is( 204, 'REST3.2.4' )
+      ->content_is( '', 'REST3.3.4' );
 
     my $THE_claim = Koha::Checkouts::ReturnClaims->find($claim->id);
     isnt( $THE_claim, "Return claim was deleted" );

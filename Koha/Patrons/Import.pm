@@ -23,13 +23,13 @@ use Text::CSV;
 use Encode qw( decode_utf8 );
 use Try::Tiny qw( catch try );
 
-use C4::Members qw( checkcardnumber );
 use C4::Letters qw( GetPreparedLetter EnqueueLetter );
 
 use Koha::Libraries;
 use Koha::Patrons;
 use Koha::Patron::Categories;
 use Koha::Patron::Debarments qw( AddDebarment );
+use Koha::Policy::Patrons::Cardnumber;
 use Koha::DateUtils qw( dt_from_string output_pref );
 
 =head1 NAME
@@ -61,8 +61,7 @@ has 'today_iso' => ( is => 'ro', lazy => 1,
     default => sub { output_pref( { dt => dt_from_string(), dateonly => 1, dateformat => 'iso' } ); }, );
 
 has 'text_csv' => ( is => 'rw', lazy => 1,
-    default => sub { Text::CSV->new( { binary => 1, formula => 'empty' } ); },
-);
+    default => sub { Text::CSV->new( { binary => 1, formula => 'empty' } ); },  );
 
 sub import_patrons {
     my ($self, $params) = @_;
@@ -70,18 +69,20 @@ sub import_patrons {
     my $handle = $params->{file};
     unless( $handle ) { carp('No file handle passed in!'); return; }
 
-    my $matchpoint           = $params->{matchpoint};
-    my $defaults             = $params->{defaults};
-    my $preserve_fields      = $params->{preserve_fields};
-    my $ext_preserve         = $params->{preserve_extended_attributes};
-    my $overwrite_cardnumber = $params->{overwrite_cardnumber};
-    my $overwrite_passwords  = $params->{overwrite_passwords};
-    my $dry_run              = $params->{dry_run};
-    my $send_welcome         = $params->{send_welcome};
-    my $extended             = C4::Context->preference('ExtendedPatronAttributes');
-    my $set_messaging_prefs  = C4::Context->preference('EnhancedMessagingPreferences');
-    my $update_dateexpiry            = $params->{update_dateexpiry};
-    my $update_dateexpiry_from_today = $params->{update_dateexpiry_from_today};
+    my $matchpoint                      = $params->{matchpoint};
+    my $defaults                        = $params->{defaults};
+    my $preserve_fields                 = $params->{preserve_fields};
+    my $ext_preserve                    = $params->{preserve_extended_attributes};
+    my $overwrite_cardnumber            = $params->{overwrite_cardnumber};
+    my $overwrite_passwords             = $params->{overwrite_passwords};
+    my $dry_run                         = $params->{dry_run};
+    my $send_welcome                    = $params->{send_welcome};
+    my $update_dateexpiry               = $params->{update_dateexpiry};
+    my $update_dateexpiry_from_today    = $params->{update_dateexpiry_from_today};
+    my $update_dateexpiry_from_existing = $params->{update_dateexpiry_from_existing};
+
+    my $extended            = C4::Context->preference('ExtendedPatronAttributes');
+    my $set_messaging_prefs = C4::Context->preference('EnhancedMessagingPreferences');
 
     my $schema = Koha::Database->new->schema;
     $schema->storage->txn_begin if $dry_run;
@@ -147,6 +148,8 @@ sub import_patrons {
         $borrower{cardnumber} = undef if $borrower{cardnumber} eq "";
         $borrower{auth_method} = undef if $borrower{auth_method} eq "";
 
+        $borrower{protected} = 0 unless $borrower{protected};
+
         # Check if borrower category code exists and if it matches to a known category. Pushing error to missing_criticals otherwise.
         $self->check_borrower_category($borrower{categorycode}, $borrowerline, $line_number, \@missing_criticals);
 
@@ -204,6 +207,11 @@ sub import_patrons {
             }
         }
 
+        if ( $patron && $update_dateexpiry_from_existing ) {
+            $patron->dateexpiry( Koha::Patron::Categories->find( $borrower{categorycode} )->get_expiry_date( $patron->dateexpiry ) );
+            delete $borrower{dateexpiry};
+        }
+
         my $is_new = 0;
         if ($patron) {
             $member = $patron->unblessed;
@@ -213,7 +221,8 @@ sub import_patrons {
             $is_new = 1;
         }
 
-        if ( C4::Members::checkcardnumber( $borrower{cardnumber}, $borrowernumber ) ) {
+        my $is_valid = Koha::Policy::Patrons::Cardnumber->is_valid($borrower{cardnumber}, $patron);
+        unless ( $is_valid ) {
             push @errors,
               {
                 invalid_cardnumber => 1,
@@ -245,7 +254,7 @@ sub import_patrons {
         # Remove warning for int datatype that cannot be null
         # Argument "" isn't numeric in numeric eq (==) at /usr/share/perl5/DBIx/Class/Row.pm line 1018
         for my $field (
-            qw( privacy privacy_guarantor_fines privacy_guarantor_checkouts anonymized login_attempts ))
+            qw( privacy privacy_guarantor_fines privacy_guarantor_checkouts anonymized login_attempts autorenew_checkouts ))
         {
             delete $borrower{$field}
               if exists $borrower{$field} and $borrower{$field} eq "";
@@ -283,7 +292,8 @@ sub import_patrons {
                 next if $col eq 'password'   && !$overwrite_passwords;
                 next if $col eq 'dateexpiry' && $update_dateexpiry;
 
-                $borrower{$col} = $member->{$col} if $col eq 'dateexpiry' && !$columns[ $csvkeycol{$col} ];
+                $borrower{$col} = $member->{$col}
+                    if $col eq 'dateexpiry' && ( !$csvkeycol{$col} || !$columns[ $csvkeycol{$col} ] );
 
                 unless ( exists( $csvkeycol{$col} ) || $defaults->{$col} ) {
                     $borrower{$col} = $member->{$col} if ( $member->{$col} );

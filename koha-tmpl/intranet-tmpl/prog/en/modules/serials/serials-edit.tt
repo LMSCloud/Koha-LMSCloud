@@ -1,8 +1,18 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE AuthorisedValues %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Serial edition [% bibliotitle | html %] &rsaquo; Serials &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Serial edition") | html %]
+    [% IF ( callnumber ) %]
+         ([% callnumber | html %])
+    [% END %] &rsaquo;
+    [% bibliotitle | html %] &rsaquo;
+    [% t("Serials") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.js("js/cataloging.js") | $raw %]
 [% INCLUDE 'calendar.inc' %]
@@ -15,7 +25,7 @@
     });
 
 function popup(subscriptionid) {
-	window.open("subscription-renew.pl?subscriptionid="+subscriptionid,"subscription_renewal",'width=700,height=400,toolbar=false,scrollbars=yes');
+	window.open("subscription-renew.pl?op=renew&subscriptionid="+subscriptionid,"subscription_renewal",'width=700,height=400,toolbar=false,scrollbars=yes');
 }
 
 function unHideItems(index,labelindex, serialId) {
@@ -62,6 +72,14 @@ $(document).ready(function() {
         }
         return true;
     });
+
+    $("#toggle_skip_issues").on("change", function() {
+        if (this.checked) {
+            $("#skip_issues").removeClass("collapse").prop("disabled", false);
+        } else {
+            $("#skip_issues").addClass("collapse").prop("disabled", true);
+        }
+    });
 });
 //]]>
 </script>
@@ -98,8 +116,9 @@ $(document).ready(function() {
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 <h1>Serial edition <em>[% bibliotitle | html %]</em>
     [% IF location %] ([% AuthorisedValues.GetByCode('LOC', location) | html %])[% END %]
@@ -109,19 +128,22 @@ $(document).ready(function() {
 
 [% IF internalnotes %]<p>Nonpublic note: [% internalnotes | html | html_line_break %]</p>[% END %]
 <form method="post" name="f" class="noEnterSubmit" action="serials-edit.pl" id="serials_edit">
+    [% INCLUDE 'csrf-token.inc' %]
 
 [% IF ( Errors ) %]
-<div class="dialog alert">
+<div class="alert alert-warning">
 <ul>
 [% IF ( barcode_not_unique ) %]<li>Error: Barcode not unique for [% FOREACH errse IN errseq %]serialseq [% errse.serialseq | html %]<br/>[% END %]</li>[% END %]
 </ul>
 </div>
 [% END %]
 
-    <input type="hidden" name="op" value="serialchangestatus" />
+    <input type="hidden" name="op" value="cud-serialchangestatus" />
     [% FOREACH subscription IN subscriptions %]
     <input type="hidden" name="subscriptionid" value="[% subscription.subscriptionid | html %]" />
     [% END %]
+
+<div class="page-section">
 	<table>
 	<tr>
 		<th>Numbered</th>
@@ -169,6 +191,27 @@ $(document).ready(function() {
               <option value="2" selected="selected">Arrived</option>
             [% ELSE %]
               <option value="2">Arrived</option>
+            [% END %]
+            [% IF ( serialslis.status21 ) %]
+              <option value="21" selected="selected">Circulating</option>
+            [% ELSE %]
+                [% IF ( !serialslis.status1 ) %]
+                    <option value="21">Circulating</option>
+                [% END %]
+            [% END %]
+            [% IF ( serialslis.status22 ) %]
+              <option value="22" selected="selected">Out for binding</option>
+            [% ELSE %]
+                [% IF ( !serialslis.status1 ) %]
+                    <option value="22">Out for binding</option>
+                [% END %]
+            [% END %]
+            [% IF ( serialslis.status23 ) %]
+              <option value="23" selected="selected">Bound</option>
+            [% ELSE %]
+                [% IF ( !serialslis.status1 ) %]
+                    <option value="23">Bound</option>
+                [% END %]
             [% END %]
             [% IF ( serialslis.status3 ) %]
               <option value="3" selected="selected">Late</option>
@@ -252,9 +295,9 @@ $(document).ready(function() {
         <ol>[% FOREACH iteminformatio IN item.iteminformation %]<li>
                <div class="subfield_line" style="[% iteminformatio.hidden | html %]" id="subfield[% item.serialid | html %][% item.countitems | html %][% iteminformatio.subfield | html %][% iteminformatio.random | html %]">
                 [% IF (iteminformatio.mandatory) %]
-                    <label class="required">[% iteminformatio.subfield | html %] - [% iteminformatio.marc_lib | html %]</label>
+                                                                                    <label class="required">[% iteminformatio.subfield | html %] - [% iteminformatio.marc_lib | html %]</label>
                 [% ELSE %]
-                    <label>[% iteminformatio.subfield | html %] - [% iteminformatio.marc_lib | html %]</label>
+                                                                                    <label>[% iteminformatio.subfield | html %] - [% iteminformatio.marc_lib | html %]</label>
                 [% END %]
                 [% IF ( iteminformatio.marc_value.type == 'select' ) %]
                   <select name="field_value" class="select2 input_marceditor">
@@ -304,6 +347,9 @@ $(document).ready(function() {
   [% END %]
   [% END %]
 [% END %]
+    <tr>
+        <td colspan="6">Skip issues:<input type="checkbox" id="toggle_skip_issues"> <input id="skip_issues" type="text" pattern="^\d$" name="skip_issues" class="collapse" value="1" disabled required="required"/></td>
+    </tr>
 [% FOREACH newserialloo IN newserialloop %]
     [% UNLESS ( newserialloo.subscriptionexpired ) %]
     <tr>
@@ -404,9 +450,9 @@ $(document).ready(function() {
         <ol>[% FOREACH iteminformatio IN newserialloo.iteminformation %]<li>
                <div class="subfield_line" style="[% iteminformatio.hidden | html %]" id="subfield[% newserialloo.serialid | html %][% newserialloo.countitems | html %][% iteminformatio.subfield | html %][% iteminformatio.random | html %]">
                 [% IF (iteminformatio.mandatory) %]
-                    <label class="required">[% iteminformatio.subfield | html %] - [% iteminformatio.marc_lib | html %]</label>
+                                                                                <label class="required">[% iteminformatio.subfield | html %] - [% iteminformatio.marc_lib | html %]</label>
                 [% ELSE %]
-                    <label>[% iteminformatio.subfield | html %] - [% iteminformatio.marc_lib | html %]</label>
+                                                                                <label>[% iteminformatio.subfield | html %] - [% iteminformatio.marc_lib | html %]</label>
                 [% END %]
                 [% IF ( iteminformatio.marc_value.type == 'select' ) %]
                   <select name="field_value" class="select2 input_marceditor">
@@ -457,19 +503,21 @@ $(document).ready(function() {
 [% END %]
 
 </table>
+</div> <!-- /.page-section -->
+
     <fieldset class="action">
         <div class="btn-group"><input type="submit" value="Save" class="btn btn-default"  accesskey="w" /></div>
         [% UNLESS ( serialsadditems ) %]&nbsp;&nbsp;
-            <div class="btn-group"><a href="#multi_receiving" role="button" class="btn btn-default" data-toggle="modal"><i class="fa fa-plus"></i> Multi receiving</a></div>
+            <div class="btn-group"><a href="#multi_receiving" role="button" class="btn btn-default" data-bs-toggle="modal"><i class="fa fa-plus"></i> Multi receiving</a></div>
         [% END %]
 
     </fieldset>
 </form>
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'serials-menu.inc' %]
                 <div id="serialmenu">
@@ -488,7 +536,7 @@ $(document).ready(function() {
                     </ul>
                 </div>
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% INCLUDE 'intranet-bottom.inc' %]

@@ -19,6 +19,11 @@ properties:
       - string
       - "null"
     description: patron's first name
+  preferred_name:
+    type:
+      - string
+      - "null"
+    description: patron's preferred name
   middle_name:
     type:
       - string
@@ -204,6 +209,10 @@ properties:
       - boolean
       - "null"
     description: set to 1 if library marked this patron as having lost his card
+  expired:
+    type: boolean
+    readOnly: true
+    description: If patron is expired
   restricted:
     type: boolean
     readOnly: true
@@ -385,6 +394,15 @@ properties:
       - object
       - "null"
     description: Library of the patron
+  protected:
+    type:
+      - boolean
+    description: Protected status of the patron
+  _strings:
+    type:
+      - object
+      - "null"
+    description: A list of stringified coded values
 additionalProperties: false
 required:
   - surname

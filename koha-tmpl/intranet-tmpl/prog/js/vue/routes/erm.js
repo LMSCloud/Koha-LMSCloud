@@ -7,6 +7,7 @@ import AgreementsFormAdd from "../components/ERM/AgreementsFormAdd.vue";
 import EHoldingsLocalPackagesFormAdd from "../components/ERM/EHoldingsLocalPackagesFormAdd.vue";
 import EHoldingsLocalTitlesFormAdd from "../components/ERM/EHoldingsLocalTitlesFormAdd.vue";
 import EHoldingsLocalTitlesFormImport from "../components/ERM/EHoldingsLocalTitlesFormImport.vue";
+import EHoldingsLocalTitlesKBARTImport from "../components/ERM/EHoldingsLocalTitlesKBARTImport.vue";
 import EHoldingsLocalPackagesList from "../components/ERM/EHoldingsLocalPackagesList.vue";
 import EHoldingsLocalPackagesShow from "../components/ERM/EHoldingsLocalPackagesShow.vue";
 import EHoldingsLocalResourcesShow from "../components/ERM/EHoldingsLocalResourcesShow.vue";
@@ -20,19 +21,16 @@ import EHoldingsEBSCOTitlesShow from "../components/ERM/EHoldingsEBSCOTitlesShow
 import LicensesList from "../components/ERM/LicensesList.vue";
 import LicensesShow from "../components/ERM/LicensesShow.vue";
 import LicensesFormAdd from "../components/ERM/LicensesFormAdd.vue";
+import UsageStatisticsDataProvidersList from "../components/ERM/UsageStatisticsDataProvidersList.vue";
+import UsageStatisticsDataProvidersSummary from "../components/ERM/UsageStatisticsDataProvidersSummary.vue";
+import UsageStatisticsDataProvidersFormAdd from "../components/ERM/UsageStatisticsDataProvidersFormAdd.vue";
+import UsageStatisticsDataProvidersShow from "../components/ERM/UsageStatisticsDataProvidersShow.vue";
+import UsageStatisticsReportsHome from "../components/ERM/UsageStatisticsReportsHome.vue";
+import UsageStatisticsReportsViewer from "../components/ERM/UsageStatisticsReportsViewer.vue";
 
 import { $__ } from "../i18n";
 
 export const routes = [
-    {
-        path: "/cgi-bin/koha/admin/background_jobs/:id",
-        is_base: true,
-        beforeEnter(to, from, next) {
-            window.location.href =
-                "/cgi-bin/koha/admin/background_jobs.pl?op=view&id=" +
-                to.params.id;
-        },
-    },
     {
         path: "/cgi-bin/koha/erm/erm.pl",
         is_default: true,
@@ -116,7 +114,7 @@ export const routes = [
                     {
                         path: "local",
                         title: $__("Local"),
-                        icon: "fa fa-map-marker",
+                        icon: "fa-solid fa-location-dot",
                         disabled: true,
                         children: [
                             {
@@ -161,7 +159,7 @@ export const routes = [
                             {
                                 path: "titles",
                                 title: $__("Titles"),
-                                icon: "fa fa-sort-alpha-asc",
+                                icon: "fa-solid fa-arrow-down-a-z",
                                 is_end_node: true,
                                 children: [
                                     {
@@ -202,6 +200,14 @@ export const routes = [
                                             EHoldingsLocalTitlesFormImport
                                         ),
                                         title: $__("Import from a list"),
+                                    },
+                                    {
+                                        path: "kbart-import",
+                                        name: "EHoldingsLocalTitlesKBARTImport",
+                                        component: markRaw(
+                                            EHoldingsLocalTitlesKBARTImport
+                                        ),
+                                        title: $__("Import from a KBART file"),
                                     },
                                     {
                                         path: "/cgi-bin/koha/erm/eholdings/local/resources/:resource_id",
@@ -247,7 +253,7 @@ export const routes = [
                             {
                                 path: "titles",
                                 title: $__("Titles"),
-                                icon: "fa fa-sort-alpha-asc",
+                                icon: "fa-solid fa-arrow-down-a-z",
                                 is_end_node: true,
                                 children: [
                                     {
@@ -275,6 +281,82 @@ export const routes = [
                                         is_navigation_item: false,
                                     },
                                 ],
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                path: "/cgi-bin/koha/erm/eusage",
+                title: $__("eUsage"),
+                icon: "fa fa-tasks",
+                disabled: true,
+                children: [
+                    {
+                        path: "usage_data_providers",
+                        title: $__("Data providers"),
+                        icon: "fa fa-exchange",
+                        is_end_node: true,
+                        children: [
+                            {
+                                path: "",
+                                name: "UsageStatisticsDataProvidersList",
+                                component: markRaw(
+                                    UsageStatisticsDataProvidersList
+                                ),
+                            },
+                            {
+                                path: ":usage_data_provider_id",
+                                name: "UsageStatisticsDataProvidersShow",
+                                component: markRaw(
+                                    UsageStatisticsDataProvidersShow
+                                ),
+                                title: $__("Show provider"),
+                            },
+                            {
+                                path: "add",
+                                name: "UsageStatisticsDataProvidersFormAdd",
+                                component: markRaw(
+                                    UsageStatisticsDataProvidersFormAdd
+                                ),
+                                title: $__("Add data provider"),
+                            },
+                            {
+                                path: "edit/:usage_data_provider_id",
+                                name: "UsageStatisticsDataProvidersFormAddEdit",
+                                component: markRaw(
+                                    UsageStatisticsDataProvidersFormAdd
+                                ),
+                                title: $__("Edit data provider"),
+                            },
+                            {
+                                path: "summary",
+                                name: "UsageStatisticsDataProvidersSummary",
+                                component: markRaw(
+                                    UsageStatisticsDataProvidersSummary
+                                ),
+                                title: $__("Data providers summary"),
+                            },
+                        ],
+                    },
+                    {
+                        path: "reports",
+                        title: $__("Reports"),
+                        icon: "fa fa-bar-chart",
+                        is_end_node: true,
+                        children: [
+                            {
+                                path: "",
+                                name: "UsageStatisticsReportsHome",
+                                component: markRaw(UsageStatisticsReportsHome),
+                            },
+                            {
+                                path: "viewer",
+                                name: "UsageStatisticsReportsViewer",
+                                component: markRaw(
+                                    UsageStatisticsReportsViewer
+                                ),
+                                title: $__("View report"),
                             },
                         ],
                     },

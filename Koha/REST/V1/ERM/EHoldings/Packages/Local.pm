@@ -53,16 +53,14 @@ sub get {
     my $c = shift or return;
 
     return try {
-        my $package_id = $c->validation->param('package_id');
-        my $package = $c->objects->find( Koha::ERM::EHoldings::Packages->search,
-            $package_id );
+        my $package_id = $c->param('package_id');
+        my $package    = $c->objects->find(
+            Koha::ERM::EHoldings::Packages->search,
+            $package_id
+        );
 
-        unless ($package) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => "Package not found" }
-            );
-        }
+        return $c->render_resource_not_found("Package")
+            unless $package;
 
         return $c->render(
             status  => 200,
@@ -87,18 +85,23 @@ sub add {
         Koha::Database->new->schema->txn_do(
             sub {
 
-                my $body = $c->validation->param('body');
+                my $body = $c->req->json;
 
-                my $package_agreements = delete $body->{package_agreements} // [];
+                my $package_agreements  = delete $body->{package_agreements}  // [];
+                my $extended_attributes = delete $body->{extended_attributes} // [];
                 delete $body->{external_id} unless $body->{external_id};
 
                 my $package = Koha::ERM::EHoldings::Package->new_from_api($body)->store;
                 $package->package_agreements($package_agreements);
 
+                my @extended_attributes =
+                    map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
+                $package->extended_attributes( \@extended_attributes );
+
                 $c->res->headers->location($c->req->url->to_string . '/' . $package->package_id);
                 return $c->render(
                     status  => 201,
-                    openapi => $package->to_api
+                    openapi => $c->objects->to_api($package),
                 );
             }
         );
@@ -149,23 +152,20 @@ Controller function that handles updating a Koha::ERM::EHoldings::Package object
 sub update {
     my $c = shift or return;
 
-    my $package_id = $c->validation->param('package_id');
+    my $package_id = $c->param('package_id');
     my $package = Koha::ERM::EHoldings::Packages->find( $package_id );
 
-    unless ($package) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Package not found" }
-        );
-    }
+    return $c->render_resource_not_found("Package")
+        unless $package;
 
     return try {
         Koha::Database->new->schema->txn_do(
             sub {
 
-                my $body = $c->validation->param('body');
+                my $body = $c->req->json;
 
-                my $package_agreements = delete $body->{package_agreements} // [];
+                my $package_agreements  = delete $body->{package_agreements}  // [];
+                my $extended_attributes = delete $body->{extended_attributes} // [];
                 delete $body->{external_id} unless $body->{external_id};
 
                 $package->set_from_api($body)->store;
@@ -174,10 +174,13 @@ sub update {
                 # ie. It's coming from EBSCO and we don't have local data linked to it
                 $package->package_agreements($package_agreements);
 
-                $c->res->headers->location($c->req->url->to_string . '/' . $package->package_id);
+                my @extended_attributes =
+                    map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
+                $package->extended_attributes( \@extended_attributes );
+
                 return $c->render(
                     status  => 200,
-                    openapi => $package->to_api
+                    openapi => $c->objects->to_api($package),
                 );
             }
         );
@@ -219,25 +222,17 @@ sub update {
 sub delete {
     my $c = shift or return;
 
-    my $package = Koha::ERM::EHoldings::Packages->find( $c->validation->param('package_id') );
-    unless ($package) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Package not found" }
-        );
-    }
+    my $package = Koha::ERM::EHoldings::Packages->find( $c->param('package_id') );
+
+    return $c->render_resource_not_found("Package")
+        unless $package;
 
     return try {
         $package->delete;
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
-    }
-    catch {
+        return $c->render_resource_deleted;
+    } catch {
         $c->unhandled_exception($_);
     };
 }
-
 
 1;

@@ -84,7 +84,7 @@ my $bib_heading_fields = {
     },
     '151' => {
         auth_type => 'GEOGR_NAME',
-        subfields => 'avxyz68',
+        subfields => 'agvxyz68',
         main_entry => 1
     },
     '155' => {
@@ -136,7 +136,7 @@ my $bib_heading_fields = {
     },
     '648' => { auth_type => 'CHRON_TERM', subfields => 'avxyz',  subject => 1 },
     '650' => { auth_type => 'TOPIC_TERM', subfields => 'abvxyz', subject => 1 },
-    '651' => { auth_type => 'GEOGR_NAME', subfields => 'avxyz',  subject => 1 },
+    '651' => { auth_type => 'GEOGR_NAME', subfields => 'agvxyz', subject => 1 },
     '655' => { auth_type => 'GENRE/FORM', subfields => 'avxyz',  subject => 1 },
     '690' => { auth_type => 'TOPIC_TERM', subfields => 'abvxyz', subject => 1 },
     '691' => { auth_type => 'GEOGR_NAME', subfields => 'avxyz',  subject => 1 },
@@ -201,8 +201,8 @@ my $auth_heading_fields = {
         main_entry => 1
     },
     '151' => {
-        auth_type  => 'GEOG_NAME',
-        subfields  => 'avxyz68',
+        auth_type  => 'GEOGR_NAME',
+        subfields  => 'agvxyz68',
         main_entry => 1
     },
     '155' => {
@@ -344,7 +344,6 @@ sub parse_heading {
       _get_search_heading( $field, $field_info->{'subfields'} );
     my $display_heading =
       _get_display_heading( $field, $field_info->{'subfields'} );
-
     return ( $auth_type, $thesaurus, $search_heading, $display_heading,
         'exact' );
 }
@@ -402,7 +401,9 @@ sub _get_search_heading {
     my $field     = shift;
     my $subfields = shift;
 
-    my $heading   = "";
+    my $heading = "";
+    return $heading unless $subfields;
+
     my @subfields = $field->subfields();
     my $first     = 1;
     for ( my $i = 0 ; $i <= $#subfields ; $i++ ) {
@@ -439,7 +440,9 @@ sub _get_display_heading {
     my $field     = shift;
     my $subfields = shift;
 
-    my $heading   = "";
+    my $heading = "";
+    return $heading unless $subfields;
+
     my @subfields = $field->subfields();
     my $first     = 1;
     for ( my $i = 0 ; $i <= $#subfields ; $i++ ) {

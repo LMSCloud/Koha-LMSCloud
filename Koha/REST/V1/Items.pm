@@ -70,14 +70,16 @@ sub list_public {
     return try {
         my $patron = $c->stash('koha.user');
 
-        my $items_set = Koha::Items->filter_by_visible_in_opac( { patron => $patron } );
-        my $items     = $c->objects->search($items_set);
+        my $items_set =
+          Koha::Items->filter_by_visible_in_opac( { patron => $patron } );
+        my $items = $c->objects->search($items_set);
 
         return $c->render(
             status  => 200,
             openapi => $items
         );
-    } catch {
+    }
+    catch {
         $c->unhandled_exception($_);
     };
 }
@@ -93,13 +95,11 @@ sub get {
 
     try {
         my $items_rs = Koha::Items->new;
-        my $item = $c->objects->find($items_rs, $c->validation->param('item_id'));
-        unless ( $item ) {
-            return $c->render(
-                status => 404,
-                openapi => { error => 'Item not found'}
-            );
-        }
+        my $item = $c->objects->find($items_rs, $c->param('item_id'));
+
+        return $c->render_resource_not_found("Item")
+            unless $item;
+
         return $c->render( status => 200, openapi => $item );
     }
     catch {
@@ -118,12 +118,9 @@ sub delete {
 
     return try {
         my $item = Koha::Items->find($c->param('item_id'));
-        unless ( $item ) {
-            return $c->render(
-                status => 404,
-                openapi => { error => 'Item not found'}
-            );
-        }
+
+        return $c->render_resource_not_found("Item")
+            unless $item;
 
         my $safe_to_delete = $item->safe_to_delete;
 
@@ -161,11 +158,7 @@ sub delete {
         }
 
         $item->safe_delete;
-
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
+        return $c->render_resource_deleted;
     }
     catch {
         $c->unhandled_exception($_);
@@ -183,12 +176,8 @@ sub get_bookings {
 
     my $item = Koha::Items->find( { itemnumber => $c->param('item_id') }, { prefetch => ['bookings'] } );
 
-    unless ($item) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Object not found." }
-        );
-    }
+    return $c->render_resource_not_found("Item")
+        unless $item;
 
     return try {
 
@@ -213,18 +202,16 @@ used for building the dropdown selector
 sub pickup_locations {
     my $c = shift->openapi->valid_input or return;
 
-    my $item_id = $c->validation->param('item_id');
+    my $item_id = $c->param('item_id');
     my $item = Koha::Items->find( $item_id );
 
-    unless ($item) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Item not found" }
-        );
-    }
+    return $c->render_resource_not_found("Item")
+        unless $item;
 
-    my $patron_id = delete $c->validation->output->{patron_id};
+    my $patron_id = $c->param('patron_id');
     my $patron    = Koha::Patrons->find( $patron_id );
+
+    $c->req->params->remove('patron_id');
 
     unless ($patron) {
         return $c->render(
@@ -279,15 +266,11 @@ Controller function that handles bundled_items Koha::Item objects
 sub bundled_items {
     my $c = shift->openapi->valid_input or return;
 
-    my $item_id = $c->validation->param('item_id');
+    my $item_id = $c->param('item_id');
     my $item = Koha::Items->find( $item_id );
 
-    unless ($item) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Item not found" }
-        );
-    }
+    return $c->render_resource_not_found("Item")
+        unless $item;
 
     return try {
         my $items_set = Koha::Items->search(
@@ -298,7 +281,7 @@ sub bundled_items {
                 join => 'item_bundles_item',
             }
         );
-        my $items     = $c->objects->search( $items_set );
+        my $items = $c->objects->search($items_set);
         return $c->render(
             status  => 200,
             openapi => $items
@@ -309,48 +292,6 @@ sub bundled_items {
     };
 }
 
-=head3 public_bundled_items
-
-Controller function that handles public bundled_items Koha::Item objects
-
-=cut
-
-sub public_bundled_items {
-    my $c = shift->openapi->valid_input or return;
-
-    my $item_id = $c->validation->param('item_id');
-    my $item = Koha::Items->find( $item_id );
-    
-    print STDERR "public_bundled_items called with $item_id item_id\n";
-
-    unless ($item) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Item not found" }
-        );
-    }
-
-    return try {
-        my $patron = $c->stash('koha.user');
-        my $items_set = Koha::Items->search(
-            {
-                'item_bundles_item.host' => $item_id,
-            },
-            {
-                join => 'item_bundles_item',
-            }
-        )->filter_by_visible_in_opac( { patron => $patron } );
-
-        my $items     = $c->objects->search( $items_set );
-        return $c->render(
-            status  => 200,
-            openapi => $items
-        );
-    }
-    catch {
-        $c->unhandled_exception($_);
-    };
-}
 
 =head3 add_to_bundle
 
@@ -361,36 +302,37 @@ Controller function that handles adding items to this bundle
 sub add_to_bundle {
     my $c = shift->openapi->valid_input or return;
 
-    my $item_id = $c->validation->param('item_id');
-    my $item = Koha::Items->find( $item_id );
+    my $item_id = $c->param('item_id');
+    my $item    = Koha::Items->find($item_id);
 
-    unless ($item) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Item not found" }
-        );
-    }
+    return $c->render_resource_not_found("Item")
+        unless $item;
 
-    my $bundle_item_id = $c->validation->param('body')->{'external_id'};
+    my $body = $c->req->json;
+
+    my $bundle_item_id = $body->{'external_id'};
     $bundle_item_id = barcodedecode($bundle_item_id);
     my $bundle_item = Koha::Items->find( { barcode => $bundle_item_id } );
 
-    unless ($bundle_item) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Bundle item not found" }
-        );
-    }
+    return $c->render_resource_not_found("Bundle item")
+        unless $bundle_item;
 
+    my $add_link = $body->{'marc_link'} // 0;
     return try {
-        my $force_checkin = $c->validation->param('body')->{'force_checkin'};
-        my $link = $item->add_to_bundle($bundle_item, { force_checkin => $force_checkin });
+        my $options = {
+            force_checkin => $body->{force_checkin},
+            ignore_holds  => $body->{ignore_holds},
+        };
+
+        my $link = $item->add_to_bundle( $bundle_item, $options );
+        if ($add_link) {
+            $bundle_item->biblio->link_marc_host( { host => $item->biblio } );
+        }
         return $c->render(
             status  => 201,
-            openapi => $bundle_item
+            openapi => $bundle_item->to_api
         );
-    }
-    catch {
+    } catch {
         if ( ref($_) eq 'Koha::Exceptions::Object::DuplicateID' ) {
             return $c->render(
                 status  => 409,
@@ -400,8 +342,7 @@ sub add_to_bundle {
                     key        => $_->duplicate_id
                 }
             );
-        }
-        elsif ( ref($_) eq 'Koha::Exceptions::Item::Bundle::BundleIsCheckedOut' ) {
+        } elsif ( ref($_) eq 'Koha::Exceptions::Item::Bundle::BundleIsCheckedOut' ) {
             return $c->render(
                 status  => 409,
                 openapi => {
@@ -417,8 +358,7 @@ sub add_to_bundle {
                     error_code => 'checked_out'
                 }
             );
-        }
-        elsif ( ref($_) eq 'Koha::Exceptions::Checkin::FailedCheckin' ) {
+        } elsif ( ref($_) eq 'Koha::Exceptions::Checkin::FailedCheckin' ) {
             return $c->render(
                 status  => 409,
                 openapi => {
@@ -426,8 +366,15 @@ sub add_to_bundle {
                     error_code => 'failed_checkin'
                 }
             );
-        }
-        elsif ( ref($_) eq 'Koha::Exceptions::Item::Bundle::IsBundle' ) {
+        } elsif ( ref($_) eq 'Koha::Exceptions::Item::Bundle::ItemHasHolds' ) {
+            return $c->render(
+                status  => 409,
+                openapi => {
+                    error      => 'Item is reserved',
+                    error_code => 'reserved'
+                }
+            );
+        } elsif ( ref($_) eq 'Koha::Exceptions::Item::Bundle::IsBundle' ) {
             return $c->render(
                 status  => 400,
                 openapi => {
@@ -435,8 +382,7 @@ sub add_to_bundle {
                     error_code => 'failed_nesting'
                 }
             );
-        }
-        else {
+        } else {
             $c->unhandled_exception($_);
         }
     };
@@ -451,33 +397,22 @@ Controller function that handles removing items from this bundle
 sub remove_from_bundle {
     my $c = shift->openapi->valid_input or return;
 
-    my $item_id = $c->validation->param('item_id');
+    my $item_id = $c->param('item_id');
     my $item = Koha::Items->find( $item_id );
 
-    unless ($item) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Item not found" }
-        );
-    }
+    return $c->render_resource_not_found("Item")
+        unless $item;
 
-    my $bundle_item_id = $c->validation->param('bundled_item_id');
+    my $bundle_item_id = $c->param('bundled_item_id');
     $bundle_item_id = barcodedecode($bundle_item_id);
     my $bundle_item = Koha::Items->find( { itemnumber => $bundle_item_id } );
 
-    unless ($bundle_item) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Bundle item not found" }
-        );
-    }
+    return $c->render_resource_not_found("Bundle item")
+        unless $bundle_item;
 
     return try {
         $bundle_item->remove_from_bundle;
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
+        return $c->render_resource_deleted;
     } catch {
         if ( ref($_) eq 'Koha::Exceptions::Item::Bundle::BundleIsCheckedOut' ) {
             return $c->render(

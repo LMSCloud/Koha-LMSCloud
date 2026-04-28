@@ -35,7 +35,8 @@ use Try::Tiny qw( catch try );
 sub list {
     my $c = shift->openapi->valid_input or return;
 
-    my $max_expiration_date = delete $c->validation->output->{max_expiration_date};
+    my $max_expiration_date = $c->param('max_expiration_date');
+    $c->req->params->remove('max_expiration_date');
 
     return try {
         my $agreements_set = Koha::ERM::Agreements->new;
@@ -61,15 +62,10 @@ sub get {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $agreement_id = $c->validation->param('agreement_id');
-        my $agreement    = $c->objects->find( Koha::ERM::Agreements->search, $agreement_id );
+        my $agreement = $c->objects->find( Koha::ERM::Agreements->search, $c->param('agreement_id') );
 
-        unless ($agreement) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => "Agreement not found" }
-            );
-        }
+        return $c->render_resource_not_found("Agreement")
+            unless $agreement;
 
         return $c->render(
             status  => 200,
@@ -94,13 +90,14 @@ sub add {
         Koha::Database->new->schema->txn_do(
             sub {
 
-                my $body = $c->validation->param('body');
+                my $body = $c->req->json;
 
-                my $periods    = delete $body->{periods} // [];
-                my $user_roles = delete $body->{user_roles} // [];
-                my $agreement_licenses = delete $body->{agreement_licenses} // [];
+                my $periods                 = delete $body->{periods}                 // [];
+                my $user_roles              = delete $body->{user_roles}              // [];
+                my $agreement_licenses      = delete $body->{agreement_licenses}      // [];
                 my $agreement_relationships = delete $body->{agreement_relationships} // [];
-                my $documents = delete $body->{documents} // [];
+                my $documents               = delete $body->{documents}               // [];
+                my $extended_attributes     = delete $body->{extended_attributes}     // [];
 
                 my $agreement = Koha::ERM::Agreement->new_from_api($body)->store;
                 $agreement->periods($periods);
@@ -109,10 +106,14 @@ sub add {
                 $agreement->agreement_relationships($agreement_relationships);
                 $agreement->documents($documents);
 
+                my @extended_attributes =
+                    map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
+                $agreement->extended_attributes( \@extended_attributes );
+
                 $c->res->headers->location($c->req->url->to_string . '/' . $agreement->agreement_id);
                 return $c->render(
                     status  => 201,
-                    openapi => $agreement->to_api
+                    openapi => $c->objects->to_api($agreement),
                 );
             }
         );
@@ -169,27 +170,23 @@ Controller function that handles updating a Koha::ERM::Agreement object
 sub update {
     my $c = shift->openapi->valid_input or return;
 
-    my $agreement_id = $c->validation->param('agreement_id');
-    my $agreement = Koha::ERM::Agreements->find( $agreement_id );
+    my $agreement = Koha::ERM::Agreements->find( $c->param('agreement_id') );
 
-    unless ($agreement) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Agreement not found" }
-        );
-    }
+    return $c->render_resource_not_found("Agreement")
+        unless $agreement;
 
     return try {
         Koha::Database->new->schema->txn_do(
             sub {
 
-                my $body = $c->validation->param('body');
+                my $body = $c->req->json;
 
-                my $periods    = delete $body->{periods} // [];
-                my $user_roles = delete $body->{user_roles} // [];
-                my $agreement_licenses = delete $body->{agreement_licenses} // [];
+                my $periods                 = delete $body->{periods}                 // [];
+                my $user_roles              = delete $body->{user_roles}              // [];
+                my $agreement_licenses      = delete $body->{agreement_licenses}      // [];
                 my $agreement_relationships = delete $body->{agreement_relationships} // [];
-                my $documents = delete $body->{documents} // [];
+                my $documents               = delete $body->{documents}               // [];
+                my $extended_attributes     = delete $body->{extended_attributes}     // [];
 
                 $agreement->set_from_api($body)->store;
                 $agreement->periods($periods);
@@ -198,10 +195,13 @@ sub update {
                 $agreement->agreement_relationships($agreement_relationships);
                 $agreement->documents($documents);
 
-                $c->res->headers->location($c->req->url->to_string . '/' . $agreement->agreement_id);
+                my @extended_attributes =
+                    map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
+                $agreement->extended_attributes( \@extended_attributes );
+
                 return $c->render(
                     status  => 200,
-                    openapi => $agreement->to_api
+                    openapi => $c->objects->to_api($agreement),
                 );
             }
         );
@@ -249,22 +249,15 @@ sub update {
 sub delete {
     my $c = shift->openapi->valid_input or return;
 
-    my $agreement = Koha::ERM::Agreements->find( $c->validation->param('agreement_id') );
-    unless ($agreement) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Agreement not found" }
-        );
-    }
+    my $agreement = Koha::ERM::Agreements->find( $c->param('agreement_id') );
+
+    return $c->render_resource_not_found("Agreement")
+        unless $agreement;
 
     return try {
         $agreement->delete;
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
-    }
-    catch {
+        return $c->render_resource_deleted;
+    } catch {
         $c->unhandled_exception($_);
     };
 }

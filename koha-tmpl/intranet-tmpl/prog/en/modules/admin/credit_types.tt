@@ -1,21 +1,25 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE Branches %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% PROCESS 'accounts.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF op =='add_form' %]
-       Credit types &rsaquo;
        [% IF credit_type.code %]
-           Modify credit type
+           [% tx("Modify credit type '{credit_type}'", {credit_type = credit_type.code }) | html %] &rsaquo;
        [% ELSE %]
-           New credit type
+           [% t("New credit type") | html %] &rsaquo;
        [% END %]
+       [% t("Credit types") | html %]
     [% ELSE %]
-       Credit types
-    [% END %] &rsaquo; Administration &rsaquo; Koha
-</title>
+       [% t("Credit types") | html %]
+    [% END %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -36,7 +40,7 @@
             [% END %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
                 [% IF credit_type.code %]
-                    <span>Modify credit type</span>
+                    [% tx("Modify credit type '{credit_type}'", {credit_type = credit_type.code }) | html %]
                 [% ELSE %]
                     <span>New credit type</span>
                 [% END %]
@@ -52,20 +56,21 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
                 [% FOREACH m IN messages %]
-                <div class="dialog [% m.type | html %]">
+                <div class="alert alert-[% m.type | html %]">
                     [% SWITCH m.code %]
                     [% CASE 'success_on_saving' %]
-                        <span>Credit type saved successfully</span>
+                        <span>Credit type saved successfully.</span>
                     [% CASE 'error_on_saving' %]
-                        <span>An error occurred when saving this credit type</span>
+                        <span>An error occurred when saving this credit type.</span>
                     [% CASE 'success_on_archive' %]
-                        <span>Credit type archived successfully</span>
+                        <span>Credit type archived successfully.</span>
                     [% CASE 'success_on_restore' %]
-                        <span>Credit type restored successfully</span>
+                        <span>Credit type restored successfully.</span>
                     [% CASE %]
                         <span>[% m.code | html %]</span>
                     [% END %]
@@ -74,13 +79,14 @@
 
                 [% IF op == 'add_form' %]
                     [% IF credit_type %]
-                        <h1>Modify a credit type</h1>
+                        <h1>[% tx("Modify credit type '{credit_type}'", {credit_type = credit_type.code }) | html %]</h1>
                     [% ELSE %]
                         <h1>New credit type</h1>
                     [% END %]
 
                     <form action="/cgi-bin/koha/admin/credit_types.pl" name="Aform" method="post" class="validated">
-                        <input type="hidden" name="op" value="add_validate" />
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-add_validate" />
                         <fieldset class="rows">
                             <ol>
                                 <li>
@@ -152,7 +158,7 @@
                         <a class="btn btn-default" id="newcredittype" href="/cgi-bin/koha/admin/credit_types.pl?op=add_form"><i class="fa fa-plus"></i> New credit type</a>
                     </div>
 
-                    <h1>Account credit types</h1>
+                    <h1>Credit types</h1>
                     [% IF credit_types.count %]
                         <div class="page-section">
                             <table id="table_credit_types">
@@ -194,14 +200,23 @@
                                         </td>
                                         <td class="actions">
                                             [% IF !credit_type.archived %]
-                                                <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/credit_types.pl?op=add_form&amp;code=[% credit_type.code | uri %]&type=credit"><i class="fa fa-pencil"></i> Edit</a>
+                                                <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/credit_types.pl?op=add_form&amp;code=[% credit_type.code | uri %]&type=credit"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
                                             [% END %]
                                             [% IF !credit_type.is_system && !credit_type.archived %]
-                                                <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/credit_types.pl?op=archive&amp;code=[% credit_type.code | uri %]"><i class="fa fa-archive"></i> Archive</a>
+                                                <form id="archive_[% credit_type.code | html %]" method="post" action="/cgi-bin/koha/admin/credit_types.pl">
+                                                    [% INCLUDE 'csrf-token.inc' %]
+                                                    <input type="hidden" name="op" value="cud-archive" />
+                                                    <input type="hidden" name="code" value="[% credit_type.code | html %]" />
+                                                    <button type="submit" class="btn btn-default btn-xs archive_button" href="#" data-code="[% credit_type.code | html %]"><i class="fa fa-archive"></i> Archive</button>
+                                                </form>
                                             [% END %]
-
                                             [% IF !credit_type.is_system && credit_type.archived %]
-                                                <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/credit_types.pl?op=unarchive&amp;code=[% credit_type.code | uri %]"><i class="fa fa-undo"></i> Restore</a>
+                                                <form id="unarchive_[% credit_type.code | html %]" method="post" action="/cgi-bin/koha/admin/credit_types.pl">
+                                                    [% INCLUDE 'csrf-token.inc' %]
+                                                    <input type="hidden" name="op" value="cud-unarchive" />
+                                                    <input type="hidden" name="code" value="[% credit_type.code | html %]" />
+                                                    <button type="submit" class="btn btn-default btn-xs unarchive_button" href="#" data-code="[% credit_type.code | html %]"><i class="fa fa-undo"></i> Restore</button>
+                                                </form>
                                             [% END %]
                                         </td>
                                     </tr>
@@ -210,20 +225,20 @@
                             </table>
                         </div><!-- /.page-section -->
                     [% ELSE %]
-                        <div class="dialog message">
+                        <div class="alert alert-info">
                             There are no account credit types defined.
                             <a href="/cgi-bin/koha/admin/credit_types.pl?op=add_form">Create new credit type</a>
                         </div>
                     [% END %]
                 [% END %]
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -235,14 +250,14 @@
             var txtActivefilter = _("Filter system credit types");
             var txtInactivefilter = _("Show all credit types");
             var table_credit_types = $("#table_credit_types").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-                    { "aTargets": [ 0, 1 ], "bSortable": false, "bVisible": false },
+                "columnDefs": [
+                    { "targets": [ -1 ], "orderable": false, "searchable":  false },
+                    { "targets": [ 0, 1 ], "orderable": false, "visible": false },
                 ],
-                "aaSorting": [[ 0, "asc" ],[ 2, "asc" ]],
-                "sDom": 'C<"top pager"ilpfB><"#filter_s">tr<"bottom pager"ip>',
-                "iDisplayLength": 20,
-                "sPaginationType": "full_numbers"
+                "order": [[ 0, "asc" ],[ 2, "asc" ]],
+                "dom": 'C<"top pager"ilpfB><"#filter_s">tr<"bottom pager"ip>',
+                "pageLength": 20,
+                "pagingType": "full_numbers"
             }));
             $("#filter_s").html('<p><a href="#" id="filter_system"><i class="fa fa-filter"></i> '+txtActivefilter+'</a>');
             $('#filter_system').click(function(e) {
@@ -250,16 +265,17 @@
                 if ($(this).hasClass('filtered')) {
                     var filteredValue = '';
                     $(this).html('<i class="fa fa-filter"></i> '+txtActivefilter);
-                } else { //Not filtered. Let's do it!
+                } else { // Not filtered. Let's do it!
                     var filteredValue = '0';
                     $(this).html('<i class="fa fa-filter"></i> '+txtInactivefilter);
                 }
-                table_credit_types.fnFilter(filteredValue, 1, false, false);
+                table_credit_types.DataTable().columns(1).search(filteredValue, false, false).draw();
                 $(this).toggleClass('filtered');
             });
 
             //Start filtered
             $('#filter_system').click();
+
         });
     </script>
 [% END %]

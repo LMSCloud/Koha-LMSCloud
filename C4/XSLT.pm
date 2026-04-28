@@ -95,27 +95,30 @@ sub _get_best_default_xslt_filename {
 
 sub get_xslt_sysprefs {
     my $sysxml = "<sysprefs>\n";
-    foreach my $syspref ( qw/ hidelostitems OPACURLOpenInNewWindow
-                              DisplayOPACiconsXSLT URLLinkText viewISBD
-                              OPACBaseURL TraceCompleteSubfields UseICUStyleQuotes
-                              UseAuthoritiesForTracings TraceSubjectSubdivisions
-                              Display856uAsImage OPACDisplay856uAsImage 
-                              UseControlNumber IntranetBiblioDefaultView BiblioDefaultView
-                              OPACItemLocation DisplayIconsXSLT
-                              AlternateHoldingsField AlternateHoldingsSeparator
-                              TrackClicks opacthemes IdRef OpacSuppression
-                              OPACResultsLibrary OPACShowOpenURL 
-                              DivibibEnabled ExcludeReviewsWithMARC520Indicator1Value
-                              IncludeAdditionalMARCFieldsInOPACDetailView
-                              IncludeAdditionalMARCFieldsInOPACResultView
-                              IncludeAdditionalMARCFieldsInOPACVolumeView
-                              IncludeAdditionalMARCFieldsInStaffDetailView
-                              IncludeAdditionalMARCFieldsInStaffResultView
-                              OpenURLResolverURL OpenURLImageLocation
-                              OPACResultsMaxItems OPACResultsMaxItemsUnavailable OPACResultsUnavailableGroupingBy
-                              OpenURLText OPACShowMusicalInscripts OPACPlayMusicalInscripts / )
+    foreach my $syspref (
+        qw/ hidelostitems OPACURLOpenInNewWindow
+        DisplayOPACiconsXSLT URLLinkText viewISBD
+        OPACBaseURL TraceCompleteSubfields UseICUStyleQuotes
+        UseAuthoritiesForTracings TraceSubjectSubdivisions
+        Display856uAsImage OPACDisplay856uAsImage
+        UseControlNumber IntranetBiblioDefaultView BiblioDefaultView
+        OPACItemLocation DisplayIconsXSLT
+        AlternateHoldingsField AlternateHoldingsSeparator
+        TrackClicks opacthemes IdRef OpacSuppression
+        OPACResultsLibrary OPACShowOpenURL
+        DivibibEnabled ExcludeReviewsWithMARC520Indicator1Value
+        IncludeAdditionalMARCFieldsInOPACDetailView
+        IncludeAdditionalMARCFieldsInOPACResultView
+        IncludeAdditionalMARCFieldsInOPACVolumeView
+        IncludeAdditionalMARCFieldsInStaffDetailView
+        IncludeAdditionalMARCFieldsInStaffResultView
+        OpenURLResolverURL OpenURLImageLocation
+        OPACResultsMaxItems OPACResultsMaxItemsUnavailable OPACResultsUnavailableGroupingBy
+        OpenURLText OPACShowMusicalInscripts OPACPlayMusicalInscripts ContentWarningField
+        AuthorLinkSortBy AuthorLinkSortOrder /
+        )
     {
-        my $sp = C4::Context->preference( $syspref );
+        my $sp = C4::Context->preference($syspref);
         next unless defined($sp);
         $sysxml .= "<syspref name=\"$syspref\">$sp</syspref>\n";
     }
@@ -258,6 +261,7 @@ sub XSLTParse4Display {
         }
     }
 
+    # embed variables
     my $varxml = "<variables>\n";
     while (my ($key, $value) = each %$variables) {
         $value //= q{};
@@ -322,7 +326,7 @@ sub buildKohaItemsNamespace {
     my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search->unblessed } };
     my $xml = '';
     my %descs = map { $_->{authorised_value} => $_ } Koha::AuthorisedValues->get_descriptions_by_koha_field( { kohafield => 'items.notforloan' } );
-    my $ref_status = C4::Context->preference('Reference_NFL_Statuses') || '1|2';
+    my $ref_status = C4::Context->preference('Reference_NFL_Statuses') // q{}; # fallback to 1|2 removed
 
     while ( my $item = $items->next ) {
         my $status;
@@ -350,9 +354,9 @@ sub buildKohaItemsNamespace {
             $status = 'other';
             $substatus = 'In transit';
         }
-        elsif ($item->damaged) {
-            $status = 'other';
-            $substatus = "Damaged";
+        elsif ( $item->damaged && !C4::Context->preference('AllowHoldsOnDamagedItems') ) {
+            $status    = 'other';
+            $substatus = 'Damaged';
         }
         elsif ($item->itemlost) {
             $status = 'other';

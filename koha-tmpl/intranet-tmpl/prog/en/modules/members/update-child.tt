@@ -1,8 +1,13 @@
 [% USE raw %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Choose adult category &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Choose adult category") | html %] &rsaquo;
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -14,7 +19,8 @@
     <h1> Choose adult category </h1>
 
     [% IF patron_categories %]
-        <form method="post" action="update-child.pl">
+        <form method="post" id="updatechildf" action="update-child.pl">
+            [% INCLUDE 'csrf-token.inc' %]
             <fieldset>
                 <table id="catst">
                     <thead>
@@ -36,14 +42,18 @@
                         [% END %]
                     </tbody>
                 </table>
-                <input type="hidden" name="op" value="update" />
+                <input type="hidden" name="op" value="cud-update" />
                 <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]" />
                 <input type="hidden" name="cattype" value="[% cattype | html %]" />
-                <fieldset class="action">
-                    <input class="submit" type="submit" value="Submit" />
-                    <a href="#" class="cancel close">Cancel</a>
-                </fieldset>
             </fieldset>
+            <nav class="navbar navbar-default fixed-bottom">
+                <div class="container-fluid">
+                    <fieldset class="action">
+                        <input class="btn btn-primary" type="submit" value="Submit" />
+                        <button type="button" class="btn btn-default close_window">Cancel</button>
+                    </fieldset>
+                </div>
+            </nav>
         </form>
     [% END %]
 [% END %]
@@ -55,13 +65,20 @@
 
         $(document).ready(function() {
             $("#catst").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "sDom": 't',
-                "aaSorting": [[ 2, "asc" ]],
-                "aoColumnDefs": [
-                    { "aTargets": [ 0 ], "bSortable": false, "bSearchable": false }
+                "dom": 't',
+                "order": [[ 2, "asc" ]],
+                "columnDefs": [
+                    { "targets": [ 0 ], "orderable": false, "searchable":  false }
                 ],
-                "bPaginate": false
+                "paginate": false
             }));
+            $("#updatechildf").validate({
+                rules: {
+                    catcode: {
+                        required: true,
+                    },
+                }
+            });
         });
     </script>
     [% IF ( SUCCESS ) %]

@@ -17,11 +17,13 @@
 
 use Modern::Perl;
 use utf8;
+use Encode qw(encode_utf8);
 
 use C4::Context;
 
 use Test::More;
 use Test::MockModule;
+use Test::NoWarnings;
 
 use C4::Context;
 use C4::Biblio qw( AddBiblio );
@@ -36,7 +38,7 @@ eval { require Selenium::Remote::Driver; };
 if ( $@ ) {
     plan skip_all => "Selenium::Remote::Driver is needed for selenium tests.";
 } else {
-    plan tests => 8;
+    plan tests => 10;
 }
 
 my $s = t::lib::Selenium->new;
@@ -54,6 +56,45 @@ my $AudioAlerts_value = C4::Context->preference('AudioAlerts');
 C4::Context->set_preference('AudioAlerts', '1');
 
 our @cleanup;
+
+subtest 'SCI can load error pages' => sub {
+    plan tests => 1;
+
+    my $builder = t::lib::TestBuilder->new;
+    my $patron  = $builder->build_object( { class => 'Koha::Patrons', value => { flags => 0 } } );
+    my $rsp     = C4::Context->preference('RequireStrongPassword');
+    C4::Context->set_preference( 'RequireStrongPassword', '0' );
+    my $password = Koha::AuthUtils::generate_password( $patron->category );
+    $patron->set_password( { password => $password } );
+
+    my $dbh = C4::Context->dbh();
+    my $sth = $dbh->prepare(
+        "INSERT INTO user_permissions (borrowernumber, module_bit, code) VALUES ( ?, 23,'self_checkin_module')");
+    $sth->execute( $patron->borrowernumber );
+
+    my $sci_mo = C4::Context->preference('SelfCheckInModule');
+    my $sci_js = C4::Context->preference('SelfCheckInUserJS');
+    C4::Context->set_preference(
+        'SelfCheckInUserJS',
+        '</script><img src="' . $s->opac_base_url . '/silk/famfamfam.png"/><script>'
+    );
+    C4::Context->set_preference( 'SelfCheckInModule', '1' );
+
+    my $sci_module = $s->opac_base_url . qq|sci/sci-main.pl|;
+    $driver->get($sci_module);
+    $s->fill_form( { userid => $patron->userid, password => $password } );
+    $s->driver->find_element('//form[@id="auth"]//input[@type="submit"]')->click;
+    $s->fill_form( { barcode_input => "DONTMATTER" } );
+    $s->driver->find_element('//form[@id="scan_form"]//button[@id="sci_append_button"]')->click;
+    $s->driver->find_element('//form[@id="scan_form"]//button[@id="sci_checkin_button"]')->click;
+    like( $driver->get_title(), qr(Self check-in), );
+
+    C4::Context->set_preference( 'SelfCheckInUserJS',     $sci_js );
+    C4::Context->set_preference( 'SelfCheckInModule',     $sci_mo );
+    C4::Context->set_preference( 'RequireStrongPassword', $rsp );
+    push @cleanup, $patron, $patron->category, $patron->library;
+};
+
 subtest 'OPAC - borrowernumber, branchcode and categorycode as html attributes' => sub {
     plan tests => 3;
 
@@ -124,8 +165,8 @@ subtest 'Bibliographic record detail page must not explode even with invalid met
 
     $driver->get( $base_url . "/catalogue/detail.pl?biblionumber=$biblionumber" );
 
-    my $biberror = $driver->find_element('//span[@class="biberror"]')->get_text();
-    is( $biberror, "There is an error with this bibliographic record, the view may be degraded.");
+    my $biberror = $driver->find_element('//p[@class="biberror"]')->get_text();
+    is( $biberror, "There is at least one encoding error with this bibliographic record, the view may be degraded.");
     push @cleanup, $biblio;
 };
 
@@ -176,7 +217,7 @@ subtest 'Display circulation table correctly' => sub {
         }
     );
 
-    C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+    C4::Circulation::AddIssue( $patron, $item->barcode );
 
     my $mainpage = $s->base_url . q|mainpage.pl|;
     $driver->get($mainpage . q|?logout.x=1|);
@@ -296,7 +337,7 @@ subtest 'Encoding in session variables' => sub {
             $s->auth;
             # Switch to the new library
             $driver->get( $base_url . 'circ/set-library.pl' );
-            $s->fill_form( { branch => $branchname } );
+            $s->fill_form( { 'set-library-branch' => $branchname } );
             $s->submit_form;
             # Check an item out
             $driver->get( $base_url
@@ -306,7 +347,9 @@ subtest 'Encoding in session variables' => sub {
             is(
                 $driver->find_element( '//span[@class="logged-in-branch-name"]')->get_text(),
                 $branchname,
-                sprintf( "logged-in-branch-name set - SessionStorage=%s, branchname=%s", $SessionStorage, $branchname
+                sprintf(
+                    "logged-in-branch-name set - SessionStorage=%s, branchname=%s", $SessionStorage,
+                    encode_utf8($branchname)
                 )
             );
 
@@ -325,7 +368,10 @@ subtest 'Encoding in session variables' => sub {
             is(
                 $td_checked_out_from->get_text(),
                 $branchname,
-                sprintf( "'Checked out from' column should contain the branchname - SessionStorage=%s, branchname=%s", $SessionStorage, $branchname )
+                sprintf(
+                    "'Checked out from' column should contain the branchname - SessionStorage=%s, branchname=%s",
+                    $SessionStorage, encode_utf8($branchname)
+                )
             );
 
             # Remove the check in
@@ -354,7 +400,7 @@ subtest 'OPAC - Suggest for purchase' => sub {
     my $biblio = Koha::Biblios->find($biblionumber);
     $driver->get( $opac_base_url . "opac-detail.pl?biblionumber=$biblionumber" );
 
-    $s->click({ href => '/opac-suggestions.pl?op=add&biblionumber=' . $biblionumber });
+    $s->click({ href => '/opac-suggestions.pl?op=add_form&biblionumber=' . $biblionumber });
     is( $driver->find_element('//a[@id="title"]')->get_text(),
         $biblio->title,
         "Suggestion's title correctly filled in with biblio's title" );

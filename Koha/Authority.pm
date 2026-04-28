@@ -24,13 +24,15 @@ use base qw(Koha::Object);
 use Koha::Authority::ControlledIndicators;
 use Koha::SearchEngine::Search;
 
+use C4::Heading qw( new_from_field );
+
 =head1 NAME
 
 Koha::Authority - Koha Authority Object class
 
 =head1 API
 
-=head2 Instance Methods
+=head2 Class methods
 
 =head3 get_usage_count
 
@@ -59,6 +61,32 @@ sub linked_biblionumbers {
     my ( $self, $params ) = @_;
     $params->{authid} = $self->authid;
     return Koha::Authorities->linked_biblionumbers( $params );
+}
+
+=head3 heading_object
+
+    Routine to return the C4::Heading object for this authority
+
+=cut
+
+sub heading_object {
+
+    my ( $self, $params ) = @_;
+    my $record = $params->{record};
+
+    if ( !$self->{_report_tag} ) {
+        my $authtype = Koha::Authority::Types->find( $self->authtypecode );
+        return {} if !$authtype;    # very exceptional
+        $self->{_report_tag} = $authtype->auth_tag_to_report;
+    }
+
+    if ( !$record ) {
+        $record = $self->record;
+    }
+    my $field   = $record->field( $self->{_report_tag} );
+    my $heading = C4::Heading->new_from_field( $field, undef, 1 );    #new auth heading
+    return $heading;
+
 }
 
 =head3 controlled_indicators
@@ -113,29 +141,120 @@ sub controlled_indicators {
     });
 }
 
-=head3 get_identifiers
+=head3 get_identifiers_and_information
 
-    my $identifiers = $author->get_identifiers;
+    my $information = $author->get_identifiers_and_information;
 
-Return a list of identifiers of the authors which are in 024$2$a
+Return a list of information of the authors (syspref OPACAuthorIdentifiersAndInformation)
 
 =cut
 
-sub get_identifiers {
-    my ( $self, $params ) = @_;
+sub get_identifiers_and_information {
+    my ($self) = @_;
 
     my $record = $self->record;
 
-    my @identifiers;
-    for my $field ( $record->field('024') ) {
-        my $sf_2 = $field->subfield('2');
-        my $sf_a = $field->subfield('a');
-        next unless $sf_2 && $sf_a;
-        push @identifiers, {source => $sf_2, number => $sf_a, };
+    # FIXME UNIMARC not supported yet.
+    return if C4::Context->preference('marcflavour') eq 'UNIMARC';
+
+    my $information;
+    for my $info ( split ',', C4::Context->preference('OPACAuthorIdentifiersAndInformation') ) {
+        if ( $info eq 'identifiers' ) {
+
+            # identifiers (024$2$a)
+            for my $field ( $record->field('024') ) {
+                my $sf_2 = $field->subfield('2');
+                my $sf_a = $field->subfield('a');
+                next unless $sf_2 && $sf_a;
+                push @{ $information->{identifiers} }, { source => $sf_2, number => $sf_a, };
+            }
+        } elsif ( $info eq 'activity' ) {
+
+            # activity: Activity (372$a$s$t)
+            for my $field ( $record->field('372') ) {
+                my $sf_a = $field->subfield('a');
+                my $sf_s = $field->subfield('s');
+                my $sf_t = $field->subfield('t');
+                push @{ $information->{activity} },
+                    { field_of_activity => $sf_a, start_period => $sf_s, end_period => $sf_t, };
+            }
+        } elsif ( $info eq 'address' ) {
+
+            # address: Address (371$a$b$d$e)
+            for my $field ( $record->field('371') ) {
+                my $sf_a = $field->subfield('a');
+                my $sf_b = $field->subfield('b');
+                my $sf_d = $field->subfield('d');
+                my $sf_e = $field->subfield('e');
+                push @{ $information->{address} },
+                    { address => $sf_a, city => $sf_b, country => $sf_d, postal_code => $sf_e, };
+            }
+        } elsif ( $info eq 'associated_group' ) {
+
+            # associated_group: Associated group (373$a$s$t$u$v$0)
+            for my $field ( $record->field('373') ) {
+                my $sf_a = $field->subfield('a');
+                my $sf_s = $field->subfield('s');
+                my $sf_t = $field->subfield('t');
+                my $sf_u = $field->subfield('u');
+                my $sf_v = $field->subfield('v');
+                my $sf_0 = $field->subfield('0');
+                push @{ $information->{associated_group} },
+                    {
+                    associated_group      => $sf_a, start_period            => $sf_s, end_period => $sf_t, uri => $sf_u,
+                    source_of_information => $sf_v, authority_record_number => $sf_0,
+                    };
+            }
+        } elsif ( $info eq 'email_address' ) {
+
+            # email_address: Electronic mail address (371$m)
+            for my $field ( $record->field('371') ) {
+                my $sf_m = $field->subfield('m');
+                push @{ $information->{email_address} }, { email_address => $sf_m, };
+            }
+        } elsif ( $info eq 'occupation' ) {
+
+            # occupation: Occupation (374$a$s$t$u$v$0)
+            for my $field ( $record->field('374') ) {
+                my $sf_a = $field->subfield('a');
+                my $sf_s = $field->subfield('s');
+                my $sf_t = $field->subfield('t');
+                my $sf_u = $field->subfield('u');
+                my $sf_v = $field->subfield('v');
+                my $sf_0 = $field->subfield('0');
+                push @{ $information->{occupation} },
+                    {
+                    occupation            => $sf_a, start_period            => $sf_s, end_period => $sf_t, uri => $sf_u,
+                    source_of_information => $sf_v, authority_record_number => $sf_0,
+                    };
+            }
+        } elsif ( $info eq 'place_of_birth' ) {
+
+            # place_of_birth: Place of birth (370$a)
+            for my $field ( $record->field('370') ) {
+                my $sf_a = $field->subfield('a');
+                push @{ $information->{place_of_birth} }, { place_of_birth => $sf_a, };
+            }
+        } elsif ( $info eq 'place_of_death' ) {
+
+            # place_of_death: Place of death (370$b)
+            for my $field ( $record->field('370') ) {
+                my $sf_b = $field->subfield('b');
+                push @{ $information->{place_of_death} }, { place_of_death => $sf_b, };
+            }
+        } elsif ( $info eq 'uri' ) {
+
+            # uri: URI (371$u)
+            for my $field ( $record->field('371') ) {
+                my $sf_u = $field->subfield('u');
+                push @{ $information->{uri} }, { uri => $sf_u, };
+            }
+        }
     }
 
-    return \@identifiers;
+    return $information;
 }
+
 
 =head3 record
 
@@ -148,16 +267,50 @@ Return the MARC::Record for this authority
 sub record {
     my ( $self ) = @_;
 
-    my $flavour =
-      C4::Context->preference('marcflavour') eq 'UNIMARC'
-      ? 'UNIMARCAUTH'
-      : 'MARC21';
+    my $flavour = $self->record_schema;
     return MARC::Record->new_from_xml( $self->marcxml, 'UTF-8', $flavour );
 }
 
-=head2 Class Methods
+=head3 record_schema
 
-=head3 type
+my $schema = $biblio->record_schema();
+
+Returns the record schema (MARC21 or UNIMARCAUTH).
+
+=cut
+
+sub record_schema {
+    my ( $self ) = @_;
+
+    return C4::Context->preference('marcflavour') eq 'UNIMARC'
+      ? 'UNIMARCAUTH'
+      : 'MARC21';
+}
+
+=head3 to_api_mapping
+
+This method returns the mapping for representing a Koha::Authority object
+on the API.
+
+=cut
+
+sub to_api_mapping {
+    return {
+        authid            => 'authority_id',
+        authtrees         => undef,
+        authtypecode      => 'framework_id',
+        datecreated       => 'created_date',
+        linkid            => undef,
+        marc              => undef,
+        marcxml           => undef,
+        modification_time => 'modified_date',
+        origincode        => undef,
+    };
+}
+
+=head2 Internal methods
+
+=head3 _type
 
 =cut
 

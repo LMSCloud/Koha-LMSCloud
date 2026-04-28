@@ -81,6 +81,12 @@
     [%- CASE 'erm' -%]
         <span class="main_permission erm_permission">Manage the electronic resources module</span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'loggedinlibrary' -%]
+        <span class="main_permission loggedinlibrary_permission">Allow staff to change logged in library</span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'preservation' -%]
+        <span class="main_permission preservation_permission">Manage the preservation module</span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- END -%]
 [%- END -%]
 
@@ -148,7 +154,7 @@
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'manage_sysprefs' -%]
         <span class="sub_permission manage_sysprefs_subpermission">
-            Manage global system preferences
+            Manage system preferences
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'manage_libraries' -%]
@@ -238,7 +244,7 @@
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'manage_search_targets' -%]
         <span class="sub_permission manage_search_targets_subpermission">
-            Manage Z39.50 and SRU server configuration
+            Manage Z39.50 and SRU servers, OAI repositories configuration
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'manage_didyoumean' -%]
@@ -263,7 +269,7 @@
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'manage_additional_fields' -%]
         <span class="sub_permission manage_aditional_fields_subpermission">
-            Manage additional fields for baskets or subscriptions (requires edit_subscription or order_manage permissions)
+            Manage additional fields (requires the corresponding permission, one of edit_subscription, order_manage, edit_invoices, or remaining_permissions under updatecharges)
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'manage_sms_providers' -%]
@@ -301,14 +307,27 @@
             Delete patrons
         </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'merge_borrowers' -%]
+        <span class="sub_permission merge_borrowers_subpermission"> Merge patrons </span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'edit_borrowers' -%]
         <span class="sub_permission edit_borrowers_subpermission">
             Add, modify and view patron information
         </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'list_borrowers' -%]
+        <span class="sub_permission list_borrowers_subpermission">
+            Search, list and view patrons
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'view_borrower_infos_from_any_libraries' -%]
         <span class="sub_permission view_borrower_infos_from_any_libraries_subpermission">
             View patron infos from any libraries. If not set the logged in user could only access patron infos from its own library or group of libraries.
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'send_messages_to_borrowers' -%]
+        <span class="sub_permission send_messages_to_borrowers_subpermission">
+            Send messages to patrons
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'modify_holds_priority' -%]
@@ -331,6 +350,16 @@
             Edit catalog (Modify bibliographic/holdings data)
         </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'edit_locked_records' -%]
+        <span class="sub_permission edit_locked_records_subpermission">
+            Edit locked records
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'set_record_sources' -%]
+        <span class="sub_permission set_record_sources_subpermission">
+            Set record source
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'advanced_editor' -%]
         <span class="sub_permission advanced_editor_subpermission">
             Use the advanced cataloging editor (requires edit_catalogue)
@@ -348,12 +377,17 @@
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'edit_items' -%]
         <span class="sub_permission edit_items_subpermission">
-            Edit items
+            Edit items (not including items restricted by library group)
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'edit_any_item' -%]
+        <span class="sub_permission edit_items_subpermission">
+            Edit any item including items that would otherwise be restricted
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'edit_items_restricted' -%]
         <span class="sub_permission edit_items_restricted_subpermission">
-            Limit item modification to subfields defined in the SubfieldsToAllowForRestrictedEditing preference (please note that edit_item is still required)
+            Limit item modification to subfields defined in the SubfieldsToAllowForRestrictedEditing preference (please note that edit_items is still required)
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'fast_cataloging' -%]
@@ -406,9 +440,19 @@
             Add manual credits to a patron account
         </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'suggestions_create' -%]
+        <span class="sub_permission suggestions_create_subpermission">
+            Create purchase suggestions
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'suggestions_manage' -%]
         <span class="sub_permission suggestions_manage_subpermission">
-            Manage purchase suggestions
+            Edit purchase suggestions
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'suggestions_delete' -%]
+        <span class="sub_permission suggestions_delete_subpermission">
+            Delete purchase suggestions
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'budget_add_del' -%]
@@ -449,6 +493,11 @@
     [%- CASE 'order_manage_all' -%]
         <span class="sub_permission order_manage_all_subpermission">
             Manage all baskets and order lines, regardless of restrictions on them
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'issue_manage' -%]
+        <span class="sub_permission issue_manage_subpermission">
+            Manage vendor issues
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'order_receive' -%]
@@ -731,6 +780,16 @@
             Use tool plugins
         </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'admin' -%]
+        <span class="sub_permission admin_subpermission">
+            Use administrative plugins
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'create_public_lists' -%]
+        <span class="sub_permission create_public_lists_subpermission">
+            Create public lists
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'delete_public_lists' -%]
         <span class="sub_permission delete_public_lists_subpermission">
             Delete public lists
@@ -739,6 +798,16 @@
     [%- CASE 'edit_public_lists' -%]
         <span class="sub_permission edit_public_lists_subpermission">
             Edit public lists (Name, settings, and permissions, but not explicitly contents)
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'edit_public_list_contents' -%]
+        <span class="sub_permission edit_public_list_contents_subpermission">
+            Edit public lists contents
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'use_public_lists' -%]
+        <span class="sub_permission use_public_lists_subpermission">
+            Use public lists
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'upload_general_files' -%]
@@ -799,6 +868,11 @@
     [%- CASE 'edi_manage' -%]
         <span class="sub_permission edi_manage_subpermission">
             Manage EDIFACT transmissions
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'marc_order_manage' -%]
+        <span class="sub_permission marc_order_manage_subpermission">
+            Manage MARC ordering
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'reopen_closed_invoices' -%]
@@ -865,7 +939,7 @@
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'anonymous_refund' -%]
         <span class="sub_permission anonymous_refund_subpermission">
-            Perform anonymous refund actions
+            Perform refunds of point of sale transactions
         </span>
         <span class="permissioncode">([% name | html %])</span>
   [%# problem_reports %]
@@ -884,6 +958,12 @@
     [%- CASE 'manage_identity_providers' -%]
         <span class="sub_permission manage_identity_providers_subpermission">
             Manage identity providers
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
+  [%# record_sources %]
+    [%- CASE 'manage_record_sources' -%]
+        <span class="sub_permission manage_record_sources_subpermission">
+            Manage record sources
         </span>
         <span class="permissioncode">([% name | html %])</span>
   [%- END -%]

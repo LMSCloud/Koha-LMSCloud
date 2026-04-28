@@ -15,7 +15,6 @@ use Koha::Patron::Categories;
 use Koha::Patrons;
 
 use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
-use Koha::Token;
 
 my $input = CGI->new;
 
@@ -45,14 +44,9 @@ output_and_exit_if_error( $input, $cookie, $template, { module => 'members', log
 my %member2;
 $member2{'borrowernumber'}=$member;
 
-if ($input->param('newflags')) {
+my $op = $input->param('op') // q{};
 
-    output_and_exit( $input, $cookie, $template,  'wrong_csrf_token' )
-        unless Koha::Token->new->check_csrf({
-            session_id => scalar $input->cookie('CGISESSID'),
-            token  => scalar $input->param('csrf_token'),
-        });
-
+if ($op eq 'cud-newflags') {
 
     my $dbh=C4::Context->dbh();
 
@@ -181,8 +175,6 @@ if ($input->param('newflags')) {
 $template->param(
     patron         => $patron,
     loop           => \@loop,
-    csrf_token =>
-        Koha::Token->new->generate_csrf( { session_id => scalar $input->cookie('CGISESSID'), } ),
     disable_superlibrarian_privs => C4::Context->preference('ProtectSuperlibrarianPrivileges') ? !C4::Context->IsSuperLibrarian : 0,
 );
 

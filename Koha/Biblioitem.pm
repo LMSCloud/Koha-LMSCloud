@@ -77,7 +77,6 @@ sub to_api_mapping {
         totalissues      => 'serial_total_issues',
         volumedate       => 'volume_date',
         volumedesc       => 'volume_description',
-
     };
 }
 

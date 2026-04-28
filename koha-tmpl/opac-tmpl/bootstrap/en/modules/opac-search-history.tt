@@ -2,6 +2,7 @@
 [% USE Asset %]
 [% USE Koha %]
 [% USE KohaDates %]
+[% USE TablesSettings %]
 [% USE AdditionalContents %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
@@ -14,25 +15,20 @@
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-            </li>
-            [% IF ( loggedinusername ) %]
-                <li class="breadcrumb-item">
-                    <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
-                </li>
-                <li class="breadcrumb-item active">
-                    <a href="#" aria-current="page">Your search history</a>
-                </li>
-            [% ELSE %]
-                <li class="breadcrumb-item active">
-                    <a href="#" aria-current="page">Search history</a>
-                </li>
+    [% WRAPPER breadcrumbs %]
+        [% IF ( loggedinusername ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
             [% END %]
-        </ol>
-    </nav> <!-- /#breadcrumbs -->
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Your search history</span>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Search history</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
 
     <div class="container-fluid">
         <div class="row">
@@ -86,10 +82,11 @@
         [% IF ( current_biblio_searches ) %]
             <h2>Current session</h2>
             <form action="/cgi-bin/koha/opac-search-history.pl" method="post">
+                [% INCLUDE 'csrf-token.inc' %]
                 <legend class="sr-only">Toolbar control</legend>
 
                 [% INCLUDE 'toolbar_controls' %]
-                <input type="hidden" name="action" value="delete" />
+                <input type="hidden" name="op" value="cud-delete" />
                 <table class="historyt table table-bordered table-striped">
                     <caption class="sr-only">Current session</caption>
                     <thead>
@@ -133,10 +130,11 @@
         [% IF ( previous_biblio_searches ) %]
             <h2>Previous sessions</h2>
             <form action="/cgi-bin/koha/opac-search-history.pl" method="post">
+                [% INCLUDE 'csrf-token.inc' %]
                 <legend class="sr-only">Toolbar control</legend>
                 [% INCLUDE 'toolbar_controls' %]
 
-                <input type="hidden" name="action" value="delete" />
+                <input type="hidden" name="op" value="cud-delete" />
                 <table class="historyt table table-bordered table-striped">
                     <caption class="sr-only">Previous sessions</caption>
                     <thead>
@@ -188,9 +186,10 @@
         [% IF ( current_authority_searches ) %]
             <h2>Current session</h2>
             <form action="/cgi-bin/koha/opac-search-history.pl" method="post">
+                [% INCLUDE 'csrf-token.inc' %]
                 <legend class="sr-only">Toolbar control</legend>
                 [% INCLUDE 'toolbar_controls' %]
-                <input type="hidden" name="action" value="delete" />
+                <input type="hidden" name="op" value="cud-delete" />
                 <table class="historyt table table-bordered table-striped">
                     <caption class="sr-only">Current session</caption>
                     <thead>
@@ -229,9 +228,10 @@
         [% IF ( previous_authority_searches ) %]
             <h2>Previous sessions</h2>
             <form action="/cgi-bin/koha/opac-search-history.pl" method="post">
+                [% INCLUDE 'csrf-token.inc' %]
                 <legend class="sr-only">Toolbar control</legend>
                 [% INCLUDE 'toolbar_controls' %]
-                <input type="hidden" name="action" value="delete" />
+                <input type="hidden" name="op" value="cud-delete" />
                 <table class="historyt table table-bordered table-striped">
                     <caption class="sr-only">Previous sessions</caption>
                     <thead>
@@ -282,20 +282,19 @@
         </div>
         <div class="links">
             <span class="selections">Select searches to: </span>
-            <a href="#" class="removeitems disabled btn btn-sm btn-link"><i class="fa fa-trash" aria-hidden="true"></i> Delete</a>
+            <a href="#" class="removeitems disabled btn btn-sm btn-link"><i class="fa fa-trash-can" aria-hidden="true"></i> Delete</a>
         </div>
     </div>
 [% END %]
 
 [% BLOCK jsinclude %]
 [% INCLUDE 'datatables.inc' %]
+[% INCLUDE 'columns_settings.inc' %]
 <script>
-
-    var MSG_CONFIRM_DELETE_HISTORY = _("Are you sure you want to delete selected search history entries?");
     $(document).ready(function() {
         // We show table ordered by descending dates by default
         // (so that the more recent query is shown first)
-        $(".historyt").dataTable($.extend(true, {}, dataTablesDefaults, {
+        var table = KohaTable(".historyt", {
             "order": [[ 1, "desc" ]],
             "dom": '<"top"<"table_entries"><"table_controls"fB>>t',
             "columnDefs": [
@@ -306,15 +305,15 @@
                 "search": "_INPUT_",
                 "searchPlaceholder": _("Search")
             },
-            "autoWidth": false,
             "responsive": {
                 "details": { "type": 'column',"target": -1 }
             },
-        }));
-
-        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-            $(".historyt").DataTable().responsive.recalc();
         });
+
+        $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+            table.DataTable().responsive.recalc();
+        });
+
         $(".CheckNone").click(function(e){
             e.preventDefault();
             var form = $(this).parents("form").get(0);
@@ -340,7 +339,7 @@
             if ( $(ids).length < 1 ) {
                 return false;
             }
-            if ( confirm(MSG_CONFIRM_DELETE_HISTORY) ) {
+            if ( confirm( _("Are you sure you want to delete selected search history entries?") ) ) {
                 $(form).submit();
             }
             return false;

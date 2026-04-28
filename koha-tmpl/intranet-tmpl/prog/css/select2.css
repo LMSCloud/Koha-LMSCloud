@@ -32,3 +32,19 @@
 .select2-container.missing .select2-choice {
     background: #ffc none;
 }
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #F7F7F7;
+    margin-bottom: 2px;
+    padding: 3px 8px;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__clear {
+    color: #888;
+    font-size: 125%;
+    margin-top: 3px;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    margin-right: 3px;
+}

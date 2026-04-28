@@ -2,9 +2,14 @@
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Recalls awaiting pickup &rsaquo; Circulation &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Recalls awaiting pickup") | html %] &rsaquo;
+    [% t("Circulation") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="circ_recalls_awaiting_pickup" class="circ">
@@ -26,11 +31,12 @@
 <div class="main container-fluid">
     <div class="row">
         [% IF Koha.Preference('CircSidebar') %]
-            <div class="col-sm-10 col-sm-push-2">
+            <div class="col-md-10 order-md-2 order-sm-1">
         [% ELSE %]
-            <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+            <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
         [% END %]
         <main>
+            [% INCLUDE 'messages.inc' %]
                 <h1>Recalls awaiting pickup</h1>
 
                 [% IF Koha.Preference('UseRecalls') %]
@@ -73,8 +79,9 @@
                                                 <td class="recall-library">[% recall.library.branchname | html %]</td>
                                                 <td class="recall-action actions">
                                                     <form action="/cgi-bin/koha/recalls/recalls_waiting.pl" method="post">
+                                                        [% INCLUDE 'csrf-token.inc' %]
                                                         <input type="hidden" name="recall_id" value="[% recall.id | html %]">
-                                                        <input type="hidden" name="op" value="modify">
+                                                        <input type="hidden" name="op" value="cud-modify">
                                                         <fieldset class="action">
                                                             <button type="submit" name="revert" value="revert" class="btn btn-default btn-sm revert_recall"><i class="fa fa-undo"></i> Revert waiting status</button>
                                                             <button type="submit" name="expire" value="expire" class="btn btn-default btn-sm expire_recall"><i class="fa fa-undo"></i> Expire recall</button>
@@ -85,7 +92,7 @@
                                         </tbody>
                                     </table>
                                 [% ELSE %]
-                                    <div class="dialog message">There are no recalls to show.</div>
+                                    <div class="alert alert-info">There are no recalls to show.</div>
                                 [% END %]
                             [% END # /tab_panel# %]
                             [% WRAPPER tab_panel tabname="recallsover" %]
@@ -117,8 +124,9 @@
                                                     <td class="recall-library">[% recall.library.branchname | html %]</td>
                                                     <td class="recall-action actions">
                                                         <form action="/cgi-bin/koha/recalls/recalls_waiting.pl" method="post">
+                                                            [% INCLUDE 'csrf-token.inc' %]
                                                             <input type="hidden" name="recall_id" value="[% recall.id | html %]">
-                                                            <input type="hidden" name="op" value="modify">
+                                                            <input type="hidden" name="op" value="cud-modify">
                                                             <fieldset class="action">
                                                                 <button type="submit" name="revert" value="revert" class="btn btn-default btn-sm revert_recall"><i class="fa fa-undo"></i> Revert waiting status</button>
                                                                 <button type="submit" name="expire" value="expire" class="btn btn-default btn-sm expire_recall"><i class="fa fa-undo"></i> Expire recall</button>
@@ -129,7 +137,7 @@
                                             </tbody>
                                         </table>
                                     [% ELSE %]
-                                        <div class="dialog message">There are no recalls to show.</div>
+                                        <div class="alert alert-info">There are no recalls to show.</div>
                                     [% END %]
                                 </div> <!-- recallsover -->
                             [% END # /tab_panel# %]
@@ -137,18 +145,18 @@
                     [% END # /WRAPPER tabs %]
 
                 [% ELSE %]
-                    <div class="dialog message">Recalls have not been enabled. Enable the <a href="/cgi-bin/koha/admin/preferences.pl?tab=circulation">UseRecalls</a> system preference to use recalls.</div>
+                    <div class="alert alert-info">Recalls have not been enabled. Enable the <a href="/cgi-bin/koha/admin/preferences.pl?tab=circulation">UseRecalls</a> system preference to use recalls.</div>
                 [% END %] <!-- Koha.Preference('UseRecalls') -->
 
         </main>
         </div> <!-- /.col-etc -->
 
         [% IF Koha.Preference('CircSidebar') %]
-            <div class="col-sm-2 col-sm-pull-10">
+            <div class="col-md-2 order-sm-2 order-md-1">
                 <aside>
                     [% INCLUDE 'circ-nav.inc' %]
                 </aside>
-            </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+            </div> <!-- /.col-md-2.order-md-1 -->
         [% END %]
 
     </div> <!-- /.row -->
@@ -160,10 +168,10 @@
         $(document).ready(function() {
             $("#recallswaiting-table, #recallsover-table").dataTable($.extend(true, {}, dataTablesDefaults, {
                 "autoWidth": false,
-                "aoColumnDefs": [
-                    { 'bSortable': false, 'aTargets': [ 'nosort' ] },
+                "columnDefs": [
+                    { "orderable": false, "targets": [ 'nosort' ] },
                 ],
-                "sPaginationType": "full_numbers"
+                "pagingType": "full_numbers"
             }));
 
             $(".revert_recall").click(function(e) {

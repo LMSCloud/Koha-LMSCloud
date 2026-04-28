@@ -1,7 +1,21 @@
 /* global __ */
 /* exported addItem checkCount showItem deleteItemBlock clearItemBlock check_additem */
 function addItem( node, unique_item_fields ) {
-    var index = $(node).closest("div").attr('id');
+    var item_form = $(node).closest("div");
+    var index = item_form.attr("id");
+
+    //We need to verify the item form before saving
+    var empty_item_mandatory = CheckMandatorySubfields(item_form);
+    if (empty_item_mandatory > 0) {
+        var _alertString= __("Form not submitted because of the following problem(s)")+"\n";
+
+        _alertString +="-------------------------------------------------------------------\n\n";
+        _alertString +=
+            "\n- " + __("%s item mandatory fields empty").format(empty_item_mandatory);
+        alert(_alertString);
+        return false;
+    }
+
     var current_qty = parseInt($("#quantity").val());
     var max_qty;
     if($("#quantity_to_receive").length != 0){
@@ -31,7 +45,24 @@ function addItem( node, unique_item_fields ) {
 }
 
 function addMulti( count, node, unique_item_fields){
-    var index = $(node).closest("div").attr('id');
+    var item_form = $(node).closest("div");
+    var index = $(node).closest("div").attr("id");
+
+    //We need to verify the item form before saving
+    var empty_item_mandatory = CheckMandatorySubfields(item_form);
+    if (empty_item_mandatory > 0) {
+        var _alertString =
+            __("Form not submitted because of the following problem(s)") + "\n";
+
+        _alertString +=
+            "-------------------------------------------------------------------\n\n";
+        _alertString +=
+            "\n- " +
+            __("%s item mandatory fields empty").format(empty_item_mandatory);
+        alert(_alertString);
+        return false;
+    }
+
     var countItemsBefore = $("#items_list tbody tr").length;
     var current_qty = parseInt( $('#quantity').val(), 10 );
     $("#procModal").modal('show');
@@ -52,7 +83,7 @@ function addMulti( count, node, unique_item_fields){
             $("#" + cloneIndex).find("input[name='multiValue']").remove();
             $("#" + cloneIndex).hide();
             current_qty++;
-            $('#quantity').val( current_qty );
+            $('#quantity').val( current_qty ).change();
         });
     }
 }
@@ -90,7 +121,7 @@ function constructTrNode(index, unique_item_fields) {
     var edit_link = "<a href='#itemfieldset' style='text-decoration:none' onclick='showItem(\"" + index + "\");' class='btn btn-default btn-xs'><i class='fa fa-pencil'></i> "
         + ( __("Edit") ) + "</a>";
     var del_link = "<a style='cursor:pointer' "
-        + "onclick='deleteItemBlock(this, \"" + index + "\", \"" + unique_item_fields + "\");' class='btn btn-default btn-xs'><i class='fa fa-trash'></i> "
+        + "onclick='deleteItemBlock(this, \"" + index + "\", \"" + unique_item_fields + "\");' class='btn btn-default btn-xs'><i class='fa fa-trash-can'></i> "
         + ( __("Delete") ) + "</a>";
     result += "<td class='actions'>" + edit_link + " " + del_link + "</td>";
     for(var i in fields) {
@@ -184,7 +215,7 @@ function cloneItemBlock(index, unique_item_fields, callback) {
             buttonPlus += '<span id="add_multiple_copies" style="display:none">'
                 +     '<input type="text" inputmode="numeric" pattern="[0-9]*" class="addItemControl" id="multiValue" name="multiValue" placeholder="' + __("Number of items to add") + '" />'
                 +     '<input type="button" class="addItemControl" name="buttonAddMulti" style="cursor:pointer; margin:0 1em;" onclick="checkCount( this ,\'' + unique_item_fields + '\')" value="' + __("Add") + '" />'
-                +     '<div class="dialog message">' + __("NOTE: Fields listed in the 'UniqueItemFields' system preference will not be copied") + '</div>'
+                +     '<div class="alert alert-info">' + __("NOTE: Fields listed in the 'UniqueItemFields' system preference will not be copied") + '</div>'
                 + '</span>';
             buttonPlus += "</fieldset>";
             $(clone).append(buttonPlus);

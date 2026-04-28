@@ -2,9 +2,12 @@
 [% USE Koha %]
 [% USE Branches %]
 [% USE Registers %]
-
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Tools &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Tools") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="tools_tools-home" class="tools">
@@ -22,7 +25,8 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+        <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
+            [% INCLUDE 'messages.inc' %]
             <h1>Tools</h1>
             <div class="row">
                 <div class="col-sm-6">
@@ -44,7 +48,7 @@
                             <dt>
                                 <a href="/cgi-bin/koha/reviews/reviewswaiting.pl">Comments</a>
                                 [% IF ( pendingcomments ) %]
-                                    <span class="number_box"><a href="/cgi-bin/koha/reviews/reviewswaiting.pl">[% pendingcomments | html %]</a></span>
+                                    <span class="badge bg-info-subtle"><a href="/cgi-bin/koha/reviews/reviewswaiting.pl">[% pendingcomments | html %]</a></span>
                                 [% END %]
                             </dt>
                             <dd>Moderate patron comments</dd>
@@ -94,7 +98,7 @@
                             <dt>
                                 <a href="/cgi-bin/koha/tags/review.pl">Tags</a>
                                 [% IF ( pendingtags ) %]
-                                    <span class="number_box"><a href="/cgi-bin/koha/tags/review.pl">[% pendingtags | html %]</a></span>
+                                    <span class="badge bg-info-subtle"><a href="/cgi-bin/koha/tags/review.pl">[% pendingtags | html %]</a></span>
                                 [% END %]
                             </dt>
                             <dd>Moderate patron tags</dd>

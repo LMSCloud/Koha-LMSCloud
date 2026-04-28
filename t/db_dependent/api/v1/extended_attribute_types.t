@@ -34,7 +34,7 @@ t::lib::Mocks::mock_preference( 'RESTBasicAuth', 1 );
 
 subtest 'list() tests' => sub {
 
-    plan tests => 17;
+    plan tests => 23;
 
     $schema->storage->txn_begin;
 
@@ -98,9 +98,30 @@ subtest 'list() tests' => sub {
         ]
     );
 
+    my $additional_field_yet_another_different_tablename = $builder->build_object(
+        {
+            class => 'Koha::AdditionalFields',
+            value => { tablename => 'subscription', name => 'fourth_af_name' },
+        }
+    );
+
+    # Four additional fields created, they should both be returned
+    $t->get_ok("//$userid:$password@/api/v1/extended_attribute_types")->status_is(200)->json_is(
+        [
+            $additional_field->to_api,
+            $another_additional_field->to_api,
+            $additional_field_different_tablename->to_api,
+            $additional_field_yet_another_different_tablename->to_api,
+        ]
+    );
+
     # Filtering works, two existing additional fields returned for the queried table name
     $t->get_ok("//$userid:$password@/api/v1/extended_attribute_types?resource_type=invoice")->status_is(200)
         ->json_is( [ $additional_field->to_api, $another_additional_field->to_api ] );
+
+    # Filtering works for unmapped tablename
+    $t->get_ok("//$userid:$password@/api/v1/extended_attribute_types?resource_type=subscription")->status_is(200)
+        ->json_is( [ $additional_field_yet_another_different_tablename->to_api ] );
 
     # Warn on unsupported query parameter
     $t->get_ok("//$userid:$password@/api/v1/extended_attribute_types?blah=blah")->status_is(400)

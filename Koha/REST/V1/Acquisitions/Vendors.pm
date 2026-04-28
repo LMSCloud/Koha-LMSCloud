@@ -62,16 +62,15 @@ Controller function that handles retrieving a single Koha::Acquisition::Booksell
 sub get {
     my $c = shift->openapi->valid_input or return;
 
-    my $vendor = Koha::Acquisition::Booksellers->find( $c->validation->param('vendor_id') );
-    unless ($vendor) {
-        return $c->render( status  => 404,
-                           openapi => { error => "Vendor not found" } );
-    }
+    my $vendor = Koha::Acquisition::Booksellers->find( $c->param('vendor_id') );
+
+    return $c->render_resource_not_found("Vendor")
+        unless $vendor;
 
     return try {
         return $c->render(
             status  => 200,
-            openapi => $vendor->to_api
+            openapi => $c->objects->to_api($vendor),
         );
     }
     catch {
@@ -88,14 +87,14 @@ Controller function that handles adding a new Koha::Acquisition::Bookseller obje
 sub add {
     my $c = shift->openapi->valid_input or return;
 
-    my $vendor = Koha::Acquisition::Bookseller->new_from_api( $c->validation->param('body') );
+    my $vendor = Koha::Acquisition::Bookseller->new_from_api( $c->req->json );
 
     return try {
         $vendor->store;
         $c->res->headers->location($c->req->url->to_string . '/' . $vendor->id );
         return $c->render(
             status  => 201,
-            openapi => $vendor->to_api
+            openapi => $c->objects->to_api($vendor),
         );
     }
     catch {
@@ -112,27 +111,21 @@ Controller function that handles updating a Koha::Acquisition::Bookseller object
 sub update {
     my $c = shift->openapi->valid_input or return;
 
-    my $vendor;
+    my $vendor = Koha::Acquisition::Booksellers->find( $c->param('vendor_id') );
+
+    return $c->render_resource_not_found("Vendor")
+        unless $vendor;
 
     return try {
-        $vendor = Koha::Acquisition::Booksellers->find( $c->validation->param('vendor_id') );
-        $vendor->set_from_api( $c->validation->param('body') );
+        $vendor->set_from_api( $c->req->json );
         $vendor->store();
+
         return $c->render(
             status  => 200,
-            openapi => $vendor->to_api
+            openapi => $c->objects->to_api($vendor),
         );
-    }
-    catch {
-        if ( not defined $vendor ) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => "Object not found" }
-            );
-        }
-
+    } catch {
         $c->unhandled_exception($_);
-
     };
 
 }
@@ -147,23 +140,14 @@ sub delete {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $vendor = Koha::Acquisition::Booksellers->find( $c->validation->param('vendor_id') );
+        my $vendor = Koha::Acquisition::Booksellers->find( $c->param('vendor_id') );
 
-        unless ( $vendor ) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => "Object not found" }
-            );
-        }
+        return $c->render_resource_not_found("Vendor")
+            unless $vendor;
 
         $vendor->delete;
-
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
-    }
-    catch {
+        return $c->render_resource_deleted;
+    } catch {
         $c->unhandled_exception($_);
     };
 }

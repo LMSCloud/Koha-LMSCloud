@@ -42,6 +42,20 @@ Cataloging:
                   1: "Allow"
                   0: "Don't allow"
             - authorized values to be created within the cataloguing module. Librarian will need the manage_auth_values subpermission.
+        -
+            - pref: CatalogConcerns
+              default: 0
+              choices:
+                  0: "Don't allow"
+                  1: Allow
+            - "staff to report concerns about bibliographic records."
+            - '<p><strong>NOTE:</strong> You can also enable `<a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OpacCatalogConcerns">OpacCatalogConcerns</a>` to allow OPAC users the same option.</p>'
+        -
+            - "Use "
+            - pref: CatalogerEmails
+              default: ''
+              class: email
+            - " as the notification address for catalog concerns."
 
     Spine labels:
         -
@@ -80,6 +94,12 @@ Cataloging:
                   UNIMARC: UNIMARC
             - format.
         -
+            - pref: EnableItemGroups
+              choices:
+                   1: Enable
+                   0: "Don't enable"
+            - the item groups feature to allow collecting groups of items on a record together.
+        -
             - Use the item type of the
             - pref: item-level_itypes
               choices:
@@ -105,7 +125,7 @@ Cataloging:
             - When items are created, give them the temporary location of
             - pref: NewItemsDefaultLocation
               class: short
-            - (should be a location code, or blank to disable).
+            - (should be a <a href="/cgi-bin/koha/admin/authorised_values.pl?searchfield=LOC">location code</a>, or blank to disable).
         -
             - pref: z3950NormalizeAuthor
               choices:
@@ -186,6 +206,17 @@ Cataloging:
                 duplicate: "when editing records as new (duplicating)"
                 changed: "when changing the framework while editing the existing record"
                 imported: "when importing a record via z39.50"
+        -
+            - Use MARC field
+            - pref: ContentWarningField
+            - for storing content warnings.
+            - "<br/><strong>NOTE:</strong> The field needs to appear in the MARC frameworks to be accessible."
+        -
+            - pref: StripWhitespaceChars
+              choices:
+                  1: Strip
+                  0: "Don't strip"
+            - leading and trailing whitespace characters (including spaces, tabs, line breaks and carriage returns) and inner newlines from data fields when cataloguing bibliographic and authority records. The leader and control fields will not be affected.
     Display:
         -
             - 'Separate main entry and subdivisions with '
@@ -207,9 +238,16 @@ Cataloging:
             - pref: MarcFieldDocURL
               class: url
             - as the URL for MARC field documentation.
-            - Possible substitutions are <tt>{MARC}</tt> (marc flavour, eg. "MARC21" or "UNIMARC"), <tt>{FIELD}</tt> (field number, eg. "000" or "048"), <tt>{LANG}</tt> (user language, eg. "en" or "fi-FI").
-            - If left empty, the format documentation on http://loc.gov (MARC21) or http://archive.ifla.org (UNIMARC) is used.
-            - For example <tt>http://fielddoc.example.com/?marc={MARC}&field={FIELD}&language={LANG}</tt>
+            - "<br><br>"
+            - "If left empty, the default URLs are:"
+            - "<ul><li>MARC21: field-level pages at https://www.loc.gov/marc/bibliographic/</li>"
+            - "<li>UNIMARC: https://www.ifla.org/g/unimarc-rg/unimarc-updates/</a></li></ul>"
+            - "Placeholders available for use in the URL:"
+            - "<ul><li><code>{MARC}</code>: MARC flavor, \"MARC21\" or \"UNIMARC\"</li>"
+            - "<li><code>{FIELD}</code>: field number, for example, \"000\" or \"048\"</li>"
+            - "<li><code>{LANG}</code>: language, for example, \"en\" or \"fi-FI\"</li></ul>"
+            - "Examples:<ul><li>https://www.example.com/marcdocs?marc={MARC}&field={FIELD}&language={LANG}</li>"
+            - "<li>https://www.marc21.ca/MaJ/BIB/B{FIELD}.pdf</li></ul>"
         -
             - pref: hide_marc
               choices:
@@ -251,10 +289,7 @@ Cataloging:
               choices:
                   1: "an explanatory page ('This record is blocked')."
                   0: "the 404 error page ('Not found')."
-            - "<br />Display the following message on the redirect page for suppressed bibliographic records:"
-            - pref: OpacSuppressionMessage
-              type: textarea
-              class: code
+            - "<br /> A custom message can be shown on the redirect page for suppressed bibliographic records by creating an <a href='/cgi-bin/koha/tools/additional-contents.pl?category=html_customizations'>HTML customization</a> in the OpacSuppressionMessage region."
         -
             - pref: SeparateHoldings
               choices:
@@ -266,6 +301,12 @@ Cataloging:
                 homebranch: 'home library'
                 holdingbranch: 'holding library'
             - "is the logged in user's library. The second tab will contain all other items."
+        -
+            - pref: AlwaysShowHoldingsTableFilters
+              choices:
+                  1: "Do"
+                  0: "Don't"
+            - always show filters by default on the holdings table in the record details page in the staff interface.
         -
             - "Don't show"
             - pref: NotesToHide

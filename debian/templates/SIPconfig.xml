@@ -10,9 +10,9 @@
   <server-params
     min_servers='1'
     min_spare_servers='0'
-    log_file='Sys::Syslog'
-    syslog_ident='koha_sip'
-    syslog_facility='local6'
+    custom_tcp_keepalive='0'
+    custom_tcp_keepalive_time='7200'
+    custom_tcp_keepalive_intvl='75'
   />
 
   <listeners>
@@ -23,13 +23,13 @@
       protocol="NCIP/1.0" />
 -->
     <service
-      port="8023/tcp"
+      port="127.0.0.1:8023/tcp/IPv4"
       transport="telnet"
       protocol="SIP/2.00"
       timeout="60" />
 
     <service
-      port="127.0.0.1:6001/tcp"
+      port="127.0.0.1:6001/tcp/IPv4"
       transport="RAW"
       protocol="SIP/2.00"
       client_timeout="600"

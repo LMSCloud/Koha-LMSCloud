@@ -43,7 +43,14 @@ my $subscriptionid = $query->param('subscriptionid');
 
 # Permission needed if it is a deletion (del) : delete_subscription
 # Permission needed otherwise : *
-my $permission = ($op eq "del") ? "delete_subscription" : "*";
+
+my %permissions = (
+    "cud-del"   => "delete_subscription",
+    "cud-close" => "edit_subscription",
+    "cud-reopen" => "edit_subscription",
+);
+
+my $permission = $permissions{$op} // "*";
 
 my ($template, $loggedinuser, $cookie)
 = get_template_and_user({template_name => "serials/subscription-detail.tt",
@@ -62,11 +69,11 @@ $subs->{enddate} ||= GetExpirationDate($subscriptionid);
 my ($totalissues,@serialslist) = GetSerials($subscriptionid);
 $totalissues-- if $totalissues; # the -1 is to have 0 if this is a new subscription (only 1 issue)
 
-if ( $op and $op eq "close" ) {
+if ( $op eq "cud-close" ) {
     C4::Serials::CloseSubscription( $subscriptionid );
-} elsif ( $op and $op eq "reopen" ) {
+} elsif ( $op eq "cud-reopen" ) {
     C4::Serials::ReopenSubscription( $subscriptionid );
-} elsif ($op eq 'del') {
+} elsif ( $op eq "cud-del" ) {
     if ($$subs{'cannotedit'}){
         carp "Attempt to delete subscription $subscriptionid by ".C4::Context->userenv->{'id'}." not allowed";
         print $query->redirect("/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=$subscriptionid");
@@ -125,10 +132,7 @@ my $subscription = Koha::Subscriptions->find( $subscriptionid );
 
 $template->param(
     available_additional_fields => Koha::AdditionalFields->search( { tablename => 'subscription' } ),
-    additional_field_values => {
-        map { $_->field->name => $_->value }
-          $subscription->additional_field_values->as_list
-    },
+    additional_field_values => $subscription->get_additional_field_values_for_template,
 );
 
 # FIXME Do we want to hide canceled orders?
@@ -149,7 +153,7 @@ while ( my $o = $orders->next ) {
 }
 
 $template->param(
-    subscription   => $subscription,
+    subscription => $subscription,
     subscriptionid => $subscriptionid,
     serialslist => \@serialslist,
     hasRouting  => $hasRouting,
@@ -167,6 +171,7 @@ $template->param(
     orders_grouped => $orders_grouped,
     (uc(C4::Context->preference("marcflavour"))) => 1,
     mana_comments => $subs->{comments},
+    print_routing_list_issue => scalar $query->param('print_routing_list_issue'),
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

@@ -18,11 +18,14 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
+use Try::Tiny;
 
 use C4::Auth qw( get_template_and_user );
+use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
 use C4::Letters qw( GetPreparedLetter EnqueueLetter SendQueuedMessages );
 use C4::Members;
+use C4::Members::Messaging qw( SetMessagingPreferencesFromDefaults );
 use C4::Form::MessagingPreferences;
 use Koha::AuthUtils;
 use Koha::Patrons;
@@ -39,27 +42,42 @@ unless ( C4::Context->preference('PatronSelfRegistration') ) {
 }
 
 my $token = $cgi->param('token');
+my $op = $cgi->param('op');
+my $confirmed;
+if ( $op && $op eq 'cud-confirmed' ) {
+    $confirmed = 1;
+}
 my $m = Koha::Patron::Modifications->find( { verification_token => $token } );
 
 my ( $template, $borrowernumber, $cookie );
+my ( $error_type, $error_info );
 
+my $rego_found;
 if (
-    $m # The token exists and the email is unique if requested
-    and not(
-            C4::Context->preference('PatronSelfRegistrationEmailMustBeUnique')
-        and Koha::Patrons->search( { email => $m->email } )->count
+    $m    # The token exists and the email is unique if requested
+    and not(C4::Context->preference('PatronSelfRegistrationEmailMustBeUnique')
+        and Koha::Patrons->search( { email => $m->email } )->count )
     )
-  )
+{
+    $rego_found = 1;
+}
+
+if ( $rego_found
+    and !$confirmed )
 {
     ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         {
             template_name   => "opac-registration-confirmation.tt",
             type            => "opac",
             query           => $cgi,
-            authnotrequired => 1,
+            authnotrequired => C4::Context->preference("OpacPublic") ? 1 : 0,
         }
     );
-
+    $template->param( "token" => $token );
+}
+elsif ( $rego_found
+    and $confirmed )
+{
     my $patron_attrs = $m->unblessed;
     $patron_attrs->{password} ||= Koha::AuthUtils::generate_password(Koha::Patron::Categories->find($patron_attrs->{categorycode}));
     my $consent_dt = delete $patron_attrs->{gdpr_proc_consent};
@@ -68,9 +86,17 @@ if (
     delete $patron_attrs->{verification_token};
     delete $patron_attrs->{changed_fields};
     delete $patron_attrs->{extended_attributes};
-    my $patron = Koha::Patron->new( $patron_attrs )->store;
 
-    Koha::Patron::Consent->new({ borrowernumber => $patron->borrowernumber, type => 'GDPR_PROCESSING', given_on => $consent_dt })->store if $consent_dt;
+    my $patron;
+    try {
+        $patron = Koha::Patron->new( $patron_attrs )->store;
+        Koha::Patron::Consent->new({ borrowernumber => $patron->borrowernumber, type => 'GDPR_PROCESSING', given_on => $consent_dt })->store if $patron && $consent_dt;
+        C4::Members::Messaging::SetMessagingPreferencesFromDefaults(
+            { borrowernumber => $patron->borrowernumber, categorycode => $patron->categorycode } );
+    } catch {
+        $error_type = ref($_);
+        $error_info = "$_";
+    };
 
     if ($patron) {
         if( $m->extended_attributes ){
@@ -80,14 +106,22 @@ if (
         } else {
             $m->delete();
         }
-        C4::Form::MessagingPreferences::handle_form_action($cgi, { borrowernumber => $patron->borrowernumber }, $template, 1, C4::Context->preference('PatronSelfRegistrationDefaultCategory') ) if C4::Context->preference('EnhancedMessagingPreferences');
+        ( $template, $borrowernumber, $cookie ) = get_template_and_user(
+            {
+                template_name   => "opac-registration-confirmation.tt",
+                type            => "opac",
+                query           => $cgi,
+                authnotrequired => C4::Context->preference("OpacPublic") ? 1 : 0,
+            }
+        );
+        $template->param( "confirmed" => 1 );
 
         $template->param( password_cleartext => $patron->plain_text_password );
         $template->param( borrower => $patron );
 
         # If 'AutoEmailNewUser' syspref is on, email user their account details from the 'notice' that matches the user's branchcode.
         if ( C4::Context->preference("AutoEmailNewUser") ) {
-            # Look up correct email address taking AutoEmailPrimaryAddress into account
+            # Look up correct email address taking EmailFieldPrimary into account
             my $emailaddr = $patron->notice_email_address;
             # if we manage to find a valid email address, send notice
             if ($emailaddr) {
@@ -113,7 +147,7 @@ if (
                             branchcode             => $patron->branchcode,
                         }
                     );
-                    SendQueuedMessages({ message_id => $message_id });
+                    SendQueuedMessages( { message_id => $message_id } ) if $message_id;
                 };
             }
         }
@@ -124,26 +158,19 @@ if (
             $patron->notify_library_of_registration($notify_library);
         }
 
-        $template->param(
-            PatronSelfRegistrationAdditionalInstructions =>
-              C4::Context->preference(
-                'PatronSelfRegistrationAdditionalInstructions')
-        );
-
         my ($theme, $news_lang, $availablethemes) = C4::Templates::themelanguage(C4::Context->config('opachtdocs'),'opac-registration-confirmation.tt','opac',$cgi);
         $template->param( news_lang => $news_lang );
     }
-
 }
-else {
-    ( $template, $borrowernumber, $cookie ) = get_template_and_user(
-        {
-            template_name   => "opac-registration-invalid.tt",
-            type            => "opac",
-            query           => $cgi,
-            authnotrequired => 1,
-        }
-    );
+
+if( !$template ) { # Missing token, patron exception, etc.
+    ( $template, $borrowernumber, $cookie ) = get_template_and_user({
+        template_name   => "opac-registration-invalid.tt",
+        type            => "opac",
+        query           => $cgi,
+        authnotrequired => C4::Context->preference("OpacPublic") ? 1 : 0,
+    });
+    $template->param( error_type => $error_type, error_info => $error_info );
 }
 
 output_html_with_http_headers $cgi, $cookie, $template->output, undef, { force_no_caching => 1 };

@@ -111,9 +111,6 @@ including any embeds specified in the request.
 Warning: this helper adds pagination headers to the calling controller, and thus
 shouldn't be called twice in it.
 
-Warning: this helper adds pagination headers to the calling controller, and thus
-shouldn't be called twice in it.
-
 =cut
 
     $app->helper(
@@ -163,8 +160,7 @@ controller, and thus shouldn't be called twice in it.
             $query_fixers //= [];
 
             # Extract reserved params
-            my ( $filtered_params, $reserved_params, $path_params ) =
-              $c->extract_reserved_params($args);
+            my ( $filtered_params, $reserved_params ) = $c->extract_reserved_params($args);
 
             if ( exists $reserved_params->{_order_by} ) {
 
@@ -216,21 +212,10 @@ controller, and thus shouldn't be called twice in it.
                 }
             );
 
-            # Call the to_model function by reference, if defined
-            if ( defined $filtered_params ) {
-
-                # Apply the mapping function to the passed params
-                $filtered_params =
-                  $result_set->attributes_from_api($filtered_params);
-                $filtered_params =
-                  $c->build_query_params( $filtered_params, $reserved_params );
-            }
-
+            my $query_params;
             if (   defined $reserved_params->{q}
-                || defined $reserved_params->{query}
-                || defined $reserved_params->{'x-koha-query'} )
+                || defined $reserved_params->{query} )
             {
-                $filtered_params //= {};
 
                 my @query_params_array;
 
@@ -269,22 +254,12 @@ controller, and thus shouldn't be called twice in it.
                     }
                 }
 
-                push @query_params_array,
-                  $json->decode( $reserved_params->{'x-koha-query'} )
-                  if defined $reserved_params->{'x-koha-query'};
-
-                my $query_params;
-
                 if ( scalar(@query_params_array) > 1 ) {
                     $query_params = { '-and' => \@query_params_array };
                 }
                 else {
                     $query_params = $query_params_array[0];
                 }
-
-                $filtered_params =
-                  $c->merge_q_params( $filtered_params, $query_params,
-                    $result_set );
             }
 
             # request sequence id (i.e. 'draw' Datatables parameter)
@@ -298,6 +273,23 @@ controller, and thus shouldn't be called twice in it.
 
             $c->stash('koha.pagination.base_total'   => $result_set->count);
             $c->stash('koha.pagination.query_params' => $args);
+
+
+            # Apply the mapping function to the passed params
+            if ( defined $filtered_params ) {
+                $filtered_params = $c->build_query_params( $filtered_params, $reserved_params );
+            }
+
+            if ($query_params) {
+                $filtered_params = $c->merge_q_params(
+                    $filtered_params, $query_params,
+                    $result_set
+                );
+            }
+
+            if ( defined $filtered_params ) {
+                $filtered_params = $result_set->attributes_from_api($filtered_params);
+            }
 
             $c->dbic_validate_operators( { filtered_params => $filtered_params } );
 
@@ -330,11 +322,15 @@ Returns the API representation of the passed resultset.
             my $embed   = $c->stash('koha.embed');
             my $strings = $c->stash('koha.strings');
 
+            # Grab user
+            my $user = $c->stash('koha.user');
+
             return $object->to_api(
                 {
                     embed   => $embed,
                     public  => $public,
-                    strings => $strings
+                    strings => $strings,
+                    user    => $user
                 }
             );
         }

@@ -1,0 +1,60 @@
+---
+type: object
+properties:
+  ill_batch_id:
+    type: integer
+    description: Internal ILL batch identifier
+  name:
+    type: string
+    description: Name of the ILL batch
+  backend:
+    type: string
+    description: Backend name
+  cardnumber:
+    type: string
+    description: Library assigned user identifier of the ILL batch
+  patron_id:
+    type: string
+    description: Internal identifier the patron of the ILL batch
+  library_id:
+    type: string
+    description: Internal identifier for the ILL batch's library
+  status_code:
+    type: string
+    description: Code of the status of the ILL batch
+  patron:
+    type:
+      - object
+      - "null"
+    description: The patron associated with the batch
+  library:
+    type:
+      - object
+      - "null"
+    description: The library associated with the batch
+  requests:
+    type:
+      - array
+      - "null"
+    description: The requests in this batch (x-koha-embed)
+  requests_count:
+    type:
+      - integer
+      - "null"
+    description: The number of requests in this batch (x-koha-embed)
+  status:
+    type:
+      - object
+      - "null"
+    description: The status associated with the batch (x-koha-embed)
+  _strings:
+    type:
+      - object
+      - "null"
+    description: Expanded coded fields (x-koha-embed)
+additionalProperties: false
+required:
+  - name
+  - backend
+  - library_id
+  - status_code

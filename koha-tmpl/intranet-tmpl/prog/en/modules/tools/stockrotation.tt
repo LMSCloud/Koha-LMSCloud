@@ -4,10 +4,33 @@
 [% USE Branches %]
 [% USE KohaDates %]
 [% USE TablesSettings %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Stock rotation &rsaquo; Cataloging &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF (op == 'create_edit_rota' && rota.rota_id) %]
+        [% tx("Modify rota '{rota_title}'", rota_title = rota.title ) %] &rsaquo;
+    [% ELSIF (op == 'create_edit_rota' && !rota.rota_id) %]
+        [% t("New rota") | html %] &rsaquo;
+    [% ELSIF (op == 'manage_stages') %]
+        [% tx("Manage stages for '{rota_title}'", rota_title = rota.title ) %] &rsaquo;
+    [% ELSIF (op == 'create_edit_stage' && stage.id) %]
+        [% tx("Modify {library} stage", library = Branches.GetName(stage.branchcode_id) ) %] &rsaquo;
+        [% tx("Manage stages for '{rota_title}'", rota_title = rota.title ) %] &rsaquo;
+    [% ELSIF (op == 'create_edit_stage' && !stage.id) %]
+        [% t("New stage") | html %] &rsaquo;
+    [% ELSIF (op == 'manage_items') %]
+        [% tx("Manage items for '{rota_title}'", rota_title = rota.title ) %] &rsaquo;
+    [% ELSIF op == 'add_items_to_rota' %]
+        [% t("Add items" ) | html %] &rsaquo;
+        [% tx("Manage items for '{rota_title}'", rota_title = rota.title ) %] &rsaquo;
+    [% END # /IF (op == 'create_edit_rota' %]
+    [% t("Stock rotation") | html %] &rsaquo;
+    [% t("Cataloging") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
+<style>i.drag_handle{ color: #999; }</style>
 </head>
 
 <body id="tools_stockrotation" class="tools">
@@ -33,33 +56,40 @@
 
         [% IF (op == 'create_edit_rota' && rota.rota_id) %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Edit rota</span>
+                [% tx("Modify rota '{rota_title}'", rota_title = rota.title ) %]
             [% END %]
         [% ELSIF (op == 'create_edit_rota' && !rota.rota_id) %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Create rota</span>
+                <span>New rota</span>
             [% END %]
         [% ELSIF (op == 'manage_stages') %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Manage stages</span>
+                [% tx("Manage stages for '{rota_title}'", rota_title = rota.title ) %]
             [% END %]
         [% ELSIF (op == 'create_edit_stage' && stage.id) %]
             [% WRAPPER breadcrumb_item %]
-                <a href="?op=manage_stages&amp;rota_id=[% rota_id | uri %]">Manage stages</a>
+                <a href="?op=manage_stages&amp;rota_id=[% rota_id | uri %]">[% tx("Manage stages for '{rota_title}'", rota_title = rota.title ) %]</a>
             [% END %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Edit stage</span>
+                [% tx("Modify {library} stage", library = Branches.GetName(stage.branchcode_id) ) %]
             [% END %]
         [% ELSIF (op == 'create_edit_stage' && !stage.id) %]
             [% WRAPPER breadcrumb_item %]
-                <a href="?op=manage_stages&amp;rota_id=[% rota_id | uri %]">Manage stages</a>
+                <a href="?op=manage_stages&amp;rota_id=[% rota_id | uri %]">[% tx("Manage stages for '{rota_title}'", rota_title = rota.title ) %]</a>
             [% END %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Create stage</span>
+                <span>New stage</span>
+            [% END %]
+        [% ELSIF op == 'add_items_to_rota' %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/tools/stockrotation.pl?op=manage_items&rota_id=[% rota_id | uri %]">[% tx("Manage items for '{rota_title}'", rota_title = rota.title ) %]</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% t("Add items") | html %]
             [% END %]
         [% ELSIF (op == 'manage_items') %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Manage items</span>
+                [% tx("Manage items for '{rota_title}'", rota_title = rota.title ) %]
             [% END %]
         [% END # /IF (op == 'create_edit_rota' %]
     [% END #/ WRAPPER breadcrumbs %]
@@ -67,8 +97,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
             <div id="stockrotation">
 
@@ -88,7 +119,7 @@
                                     <th>Active</th>
                                     <th>Description</th>
                                     <th>Number of items</th>
-                                    <th class="NoSort noExport">&nbsp;</th>
+                                    <th class="NoSort noExport">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -101,29 +132,32 @@
                                             <td>[% rota.stockrotationitems.count | html %]</td>
                                             <td class="actions">
                                                 <a class="btn btn-default btn-xs" href="?op=create_edit_rota&amp;rota_id=[% rota.rota_id | uri %]">
-                                                    <i class="fa fa-pencil"></i>
+                                                    <i class="fa-solid fa-pencil" aria-hidden="true"></i>
                                                     Edit
                                                 </a>
                                                 <div class="btn-group dropup" role="group">
-                                                    <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                         Manage
-                                                        <i class="fa fa-caret-down"></i>
                                                     </button>
-                                                    <ul class="dropdown-menu pull-right">
-                                                        <li><a href="?op=manage_stages&amp;rota_id=[% rota.rota_id | uri %]">Stages</a></li>
+                                                    <ul class="dropdown-menu">
+                                                        <li><a class="dropdown-item" href="?op=manage_stages&amp;rota_id=[% rota.rota_id | uri %]">Stages</a></li>
                                                         [% IF CAN_user_stockrotation_manage_rota_items && rota.stockrotationstages.count > 0 %]
-                                                        <li><a href="?op=manage_items&amp;rota_id=[% rota.rota_id | uri %]">Items</a></li>
+                                                        <li><a class="dropdown-item" href="?op=manage_items&amp;rota_id=[% rota.rota_id | uri %]">Items</a></li>
                                                         [% END %]
                                                     </ul>
                                                 </div>
-                                                <a class="btn btn-default btn-xs" href="?op=toggle_rota&amp;rota_id=[% rota.rota_id | uri %]">
-                                                    <i class="fa fa-power-off"></i>
+                                                <form id="toggle_rota_[% rota.rota_id | html %]" method="post" action="/cgi-bin/koha/tools/stockrotation.pl">
+                                                    [% INCLUDE 'csrf-token.inc' %]
+                                                    <input type="hidden" name="op" value="cud-toggle_rota" />
+                                                    <input type="hidden" name="rota_id" value="[% rota.rota_id | html %]" />
+                                                    <button class="btn btn-default btn-xs" type="submit"><i class="fa fa-power-off"></i>
                                                     [% IF !rota.active %]
                                                         Activate
                                                     [% ELSE %]
                                                         Deactivate
                                                     [% END %]
-                                                </a>
+                                                    </button>
+                                                </form>
                                                 <a class="btn btn-default btn-xs" href="?op=confirm_delete_rota&amp;rota_id=[% rota.rota_id | uri %]">
                                                     <i class="fa fa-trash"></i>
                                                     Delete
@@ -139,18 +173,19 @@
                 [% ELSIF (op == 'create_edit_rota') %]
 
                     [% IF rota.rota_id %]
-                        <h1>Edit "[% rota.title | html %]"</h1>
+                        <h1>[% tx("Modify rota '{rota_title}'", rota_title = rota.title ) %]</h1>
                     [% ELSE %]
-                        <h1>Create new rota</h1>
+                        <h1>New rota</h1>
                     [% END %]
 
                     [% IF error == 'invalid_form' %]
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         <h3>There was a problem with your form submission</h3>
                     </div>
                     [% END %]
 
                     <form id="rota_form" method="post" enctype="multipart/form-data" class="validated">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <fieldset class="rows">
                             <ol>
                                 <li>
@@ -183,7 +218,7 @@
                         [% IF rota.rota_id %]
                             <input type="hidden" name="id" value="[% rota.rota_id | html %]">
                         [% END %]
-                        <input type="hidden" name="op" value="process_rota">
+                        <input type="hidden" name="op" value="cud-process_rota">
                     </form>
 
                 [% ELSIF (op == 'manage_stages') %]
@@ -191,12 +226,12 @@
                     [% INCLUDE 'stockrotation-toolbar.inc' %]
 
                     [% IF error == 'invalid_form' %]
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         <h3>There was a problem with your form submission</h3>
                     </div>
                     [% END %]
 
-                    <h1>Manage <em>[% rota.title | html %]</em> stages</h1>
+                    <h1>[% tx("Manage stages for '{rota_title}'", rota_title = rota.title ) %]</h1>
                     <div id="ajax_status"
                         data-saving-msg="Saving changes..."
                         data-success-msg=""
@@ -212,14 +247,15 @@
                     <!-- Add stage modal -->
                     <div class="modal" id="addStageModal" tabindex="-1" role="dialog" aria-labelledby="addStageLabel">
                         <form id="stage_form" method="post" enctype="multipart/form-data" class="validated">
-                            <div class="modal-dialog" role="document">
+                            [% INCLUDE 'csrf-token.inc' %]
+                            <div class="modal-dialog">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                                        <h4 class="modal-title" id="addStageLabel">Add stage to <em>[% rota.title | html %]</em></h4>
+                                        <h1 class="modal-title" id="addStageLabel">Add stage to <em>[% rota.title | html %]</em></h1>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
-                                        <fieldset class="rows">
+                                        <fieldset class="brief">
                                             <ol>
                                                 <li>
                                                     <label class="required" for="branch">Library:</label>
@@ -245,9 +281,9 @@
                                     <div class="modal-footer">
                                         <input type="hidden" name="stage_id" value="[% stage.id | html %]">
                                         <input type="hidden" name="rota_id" value="[% rota_id | html %]">
-                                        <input type="hidden" name="op" value="process_stage">
-                                        <button type="submit" class="btn btn-default">Save</button>
-                                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                                        <input type="hidden" name="op" value="cud-process_stage">
+                                        <button type="submit" class="btn btn-primary">Save</button>
+                                        <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
                                     </div> <!-- /.modal-footer -->
                                 </div> <!-- /.modal-content -->
                             </div> <!-- /.modal-dialog -->
@@ -257,7 +293,7 @@
                     [% IF existing_stages.size > 0 %]
                         <div id="manage_stages" class="page-section">
                             <div id="manage_stages_help">
-                                Stages can be re-ordered by using the <i class="drag_handle fa fa-lg fa-bars"></i>handle to drag and drop them to their new position
+                                Stages can be re-ordered by using the <i class="drag_handle fa-solid fa-fw fa-grip-vertical" aria-hidden="true"></i> handle to drag and drop them to their new position
                             </div>
                             <div id="stage_list_headings">
                                 <span class="stagename">Library</span>
@@ -266,19 +302,19 @@
                             <ul id="sortable_stages" data-rota-id="[% rota.rota_id | html %]">
                                 [% FOREACH stage IN existing_stages %]
                                     <li id="stage_[% stage.stage_id | html %]">
-                                        <span data-toggle="tooltip" title="Drag and drop to move this stage to another position" data-placement="right" class="stagename">
+                                        <span class="stagename">
                                             [% IF existing_stages.size > 1 %]
-                                                <i class="drag_handle fa fa-lg fa-bars"></i>
+                                                <i class="drag_handle fa-solid fa-fw fa-grip-vertical" data-bs-toggle="tooltip" title="Drag and drop to move this stage to another position" data-bs-placement="top" aria-hidden="true"></i>
                                             [% END %]
                                             [% Branches.GetName(stage.branchcode_id) | html %]
                                         </span>
                                         <span class="stageduration">[% stage.duration | html %]</span>
                                         <span class="stageactions">
                                             <a class="btn btn-default btn-xs" href="?op=create_edit_stage&amp;stage_id=[% stage.stage_id | uri %]">
-                                                <i class="fa fa-pencil"></i> Edit
+                                                <i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit
                                             </a>
                                             <a class="btn btn-default btn-xs" href="?op=confirm_delete_stage&amp;stage_id=[% stage.stage_id | uri %]">
-                                                <i class="fa fa-trash"></i> Delete
+                                                <i class="fa fa-trash-can"></i> Delete
                                             </a>
                                         </span>
                                     </li>
@@ -287,9 +323,9 @@
                         </div>
                     [% ELSE %]
 
-                        <div class="dialog message">
+                        <div class="alert alert-info">
                             <h4>This rota has no stages.</h4>
-                            <p><button type="button" data-toggle="modal" data-target="#addStageModal"><i class="fa fa-plus"></i> Add a stage</button></p>
+                            <p><button type="button" data-bs-toggle="modal" data-bs-target="#addStageModal"><i class="fa fa-plus"></i> Add a stage</button></p>
                         </div>
 
                     [% END %]
@@ -299,18 +335,19 @@
                 [% ELSIF (op == 'create_edit_stage') %]
 
                     [% IF stage.id %]
-                        <h1>Edit "[% Branches.GetName(stage.branchcode_id) | html %]"</h1>
+                        <h1>[% tx("Modify {library} stage", library = Branches.GetName(stage.branchcode_id) ) %]</h1>
                     [% ELSE %]
-                        <h1>Create new stage</h1>
+                        <h1>New stage</h1>
                     [% END %]
 
                     [% IF error == 'invalid_form' %]
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         <h3>There was a problem with your form submission</h3>
                     </div>
                     [% END %]
 
                     <form id="stage_form" method="post" enctype="multipart/form-data" class="validated">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <fieldset class="rows">
                             <ol>
                                 <li>
@@ -339,20 +376,11 @@
                         </fieldset>
                         <input type="hidden" name="stage_id" value="[% stage.id | html %]">
                         <input type="hidden" name="rota_id" value="[% rota_id | html %]">
-                        <input type="hidden" name="op" value="process_stage">
+                        <input type="hidden" name="op" value="cud-process_stage">
                     </form>
-                [% ELSIF (op == 'confirm_remove_from_rota') %]
-
-                    <div class="dialog alert">
-                        <h1>Are you sure you wish to remove this item from its rota</h1>
-                        <p>
-                            <a class="btn btn-default btn-xs approve" href="?op=remove_item_from_stage&amp;item_id=[% item_id | uri %]&amp;stage_id=[% stage_id | uri %]&amp;rota_id=[% rota_id | uri %]"><i class="fa fa-fw fa-check"></i>Yes</a>
-                            <a class="btn btn-default btn-xs deny" href="?op=manage_items&amp;rota_id=[% rota_id | uri %]"><i class="fa fa-fw fa-remove"></i>No</a>
-                        </p>
-                    </div>
                 [% ELSIF (op == 'confirm_delete_rota') %]
 
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         <h1>Are you sure you want to delete this rota?</h1>
                         [% IF sritemstotal > 0 %]
                             [% IF sritemstotal == 1 %]
@@ -362,13 +390,18 @@
                             [% END %]
                         [% END %]
                         <p>
-                            <a class="btn btn-default btn-xs approve" href="?op=delete_rota&amp;rota_id=[% rota_id | uri %]"><i class="fa fa-fw fa-check"></i>Yes</a>
-                            <a class="btn btn-default btn-xs deny" href="/cgi-bin/koha/tools/stockrotation.pl"><i class="fa fa-fw fa-remove"></i>No</a>
+                            <form id="delete_rota_[% rota_id | html %]" method="post" action="/cgi-bin/koha/tools/stockrotation.pl">
+                                [% INCLUDE 'csrf-token.inc' %]
+                                <input type="hidden" name="op" value="cud-delete_rota" />
+                                <input type="hidden" name="rota_id" value="[% rota_id | html %]" />
+                                <button class="btn btn-default btn-xs approve" type="submit"><i class="fa fa-fw fa-check"></i> Yes</button>
+                            </form>
+                            <a class="btn btn-default btn-xs deny" href="/cgi-bin/koha/tools/stockrotation.pl"><i class="fa fa-fw fa-times"></i> No</a>
                         </p>
                     </div>
                 [% ELSIF (op == 'confirm_delete_stage') %]
 
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         <h1>Are you sure you want to delete this stage?</h1>
                         [% IF stage.stockrotationitems.count > 0 %]
                             <p>This stage contains the following item(s):</p>
@@ -379,8 +412,13 @@
                             </ul>
                         [% END %]
                         <p>
-                            <a class="btn btn-default btn-xs approve" href="?op=delete_stage&amp;stage_id=[% stage.stage_id | uri %]"><i class="fa fa-fw fa-check"></i>Yes</a>
-                            <a class="btn btn-default btn-xs deny" href="?op=manage_stages&amp;rota_id=[% stage.rota.rota_id | uri %]"><i class="fa fa-fw fa-remove"></i>No</a>
+                            <form id="delete_stage_[% stage.stage_id | html %]" method="post" action="/cgi-bin/koha/tools/stockrotation.pl">
+                                [% INCLUDE 'csrf-token.inc' %]
+                                <input type="hidden" name="op" value="cud-delete_stage" />
+                                <input type="hidden" name="stage_id" value="[% stage.stage_id | html %]" />
+                                <button class="btn btn-default btn-xs approve" type="submit"><i class="fa fa-fw fa-check"></i> Yes</button>
+                            </form>
+                            <a class="btn btn-default btn-xs deny" href="?op=manage_stages&amp;rota_id=[% stage.rota.rota_id | uri %]"><i class="fa fa-fw fa-times"></i> No</a>
                         </p>
                     </div>
                 [% ELSIF (op == 'manage_items') %]
@@ -388,7 +426,7 @@
                     [% INCLUDE 'stockrotation-toolbar.inc' %]
 
                     [% IF error %]
-                        <div class="dialog alert">
+                        <div class="alert alert-warning">
                             [% IF error == "item_not_found" %]
                                 <h3>The item was not found</h3>
                             [% ELSIF error == "already_on_rota" %]
@@ -397,16 +435,19 @@
                         </div>
                     [% END %]
 
-                    <h1>Manage items assigned to <em>[% rota.title | html %]</em></h1>
+                    <h1>[% tx("Manage items for '{rota_title}'", rota_title = rota.title ) %]</h1>
 
                     <!-- Add items modal -->
                     <div class="modal" id="addItemsModal" tabindex="-1" role="dialog" aria-labelledby="addItemsLabel">
                         <form id="add_rota_item_form" method="post" enctype="multipart/form-data" class="validated">
-                            <div class="modal-dialog" role="document">
+                            [% INCLUDE 'csrf-token.inc' %]
+                            <div class="modal-dialog">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                                        <h4 class="modal-title" id="addItemsLabel">Add item to <em>[% rota.title | html %]</em></h4>
+                                        <h1 class="modal-title" id="addItemsLabel">
+                                            [% tx("Add items to rota '{rota_title}'", rota_title = rota.title ) %]
+                                        </h1>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
                                         <fieldset class="rows">
@@ -430,9 +471,9 @@
                                     </div> <!-- /.modal-body -->
                                     <div class="modal-footer">
                                         <input type="hidden" name="rota_id" value="[% rota.id | html %]">
-                                        <input type="hidden" name="op" value="add_items_to_rota">
-                                        <button type="submit" class="btn btn-default">Save</button>
-                                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                                        <input type="hidden" name="op" value="cud-add_items_to_rota">
+                                        <button type="submit" class="btn btn-primary">Save</button>
+                                        <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
                                     </div> <!-- /.modal-footer -->
                                 </div> <!-- /.modal-content -->
                             </div> <!-- /.modal-dialog -->
@@ -450,62 +491,69 @@
                                         <th>Call number</th>
                                         <th class="NoSearch">In transit</th>
                                         <th class="NoSort noExport">Stages &amp; duration in days<br>(current stage highlighted)</th>
-                                        <th class="NoSort noExport">&nbsp;</th>
+                                        <th class="NoSort noExport">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     [% FOREACH sritem IN sritems %]
+                                        [%- SET transfer = sritem.item.get_transfer -%]
                                         <tr>
                                             <td><a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% sritem.id | uri %]&amp;biblionumber=[% sritem.item.biblio.id | uri %]#item[% sritem.id | uri %]">[% sritem.item.barcode | html %]</a></td>
                                             <td><a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% sritem.item.biblio.id | uri %]">[% sritem.item.biblio.title | html %]</a></td>
                                             <td>[% sritem.item.biblio.author | html %]</td>
                                             <td>[% sritem.item.itemcallnumber | html %]</td>
-                                            <td>[% sritem.item.get_transfer ? 'Yes' : 'No' | html %]</td>
-                                            <td>
-                                                [% FOREACH this_stage IN stages %]
-                                                    [% IF this_stage.stage_id == sritem.stage.stage_id %]
-                                                        <span class="stage highlight_stage">
+                                            <td>[% IF ( transfer ) %]
+                                                    [% IF (transfer.reason.match('Stockrotation.*')) %]
+                                                    [% IF (transfer.datesent) %]
+                                                        <span class="intransit">In transit from [% Branches.GetName( transfer.frombranch ) | html %] to [% Branches.GetName( transfer.tobranch ) | html %] since [% transfer.datesent | $KohaDates %]</span>
                                                     [% ELSE %]
-                                                        <span class="stage">
+                                                        <span class="transitrequested">Transit pending from [% Branches.GetName( transfer.frombranch ) | html %] to [% Branches.GetName( transfer.tobranch ) | html %] since [% transfer.daterequested | $KohaDates %]</span>
                                                     [% END %]
-                                                    [% Branches.GetName(this_stage.branchcode_id) | html %] ([% this_stage.duration | html %])
-                                                    </span>
-                                                    &raquo;
-                                                [% END %]
-                                                [% IF stages.size > 0 %]
-                                                    <span class="stage">[% rota.cyclical ? 'START' : 'END' | html %]</span>
+                                                    [% END %]
                                                 [% END %]
                                             </td>
+                                            <td>
+                                                [%- FOREACH this_stage IN stages -%]
+                                                    [%- IF this_stage.stage_id == sritem.stage.stage_id -%]
+                                                        <span class="stage highlight_stage">
+                                                    [%- ELSE -%]
+                                                        <span class="stage">
+                                                    [%- END -%]
+                                                    [%- Branches.GetName(this_stage.branchcode_id) | html -%] ([%- this_stage.duration | html -%])
+                                                    </span>&raquo;
+                                                [%- END -%]
+                                                [%- IF stages.size > 0 -%]
+                                                    <span class="stage">[% rota.cyclical ? 'START' : 'END' | html %]</span>
+                                                [%- END -%]
+                                            </td>
                                             <td class="actions">
-                                                [% in_transit = sritem.item.get_transfer %]
-                                                [% IF !in_transit && stages.size > 1 %]
-                                                    <a class="btn btn-default btn-xs" href="?op=move_to_next_stage&amp;rota_id=[% rota.id | uri %]&amp;item_id=[% sritem.id | uri %]&amp;stage_id=[% sritem.stage.stage_id | uri %]">
-                                                [% ELSE %]
-                                                    <a class="btn btn-default btn-xs" disabled>
-                                                [% END %]
-                                                    <i class="fa fa-arrow-right"></i>
-                                                    Move to next stage
-                                                </a>
-                                                [% IF !in_transit %]
-                                                    <a class="btn btn-default btn-xs" href="?op=toggle_in_demand&amp;stage_id=[% sritem.stage.stage_id | uri %]&amp;item_id=[% sritem.id | uri %]&amp;rota_id=[% rota.id | uri %]">
-                                                [% ELSE %]
-                                                    <a class="btn btn-default btn-xs" disabled>
-                                                [% END %]
-                                                    <i class="fa fa-fire"></i>
-                                                    [% IF sritem.indemand %]
-                                                    <span>Remove &quot;In demand&quot;</span>
-                                                    [% ELSE %]
-                                                    <span>Add &quot;In demand&quot;</span>
-                                                    [% END %]
-                                                </a>
-                                                [% IF !in_transit %]
-                                                    <a class="btn btn-default btn-xs" href="?op=confirm_remove_from_rota&amp;stage_id=[% sritem.stage.stage_id | uri %]&amp;item_id=[% sritem.id | uri %]&amp;rota_id=[% rota.id | uri %]">
-                                                [% ELSE %]
-                                                    <a class="btn btn-default btn-xs" disabled>
-                                                [% END %]
-                                                    <i class="fa fa-trash"></i>
-                                                    Remove from rota
-                                                </a>
+                                                [%- IF stages.size < 2 -%]
+                                                    <a class="btn btn-default btn-xs" title="Rota has a single stage, advancing will have no effect" disabled>
+                                                [%- ELSE -%]
+                                                    [%- IF !transfer -%]
+                                                        <a id="move_to_next_stage_[% sritem.id | html %]_[% rota.id | html %]" class="btn btn-default btn-xs submit-form-link" href="#" data-item_id="[% sritem.id | html %]" data-rota_id="[% rota.id | html %]" date-stage_id="[% sritem.stage.stage_id | html %]" data-action="/cgi-bin/koha/tools/stockrotation.pl" data-method="post" data-op="cud-move_to_next_stage">
+                                                    [%- ELSE -%]
+                                                        <a id="move_to_next_stage_[% sritem.id | html %]_[% rota.id | html %]" class="btn btn-default btn-xs submit-form-link" href="#" data-item_id="[% sritem.id | html %]" data-rota_id="[% rota.id | html %]" date-stage_id="[% sritem.stage.stage_id | html %]" data-action="/cgi-bin/koha/tools/stockrotation.pl" data-method="post" data-op="cud-move_to_next_stage" title="Item is in transit, it will be directed to new stage when checked in">
+                                                    [%- END -%]
+                                                        <i class="fa fa-arrow-right"></i> Move to next stage</a>
+                                                [%- END -%]
+
+                                                [%- IF !transfer -%]
+                                                        <a id="toggle_in_demand_[% sritem.id | html %]_[% rota.id | html %]" class="btn btn-default btn-xs submit-form-link" href="#" data-item_id="[% sritem.id | html %]" data-rota_id="[% rota.id | html %]" date-stage_id="[% sritem.stage.stage_id | html %]" data-action="/cgi-bin/koha/tools/stockrotation.pl" data-method="post" data-op="cud-toggle_in_demand" title="Item is in transit, it will be directed to new stage when checked in">
+                                                        [%- IF sritem.indemand -%]
+                                                            <i class="fa fa-fire"></i> Remove &quot;In demand&quot;</button>
+                                                        [%- ELSE -%]
+                                                            <i class="fa fa-fire"></i> Add &quot;In demand&quot;</button>
+                                                        [%- END -%]
+                                                    </a>
+                                                [%- END -%]
+
+                                                [%- IF !transfer -%]
+                                                    <a id="remove_item_from_stage_[% item_id | html %]_[% rota.id | html %]" class="btn btn-default btn-xs submit-form-link" action="/cgi-bin/koha/tools/stockrotation.pl" data-op="cud-remove_item_from_stage" data-item_id="[% sritem.id | html %]" data-stage_id="[% sritem.stage.stage_id | html %]" data-rota_id="[% rota.id | html %]" data-method="post" data-confirmation-msg="[% t('Are you sure you wish to remove this item from its rota?') | html %]">
+                                                [%- ELSE -%]
+                                                    <a class="btn btn-default btn-xs" disabled="disabled">
+                                                [%- END -%]
+                                                    <i class="fa fa-trash-can"></i>Remove from rota</a>
                                             </td>
                                         </tr>
                                     [% END %]
@@ -514,9 +562,9 @@
                         </div> <!-- /.page-section -->
                     [% ELSE %]
 
-                        <div class="dialog message">
+                        <div class="alert alert-info">
                             <h4>There are no items assigned to this rota.</h4>
-                            <p><button type="button" data-toggle="modal" data-target="#addItemsModal"><i class="fa fa-plus"></i> Add items</button></p>
+                            <p><button type="button" data-bs-toggle="modal" data-bs-target="#addItemsModal"><i class="fa fa-plus"></i> Add items</button></p>
                         </div>
 
                     [% END %]
@@ -525,8 +573,8 @@
 
                 [% ELSIF op == 'add_items_to_rota' %]
 
-                    <h1>Add items to rota report</h1>
-
+                    <h1>[% tx("Add items to rota '{rota_title}'", rota_title = rota.title ) %]</h1>
+                    <h2>Results</h2>
                     <div class="page-section">
                         [% IF barcode_status.ok.size > 0 %]
                             <h4>Items added to rota:</h4>
@@ -564,6 +612,7 @@
 
                     [% IF barcode_status.on_other.size > 0 %]
                         <form id="add_rota_item_form" method="post" enctype="multipart/form-data">
+                            [% INCLUDE 'csrf-token.inc' %]
                             <fieldset>
                                 <legend>Select items to move to this rota:</legend>
                                 [% FOREACH item_on_other IN barcode_status.on_other %]
@@ -575,7 +624,7 @@
                                 <input type="submit" class="btn btn-primary" value="Save" />
                             </fieldset>
                             <input type="hidden" name="rota_id" value="[% rota_id | html %]">
-                            <input type="hidden" name="op" value="move_items_to_rota">
+                            <input type="hidden" name="op" value="cud-move_items_to_rota">
                         </form>
                     [% END %]
                     <p><a href="?op=manage_items&amp;rota_id=[% rota_id | uri %]">Return to rota</a></p>
@@ -584,9 +633,9 @@
             </div>
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% IF ( op == 'manage_stages' || op == 'manage_items' ) %]
                     <div id="menu">
@@ -610,12 +659,13 @@
                 [% END %]
                 [% INCLUDE 'cat-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
+    [% Asset.js( "lib/sortable/Sortable.min.js" ) | $raw %]
     [% Asset.js("js/pages/stockrotation.js") | $raw %]
     <script>
         var stock_rotation_items_table_settings = [% TablesSettings.GetTableSettings( 'tools', 'stockrotation', 'stock_rotation_manage_items', 'json' ) | $raw %];

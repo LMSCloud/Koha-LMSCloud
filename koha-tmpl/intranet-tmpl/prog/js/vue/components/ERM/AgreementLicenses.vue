@@ -19,22 +19,15 @@
                     <label :for="`license_id_${counter}`" class="required"
                         >{{ $__("License") }}:</label
                     >
-                    <v-select
+                    <InfiniteScrollSelect
                         :id="`license_id_${counter}`"
                         v-model="agreement_license.license_id"
+                        :selectedData="agreement_license.license"
+                        dataType="licenses"
+                        dataIdentifier="license_id"
                         label="name"
-                        :reduce="l => l.license_id"
-                        :options="licenses"
-                    >
-                        <template #search="{ attributes, events }">
-                            <input
-                                :required="!agreement_license.license_id"
-                                class="vs__search"
-                                v-bind="attributes"
-                                v-on="events"
-                            />
-                        </template>
-                    </v-select>
+                        :required="true"
+                    />
                     <span class="required">{{ $__("Required") }}</span>
                 </li>
                 <li>
@@ -93,7 +86,7 @@
                 </li>
             </ol>
         </fieldset>
-        <a v-if="licenses.length" class="btn btn-default" @click="addLicense"
+        <a v-if="license_count > 0" class="btn btn-default" @click="addLicense"
             ><font-awesome-icon icon="plus" /> {{ $__("Add new license") }}</a
         >
         <span v-else>{{ $__("There are no licenses created yet") }}</span>
@@ -102,12 +95,13 @@
 
 <script>
 import { APIClient } from "../../fetch/api-client.js"
+import InfiniteScrollSelect from "../InfiniteScrollSelect.vue"
 
 export default {
     name: "AgreementLicenses",
     data() {
         return {
-            licenses: [],
+            license_count: null,
         }
     },
     props: {
@@ -117,9 +111,9 @@ export default {
     },
     beforeCreate() {
         const client = APIClient.erm
-        client.licenses.getAll().then(
-            licenses => {
-                this.licenses = licenses
+        client.licenses.count().then(
+            count => {
+                this.license_count = count
                 this.initialized = true
             },
             error => {}
@@ -133,11 +127,15 @@ export default {
                 physical_location: null,
                 notes: "",
                 uri: "",
+                license: { name: "" },
             })
         },
         deleteLicense(counter) {
             this.agreement_licenses.splice(counter, 1)
         },
+    },
+    components: {
+        InfiniteScrollSelect,
     },
 }
 </script>

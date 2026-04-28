@@ -94,14 +94,14 @@ sub Getoverdues {
     if ( C4::Context->preference('item-level_itypes') ) {
         $statement = "
    SELECT issues.*, items.itype as itemtype, items.homebranch, items.barcode, items.itemlost, items.replacementprice, items.biblionumber, items.holdingbranch
-     FROM issues 
+     FROM issues
 LEFT JOIN items       USING (itemnumber)
     WHERE date_due < NOW()
 ";
     } else {
         $statement = "
    SELECT issues.*, biblioitems.itemtype, items.itype, items.homebranch, items.barcode, items.itemlost, replacementprice, items.biblionumber, items.holdingbranch
-     FROM issues 
+     FROM issues
 LEFT JOIN items       USING (itemnumber)
 LEFT JOIN biblioitems USING (biblioitemnumber)
     WHERE date_due < NOW()
@@ -224,6 +224,23 @@ sub CalcFine {
     # Skip calculations if item is not overdue
     return ( 0, 0, 0 ) unless (DateTime->compare( $due_dt, $end_date ) == -1);
 
+    # Call the plugin hook overwrite_calc_fine of all plugins and return
+    # the first defined fine.
+    my @fines = grep { defined $_ } Koha::Plugins->call(
+        'overwrite_calc_fine',
+        {
+            itemnumber     => $item->{itemnumber},
+            borrowernumber => $item->{borrowernumber},
+            categorycode   => $bortype,
+            branchcode     => $branchcode,
+            due_date       => $due_dt,
+            end_date       => $end_date,
+        }
+    );
+
+    return @{ $fines[0] }
+        if scalar @fines;
+
     my $start_date = $due_dt->clone();
     # get issuingrules (fines part will be used)
     my $itemtype = $item->{itemtype} || $item->{itype};
@@ -289,10 +306,12 @@ sub CalcFine {
         && $amount > $issuing_rule->{overduefinescap};
 
     # This must be moved to Koha::Item (see also similar code in C4::Accounts::chargelostitem
-    $item->{replacementprice} ||= $itemtype->defaultreplacecost
-      if $itemtype
-      && ( ! defined $item->{replacementprice} || $item->{replacementprice} == 0 )
-      && C4::Context->preference("useDefaultReplacementCost");
+    if (   $itemtype
+        && ( !defined $item->{replacementprice} || $item->{replacementprice} + .0 == 0 )
+        && C4::Context->preference("useDefaultReplacementCost") )
+    {
+        $item->{replacementprice} = $itemtype->defaultreplacecost;
+    }
 
     $amount = $item->{replacementprice} if ( $issuing_rule->{cap_fine_to_replacement_price} && $item->{replacementprice} && $amount > $item->{replacementprice} );
 
@@ -563,7 +582,7 @@ sub UpdateFine {
     # - accumulate fines for other items
     # so we can update $itemnum fine taking in account fine caps
     while (my $overdue = $overdues->next) {
-        if ( defined $overdue->issue_id && $overdue->issue_id == $issue_id && $overdue->debit_type_code eq 'OVERDUE' && ( $overdue->status eq 'UNRETURNED' || $overdue->status eq 'LOST' ) ) {
+        if ( defined $overdue->checkout && $overdue->checkout->issue_id == $issue_id && $overdue->status eq 'UNRETURNED' ) {
             if ($accountline) {
                 Koha::Logger->get->debug("Not a unique accountlines record for issue_id $issue_id"); # FIXME Do we really need to log that?
                 #FIXME Should we still count this one in total_amount ??
@@ -619,7 +638,7 @@ sub UpdateFine {
                     items     => $itemnum,
                 },
             ) };
-            my $desc = $letter ? $letter->{content} : sprintf("Item %s - due %s", $itemnum, output_pref($due) );
+            my $desc = $letter ? $letter->{content} : sprintf("Item %s - due %s", $itemnum, output_pref({ str => $due }) );
 
             my $account = Koha::Account->new({ patron_id => $borrowernumber });
             $accountline = $account->add_debit(
@@ -649,7 +668,7 @@ C<$itemnum> is item number
 
 C<$borrowernumber> is the borrowernumber
 
-=cut 
+=cut
 
 sub GetFine {
     my ( $itemnum, $borrowernumber ) = @_;

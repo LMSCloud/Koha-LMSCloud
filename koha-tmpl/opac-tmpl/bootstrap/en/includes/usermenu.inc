@@ -1,4 +1,5 @@
 [% USE Koha %]
+[% USE KohaPlugins %]
 [% IF ( ( Koha.Preference( 'opacuserlogin' ) == 1 ) && loggedinusername ) %]
     <div id="menu">
         <ul>
@@ -34,7 +35,7 @@
             [% END %]
                 <a href="/cgi-bin/koha/opac-memberentry.pl">Personal details</a></li>
 
-            [% IF Koha.Preference('PrivacyPolicyConsent') # remove when extending %]
+            [% IF Koha.Preference('PrivacyPolicyConsent') || KohaPlugins.feature_enabled('patron_consent_type') %]
                 [% IF consentview %]<li class="active">[% ELSE %]<li>[% END %]
                     <a href="/cgi-bin/koha/opac-patron-consent.pl">Consents</a>
                 </li>
@@ -177,7 +178,7 @@
             [% END %]
 
             [% IF Koha.Preference( 'CurbsidePickup' ) %]
-                [% IF ( ermview ) %]
+                [% IF ( curbside_pickups_view ) %]
                     <li class="active">
                 [% ELSE %]
                     <li>
@@ -185,6 +186,23 @@
                 <a href="/cgi-bin/koha/opac-curbside-pickups.pl">Curbside pickups</a></li>
             [% END %]
 
+            [% IF logged_in_user.alert_subscriptions.count %]
+                [% IF ( alertsview ) %]
+                    <li class="active">
+                [% ELSE %]
+                    <li>
+                [% END %]
+                <a href="/cgi-bin/koha/opac-alert-subscriptions.pl">Alert subscriptions ([% logged_in_user.alert_subscriptions.count | html %])</a></li>
+            [% END %]
+
+            [% IF Koha.Preference( 'OPACVirtualCard' ) %]
+                [% IF ( virtualcardview ) %]
+                    <li class="active">
+                [% ELSE %]
+                    <li>
+                [% END %]
+                <a href="/cgi-bin/koha/opac-virtual-card.pl">My virtual card</a></li>
+            [% END %]
         </ul>
     </div>
 [% END %]

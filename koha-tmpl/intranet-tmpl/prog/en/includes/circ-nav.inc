@@ -1,8 +1,10 @@
+<!-- circ-nav.inc -->
 [% USE Koha %]
 [% USE Branches %]
 <div id="navmenu">
     <div id="navmenulist">
-
+        <div class="row">
+        <div class="col-sm-6 col-md-12">
         <h5>Circulation</h5>
         <ul>
             <li>
@@ -14,13 +16,17 @@
             <li>
                 <a href="/cgi-bin/koha/circ/renew.pl">Renew</a>
             </li>
-            [% UNLESS IndependentBranches %]
+            [% IF ( CAN_user_superlibrarian || CAN_user_loggedinlibrary ) %]
             <li>
                 [% IF Koha.Preference('UseCirculationDesks') %]
                 <a href="/cgi-bin/koha/circ/set-library.pl">Set library and desk</a>
                 [% ELSE %]
                 <a href="/cgi-bin/koha/circ/set-library.pl">Set library</a>
                 [% END %]
+            </li>
+            [% ELSIF Koha.Preference('UseCirculationDesks') %]
+            <li>
+                <a href="/cgi-bin/koha/circ/set-library.pl">Set desk</a>
             </li>
             [% END %]
             [% IF ( fast_cataloging && CAN_user_editcatalogue_fast_cataloging ) %]
@@ -67,7 +73,10 @@
             </li>
             
         </ul>
+        </div>
 
+
+        <div class="col-sm-6 col-md-12">
         [% IF Koha.Preference('UseRecalls') and CAN_user_recalls %]
         <h5>Recalls</h5>
         <ul>
@@ -105,9 +114,11 @@
                 <a href="/cgi-bin/koha/circ/branchtransfers.pl">Transfer</a>
             </li>
         [% END %]
+        [% IF Koha.Preference('StockRotation') %]
              <li>
                 <a href="/cgi-bin/koha/circ/transfers_to_send.pl">Transfers to send</a>
             </li>
+        [% END %]
             <li>
                 <a href="/cgi-bin/koha/circ/transferstoreceive.pl">Transfers to receive</a>
             </li>
@@ -124,5 +135,8 @@
              </li>
         </ul>
         [% END %]
+        </div>
+    </div>
     </div>
 </div>
+<!-- /circ-nav.inc -->

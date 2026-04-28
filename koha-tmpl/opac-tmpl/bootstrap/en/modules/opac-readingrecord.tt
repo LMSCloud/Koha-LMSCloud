@@ -4,6 +4,7 @@
 [% USE TablesSettings %]
 [% USE AdditionalContents %]
 [% USE Asset %]
+[% USE Price %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
@@ -21,19 +22,14 @@
 [% END %]
 
 <div class="main">
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-            </li>
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
-            </li>
-            <li class="breadcrumb-item active">
-                <a href="#" aria-current="page">Your checkout history</a>
-            </li>
-        </ol>
-    </nav> <!-- /#breadcrumbs -->
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Your checkout history</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
 
     <div class="container-fluid">
         <div class="row">
@@ -46,8 +42,10 @@
 
                 <div id="userreadingrecord" class="maincontent">
                     <h1>Checkout history</h1>
-
-                    [% IF READING_RECORD.size == 0 %]
+                    [% UNLESS checkouts %][% checkouts = [] %][% END %]
+                    [% UNLESS old_checkouts %][% old_checkouts = [] %][% END %]
+                    [% SET all_checkouts = checkouts.merge(old_checkouts) %]
+                    [% IF all_checkouts.size == 0 %]
                         You have never borrowed anything from this library.
                     [% ELSE %]
                         <div id="opac-user-readingrec">
@@ -103,7 +101,7 @@
                                 [% PROCESS checkout_history_table %]
                             [% END %]
                         </div> <!-- / .opac-user-readingrec -->
-                    [% END # / IF READING_RECORD.size %]
+                    [% END # / IF checkouts.size == 0 %]
                 </div> <!-- / .userreadingrecord -->
             </div> <!-- / .col-lg-10 -->
         </div> <!-- / .row -->
@@ -229,10 +227,8 @@
             $('#sortform').submit();
         });
 
-        var columns_settings = []; // Empty because there are no columns we want to be configurable
         var table = KohaTable("#readingrec", {
             "dom": '<"top"<"table_entries"i><"table_controls"fB>>t',
-            "autoWidth": false,
             "language": {
                 "search": "_INPUT_",
                 "searchPlaceholder": _("Search")
@@ -247,7 +243,7 @@
             ],
         }, columns_settings);
 
-        $("#tabs a[data-toggle='tab']").on("shown.bs.tab", function (e) {
+        $("#tabs a[data-bs-toggle='tab']").on("shown.bs.tab", function (e) {
             var id = e.target.id;
             if ( id == "checkout-tab" ) {
                 table.fnFilter("standard_checkout", 0);
@@ -256,6 +252,7 @@
             } else { // all
                 table.fnFilter('', 0);
             }
+            table_dt.columns(0).search(pattern).draw();
         });
     });
 </script>

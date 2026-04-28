@@ -1,9 +1,14 @@
 [% USE raw %]
 [% USE Asset %]
-[% SET footerjs = 1 %]
 [% USE Koha %]
+[% PROCESS 'i18n.inc' %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Share content with Mana KB &rsaquo; Administration &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Share content with Mana KB") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -25,26 +30,26 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
-            <div class="col-sm-6">
+        <div class="col-md-10 order-md-2 order-sm-1">
+            [% INCLUDE 'messages.inc' %]
                 [% IF result.code != 201 && result.msg %]
-                    <div class="dialog alert" role="alert">
+                    <div class="alert alert-warning" role="alert">
                         [% result.msg | html %]
                     </div>
                 [% END %]
 
                 [% IF result.code == 201  %]
-                    <div class="dialog message" role="alert">
+                    <div class="alert alert-info" role="alert">
                         You successfully created your Mana KB account. Check your mailbox and follow instructions.
                     </div>
                 [% END %]
 
                 [% UNLESS (mana_url) %]
-                    <div class="dialog alert" role="alert">
+                    <div class="alert alert-warning" role="alert">
                         Mana configuration is currently empty. This feature will not work. Please contact your site administrator.
                     </div>
                 [% ELSIF (bad_url) %]
-                    <div class="dialog alert" role="alert">
+                    <div class="alert alert-warning" role="alert">
                         Cannot detect mana server at <strong>[% mana_url | url %]</strong>, please ask an administrator to check your configuration.
                     </div>
                 [% END %]
@@ -62,6 +67,7 @@
                     [% END %]
 
                     <form id="mana_preference" method="post" class="clearfix">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <fieldset class="rows">
                             <ol>
                                 <li>
@@ -98,7 +104,7 @@
                             </ol>
                         </fieldset>
                         <fieldset class="action">
-                            <input type="hidden" name="op" value="save" />
+                            <input type="hidden" name="op" value="cud-save" />
                             <input type="submit" class="btn btn-primary" value="Save" />
                         </fieldset>
                     </form>
@@ -111,6 +117,7 @@
 
                     [% IF Koha.Preference('ManaToken') %]
                         <form id="mana_token" method="post" class="clearfix">
+                            [% INCLUDE 'csrf-token.inc' %]
                             <fieldset class="rows">
                             <legend>Mana KB token</legend>
                                 <ol>
@@ -122,12 +129,13 @@
                                 </ol>
                             </fieldset>
                             <fieldset class="action">
-                                <input type="hidden" name="op" value="reset" />
+                                <input type="hidden" name="op" value="cud-reset" />
                                 <input type="submit" class="btn btn-primary" value="Reset your token" />
                             </fieldset>
                         </form>
                     [% ELSE %]
                         <form id="mana_request" method="post" class="clearfix">
+                            [% INCLUDE 'csrf-token.inc' %]
                             <fieldset class="rows" id="mana_subscription">
                                 <ol>
                                     <li>
@@ -142,20 +150,19 @@
                                 </ol>
                             </fieldset>
                             <fieldset class="action">
-                                <input type="hidden" name="op" value="send" />
+                                <input type="hidden" name="op" value="cud-send" />
                                 <input type="submit" class="btn btn-primary" value="Send to Mana KB" />
                             </fieldset>
                         </form>
                     [% END %]
                 [% END # /IF mana_url && !bad_url %]
-            </div>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+            </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

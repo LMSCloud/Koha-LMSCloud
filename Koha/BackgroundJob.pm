@@ -26,6 +26,7 @@ use C4::Context;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Exceptions;
 use Koha::Exceptions::BackgroundJob;
+use Koha::Plugins;
 
 use base qw( Koha::Object );
 
@@ -62,8 +63,15 @@ Connect to the message broker using default guest/guest credential
 
 sub connect {
     my ( $self );
+
+    my $notification_method = C4::Context->preference('JobsNotificationMethod') // 'STOMP';
+
+    return
+        unless $notification_method eq 'STOMP';
+
     my $hostname = 'localhost';
-    my $port = '61613';
+    my $port     = '61613';
+
     my $config = C4::Context->config('message_broker');
     my $credentials = {
         login => 'guest',
@@ -76,8 +84,23 @@ sub connect {
         $credentials->{passcode} = $config->{password} if $config->{password};
         $credentials->{host} = $config->{vhost} if $config->{vhost};
     }
-    my $stomp = Net::Stomp->new( { hostname => $hostname, port => $port } );
-    $stomp->connect( $credentials );
+
+    my $stomp;
+
+    try {
+        $stomp = Net::Stomp->new( { hostname => $hostname, port => $port } );
+        my $connected_frame = $stomp->connect($credentials);
+        if ( $connected_frame->command ne 'CONNECTED' ) {
+            my $message = $connected_frame->body;
+            chomp $message;
+            warn sprintf "Cannot connect to broker (%s)", $message;
+            undef $stomp;
+        }
+    } catch {
+        warn sprintf "Cannot connect to broker (%s)", $_;
+        undef $stomp;
+    };
+
     return $stomp;
 }
 
@@ -98,9 +121,14 @@ sub enqueue {
     my $job_type    = $self->job_type;
     my $job_size    = $params->{job_size};
     my $job_args    = $params->{job_args};
-    my $job_context = $params->{job_context} // C4::Context->userenv;
+    my $job_context = $params->{job_context} // { %{ C4::Context->userenv // {} } };
     my $job_queue   = $params->{job_queue}  // 'default';
     my $json = $self->json;
+
+    # LMSCloud adds branchcategory to userenv; strip it for job context
+    # serialization since it is not needed for restoring context and it
+    # breaks upstream tests that compare against a fixed set of fields
+    delete $job_context->{branchcategory};
 
     my $borrowernumber = (C4::Context->userenv) ? C4::Context->userenv->{number} : undef;
     $job_context->{interface} = C4::Context->interface;
@@ -122,12 +150,7 @@ sub enqueue {
 
     $job_args->{job_id} = $self->id;
 
-    my $conn;
-    try {
-        $conn = $self->connect;
-    } catch {
-        warn "Cannot connect to broker " . $_;
-    };
+    my $conn = $self->connect;
     return $self->id unless $conn;
 
     $json_args = $json->encode($job_args);
@@ -139,11 +162,15 @@ sub enqueue {
         my $namespace = C4::Context->config('memcached_namespace');
         my $encoded_args = Encode::encode_utf8( $json_args ); # FIXME We should better leave this to Net::Stomp?
         my $destination = sprintf( "/queue/%s-%s", $namespace, $job_queue );
-        $conn->send_with_receipt( { destination => $destination, body => $encoded_args, persistent => 'true' } )
-          or Koha::Exceptions::Exception->throw('Job has not been enqueued');
+        $conn->send_with_receipt(
+            {
+                destination    => $destination, body => $encoded_args, persistent => 'true',
+                'content-type' => 'application/json'
+            }
+        ) or Koha::Exceptions::BackgroundJob->throw('Job has not been enqueued');
     } catch {
         $self->status('failed')->store;
-        if ( ref($_) eq 'Koha::Exceptions::Exception' ) {
+        if ( ref($_) eq 'Koha::Exceptions::BackgroundJob' ) {
             $_->rethrow;
         } else {
             warn sprintf "The job has not been sent to the message broker: (%s)", $_;
@@ -164,13 +191,18 @@ sub process {
 
     return {} if ref($self) ne 'Koha::BackgroundJob';
 
+    # Our background jobs are called in forked processes
+    # to ensure we have all plugin hooks and data we call
+    # get_enabled_plugins at the star of processing
+    # to populate the cache
+    Koha::Plugins->get_enabled_plugins();
+
     my $derived_class = $self->_derived_class;
 
     $args ||= {};
 
     if ( $self->context ) {
         my $context = $self->json->decode($self->context);
-        C4::Context->_new_userenv(-1);
         C4::Context->interface( $context->{interface} );
         C4::Context->set_userenv(
             $context->{number},       $context->{id},
@@ -420,6 +452,7 @@ sub core_types_to_classes {
         batch_biblio_record_modification    => 'Koha::BackgroundJob::BatchUpdateBiblio',
         batch_item_record_deletion          => 'Koha::BackgroundJob::BatchDeleteItem',
         batch_item_record_modification      => 'Koha::BackgroundJob::BatchUpdateItem',
+        erm_sushi_harvester                 => 'Koha::BackgroundJob::ErmSushiHarvester',
         batch_hold_cancel                   => 'Koha::BackgroundJob::BatchCancelHold',
         create_eholdings_from_biblios       => 'Koha::BackgroundJob::CreateEHoldingsFromBiblios',
         update_elastic_index                => 'Koha::BackgroundJob::UpdateElasticIndex',
@@ -427,6 +460,8 @@ sub core_types_to_classes {
         stage_marc_for_import               => 'Koha::BackgroundJob::StageMARCForImport',
         marc_import_commit_batch            => 'Koha::BackgroundJob::MARCImportCommitBatch',
         marc_import_revert_batch            => 'Koha::BackgroundJob::MARCImportRevertBatch',
+        pseudonymize_statistic              => 'Koha::BackgroundJob::PseudonymizeStatistic',
+        import_from_kbart_file              => 'Koha::BackgroundJob::ImportKBARTFile',
     };
 }
 
@@ -461,14 +496,17 @@ sub plugin_types_to_classes {
             my $namespace = $metadata->{namespace};
 
             foreach my $type ( keys %{$tasks} ) {
-                my $class = $tasks->{$type};
+                my $class =
+                    ( ref $tasks->{$type} eq 'HASH' )
+                    ? $tasks->{$type}{class}
+                    : $tasks->{$type};
 
                 # skip if conditions not met
                 next unless $type and $class;
 
                 my $key = "plugin_$namespace" . "_$type";
 
-                $self->{_plugin_mapping}->{$key} = $tasks->{$type};
+                $self->{_plugin_mapping}->{$key} = $class;
             }
         }
     }

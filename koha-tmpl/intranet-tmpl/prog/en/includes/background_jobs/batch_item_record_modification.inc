@@ -1,9 +1,10 @@
 [% USE Koha %]
+[% INCLUDE 'columns_settings.inc' %]
 
 [% BLOCK report %]
     [% SET report = job.report %]
     [% IF report %]
-        <div class="dialog message">
+        <div class="alert alert-info">
             [% IF report.modified_itemnumbers.size %]
                 <span>[% report.modified_itemnumbers.size | html %] item(s) modified (with [% report.modified_fields | html %] field(s) modified).</span>
             [% ELSE %]
@@ -18,11 +19,11 @@
 
 [% BLOCK detail %]
     [% FOR m IN job.messages %]
-        <div class="dialog message">
+        <div class="alert alert-info">
             [% IF m.type == 'success' %]
                 <i class="fa fa-check success"></i>
             [% ELSIF m.type == 'warning' %]
-                <i class="fa fa-warning warn"></i>
+                <i class="fa-solid fa-triangle-exclamation warn"></i>
             [% ELSIF m.type == 'error' %]
                 <i class="fa fa-exclamation error"></i>
             [% END %]

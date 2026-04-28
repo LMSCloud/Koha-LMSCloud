@@ -2,15 +2,24 @@
 [% USE Koha %]
 [% USE Asset %]
 [% USE KohaDates %]
+[% USE AdditionalContents %]
 [% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
+[% SET SelfCheckHelpMessage = AdditionalContents.get( location => "SelfCheckHelpMessage", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 <title>Self checkout help &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha [% END %]</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Koha" /> <!-- leave this for stats -->
 <link rel="shortcut icon" href="[% IF ( Koha.Preference('OpacFavicon')  ) %][% Koha.Preference('OpacFavicon') | url %][% ELSE %][% interface | html %]/[% theme | html %]/images/favicon.ico[% END %]" type="image/x-icon" />
-[% Asset.css("lib/font-awesome/css/font-awesome.min.css") | $raw %]
+[% Asset.css("lib/fontawesome/css/fontawesome.min.css") | $raw %]
+[% Asset.css("lib/fontawesome/css/brands.min.css") | $raw %]
+[% Asset.css("lib/fontawesome/css/solid.min.css") | $raw %]
 [% Asset.css("css/sco.css") | $raw %]
 [% IF ( Koha.Preference('OPACUserCSS') ) %]<style>[% Koha.Preference('OPACUserCSS') | $raw %]</style>[% END %]
+[% IF Branches.GetBranchSpecificCSS( Branches.GetLoggedInBranchcode() || default_branch) %]
+    <style>
+        [% Branches.GetBranchSpecificCSS( Branches.GetLoggedInBranchcode() || default_branch) | $raw %]
+    </style>
+[% END %]
 [% IF ( SCOUserCSS ) %]<style>[% SCOUserCSS | $raw %]</style>[% END %]
 <script>
     var Koha = {};
@@ -33,7 +42,7 @@
 
                     [% IF ( SelfCheckHelpMessage ) %]
                         <div id="selfcheckhelpmessage">
-                            [% SelfCheckHelpMessage | $raw %]
+                            [% PROCESS koha_news_block news => SelfCheckHelpMessage %]
                         </div>
                     [% END %]
 

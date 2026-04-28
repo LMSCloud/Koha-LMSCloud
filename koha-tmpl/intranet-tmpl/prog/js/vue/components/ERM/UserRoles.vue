@@ -21,12 +21,14 @@
                     <span class="user">
                         {{ user_role.patron_str }}
                     </span>
-                    (<a
-                        href="#"
+                    &nbsp;
+                    <a
+                        href="#patron_search_modal"
                         @click="selectUser(counter)"
                         class="btn btn-default"
-                        >{{ $__("Select user") }}</a
-                    >)
+                        data-bs-toggle="modal"
+                        ><i class="fa fa-plus"></i> {{ $__("Select user") }}</a
+                    >
                     <span class="required">{{ $__("Required") }}</span>
                 </li>
                 <li>
@@ -91,23 +93,17 @@ export default {
             this.user_roles.splice(counter, 1)
         },
         selectUser(counter) {
-            let select_user_window = window.open(
-                "/cgi-bin/koha/members/search.pl?columns=cardnumber,name,category,branch,action&selection_type=select&filter=erm_users",
-                "PatronPopup",
-                "width=740,height=450,location=yes,toolbar=no," +
-                    "scrollbars=yes,resize=yes"
-            )
             // This is a bit dirty, the "select user" window should be rewritten and be a Vue component
             // but that's not for now...
-            select_user_window.addEventListener(
-                "beforeunload",
-                this.newUserSelected,
-                false
+            $(document).on(
+                "hidden.bs.modal",
+                "#patron_search_modal",
+                this.newUserSelected
             )
-            select_user_window.counter = counter
+            this.selected_user_counter = counter
         },
         newUserSelected(e) {
-            let c = e.currentTarget.counter
+            let c = this.selected_user_counter
             let selected_patron_id =
                 document.getElementById("selected_patron_id").value
             let patron

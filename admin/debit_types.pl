@@ -72,11 +72,12 @@ if ( $op eq 'add_form' ) {
         branches_loop => \@branches_loop
     );
 }
-elsif ( $op eq 'add_validate' ) {
+elsif ( $op eq 'cud-add_validate' ) {
     my $description           = $input->param('description');
     my $can_be_invoiced = $input->param('can_be_invoiced') || 0;
     my $can_be_sold = $input->param('can_be_sold') || 0;
     my $default_amount        = $input->param('default_amount') || undef;
+    my $restricts_checkouts = $input->param('restricts_checkouts') || 0;
     my @branches = grep { $_ ne q{} } $input->multi_param('branches');
 
     if ( not defined $debit_type ) {
@@ -86,6 +87,7 @@ elsif ( $op eq 'add_validate' ) {
     $debit_type->can_be_invoiced($can_be_invoiced);
     $debit_type->can_be_sold($can_be_sold);
     $debit_type->default_amount($default_amount);
+    $debit_type->restricts_checkouts($restricts_checkouts);
 
     try {
         $debit_type->store;
@@ -97,7 +99,7 @@ elsif ( $op eq 'add_validate' ) {
     };
     $op = 'list';
 }
-elsif ( $op eq 'archive' ) {
+elsif ( $op eq 'cud-archive' ) {
     try {
         $debit_type->archived(1)->store();
         push @messages, { code => 'success_on_archive', type => 'message' };
@@ -108,7 +110,7 @@ elsif ( $op eq 'archive' ) {
     };
     $op = 'list';
 }
-elsif ( $op eq 'unarchive' ) {
+elsif ( $op eq 'cud-unarchive' ) {
     try {
         $debit_type->archived(0)->store();
         push @messages, { code => 'success_on_restore', type => 'message' };

@@ -126,15 +126,15 @@ $(document).ready(function() {
         var holds = new Array();
         if ( ! holdsTable ) {
             var title;
-            holdsTable = $("#holds-table").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "bAutoWidth": false,
-                "sDom": "rt",
+            holdsTable = KohaTable("holds-table", {
+                "autoWidth": false,
+                "dom": '<"table_controls"B>rt',
                 "columns": [
                     {
                         "data": { _: "reservedate_formatted", "sort": "reservedate" }
                     },
                     {
-                        "mDataProp": function ( oObj ) {
+                        "data": function ( oObj ) {
                             title = "<a href='/cgi-bin/koha/reserve/request.pl?biblionumber="
                                   + oObj.biblionumber
                                   + "'>"
@@ -168,12 +168,12 @@ $(document).ready(function() {
                         }
                     },
                     {
-                        "mDataProp": function( oObj ) {
+                        "data": function( oObj ) {
                             return oObj.itemcallnumber && oObj.itemcallnumber.escapeHtml() || "";
                         }
                     },
                     {
-                        "mDataProp": function( oObj ) {
+                        "data": function( oObj ) {
                             var data = "";
                             if ( oObj.itemtype ) {
                                 data += oObj.itemtype_description;
@@ -182,7 +182,7 @@ $(document).ready(function() {
                         }
                     },
                     {
-                        "mDataProp": function( oObj ) {
+                        "data": function( oObj ) {
                             var data = "";
                             if ( oObj.barcode ) {
                                 data += " <a href='/cgi-bin/koha/catalogue/moredetail.pl?biblionumber="
@@ -199,7 +199,7 @@ $(document).ready(function() {
                         }
                     },
                     {
-                        "mDataProp": function( oObj ) {
+                        "data": function( oObj ) {
                             if( oObj.branches.length > 1 && oObj.found !== 'W' && oObj.found !== 'T' ){
                                 var branchSelect='<select priority='+oObj.priority+' class="hold_location_select" data-hold-id="'+oObj.reserve_id+'" reserve_id="'+oObj.reserve_id+'" name="pick-location" data-pickup-location-source="hold">';
                                 for ( var i=0; i < oObj.branches.length; i++ ){
@@ -225,7 +225,7 @@ $(document).ready(function() {
                     },
                     { "data": { _: "expirationdate_formatted", "sort": "expirationdate" } },
                     {
-                        "mDataProp": function( oObj ) {
+                        "data": function( oObj ) {
                             if ( oObj.priority && parseInt( oObj.priority ) && parseInt( oObj.priority ) > 0 ) {
                                 return oObj.priority;
                             } else {
@@ -234,8 +234,13 @@ $(document).ready(function() {
                         }
                     },
                     {
-                        "bSortable": false,
-                        "mDataProp": function( oObj ) {
+                        "data": function( oObj ) {
+                            return oObj.reservenotes && oObj.reservenotes.escapeHtml() || "";
+                        }
+                    },
+                    {
+                        "orderable": false,
+                        "data": function( oObj ) {
                             return "<select name='rank-request'>"
                                  +"<option value='n'>" + __("No") + "</option>"
                                  +"<option value='del'>" + __("Yes") + "</option>"
@@ -246,9 +251,9 @@ $(document).ready(function() {
                         }
                     },
                     {
-                        "bSortable": false,
+                        "orderable":  false,
                         "visible": SuspendHoldsIntranet,
-                        "mDataProp": function( oObj ) {
+                        "data": function( oObj ) {
                             holds[oObj.reserve_id] = oObj; //Store holds for later use
 
                                 if (oObj.found) {
@@ -339,16 +344,19 @@ $(document).ready(function() {
                         }
                     }
                 ],
-                "bPaginate": false,
-                "bProcessing": true,
-                "bServerSide": false,
+                "paging":  false,
+                "processing":  true,
+                "serverSide":  false,
+                "columnDefs":  [
+                    { "type": "anti-the", "targets": [ "anti-the" ] }
+                ],
                 "ajax": {
                     "url": '/cgi-bin/koha/svc/holds',
                     "data": function ( d ) {
                         d.borrowernumber = borrowernumber;
                     }
                 },
-            }));
+            }, table_settings_holds_table );
 
             $("#holds-table").on("draw.dt", function () {
                 $(".hold-suspend").on("click", function () {
@@ -370,7 +378,7 @@ $(document).ready(function() {
                             alert(__("Unable to resume, hold not found"));
                         }
                         else {
-                            alert(__("Your request could not be processed. Check the logs"));
+                            alert(__("Your request could not be processed. Check the logs for details."));
                         }
                         holdsTable.api().ajax.reload();
                     });
@@ -411,13 +419,13 @@ $(document).ready(function() {
     }
 
     $("body").append("\
-        <div id='suspend-modal' class='modal fade' role='dialog' aria-hidden='true'>\
+        <div id='suspend-modal' class='modal' role='dialog' aria-hidden='true'>\
             <div class='modal-dialog'>\
             <div class='modal-content'>\
             <form id='suspend-modal-form' class='form-inline'>\
                 <div class='modal-header'>\
-                    <button type='button' class='closebtn' data-dismiss='modal' aria-hidden='true'>×</button>\
-                    <h3 id='suspend-modal-label'>" + __("Suspend hold on") + " <i><span id='suspend-modal-title'></span></i></h3>\
+                    <h1 class='modal-title' id='suspend-modal-label'>" + __("Suspend hold on") + " <i><span id='suspend-modal-title'></span></i></h1>\
+                    <button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>\
                 </div>\
 \
                 <div class='modal-body'>\
@@ -432,7 +440,7 @@ $(document).ready(function() {
 \
                 <div class='modal-footer'>\
                     <button id='suspend-modal-submit' class='btn btn-primary' type='submit' name='submit'>" + __("Suspend") + "</button>\
-                    <a href='#' data-dismiss='modal' aria-hidden='true' class='cancel'>" + __("Cancel") + "</a>\
+                    <button type='button' class='btn btn-default' data-bs-dismiss='modal'>" + __("Cancel") + "</button>\
                 </div>\
             </form>\
             </div>\
@@ -440,7 +448,7 @@ $(document).ready(function() {
         </div>\
     ");
 
-    $("#suspend-modal-clear-date").on( "click", function() { $("#suspend-modal-until").val(""); } );
+    $("#suspend-modal-clear-date").on( "click", function() { $("#suspend-modal-until").flatpickr().clear(); } );
 
     $("#suspend-modal-submit").on( "click", function( e ) {
         e.preventDefault();
@@ -453,24 +461,68 @@ $(document).ready(function() {
             holdsTable.api().ajax.reload();
         }).error(function (jqXHR, textStatus, errorThrown) {
             if (jqXHR.status === 404) {
-                alert(__("Unable to suspend, hold not found"));
+                alert(__("Unable to suspend, hold not found."));
             }
             else {
-                alert(__("Your request could not be processed. Check the logs"));
+                alert(__("Your request could not be processed. Check the logs for details."));
             }
             holdsTable.api().ajax.reload();
         }).done(function() {
-            $("#suspend-modal-until").val(""); // clean the input
+            $("#suspend-modal-until").flatpickr().clear(); // clean the input
             $('#suspend-modal').modal('hide');
         });
     });
 
-    $(".toggle-suspend").on('click', function(e) {
-        e.preventDefault();
-        let reserve_id     = $(this).data('reserve-id');
-        let biblionumber   = $(this).data('biblionumber');
-        let suspend_until  = $('#suspend_until_' + reserve_id).val();
-        window.location.href='request.pl?action=toggleSuspend&reserve_id=' + reserve_id + '&biblionumber=' + biblionumber + '&suspend_until=' + suspend_until;
+    function toggle_suspend(node, inputs) {
+        let reserve_id = $(node).data("reserve-id");
+        let biblionumber = $(node).data("biblionumber");
+        let suspendForm = $("#hold-actions-form").attr({
+            action: "request.pl",
+            method: "post",
+        });
+        let sus_bn = $("<input />").attr({
+            type: "hidden",
+            name: "biblionumber",
+            value: biblionumber,
+        });
+        let sus_ri = $("<input />").attr({
+            type: "hidden",
+            name: "reserve_id",
+            value: reserve_id,
+        });
+        inputs.push(sus_bn, sus_ri);
+        suspendForm.append(inputs);
+        $("#hold-actions-form").submit();
         return false;
+    }
+    $(".suspend-hold").on("click", function (e) {
+        e.preventDefault();
+        let reserve_id = $(this).data("reserve-id");
+        let suspend_until = $("#suspend_until_" + reserve_id).val();
+        let inputs = [
+            $("<input />").attr({
+                type: "hidden",
+                name: "op",
+                value: "cud-suspend",
+            }),
+            $("<input />").attr({
+                type: "hidden",
+                name: "suspend_until",
+                value: suspend_until,
+            }),
+        ];
+        return toggle_suspend(this, inputs);
     });
+    $(".unsuspend-hold").on("click", function (e) {
+        e.preventDefault();
+        let inputs = [
+            $("<input />").attr({
+                type: "hidden",
+                name: "op",
+                value: "cud-unsuspend",
+            }),
+        ];
+        return toggle_suspend(this, inputs);
+    });
+
 });

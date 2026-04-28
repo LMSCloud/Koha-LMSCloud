@@ -3,13 +3,16 @@
 [% USE Branches %]
 [% USE Koha %]
 [% USE KohaDates %]
-[% SET footerjs = 1 %]
 [% USE AuthorisedValues %]
 [% USE TablesSettings %]
 [% USE Price %]
-
+[% PROCESS 'i18n.inc' %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>ILL requests &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("ILL requests") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -45,7 +48,10 @@
 <div class="main container-fluid">
     <div class="row">
 
-        [% IF query_type == 'illlist' %]
+        [% IF op == 'illlist' %]
+            <script>
+                var ill_table_actions = [% table_actions | $raw %];
+            </script>
             <div class="col-sm-2">
                 <aside>
                     <form method="get" id="illfilter_form">
@@ -97,19 +103,21 @@
                                     <input type="text" name="illfilter_patron" id="illfilter_patron" />
                                 </li>
                             </ol>
-                            <fieldset class="action">
-                                <input type="submit" class="btn btn-primary" value="Search" />
-                                <input type="button" value="Clear" id="clear_search" />
-                            </fieldset>
+                        </fieldset>
+                        <fieldset class="action">
+                            <input type="submit" class="btn btn-primary" value="Search" />
+                            <input type="button" value="Clear" class="clear_search" />
                         </fieldset>
                     </form> <!-- /#illfilter_form -->
                 </aside>
             </div> <!-- /.col-sm-2 -->
             <div class="col-sm-10">
                 <main>
+                    [% INCLUDE 'messages.inc' %]
         [% ELSE %]
-            <div class="col-sm-10 col-sm-offset-2">
+            <div class="col-sm-10 offset-sm-2">
                 <main>
+                    [% INCLUDE 'messages.inc' %]
         [% END %]
 
             <div id="interlibraryloans">
@@ -117,13 +125,21 @@
             <div class="dialog message">ILL module configuration problem. Take a look at the <a href="/cgi-bin/koha/about.pl#sysinfo_panel">about page</a></div>
         [% ELSE %]
                 [% INCLUDE 'ill-toolbar.inc' %]
+                [% INCLUDE 'ill-batch-modal.inc' %]
 
                 [% IF whole.error %]
                     <h1>Error performing operation</h1>
                     <!-- Dispatch on Status -->
                     <p>We encountered an error:</p>
                     <p>
-                      <pre>[% whole.message | html %] ([% whole.status | html %])</pre>
+                    [% SWITCH whole.status %]
+                    [%   CASE 'invalid_patron' %]
+                        <pre>The patron ID you entered is invalid.</pre>
+                    [%   CASE 'invalid_biblio' %]
+                        <pre>The bibliographic record ID you entered is invalid.</pre>
+                    [%   CASE %]
+                        <pre>[% whole.message | html %] ([% whole.status | html %])</pre>
+                    [% END %]
                     </p>
                 [% END %]
 
@@ -131,51 +147,56 @@
                     <p>[% whole.success | html %]</p>
                 [% END %]
 
-                [% IF query_type == 'create' %]
+                [% IF op == 'cud-create' %]
                     <h1>New ILL request</h1>
                     [% PROCESS $whole.template %]
 
-                [% ELSIF query_type == 'confirm' %]
+                [% ELSIF op == 'confirm' %]
                     <h1>Confirm ILL request</h1>
                     [% PROCESS $whole.template %]
 
-                [% ELSIF query_type == 'cancel' and !whole.error %]
+                [% ELSIF op == 'cud-cancel' and !whole.error %]
                     <h1>Cancel a confirmed request</h1>
                     [% PROCESS $whole.template %]
 
-                [% ELSIF query_type == 'check_out' and !whole.error %]
+                [% ELSIF op == 'check_out' and !whole.error %]
                     [% IF !whole.stage || whole.stage == 'form' %]
                         <h1 id="ill-issue-title">Issue requested item to [% INCLUDE 'patron-title.inc' patron = request.patron %]</h1>
                         [% IF !request.biblio_id || request.biblio_id.length == 0 %]
                         <div class="alert">This item cannot be checked out as it has no bibliographic record associated with it</div>
                         [% END %]
                         [% IF whole.value.errors.itemcount %]
-                        <div class="alert">The bibliographic record for this request has multiple items, it should only have one. Please fix this then try again.</div>
+                        <div class="alert alert-warning">The bibliographic record for this request has multiple items, it should only have one. Please fix this then try again.</div>
                         [% END %]
                         [% IF whole.value.errors.item_creation %]
-                        <div class="alert">An unknown error occurred while trying to add an item</div>
+                        <div class="alert alert-warning">An unknown error occurred while trying to add an item</div>
                         [% END %]
                         [% IF whole.value.errors.item_check_out %]
-                        <div class="alert">An unknown error occurred while trying to check out the item</div>
+                        <div class="alert alert-warning">An unknown error occurred while trying to check out the item</div>
                         [% END %]
                         [% IF whole.value.check_out_errors %]
                             [% IF whole.value.check_out_errors.error.STATS %]
-                            <div class="alert">
+                            <div class="alert alert-warning">
                                 Local use recorded
                             </div>
+                            [% ELSIF whole.value.check_out_errors.error.UNKNOWN_BARCODE %]
+                            <div class="alert alert-warning">
+                                The bibliographic record's item contains an unknown (or empty) barcode.
+                            </div>
                             [% ELSE %]
-                            <div class="alert">
+                            <div class="alert alert-warning">
                                 There was a problem checking this item out, please check for problems with the <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% whole.value.patron.borrowernumber | uri %]">patron's account</a>
                             </div>
                             [% END %]
                         [% END %]
                         [% IF request.biblio_id && request.biblio_id.length > 0  && !whole.value.check_out_errors.error.STATS %]
                             <form method="POST" action="/cgi-bin/koha/ill/ill-requests.pl">
+                                [% INCLUDE 'csrf-token.inc' %]
                                 <fieldset class="rows">
                                     <legend>Check out details</legend>
                                     [% items = whole.value.biblio.items.unblessed %]
                                     [% IF items.size == 1 %]
-                                        <p>The bibliographic record for this request already has an item attached to it, you are about to check it out</p>
+                                        <p><a target="_blank" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% whole.value.biblio.biblionumber | uri %]">The bibliographic record</a> for this request already has an item attached to it, you are about to check it out</p>
                                     [% ELSE %]
                                         <p>A bibliographic record for this request exists, but no item. You are about to create an item and check it out</p>
                                     [% END %]
@@ -254,7 +275,7 @@
                                     </ol>
                                 </fieldset>
                                 <fieldset class="action">
-                                    <input type="hidden" value="check_out" name="method">
+                                    <input type="hidden" value="cud-check_out" name="op">
                                     <input type="hidden" value="form" name="stage">
                                     [% IF items.size == 1 %]
                                         <input name="branchcode" type="hidden" value="[% branchcode | html %]">
@@ -262,12 +283,12 @@
                                     [% END %]
                                     <input type="hidden" value="[% request.illrequest_id | html %]" name="illrequest_id">
                                     <input type="submit" class="btn btn-primary" value="Submit" />
-                                    <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id | html %]">Cancel</a>
+                                    <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?op=illview&amp;illrequest_id=[% request.id | html %]">Cancel</a>
                                 </fieldset>
                             </form>
                         [% END %]
                         [% IF whole.value.check_out_errors.error.STATS %]
-                            <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id | html %]">Return to request</a>
+                            <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?op=illview&amp;illrequest_id=[% request.id | html %]">Return to request</a>
                         [% END %]
                     [% ELSIF whole.stage == 'done_check_out' %]
                         <h1>Item checked out</h1>
@@ -285,32 +306,33 @@
                             </ol>
                         </fieldset>
                         <fieldset class="action">
-                            <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id | html %]">Return to request</a>
+                            <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?op=illview&amp;illrequest_id=[% request.id | html %]">Return to request</a>
                         </fieldset>
                     [% END %]
 
-                [% ELSIF query_type == 'generic_confirm' %]
+                [% ELSIF op == 'generic_confirm' %]
                     <h1>Place request with partner libraries</h1>
                   [% IF error %]
                     [% IF error == 'no_target_email' %]
-                        <div class="alert">
+                        <div class="alert alert-warning">
                             No target email addresses found. Either select at least
                             one partner or check your ILL partner library records.
                         </div>
                     [% ELSIF error == 'no_library_email' %]
-                        <div class="alert">
+                        <div class="alert alert-warning">
                             Your library has no usable email address. Please set it.
                         </div>
                     [% ELSIF error == 'unkown_error' %]
-                        <div class="alert">
+                        <div class="alert alert-warning">
                             Unknown error processing your request. Contact your administrator.
                         </div>
                     [% END %]
                   [% END %]
                     <!-- Start of GENERIC_EMAIL case -->
                     [% IF whole.value.partners %]
-                       [% ill_url = "/cgi-bin/koha/ill/ill-requests.pl?method=illview&illrequest_id=" _ request.illrequest_id %]
+                       [% ill_url = "/cgi-bin/koha/ill/ill-requests.pl?op=illview&illrequest_id=" _ request.illrequest_id %]
                         <form method="POST" action="/cgi-bin/koha/ill/ill-requests.pl">
+                            [% INCLUDE 'csrf-token.inc' %]
                             <fieldset class="rows">
                                 <legend>Interlibrary loan request details</legend>
                                 <ol>
@@ -345,22 +367,22 @@
                                         <textarea name="body" id="body" rows="20" cols="80" required="required">[% whole.value.draft.body | html %]</textarea>
                                     </li>
                                 </ol>
-                                <input type="hidden" value="generic_confirm" name="method">
+                                <input type="hidden" value="cud-generic_confirm" name="op">
                                 <input type="hidden" value="draft" name="stage">
                                 <input type="hidden" value="[% request.illrequest_id | html %]" name="illrequest_id">
                             </fieldset>
                             <fieldset class="action">
-                                <input type="submit" class="btn btn-default" value="Send email"/>
+                                <input type="submit" class="btn btn-primary" value="Send email"/>
                                 <span><a href="[% ill_url | url %]" title="Return to request details">Cancel</a></span>
                             </fieldset>
                         </form>
                         [% IF Koha.Preference('ILLCheckAvailability') %]
-                            <div id="partnerSearch" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="partnerSearchLabel" aria-hidden="true">
+                            <div id="partnerSearch" class="modal" tabindex="-1" role="dialog" aria-labelledby="partnerSearchLabel" aria-hidden="true">
                                 <div class="modal-dialog">
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
-                                            <h3 id="partnerSearchLabel"> Search partners</h3>
+                                            <h1 class="modal-title" id="partnerSearchLabel"> Search partners</h1>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <div class="modal-body">
                                             [% FOR service IN services %]
@@ -370,7 +392,7 @@
                                             <span id="service_id_restrict" data-service_id_restrict_plugin="ILL availability - z39.50" data-service_id_restrict_ids=""></span>
                                         </div>
                                         <div class="modal-footer">
-                                            <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+                                            <button class="btn btn-default" data-bs-dismiss="modal">Close</button>
                                         </div>
                                     </div>
                                 </div>
@@ -380,15 +402,16 @@
                     [% ELSE %]
                         <fieldset class="rows">
                             <legend>Interlibrary loan request details</legend>
-                            <p>No partners have been defined yet. Please create appropriate patron records (by default ILLLIBS category).</p>
+                            <p>No partners have been defined yet. Please create appropriate patron records (by default IL category).</p>
                             <p>Be sure to provide email addresses for these patrons.</p>
                             <p><span><a href="[% ill_url | url %]" title="Return to request details">Cancel</a></span></p>
                         </fieldset>
                     [% END %]
                 <!-- generic_confirm ends here -->
 
-                [% ELSIF query_type == 'edit_action' %]
-                    <form method="POST" action="/cgi-bin/koha/ill/ill-requests.pl">
+                [% ELSIF op == 'edit_action' %]
+                    <form method="POST" id="ill_edit_action_form" action="/cgi-bin/koha/ill/ill-requests.pl">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <fieldset class="rows">
                             <legend>Request details</legend>
                             <ol>
@@ -430,6 +453,23 @@
                                         [% END %]
                                     </select>
                                 </li>
+                                [% IF batches.count > 0 %]
+                                <li class="batch">
+                                    <label class="batch_label">Batch:</label>
+                                    <select id="batch_id" name="batch_id">
+                                        <option value="">
+                                        [% FOREACH batch IN batches %]
+                                            [% IF batch.id == request.batch_id %]
+                                            <option value="[% batch.id | html %]" selected>
+                                            [% ELSE %]
+                                            <option value="[% batch.id | html %]">
+                                            [% END %]
+                                                [% batch.name | html %]
+                                            </option>
+                                        [% END %]
+                                    </select>
+                                </li>
+                                [% END %]
                                 <li class="updated">
                                     <label class="updated">Last updated:</label>
                                     [% request.updated | $KohaDates  with_hours => 1 %]
@@ -461,28 +501,29 @@
                             </ol>
                         </fieldset>
                         <fieldset class="action">
-                            <input type="hidden" value="edit_action" name="method">
+                            <input type="hidden" value="cud-edit_action" name="op">
                             <input type="hidden" value="form" name="stage">
                             <input type="hidden" value="[% request.illrequest_id | html %]" name="illrequest_id">
                             <input type="submit" class="btn btn-primary" value="Submit" />
-                            <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id | html %]">Cancel</a>
+                            <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl?op=illview&amp;illrequest_id=[% request.id | html %]">Cancel</a>
                         </fieldset>
                     </form>
 
-                [% ELSIF query_type == 'delete_confirm' %]
+                [% ELSIF op == 'delete_confirm' %]
 
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         <h3>Are you sure you wish to delete this request?</h3>
                         <form action="/cgi-bin/koha/ill/ill-requests.pl" method="post">
-                            <input type="hidden" name="method" value="delete" />
+                            [% INCLUDE 'csrf-token.inc' %]
+                            <input type="hidden" name="op" value="cud-delete" />
                             <input type="hidden" name="confirmed" value="1" />
                             <input type="hidden" name="illrequest_id" value="[% request.id | html %]" />
                             <button type="submit" class="btn btn-default approve"><i class="fa fa-fw fa-check"></i> Yes, delete</button>
                         </form>
-                        <a class="btn btn-default deny" href="/cgi-bin/koha/ill/ill-requests.pl?method=illview&amp;illrequest_id=[% request.id | html %]"><i class="fa fa-fw fa-remove"></i>No, do not delete</a>
+                        <a class="btn btn-default deny" href="/cgi-bin/koha/ill/ill-requests.pl?op=illview&amp;illrequest_id=[% request.id | html %]"><i class="fa fa-fw fa-times"></i>No, do not delete</a>
                     </div>
 
-                [% ELSIF query_type == 'illview' %]
+                [% ELSIF op == 'illview' %]
                     [% IF whole.template.length > 0 %]
                     [% PROCESS $whole.template %]
                     [% END %]
@@ -490,7 +531,7 @@
 
                     [% IF error %]
                       [% IF error == 'migrate_target' %]
-                          <div class="alert">
+                          <div class="alert alert-warning">
                               The backend you tried to migrate to does not yet support migrations, please try again with an alternative target.
                           </div>
                       [% END %]
@@ -504,7 +545,7 @@
                         [% IF tran_success.match('sms') %]
                             [% succ_methods.push('SMS') %]
                         [% END %]
-                        <div class="alert">
+                        <div class="alert alert-warning">
                             The requested notice was queued for delivery by [% succ_methods.join(', ') | html %]
                         </div>
                     [% END %]
@@ -516,15 +557,15 @@
                         [% IF tran_fail.match('sms') %]
                             [% fail_methods.push('SMS') %]
                         [% END %]
-                        <div class="alert">
+                        <div class="alert alert-warning">
                             The requested notice was NOT queued for delivery by [% fail_methods.join(', ') | html %]
                         </div>
                     [% END %]
 
-                    <h1>Manage ILL request</h1>
+                    <h1>Manage ILL request [% request.id_prefix _ request.illrequest_id | html %]</h1>
                     <div id="request-toolbar" class="btn-toolbar">
-                        <a title="Edit request" id="ill-toolbar-btn-edit-action" class="btn btn-default" href="/cgi-bin/koha/ill/ill-requests.pl?method=edit_action&amp;illrequest_id=[% request.illrequest_id | html %]">
-                        <span class="fa fa-pencil"></span>
+                        <a title="Edit request" id="ill-toolbar-btn-edit-action" class="btn btn-default" href="/cgi-bin/koha/ill/ill-requests.pl?op=edit_action&amp;illrequest_id=[% request.illrequest_id | html %]">
+                        <i class="fa-solid fa-pencil" aria-hidden="true"></i>
                         Edit request
                         </a>
                         [% FOREACH action IN request.available_actions %]
@@ -554,13 +595,13 @@
                             [% IF action.method == 'migrate' %]
                                 [% IF backends.size > 2 %]
                                     <div class="dropdown btn-group">
-                                        <button class="btn btn-default dropdown-toggle" type="button" id="ill-migrate-dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                                            <i class="fa [% action.ui_method_icon | html %]"></i> [% action.ui_method_name | html %] <span class="caret"></span>
+                                        <button class="btn btn-default dropdown-toggle" type="button" id="ill-migrate-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                            <i class="fa [% action.ui_method_icon | html %]"></i> [% action.ui_method_name | html %]
                                         </button>
                                         <ul class="dropdown-menu" aria-labelledby="ill-migrate-dropdown">
                                             [% FOREACH backend IN backends %]
                                                 [% IF backend != request.backend %]
-                                                    <li><a href="/cgi-bin/koha/ill/ill-requests.pl?method=[% action.method | uri %]&amp;illrequest_id=[% request.illrequest_id | uri %]&amp;backend=[% backend | uri %]">[% backend | html %]</a></li>
+                                                    <li><a class="dropdown-item" href="/cgi-bin/koha/ill/ill-requests.pl?op=[% action.method | uri %]&amp;illrequest_id=[% request.illrequest_id | uri %]&amp;backend=[% backend | uri %]">[% backend | html %]</a></li>
                                                 [% END %]
                                             [% END %]
                                         </ul>
@@ -568,7 +609,7 @@
                                 [% ELSIF backends.size == 2 %]
                                     [% FOREACH backend IN backends %]
                                         [% IF backend != request.backend %]
-                                            <a title="[% action.ui_method_name | html %]" id="ill-toolbar-btn-[% action.id | lower | html %]" class="btn btn-default" href="/cgi-bin/koha/ill/ill-requests.pl?method=[% action.method | uri %]&amp;illrequest_id=[% request.illrequest_id | uri %]&amp;backend=[% backend | uri %]">
+                                            <a title="[% action.ui_method_name | html %]" id="ill-toolbar-btn-[% action.id | lower | html %]" class="btn btn-default" href="/cgi-bin/koha/ill/ill-requests.pl?op=[% action.method | uri %]&amp;illrequest_id=[% request.illrequest_id | uri %]&amp;backend=[% backend | uri %]">
                                             <span class="fa [% action.ui_method_icon | html %]"></span>
                                             [% action.ui_method_name | html %]
                                             </a>
@@ -576,7 +617,7 @@
                                     [% END %]
                                 [% END %]
                             [% ELSIF action.method != 0 %]
-                                <a title="[% action.ui_method_name | html %]" id="ill-toolbar-btn-[% action.id | lower | html %]" class="btn btn-default" href="/cgi-bin/koha/ill/ill-requests.pl?method=[% action.method | uri %]&amp;illrequest_id=[% request.illrequest_id | uri %]">
+                                <a title="[% action.ui_method_name | html %]" id="ill-toolbar-btn-[% action.id | lower | html %]" class="btn btn-default" href="/cgi-bin/koha/ill/ill-requests.pl?op=[% action.method | uri %]&amp;illrequest_id=[% request.illrequest_id | uri %]">
                                 <span class="fa [% action.ui_method_icon | html %]"></span>
                                 [% action.ui_method_name | html %]
                                 </a>
@@ -584,12 +625,12 @@
                         [% END %]
                         <!-- Standard Koha's arbitrary ILL notice print is deactivated by LMSCloud, because it would disturb/counteract the 'status graph' of the LMSCloud backends.
                         <div class="dropdown btn-group">
-                            <button class="btn btn-default dropdown-toggle" type="button" id="ill-notice-dropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                                <i class="fa fa-envelope"></i> Send notice to patron <span class="caret"></span>
+                            <button class="btn btn-default dropdown-toggle" type="button" id="ill-notice-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                <i class="fa-solid fa-envelope"></i> Send notice to patron
                             </button>
                             <ul class="dropdown-menu" aria-labelledby="ill-notice-dropdown">
                                 [% FOREACH notice IN notices %]
-                                    <li><a href="/cgi-bin/koha/ill/ill-requests.pl?method=send_notice&amp;illrequest_id=[% request.illrequest_id | uri %]&amp;notice_code=[% notice.code | uri %]">[% notice.name | html %]</a></li>
+                                    <li><a class="dropdown-item" href="/cgi-bin/koha/ill/ill-requests.pl?op=send_notice&amp;illrequest_id=[% request.illrequest_id | uri %]&amp;notice_code=[% notice.code | uri %]">[% notice.name | html %]</a></li>
                                 [% END %]
                             </ul>
                         </div>
@@ -598,8 +639,8 @@
                             <span class="fa fa-eye"></span>
                             Display supplier metadata
                         </a>
-                        <a title="ILL request log" id="ill-request-display-log" class="btn btn-default pull-right" href="#">
-                            <span class="fa fa-calendar"></span>
+                        <a title="ILL request log" id="ill-request-display-log" class="btn btn-default" href="#">
+                            <span class="fa-solid fa-calendar-days"></span>
                             ILL request log
                         </a>
                     </div>
@@ -697,16 +738,16 @@
                         </div>
                     </div>
 
-                    <div id="dataPreview" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel" aria-hidden="true">
+                    <div id="dataPreview" class="modal" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
-                                    <h3 id="dataPreviewLabel"> Supplier metadata</h3>
+                                    <h1 class="modal-title" id="dataPreviewLabel"> Supplier metadata</h1>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div id="requestattributes">
-                                        [% FOREACH attr IN request.illrequestattributes %]
+                                        [% FOREACH attr IN request.extended_attributes %]
                                         <div class="requestattr-[% attr.type | html %]">
                                             <span class="label">[% attr.type | html %]:</span>
                                             [% attr.value | html %]
@@ -715,18 +756,18 @@
                                     </div>
                                 </div>
                                 <div class="modal-footer">
-                                    <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+                                    <button class="btn btn-default" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div id="requestLog" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel" aria-hidden="true">
+                    <div id="requestLog" class="modal" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel" aria-hidden="true">
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
-                                    <h3 id="requestLogLabel"> Request log</h3>
+                                    <h1 class="modal-title" id="requestLogLabel"> Request log</h1>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                 [% IF request.logs.size > 0 %]
@@ -739,7 +780,7 @@
                                 [% END %]
                                 </div>
                                 <div class="modal-footer">
-                                    <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+                                    <button class="btn btn-default" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </div>
@@ -782,7 +823,7 @@
                             </div>
                     </div>
 
-                [% ELSIF query_type == 'illlist' %]
+                [% ELSIF op == 'illlist' %]
                     <!-- illlist -->
                     <h1>View ILL requests</h1>
                     <div id="results" class="page-section">
@@ -796,9 +837,10 @@
                     <div id="results" class="page-section">
                         <h3>Displaying availability results</h3>
                         <form method="POST" action="/cgi-bin/koha/ill/ill-requests.pl">
+                            [% INCLUDE 'csrf-token.inc' %]
                             [% FOREACH key IN whole.keys %]
                                 [% value = whole.$key %]
-                                [% IF key != 'method' && key != 'custom_key' && key != 'custom_value' %]
+                                [% IF key != 'op' && key != 'method' && key != 'custom_key' && key != 'custom_value' && key != 'csrf_token' %]
                                 <input type="hidden" name="[% key | html %]" value="[% value | html %]">
                                 [% END %]
                             [% END %]
@@ -810,10 +852,10 @@
                                 <input type="hidden" name="custom_value" value="[% custom_values.$i | html %]">
                             [% i = i + 1 %]
                             [% END %]
-                            <input type="hidden" name="method" value="create">
+                            <input type="hidden" name="op" value="cud-create">
                             <input type="hidden" name="stage" value="form">
                             <input type="hidden" name="checked_availability" value="1">
-                            <div id="continue-request-row" class="alert">
+                            <div id="continue-request-row" class="alert alert-warning">
                                 If you can't find what you are looking for, you can
                                 <button class="button" type="submit">continue creating your request</button> or
                                 <a href="/cgi-bin/koha/ill/ill-requests.pl">cancel your request</a>
@@ -824,6 +866,49 @@
                             [% INCLUDE 'ill-availability-table.inc' service=service %]
                         [% END %]
                     </div>
+                [% ELSIF op == 'typedisclaimer' %]
+                    <!-- typedisclaimer -->
+                    <h1>Request type disclaimer</h1>
+                    <div id="results" class="page-section">
+                        <form method="post" id="typedisclaimer-form">
+                            [% INCLUDE 'csrf-token.inc' %]
+                            <fieldset class="rows">
+                                [% disclaimer.text | $raw %]
+                                [% SET disc_av_category_code = AuthorisedValues.GetAuthValueDropbox(disclaimer.av_cat) %]
+                                [% IF disc_av_category_code.count %]
+                                <br>
+                                    <select name="type_disclaimer_value">
+                                        [% FOR av_option IN disc_av_category_code %]
+                                            <option value="[% av_option.lib_opac | html %]">[% av_option.lib_opac | html %]</option>
+                                        [% END %]
+                                    </select>
+                                [% END %]
+                            </fieldset>
+                            <fieldset class="action">
+                                [% FOREACH key IN whole.keys %]
+                                    [% value = whole.$key %]
+                                    [% IF key != 'op' && key != 'method' && key != 'custom_key' && key != 'custom_value' && key != 'csrf_token' %]
+                                        <input type="hidden" name="[% key | html %]" value="[% value | html %]">
+                                    [% END %]
+                                [% END %]
+                                [% custom_keys = whole.custom_key.split('\0') %]
+                                [% custom_values = whole.custom_value.split('\0') %]
+                                [% i = 0 %]
+                                [% FOREACH custom_key IN custom_keys %]
+                                    <input type="hidden" name="custom_key" value="[% custom_key | html %]">
+                                    <input type="hidden" name="custom_value" value="[% custom_values.$i | html %]">
+                                    [% i = i + 1 %]
+                                [% END %]
+                                <input type="hidden" name="op" value="cud-create" />
+                                <input type="hidden" name="stage" value="form">
+                                <input type="hidden" name="type_disclaimer_submitted" value="1">
+                                <input type="submit" value="Submit" />
+                                <a class="cancel" href="ill-requests.pl">Cancel</a>
+                            </fieldset>
+                        </form>
+                    </div>
+                [% ELSIF op == 'batch_list' || op == 'batch_create' %]
+                    [% INCLUDE 'ill-batch.inc' %]
                 [% ELSE %]
                 <!-- Custom Backend Action -->
                 [% PROCESS $whole.template %]
@@ -843,6 +928,19 @@
     [% INCLUDE 'columns_settings.inc' %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'select2.inc' %]
+    [% IF metadata_enrichment_services %]
+    <script>
+        var ill_check_availability_syspref = '[% Koha.Preference('ILLCheckAvailability') | html %]';
+        var metadata_enrichment_services = [% metadata_enrichment_services | $raw %];
+    </script>
+    <script>
+        [% IF batch_availability_services %]
+        var batch_availability_services = [% batch_availability_services | $raw %];
+        [% ELSE %]
+        var batch_availability_services = [];
+        [% END %]
+    </script>
+    [% END %]
     <script>
 
         // introducing JS variables to make the filter parameters accessible for js/ill-list-table.js
@@ -870,20 +968,37 @@
                 $('.ill_checkout_due_date').show();
             }
         });
+
+        if ($("#ill_edit_action_form #borrowernumber").length) {
+            patron_autocomplete(
+                $('#ill_edit_action_form #borrowernumber'), {
+                    'on-select-callback': function(event, ui) {
+                        $("#ill_edit_action_form #borrowernumber").val(ui.item.patron_id);
+                        return false;
+                    }
+                }
+            );
+        }
+
     </script>
     [% INCLUDE 'ill-list-table-strings.inc' %]
+    [% INCLUDE 'ill-batch-table-strings.inc' %]
+    [% INCLUDE 'ill-batch-modal-strings.inc' %]
     [% Asset.js("js/ill-list-table.js") | $raw %]
-    [% IF (query_type == 'availability' || query_type == 'generic_confirm') && Koha.Preference('ILLCheckAvailability') %]
+    [% Asset.js("js/ill-batch.js") | $raw %]
+    [% Asset.js("js/ill-batch-table.js") | $raw %]
+    [% Asset.js("js/ill-batch-modal.js") | $raw %]
+    [% IF (op == 'availability' || op == 'generic_confirm') && Koha.Preference('ILLCheckAvailability') %]
         [% Asset.js("js/ill-availability.js") | $raw %]
     [% END %]
-    [% IF query_type == 'availability' && Koha.Preference('ILLCheckAvailability') %]
+    [% IF op == 'availability' && Koha.Preference('ILLCheckAvailability') %]
         <script>
             $(document).ready(function() {
                 window.doSearch();
             });
         </script>
     [% END %]
-    [% IF query_type == 'generic_confirm' && Koha.Preference('ILLCheckAvailability') %]
+    [% IF op == 'generic_confirm' && Koha.Preference('ILLCheckAvailability') %]
         [% Asset.js("js/ill-availability-partner.js") | $raw %]
     [% END %]
 

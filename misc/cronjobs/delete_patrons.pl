@@ -15,6 +15,7 @@ my ( $help, $verbose, $not_borrowed_since, $expired_before, $last_seen,
     @category_code, $branchcode, $file, $confirm );
 
 my $command_line_options = join(" ",@ARGV);
+cronlogaction({ info => $command_line_options });
 
 GetOptions(
     'h|help'                 => \$help,
@@ -38,15 +39,13 @@ $not_borrowed_since = dt_from_string( $not_borrowed_since, 'iso' )
 $expired_before = dt_from_string( $expired_before, 'iso' )
   if $expired_before;
 
-if ( $last_seen and not C4::Context->preference('TrackLastPatronActivity') ) {
-    pod2usage(q{The --last_seen option cannot be used with TrackLastPatronActivity turned off});
+if ( $last_seen and not C4::Context->preference('TrackLastPatronActivityTriggers') ) {
+    pod2usage(q{The option --last_seen will be ineffective if preference TrackLastPatronActivityTriggers is empty});
 }
 
 unless ( $not_borrowed_since or $expired_before or $last_seen or @category_code or $branchcode or $file ) {
     pod2usage(q{At least one filter is mandatory});
 }
-
-cronlogaction({ info => $command_line_options });
 
 my @file_members;
 if ($file) {
@@ -183,9 +182,9 @@ Delete patrons with an account expired before this date.
 
 =item B<--last_seen>
 
-Delete patrons who have not been connected since this date.
+Delete patrons who have not been active since this date.
 
-The system preference TrackLastPatronActivity must be enabled to use this option.
+The system preference TrackLastPatronActivityTriggers must contain at least one trigger to use this option.
 
 =item B<--category_code>
 

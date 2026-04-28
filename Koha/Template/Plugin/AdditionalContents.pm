@@ -36,13 +36,15 @@ sub get {
     my $blocktitle = $params->{blocktitle};
     my $lang       = $params->{lang} || 'default';
     my $library    = $params->{library};
+    my $id         = $params->{id};
 
     my $content = Koha::AdditionalContents->search_for_display(
         {
-            category   => $category,
-            location   => $location,
-            lang       => $lang,
-            library_id => $library,
+            category => $category,
+            location => $location,
+            lang     => $lang,
+            ( $library ? ( library_id => $library ) : () ),
+            ( $id      ? ( id         => $id )      : () ),
         }
     );
 
@@ -53,6 +55,7 @@ sub get {
             blocktitle => $blocktitle
         };
     }
+    return;
 }
 
 1;
@@ -71,8 +74,13 @@ Koha::Template::Plugin::AdditionalContents - TT Plugin for displaying additional
 
 =head2 get
 
-In a template, you can get the all categories with
-the following TT code: [% AdditionalContents.get() %]
+In a template, you can get the news categories with
+the following TT code: [% AdditionalContents.get( category => 'news', location => ['opac_only', 'staff_and_opac'], lang => lang, library => branchcode ) %]
+
+The function returns a hashref with keys:
+ contents: a Koha::AdditionalContents object
+ location: the passed in location param returned
+ blocktitle: the passed in blocktitle param returned
 
 =head1 AUTHOR
 

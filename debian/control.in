@@ -32,6 +32,7 @@ Depends: ${misc:Depends}, ${koha:Depends},
  sudo,
  fonts-dejavu | ttf-dejavu,
  unzip,
+ weasyprint,
  xmlstarlet,
  yaz
 Suggests: mysql-server | virtual-mysql-server,
@@ -59,8 +60,8 @@ Description: integrated (physical) library management system
  the MySQL database for Koha. For simplicity, the database server is
  assumed to run on the same host as Koha.
  .
- Please see /usr/share/doc/koha/README.Debian for instructions on how to
- configure things after installing this package.
+ Please see https://wiki.koha-community.org/wiki/Installation_Documentation
+ for instructions on how to configure things after installing this package.
 
 Package: koha-deps
 Depends: ${misc:Depends},
@@ -79,6 +80,7 @@ Depends: ${misc:Depends},
  sudo,
  fonts-dejavu | ttf-dejavu,
  unzip,
+ weasyprint,
  xmlstarlet,
  yaz
 Architecture: all
@@ -122,6 +124,7 @@ Depends: ${misc:Depends}, ${koha:Depends},
  sudo,
  fonts-dejavu | ttf-dejavu,
  unzip,
+ weasyprint,
  xmlstarlet,
  yaz
 

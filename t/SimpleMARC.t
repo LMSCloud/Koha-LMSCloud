@@ -2,11 +2,14 @@
 
 use Modern::Perl;
 
-use Test::More tests => 11;
+use Test::More tests => 12;
 
 use_ok("MARC::Field");
 use_ok("MARC::Record");
-use_ok("Koha::SimpleMARC", qw( field_exists read_field update_field copy_field copy_and_replace_field move_field delete_field field_equals ));
+use_ok(
+    "Koha::SimpleMARC",
+    qw( field_exists read_field update_field copy_field copy_and_replace_field move_field delete_field field_equals update_last_transaction_time )
+);
 
 sub new_record {
     my $record = MARC::Record->new;
@@ -386,7 +389,7 @@ subtest 'copy_field' => sub {
           read_field( { record => $record, field => '651', subfield => 'a' } );
         is_deeply(
             \@fields_651a,
-            [ 'Computer programming.', 'Computer algorithms.' ],
+            [ 'Computer algorithms.', 'Computer programming.' ],
             'Copy multivalued field'
         );
         delete_field( { record => $record, field => '651' } );
@@ -447,7 +450,7 @@ subtest 'copy_field' => sub {
           read_field( { record => $record, field => '651', subfield => 'a' } );
         is_deeply(
             \@fields_651a,
-            [ 'The art of programming.', 'The art of algorithms.' ],
+            [ 'The art of algorithms.', 'The art of programming.' ],
             'Copy field using regex'
         );
         delete_field( { record => $record, field => '651' } );
@@ -466,7 +469,7 @@ subtest 'copy_field' => sub {
           read_field( { record => $record, field => '651', subfield => 'a' } );
         is_deeply(
             \@fields_651a,
-            [ 'The mistake of programming.', 'The mistake of algorithms.' ],
+            [ 'The mistake of algorithms.', 'The mistake of programming.' ],
             'Copy fields using regex on existing fields'
         );
         delete_field( { record => $record, field => '651' } );
@@ -485,7 +488,7 @@ subtest 'copy_field' => sub {
           read_field( { record => $record, field => '651', subfield => 'a' } );
         is_deeply(
             \@fields_651a,
-            [ 'The art of programming.', 'The art of algorithms.', ],
+            [ 'The art of algorithms.', 'The art of programming.', ],
             'Copy all fields using regex'
         );
         delete_field( { record => $record, field => '651' } );
@@ -533,7 +536,7 @@ subtest 'copy_field' => sub {
           read_field( { record => $record, field => '652', subfield => 'a' } );
         is_deeply(
             \@fields_652a,
-            [ 'Cfoomputer programming.', 'Cfoomputer algorithms.' ],
+            [ 'Cfoomputer algorithms.', 'Cfoomputer programming.' ],
             'Copy field using regex'
         );
 
@@ -551,7 +554,7 @@ subtest 'copy_field' => sub {
           read_field( { record => $record, field => '653', subfield => 'a' } );
         is_deeply(
             \@fields_653a,
-            [ 'Cfoomputer prfoogramming.', 'Cfoomputer algfoorithms.' ],
+            [ 'Cfoomputer algfoorithms.', 'Cfoomputer prfoogramming.' ],
             'Copy field using regex'
         );
 
@@ -569,7 +572,7 @@ subtest 'copy_field' => sub {
           read_field( { record => $record, field => '654', subfield => 'a' } );
         is_deeply(
             \@fields_654a,
-            [ 'Cfoomputer programming.', 'Cfoomputer algorithms.' ],
+            [ 'Cfoomputer algorithms.', 'Cfoomputer programming.' ],
             'Copy field using regex'
         );
 
@@ -587,7 +590,7 @@ subtest 'copy_field' => sub {
           read_field( { record => $record, field => '655', subfield => 'a' } );
         is_deeply(
             \@fields_655a,
-            [ 'Cfoomputer prfoogramming.', 'Cfoomputer algfoorithms.' ],
+            [ 'Cfoomputer algfoorithms.', 'Cfoomputer prfoogramming.' ],
             'Copy field using regex'
         );
 
@@ -904,7 +907,7 @@ subtest 'copy_field' => sub {
                     { record => $record, field => '650', field_numbers => [2] }
                 )
             ],
-            [ 'The art of computer programming', 'Donald E. Knuth.' ],
+            [ 'Computer programming.', '462' ],
             'Copy a field to existent fields should create a new field'
         );
         is_deeply(
@@ -913,7 +916,7 @@ subtest 'copy_field' => sub {
                     { record => $record, field => '650', field_numbers => [1] }
                 )
             ],
-            [ 'Computer programming.', '462' ],
+            [ 'The art of computer programming', 'Donald E. Knuth.' ],
             'Copy a field to existent fields should create a new field, the original one should not have been updated'
         );
     };
@@ -921,7 +924,7 @@ subtest 'copy_field' => sub {
 
 # copy_and_replace_field - subfield
 subtest 'copy_and_replace_field' => sub {
-    plan tests              => 2;
+    plan tests              => 3;
     subtest 'copy and replace subfield' => sub {
         plan tests => 20;
         my $record = new_record;
@@ -981,7 +984,7 @@ subtest 'copy_and_replace_field' => sub {
           read_field( { record => $record, field => '651', subfield => 'a' } );
         is_deeply(
             \@fields_651a,
-            [ 'Computer programming.', 'Computer algorithms.' ],
+            [ 'Computer algorithms.', 'Computer programming.' ],
             'Copy and replace multivalued field (same as copy)'
         );
         delete_field( { record => $record, field => '651' } );
@@ -1041,7 +1044,7 @@ subtest 'copy_and_replace_field' => sub {
           read_field( { record => $record, field => '651', subfield => 'a' } );
         is_deeply(
             \@fields_651a,
-            [ 'The art of programming.', 'The art of algorithms.' ],
+            [ 'The art of algorithms.', 'The art of programming.' ],
             'Copy and replace field using regex (same as copy)'
         );
         delete_field( { record => $record, field => '651' } );
@@ -1060,7 +1063,7 @@ subtest 'copy_and_replace_field' => sub {
           read_field( { record => $record, field => '651', subfield => 'a' } );
         is_deeply(
             \@fields_651a,
-            [ 'The mistake of programming.', 'The mistake of algorithms.' ],
+            [ 'The mistake of algorithms.', 'The mistake of programming.' ],
             'Copy and replace fields using regex on existing fields (same as copy)'
         );
         delete_field( { record => $record, field => '651' } );
@@ -1079,7 +1082,7 @@ subtest 'copy_and_replace_field' => sub {
           read_field( { record => $record, field => '651', subfield => 'a' } );
         is_deeply(
             \@fields_651a,
-            [ 'The art of programming.', 'The art of algorithms.', ],
+            [ 'The art of algorithms.', 'The art of programming.', ],
             'Copy and replace all fields using regex (same as copy)'
         );
         delete_field( { record => $record, field => '651' } );
@@ -1127,7 +1130,7 @@ subtest 'copy_and_replace_field' => sub {
           read_field( { record => $record, field => '652', subfield => 'a' } );
         is_deeply(
             \@fields_652a,
-            [ 'Cfoomputer programming.', 'Cfoomputer algorithms.' ],
+            [ 'Cfoomputer algorithms.', 'Cfoomputer programming.' ],
             'Copy and replace field using regex (same as copy)'
         );
 
@@ -1145,7 +1148,7 @@ subtest 'copy_and_replace_field' => sub {
           read_field( { record => $record, field => '653', subfield => 'a' } );
         is_deeply(
             \@fields_653a,
-            [ 'Cfoomputer prfoogramming.', 'Cfoomputer algfoorithms.' ],
+            [ 'Cfoomputer algfoorithms.', 'Cfoomputer prfoogramming.' ],
             'Copy and replace field using regex (same as copy)'
         );
 
@@ -1163,7 +1166,7 @@ subtest 'copy_and_replace_field' => sub {
           read_field( { record => $record, field => '654', subfield => 'a' } );
         is_deeply(
             \@fields_654a,
-            [ 'Cfoomputer programming.', 'Cfoomputer algorithms.' ],
+            [ 'Cfoomputer algorithms.', 'Cfoomputer programming.' ],
             'Copy and replace field using regex (same as copy)'
         );
 
@@ -1181,7 +1184,7 @@ subtest 'copy_and_replace_field' => sub {
           read_field( { record => $record, field => '655', subfield => 'a' } );
         is_deeply(
             \@fields_655a,
-            [ 'Cfoomputer prfoogramming.', 'Cfoomputer algfoorithms.' ],
+            [ 'Cfoomputer algfoorithms.', 'Cfoomputer prfoogramming.' ],
             'Copy and replace field using regex (same as copy)'
         );
 
@@ -1513,6 +1516,23 @@ subtest 'copy_and_replace_field' => sub {
             'Copy and replace to an existent field should not create a new field'
         );
     };
+
+    # Copy and replace with control field
+    subtest 'copy and replace control field' => sub {
+        plan tests => 1;
+        my $record = new_record;
+        $record->append_fields(
+            MARC::Field->new( '001', '4815162342' ),
+        );
+
+        # Copy control field to subfield
+        copy_and_replace_field( { record => $record, from_field => '001', to_field => '099', to_subfield => 'a' } );
+        is_deeply(
+            [ read_field( { record => $record, field => '099', subfield => 'a' } ) ],
+            ['4815162342'],
+            'Copy and replace - Update a subfield with content of control field'
+        );
+    };
 };
 
 # move_field - subfields
@@ -1832,4 +1852,17 @@ subtest 'field_equals' => sub {
             });
         is_deeply( $match, [1], 'first 008 control field matches "eng"' );
     };
+};
+
+subtest 'update_last_transaction_time' => sub {
+    plan tests => 3;
+    my $record = MARC::Record->new;
+    update_last_transaction_time( { record => $record } );
+    my $value1 = $record->field('005')->data;
+    like( $value1, qr/^\d{14}\.0$/, 'Looks like a 005' );
+    sleep 1;
+    update_last_transaction_time( { record => $record } );
+    my $value2 = $record->field('005')->data;
+    like( $value2, qr/^\d{14}\.0$/, 'Still looks like a 005' );
+    isnt( $value1, $value2, 'Should not be the same a second later' );
 };

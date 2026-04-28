@@ -188,7 +188,7 @@ define( [ 'marc-record', 'koha-backend', 'preferences', 'text-marc', 'widget' ],
                 if( subfields[i].code == '9' ) continue;
                 mainstring += subfields[i].text+' ';
             }
-            newin=window.open("../authorities/auth_finder.pl?source=biblio&authtypecode="+authtype+"&index="+index+"&value_mainstr="+encodeURIComponent(mainmainstring)+"&value_main="+encodeURIComponent(mainstring), "_blank",'width=700,height=550,toolbar=false,scrollbars=yes');
+            newin=window.open("../authorities/auth_finder.pl?source=biblio&authtypecode="+authtype+"&index="+index+"&value_mainstr="+encodeURIComponent(mainmainstring)+"&value_main="+encodeURIComponent(mainstring), "_blank",'width=800,height=550,toolbar=false,scrollbars=yes');
 
         }
 
@@ -761,7 +761,7 @@ define( [ 'marc-record', 'koha-backend', 'preferences', 'text-marc', 'widget' ],
 
             if ( found ) return;
 
-            var node = $( '<div class="structure-error"><i class="fa fa-remove"></i> ' + error + '</div>' )[0];
+            var node = $( '<div class="structure-error"><i class="fa fa-times"></i> ' + error + '</div>' )[0];
             var widget = this.cm.addLineWidget( line, node, options );
 
             widget.node = node;

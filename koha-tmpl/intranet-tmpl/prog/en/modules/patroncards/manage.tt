@@ -1,16 +1,18 @@
+[% USE raw %]
+[% USE Koha %]
 [% USE CGI %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% BLOCK translate_card_element %]
 [%-  SWITCH element -%]
 [%-  CASE 'layout'    -%][% t('layout') | html %]
-[%-  CASE 'Layouts'   -%][% t('Layouts') | html %]
+[%-  CASE 'Layouts'   -%][% t('Patron card layouts') | html %]
 [%-  CASE 'template'  -%][% t('template') | html %]
-[%-  CASE 'Templates' -%][% t('Templates') | html %]
+[%-  CASE 'Templates' -%][% t('Patron card templates') | html %]
 [%-  CASE 'profile'   -%][% t('profile') | html %]
-[%-  CASE 'Profiles'  -%][% t('Profiles') | html %]
+[%-  CASE 'Profiles'  -%][% t('Patron card printer profiles') | html %]
 [%-  CASE 'batch'     -%][% t('batch') | html %]
-[%-  CASE 'Batches'   -%][% t('Batches') | html %]
+[%-  CASE 'Batches'   -%][% t('Patron card batches') | html %]
 [%-  CASE 'Actions'   -%][% t('Actions') | html %]
 [%-  END -%]
 [% END %]
@@ -24,7 +26,12 @@
 [% END %]
 
     [% INCLUDE 'doc-head-open.inc' %]
-    <title>[% PROCESS translate_card_element element=card_element_title %] &rsaquo; Patron card creator &rsaquo; Tools &rsaquo; Koha</title>
+    <title>[% FILTER collapse %]
+        [% PROCESS translate_card_element element=card_element_title %] &rsaquo;
+        [% t("Patron card creator") | html %] &rsaquo;
+        [% t("Tools") | html %] &rsaquo;
+        [% t("Koha") | html %]
+    [% END %]</title>
     [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -49,19 +56,19 @@
 
     <div class="main container-fluid">
         <div class="row">
-            <div class="col-sm-10 col-sm-push-2">
+            <div class="col-md-10 order-md-2 order-sm-1">
                 <main>
+                    [% INCLUDE 'messages.inc' %]
 
                     [% INCLUDE 'patroncards-toolbar.inc' %]
 
-                    <h1>Patron card templates</h1>
+                    <h1>[% PROCESS translate_card_element element=card_element_title %]</h1>
 
                     [% INCLUDE 'patroncards-errors.inc' %]
                         <div id="manage-patroncards-layouts">
                             [% IF ( table_loop ) %]
-                            <form name="layouts" action="/cgi-bin/koha/manage.pl?card_element=[% card_element | html %]">
+                            <form method="get" name="layouts" action="/cgi-bin/koha/manage.pl?card_element=[% card_element | html %]">
                             <div class="page-section">
-                                <h2>Currently available [% PROCESS translate_card_element element=card_element_title FILTER lower %]</h2>
                                 <table>
                                     [% FOREACH table_loo IN table_loop %]
                                         [% IF ( table_loo.header_fields ) %]
@@ -90,11 +97,15 @@
                                                 [% FOREACH text_field IN table_loo.text_fields %]
                                                     [% IF ( text_field.select_field ) %]
                                                         <td>
-                                                        <a class="btn btn-default btn-xs" href="/cgi-bin/koha/patroncards/edit-[% card_element | html %].pl?op=edit&element_id=[% text_field.field_value | html %]"><i class="fa fa-edit"></i> Edit</a>
-                                                        [% IF ( print ) %]<a class="btn btn-default btn-xs export" data-batch-id="[% text_field.field_value |url %]" href="/cgi-bin/koha/patroncards/print.pl?batch_id=[% text_field.field_value |url %]"><i class="fa fa-share-square-o"></i> Export</a>[% END %]
-                                                        <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/patroncards/manage.pl?op=delete&card_element=[% card_element | html %]&element_id=[% text_field.field_value | html %]"><i class="fa fa-trash"></i> Delete</a>
+                                                            <a class="btn btn-default btn-xs" href="/cgi-bin/koha/patroncards/edit-[% card_element | html %].pl?op=edit_form&element_id=[% text_field.field_value | html %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+                                                            [% IF ( print ) %]
+                                                                <a class="btn btn-default btn-xs export" data-batch-id="[% text_field.field_value |url %]" href="/cgi-bin/koha/patroncards/print.pl?batch_id=[% text_field.field_value |url %]"><i class="fa-solid fa-share-from-square"></i> Export</a>
+                                                            [% END %]
+                                                            <a class="btn btn-default btn-xs delete" href="#" data-element-id="[% text_field.field_value | html %]"><i class="fa fa-trash-can"></i> Delete</a>
                                                         </td>
-                                                        [% IF ( print ) %]<td><input type="checkbox" name="action" value="[% text_field.field_value | html %]" /></td>[% END %]
+                                                        [% IF ( print ) %]
+                                                            <td><input type="checkbox" name="action" value="[% text_field.field_value | html %]" /></td>
+                                                        [% END %]
                                                     [% ELSIF ( text_field.field_value ) %]
                                                         <td>[% text_field.field_value | html %]</td>
                                                     [% ELSE %]
@@ -105,13 +116,16 @@
                                         [% END %]
                                     [% END %]
                                 </table>
-                                <fieldset class="action">
-                                    [% IF ( print ) %]<input type="button" id="print" value="Export selected batches" />[% END %]
-                                </fieldset>
                             </div> <!-- /.page-section -->
+                            [% IF ( print ) %]
+                                <fieldset class="action">
+                                    <input class="btn btn-primary" type="button" id="print" value="Export selected batches" />
+                                </fieldset>
+                            [% END %]
+
                             [% IF patron_lists %]
                             <fieldset class="rows">
-                                <legend>Or use a patron list</legend>
+                                <legend>Export by patron list</legend>
                                 <ol>
                                     <li>
                                         <label for="patron_list_id">Patron list: </label>
@@ -125,26 +139,30 @@
                                 </ol>
                             </fieldset>
                             <fieldset class="action">
-                                <input type="button" id="printlist" value="Export from patron list" />
+                                <input class="btn btn-primary" type="button" id="printlist" value="Export from patron list" />
                             </fieldset>
                             [% END %]
                             </form>
+                            <form id="manage_form" method="post" action="/cgi-bin/koha/patroncards/manage.pl">
+                                [% INCLUDE 'csrf-token.inc' %]
+                                <input type="hidden" name="op" value="cud-" />
+                            </form>
 
                             [% ELSE %]
-                        <div class="dialog message">
+                        <div class="alert alert-info">
                             <h4>There are no [% PROCESS translate_card_element element=card_element_title %] currently available.</h4>
                             <p>Use the toolbar above to create a new [% PROCESS translate_card_element element=card_element %].</p></div>
                             [% END %]
                         </div>
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'tools-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -268,10 +286,6 @@
                 Edit();
                 return false;
             });
-            $("#delete").click(function(){
-                DeleteConfirm();
-                return false;
-            });
             $("#print").click(function(){
                 Xport();
                 return false;
@@ -281,7 +295,13 @@
                 return false;
             });
             $(".delete").on("click", function(){
-                return confirmDelete( _("Are you sure you want to delete this?") );
+                if( confirmDelete( _("Are you sure you want to delete this?") ) ) {
+                    $('#manage_form input[name="op"]').val('cud-delete');
+                    $('#manage_form').append( '<input type="hidden" name="card_element" value="[% card_element | html %]" />' );
+                    var id = $(this).data('element-id');
+                    $('#manage_form').append( '<input type="hidden" name="element_id" value="' + id + '" />' );
+                    $('#manage_form').submit();
+                }
             });
             $(".export").on("click", function(e){
                 e.preventDefault();

@@ -2,7 +2,8 @@
 
 # This file is part of Koha.
 #
-# Copyright (C) 2015 Amit Gupta (amitddng135@gmail.com)
+# Copyright 2023 Koha development team
+# Copyright 2015 Amit Gupta (amitddng135@gmail.com)
 #
 # Koha is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by
@@ -23,27 +24,15 @@ membership_expiry.pl - cron script to put membership expiry reminders into the m
 
 =head1 SYNOPSIS
 
-./membership_expiry.pl -c
+./membership_expiry.pl -c [-v] [-n] [-branch CODE] [-before DAYS] [-after DAYS] [-where COND] [-renew] [-letter X] [-letter-renew Y] [-active|-inactive]
 
 or, in crontab:
 
-0 1 * * * membership_expiry.pl -c
-
-Options:
-   --help                   brief help message
-   --man                    full documentation
-   --where <conditions>     where clause to add to the query
-   -v -verbose              verbose mode
-   -n --nomail              if supplied messages will be output to STDOUT and not sent
-   -c --confirm             commit changes to db, no action will be taken unless this switch is included
-   -b --branch <branchname> only deal with patrons from this library/branch
-   --before=X               include patrons expiring a number of days BEFORE the date set by the preference
-   --after=X                include patrons expiring a number of days AFTER  the date set by the preference
-   -l --letter <lettercode> use a specific notice rather than the default
+0 1 * * * membership_expiry.pl -c [other options you need as mentioned above]
 
 =head1 DESCRIPTION
 
-This script sends membership expiry reminder notices to patrons.
+This script sends membership expiry reminder notices to patrons, by email and sms.
 It queues them in the message queue, which is processed by
 the process_message_queue.pl cronjob.
 
@@ -97,7 +86,33 @@ will only notify patrons who have been seen.
 
 =item B<-letter>
 
-Optional parameter to use another notice than the default: MEMBERSHIP_EXPIRY
+Optional parameter to use another expiry notice than the default: MEMBERSHIP_EXPIRY
+
+=item B<-letter_renew>
+
+Optional parameter to use another renewal notice than the default: MEMBERSHIP_RENEWED
+
+=item B<-active>
+
+Optional parameter to include active patrons only (active within passed number of months).
+This parameter needs the preference TrackLastPatronActivityTriggers.
+
+IMPORTANT: You should be using those triggers already for the period that you
+consider a user to be (in)active.
+
+=item B<-inactive>
+
+Optional parameter to include inactive patrons only (inactive within passed number of months).
+This allows you to e.g. send expiry warnings only to inactive patrons.
+This parameter needs the preference TrackLastPatronActivityTriggers.
+
+IMPORTANT: You should be using those triggers already for the period that you
+consider a user to be (in)active.
+
+=item B<-renew>
+
+Optional parameter to automatically renew patrons instead of sending them an expiry notice.
+They will be informed by a patron renewal notice.
 
 =back
 
@@ -155,10 +170,16 @@ my $help    = 0;
 my $man     = 0;
 my $before  = 0;
 my $after   = 0;
-my ( $branch, $letter_type );
+my $branch;
 my @where;
+my $active;
+my $inactive;
+my $renew;
+my $letter_expiry;
+my $letter_renew;
 
 my $command_line_options = join(" ",@ARGV);
+cronlogaction({ info => $command_line_options });
 
 GetOptions(
     'help|?'         => \$help,
@@ -169,14 +190,42 @@ GetOptions(
     'branch:s'       => \$branch,
     'before:i'       => \$before,
     'after:i'        => \$after,
-    'letter:s'       => \$letter_type,
+    'letter:s'       => \$letter_expiry,
+    'letter_renew:s' => \$letter_renew,
     'where=s'        => \@where,
+    'active:i'       => \$active,
+    'inactive:i'     => \$inactive,
+    'renew'          => \$renew,
 ) or pod2usage(2);
+$letter_expiry = 'MEMBERSHIP_EXPIRY'  if !$letter_expiry;
+$letter_renew  = 'MEMBERSHIP_RENEWED' if !$letter_renew;
 
 pod2usage( -verbose => 2 ) if $man;
 pod2usage(1) if $help || !$confirm;
 
-cronlogaction({ info => $command_line_options });
+# Check active/inactive. Note that passing no value or zero is a no-op.
+if ( !C4::Context->preference('TrackLastPatronActivityTriggers')
+    && ( $active || $inactive ) )
+{
+    pod2usage(
+        -verbose => 1,
+        -msg     =>
+            q{Exiting membership_expiry.pl: Using --active or --inactive needs use of TrackLastPatronActivityTriggers over specified period},
+        -exitval => 1
+    );
+} elsif ( $active && $inactive ) {
+    pod2usage(
+        -verbose => 1,
+        -msg     => q{The --active and --inactive flags are mutually exclusive},
+        -exitval => 1
+    );
+} elsif ( ( defined $active && !$active ) || ( defined $inactive && !$inactive ) ) {
+    pod2usage(
+        -verbose => 1,
+        -msg     => q{Options --active and --inactive need a number of months},
+        -exitval => 1
+    );
+}
 
 my $expdays = C4::Context->preference('MembershipExpiryDaysNotice');
 if( !$expdays ) {
@@ -202,12 +251,29 @@ warn 'found ' . $upcoming_mem_expires->count . ' soon expiring members'
     if $verbose;
 
 # main loop
-$letter_type = 'MEMBERSHIP_EXPIRY' if !$letter_type;
+my ( $count_skipped, $count_renewed, $count_enqueued ) = ( 0, 0, 0 );
 while ( my $recent = $upcoming_mem_expires->next ) {
+    if ( $active && !$recent->is_active( { months => $active } ) ) {
+        $count_skipped++;
+        next;
+    } elsif ( $inactive && $recent->is_active( { months => $inactive } ) ) {
+        $count_skipped++;
+        next;
+    }
+
+    my $which_notice;
+    if ($renew) {
+        $recent->renew_account;
+        $which_notice = $letter_renew;
+        $count_renewed++;
+    } else {
+        $which_notice = $letter_expiry;
+    }
+
     my $from_address = $recent->library->from_email_address;
     my $letter =  C4::Letters::GetPreparedLetter(
         module      => 'members',
-        letter_code => $letter_type,
+        letter_code => $which_notice,
         branchcode  => $recent->branchcode,
         lang        => $recent->lang,
         tables      => {
@@ -215,18 +281,49 @@ while ( my $recent = $upcoming_mem_expires->next ) {
             branches  => $recent->branchcode,
         },
     );
-    last if !$letter; # Letters.pm already warned, just exit
-    if( $nomail ) {
+    last if !$letter;    # Letters.pm already warned, just exit
+    if ($nomail) {
         print $letter->{'content'}."\n";
-    } else {
-        C4::Letters::EnqueueLetter({
-            letter                 => $letter,
-            borrowernumber         =>  $recent->borrowernumber,
-            from_address           => $from_address,
-            message_transport_type => 'email',
-            branchcode             => $recent->branchcode
-        });
+        next;
     }
+
+    C4::Letters::EnqueueLetter({
+        letter                 => $letter,
+        borrowernumber         =>  $recent->borrowernumber,
+        from_address           => $from_address,
+        message_transport_type => 'email',
+        branchcode             => $recent->branchcode,
+    });
+    $count_enqueued++;
+
+    if ($recent->smsalertnumber) {
+        my $smsletter = C4::Letters::GetPreparedLetter(
+            module      => 'members',
+            letter_code => $which_notice,
+            branchcode  => $recent->branchcode,
+            lang        => $recent->lang,
+            tables      => {
+                borrowers => $recent->borrowernumber,
+                branches  => $recent->branchcode,
+            },
+            message_transport_type => 'sms',
+        );
+        if ($smsletter) {
+            C4::Letters::EnqueueLetter({
+                letter                 => $smsletter,
+                borrowernumber         => $recent->borrowernumber,
+                message_transport_type => 'sms',
+                branchcode             => $recent->branchcode,
+            });
+        }
+    }
+}
+
+if ($verbose) {
+    print "Membership renewed for $count_renewed patrons\n" if $count_renewed;
+    print "Enqueued notices for $count_enqueued patrons\n";
+    print "Skipped $count_skipped inactive patrons\n" if $active;
+    print "Skipped $count_skipped active patrons\n"   if $inactive;
 }
 
 cronlogaction({ action => 'End', info => "COMPLETED" });

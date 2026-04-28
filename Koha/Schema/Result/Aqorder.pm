@@ -171,13 +171,6 @@ notes related to this order line, made for staff
 
 notes related to this order line, made for vendor
 
-=head2 purchaseordernumber
-
-  data_type: 'longtext'
-  is_nullable: 1
-
-not used? always NULL
-
 =head2 basketno
 
   data_type: 'integer'
@@ -421,6 +414,23 @@ reports received from suppliers
 
 Estimated delivery date
 
+=head2 invoice_unitprice
+
+  data_type: 'decimal'
+  is_nullable: 1
+  size: [28,6]
+
+the unit price in foreign currency
+
+=head2 invoice_currency
+
+  data_type: 'varchar'
+  is_foreign_key: 1
+  is_nullable: 1
+  size: 10
+
+the currency of the invoice_unitprice
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -461,8 +471,6 @@ __PACKAGE__->add_columns(
   "order_internalnote",
   { data_type => "longtext", is_nullable => 1 },
   "order_vendornote",
-  { data_type => "longtext", is_nullable => 1 },
-  "purchaseordernumber",
   { data_type => "longtext", is_nullable => 1 },
   "basketno",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
@@ -536,6 +544,10 @@ __PACKAGE__->add_columns(
   { data_type => "mediumtext", is_nullable => 1 },
   "estimated_delivery_date",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
+  "invoice_unitprice",
+  { data_type => "decimal", is_nullable => 1, size => [28, 6] },
+  "invoice_currency",
+  { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
 );
 
 =head1 PRIMARY KEY
@@ -722,6 +734,26 @@ __PACKAGE__->belongs_to(
   },
 );
 
+=head2 invoice_currency
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Currency>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "invoice_currency",
+  "Koha::Schema::Result::Currency",
+  { currency => "invoice_currency" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "SET NULL",
+    on_update     => "SET NULL",
+  },
+);
+
 =head2 invoiceid
 
 Type: belongs_to
@@ -773,8 +805,8 @@ Composing rels: L</aqorder_users> -> borrowernumber
 __PACKAGE__->many_to_many("borrowernumbers", "aqorder_users", "borrowernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:f4A6ryk9luF7jDY2p/phEQ
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-04-30 13:34:51
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:FyRqcj4OmkBR6PpW3tY8bA
 
 __PACKAGE__->belongs_to(
   "basket",
@@ -811,6 +843,26 @@ __PACKAGE__->belongs_to(
   "invoice",
   "Koha::Schema::Result::Aqinvoice",
   { "foreign.invoiceid" => "self.invoiceid" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "SET NULL",
+    on_update     => "CASCADE",
+  },
+);
+
+=head2 creator
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Borrower>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "creator",
+  "Koha::Schema::Result::Borrower",
+  { borrowernumber => "created_by" },
   {
     is_deferrable => 1,
     join_type     => "LEFT",

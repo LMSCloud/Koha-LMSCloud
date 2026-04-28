@@ -1,8 +1,17 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Branches %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( do_it ) %]Catalog statistics &rsaquo; Results[% ELSE %]Catalog statistics[% END %] &rsaquo; Reports &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF( do_it ) %]
+        [% t("Results") | html %] &rsaquo;
+    [% END %]
+    [% t("Catalog statistics") | html %] &rsaquo;
+    [% t("Reports") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -33,8 +42,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 <h1>Catalog statistics</h1>
 [% IF ( do_it ) %]
@@ -46,6 +56,7 @@
 			[% END %]
 		[% END %]
 		
+            <div class="page-section">
         <table id="catalogue_stats">
             <thead>
                 <tr>
@@ -86,10 +97,12 @@
 				</tr>
             </tfoot>
 		</table>
+            </div>
+            <!-- /.page-section -->
 	[% END %]
 [% ELSE %]
 
-	<form method="post" action="/cgi-bin/koha/reports/catalogue_stats.pl">
+	<form method="get" action="/cgi-bin/koha/reports/catalogue_stats.pl">
 	<fieldset class="rows">
 	<legend>Catalog statistics</legend>
 	<table>
@@ -320,13 +333,13 @@
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'reports-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

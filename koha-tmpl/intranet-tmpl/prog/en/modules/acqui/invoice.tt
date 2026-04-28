@@ -5,17 +5,21 @@
 [% USE Price %]
 [% SET footerjs = 1 %]
 [% USE AuthorisedValues %]
-[% USE Branches %]
-
+[% PROCESS 'i18n.inc' %]
 [% BLOCK fund_dropdown %]
     <select id="[% form_id | html %]" name="[% form_name | html %]" class="fund_dropdown" data-selected="[% selected | html %]">
     </select>
-    <label for="showallfunds" style="float:none;width:auto;">&nbsp;Show inactive:</label>
-    <input type="checkbox" class="showallfunds" />
+    <label style="float:none;width:auto;">&nbsp;Show inactive:
+        <input type="checkbox" data-select-id="[% form_id | html %]" class="showallfunds" />
+    </label>
 [% END %]
 
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Invoice &rsaquo; Acquisitions &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Invoice") | html %] &rsaquo;
+    [% t("Acquisitions") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("css/humanmsg.css") | $raw %]
 </head>
@@ -43,14 +47,14 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
                 <h1>Invoice: [% invoicenumber | html %]</h1>
-                [% INCLUDE 'blocking_errors.inc' %]
 
                 [% IF ( modified ) %]
-                    <div class="dialog message">
+                    <div class="alert alert-info">
                         <p>Invoice has been modified</p>
                     </div>
                 [% END %]
@@ -58,14 +62,15 @@
                 <p>Vendor: <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% suppliername | html %]</a></p>
 
                 <form action="/cgi-bin/koha/acqui/invoice.pl" method="post" class="validated">
+                    [% INCLUDE 'csrf-token.inc' %]
                     <fieldset class="rows">
                         <ol>
                             <li>
                                 [% IF readonly %]
-                                    <label for="shipmentdate">Invoice number:</label>
+                                    <label for="invoicenumber">Invoice number:</label>
                                     [% invoicenumber | html %]
                                 [% ELSE %]
-                                    <label for="shipmentdate" class="required">Invoice number:</label>
+                                    <label for="invoicenumber" class="required">Invoice number:</label>
                                     <input type="text" id="invoicenumber" name="invoicenumber" value="[% invoicenumber | html %]" class="required" required="required"/>
                                     <span class="required">Required</span>
                                 [% END %]
@@ -133,17 +138,18 @@
                     </fieldset>
                     [% UNLESS readonly %]
                         <fieldset class="action">
-                            <input type="hidden" name="op" value="mod" />
+                            <input type="hidden" name="op" value="cud-mod" />
                             <input type="hidden" name="invoiceid" value="[% invoiceid | html %]" />
                             <input type="submit" class="btn btn-primary" value="Save" />
                             [% IF CAN_user_acquisition_delete_invoices AND NOT orders_loop.size %]
-                                <a href="invoice.pl?op=delete&invoiceid=[% invoiceid | uri %]" id="delete">Delete</a>
+                                <a class="submit-form-link" href="#" data-action="invoice.pl" data-method="post" data-op="cud-delete" data-invoiceid="[% invoiceid | html %]" data-confirmation-msg="[% t('Are you sure you want to delete this invoice?') | html %]" id="delete">Delete</a>
                             [% END %]
                         </fieldset>
                     [% END %]
                 </form>
 
                 <form action="/cgi-bin/koha/acqui/invoice.pl" method="post" class="validated">
+                    [% INCLUDE 'csrf-token.inc' %]
                     <fieldset class="rows">
                         <input type="hidden" name="invoiceid" value="[% invoiceid | html %]" />
                         <h3>Adjustments</h3>
@@ -169,7 +175,7 @@
                                             [% IF readonly %]
                                                 [% adjustment.adjustment | $Price %]
                                             [% ELSE %]
-                                                <input type="text" name="adjustment" id="adjustment_[% adjustment.adjustment_id | html %]" value="[% adjustment.adjustment | $Price on_editing => 1 %]" />
+                                                <input class="decimal" type="text" name="adjustment" id="adjustment_[% adjustment.adjustment_id | html %]" value="[% adjustment.adjustment | $Price on_editing => 1 %]" />
                                             [% END %]
                                         </td>
                                         <td>
@@ -225,7 +231,8 @@
                                         [% END # /IF adjustment.encumber_open  %]
                                         [% UNLESS readonly %]
                                             <td>
-                                                <a class="btn btn-default btn-xs delete_adjustment" href="/cgi-bin/koha/acqui/invoice.pl?op=del_adj&adjustment_id=[% adjustment.adjustment_id | html %]&invoiceid=[% invoiceid | html %]"><i class="fa fa-trash"></i> Delete</a>
+                                                <a class="btn btn-default btn-xs submit-form-link" href="#" data-adjustment_id="[% adjustment.adjustment_id | html %]" data-invoiceid="[% invoiceid | html %]" data-action="invoice.pl" data-method="post" data-op="cud-del_adj" data-confirmation-msg="[% t('Are you sure you want to delete this adjustment?') | html %]">
+                                                <i class="fa fa-trash-can"></i> Delete</a>
                                             </td>
                                         [% END %]
                                     </tr>
@@ -246,7 +253,7 @@
                                 <ol>
                                     <li>
                                         <label for="adjustment_new">Amount: </label>
-                                        <input type="text" name="adjustment" id="adjustment_new" />
+                                        <input class="decimal" type="text" name="adjustment" id="adjustment_new" />
                                     </li>
                                     [% reasons = AuthorisedValues.Get("ADJ_REASON") %]
                                     [% IF reasons.0 %]
@@ -287,9 +294,9 @@
                     </fieldset>
                     [% UNLESS readonly %]
                         <fieldset class="action" id="submit_invoice_adjustment">
-                            <input type="hidden" name="op" value="mod_adj" />
+                            <input type="hidden" name="op" value="cud-mod_adj" />
                             <input type="submit" class="btn btn-primary" value="Update adjustments" />
-                            <a href="#" id="cancel_invoice_adjustment" class="toggle_invoice_adjustment cancel" style="display:none"><i class="fa fa-remove"></i> Cancel</a>
+                            <a href="#" id="cancel_invoice_adjustment" class="toggle_invoice_adjustment cancel" style="display:none"><i class="fa fa-times"></i> Cancel</a>
                         </fieldset>
                     [% END #/UNLESS readonly %]
                 </form>
@@ -311,6 +318,9 @@
                                 <tr>
                                     <th class="anti-the">Summary</th>
                                     <th>Library</th>
+                                    [% IF has_invoice_unitprice %]
+                                        <th>Invoice price</th>
+                                    [% END %]
                                     <th class="tax_excluded">Actual cost tax exc.</th>
                                     <th class="tax_included">Actual cost tax inc.</th>
                                     <th class="replacementprice">Replacement price</th>
@@ -342,8 +352,15 @@
                                             [% END %]
                                         </td>
                                         <td>
-                                            <p>[% Branches.GetName(order.branchcode) | html %]</p>
+                                            <p>[% order.branchcode | html %]</p>
                                         </td>
+                                        [% IF has_invoice_unitprice %]
+                                            <td>
+                                                [% IF order.invoice_unitprice %]
+                                                    [% order.invoice_unitprice | $Price %] [% order.invoice_currency | html %]
+                                                [% END %]
+                                            </td>
+                                        [% END %]
                                         <td class="number tax_excluded">
                                             [% order.unitprice_tax_excluded | $Price %]
                                         </td>
@@ -372,7 +389,7 @@
                                             [% order.tax_value | $Price %]
                                         </td>
                                         <td>
-                                            <span class="order_name" data-order_id="[% order.ordernumber | html %]">[% order.budget_name | html %]</span></br>
+                                            <div class="order_name" data-order_id="[% order.ordernumber | html %]">[% order.budget_name | html %]</div>
                                             <a href="#" class="modify_fund" data-order_id="[% order.ordernumber | html %]" data-budget_id="[% order.budget_id | html %]" data-sort1="[% order.sort1 | html %]" data-sort2="[% order.sort2 | html %]">Modify fund</a>
                                         </td>
                                     </tr>
@@ -382,9 +399,12 @@
                                 [% FOR tf IN foot_loop %]
                                     <tr>
                                         <th colspan="2">Total (GST [% tf.tax_rate * 100 | html %] %)</th>
+                                        [% IF has_invoice_unitprice %]
+                                            <th></th>
+                                        [% END %]
                                         <th class="tax_excluded"></th>
                                         <th class="tax_included"></th>
-                                        <th class="replacementprice"/>
+                                        <th class="replacementprice"></th>
                                         <th>[% tf.quantity | html %]</th>
                                         <th class="tax_excluded">[% tf.total_tax_excluded | $Price %]</th>
                                         <th class="tax_included">[% tf.total_tax_included | $Price %]</th>
@@ -395,9 +415,12 @@
                                 [% END # /FOR tf %]
                                 <tr>
                                     <th colspan="2">Total ([% currency.symbol | html %])</th>
+                                    [% IF has_invoice_unitprice %]
+                                        <th></th>
+                                    [% END %]
                                     <th class="tax_excluded"></th>
                                     <th class="tax_included"></th>
-                                    <th class="replacementprice"/>
+                                    <th class="replacementprice"></th>
                                     <th>[% total_quantity | html %]</th>
                                     <th class="tax_excluded">[% total_tax_excluded | $Price %]</th>
                                     <th class="tax_included">[% total_tax_included | $Price %]</th>
@@ -407,9 +430,12 @@
                                 </tr>
                                 <tr>
                                     <th colspan="2">Total + adjustments + shipment cost ([% currency.symbol | html %])</th>
+                                    [% IF has_invoice_unitprice %]
+                                        <th></th>
+                                    [% END %]
                                     <th class="tax_excluded"></th>
                                     <th class="tax_included"></th>
-                                    <th class="replacementprice"/>
+                                    <th class="replacementprice"></th>
                                     <th>[% total_quantity | html %]</th>
                                     <th class="tax_excluded">[% total_tax_excluded_shipment + total_adj | $Price %]</th>
                                     <th class="tax_included">[% total_tax_included_shipment + total_adj | $Price %]</th>
@@ -420,7 +446,7 @@
                             </tfoot>
                         </table> <!-- /#orderst -->
                     [% ELSE %]
-                        <div class="dialog message">
+                        <div class="alert alert-info">
                             <p>No orders yet</p>
                             [% IF adjustments && adjustments.count > 0 || shipmentcost && shipmentcost > 0 %]
                                 <p>Adjustments plus shipping: [% total_adj + shipmentcost | $Price %]</p>
@@ -445,7 +471,7 @@
                                 [% FOREACH f IN files %]
                                     <tr>
                                         <td>
-                                            <a href="/cgi-bin/koha/acqui/invoice-files.pl?invoiceid=[% invoiceid | uri %]&amp;op=download&amp;view=1&amp;file_id=[% f.file_id | uri %]">[% f.file_name | html %]</a>
+                                <a href="/cgi-bin/koha/acqui/invoice-files.pl?invoiceid=[% invoiceid | uri %]&amp;op=download&amp;file_id=[% f.file_id | uri %]">[% f.file_name | html %]</a>
                                         </td>
                                         <td>[% f.file_type | html %]</td>
                                         <td>[% f.file_description | html %]</td>
@@ -459,63 +485,67 @@
                     </div>
                 [% END # /IF AcqEnableFiles %]
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <aside>
-            <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
+            <aside>
                 [% INCLUDE 'acquisitions-menu.inc' %]
-            </div>
-        </aside>
+            </aside>
+        </div>
     </div> <!-- /.row -->
 
-<div id="updateFund" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="updateReceivedFund" aria-hidden="true">
-    <div class="modal-dialog">
+<div id="updateFund" class="modal" tabindex="-1" role="dialog" aria-labelledby="updateReceivedFund" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
-                <h3 id="updateReceivedFund">Update received fund</h3>
+                <h1 class="modal-title" id="updateReceivedFund">Update received fund</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <p>Updating the fund may change available statistics for the order, please check values before submitting.</p>
                 <fieldset class="rows">
                     <ol>
                         <li>
+                            <label for="modify_budget_id">Fund:</label>
                             [% PROCESS fund_dropdown form_id => 'modify_budget_id' form_name => 'modify_budget_id' selected => "" %]
                         </li>
                         <li>
                             <label for="sort1">Statistic 1: </label>
-                            <input type="text" name="sort1" />
+                            <input type="text" id="sort1" name="sort1" />
                         </li>
                         <li>
                             <label for="sort2">Statistic 2: </label>
-                            <input type="text" name="sort2" />
+                            <input type="text" id="sort2" name="sort2" />
                         </li>
                     </ol>
                 </fieldset>
-                <a id="update_fund" class="btn btn-default">Update fund</a>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+                <a id="update_fund" class="btn btn-primary">Update fund</a>
+                <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
             </div> <!-- /.modal-footer -->
         </div> <!-- /.modal-content -->
     </div> <!-- /.modal-dialog -->
 </div> <!-- /#updateFund.modal -->
 
-<span style="display:none;" id="all_fund_dropdown">
-    <option value="">No fund</option>
-    [% FOREACH budget IN budgets %]
-        [% IF ( budget.b_active ) %]
-            <option value="[% budget.b_id | html %]" data-sort1-authcat="[% budget.b_sort1_authcat | html %]" data-sort2-authcat="[% budget.b_sort2_authcat | html %]">[% budget.b_txt | html %]</option>
-        [% ELSE %]
-            <option value="[% budget.b_id | html %]" class="b_inactive" data-sort1-authcat="[% budget.b_sort1_authcat | html %]" data-sort2-authcat="[% budget.b_sort2_authcat |html %]">[% budget.b_txt | html %] (inactive)</option>
-        [% END %]
-    [% END # /FOREACH budget %]
-</span> <!-- /#all_fund_dropdown -->
+<div style="display:none;">
+    <select id="all_fund_dropdown">
+        <option value="">No fund</option>
+        [% FOREACH budget IN budgets %]
+            [% IF ( budget.b_active ) %]
+                <option value="[% budget.b_id | html %]" data-sort1-authcat="[% budget.b_sort1_authcat | html %]" data-sort2-authcat="[% budget.b_sort2_authcat | html %]">[% budget.b_txt | html %]</option>
+            [% ELSE %]
+                <option value="[% budget.b_id | html %]" class="b_inactive" data-sort1-authcat="[% budget.b_sort1_authcat | html %]" data-sort2-authcat="[% budget.b_sort2_authcat |html %]">[% budget.b_txt | html %] (inactive)</option>
+            [% END %]
+        [% END # /FOREACH budget %]
+    </select>
+</div> <!-- /#all_fund_dropdown -->
 
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/acquisitions-menu.js") | $raw %]
     [% Asset.js("lib/jquery/plugins/humanmsg.js") | $raw %]
     [% Asset.js("js/acq.js") | $raw %]
+    [% Asset.js("js/additional-fields-entry.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
     <script>
@@ -532,24 +562,21 @@
         }
 
         $(document).ready(function() {
-            $("#delete").click(function(){
-                return confirmDelete(_("Are you sure you want to delete this invoice?"));
-            });
             $("#orderst").dataTable($.extend(true, {}, dataTablesDefaults, {
-                bInfo: false,
-                bPaginate: false,
-                bFilter: false,
-                sDom: "t",
-                "aoColumnDefs": [
-                    { "sType": "anti-the", "aTargets": [ "anti-the" ] }
+                "info": false,
+                "paging": false,
+                "searching": false,
+                "dom": "t",
+                "columnDefs": [
+                    { "type": "anti-the", "targets": [ "anti-the" ] }
                 ]
             }));
             [% IF ( (Koha.Preference('AcqEnableFiles')) && files ) %]
                 $("#invoice_files_table").dataTable($.extend(true, {}, dataTablesDefaults, {
-                    bInfo: false,
-                    bPaginate: false,
-                    bFilter: false,
-                    sDom: "t"
+                    "info": false,
+                    "paging": false,
+                    "searching": false,
+                    "dom": "t"
                 }));
             [% END %]
             $("#show_all_details").click(function(){
@@ -561,9 +588,6 @@
             $(".toggle_invoice_adjustment").on("click", function(e){
                 e.preventDefault();
                 $("#show_invoice_adjustment, #cancel_invoice_adjustment, #add_invoice_adjustment").toggle();
-            });
-            $("a.delete_adjustment").click(function(){
-                return ( confirm( _("Are you sure you want to delete this file ?") ) );
             });
 
             //keep a copy of all budgets before removing the inactives
@@ -577,15 +601,14 @@
 
             $('.b_inactive').remove();
 
-            $('.showallfunds').click(function() {
-                var the_dropdown = $(this).siblings('.fund_dropdown');
+            $('.showallfunds').on("change", function() {
+                var the_dropdown = $("#" + $(this).data("select-id") );
                 var selected = the_dropdown.val();
                 if ($(this).is(":checked")) {
-                    the_dropdown.html(disabledBudgetsCopy).val(selected);
-                }
-                else {
-                    the_dropdown.find('option[value="'+selected+'"]').removeClass('b_inactive');
-                    $(this).siblings().find('.b_inactive').remove();
+                    the_dropdown.html( disabledBudgetsCopy ).val(selected);
+                } else {
+                    the_dropdown.find( 'option[value="' + selected + '"]' ).removeClass('b_inactive');
+                    the_dropdown.find('.b_inactive').remove();
                 }
             });
 

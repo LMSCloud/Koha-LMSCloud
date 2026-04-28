@@ -1,4 +1,5 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE KohaDates %]
 [% USE Branches %]
@@ -14,6 +15,13 @@
     [% t("Koha") | html %]
 [% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
+    <style>
+        #bookings-timeline .vis-item.vis-range {
+            &.cancelled {
+               background: rgba(128, 128, 128, 0.3);
+            }
+        }
+    </style>
 </head>
 
 <body id="circ_request" class="catalog">
@@ -38,37 +46,35 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
                 <div class="row">
+                    [% INCLUDE 'messages.inc' %]
                     [% INCLUDE 'cat-toolbar.inc' %]
                     <h1>Bookings for [% INCLUDE 'biblio-title-head.inc' %]</h1>
-
-        <div class="page-section bg-white p-3">
-            [% INCLUDE 'bookings-timeline.inc'
-                timeline_id = 'bookings-timeline'
-                loading_id = 'bookings-timeline-loading'
-                show_filters = 0
-            %]
-        </div>
-
-        <div class="page-section">
-            [% INCLUDE 'bookings-table-filters.inc' %]
+                    <div class="page-section bg-white p-3">
+                        [% INCLUDE 'bookings-timeline.inc'
+                            timeline_id = 'bookings-timeline'
+                            loading_id = 'bookings-timeline-loading'
+                            show_filters = 0
+                        %]
+                    </div>
+                    <div class="page-section">
+                        [% INCLUDE 'bookings-table-filters.inc' %]
                         <table id="bookings_table"></table>
                     </div>
                 </div>
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'biblio-view-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
     </div> <!-- /.row -->
 
     [% INCLUDE modals/cancel_booking.inc %]
-    [% INCLUDE modals/convert_to_checkout.inc %]
 
     [% MACRO jsinclude BLOCK %]
     [% Asset.js("lib/vis-timeline/vis-timeline-graph2d.min.js") | $raw %]

@@ -1,12 +1,17 @@
 [% USE raw %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>008 builder &rsaquo; Cataloging &rsaquo; Koha</title>
+<title>[% FILTER collapse  %]
+    [% t("008 builder") | html %] &rsaquo;
+    [% t("Cataloging") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
-<body id="cat_marc21_field_008" class="cat" style="padding:1em;" onload="loadXmlValues()">
+<body id="cat_marc21_field_008" class="cat value_builder" onload="loadXmlValues()">
 
 <h1> 008 Fixed-length data elements--Additional material characteristics--General information</h1>
 
@@ -19,13 +24,13 @@
 
 <h4 id="h4_result">&quot;[% result | html %]&quot;</h4>
 
-<form name="f_pop" id="f_pop" style="display:block" onsubmit="report()" action="">
-    <div id="toolbar">
+<form method="get" name="f_pop" id="f_pop" style="display:block" onsubmit="report()" action="">
+    <div id="toolbar" class="sticky">
         <div class="btn-group">
             <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save</button>
         </div>
         <div class="btn-group">
-            <button type="button" class="btn btn-default close_window"><i class="fa fa-remove"></i> Cancel</button>
+            <button type="button" class="btn btn-default close_window"><i class="fa fa-times"></i> Cancel</button>
         </div>
     </div>
 
@@ -44,19 +49,21 @@
             </tr>
         </table>
     </div> <!-- /.page-section -->
+
+    <nav class="navbar navbar-default fixed-bottom">
+        <div class="container-fluid">
+            <fieldset class="action">
+                <input type="submit" class="btn btn-primary" value="Save" />
+                <button class="btn btn-default close_window">Cancel</button>
+            </fieldset>
+        </div>
+    </nav>
 </form>
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("lib/hc-sticky.js") | $raw %]
     [% Asset.js("js/xmlControlfield.js") | $raw %]
     <script>
-        var Sticky;
         $(document).ready(function(){
-            Sticky = $("#toolbar");
-            Sticky.hcSticky({
-                stickTo: "#f_pop",
-                stickyClass: "floating"
-            });
             $(".close_window").on("click", function(e){
                 e.preventDefault();
                 window.close();

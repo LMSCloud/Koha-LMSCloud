@@ -71,6 +71,14 @@ Longer explanation of the group, if necessary
 
 Turn on the feature 'Hide patron's info' for this group
 
+=head2 ft_limit_item_editing
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+Turn on the feature "Limit item editing by group" for this group
+
 =head2 ft_search_groups_opac
 
   data_type: 'tinyint'
@@ -94,6 +102,14 @@ Use this group for opac side search groups
   is_nullable: 0
 
 Use this group to identify libraries as pick up location for holds
+
+=head2 ft_local_float_group
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+Use this group to identify libraries as part of float group
 
 =head2 created_on
 
@@ -127,11 +143,15 @@ __PACKAGE__->add_columns(
   { data_type => "mediumtext", is_nullable => 1 },
   "ft_hide_patron_info",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  "ft_limit_item_editing",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "ft_search_groups_opac",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "ft_search_groups_staff",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "ft_local_hold_group",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  "ft_local_float_group",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "created_on",
   {
@@ -246,8 +266,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:WOqjMuJNt1Sh2FUvt3NGxA
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-10-04 17:58:31
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:M9YgMuCWhncegAzkH8uoJg
 
 sub koha_object_class {
     'Koha::Library::Group';
@@ -257,10 +277,12 @@ sub koha_objects_class {
 }
 
 __PACKAGE__->add_columns(
-    '+ft_hide_patron_info' => { is_boolean => 1 },
-    '+ft_search_groups_opac' => { is_boolean => 1 },
+    '+ft_hide_patron_info'    => { is_boolean => 1 },
+    '+ft_limit_item_editing'  => { is_boolean => 1 },
+    '+ft_local_float_group'   => { is_boolean => 1 },
+    '+ft_local_hold_group'    => { is_boolean => 1 },
+    '+ft_search_groups_opac'  => { is_boolean => 1 },
     '+ft_search_groups_staff' => { is_boolean => 1 },
-    '+ft_local_hold_group' => { is_boolean => 1 },
 );
 
 1;

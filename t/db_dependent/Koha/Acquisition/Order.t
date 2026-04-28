@@ -19,7 +19,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 12;
+use Test::More tests => 13;
 use Test::Exception;
 
 use t::lib::TestBuilder;
@@ -417,6 +417,8 @@ subtest 'filter_by_late' => sub {
                 datecancellationprinted => undef,
                 estimated_delivery_date => undef,
                 orderstatus             => 'ordered',
+                quantity                => 1,
+                quantityreceived        => 0,
             }
         }
     );
@@ -438,6 +440,8 @@ subtest 'filter_by_late' => sub {
                 datecancellationprinted => undef,
                 estimated_delivery_date => undef,
                 orderstatus             => 'ordered',
+                quantity                => 1,
+                quantityreceived        => 0,
             }
         }
     );
@@ -459,6 +463,8 @@ subtest 'filter_by_late' => sub {
                 datecancellationprinted => undef,
                 estimated_delivery_date => undef,
                 orderstatus             => 'ordered',
+                quantity                => 1,
+                quantityreceived        => 0,
             }
         }
     );
@@ -480,6 +486,8 @@ subtest 'filter_by_late' => sub {
                 datecancellationprinted => undef,
                 estimated_delivery_date => undef,
                 orderstatus             => 'ordered',
+                quantity                => 1,
+                quantityreceived        => 0,
             }
         }
     );
@@ -492,6 +500,8 @@ subtest 'filter_by_late' => sub {
                 datecancellationprinted => undef,
                 estimated_delivery_date => undef,
                 orderstatus             => 'complete',
+                quantity                => 1,
+                quantityreceived        => 0,
             }
         }
     );
@@ -576,6 +586,8 @@ subtest 'filter_by_late' => sub {
                 datereceived            => undef,
                 datecancellationprinted => undef,
                 estimated_delivery_date => $now->clone->subtract( days => 2 ),
+                quantity                => 1,
+                quantityreceived        => 0,
             }
         }
     );
@@ -590,7 +602,7 @@ subtest 'filter_by_late' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'filter_by_current & filter_by_cancelled' => sub {
+subtest 'filter_out_cancelled & filter_by_cancelled' => sub {
     plan tests => 2;
 
     $schema->storage->txn_begin;
@@ -631,16 +643,35 @@ subtest 'filter_by_current & filter_by_cancelled' => sub {
         }
     );
 
-    is( $orders->filter_by_current->count, 2);
+    is( $orders->filter_out_cancelled->count, 2);
     is( $orders->filter_by_cancelled->count, 1);
 
 
     $schema->storage->txn_rollback;
 };
 
+subtest 'creator ()' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    my $order = $builder->build_object({ class => 'Koha::Acquisition::Orders', value => { created_by => $patron->borrowernumber } });
+
+    my $creator = $order->creator;
+
+    is($creator->borrowernumber, $patron->borrowernumber, 'Patron is order creator');
+
+    $creator->delete;
+
+    is( $order->get_from_storage->creator, undef );
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'cancel() tests' => sub {
 
-    plan tests => 54;
+    plan tests => 58;
 
     $schema->storage->txn_begin;
 
@@ -679,7 +710,7 @@ subtest 'cancel() tests' => sub {
     t::lib::Mocks::mock_userenv({ patron => $patron });
 
     # Add a checkout so deleting the item fails because od 'book_on_loan'
-    C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+    C4::Circulation::AddIssue( $patron, $item->barcode );
 
     my $result = $order->cancel({ reason => $reason });
     # refresh the order object
@@ -797,7 +828,7 @@ subtest 'cancel() tests' => sub {
     is( Koha::Items->find($item->id), undef, 'The item is no longer present' );
     is( ref(Koha::Biblios->find($biblio_id)), 'Koha::Biblio', 'The biblio is still present' );
     @messages = @{ $order->object_messages };
-    is( $messages[0]->message, 'error_delbiblio_active_orders', 'Cannot delete biblio and it gets notified' );
+    is( $messages[0]->message, 'error_delbiblio_uncancelled_orders', 'Cannot delete biblio and it gets notified' );
 
     # Scenario:
     # * order with one item attached
@@ -877,6 +908,47 @@ subtest 'cancel() tests' => sub {
     is( scalar @messages, 0, 'No errors' );
 
     # Scenario:
+    # * order made from a suggestion with same biblionumber
+    # => order is cancelled
+    # => suggestion status is changed to ACCEPTED
+
+    $item      = $builder->build_sample_item;
+    $biblio_id = $item->biblionumber;
+
+    # Add the suggestion
+    my $suggestion = $builder->build_object(
+        {
+            class => 'Koha::Suggestions',
+            value => {
+                biblionumber => $biblio_id,
+                suggesteddate => dt_from_string,
+                STATUS => 'ORDERED',
+                archived => 0,
+            }
+        }
+    );
+
+    $order = $builder->build_object(
+        {
+            class => 'Koha::Acquisition::Orders',
+            value => {
+                orderstatus             => 'new',
+                biblionumber            => $biblio_id,
+                datecancellationprinted => undef,
+                cancellationreason      => undef,
+            }
+        }
+    );
+
+    $order->cancel({ reason => $reason })
+          ->discard_changes;
+
+    $suggestion = Koha::Suggestions->find( $suggestion->id );
+
+    is( $order->orderstatus, 'cancelled', 'Order is marked as cancelled' );
+    is( $suggestion->STATUS, 'ACCEPTED', 'Suggestion status is correctly reverted after order is cancelled' );
+
+    # Scenario:
     # * order with two items attached
     # * one of the items is on loan
     # => order is cancelled
@@ -906,7 +978,7 @@ subtest 'cancel() tests' => sub {
     $order->add_item( $item_3->id );
 
     # Add a checkout so deleting the item fails because od 'book_on_loan'
-    C4::Circulation::AddIssue( $patron->unblessed, $item_2->barcode );
+    C4::Circulation::AddIssue( $patron, $item_2->barcode );
     C4::Reserves::AddReserve(
         {
             branchcode     => $item_3->holdingbranch,
@@ -956,6 +1028,14 @@ subtest 'cancel() tests' => sub {
     };
     lives_ok { $order->set($columns)->store; } 'No croak on missing biblionumber when cancelling an order';
     throws_ok { $order->orderstatus('new')->store; } qr/Cannot insert order: Mandatory parameter biblionumber is missing/, 'Expected croak';
+
+    # Try to cancel again, not overwriting cancellation date
+    my $dt = dt_from_string->subtract( days => 1 );
+    $order->biblionumber($biblio_id)->datecancellationprinted($dt)->orderstatus('new')->store;
+    $order->cancel;
+    $order->discard_changes;
+    is( $order->orderstatus,             'cancelled', 'Check status after second cancel' );
+    is( $order->datecancellationprinted, $dt->ymd,    'Check date after second cancel' );
 
     $schema->storage->txn_rollback;
 };

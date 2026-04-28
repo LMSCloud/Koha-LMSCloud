@@ -34,6 +34,9 @@
 
 use Modern::Perl;
 
+use Test::More tests => 23;
+use Test::NoWarnings;
+
 use Time::HiRes qw(gettimeofday);
 use POSIX qw(strftime);
 use C4::Context;
@@ -41,7 +44,6 @@ use C4::Biblio qw( AddBiblio );
 
 use Koha::CirculationRules;
 
-use Test::More tests => 22;
 use MARC::Record;
 use MARC::Field;
 
@@ -115,10 +117,12 @@ SKIP: {
     $driver->find_element('//fieldset[@class="action"]/input[@type="submit"]')->click;
 
     time_diff("add patron category");
-    $driver->get($base_url.'/members/memberentry.pl?op=add&amp;categorycode='.$sample_data->{category}{categorycode});
+    $driver->get($base_url.'/members/memberentry.pl?op=add_form&amp;categorycode='.$sample_data->{category}{categorycode});
     like( $driver->get_title(), qr(Add .*$sample_data->{category}{description}), );
     $s->fill_form( $sample_data->{patron} );
     $driver->find_element('//button[@id="saverecord"]')->click;
+    my $borrowernumber = Koha::Patrons->_resultset->get_column('borrowernumber')->max;
+    $driver->get($base_url.'/members/moremember.pl?borrowernumber='.$borrowernumber);
     like( $driver->get_title(), qr(Patron details for $sample_data->{patron}{surname}), );
 
     ####$driver->get($base_url.'/members/members-home.pl');
@@ -203,8 +207,7 @@ SKIP: {
             elsif (
                 $id =~ m|^tag_952_subfield_w| # replacementpricedate
             ) {
-                $v = strftime("%Y-%m-%d", localtime);
-                $effective_input = $driver->find_element('//div[@id="subfield952w"]/input[@type="text" and @class="input_marceditor items.replacementpricedate noEnterSubmit flatpickr-input"]');
+                next; # The input has been prefilled with %Y-%m-%d already
             }
             elsif (
                 $id =~ m|^tag_952_subfield_y| # itemtype
@@ -251,7 +254,7 @@ SKIP: {
         $driver->find_element('//fieldset[@id="circ_circulation_issue"]/button[@type="submit"]')->click;
         $nb_of_checkouts++;
         like( $driver->get_title(), qr(Checking out to $sample_data->{patron}{surname}) );
-        is( $driver->find_element('//a[@href="#checkouts"]')->get_attribute('text'), 'Checkouts ('.$nb_of_checkouts.')' );
+        like( $driver->find_element('//a[@href="#checkouts_panel"]')->get_attribute('text'), qr/Checkouts \($nb_of_checkouts\)/ );
     }
 
     time_diff("checkout");
@@ -307,6 +310,6 @@ sub cleanup {
 sub time_diff {
     my $lib = shift;
     my $now = gettimeofday;
-    warn "CP $lib = " . sprintf("%.2f", $now - $prev_time ) . "\n";
+    #warn "CP $lib = " . sprintf( "%.2f", $now - $prev_time ) . "\n";
     $prev_time = $now;
 }

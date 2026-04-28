@@ -1,25 +1,26 @@
 <template>
     <div v-if="!initialized">{{ $__("Loading") }}</div>
     <div v-else-if="erm_package" id="packages_show">
+        <Toolbar>
+            <ToolbarButton
+                :to="{
+                    name: 'EHoldingsLocalPackagesFormAddEdit',
+                    params: { package_id: erm_package.package_id },
+                }"
+                icon="pencil"
+                :title="$__('Edit')"
+            />
+            <a
+                @click="
+                    delete_package(erm_package.package_id, erm_package.name)
+                "
+                class="btn btn-default"
+                ><font-awesome-icon icon="trash" /> {{ $__("Delete") }}</a
+            >
+        </Toolbar>
+
         <h2>
             {{ $__("Package #%s").format(erm_package.package_id) }}
-            <span class="action_links">
-                <router-link
-                    :to="{
-                        name: 'EHoldingsLocalPackagesFormAddEdit',
-                        params: { package_id: erm_package.package_id },
-                    }"
-                    :title="$__('Edit')"
-                    ><i class="fa fa-pencil"></i
-                ></router-link>
-
-                <a
-                    @click="
-                        delete_package(erm_package.package_id, erm_package.name)
-                    "
-                    ><i class="fa fa-trash"></i
-                ></a>
-            </span>
         </h2>
         <div>
             <fieldset class="rows">
@@ -100,6 +101,12 @@
                     />
                 </div>
             </fieldset>
+            <AdditionalFieldsDisplay
+                resource_type="package"
+                :additional_field_values="
+                    erm_package._strings.additional_field_values
+                "
+            />
             <fieldset class="action">
                 <router-link
                     :to="{ name: 'EHoldingsLocalPackagesList' }"
@@ -116,6 +123,9 @@
 import { inject } from "vue"
 import EHoldingsPackageTitlesList from "./EHoldingsLocalPackageTitlesList.vue"
 import { APIClient } from "../../fetch/api-client.js"
+import Toolbar from "../Toolbar.vue"
+import ToolbarButton from "../ToolbarButton.vue"
+import AdditionalFieldsDisplay from "../AdditionalFieldsDisplay.vue"
 
 export default {
     setup() {
@@ -145,6 +155,8 @@ export default {
                 created_on: null,
                 resources: null,
                 package_agreements: [],
+                extended_attributes: [],
+                _strings: [],
             },
             initialized: false,
         }
@@ -200,16 +212,14 @@ export default {
     },
     components: {
         EHoldingsPackageTitlesList,
+        Toolbar,
+        ToolbarButton,
+        AdditionalFieldsDisplay,
     },
     name: "EHoldingsLocalPackagesShow",
 }
 </script>
 <style scoped>
-.action_links a {
-    padding-left: 0.2em;
-    font-size: 11px;
-    cursor: pointer;
-}
 fieldset.rows label {
     width: 25rem;
 }

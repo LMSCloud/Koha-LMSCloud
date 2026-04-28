@@ -5,9 +5,14 @@
 [% USE AuthorisedValues %]
 [% USE Asset %]
 [% USE raw %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Article requests &rsaquo; Circulation &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Article requests") | html %] &rsaquo;
+    [% t("Circulation") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>p { margin-top: 0; } [id^="article-menu-"] { display: none; } [id^="article-menu-"]:before { content: "|"; } .starthidden { display:none; }</style>
 </head>
@@ -15,46 +20,46 @@
 [% BLOCK actions %]
     <div id="[% menuid | html %]" class="btn-group dropup">
     <span>
-        <a class="btn btn-default btn-xs dropdown-toggle ar-actions" role="button" data-toggle="dropdown" href="#">
-            Actions <b class="caret"></b>
+        <a class="btn btn-default btn-xs dropdown-toggle ar-actions" role="button" data-bs-toggle="dropdown" href="#">
+            Actions
         </a>
 
-        <ul class="dropdown-menu [% pull_right | html %]" role="menu" aria-labelledby="[% aria_menu | html %]">
+        <ul class="dropdown-menu" role="menu" aria-labelledby="[% aria_menu | html %]">
             <li>
-                <a class="ar-set-pending-request" href="#" onclick="HandleMulti( SetPending, [% id_arg | html %], $(this) ); return false;">
+                <a class="ar-set-pending-request dropdown-item" data-ar-id="[% id_arg | uri %]" href="#">
                     <i class="fa fa-bars"></i>
                     Set request as pending
                 </a>
 
-                <a class="ar-process-request" href="#" onclick="HandleMulti( Process, [% id_arg | html %], $(this) ); return false;">
+                <a class="ar-process-request dropdown-item" data-ar-id="[% id_arg | uri %]" href="#">
                     <i class="fa fa-cog"></i>
                     Process request
                 </a>
 
                 [% IF id_arg && format=='SCAN' %]
-                <a class="ar-edit-urls" href="#" onclick="HandleMulti( EditURLs, [% id_arg | html %], $(this) ); return false;">
-                    <i class="fa fa-edit"></i>
+                <a class="ar-edit-urls dropdown-item" href="#" data-ar-id="[% id_arg | uri %]" href="#">
+                    <i class="fa-solid fa-pencil" aria-hidden="true"></i>
                     Edit URLs
                 </a>
                 [% END %]
 
-                <a class="ar-complete-request" href="#" onclick="HandleMulti( Complete, [% id_arg | html %], $(this) ); return false;">
+                <a class="ar-complete-request dropdown-item" href="#" data-ar-id="[% id_arg | uri %]" href="#">
                     <i class="fa fa-check-circle"></i>
                     Complete request
                 </a>
 
-                <a class="ar-cancel-request" href="#" onclick="Cancel( [% id_arg | html %], $(this) ); return false;">
+                <a class="ar-cancel-request dropdown-item" href="#" data-ar-id="[% id_arg | uri %]" href="#">
                     <i class="fa fa-minus-circle"></i>
                     Cancel request
                 </a>
 
                 [% IF id_arg %]
-                <a class="ar-print-request" href="#" onclick="HandleMulti( PrintSlip, [% id_arg | html %], $(this) ); return false;">
+                <a class="ar-print-request dropdown-item" href="#" data-ar-id="[% id_arg | uri %]" href="#">
                     <i class="fa fa-print"></i>
                     Print slip
                 </a>
                 [% ELSE %]
-                <a class="ar-print-request" href="#" onclick="PrintMultipleSlip(); return false;">
+                <a class="ar-print-multiple-requests dropdown-item" href="#">
                     <i class="fa fa-print"></i>
                     Print slip
                 </a>
@@ -73,55 +78,59 @@
     [% END %]
 [% END %]
 [% BLOCK urls_modal %]
-    <div id="myModal" class="modal fade modal-lg" role="dialog">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-             <h4 class="modal-title">Edit URL(s)</h4>
-          </div>
-          <div class="modal-body">
-            <textarea id="urls" style="width:100%;"></textarea>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">Save</button>
-          </div>
+    <div id="myModal" class="modal modal-lg" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title">Edit URL(s)</h1>
+                </div>
+                <div class="modal-body">
+                    <textarea id="urls" style="width:100%;"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Save</button>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
 [% END %]
 [% BLOCK cancel_modal %]
     <div id="cancelModal" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
-                    <h3>Confirm deletion</h3>
+                    <h1 class="modal-title">Confirm deletion</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
                 <div class="modal-body">
                     <p>Are you sure you want to cancel this article request?</p>
 
-                    <fieldset class="action">
+                    <fieldset class="brief">
                         [% SET ar_cancellation = AuthorisedValues.GetAuthValueDropbox('AR_CANCELLATION') %]
-                        [% IF ar_cancellation.count %]
-                            <label for="cancellation-reason" class="col-sm-4">Cancellation reason: </label>
-                            <select class="cancellation-reason col-sm-8" name="cancellation-reason" id="modal-cancellation-reason">
-                                <option value="" selected>Other reasons</option>
-                                [% FOREACH reason IN ar_cancellation %]
-                                    <option value="[% reason.authorised_value | html %]">[% reason.lib | html %]</option>
-                                [% END %]
-                            </select>
-                        [% END %]
-                    </fieldset>
-                    <fieldset class="action">
-                        <div class="hint col-sm-offset-4">Enter reason</div>
-                        <input type="text" class="notes col-sm-offset-4 col-sm-8" name="notes" id="modal-notes"/>
+                        <ol>
+                            [% IF ar_cancellation.count %]
+                                <li>
+                                    <label for="cancellation-reason">Cancellation reason: </label>
+                                    <select class="cancellation-reason" name="cancellation-reason" id="modal-cancellation-reason">
+                                        <option value="" selected>Other reasons</option>
+                                        [% FOREACH reason IN ar_cancellation %]
+                                            <option value="[% reason.authorised_value | html %]">[% reason.lib | html %]</option>
+                                        [% END %]
+                                    </select>
+                                </li>
+                            [% END %]
+                            <li>
+                                <label for="modal-notes">Enter reason:</label>
+                                <input type="text" class="notes" name="notes" id="modal-notes"/>
+                            </li>
+                        </ol>
                     </fieldset>
                 </div>
 
                 <div class="modal-footer">
-                    <button id="cancelModalConfirmBtn" type="button" class="btn btn-danger" data-dismiss="modal">Confirm cancellation</button>
-                    <a href="#" data-dismiss="modal">Cancel</a>
+                    <button id="cancelModalConfirmBtn" type="button" class="btn btn-danger" data-bs-dismiss="modal">Confirm cancellation</button>
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -147,16 +156,17 @@
     <div class="main container-fluid starthidden">
         <div class="row">
 
-            [% IF Koha.Preference('CircSidebar') %]
-            <div class="col-sm-10 col-sm-push-2">
-            [% ELSE %]
-            <div class="col-md-12 col-lg-10 col-lg-offset-1">
-            [% END %]
+                [% INCLUDE 'messages.inc' %]
+                [% IF Koha.Preference('CircSidebar') %]
+                    <div class="col-md-10 order-md-2 order-sm-1">
+                [% ELSE %]
+                    <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
+                [% END %]
 
                 <h1>Article requests</h1>
                 [% PROCESS urls_modal %]
 
-                <form id="ar-branchcode-form" method="post">
+                <form id="ar-branchcode-form" method="get">
                     <select name="branchcode" id="branchcode">
                         <option value="">All libraries</option>
                         [% FOREACH b IN Branches.all( only_from_group => 1 ) %]
@@ -168,7 +178,7 @@
                         [% END %]
                     </select>
                     <button type="submit" class="btn btn-default btn-xs">
-                        <i class="fa fa-refresh"></i> Update
+                        <i class="fa-solid fa-rotate"></i> Update
                     </button>
                 </form>
 
@@ -188,7 +198,7 @@
                     [% WRAPPER tab_panels %]
                         [% WRAPPER tab_panel tabname="article-requests-requested" bt_active= 1 %]
                             <div class="article-requests-requested_table_controls">
-                                <a href="#" class="SelectAll"><i class="fa fa-check"></i> Select all</a> | <a href="#" class="ClearAll"><i class="fa fa-remove"></i> Clear all</a>
+                                <a href="#" class="SelectAll"><i class="fa fa-check"></i> Select all</a> | <a href="#" class="ClearAll"><i class="fa fa-times"></i> Clear all</a>
                                 [% PROCESS actions menuid='article-menu-requested' id_arg=0 pull_right='' aria_menu='table_controls' %]
                             </div>
 
@@ -285,7 +295,7 @@
                                             </td>
                                             <td class="ar-date"><span title="[% ar.created_on | html %]">[% ar.created_on | $KohaDates %]</span></td>
                                             <td class="ar-actions">
-                                                [% PROCESS actions menuid = "row" _ ar.id id_arg=ar.id format=ar.format pull_right='pull-right' aria_menu='ar-actions' %]
+                                                [% PROCESS actions menuid = "row" _ ar.id id_arg=ar.id format=ar.format aria_menu='ar-actions' %]
                                             </td>
                                         </tr>
                                     [% END %]
@@ -295,7 +305,7 @@
 
                         [% WRAPPER tab_panel tabname="article-requests-pending" %]
                             <div class="article-requests-pending_table_controls">
-                                <a href="#" class="SelectAll"><i class="fa fa-check"></i> Select all</a> | <a href="#" class="ClearAll"><i class="fa fa-remove"></i> Clear all</a>
+                                <a href="#" class="SelectAll"><i class="fa fa-check"></i> Select all</a> | <a href="#" class="ClearAll"><i class="fa fa-times"></i> Clear all</a>
                                 [% PROCESS actions menuid='article-menu-pending' id_arg=0 pull_right='' aria_menu='table_controls' %]
                             </div>
 
@@ -392,7 +402,7 @@
                                             </td>
                                             <td class="ar-date" data-order="[% ar.created_on | html %]">[% ar.created_on | $KohaDates %]</td>
                                             <td class="ar-actions">
-                                                [% PROCESS actions menuid = "row" _ ar.id id_arg=ar.id format=ar.format pull_right='pull-right' aria_menu='ar-actions' %]
+                                                [% PROCESS actions menuid = "row" _ ar.id id_arg=ar.id format=ar.format aria_menu='ar-actions' %]
                                             </td>
                                         </tr>
                                     [% END %]
@@ -402,7 +412,7 @@
 
                         [% WRAPPER tab_panel tabname="article-requests-processing" %]
                             <div class="article-requests-processing_table_controls">
-                                <a href="#" class="SelectAll"><i class="fa fa-check"></i> Select all</a> | <a href="#" class="ClearAll"><i class="fa fa-remove"></i> Clear all</a>
+                                <a href="#" class="SelectAll"><i class="fa fa-check"></i> Select all</a> | <a href="#" class="ClearAll"><i class="fa fa-times"></i> Clear all</a>
                                 [% PROCESS actions menuid='article-menu-processing' id_arg=0 pull_right='' aria_menu='table_controls' %]
                             </div>
                             <table id="article-requests-processing-table">
@@ -496,7 +506,7 @@
                                             </td>
                                             <td class="ar-date" data-order="[% ar.created_on | html %]">[% ar.created_on | $KohaDates %]</td>
                                             <td class="ar-actions">
-                                                [% PROCESS actions menuid="table_" _ ar.id id_arg=ar.id format=ar.format pull_right='pull-right' aria_menu='ar-actions' %]
+                                                [% PROCESS actions menuid="table_" _ ar.id id_arg=ar.id format=ar.format aria_menu='ar-actions' %]
                                             </td>
                                         </tr>
                                     [% END %]
@@ -508,7 +518,7 @@
             </div>
 
             [% IF Koha.Preference('CircSidebar') %]
-            <div class="col-sm-2 col-sm-pull-10">
+            <div class="col-md-2 order-sm-2 order-md-1">
                 <aside>
                     [% INCLUDE 'circ-nav.inc' %]
                 </aside>
@@ -525,7 +535,7 @@
         var last_cancel_reason, requested_datatable, pending_datatable, processing_datatable, active_datatable;
         $(document).ready(function() {
 
-            $("#article-request-tabs a[data-toggle='tab']").on("shown.bs.tab", function (e) {
+            $("#article-request-tabs a[data-bs-toggle='tab']").on("shown.bs.tab", function (e) {
                 active_tab = e.target.hash;
                 if( active_tab == "#article-requests-requested_panel" ){
                     active_datatable = requested_datatable;
@@ -571,24 +581,21 @@
                 var link = $('span#url_'+ id).parent().parent().find('td.ar-actions').find('div.dropdown a');
                 if( link.length > 0 ) link[0].focus();
             });
-            $( '#myModal button' ).on("click", function () {
-                SaveURLs( $('#myModal textarea').val() );
-            });
 
             requested_datatable = $("#article-requests-requested-table").DataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [0, -1], "bSortable": false, "bSearchable": false },
+                "columnDefs": [
+                    { "targets": [0, -1], "orderable": false, "searchable":  false },
                 ],
             }));
 
             pending_datatable = $("#article-requests-pending-table").DataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [0, -1], "bSortable": false, "bSearchable": false },
+                "columnDefs": [
+                    { "targets": [0, -1], "orderable": false, "searchable":  false },
                 ],
             }));
             processing_datatable = $("#article-requests-processing-table").DataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [0, -1], "bSortable": false, "bSearchable": false },
+                "columnDefs": [
+                    { "targets": [0, -1], "orderable": false, "searchable":  false },
                 ],
             }));
             active_datatable = requested_datatable;
@@ -624,6 +631,10 @@
             var link = 'article-request-slip.pl?id='+id;
             window.open(link, 'popup', 'width=600,height=400,resizable=1,toolbar=0,scrollbars=1,top');
         }
+        $(".ar-print-request").on("click", function (e){
+            e.preventDefault();
+            HandleMulti(PrintSlip, $(this).data('ar-id'));
+        });
 
         $('#modal-cancellation-reason').on('change', function(e) {
             let reason = $(this).val();
@@ -665,66 +676,52 @@
             });
             var link = 'article-request-slip.pl?multi=1&id='+ids.join(',');
             window.open(link, 'popup', 'width=600,height=400,resizable=1,toolbar=0,scrollbars=1,top');
-
         }
+        $(".ar-print-multiple-requests").on("click", function (e){
+            e.preventDefault();
+            PrintMultipleSlip();
+        });
 
         function Cancel( id, a ) {
             cancel_id = id;
             cancel_a = a;
 
-            $('#cancelModal').modal();
+            $('#cancelModal').modal('show');
         }
+        $(".ar-cancel-request").on("click", function (e){
+            e.preventDefault();
+            HandleMulti(Cancel, $(this).data('ar-id'), $(this));
+        });
 
-        function SetPending( id, a ) {
-            var table_row = a.closest('tr');
-            table_row.find('.ar-set-pending-request').remove();
-            table_row.find('input[type="checkbox"]').prop('checked', false);
-            a.closest('td').prepend('<img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" class="spinner"/>').find('div.dropdown').hide();
-            $.ajax({
-                type: "POST",
-                url: '/cgi-bin/koha/svc/article_request',
-                data: {
-                    action: 'pending',
-                    id: id,
-                },
-                success: function( data ) {
-                    $("img.spinner").remove();
-                    requested_datatable.row( table_row ).remove().draw();
-                    pending_datatable.row.add( table_row ).draw();
-                    UpdateTabCounts();
-                    activateBatchActions( active_tab );
-                },
-                dataType: 'json'
-            });
-        }
-
-        function Process( id, a ) {
+        async function Process( id, a ) {
             var table_row = a.closest('tr');
             var table = a.closest('table');
             var orig_datatable = table.attr('id')==='article-requests-pending-table'?pending_datatable:requested_datatable;
-            table_row.find('.ar-process-request').remove();
-            table_row.find('input[type="checkbox"]').prop('checked', false);
 
             a.closest('td').prepend('<img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" class="spinner"/>').find('div.dropdown').hide();
-            $.ajax({
-                type: "POST",
-                url: '/cgi-bin/koha/svc/article_request',
-                data: {
-                    action: 'process',
-                    id: id,
-                },
-                success: function( data ) {
+
+            const client = APIClient.article_request;
+            await client.articleRequests.process(id).then(
+                success => {
                     $("img.spinner").remove();
+                    table_row.find('.ar-process-request').remove();
+                    table_row.find('input[type="checkbox"]').prop('checked', false);
                     orig_datatable.row( table_row ).remove().draw();
                     processing_datatable.row.add( table_row ).draw();
                     UpdateTabCounts();
                     activateBatchActions( active_tab );
                 },
-                dataType: 'json'
-            });
+                error => {
+                    console.warn("Something wrong happened: %s".format(error));
+                }
+            );
         }
+        $(".ar-process-request").on("click", function (e){
+            e.preventDefault();
+            HandleMulti(Process, $(this).data('ar-id'), $(this));
+        });
 
-        function Complete( id, a ) {
+        async function Complete( id, a ) {
             // if it is a scan, check if urls field is filled
             var urlspan = $('span#url_'+id);
             if( urlspan.length>0 && urlspan.text() === '' ) {
@@ -732,21 +729,47 @@
                 return;
             }
             a.closest('td').prepend('<img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif"/>').find('div.dropdown').hide();
-            $.ajax({
-                type: "POST",
-                url: '/cgi-bin/koha/svc/article_request',
-                data: {
-                    action: 'complete',
-                    id: id,
-                },
-                success: function( data ) {
+            const client = APIClient.article_request;
+            await client.articleRequests.complete(id).then(
+                success => {
+                    $("img.spinner").remove();
                     active_datatable.row( a.closest('tr') ).remove().draw();
                     UpdateTabCounts();
                     activateBatchActions( active_tab );
                 },
-                dataType: 'json'
-            });
+                error => {
+                    console.warn("Something wrong happened: %s".format(error));
+                }
+            );
         }
+        $(".ar-complete-request").on("click", function (e){
+            e.preventDefault();
+            HandleMulti(Complete, $(this).data('ar-id'), $(this));
+        });
+
+        async function SetPending( id, a ) {
+            var table_row = a.closest('tr');
+            table_row.find('.ar-set-pending-request').remove();
+            table_row.find('input[type="checkbox"]').prop('checked', false);
+            a.closest('td').prepend('<img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" class="spinner"/>').find('div.dropdown').hide();
+            const client = APIClient.article_request;
+            await client.articleRequests.pending(id).then(
+                success => {
+                    $("img.spinner").remove();
+                    requested_datatable.row( table_row ).remove().draw();
+                    pending_datatable.row.add( table_row ).draw();
+                    UpdateTabCounts();
+                    activateBatchActions( active_tab );
+                },
+                error => {
+                    console.warn("Something wrong happened: %s".format(error));
+                }
+            );
+        }
+        $(".ar-set-pending-request").on("click", function (e){
+            e.preventDefault();
+            HandleMulti(SetPending, $(this).data('ar-id'), $(this));
+        });
 
         function UpdateTabCounts() {
             $("#ar_requested_count").html( requested_datatable.rows().count() );
@@ -760,8 +783,12 @@
             $('#myModal textarea').attr('ar_id', id);
             $('#myModal').modal('show');
         }
+        $(".ar-edit-urls").on("click", function (e){
+            e.preventDefault();
+            HandleMulti(EditURLs, $(this).data('ar-id'));
+        });
 
-        function SaveURLs(newurl) {
+        async function SaveURLs(newurl) {
             var id = $('#myModal textarea').attr('ar_id');
             $('span#url_'+ id).text(newurl);
             if(newurl)
@@ -769,15 +796,19 @@
             else
                 $('span#url_yesno_'+id).text(_("No"));
 
-            $.ajax({
-                type: "POST",
-                url: '/cgi-bin/koha/svc/article_request',
-                data: { action: 'update_urls', id: id, urls: newurl },
-                dataType: 'json',
-                error: function() { alert('Error: Saving URL failed!'); },
-                success: function(data) { if(!data.success) alert('Saving URL failed!'); },
-            });
+            const client = APIClient.article_request;
+            await client.articleRequests.update_urls(id, newurl).then(
+                success => {
+                },
+                error => {
+                    console.warn("Something wrong happened: %s".format(error));
+                }
+            );
         }
+        $( '#myModal button' ).on("click", function () {
+            SaveURLs( $('#myModal textarea').val() );
+        });
+
     </script>
 [% END %]
 

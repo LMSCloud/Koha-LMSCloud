@@ -14,7 +14,7 @@ use Encode;
 use POSIX qw(strftime);
 use Socket qw(:crlf);
 use IO::Handle;
-use List::Util qw(first);
+use List::Util qw(any);
 
 use C4::SIP::Sip::Constants qw(SIP_DATETIME FID_SCREEN_MSG);
 use C4::SIP::Sip::Checksum qw(checksum);
@@ -63,10 +63,7 @@ sub timestamp {
 sub add_field {
     my ($field_id, $value, $server) = @_;
 
-    if ( my $hide_fields = $server->{account}->{hide_fields} ) {
-        my @fields = split( ',', $hide_fields );
-        return q{} if first { $_ eq $field_id } @fields;
-    }
+    return q{} if should_hide( $field_id, $value, $server );
 
     my ($i, $ent);
 
@@ -75,8 +72,8 @@ sub add_field {
            $field_id);
         $value = '';
     }
-    $value=~s/\r/ /g; # CR terminates a sip message
-                      # Protect against them in sip text fields
+    $value =~ s/\r\n|\r|\n/ /g;    # CR or LF terminates a sip message
+                                   # Protect against them in sip text fields
 
     # Replace any occurrences of the field delimiter in the
     # field value with the HTML character entity
@@ -97,10 +94,7 @@ sub add_field {
 sub maybe_add {
     my ($fid, $value, $server) = @_;
 
-    if ( my $hide_fields = $server->{account}->{hide_fields} ) {
-        my @fields = split( ',', $hide_fields );
-        return q{} if first { $_ eq $fid } @fields;
-    }
+    return q{} if should_hide( $fid, $value, $server );
 
     if ( $fid eq FID_SCREEN_MSG && $server->{account}->{screen_msg_regex} && defined($value)) {
         foreach my $regex (
@@ -115,6 +109,24 @@ sub maybe_add {
     return ( defined($value) && length($value) )
       ? add_field( $fid, $value )
       : '';
+}
+
+sub should_hide {
+    my ( $field_id, $value, $server ) = @_;
+
+    my $allow_fields = $server->{account}->{allow_fields};
+    if ($allow_fields) {
+        my @fields = split( ',', $allow_fields );
+        return 1 unless any { $_ eq $field_id } @fields;
+    }
+
+    my $hide_fields = $server->{account}->{hide_fields};
+    if ($hide_fields) {
+        my @fields = split( ',', $hide_fields );
+        return 1 if any { $_ eq $field_id } @fields;
+    }
+
+    return 0;
 }
 
 #
@@ -178,34 +190,33 @@ sub boolspace {
 #
 
 sub write_msg {
-    my ($self, $msg, $file, $terminator, $encoding) = @_;
+    my ( $self, $msg, $server ) = @_;
+    my $terminator = $server->{account}->{terminator};
+    my $encoding   = $server->{account}->{encoding};
 
     $terminator ||= q{};
     $terminator = ( $terminator eq 'CR' ) ? $CR : $CRLF;
 
-    $msg = encode($encoding, $msg) if ( $encoding );
+    my $separator = $server->{account}->{convert_nonprinting_characters};
+    $msg =~ s/[^[:print:]]/$separator/g if defined $separator;
+
+    $msg = encode( $encoding, $msg ) if ($encoding);
 
     my $cksum;
 
     # $msg = encode_utf8($msg);
     if ($error_detection) {
-        if (defined($self->{seqno})) {
+        if ( defined( $self->{seqno} ) ) {
             $msg .= 'AY' . $self->{seqno};
         }
         $msg .= 'AZ';
         $cksum = checksum($msg);
-        $msg .= sprintf('%04.4X', $cksum);
+        $msg .= sprintf( '%04.4X', $cksum );
     }
 
-
-    if ($file) {
-        $file->autoflush(1);
-        print $file $msg, $terminator;
-    } else {
-        STDOUT->autoflush(1);
-        print $msg, $terminator;
-        siplog("LOG_INFO", "OUTPUT MSG: '$msg'");
-    }
+    STDOUT->autoflush(1);
+    print $msg, $terminator;
+    siplog( "LOG_INFO", "OUTPUT MSG: '$msg'" );
 
     $last_response = $msg;
 }
@@ -220,7 +231,17 @@ sub siplog {
       : $level eq 'LOG_WARNING' ? 'warn'
       :                           'error';
 
-    my $message = @args ? sprintf($mask, @args) : $mask;
+    my $message;
+    if (@args) {
+
+        # Replace undefined values with 'undef' to prevent sprintf warnings
+        my @safe_args = map { defined($_) ? $_ : 'undef' } @args;
+        $message = sprintf( $mask, @safe_args );
+    } else {
+        $message = $mask;
+    }
+
+    $message = remove_password_from_message($message);
 
     $message = remove_password_from_message($message);
 

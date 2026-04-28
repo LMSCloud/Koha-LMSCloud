@@ -24,7 +24,7 @@ use C4::Members;
 use C4::Items qw( get_hostitemnumbers_of );
 use C4::Circulation qw( CanBookBeRenewed barcodedecode CanBookBeIssued AddRenewal );
 use C4::Accounts;
-use C4::Reserves qw( CanBookBeReserved IsAvailableForItemLevelRequest CalculatePriority AddReserve CanItemBeReserved CanReserveBeCanceledFromOpac );
+use C4::Reserves qw( CanBookBeReserved IsAvailableForItemLevelRequest CalculatePriority AddReserve CanItemBeReserved );
 use C4::Context;
 use C4::Auth;
 use CGI qw ( -utf8 );
@@ -218,9 +218,9 @@ sub GetRecords {
 
         my $biblioitem = $biblio->biblioitem->unblessed;
 
-        my $record = $biblio->metadata->record({ embed_items => 1 });
+        my $record = $biblio->metadata_record( { embed_items => 1, interface => 'opac' } );
         if ($record) {
-            $biblioitem->{marcxml} = $record->as_xml_record();
+            $biblioitem->{marcxml} = $record->as_xml_record( C4::Context->preference('marcflavour') );
         }
 
         # Get most of the needed data
@@ -236,7 +236,7 @@ sub GetRecords {
         foreach my $checkout (@$checkouts) {
             delete $checkout->{'borrowernumber'};
         }
-        my @items            = $biblio->items->as_list;
+        my @items            = $biblio->items->filter_by_visible_in_opac->as_list;
 
         $biblioitem->{items}->{item} = [];
 
@@ -254,9 +254,9 @@ sub GetRecords {
             $item{'holdingbranchname'} = $holding_library ? $holding_library->branchname : '';
 
             if ($item->location) {
-                my $authorised_value = Koha::AuthorisedValues->find_by_koha_field({ kohafield => 'items.location', authorised_value => $item->location });
+                my $authorised_value = Koha::AuthorisedValues->get_description_by_koha_field({frameworkcode => '', kohafield => 'items.location', authorised_value => $item->location });
                 if ($authorised_value) {
-                    $item{location_description} = $authorised_value->opac_description;
+                    $item{location_description} = $authorised_value->{opac_description};
                 }
             }
 
@@ -528,6 +528,13 @@ sub GetPatronInfo {
             # FIXME We should only retrieve what is needed in the template
             my $issue = $c->unblessed_all_relateds;
             delete $issue->{'more_subfields_xml'};
+
+            # Is the item already on hold by another user?
+            $issue->{'holds_on_item'} = Koha::Holds->search( { itemnumber => $issue->{'itemnumber'} } )->count;
+
+            # Is the record (next available item) on hold by another user?
+            $issue->{'holds_on_record'} = Koha::Holds->search( { biblionumber => $issue->{'biblionumber'} } )->count;
+
             push @checkouts, $issue
         }
         $borrower->{'loans'}->{'loan'} = \@checkouts;
@@ -636,7 +643,7 @@ sub GetServices {
     }
 
     # Renewal management
-    my @renewal = CanBookBeRenewed( $borrowernumber, $itemnumber );
+    my @renewal = CanBookBeRenewed( $patron, $item->checkout ); # TODO: Error if issue not found?
     if ( $renewal[0] ) {
         push @availablefor, 'loan renewal';
     }
@@ -680,16 +687,25 @@ sub RenewLoan {
     return { code => 'PatronNotFound' } unless $patron;
 
     # Get the item, or return an error code
-    my $itemnumber = $cgi->param('item_id');
+    my $itemnumber = $cgi->param('item_id'); # TODO: Refactor and send issue_id instead?
     my $item = Koha::Items->find($itemnumber);
-    return { code => 'RecordNotFound' } unless $item;
 
-    # Add renewal if possible
-    my @renewal = CanBookBeRenewed( $borrowernumber, $itemnumber );
-    if ( $renewal[0] ) { AddRenewal( $borrowernumber, $itemnumber, undef, undef, undef, undef, 0 ); }
+    return { code => 'RecordNotFound' } unless $item;
 
     my $issue = $item->checkout;
     return unless $issue; # FIXME should be handled
+
+    # Add renewal if possible
+    my @renewal = CanBookBeRenewed( $patron, $issue );
+    if ( $renewal[0] ) {
+        AddRenewal(
+            {
+                borrowernumber => $borrowernumber,
+                itemnumber     => $itemnumber,
+                seen           => 0
+            }
+        );
+    }
 
     # Hashref building
     my $out;
@@ -736,7 +752,8 @@ sub HoldTitle {
     return { code => 'PatronRestricted' } if $patron->is_debarred;
 
     # Check for patron expired, category and syspref settings
-    return { code => 'PatronExpired' } if ($patron->category->effective_BlockExpiredPatronOpacActions && $patron->is_expired);
+    return { code => 'PatronExpired' }
+        if ( $patron->category->effective_BlockExpiredPatronOpacActions_contains('hold') && $patron->is_expired );
 
     # Get the biblio record, or return an error code
     my $biblionumber = $cgi->param('bib_id');
@@ -840,7 +857,8 @@ sub HoldItem {
     return { code => 'PatronRestricted' } if $patron->is_debarred;
 
     # Check for patron expired, category and syspref settings
-    return { code => 'PatronExpired' } if ($patron->category->effective_BlockExpiredPatronOpacActions && $patron->is_expired);
+    return { code => 'PatronExpired' }
+        if ( $patron->category->effective_BlockExpiredPatronOpacActions_contains('hold') && $patron->is_expired );
 
     # Get the biblio or return an error code
     my $biblionumber = $cgi->param('bib_id');
@@ -925,7 +943,8 @@ sub CancelHold {
     return { code => 'RecordNotFound' } unless $hold;
 
     # Check if reserve belongs to the borrower and if it is in a state which allows cancellation
-    return { code => 'BorrowerCannotCancelHold' } unless CanReserveBeCanceledFromOpac( $reserve_id, $borrowernumber );
+    return { code => 'BorrowerCannotCancelHold' }
+        if $hold->borrowernumber ne $patron->borrowernumber || !$hold->is_cancelable_from_opac;
 
     $hold->cancel;
 
@@ -953,7 +972,7 @@ sub _availability {
     my $location = $library ? $library->branchname : '';
     my $itemcallnumber = $item->itemcallnumber;
 
-    if ( $item->is_notforloan ) {
+    if ( $item->effective_not_for_loan_status ) {
         return ( $biblionumber, __('not available'), __('Not for loan'), $location, $itemcallnumber );
     } elsif ( $item->onloan ) {
         return ( $biblionumber, __('not available'), __('Checked out'), $location, $itemcallnumber );
@@ -963,6 +982,10 @@ sub _availability {
         return ( $biblionumber, __('not available'), __('Item withdrawn'), $location, $itemcallnumber );
     } elsif ( $item->damaged ) {
         return ( $biblionumber, __('not available'), __('Item damaged'), $location, $itemcallnumber );
+    } elsif ( $item->get_transfer ) {
+        return ( $biblionumber, __('not available'), __('In transit'), $location, $itemcallnumber );
+    } elsif ( $item->current_holds->next ) {
+        return ( $biblionumber, __('not available'), __('On hold'), $location, $itemcallnumber );
     } else {
         return ( $biblionumber, __('available'), undef, $location, $itemcallnumber );
     }

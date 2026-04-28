@@ -66,23 +66,12 @@ my $get_rules = sub {
 };
 my $rules = $get_rules->();
 
-if ($op eq 'remove' || $op eq 'doremove') {
+if ($op eq 'cud-remove') {
     my @remove_ids = $input->multi_param('batchremove');
     push @remove_ids, scalar $input->param('id') if $input->param('id');
-    if ($op eq 'remove') {
-        $template->{VARS}->{removeConfirm} = 1;
-        my %remove_ids = map { $_ => undef } @remove_ids;
-        for my $rule (@{$rules}) {
-            $rule->{'removemarked'} = 1 if exists $remove_ids{$rule->{id}};
-        }
-    }
-    elsif ($op eq 'doremove') {
-        my @remove_ids = $input->multi_param('batchremove');
-        push @remove_ids, scalar $input->param('id') if $input->param('id');
-        Koha::MarcOverlayRules->search({ id => { in => \@remove_ids } })->delete();
-        # Update $rules after deletion
-        $rules = $get_rules->();
-    }
+    Koha::MarcOverlayRules->search({ id => { in => \@remove_ids } })->delete();
+    # Update $rules after deletion
+    $rules = $get_rules->();
 }
 elsif ($op eq 'edit') {
     $template->param( edit => 1 );
@@ -94,7 +83,7 @@ elsif ($op eq 'edit') {
         }
     }
 }
-elsif ($op eq 'doedit' || $op eq 'add') {
+elsif ($op eq 'cud-edit' || $op eq 'cud-add') {
     my $rule_data = $rule_from_cgi->($input);
     if (!@{$errors}) {
         try {

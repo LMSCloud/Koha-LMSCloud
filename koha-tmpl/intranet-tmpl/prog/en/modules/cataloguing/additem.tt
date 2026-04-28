@@ -7,7 +7,17 @@
 [% USE TablesSettings %]
 [% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Items &rsaquo; [% biblio.title | html %] [% IF ( biblio.author ) %] by [% biblio.author | html %][% END %] (Record #[% biblio.biblionumber | html %]) &rsaquo; Cataloging &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Items") | html %] &rsaquo;
+    [% IF ( biblio.author ) %]
+        [% tx("{title} by {author}", { title = biblio.title, author = biblio.author }) | html %]
+    [% ELSE %]
+        [% biblio.title | html %]
+    [% END %]
+    [% tx("(Record #{biblionumber})", { biblionumber = biblio.biblionumber }) | html %] &rsaquo;
+    [% t("Cataloging") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("css/addbiblio.css") | $raw %]
 [% INCLUDE 'datatables.inc' %]
@@ -28,6 +38,15 @@
     <script>
         var has_item_groups = "[% item_groups.size | html %]";
     </script>
+    <style>
+        .flatpickr_wrapper input {
+            width: 100%;
+        }
+
+        .flatpickr_wrapper {
+            flex-basis: 50%;
+        }
+    </style>
 </head>
 
 <body id="cat_additem" class="cat">
@@ -59,22 +78,23 @@
     <div class="row">
         <div class="col-sm-12">
             <main>
+                [% INCLUDE 'messages.inc' %]
                 [% IF item_doesnt_exist %]
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         <a href="/cgi-bin/koha/cataloguing/additem.pl?biblionumber=[% biblio.biblionumber | uri %]">Add a new item</a> or <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblio.biblionumber | uri %]#holdings">go to the records holdings</a>.
                     </div>
                 [% END %]
-                [% INCLUDE 'blocking_errors.inc' %]
 <h1>Items for [% biblio.title | html %] [% IF ( biblio.author ) %] by [% biblio.author | html %][% END %] (Record #[% biblio.biblionumber | html %])</h1>
+<a id="newitem_jump" href="#f"><i class="fa fa-arrow-down"></i> Jump to form</a>
 
-[% IF ( barcode_not_unique ) %]<div class="dialog alert"><strong>Error saving item</strong>: Barcode must be unique.</div>[% END %]
-[% IF ( no_next_barcode ) %]<div class="dialog alert"><strong>Error saving items</strong>: Unable to automatically determine values for barcodes. No item has been inserted.</div>[% END %]
-[% IF ( book_on_loan ) %]<div class="dialog alert"><strong>Cannot delete</strong>: item is checked out.</div>[% END %]
-[% IF ( book_reserved ) %]<div class="dialogalert"><strong>Cannot delete</strong>: item has a waiting hold.</div>[% END %]
-[% IF ( not_same_branch ) %]<div class="dialog alert"><strong>Cannot delete</strong>: The items do not belong to your library.</div>[% END %]
-[% IF ( linked_analytics ) %]<div class="dialog alert"><strong>Cannot delete</strong>: item has linked <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblio.biblionumber | uri %]&amp;analyze=1">analytics.</a>.</div>[% END %]
-[% IF last_item_for_hold %]<div class="dialog alert"><strong>Cannot delete</strong>: Last item for bibliographic record with biblio-level hold on it.</div>[% END %]
-[% IF item_not_found %]<div class="dialog alert"><strong>Cannot delete</strong>: Item not found.</div>[% END %]
+[% IF ( barcode_not_unique ) %]<div class="alert alert-warning"><strong>Error saving item</strong>: Barcode must be unique.</div>[% END %]
+[% IF ( no_next_barcode ) %]<div class="alert alert-warning"><strong>Error saving items</strong>: Unable to automatically determine values for barcodes. No item has been inserted.</div>[% END %]
+[% IF ( book_on_loan ) %]<div class="alert alert-warning"><strong>Cannot delete</strong>: item is checked out.</div>[% END %]
+[% IF ( book_reserved ) %]<div class="alert alert-warning"><strong>Cannot delete</strong>: item has a waiting hold.</div>[% END %]
+[% IF ( not_same_branch ) %]<div class="alert alert-warning"><strong>Cannot delete</strong>: The items do not belong to your library.</div>[% END %]
+[% IF ( linked_analytics ) %]<div class="alert alert-warning"><strong>Cannot delete</strong>: item has linked <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblio.biblionumber | uri %]&amp;analyze=1">analytics.</a>.</div>[% END %]
+[% IF last_item_for_hold %]<div class="alert alert-warning"><strong>Cannot delete</strong>: Last item for bibliographic record with biblio-level hold on it.</div>[% END %]
+[% IF item_not_found %]<div class="alert alert-warning"><strong>Cannot delete</strong>: Item not found.</div>[% END %]
 
 <div id="cataloguing_additem_itemlist">
     [% IF items %]
@@ -112,21 +132,36 @@
                         [% ELSE %]
                         <td>
                             <div class="btn-group dropup">
-                            <a class="btn btn-default btn-xs dropdown-toggle" id="itemactions[% item.itemnumber | html %]" role="button" data-toggle="dropdown" href="#">
-                                Actions <b class="caret"></b>
+                            <a class="btn btn-default btn-xs dropdown-toggle" id="itemactions[% item.itemnumber | html %]" role="button" data-bs-toggle="dropdown" href="#">
+                                Actions
                             </a>
                             <ul class="dropdown-menu" role="menu" aria-labelledby="itemactions[% item.itemnumber | html %]">
 
                             [% IF item.biblionumber != biblio.biblionumber %] [%# Host item %]
                                 <li><a href="additem.pl?op=edititem&amp;biblionumber=[% item.biblionumber | uri %]&amp;itemnumber=[% item.itemnumber | uri %]#edititem">Edit in host</a> &nbsp; <a class="delete" href="/cgi-bin/koha/cataloguing/additem.pl?op=delinkitem&amp;biblionumber=[% biblio.biblionumber | html %]&amp;hostitemnumber=[% item.itemnumber | html %]&amp;searchid=[% searchid | html %]">Delink</a></li>
                             [% ELSE %]
-                                <li><a href="additem.pl?op=edititem&amp;biblionumber=[% biblio.biblionumber | uri %]&amp;itemnumber=[% item.itemnumber | uri %]&amp;searchid=[% searchid | uri %]#edititem">Edit</a></li>
-                                <li><a href="additem.pl?op=dupeitem&amp;biblionumber=[% biblio.biblionumber | uri %]&amp;itemnumber=[% item.itemnumber | uri %]&amp;searchid=[% searchid | uri %]#additema">Duplicate</a></li>
-                                <li class="print_label"><a href="/cgi-bin/koha/labels/label-edit-batch.pl?op=add&amp;number_type=itemnumber&amp;number_list=[% item.itemnumber | uri %]" target="_blank" >Print label</a></li>
-                                <li><a class="delete" href="/cgi-bin/koha/cataloguing/additem.pl?op=delitem&amp;biblionumber=[% item.biblionumber | html %]&amp;itemnumber=[% item.itemnumber | html %]&amp;searchid=[% searchid | html %]" onclick="return confirm_deletion();">Delete</a></li>
+                                [% UNLESS item.nomod %]
+                                    <li><a class="dropdown-item" href="additem.pl?op=edititem&amp;biblionumber=[% biblio.biblionumber | uri %]&amp;itemnumber=[% item.itemnumber | uri %]&amp;searchid=[% searchid | uri %]#edititem">Edit</a></li>
+                                [% END %]
+                                <li><a class="dropdown-item" href="additem.pl?op=dupeitem&amp;biblionumber=[% biblio.biblionumber | uri %]&amp;itemnumber=[% item.itemnumber | uri %]&amp;searchid=[% searchid | uri %]#additema">Duplicate</a></li>
+                                <li class="print_label">
+                                     <a class="dropdown-item submit-form-link" target="_blank" href="#" data-op="cud-add" data-number_list="[% item.itemnumber | html %]" data-number_type="itemnumber" data-method="post" data-action="/cgi-bin/koha/labels/label-edit-batch.pl" data-new_tab="true">Print label</a>
+                                </li>
+                                [% UNLESS item.nomod %]
+                                    <li>
+                                        <form id="[% item.itemnumber | html %]-delete-item-form" action="/cgi-bin/koha/cataloguing/additem.pl" method="post">
+                                            [% INCLUDE 'csrf-token.inc' %]
+                                            <input type="hidden" name="op" value="cud-delitem" />
+                                            <input type="hidden" name="biblionumber" value="[% item.biblionumber | html %]" />
+                                            <input type="hidden" name="itemnumber" value="[% item.itemnumber | html %]" />
+                                            <input type="hidden" name="searchid" value="[% searchid | html %]" />
+                                        </form>
+                                        <a class="dropdown-item delete" data-item="[% item.itemnumber | html %]" href="#">Delete</a>
+                                    </li>
+                                [% END %]
                             [% END %]
                                 [% IF ( OPACBaseURL ) %]
-                                    <li class="view-in-opac"><a target="_blank" href="[% Koha.Preference('OPACBaseURL') | url %]/cgi-bin/koha/opac-detail.pl?biblionumber=[% item.biblionumber | uri %]">OPAC view</a></li>
+                                    <li class="view-in-opac"><a class="dropdown-item" target="_blank" href="[% Koha.Preference('OPACBaseURL') | url %]/cgi-bin/koha/opac-detail.pl?biblionumber=[% item.biblionumber | uri %]">OPAC view</a></li>
                                 [% END %]
                             </ul>
                             </div>
@@ -134,12 +169,19 @@
                         [% END %]
                     [% FOREACH header IN item_header_loop %]
                         [% SET attribute = header.attribute %]
-                        [% IF header.attribute AND date_fields.grep('^' _ attribute _ '$').size %]
-                            <td data-order="[% item.$attribute | html %]">[% item.$attribute | $KohaDates %]</td>
+                        [% SET can_mod = item.nomod ? "nomod" : "canmod" %]
+                        [% IF attribute AND date_fields.grep('^' _ attribute _ '$').size %]
+                            [% IF attribute == 'datelastseen' %]
+                                <td class="[% can_mod | html %]" data-order="[% item.$attribute | html %]">[% item.$attribute | $KohaDates with_hours => 1 %]</td>
+                            [% ELSE %]
+                                <td class="[% can_mod | html %]" data-order="[% item.$attribute | html %]">[% item.$attribute | $KohaDates %]</td>
+                            [% END %]
                         [% ELSIF ( item.$attribute && ( attribute == 'price' || attribute == 'replacementprice' ) ) %]
-                            <td data-order="[% item.$attribute | html %]">[% item.$attribute | $Price %]</td>
+                            <td class="[% can_mod | html %]" data-order="[% item.$attribute | html %]">[% item.$attribute | $Price %]</td>
+                        [% ELSIF item.$attribute && attribute == 'itemcallnumber' %]
+                            <td class="[% can_mod | html %]" data-order="[% item.cn_sort | html %]">[% item.$attribute | html %]</td>
                         [% ELSE %]
-                            <td>[% item.$attribute | html %]</td>
+                            <td class="[% can_mod | html %]">[% item.$attribute | html %]</td>
                         [% END %]
                     [% END %]
                     </tr>
@@ -150,19 +192,20 @@
     [% END %]
 
 <div class="row">
-    <div class="col-sm-2">
+    <div class="col-md-2 order-sm-2 order-md-1">
         [% INCLUDE 'biblio-view-menu.inc' %]
     </div>
-    <div class="col-sm-10">
+    <div class="col-md-10 order-md-2 order-sm-1">
 
 <div id="cataloguing_additem_newitem" class="item_edit_form page-section">
     <form id="f" method="post" action="/cgi-bin/koha/cataloguing/additem.pl?biblionumber=[% biblio.biblionumber | html %]" name="f">
+        [% INCLUDE 'csrf-token.inc' %]
     <input type="hidden" name="op" value="[% op | html %]" />
     [% IF (popup) %]
         <input type="hidden" name="popup" value="1" />
     [% END %]
     <input type="hidden" name="biblionumber" value="[% biblio.biblionumber | html %]" />
-    [% IF op != 'saveitem' %]
+    [% IF op != 'cud-saveitem' %]
         <h2 id="additema">Add item [% IF (circborrowernumber) %]<em>(fast cataloging)</em>[% END %]</h2>
     [% ELSE %]
         <h2 id="edititem">Edit item #[% itemnumber | html %][% IF ( barcode ) %] / Barcode [% barcode | html %][% END %]</h2>
@@ -202,7 +245,7 @@
                 </select>
             </div>
             <div class="btn-group">
-                <button type="submit" id="load_template_submit" name="load_template_submit" value="1"><i class="fa fa-wpforms"></i> Apply template</button>
+                <button type="submit" id="load_template_submit" name="load_template_submit" value="1"><i class="fa-solid fa-table-list"></i> Apply template</button>
             </div>
             <div class="btn-group">
                 <label for="use_template_for_session">
@@ -219,7 +262,7 @@
             </div>
 
             <div class="btn-group">
-                <button type="submit" id="delete_template_submit" name="delete_template_submit" value="1" disabled><i class="fa fa-trash"></i> Delete template</button>
+                <button type="submit" id="delete_template_submit" name="delete_template_submit" value="1" disabled><i class="fa fa-trash-can"></i> Delete template</button>
             </div>
         </div>
     [% END %]
@@ -227,40 +270,48 @@
 	<fieldset class="rows">
         [% PROCESS subfields_for_item subfields => subfields %]
     </fieldset>
-    [% IF op != 'add_item' %]
+    [% IF op != 'cud-additem' %]
         <input type="hidden" name="itemnumber" value="[% itemnumber | html %]" />
     [% END %]
 
-[% IF item_groups.size && op != 'saveitem' && CAN_user_editcatalogue_manage_item_groups %]
+[% IF item_groups.size && op != 'cud-saveitem' && CAN_user_editcatalogue_manage_item_groups %]
     <fieldset class="rows">
         <legend><i class="fa fa-plus"></i> Add to item group</legend>
         [% FOREACH ig IN item_groups %]
             <input type="hidden" id="item-group-[% ig.id | html %]" value="[% ig.description | html %]" />
         [% END %]
-        <p>
-            <label for="select_item_group">Options: </label>
-            <select name="item_group" id="item-group-add-or-create-form-select">
-                <optgroup label="Use existing item group">
-                    [% FOREACH ig IN item_groups %]
-                        <option value="[% ig.id | html %]">[% ig.description | html %]</option>
-                    [% END %]
-                </optgroup>
-                <optgroup label="Other options">
-                    <option id="item-group-add-or-create-form-no-add" value="">Do not add to item group</option>
-                    <option value="create">Create new item group</option>
-                </optgroup>
-            </select>
-        </p>
-
-        <p id="item-group-add-or-create-form-description-block">
-            <label for="item_group_description" class="required">Name: </label>
-            <input name="item_group_description" id="item-group-add-or-create-form-description" type="text" size="30" class="required" />
-            <span class="required">Required</span>
-        </p>
+        <ol>
+            <li>
+                <label for="select_item_group">Options: </label>
+                <select name="item_group" id="item-group-add-or-create-form-select">
+                    <optgroup label="Use existing item group">
+                        [% FOREACH ig IN biblio.item_groups.search({}, {order_by => 'display_order'}) %]
+                            <option value="[% ig.id | html %]">[% ig.description | html %]</option>
+                        [% END %]
+                    </optgroup>
+                    <optgroup label="Other options">
+                        <option id="item-group-add-or-create-form-no-add" value="">Do not add to item group</option>
+                        <option value="create">Create new item group</option>
+                    </optgroup>
+                </select>
+            </li>
+            <div id="item-group-add-or-create-form-description-block">
+                <li>
+                    <label for="item_group_description" class="required">Name: </label>
+                    <input name="item_group_description" id="item-group-add-or-create-form-description" type="text" size="30" class="required" />
+                    <span class="required">Required</span>
+                </li>
+                <li>
+                    <label for="item_group_display_order">Display order: </label>
+                    <input name="item_group_display_order" id="item_group_display_order" type="text" pattern="\d*" size="30" />
+                    <div class="hint">Display order must be numerical</div>
+                </li>
+            </div>
+        </ol>
     </fieldset>
 [% END %]
 
-<fieldset class="action">    [% IF op != 'saveitem' %]
+<fieldset class="action">    [% IF op != 'cud-saveitem' %]
     <input type="submit" name="phony_submit" value="phony_submit" id="phony_submit" style="display:none;" onclick="return false;" />
     <!-- Note : We use here a false submit button because we have several submit buttons and we don't want the user to believe they validated the adding of multiple items
 		when pressing the enter key, while in fact it is the first submit button that is validated, in our case the "add (single) item" button.

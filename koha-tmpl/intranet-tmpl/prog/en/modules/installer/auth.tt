@@ -1,19 +1,32 @@
+[% USE raw %]
 [% USE Koha %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
-    [% IF ( nopermission ) %]Access denied[% END %]
-    [% IF ( timed_out ) %]Session timed out[% END %]
-    [% IF ( different_ip ) %]IP address change[% END %]
-    [% IF ( invalid_username_or_password ) %]Invalid username or password[% END %]
-    [% IF ( loginprompt ) %]Log in to the Koha web installer[% END %] &rsaquo; Koha
-</title>
+<title>[% FILTER collapse %]
+    [% IF ( nopermission ) %]
+        [% t("Access denied") | html %]
+    [% END %]
+    [% IF ( timed_out ) %]
+        [% t("Session timed out") | html %]
+    [% END %]
+    [% IF ( different_ip ) %]
+        [% t("IP address change") | html %]
+    [% END %]
+    [% IF ( invalid_username_or_password ) %]
+        [% t("Invalid username or password") | html %]
+    [% END %]
+    [% IF ( loginprompt ) %]
+        [% t("Log in to the Koha web installer") | html %]
+    [% END %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'installer-doc-head-close.inc' %]
 </head>
 
 <body id="installer" class="installer">
     <div class="container-fluid">
-        <div class="row">
-            <div id="installer-login" class="installer-main col-sm-6 col-sm-offset-3 col-md-6 col-md-offset-3">
+        <div class="row justify-content-md-center">
+            <div id="installer-login" class="installer-main col-sm-6 col-md-6">
 
                 <div id="logo"><a href="#">Koha</a></div>
 
@@ -39,7 +52,13 @@
                     <p>Before we begin, please verify you have the correct credentials to continue. Please log in with the username and password given to you by your systems administrator and located in your <code>koha-conf.xml</code> configuration file.</p>
 
                     <form action="[% url | html %]" method="post" id="mainform">
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-login" />
                         [% FOREACH INPUT IN INPUTS %]
+                            [% NEXT IF INPUT.name == "op" %]
+                            [% NEXT IF INPUT.name == "csrf_token" %]
+                            [% NEXT IF INPUT.name == "login_userid" %]
+                            [% NEXT IF INPUT.name == "login_password" %]
                             <input type="hidden" name="[% INPUT.name | html %]" value="[% INPUT.value | html %]" />
                         [% END %]
 
@@ -48,13 +67,15 @@
 
                             <div class="form-group">
                                 <label>Username:</label>
-                                <input type="text" class="form-control" name="userid" id="userid" value="[% userid | html %]" size="20" tabindex="1" />
+                                <input type="text" class="form-control" name="login_userid" id="userid" value="[% userid | html %]" size="20" tabindex="1" />
                             </div>
                             <div class="form-group">
                                 <label>Password:</label>
-                                <input type="password" class="form-control" name="password" id="password" value="" size="20" tabindex="2" />
+                                <input type="password" class="form-control" name="login_password" id="password" value="" size="20" tabindex="2" />
                             </div>
-                            <input id="submit" type="submit" class="btn btn-primary" value="Log in" tabindex="3" />
+                            <div class="form-group mt-2">
+                                <input id="submit" type="submit" class="btn btn-primary" value="Log in" tabindex="3" />
+                            </div>
                         </fieldset>
                     </form>
                 [% END %]

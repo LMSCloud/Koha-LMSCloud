@@ -419,6 +419,8 @@
     <xsl:param name="tag" />
     <xsl:param name="label" />
     <xsl:param name="spanclass" />
+    <xsl:param name="AuthorLinkSortBy"/>
+    <xsl:param name="AuthorLinkSortOrder"/>
     <xsl:if test="marc:datafield[@tag=$tag]">
       <span class="results_summary author {$spanclass}">
         <span class="label">
@@ -434,6 +436,12 @@
                   <xsl:attribute name="href">
                     <xsl:text>/cgi-bin/koha/catalogue/search.pl?q=an:</xsl:text>
                     <xsl:value-of select="str:encode-uri(marc:subfield[@code=9], true())"/>
+                    <xsl:if test="$AuthorLinkSortBy!='default'">
+                        <xsl:text>&amp;sort_by=</xsl:text>
+                        <xsl:value-of select="$AuthorLinkSortBy"/>
+                        <xsl:text>_</xsl:text>
+                        <xsl:value-of select="$AuthorLinkSortOrder"/>
+                    </xsl:if>
                   </xsl:attribute>
                 </xsl:when>
                 <xsl:otherwise>
@@ -442,6 +450,12 @@
                       <xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/>
                       <xsl:text>%20</xsl:text>
                       <xsl:value-of select="str:encode-uri(marc:subfield[@code='b'], true())"/>
+                      <xsl:if test="$AuthorLinkSortBy!='default'">
+                        <xsl:text>&amp;sort_by=</xsl:text>
+                        <xsl:value-of select="$AuthorLinkSortBy"/>
+                        <xsl:text>_</xsl:text>
+                        <xsl:value-of select="$AuthorLinkSortOrder"/>
+                    </xsl:if>
                   </xsl:attribute>
                 </xsl:otherwise>
               </xsl:choose>
@@ -482,6 +496,42 @@
           </xsl:for-each>
         </span>
       </span>
+    </xsl:if>
+  </xsl:template>
+
+  <xsl:template name="tag_content_warning">
+    <xsl:param name="tag" />
+    <xsl:if test="marc:datafield[@tag=$tag]">
+       <span class="results_summary content_warning">
+           <span class="label">Content warning: </span>
+           <xsl:for-each select="marc:datafield[@tag=$tag]">
+               <xsl:choose>
+                   <xsl:when test="marc:subfield[@code='u']">
+                       <a>
+                           <xsl:attribute name="href">
+                               <xsl:value-of select="marc:subfield[@code='u']"/>
+                           </xsl:attribute>
+                           <xsl:choose>
+                               <xsl:when test="marc:subfield[@code='a']">
+                                   <xsl:value-of select="marc:subfield[@code='a']"/>
+                               </xsl:when>
+                               <xsl:otherwise>
+                                   <xsl:value-of select="marc:subfield[@code='u']"/>
+                               </xsl:otherwise>
+                           </xsl:choose>
+                       </a>
+                       <xsl:text> </xsl:text>
+                   </xsl:when>
+                   <xsl:when test="not(marc:subfield[@code='u']) and marc:subfield[@code='a']">
+                       <xsl:value-of select="marc:subfield[@code='a']"/><xsl:text> </xsl:text>
+                   </xsl:when>
+               </xsl:choose>
+               <xsl:call-template name="subfieldSelect">
+                    <xsl:with-param name="codes">bcdefghijklmnopqrstvwxyz</xsl:with-param>
+               </xsl:call-template>
+               <xsl:if test="position()!=last()"><span class="separator"><xsl:text> | </xsl:text></span></xsl:if>
+           </xsl:for-each>
+       </span>
     </xsl:if>
   </xsl:template>
 

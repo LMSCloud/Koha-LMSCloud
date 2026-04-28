@@ -20,7 +20,6 @@ use Modern::Perl;
 use CGI;
 
 use C4::Auth qw( checkauth );
-use Koha::Token;
 
 my $cgi = CGI->new;
 
@@ -33,25 +32,21 @@ my $flags = {
 my $type = 'intranet';
 my ($user, $cookie) = C4::Auth::checkauth($cgi, $authnotrequired, $flags, $type);
 
-my $csrf_token_is_valid = Koha::Token->new->check_csrf( {
-    session_id => scalar $cgi->cookie('CGISESSID'),
-    token  => scalar $cgi->param('csrf_token'),
-});
-unless ($csrf_token_is_valid) {
-    print $cgi->header('text/plain', '403 Forbidden');
-    print 'Wrong CSRF token';
+my $op = $cgi->param('op') // q{};
+
+if ( $op eq "cud-cancel" ) {
+    my $accountlines_id = $cgi->param('accountlines_id');
+
+    my $charge         = Koha::Account::Lines->find($accountlines_id);
+    my $borrowernumber = $charge->patron->borrowernumber;
+    $charge->cancel(
+        {
+            branch   => C4::Context->userenv->{'branch'},
+            staff_id => C4::Context->userenv->{'number'}
+        }
+    );
+    print $cgi->redirect( '/cgi-bin/koha/members/boraccount.pl?borrowernumber=' . $borrowernumber );
     exit;
 }
 
-my $borrowernumber = $cgi->param('borrowernumber');
-my $accountlines_id = $cgi->param('accountlines_id');
-
-my $charge = Koha::Account::Lines->find($accountlines_id);
-$charge->cancel(
-    {
-        branch   => C4::Context->userenv->{'branch'},
-        staff_id => C4::Context->userenv->{'number'}
-    }
-);
-
-print $cgi->redirect('/cgi-bin/koha/members/boraccount.pl?borrowernumber=' . $borrowernumber);
+print $cgi->redirect('/cgi-bin/koha/errors/403.pl');

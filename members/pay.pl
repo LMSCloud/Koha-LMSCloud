@@ -80,36 +80,29 @@ $user ||= q{};
 
 our $branch = C4::Context->userenv->{'branch'};
 
-my $writeoff_item = $input->param('confirm_writeoff');
-my $cancel_item = $input->param('confirm_cancelfee');
+my $op = $input->param('op') // q{};
 my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
 
-if ( $input->param('paycollect') && $checkCashRegisterOk ) {
-    output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
+if ( $op eq 'cud-paycollect' && $checkCashRegisterOk ) {
     print $input->redirect(
         "/cgi-bin/koha/members/paycollect.pl?borrowernumber=$borrowernumber&change_given=$change_given");
 }
-elsif ( $input->param('payselected') && $checkCashRegisterOk ) {
-    output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
+elsif ( $op eq 'cud-payselected' && $checkCashRegisterOk ) {
     payselected({ params => \@names });
 }
-elsif ( $input->param('writeoff_selected') ) {
-    output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
+elsif ( $op eq 'cud-writeoff_selected' ) {
     payselected({ params => \@names, type => 'WRITEOFF' });
 }
-elsif ( $input->param('cancel_selected') ) {
+elsif ( $op eq 'cud-cancel_selected' ) {
     payselected({ params => \@names, type => 'CANCELLATION' });
 }
-elsif ( $input->param('woall') ) {
-    output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
+elsif ( $op eq 'cud-woall' ) {
     writeoff_or_cancel_all(@names);
 }
-elsif ( $input->param('apply_credits') ) {
-    output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
+elsif ( $op eq 'cud-apply_credits' ) {
     apply_credits({ patron => $patron, cgi => $input });
 }
-elsif ( $input->param('confirm_writeoff') || $input->param('confirm_cancelfee') ) {
-    output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
+elsif ( $op eq 'cud-confirm_writeoff' || $op eq 'cud-confirm_cancelfee' ) {
     my $item_id         = $input->param('itemnumber');
     my $accountlines_id = $input->param('accountlines_id');
     my $amount          = $input->param('amountwrittenoff');
@@ -126,7 +119,7 @@ elsif ( $input->param('confirm_writeoff') || $input->param('confirm_cancelfee') 
               . "&debit_type_code=" . $accountline->debit_type_code
               . "&accountlines_id=" . $accountlines_id
               . "&change_given=" . $change_given
-              . ( scalar $input->param('confirm_writeoff') ? "&writeoff_individual=1" : "&cancel_individual=1" )
+              . ( $op eq 'cud-confirm_writeoff' ? "&writeoff_individual=1" : "&cancel_individual=1" )
               . "&error_over=1" );
 
     } else {
@@ -134,7 +127,7 @@ elsif ( $input->param('confirm_writeoff') || $input->param('confirm_cancelfee') 
             {
                 amount     => $amount,
                 lines      => [ Koha::Account::Lines->find($accountlines_id) ],
-                type       => (scalar $input->param('confirm_writeoff') ? 'WRITEOFF' : 'CANCELLATION'),
+                type       => ( $op eq 'cud-confirm_writeoff' ? 'WRITEOFF' : 'CANCELLATION'),
                 note       => $payment_note,
                 interface  => C4::Context->interface,
                 item_id    => $item_id,
@@ -145,15 +138,13 @@ elsif ( $input->param('confirm_writeoff') || $input->param('confirm_cancelfee') 
 }
 
 for (@names) {
-    if (/^pay_indiv_(\d+)$/) {
-        output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
+    if ($op =~ /^cud-pay_indiv_(\d+)$/) {
         my $line_no = $1;
         redirect_to_paycollect( 'pay_individual', $line_no );
-    } elsif (/^wo_indiv_(\d+)$/) {
-        output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
+    } elsif ($op =~ /^cud-wo_indiv_(\d+)$/) {
         my $line_no = $1;
         redirect_to_paycollect( 'writeoff_individual', $line_no );
-    } elsif (/^cancel_indiv_(\d+)$/) {
+    } elsif ($op =~ /^cud-cancel_indiv_(\d+)$/) {
         my $line_no = $1;
         redirect_to_paycollect( 'cancel_individual', $line_no );
     }

@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 6;
+use Test::More tests => 8;
 use t::lib::Mocks;
 
 use_ok('Koha::SearchEngine::Elasticsearch::QueryBuilder');
@@ -150,6 +150,36 @@ subtest '_truncate_terms() tests' => sub {
 
     $res = $qb->_truncate_terms(' "donald   duck" ');
     is_deeply($res, '"donald   duck"', 'quoted search terms surrounded by spaces correctly');
+};
+
+subtest '_is_safe_to_auto_truncate() tests' => sub {
+    plan tests => 7;
+
+    my $qb;
+    ok(
+        $qb = Koha::SearchEngine::Elasticsearch::QueryBuilder->new(
+            { 'index' => $Koha::SearchEngine::Elasticsearch::BIBLIOS_INDEX }
+        ),
+        'Creating a new QueryBuilder object'
+    );
+
+    my $res = $qb->_is_safe_to_auto_truncate( undef, 'local-number:1' );
+    is( $res, '0', 'no truncation for biblionumber - OK' );
+
+    $res = $qb->_is_safe_to_auto_truncate( undef, 'koha-auth-number:1' );
+    is( $res, '0', 'no truncation for authid - OK' );
+
+    $res = $qb->_is_safe_to_auto_truncate( undef, 'title:some title' );
+    is( $res, '1', 'do truncate titles - OK' );
+
+    $res = $qb->_is_safe_to_auto_truncate( 'local-number', undef );
+    is( $res, '0', 'no truncation for biblionumber - OK' );
+
+    $res = $qb->_is_safe_to_auto_truncate( 'koha-auth-number', undef );
+    is( $res, '0', 'no truncation for authid - OK' );
+
+    $res = $qb->_is_safe_to_auto_truncate( 'title', undef );
+    is( $res, '1', 'do truncate titles - OK' );
 };
 
 subtest '_split_query() tests' => sub {
@@ -302,5 +332,42 @@ subtest '_join_queries' => sub {
     $query = $qb->_join_queries('homebranch:foo', 'mc-itype:BOOK', 'mc-itype:EBOOK', 'mc-location:SHELF');
     is($query, '(homebranch:foo) AND itype:(BOOK OR EBOOK) AND location:(SHELF)', 'should join "mc-" parts with AND if not the same field');
 };
+
+subtest '_create_query_string' => sub {
+    plan tests => 2;
+
+    my $params = {
+        index => $Koha::SearchEngine::Elasticsearch::BIBLIOS_INDEX,
+    };
+    my $qb = Koha::SearchEngine::Elasticsearch::QueryBuilder->new($params);
+
+    my @queries;
+    my $normal_query = [
+        {
+            'operand'  => 'perl*',
+            'operator' => undef
+        }
+    ];
+
+    @queries = $qb->_create_query_string(@$normal_query);
+    my $expect = ['(perl*)'];
+
+    is( @queries, @$expect, 'expected search structure' );
+
+    my $geo_query = [
+        {
+            'operator' => undef,
+            'field'    => 'geolocation',
+            'type'     => undef,
+            'operand'  => 'lat:48.25* lng:16.35* distance:100km*'
+        }
+    ];
+
+    @queries = $qb->_create_query_string(@$geo_query);
+    my $expect_geo = [];
+    is( @queries, @$expect_geo, 'expected geo search structure => empty normal search string' );
+
+};
+
 
 1;

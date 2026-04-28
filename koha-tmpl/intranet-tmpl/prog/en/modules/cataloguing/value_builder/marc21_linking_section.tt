@@ -1,21 +1,27 @@
+[% USE raw %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>plugin for links &rsaquo; Cataloguing &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Plugin for links") | html %] &rsaquo;
+    [% t("Cataloguing") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% IF ( fillinput ) %]
         </head>
 
-    <body id="cat_marc21_linking_section" class="cat" style="padding:1em;">
+    <body id="cat_marc21_linking_section" class="cat value_builder">
     <h1>MARC21 Plugin to build links between records</h1>
 [% ELSE %]
     </head>
 
-    <body id="cat_marc21_linking_section" class="cat" style="padding:1em;">
+    <body id="cat_marc21_linking_section" class="cat value_builder">
     <h1>Plugin to build links between records</h1>
     [% IF ( Search ) %]
         <div id="MARC21_Linking_section_search" class="page-section">
             <h2>Search for</h2>
-            <form name="f" method="post" action="/cgi-bin/koha/cataloguing/plugin_launcher.pl?plugin_name=marc21_linking_section.pl">
+            <form name="f" method="get" action="/cgi-bin/koha/cataloguing/plugin_launcher.pl?plugin_name=marc21_linking_section.pl">
 
                 <p>
                     <input type="hidden" name="plugin_name" value="marc21_linking_section.pl" />
@@ -46,7 +52,7 @@
             <p>[% IF ( displayprev ) %] <a class="resultnumber" href="/cgi-bin/koha/cataloguing/plugin_launcher.pl?plugin_name=marc21_linking_section.pl&amp;index=[% index | html %]&amp;startfrom=[% startfromprev | html %]&amp;search=[% search | html %]&amp;resultsperpage=[% resultsperpage | html %]&amp;type=intranet&amp;op=do_search">&lt;&lt; Previous</a>[% END %]
             [% FOREACH number IN numbers %]
                 [% IF ( number.highlight ) %] <span class="highlight">[% number.number | html %]</span>
-                [% ELSE %] <a class="resultnumber" href="/cgi-bin/koha/cataloguing/plugin_launcher.pl?plugin_name=marc21_linking_section.pl&amp;index=[% index | html %]&amp;startfrom=[% number.startfrom | html %]&amp;search=[% number.search |url %]&amp;resultsperpage=[% number.resultsperpage | html %]&amp;type=intranet&amp;op=do_search">[% number.number | html %]</a>
+                [% ELSE %] <a class="resultnumber" href="/cgi-bin/koha/cataloguing/plugin_launcher.pl?plugin_name=marc21_linking_section.pl&amp;index=[% index | html %]&amp;startfrom=[% number.startfrom | html %]&amp;search=[% search |url %]&amp;resultsperpage=[% resultsperpage | html %]&amp;type=intranet&amp;op=do_search">[% number.number | html %]</a>
                 [% END %]
             [% END %]
             [% IF ( displaynext ) %]
@@ -107,7 +113,7 @@
                             [% number.number | html %]
                         </span>
                     [% ELSE %]
-                        <a class="resultnumber" href="/cgi-bin/koha/cataloguing/plugin_launcher.pl?plugin_name=marc21_linking_section.pl&amp;index=[% index | html %]&amp;startfrom=[% number.startfrom | html %]&amp;search=[% number.search | html %]&amp;resultsperpage=[% number.resultsperpage | html %]&amp;type=intranet&amp;op=do_search">
+                        <a class="resultnumber" href="/cgi-bin/koha/cataloguing/plugin_launcher.pl?plugin_name=marc21_linking_section.pl&amp;index=[% index | html %]&amp;startfrom=[% number.startfrom | html %]&amp;search=[% search | html %]&amp;resultsperpage=[% resultsperpage | html %]&amp;type=intranet&amp;op=do_search">
                             [% number.number | html %]
                         </a>
                     [% END %]

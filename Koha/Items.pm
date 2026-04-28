@@ -52,7 +52,10 @@ Koha::Items - Koha Item object set class
 
     my $filtered_items = $items->filter_by_for_hold;
 
-Return the items of the set that are *potentially* holdable.
+Return the items of the set that are *potentially* holdable. This routine
+checks only rules defined in the 'Standard rules for all libraries' and
+should only be used in the context where we don't have a patron to check
+policies for specifically.
 
 Caller has the responsibility to call C4::Reserves::CanItemBeReserved before
 placing a hold on one of those items.
@@ -62,15 +65,40 @@ placing a hold on one of those items.
 sub filter_by_for_hold {
     my ($self) = @_;
 
-    my @hold_not_allowed_itypes = Koha::CirculationRules->search(
+    my $default_rule = Koha::CirculationRules->get_effective_rule(
         {
             rule_name    => 'holdallowed',
-            branchcode   => undef,
-            categorycode => undef,
-            rule_value   => 'not_allowed',
         }
-    )->get_column('itemtype');
+    );
+    my @hold_not_allowed_itypes;
+    if ( defined $default_rule && $default_rule->rule_value eq 'not_allowed' ) {
+        # If the default rule is not allowed we get all itemtypes as not allowed
+        @hold_not_allowed_itypes = Koha::ItemTypes->search->get_column('itemtype');
+        my @hold_allowed_itypes = Koha::CirculationRules->search(
+            {
+                rule_name    => 'holdallowed',
+                rule_value   => { '!=' => 'not_allowed' },
+                branchcode   => undef,
+                categorycode => undef,
+            }
+        )->get_column('itemtype');
+        # We then only allow those explicitly defined in hold policies at the all libraries level
+        @hold_not_allowed_itypes = array_minus( @hold_not_allowed_itypes, @hold_allowed_itypes );
+    } else {
+        # If there is no default 'not_allowed' rule, then only those explicitly forbidden at the all libraries level are forbidden
+        @hold_not_allowed_itypes = Koha::CirculationRules->search(
+            {
+                rule_name    => 'holdallowed',
+                branchcode   => undef,
+                categorycode => undef,
+                rule_value   => 'not_allowed',
+            }
+        )->get_column('itemtype');
+    }
+
+    # We also forbid holds on any marked not for loan at the item level
     push @hold_not_allowed_itypes, Koha::ItemTypes->search({ notforloan => 1 })->get_column('itemtype');
+    @hold_not_allowed_itypes = uniq @hold_not_allowed_itypes;
 
     my $params = {
         itemlost   => 0,
@@ -195,6 +223,152 @@ sub filter_by_bookable {
     );
 }
 
+=head3 filter_by_checked_out
+
+  my $checked_out_items = $items->filter_by_checked_out;
+
+Returns a new resultset, containing only those items that are currently checked out.
+
+=cut
+
+sub filter_by_checked_out {
+    my ( $self, $params ) = @_;
+
+    $params //= {};
+    my $checkouts = Koha::Checkouts->search(
+        { %$params, 'me.itemnumber' => [ $self->get_column('itemnumber') ], },
+        {
+            columns  => ['itemnumber'],
+            distinct => 1
+        }
+    )->_resultset->as_query;
+
+    return $self->search( { 'me.itemnumber' => { '-in' => $checkouts } } );
+}
+
+=head3 filter_by_in_transit
+
+  my $in_tranist_items = $items->filter_by_in_transit;
+
+Returns a new resultset, containing only those items that are currently in transit.
+
+=cut
+
+sub filter_by_in_transit {
+    my ( $self, $params ) = @_;
+
+    $params //= {};
+    $params->{datesent}      = { '!=' => undef };
+    $params->{datearrived}   = undef;
+    $params->{datecancelled} = undef;
+
+    my $transfers = Koha::Item::Transfers->search(
+        { %$params, 'me.itemnumber' => [ $self->get_column('itemnumber') ], },
+        {
+            columns  => ['itemnumber'],
+            distinct => 1
+        }
+    )->_resultset->as_query;
+
+    return $self->search( { 'me.itemnumber' => { '-in' => $transfers } } );
+}
+
+=head3 filter_by_has_holds
+
+  my $has_hold_items = $items->filter_by_has_holds;
+
+Returns a new resultset, containing only those items that currently have holds.
+
+=cut
+
+sub filter_by_has_holds {
+    my ( $self, $params ) = @_;
+
+    $params //= {};
+    my $holds = Koha::Holds->search(
+        { %$params, 'me.itemnumber' => [ $self->get_column('itemnumber') ], },
+        {
+            columns  => ['itemnumber'],
+            distinct => 1
+        }
+    )->_resultset->as_query;
+
+    return $self->search( { 'me.itemnumber' => { '-in' => $holds } } );
+}
+
+=head3 filter_by_has_recalls
+
+  my $has_recalls_items = $items->filter_by_has_recalls;
+
+Returns a new resultset, containing only those items that currently have recalls.
+
+=cut
+
+sub filter_by_has_recalls {
+    my ( $self, $params ) = @_;
+
+    $params //= {};
+    my $recalls = Koha::Recalls->search(
+        { %$params, 'me.itemnumber' => [ $self->get_column('itemnumber') ], 'me.item_level' => 1, },
+        {
+            columns  => ['itemnumber'],
+            distinct => 1
+        }
+    )->_resultset->as_query;
+    return $self->search( { 'me.itemnumber' => { '-in' => $recalls } } );
+}
+
+=head3 filter_by_in_bundle
+
+Returns a new resultset, containing only those items that currently are part of a bundle.
+
+=cut
+
+sub filter_by_in_bundle {
+    my ($self) = @_;
+
+    my @in_bundle_items;
+    while ( my $item = $self->next ) {
+        push @in_bundle_items, $item if $item->in_bundle;
+    }
+
+    my @bundled_items = map { $_->itemnumber } @in_bundle_items;
+    return $self->search( { 'me.itemnumber' => { '-in' => \@bundled_items } } );
+}
+
+=head3 filter_by_available
+
+  my $available_items = $items->filter_by_available;
+
+Returns a new resultset, containing only those items that are currently available.
+
+=cut
+
+sub filter_by_available {
+    my ($self) = @_;
+
+    my @all_itemnumbers = $self->get_column('itemnumber');
+    my @not_available_itemnumbers;
+    push @not_available_itemnumbers, $self->filter_by_checked_out->get_column('itemnumber');
+    push @not_available_itemnumbers, $self->filter_by_in_transit->get_column('itemnumber');
+
+    push @not_available_itemnumbers, $self->filter_by_has_holds->get_column('itemnumber');
+    push @not_available_itemnumbers, $self->filter_by_has_recalls->get_column('itemnumber');
+
+    my @item_types_notforloan = Koha::ItemTypes->search( { notforloan => { '!=' => 0 } } )->get_column('itemtype');
+    return Koha::Items->search(
+        {
+            'me.itemnumber' => [ array_minus @all_itemnumbers, @not_available_itemnumbers ],
+            itemlost        => 0,
+            withdrawn       => 0,
+            damaged         => 0,
+            notforloan      => 0,
+            restricted      => [ { '!=' => 0 }, undef ],
+            'me.itype'      => { -not_in => \@item_types_notforloan },
+        }
+    );
+}
+
 =head3 move_to_biblio
 
  $items->move_to_biblio($to_biblio);
@@ -263,6 +437,11 @@ Allows to modify existing subfield's values using a regular expression
 
 Set the passed boolean value to items.exclude_from_local_holds_priority
 
+=item mark_items_returned
+
+Move issues on these items to the old issues table, do not mark items found, or
+adjust damaged/withdrawn statuses, or fines, or locations.
+
 =item callback
 
 Callback function to call after an item has been modified
@@ -277,6 +456,7 @@ sub batch_update {
     my $regex_mod = $params->{regex_mod} || {};
     my $new_values = $params->{new_values} || {};
     my $exclude_from_local_holds_priority = $params->{exclude_from_local_holds_priority};
+    my $mark_items_returned = $params->{mark_items_returned};
     my $callback = $params->{callback};
 
     my (@modified_itemnumbers, $modified_fields);
@@ -286,6 +466,7 @@ sub batch_update {
 
         try {$schema->txn_do(sub {
             my $modified_holds_priority = 0;
+            my $item_returned = 0;
             if ( defined $exclude_from_local_holds_priority ) {
                 if(!defined $item->exclude_from_local_holds_priority || $item->exclude_from_local_holds_priority != $exclude_from_local_holds_priority) {
                     $item->exclude_from_local_holds_priority($exclude_from_local_holds_priority)->store;
@@ -383,9 +564,25 @@ sub batch_update {
                     };
                 }
             }
+            if ( $mark_items_returned ){
+                my $issue = $item->checkout;
+                if( $issue ){
+                        $item_returned = 1;
+                        C4::Circulation::MarkIssueReturned(
+                        $issue->borrowernumber,
+                        $item->itemnumber,
+                        undef,
+                        $issue->patron->privacy,
+                        {
+                            skip_record_index => 1,
+                            skip_holds_queue  => 1,
+                        }
+                    );
+                }
+            }
 
-            push @modified_itemnumbers, $item->itemnumber if $modified || $modified_holds_priority;
-            $modified_fields += $modified + $modified_holds_priority;
+            push @modified_itemnumbers, $item->itemnumber if $modified || $modified_holds_priority || $item_returned;
+            $modified_fields += $modified + $modified_holds_priority + $item_returned;
         })}
         catch {
             warn $_
@@ -446,6 +643,62 @@ sub apply_regex {
     return $value;
 }
 
+=head3 search
+
+  my $search_result = $object->search( $params, $attributes );
+
+Filters items based on the specified status.
+
+=cut
+
+sub search {
+    my ( $self, $params, $attributes ) = @_;
+    my $status = ( $params && ref($params) eq 'HASH' ) ? delete $params->{_status} : undef;
+    if ($status) {
+        if ( $status eq 'checked_out' ) {
+            $self = $self->filter_by_checked_out( { onsite_checkout => 0 } );
+        }
+        if ( $status eq 'local_use' ) {
+            $self = $self->filter_by_checked_out( { onsite_checkout => 1 } );
+        }
+        if ( $status eq 'in_transit' ) {
+            $self = $self->filter_by_in_transit;
+        }
+        if ( $status eq 'lost' ) {
+            $self = $self->search( { itemlost => { '!=' => 0 } } );
+        }
+        if ( $status eq 'withdrawn' ) {
+            $self = $self->search( { withdrawn => { '!=' => 0 } } );
+        }
+        if ( $status eq 'damaged' ) {
+            $self = $self->search( { damaged => { '!=' => 0 } } );
+        }
+        if ( $status eq 'not_for_loan' ) {
+            my @item_types_notforloan =
+                Koha::ItemTypes->search( { notforloan => { '!=' => 0 } } )->get_column('itemtype');
+            $self = $self->search( [ { notforloan => { '!=' => 0 } }, { 'me.itype' => \@item_types_notforloan } ] );
+        }
+        if ( $status eq 'on_hold' ) {
+            $self = $self->filter_by_has_holds;
+        }
+        if ( $status eq 'recalled' ) {
+            $self = $self->filter_by_has_recalls;
+        }
+        if ( $status eq 'in_bundle' ) {
+            $self = $self->filter_by_in_bundle;
+        }
+
+        if ( $status eq 'available' ) {
+            $self = $self->filter_by_available;
+        }
+
+        if ( $status eq 'restricted' ) {
+            $self = $self->search( { restricted => [ { '!=' => 0 } ] } );
+        }
+    }
+    return $self->SUPER::search( $params, $attributes );
+}
+
 =head3 search_ordered
 
  $items->search_ordered;
@@ -459,7 +712,7 @@ sub search_ordered {
 
     $self = $self->search($params, $attributes);
 
-    my @biblionumbers = uniq $self->get_column('biblionumber');
+    my @biblionumbers = uniq $self->search(undef,{distinct=>1})->get_column('biblionumber');
 
     if ( scalar ( @biblionumbers ) == 1
         && Koha::Biblios->find( $biblionumbers[0] )->serial )
@@ -478,7 +731,6 @@ sub search_ordered {
                 order_by => [
                     'homebranch.branchname',
                     'me.enumchron',
-                    \"LPAD( me.copynumber, 8, '0' )",
                     {-desc => 'me.dateaccessioned'}
                 ],
                 join => ['homebranch']

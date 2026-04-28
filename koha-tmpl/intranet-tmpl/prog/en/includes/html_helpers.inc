@@ -12,13 +12,13 @@
     <option id="nodesk" value="">---</option>
     [% FOREACH d IN desks %]
         [% IF d.branchcode == branch %]
-          [% IF selected == d.desk_id %]
+          [% IF selected == d.desk_id || ( selected == '' && loop.first ) %]
             <option class="[% d.branchcode | html %]" value="[% d.desk_id | html %]" selected="selected">[% d.desk_name | html %]</option>
           [% ELSE %]
             <option class="[% d.branchcode | html %]" value="[% d.desk_id | html %]" >[% d.desk_name | html %]</option>
           [% END %]
         [% ELSE %]
-            <option class="[% d.branchcode | html %]" value="[% d.desk_id | html %]" disabled hidden>[% d.desk_name | html %]</option>
+            <option class="[% d.branchcode | html %]" value="[% d.desk_id | html %]" disabled style="display: none">[% d.desk_name | html %]</option>
         [% END %]
     [% END %]
 [% END %]
@@ -32,7 +32,7 @@
                 <option class="[%- r.branch | html -%][%- IF r.branch_default -%] default[%- END -%]" value="[% r.id | html %]">[% r.name | html %]</option>
             [% END%]
         [% ELSE %]
-            <option class="[%- r.branch | html -%][%- IF r.branch_default -%] default[%- END -%]" value="[% r.id | html %]" disabled style="display: none">[% r.name | html %]</option>
+            <option class="[%- r.branch | html -%][%- IF r.branch_default -%] default[%- END -%]" value="[% r.id | html %]" disabled="disabled" style="display: none">[% r.name | html %]</option>
         [% END %]
     [% END %]
 [% END %]
@@ -166,6 +166,10 @@
                         [% ELSE %]
                             <textarea id="[%- mv.id | html -%]" name="[% kohafield | html %]" class="input_marceditor [% kohafield | html %]" rows="5" cols="64" >[% mv.value | html %]</textarea>
                         [% END %]
+                    [% ELSIF ( mv.type == 'date_field' ) %]
+                         <input type="text" id="[% mv.id | html %]" name="[% kohafield | html %]" class="input_marceditor [% kohafield | html %] flatpickr" value="[% mv.value | html %]" class="flatpickr" data-flatpickr-set-to-today="true" />
+                    [% ELSIF ( mv.type == 'datetime_field' ) %]
+                         <input type="text" id="[% mv.id | html %]" name="[% kohafield | html %]" class="input_marceditor [% kohafield | html %] flatpickr" value="[% mv.value | html %]" data-flatpickr-enable-time="true" data-flatpickr-set-to-today="true" />
                     [% END %]
 
                     [% IF subfield.kohafield == 'items.more_subfields_xml' %]
@@ -222,7 +226,7 @@
     [% IF display_columns_selection %][%# Needs js/pages/batchMod.js %]
         [% IF checkboxes_edit OR checkboxes_delete %]
             <div class="btn-toolbar selections-toolbar">
-                <a id="selectallbutton" href="#"><i class="fa fa-check"></i> Select all</a> | <a id="clearallbutton" href="#"><i class="fa fa-remove"></i> Clear all</a> | <a id="clearonloanbutton" href="#">Clear on loan</a>
+                <a id="selectallbutton" href="#"><i class="fa fa-check"></i> Select all</a> | <a id="clearallbutton" href="#"><i class="fa fa-times"></i> Clear all</a> | <a id="clearonloanbutton" href="#">Clear on loan</a>
             </div>
         [% END %]
 
@@ -271,13 +275,15 @@
         </thead>
         <tbody>
             [% FOREACH item IN items %]
-                [% SET can_be_edited = ! ( Koha.Preference('IndependentBranches') && ! logged_in_user.is_superlibrarian && item.homebranch != Branches.GetLoggedInBranchname() ) %]
+                [% SET can_be_edited = !item.nomod && !( Koha.Preference('IndependentBranches') && ! logged_in_user && item.homebranch != Branches.GetLoggedInBranchname() ) %]
 
                 <tr>
                     <td>[% item.index + 1 | html %]</td>
                     [% IF checkboxes_edit %]
                         [% UNLESS can_be_edited%]
-                            <td class="error">Cannot edit</td>
+                            <td class="error">
+                                <i class="fa fa-times fa-lg" title="Cannot edit"></i>
+                            </td>
                         [% ELSE %]
                             <td>
                                 <input type="checkbox" name="itemnumber" value="[% item.itemnumber | html %]" id="row[% item.itemnumber | html %]" checked="checked" data-is-onloan="[% item.is_checked_out | html %]" />
@@ -285,7 +291,9 @@
                         [% END %]
                     [% ELSIF checkboxes_delete %]
                         [% UNLESS can_be_edited %]
-                            <td class="error">Cannot delete</td>
+                            <td class="error">
+                                <i class="fa fa-times fa-lg" title="Cannot delete"></i>
+                            </td>
                         [% ELSE %]
                             [% IF item.safe_to_delete %]
                                 <td><input type="checkbox" name="itemnumber" value="[% item.itemnumber | html %]" id="row[% item.itemnumber | html %]" checked="checked" /></td>
@@ -302,7 +310,9 @@
                                     [% END %]
                                 [% END %]
 
-                                <td><input type="checkbox" name="itemnumber" value="[% item.itemnumber | html %]" id="row[% item.itemnumber | html %]" disabled="disabled" title="[% cannot_delete_reason | html %]"/></td>
+                                <td class="error">
+                                    <i class="fa fa-times fa-lg" title="[% cannot_delete_reason | html %]"></i>
+                                </td>
                             [% END %]
 
                         [% END %]
@@ -382,16 +392,29 @@
 [% END %]
 
 [% BLOCK tab_item %]
-    [% IF ( bt_active ) %]
-        <li role="presentation" class="active">
+    [% IF ( id ) %]
+        <li id="[% id | html %]" class="nav-item" role="presentation">
     [% ELSE %]
-        <li role="presentation">
+        <li class="nav-item" role="presentation">
     [% END %]
-        <a href="#[% tabname | uri %]_panel" data-tabname="[% tabname | uri %]" aria-controls="[% tabname | uri %]_panel" role="tab" data-toggle="tab">
+    [% IF ( bt_active ) %]
+        [% IF (linktab) %]
+            <a class="nav-link active" href="?tab=[% tabname | url %]" id="[% tabname | html %]-tab">
+        [% ELSE %]
+            <a class="nav-link active" href="#[% tabname | uri %]_panel" id="[% tabname | html %]-tab" data-tabname="[% tabname | uri %]" aria-controls="[% tabname | uri %]_panel" role="tab" data-bs-toggle="tab" data-bs-target="#[% tabname | uri %]_panel">
+        [% END %]
+    [% ELSE %]
+        [% IF (linktab) %]
+            <a class="nav-link" href="?tab=[% tabname | url %]" id="[% tabname | uri %]-tab">
+        [% ELSE %]
+            <a class="nav-link" href="#[% tabname | uri %]_panel" id="[% tabname | uri %]-tab" data-tabname="[% tabname | uri %]" aria-controls="[% tabname | uri %]_panel" role="tab" data-bs-toggle="tab" data-bs-target="#[% tabname | uri %]_panel">
+        [% END %]
+    [% END %]
             [% content | $raw %]
         </a>
     </li>
 [% END %]
+
 
 [% BLOCK tab_panels %]
     <div class="tab-content">
@@ -401,9 +424,9 @@
 
 [% BLOCK tab_panel %]
     [% IF ( bt_active ) %]
-        <div role="tabpanel" class="tab-pane active" id="[% tabname | html %]_panel">
+        <div class="tab-pane show active" id="[% tabname | html %]_panel" role="tabpanel" aria-labelledby="[% tabname | html %]-tab" tabindex="0">
     [% ELSE %]
-        <div role="tabpanel" class="tab-pane" id="[% tabname | html %]_panel">
+        <div class="tab-pane" id="[% tabname | html %]_panel" role="tabpanel" aria-labelledby="[% tabname | html %]-tab" tabindex="0">
     [% END %]
         [% content| $raw %]
     </div>
@@ -442,11 +465,11 @@
 
 [% # Used to build breadcrumb navigation nav %]
 [% BLOCK breadcrumbs %]
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
-        <ol>
+    <nav id="breadcrumbs" aria-label="Breadcrumb">
+        <ol class="breadcrumb">
             [%# Include the Home link every time %]
             [% WRAPPER breadcrumb_item %]
-                <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+                <a href="/cgi-bin/koha/mainpage.pl" title="Home"><span class="visually-hidden-focusable">Home</span></a>
             [% END %]
             [% content | $raw %]
         </ol>
@@ -456,14 +479,73 @@
 [%# Used to build individual breadcrumb items in the breadcrumb nav %]
 [% BLOCK breadcrumb_item %]
     [% IF ( bc_active ) %]
-        <li>
-            <a href="#" aria-current="page">
+        <li class="breadcrumb-item active" aria-current="page">
+            <a href="#">
                 [% content | $raw %]
             </a>
         </li>
     [% ELSE %]
-        <li>
+        <li class="breadcrumb-item">
             [% content | $raw %]
         </li>
     [% END %]
+[% END %]
+
+[% # [ WRAPPER accordion panelgroup_id="accordion container id" ] %]
+[% #     [ WRAPPER accordion_item ]                               %]
+[% #         [ WRAPPER accordion_heading panel_id = "panel id" ]  %]
+[% #             [Clickable panel heading ]                       %]
+[% #         [ END ]                                              %]
+[% #         [ WRAPPER accordion_panel panel_id = "panel id" ]    %]
+[% #             [Expanding content panel]                        %]
+[% #         [ END ]                                              %]
+[% #     [ END ]                                                  %]
+[% # [ END ]                                                      %]
+
+[% BLOCK accordion %]
+    <div class="panel-group" id="[% panelgroup_id | $raw %]_group" role="tablist" aria-multiselectable="true">
+        [% content | $raw %]
+    </div>
+[% END %]
+
+[% BLOCK accordion_item %]
+    <div class="panel panel-default">
+        [% content | $raw %]
+    </div>
+[% END %]
+
+[% BLOCK accordion_heading %]
+    <div class="panel-heading" role="tab" id="[% panel_id | $raw %]_heading">
+        <h2 class="panel-title">
+            <a id="[% panel_id | $raw %]Toggle" href="#[% panel_id | $raw %]_panel" class="collapsed" role="button" data-bs-toggle="collapse" data-parent="#[% panelgroup_id | $raw %]_group" aria-expanded="false" aria-controls="[% panel_id | $raw %]_panel">
+                [% content | $raw %]
+            </a>
+        </h2>
+    </div> <!-- /.panel-heading -->
+[% END %]
+
+[% BLOCK accordion_panel %]
+    <div id="[% panel_id | $raw %]_panel" class="panel-collapse collapse" role="tabpanel" aria-labelledby="[% panel_id | $raw %]_heading">
+        <div class="panel-body">
+            [% content | $raw %]
+        </div> <!-- /.panel-body -->
+    </div> <!-- /.panel-collapse -->
+[% END %]
+
+[% BLOCK acquisitions_filter_form %]
+    <form action="/cgi-bin/koha/acqui/histsearch.pl" method="get">
+        [% IF ( context == "sidebar" ) %]
+            <fieldset class="brief">
+                <h4>Search orders</h4>
+        [% ELSE %]
+            <fieldset class="rows">
+                <legend>Search orders</legend>
+        [% END %]
+            [% INCLUDE 'filter-orders.inc' context == context %]
+            <input type="hidden" name="do_search" value="1" />
+        </fieldset>
+        <fieldset class="action">
+            <input type="submit" class="btn btn-primary" value="Search" />
+        </fieldset>
+    </form>
 [% END %]

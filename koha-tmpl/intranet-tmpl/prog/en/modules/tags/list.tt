@@ -1,10 +1,17 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE AuthorisedValues %]
 [% USE Branches %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( do_it ) %]Review[% ELSE %]Review tags[% END %] &rsaquo; Tags &rsaquo; Tools &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% tx("Results for tag '{tag}'", { tag = tag }) | html %] &rsaquo;
+    [% t("Tags") | html %] &rsaquo;
+    [% t("Tools") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
 tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : transparent; }</style>
@@ -24,20 +31,20 @@ tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : 
             <a href="/cgi-bin/koha/tags/review.pl">Tags</a>
         [% END %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
-            <span>Results for tag <em>[% tag | html %]</em></span>
+            [% tx("Results for tag '{tag}'", { tag = tag }) | html %]
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
-                <h1>Results for tag <em>[% tag | html %]</em></h1>
+                <h1>[% tx("Results for tag '{tag}'", { tag = tag }) | html %]</h1>
 
 [% IF ( titles ) %]
-<h3>Titles tagged with the term <em>[% tag | html %]</em></h3>
     <div class="page-section">
         <table id="itemst">
             <thead><tr>
@@ -74,30 +81,40 @@ tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : 
                         </li>
                         [% END %]</ul>[% ELSE %]This record has no items.[% END %]
                     </td>
-                    <td><form method="post" action="/cgi-bin/koha/tags/list.pl"><input type="hidden" name="op" value="del" /><input type="hidden" name="tag" value="[% tag | html %]" /><input type="hidden" name="tag_id" value="[% title.tag_id | html %]" /><button type="submit" class="delete btn btn-default btn-sm"><i class="fa fa-trash"></i> Remove tag</button></form></td>
+                    <td>
+                        <form method="post" action="/cgi-bin/koha/tags/list.pl">
+                            [% INCLUDE 'csrf-token.inc' %]
+                            <input type="hidden" name="op" value="cud-del" />
+                            <input type="hidden" name="tag" value="[% tag | html %]" />
+                            <input type="hidden" name="tag_id" value="[% title.tag_id | html %]" />
+                            <button type="submit" class="delete btn btn-default btn-sm"><i class="fa fa-trash-can"></i> Remove tag</button>
+                        </form>
+                    </td>
                     </tr>
                 [% END %]
             </table>
     </div> <!-- /.page-section -->
 [% ELSE %]
-    <div class="dialog message">There are no titles tagged with the term <em>[% tag | html %]</em></div>
+    <div class="alert alert-info">There are no titles tagged with the term <em>[% tag | html %]</em></div>
 [% END %]
 </form>
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
-                <ul>
-                    <li><a href="/cgi-bin/koha/tags/review.pl?approved=1">Approved tags</a></li>
-                    <li><a href="/cgi-bin/koha/tags/review.pl?approved=-1">Rejected tags</a></li>
-                    <li><a href="/cgi-bin/koha/tags/review.pl?approved=0">Pending tags</a></li>
-                    <li><a href="/cgi-bin/koha/tags/review.pl?approved=all">All tags</a></li>
-                </ul>
+                <div id="menu">
+                    <ul>
+                        <li><a href="/cgi-bin/koha/tags/review.pl?approved=1">Approved tags</a></li>
+                        <li><a href="/cgi-bin/koha/tags/review.pl?approved=-1">Rejected tags</a></li>
+                        <li><a href="/cgi-bin/koha/tags/review.pl?approved=0">Pending tags</a></li>
+                        <li><a href="/cgi-bin/koha/tags/review.pl?approved=all">All tags</a></li>
+                    </ul>
+                </div>
                 [% INCLUDE 'tools-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -113,11 +130,11 @@ tr.selected { background-color : #FFFFCC; } tr.selected td { background-color : 
                     }
             });
             $("#itemst").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [ -1, -2 ], "bSortable": false, "bSearchable": false },
+                "columnDefs": [
+                    { "targets": [ -1, -2 ], "orderable": false, "searchable":  false },
                 ],
-                "aaSorting": [[ 0, "asc" ]],
-                "sPaginationType": "full"
+                "order": [[ 0, "asc" ]],
+                "pagingType": "full"
             }));
         });
     </script>

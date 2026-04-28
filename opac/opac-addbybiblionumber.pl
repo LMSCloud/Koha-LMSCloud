@@ -28,6 +28,7 @@ use Koha::Biblios;
 use Koha::Virtualshelves;
 
 my $query           = CGI->new;
+my $op              = $query->param('op') // q{};
 my @biblionumbers   = $query->multi_param('biblionumber');
 my $selectedshelf   = $query->param('selectedshelf');
 my $newshelf        = $query->param('newshelf');
@@ -54,7 +55,9 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
-if ($newvirtualshelf) {
+if( $op && $op !~ /^cud-/ ) {
+    $authorized = 0;
+} elsif ($newvirtualshelf) {
     if ($loggedinuser > 0
         and (  !$public
             or $public and $loggedinuser > 0 && C4::Context->preference('OpacAllowPublicListCreation') )
@@ -67,12 +70,11 @@ if ($newvirtualshelf) {
             for my $biblionumber (@biblionumbers) {
                 $shelf->add_biblio( $biblionumber, $loggedinuser );
             }
-
-            #Reload the page where you came from
-            print $query->header;
-            print "<html><meta http-equiv=\"refresh\" content=\"0\" /><body onload=\"window.opener.location.reload(true);self.close();\"></body></html>";
-            exit;
         }
+        $template->param(
+            WINDOW_CLOSE         => 1,
+            WINDOW_PARENT_RELOAD => 1,
+        );
     }
 } elsif ($shelfnumber) {
     my $shelfnumber = $query->param('shelfnumber');
@@ -81,11 +83,9 @@ if ($newvirtualshelf) {
         for my $biblionumber (@biblionumbers) {
             $shelf->add_biblio( $biblionumber, $loggedinuser );
         }
-
-        #Close this page and return
-        print $query->header;
-        print "<html><meta http-equiv=\"refresh\" content=\"0\" /><body onload=\"self.close();\"></body></html>";
-        exit;
+        $template->param(
+            WINDOW_CLOSE         => 1,
+        );
     } else {
         $authorized = 0;
     }
@@ -119,7 +119,7 @@ if ($newvirtualshelf) {
         );
         my $public_shelves;
         if ( $loggedinuser ) {
-            if ( Koha::Patrons->find( $loggedinuser )->can_patron_change_staff_only_lists ) {
+            if ( Koha::Patrons->find( $loggedinuser )->can_patron_change_permitted_staff_lists ) {
                 $public_shelves = Koha::Virtualshelves->search(
                     {   public   => 1,
                         -or      => [
@@ -127,8 +127,23 @@ if ($newvirtualshelf) {
                                 allow_change_from_owner => 1,
                                 owner     => $loggedinuser,
                             },
-                            allow_change_from_others => 1,
-                            allow_change_from_staff  => 1
+                            allow_change_from_others          => 1,
+                            allow_change_from_staff           => 1,
+                            allow_change_from_permitted_staff => 1
+                        ],
+                    },
+                    { order_by => 'shelfname' }
+                );
+            } elsif ( Koha::Patrons->find( $loggedinuser )->can_patron_change_staff_only_lists ) {
+                $public_shelves = Koha::Virtualshelves->search(
+                    {   public   => 1,
+                        -or      => [
+                            -and => {
+                                allow_change_from_owner => 1,
+                                owner     => $loggedinuser,
+                            },
+                            allow_change_from_others          => 1,
+                            allow_change_from_staff           => 1
                         ],
                     },
                     { order_by => 'shelfname' }
@@ -174,7 +189,7 @@ if ($newvirtualshelf) {
 
 if ($authorized) {
     for my $biblionumber (@biblionumbers) {
-        my $biblio = Koha::Biblios->find( $biblionumber );
+        my $biblio = Koha::Biblios->find($biblionumber) or next;
         push(
             @biblios,
             {   biblionumber => $biblionumber,

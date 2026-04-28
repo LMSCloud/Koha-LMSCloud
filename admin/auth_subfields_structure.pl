@@ -34,7 +34,6 @@ my $tagfield     = $input->param('tagfield');
 my $tagsubfield  = $input->param('tagsubfield');
 my $authtypecode = $input->param('authtypecode');
 my $op           = $input->param('op') || '';
-my $script_name  = "/cgi-bin/koha/admin/auth_subfields_structure.pl";
 
 my ($template, $borrowernumber, $cookie) = get_template_and_user(
     {   template_name   => "admin/auth_subfields_structure.tt",
@@ -47,12 +46,12 @@ my $pagesize = 30;
 $tagfield =~ s/\,//g;
 
 if ($op) {
-$template->param(script_name => $script_name,
+    $template->param(
 						tagfield =>$tagfield,
 						authtypecode => $authtypecode,
 						$op              => 1); # we show only the TMPL_VAR names $op
 } else {
-$template->param(script_name => $script_name,
+    $template->param(
 						tagfield =>$tagfield,
 						authtypecode => $authtypecode,
 						else              => 1); # we show only the TMPL_VAR names $op
@@ -146,7 +145,7 @@ if ($op eq 'add_form') {
 												# END $OP eq ADD_FORM
 ################## ADD_VALIDATE ##################################
 # called by add_form, used to insert/modify data in DB
-} elsif ($op eq 'add_validate') {
+} elsif ($op eq 'cud-add_validate') {
 	$template->param(tagfield => "$input->param('tagfield')");
 	my @tagsubfield	= $input->multi_param('tagsubfield');
 	my @liblibrarian	= $input->multi_param('liblibrarian');
@@ -237,10 +236,9 @@ elsif ( $op eq 'delete_confirm' ) {
   );
   $template->param(
       ass         => $ass,
-      delete_link => $script_name,
   );
 }
-elsif ( $op eq 'delete_confirmed' ) {
+elsif ( $op eq 'cud-delete_confirmed' ) {
     Koha::Authority::Subfields->find(
         {
             authtypecode => $authtypecode,

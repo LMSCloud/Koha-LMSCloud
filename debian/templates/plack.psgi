@@ -56,6 +56,10 @@ my $intranet = Plack::App::CGIBin->new(
     root => $ENV{DEV_INSTALL}? $home: "$home/intranet/cgi-bin"
 )->to_app;
 
+my $intranet_svc = Plack::App::CGIBin->new(
+    root => $ENV{DEV_INSTALL}? "$home/svc": "$home/intranet/cgi-bin/svc"
+)->to_app;
+
 my $opac = Plack::App::CGIBin->new(
     root => $ENV{DEV_INSTALL}? "$home/opac": "$home/opac/cgi-bin/opac"
 )->to_app;
@@ -94,6 +98,7 @@ builder {
             enable 'Log4perl', category => 'plack-opac';
             enable 'LogWarn';
         }
+        enable "+Koha::Middleware::CSRF";
         $opac;
     };
     mount '/intranet'      => builder {
@@ -113,7 +118,16 @@ builder {
             enable 'Log4perl', category => 'plack-intranet';
             enable 'LogWarn';
         }
+        enable "+Koha::Middleware::CSRF";
         $intranet;
+    };
+    mount '/intranet_svc'      => builder {
+        if ( Log::Log4perl->get_logger('plack-intranet')->has_appenders ){
+            enable 'Log4perl', category => 'plack-intranet';
+            enable 'LogWarn';
+        }
+        enable "+Koha::Middleware::CSRF";
+        $intranet_svc;
     };
     mount '/api/v1/app.pl' => builder {
         if ( Log::Log4perl->get_logger('plack-api')->has_appenders ){

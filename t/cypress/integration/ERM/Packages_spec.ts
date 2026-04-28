@@ -2,27 +2,6 @@ import { mount } from "@cypress/vue";
 const dayjs = require("dayjs"); /* Cannot use our calendar JS code, it's in an include file (!)
                                    Also note that moment.js is deprecated */
 
-function get_package() {
-    return {
-        package_id: 1,
-        name: "package 1",
-        package_type: "complete",
-        content_type: "Print",
-        package_agreements: [
-            {
-                agreement: {
-                    agreement_id: 2,
-                    description: "agreement description",
-                    name: "agreement name",
-                },
-                agreement_id: 2,
-                package_id: 1,
-            },
-        ],
-        resources_count: 0,
-    };
-}
-
 describe("Package CRUD operations", () => {
     beforeEach(() => {
         cy.login();
@@ -41,7 +20,7 @@ describe("Package CRUD operations", () => {
         });
         cy.visit("/cgi-bin/koha/erm/erm.pl");
         cy.get("#navmenulist").contains("Packages").click();
-        cy.get("main div[class='dialog alert']").contains(
+        cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: Internal Server Error"
         );
 
@@ -58,7 +37,7 @@ describe("Package CRUD operations", () => {
         cy.get("#packages_list").contains("There are no packages defined");
 
         // GET packages returns something
-        let erm_package = get_package();
+        let erm_package = cy.get_package();
         let packages = [erm_package];
 
         cy.intercept("GET", "/api/v1/erm/eholdings/local/packages*", {
@@ -85,9 +64,10 @@ describe("Package CRUD operations", () => {
         cy.visit("/cgi-bin/koha/erm/eholdings/local/packages");
         cy.contains("New package").click();
         cy.get("#packages_add h2").contains("New package");
+        cy.left_menu_active_item_is("Packages");
 
         // Fill in the form for normal attributes
-        let erm_package = get_package();
+        let erm_package = cy.get_package();
 
         cy.get("#packages_add").contains("Submit").click();
         cy.get("input:invalid,textarea:invalid,select:invalid").should(
@@ -113,7 +93,7 @@ describe("Package CRUD operations", () => {
             statusCode: 500,
         });
         cy.get("#packages_add").contains("Submit").click();
-        cy.get("main div[class='dialog alert']").contains(
+        cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: Internal Server Error"
         );
 
@@ -123,7 +103,9 @@ describe("Package CRUD operations", () => {
             body: erm_package,
         });
         cy.get("#packages_add").contains("Submit").click();
-        cy.get("main div[class='dialog message']").contains("Package created");
+        cy.get("main div[class='alert alert-info']").contains(
+            "Package created"
+        );
 
         // Add new related agreement
         let related_agreement = erm_package.package_agreements[0];
@@ -143,7 +125,7 @@ describe("Package CRUD operations", () => {
     });
 
     it("Edit package", () => {
-        let erm_package = get_package();
+        let erm_package = cy.get_package();
         let packages = [erm_package];
         // Click the 'Edit' button from the list
         cy.intercept("GET", "/api/v1/erm/eholdings/local/packages*", {
@@ -169,6 +151,7 @@ describe("Package CRUD operations", () => {
         cy.wait("@get-package");
         cy.wait(500); // Cypress is too fast! Vue hasn't populated the form yet!
         cy.get("#packages_add h2").contains("Edit package");
+        cy.left_menu_active_item_is("Packages");
 
         // Form has been correctly filled in
         cy.get("#package_name").should("have.value", erm_package.name);
@@ -185,7 +168,7 @@ describe("Package CRUD operations", () => {
             statusCode: 500,
         });
         cy.get("#packages_add").contains("Submit").click();
-        cy.get("main div[class='dialog alert']").contains(
+        cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: Internal Server Error"
         );
 
@@ -195,11 +178,13 @@ describe("Package CRUD operations", () => {
             body: erm_package,
         });
         cy.get("#packages_add").contains("Submit").click();
-        cy.get("main div[class='dialog message']").contains("Package updated");
+        cy.get("main div[class='alert alert-info']").contains(
+            "Package updated"
+        );
     });
 
     it("Show package", () => {
-        let erm_package = get_package();
+        let erm_package = cy.get_package();
         let packages = [erm_package];
         // Click the "name" link from the list
         cy.intercept("GET", "/api/v1/erm/eholdings/local/packages*", {
@@ -229,6 +214,8 @@ describe("Package CRUD operations", () => {
         cy.get("#packages_show h2").contains(
             "Package #" + erm_package.package_id
         );
+        cy.left_menu_active_item_is("Packages");
+
         // There are no resources, the table should not be displayed
         cy.contains("Titles (0)");
         cy.get("#title_list_result table").should("not.exist");
@@ -269,7 +256,7 @@ describe("Package CRUD operations", () => {
     });
 
     it("Delete package", () => {
-        let erm_package = get_package();
+        let erm_package = cy.get_package();
         let packages = [erm_package];
 
         // Click the 'Delete' button from the list
@@ -291,7 +278,9 @@ describe("Package CRUD operations", () => {
         cy.get("#packages_list table tbody tr:first")
             .contains("Delete")
             .click();
-        cy.get(".dialog.alert.confirmation h1").contains("remove this package");
+        cy.get(".alert-warning.confirmation h1").contains(
+            "remove this package"
+        );
         cy.contains(erm_package.name);
 
         // Accept the confirmation dialog, get 500
@@ -299,7 +288,7 @@ describe("Package CRUD operations", () => {
             statusCode: 500,
         });
         cy.contains("Yes, delete").click();
-        cy.get("main div[class='dialog alert']").contains(
+        cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: Internal Server Error"
         );
 
@@ -311,9 +300,11 @@ describe("Package CRUD operations", () => {
         cy.get("#packages_list table tbody tr:first")
             .contains("Delete")
             .click();
-        cy.get(".dialog.alert.confirmation h1").contains("remove this package");
+        cy.get(".alert-warning.confirmation h1").contains(
+            "remove this package"
+        );
         cy.contains("Yes, delete").click();
-        cy.get("main div[class='dialog message']")
+        cy.get("main div[class='alert alert-info']")
             .contains("Local package")
             .contains("deleted");
 
@@ -347,8 +338,10 @@ describe("Package CRUD operations", () => {
             "Package #" + erm_package.package_id
         );
 
-        cy.get("#packages_show .action_links .fa-trash").click();
-        cy.get(".dialog.alert.confirmation h1").contains("remove this package");
+        cy.get("#packages_show #toolbar").contains("Delete").click();
+        cy.get(".alert-warning.confirmation h1").contains(
+            "remove this package"
+        );
         cy.contains("Yes, delete").click();
 
         //Make sure we return to list after deleting from show

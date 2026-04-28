@@ -41,7 +41,6 @@
       - $ref: "../swagger.yaml#/parameters/per_page"
       - $ref: "../swagger.yaml#/parameters/q_param"
       - $ref: "../swagger.yaml#/parameters/q_body"
-      - $ref: "../swagger.yaml#/parameters/q_header"
       - $ref: "../swagger.yaml#/parameters/request_id_header"
       - name: x-koha-embed
         in: header
@@ -55,11 +54,13 @@
             - basket.basket_group
             - basket.creator
             - biblio
-            - biblio.active_orders+count
+            - biblio.uncancelled_orders+count
             - biblio.holds+count
             - biblio.items+count
             - biblio.suggestions.suggester
+            - creator
             - fund
+            - fund.budget
             - current_item_level_holds+count
             - invoice
             - items
@@ -180,7 +181,7 @@
             - basket.basket_group
             - basket.creator
             - biblio
-            - biblio.active_orders+count
+            - biblio.uncancelled_orders+count
             - biblio.holds+count
             - biblio.items+count
             - biblio.suggestions.suggester
@@ -305,6 +306,10 @@
           $ref: "../swagger.yaml#/definitions/error"
       "404":
         description: Order not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "409":
+        description: Conflict
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "500":

@@ -66,6 +66,7 @@ sub new_from_field {
     my $marcflavour   = C4::Context->preference('marcflavour');
     my $marc_handler = _marc_format_handler($marcflavour);
 
+    return unless $field;
     my $tag = $field->tag();
     return unless $marc_handler->valid_heading_tag( $tag, $frameworkcode, $auth );
     my $self = {};
@@ -147,22 +148,6 @@ sub authorities {
     my $self         = shift;
     my $skipmetadata = shift;
     my ( $results, $total ) = _search( $self, 'match-heading', $skipmetadata );
-    return $results;
-}
-
-=head2 preferred_authorities
-
-  my $preferred_authorities = $heading->preferred_authorities;
-
-Return a list of authority records for headings
-that are a preferred form of the heading.
-
-=cut
-
-sub preferred_authorities {
-    my $self = shift;
-    my $skipmetadata = shift || undef;
-    my ( $results, $total ) = _search( 'see-from', $skipmetadata );
     return $results;
 }
 

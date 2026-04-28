@@ -1,5 +1,7 @@
 (() => {
-    $("#cancelBookingModal")?.on("show.bs.modal", handleShowBsModal);
+    document
+        .getElementById("cancelBookingModal")
+        ?.addEventListener("show.bs.modal", handleShowBsModal);
     document
         .getElementById("cancelBookingForm")
         ?.addEventListener("submit", handleSubmit);
@@ -7,7 +9,7 @@
     document
         .getElementById("cancelBookingModal")
         ?.addEventListener("hide.bs.modal", () => {
-            $("#cancellation-reason").comboBox("reset");
+            $("#cancelBookingModal #cancellation-reason").comboBox("reset");
         });
 
     async function handleSubmit(e) {

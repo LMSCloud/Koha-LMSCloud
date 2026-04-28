@@ -116,6 +116,99 @@ tables:
             - "<br>"
             - "[% booking.pickup_library.branchname %]"
 
+        - module: catalogue
+          code: TICKET_ACKNOWLEDGE
+          branchcode: ""
+          name: "Concern acknowledgement"
+          is_html: 1
+          title: "Catalog concern acknowledgment"
+          message_transport_type: email
+          lang: default
+          content:
+            - "[%- PROCESS 'html_helpers.inc' -%]"
+            - "Dear [%- INCLUDE 'patron-title.inc' patron => ticket.reporter -%],<br>"
+            - "<br>"
+            - "Thank you for your report concerning [%- INCLUDE 'biblio-title.inc' biblio=ticket.biblio link = 0 -%].<br>"
+            - "<br>"
+            - "You reported: <br>"
+            - "[%- ticket.body -%]<br>"
+            - "<br>"
+            - "Thank you"
+
+        - module: catalogue
+          code: TICKET_ASSIGNED
+          branchcode: ""
+          name: "Concern assigned notification"
+          is_html: 1
+          title: "Catalog concern assigned"
+          message_transport_type: email
+          lang: default
+          content:
+            - "[%- PROCESS 'html_helpers.inc' -%]"
+            - "[%- USE Koha -%]"
+            - "Dear cataloger,<br>"
+            - "[%- INCLUDE 'patron-title.inc' patron => librarian -%] has assigned the following concern with <a href='[%- Koha.Preference('staffClientBaseURL') -%]/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% ticket.biblio.biblionumber %]' >[%- INCLUDE 'biblio-title.inc' biblio=ticket.biblio link = 0 -%]</a> to you<br>"
+            - "<br>"
+            - "[%- ticket.body -%]<br>"
+            - "<br>"
+            - "You can action this concern from the <a href='[%- Koha.Preference('staffClientBaseURL') -%]/cgi-bin/koha/cataloguing/concerns.pl'>concern management page</a>."
+
+        - module: catalogue
+          code: TICKET_RESOLVE
+          branchcode: ""
+          name: "Concern resolved"
+          is_html: 1
+          title: "Catalog concern resolved"
+          message_transport_type: email
+          lang: default
+          content:
+            - "[%- PROCESS 'html_helpers.inc' -%]"
+            - "Dear [%- INCLUDE 'patron-title.inc' patron => ticket_update.ticket.reporter -%],<br>"
+            - "<br>"
+            - "The library has now marked your concern with [%- INCLUDE 'biblio-title.inc' biblio=ticket_update.ticket.biblio link = 0 -%] as resolved.<br>"
+            - "<br>"
+            - "The following comment was left: <br>"
+            - "[%- ticket_update.message -%]<br>"
+            - "<br>"
+            - "Thank you"
+
+        - module: catalogue
+          code: TICKET_UPDATE
+          branchcode: ""
+          name: "Concern updated"
+          is_html: 1
+          title: "Catalog concern updated"
+          message_transport_type: email
+          lang: default
+          content:
+            - "[%- PROCESS 'html_helpers.inc' -%]"
+            - "Dear [%- INCLUDE 'patron-title.inc' patron => ticket_update.ticket.reporter -%],<br>"
+            - "<br>"
+            - "The library has added an update to the concern you reported against [%- INCLUDE 'biblio-title.inc' biblio=ticket_update.ticket.biblio link = 0 -%].<br>"
+            - "<br>"
+            - "The following comment was left: <br>"
+            - "[%- ticket_update.message -%]<br>"
+            - "<br>"
+            - "Thank you"
+
+        - module: catalogue
+          code: TICKET_NOTIFY
+          branchcode: ""
+          name: "Concern notification"
+          is_html: 1
+          title: "Catalog concern reported"
+          message_transport_type: email
+          lang: default
+          content:
+            - "[%- PROCESS 'html_helpers.inc' -%]"
+            - "[%- USE Koha -%]"
+            - "Dear cataloger,<br>"
+            - "[%- INCLUDE 'patron-title.inc' patron => ticket.reporter -%] reported the following concern with <a href='[%- Koha.Preference('staffClientBaseURL') -%]/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% ticket.biblio.biblionumber %]' >[%- INCLUDE 'biblio-title.inc' biblio=ticket.biblio link = 0 -%]</a><br>"
+            - "<br>"
+            - "[%- ticket.body -%]<br>"
+            - "<br>"
+            - "You can mark this concern as resolved from the <a href='[%- Koha.Preference('staffClientBaseURL') -%]/cgi-bin/koha/cataloguing/concerns.pl'>concern management page</a>."
+
         - module: circulation
           code: ACCOUNT_CREDIT
           branchcode: ""
@@ -171,22 +264,22 @@ tables:
             - "    [% IF ( credit.credit_type_code == 'PAYMENT' ) %]"
             - "    <tr>"
             - "      <th colspan=\"2\">"
-            - "        Received with thanks from  [% credit.patron.firstname | html %] [% credit.patron.surname | html %] <br />"
-            - "        Card number: [% credit.patron.cardnumber | html %]<br />"
+            - "        Received with thanks from  [% credit.patron.firstname | html %] [% credit.patron.surname | html %] <br>"
+            - "        Card number: [% credit.patron.cardnumber | html %]<br>"
             - "      </th>"
             - "    </tr>"
             - "    [% ELSIF ( credit.credit_type_code == 'CREDIT' ) %]"
             - "    <tr>"
             - "      <th colspan=\"2\">"
-            - "        Credit added to account for [% credit.patron.firstname | html %] [% credit.patron.surname | html %] <br />"
-            - "        Card number: [% credit.patron.cardnumber | html %]<br />"
+            - "        Credit added to account for [% credit.patron.firstname | html %] [% credit.patron.surname | html %] <br>"
+            - "        Card number: [% credit.patron.cardnumber | html %]<br>"
             - "      </th>"
             - "    </tr>"
             - "    [% ELSIF ( credit.credit_type_code == 'WRITEOFF' ) %]"
             - "    <tr>"
             - "      <th colspan=\"2\">"
-            - "        Writeoff added to account for [% credit.patron.firstname | html %] [% credit.patron.surname | html %] <br />"
-            - "        Card number: [% credit.patron.cardnumber | html %]<br />"
+            - "        Writeoff added to account for [% credit.patron.firstname | html %] [% credit.patron.surname | html %] <br>"
+            - "        Card number: [% credit.patron.cardnumber | html %]<br>"
             - "      </th>"
             - "    </tr>"
             - "    [% END %]"
@@ -281,8 +374,8 @@ tables:
             - "    </tr>"
             - "    <tr>"
             - "      <th colspan=\"3\" >"
-            - "        Bill to: [% debit.patron.firstname | html %] [% debit.patron.surname | html %] <br />"
-            - "        Card number: [% debit.patron.cardnumber | html %]<br />"
+            - "        Bill to: [% debit.patron.firstname | html %] [% debit.patron.surname | html %] <br>"
+            - "        Card number: [% debit.patron.cardnumber | html %]<br>"
             - "      </th>"
             - "    </tr>"
             - "    [% IF debit.amountoutstanding != 0 %]"
@@ -534,7 +627,6 @@ tables:
             - "Chapters: <<article_requests.chapters>>"
             - "Notes: <<article_requests.patron_notes>>"
             - "Format: [% IF article_request.format == 'PHOTOCOPY' %]Copy[% ELSIF article_request.format == 'SCAN' %]Scan[% END %]"
-            - ""
 
         - module: circulation
           code: CHECKIN
@@ -552,12 +644,42 @@ tables:
             - "Thank you."
 
         - module: circulation
+          code: CHECKIN
+          branchcode: ""
+          name: "Item check-in (digest)"
+          is_html: 0
+          title: "Check-ins"
+          message_transport_type: sms
+          lang: default
+          content:
+            - "The following items have been checked in:"
+            - "----"
+            - "[% biblio.title %]"
+            - "----"
+            - "Thank you."
+
+        - module: circulation
           code: CHECKOUT
           branchcode: ""
           name: "Item check-out (digest)"
           is_html: 0
           title: "Checkouts"
           message_transport_type: email
+          lang: default
+          content:
+            - "The following items have been checked out:"
+            - "----"
+            - "[% biblio.title %]"
+            - "----"
+            - "Thank you for visiting [% branch.branchname %]."
+
+        - module: circulation
+          code: CHECKOUT
+          branchcode: ""
+          name: "Item check-out (digest)"
+          is_html: 0
+          title: "Checkouts"
+          message_transport_type: sms
           lang: default
           content:
             - "The following items have been checked out:"
@@ -586,11 +708,26 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
             - ""
             - "The following item is now due:"
             - ""
-            - "<<biblio.title>>, <<biblio.author>> (<<items.barcode>>)"
+            - "[% biblio.title %], [% biblio.author %] ([% item.barcode %])"
+
+        - module: circulation
+          code: DUE
+          branchcode: ""
+          name: "Item due reminder"
+          is_html: 0
+          title: "Item due reminder"
+          message_transport_type: sms
+          lang: default
+          content:
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
+            - ""
+            - "The following item is now due:"
+            - ""
+            - "[% biblio.title %]"
 
         - module: circulation
           code: DUEDGST
@@ -610,6 +747,21 @@ tables:
             - "Thank you."
 
         - module: circulation
+          code: DUEDGST
+          branchcode: ""
+          name: "Item due reminder (digest)"
+          is_html: 0
+          title: "Item due reminder"
+          message_transport_type: sms
+          lang: default
+          content:
+            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - ""
+            - "You have <<count>> item(s) that are now due"
+            - ""
+            - "Thank you."
+
+        - module: circulation
           code: HOLD_SLIP
           branchcode: ""
           name: "Hold slip"
@@ -618,34 +770,33 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "<h5>Date: <<today>></h5>"
-            - ""
-            - "<h3> Transfer to/Hold in <<branches.branchname>></h3>"
-            - ""
-            - "<h3><<borrowers.surname>>, <<borrowers.firstname>></h3>"
-            - ""
+            - "<h5>Date: [% today | $KohaDates %]</h5>"
+            - "<br>"
+            - "<h3> Transfer to/Hold in [% branch.branchname %]</h3>"
+            - "<br>"
+            - "<h3>[% borrower.surname %], [% borrower.firstname %]</h3>"
+            - "<br>"
             - "<ul>"
-            - "    <li><<borrowers.cardnumber>></li>"
-            - "    <li><<borrowers.phone>></li>"
-            - "    <li> <<borrowers.address>><br />"
-            - "         <<borrowers.address2>><br />"
-            - "         <<borrowers.city >>  <<borrowers.zipcode>>"
+            - "    <li>[% borrower.cardnumber %]</li>"
+            - "    <li>[% borrower.phone %]</li>"
+            - "    <li> [% borrower.address %]<br>"
+            - "         [% borrower.address2 %]<br>"
+            - "         [% borrower.city %] [% borrower.zipcode %]"
             - "    </li>"
-            - "    <li><<borrowers.email>></li>"
+            - "    <li>[% borrower.email %]</li>"
             - "</ul>"
-            - "<br />"
+            - "<br>"
             - "<h3>ITEM ON HOLD</h3>"
-            - "<h4><<biblio.title>></h4>"
-            - "<h5><<biblio.author>></h5>"
+            - "<h4>[% biblio.title %]</h4>"
+            - "<h5>[% biblio.author %]</h5>"
             - "<ul>"
-            - "   <li><<items.barcode>></li>"
-            - "   <li><<items.itemcallnumber>></li>"
-            - "   <li><<reserves.waitingdate>></li>"
+            - "   <li>[% item.barcode %]</li>"
+            - "   <li>[% item.itemcallnumber %]</li>"
+            - "   <li>[% reserve.waitingdate | $KohaDates %]</li>"
             - "</ul>"
             - "<p>Notes:"
-            - "<pre><<reserves.reservenotes>></pre>"
+            - "<pre>[% reserve.reservenotes %]</pre>"
             - "</p>"
-            - ""
 
         - module: circulation
           code: ISSUEQSLIP
@@ -656,18 +807,19 @@ tables:
           message_transport_type: email
           lang: default
           content:
+            - "[%~ USE KohaDates ~%]"
             - "<h3><<branches.branchname>></h3>"
-            - "Checked out to <<borrowers.title>> <<borrowers.firstname>> <<borrowers.initials>> <<borrowers.surname>> <br />"
-            - "(<<borrowers.cardnumber>>) <br />"
-            - ""
-            - "<<today>><br />"
-            - ""
+            - "Checked out to <<borrowers.title>> <<borrowers.firstname>> <<borrowers.initials>> <<borrowers.surname>> <br>"
+            - "(<<borrowers.cardnumber>>) <br>"
+            - "<br>"
+            - "<<today>><br>"
+            - "<br>"
             - "<h4>Checked out today</h4>"
             - "<checkedout>"
             - "<p>"
-            - "<<biblio.title>> <br />"
-            - "Barcode: <<items.barcode>><br />"
-            - "Date due: <<issues.date_due>><br />"
+            - "<<biblio.title>> <br>"
+            - "Barcode: <<items.barcode>><br>"
+            - "Date due: <<issues.date_due>><br>"
             - "</p>"
             - "</checkedout>"
 
@@ -681,40 +833,42 @@ tables:
           lang: default
           content:
             - "<h3><<branches.branchname>></h3>"
-            - "Checked out to <<borrowers.title>> <<borrowers.firstname>> <<borrowers.initials>> <<borrowers.surname>> <br />"
-            - "(<<borrowers.cardnumber>>) <br />"
-            - ""
-            - "<<today>><br />"
-            - ""
+            - "Checked out to <<borrowers.title>> <<borrowers.firstname>> <<borrowers.initials>> <<borrowers.surname>> <br>"
+            - "(<<borrowers.cardnumber>>) <br>"
+            - "<br>"
+            - "<<today>><br>"
+            - "<br>"
             - "<h4>Checked out</h4>"
             - "<checkedout>"
             - "<p>"
-            - "<<biblio.title>> <br />"
-            - "Barcode: <<items.barcode>><br />"
-            - "Date due: <<issues.date_due>><br />"
+            - "<<biblio.title>> <br>"
+            - "Barcode: <<items.barcode>><br>"
+            - "Date due: <<issues.date_due>><br>"
             - "</p>"
             - "</checkedout>"
-            - ""
+            - "<br>"
             - "<h4>Overdues</h4>"
             - "<overdue>"
             - "<p>"
-            - "<<biblio.title>> <br />"
-            - "Barcode: <<items.barcode>><br />"
-            - "Date due: <<issues.date_due>><br />"
+            - "<<biblio.title>> <br>"
+            - "Barcode: <<items.barcode>><br>"
+            - "Date due: <<issues.date_due>><br>"
             - "</p>"
             - "</overdue>"
-            - ""
+            - "<br>"
             - "<hr>"
-            - ""
+            - "<br>"
+            - "[% IF additional_contents.count %]"
             - "<h4 style=\"text-align: center; font-style:italic;\">News</h4>"
-            - "<news>"
+            - "[% FOREACH content IN additional_contents %]"
             - "<div class=\"newsitem\">"
-            - "<h5 style=\"margin-bottom: 1px; margin-top: 1px\"><b><<additional_contents.title>></b></h5>"
-            - "<p style=\"margin-bottom: 1px; margin-top: 1px\"><<additional_contents.content>></p>"
-            - "<p class=\"newsfooter\" style=\"font-size: 8pt; font-style:italic; margin-bottom: 1px; margin-top: 1px\">Posted on <<additional_contents.published_on>></p>"
+            - "<h5 style=\"margin-bottom: 1px; margin-top: 1px\"><b>[% content.title %]</b></h5>"
+            - "<p style=\"margin-bottom: 1px; margin-top: 1px\">[% content.content %]</p>"
+            - "<p class=\"newsfooter\" style=\"font-size: 8pt; font-style:italic; margin-bottom: 1px; margin-top: 1px\">Posted on [% content.published_on | $KohaDates %]</p>"
             - "<hr />"
             - "</div>"
-            - "</news>"
+            - "[% END %]"
+            - "[% END %]"
 
         - module: circulation
           code: ODUE
@@ -727,7 +881,7 @@ tables:
           content:
             - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
             - ""
-            - "According to our current records, you have items that are overdue.Your library does not charge late fines, but please return or renew them at the branch below as soon as possible."
+            - "According to our current records, you have items that are overdue.Your library does not charge late fines, but please return or renew them at the library below as soon as possible."
             - ""
             - "<<branches.branchname>>"
             - "<<branches.branchaddress1>>"
@@ -770,11 +924,26 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
             - ""
             - "The following item will be due soon:"
             - ""
-            - "<<biblio.title>>, <<biblio.author>> (<<items.barcode>>)"
+            - "[% biblio.title %], [% biblio.author %] ([% item.barcode %])"
+
+        - module: circulation
+          code: PREDUE
+          branchcode: ""
+          name: "Advance notice of item due"
+          is_html: 0
+          title: "Advance notice of item due"
+          message_transport_type: sms
+          lang: default
+          content:
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
+            - ""
+            - "The following item will be due soon:"
+            - ""
+            - "[% biblio.title %]"
 
         - module: circulation
           code: PREDUEDGST
@@ -794,6 +963,21 @@ tables:
             - "Thank you."
 
         - module: circulation
+          code: PREDUEDGST
+          branchcode: ""
+          name: "Advance notice of item due (digest)"
+          is_html: 0
+          title: "Advance notice of item due"
+          message_transport_type: sms
+          lang: default
+          content:
+            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - ""
+            - "You have <<count>> item(s) that will be due soon."
+            - ""
+            - "Thank you."
+
+        - module: circulation
           code: RENEWAL
           branchcode: ""
           name: "Item renewals"
@@ -804,9 +988,9 @@ tables:
           content:
             - "The following items have been renewed:"
             - "----"
-            - "<<biblio.title>>"
+            - "[% biblio.title %]"
             - "----"
-            - "Thank you for visiting <<branches.branchname>>."
+            - "Thank you for visiting [% branch.branchname %]."
 
         - module: circulation
           code: SR_SLIP
@@ -842,9 +1026,9 @@ tables:
           lang: default
           content:
             - "<h5>Date: <<today>></h5>"
-            - ""
+            - "<br>"
             - "<h3>Transfer to <<branches.branchname>></h3>"
-            - ""
+            - "<br>"
             - "<h3>ITEM</h3>"
             - "<h4><<biblio.title>></h4>"
             - "<h5><<biblio.author>></h5>"
@@ -871,6 +1055,30 @@ tables:
             - ""
             - "<order>Ordernumber <<aqorders.ordernumber>> (<<biblio.title>>) (<<aqorders.quantity>> ordered) ($<<aqorders.listprice>> each) has not been received.</order>"
 
+        - module: commandline
+          code: SFTP_FAILURE
+          branchcode: ""
+          name: "File SFTP failed"
+          is_html: 0
+          title: "The SFTP by sftp_file.pl failed"
+          message_transport_type: email
+          lang: default
+          content:
+            - "SFTP upload failed:"
+            - ""
+            - "<<sftp_status>>"
+
+        - module: commandline
+          code: SFTP_SUCCESS
+          branchcode: ""
+          name: "File SFTP success"
+          is_html: 0
+          title: "The SFTP by sftp_file.pl was successful"
+          message_transport_type: email
+          lang: default
+          content:
+            - "SFTP upload succeeded"
+
         - module: ill
           code: ILL_PICKUP_READY
           branchcode: ""
@@ -1170,6 +1378,63 @@ tables:
             - "[% branch.branchphone %]"
             - "[% branch.branchillemail %]"
             - "[% branch.branchemail %]"
+
+        - module: lists
+          code: SHARE_ACCEPT
+          branchcode: ""
+          name: "Notification about an accepted share"
+          is_html: 0
+          title: "Share on list <<listname>> accepted"
+          message_transport_type: email
+          lang: default
+          content:
+            - "Dear patron,"
+            - ""
+            - "We want to inform you that <<borrowers.firstname>> <<borrowers.surname>> accepted your invitation to share your list <<listname>> in our library catalog."
+            - ""
+            - "Thank you."
+            - ""
+            - "Your library."
+
+        - module: lists
+          code: SHARE_INVITE
+          branchcode: ""
+          name: "Invitation for sharing a list"
+          is_html: 0
+          title: "Share list <<listname>>"
+          message_transport_type: email
+          lang: default
+          content:
+            - "Dear patron,"
+            - ""
+            - "One of our patrons, <<borrowers.firstname>> <<borrowers.surname>>, invites you to share a list <<listname>> in our library catalog."
+            - ""
+            - "To access this shared list, please click on the following URL or copy-and-paste it into your browser address bar."
+            - ""
+            - "<<shareurl>>"
+            - ""
+            - "In case you are not a patron in our library or do not want to accept this invitation, please ignore this mail. Note also that this invitation expires within two weeks."
+            - ""
+            - "Thank you."
+            - ""
+            - "Your library."
+
+        - module: lists
+          code: TRANSFER_OWNERSHIP
+          branchcode: ""
+          name: "Transfer ownership"
+          is_html: 1
+          title: "A list has been transferred to you"
+          message_transport_type: email
+          lang: default
+          content:
+            - "Dear [%- INCLUDE 'patron-title.inc' patron => owner -%],<br>"
+            - "<br>"
+            - "A public list, titled <em>[% shelf.shelfname | html %]</em>, has been transferred to you[% IF ( librarian ) %] by [%- INCLUDE 'patron-title.inc' patron => librarian %][% END %].<br>"
+            - "<br>"
+            - "[% IF old_owner %]The list was previously owned by [%- INCLUDE 'patron-title.inc' patron => old_owner -%].<br><br>[% END %]"
+            - "Thank you<br>"
+            - "<br>"
 
         - module: members
           code: DISCHARGE
@@ -1207,6 +1472,26 @@ tables:
             - "Librarian"
             - ""
             - "<<branches.branchname>>"
+
+        - module: members
+          code: MEMBERSHIP_RENEWED
+          branchcode: ""
+          name: "Account renewal"
+          is_html: 0
+          title: "Account renewal"
+          message_transport_type: email
+          lang: default
+          content:
+            - "[%- USE Price -%]"
+            - "Dear [% borrower.title %] [% borrower.firstname %] [% borrower.surname %],"
+            - ""
+            - "Your library account has been renewed. The new expiry date is: [% borrower.dateexpiry %]."
+            - "[% IF borrower.category.enrolmentfee > 0 %]\nAn enrollment fee of [% borrower.category.enrolmentfee | $Price with_symbol => 1 %] has been applied.\n[% END %]"
+            - "Thank you,"
+            - ""
+            - "Your library,"
+            - ""
+            - "[% branch.branchname %]"
 
         - module: members
           code: OPAC_REG_VERIFY
@@ -1253,7 +1538,7 @@ tables:
             - "</p>"
             - "<p>"
             - "You can now create your new password using the following link:"
-            - "<br/><a href=\"<<passwordreseturl>>\"><<passwordreseturl>></a>"
+            - "<br><a href=\"<<passwordreseturl>>\"><<passwordreseturl>></a>"
             - "</p>"
             - "<p>This link will be valid for 2 days from this email's reception, then you must reapply if you do not change your password.</p>"
             - "<p>Thank you.</p>"
@@ -1271,50 +1556,10 @@ tables:
             - "</p>"
             - "<p>"
             - "Please create your new password using the following link:"
-            - "<br/><a href=\"<<passwordreseturl>>\"><<passwordreseturl>></a>"
+            - "<br><a href=\"<<passwordreseturl>>\"><<passwordreseturl>></a>"
             - "</p>"
             - "<p>This link will be valid for 5 days from this email's reception, then you must reapply if you do not change your password.</p>"
             - "<p>Thank you.</p>"
-
-        - module: members
-          code: SHARE_ACCEPT
-          branchcode: ""
-          name: "Notification about an accepted share"
-          is_html: 0
-          title: "Share on list <<listname>> accepted"
-          message_transport_type: email
-          lang: default
-          content:
-            - "Dear patron,"
-            - ""
-            - "We want to inform you that <<borrowers.firstname>> <<borrowers.surname>> accepted your invitation to share your list <<listname>> in our library catalog."
-            - ""
-            - "Thank you."
-            - ""
-            - "Your library."
-
-        - module: members
-          code: SHARE_INVITE
-          branchcode: ""
-          name: "Invitation for sharing a list"
-          is_html: 0
-          title: "Share list <<listname>>"
-          message_transport_type: email
-          lang: default
-          content:
-            - "Dear patron,"
-            - ""
-            - "One of our patrons, <<borrowers.firstname>> <<borrowers.surname>>, invites you to share a list <<listname>> in our library catalog."
-            - ""
-            - "To access this shared list, please click on the following URL or copy-and-paste it into your browser address bar."
-            - ""
-            - "<<shareurl>>"
-            - ""
-            - "In case you are not a patron in our library or do not want to accept this invitation, please ignore this mail. Note also that this invitation expires within two weeks."
-            - ""
-            - "Thank you."
-            - ""
-            - "Your library."
 
         - module: members
           code: WELCOME
@@ -1660,18 +1905,69 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
             - ""
-            - "You have a hold available for pickup as of <<reserves.waitingdate>>:"
+            - "You have a hold available for pickup as of [% hold.waitingdate | $KohaDates %]:"
             - ""
-            - "Title: <<biblio.title>>"
-            - "Author: <<biblio.author>>"
-            - "Copy: <<items.copynumber>>"
-            - "Location: <<branches.branchname>>"
-            - "<<branches.branchaddress1>>"
-            - "<<branches.branchaddress2>>"
-            - "<<branches.branchaddress3>>"
-            - "<<branches.branchcity>> <<branches.branchzip>>"
+            - "Title: [% biblio.title %]"
+            - "Author: [% biblio.author %]"
+            - "Copy: [% item.copynumber %]"
+            - "Location: [% branch.branchname %]"
+            - "[% branch.branchaddress1 %]"
+            - "[% branch.branchaddress2 %]"
+            - "[% branch.branchaddress3 %]"
+            - "[% branch.branchcity %] [% branch.branchzip %]"
+
+        - module: reserves
+          code: HOLDDGST
+          branchcode: ""
+          name: "Hold(s) available for pickup"
+          is_html: 0
+          title: "Hold(s) available for pickup"
+          message_transport_type: email
+          lang: default
+          content:
+            - "You have one or more holds available for pickup:"
+            - "----"
+            - "Title: [% hold.biblio.title %]"
+            - "Author: [% hold.biblio.author %]"
+            - "Copy: [% hold.item.copynumber %]"
+            - "Waiting since: [% hold.waitingdate %]"
+            - "Waiting at: [% hold.branch.branchname %]"
+            - "[% hold.branch.branchaddress1 %]"
+            - "[% hold.branch.branchaddress2 %]"
+            - "[% hold.branch.branchaddress3 %]"
+            - "[% hold.branch.branchcity %] [% hold.branch.branchzip %]"
+            - "----"
+            - "Thank you!"
+
+        - module: reserves
+          code: HOLDDGST
+          branchcode: ""
+          name: "Hold(s) available for pickup"
+          is_html: 0
+          title: "Hold(s) available for pickup"
+          message_transport_type: sms
+          lang: default
+          content:
+            - "You have one or more holds available for pickup:"
+            - ""
+            - "----"
+            - "Title: [% hold.biblio.title %]"
+            - "----"
+
+        - module: reserves
+          code: HOLD
+          branchcode: ""
+          name: "Hold available for pickup"
+          is_html: 0
+          title: "Hold available for pickup at [% branch.branchname %]"
+          message_transport_type: sms
+          lang: default
+          content:
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
+            - ""
+            - "Your hold for [% biblio.title %] is available for pickup."
 
         - module: reserves
           code: HOLD
@@ -1682,9 +1978,9 @@ tables:
           message_transport_type: print
           lang: default
           content:
-            - "<<branches.branchname>>"
-            - "<<branches.branchaddress1>>"
-            - "<<branches.branchaddress2>>"
+            - "[% branch.branchname %]"
+            - "[% branch.branchaddress1 %]"
+            - "[% branch.branchaddress2 %]"
             - ""
             - ""
             - "Change service requested"
@@ -1695,9 +1991,9 @@ tables:
             - ""
             - ""
             - ""
-            - "<<borrowers.firstname>> <<borrowers.surname>>"
-            - "<<borrowers.address>>"
-            - "<<borrowers.city>> <<borrowers.zipcode>>"
+            - "[% borrower.firstname %] [% borrower.surname %]"
+            - "[% borrower.address %]"
+            - "[% borrower.city %] [% borrower.zipcode %]"
             - ""
             - ""
             - ""
@@ -1708,13 +2004,13 @@ tables:
             - ""
             - ""
             - ""
-            - "<<borrowers.firstname>> <<borrowers.surname>> <<borrowers.cardnumber>>"
+            - "[% borrower.firstname %] [% borrower.surname %] [% borrower.cardnumber %]"
             - ""
-            - "You have a hold available for pickup as of <<reserves.waitingdate>>:"
+            - "You have a hold available for pickup as of [% hold.waitingdate | $KohaDates %]:"
             - ""
-            - "Title: <<biblio.title>>"
-            - "Author: <<biblio.author>>"
-            - "Copy: <<items.copynumber>>"
+            - "Title: [% biblio.title %]"
+            - "Author: [% biblio.author %]"
+            - "Copy: [% item.copynumber %]"
             - ""
 
         - module: reserves
@@ -1798,17 +2094,17 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
             - ""
-            - "You have suggested that the library acquire <<suggestions.title>> by <<suggestions.author>>."
+            - "You have suggested that the library acquire [% suggestion.title %] by [% suggestion.author %]."
             - ""
             - "The library has reviewed your suggestion today. The item will be ordered as soon as possible. You will be notified by mail when the order is completed, and again when the item arrives at the library."
             - ""
-            - "If you have any questions, please email us at <<branches.branchemail>>."
+            - "If you have any questions, please email us at [% branch.branchemail %]."
             - ""
             - "Thank you,"
             - ""
-            - "<<branches.branchname>>"
+            - "[% branch.branchname %]"
 
         - module: suggestions
           code: AVAILABLE
@@ -1819,17 +2115,17 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
             - ""
-            - "You have suggested that the library acquire <<suggestions.title>> by <<suggestions.author>>."
+            - "You have suggested that the library acquire [% suggestion.title %] by [% suggestion.author %]."
             - ""
             - "We are pleased to inform you that the item you requested is now part of the collection."
             - ""
-            - "If you have any questions, please email us at <<branches.branchemail>>."
+            - "If you have any questions, please email us at [% branch.branchemail %]."
             - ""
             - "Thank you,"
             - ""
-            - "<<branches.branchname>>"
+            - "[% branch.branchname %]"
 
         - module: suggestions
           code: NEW_SUGGESTION
@@ -1843,26 +2139,30 @@ tables:
             - "<h3>Suggestion pending approval</h3>"
             - "    <p><h4>Suggested by</h4>"
             - "    <ul>"
-            - "    <li><<borrowers.firstname>> <<borrowers.surname>></li>"
-            - "    <li><<borrowers.cardnumber>></li>"
-            - "    <li><<borrowers.phone>></li>"
-            - "    <li><<borrowers.email>></li>"
+            - "    <li>[% borrower.firstname %] [% borrower.surname %]</li>"
+            - "    <li>[% borrower.cardnumber %]</li>"
+            - "    [%- IF borrower.phone -%]"
+            - "        <li>[% borrower.phone %]</li>"
+            - "    [%- END -%]"
+            - "    [%- IF borrower.email -%]"
+            - "        <li>[% borrower.email %]</li>"
+            - "    [%- END -%]"
             - "    </ul>"
             - "    </p>"
             - "    <p><h4>Title suggested</h4>"
             - "    <ul>"
-            - "    <li><b>Library:</b> <<branches.branchname>></li>"
-            - "    <li><b>Title:</b> <<suggestions.title>></li>"
-            - "    <li><b>Author:</b> <<suggestions.author>></li>"
-            - "    <li><b>Copyright date:</b> <<suggestions.copyrightdate>></li>"
-            - "    <li><b>Standard number (ISBN, ISSN or other):</b> <<suggestions.isbn>></li>"
-            - "    <li><b>Publisher:</b> <<suggestions.publishercode>></li>"
-            - "    <li><b>Collection title:</b> <<suggestions.collectiontitle>></li>"
-            - "    <li><b>Publication place:</b> <<suggestions.place>></li>"
-            - "    <li><b>Quantity:</b> <<suggestions.quantity>></li>"
-            - "    <li><b>Item type:</b>  <<suggestions.itemtype>></li>"
-            - "    <li><b>Reason for suggestion:</b> <<suggestions.patronreason>></li>"
-            - "    <li><b>Notes:</b> <<suggestions.note>></li>"
+            - "    <li><b>Library:</b> [% branch.branchname %]</li>"
+            - "    <li><b>Title:</b> [% suggestion.title %]</li>"
+            - "    <li><b>Author:</b> [% suggestion.author %]</li>"
+            - "    <li><b>Copyright date:</b> [% suggestion.copyrightdate %]</li>"
+            - "    <li><b>Standard number (ISBN, ISSN or other):</b> [% suggestion.isbn %]</li>"
+            - "    <li><b>Publisher:</b> [% suggestion.publishercode %]</li>"
+            - "    <li><b>Collection title:</b> [% suggestion.collectiontitle %]</li>"
+            - "    <li><b>Publication place:</b> [% suggestion.place %]</li>"
+            - "    <li><b>Quantity:</b> [% suggestion.quantity %]</li>"
+            - "    <li><b>Item type:</b>  [% suggestion.itemtype %]</li>"
+            - "    <li><b>Reason for suggestion:</b> [% suggestion.patronreason %]</li>"
+            - "    <li><b>Notes:</b> [% suggestion.note %]</li>"
             - "    </ul>"
             - "    </p>"
 
@@ -1875,19 +2175,19 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
             - ""
-            - "You have suggested that the library acquire <<suggestions.title>> by <<suggestions.author>>."
+            - "You have suggested that the library acquire [% suggestion.title %] by [% suggestion.author %]."
             - ""
             - "We are pleased to inform you that the item you requested has now been ordered. It should arrive soon, at which time it will be processed for addition into the collection."
             - ""
             - "You will be notified again when the book is available."
             - ""
-            - "If you have any questions, please email us at <<branches.branchemail>>"
+            - "If you have any questions, please email us at [% branch.branchemail %]"
             - ""
             - "Thank you,"
             - ""
-            - "<<branches.branchname>>"
+            - "[% branch.branchname %]"
 
         - module: suggestions
           code: REJECTED
@@ -1898,19 +2198,19 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
             - ""
-            - "You have suggested that the library acquire <<suggestions.title>> by <<suggestions.author>>."
+            - "You have suggested that the library acquire [% suggestion.title %] by [% suggestion.author %]."
             - ""
             - "The library has reviewed your request today, and has decided not to accept the suggestion at this time."
             - ""
-            - "The reason given is: <<suggestions.reason>>"
+            - "The reason given is: [% suggestion.reason %]"
             - ""
-            - "If you have any questions, please email us at <<branches.branchemail>>."
+            - "If you have any questions, please email us at [% branch.branchemail %]."
             - ""
             - "Thank you,"
             - ""
-            - "<<branches.branchname>>"
+            - "[% branch.branchname %]"
 
         - module: suggestions
           code: TO_PROCESS
@@ -1921,13 +2221,13 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
             - ""
-            - "A new suggestion is ready to be processed: <<suggestions.title>> by <<suggestions.author>>."
+            - "A new suggestion is ready to be processed: [% suggestion.title %] by [% suggestion.author %]."
             - ""
             - "Thank you,"
             - ""
-            - "<<branches.branchname>>"
+            - "[% branch.branchname %]"
 
         - module: suggestions
           code: NOTIFY_MANAGER
@@ -1973,7 +2273,13 @@ tables:
           lang: default
           content:
             - "Dear [% borrower.firstname %] [% borrower.surname %],"
-            - "[% IF checkout.auto_renew_error %]"
+            - "[% IF checkout.auto_renew_error == 'auto_renew_final' %]"
+            - "The following item, [% biblio.title %], has correctly been renewed and is now due on [% checkout.date_due | $KohaDates as_due_date => 1 %]"
+            - "This item has reached the maximum number of automatic renewals and will no longer be renewed."
+            - "[% ELSIF checkout.auto_renew_error == 'auto_unseen_final' %]"
+            - "The following item, [% biblio.title %], has correctly been renewed and is now due on [% checkout.date_due | $KohaDates as_due_date => 1 %]"
+            - "This item has reached the maximum number of unseen renewals and will need to be renewed at the library."
+            - "[% ELSIF checkout.auto_renew_error %]"
             - "The following item, [% biblio.title %], has not been renewed because:"
             - "[% IF checkout.auto_renew_error == 'too_many' %]"
             - "You have reached the maximum number of renewals possible."
@@ -2006,17 +2312,17 @@ tables:
           lang: default
           content:
             - "<h3>[% branch.branchname %]</h3>"
-            - "Checked in items for [% borrower.title %] [% borrower.firstname %] [% borrower.initials %] [% borrower.surname %] <br />"
-            - "([% borrower.cardnumber %]) <br />"
-            - ""
-            - "[% today | $KohaDates %]<br />"
-            - ""
+            - "Checked in items for [% borrower.title %] [% borrower.firstname %] [% borrower.initials %] [% borrower.surname %] <br>"
+            - "([% borrower.cardnumber %]) <br>"
+            - "<br>"
+            - "[% today | $KohaDates %]<br>"
+            - "<br>"
             - "<h4>Checked in today</h4>"
             - "[% FOREACH checkin IN old_checkouts %]"
             - "[% SET item = checkin.item %]"
             - "<p>"
-            - "[% item.biblio.title %] <br />"
-            - "Barcode: [% item.barcode %] <br />"
+            - "[% item.biblio.title %] <br>"
+            - "Barcode: [% item.barcode %] <br>"
             - "</p>"
             - "[% END %]"
 
@@ -2048,6 +2354,7 @@ tables:
             - "There were [% success %] items that were renewed."
             - "[% END %]"
             - "[% FOREACH checkout IN checkouts %]"
+            - "[% NEXT IF (checkout.auto_renew_error == 'auto_too_soon') %]"
             - "[% checkout.item.biblio.title %] : [% checkout.item.barcode %]"
             - "[% IF !checkout.auto_renew_error %]"
             - "was renewed until [% checkout.date_due | $KohaDates as_due_date => 1%]"
@@ -2065,6 +2372,12 @@ tables:
             - "Your total unpaid fines are too high."
             - "[% ELSIF checkout.auto_renew_error == 'too_unseen' %]"
             - "This item must be renewed at the library."
+            - "[% ELSIF checkout.auto_renew_error == 'auto_renew_final' %]"
+            - "was renewed until [% checkout.date_due | $KohaDates as_due_date => 1%]"
+            - "This item has reached the maximum number of automatic renewals and will no longer be renewed."
+            - "[% ELSIF checkout.auto_renew_error == 'auto_unseen_final' %]"
+            - "was renewed until [% checkout.date_due | $KohaDates as_due_date => 1%]"
+            - "This item has reached the maximum number of unseen renewals and will need to be renewed at the library."
             - "[% END %]"
             - "[% END %]"
 
@@ -2101,6 +2414,28 @@ tables:
             - "A recall that you requested on the following item: <<biblio.title>> / <<biblio.author>> (<<items.barcode>>) is now ready for you to pick up at <<recalls.pickup_library_id>>. Please pick up your item by <<recalls.expiration_date>>."
             - ""
             - "Thank you!"
+
+        - module: circulation
+          code: RETURN_RECALLED_ITEM
+          branchcode: ""
+          name: "Notification to return a recalled item"
+          is_html: 0
+          title: "Return recalled item"
+          message_transport_type: sms
+          lang: default
+          content:
+            - "Your item has been recalled: <<biblio.title>> (<<items.barcode>>). Please return it by <<issues.date_due>."
+
+        - module: circulation
+          code: PICKUP_RECALLED_ITEM
+          branchcode: ""
+          name: "Recalled item awaiting pickup"
+          is_html: 0
+          title: "Recalled item awaiting pickup"
+          message_transport_type: sms
+          lang: default
+          content:
+            - "A recalled item: <<biblio.title>> (<<items.barcode>>) is ready for you to pick up at <<recalls.branchcode>>. Please collect by <<recalls.expirationdate>>."
 
         - module: circulation
           code: RECALL_REQUESTER_DET
@@ -2178,3 +2513,139 @@ tables:
             - "[% IF borrower.categorycode %]<li>Temporary patron category: [% borrower.categorycode %]</li>[% END %]"
             - "</ul>"
             - "</p>"
+
+        - module: lists
+          code: LIST
+          branchcode: ""
+          name: "Send list"
+          is_html: 1
+          title: "Your list: [% listname | html %]"
+          message_transport_type: email
+          lang: default
+          content:
+            - "[%- USE Branches -%]"
+            - "[%- USE AuthorisedValues -%]"
+            - "[%- USE Koha -%]"
+            - "[%- PROCESS 'html_helpers.inc' -%]"
+            - "Hi,<br><br>"
+            - "[% borrower.firstname | html %] [% borrower.surname | html %] sent you a list from our online catalog called: [% listname | html %].<br>"
+            - "Please note that the attached file is a MARC bibliographic records file which can be imported into personal bibliographic software like EndNote, Reference Manager or ProCite.<br>"
+            - "[% IF ( comment ) %]<hr><br>[% comment | html | html_line_break %]<br><br>[% END %]<hr>"
+            - "<ol>[% FOREACH biblio IN biblios %]<li>"
+            - "[% biblio.title | html %]"
+            - "[% IF ( biblio.subtitle ) %][% FOREACH subtitle IN biblio.subtitle.split(' | ') %][% subtitle | html %][% END %][% END %][% biblio.part_number | html %] [% biblio.part_name | html %]<br>"
+            - "[% IF ( biblio.author || biblio.get_marc_contributors.size ) %]Author(s): [% IF ( biblio.author ) %][% biblio.author | html %][% END %][% IF ( biblio.get_marc_contributors ) %][% IF ( biblio.author ) %]; [% END %][% FOREACH author IN biblio.get_marc_contributors %][% FOREACH subfield IN author.MARCAUTHOR_SUBFIELDS_LOOP %][% subfield.separator | html %][% subfield.value | html %][% END %][% UNLESS ( loop.last ) %];[% END %][% END %][% END %]<br>[% END %]"
+            - "[% SET biblioitem = biblio.biblioitem %][% IF ( biblioitem.isbn ) %]ISBN: [% FOREACH isbn IN biblioitem.isbn %][% isbn | html %][% UNLESS ( loop.last ) %]; [% END %][% END %]<br>[% END %]"
+            - "[% IF ( biblioitem.publishercode ) %]Published by: [% biblioitem.publishercode | html %][% IF ( biblioitem.publicationyear ) %] in [% biblioitem.publicationyear | html %][% END %][% IF ( biblioitem.pages ) %], [% biblioitem.pages | html %][% END %]<br>[% END %]"
+            - "[% IF ( biblio.seriestitle ) %]Collection: [% biblio.seriestitle | html %]<br>[% END %]"
+            - "[% IF ( biblio.copyrightdate ) %]Copyright year: [% biblio.copyrightdate | html %]<br>[% END %]"
+            - "[% IF ( biblio.notes ) %]Notes: [% biblio.notes | html %]<br>[% END %]"
+            - "[% IF ( biblio.unititle ) %]Unified title: [% biblio.unititle | html %]<br>[% END %]"
+            - "[% IF ( biblio.serial ) %]Serial: [% biblio.serial | html %]<br>[% END %]"
+            - "[% IF ( biblioitem.lccn ) %]LCCN: [% biblioitem.lccn | html %]<br>[% END %]"
+            - "[% IF ( biblio.get_marc_host_only || biblio.get_marc_hostinfo_only ) %]In: [% IF biblio.get_marc_host_only.biblionumber %][% INCLUDE 'biblio-title.inc'  biblio=biblio.get_marc_host_only %] [% biblio.get_marc_relatedparts_only %][% ELSE %][% biblio.get_marc_hostinfo_only %][% END %]<br>[% END %]"
+            - "[% IF ( biblioitem.url ) %]URL: [% biblioitem.url | html %]<br>[% END %]"
+            - "[<a href='[% Koha.Preference('OpacBaseUrl') %]/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblio.biblionumber | html %]'>View in online catalog</a>"
+            - "[% IF ( biblio.items.count > 0 ) %]<br>Items: <ul>[% FOREACH item IN biblio.items %]<li>[% Branches.GetName( item.holdingbranch ) | html %]"
+            - "[% IF ( item.location ) %], [% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => item.location ) | html %][% END %][% IF item.itemcallnumber %]([% item.itemcallnumber | html %])[% END %][% item.barcode | html %]</li>[% END %]</ul>[% END %]"
+            - "<hr></li>[% END %]</ol>"
+
+        - module: catalogue
+          code: CART
+          branchcode: ""
+          name: "Send cart"
+          is_html: 1
+          title: "Your cart"
+          message_transport_type: email
+          lang: default
+          content:
+            - "[%- USE Branches -%]"
+            - "[%- USE AuthorisedValues -%]"
+            - "[%- USE Koha -%]"
+            - "[%- PROCESS 'html_helpers.inc' -%]"
+            - "Hi,<br><br>"
+            - "[% borrower.firstname | html %] [% borrower.surname | html %] sent you a cart from our online catalog.<br>"
+            - "Please note that the attached file is a MARC bibliographic records file which can be imported into personal bibliographic software like EndNote, Reference Manager or ProCite.<br>"
+            - "[% IF ( comment ) %]<hr><br>[% comment | html | html_line_break %]<br><br>[% END %]<hr>"
+            - "<ol>[% FOREACH biblio IN biblios %]<li>"
+            - "[% biblio.title | html %]"
+            - "[% IF ( biblio.subtitle ) %][% FOREACH subtitle IN biblio.subtitle.split(' | ') %][% subtitle | html %][% END %][% END %][% biblio.part_number | html %] [% biblio.part_name | html %]<br>"
+            - "[% IF ( biblio.author || biblio.get_marc_contributors.size ) %]Author(s): [% IF ( biblio.author ) %][% biblio.author | html %][% END %][% IF ( biblio.get_marc_contributors ) %][% IF ( biblio.author ) %]; [% END %][% FOREACH author IN biblio.get_marc_contributors %][% FOREACH subfield IN author.MARCAUTHOR_SUBFIELDS_LOOP %][% subfield.separator | html %][% subfield.value | html %][% END %][% UNLESS ( loop.last ) %];[% END %][% END %][% END %]<br>[% END %]"
+            - "[% SET biblioitem = biblio.biblioitem %][% IF ( biblioitem.isbn ) %]ISBN: [% FOREACH isbn IN biblioitem.isbn %][% isbn | html %][% UNLESS ( loop.last ) %]; [% END %][% END %]<br>[% END %]"
+            - "[% IF ( biblioitem.publishercode ) %]Published by: [% biblioitem.publishercode | html %][% IF ( biblioitem.publicationyear ) %] in [% biblioitem.publicationyear | html %][% END %][% IF ( biblioitem.pages ) %], [% biblioitem.pages | html %][% END %]<br>[% END %]"
+            - "[% IF ( biblio.seriestitle ) %]Collection: [% biblio.seriestitle | html %]<br>[% END %]"
+            - "[% IF ( biblio.copyrightdate ) %]Copyright year: [% biblio.copyrightdate | html %]<br>[% END %]"
+            - "[% IF ( biblio.notes ) %]Notes: [% biblio.notes | html %]<br>[% END %]"
+            - "[% IF ( biblio.unititle ) %]Unified title: [% biblio.unititle | html %]<br>[% END %]"
+            - "[% IF ( biblio.serial ) %]Serial: [% biblio.serial | html %]<br>[% END %]"
+            - "[% IF ( biblioitem.lccn ) %]LCCN: [% biblioitem.lccn | html %]<br>[% END %]"
+            - "[% IF ( biblio.get_marc_host_only || biblio.get_marc_hostinfo_only ) %]In: [% IF biblio.get_marc_host_only.biblionumber %][% INCLUDE 'biblio-title.inc'  biblio=biblio.get_marc_host_only %] [% biblio.get_marc_relatedparts_only %][% ELSE %][% biblio.get_marc_hostinfo_only %][% END %]<br>[% END %]"
+            - "[% IF ( biblioitem.url ) %]URL: [% biblioitem.url | html %]<br>[% END %]"
+            - "<a href='[% Koha.Preference('OpacBaseUrl') %]/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblio.biblionumber | html %]'>View in online catalog</a>"
+            - "[% IF ( biblio.items.count > 0 ) %]<br>Items: <ul>[% FOREACH item IN biblio.items %]<li>[% Branches.GetName( item.holdingbranch ) | html %]"
+            - "[% IF ( item.location ) %], [% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => item.location ) | html %][% END %][% IF item.itemcallnumber %]([% item.itemcallnumber | html %])[% END %][% item.barcode | html %]</li>[% END %]</ul>[% END %]"
+            - "<hr></li>[% END %]</ol>"
+
+        - module: preservation
+          code: PRES_TRAIN_ITEM
+          branchcode: ""
+          name: "Train item slip"
+          is_html: 0
+          title: "Train item slip"
+          message_transport_type: print
+          lang: default
+          content:
+            - "[%~ USE AuthorisedValues ~%]"
+            - "[%~ SET train = train_item.train ~%]"
+            - "[%~ SET item = train_item.catalogue_item ~%]"
+            - "Train name: [% train.name %]"
+            - "Sent on: [% train.sent_on | $KohaDates %]"
+            - ""
+            - "[% train.default_processing.name %]"
+            - ""
+            - "Item number #[% train_item.user_train_item_id %]"
+            - ""
+            - "[% FOREACH item_attribute IN train_item.attributes %]"
+            - "    [%~ SET value = item_attribute.value ~%]"
+            - "    [%~ IF item_attribute.processing_attribute.type == 'authorised_value' ~%]"
+            - "        [%~ SET value = AuthorisedValues.GetByCode(item_attribute.processing_attribute.option_source, item_attribute.value) ~%]"
+            - "    [%~ END ~%]"
+            - "    [% item_attribute.processing_attribute.name %]: [% value %]"
+            - "[% END %]"
+
+        - module: reserves
+          code: HOLDPLACED_PATRON
+          branchcode: ""
+          name: "Hold is confirmed"
+          is_html: 0
+          title: "Your hold on [% hold.biblio.title %] is confirmed"
+          message_transport_type: email
+          lang: default
+          content:
+            - "Hello [% borrower.firstname %] [% borrower.surname %] ([% borrower.cardnumber %]),"
+            - "Your hold on [% hold.biblio.title %] ([% hold.biblio.id %]) has been confirmed."
+            - "You will be notified by the library when your item is available for pickup."
+            - "Thank you!"
+
+        - module: catalogue
+          code: OAI_HARVEST_REPORT
+          branchcode: ""
+          name: "OAI harvest report"
+          is_html: 0
+          title: "OAI harvest report for [% servername %]"
+          message_transport_type: email
+          lang: default
+          content:
+            - "OAI harvest report for [% servername %]:"
+            - ""
+            - "Endpoint: [% endpoint %]"
+            - "Set: [% set %]"
+            - "Data format: [% dataformat %]"
+            - "Record type: [% recordtype %]"
+            - ""
+            - "[% added %] records added"
+            - "[% updated %] records updated"
+            - "[% deleted %] records deleted"
+            - "[% skipped %] records skipped"
+            - "[% in_error %] records in error"
+            - "[% total %] total"

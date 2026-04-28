@@ -33,8 +33,6 @@ use Koha::AuthorisedValues;
 use Koha::Libraries;
 use Koha::Patron::Categories;
 
-my $script_name = "/cgi-bin/koha/admin/patron-attr-types.pl";
-
 our $input = CGI->new;
 my $op = $input->param('op') || '';
 
@@ -47,23 +45,20 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
-
-$template->param(script_name => $script_name);
-
 my $code = $input->param("code");
 
 my $display_list = 0;
 if ($op eq "edit_attribute_type") {
     edit_attribute_type_form($template, $code);
-} elsif ($op eq "edit_attribute_type_confirmed") {
+} elsif ($op eq "cud-edit_attribute_type_confirmed") {
     $display_list = add_update_attribute_type('edit', $template, $code);
 } elsif ($op eq "add_attribute_type") {
     add_attribute_type_form($template);
-} elsif ($op eq "add_attribute_type_confirmed") {
+} elsif ($op eq "cud-add_attribute_type_confirmed") {
     $display_list = add_update_attribute_type('add', $template, $code);
 } elsif ($op eq "delete_attribute_type") {
     $display_list = delete_attribute_type_form($template, $code);
-} elsif ($op eq "delete_attribute_type_confirmed") {
+} elsif ($op eq "cud-delete_attribute_type_confirmed") {
     delete_attribute_type($template, $code);
     $display_list = 1;
 } else {
@@ -87,7 +82,7 @@ sub add_attribute_type_form {
     my $patron_categories = Koha::Patron::Categories->search_with_library_limits({}, {order_by => ['description']});
     $template->param(
         attribute_type_form => 1,
-        confirm_op => 'add_attribute_type_confirmed',
+        confirm_op => 'cud-add_attribute_type_confirmed',
         categories => $patron_categories,
     );
 }
@@ -101,7 +96,7 @@ sub error_add_attribute_type_form {
 
     $template->param(
         attribute_type_form => 1,
-        confirm_op => 'add_attribute_type_confirmed',
+        confirm_op => 'cud-add_attribute_type_confirmed',
         authorised_value_category => scalar $input->param('authorised_value_category'),
     );
 }
@@ -114,9 +109,11 @@ sub add_update_attribute_type {
     my $description               = $input->param('description');
     my $repeatable                = $input->param('repeatable') ? 1 : 0;
     my $unique_id                 = $input->param('unique_id') ? 1 : 0;
+    my $is_date                   = $input->param('is_date') ? 1 : 0;
     my $opac_display              = $input->param('opac_display') ? 1 : 0;
     my $opac_editable             = $input->param('opac_editable') ? 1 : 0;
     my $staff_searchable          = $input->param('staff_searchable') ? 1 : 0;
+    my $searched_by_default       = $input->param('searched_by_default') ? 1 : 0;
     my $keep_for_pseudonymization = $input->param('keep_for_pseudonymization') ? 1 : 0;
     my $mandatory                 = $input->param('mandatory') ? 1 : 0;
     my $authorised_value_category = $input->param('authorised_value_category');
@@ -149,9 +146,11 @@ sub add_update_attribute_type {
         {
             repeatable                => $repeatable,
             unique_id                 => $unique_id,
+            is_date                   => $is_date,
             opac_display              => $opac_display,
             opac_editable             => $opac_editable,
             staff_searchable          => $staff_searchable,
+            searched_by_default       => $searched_by_default,
             keep_for_pseudonymization => $keep_for_pseudonymization,
             mandatory                 => $mandatory,
             authorised_value_category => $authorised_value_category,
@@ -183,7 +182,7 @@ sub delete_attribute_type_form {
     if (defined($attr_type)) {
         $template->param(
             delete_attribute_type_form => 1,
-            confirm_op => "delete_attribute_type_confirmed",
+            confirm_op => "cud-delete_attribute_type_confirmed",
             code => $code,
             description => $attr_type->description(),
         );
@@ -242,7 +241,7 @@ sub edit_attribute_type_form {
         edit_attribute_type => 1,
         can_be_set_to_nonrepeatable => $can_be_set_to_nonrepeatable,
         can_be_set_to_unique => $can_be_set_to_unique,
-        confirm_op => 'edit_attribute_type_confirmed',
+        confirm_op => 'cud-edit_attribute_type_confirmed',
         categories => $patron_categories,
     );
 

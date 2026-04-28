@@ -43,6 +43,12 @@ use C4::Serials::Numberpattern qw(
 );
 use C4::Serials::Frequency qw( GetSubscriptionFrequencies );
 
+my @NUMBERPATTERN_FIELDS = qw/
+      label description numberingmethod displayorder
+      label1 label2 label3 add1 add2 add3 every1 every2 every3
+      setto1 setto2 setto3 whenmorethan1 whenmorethan2 whenmorethan3
+      numbering1 numbering2 numbering3 /;
+
 my $input = CGI->new;
 my ($template, $loggedinuser, $cookie, $flags) = get_template_and_user( {
     template_name   => 'serials/subscription-numberpatterns.tt',
@@ -53,15 +59,12 @@ my ($template, $loggedinuser, $cookie, $flags) = get_template_and_user( {
 
 my $op = $input->param('op');
 
-if($op && $op eq 'savenew') {
+if($op && $op eq 'cud-savenew') {
     my $label = $input->param('label');
     my $numberpattern;
-    foreach(qw/ label description numberingmethod displayorder
-      label1 label2 label3 add1 add2 add3 every1 every2 every3
-      setto1 setto2 setto3 whenmorethan1 whenmorethan2 whenmorethan3
-      numbering1 numbering2 numbering3 /) {
+    foreach(@NUMBERPATTERN_FIELDS) {
         $numberpattern->{$_} = $input->param($_);
-        if($numberpattern->{$_} and $numberpattern->{$_} eq '') {
+        if(defined $numberpattern->{$_} and $numberpattern->{$_} eq '') {
             $numberpattern->{$_} = undef;
         }
     }
@@ -74,7 +77,7 @@ if($op && $op eq 'savenew') {
         $template->param(error_existing_numberpattern => 1);
         $template->param(%$numberpattern);
     }
-} elsif ($op && $op eq 'savemod') {
+} elsif ($op && $op eq 'cud-savemod') {
     my $id = $input->param('id');
     my $label = $input->param('label');
     my $numberpattern = GetSubscriptionNumberpattern($id);
@@ -86,15 +89,15 @@ if($op && $op eq 'savenew') {
         }
     }
     if($mod_ok) {
-        foreach(qw/ id label description numberingmethod displayorder
-          label1 label2 label3 add1 add2 add3 every1 every2 every3
-          setto1 setto2 setto3 whenmorethan1 whenmorethan2 whenmorethan3
-          numbering1 numbering2 numbering3 /) {
+        foreach(@NUMBERPATTERN_FIELDS) {
             $numberpattern->{$_} = $input->param($_) || undef;
+            if(defined $numberpattern->{$_} and $numberpattern->{$_} eq '') {
+                $numberpattern->{$_} = undef;
+            }
         }
         ModSubscriptionNumberpattern($numberpattern);
     } else {
-        $op = 'modify';
+        $op = 'cud-modify';
         $template->param(error_existing_numberpattern => 1);
     }
 }
@@ -126,7 +129,7 @@ if($op && ($op eq 'new' || $op eq 'modify')) {
     exit;
 }
 
-if($op && $op eq 'del') {
+if($op && $op eq 'cud-del') {
     my $id = $input->param('id');
     if ($id) {
         my $confirm = $input->param('confirm');

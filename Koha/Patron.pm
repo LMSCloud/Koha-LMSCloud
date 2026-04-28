@@ -21,37 +21,43 @@ package Koha::Patron;
 use Modern::Perl;
 
 use Date::Calc qw( Today Date_to_Days );
-use List::MoreUtils qw( any uniq );
+use List::MoreUtils qw( any none uniq );
 use JSON qw( to_json );
 use Unicode::Normalize qw( NFKD );
 use Try::Tiny;
+use DateTime ();
 
-use C4::Context;
 use C4::Auth qw( checkpw_hash );
+use C4::Context;
+use C4::Letters qw( GetPreparedLetter EnqueueLetter SendQueuedMessages );
 use C4::Log qw( logaction );
 use C4::Scrubber;
 use Koha::Account;
 use Koha::ArticleRequests;
-use C4::Letters qw( GetPreparedLetter EnqueueLetter SendQueuedMessages );
 use Koha::AuthUtils;
+use Koha::Caches;
 use Koha::Checkouts;
 use Koha::CirculationRules;
 use Koha::Club::Enrollments;
+use Koha::CurbsidePickups;
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Encryption;
+use Koha::Exceptions;
 use Koha::Exceptions::Password;
 use Koha::Holds;
-use Koha::CurbsidePickups;
 use Koha::Old::Checkouts;
+use Koha::OverdueRules;
 use Koha::Patron::Attributes;
 use Koha::Patron::Categories;
+use Koha::Patron::Consents;
 use Koha::Patron::Debarments;
 use Koha::Patron::HouseboundProfile;
 use Koha::Patron::HouseboundRole;
 use Koha::Patron::Images;
 use Koha::Patron::Messages;
 use Koha::Patron::Modifications;
+use Koha::Patron::MessagePreferences;
 use Koha::Patron::Relationships;
 use Koha::Patron::Restrictions;
 use Koha::Patrons;
@@ -187,7 +193,10 @@ to db
 =cut
 
 sub store {
-    my ($self) = @_;
+    my $self   = shift;
+    my $params = @_ ? shift : {};
+
+    my $guarantors = $params->{guarantors} // [];
 
     $self->_result->result_source->schema->txn_do(
         sub {
@@ -195,7 +204,7 @@ sub store {
                 C4::Context->preference("autoMemberNum")
                 and ( not defined $self->cardnumber
                     or $self->cardnumber eq '' )
-              )
+                )
             {
                 # Warning: The caller is responsible for locking the members table in write
                 # mode, to avoid database corruption.
@@ -203,7 +212,7 @@ sub store {
                 $self->fixup_cardnumber;
             }
 
-            unless( $self->category->in_storage ) {
+            unless ( $self->category->in_storage ) {
                 Koha::Exceptions::Object::FKConstraint->throw(
                     broken_fk => 'categorycode',
                     value     => $self->categorycode,
@@ -214,15 +223,20 @@ sub store {
 
             my $new_cardnumber = $self->cardnumber;
             Koha::Plugins->call( 'patron_barcode_transform', \$new_cardnumber );
-            $self->cardnumber( $new_cardnumber );
+            $self->cardnumber($new_cardnumber);
 
             # Set surname to uppercase if uppercasesurname is true
-            $self->surname( uc($self->surname) )
+            $self->surname( uc( $self->surname ) )
                 if C4::Context->preference("uppercasesurnames");
 
-            $self->relationship(undef) # We do not want to store an empty string in this field
-              if defined $self->relationship
-                     and $self->relationship eq "";
+            # Add preferred name unless specified
+            unless ( $self->preferred_name ) {
+                $self->preferred_name( $self->firstname );
+            }
+
+            $self->relationship(undef)    # We do not want to store an empty string in this field
+                if defined $self->relationship
+                and $self->relationship eq "";
 
             for my $note_field (qw( borrowernotes opacnote )) {
                 if ( !$self->in_storage || $self->_result->is_column_changed($note_field) ) {
@@ -237,8 +251,9 @@ sub store {
                     if not $self->lang and C4::Context->preference("DefaultPatronLanguage");
                 
                 # Generate a valid userid/login if needed
-                $self->generate_userid
-                  if not $self->userid or not $self->has_valid_userid;
+                $self->generate_userid unless $self->userid;
+                Koha::Exceptions::Patron::InvalidUserid->throw( userid => $self->userid )
+                    unless $self->has_valid_userid;
 
                 # Add expiration date if it isn't already there
                 unless ( $self->dateexpiry ) {
@@ -253,18 +268,21 @@ sub store {
                 # Set the privacy depending on the patron's category
                 my $default_privacy = $self->category->default_privacy || q{};
                 $default_privacy =
-                    $default_privacy eq 'default' ? 1
-                  : $default_privacy eq 'never'   ? 2
-                  : $default_privacy eq 'forever' ? 0
-                  :                                                   undef;
+                      $default_privacy eq 'default' ? 1
+                    : $default_privacy eq 'never'   ? 2
+                    : $default_privacy eq 'forever' ? 0
+                    :                                 undef;
                 $self->privacy($default_privacy);
 
                 # Call any check_password plugins if password is passed
                 if ( C4::Context->config("enable_plugins") && $self->password ) {
-                    my @plugins = Koha::Plugins->new()->GetPlugins({
-                        method => 'check_password',
-                    });
-                    foreach my $plugin ( @plugins ) {
+                    my @plugins = Koha::Plugins->new()->GetPlugins(
+                        {
+                            method => 'check_password',
+                        }
+                    );
+                    foreach my $plugin (@plugins) {
+
                         # This plugin hook will also be used by a plugin for the Norwegian national
                         # patron database. This is why we need to pass both the password and the
                         # borrowernumber to the plugin.
@@ -283,55 +301,77 @@ sub store {
                 # Make a copy of the plain text password for later use
                 $self->plain_text_password( $self->password );
 
-                $self->password_expiration_date( $self->password
-                    ? $self->category->get_password_expiry_date || undef
-                    : undef );
+                if ( $self->category->effective_force_password_reset_when_set_by_staff
+                    and ( $self->categorycode ne C4::Context->preference("PatronSelfRegistrationDefaultCategory") ) )
+                {
+                    $self->password_expiration_date(dt_from_string);
+                } else {
+                    $self->password_expiration_date(
+                          $self->password
+                        ? $self->category->get_password_expiry_date || undef
+                        : undef
+                    );
+                }
+
                 # Create a disabled account if no password provided
-                $self->password( $self->password
+                $self->password(
+                    $self->password
                     ? Koha::AuthUtils::hash_password( $self->password )
-                    : '!' );
+                    : '!'
+                );
 
                 $self->borrowernumber(undef);
+
+                if (    C4::Context->preference('ChildNeedsGuarantor')
+                    and ( $self->is_child or $self->category->can_be_guarantee )
+                    and $self->contactname eq ""
+                    and !@$guarantors )
+                {
+                    Koha::Exceptions::Patron::Relationship::NoGuarantor->throw();
+                }
+
+                foreach my $guarantor (@$guarantors) {
+                    if ( $guarantor->is_child ) {
+                        Koha::Exceptions::Patron::Relationship::InvalidRelationship->throw( invalid_guarantor => 1 );
+                    }
+                }
 
                 $self = $self->SUPER::store;
 
                 $self->add_enrolment_fee_if_needed(0);
 
+                $self->discard_changes;
+                $self->update_lastseen('creation');
+
                 logaction( "MEMBERS", "CREATE", $self->borrowernumber, "" )
-                  if C4::Context->preference("BorrowersLog");
-            }
-            else {    #ModMember
+                    if C4::Context->preference("BorrowersLog");
+            } else {    #ModMember
 
                 my $self_from_storage = $self->get_from_storage;
-                # FIXME We should not deal with that here, callers have to do this job
-                # Moved from ModMember to prevent regressions
-                unless ( $self->userid ) {
-                    my $stored_userid = $self_from_storage->userid;
-                    $self->userid($stored_userid);
-                }
+
+                # Do not accept invalid userid here
+                $self->generate_userid unless $self->userid;
+                Koha::Exceptions::Patron::InvalidUserid->throw( userid => $self->userid )
+                    unless $self->has_valid_userid;
 
                 # If a borrower has set their privacy to never we should immediately anonymize
                 # their checkouts
-                if( $self->privacy() == 2 && $self_from_storage->privacy() != 2 ){
-                    try{
+                if ( $self->privacy() == 2 && $self_from_storage->privacy() != 2 ) {
+                    try {
                         $self->old_checkouts->anonymize;
-                    }
-                    catch {
-                        Koha::Exceptions::Patron::FailedAnonymizing->throw(
-                            error => @_
-                        );
+                    } catch {
+                        Koha::Exceptions::Patron::FailedAnonymizing->throw( error => @_ );
                     };
                 }
 
                 # Password must be updated using $self->set_password
-                $self->password($self_from_storage->password);
+                $self->password( $self_from_storage->password );
 
-                if ( $self->category->categorycode ne
-                    $self_from_storage->category->categorycode )
-                {
+                if ( $self->category->categorycode ne $self_from_storage->category->categorycode ) {
+
                     # Add enrolement fee on category change if required
                     $self->add_enrolment_fee_if_needed(1)
-                      if C4::Context->preference('FeeOnChangePatronCategory');
+                        if C4::Context->preference('FeeOnChangePatronCategory');
 
                     # Clean up guarantors on category change if required
                     $self->guarantor_relationships->delete
@@ -341,28 +381,42 @@ sub store {
 
                 }
 
+                my @existing_guarantors = $self->guarantor_relationships()->guarantors->as_list;
+                push @$guarantors, @existing_guarantors;
+
+                if (    C4::Context->preference('ChildNeedsGuarantor')
+                    and ( $self->is_child or $self->category->can_be_guarantee )
+                    and ( !defined $self->contactname || $self->contactname eq "" )
+                    and !@$guarantors )
+                {
+                    Koha::Exceptions::Patron::Relationship::NoGuarantor->throw();
+                }
+
+                foreach my $guarantor (@$guarantors) {
+                    if ( $guarantor->is_child ) {
+                        Koha::Exceptions::Patron::Relationship::InvalidRelationship->throw( invalid_guarantor => 1 );
+                    }
+                }
+
                 # Actionlogs
                 if ( C4::Context->preference("BorrowersLog") ) {
                     my $info;
                     my $from_storage = $self_from_storage->unblessed;
                     my $from_object  = $self->unblessed;
-                    my @skip_fields  = (qw/lastseen updated_on/);
+
+                    # Object's dateexpiry is a DateTime object which stringifies to iso8601 datetime,
+                    # but the column in only a date so we need to convert the datetime to just a date
+                    # to know if it has actually changed.
+                    $from_object->{dateexpiry} = dt_from_string( $from_object->{dateexpiry} )->ymd
+                        if $from_object->{dateexpiry};
+
+                    my @skip_fields = (qw/lastseen updated_on/);
                     for my $key ( keys %{$from_storage} ) {
                         next if any { /$key/ } @skip_fields;
-                        if (
-                            (
-                                  !defined( $from_storage->{$key} )
-                                && defined( $from_object->{$key} )
-                            )
-                            || ( defined( $from_storage->{$key} )
-                                && !defined( $from_object->{$key} ) )
-                            || (
-                                   defined( $from_storage->{$key} )
-                                && defined( $from_object->{$key} )
-                                && ( $from_storage->{$key} ne
-                                    $from_object->{$key} )
-                            )
-                          )
+                        my $storage_value = $from_storage->{$key} // q{};
+                        my $object_value  = $from_object->{$key}  // q{};
+                        if (   ( $storage_value || $object_value )
+                            && ( $storage_value ne $object_value ) )
                         {
                             $info->{$key} = {
                                 before => $from_storage->{$key},
@@ -408,6 +462,9 @@ sub delete {
 
     my $anonymous_patron = C4::Context->preference("AnonymousPatron");
     Koha::Exceptions::Patron::FailedDeleteAnonymousPatron->throw() if $anonymous_patron && $self->id eq $anonymous_patron;
+
+    # Check if patron is protected
+    Koha::Exceptions::Patron::FailedDeleteProtectedPatron->throw() if defined $self->protected && $self->protected == 1;
 
     $self->_result->result_source->schema->txn_do(
         sub {
@@ -511,7 +568,7 @@ Returns a Koha::Library object representing the patron's home library.
 
 sub library {
     my ( $self ) = @_;
-    return Koha::Library->_new_from_dbic($self->_result->branchcode);
+    return Koha::Library->_new_from_dbic($self->_result->library);
 }
 
 =head3 sms_provider
@@ -545,6 +602,18 @@ sub guarantor_relationships {
     return Koha::Patron::Relationships->search( { guarantee_id => $self->id } );
 }
 
+=head3 is_guarantee
+
+Returns true if the patron has a guarantor.
+
+=cut
+
+sub is_guarantee {
+    my ($self) = @_;
+    return $self->guarantor_relationships()->count();
+}
+
+
 =head3 guarantee_relationships
 
 Returns Koha::Patron::Relationships object for this patron's guarantors
@@ -568,6 +637,18 @@ sub guarantee_relationships {
         }
     );
 }
+
+=head3 is_guarantor
+
+Returns true if the patron is a guarantor.
+
+=cut
+
+sub is_guarantor {
+    my ($self) = @_;
+    return $self->guarantee_relationships()->count();
+}
+
 
 =head3 relationships_debt
 
@@ -597,7 +678,11 @@ sub relationships_debt {
     my $non_issues_charges = 0;
     my $seen = $include_this_patron ? {} : { $self->id => 1 }; # For tracking members already added to the total
     foreach my $guarantor (@guarantors) {
-        $non_issues_charges += $guarantor->account->non_issues_charges if $include_guarantors && !$seen->{ $guarantor->id };
+        if ( !$only_this_guarantor && $seen->{ $guarantor->id } ) {
+            next;
+        }
+        $non_issues_charges += $guarantor->account->non_issues_charges
+            if $include_guarantors && !$seen->{ $guarantor->id };
 
         # We've added what the guarantor owes, not added in that guarantor's guarantees as well
         my @guarantees = map { $_->guarantee } $guarantor->guarantee_relationships->as_list;
@@ -686,6 +771,9 @@ sub merge_with {
     my $anonymous_patron = C4::Context->preference("AnonymousPatron");
     return if $anonymous_patron && $self->id eq $anonymous_patron;
 
+    # Do not merge other patrons into a protected patron
+    return if $self->protected;
+
     my @patron_ids = @{ $patron_ids };
 
     # Ensure the keeper isn't in the list of patrons to merge
@@ -703,6 +791,9 @@ sub merge_with {
             my $patron = Koha::Patrons->find( $patron_id );
 
             next unless $patron;
+
+            # Do not merge protected patrons into other patrons
+            next if $patron->protected;
 
             # Unbless for safety, the patron will end up being deleted
             $results->{merged}->{$patron_id}->{patron} = $patron->unblessed;
@@ -742,6 +833,20 @@ sub merge_with {
 }
 
 
+=head3 messaging_preferences
+
+    my $patron = Koha::Patrons->find($id);
+    $patron->messaging_preferences();
+
+=cut
+
+sub messaging_preferences {
+    my ( $self ) = @_;
+
+    return Koha::Patron::MessagePreferences->search({
+        borrowernumber => $self->borrowernumber,
+    });
+}
 
 =head3 wants_check_for_previous_checkout
 
@@ -800,7 +905,7 @@ sub do_check_for_previous_checkout {
     # Create (old)issues search criteria
     my $criteria = {
         borrowernumber => $self->borrowernumber,
-        itemnumber => \@item_nos,
+        itemnumber     => { -in => \@item_nos },
     };
 
     my $delay = C4::Context->preference('CheckPrevCheckoutDelay') || 0;
@@ -854,6 +959,50 @@ sub is_expired {
     return 0;
 }
 
+=head3 is_active
+
+$patron->is_active({ [ since => $date ], [ days|weeks|months|years => $value ] })
+
+A patron is considered 'active' if the following conditions hold:
+
+    - account did not expire
+    - account has not been anonymized
+    - enrollment or lastseen within period specified
+
+Note: lastseen is updated for triggers defined in preference
+TrackLastPatronActivityTriggers. This includes logins, issues, holds, etc.
+
+The period to check is defined by $date or $value in days, weeks or months. You should
+pass one of those; otherwise an exception is thrown.
+
+=cut
+
+sub is_active {
+    my ( $self, $params ) = @_;
+    return 0 if $self->is_expired or $self->anonymized;
+
+    my $dt;
+    if ( $params->{since} ) {
+        $dt = dt_from_string( $params->{since}, 'iso' );
+    } elsif ( grep { $params->{$_} } qw(days weeks months years) ) {
+        $dt = dt_from_string();
+        foreach my $duration (qw(days weeks months years)) {
+            $dt = $dt->subtract( $duration => $params->{$duration} ) if $params->{$duration};
+        }
+    } else {
+        Koha::Exceptions::MissingParameter->throw('is_active needs date or period');
+    }
+
+    # Enrollment within this period?
+    return 1 if DateTime->compare( dt_from_string( $self->dateenrolled ), $dt ) > -1;
+
+    # We look at lastseen regardless of TrackLastPatronActivityTriggers. If lastseen is set
+    # recently, the triggers may have been removed after that, etc.
+    return 1 if $self->lastseen && DateTime->compare( dt_from_string( $self->lastseen ), $dt ) > -1;
+
+    return 0;
+}
+
 =head3 password_expired
 
 my $password_expired = $patron->password_expired;
@@ -885,15 +1034,17 @@ sub is_going_to_expire {
     return 0 unless $delay;
     return 0 unless $self->dateexpiry;
     return 0 if $self->dateexpiry =~ '^9999';
-    return 1 if dt_from_string( $self->dateexpiry, undef, 'floating' )->subtract( days => $delay ) <= dt_from_string(undef, undef, 'floating')->truncate( to => 'day' );
+    return 1 if dt_from_string( $self->dateexpiry, undef, 'floating' )->subtract( days => $delay ) < dt_from_string(undef, undef, 'floating')->truncate( to => 'day' );
     return 0;
 }
 
 =head3 set_password
 
-    $patron->set_password({ password => $plain_text_password [, skip_validation => 1 ] });
+    $patron->set_password({ password => $plain_text_password [, skip_validation => 1, action => NAME ] });
 
 Set the patron's password.
+
+Allows optional action parameter to change name of action logged (when enabled). Used for reset password.
 
 =head4 Exceptions
 
@@ -920,6 +1071,7 @@ sub set_password {
     my ( $self, $args ) = @_;
 
     my $password = $args->{password};
+    my $action   = $args->{action} || "CHANGE PASS";
 
     unless ( $args->{skip_validation} ) {
         my ( $is_valid, $error ) = Koha::AuthUtils::is_password_valid( $password, $self->category );
@@ -984,18 +1136,19 @@ sub set_password {
                         'borrowers' => $self_from_storage->borrowernumber,
                     },
                     want_librarian => 1,
-                ) or return;
-
-                my $message_id = C4::Letters::EnqueueLetter(
-                    {
-                        letter                 => $letter,
-                        borrowernumber         => $self_from_storage->id,
-                        to_address             => $emailaddr,
-                        message_transport_type => 'email',
-                        branchcode             => $self_from_storage->branchcode
-                    }
                 );
-                C4::Letters::SendQueuedMessages( { message_id => $message_id } );
+
+                if ($letter) {
+                    my $message_id = C4::Letters::EnqueueLetter(
+                        {
+                            letter                 => $letter,
+                            borrowernumber         => $self_from_storage->id,
+                            to_address             => $emailaddr,
+                            message_transport_type => 'email'
+                        }
+                    );
+                    C4::Letters::SendQueuedMessages( { message_id => $message_id } ) if $message_id;
+                }
             }
         }
     }
@@ -1009,7 +1162,7 @@ sub set_password {
     $self->login_attempts(0);
     $self->SUPER::store;
 
-    logaction( "MEMBERS", "CHANGE PASS", $self->borrowernumber, "" )
+    logaction( "MEMBERS", $action, $self->borrowernumber, "" )
         if C4::Context->preference("BorrowersLog");
 
     return $self;
@@ -1117,8 +1270,9 @@ Returns the number of patron's overdues
 
 sub has_overdues {
     my ($self) = @_;
+    my $date = dt_from_string();
     my $dtf = Koha::Database->new->schema->storage->datetime_parser;
-    return $self->_result->issues->search({ date_due => { '<' => $dtf->format_datetime( dt_from_string() ) } })->count;
+    return $self->_result->issues->search({ date_due => { '<' => $dtf->format_datetime($date) } })->count;
 }
 
 =head3 has_family_overdues
@@ -1156,21 +1310,114 @@ sub has_family_overdues {
 
 =head3 track_login
 
-    $patron->track_login;
-    $patron->track_login({ force => 1 });
 
-    Tracks a (successful) login attempt.
-    The preference TrackLastPatronActivity must be enabled. Or you
-    should pass the force parameter.
+=head3 has_restricting_overdues
+
+my $has_restricting_overdues = $patron->has_restricting_overdues({ issue_branchcode => $branchcode });
+
+Returns true if patron has overdues that would result in debarment.
 
 =cut
 
-sub track_login {
+sub has_restricting_overdues {
     my ( $self, $params ) = @_;
-    return if
-        !$params->{force} &&
-        !C4::Context->preference('TrackLastPatronActivity');
-    $self->lastseen( dt_from_string() )->store;
+    $params //= {};
+    my $date = dt_from_string()->truncate( to => 'day' );
+
+    # If ignoring unrestricted overdues, calculate which delay value for
+    # overdue messages is set with restrictions. Then only include overdue
+    # issues older than that date when counting.
+    #TODO: bail out/throw exception if $params->{issue_branchcode} not set?
+    my $debarred_delay = _get_overdue_debarred_delay( $params->{issue_branchcode}, $self->categorycode() );
+    return 0 unless defined $debarred_delay;
+
+    # Emulate the conditions in overdue_notices.pl.
+    # The overdue_notices-script effectively truncates both issues.date_due and current date
+    # to days when selecting overdue issues.
+    # Hours and minutes for issues.date_due is usually set to 23 and 59 respectively, though can theoretically
+    # be set to any other value (truncated to minutes, except if CalcDateDue gets a $startdate)
+    #
+    # No matter what time of day date_due is set to, overdue_notices.pl will select all issues that are due
+    # the current date or later. We can emulate this query by instead of truncating both to days in the SQL-query,
+    # using the condition that date_due must be less then the current date truncated to days (time set to 00:00:00)
+    # offset by one day in the future.
+
+    $date->add( days => 1 );
+
+    my $calendar;
+    if ( C4::Context->preference('OverdueNoticeCalendar') ) {
+        $calendar = Koha::Calendar->new( branchcode => $params->{issue_branchcode} );
+    }
+
+    my $dtf    = Koha::Database->new->schema->storage->datetime_parser;
+    my $issues = $self->_result->issues->search( { date_due => { '<' => $dtf->format_datetime($date) } } );
+    my $now    = dt_from_string();
+
+    while ( my $issue = $issues->next ) {
+        my $days_between =
+            C4::Context->preference('OverdueNoticeCalendar')
+            ? $calendar->days_between( dt_from_string( $issue->date_due ), $now )->in_units('days')
+            : $now->delta_days( dt_from_string( $issue->date_due ) )->in_units('days');
+        if ( $days_between >= $debarred_delay ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+# Fetch first delayX value from overduerules where debarredX is set, or 0 for no delay
+sub _get_overdue_debarred_delay {
+    my ( $branchcode, $categorycode ) = @_;
+
+    # We get default rules if there is no rule for this branch
+    my $rule = Koha::OverdueRules->find(
+        {
+            branchcode   => $branchcode,
+            categorycode => $categorycode
+        }
+        )
+        || Koha::OverdueRules->find(
+        {
+            branchcode   => q{},
+            categorycode => $categorycode
+        }
+        );
+
+    if ($rule) {
+        return $rule->delay1 if $rule->debarred1;
+        return $rule->delay2 if $rule->debarred2;
+        return $rule->delay3 if $rule->debarred3;
+    }
+}
+
+=head3 update_lastseen
+
+  $patron->update_lastseen('activity');
+
+Updates the lastseen field, limited to one update per day, whenever the activity passed is
+listed in TrackLastPatronActivityTriggers.
+
+The method should be called upon successful completion of the activity.
+
+=cut
+
+sub update_lastseen {
+    my ( $self, $activity ) = @_;
+    my $tracked_activities = {
+        map { ( lc $_, 1 ); } split /\s*\,\s*/,
+        C4::Context->preference('TrackLastPatronActivityTriggers')
+    };
+    return $self unless $tracked_activities->{$activity};
+
+    my $cache     = Koha::Caches->get_instance();
+    my $cache_key = "track_activity_" . $self->borrowernumber;
+    my $cached    = $cache->get_from_cache($cache_key);
+    my $now       = dt_from_string();
+    return $self if $cached && $cached eq $now->ymd;
+
+    $self->lastseen($now)->store;
+    $cache->set_in_cache( $cache_key, $now->ymd );
+    return $self;
 }
 
 =head3 move_to_deleted
@@ -1432,7 +1679,6 @@ sub pending_checkouts {
         {},
         {
             order_by => [
-                { -desc => 'me.timestamp' },
                 { -desc => 'issuedate' },
                 { -desc => 'issue_id' }, # Sort by issue_id should be enough
             ],
@@ -1625,6 +1871,7 @@ Return all the historical holds for this patron
 sub old_holds {
     my ($self) = @_;
     my $old_holds_rs = $self->_result->old_reserves->search( {}, { order_by => 'reservedate' } );
+    require Koha::Old::Holds;
     return Koha::Old::Holds->_new_from_dbic($old_holds_rs);
 }
 
@@ -1670,20 +1917,36 @@ sub return_claims {
 
 =head3 notice_email_address
 
-  my $email = $patron->notice_email_address;
+    my $email = $patron->notice_email_address;
 
 Return the email address of patron used for notices.
 Returns the empty string if no email address.
 
 =cut
 
-sub notice_email_address{
-    my ( $self ) = @_;
+sub notice_email_address {
+    my ($self) = @_;
 
-    my $which_address = C4::Context->preference("AutoEmailPrimaryAddress");
-    # if syspref is set to 'first valid' (value == OFF), look up email address
-    if ( $which_address eq 'OFF' ) {
-        return $self->first_valid_email_address;
+    my $which_address = C4::Context->preference("EmailFieldPrimary");
+
+    if ( $which_address && ( none { $_ eq $which_address } qw{email emailpro B_email cardnumber MULTI} ) ) {
+        warn "Invalid value for EmailFieldPrimary ($which_address)";
+        $which_address = undef;
+    }
+
+    # if syspref is set to 'first valid', look up email address
+    return $self->first_valid_email_address
+        unless $which_address;
+
+    # if syspref is set to 'selected addresses' (value == MULTI), look up email addresses
+    if ( $which_address eq 'MULTI' ) {
+        my @addresses;
+        my $selected_fields = C4::Context->preference("EmailFieldSelection");
+        for my $email_field ( split ",", $selected_fields ) {
+            my $email_address = $self->$email_field;
+            push @addresses, $email_address if $email_address;
+        }
+        return join( ",", @addresses );
     }
 
     return $self->$which_address || '';
@@ -1702,7 +1965,16 @@ Returns the empty string if the borrower has no email addresses.
 sub first_valid_email_address {
     my ($self) = @_;
 
-    return $self->email() || $self->emailpro() || $self->B_email() || q{};
+    my $email = q{};
+
+    my @fields = split /\s*\|\s*/,
+      C4::Context->preference('EmailFieldPrecedence');
+    for my $field (@fields) {
+        $email = $self->$field;
+        last if ($email);
+    }
+
+    return $email;
 }
 
 =head3 get_club_enrollments
@@ -1732,6 +2004,32 @@ sub get_enrollable_clubs {
     return Koha::Clubs->get_enrollable($params);
 }
 
+
+=head3 get_lists_with_patron
+
+    my @lists = $patron->get_lists_with_patron;
+
+FIXME: This method returns a DBIC resultset instead of a Koha::Objects-based
+iterator.
+
+=cut
+
+sub get_lists_with_patron {
+    my ( $self ) = @_;
+    my $borrowernumber = $self->borrowernumber;
+
+    return Koha::Database->new()->schema()->resultset('PatronList')->search(
+        {
+            'patron_list_patrons.borrowernumber' => $borrowernumber,
+        },
+        {
+            join => 'patron_list_patrons',
+            collapse => 1,
+            order_by => 'name',
+        }
+    );
+}
+
 =head3 account_locked
 
 my $is_locked = $patron->account_locked
@@ -1749,9 +2047,11 @@ disabled.
 sub account_locked {
     my ($self) = @_;
     my $FailedLoginAttempts = C4::Context->preference('FailedLoginAttempts');
-    return 1 if $FailedLoginAttempts
-          and $self->login_attempts
-          and $self->login_attempts >= $FailedLoginAttempts;
+    return 1
+        if $FailedLoginAttempts
+        && $FailedLoginAttempts > 0
+        && $self->login_attempts
+        && $self->login_attempts >= $FailedLoginAttempts;
     return 1 if ($self->login_attempts || 0) < 0; # administrative lockout
     return 0;
 }
@@ -1780,18 +2080,134 @@ Return true if the patron (usually the logged in user) can see the patron's info
 
 sub can_see_patrons_from {
     my ( $self, $branchcode ) = @_;
+
+    return $self->can_see_things_from(
+        {
+            branchcode    => $branchcode,
+            permission    => 'borrowers',
+            subpermission => 'view_borrower_infos_from_any_libraries',
+            group_feature => 'ft_hide_patron_info',
+        }
+    );
+}
+
+=head3 can_edit_items_from
+
+    my $can_edit = $patron->can_edit_items_from( $branchcode );
+
+Return true if the I<Koha::Patron> can edit items from the given branchcode
+
+=cut
+
+sub can_edit_items_from {
+    my ( $self, $branchcode ) = @_;
+
+    return 1 if C4::Context->IsSuperLibrarian();
+
+    my $userenv = C4::Context->userenv();
+    if ( $userenv && C4::Context->preference('IndependentBranches') ) {
+        return $userenv->{branch} eq $branchcode;
+    }
+
+    return $self->can_see_things_from(
+        {
+            branchcode    => $branchcode,
+            permission    => 'editcatalogue',
+            subpermission => 'edit_any_item',
+            group_feature => 'ft_limit_item_editing',
+        }
+    );
+}
+
+=head3 libraries_where_can_edit_items
+
+    my $libraries = $patron->libraries_where_can_edit_items;
+
+Return the list of branchcodes(!) of libraries the patron is allowed to items for.
+The branchcodes are arbitrarily returned sorted.
+We are supposing here that the object is related to the logged in patron (use of
+C4::Context::only_my_library)
+
+An empty array means no restriction, the user can edit any item.
+
+=cut
+
+sub libraries_where_can_edit_items {
+    my ($self) = @_;
+
+    return $self->libraries_where_can_see_things(
+        {
+            permission    => 'editcatalogue',
+            subpermission => 'edit_any_item',
+            group_feature => 'ft_limit_item_editing',
+        }
+    );
+}
+
+=head3 libraries_where_can_see_patrons
+
+  my $libraries = $patron->libraries_where_can_see_patrons;
+
+Return the list of branchcodes(!) of libraries the patron is allowed to see other
+patron's infos.
+
+The branchcodes are arbitrarily returned sorted.
+
+We are supposing here that the object is related to the logged in patron (use of
+C4::Context::only_my_library)
+
+An empty array means no restriction, the patron can see patron's infos from any
+libraries.
+
+=cut
+
+sub libraries_where_can_see_patrons {
+    my ($self) = @_;
+
+    return $self->libraries_where_can_see_things(
+        {
+            permission    => 'borrowers',
+            subpermission => 'view_borrower_infos_from_any_libraries',
+            group_feature => 'ft_hide_patron_info',
+        }
+    );
+}
+
+=head3 can_see_things_from
+
+    my $can_see = $patron->can_see_things_from(
+        {
+            branchcode    => $branchcode,
+            permission    => $permission,
+            subpermission => $subpermission,
+            group_feature => $group_feature
+        }
+    );
+
+Return true if the I<Koha::Patron> can perform some action, as described by a
+permission, subpermission, group_feature combination, at the passed library.
+
+=cut
+
+sub can_see_things_from {
+    my ( $self, $params ) = @_;
+
+    my $branchcode    = $params->{branchcode};
+    my $permission    = $params->{permission};
+    my $subpermission = $params->{subpermission};
+
+    return 1 if C4::Context->IsSuperLibrarian();
+
     my $can = 0;
     if ( $self->branchcode eq $branchcode ) {
         $can = 1;
-    } elsif ( $self->has_permission( { borrowers => 'view_borrower_infos_from_any_libraries' } ) ) {
+    } elsif ( $self->has_permission( { $permission => $subpermission } ) ) {
         $can = 1;
-    } elsif ( my $library_groups = $self->library->library_groups ) {
-        while ( my $library_group = $library_groups->next ) {
-            if ( $library_group->parent->has_child( $branchcode ) ) {
-                $can = 1;
-                last;
-            }
-        }
+    } elsif ( my @branches = $self->libraries_where_can_see_things($params) ) {
+        $can = ( any { $_ eq $branchcode } @branches ) ? 1 : 0;
+    } else {
+        # This should be the case of not finding any limits above, so we can
+        $can = 1;
     }
     return $can;
 }
@@ -1823,20 +2239,39 @@ sub can_log_into {
    return $can;
 }
 
-=head3 libraries_where_can_see_patrons
+=head3 libraries_where_can_see_things
 
-my $libraries = $patron-libraries_where_can_see_patrons;
+    my $libraries = $patron->libraries_where_can_see_things(
+        {
+            permission    => $permission,
+            subpermission => $subpermission,
+            group_feature => $group_feature
+        }
+    );
 
-Return the list of branchcodes(!) of libraries the patron is allowed to see other patron's infos.
-The branchcodes are arbitrarily returned sorted.
-We are supposing here that the object is related to the logged in patron (use of C4::Context::only_my_library)
+Returns a list of libraries where this user is allowed to perform an action, as
+defined by a permission, subpermission, group_feature combination.
 
-An empty array means no restriction, the patron can see patron's infos from any libraries.
+We account for `IndependentBranches` and permission/subpermission assignments
+before looking into library group allowances.
+
+We are assuming here that the object is related to the logged in librarian (use
+of C4::Context::only_my_library)
+
+An empty array means no restriction, the thing can see thing's infos from any
+libraries.
 
 =cut
 
-sub libraries_where_can_see_patrons {
-    my ( $self ) = @_;
+sub libraries_where_can_see_things {
+    my ( $self, $params ) = @_;
+    my $permission    = $params->{permission};
+    my $subpermission = $params->{subpermission};
+    my $group_feature = $params->{group_feature};
+
+    return @{ $self->{"_restricted_branchcodes:$permission:$subpermission:$group_feature"} }
+        if exists( $self->{"_restricted_branchcodes:$permission:$subpermission:$group_feature"} );
+
     my $userenv = C4::Context->userenv;
 
     return () unless $userenv; # For tests, but userenv should be defined in tests...
@@ -1848,29 +2283,35 @@ sub libraries_where_can_see_patrons {
     else {
         unless (
             $self->has_permission(
-                { borrowers => 'view_borrower_infos_from_any_libraries' }
+                { $permission => $subpermission }
             )
           )
         {
-            my $library_groups = $self->library->library_groups({ ft_hide_patron_info => 1 });
+            my $library_groups = $self->library->library_groups();
             if ( $library_groups->count )
             {
                 while ( my $library_group = $library_groups->next ) {
+                    my $root = Koha::Library::Groups->get_root_ancestor({ id => $library_group->id });
+                    next unless $root->$group_feature;
                     my $parent = $library_group->parent;
-                    if ( $parent->has_child( $self->branchcode ) ) {
-                        push @restricted_branchcodes, $parent->children->get_column('branchcode');
+                    my @children = $parent->all_libraries;
+                    foreach my $child (@children){
+                        push @restricted_branchcodes, $child->branchcode;
+
                     }
                 }
+            } else {
+                push @restricted_branchcodes, $self->branchcode;
             }
-
-            @restricted_branchcodes = ( $self->branchcode ) unless @restricted_branchcodes;
         }
     }
 
     @restricted_branchcodes = grep { defined $_ } @restricted_branchcodes;
     @restricted_branchcodes = uniq(@restricted_branchcodes);
     @restricted_branchcodes = sort(@restricted_branchcodes);
-    return @restricted_branchcodes;
+
+    $self->{"_restricted_branchcodes:$permission:$subpermission:$group_feature"} = \@restricted_branchcodes;
+    return @{ $self->{"_restricted_branchcodes:$permission:$subpermission:$group_feature"} };
 }
 
 =head3 has_permission
@@ -1905,13 +2346,13 @@ sub is_superlibrarian {
 
 my $is_adult = $patron->is_adult
 
-Return true if the patron has a category with a type Adult (A) or Organization (I)
+Return true if the patron has a category with a type Adult (A), Organization (I) or Staff (S)
 
 =cut
 
 sub is_adult {
     my ( $self ) = @_;
-    return $self->category->category_type =~ /^(A|I)$/ ? 1 : 0;
+    return $self->category->category_type =~ /^(A|I|S)$/ ? 1 : 0;
 }
 
 =head3 is_child
@@ -1964,16 +2405,47 @@ sub has_valid_userid {
 
 =head3 generate_userid
 
-my $patron = Koha::Patron->new( $params );
-$patron->generate_userid
+    $patron->generate_userid;
 
-Generate a userid using the $surname and the $firstname (if there is a value in $firstname).
+    If you do not have a plugin for generating a userid, we will call
+    the internal method here that returns firstname.surname[.number],
+    where number is an optional suffix to make the userid unique.
+    (Its behavior has not been changed on bug 32426.)
 
-Set a generated userid ($firstname.$surname if there is a $firstname, or $surname if there is no value in $firstname) plus offset (0 if the $userid is unique, or a higher numeric value if not unique).
+    If you have plugin(s), the first valid response will be used.
+    A plugin is assumed to return a valid userid as suggestion, but not
+    assumed to save it already.
+    Does not fallback to internal (you could arrange for that in your plugin).
+    Clears userid when there are no valid plugin responses.
 
 =cut
 
 sub generate_userid {
+    my ( $self ) = @_;
+    my @responses = Koha::Plugins->call(
+        'patron_generate_userid',
+        {
+            patron  => $self,                 #FIXME To be deprecated
+            payload => { patron => $self },
+        },
+    );
+    unless( @responses ) {
+        # Empty list only possible when there are NO enabled plugins for this method.
+        # In that case we provide internal response.
+        return $self->_generate_userid_internal;
+    }
+    # If a plugin returned false value or invalid value, we do however not return
+    # internal response. The plugins should deal with that themselves. So we prevent
+    # unexpected/unwelcome internal codes for plugin failures.
+    foreach my $response ( grep { $_ } @responses ) {
+        $self->userid( $response );
+        return $self if $self->has_valid_userid;
+    }
+    $self->userid(undef);
+    return $self;
+}
+
+sub _generate_userid_internal { # as we always did
     my ($self) = @_;
     my $offset = 0;
     my $firstname = $self->firstname // q{};
@@ -2034,17 +2506,22 @@ sub extended_attributes {
                 }
 
                 # Check globally mandatory types
-                my @required_attribute_types =
-                    Koha::Patron::Attribute::Types->search(
-                        {
-                            mandatory => 1,
-                            category_code => [ undef, $self->categorycode ],
-                            'borrower_attribute_types_branches.b_branchcode' =>
-                              undef,
-                        },
-                        { join => 'borrower_attribute_types_branches' }
-                    )->get_column('code');
-                for my $type ( @required_attribute_types ) {
+                my $interface = C4::Context->interface;
+                my $params = {
+                    mandatory                                        => 1,
+                    category_code                                    => [ undef, $self->categorycode ],
+                    'borrower_attribute_types_branches.b_branchcode' => undef,
+                };
+
+                if ( $interface eq 'opac' ) {
+                    $params->{opac_editable} = 1;
+                }
+
+                my @required_attribute_types = Koha::Patron::Attribute::Types->search(
+                    $params,
+                    { join => 'borrower_attribute_types_branches' }
+                )->get_column('code');
+                for my $type (@required_attribute_types) {
                     Koha::Exceptions::Patron::MissingMandatoryExtendedAttribute->throw(
                         type => $type,
                     ) if !$new_types->{$type};
@@ -2199,6 +2676,47 @@ sub get_extended_attribute {
     return $attribute->next;
 }
 
+=head3 set_default_messaging_preferences
+
+    $patron->set_default_messaging_preferences
+
+Sets default messaging preferences on patron.
+
+See Koha::Patron::MessagePreference(s) for more documentation, especially on
+thrown exceptions.
+
+=cut
+
+sub set_default_messaging_preferences {
+    my ($self, $categorycode) = @_;
+
+    my $options = Koha::Patron::MessagePreferences->get_options;
+
+    foreach my $option (@$options) {
+        # Check that this option has preference configuration for this category
+        unless (Koha::Patron::MessagePreferences->search({
+            message_attribute_id => $option->{message_attribute_id},
+            categorycode         => $categorycode || $self->categorycode,
+        })->count) {
+            next;
+        }
+
+        # Delete current setting
+        Koha::Patron::MessagePreferences->search({
+             borrowernumber => $self->borrowernumber,
+             message_attribute_id => $option->{message_attribute_id},
+        })->delete;
+
+        Koha::Patron::MessagePreference->new_from_default({
+            borrowernumber => $self->borrowernumber,
+            categorycode   => $categorycode || $self->categorycode,
+            message_attribute_id => $option->{message_attribute_id},
+        });
+    }
+
+    return $self;
+}
+
 =head3 is_accessible
 
     if ( $patron->is_accessible({ user => $logged_in_user }) ) { ... }
@@ -2246,7 +2764,13 @@ sub to_api {
 
     my $json_patron = $self->SUPER::to_api( $params );
 
+    return unless $json_patron;
+
     $json_patron->{restricted} = ( $self->is_debarred )
+                                    ? Mojo::JSON->true
+                                    : Mojo::JSON->false;
+
+    $json_patron->{expired} = ( $self->is_expired )
                                     ? Mojo::JSON->true
                                     : Mojo::JSON->false;
 
@@ -2334,6 +2858,27 @@ sub to_api_mapping {
         primary_contact_method => undef,
         secret              => undef,
         auth_method         => undef,
+    };
+}
+
+=head3 strings_map
+
+Returns a map of column name to string representations including the string.
+
+=cut
+
+sub strings_map {
+    my ( $self, $params ) = @_;
+
+    return {
+        library_id => {
+            str  => $self->library->branchname,
+            type => 'library',
+        },
+        category_id => {
+            str  => $self->category->description,
+            type => 'patron_category',
+        }
     };
 }
 
@@ -2431,6 +2976,8 @@ This method tells if the Koha:Patron object can be deleted. Possible return valu
 
 =item 'is_anonymous_patron'
 
+=item 'is_protected'
+
 =back
 
 =cut
@@ -2453,6 +3000,9 @@ sub safe_to_delete {
     }
     elsif ( $self->guarantee_relationships->count ) {
         $error = 'has_guarantees';
+    }
+    elsif ( $self->protected ) {
+        $error = 'is_protected';
     }
 
     if ( $error ) {
@@ -2487,6 +3037,29 @@ Return the patron's account balance
 sub account_balance {
     my ($self) = @_;
     return $self->account->balance;
+}
+
+=head3 get_savings
+
+    my $savings = $patron->get_savings;
+
+    Returns the cumulative replacement price of all items this patron has ever
+    borrowed (checkouts + old_checkouts), i.e. the total amount they saved by
+    using the library.
+
+=cut
+
+sub get_savings {
+    my ($self) = @_;
+
+    my @itemnumbers = grep { defined $_ } ( $self->old_checkouts->get_column('itemnumber'), $self->checkouts->get_column('itemnumber') );
+
+    return Koha::Items->search(
+        { itemnumber => { -in => \@itemnumbers } },
+        {   select => [ { sum => 'me.replacementprice' } ],
+            as     => ['total_savings']
+        }
+    )->next->get_column('total_savings') // 0;
 }
 
 =head3 notify_library_of_registration
@@ -2584,6 +3157,21 @@ sub can_patron_change_staff_only_lists {
     return 0;
 }
 
+=head3 can_patron_change_permitted_staff_lists
+
+$patron->can_patron_change_permitted_staff_lists;
+
+Return 1 if a patron has 'Superlibrarian' or 'Catalogue' and 'edit_public_list_contents' permissions.
+Otherwise, return 0.
+
+=cut
+
+sub can_patron_change_permitted_staff_lists {
+    my ( $self, $params ) = @_;
+    return 1 if C4::Auth::haspermission( $self->userid, { 'catalogue' => 1, lists => 'edit_public_list_contents' } );
+    return 0;
+}
+
 =head3 encode_secret
 
   $patron->encode_secret($secret32);
@@ -2638,9 +3226,132 @@ sub virtualshelves {
 
 =cut
 
-sub update_lastseen {
-    my ( $self ) = @_;
-    $self->track_login;
+
+=head3 alert_subscriptions
+
+    my $subscriptions = $patron->alert_subscriptions;
+
+Return a Koha::Subscriptions object containing subscriptions for which the patron has subscribed to email alerts.
+
+=cut
+
+sub alert_subscriptions {
+    my ($self) = @_;
+
+    my @alerts           = $self->_result->alerts;
+    my @subscription_ids = map { $_->externalid } @alerts;
+
+    return Koha::Subscriptions->search( { subscriptionid => \@subscription_ids } );
+}
+
+=head3 consent
+
+    my $consent = $patron->consent(TYPE);
+
+    Returns the first consent of type TYPE (there should be only one) or a new instance
+    of Koha::Patron::Consent.
+
+=cut
+
+sub consent {
+    my ( $self, $type ) = @_;
+    Koha::Exceptions::MissingParameter->throw('Missing consent type') if !$type;
+    my $consents = Koha::Patron::Consents->search(
+        {
+            borrowernumber => $self->borrowernumber,
+            type           => $type,
+        }
+    );
+    return $consents && $consents->count
+        ? $consents->next
+        : Koha::Patron::Consent->new( { borrowernumber => $self->borrowernumber, type => $type } );
+}
+
+=head3 can_checkout
+
+=cut
+
+sub can_checkout {
+    my ($self) = @_;
+
+    my $status = { can_checkout => 1 };
+
+    $status->{debarred}     = 1 if $self->debarred;
+    $status->{expired}      = 1 if $self->is_expired;
+    $status->{can_checkout} = 0 if $status->{debarred} || $status->{expired};
+
+    # Patron charges
+    my $patron_charge_limits = $self->is_patron_inside_charge_limits();
+    %$status = ( %$status, %$patron_charge_limits );
+    $status->{can_checkout} = 0
+        if $patron_charge_limits->{noissuescharge}->{overlimit}
+        || $patron_charge_limits->{NoIssuesChargeGuarantees}->{overlimit}
+        || $patron_charge_limits->{NoIssuesChargeGuarantorsWithGuarantees}->{overlimit};
+
+    return $status;
+}
+
+=head3 is_patron_inside_charge_limits
+
+my $patron_charge_limits = $patron->is_patron_inside_charge_limits( { patron => $patron } );
+
+Checks the current account balance for a patron and any guarantors/guarantees and compares it with any charge limits in place
+Takes into account patron category level charge limits in the first instance and defaults to global sysprefs if not set
+
+=cut
+
+sub is_patron_inside_charge_limits {
+    my ( $self, $args ) = @_;
+
+    my $borrowernumber       = $args->{borrowernumber};
+    my $patron               = $self || Koha::Patrons->find( { borrowernumber => $borrowernumber } );
+    my $patron_category      = $patron->category;
+    my $patron_charge_limits = {};
+
+    my $no_issues_charge = $patron_category->noissuescharge || C4::Context->preference('noissuescharge');
+    my $no_issues_charge_guarantees =
+        $patron_category->noissueschargeguarantees || C4::Context->preference('NoIssuesChargeGuarantees');
+    my $no_issues_charge_guarantors_with_guarantees = $patron_category->noissueschargeguarantorswithguarantees
+        || C4::Context->preference('NoIssuesChargeGuarantorsWithGuarantees');
+
+    my $non_issues_charges            = $patron->account->non_issues_charges;
+    my $guarantees_non_issues_charges = 0;
+    my $guarantors_non_issues_charges = 0;
+
+    # Check the debt of this patrons guarantees
+    if ( defined $no_issues_charge_guarantees ) {
+        my @guarantees = map { $_->guarantee } $patron->guarantee_relationships->as_list;
+        foreach my $g (@guarantees) {
+            $guarantees_non_issues_charges += $g->account->non_issues_charges;
+        }
+    }
+
+    # Check the debt of this patrons guarantors *and* the guarantees of those guarantors
+    if ( defined $no_issues_charge_guarantors_with_guarantees ) {
+        $guarantors_non_issues_charges = $patron->relationships_debt(
+            { include_guarantors => 1, only_this_guarantor => 0, include_this_patron => 1 } );
+    }
+
+    # Return hash for each charge limit - limit, charge, overlimit
+    $patron_charge_limits->{noissuescharge} =
+        { limit => $no_issues_charge, charge => $non_issues_charges, overlimit => 0 };
+    $patron_charge_limits->{noissuescharge}->{overlimit} = 1
+        if $no_issues_charge && $non_issues_charges > $no_issues_charge;
+
+    $patron_charge_limits->{NoIssuesChargeGuarantees} =
+        { limit => $no_issues_charge_guarantees, charge => $guarantees_non_issues_charges, overlimit => 0 };
+    $patron_charge_limits->{NoIssuesChargeGuarantees}->{overlimit} = 1
+        if $no_issues_charge_guarantees && $guarantees_non_issues_charges > $no_issues_charge_guarantees;
+
+    $patron_charge_limits->{NoIssuesChargeGuarantorsWithGuarantees} = {
+        limit     => $no_issues_charge_guarantors_with_guarantees, charge => $guarantors_non_issues_charges,
+        overlimit => 0
+    };
+    $patron_charge_limits->{NoIssuesChargeGuarantorsWithGuarantees}->{overlimit} = 1
+        if $no_issues_charge_guarantors_with_guarantees
+        && $guarantors_non_issues_charges > $no_issues_charge_guarantors_with_guarantees;
+
+    return $patron_charge_limits;
 }
 
 =head2 Internal methods

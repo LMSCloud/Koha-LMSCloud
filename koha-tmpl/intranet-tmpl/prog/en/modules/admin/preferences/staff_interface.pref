@@ -4,7 +4,12 @@ Staff interface:
             - 'Display authority results in the staff interface using XSLT stylesheet at: '
             - pref: AuthorityXSLTResultsDisplay
               class: file
-            - '<br />Options:<ul><li>Put a path to define a xslt file</li><li>Put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language and {authtypecode} will be replaced by the authority type code'
+            - '<br />Options:<ul><li>Put a path to define a XSLT file</li><li>Put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language and {authtypecode} will be replaced by the authority type code'
+        -
+            - 'Display authority details in the staff interface using XSLT stylesheet at: '
+            - pref: AuthorityXSLTDetailsDisplay
+              class: file
+            - '<br />Options:<ul><li>Put a path to define a XSLT file</li><li>Put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language and {authtypecode} will be replaced by the authority type code'
         -
             - "Display language selector on "
             - pref: StaffLangSelectorMode
@@ -49,12 +54,6 @@ Staff interface:
             - pref: intranet_includes
               class: file
             - directory in the template directory, instead of <code>includes/</code>. (Leave blank to disable)
-        -
-            - "Show the following HTML in its own column on the main page of the staff interface:"
-            - pref: IntranetmainUserblock
-              type: textarea
-              syntax: text/html
-              class: code
         -
             - "Show the following HTML to the left of the More menu at the top of each page on the staff interface (should be a list of links or blank):"
             - pref: IntranetNav
@@ -148,6 +147,13 @@ Staff interface:
                   1: Highlight
                   0: Don't highlight
             - words searched for in the staff interface search results pages.
+        -
+            - pref: ReportsExportFormatODS
+              choices:
+                  1: Allow
+                  0: "Do not allow"
+            - Open Document Spreadsheet (ODS) as download format in reports.
+
     Options:
         -
             - pref: viewMARC
@@ -178,19 +184,16 @@ Staff interface:
               choices:
                   0: "Don't show"
                   1: Show
-            - a link to the last searched patron in the staff interface.
+            - a link to the last
+            - pref: showLastPatronCount
+              class: integer
+            - searched patrons in the staff interface.
         -
             - pref: intranetbookbag
               choices:
                   1: Show
                   0: "Don't show"
             - the cart option in the staff interface.
-        -
-            - pref: StaffDetailItemSelection
-              choices:
-                  1: Enable
-                  0: Disable
-            - item selection in record detail page.
         -
             - pref: UseWYSIWYGinSystemPreferences
               choices:
@@ -215,6 +218,11 @@ Staff interface:
                   1: Show
                   0: "Don't show"
             - a search field pulldown for 'Search the catalog' boxes.
+        -
+            - Download a maximum of
+            - pref: ReportsExportLimit
+              class: integer
+            - 'records when downloading from the reports module.<br>NOTE: Only a positive value will enforce a limit. A specific limit in the report overrides this setting.'
         -
             - pref: IssuingStatsOnIntranetResultPageYears
               class: integer

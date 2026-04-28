@@ -1,10 +1,20 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE HtmlTags %]
 [% USE Branches %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-[% PROCESS 'i18n.inc' %]
-<title>[% IF is_edit || course_reserve %]Edit reserve[% ELSE %]Add reserves[% END %] &rsaquo; [% course.course_name | html %] &rsaquo; Course reserves &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF is_edit || course_reserve %]
+        [% t("Edit reserve") | html %]
+    [% ELSE %]
+        [% t("Add reserves") | html %]
+    [% END %] &rsaquo;
+    [% course.course_name | html %] &rsaquo;
+    [% t("Course reserves") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -20,7 +30,7 @@
             <a href="/cgi-bin/koha/course_reserves/course-reserves.pl">Course reserves</a>
         [% END %]
         [% WRAPPER breadcrumb_item %]
-            <a href="/cgi-bin/koha/course_reserves/course-details.pl?course_id=[% course.course_id | uri %]">[% course.course_name | html %]</a>
+            <a href="/cgi-bin/koha/course_reserves/course-details.pl?course_id=[% course.course_id | uri %]">[% course.course_name | html %][%- IF course.section -%] - [% course.section | html %][%- END -%]</a>
         [% END %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
             [% IF is_edit || course_reserve %]
@@ -35,32 +45,34 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-md-8 col-md-offset-2">
+        <div class="col-md-8 offset-md-2">
+            [% INCLUDE 'messages.inc' %]
             <h1>
                 [% IF is_edit || course_reserve %]<span>Edit</span> [% ELSE %]<span>Reserve</span> [% END %]<em>[% biblio.title | html %]</em> for <em>[% course.course_name | html %]</em>
             </h1>
 
-        [% IF course_reserve && !is_edit%]<div class="dialog message" id="already_on_reserve_this">This course already has this item on reserve.</div>[% END %]
+        [% IF course_reserve && !is_edit%]<div class="alert alert-info" id="already_on_reserve_this">This course already has this item on reserve.</div>[% END %]
         [% IF course_item %]
             [% IF item %]
-                <div class="dialog message" id="already_on_reserve">Number of courses reserving this item: [% course_item.course_reserves.count | html %]</div>
+                <div class="alert alert-info" id="already_on_reserve">Number of courses reserving this item: [% course_item.course_reserves.count | html %]</div>
             [% ELSE %]
-                <div class="dialog message" id="already_on_reserve">Number of courses reserving this bibliographic record: [% course_item.course_reserves.count | html %]</div>
+                <div class="alert alert-info" id="already_on_reserve">Number of courses reserving this bibliographic record: [% course_item.course_reserves.count | html %]</div>
             [% END %]
         [% END %]
 
         <form method="post" action="/cgi-bin/koha/course_reserves/add_items.pl">
+            [% INCLUDE 'csrf-token.inc' %]
             <input type="hidden" name="course_id" value="[% course.course_id | html %]" />
             <input type="hidden" name="return" value="[% return | html %]" />
-            <input type="hidden" name="action" value="add" />
+            <input type="hidden" name="op" value="cud-add" />
 
             [% IF item # adding an item to course items %]
 
             <fieldset class="rows">
                 [% IF is_edit || course_reserve %]
-                    <legend>Edit <em>[% biblio.title | html %]</em> in <em>[% course.course_name | html %]</em></legend>
+                    <legend>Edit <em>[% biblio.title | html %]</em> in <em>[% course.course_name | html %][%- IF course.section -%] - [% course.section | html %][%- END -%]</em></legend>
                 [% ELSE %]
-                    <legend>Add <em>[% biblio.title | html %]</em> to <em>[% course.course_name | html %]</em></legend>
+                    <legend>Add <em>[% biblio.title | html %]</em> to <em>[% course.course_name | html %][%- IF course.section -%] - [% course.section | html %][%- END -%]</em></legend>
                 [% END %]
                 <ol>
                     <li>

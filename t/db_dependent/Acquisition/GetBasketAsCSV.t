@@ -28,10 +28,22 @@ my $vendor = Koha::Acquisition::Bookseller->new({
     deliverytime => 5,
 })->store;
 
-my $budget_id = C4::Budgets::AddBudget({
-    budget_code => 'my_budget_code',
-    budget_name => 'My budget name',
-});
+my $budget_period_id = C4::Budgets::AddBudgetPeriod(
+    {
+        budget_period_startdate   => '2024-01-01',
+        budget_period_enddate     => '2049-01-01',
+        budget_period_active      => 1,
+        budget_period_description => "TEST PERIOD"
+    }
+);
+
+my $budget_id = C4::Budgets::AddBudget(
+    {
+        budget_code      => 'my_budget_code',
+        budget_name      => 'My budget name',
+        budget_period_id => $budget_period_id,
+    }
+);
 my $budget = C4::Budgets::GetBudget( $budget_id );
 
 my $csv_profile = Koha::CsvProfile->new({
@@ -75,11 +87,14 @@ is($basket_csv1, 'autor,title,quantity
 ', 'CSV should be generated with user profile');
 
 # Use default template
-t::lib::Mocks::mock_preference('CSVDelimiter', ',');
-my $basket_csv2 = C4::Acquisition::GetBasketAsCSV($basketno, $query);
-is($basket_csv2, 'Contract name,Order number,Entry date,ISBN,Author,Title,Publication year,Publisher,Collection title,Note for vendor,Quantity,RRP,Delivery place,Billing place
-"",' . $order->ordernumber  . ',2016-01-02,,"King, Stephen","Test Record",,"","","",3,,"",""
-', 'CSV should be generated with default template');
+t::lib::Mocks::mock_preference( 'CSVDelimiter', ',' );
+my $basket_csv2 = C4::Acquisition::GetBasketAsCSV( $basketno, $query );
+is(
+    $basket_csv2,
+    '"Contract name","Order number","Entry date","ISBN","Author","Title","Publication year","Publisher","Collection title","Note for vendor","Quantity","RRP","Delivery place","Billing place"
+"",' . $order->ordernumber . ',2016-01-02,,"King, Stephen","Test Record",,"","","",3,,"",""
+', 'CSV should be generated with default template'
+);
 
 my $basket_csv3 = C4::Acquisition::GetBasketAsCSV($basketno, $query, $csv_profile2->export_format_id);
 is($basket_csv3, 'biblio.author,title,quantity
@@ -94,10 +109,12 @@ try {
 };
 
 Koha::Biblios->find($biblionumber)->delete;
-my $basket_csv4 = C4::Acquisition::GetBasketAsCSV($basketno, $query);
-is($basket_csv4, 'Contract name,Order number,Entry date,ISBN,Author,Title,Publication year,Publisher,Collection title,Note for vendor,Quantity,RRP,Delivery place,Billing place
+my $basket_csv4 = C4::Acquisition::GetBasketAsCSV( $basketno, $query );
+is(
+    $basket_csv4,
+    '"Contract name","Order number","Entry date","ISBN","Author","Title","Publication year","Publisher","Collection title","Note for vendor","Quantity","RRP","Delivery place","Billing place"
 "",' . $order->ordernumber . ',2016-01-02,,"","",,"","","",3,,"",""
-', 'CSV should not fail if biblio does not exist');
-
+', 'CSV should not fail if biblio does not exist'
+);
 
 $schema->storage->txn_rollback();

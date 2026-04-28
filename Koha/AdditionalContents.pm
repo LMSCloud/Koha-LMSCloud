@@ -19,9 +19,12 @@ package Koha::AdditionalContents;
 
 use Modern::Perl;
 
+use Array::Utils qw( array_minus );
+
 use Koha::Database;
 use Koha::Exceptions;
 use Koha::AdditionalContent;
+use Koha::AdditionalContentsLocalizations;
 
 use base qw(Koha::Objects);
 
@@ -63,51 +66,33 @@ location is one of this:
 - OpacLoginInstructions
 - OpacSuggestionInstructions
 - ArticleRequestsDisclaimerText
+- CookieConsentBar
+- CookieConsentPopup
 
 =cut
 
 sub search_for_display {
     my ( $self, $params ) = @_;
+    my $lang = $params->{lang} || q{};
+
+    # If lang is not default, we will search for entries matching $lang but fallback to default if $lang is not found
+    # Then we need a subquery count in where clause; DBIx::Class/SQL::Abstract does not support it, fallback to literal SQL
+    my $subquery =
+        qq|(SELECT COUNT(*) FROM additional_contents_localizations WHERE lang='$lang' AND additional_content_id=me.additional_content_id)=0|;
 
     my $search_params;
-    $search_params->{location} = $params->{location};
-    $search_params->{branchcode} = $params->{library_id} ? [ $params->{library_id}, undef ] : undef;
-    $search_params->{published_on} = { '<=' => \'CAST(NOW() AS DATE)' };
-    $search_params->{-or} = [ expirationdate => { '>=' => \'CAST(NOW() AS DATE)' },
-                              expirationdate => undef ];
-    $search_params->{category} = $params->{category} if $params->{category};
+    $search_params->{'additional_content.id'} = $params->{id} if $params->{id};
+    $search_params->{location}                = $params->{location};
+    $search_params->{branchcode}              = $params->{library_id} ? [ $params->{library_id}, undef ] : undef;
+    $search_params->{published_on}   = { '<=' => \'CAST(NOW() AS DATE)' }                   unless $params->{id};
+    $search_params->{expirationdate} = [ '-or', { '>=' => \'CAST(NOW() AS DATE)' }, undef ] unless $params->{id};
+    $search_params->{category}       = $params->{category} if $params->{category};
+    $search_params->{lang}           = 'default'           if !$lang || $lang eq 'default';
+    $search_params->{-or}            = [ { 'lang' => $lang }, '-and' => [ 'lang', 'default', \$subquery ] ]
+        if !$search_params->{lang};
 
-    if ( $params->{lang} ) {
-        # FIXME I am failing to translate the following query
-        # SELECT   a1.category,   a1.code,   COALESCE(a2.title, a1.title)
-        # FROM additional_contents a1
-        # LEFT JOIN additional_contents a2 on a1.code=a2.code AND a2.lang="es-ES"
-        # WHERE a1.lang = 'default';
-
-        # So we are retrieving the code with a translated content, then the other ones
-        my $translated_contents =
-          $self->SUPER::search( { %$search_params, lang => $params->{lang} } );
-        my $default_contents = $self->SUPER::search(
-            {
-                %$search_params,
-                lang => 'default',
-                code =>
-                  { '-not_in' => [ $translated_contents->get_column('code') ] }
-            }
-        );
-
-        return $self->SUPER::search(
-            {
-                idnew => [
-                    $translated_contents->get_column('idnew'),
-                    $default_contents->get_column('idnew')
-                ]
-            },
-            { order_by => 'number' }
-        );
-    }
-
-    return $self->SUPER::search({%$search_params, lang => 'default'}, { order_by => 'number'});
+    my $attribs = { prefetch => 'additional_content', order_by => 'additional_content.number' };
+    return Koha::AdditionalContentsLocalizations->search( $search_params, $attribs );
 }
 
 =head3 find_best_match
@@ -127,12 +112,16 @@ sub find_best_match {
     my $library_id = $params->{library_id};
     my $lang = $params->{lang};
 
-    my $rs = $self->SUPER::search({
+    my $contents = $self->SUPER::search({
         category => $params->{category},
         location => $params->{location},
-        lang => [ $lang, 'default' ],
         branchcode => [ $library_id, undef ],
     });
+
+    my $rs = Koha::AdditionalContentsLocalizations->search({
+            additional_content_id => [ $contents->get_column('id') ],
+            lang => [ $lang, 'default' ],
+        });
 
     # Pick the best
     my ( $alt1, $alt2, $alt3 );

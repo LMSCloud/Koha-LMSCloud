@@ -289,6 +289,51 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 aqbookseller_aliases
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::AqbooksellerAlias>
+
+=cut
+
+__PACKAGE__->has_many(
+  "aqbookseller_aliases",
+  "Koha::Schema::Result::AqbooksellerAlias",
+  { "foreign.vendor_id" => "self.id" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 aqbookseller_interfaces
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::AqbooksellerInterface>
+
+=cut
+
+__PACKAGE__->has_many(
+  "aqbookseller_interfaces",
+  "Koha::Schema::Result::AqbooksellerInterface",
+  { "foreign.vendor_id" => "self.id" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 aqbookseller_issues
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::AqbooksellerIssue>
+
+=cut
+
+__PACKAGE__->has_many(
+  "aqbookseller_issues",
+  "Koha::Schema::Result::AqbooksellerIssue",
+  { "foreign.vendor_id" => "self.id" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 aqcontacts
 
 Type: has_many
@@ -449,6 +494,36 @@ __PACKAGE__->belongs_to(
   },
 );
 
+=head2 marc_order_accounts
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::MarcOrderAccount>
+
+=cut
+
+__PACKAGE__->has_many(
+  "marc_order_accounts",
+  "Koha::Schema::Result::MarcOrderAccount",
+  { "foreign.vendor_id" => "self.id" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 subscriptions
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Subscription>
+
+=cut
+
+__PACKAGE__->has_many(
+  "subscriptions",
+  "Koha::Schema::Result::Subscription",
+  { "foreign.aqbooksellerid" => "self.id" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 vendor_edi_accounts
 
 Type: has_many
@@ -465,8 +540,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-10-19 09:20:21
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Xxg454HATZToWE01NY8eJw
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-11-11 15:30:10
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:c2KX3rFyF5f3ISRpCXrLVA
 
 __PACKAGE__->add_columns(
     '+active' => { is_boolean => 1 },

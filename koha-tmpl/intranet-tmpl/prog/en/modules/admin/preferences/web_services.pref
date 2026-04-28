@@ -22,7 +22,7 @@ Web services:
               choices:
                   1: Enable
                   0: "Disable"
-            - "the OAuth2 client credentials grant for the REST API. Requires Net::OAuth2::AuthorizationServer installed."
+            - "the OAuth2 client credentials grant for the REST API."
         -
             - pref: RESTPublicAnonymousRequests
               choices:
@@ -35,6 +35,17 @@ Web services:
                   1: Enable
                   0: "Disable"
             - "the /public namespace of the API."
+        -
+            - Use
+            - pref: RESTAPIRenewalBranch
+              choices:
+                  apiuserbranch: "the library of the API user"
+                  itemhomebranch: "the item's home library"
+                  patronhomebranch: "the patron's home library"
+                  checkoutbranch: "the library the item was checked out from"
+                  none: "NULL"
+                  apirenew: "'APIRenew'"
+            - as branchcode to store in the statistics table.
     OAI-PMH:
         -
             - pref: OAI-PMH
@@ -80,6 +91,12 @@ Web services:
                   transient: might be emptied or truncated at some point (transient)
                   no: will never have any data in it (no)
             - "."
+        -
+            - After an OAI-PMH harvest, send a report email to the email address
+            - pref: "OAI-PMH:HarvestEmailReport"
+              class: Text
+            - "."
+
     ILS-DI:
         -
             - pref: ILS-DI
@@ -91,7 +108,7 @@ Web services:
             - Allow only IP addresses
             - pref: ILS-DI:AuthorizedIPs
               class: Text
-            - to use the ILS-DI services (when enabled). Separate the IP addresses with commas and without spaces. Enter '0:0:0:0/0' or '::/0' to allow any IP.
+            - to use the ILS-DI services (when enabled). Separate the IP addresses with commas and without spaces. Enter '0.0.0.0/0' or '::/0' to allow any IP.
     Mana KB:
         -
             - pref: Mana

@@ -67,15 +67,15 @@ my $language = C4::Languages::getlanguage();
 my $cache = Koha::Caches->get_instance;
 $cache->clear_from_cache( Koha::CirculationRules::GUESSED_ITEMTYPES_KEY );
 
-if ($op eq 'delete') {
+if ($op eq 'cud-delete') {
     my $itemtype     = $input->param('itemtype');
     my $categorycode = $input->param('categorycode');
 
     Koha::CirculationRules->set_rules(
         {
             categorycode => $categorycode eq '*' ? undef : $categorycode,
-            branchcode   => $branch eq '*' ? undef : $branch,
-            itemtype     => $itemtype eq '*' ? undef : $itemtype,
+            branchcode   => $branch eq '*'       ? undef : $branch,
+            itemtype     => $itemtype eq '*'     ? undef : $itemtype,
             rules        => {
                 maxissueqty                      => undef,
                 maxonsiteissueqty                => undef,
@@ -96,6 +96,7 @@ if ($op eq 'delete') {
                 unseen_renewals_allowed          => undef,
                 renewalperiod                    => undef,
                 norenewalbefore                  => undef,
+                noautorenewalbefore              => undef,
                 auto_renew                       => undef,
                 no_auto_renewal_after            => undef,
                 no_auto_renewal_after_hard_limit => undef,
@@ -115,11 +116,12 @@ if ($op eq 'delete') {
                 recall_overdue_fine              => undef,
                 recall_shelf_time                => undef,
                 decreaseloanholds                => undef,
+                holds_pickup_period              => undef,
             }
         }
     );
 }
-elsif ($op eq 'delete-branch-cat') {
+elsif ($op eq 'cud-delete-branch-cat') {
     my $categorycode  = $input->param('categorycode');
     if ($branch eq "*") {
         if ($categorycode eq "*") {
@@ -199,7 +201,7 @@ elsif ($op eq 'delete-branch-cat') {
         );
     }
 }
-elsif ($op eq 'delete-branch-item') {
+elsif ($op eq 'cud-delete-branch-item') {
     my $itemtype  = $input->param('itemtype');
     if ($branch eq "*") {
         if ($itemtype eq "*") {
@@ -262,104 +264,111 @@ elsif ($op eq 'delete-branch-item') {
     }
 }
 # save the values entered
-elsif ($op eq 'add') {
-    my $br = $branch; # branch
-    my $bor  = $input->param('categorycode'); # borrower category
-    my $itemtype  = $input->param('itemtype');     # item type
-    my $fine = $input->param('fine');
-    my $finedays     = $input->param('finedays');
-    my $maxsuspensiondays = $input->param('maxsuspensiondays') || q{};
+elsif ( $op eq 'cud-add' ) {
+    my $br                      = $branch;                          # branch
+    my $bor                     = $input->param('categorycode');    # borrower category
+    my $itemtype                = $input->param('itemtype');        # item type
+    my $fine                    = $input->param('fine');
+    my $finedays                = $input->param('finedays');
+    my $maxsuspensiondays       = $input->param('maxsuspensiondays')       || q{};
     my $suspension_chargeperiod = $input->param('suspension_chargeperiod') || 1;
-    my $firstremind  = $input->param('firstremind');
-    my $chargeperiod = $input->param('chargeperiod');
-    my $chargeperiod_charge_at = $input->param('chargeperiod_charge_at');
-    my $maxissueqty = strip_non_numeric( scalar $input->param('maxissueqty') );
-    my $maxonsiteissueqty = strip_non_numeric( scalar $input->param('maxonsiteissueqty') );
-    my $renewalsallowed  = $input->param('renewalsallowed');
-    my $unseen_renewals_allowed  = defined $input->param('unseen_renewals_allowed') ? strip_non_numeric( scalar $input->param('unseen_renewals_allowed') ) : q{};
-    my $renewalperiod    = $input->param('renewalperiod');
-    my $norenewalbefore  = $input->param('norenewalbefore');
+    my $firstremind             = $input->param('firstremind');
+    my $chargeperiod            = $input->param('chargeperiod');
+    my $chargeperiod_charge_at  = $input->param('chargeperiod_charge_at');
+    my $maxissueqty             = strip_non_numeric( scalar $input->param('maxissueqty') );
+    my $maxonsiteissueqty       = strip_non_numeric( scalar $input->param('maxonsiteissueqty') );
+    my $renewalsallowed         = $input->param('renewalsallowed');
+    my $unseen_renewals_allowed =
+        defined $input->param('unseen_renewals_allowed')
+        ? strip_non_numeric( scalar $input->param('unseen_renewals_allowed') )
+        : q{};
+    my $renewalperiod   = $input->param('renewalperiod');
+    my $norenewalbefore = $input->param('norenewalbefore');
     $norenewalbefore = q{} if $norenewalbefore =~ /^\s*$/;
-    my $auto_renew = $input->param('auto_renew') eq 'yes' ? 1 : 0;
+    my $noautorenewalbefore = $input->param('noautorenewalbefore');
+    my $auto_renew            = $input->param('auto_renew') eq 'yes' ? 1 : 0;
     my $no_auto_renewal_after = $input->param('no_auto_renewal_after');
     $no_auto_renewal_after = q{} if $no_auto_renewal_after =~ /^\s*$/;
     my $no_auto_renewal_after_hard_limit = $input->param('no_auto_renewal_after_hard_limit') || q{};
-    my $reservesallowed  = strip_non_numeric( scalar $input->param('reservesallowed') );
-    my $holds_per_record = strip_non_numeric( scalar $input->param('holds_per_record') );
-    my $holds_per_day    = strip_non_numeric( scalar $input->param('holds_per_day') );
-    my $onshelfholds     = $input->param('onshelfholds') || 0;
-    my $issuelength  = $input->param('issuelength') || 0;
-    my $daysmode = $input->param('daysmode');
-    my $lengthunit  = $input->param('lengthunit');
-    my $hardduedate = $input->param('hardduedate') || q{};
-    my $hardduedatecompare = $input->param('hardduedatecompare');
-    my $rentaldiscount = $input->param('rentaldiscount') || 0;
-    my $opacitemholds = $input->param('opacitemholds') || 0;
-    my $article_requests = $input->param('article_requests') || 'no';
-    my $overduefinescap = $input->param('overduefinescap')
+    my $reservesallowed                  = strip_non_numeric( scalar $input->param('reservesallowed') );
+    my $holds_per_record                 = strip_non_numeric( scalar $input->param('holds_per_record') );
+    my $holds_per_day                    = strip_non_numeric( scalar $input->param('holds_per_day') );
+    my $onshelfholds                     = $input->param('onshelfholds') || 0;
+    my $issuelength                      = $input->param('issuelength')  || 0;
+    my $daysmode                         = $input->param('daysmode');
+    my $lengthunit                       = $input->param('lengthunit');
+    my $hardduedate                      = $input->param('hardduedate') || q{};
+    my $hardduedatecompare               = $input->param('hardduedatecompare');
+    my $rentaldiscount                   = $input->param('rentaldiscount')   || 0;
+    my $opacitemholds                    = $input->param('opacitemholds')    || 0;
+    my $article_requests                 = $input->param('article_requests') || 'no';
+    my $overduefinescap                  = $input->param('overduefinescap')
         && ( $input->param('overduefinescap') + 0 ) > 0 ? sprintf( "%.02f", $input->param('overduefinescap') ) : q{};
-    my $cap_fine_to_replacement_price = ($input->param('cap_fine_to_replacement_price') || q{}) eq 'on';
-    my $note = $input->param('note');
-    my $decreaseloanholds = $input->param('decreaseloanholds') || q{};
-    my $recalls_allowed = $input->param('recalls_allowed');
-    my $recalls_per_record = $input->param('recalls_per_record');
-    my $on_shelf_recalls = $input->param('on_shelf_recalls');
-    my $recall_due_date_interval = $input->param('recall_due_date_interval');
-    my $recall_overdue_fine = $input->param('recall_overdue_fine');
-    my $recall_shelf_time = $input->param('recall_shelf_time');
+    my $cap_fine_to_replacement_price = ( $input->param('cap_fine_to_replacement_price') || q{} ) eq 'on';
+    my $note                          = $input->param('note');
+    my $decreaseloanholds             = $input->param('decreaseloanholds') || q{};
+    my $recalls_allowed               = $input->param('recalls_allowed');
+    my $recalls_per_record            = $input->param('recalls_per_record');
+    my $on_shelf_recalls              = $input->param('on_shelf_recalls');
+    my $recall_due_date_interval      = $input->param('recall_due_date_interval');
+    my $recall_overdue_fine           = $input->param('recall_overdue_fine');
+    my $recall_shelf_time             = $input->param('recall_shelf_time');
+    my $holds_pickup_period           = strip_non_numeric( scalar $input->param('holds_pickup_period') );
 
     my $rules = {
-        maxissueqty                   => $maxissueqty,
-        maxonsiteissueqty             => $maxonsiteissueqty,
-        rentaldiscount                => $rentaldiscount,
-        fine                          => $fine,
-        finedays                      => $finedays,
-        maxsuspensiondays             => $maxsuspensiondays,
-        suspension_chargeperiod       => $suspension_chargeperiod,
-        firstremind                   => $firstremind,
-        chargeperiod                  => $chargeperiod,
-        chargeperiod_charge_at        => $chargeperiod_charge_at,
-        issuelength                   => $issuelength,
-        daysmode                      => $daysmode,
-        lengthunit                    => $lengthunit,
-        hardduedate                   => $hardduedate,
-        hardduedatecompare            => $hardduedatecompare,
-        renewalsallowed               => $renewalsallowed,
-        unseen_renewals_allowed       => $unseen_renewals_allowed,
-        renewalperiod                 => $renewalperiod,
-        norenewalbefore               => $norenewalbefore,
-        auto_renew                    => $auto_renew,
-        no_auto_renewal_after         => $no_auto_renewal_after,
+        maxissueqty                      => $maxissueqty,
+        maxonsiteissueqty                => $maxonsiteissueqty,
+        rentaldiscount                   => $rentaldiscount,
+        fine                             => $fine,
+        finedays                         => $finedays,
+        maxsuspensiondays                => $maxsuspensiondays,
+        suspension_chargeperiod          => $suspension_chargeperiod,
+        firstremind                      => $firstremind,
+        chargeperiod                     => $chargeperiod,
+        chargeperiod_charge_at           => $chargeperiod_charge_at,
+        issuelength                      => $issuelength,
+        daysmode                         => $daysmode,
+        lengthunit                       => $lengthunit,
+        hardduedate                      => $hardduedate,
+        hardduedatecompare               => $hardduedatecompare,
+        renewalsallowed                  => $renewalsallowed,
+        unseen_renewals_allowed          => $unseen_renewals_allowed,
+        renewalperiod                    => $renewalperiod,
+        norenewalbefore                  => $norenewalbefore,
+        noautorenewalbefore              => $noautorenewalbefore,
+        auto_renew                       => $auto_renew,
+        no_auto_renewal_after            => $no_auto_renewal_after,
         no_auto_renewal_after_hard_limit => $no_auto_renewal_after_hard_limit,
-        reservesallowed               => $reservesallowed,
-        holds_per_record              => $holds_per_record,
-        holds_per_day                 => $holds_per_day,
-        onshelfholds                  => $onshelfholds,
-        opacitemholds                 => $opacitemholds,
-        overduefinescap               => $overduefinescap,
-        cap_fine_to_replacement_price => $cap_fine_to_replacement_price,
-        article_requests              => $article_requests,
-        note                          => $note,
-        decreaseloanholds             => $decreaseloanholds,
-        recalls_allowed               => $recalls_allowed,
-        recalls_per_record            => $recalls_per_record,
-        on_shelf_recalls              => $on_shelf_recalls,
-        recall_due_date_interval      => $recall_due_date_interval,
-        recall_overdue_fine           => $recall_overdue_fine,
-        recall_shelf_time             => $recall_shelf_time,
+        reservesallowed                  => $reservesallowed,
+        holds_per_record                 => $holds_per_record,
+        holds_per_day                    => $holds_per_day,
+        onshelfholds                     => $onshelfholds,
+        opacitemholds                    => $opacitemholds,
+        overduefinescap                  => $overduefinescap,
+        cap_fine_to_replacement_price    => $cap_fine_to_replacement_price,
+        article_requests                 => $article_requests,
+        note                             => $note,
+        decreaseloanholds                => $decreaseloanholds,
+        recalls_allowed                  => $recalls_allowed,
+        recalls_per_record               => $recalls_per_record,
+        on_shelf_recalls                 => $on_shelf_recalls,
+        recall_due_date_interval         => $recall_due_date_interval,
+        recall_overdue_fine              => $recall_overdue_fine,
+        recall_shelf_time                => $recall_shelf_time,
+        holds_pickup_period              => $holds_pickup_period,
     };
 
     Koha::CirculationRules->set_rules(
         {
-            categorycode => $bor eq '*' ? undef : $bor,
+            categorycode => $bor eq '*'      ? undef : $bor,
             itemtype     => $itemtype eq '*' ? undef : $itemtype,
-            branchcode   => $br eq '*' ? undef : $br,
+            branchcode   => $br eq '*'       ? undef : $br,
             rules        => $rules,
         }
     );
 
 }
-elsif ($op eq "set-branch-defaults") {
+elsif ($op eq "cud-set-branch-defaults") {
     my $categorycode             = $input->param('categorycode');
     my $patron_maxissueqty       = strip_non_numeric( scalar $input->param('patron_maxissueqty') );
     my $patron_maxonsiteissueqty = $input->param('patron_maxonsiteissueqty');
@@ -429,7 +438,7 @@ elsif ($op eq "set-branch-defaults") {
         }
     );
 }
-elsif ($op eq "add-branch-cat") {
+elsif ($op eq "cud-add-branch-cat") {
     my $categorycode  = $input->param('categorycode');
     my $patron_maxissueqty = strip_non_numeric( scalar $input->param('patron_maxissueqty') );
     my $patron_maxonsiteissueqty = $input->param('patron_maxonsiteissueqty');
@@ -489,7 +498,7 @@ elsif ($op eq "add-branch-cat") {
         );
     }
 }
-elsif ( $op eq "add-open-article-requests-limit" ) {
+elsif ( $op eq "cud-add-open-article-requests-limit" ) {
     my $categorycode                = $input->param('categorycode');
     my $open_article_requests_limit = strip_non_numeric( scalar $input->param('open_article_requests_limit') );
 
@@ -528,7 +537,7 @@ elsif ( $op eq "add-open-article-requests-limit" ) {
             }
         );
     }
-} elsif ( $op eq 'del-open-article-requests-limit' ) {
+} elsif ( $op eq 'cud-del-open-article-requests-limit' ) {
     my $categorycode = $input->param('categorycode');
     if ( $branch eq "*" ) {
         if ( $categorycode eq "*" ) {
@@ -562,7 +571,7 @@ elsif ( $op eq "add-open-article-requests-limit" ) {
         );
     }
 }
-elsif ( $op eq "set-article-request-fee" ) {
+elsif ( $op eq "cud-set-article-request-fee" ) {
 
     my $category = $input->param('article_request_fee_category');
     my $fee      = strip_non_numeric( scalar $input->param('article_request_fee') );
@@ -578,9 +587,9 @@ elsif ( $op eq "set-article-request-fee" ) {
         }
     );
 
-} elsif ( $op eq 'del-article-request-fee' ) {
+} elsif ( $op eq 'cud-del-article-request-fee' ) {
 
-    my $category  = $input->param('article_request_fee_category');
+    my $category  = $input->param('categorycode');
 
     Koha::CirculationRules->set_rules(
         {   categorycode => ( $category eq  '*' ) ? undef : $category,
@@ -589,7 +598,7 @@ elsif ( $op eq "set-article-request-fee" ) {
         }
     );
 }
-elsif ($op eq "add-branch-item") {
+elsif ($op eq "cud-add-branch-item") {
     my $itemtype                = $input->param('itemtype');
     my $holdallowed             = $input->param('holdallowed');
     my $hold_fulfillment_policy = $input->param('hold_fulfillment_policy');
@@ -657,7 +666,7 @@ elsif ($op eq "add-branch-item") {
         );
     }
 }
-elsif ( $op eq 'mod-refund-lost-item-fee-rule' ) {
+elsif ( $op eq 'cud-mod-refund-lost-item-fee-rule' ) {
 
     my $lostreturn = $input->param('lostreturn');
 
@@ -708,7 +717,7 @@ elsif ( $op eq 'mod-refund-lost-item-fee-rule' ) {
             }
         );
     }
-} elsif ( $op eq "set-waiting-hold-cancellation" ) {
+} elsif ( $op eq "cud-set-waiting-hold-cancellation" ) {
 
     my $category = $input->param('waiting_hold_cancellation_category');
     my $itemtype = $input->param('waiting_hold_cancellation_itemtype');
@@ -728,10 +737,10 @@ elsif ( $op eq 'mod-refund-lost-item-fee-rule' ) {
         }
     );
 
-} elsif ( $op eq 'del-waiting-hold-cancellation' ) {
+} elsif ( $op eq 'cud-del-waiting-hold-cancellation' ) {
 
-    my $category = $input->param('waiting_hold_cancellation_category');
-    my $itemtype = $input->param('waiting_hold_cancellation_itemtype');
+    my $category = $input->param('categorycode');
+    my $itemtype = $input->param('itemtype');
 
     Koha::CirculationRules->set_rules(
         {   categorycode => ( $category eq '*' ) ? undef : $category,
@@ -749,9 +758,9 @@ my $refundProcessingFeeRule = Koha::CirculationRules->find({ branchcode => ($bra
 my $defaultProcessingFeeRule = Koha::CirculationRules->find({ branchcode => undef, rule_name => 'processingreturn' });
 $template->param(
     refundLostItemFeeRule => $refundLostItemFeeRule,
-    defaultRefundRule     => $defaultLostItemFeeRule ? $defaultLostItemFeeRule->rule_value : 'refund',
+    defaultRefundRule     => $defaultLostItemFeeRule ? $defaultLostItemFeeRule->rule_value : 'cud-refund',
     refundProcessingFeeRule => $refundProcessingFeeRule,
-    defaultProcessingRefundRule => $defaultProcessingFeeRule ? $defaultProcessingFeeRule->rule_value : 'refund',
+    defaultProcessingRefundRule => $defaultProcessingFeeRule ? $defaultProcessingFeeRule->rule_value : 'cud-refund',
 );
 
 my $patron_categories = Koha::Patron::Categories->search({}, { order_by => ['description'] });
@@ -759,6 +768,13 @@ my $patron_categories = Koha::Patron::Categories->search({}, { order_by => ['des
 my $itemtypes = Koha::ItemTypes->search_with_localization;
 
 my $humanbranch = ( $branch ne '*' ? $branch : undef );
+
+my @used_categorycodes =
+    Koha::CirculationRules->search( { branchcode => $humanbranch }, { columns => ['categorycode'], distinct => 1, } )
+    ->get_column('categorycode');
+my @used_itemtypes =
+    Koha::CirculationRules->search( { branchcode => $humanbranch }, { columns => ['itemtype'], distinct => 1, } )
+    ->get_column('itemtype');
 
 my $all_rules = Koha::CirculationRules->search({ branchcode => $humanbranch });
 my $definedbranch = $all_rules->count ? 1 : 0;
@@ -772,12 +788,14 @@ while ( my $r = $all_rules->next ) {
 $template->param(show_branch_cat_rule_form => 1);
 
 $template->param(
-    patron_categories => $patron_categories,
-    itemtypeloop      => $itemtypes,
-    humanbranch       => $humanbranch,
-    current_branch    => $branch,
-    definedbranch     => $definedbranch,
-    all_rules         => $rules,
+    used_categorycodes => \@used_categorycodes,
+    used_itemtypes     => \@used_itemtypes,
+    patron_categories  => $patron_categories,
+    itemtypeloop       => $itemtypes,
+    humanbranch        => $humanbranch,
+    current_branch     => $branch,
+    definedbranch      => $definedbranch,
+    all_rules          => $rules,
 );
 output_html_with_http_headers $input, $cookie, $template->output;
 

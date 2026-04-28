@@ -69,6 +69,8 @@
           enum:
             - user_roles
             - vendor
+            - extended_attributes
+            - +strings
         collectionFormat: csv
       - $ref: "../swagger.yaml#/parameters/match"
       - $ref: "../swagger.yaml#/parameters/order_by"
@@ -76,7 +78,6 @@
       - $ref: "../swagger.yaml#/parameters/per_page"
       - $ref: "../swagger.yaml#/parameters/q_param"
       - $ref: "../swagger.yaml#/parameters/q_body"
-      - $ref: "../swagger.yaml#/parameters/q_header"
     responses:
       200:
         description: A list of agreement
@@ -199,6 +200,8 @@
             - agreement_packages.package
             - documents
             - vendor
+            - extended_attributes
+            - +strings
         collectionFormat: csv
     responses:
       200:
@@ -266,6 +269,8 @@
             - agreement_licenses
             - agreement_relationships
             - documents
+            - extended_attributes
+            - +strings
         collectionFormat: csv
     responses:
       200:

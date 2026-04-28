@@ -21,20 +21,20 @@
             <ul class="navbar-nav ml-auto">
                 [% IF ( Koha.Preference( 'opaclanguagesdisplay' ) ) %]
                     <li class="nav-item">
-                        [% INCLUDE 'masthead-langmenu.inc' %]
+                        [% INCLUDE 'langmenu.inc' %]
                     </li>
                 [% END # / IF opaclanguagedisplay %]
 
                 <li class="nav-item">
                     <ul class="navbar-nav">
                         <li class="nav-item">
-                            <a href="/cgi-bin/koha/sci/sci-main.pl" class="nav-link helpModal-trigger" role="button" data-toggle="modal"><i class="fa fa-info-circle fa-icon-black" aria-hidden="true"></i> Help</a></li>
+                            <a href="/cgi-bin/koha/sci/sci-main.pl" class="nav-link helpModal-trigger" role="button" data-bs-toggle="modal"><i class="fa fa-info-circle fa-icon-black" aria-hidden="true"></i> Help</a></li>
                         </li>
                     </ul>
                 </li>
                 <li class="nav-item">
                     <a id="sci_logout" href="/cgi-bin/koha/sci/sci-main.pl?logout.x=1" class="nav-link logout">
-                        <i class="fa fa-sign-out" aria-hidden="true"></i> Log out
+                        <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Log out
                     </a>
                 </li>
             </ul>

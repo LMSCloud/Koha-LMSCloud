@@ -21,6 +21,7 @@ use Mojo::Base 'Mojolicious::Controller';
 
 use Koha::Bookings;
 
+use Scalar::Util qw( blessed );
 use Try::Tiny qw( catch try );
 
 =head1 API
@@ -55,12 +56,9 @@ sub get {
 
     return try {
         my $booking = $c->objects->find( Koha::Bookings->new, $c->param('booking_id') );
-        unless ($booking) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => "Booking not found" }
-            );
-        }
+
+        return $c->render_resource_not_found("Booking")
+            unless $booking;
 
         return $c->render( status => 200, openapi => $booking );
     } catch {
@@ -81,7 +79,9 @@ sub add {
         my $body                = $c->req->json;
         my $extended_attributes = delete $body->{extended_attributes} // [];
 
-        my $booking = Koha::Booking->new_from_api($body)->store;
+        my $booking = Koha::Booking->new_from_api($body);
+        $booking->store;
+        $booking->discard_changes;
 
         my @extended_attributes = map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
         $booking->extended_attributes( \@extended_attributes );
@@ -121,18 +121,16 @@ sub update {
 
     my $booking = $c->objects->find_rs( Koha::Bookings->new, $c->param('booking_id') );
 
-    if ( not defined $booking ) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Object not found" }
-        );
-    }
+    return $c->render_resource_not_found("Booking")
+        unless $booking;
 
     return try {
         my $body                = $c->req->json;
         my $extended_attributes = delete $body->{extended_attributes} // [];
 
-        $booking->set_from_api($body)->store;
+        $booking->set_from_api($body);
+        $booking->store();
+        $booking->discard_changes;
 
         my @extended_attributes = map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
         $booking->extended_attributes( \@extended_attributes );
@@ -154,19 +152,12 @@ sub delete {
 
     my $booking = Koha::Bookings->find( $c->param('booking_id') );
 
-    unless ( $booking ) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Object not found" }
-        );
-    }
+    return $c->render_resource_not_found("Booking")
+        unless $booking;
 
     return try {
         $booking->delete;
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
+        return $c->render_resource_deleted;
     } catch {
         $c->unhandled_exception($_);
     };

@@ -46,13 +46,15 @@ my ($template, $loggedinuser, $cookie)
                             });
 my $biblionumber = $query->param('biblionumber');
 my @subscriptionid = $query->multi_param('subscriptionid');
+my $skip_issues = $query->param('skip_issues') || 0;
+my $count_forward = $skip_issues + 1;
 
 @subscriptionid= uniq @subscriptionid;
 @subscriptionid= sort @subscriptionid;
 my $subscriptiondescs;
 my $subscriptions;
 
-if($op eq 'gennext' && @subscriptionid){
+if($op eq 'cud-gennext' && @subscriptionid){
     my $subscriptionid = $subscriptionid[0];
     my $sth = $dbh->prepare("
         SELECT publisheddate, publisheddatetext, serialid, serialseq,
@@ -69,7 +71,7 @@ if($op eq 'gennext' && @subscriptionid){
             my $planneddate = $date_received_today ? dt_from_string : $issue->{planneddate};
             ModSerialStatus( $issue->{serialid}, $issue->{serialseq},
                     $planneddate, $issue->{publisheddate},
-                    $issue->{publisheddatetext}, $status, "" );
+                    $issue->{publisheddatetext}, $status, $issue->{notes}, $count_forward );
         } else {
             require C4::Serials::Numberpattern;
             my $subscription = GetSubscription($subscriptionid);
@@ -79,7 +81,7 @@ if($op eq 'gennext' && @subscriptionid){
             my (
                  $newserialseq,  $newlastvalue1, $newlastvalue2, $newlastvalue3,
                  $newinnerloop1, $newinnerloop2, $newinnerloop3
-            ) = GetNextSeq($subscription, $pattern, $frequency, $expected->{publisheddate});
+            ) = GetNextSeq($subscription, $pattern, $frequency, $expected->{publisheddate}, $count_forward);
 
              ## We generate the next publication date
              my $nextpublisheddate = GetNextDate($subscription, $expected->{publisheddate}, $frequency, 1);
@@ -114,7 +116,7 @@ if($op eq 'delete_confirm'){
     foreach my $serialid (@serialsid){
         $countitems += Koha::Serial::Items->search({serialid => $serialid})->count();
     }
-}elsif($op eq 'delete_confirmed'){
+}elsif($op eq 'cud-delete_confirmed'){
     if($query->param('delitems') eq "Yes"){
         my @itemnumbers;
         foreach my $serialid (@serialsid){
@@ -187,8 +189,11 @@ foreach my $subscription (@$subscriptiondescs){
   $subscription->{'hasRouting'} = check_routing($subscription->{'subscriptionid'});
 }
 
+my $subscription = $subscriptionid ? Koha::Subscriptions->find($subscriptionid) : "";
+
 chop $subscriptionidlist;
 $template->param(
+    subscription                                 => $subscription,
           subscriptionidlist => $subscriptionidlist,
           biblionumber => $biblionumber,
           subscriptions => $subscriptiondescs,
@@ -201,6 +206,7 @@ $template->param(
           routing => C4::Context->preference("RoutingSerials"),
           subscr=>scalar $query->param('subscriptionid'),
           subscriptioncount => $subscriptioncount,
+    cannotedit                                   => ( not C4::Serials::can_edit_subscription($subscriptionid) ),
           location => $location,
           callnumber	       => $callnumber,
           uc(C4::Context->preference("marcflavour")) => 1,

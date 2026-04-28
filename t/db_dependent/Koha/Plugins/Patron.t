@@ -16,8 +16,10 @@
 
 use Modern::Perl;
 
-use Test::More tests => 5;
+use Test::More tests => 6;
+use Test::NoWarnings;
 use Test::Exception;
+use Test::MockModule;
 
 use File::Basename;
 
@@ -50,6 +52,10 @@ subtest 'check_password hook tests' => sub {
 
     my $plugins = Koha::Plugins->new;
     $plugins->InstallPlugins;
+
+    # Mock patron_barcode_transform: we don't want to call it as it generates warnings
+    my $plugin_mock = Test::MockModule->new("Koha::Plugin::Test");
+    $plugin_mock->mock( "patron_barcode_transform", sub { } );
 
     # Test Plugin enforces a 4 digit numeric pin for passwords
     my $plugin = Koha::Plugin::Test->new->enable;
@@ -87,8 +93,6 @@ subtest 'check_password hook tests' => sub {
     ok( $patron->set_password({ password => '4321' }), 'Patron password updated with good string' );
     ok( $patron->set_password({ password => 'explosion', skip_validation => 1}), 'Patron password updated via skip validation');
 
+    Koha::Plugins->RemovePlugins;
     $schema->storage->txn_rollback;
-    Koha::Plugins::Methods->delete;
 };
-
-1;

@@ -1,4 +1,6 @@
 [% USE raw %]
+[% USE Koha %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [%- BLOCK translate_label_types -%]
     [%-  SWITCH type -%]
@@ -10,7 +12,17 @@
     [%- END -%]
 [%- END -%]
     [% INCLUDE 'doc-head-open.inc' %]
-    <title>[% IF ( layout_id ) %]Edit label layout [% layout_id | html %] [% ELSE %] New label layout [% END %] &rsaquo; Layouts &rsaquo; Label creator &rsaquo; Cataloging &rsaquo; Koha</title>
+    <title>[% FILTER collapse %]
+        [% IF( layout_id ) %]
+            [% tx("Edit label layout {layout_id}", { layout_id = layout_id }) | html %]
+        [% ELSE %]
+            [% t("New label layout") | html %]
+        [% END %] &rsaquo;
+        [% t("Layouts") | html %] &rsaquo;
+        [% t("Label creator") | html %] &rsaquo;
+        [% t("Cataloging") | html %] &rsaquo;
+        [% t("Koha") | html %]
+    [% END %]</title>
     [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -49,8 +61,9 @@
 
     <div class="main container-fluid">
         <div class="row">
-            <div class="col-sm-10 col-sm-push-2">
+            <div class="col-md-10 order-md-2 order-sm-1">
                 <main>
+                    [% INCLUDE 'messages.inc' %]
 
                     [% INCLUDE 'labels-toolbar.inc' %]
 
@@ -60,7 +73,7 @@
                         <h1>New label layout</h1>
                     [% END %]
 
-                    <form name="input" action="/cgi-bin/koha/labels/label-edit-layout.pl" method="get">
+                    <form name="input" action="/cgi-bin/koha/labels/label-edit-layout.pl" method="post">
                         <fieldset class="rows">
                             <ol>
                                 <li>
@@ -183,6 +196,14 @@
                                     <input type="text" name="font_size" id="font_size" size="2" value="[% font_size | html %]" />
                                 </li>
                                 <li>
+                                    <label for="scale_width">Barcode width: </label>
+                                    <input type="text" name="scale_width" id="scale_width" size="2" value="[% scale_width | html %]" />
+                                </li>
+                                <li>
+                                    <label for="scale_height">Barcode height: </label>
+                                    <input type="text" name="scale_height" id="scale_height" size="2" value="[% scale_height | html %]" />
+                                </li>
+                                <li>
                                     <label for="oblique_title">Oblique title: </label>
                                     [% IF ( oblique_title ) %]
                                     <input type="checkbox" name="oblique_title" id="oblique_title" value="1"  checked="checked" />
@@ -197,20 +218,21 @@
                             </ol>
                         </fieldset>
                         <fieldset class="action">
+                            [% INCLUDE 'csrf-token.inc' %] 
+                            <input type="hidden" name="op" value="cud-save" />
+                            <input type="hidden" name="layout_id" value="[% layout_id | html %]" />
                             <input type="submit" class="btn btn-primary" value="Save" />
                             <a class="cancel" href="/cgi-bin/koha/labels/label-manage.pl?label_element=layout">Cancel</a>
-                            <input type="hidden" name="op" value="save" />
-                            <input type="hidden" name="layout_id" value="[% layout_id | html %]" />
                         </fieldset>
                     </form>
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'cat-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

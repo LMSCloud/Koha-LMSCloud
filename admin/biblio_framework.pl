@@ -49,7 +49,7 @@ if ( $op eq 'add_form' ) {
         $framework = Koha::BiblioFrameworks->find($frameworkcode);
     }
     $template->param( framework => $framework );
-} elsif ( $op eq 'add_validate' ) {
+} elsif ( $op eq 'cud-add_validate' ) {
     my $frameworkcode = $input->param('frameworkcode');
     my $frameworktext = $input->param('frameworktext');
     my $is_a_modif    = $input->param('is_a_modif');
@@ -89,7 +89,7 @@ if ( $op eq 'add_form' ) {
         framework                  => $framework,
         biblios_use_this_framework => $count,
     );
-} elsif ( $op eq 'delete_confirmed' ) {
+} elsif ( $op eq 'cud-delete_confirmed' ) {
     my $framework = Koha::BiblioFrameworks->find($frameworkcode);
     my $deleted = eval { $framework->delete; };
 

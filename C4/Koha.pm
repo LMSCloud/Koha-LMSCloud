@@ -102,6 +102,7 @@ sub GetItemTypesCategorized {
         FROM itemtypes
         LEFT JOIN authorised_values ON searchcategory = authorised_value
         WHERE searchcategory > '' and hideinopac=1
+        AND category = 'ITEMTYPECAT'
         UNION
         SELECT DISTINCT searchcategory AS `itemtype`,
                         COALESCE(authorised_values.lib_opac,authorised_values.lib) AS description,
@@ -110,6 +111,7 @@ sub GetItemTypesCategorized {
         FROM itemtypes
         LEFT JOIN authorised_values ON searchcategory = authorised_value
         WHERE searchcategory > '' and hideinopac=0
+        AND category = 'ITEMTYPECAT'
         |;
 return ($dbh->selectall_hashref($query,'itemtype'));
 }
@@ -348,7 +350,7 @@ sub getFacets {
             },
             {
                 idx => 'ccode',
-                label => 'CollectionCodes',
+                label => 'Collections',
                 tags => [ qw / 099t 955h / ],
             }
             ];
@@ -363,7 +365,7 @@ sub getFacets {
                         @$facets,
                         {
                             idx   => 'holdingbranch',
-                            label => 'HoldingLibrary',
+                            label => 'Holding libraries',
                             tags  => [qw / 995c /],
                         }
                     );
@@ -376,7 +378,7 @@ sub getFacets {
                     @$facets,
                     {
                         idx   => 'homebranch',
-                        label => 'HomeLibrary',
+                        label => 'Home libraries',
                         tags  => [qw / 995b /],
                     }
                 );
@@ -423,7 +425,7 @@ sub getFacets {
             },
             {
                 idx   => 'itype',
-                label => 'ItemTypes',
+                label => 'Item types',
                 tags  => [ qw/ 952y 942c / ],
                 sep   => ', ',
             },
@@ -446,7 +448,7 @@ sub getFacets {
             },
             {
                 idx => 'ccode',
-                label => 'CollectionCodes',
+                label => 'Collections',
                 tags => [ qw / 9528 / ],
             }
             ];
@@ -461,7 +463,7 @@ sub getFacets {
                         @$facets,
                         {
                             idx   => 'holdingbranch',
-                            label => 'HoldingLibrary',
+                            label => 'Holding libraries',
                             tags  => [qw / 952b /],
                         }
                     );
@@ -474,7 +476,7 @@ sub getFacets {
                     @$facets,
                     {
                         idx   => 'homebranch',
-                        label => 'HomeLibrary',
+                        label => 'Home libraries',
                         tags  => [qw / 952a /],
                     }
                 );
@@ -501,8 +503,7 @@ sub GetAuthorisedValues {
     my $opac = shift ? 1 : 0;  # normalise to be safe
 
     # Is this cached already?
-    my $branch_limit =
-      C4::Context->userenv ? C4::Context->userenv->{"branch"} : "";
+    my $branch_limit = C4::Context::mybranch();
     my $cache_key =
       "AuthorisedValues-$category-$opac-$branch_limit";
     my $cache  = Koha::Caches->get_instance();
@@ -594,6 +595,8 @@ sub display_marc_indicators {
 sub GetNormalizedUPC {
     my ($marcrecord,$marcflavour) = @_;
 
+    $marcflavour ||= C4::Context->preference('marcflavour');
+
     return unless $marcrecord;
     if ($marcflavour eq 'UNIMARC') {
         my @fields = $marcrecord->field('072');
@@ -610,7 +613,7 @@ sub GetNormalizedUPC {
         foreach my $field (@fields) {
             my $indicator = $field->indicator(1);
             my $upc = _normalize_match_point($field->subfield('a'));
-            if ($upc && $indicator == 1 ) {
+            if ($upc && $indicator eq '1' ) {
                 return $upc;
             }
         }
@@ -689,7 +692,7 @@ sub GetNormalizedEAN {
         foreach my $field (@fields) {
             my $indicator = $field->indicator(1);
             my $ean = _normalize_match_point($field->subfield('a'));
-            if ( $ean && $indicator == 3  ) {
+            if ( $ean && $indicator eq '3'  ) {
                 return $ean;
             }
         }
@@ -699,6 +702,8 @@ sub GetNormalizedEAN {
 sub GetNormalizedOCLCNumber {
     my ($marcrecord,$marcflavour) = @_;
     return unless $marcrecord;
+
+    $marcflavour ||= C4::Context->preference('marcflavour');
 
     if ($marcflavour ne 'UNIMARC' ) {
         my @fields = $marcrecord->field('035');
@@ -712,7 +717,6 @@ sub GetNormalizedOCLCNumber {
     } else {
         # TODO for UNIMARC
     }
-    return
 }
 
 sub _normalize_match_point {

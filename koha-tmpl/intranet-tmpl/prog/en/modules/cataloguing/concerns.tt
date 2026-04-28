@@ -1,0 +1,277 @@
+[% USE raw %]
+[% USE Koha %]
+[% USE Asset %]
+[% USE AuthorisedValues %]
+[% PROCESS 'i18n.inc' %]
+[% SET status = AuthorisedValues.GetAuthValueDropbox('TICKET_STATUS') %]
+[% SET footerjs = 1 %]
+[% USE TablesSettings %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>[% FILTER collapse %]
+    [% t("Catalog concerns") | html %] &rsaquo;
+    [% t("Cataloging") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
+[% INCLUDE 'doc-head-close.inc' %]
+</head>
+
+<body id="cat_concerns" class="cat">
+    [% INCLUDE 'header.inc' %]
+    [% INCLUDE 'cataloging-search.inc' %]
+
+    [% WRAPPER 'sub-header.inc' %]
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/cataloguing/cataloging-home.pl">Cataloging</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Catalog concerns</span>
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
+    [% END #/ WRAPPER sub-header.inc %]
+
+    <div class="main container-fluid">
+        <div class="row">
+            <div class="col-sm-10 order-sm-1 order-md-2">
+                <main>
+                    [% INCLUDE 'messages.inc' %]
+                    <h1>Catalog concerns</h1>
+
+                    <div class="page-section">
+                        <fieldset class="action filters" style="cursor:pointer;">
+                            <a id="resolved_filter"><i class="fa fa-bars"></i> Include resolved</a>
+                            <input type="checkbox" id="hide_resolved_concerns" style="display:none;" />
+                            [% FOR st IN status %]
+                            | <a id="[% st.authorised_value | html %]_filter"><i class="fa fa-filter"></i> Filter [% st.lib | html %]</a>
+                            <input type="checkbox" id="hide_[% st.authorised_value | html %]" style="display:none;" />
+                            [% END %]
+                        </fieldset>
+
+                        <table id="table_concerns">
+                            <thead>
+                                <tr>
+                                    <th>Reported</th>
+                                    <th>Details</th>
+                                    <th>Title</th>
+                                    <th>Status</th>
+                                    <th data-class-name="actions noExport">Actions</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
+                </main>
+            </div> <!-- /.col-sm-10 order-sm-1 order-md-2 -->
+
+            <div class="col-sm-2 order-sm-2 order-md-1">
+                <aside>
+                    [% INCLUDE 'cat-menu.inc' %]
+                </aside>
+            </div> <!-- /.col-sm-2 order-sm-2 order-md-1 -->
+        </div> <!-- /.row -->
+
+        [% INCLUDE 'modals/display_ticket.inc' %]
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'columns_settings.inc' %]
+    [% INCLUDE 'js-date-format.inc' %]
+    [% INCLUDE 'js-patron-format.inc' %]
+    [% INCLUDE 'js-biblio-format.inc' %]
+    <script>
+        $(document).ready(function() {
+
+            logged_in_user_borrowernumber = [% logged_in_user.borrowernumber | html %];
+
+            var table_settings = [% TablesSettings.GetTableSettings('cataloguing', 'concerns', 'table_concerns', 'json') | $raw %];
+
+            let additional_filters = {
+                resolved_date: function(){
+                    if ( $("#hide_resolved_concerns").is(":checked") ) {
+                        return { "=": null };
+                    } else {
+                        return;
+                    }
+                },
+                source: 'catalog'
+            };
+            let external_filter_nodes = {
+                hide_resolved_concerns: "#hide_resolved_concerns",
+            };
+
+            var tickets_url = '/api/v1/tickets';
+            var tickets = $("#table_concerns").kohaTable({
+                "ajax": {
+                    "url": tickets_url
+                },
+                "embed": [
+                    "assignee",
+                    "reporter",
+                    "resolver",
+                    "biblio",
+                    "updates+count",
+                    "+strings"
+                ],
+                'emptyTable': '<div class="alert alert-info">' + _("Congratulations, there are no catalog concerns.") + '</div>',
+                "columnDefs": [{
+                    "targets": [0, 1, 2, 3],
+                    "render": function(data, type, row, meta) {
+                        if (type == 'display') {
+                            if (data != null) {
+                                return data.escapeHtml();
+                            } else {
+                                return "";
+                            }
+                        }
+                        return data;
+                    }
+                }],
+                "columns": [{
+                        "data": "reported_date:reporter.firstname",
+                        "render": function(data, type, row, meta) {
+                            let reported = '<div class="d-flex justify-content-between align-items-start">';
+                            reported += '<span class="reporter">' + $patron_to_html(row.reporter, {
+                                display_cardnumber: false,
+                                url: true
+                            }) + '</span>';
+                            reported += '<span class="date text-muted">' + $datetime(row.reported_date) + '</span>';
+                            reported += '</div>';
+                            return reported;
+                       },
+                        "searchable": true,
+                        "orderable": true
+                    },
+                    {
+                        "data": "title:body",
+                        "render": function(data, type, row, meta) {
+                            let result = '<div class="d-flex justify-content-between align-items-start">';
+
+                            // Title link on the left
+                            result += '<a id="title_' + row.ticket_id + '" role="button" href="#" class="detail-trigger">' + row.title + '</a>';
+
+                            // Updates count on the right, if it exists
+                            if (row.updates_count) {
+                                result += '<span><a role="button" href="#" class="detail-trigger"><i class="fa fa-comment" aria-hidden="true"></i> ' + row.updates_count + '</a></span>';
+                            }
+
+                            // Hidden detail content
+                            result += '</div>';
+                            result += '<div id="detail_' + row.ticket_id + '" style="display:none">' + row.body + '</div>';
+
+                            return result;
+                        },
+                        "searchable": true,
+                        "orderable": true
+                    },
+                    {
+                        "data": "biblio.title",
+                        "render": function(data, type, row, meta) {
+                            return $biblio_to_html(row.biblio, {
+                                link: 1
+                            });
+                        },
+                        "searchable": true,
+                        "orderable": true
+                    },
+                    {
+                        "data": "assignee.firstname:assignee.surname:resolver.firstname:resolver.surname:resolved_date:status",
+                        "render": function(data, type, row, meta) {
+                            let result = '';
+                            if (row.resolved_date) {
+                                result += "<div>";
+                                result += _("Resolved by") + ' <span>' + $patron_to_html(row.resolver, {
+                                    display_cardnumber: false,
+                                    url: true
+                                }) + '</span>';
+                                result += "</div>";
+                                if (row.status) {
+                                    result += '<div>';
+                                    result += ' ' + _("as") + ' ';
+                                    result += row._strings.status ? escape_str(row._strings.status.str) : "";
+                                    result += '</div>';
+                                }
+                                result += '<div>' + $datetime(row.resolved_date) + '</div>';
+                            } else {
+                                result += '<div>';
+                                if (row.status) {
+                                    result += row._strings.status ? escape_str(row._strings.status.str) : "";
+                                } else {
+                                    result += _("Open");
+                                }
+                                result += '</div>';
+                                if (row.assignee) {
+                                    result += '<div>';
+                                    result += _("Assigned to: ") + ' <span>' + $patron_to_html(row.assignee, {
+                                        display_cardnumber: false,
+                                        url: true
+                                    }) + '</span>';
+                                    result += '</div>';
+                                }
+                            }
+                            return result;
+                        },
+                        "searchable": true,
+                        "orderable": true
+                    },
+                    {
+                        "data": function(row, type, val, meta) {
+                            let resolved = ( row.resolved_date ) ? true : false;
+                            let result = '<a class="btn btn-default btn-xs main-trigger" role="button" href="#" data-bs-toggle="modal" data-bs-target="#ticketDetailsModal" data-concern="' + encodeURIComponent(row.ticket_id) + '" data-resolved="'+resolved+'" data-assignee="'+$patron_to_html(row.assignee, { display_cardnumber: false, url: false })+'"><i class="fa-solid fa-eye" aria-hidden="true"></i> ' + _("Details") + '</a>';
+                            return result;
+                        },
+                        "searchable": false,
+                        "orderable": false
+                    },
+                ],
+                createdRow: function (row, data, dataIndex) {
+                    if ( data.status ) {
+                        $(row).addClass(data.status.toLowerCase());
+                    }
+                },
+            }, table_settings, 1, additional_filters, undefined, external_filter_nodes);
+
+            var txtActivefilter = _("Include resolved");
+            var txtInactivefilter = _("Filter resolved");
+            function adjust_filter_label(){
+                if ($("#hide_resolved_concerns").is(":checked")){
+                    $("#resolved_filter").html('<i class="fa fa-filter"></i> '+txtActivefilter);
+                } else {
+                    $("#resolved_filter").html('<i class="fa fa-bars"></i> '+txtInactivefilter);
+                }
+            }
+            $('#resolved_filter').on("click", function() {
+                $("#hide_resolved_concerns").prop("checked", !$("#hide_resolved_concerns").is(":checked"));
+                adjust_filter_label()
+                tickets.DataTable().draw();
+            });
+            adjust_filter_label();
+
+            [% FOR st IN status %]
+            $('#[% st.authorised_value | html %]_filter').on("click", function() {
+                if ($("#hide_[% st.authorised_value | html %]").is(":checked")){
+                    additional_filters.status.find((o, i) => {
+                        if (o["!="] === '[% st.authorised_value | html %]') {
+                            additional_filters.status.splice(i, 1);
+                            return true; // stop searching
+                        }
+                    });
+                    if ( additional_filters.status.length === 1 ){
+                        delete additional_filters.status;
+                    }
+                    $(this).html('<i class="fa fa-filter"></i> '+_("Filter ")+"[% st.lib | html %]");
+                } else {
+                    if (!additional_filters.hasOwnProperty("status")) {
+                        additional_filters.status = [ '-and' ];
+                    }
+                    additional_filters.status.push({ '!=': "[% st.authorised_value | html %]" });
+                    $(this).html('<i class="fa fa-bars"></i> '+_("Include ")+"[% st.lib | html %]");
+                }
+                $("#hide_[% st.authorised_value | html %]").prop("checked", !$("#hide_[% st.authorised_value | html %]").is(":checked"));
+                tickets.DataTable().draw();
+            });
+            [% END %]
+        });
+    </script>
+    [% INCLUDE 'select2.inc' %]
+    [% Asset.js("js/modals/display_ticket.js") | $raw %]
+[% END %]
+[% INCLUDE 'intranet-bottom.inc' %]

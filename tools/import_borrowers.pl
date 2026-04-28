@@ -61,6 +61,7 @@ push( @columnkeys, 'patron_attributes' ) if $extended;
 push( @columnkeys, qw( guarantor_relationship guarantor_id ) );
 
 my $input = CGI->new();
+my $op    = $input->param('op') // q{};
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
@@ -100,33 +101,27 @@ if ($matchpoint) {
 my $createpatronlist = $input->param('createpatronlist') || 0;
 my $dt = dt_from_string();
 my $timestamp = $dt->ymd('-').' '.$dt->hms(':');
-my $patronlistname = $uploadborrowers . ' (' . $timestamp .')';
 
-$template->param( SCRIPT_NAME => '/cgi-bin/koha/tools/import_borrowers.pl' );
+if ( $op eq 'cud-import' && $uploadborrowers && length($uploadborrowers) > 0 ) {
 
-if ( $uploadborrowers && length($uploadborrowers) > 0 ) {
-    output_and_exit( $input, $cookie, $template, 'wrong_csrf_token' )
-        unless Koha::Token->new->check_csrf({
-            session_id => scalar $input->cookie('CGISESSID'),
-            token  => scalar $input->param('csrf_token'),
-        });
-
+    my $patronlistname = $uploadborrowers . ' (' . $timestamp . ')';
     my $handle   = $input->upload('uploadborrowers');
     my %defaults = $input->Vars;
     my $overwrite_passwords = defined $input->param('overwrite_passwords') ? 1 : 0;
-    my $update_dateexpiry = $input->param('update_dateexpiry');
+    my $update_dateexpiry = $input->param('update_dateexpiry') // "";
     my $return = $Import->import_patrons(
         {
-            file                         => $handle,
-            defaults                     => \%defaults,
-            matchpoint                   => $matchpoint,
-            overwrite_cardnumber         => scalar $input->param( 'overwrite_cardnumber' ),
-            overwrite_passwords          => $overwrite_passwords,
-            preserve_extended_attributes => scalar $input->param( 'ext_preserve' ) || 0,
-            preserve_fields              => \@preserve_fields,
-            update_dateexpiry            => $update_dateexpiry ? 1 : 0,
-            update_dateexpiry_from_today => $update_dateexpiry eq "now" ? 1 : 0,
-            send_welcome                 => $welcome_new,
+            file                            => $handle,
+            defaults                        => \%defaults,
+            matchpoint                      => $matchpoint,
+            overwrite_cardnumber            => scalar $input->param('overwrite_cardnumber'),
+            overwrite_passwords             => $overwrite_passwords,
+            preserve_extended_attributes    => scalar $input->param('ext_preserve') || 0,
+            preserve_fields                 => \@preserve_fields,
+            update_dateexpiry               => $update_dateexpiry ? 1 : 0,
+            update_dateexpiry_from_today    => $update_dateexpiry eq "now" ? 1 : 0,
+            update_dateexpiry_from_existing => $update_dateexpiry eq "dateexpiry" ? 1 : 0,
+            send_welcome                    => $welcome_new,
         }
     );
 
@@ -162,8 +157,7 @@ if ( $uploadborrowers && length($uploadborrowers) > 0 ) {
         total           => $imported + $alreadyindb + $invalid + $overwritten,
     );
 
-}
-else {
+} else {
     if ($extended) {
         my @matchpoints = ();
         my $attribute_types = Koha::Patron::Attribute::Types->search;
@@ -176,14 +170,6 @@ else {
         }
         $template->param( matchpoints => \@matchpoints );
     }
-
-    $template->param(
-        csrf_token => Koha::Token->new->generate_csrf(
-            { session_id => scalar $input->cookie('CGISESSID'), }
-        ),
-    );
-
 }
 
 output_html_with_http_headers $input, $cookie, $template->output;
-

@@ -88,9 +88,8 @@ priority of the renewal
 
 =head2 license_info
 
-  data_type: 'varchar'
+  data_type: 'mediumtext'
   is_nullable: 1
-  size: 80
 
 info about the license
 
@@ -114,7 +113,7 @@ __PACKAGE__->add_columns(
   "renewal_priority",
   { data_type => "varchar", is_nullable => 1, size => 80 },
   "license_info",
-  { data_type => "varchar", is_nullable => 1, size => 80 },
+  { data_type => "mediumtext", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -267,8 +266,8 @@ Composing rels: L</erm_eholdings_packages_agreements> -> package
 __PACKAGE__->many_to_many("packages", "erm_eholdings_packages_agreements", "package");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-11-11 11:52:09
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:N93LnvdKirtuV6BSrTGzVg
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-12-13 09:09:49
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:bzhxGUEnZxPw2mhUyxgTlA
 
 __PACKAGE__->has_many(
   "user_roles",
@@ -279,6 +278,38 @@ __PACKAGE__->has_many(
 
 __PACKAGE__->add_columns(
     '+is_perpetual' => { is_boolean => 1 }
+);
+
+__PACKAGE__->has_many(
+    "additional_field_values",
+    "Koha::Schema::Result::AdditionalFieldValue",
+    sub {
+        my ($args) = @_;
+
+        return {
+            "$args->{foreign_alias}.record_id" => { -ident => "$args->{self_alias}.agreement_id" },
+
+            "$args->{foreign_alias}.field_id" =>
+                { -in => \'(SELECT id FROM additional_fields WHERE tablename="erm_agreements")' },
+        };
+    },
+    { cascade_copy => 0, cascade_delete => 0 },
+);
+
+__PACKAGE__->has_many(
+    "extended_attributes",
+    "Koha::Schema::Result::AdditionalFieldValue",
+    sub {
+        my ($args) = @_;
+
+        return {
+            "$args->{foreign_alias}.record_id" => { -ident => "$args->{self_alias}.agreement_id" },
+
+            "$args->{foreign_alias}.field_id" =>
+                { -in => \'(SELECT id FROM additional_fields WHERE tablename="erm_agreements")' },
+        };
+    },
+    { cascade_copy => 0, cascade_delete => 0 },
 );
 
 sub koha_object_class {

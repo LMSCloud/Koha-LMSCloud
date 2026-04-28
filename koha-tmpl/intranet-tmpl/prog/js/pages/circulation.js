@@ -9,7 +9,7 @@ $(document).ready(function() {
         return false;
     });
 
-    $("#patronlists a[data-toggle='tab']").on("shown.bs.tab", function(e){
+    $("#finesholdsissues a[data-bs-toggle='tab']").on("shown.bs.tab", function(e){
         $(this).click();
     });
 
@@ -68,7 +68,7 @@ $(document).ready(function() {
     });
 
     // Debarments
-    $("div#reldebarments .remove_restriction").on("click",function(){
+    $("#reldebarments_panel .remove_restriction").on("click",function(){
         return confirm( __("Remove restriction?") );
     });
     var mrform = $("#manual_restriction_form");
@@ -93,6 +93,19 @@ $(document).ready(function() {
     /* Preselect Bootstrap tab based on location hash */
     selectBsTabByHash("finesholdsissues");
 
+    if ( $('#clubs_panel').length ) {
+        $('#clubs-tab').on('click', function() {
+            $('#clubs_panel').text(__("Loading..."));
+            $('#clubs_panel').load('/cgi-bin/koha/clubs/patron-clubs-tab.pl?borrowernumber=' + borrowernumber );
+        });
+    }
+
+    if ( $('#pat_lists_panel').length ) {
+        $('#pat_lists-tab').on('click', function() {
+            $('#pat_lists_panel').text(__("Loading..."));
+            $('#pat_lists_panel').load('/cgi-bin/koha/patron_lists/patron-lists-tab.pl?borrowernumber=' + borrowernumber );
+        });
+    }
 });
 
 function export_checkouts(format) {

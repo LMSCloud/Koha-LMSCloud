@@ -24,7 +24,7 @@
 UPDATE systempreferences SET value = 'cataloguing' WHERE variable = 'AcqCreateItem';
 UPDATE systempreferences SET value = '1' WHERE variable = 'AllowRenewalLimitOverride';
 UPDATE systempreferences SET value = 'annual' WHERE variable = 'autoBarcode';
-UPDATE systempreferences SET value = 'email' WHERE variable = 'AutoEmailPrimaryAddress';
+UPDATE systempreferences SET value = 'email' WHERE variable = 'EmailFieldPrimary';
 UPDATE systempreferences SET value = '1' WHERE variable = 'BiblioAddsAuthorities';
 UPDATE systempreferences SET value = 'surname|cardnumber' WHERE variable = 'BorrowerMandatoryField';
 UPDATE systempreferences SET value = '0' WHERE variable = 'BorrowersLog';
@@ -40,7 +40,7 @@ UPDATE systempreferences SET value = '0' WHERE variable = 'IssueLog';
 UPDATE systempreferences SET value = 'whitespace' WHERE variable = 'itemBarcodeInputFilter';
 UPDATE systempreferences SET value = '676a' WHERE variable = 'itemcallnumber';
 UPDATE systempreferences SET value = 'koha@xxx.it' WHERE variable = 'KohaAdminEmailAddress';
-UPDATE systempreferences SET value = 'en,it-IT' WHERE variable = 'language';
+UPDATE systempreferences SET value = 'en,it-IT' WHERE variable = 'StaffInterfaceLanguages';
 UPDATE systempreferences SET value = '0' WHERE variable = 'ClaimsLog';
 UPDATE systempreferences SET value = ''  WHERE variable = 'MARCOrgCode';
 UPDATE systempreferences SET value = '5' WHERE variable = 'maxreserves';

@@ -1,0 +1,213 @@
+/* LMSCloud-specific styles */
+/* Cash register, fines, patron search, UI customizations */
+
+a.ctrl_link {
+    display: inline-block;
+    padding-right: 1rem;
+}
+
+#sub-header {
+    display: flex;
+    justify-content: space-between;
+}
+
+#breadcrumbs a[href="/cgi-bin/koha/mainpage.pl"] {
+    color: $green-text-color;
+    visibility: hidden;
+    font-size: 1px;
+    letter-spacing: -1px;
+
+    &::before {
+        content: "\f015";
+        font-family: "FontAwesome";
+        font-style: normal;
+        font-size: 14px;
+        visibility: visible;
+        padding-right: .3em;
+    }
+
+    &:hover {
+        text-decoration: none;
+    }
+}
+
+#header {
+    + #breadcrumbs {
+        margin-top: 1em;
+    }
+
+    > .container-fluid {
+        padding: 0;
+    }
+}
+
+div#header_search .ageinput,
+div#header_search .issuecountinput {
+    font-size: 0.9em;
+    width: 5em;
+}
+
+div#header_search .priceinput {
+    font-size: 0.9em;
+    width: 7em;
+}
+
+div#header_search .dateinput {
+    font-size: 0.9em;
+    width: 8em;
+}
+
+#patron_search_form .agerange-input,
+#patron_search_form .charges-input,
+#patron_search_form .issuecount-input {
+    width: 3.5em;
+}
+
+#patron_search_form .flatpickr {
+    width: 7em;
+}
+
+#rulestabs input[type="number"] {
+    max-width: 75px;
+}
+
+#default-claiming-rules input[type="number"] {
+    max-width: 65px;
+}
+
+.cashregisterinfo {
+    margin-right: .5em;
+    padding-top: 1em;
+    background-color: #e6e6e6;
+    color: #000;
+    left: -10px;
+    width: 100%;
+    padding-bottom: 25px;
+
+    h5 {
+        margin-bottom: 0;
+        padding: .5em .9em;
+        font-weight: bold;
+        color: #000;
+
+        &:empty {
+            border-right: 0;
+        }
+    }
+
+    ul {
+        border: 0;
+        margin: 0;
+        padding: 0 .9em;
+
+        li {
+            list-style-type: none;
+            margin: 0;
+        }
+    }
+
+    > div {
+        width: 100%;
+    }
+}
+
+.cashregisterinfo-section {
+    @include card;
+}
+
+.cashregisterinfo-heading {
+    padding: .5em;
+    margin-bottom: .3em;
+    clear: both;
+
+    h3 {
+        display: inline-block;
+    }
+
+    .btn {
+        float: right;
+    }
+}
+
+.cashregisterimportantinfo {
+    font-weight: bold;
+}
+
+.finesgroupsum {
+    font-weight: bold;
+}
+
+#finesbydate tbody tr:nth-child(odd) td {
+    background-color: inherit;
+    border: 1px solid #BCBCBC;
+    border-right: 1px solid #BCBCBC;
+}
+
+.changeDate-duedates ul {
+    list-style-type: none;
+    margin: 0;
+    background-color: #FFF;
+    width: 100px;
+    padding-left: 0;
+    display: inline-table;
+}
+
+.changeDate-duedates ul li {
+    text-decoration: none;
+    display: block;
+    width: 100px;
+    padding: 3px;
+    border: 1px solid #BCBCBC;
+    background-color: #FFF;
+}
+
+.changeDate-duedates {
+    visibility: hidden;
+}
+
+#change_date_error_message {
+    display: inline-block;
+    visibility: hidden;
+}
+
+#pat_member #patron_list_dialog {
+    display: none;
+}
+
+#pat_member #notice_sent_dialog {
+    display: none;
+}
+
+#pat_member #searchform .hasDatepicker {
+    width: 7em !important;
+}
+
+#closecashregister .cash-amount,
+#payoutcashregister .cash-amount,
+#adjustcashregister .cash-amount {
+    text-align: right;
+}
+
+#circ_managecashregister #finestypeoverview,
+#circ_managecashregister #finesoverview,
+#circ_managecashregister #inpaymentoverview,
+#circ_managecashregister #outpaymentoverview,
+#circ_managecashregister #finesbydate {
+    width: unset;
+    margin: unset;
+}
+
+#circ_managecashregister .cashregoverview th.colpaymenttype,
+#circ_managecashregister .cashregoverview th.colreason,
+#circ_managecashregister .cashregoverview th.coltype,
+#circ_managecashregister #accountmanagementfeebyborrowertype th.colpaymenttype,
+#circ_managecashregister #accountmanagementfeebyborrowertype th.colcategory,
+#circ_managecashregister #accountmanagementfeebyborrowertown th.colpaymenttype,
+#circ_managecashregister #accountmanagementfeebyborrowertown th.coltown {
+    min-width: 200px;
+}
+
+#circ_managecashregister table th,
+#circ_managecashregister table td {
+    padding: .3em .3em;
+}

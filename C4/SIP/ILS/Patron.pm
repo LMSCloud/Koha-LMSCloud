@@ -23,10 +23,16 @@ use C4::Members;
 use C4::Reserves;
 use C4::Auth qw(checkpw);
 
+use Koha::Acquisition::Currencies;
 use Koha::Items;
 use Koha::Libraries;
+use Koha::Patron::Attributes;
 use Koha::Patrons;
 use Koha::Checkouts;
+use Koha::TemplateUtils qw( process_tt );
+use Koha::Patron::Messages;
+use Koha::DateUtils qw(dt_from_string output_pref);
+use Date::Calc qw/Today Date_to_Days/;
 
 our $kp;    # koha patron
 
@@ -61,14 +67,32 @@ sub new {
     my $pw        = $kp->{password};
     my $flags     = C4::Members::patronflags( $kp );
     my $debarred  = $patron->is_debarred;
-    my ($day, $month, $year) = (localtime)[3,4,5];
-    my $today    = sprintf '%04d-%02d-%02d', $year+1900, $month+1, $day;
-    my $expired  = ($today gt $kp->{dateexpiry}) ? 1 : 0;
-    if ($expired) {
-        if ($kp->{opacnote} ) {
-            $kp->{opacnote} .= q{ };
+    siplog( "LOG_DEBUG", "Debarred = %s : ", ( $debarred || 'undef' ) );    # Do we need more debug info here?
+    my $expired = 0;
+    if ( $kp->{'dateexpiry'} ) {
+        my ( $today_year,   $today_month,   $today_day )   = Today();
+        my ( $warning_year, $warning_month, $warning_day ) = split /-/, $kp->{'dateexpiry'};
+        my $days_to_expiry = Date_to_Days( $warning_year, $warning_month, $warning_day ) -
+            Date_to_Days( $today_year, $today_month, $today_day );
+        my $dt         = dt_from_string( $kp->{'dateexpiry'}, 'iso' );
+        my $dateexpiry = output_pref( { dt => $dt, dateonly => 1 } );
+        my $notifyBorrowerDeparture = C4::Context->preference('NotifyBorrowerDeparture') // 0;
+        if ( $days_to_expiry < 0 ) {
+
+            #borrower card has expired, warn the borrower
+            if ( $kp->{opacnote} ) {
+                $kp->{opacnote} .= q{ };
+            }
+            $kp->{opacnote} .= "Your account has expired as of $dateexpiry";
+            $expired = 1;
+        } elsif ( $days_to_expiry < $notifyBorrowerDeparture ) {
+
+            # borrower card soon to expire, warn the borrower
+            if ( $kp->{opacnote} ) {
+                $kp->{opacnote} .= q{ };
+            }
+            $kp->{opacnote} .= "Your card will expire on $dateexpiry";
         }
-        $kp->{opacnote} .= 'PATRON EXPIRED';
     }
     my %ilspatron;
     my $adr     = _get_address($kp);
@@ -99,6 +123,9 @@ sub new {
             $fines_msg .= " -- " . "Patron blocked by fines ($fines_amount) on guaranteed accounts" if $fine_blocked;
         }
     }
+
+    # Get currency 3 chars max
+    my $currency = substr Koha::Acquisition::Currencies->get_active->currency, 0, 3;
 
     my $circ_blocked =( C4::Context->preference('OverduesBlockCirc') ne "noblock" &&  defined $flags->{ODUES}->{itemlist} ) ? 1 : 0;
     {
@@ -143,15 +170,18 @@ sub new {
         fine_blocked    => $fine_blocked,
         fee_limit       => $fee_limit,
         userid          => $kp->{userid},
+        currency        => $currency,
     );
     }
 
     if ( $patron->is_debarred and $patron->debarredcomment ) {
         $ilspatron{screen_msg} .= " -- " . $patron->debarredcomment;
     }
+
     if ( $circ_blocked ) {
         $ilspatron{screen_msg} .= " -- " . "Patron has overdues";
     }
+
     for (qw(EXPIRED CHARGES CREDITS GNA LOST NOTES)) {
         ($flags->{$_}) or next;
         if ($_ ne 'NOTES' and $flags->{$_}->{message}) {
@@ -164,7 +194,25 @@ sub new {
         }
     }
 
-    # FIXME: populate fine_items recall_items
+    if ( C4::Context->preference('SIP2AddOpacMessagesToScreenMessage') ) {
+        my $patron_messages = Koha::Patron::Messages->search(
+            {
+                borrowernumber => $kp->{borrowernumber},
+                message_type   => 'B',
+            }
+        );
+        my @messages_array;
+        while ( my $message = $patron_messages->next ) {
+            my $messagedt      = dt_from_string( $message->message_date, 'iso' );
+            my $formatted_date = output_pref( { dt => $messagedt, dateonly => 1 } );
+            push @messages_array, $formatted_date . ": " . $message->message;
+        }
+        if (@messages_array) {
+            $ilspatron{screen_msg} .= " Messages for you: " . join( ' / ', @messages_array );
+        }
+    }
+
+    # FIXME: populate recall_items
     $ilspatron{unavail_holds} = _get_outstanding_holds($kp->{borrowernumber});
 
     my $pending_checkouts = $patron->pending_checkouts;
@@ -255,22 +303,10 @@ sub format {
     my ( $self, $template ) = @_;
 
     if ($template) {
-        require Template;
         require Koha::Patrons;
 
-        my $tt = Template->new();
-
         my $patron = Koha::Patrons->find( $self->{borrowernumber} );
-
-        my $output;
-        eval {
-            $tt->process( \$template, { patron => $patron }, \$output );
-        };
-        if ( $@ ){
-            siplog("LOG_DEBUG", "Error processing template: $template");
-            return "";
-        }
-        return $output;
+        return process_tt( $template, { patron => $patron } );
     }
 }
 
@@ -361,6 +397,7 @@ sub x_items {
 
     my $item_list = [];
     if ($self->{$array_var}) {
+
         if ($start && $start > 1) {
             --$start;
         }
@@ -368,6 +405,7 @@ sub x_items {
             $start = 0;
         }
         if ( $end && $end < @{$self->{$array_var}} ) {
+          --$end;
         }
         else {
             $end = @{$self->{$array_var}};
@@ -401,43 +439,45 @@ sub charged_items {
     return $self->x_items('items', @_);
 }
 sub fine_items {
+
     require Koha::Database;
     require Template;
 
-    my $self = shift;
-    my $start = shift;
-    my $end = shift;
+    my $self   = shift;
+    my $start  = shift;
+    my $end    = shift;
     my $server = shift;
 
-    my @fees = Koha::Database->new()->schema()->resultset('Accountline')->search(
+    my @fees =
+      Koha::Database->new()->schema()->resultset('Accountline')->search(
         {
             borrowernumber    => $self->{borrowernumber},
             amountoutstanding => { '>' => '0' },
-        },
-        { join => { 'itemnumber' => 'biblio' } }
-    );
+        }
+      );
 
     $start = $start ? $start - 1 : 0;
     $end   = $end   ? $end - 1   : scalar @fees - 1;
 
-    my $av_field_template = $server ? $server->{account}->{av_field_template} : undef;
-    $av_field_template ||= "[% accountline.description %] [% accountline.amountoutstanding | format('%.2f') %]";
-
-    my $tt = Template->new();
+    my $av_field_template =
+      $server ? $server->{account}->{av_field_template} : undef;
+    $av_field_template ||=
+"[% accountline.description %] [% accountline.amountoutstanding | format('%.2f') %]";
 
     my @return_values;
-    for ( my $i = $start; $i <= $end; $i++ ) {
+    for ( my $i = $start ; $i <= $end ; $i++ ) {
         my $fee = $fees[$i];
 
         next unless $fee;
 
-        my $output;
-        $tt->process( \$av_field_template, { accountline => $fee }, \$output );
+        my $output = process_tt( $av_field_template, { accountline => $fee } );
         push( @return_values, { barcode => $output } );
     }
 
     return \@return_values;
+
 }
+
 sub recall_items {
     my $self = shift;
     return $self->x_items('recall_items', @_);
@@ -472,10 +512,6 @@ sub enable {
 sub inet_privileges {
     my $self = shift;
     return $self->{inet} ? 'Y' : 'N';
-}
-
-sub _fee_limit {
-    return C4::Context->preference('noissuescharge') || 5;
 }
 
 sub excessive_fees {
@@ -514,21 +550,6 @@ sub invalid_patron {
 sub charge_denied {
     my $self = shift;
     return "Please contact library staff";
-}
-
-=head2 update_lastseen
-
-    $patron->update_lastseen();
-
-    Patron method to update lastseen field in borrower
-    to record that patron has been seen via sip connection
-
-=cut
-
-sub update_lastseen {
-    my $self = shift;
-    my $kohaobj = Koha::Patrons->find( $self->{borrowernumber} );
-    $kohaobj->track_login if $kohaobj; # track_login checks the pref
 }
 
 sub _get_address {
@@ -632,6 +653,10 @@ sub build_custom_field_string {
         }
     }
     return $string;
+}
+
+sub _fee_limit {
+    return C4::Context->preference('noissuescharge') || 5;
 }
 
 1;
@@ -770,4 +795,3 @@ __END__
     {itemlist}    ref-to-array: list of available items
 
 =cut
-

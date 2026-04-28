@@ -86,9 +86,22 @@ include in facets, sorting, or suggestion fields)
 
 =cut
 sub fields {
-    my ($self, $record) = @_;
+    my ( $self, $record ) = @_;
 
-    my ($item_tag) = GetMarcFromKohaField( "items.itemnumber" );
+    my $params         = $self->params;
+    my $other_headings = $params->{options}->{other_headings} || ['see_from'];
+
+    my @auth_others;
+    foreach my $other_heading (@$other_headings) {
+        if ( $other_heading eq 'see_from' ) {
+            push @auth_others, '4..';
+        }
+        if ( $other_heading eq 'see_also_from' ) {
+            push @auth_others, '5..';
+        }
+    }
+
+    my ($item_tag) = GetMarcFromKohaField("items.itemnumber");
     $item_tag ||= '';
 
     my @newfields;
@@ -101,21 +114,23 @@ sub fields {
 
         my $authority = Koha::MetadataRecord::Authority->get_from_authid($authid);
         next unless $authority;
-        my $auth_marc = $authority->record;
-        my @seefrom = $auth_marc->field('4..');
-        foreach my $authfield (@seefrom) {
-            my $tag = substr($field->tag(), 0, 1) . substr($authfield->tag(), 1, 2);
+        my $auth_marc  = $authority->record;
+        my @authfields = $auth_marc->field(@auth_others);
+        foreach my $authfield (@authfields) {
+            my $tag = substr( $field->tag(), 0, 1 ) . substr( $authfield->tag(), 1, 2 );
             next if MARC::Field->is_controlfield_tag($tag);
-            my $newfield = MARC::Field->new($tag,
-                    'z',
-                    $authfield->indicator(2) || ' ',
-                    '9' => '1');
-            foreach my $sub ($authfield->subfields()) {
-                my ($code,$val) = @$sub;
+            my $newfield = MARC::Field->new(
+                $tag,
+                'z',
+                $authfield->indicator(2) || ' ',
+                '9' => '1'
+            );
+            foreach my $sub ( $authfield->subfields() ) {
+                my ( $code, $val ) = @$sub;
                 $newfield->add_subfields( $code => $val );
             }
             $newfield->delete_subfield( code => '9' );
-            push @newfields, $newfield if (scalar($newfield->subfields()) > 0);
+            push @newfields, $newfield if ( scalar( $newfield->subfields() ) > 0 );
         }
     }
 

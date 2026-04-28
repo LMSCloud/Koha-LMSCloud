@@ -56,7 +56,7 @@ describe("Dialog operations", () => {
         });
         cy.visit("/cgi-bin/koha/erm/erm.pl");
         cy.get("#navmenulist").contains("Packages").click();
-        cy.get("main div[class='dialog alert']").contains(
+        cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: This is a specific error message"
         );
 
@@ -65,17 +65,17 @@ describe("Dialog operations", () => {
         });
         cy.visit("/cgi-bin/koha/erm/erm.pl");
         cy.get("#navmenulist").contains("Packages").click();
-        cy.get("main div[class='dialog alert']").contains(
+        cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: Internal Server Error"
         );
 
         cy.intercept("GET", "/api/v1/erm/agreements*", []);
         cy.get("#navmenulist").contains("Agreements").click();
         // Info messages should be cleared when view is changed
-        cy.get("main div[class='dialog message']").contains(
+        cy.get("main div[class='alert alert-info']").contains(
             "There are no agreements defined"
         );
-        cy.get("main div[class='dialog message']").should("have.length", 1);
+        cy.get("main div[class='alert alert-info']").should("have.length", 1);
     });
 
     it("...created!", () => {
@@ -93,9 +93,20 @@ describe("Dialog operations", () => {
             statusCode: 201,
             body: erm_package,
         });
+        cy.intercept("GET", "/api/v1/erm/eholdings/local/packages*", {
+            statusCode: 200,
+            body: [erm_package],
+            headers: {
+                "X-Base-Total-Count": "1",
+                "X-Total-Count": "1",
+            },
+        });
         cy.get("#packages_add").contains("Submit").click();
-        cy.get("main div[class='dialog message']").contains("Package created");
-        cy.get("main div[class='dialog message']").should("have.length", 1);
+        cy.get("main div[class='alert alert-info']").contains(
+            "Package created"
+        );
+        cy.get("#package_list_result").should("exist");
+        cy.get("main div[class='alert alert-info']").should("have.length", 1);
 
         cy.intercept("GET", "/api/v1/erm/eholdings/local/titles*", {
             statusCode: 200,
@@ -107,7 +118,7 @@ describe("Dialog operations", () => {
         });
         cy.get("#navmenulist").contains("Titles").click();
         // Info messages should be cleared when view is changed
-        cy.get("main div[class='dialog message']").should("not.exist");
+        cy.get("main div[class='alert alert-info']").should("not.exist");
     });
 
     it("Confirmation messages", () => {
@@ -136,16 +147,20 @@ describe("Dialog operations", () => {
 
         cy.get("#packages_list table tbody tr:first").contains("Edit").click();
         cy.get("#packages_add").contains("Submit").click();
-        cy.get("main div[class='dialog message']").contains("Package updated");
-        cy.get("main div[class='dialog message']").should("have.length", 1);
+        cy.get("main div[class='alert alert-info']").contains(
+            "Package updated"
+        );
+        cy.get("main div[class='alert alert-info']").should("have.length", 1);
 
         cy.get("#packages_list table tbody tr:first")
             .contains("Delete")
             .click();
         cy.contains("No, do not delete").click();
-        cy.get(".dialog.alert.confirmation h1").should("not.exist");
-        cy.get("main div[class='dialog message']").contains("Package updated");
-        cy.get("main div[class='dialog message']").should("have.length", 1);
+        cy.get(".alert-warning.confirmation h1").should("not.exist");
+        cy.get("main div[class='alert alert-info']").contains(
+            "Package updated"
+        );
+        cy.get("main div[class='alert alert-info']").should("have.length", 1);
 
         cy.intercept("DELETE", "/api/v1/erm/eholdings/local/packages/*", {
             statusCode: 204,
@@ -154,11 +169,71 @@ describe("Dialog operations", () => {
         cy.get("#packages_list table tbody tr:first")
             .contains("Delete")
             .click();
-        cy.get(".dialog.alert.confirmation h1").contains("remove this package");
+        cy.get(".alert-warning.confirmation h1").contains(
+            "remove this package"
+        );
         cy.contains("Yes, delete").click();
-        cy.get("main div[class='dialog message']")
+        cy.get("main div[class='alert alert-info']")
             .contains("Local package")
             .contains("deleted");
-        cy.get("main div[class='dialog message']").should("have.length", 1);
+        cy.get("main div[class='alert alert-info']").should("have.length", 1);
+    });
+
+    it("Confirmation messages with inputs", () => {
+        const dataProvider = cy.get_usage_data_provider();
+        const dataProviders = [dataProvider];
+
+        cy.intercept("GET", "/api/v1/erm/usage_data_providers*", {
+            statusCode: 200,
+            body: dataProviders,
+            headers: {
+                "X-Base-Total-Count": "1",
+                "X-Total-Count": "1",
+            },
+        });
+        cy.intercept("GET", "/api/v1/erm/usage_data_providers/*", dataProvider);
+        cy.visit("/cgi-bin/koha/erm/eusage/usage_data_providers");
+
+        cy.get("#usage_data_providers_list table tbody tr:first")
+            .contains("Run now")
+            .click();
+        cy.get(".modal.confirmation p").contains(dataProvider.name);
+        cy.get("body").click(0, 0);
+
+        cy.get("#usage_data_providers_list table tbody tr:first")
+            .contains("Run now")
+            .click();
+
+        cy.intercept(
+            "POST",
+            "/api/v1/erm/usage_data_providers/1/process_SUSHI_response*",
+            {
+                statusCode: 200,
+                body: {
+                    jobs: [
+                        {
+                            report_type: "TR_J1",
+                            job_id: 1,
+                        },
+                    ],
+                },
+                headers: {
+                    "X-Base-Total-Count": "1",
+                    "X-Total-Count": "1",
+                },
+            }
+        );
+        cy.get("#begin_date+input").click();
+        cy.get(".flatpickr-current-month select")
+            .invoke("val")
+            .then(month => {
+                cy.get(".flatpickr-current-month > select > option").eq(0);
+                cy.get(".dayContainer").contains(new RegExp("^1$")).click();
+            });
+        cy.get("#accept_modal").click();
+        cy.get("main div[class='alert alert-info']").should(
+            "have.text",
+            "Job for report type TR_J1 has been queued. Check job progress."
+        );
     });
 });

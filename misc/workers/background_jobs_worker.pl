@@ -58,6 +58,7 @@ use Try::Tiny;
 use Pod::Usage;
 use Getopt::Long;
 use Parallel::ForkManager;
+use Time::HiRes;
 
 use C4::Context;
 use Koha::Logger;
@@ -71,6 +72,10 @@ my ( $help, @queues );
 my $max_processes = $ENV{MAX_PROCESSES};
 $max_processes ||= C4::Context->config('background_jobs_worker')->{max_processes} if C4::Context->config('background_jobs_worker');
 $max_processes ||= 1;
+my $mq_timeout = $ENV{MQ_TIMEOUT} // 10;
+
+my $not_found_retries = {};
+my $max_retries = $ENV{MAX_RETRIES} || 10;
 
 GetOptions(
     'm|max-processes=i' => \$max_processes,
@@ -85,12 +90,18 @@ unless (@queues) {
     push @queues, 'default';
 }
 
-my $conn;
+my $notification_method = C4::Context->preference('JobsNotificationMethod') // 'STOMP';
+
+my ( $conn, $error );
+if ( $notification_method eq 'STOMP' ) {
 try {
     $conn = Koha::BackgroundJob->connect;
 } catch {
-    warn sprintf "Cannot connect to the message broker, the jobs will be processed anyway (%s)", $_;
+    $error = sprintf "Cannot connect to the message broker, the jobs will be processed anyway (%s)", $_;
 };
+$error ||= "Cannot connect to the message broker, the jobs will be processed anyway" unless $conn;
+warn $error if $error;
+}
 
 my $pm = Parallel::ForkManager->new($max_processes);
 
@@ -109,33 +120,77 @@ if ( $conn ) {
 }
 while (1) {
     if ( $conn ) {
-        my $frame = $conn->receive_frame;
+        my $frame = $conn->receive_frame( { timeout => $mq_timeout } );
         if ( !defined $frame ) {
-            # maybe log connection problems
+            # timeout or connection issue?
+            $pm->reap_finished_children;
             next;    # will reconnect automatically
         }
 
         my $args = try {
+            my $command      = $frame->command;
             my $body = $frame->body;
+            my $content_type = $frame->content_type;
+            if ( $command && $command eq 'MESSAGE' ) {
+                if ( $content_type && $content_type eq 'application/json' ) {
             decode_json($body); # TODO Should this be from_json? Check utf8 flag.
+                } else {
+
+                    #TODO: This is a fallback for older enqueued messages which are missing the content-type header
+                    #TODO: Please replace this decode with a die in the future once content-type is well established
+                    decode_json($body);    # TODO Should this be from_json? Check utf8 flag.
+                }
+            } elsif ( $command && $command eq 'ERROR' ) {
+
+                #Known errors:
+                #You must log in using CONNECT first
+                #"NACK" must include a valid "message-id" header
+                Koha::Logger->get( { interface => 'worker' } )
+                    ->warn( sprintf "Shutting down after receiving ERROR frame:\n%s\n", $frame->as_string );
+                exit 1;
+            }
         } catch {
             Koha::Logger->get({ interface => 'worker' })->warn(sprintf "Frame not processed - %s", $_);
             return;
-        } finally {
-            $conn->ack( { frame => $frame } );
         };
 
-        next unless $args;
-
-        # FIXME This means we need to have create the DB entry before
-        # It could work in a first step, but then we will want to handle job that will be created from the message received
-        my $job = Koha::BackgroundJobs->search( { id => $args->{job_id}, status => 'new' } )->next;
-
-        unless( $job ) {
-            Koha::Logger->get( { interface => 'worker' } )
-                ->warn( sprintf "Job %s not found, or has wrong status", $args->{job_id} );
+        unless ( $args ) {
+            Koha::Logger->get({ interface => 'worker' })->warn(sprintf "Frame does not have correct args, ignoring it");
+            $conn->nack( { frame => $frame, requeue => 'false' } );
             next;
         }
+
+        my $job = Koha::BackgroundJobs->find( $args->{job_id} );
+
+        if ( $job && $job->status ne 'new' ) {
+            Koha::Logger->get( { interface => 'worker' } )
+                ->warn( sprintf "Job %s has wrong status %s", $args->{job_id}, $job->status );
+
+            # nack without requeue, we do not want to process this frame again
+            $conn->nack( { frame => $frame, requeue => 'false' } );
+            next;
+        }
+
+        unless ($job) {
+            $not_found_retries->{ $args->{job_id} } //= 0;
+            if ( ++$not_found_retries->{ $args->{job_id} } >= $max_retries ) {
+                Koha::Logger->get( { interface => 'worker' } )
+                    ->warn( sprintf "Job %s not found, no more retry", $args->{job_id} );
+
+                # nack without requeue, we do not want to process this frame again
+                $conn->nack( { frame => $frame, requeue => 'false' } );
+                next;
+            }
+
+            Koha::Logger->get( { interface => 'worker' } )
+                ->debug( sprintf "Job %s not found, will retry later", $args->{job_id} );
+
+            # nack to force requeue
+            $conn->nack( { frame => $frame, requeue => 'true' } );
+            Time::HiRes::sleep(0.5);
+            next;
+        }
+        $conn->ack( { frame => $frame } );
 
         $pm->start and next;
         srand();    # ensure each child process begins with a new seed
@@ -161,6 +216,7 @@ while (1) {
             $pm->finish;
 
         }
+        $pm->reap_finished_children;
         sleep 10;
     }
 }
@@ -170,8 +226,10 @@ $pm->wait_all_children;
 sub process_job {
     my ( $job, $args ) = @_;
     try {
-        $job->process( $args );
+        $job->process($args);
     } catch {
+        Koha::Logger->get( { interface => 'worker' } )
+            ->warn( sprintf "Uncaught exception processing job id=%s: %s", $job->id, $_ );
         $job->status('failed')->store;
     };
 }

@@ -35,6 +35,8 @@ use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
 use Koha::Biblio::ItemGroups;
 use Koha::Checkouts;
 use Koha::CirculationRules;
+use Koha::Courses;
+use Koha::Course::Items;
 use Koha::CoverImages;
 use Koha::Exceptions;
 use Koha::Exceptions::Checkin;
@@ -51,9 +53,11 @@ use Koha::Plugins;
 use Koha::Recalls;
 use Koha::Result::Boolean;
 use Koha::SearchEngine::Indexer;
+use Koha::Serial::Items;
 use Koha::StockRotationItem;
 use Koha::StockRotationRotas;
 use Koha::TrackedLinks;
+use Koha::Policy::Holds;
 
 use base qw(Koha::Object);
 
@@ -94,6 +98,9 @@ sub store {
         $self->itype($self->biblio->biblioitem->itemtype);
     }
 
+    # Ensure barcode is either defined or undef
+    $self->barcode(undef) if ( defined($self->barcode) && $self->barcode eq '' );
+
     $self->barcode( C4::Circulation::barcodedecode( $self->barcode ) );
 
     my $today  = dt_from_string;
@@ -130,9 +137,19 @@ sub store {
             $self->cn_sort($cn_sort);
         }
 
+        # should be quite rare when adding item
+        if ( $self->itemlost && $self->itemlost > 0 ) {    # TODO BZ34308
+            $self->_add_statistic('item_lost');
+        }
+
     } else { # ModItem
 
         $action = 'modify';
+
+        # refund lost fee if a return claim has been made on an item previously marked as lost
+        if ( $params->{refund_lost_fee} ) {
+            $self->_set_found_trigger( $self->get_from_storage );
+        }
 
         my %updated_columns = $self->_result->get_dirty_columns;
         return $self->SUPER::store unless %updated_columns;
@@ -185,27 +202,36 @@ sub store {
             $self->permanent_location( $self->location );
         }
 
-        # If item was lost and has now been found,
-        # reverse any list item charges if necessary.
-        if (    exists $updated_columns{itemlost}
-            and $updated_columns{itemlost} <= 0
-            and $pre_mod_item->itemlost > 0 )
+        # TODO BZ 34308 (gt zero checks)
+        if (   exists $updated_columns{itemlost}
+            && ( !$updated_columns{itemlost} || $updated_columns{itemlost} <= 0 )
+            && ( $pre_mod_item->itemlost && $pre_mod_item->itemlost > 0 ) )
         {
+            # item found
+            # reverse any list item charges if necessary
             $self->_set_found_trigger($pre_mod_item);
+            $self->_add_statistic('item_found');
+        } elsif ( exists $updated_columns{itemlost}
+            && ( $updated_columns{itemlost} && $updated_columns{itemlost} > 0 )
+            && ( !$pre_mod_item->itemlost || $pre_mod_item->itemlost <= 0 ) )
+        {
+            # item lost
+            $self->_add_statistic('item_lost');
         }
-
     }
 
+    my $original = Koha::Items->find( $self->itemnumber );    # $original will be undef if $action eq 'create'
     my $result = $self->SUPER::store;
+    $self->discard_changes;
     if ( $log_action && C4::Context->preference("CataloguingLog") ) {
         $action eq 'create'
-          ? logaction( "CATALOGUING", "ADD", $self->itemnumber, "item" )
-          : logaction( "CATALOGUING", "MODIFY", $self->itemnumber, $self );
+            ? logaction( "CATALOGUING", "ADD", $self->itemnumber, 'item', undef, $self )
+            : logaction( "CATALOGUING", "MODIFY", $self->itemnumber, $self, undef, $original );
     }
     my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
     $indexer->index_records( $self->biblionumber, "specialUpdate", "biblioserver" )
         unless $params->{skip_record_index};
-    $self->get_from_storage->_after_item_action_hooks({ action => $action });
+    $self->_after_item_action_hooks({ action => $action });
 
     Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
         {
@@ -214,6 +240,22 @@ sub store {
     ) unless $params->{skip_holds_queue} or !C4::Context->preference('RealTimeHoldsQueue');
 
     return $result;
+}
+
+sub _add_statistic {
+    my ( $self, $type ) = @_;
+    C4::Stats::UpdateStats(
+        {
+            borrowernumber => undef,
+            branch         => C4::Context->userenv ? C4::Context->userenv->{branch} : undef,
+            categorycode   => undef,
+            ccode          => $self->ccode,
+            itemnumber     => $self->itemnumber,
+            itemtype       => $self->effective_itemtype,
+            location       => $self->location,
+            type           => $type,
+        }
+    );
 }
 
 =head3 delete
@@ -241,7 +283,7 @@ sub delete {
 
     $self->_after_item_action_hooks({ action => 'delete' });
 
-    logaction( "CATALOGUING", "DELETE", $self->itemnumber, "item" )
+    logaction( "CATALOGUING", "DELETE", $self->itemnumber, "item", undef, $self )
       if C4::Context->preference("CataloguingLog");
 
     Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
@@ -294,9 +336,8 @@ sub safe_to_delete {
 
     $error //= "not_same_branch"
       if defined C4::Context->userenv
-      && !C4::Context->IsSuperLibrarian()
-      && C4::Context->preference("IndependentBranches")
-      && ( C4::Context->userenv->{branch} ne $self->homebranch );
+      and defined C4::Context->userenv->{number}
+      and !Koha::Patrons->find( C4::Context->userenv->{number} )->can_edit_items_from( $self->homebranch );
 
     # check it doesn't have a waiting reserve
     $error //= "book_reserved"
@@ -337,7 +378,6 @@ sub move_to_deleted {
     return Koha::Database->new->schema->resultset('Deleteditem')->create($item_infos);
 }
 
-
 =head3 effective_itemtype
 
 Returns the itemtype for the item based on whether item level itemtypes are set or not.
@@ -355,8 +395,19 @@ sub effective_itemtype {
 =cut
 
 sub home_branch {
-    my ($self) = @_;
+    return shift->home_library(@_);
+}
 
+=head3 home_library
+
+my $library = $item->home_library
+
+Return the Koha::Library object representing the home library
+
+=cut
+
+sub home_library {
+    my ($self) = @_;
     my $hb_rs = $self->_result->homebranch;
 
     return Koha::Library->_new_from_dbic( $hb_rs );
@@ -367,6 +418,18 @@ sub home_branch {
 =cut
 
 sub holding_branch {
+    return shift->holding_library(@_);
+}
+
+=head3 holding_library
+
+my $library = $item->holding_library
+
+Return the Koha::Library object representing the holding library
+
+=cut
+
+sub holding_library {
     my ($self) = @_;
 
     my $hb_rs = $self->_result->holdingbranch;
@@ -417,6 +480,17 @@ sub checkout {
     return Koha::Checkout->_new_from_dbic( $checkout_rs );
 }
 
+=head3 serial_item
+
+=cut
+
+sub serial_item {
+    my ( $self ) = @_;
+    my $rs = $self->_result->serial_item;
+    return unless $rs;
+    return Koha::Serial::Item->_new_from_dbic($rs);
+}
+
 =head3 item_group
 
 my $item_group = $item->item_group;
@@ -437,6 +511,22 @@ sub item_group {
     my $item_group = Koha::Biblio::ItemGroup->_new_from_dbic( $item_group_rs );
     return $item_group;
 }
+
+=head3 item_group_item
+
+    my $item_group_item = $item->item_group_item;
+
+Return the item group for this item
+
+=cut
+
+sub item_group_item {
+    my ( $self ) = @_;
+    my $rs = $self->_result->item_group_item;
+    return unless $rs;
+    return Koha::Biblio::ItemGroup::Item->_new_from_dbic($rs);
+}
+
 
 =head3 return_claims
 
@@ -528,7 +618,7 @@ sub find_booking {
             branchcode => "*"
         }
     );
-    my $preparation_period = $rule ? $rule->rule_value : 0;
+    my $preparation_period = $rule && $rule->rule_value ? $rule->rule_value : 0;
     $end_date = $end_date->clone->add( days => $preparation_period );
 
     my $dtf      = Koha::Database->new->schema->storage->datetime_parser;
@@ -669,7 +759,7 @@ sub check_booking {
     {
         to     => $to_library,
         reason => $reason,
-        [ ignore_limits => 0, enqueue => 1, replace => 1 ]
+        [ ignore_limits => 0, enqueue => 1, replace => 'reason' ]
     }
   );
 
@@ -700,6 +790,18 @@ sub request_transfer {
         }
     }
 
+    my $matching_transfers = Koha::Item::Transfers->search(
+        {
+            tobranch      => $params->{to}->branchcode,
+            frombranch    => $self->holdingbranch,
+            itemnumber    => $self->itemnumber,
+            reason        => $params->{reason},
+            datearrived   => undef,
+            datecancelled => undef
+        }
+    );
+    return $matching_transfers->next if $matching_transfers->count;
+
     Koha::Exceptions::Item::Transfer::Limit->throw()
       unless ( $params->{ignore_limits}
         || $self->can_be_transferred( { to => $params->{to} } ) );
@@ -708,7 +810,7 @@ sub request_transfer {
     Koha::Exceptions::Item::Transfer::InQueue->throw( transfer => $request )
       if ( $request && !$params->{enqueue} && !$params->{replace} );
 
-    $request->cancel( { reason => $params->{reason}, force => 1 } )
+    $request->cancel( { reason => $params->{replace}, force => 1 } )
       if ( defined($request) && $params->{replace} );
 
     my $transfer = Koha::Item::Transfer->new(
@@ -743,8 +845,34 @@ we still expect the item to end up at a final location eventually.
 
 sub get_transfer {
     my ($self) = @_;
+    my $transfers = $self->_result->current_branchtransfers->search(
+        undef,
+        { 'order_by' => [ { '-desc' => 'datesent' }, { '-asc' => 'daterequested' } ] }
+    );
 
-    return $self->get_transfers->search( {}, { rows => 1 } )->next;
+    my $transfer = $transfers->next;
+    return Koha::Item::Transfer->_new_from_dbic($transfer) if $transfer;
+}
+
+=head3 transfer
+
+    my $transfer = $item->transfer;
+
+Returns the active transfer request. Returns I<undef> if no active transfer
+is found.
+
+Note: Transfers are retrieved in a Modified FIFO (First In First Out) order
+whereby the most recently sent, but not received, transfer will be returned
+if it exists, otherwise the oldest unsatisfied transfer will be returned.
+
+This allows for transfers to queue, which is the case for stock rotation and
+rotating collections where a manual transfer may need to take precedence but
+we still expect the item to end up at a final location eventually.
+
+=cut
+
+sub transfer {
+    return shift->get_transfer(@_);
 }
 
 =head3 get_transfers
@@ -767,12 +895,12 @@ we still expect the item to end up at a final location eventually.
 sub get_transfers {
     my ($self) = @_;
 
-    my $transfer_rs = $self->_result->branchtransfers;
+    my $transfers_rs = $self->_result->current_branchtransfers->search(
+        undef,
+        { 'order_by' => [ { '-desc' => 'datesent' }, { '-asc' => 'daterequested' } ] }
+    );
 
-    return Koha::Item::Transfers
-                ->_new_from_dbic($transfer_rs)
-                ->filter_by_current
-                ->search( {}, { order_by => [ { -desc => 'datesent' }, { -asc => 'daterequested' } ], } );
+    return Koha::Item::Transfers->_new_from_dbic($transfers_rs);
 }
 
 =head3 last_returned_by
@@ -846,7 +974,7 @@ sub hidden_in_opac {
 
     foreach my $field ( keys %{$rules} ) {
 
-        if ( any { $self->$field eq $_ } @{ $rules->{$field} } ) {
+        if ( any { defined $self->$field && $self->$field eq $_ } @{ $rules->{$field} } ) {
             $hidden_in_opac = 1;
             last;
         }
@@ -923,25 +1051,30 @@ sub pickup_locations {
 
     my $patron = $params->{patron};
 
-    my $circ_control_branch =
-      C4::Reserves::GetReservesControlBranch( $self->unblessed(), $patron->unblessed );
-    my $branchitemrule =
-      C4::Circulation::GetBranchItemRule( $circ_control_branch, $self->itype );
+    my $circ_control_branch = Koha::Policy::Holds->holds_control_library( $self, $patron );
+    my $branchitemrule      = C4::Circulation::GetBranchItemRule( $circ_control_branch, $self->itype );
 
-    return Koha::Libraries->new()->empty if $branchitemrule->{holdallowed} eq 'from_local_hold_group' && !$self->home_branch->validate_hold_sibling( {branchcode => $patron->branchcode} );
-    return Koha::Libraries->new()->empty if $branchitemrule->{holdallowed} eq 'from_home_library' && $self->home_branch->branchcode ne $patron->branchcode;
+    if ( $branchitemrule->{holdallowed} eq 'from_local_hold_group'
+        && !$self->home_branch->validate_hold_sibling( { branchcode => $patron->branchcode } )
+        || $branchitemrule->{holdallowed} eq 'from_home_library'
+        && $self->home_branch->branchcode ne $patron->branchcode )
+    {
+        return Koha::Libraries->new()->empty;
+    }
 
-    my $pickup_libraries = Koha::Libraries->search();
-    if ($branchitemrule->{hold_fulfillment_policy} eq 'holdgroup') {
+    my $pickup_libraries;
+    if ( $branchitemrule->{hold_fulfillment_policy} eq 'holdgroup' ) {
         $pickup_libraries = $self->home_branch->get_hold_libraries;
-    } elsif ($branchitemrule->{hold_fulfillment_policy} eq 'patrongroup') {
-        my $plib = Koha::Libraries->find({ branchcode => $patron->branchcode});
+    } elsif ( $branchitemrule->{hold_fulfillment_policy} eq 'patrongroup' ) {
+        my $plib = Koha::Libraries->find( { branchcode => $patron->branchcode } );
         $pickup_libraries = $plib->get_hold_libraries;
-    } elsif ($branchitemrule->{hold_fulfillment_policy} eq 'homebranch') {
-        $pickup_libraries = Koha::Libraries->search({ branchcode => $self->homebranch });
-    } elsif ($branchitemrule->{hold_fulfillment_policy} eq 'holdingbranch') {
-        $pickup_libraries = Koha::Libraries->search({ branchcode => $self->holdingbranch });
-    };
+    } elsif ( $branchitemrule->{hold_fulfillment_policy} eq 'homebranch' ) {
+        $pickup_libraries = Koha::Libraries->search( { branchcode => $self->homebranch } );
+    } elsif ( $branchitemrule->{hold_fulfillment_policy} eq 'holdingbranch' ) {
+        $pickup_libraries = Koha::Libraries->search( { branchcode => $self->holdingbranch } );
+    } else {
+        $pickup_libraries = Koha::Libraries->search();
+    }
 
     return $pickup_libraries->search(
         {
@@ -953,7 +1086,8 @@ sub pickup_locations {
     ) unless C4::Context->preference('UseBranchTransferLimits');
 
     my $limittype = C4::Context->preference('BranchTransferLimitsType');
-    my ($ccode, $itype) = (undef, undef);
+    my $ccode;
+    my $itype;
     if( $limittype eq 'ccode' ){
         $ccode = $self->ccode;
     } else {
@@ -1034,6 +1168,19 @@ sub current_holds {
     return Koha::Holds->_new_from_dbic($hold_rs);
 }
 
+=head3 first_hold
+
+    my $first_hold = $item->first_hold;
+
+Returns the first I<Koha::Hold> for the item.
+
+=cut
+
+sub first_hold {
+    my ( $self ) = @_;
+    return $self->current_holds->next;
+}
+
 =head3 stockrotationitem
 
   my $sritem = Koha::Item->stockrotationitem;
@@ -1074,9 +1221,8 @@ This method checks the tmp_holdsqueue to see if this item has been selected for 
 =cut
 
 sub has_pending_hold {
-    my ( $self ) = @_;
-    my $pending_hold = $self->_result->tmp_holdsqueues;
-    return $pending_hold->count ? 1: 0;
+    my ($self) = @_;
+    return $self->_result->tmp_holdsqueue ? 1 : 0;
 }
 
 =head3 has_pending_recall {
@@ -1167,30 +1313,46 @@ Returns the branchcode to be recorded in statistics renewal of the item
 
 sub renewal_branchcode {
 
-    my ($self, $params ) = @_;
+    my ( $self, $params ) = @_;
 
     my $interface = C4::Context->interface;
     my $branchcode;
-    if ( $interface eq 'opac' ){
-        my $renewal_branchcode = C4::Context->preference('OpacRenewalBranch');
-        if( !defined $renewal_branchcode || $renewal_branchcode eq 'opacrenew' ){
+    my $renewal_branchcode;
+
+    if ( $interface eq 'opac' ) {
+        $renewal_branchcode = C4::Context->preference('OpacRenewalBranch');
+        if ( !defined $renewal_branchcode || $renewal_branchcode eq 'opacrenew' ) {
             $branchcode = 'OPACRenew';
         }
-        elsif ( $renewal_branchcode eq 'itemhomebranch' ) {
+    } elsif ( $interface eq 'api' ) {
+        $renewal_branchcode = C4::Context->preference('RESTAPIRenewalBranch');
+        if ( !defined $renewal_branchcode || $renewal_branchcode eq 'apirenew' ) {
+            $branchcode = 'APIRenew';
+        }
+    }
+
+    return $branchcode if $branchcode;
+
+    if ($renewal_branchcode) {
+        if ( $renewal_branchcode eq 'itemhomebranch' ) {
             $branchcode = $self->homebranch;
-        }
-        elsif ( $renewal_branchcode eq 'patronhomebranch' ) {
+        } elsif ( $renewal_branchcode eq 'patronhomebranch' ) {
             $branchcode = $self->checkout->patron->branchcode;
-        }
-        elsif ( $renewal_branchcode eq 'checkoutbranch' ) {
+        } elsif ( $renewal_branchcode eq 'checkoutbranch' ) {
             $branchcode = $self->checkout->branchcode;
-        }
-        else {
+        } elsif ( $renewal_branchcode eq 'apiuserbranch' ) {
+            $branchcode =
+                ( C4::Context->userenv && defined C4::Context->userenv->{branch} )
+                ? C4::Context->userenv->{branch}
+                : $params->{branch};
+        } else {
             $branchcode = "";
         }
     } else {
-        $branchcode = ( C4::Context->userenv && defined C4::Context->userenv->{branch} )
-            ? C4::Context->userenv->{branch} : $params->{branch};
+        $branchcode =
+            ( C4::Context->userenv && defined C4::Context->userenv->{branch} )
+            ? C4::Context->userenv->{branch}
+            : $params->{branch};
     }
     return $branchcode;
 }
@@ -1204,9 +1366,19 @@ Return the cover images associated with this item.
 sub cover_images {
     my ( $self ) = @_;
 
-    my $cover_image_rs = $self->_result->cover_images;
-    return unless $cover_image_rs;
-    return Koha::CoverImages->_new_from_dbic($cover_image_rs);
+    my $cover_images_rs = $self->_result->cover_images;
+    return Koha::CoverImages->_new_from_dbic($cover_images_rs);
+}
+
+=head3 cover_image_ids
+
+Return the cover image ids associated with this item.
+
+=cut
+
+sub cover_image_ids {
+    my ($self) = @_;
+    return [ $self->cover_images->get_column('imagenumber') ];
 }
 
 =head3 columns_to_str
@@ -1284,6 +1456,93 @@ sub columns_to_str {
     return $values;
 }
 
+=head3 _status
+
+    my @statuses = $item->_status();
+
+Returns a list of statuses for the current item. Possible values are:
+
+=over 4
+
+=item B<checked_out> (mutually exclussive with B<local_use>)
+
+=item B<local_use> (mutually exclussive with B<checked_out>)
+
+=item B<in_transit>
+
+=item B<lost>
+
+=item B<lost>
+
+=item B<withdrawn>
+
+=item B<damaged>
+
+=item B<not_for_loan>
+
+=item B<on_hold>
+
+=item B<recalled>
+
+=item B<available>
+
+=item B<restricted>
+
+=item B<in_bundle>
+
+=back
+
+=cut
+
+sub _status {
+    my ($self) = @_;
+
+    my @statuses;
+    if ( my $checkout = $self->checkout ) {
+        unless ( $checkout->onsite_checkout ) {
+            push @statuses, "checked_out";
+        } else {
+            push @statuses, "local_use";
+        }
+    } elsif ( my $transfer = $self->transfer ) {
+        push @statuses, "in_transit";
+    }
+    if ( $self->itemlost ) {
+        push @statuses, 'lost';
+    }
+    if ( $self->withdrawn ) {
+        push @statuses, 'withdrawn';
+    }
+    if ( $self->damaged ) {
+        push @statuses, 'damaged';
+    }
+    if ( $self->notforloan || $self->item_type->notforloan ) {
+
+        # TODO on a big Koha::Items loop we are going to join with item_type too often, use a cache
+        push @statuses, 'not_for_loan';
+    }
+    if ( $self->first_hold ) {
+        push @statuses, 'on_hold';
+    }
+    if ( C4::Context->preference('UseRecalls') && $self->recall ) {
+        push @statuses, 'recalled';
+    }
+
+    unless (@statuses) {
+        push @statuses, 'available';
+    }
+
+    if ( $self->restricted ) {
+        push @statuses, 'restricted';
+    }
+
+    if ( $self->in_bundle ) {
+        push @statuses, 'in_bundle';
+    }
+
+    return \@statuses;
+}
+
 =head3 additional_attributes
 
     my $attributes = $item->additional_attributes;
@@ -1317,7 +1576,6 @@ Internal function, not exported, called only by Koha::Item->store.
 
 sub _set_found_trigger {
     my ( $self, $pre_mod_item ) = @_;
-
     # Reverse any lost item charges if necessary.
     my $no_refund_after_days =
       C4::Context->preference('NoRefundOnLostReturnedItemsAge');
@@ -1381,6 +1639,29 @@ sub _set_found_trigger {
                     # will be credited which settles the debt without
                     # creating extra credits
 
+                    if ( $lost_charge->amountoutstanding == 0 ) {
+                        my $no_refund_if_lost_fee_paid_age = C4::Context->preference('NoRefundOnLostFinesPaidAge');
+                        if ($no_refund_if_lost_fee_paid_age) {
+                            my $lost_fee_payment = $lost_charge->debit_offsets( { type => 'APPLY' } )->last;
+                            if ($lost_fee_payment) {
+                                my $today = dt_from_string();
+                                my $payment_age_in_days =
+                                    dt_from_string( $lost_fee_payment->created_on )->delta_days($today)
+                                    ->in_units('days');
+                                if ( $payment_age_in_days > $no_refund_if_lost_fee_paid_age ) {
+                                    $self->add_message(
+                                        {
+                                            type    => 'info',
+                                            message => 'payment_not_refunded',
+                                            payload => undef
+                                        }
+                                    );
+                                    return $self;
+                                }
+                            }
+                        }
+                    }
+
                     my $credit_offsets = $lost_charge->debit_offsets(
                         {
                             'credit_id'               => { '!=' => undef },
@@ -1410,7 +1691,7 @@ sub _set_found_trigger {
                             interface   => C4::Context->interface,
                             library_id  => $branchcode,
                             item_id     => $self->itemnumber,
-                            issue_id    => $lost_charge->issue_id
+                            issue_id    => $lost_charge->checkout ? $lost_charge->checkout->issue_id : undef,
                         }
                     );
 
@@ -1485,10 +1766,12 @@ sub _set_found_trigger {
             }
 
         } elsif ( $lostreturn_policy eq 'charge' && ( $lost_overdue || $lost_charge ) ) {
+            my $patron_id = $lost_overdue ? $lost_overdue->borrowernumber : $lost_charge->borrowernumber;
             $self->add_message(
                 {
                     type    => 'info',
                     message => 'lost_charge',
+                    payload => { patron_id => $patron_id }
                 }
             );
         }
@@ -1566,7 +1849,7 @@ sub _set_found_trigger {
                             interface   => C4::Context->interface,
                             library_id  => $branchcode,
                             item_id     => $self->itemnumber,
-                            issue_id    => $processing_charge->issue_id
+                            issue_id    => $processing_charge->checkout ? $processing_charge->checkout->issue_id : undef,
                         }
                     );
 
@@ -1625,11 +1908,8 @@ sub to_api {
     my $response = $self->SUPER::to_api($params);
 
     my $overrides = {};
-    my $itype_notforloan;
-    $itype_notforloan = $self->itemtype->notforloan if ($self->itemtype);
-    $overrides->{effective_not_for_loan_status} =
-        ( defined $itype_notforloan && !$self->notforloan ) ? $itype_notforloan : $self->notforloan;
     $overrides->{effective_item_type_id}        = $self->effective_itemtype;
+    $overrides->{effective_not_for_loan_status} = $self->effective_not_for_loan_status;
     $overrides->{effective_bookable}            = $self->effective_bookable;
 
     return { %$response, %$overrides };
@@ -1656,13 +1936,12 @@ sub to_api_mapping {
         replacementpricedate     => 'replacement_price_date',
         datelastborrowed         => 'last_checkout_date',
         datelastseen             => 'last_seen_date',
-        stack                    => undef,
+        stack                    => 'shelving_control_number',
         notforloan               => 'not_for_loan_status',
         damaged                  => 'damaged_status',
         damaged_on               => 'damaged_date',
         itemlost                 => 'lost_status',
         itemlost_on              => 'lost_date',
-        withdrawn                => 'withdrawn',
         withdrawn_on             => 'withdrawn_date',
         itemcallnumber           => 'callnumber',
         coded_location_qualifier => 'coded_location_qualifier',
@@ -1673,15 +1952,12 @@ sub to_api_mapping {
         itemnotes                => 'public_notes',
         itemnotes_nonpublic      => 'internal_notes',
         holdingbranch            => 'holding_library_id',
-        timestamp                => 'timestamp',
-        location                 => 'location',
         permanent_location       => 'permanent_location',
         onloan                   => 'checked_out_date',
         cn_source                => 'call_number_source',
         cn_sort                  => 'call_number_sort',
         ccode                    => 'collection_code',
         materials                => 'materials_notes',
-        uri                      => 'uri',
         itype                    => 'item_type_id',
         more_subfields_xml       => 'extended_subfields',
         enumchron                => 'serial_issue_number',
@@ -1696,7 +1972,7 @@ sub to_api_mapping {
 
     my $itemtype = $item->itemtype;
 
-    Returns Koha object for effective itemtype
+Returns Koha object for effective itemtype
 
 =cut
 
@@ -1726,6 +2002,20 @@ sub item_type {
     return shift->itemtype;
 }
 
+=head3 effective_not_for_loan_status
+
+  my $nfl = $item->effective_not_for_loan_status;
+
+Returns the effective not for loan status of the item
+
+=cut
+
+sub effective_not_for_loan_status {
+    my ($self) = @_;
+    my $itemtype = $self->itemtype;
+    my $itype_notforloan = $itemtype ? $itemtype->notforloan : undef;
+    return ( defined($itype_notforloan) && !$self->notforloan ) ? $itype_notforloan : $self->notforloan;
+}
 
 =head3 effective_bookable
 
@@ -1738,10 +2028,7 @@ Returns the effective bookability of the current item, be that item or itemtype 
 sub effective_bookable {
     my ($self) = @_;
 
-    my $bookable = $self->bookable;
-    $bookable = $self->itemtype->bookable if (!$bookable && $self->itemtype);
-
-    return $bookable;
+    return $self->bookable // $self->itemtype->bookable;
 }
 
 =head3 orders
@@ -1772,6 +2059,21 @@ sub tracked_links {
 
     my $tracked_links = $self->_result->linktrackers;
     return Koha::TrackedLinks->_new_from_dbic($tracked_links);
+}
+
+=head3 course_item
+
+  my $course_item = $item->course_item;
+
+Returns a Koha::Course::Item object
+
+=cut
+
+sub course_item {
+    my ($self) = @_;
+    my $rs = $self->_result->course_item;
+    return unless $rs;
+    return Koha::Course::Item->_new_from_dbic($rs);
 }
 
 =head3 move_to_biblio
@@ -1858,6 +2160,33 @@ sub bundle_items {
     return Koha::Items->_new_from_dbic($rs);
 }
 
+
+=head3 bundle_items_not_lost
+
+  my $bundle_items = $item->bundle_items_not_lost;
+
+Returns the items associated with this bundle that are not lost
+
+=cut
+
+sub bundle_items_not_lost {
+    my ($self) = @_;
+    return $self->bundle_items->search( { itemlost => 0 } );
+}
+
+=head3 bundle_items_lost
+
+  my $bundle_items = $item->bundle_items_lost;
+
+Returns the items associated with this bundle that are lost
+
+=cut
+
+sub bundle_items_lost {
+    my ($self) = @_;
+    return $self->bundle_items->search( { itemlost => { '!=' => 0 } } );
+}
+
 =head3 is_bundle
 
   my $is_bundle = $item->is_bundle;
@@ -1938,6 +2267,13 @@ sub add_to_bundle {
                     my ($success) = C4::Circulation::AddReturn($bundle_item->barcode, $branchcode);
                     unless ($success) {
                         Koha::Exceptions::Checkin::FailedCheckin->throw();
+                    }
+                }
+
+                my $holds = $bundle_item->current_holds;
+                if ($holds->count) {
+                    unless ($options->{ignore_holds}) {
+                        Koha::Exceptions::Item::Bundle::ItemHasHolds->throw();
                     }
                 }
 
@@ -2038,8 +2374,9 @@ sub _after_item_action_hooks {
         'after_item_action',
         {
             action  => $action,
-            item    => $self,
-            item_id => $self->itemnumber,
+            item    => $self,                                             #FIXME To be deprecated
+            item_id => $self->itemnumber,                                 #FIXME To be deprecated
+            payload => { item => $self, item_id => $self->itemnumber },
         }
     );
 }
@@ -2108,7 +2445,7 @@ sub can_be_recalled {
 
     my $branchcode = C4::Context->userenv->{'branch'};
     if ( $patron ) {
-        $branchcode = C4::Circulation::_GetCircControlBranch( $self->unblessed, $patron->unblessed );
+        $branchcode = C4::Circulation::_GetCircControlBranch( $self, $patron );
     }
 
     # Check the circulation rule for each relevant itemtype for this item
@@ -2244,34 +2581,6 @@ sub check_recalls {
     return $recall;
 }
 
-=head3 is_notforloan
-
-    my $is_notforloan = $item->is_notforloan;
-
-Determine whether or not this item is "notforloan" based on
-the item's notforloan status or its item type
-
-=cut
-
-sub is_notforloan {
-    my ( $self ) = @_;
-    my $is_notforloan = 0;
-
-    if ( $self->notforloan ){
-        $is_notforloan = 1;
-    }
-    else {
-        my $itemtype = $self->itemtype;
-        if ($itemtype){
-            if ( $itemtype->notforloan ){
-                $is_notforloan = 1;
-            }
-        }
-    }
-
-    return $is_notforloan;
-}
-
 =head3 is_denied_renewal
 
     my $is_denied_renewal = $item->is_denied_renewal;
@@ -2300,6 +2609,21 @@ sub is_denied_renewal {
         }
     }
     return 0;
+}
+
+=head3 analytics_count
+
+    my $analytics_count = $item->analytics_count;
+
+Return the related analytic records count.
+
+It returns 0 if I<EasyAnalyticalRecords> is disabled.
+
+=cut
+
+sub analytics_count {
+    my ($self) = @_;
+    return C4::Items::GetAnalyticsCount($self->itemnumber);
 }
 
 =head3 strings_map
@@ -2354,9 +2678,171 @@ sub strings_map {
                 ( $type eq 'av' ? ( category => $code ) : () ),
             };
         }
+
+        if ( $col eq 'booksellerid' ) {
+            my $booksellerid = $self->booksellerid;
+            if ($booksellerid) {
+                my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
+
+                $strings->{$col} = {
+                    str => $bookseller->name,
+                    type => 'acquisition_source'
+                } if $bookseller;
+            }
+        }
     }
 
     return $strings;
+}
+
+
+=head3 location_update_trigger
+
+    $item->location_update_trigger( $action );
+
+Updates the item location based on I<$action>. It is done like this:
+
+=over 4
+
+=item For B<checkin>, location is updated following the I<UpdateItemLocationOnCheckin> preference.
+
+=item For B<checkout>, location is updated following the I<UpdateItemLocationOnCheckout> preference.
+
+=back
+
+FIXME: It should return I<$self>. See bug 35270.
+
+=cut
+
+sub location_update_trigger {
+    my ( $self, $action ) = @_;
+
+    my ( $update_loc_rules, $messages );
+    if ( $action eq 'checkin' ) {
+        $update_loc_rules = C4::Context->yaml_preference('UpdateItemLocationOnCheckin');
+    } else {
+        $update_loc_rules = C4::Context->yaml_preference('UpdateItemLocationOnCheckout');
+    }
+
+    if ($update_loc_rules) {
+        if ( defined $update_loc_rules->{_ALL_} ) {
+            if ( $update_loc_rules->{_ALL_} eq '_PERM_' ) {
+                $update_loc_rules->{_ALL_} = $self->permanent_location;
+            }
+            if ( $update_loc_rules->{_ALL_} eq '_BLANK_' ) {
+                $update_loc_rules->{_ALL_} = '';
+            }
+            if (
+                ( defined $self->location && $self->location ne $update_loc_rules->{_ALL_} )
+                || ( !defined $self->location
+                    && $update_loc_rules->{_ALL_} ne "" )
+                )
+            {
+                $messages->{'ItemLocationUpdated'} =
+                    { from => $self->location, to => $update_loc_rules->{_ALL_} };
+                $self->location( $update_loc_rules->{_ALL_} )->store(
+                    {
+                        log_action        => 0,
+                        skip_record_index => 1,
+                        skip_holds_queue  => 1
+                    }
+                );
+            }
+        } else {
+            foreach my $key ( keys %$update_loc_rules ) {
+                if ( $update_loc_rules->{$key} eq '_PERM_' ) {
+                    $update_loc_rules->{$key} = $self->permanent_location;
+                } elsif ( $update_loc_rules->{$key} eq '_BLANK_' ) {
+                    $update_loc_rules->{$key} = '';
+                }
+                if (
+                    (
+                           defined $self->location
+                        && $self->location eq $key
+                        && $self->location ne $update_loc_rules->{$key}
+                    )
+                    || (   $key eq '_BLANK_'
+                        && ( !defined $self->location || $self->location eq '' )
+                        && $update_loc_rules->{$key} ne '' )
+                    )
+                {
+                    $messages->{'ItemLocationUpdated'} = {
+                        from => $self->location,
+                        to   => $update_loc_rules->{$key}
+                    };
+                    $self->location( $update_loc_rules->{$key} )->store(
+                        {
+                            log_action        => 0,
+                            skip_record_index => 1,
+                            skip_holds_queue  => 1
+                        }
+                    );
+                    last;
+                }
+            }
+        }
+    }
+    return $messages;
+}
+
+
+=head3 z3950_status
+
+    my $statuses = $item->z3950_statuses( $status_strings );
+
+Returns an array of statuses for use in z3950 results. Takes a hashref listing the display strings for the
+various statuses. Availability is determined by item statuses and the system preference z3950Status.
+
+Status strings are defined in authorised values in the Z3950_STATUS category.
+
+=cut
+
+sub z3950_status {
+    my ( $self, $status_strings ) = @_;
+
+    my @statuses;
+
+    if ( $self->onloan() ) {
+        push @statuses, $status_strings->{CHECKED_OUT} // "CHECKED_OUT";
+    }
+
+    if ( $self->itemlost() ) {
+        push @statuses, $status_strings->{LOST} // "LOST";
+    }
+
+    if ( $self->effective_not_for_loan_status() ) {
+        push @statuses, $status_strings->{NOT_FOR_LOAN} // "NOT_FOR_LOAN";
+    }
+
+    if ( $self->damaged() ) {
+        push @statuses, $status_strings->{DAMAGED} // "DAMAGED";
+    }
+
+    if ( $self->withdrawn() ) {
+        push @statuses, $status_strings->{WITHDRAWN} // "WITHDRAWN";
+    }
+
+    if ( my $transfer = $self->get_transfer ) {
+        push @statuses, $status_strings->{IN_TRANSIT} // "IN_TRANSIT" if $transfer->in_transit;
+    }
+
+    if ( C4::Reserves::GetReserveStatus( $self->itemnumber ) ne '' ) {
+        push @statuses, $status_strings->{ON_HOLD} // "ON_HOLD";
+    }
+    my $rules = C4::Context->yaml_preference('Z3950Status');
+    if ($rules) {
+        foreach my $field ( keys %$rules ) {
+            foreach my $value ( @{ $rules->{$field} } ) {
+                if ( defined $self->$field && $self->$field eq $value ) {
+                    push @statuses, $status_strings->{"SYSPREF"} // "SYSPREF";
+                    last;
+                }
+            }
+        }
+    }
+
+    return \@statuses;
+
 }
 
 =head3 _type

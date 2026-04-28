@@ -3,18 +3,14 @@
 [% USE Categories %]
 [% USE Koha %]
 [% PROCESS 'patronfields.inc' %]
-[% IF CAN_user_borrowers_edit_borrowers %]
+[% IF CAN_user_borrowers_edit_borrowers || CAN_user_borrowers_list_borrowers %]
     [%- SET searchtype = searchtype || Koha.Preference('DefaultPatronSearchMethod') -%]
-    [% IF( bs_tab_active ) %]
-        <div id="patron_search" role="tabpanel" class="tab-pane active">
-    [% ELSE %]
-        <div id="patron_search" role="tabpanel" class="tab-pane">
-    [% END %]
-        <form method="post" action="/cgi-bin/koha/members/member.pl">
+    [% WRAPPER tab_panel tabname="patron_search" bt_active= bs_tab_active %]
+        <form method="get" action="/cgi-bin/koha/members/member.pl">
             <input type="hidden" name="quicksearch" value="1" />
 
             <div class="form-title">
-                <label class="control-label">Search patrons</label>
+                <label class="control-label" for="searchmember"><span class="control-text">Search patrons</span> <i class="fa fa-fw fa-id-card" aria-hidden="true"></i></label>
             </div>
 
             <div class="form-content">
@@ -24,10 +20,10 @@
                     <input name="searchmember" id="searchmember" class="head-searchbox form-control" type="text" placeholder="Enter patron card number or partial name" size="25"/>
                 [% END %]
 
-                <button type="button" class="form-extra-content-toggle"><i class="fa fa-sliders"></i></button>
+                <button type="button" class="form-extra-content-toggle" title="More options"><i class="form-extra-content-icon fa-solid fa-sliders" aria-hidden="true"></i></button>
             </div>
 
-            <button type="submit"><i class="fa fa-arrow-right"></i></button>
+            <button type="submit" aria-label="Search"><i class="fa fa-arrow-right"></i></button>
 
             <div class="form-extra-content">
                 <div>
@@ -36,7 +32,7 @@
 
                 <div>
                     <label for="searchtype" class="control-label">Search type</label>
-                    <select name="searchtype" id="searchtype" class="form-control">
+                    <select name="searchtype" id="searchtype" class="form-select">
                         [% IF searchtype == 'starts_with' %]
                             <option value='starts_with' selected='selected'>Starts with</option>
                             <option value='contains'>Contains</option>
@@ -50,7 +46,7 @@
                 <div>
                     [% SET branches = Branches.all( selected => branchcode_filter, only_from_group => 1 ) %]
                     <label for="branchcode" class="control-label">Library</label>
-                    <select name="branchcode_filter" id="branchcode" class="form-control">
+                    <select name="branchcode_filter" id="branchcode" class="form-select">
                         [% IF branches.size != 1 %]
                             <option value="">Any</option>
                         [% END %]
@@ -61,7 +57,7 @@
                 <div>
                     [% SET categories = Categories.all() %]
                     <label for="categorycode" class="control-label">Category</label>
-                    <select name="categorycode_filter" id="categorycode" class="form-control">
+                    <select name="categorycode_filter" id="categorycode" class="form-select">
                         <option value="">Any</option>
                         [% FOREACH category IN categories %]
                             [% IF category.categorycode == categorycode_filter %]
@@ -74,6 +70,6 @@
                 </div>
             </div>
         </form>
-    </div>
+    [% END # /tab_panel %]
 [% END %]
 <!-- /member-search-box.inc -->

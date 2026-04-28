@@ -1,17 +1,22 @@
 [% USE Koha %]
 [% USE I18N %]
 [% USE Branches %]
-[% USE Letters %]
+[% USE ExtendedAttributeTypes %]
+[% USE Categories %]
 [% USE raw %]
 [% USE Asset %]
 [% USE To %]
+[% USE AuthorisedValues %]
+[% SET search_results_block_id = 'searchresults' %]
+[% SET av_bsort1 = AuthorisedValues.Get('Bsort1') %]
+[% SET av_bsort2 = AuthorisedValues.Get('Bsort2') %]
 
 [%# Display a simple form %]
 [% BLOCK patron_search_filters_simple  %]
-    <form id="patron_search_form">
+    <form method="get" class="patron_search_form">
         <div class="hint">Enter patron card number or partial name:</div>
-        <input type="text" size="40" id="search_patron_filter" class="focus" autocomplete="off" />
-        <input type="submit" class="btn btn-primary" value="Search" />
+        <input type="text" size="40" id="search_patron_filter_simple" class="search_patron_filter focus" autocomplete="off" />
+        <input type="submit" class="btn btn-primary search_patron_filter_btn" value="Search" />
     </form>
 [% END %]
 
@@ -26,197 +31,189 @@
 [%# - search_type: select 'contains' or 'starts with' %]
 [%- searchtype = searchtype || Koha.Preference('DefaultPatronSearchMethod') -%]
 [% BLOCK patron_search_filters %]
-    <form id="patron_search_form">
-        <fieldset class="brief">
-            [% IF ill_patronclass_lmsc == 'ILL_library' %]
-                <h3>Search for ILL library</h3>
-            [% ELSE %]
-                <h3>Search for patron</h3>
-            [% END %]
-            <fieldset class="action">
-                <input type="submit" class="btn btn-primary" value="Search" />
-                <input type="button" value="Clear" class="clear_search" />
-            </fieldset>
-            <ol>
-                <li>
-                    <label for="search_patron_filter">Search:</label>
-                    <input type="text" id="search_patron_filter" value="[% search_filter | html %]" class="focus" />
-                </li>
-
-                [% FOR f IN filters %]
-                    [% SWITCH f %]
-                    [% CASE 'branch' %]
-                        <li>
-                            <label for="branchcode_filter">Library:</label>
-                            <select id="branchcode_filter">
-                                [% SET libraries = Branches.all( only_from_group => 1 ) %]
-                                [% IF libraries.size != 1 %]
-                                    <option value="">Any</option>
-                                [% END %]
-                                [% FOREACH l IN libraries %]
-                                    <option value="[% l.branchcode | html %]">[% l.branchname | html %]</option>
-                                [% END %]
-                            </select>
-                        </li>
-                    [% CASE 'category' %]
-                        <li>
-                            <label for="categorycode_filter">Category:</label>
-                            <select id="categorycode_filter">
-                                [% nothing_selected = 1 %]
-                                [% IF ill_patronclass_lmsc != 'ILL_library' %]
-                                    <option value="">Any</option>
-                                [% END %]
-                                [% FOREACH category IN categories %]
-                                    <option value="[% category.categorycode | html %]"[% IF (ill_patronclass_lmsc == 'ILL_library' && nothing_selected) %] selected[% nothing_selected = 0 %][% END %]>[% category.description | html %]</option>
-                                [% END %]
-                            </select>
-                        </li>
-                    [% CASE 'sort1' %]
-                        <li>
-                            <label for="sort1_filter">Sort 1:</label>
-                            [% PROCESS 'av-build-dropbox.inc' name="sort1_filter", category="Bsort1", empty=1, size = 20 %]
-                        </li>
-                    [% CASE 'sort2' %]
-                        <li>
-                            <label for="sort2_filter">Sort 2:</label>
-                            [% PROCESS 'av-build-dropbox.inc' name="sort2_filter", category="Bsort2", empty=1, size = 20 %]
-                        </li>
-                    [% CASE 'search_field' %]
-                        <li>
-                            [% INCLUDE patron_fields_dropdown %]
-                        </li>
-                    [% CASE 'search_type' %]
-                        <li>
-                            <label for="searchtype_filter">Search type:</label>
-                            <select name="searchtype" id="searchtype_filter">
-                              [% IF searchtype == "starts_with" %]
-                                <option value='starts_with' selected="selected">Starts with</option>
-                                <option value="contains">Contains</option>
-                              [% ELSE %]
-                                <option value='starts_with'>Starts with</option>
-                                <option value="contains" selected="selected">Contains</option>
-                              [% END %]
-                            </select>
-                        </li>
-                        <li>
-                    [% CASE 'age_range' %]
-                        <li>
-                            <label for="agerangestart_filter">Patron age:</label>
-                            from&#160;
-                            <input type="number" name="agerangestart_filter" id="agerangestart_filter" step="any" min="0" class="agerange-input" />
-                            to&#160;
-                            <input type="number" name="agerangeend_filter" id="agerangeend_filter" step="any" min="0" class="agerange-input" />
-                        </li>
-                    [% CASE 'issue_count_range' %]
-                        <li>
-                            <label for="issuecountstart_filter">Number of loans: </label>
-                            from&#160;
-                            <input type="number" name="issuecountstart_filter" id="issuecountstart_filter" step="any" min="0" class="issuecount-input" />
-                            to&#160;
-                            <input type="number" name="issuecountend_filter" id="issuecountend_filter" step="any" min="0" class="issuecount-input" />
-                        </li>
-                    [% CASE 'charges_range' %]
-                        <li>
-                            <label for="chargesfrom_filter">Open charges amount:</label>
-                            from&#160;
-                            <input type="number" name="chargesfrom_filter" id="chargesfrom_filter" step="any" min="0" class="charges-input" />
-                            to&#160; 
-                            <input type="number" name="chargesto_filter" id="chargesto_filter" step="any" min="0" class="charges-input" />
-                       </li>
-                    [% CASE 'open_charges_since' %]
-                       <li>
-                           <label for="chargessince_filter">Open charges:</label>
-                           from&#160;<input type="text" size="10" id="chargessince_filter" name="chargessince_filter" class="flatpickr" />
-                       </li>
-                    [% CASE 'expires_period' %]
-                       <li>
-                           <label for="accountexpiresfrom_filter">Account expiry: </label>
-                           from&#160;<input type="text" size="10" id="accountexpiresfrom_filter" name="accountexpiresfrom_filter" class="flatpickr" /><br />
-                           to&#160;<input type="text" size="10" id="accountexpiresto_filter" name="accountexpiresto_filter" class="flatpickr" />
-                      </li>
-                    [% CASE 'debarred_period' %]
-                      <li>
-                        <label for="debarreduntilfrom_filter">Debarred period: </label>
-                        from&#160;<input type="text" size="10" id="debarreduntilfrom_filter" name="debarreduntilfrom_filter" class="flatpickr" /><br />
-                        to&#160;<input type="text" size="10" id="debarreduntilto_filter" name="debarreduntilto_filter" class="flatpickr" />
-                      </li>
-                    [% CASE 'inactive_period' %]
-                      <li>
-                        <label for="inactivesince_filter">Inactive period:</label>
-                        from&#160;<input type="text" size="10" id="inactivesince_filter" name="inactivesince_filter" class="flatpickr" />
-                      </li>
-                    [% CASE 'last_letter' %]
-                      <li>
-                        <label for="lastlettercode_filter">Last letter: </label>
-                        [% SET letters = Letters.all( selected => lastlettercode) %]
-                        <select id="lastlettercode_filter">
-                            [% IF letters.size != 1 %]
-                                <option value="">Any</option>
-                            [% END %]
-                            [% FOREACH b IN letters %]
-                                [% IF b.selected %]
-                                    <option selected="selected" value="[% b.code %]">[% b.name %]</option>
-                                [% ELSE %]
-                                    <option value="[% b.code %]">[% b.name %]</option>
-                                [% END %]
-                            [% END %]
-                        </select>
-                      </li>
-                    [% CASE 'overdue_level' %]
-                      <li>
-                          <label for="overduelevel_filter">Checkouts overdue level: </label>
-                          <select id="overduelevel_filter">
-                              <option value="">Not selected</option>
-                              [% levels = ['1','2','3','4','5'] %]
-                              [% FOREACH b IN levels %]
-                                  [% IF b == overduelevel %]
-                                      <option selected="selected" value="[% b %]">Level [% b %]</option>
-                                  [% ELSE %]
-                                      <option value="[% b %]">Level [% b %]</option>
-                                  [% END %]
-                              [% END %]
-                          </select>
-                      </li>
-                    [% CASE 'valid_email' %]
-                      <li>
-                        <label for="validemailavailable_filter">Email Address: </label>
-                        <select id="validemailavailable_filter">
-                            <option value="">Not selected</option>
-                            [% IF ( validemailavailable == 'yes' ) %]
-                                <option value="yes" selected="selected">Email available</option>
-                            [% ELSE %]
-                                <option value="yes">Email available</option>
-                            [% END %]
-                            [% IF ( validemailavailable == 'no' ) %]
-                                <option value="no" selected="selected">Email not available</option>
-                            [% ELSE %]
-                                <option value="no">Email not available</option>
-                            [% END %]
-                       </select>
-                      </li>
-                    [% CASE 'patron_list' %]
-                      <li>
-                        <label for="patronlistid_filter">Patron list: </label>
-                        <select id="patronlistid_filter">
-                            <option value="">Not selected</option>
-                            [% FOREACH p IN patron_lists %]
-                              [% IF p.patron_list_id == patronlistid %]
-                                <option selected="selected" value="[% p.patron_list_id %]">[% p.name %]</option>
-                              [% ELSE %]
-                                <option value="[% p.patron_list_id %]">[% p.name %]</option>
-                              [% END %]
-                            [% END %]
-                        </select>
-                      </li>
-                    [% END %]
+    [% SET has_patron_search_filters_block = 1 %]
+    <aside>
+        <form method="get" class="patron_search_form">
+            <fieldset class="brief">
+                [% IF ill_patronclass_lmsc == 'ILL_library' %]
+                    <h3>Search for ILL library</h3>
+                [% ELSE %]
+                    <h3>Search for patron</h3>
                 [% END %]
-            </ol>
-            <fieldset class="action">
-                <input type="submit" class="btn btn-primary" value="Search" />
-                <input type="button" value="Clear" class="clear_search" />
+                <fieldset class="action">
+                    <input type="submit" class="btn btn-primary search_patron_filter_btn" value="Search" />
+                    <input type="button" value="Clear" class="clear_search" />
+                </fieldset>
+                <ol>
+                    <li>
+                        <label>Search:</label>
+                        <input type="text" id="search_patron_filter" class="search_patron_filter focus" value="[% search_filter | html %]" />
+                    </li>
+
+                    [% FOR f IN filters %]
+                        [% SWITCH f %]
+                        [% CASE 'branch' %]
+                            <li>
+                                <label>Library:</label>
+                                <select class="branchcode_filter">
+                                    [% SET libraries = Branches.all( only_from_group => 1 ) %]
+                                    [% IF libraries.size != 1 %]
+                                        <option value="">Any</option>
+                                    [% END %]
+                                    [% FOREACH l IN libraries %]
+                                        [% IF (l.branchcode == branchcode_filter) %]
+                                            <option value="[% l.branchcode | html %]" selected="selected">[% l.branchname | html %]</option>
+                                        [% ELSE %]
+                                            <option value="[% l.branchcode | html %]">[% l.branchname | html %]</option>
+                                        [% END %]
+                                    [% END %]
+                                </select>
+                            </li>
+                        [% CASE 'category' %]
+                            <li>
+                                <label>Category:</label>
+                                <select class="categorycode_filter">
+                                    [% nothing_selected = 1 %]
+                                    [% IF ill_patronclass_lmsc != 'ILL_library' %]
+                                        <option value="">Any</option>
+                                    [% END %]
+                                    [% FOREACH category IN categories %]
+                                        [% IF (ill_patronclass_lmsc == 'ILL_library' && nothing_selected) %]
+                                            <option value="[% category.categorycode | html %]" selected>[% category.description | html %]</option>
+                                            [% nothing_selected = 0 %]
+                                        [% ELSE %]
+                                            <option value="[% category.categorycode | html %]">[% category.description | html %]</option>
+                                        [% END %]
+                                    [% END %]
+                                </select>
+                            </li>
+                        [% CASE 'sort1' %]
+                            <li>
+                                <label>Sort 1:</label>
+                                [% PROCESS 'av-build-dropbox.inc' no_id => 1, name="sort1_filter", category="Bsort1", empty=1, size = 20 %]
+                            </li>
+                        [% CASE 'sort2' %]
+                            <li>
+                                <label>Sort 2:</label>
+                                    [% PROCESS 'av-build-dropbox.inc' no_id => 1, name="sort2_filter", category="Bsort2", empty=1, size = 20 %]
+                            </li>
+                        [% CASE 'search_field' %]
+                            <li>
+                                [% INCLUDE patron_fields_dropdown %]
+                            </li>
+                        [% CASE 'search_type' %]
+                            <li>
+                                <label>Search type:</label>
+                                <select name="searchtype" class="searchtype_filter">
+                                    [% IF searchtype == "starts_with" %]
+                                        <option value='starts_with' selected="selected">Starts with</option>
+                                        <option value="contains">Contains</option>
+                                    [% ELSE %]
+                                        <option value='starts_with'>Starts with</option>
+                                        <option value="contains" selected="selected">Contains</option>
+                                    [% END %]
+                                </select>
+                            </li>
+                        [% CASE 'age_range' %]
+                            <li>
+                                <label>Patron age:</label>
+                                <span class="label">from</span>
+                                <input type="number" name="agerangestart_filter" id="agerangestart_filter" step="any" min="0" class="agerange-input" />
+                                <span class="label">to</span>
+                                <input type="number" name="agerangeend_filter" id="agerangeend_filter" step="any" min="0" class="agerange-input" />
+                            </li>
+                        [% CASE 'issue_count_range' %]
+                            <li>
+                                <label>Number of loans:</label>
+                                <span class="label">from</span>
+                                <input type="number" name="issuecountstart_filter" id="issuecountstart_filter" step="any" min="0" class="issuecount-input" />
+                                <span class="label">to</span>
+                                <input type="number" name="issuecountend_filter" id="issuecountend_filter" step="any" min="0" class="issuecount-input" />
+                            </li>
+                        [% CASE 'charges_range' %]
+                            <li>
+                                <label>Open charges amount:</label>
+                                <span class="label">from</span>
+                                <input type="number" name="chargesfrom_filter" id="chargesfrom_filter" step="any" min="0" class="charges-input" />
+                                <span class="label">to</span>
+                                <input type="number" name="chargesto_filter" id="chargesto_filter" step="any" min="0" class="charges-input" />
+                            </li>
+                        [% CASE 'open_charges_since' %]
+                            <li>
+                                <label>Open charges:</label>
+                                <span class="label">from</span>
+                                <input type="text" size="10" id="chargessince_filter" name="chargessince_filter" class="flatpickr" />
+                            </li>
+                        [% CASE 'expires_period' %]
+                            <li>
+                                <label>Account expiry:</label>
+                                <span class="label">from</span>
+                                <input type="text" size="10" id="accountexpiresfrom_filter" name="accountexpiresfrom_filter" class="flatpickr" />
+                                <span class="label">to</span>
+                                <input type="text" size="10" id="accountexpiresto_filter" name="accountexpiresto_filter" class="flatpickr" />
+                            </li>
+                        [% CASE 'debarred_period' %]
+                            <li>
+                                <label>Debarred period:</label>
+                                <span class="label">from</span>
+                                <input type="text" size="10" id="debarreduntilfrom_filter" name="debarreduntilfrom_filter" class="flatpickr" />
+                                <span class="label">to</span>
+                                <input type="text" size="10" id="debarreduntilto_filter" name="debarreduntilto_filter" class="flatpickr" />
+                            </li>
+                        [% CASE 'inactive_period' %]
+                            <li>
+                                <label>Inactive period:</label>
+                                <span class="label">from</span>
+                                <input type="text" size="10" id="inactivesince_filter" name="inactivesince_filter" class="flatpickr" />
+                            </li>
+                        [% CASE 'last_letter' %]
+                          <li>
+                            <label for="lastletter_filter">Last letter:</label>
+                            <select name="lastletter_filter" id="lastletter_filter">
+                                <option value="">Any</option>
+                                <option value="ODUE">ODUE</option>
+                                <option value="ODUE2">ODUE2</option>
+                                <option value="ODUE3">ODUE3</option>
+                            </select>
+                          </li>
+                        [% CASE 'overdue_level' %]
+                          <li>
+                            <label for="overduelevel_filter">Checkouts overdue level:</label>
+                            <select name="overduelevel_filter" id="overduelevel_filter">
+                                <option value="">Not selected</option>
+                                <option value="1">Level 1</option>
+                                <option value="2">Level 2</option>
+                                <option value="3">Level 3</option>
+                            </select>
+                          </li>
+                        [% CASE 'valid_email' %]
+                          <li>
+                            <label for="validemail_filter">Email Address:</label>
+                            <select name="validemail_filter" id="validemail_filter">
+                                <option value="">Not selected</option>
+                                <option value="1">Has email</option>
+                                <option value="0">No email</option>
+                            </select>
+                          </li>
+                        [% CASE 'patron_list' %]
+                          <li>
+                            <label for="patronlist_filter">Patron list:</label>
+                            <select name="patronlist_filter" id="patronlist_filter">
+                                <option value="">Not selected</option>
+                                <option value="1">In any list</option>
+                                <option value="0">In no list</option>
+                            </select>
+                          </li>
+                        [% END %]
+                    [% END %]
+                </ol>
             </fieldset>
-        </fieldset>
-    </form>
+            <fieldset class="action">
+                <input type="submit" class="btn btn-primary search_patron_filter_btn" value="Search" />
+                <input type="button" value="Clear" class="btn btn-default clear_search" />
+            </fieldset>
+        </form>
+    </aside>
 [% END %]
 
 [%# Display the table with: %]
@@ -230,14 +227,18 @@
 [%# columns: See patron_search_js %]
 [% BLOCK patron_search_table %]
 
+    [% UNLESS table_id %]
+        [% SET table_id = "memberresultst" %]
+    [% END %]
+
     [% IF filter == 'suggestions_managers' %]
-        <div class="hint">Only staff with superlibrarian or suggestions_manage permissions are returned in the search results</div>
-    [% ELSIF filter == 'orders_managers' %]
-        <div class="hint">Only staff with superlibrarian or acquisitions permissions (or order_manage permission if granular permissions are enabled) are returned in the search results</div>
+        <div class="alert alert-info">Only staff with superlibrarian or full suggestions permissions are returned in the search results</div>
+    [% ELSIF filter == 'orders_managers' OR filter == 'baskets_managers' %]
+        <div class="alert alert-info">Only staff with superlibrarian or acquisitions permissions (or order_manage permission if granular permissions are enabled) are returned in the search results</div>
     [% ELSIF filter == 'funds_owners' OR filter == 'funds_users' %]
-        <div class="hint">Only staff with superlibrarian or acquisitions permissions (or budget_modify permission if granular permissions are enabled) are returned in the search results</div>
+        <div class="alert alert-info">Only staff with superlibrarian or acquisitions permissions (or budget_modify permission if granular permissions are enabled) are returned in the search results</div>
     [% ELSIF filter == 'erm_users' %]
-        <div class="hint">Only staff with superlibrarian or ERM permissions are returned in the search results</div>
+        <div class="alert alert-info">Only staff with superlibrarian or ERM permissions are returned in the search results</div>
     [% END %]
 
     <div class="browse">
@@ -251,15 +252,14 @@
         [% END %]
     </div>
 
-
-    <h3 style="display: none;">Patrons found for: <span id="searchpattern"></span></h3>
+    <h3 style="display: none;">Patrons found for: <span class="searchpattern"></span></h3>
 
     <div id="[% table_id | html %]_search_results" style="display:none;">
 
-        <div id="info" class="dialog message" style="display: none;"></div>
-        <div id="error" class="dialog alert" style="display: none;"></div>
+        <div class="info alert alert-info" style="display: none; margin: 1em 0;"></div>
+        <div class="error alert alert-warning" style="display: none; margin: 1em 0"></div>
 
-        <input type="hidden" id="firstletter_filter" value="" />
+        <input type="hidden" class="firstletter_filter" value="" />
         [% IF open_on_row_click %]
         <table id="[% table_id | html %]" class="selections-table">
         [% ELSE %]
@@ -278,14 +278,26 @@
                             [% CASE 'address-library' %]<th>Address</th>
                             [% CASE 'branch' %]<th data-filter="libraries">Library</th>
                             [% CASE 'category' %]<th data-filter="categories">Category</th>
-                            [% CASE 'restriction' %]<th>Restrictions</th>
-                            [% CASE 'dateexpiry' %]<th>Expires on</td>
+                            [% CASE 'dateexpiry' %]<th>Expires on</th>
                             [% CASE 'borrowernotes' %]<th>Notes</th>
                             [% CASE 'phone' %]<th>Phone</th>
                             [% CASE 'checkouts' %]<th>Checkouts</th>
                             [% CASE 'account_balance' %]<th>Fines</th>
+                            [% CASE 'restriction' %]<th>Restrictions</th>
                             [% CASE 'extended_attribute_SIGEL' %]<th>ISIL</th>
                             [% CASE 'city' %]<th>City</th>
+                            [% CASE 'sort1' %]
+                                [% IF av_bsort1.size %]
+                                    <th data-filter="av_bsort1">Sort 1</th>
+                                [% ELSE %]
+                                    <th>Sort 1</th>
+                                [% END %]
+                            [% CASE 'sort2' %]
+                                [% IF av_bsort2.size %]
+                                    <th data-filter="av_bsort2">Sort 2</th>
+                                [% ELSE %]
+                                    <th>Sort 2</th>
+                                [% END %]
                             [% CASE 'action' %]<th class="noExport">&nbsp;</th>
                         [% END %]
                     [% END %]
@@ -297,19 +309,12 @@
 
 <!-- Patron preview modal -->
 <div class="modal" id="patronPreview" tabindex="-1" role="dialog" aria-labelledby="patronPreviewLabel">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="patronPreviewLabel"></h4>
-            </div>
             <div class="modal-body">
                 <div id="loading">
                     <img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" alt="" /> Loading
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -324,12 +329,13 @@
 [%# - redirect_if_attribute_equal: Name of the attribute to use for the redirect. Query using this attribute, before the normal search %]
 [%# filter: Same as patron_search_table %]
 [%# open_on_row_click: boolean, default off. Will allow to select a patron by clicking on the whole tr element %]
-[%# columns: list of columns that will be displayed. Possible values are: 'checkbox', 'cardnumber', 'dateofbirth', 'address', 'name', 'name-address', 'branch', 'category', 'dateexpiry', 'borrowernotes, 'phone', 'checkouts', 'account_balance', 'action' %]
+[%# columns: list of columns that will be displayed. Possible values are: 'checkbox', 'cardnumber', 'dateofbirth', 'address', 'name', 'name-address', 'branch', 'category', 'dateexpiry', 'borrowernotes, 'phone', 'checkouts', 'account_balance', 'sort1', 'sort2', 'action' %]
 [%# preview_on_name_click: Open a modal window with patron's info when the name is clicked %]
 [%# actions: list of buttons to display in the action column. Possible values are: 'select', 'add', 'edit', 'checkout' %]
-[%# sticky_header and sticky_to: If we need a sticky header %]
 [%# callback: name of the JS function that will be called when a patron is selected. Only work with action=select %]
 [%# display_search_description: boolean, default off. Display the description of the search %]
+[%# adjust_history: boolean, default off. Change the current url when a first letter is selected %]
+[%# defer_loading: boolean, default on. If true, it will not load the table until a search is triggered %]
 [% BLOCK patron_search_js %]
 
     [% IF redirect_if_one_result && !redirect_url %]
@@ -337,32 +343,62 @@
     [% END %]
 
     <script>
-        let categories = [% To.json(categories) | $raw %].map(e => {
+        [% SET libraries = Branches.all %]
+        [% SET categories = Categories.all.unblessed %]
+        var categories = [% To.json(categories) | $raw %].map(e => {
             e['_id'] = e.categorycode.toLowerCase();
             e['_str'] = e.description;
             return e;
         });
-        let categories_map = categories.reduce((map, e) => {
+        var categories_map = categories.reduce((map, e) => {
             map[e._id] = e;
             return map;
         }, {});
-        let libraries  = [% To.json(libraries) | $raw %].map(e => {
+        var libraries  = [% To.json(libraries) | $raw %].map(e => {
             e['_id'] = e.branchcode;
             e['_str'] = e.branchname;
             return e;
         });
-        let libraries_map = libraries.reduce((map, e) => {
+        var libraries_map = libraries.reduce((map, e) => {
             map[e._id] = e;
             return map;
         }, {});
 
-        [% IF ( Koha.Preference('ExtendedPatronAttributes') || ill_patronclass_lmsc == 'ILL_library' ) && extended_attribute_types %]
-            let extended_attribute_types = [% To.json(extended_attribute_types || []) | $raw %];
+
+        var av_bsort1= [% To.json(av_bsort1) | $raw %].map( e => {
+            e['_id'] = e.authorised_value;
+            e['_str'] = e.lib;
+            return e;
+        });
+        var av_bsort1_map = av_bsort1.reduce((map, e) => {
+            map[e._id] = e;
+            return map;
+        }, {});
+        var av_bsort2= [% To.json(av_bsort2) | $raw %].map( e => {
+            e['_id'] = e.authorised_value;
+            e['_str'] = e.lib;
+            return e;
+        });
+        var av_bsort2_map = av_bsort2.reduce((map, e) => {
+            map[e._id] = e;
+            return map;
+        }, {});
+
+        [% IF Koha.Preference('ExtendedPatronAttributes') %]
+            [% SET extended_attribute_types = ExtendedAttributeTypes.codes( staff_searchable => 1, searched_by_default => 1 ) %]
+            [% IF ( extended_attribute_types ) %][% extended_attribute_types = [ extended_attribute_types ]  %][% END %]
+            var extended_attribute_types = [% To.json(extended_attribute_types || []) | $raw %];
         [% END %]
 
-        $(document).ready(function() {
-            $('select#sort1_filter').select2({allowClear:true});
-            $('select#sort2_filter').select2({allowClear:true});
+        $(document).on("shown.bs.modal", function(){
+            $('select[name="sort1_filter"]').select2({allowClear:true,dropdownParent:$('#patron_search_modal')});
+            $('select[name="sort2_filter"]').select2({allowClear:true,dropdownParent:$('#patron_search_modal')});
+        }).on("hidden.bs.modal", function(){
+            ["sort1_filter", "sort2_filter"].forEach(function(item){
+                if( $('select[name=' +  item + ']').data("select2") ){
+                    $('select[name=' +  item + ']').select2("destroy");
+                }
+            });
         });
     </script>
 
@@ -370,26 +406,27 @@
     [% INCLUDE 'js-patron-get-age.inc' %]
     [% INCLUDE 'js-patron-format.inc' %]
     [% INCLUDE 'js-patron-format-address.inc' %]
-    [% IF sticky_header %]
-        [% Asset.js("lib/hc-sticky.js") | $raw %]
-    [% END %]
 
     <script>
-        var first_draw = 0;
-        let patrons_table;
-        var Sticky;
-        var singleBranchMode = '[% singleBranchMode | html %]';
-        let logged_in_library_id = "[% Branches.GetLoggedInBranchcode | html %]";
-        [% IF do_not_defer_loading %]
-            let defer_loading = 0;
-        [% ELSE %]
-            let defer_loading = 1;
-        [% END %]
+    {
 
-        /* popstate event triggered by forward and back button. Need to refresh search */
-        window.addEventListener('popstate', (event) => {
-            getSearchByLocation( false );
-        });
+        function get_patron_search_form(){
+            let parent_block = $("#[% search_results_block_id | html %]");
+            let patron_search_form = parent_block.parent().find(".patron_search_form");
+            if ( !patron_search_form.length ) patron_search_form = $(".patron_search_form");
+            return patron_search_form;
+        }
+        let first_draw = 0;
+        let patrons_table;
+        let singleBranchMode = '[% singleBranchMode | html %]';
+        let logged_in_library_id = "[% Branches.GetLoggedInBranchcode | html %]";
+        let defer_loading = Number( '[% defer_loading | html %]' || 1 );
+        [% IF adjust_history %]
+            /* popstate event triggered by forward and back button. Need to refresh search */
+            window.addEventListener('popstate', (event) => {
+                getSearchByLocation( false );
+            });
+        [% END %]
 
         [% SWITCH filter %]
         [% CASE 'suggestions_managers' %]
@@ -405,16 +442,19 @@
         [% CASE %]
             let patron_search_url = '/api/v1/patrons';
         [% END %]
+
         $(document).ready(function(){
 
-            $("#info").hide();
-            $("#error").hide();
+            let parent_block = $("#[% search_results_block_id | html %]");
+            let patron_search_form = get_patron_search_form();
+
+            parent_block.find(".info").hide();
+            parent_block.find(".error").hide();
 
             // Build the aLengthMenu
-            var aLengthMenu = [
-                [% Koha.Preference('PatronsPerPage') | html %], 10, 20, 50, 100, -1
+            let aLengthMenu = [
+                ...new Set([[% Koha.Preference('PatronsPerPage') | html %], 10, 20, 50, 100, -1])
             ];
-            jQuery.unique(aLengthMenu);
             aLengthMenu.sort(function( a, b ){
                 // Put "All" at the end
                 if ( a == -1 ) {
@@ -424,7 +464,7 @@
                 }
                 return parseInt(a) < parseInt(b) ? -1 : 1;}
             );
-            var aLengthMenuLabel = [];
+            let aLengthMenuLabel = [];
             $(aLengthMenu).each(function(){
                 if ( this == -1 ) {
                     // Label for -1 is "All"
@@ -436,16 +476,16 @@
 
             let additional_filters = {
                 surname: function(){
-                    let start_with = $("#firstletter_filter").val()
+                    let start_with = parent_block.find(".firstletter_filter").val()
                     if (!start_with) return "";
                     return { "like": start_with + "%" }
                 },
                 "-and": function(){
                     let filters = [];
 
-                    let search_type = $("#searchtype_filter").val();
-                    let search_fields = $("#searchfieldstype_filter").val();
-                    let pattern = $("#search_patron_filter").val();
+                    let search_type = patron_search_form.find(".searchtype_filter").val();
+                    let search_fields = patron_search_form.find(".searchfieldstype_filter").val() || "standard";
+                    let pattern = patron_search_form.find(".search_patron_filter").val();
 
                     filters = buildPatronSearchQuery(
                         pattern,
@@ -456,13 +496,13 @@
                         }
                     );
 
-                    let f_sort1 = $("#sort1_filter").val();
+                    let f_sort1 = patron_search_form.find("select[name='sort1_filter']").val();
                     if ( f_sort1 ) {
                         filters.push({
                             "me.sort1": f_sort1
                         });
                     }
-                    let f_sort2 = $("#sort2_filter").val();
+                    let f_sort2 = patron_search_form.find("select[name='sort2_filter']").val();
                     if ( f_sort2 ) {
                         filters.push({
                             "me.sort2": f_sort2
@@ -470,135 +510,35 @@
                     }
 
                     return filters;
-                },
-                age_from: function(){
-                    let age_from = $("#agerangestart_filter").val();
-                    if (age_from) {
-                        age_from = age_from.replace(/\D/g,'');
-                        if ( age_from.length ) return age_from;
-                    }
-                    return "";
-                },
-                age_to: function(){
-                    let age_to = $("#agerangeend_filter").val();
-                    if (age_to) {
-                        age_to = age_to.replace(/\D/g,'');
-                        if ( age_to.length ) return age_to;
-                    }
-                },
-                issue_count_from: function(){
-                    let issue_count_from = $("#issuecountstart_filter").val();
-                    if (issue_count_from) {
-                        issue_counte_from = issue_count_from.replace(/\D/g,'');
-                        if ( issue_count_from.length ) return issue_count_from;
-                    }
-                    return "";
-                },
-                issue_count_to: function(){
-                    let issue_count_to = $("#issuecountend_filter").val();
-                    if (issue_count_to) {
-                        issue_count_to = issue_count_to.replace(/\D/g,'');
-                        if ( issue_count_to.length ) return issue_count_to;
-                    }
-                },
-                charges_from: function(){
-                    let ret_charges_from = "";
-                    let charges_from = $("#chargesfrom_filter").val();
-                    if (charges_from && charges_from.length) {
-                        charges_from = parseFloat(charges_from);
-                        if ( !isNaN(charges_from) ) {
-                            ret_charges_from = charges_from;
-                            if ( ret_charges_from == 0 ) ret_charges_from = "0.0";
-                        }
-                    }
-                    return ret_charges_from;
-                },
-                charges_to: function(){
-                    let ret_charges_to = "";
-                    let charges_to = $("#chargesto_filter").val();
-                    if (charges_to && charges_to.length) {
-                        charges_to = parseFloat(charges_to);
-                        if ( !isNaN(charges_to) ) {
-                            ret_charges_to = charges_to;
-                            if ( ret_charges_to == 0 ) ret_charges_to = "0.0";
-                        }
-                    }
-                    return ret_charges_to;
-                },
-                charges_period_from: function(){
-                    let charges_period_from = $("#chargessince_filter").val();
-                    if (charges_period_from) {
-                        return charges_period_from;
-                    }
-                },
-                account_expiry_from: function(){
-                    let account_expiry_from = $("#accountexpiresfrom_filter").val();
-                    if (account_expiry_from) {
-                        return account_expiry_from;
-                    }
-                },
-                account_expiry_to: function(){
-                    let account_expiry_to = $("#accountexpiresto_filter").val();
-                    if (account_expiry_to) {
-                        return account_expiry_to;
-                    }
-                },
-                debarred_period_from: function(){
-                    let debarred_period_from = $("#debarreduntilfrom_filter").val();
-                    if (debarred_period_from) {
-                        return debarred_period_from;
-                    }
-                },
-                debarred_period_to: function(){
-                    let debarred_period_to = $("#debarreduntilto_filter").val();
-                    if (debarred_period_to) {
-                        return debarred_period_to;
-                    }
-                },
-                inactive_period_from: function(){
-                    let inactive_period_from = $("#inactivesince_filter").val();
-                    if (inactive_period_from) {
-                        return inactive_period_from;
-                    }
-                },
-                last_letter: function(){
-                    let last_letter = $("#lastlettercode_filter").val();
-                    if (last_letter) {
-                        return last_letter;
-                    }
-                },
-                overdue_level: function(){
-                    let overdue_level = $("#overduelevel_filter").val();
-                    if (overdue_level) {
-                        return overdue_level;
-                    }
-                },
-                valid_email: function(){
-                    let valid_email = $("#validemailavailable_filter").val();
-                    if (valid_email) {
-                        return valid_email;
-                    }
-                },
-                patron_list: function(){
-                    let patron_list = $("#patronlistid_filter").val();
-                    if (patron_list) {
-                        return patron_list;
-                    }
                 }
             };
+            let external_filter_nodes = {};
+            [% IF has_patron_search_filters_block %]
+                external_filter_nodes = {
+                    search_patron_filter: '.search_patron_filter',
+                    firstletter_filter: '.firstletter_filter',
+                    searchtype_filter: '.searchtype_filter',
+                    searchfieldstype_filter: '.searchfieldstype_filter',
+                    categorycode_filter: '.categorycode_filter',
+                    branchcode_filter: '.branchcode_filter'
+                };
+            [% END %]
 
             [% UNLESS default_sort_column %]
                 [% default_sort_column = "name" %]
             [% END %]
             [% SET order_column_index = 0 %]
-            [% SET embed = ['extended_attributes'] %]
-            patrons_table = $("#[% table_id | html %]").kohaTable({
+            [% SET embed = ['extended_attributes','library'] %]
+            let table_node = $("#[% table_id | html %]");
+            patrons_table = table_node.kohaTable({
                 "ajax": {
                     "url": patron_search_url,
                     "dataSrc": function ( json ) {
                         [% IF redirect_if_one_result %]
                             // redirect if there is only 1 result.
-                            if ( first_draw && json.recordsFiltered == 1 ) {
+                            // Do not redirect if state has been loaded
+                            let loaded_from_state = table_node.data('loaded_from_state');
+                            if ( !loaded_from_state && first_draw && json.recordsFiltered == 1 ) {
                                 let url = '[% redirect_url | url %]'.indexOf("?") != -1
                                     ? '[% redirect_url | url %]&borrowernumber=' + json.data[0].patron_id
                                     : '[% redirect_url | url %]?borrowernumber=' + json.data[0].patron_id;
@@ -635,7 +575,7 @@
                     [% END %]
                 },
                 [% END %]
-                "iDeferLoading": defer_loading,
+                "deferLoading": defer_loading,
                 "columns": [
                     [% FOR column IN columns %]
                         [% IF default_sort_column == column %]
@@ -648,7 +588,7 @@
                                 "searchable": false,
                                 "orderable": false,
                                 "render": function( data, type, row, meta ) {
-                                    return "<label for='check" + data + "' class='content_hidden'>" + _("Select patron") + "</label><input type='checkbox' id='check" + data + "' class='selection' name='borrowernumber' value='" + data + "' />";
+                                    return "<label for='check" + data + "' class='content_hidden'>" + _("Select patron") + "</label><input type='checkbox' class='check" + data + " selection' name='borrowernumber' value='" + data + "' />";
                                 }
                             }
                             [% CASE 'cardnumber' %]
@@ -669,6 +609,7 @@
                             [% CASE 'dateofbirth' %]
                             {
                                 "data": "date_of_birth",
+                                "type": "date",
                                 "searchable": true,
                                 "orderable": true,
                                 "render": function( data, type, row, meta ) {
@@ -702,7 +643,7 @@
                             }
                             [% CASE 'name-address' %]
                             {
-                                "data": "me.surname:me.firstname:me.middle_name:me.othernames:me.street_number:me.address:me.address2:me.city:me.state:me.postal_code:me.country",
+                                "data": "me.surname:me.preferred_name:me.firstname:me.middle_name:me.othernames:me.street_number:me.address:me.address2:me.city:me.state:me.postal_code:me.country",
                                 "searchable": true,
                                 "orderable": true,
                                 "render": function( data, type, row, meta ) {
@@ -718,7 +659,7 @@
                                     r += $format_address(row, { no_line_break: true, include_li: true });
 
                                     if ( row.email ) {
-                                        r += "<li>" + _("Email: ") + "<a href='mailto:" + encodeURIComponent(row.email) + "'>" + escape_str(row.email) + "</a></li>";
+                                        r += "<li class=\"patron_email\">" + _("Email: ") + "<a href='mailto:" + encodeURIComponent(row.email) + "'>" + escape_str(row.email) + "</a></li>";
                                     }
                                     r += '</ul></div>'
 
@@ -727,7 +668,7 @@
                             }
                             [% CASE 'name' %]
                             {
-                                "data": "me.surname:me.firstname:me.middle_name:me.othernames",
+                                "data": "me.surname:me.preferred_name:me.firstname:me.middle_name:me.othernames",
                                 "searchable": true,
                                 "orderable": true,
                                 "render": function( data, type, row, meta ) {
@@ -741,15 +682,14 @@
                             }
                             [% CASE 'branch' %]
                             {
-                                "data": "library_id",
+                                "data": "library.name:me.library_id",
                                 "searchable": true,
                                 "orderable": true,
                                 "render": function( data, type, row, meta ) {
-                                    let library_name = libraries_map[data].branchname
-                                    if( !singleBranchMode && data == logged_in_library_id ) {
-                                        return "<span class=\"currentlibrary\">" + escape_str(library_name) + "</span>";
+                                    if( !singleBranchMode && row.library.library_id == logged_in_library_id ) {
+                                        return "<span class=\"currentlibrary\">" + escape_str(row.library.name) + "</span>";
                                     } else {
-                                        return escape_str(library_name);
+                                        return escape_str(row.library.name);
                                     }
                                 }
                             }
@@ -762,38 +702,14 @@
                                     return escape_str(categories_map[data.toLowerCase()].description);
                                 }
                             }
-                            [% CASE 'restriction' %]
-                            {
-                                "data": "me.lost:me.gonenoaddress:me.debarred",
-                                "searchable": false,
-                                "orderable": true,
-                                "render": function( data, type, row, meta ) {
-                                    let restricted = row.restricted || row.patron_card_lost || row.incorrect_address;
-                                    let comment = escape_str(row.restriction_comment);
-                                    let r = '';
-                                    if ( restricted == true ) {
-                                        r = '<div class="restricted">' + _("Restricted: ");
-                                        if ( row.patron_card_lost == true ) {
-                                            comment = _("Patron card lost. ") + comment;
-                                        }
-                                        if ( row.incorrect_address == true ) {
-                                            comment = _("Incomplete patron address. ") + comment;
-                                        }
-                                        if ( comment && comment.length > 0 ) {
-                                            r += comment;
-                                        }
-                                        r += '</div>';
-                                    }
-                                    return r;
-                                }
-                            }
                             [% CASE 'dateexpiry' %]
                             {
                                 "data": "expiry_date",
+                                "type": "date",
                                 "searchable": true,
                                 "orderable": true,
                                 "render": function( data, type, row, meta ) {
-                                    return data ? escape_str($date(data)) : "";
+                                    return "<span class=\"dateexpiry" + (new Date(data) < new Date() ? ' expired' : '') + "\">" + (data ? escape_str($date(data)) : '') + "</span>";
                                 }
                             }
                             [% CASE 'borrowernotes' %]
@@ -846,13 +762,40 @@
                                     return r;
                                 }
                             }
+
+
+                            [% CASE 'restriction' %]
+                            {
+                                "data": "me.lost:me.gonenoaddress:me.debarred",
+                                "searchable": false,
+                                "orderable": true,
+                                "render": function( data, type, row, meta ) {
+                                    let restricted = row.restricted || row.patron_card_lost || row.incorrect_address;
+                                    let comment = escape_str(row.restriction_comment);
+                                    let r = '';
+                                    if ( restricted == true ) {
+                                        r = '<div class="restricted">' + _("Restricted: ");
+                                        if ( row.patron_card_lost == true ) {
+                                            comment = _("Patron card lost. ") + comment;
+                                        }
+                                        if ( row.incorrect_address == true ) {
+                                            comment = _("Incomplete patron address. ") + comment;
+                                        }
+                                        if ( comment && comment.length > 0 ) {
+                                            r += '<span title="' + comment + '">' + comment.substr(0, 20) + (comment.length > 20 ? '...' : '') + '</span>';
+                                        }
+                                        r += '</div>';
+                                    }
+                                    return r;
+                                }
+                            }
                             [% CASE 'extended_attribute_SIGEL' %]
                             {
-                                "data": "", // both 'Sigel' and 'SIGEL' are used by our customers (derived from borrower_attributes)
+                                "data": "extended_attributes",
                                 "searchable": false,
                                 "orderable": false,
                                 "render": function( data, type, row, meta ) {
-                                    return display_extended_attribute(row, 'Sigel');    // 'Sigel' will be uppercased before comparision
+                                    return get_extended_attribute_escaped(row, 'SIGEL');
                                 }
                             }
                             [% CASE 'city' %]
@@ -864,6 +807,30 @@
                                     return escape_str(data);
                                 }
                             }
+                            [% CASE 'sort1' %]
+                            {
+                                "data": "statistics_1",
+                                "searchable": true,
+                                "orderable": true,
+                                "render": function( data, type, row, meta ) {
+                                    if (data === null) return '';
+                                    let bsort1 = av_bsort1_map[data.toString()];
+                                    return escape_str(bsort1 ? bsort1.lib : data);
+                                }
+                            }
+
+                            [% CASE 'sort2' %]
+                            {
+                                "data": "statistics_2",
+                                "searchable": true,
+                                "orderable": true,
+                                "render": function( data, type, row, meta ) {
+                                    if (data === null) return '';
+                                    let bsort2 = av_bsort2_map[data.toString()];
+                                    return escape_str(bsort2 ? bsort2.lib : data);
+                                }
+                            }
+
 
                             [% CASE 'action' %]
                             {
@@ -874,21 +841,25 @@
                                     [% FOR action IN actions %]
                                     [% SWITCH action %]
                                     [% CASE 'select' %]
-                                        let patron_str = JSON.stringify(row);
                                         action_node += '<a href="#" class="btn btn-default btn-xs select_user" data-borrowernumber="' + patron_id + '">' + _("Select") + '</a>';
-                                        let input_node = $('<input type="hidden" id="borrower_data' + patron_id + '" name="borrower_data'+ patron_id + '"/>');
-                                        $(input_node).val(patron_str);
-                                        action_node += $(input_node).prop('outerHTML');
                                     [% CASE 'add' %]
-                                        action_node += '<a href="#" class="btn btn-default btn-xs add_user" data-borrowernumber="' + patron_id + '" data-firstname="' + encodeURIComponent(row.firstname) + '" data-surname="' + encodeURIComponent(row.surname) + '">' + _("Add") + '</a><input type="hidden" id="borrower_data' + patron_id + '" name="borrower_data'+ patron_id + '" />';
+                                        action_node += '<a href="#" class="btn btn-default btn-xs add_user" data-borrowernumber="' + patron_id + '">' + _("Add") + '</a>';
                                     [% CASE 'edit' %]
-                                        action_node += '<a href="/cgi-bin/koha/members/memberentry.pl?op=modify&amp;destination=circ&amp;borrowernumber=' + patron_id + '" class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> ' + _("Edit") + '</a>';
+                                        [% IF CAN_user_borrowers_edit_borrowers %]
+                                            action_node += '<a href="/cgi-bin/koha/members/memberentry.pl?op=edit_form&amp;destination=circ&amp;borrowernumber=' + patron_id + '" class="btn btn-default btn-xs"><i class="fa-solid fa-pencil" aria-hidden="true"></i> ' + _("Edit") + '</a>';
+                                        [% END %]
                                     [% CASE 'checkout' %]
                                         [% IF CAN_user_circulate_circulate_remaining_permissions %]
                                             action_node += '<a class="btn btn-default btn-xs" href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=' + patron_id + '"><i class="fa fa-barcode"></i> ' + _("Check out") + '</a>';
                                         [% END %]
                                     [% END %]
                                     [% END %]
+
+                                    let patron_str = JSON.stringify(row);
+                                    let input_node = $('<input type="hidden" name="borrower_data'+ patron_id + '"/>');
+                                    $(input_node).val(patron_str);
+                                    action_node += $(input_node).prop('outerHTML');
+
                                     return action_node;
                                 },
                                 "searchable": false,
@@ -900,208 +871,147 @@
                 ],
                 'embed': [% To.json(embed) | $raw %],
                 "order": [[ [% order_column_index | html %], "asc" ]],
-                'bAutoWidth': false,
+                "autoWidth": false,
                 'lengthMenu': [aLengthMenu, aLengthMenuLabel],
-                'sPaginationType': 'full_numbers',
+                "pagingType": 'full_numbers',
                 "pageLength": [% Koha.Preference('PatronsPerPage') | html %],
                 [% IF sticky_header %]
-                "initComplete": function(settings, json) {
-                    $("#[% sticky_header | html %]").show();
-                    Sticky = $("#[% sticky_header | html %]");
-                    Sticky.hcSticky({
-                        stickTo: "#[% sticky_to | html %]",
-                        stickyClass: "floating"
-                    });
-                },
+                    "initComplete": function(settings, json) {
+                        $("#[% sticky_header | html %]").show();
+                    },
                 [% END %]
-            }, typeof table_settings !== 'undefined' ? table_settings : null, 1, additional_filters);
+                fixedHeader: false,
+            }, typeof table_settings !== 'undefined' ? table_settings : null, 1, additional_filters, undefined, external_filter_nodes);
 
-            $("#patron_search_form").on('submit', filter);
-            $("#patron_search_form").on('submit', update_search_type);
+            patron_search_form.on('submit', filter);
+            patron_search_form.on('submit', update_search_type);
+            patron_search_form.on('submit', function(){
+                parent_block.find(".searchheader").show();
+                // Disable the search button until results are returned and displayed
+                patron_search_form.find(".search_patron_filter_btn").prop({disabled: true});
+            });
+
+
             $(".filterByLetter").on("click",function(e){
                 e.preventDefault();
                 filterByFirstLetterSurname($(this).text(), true);
             });
-            $("body").on("click",".add_user",function(e){
+            patrons_table.on("click",".add_user",function(e){
                 e.preventDefault();
                 var borrowernumber = $(this).data("borrowernumber");
-                var firstname = decodeURIComponent($(this).data("firstname"));
-                var surname = decodeURIComponent($(this).data("surname"));
-                add_user( borrowernumber, firstname + " " + surname );
+                var borrower_data = JSON.parse(patrons_table.find("input[name='borrower_data"+borrowernumber+"']").val());
+                modal_add_user( borrowernumber, $patron_to_html( borrower_data, { display_cardnumber: false, url: false } ) );
             });
-
-            $("body").on("click",".select_user",function(e){
+            patrons_table.on("click",".select_user",function(e){
                 e.preventDefault();
                 var borrowernumber = $(this).data("borrowernumber");
-                var borrower_data = $("#borrower_data"+borrowernumber).val();
-                select_user( borrowernumber, JSON.parse(borrower_data) );
+                var borrower_data = JSON.parse(patrons_table.find("input[name='borrower_data"+borrowernumber+"']").val());
+                modal_select_user( borrowernumber, borrower_data );
+                $(this).closest(".modal").modal('hide');
             });
 
-            $("body").on("click",".patron_preview", function( e ){
+            patrons_table.on("click",".patron_preview", function( e ){
                 e.preventDefault();
                 var borrowernumber = $(this).data("borrowernumber");
                 var page = "/cgi-bin/koha/members/moremember.pl?print=brief&borrowernumber=" + borrowernumber;
-                $("#patronPreview .modal-body").load( page + " div.container-fluid" );
-                $('#patronPreview').modal({show:true});
+                $("#patron_preview_modal").load( page + " div.container-fluid", function(){
+                    $("#patron_preview_modal").find(".close_window").on("click", function(){
+                        $('#patron_preview_modal').html(_("Loading...")).removeClass("show");
+                    });
+                });
+                $("#patron_preview_modal").addClass("show");
             });
 
             $("#patronPreview").on('hidden.bs.modal', function (e) {
                 $("#patronPreview .modal-body").html("<img src=\"[% interface | html %]/[% theme | html %]/img/spinner-small.gif\" alt=\"\" /> Loading");
             });
 
-            $(".clear_search").on("click",function(e){
+            patron_search_form.find(".clear_search").on("click",function(e){
                 e.preventDefault();
                 clearFilters();
-                $("#searchpattern").parent().hide();
+                parent_block.find(".searchpattern").parent().hide();
             });
 
-            if ( !defer_loading ) {
-                $("#patron_search_form").submit();
+            let loaded_from_state = patrons_table.data('loaded_from_state');
+            if ( !defer_loading || loaded_from_state ) {
+                patron_search_form.submit();
             }
 
-            /* Initial page load does not trigger the popstate event, so we explicitly call this */
-            getSearchByLocation( false );
-
+            [% IF adjust_history %]
+                /* Initial page load does not trigger the popstate event, so we explicitly call this */
+                getSearchByLocation( false );
+            [% END %]
         });
 
-    function display_extended_attribute(row, type) {
-        return escape_str(get_extended_attribute(row, type));
-    }
-
-    function get_extended_attribute(row, type) {
-        var ret = '';
-        var arr = $.grep(row.extended_attributes, ( x => x.type.toUpperCase() === type.toUpperCase() ));
-        if (arr.length > 0) {
-            ret = arr[0].value;
-        }
-
-        return ret;
-    }
-
-        function getSearchByLocation( setstate ){
-            /* Check to see if the URL contains a search parameter */
-            if( location.search != ""){
-                var params = new URLSearchParams( location.search );
-                var firstletter = params.get("firstletter");
-                /* Check to see if search is a first letter param */
-                if( firstletter ){
-                    /* Trigger function to return search results by letter */
-                    filterByFirstLetterSurname( firstletter, setstate );
+        [% IF adjust_history %]
+            function getSearchByLocation( setstate ){
+                /* Check to see if the URL contains a search parameter */
+                if( location.search != ""){
+                    var params = new URLSearchParams( location.search );
+                    var firstletter = params.get("firstletter");
+                    /* Check to see if search is a first letter param */
+                    if( firstletter ){
+                        /* Trigger function to return search results by letter */
+                        filterByFirstLetterSurname( firstletter, setstate );
+                    }
                 }
             }
-        }
+        [% END %]
 
         function update_search_type(){
             $("#searchtype").val($("#searchtype_filter").val());
         }
 
         function update_search_description(){
-            var searched = $("#searchfieldstype_filter").find("option:selected").text();
-            if ( $("#search_patron_filter").val() ) {
-                if ( $("#searchtype_filter").val() == 'starts_with' ) {
+            let parent_block = $("#[% search_results_block_id | html %]");
+            let patron_search_form = get_patron_search_form();
+            var searched = patron_search_form.find(".searchfieldstype_filter").find("option:selected").text();
+            let pattern = patron_search_form.find(".search_patron_filter").val();
+            if ( pattern ) {
+                if ( patron_search_form.find(".searchtype_filter").val() == 'starts_with' ) {
                     searched += _(" starting with ");
                 } else {
                     searched += _(" containing ");
                 }
-                searched += "'" + $("#search_patron_filter").val() + "'";
+                searched += "'" + pattern + "'";
             }
-            if ( $("#firstletter_filter").val() ) {
-                searched += _(" begins with ") + "'" + $("#firstletter_filter").val() +"'";
+            let firstletter_filter = parent_block.find(".firstletter_filter").val();
+            if ( firstletter_filter ) {
+                searched += _(" begins with ") + "'" + firstletter_filter +"'";
             }
-            if ( $("#categorycode_filter").val() ) {
-                searched += _(" with category ") + "'" + $("#categorycode_filter").find("option:selected").text() + "'";
+
+            if ( patron_search_form.find(".categorycode_filter").val() ) {
+                searched += _(" with category ") + "'" + patron_search_form.find(".categorycode_filter option:selected").text() + "'";
             }
-            if ( $("#branchcode_filter").val() ) {
-                searched += _(" in library ") + $("#branchcode_filter").find("option:selected").text();
+            if ( patron_search_form.find(".branchcode_filter").val() ) {
+                searched += _(" in library ") + patron_search_form.find(".branchcode_filter option:selected").text();
             }
-            if ( $("#agerangestart_filter").val() && $("#agerangeend_filter").val() ) {
-                searched += _(", Age from ") + $("#agerangestart_filter").val() + _(" to ") + $("#agerangeend_filter").val();
-            }
-            else if ( $("#agerangestart_filter").val() ) {
-                searched += _(", Age from ") + $("#agerangestart_filter").val();
-            }
-            else if ( $("#agerangeend_filter").val() ) {
-                searched += _(", Age to ") + $("#agerangeend_filter").val();
-            }
-            if ( $("#issuecountstart_filter").val() && $("#issuecountend_filter").val() ) {
-                searched += _(", Number of loans from ") + $("#issuecountstart_filter").val() + _(" to ") + $("#issuecountend_filter").val();
-            }
-            else if ( $("#issuecountstart_filter").val() ) {
-                searched += _(", Number of loans from ") + $("#issuecountstart_filter").val();
-            }
-            else if ( $("#issuecountend_filter").val() ) {
-                searched += _(", Number of loans to ") + $("#issuecountend_filter").val();
-            }
-            if ( $("#chargesfrom_filter").val() && $("#chargesfrom_filter").val().length && $("#chargesto_filter").val() && $("#chargesto_filter").val().length ) {
-                searched += _(", Open charges amount from ") + $("#chargesfrom_filter").val() + _(" to ") + $("#chargesto_filter").val();
-            }
-            else if ( $("#chargesfrom_filter").val() && $("#chargesfrom_filter").val().length ) {
-                searched += _(", Open charges amount from ") + $("#chargesfrom_filter").val();
-            }
-            else if ( $("#chargesto_filter").val() && $("#chargesto_filter").val().length ) {
-                searched += _(", Open charges amount to ") + $("#chargesto_filter").val();
-            }
-            if ( $("#chargessince_filter").val() ) {
-                searched += _(", Open charges from ") + $date($("#chargessince_filter").val());
-            }
-            if ( $("#accountexpiresfrom_filter").val() && $("#accountexpiresto_filter").val() ) {
-                searched += _(", Account expiry from ") + $date($("#accountexpiresfrom_filter").val()) +  _(" to ") + $date($("#accountexpiresto_filter").val());
-            }
-            else if ( $("#accountexpiresfrom_filter").val() ) {
-                searched += _(", Account expiry from ") + $date($("#accountexpiresfrom_filter").val());
-            }
-            else if ( $("#accountexpiresto_filter").val() ) {
-                searched += _(", Account expiry to ") + $date($("#accountexpiresto_filter").val());
-            }
-            if ( $("#debarreduntilfrom_filter").val() && $("#debarreduntilto_filter").val() ) {
-                searched += _(", Debarred period from ") + $date($("#debarreduntilfrom_filter").val()) +  _(" to ") + $date($("#debarreduntilto_filter").val());
-            }
-            else if ( $("#debarreduntilfrom_filter").val() ) {
-                searched += _(", Debarred period from ") + $date($("#debarreduntilfrom_filter").val());
-            }
-            else if ( $("#debarreduntilto_filter").val() ) {
-                searched += _(", Debarred period to ") + $date($("#debarreduntilto_filter").val());
-            }
-            if ( $("#inactivesince_filter").val() ) {
-                searched += _(", Inactive period from ") + $date($("#inactivesince_filter").val());
-            }
-            if ( $("#lastlettercode_filter").val() ) {
-                searched += _(", Last letter ") + "'" + $("#lastlettercode_filter").find("option:selected").text() + "'";
-            }
-            if ( $("#overduelevel_filter").val() ) {
-                searched += _(", Overdue level ") + "'" + $("#overduelevel_filter").find("option:selected").text() + "'";
-            }
-            if ( $("#validemailavailable_filter").val() ) {
-                searched += _(", Email Address ") + "'" + $("#validemailavailable_filter").find("option:selected").text() + "'";
-            }
-            if ( $("#patronlistid_filter").val() ) {
-                searched += _(", Patron list ") + "'" + $("#patronlistid_filter").find("option:selected").text() + "'";
-            }
-            if ( $("#sort1_filter").val() ) {
+            if ( patron_search_form.find("select[name='sort1_filter']").val() ) {
                 searched += _(" with sort1 ")
-                if ( $("select#sort1_filter") ) {
-                    searched += $("select#sort1_filter").find("option:selected").text();
+                if ( patron_search_form.find("select[name='sort1_filter']") ) {
+                    searched += patron_search_form.find("select[name='sort1_filter'] option:selected").text();
                 }
                 else {
-                    searched += $("#sort1_filter").val();
+                    searched += paron_search_form.find("select[name='sort1_filter']").val();
                 }
             }
-            if ( $("#sort2_filter").val() ) {
-                searched += _(" with sort2 ");
-                if ( $("select#sort2_filter") ) {
-                    searched += $("select#sort2_filter").find("option:selected").text();
+            if ( patron_search_form.find("select[name='sort2_filter']").val() ) {
+                searched += _(" with sort2 ")
+                if ( patron_search_form.find("select[name='sort2_filter']") ) {
+                    searched += patron_search_form.find("select[name='sort2_filter'] option:selected").text();
                 }
                 else {
-                    searched += $("#sort2_filter").val();
+                    searched += paron_search_form.find("select[name='sort2_filter']").val();
                 }
             }
-            $("#searchpattern").text(searched);
-            $("#searchpattern").parent().show();
+            parent_block.find(".searchpattern").text(searched).parent().show();
         }
 
         function filter() {
+            let parent_block = $("#[% search_results_block_id | html %]");
+            let patron_search_form = get_patron_search_form();
             [% IF redirect_if_attribute_equal %]
-                let filter = $("#search_patron_filter").val();
+                let filter = patron_search_form.find(".search_patron_filter").val();
                 if ( filter ) {
                     $.ajax({
                         data: { cardnumber: filter, _match: 'exact' },
@@ -1117,29 +1027,36 @@
                             }
                         },
                         error: function() {
-                            alert( _("An error occurred. Check the logs") );
+                            alert( _("An error occurred. Check the logs for details.") );
                         }
                     });
                 }
             [% END %]
-            $("#firstletter_filter").val('');
+            parent_block.find(".firstletter_filter").val('');
             $("#[% table_id | html %]_search_results").show();
 
             let table_dt = patrons_table.DataTable();
-            [% FOR c IN columns %]
-                [% SWITCH c %]
-                [% CASE 'branch' %]
-                    library_id = $("#branchcode_filter").val() || "";
-                    patrons_table.find('thead tr:eq(1) th[data-filter="libraries"] select').val(library_id);
-                    table_dt.column([% loop.count - 1 %]).search(library_id ? '^'+library_id+'$' : '');
-                [% CASE 'category' %]
-                    let category_id = $("#categorycode_filter").val() || "";
-                    patrons_table.find('thead tr:eq(1) th[data-filter="categories"] select').val(category_id);
-                    table_dt.column([% loop.count - 1 %]).search(category_id ? '^'+category_id+'$' : '');
+            let loaded_from_state = patrons_table.data('loaded_from_state');
+            if ( !loaded_from_state ) {
+                table_dt.search("").columns().search("");
+                [% FOR c IN columns %]
+                    [% SWITCH c %]
+                    [% CASE 'branch' %]
+                        let library_id = patron_search_form.find(".branchcode_filter").val() || "";
+                        patrons_table.find('thead tr:eq(1) th[data-filter="libraries"] select').val('^' + library_id + '$');
+                        table_dt.column([% loop.count - 1 %]).search(library_id ? '^'+library_id+'$' : '');
+                    [% CASE 'category' %]
+                        let category_id = patron_search_form.find(".categorycode_filter").val() || "";
+                        patrons_table.find('thead tr:eq(1) th[data-filter="categories"] select').val('^' + category_id.toLowerCase() + '$');
+                        table_dt.column([% loop.count - 1 %]).search(category_id ? '^'+category_id+'$' : '');
+                    [% END %]
                 [% END %]
-            [% END %]
-            table_dt.search("");
+            }
+            patrons_table.data('loaded_from_state', false);
             first_draw = 1; // Only redirect if we are coming from here
+            table_dt.on('draw.dt', function () {
+                patron_search_form.find(".search_patron_filter_btn").prop({disabled: false});
+            });
             table_dt.draw();
             [% IF display_search_description %]
                 update_search_description();
@@ -1148,53 +1065,54 @@
         }
 
         function clearFilters() {
-            $("#searchfieldstype_filter option:first").prop("selected", true);
-            $("#searchtype_filter option[value='[% searchtype | html %]']").prop("selected", true);
-            $("#categorycode_filter option:first").prop("selected", true);
-            $("#branchcode_filter option:first").prop("selected", true);
-            $("#sort1_filter").val('').trigger("change");
-            $("#sort2_filter").val('').trigger("change");
-            $("#firstletter_filter").val('');
-            $("#search_patron_filter").val('');
-            $("#agerangestart_filter").val('');
-            $("#agerangeend_filter").val('');
-            $("#issuecountstart_filter").val('');
-            $("#issuecountend_filter").val('');
-            $("#chargesfrom_filter").val('');
-            $("#chargesto_filter").val('');
-            $("#chargessince_filter").val('');
-            $("#chargessince_filter").siblings('span').find('input').val('');
-            $("#accountexpiresfrom_filter").val('');
-            $("#accountexpiresfrom_filter").siblings('span').find('input').val('');
-            $("#accountexpiresto_filter").val('');
-            $("#accountexpiresto_filter").siblings('span').find('input').val('');
-            $("#debarreduntilfrom_filter").val('');
-            $("#debarreduntilfrom_filter").siblings('span').find('input').val('');
-            $("#debarreduntilfrom_filter").val('');
-            $("#debarreduntilfrom_filter").siblings('span').find('input').val('');
-            $("#inactivesince_filter").val('');
-            $("#inactivesince_filter").siblings('span').find('input').val('');
-            $("#lastlettercode_filter option:first").prop("selected", true);
-            $("#overduelevel_filter option:first").prop("selected", true);
-            $("#validemailavailable_filter option:first").prop("selected", true);
-            $("#patronlistid_filter option:first").prop("selected", true);
-            /* remove any search string added by firstletter search */
-            history.pushState( {}, null, window.location.href.split("?" )[0]);
+            let parent_block = $("#[% search_results_block_id | html %]");
+            let patron_search_form = get_patron_search_form();
+            patron_search_form.find(".searchfieldstype_filter option:first").prop("selected", true);
+            patron_search_form.find(".searchtype_filter option[value='[% searchtype | html %]']").prop("selected", true);
+            patron_search_form.find(".categorycode_filter option:first").prop("selected", true);
+            patron_search_form.find(".branchcode_filter option:first").prop("selected", true);
+            patron_search_form.find("select[name='sort1_filter']").val('').trigger("change");
+            patron_search_form.find("select[name='sort2_filter']").val('').trigger("change");
+            patron_search_form.find(".search_patron_filter_btn").prop({disabled: false});
+            parent_block.find(".firstletter_filter").val('');
+            patron_search_form.find(".search_patron_filter").val('');
+            [% IF adjust_history %]
+                /* remove any search string added by firstletter search */
+                history.pushState( {}, null, window.location.href.split("?" )[0]);
+            [% END %]
             $("#[% table_id | html %]_search_results").hide();
             [% IF display_search_description %]
                 update_search_description();
             [% END %]
         }
 
+    function get_extended_attribute_escaped(row, type) {
+        return escape_str(get_extended_attribute(row, type));
+    }
+
+    function get_extended_attribute(row, type) {
+        var ret = '';
+        if ( row.extended_attributes ) {
+            var arr = $.grep(row.extended_attributes, ( x => x.type.toUpperCase() === type.toUpperCase() ));
+            if (arr.length > 0) {
+                ret = arr[0].value;
+            }
+        }
+        return ret;
+    }
+
         // User has clicked on a letter
         function filterByFirstLetterSurname(letter, setstate ) {
-            $("#firstletter_filter").val(letter);
+            let parent_block = $("#[% search_results_block_id | html %]");
+            parent_block.find(".firstletter_filter").val(letter);
 
             $("#[% table_id | html %]_search_results").show();
 
-            if ( setstate ) {
-                history.pushState( null, null, "?firstletter=" + letter );
-            }
+            [% IF adjust_history %]
+                if ( setstate ) {
+                    history.pushState( null, null, "?firstletter=" + letter );
+                }
+            [% END %]
 
             patrons_table.DataTable().draw();
             [% IF display_search_description %]
@@ -1203,40 +1121,101 @@
         }
 
         // modify parent window owner element
-        function add_user(borrowernumber, borrowername) {
-            var p = window.opener;
-            // In one place (serials/routing.tt), the page is reload on every add
-            // We have to wait for the page to be there
-            function wait_for_opener () {
-                if ( ! $(opener.document).find('body').size() ) {
-                    setTimeout(wait_for_opener, 500);
-                } else {
-                    [%# Note that add_user could sent data instead of borrowername too %]
-                    $("#info").hide();
-                    $("#error").hide();
-                    if ( p.add_user(borrowernumber, borrowername) < 0 ) {
-                        $("#error").html(_("Patron '%s' is already in the list.").format(borrowername));
-                        $("#error").show();
-                    } else {
-                        $("#info").html(_("Patron '%s' added.").format(borrowername));
-                        $("#info").show();
-                    }
-                }
-            }
-            wait_for_opener();
-        }
-        function select_user(borrowernumber, data) {
-            var p = window.opener;
-            if ( p.document.getElementById("selected_patron_id") ) {
-                p.document.getElementById("selected_patron_id").value = borrowernumber;
+        function modal_add_user(borrowernumber, borrowername) {
+            [%# Note that add_user could sent data instead of borrowername too %]
+            let parent_block = $("#[% search_results_block_id | html %]");
+            parent_block.find(".info").hide();
+            parent_block.find(".error").hide();
+            if ( add_user(borrowernumber, borrowername) < 0 ) {
+                parent_block.find(".error").html(_("Patron '%s' is already in the list.").format(borrowername)).show();
             } else {
-                [%  IF callback %]
-                    p.[% callback | html %](borrowernumber, data);
-                [%  ELSE %]
-                    p.select_user(borrowernumber, data[% IF ill_patrontype_lmsc.length %], '[% ill_patrontype_lmsc %]'[% END %]);
+                parent_block.find(".info").html(_("Patron '%s' added.").format(borrowername)).show();
+            }
+        }
+        function modal_select_user(borrowernumber, data) {
+            if ( document.getElementById("selected_patron_id") ) {
+                document.getElementById("selected_patron_id").value = borrowernumber;
+            } else {
+                [% IF callback %]
+                    [% callback | html %](borrowernumber, data);
+                [% ELSE %]
+                    select_user(borrowernumber, data[% IF ill_patrontype_lmsc.length %], '[% ill_patrontype_lmsc %]'[% END %]);
                 [% END %]
             }
-            window.close();
         }
+    }
+    </script>
+[% END %]
+
+
+[% BLOCK patron_search_modal %]
+    [% UNLESS patron_search_modal_id %]
+        [% patron_search_modal_id = "patron_search_modal" %]
+    [% END %]
+    [% UNLESS table_id %]
+        [% table_id = "memberresultst" %]
+    [% END %]
+
+    [% search_results_block_id = patron_search_modal_id _ '_searchresults' %]
+
+    <div id="[% patron_search_modal_id | html %]" class="modal modal-full patron_search_modal" tabindex="-1" role="dialog" aria-labelledby="patronSearchLabel" aria-hidden="true" data-backdrop="">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title" id="patronSearchLabel">[% modal_title | html %]</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    [% PROCESS patron_search_filters filters => ['branch','category','sort1','sort2'] %]
+
+                    <div id="[% search_results_block_id | html %]" class="search_results_block"> <!-- FIXME removed style from #searchresults, is that bad? -->
+                        [% IF columns.grep('checkbox').size %]
+                            <div class="searchheader fh-fixedHeader" style="display:none;">
+                                <div>
+                                    <a href="#" class="btn btn-link select_all"><i class="fa fa-check"></i> Select all</a>
+                                    |
+                                    <a href="#" class="btn btn-link clear_all"><i class="fa fa-remove"></i> Clear all</a>
+                                    <button class="add-selected btn btn-sm btn-default" type="submit">Add selected patrons</button>
+                                </div>
+                            </div>
+                        [% END %]
+                        [% PROCESS patron_search_table table_id => table_id, columns => columns %]
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default cancel" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="patron_preview_modal" class="basicModal"></div>
+
+    <script>
+        $(document).ready(function() {
+            let parent_block = $("#[% search_results_block_id | html %]");
+            parent_block.find(".select_all").on("click",function(e){
+                e.preventDefault();
+                parent_block.find(".selection").prop("checked", true).change();
+            });
+            parent_block.find(".clear_all").on("click",function(e){
+                e.preventDefault();
+                parent_block.find(".selection").prop("checked", false).change();
+            });
+            parent_block.find(".searchheader").hide();
+            parent_block.find(".clear_search").on("click",function(e){$("#searchheader").hide();});
+
+            parent_block.find('.add-selected').on('click', function(e) {
+                e.preventDefault();
+                var counter = 0;
+                parent_block.find('tr:has(.selection:checked) .add_user').each(function(){
+                    var borrowernumber = $(this).data('borrowernumber');
+                    var firstname = $(this).data('firstname');
+                    var surname = $(this).data('surname');
+                    add_user( borrowernumber, firstname + ' ' + surname );
+                    counter++;
+                });
+                parent_block.find('.info').html(_("%s Patrons added.").format(counter)).show();
+            });
+        });
     </script>
 [% END %]

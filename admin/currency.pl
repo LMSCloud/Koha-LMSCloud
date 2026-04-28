@@ -50,13 +50,14 @@ if ( $op eq 'add_form' ) {
     }
 
     $template->param( currency => $currency, );
-} elsif ( $op eq 'add_validate' ) {
+} elsif ( $op eq 'cud-add_validate' ) {
     my $currency_code = $input->param('currency_code');
     my $symbol        = $input->param('symbol');
     my $isocode       = $input->param('isocode');
     my $rate          = $input->param('rate');
     my $active        = $input->param('active');
     my $p_sep_by_space = $input->param('p_sep_by_space');
+    my $p_cs_precedes = $input->param('p_cs_precedes') // 0;
     my $is_a_modif    = $input->param('is_a_modif');
 
     if ($is_a_modif) {
@@ -66,6 +67,7 @@ if ( $op eq 'add_form' ) {
         $currency->rate($rate);
         $currency->active($active);
         $currency->p_sep_by_space($p_sep_by_space);
+        $currency->p_cs_precedes($p_cs_precedes);
         eval { $currency->store; };
         if ($@) {
             push @messages, { type => 'error', code => 'error_on_update' };
@@ -74,12 +76,14 @@ if ( $op eq 'add_form' ) {
         }
     } else {
         my $currency = Koha::Acquisition::Currency->new(
-            {   currency => $currency_code,
-                symbol   => $symbol,
-                isocode  => $isocode,
-                rate     => $rate,
-                active   => $active,
+            {
+                currency       => $currency_code,
+                symbol         => $symbol,
+                isocode        => $isocode,
+                rate           => $rate,
+                active         => $active,
                 p_sep_by_space => $p_sep_by_space,
+                p_cs_precedes  => $p_cs_precedes,
             }
         );
         eval { $currency->store; };
@@ -101,7 +105,7 @@ if ( $op eq 'add_form' ) {
         nb_of_orders => $nb_of_orders,
         nb_of_vendors => $nb_of_vendors,
     );
-} elsif ( $op eq 'delete_confirmed' ) {
+} elsif ( $op eq 'cud-delete_confirmed' ) {
     my $currency = Koha::Acquisition::Currencies->find($currency_code);
     my $deleted = eval { $currency->delete; };
 

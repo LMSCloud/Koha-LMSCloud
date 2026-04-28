@@ -1,3 +1,9 @@
+@media print {
+    .pagebreak { break-after: page; }
+    #cookieConsentBar_content { display: none; }
+    .consentButtons   { display: none; }
+}
+
 a:link {
     color: #000000;
     text-decoration: none;
@@ -153,7 +159,6 @@ th:first-child {
     border-left: 0;
 }
 
-td:last-child,
 th:last-child {
     background-color: #E9E9E9;
     border-bottom: 1px solid #CCCCCC;

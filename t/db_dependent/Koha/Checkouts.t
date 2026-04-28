@@ -19,12 +19,16 @@
 
 use Modern::Perl;
 
-use Test::More tests => 11;
+use Test::More tests => 12;
+use Test::MockModule;
+use Test::Warn;
 
 use C4::Circulation qw( MarkIssueReturned AddReturn );
+use C4::Reserves qw( AddReserve );
 use Koha::Checkouts;
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string );
+use Koha::Holds;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -161,6 +165,8 @@ subtest 'patron' => sub {
         }
     )->store;
 
+    t::lib::Mocks::mock_userenv( { branchcode => $library->{branchcode} } );
+
     my $p = $checkout->patron;
     is( ref($p), 'Koha::Patron',
         'Koha::Checkout->patron should return a Koha::Patron' );
@@ -296,7 +302,7 @@ $schema->storage->txn_rollback;
 
 subtest 'automatic_checkin' => sub {
 
-    plan tests => 9;
+    plan tests => 10;
 
     $schema->storage->txn_begin;
 
@@ -324,7 +330,7 @@ subtest 'automatic_checkin' => sub {
     my $tomorrow  = dt_from_string->add( days => 1 );
     my $yesterday = dt_from_string->subtract( days => 1 );
 
-    # Checkout do for automatic checkin
+    # Checkout due for automatic checkin
     my $checkout_due_aci = Koha::Checkout->new(
         {
             borrowernumber => $patron->borrowernumber,
@@ -405,5 +411,175 @@ subtest 'automatic_checkin' => sub {
     $searched = Koha::Old::Checkouts->find( $checkout_odue_aci->issue_id );
     is( dt_from_string($searched->returndate), $yesterday, 'old checkout for odue_ac_item has the right return date' );
 
+
+    subtest 'automatic_checkin AutomaticCheckinAutoFill tests' => sub {
+
+        plan tests => 3;
+
+        my $checkout_2_due_ac = Koha::Checkout->new(
+            {
+                borrowernumber => $patron->borrowernumber,
+                itemnumber     => $due_ac_item->itemnumber,
+                branchcode     => $patron->branchcode,
+                date_due       => $today
+            }
+        )->store;
+
+        my $patron_2 =
+            $builder->build_object( { class => 'Koha::Patrons', value => { branchcode => $patron->branchcode } } );
+        my $reserveid = AddReserve(
+            {
+                branchcode     => $patron->branchcode,
+                borrowernumber => $patron_2->id,
+                biblionumber   => $due_ac_item->biblionumber,
+                priority       => 1
+            }
+        );
+
+        t::lib::Mocks::mock_preference( 'AutomaticCheckinAutoFill', '0' );
+
+        Koha::Checkouts->automatic_checkin;
+        my $reserve = Koha::Holds->find($reserveid);
+
+        is( $reserve->found, undef, "Hold was not filled when AutomaticCheckinAutoFill disabled" );
+
+        my $checkout_3_due_ac = Koha::Checkout->new(
+            {
+                borrowernumber => $patron->borrowernumber,
+                itemnumber     => $due_ac_item->itemnumber,
+                branchcode     => $patron->branchcode,
+                date_due       => $today
+            }
+        )->store;
+        t::lib::Mocks::mock_preference( 'AutomaticCheckinAutoFill', '1' );
+
+        Koha::Checkouts->automatic_checkin;
+        $reserve->discard_changes;
+
+        is( $reserve->found, 'W', "Hold was filled when AutomaticCheckinAutoFill enabled" );
+
+        my $checkout_2_odue_ac = Koha::Checkout->new(
+            {
+                borrowernumber => $patron->borrowernumber,
+                itemnumber     => $odue_ac_item->itemnumber,
+                branchcode     => $patron->branchcode,
+                date_due       => $today
+            }
+        )->store;
+        my $branch2    = $builder->build_object( { class => "Koha::Libraries" } );
+        my $reserve2id = AddReserve(
+            {
+                branchcode     => $branch2->branchcode,
+                borrowernumber => $patron_2->id,
+                biblionumber   => $odue_ac_item->biblionumber,
+                priority       => 1
+            }
+        );
+        Koha::Checkouts->automatic_checkin;
+
+        my $reserve2 = Koha::Holds->find($reserve2id);
+        is(
+            $reserve2->found, 'T',
+            "Hold was filled when AutomaticCheckinAutoFill enabled and transfer was initiated when branches didn't match"
+        );
+    };
+
     $schema->storage->txn_rollback;
-}
+};
+
+subtest 'attempt_auto_renew' => sub {
+
+    plan tests => 33;
+
+    $schema->storage->txn_begin;
+
+    my $renew_error = 'auto_renew';
+    my $module      = Test::MockModule->new('C4::Circulation');
+    $module->mock( 'CanBookBeRenewed', sub { return ( 1, $renew_error ) } );
+    $module->mock( 'AddRenewal',       sub { warn "AddRenewal called" } );
+    my $checkout = $builder->build_object(
+        {
+            class => 'Koha::Checkouts',
+            value => {
+                date_due         => '2023-01-01 23:59:59',
+                returndate       => undef,
+                auto_renew       => 1,
+                auto_renew_error => undef,
+                onsite_checkout  => 0,
+                renewals_count   => 0,
+            }
+        }
+    );
+
+    my ( $success, $error, $updated );
+    warning_is {
+        ( $success, $error, $updated ) = $checkout->attempt_auto_renew();
+    }
+    undef, "AddRenewal not called without confirm";
+    ok( $success, "Issue is renewed when error is 'auto_renew'" );
+    is( $error, undef, "No error when renewed" );
+    ok( $updated, "Issue reported as updated when renewed" );
+
+    warning_is {
+        ( $success, $error, $updated ) = $checkout->attempt_auto_renew( { confirm => 1 } );
+    }
+    "AddRenewal called", "AddRenewal called when confirm is passed";
+    ok( $success, "Issue is renewed when error is 'auto_renew'" );
+    is( $error, undef, "No error when renewed" );
+    ok( $updated, "Issue reported as updated when renewed" );
+
+    $module->mock( 'AddRenewal', sub { return; } );
+
+    $renew_error = 'anything_else';
+    ( $success, $error, $updated ) = $checkout->attempt_auto_renew();
+    ok( !$success, "Success is untrue for any other status" );
+    is( $error, 'anything_else', "The error is passed through" );
+    ok( $updated, "Issue reported as updated when status changes" );
+    $checkout->discard_changes();
+    is( $checkout->auto_renew_error, undef, "Error not updated if confirm not passed" );
+
+    ( $success, $error, $updated ) = $checkout->attempt_auto_renew( { confirm => 1 } );
+    ok( !$success, "Success is untrue for any other status" );
+    is( $error, 'anything_else', "The error is passed through" );
+    ok( $updated, "Issue updated when confirm passed" );
+    $checkout->discard_changes();
+    is( $checkout->auto_renew_error, 'anything_else', "Error updated if confirm passed" );
+
+    # Error now equals 'anything_else'
+    ( $success, $error, $updated ) = $checkout->attempt_auto_renew();
+    ok( !$updated, "Issue not reported as updated when status has not changed" );
+
+    $renew_error = "auto_unseen_final";
+    ( $success, $error, $updated ) = $checkout->attempt_auto_renew( { confirm => 1 } );
+    ok( $success, "Issue is renewed when error is 'auto_unseen_final'" );
+    is( $error, 'auto_unseen_final', "Error of finality reported when renewed" );
+    ok( $updated, "Issue reported as updated when renewed" );
+    $checkout->discard_changes();
+    is( $checkout->auto_renew_error, 'auto_unseen_final', "Error updated" );
+
+    $renew_error = "too_unseen";
+    ( $success, $error, $updated ) = $checkout->attempt_auto_renew( { confirm => 1 } );
+    ok( !$success, "Issue is not renewed when error is 'too_unseen'" );
+    is( $error, 'too_unseen', "Error reported correctly" );
+    ok( !$updated, "Issue not reported as updated when moved from final to too unseen" );
+    $checkout->discard_changes();
+    is( $checkout->auto_renew_error, 'too_unseen', "Error updated" );
+
+    $renew_error = "auto_renew_final";
+    ( $success, $error, $updated ) = $checkout->attempt_auto_renew( { confirm => 1 } );
+    ok( $success, "Issue is renewed when error is 'auto_renew_final'" );
+    is( $error, 'auto_renew_final', "Error of finality reported when renewed" );
+    ok( $updated, "Issue reported as updated when renewed" );
+    $checkout->discard_changes();
+    is( $checkout->auto_renew_error, 'auto_renew_final', "Error updated" );
+
+    $renew_error = "too_many";
+    ( $success, $error, $updated ) = $checkout->attempt_auto_renew( { confirm => 1 } );
+    ok( !$success, "Issue is not renewed when error is 'too_many'" );
+    is( $error, 'too_many', "Error reported correctly" );
+    ok( !$updated, "Issue not reported as updated when moved from final to too many" );
+    $checkout->discard_changes();
+    is( $checkout->auto_renew_error, 'too_many', "Error updated" );
+
+    $schema->storage->txn_rollback;
+};

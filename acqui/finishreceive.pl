@@ -36,9 +36,14 @@ use Koha::Number::Price;
 use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Orders;
 
+my $input = CGI->new;
 
-my $input=CGI->new;
-my $flagsrequired = {acquisition => 'order_receive'};
+if ( $input->request_method ne "POST" ) {
+    print $input->header( -status => 400 );
+    exit;
+}
+
+my $flagsrequired = { acquisition => 'order_receive' };
 
 checkauth($input, 0, $flagsrequired, 'intranet');
 
@@ -51,6 +56,8 @@ my $quantity         = $input->param('quantity');
 my $unitprice        = $input->param('unitprice');
 my $replacementprice = $input->param('replacementprice');
 my $datereceived     = $input->param('datereceived');
+my $invoice_unitprice = $input->param('invoice_unitprice');
+my $invoice_currency = $input->param('invoice_currency');
 my $invoiceid        = $input->param('invoiceid');
 my $invoice          = GetInvoice($invoiceid);
 my $invoiceno        = $invoice->{invoicenumber};
@@ -80,7 +87,7 @@ my $basket = $order_obj->basket;
 if ($quantityrec > $origquantityrec ) {
     my @received_items = ();
     if ($basket->effective_create_items eq 'ordering') {
-        @received_items = $input->multi_param('items_to_receive');
+        @received_items = $input->multi_param('items_to_receive[]');
         my @affects = split q{\|}, C4::Context->preference("AcqItemSetSubfieldsWhenReceived");
         if ( @affects ) {
             my $frameworkcode = GetFrameworkCode($biblionumber);
@@ -98,10 +105,25 @@ if ($quantityrec > $origquantityrec ) {
         }
     }
 
-    $order_obj->order_internalnote(scalar $input->param("order_internalnote"));
-    $order_obj->tax_rate_on_receiving(scalar $input->param("tax_rate"));
-    $order_obj->replacementprice($replacementprice);
-    $order_obj->unitprice($unitprice);
+    $order_obj->set(
+        {
+            order_internalnote    => scalar $input->param("order_internalnote"),
+            tax_rate_on_receiving => scalar $input->param("tax_rate"),
+            replacementprice      => $replacementprice,
+            unitprice             => $unitprice,
+            (
+                $invoice_unitprice && $invoice_unitprice ne ''
+                ? (
+                    invoice_unitprice => $invoice_unitprice,
+                    invoice_currency  => $invoice_currency,
+                  )
+                : (
+                    invoice_unitprice => undef,
+                    invoice_currency  => undef,
+                )
+            ),
+        }
+    );
 
     $order_obj->populate_with_prices_for_receiving();
 
@@ -128,11 +150,11 @@ if ($quantityrec > $origquantityrec ) {
     # now, add items if applicable
     if ($basket->effective_create_items eq 'receiving') {
 
-        my @tags         = $input->multi_param('tag');
-        my @subfields    = $input->multi_param('subfield');
-        my @field_values = $input->multi_param('field_value');
-        my @serials      = $input->multi_param('serial');
-        my @itemid       = $input->multi_param('itemid');
+        my @tags         = $input->multi_param('tag[]');
+        my @subfields    = $input->multi_param('subfield[]');
+        my @field_values = $input->multi_param('field_value[]');
+        my @serials      = $input->multi_param('serial[]');
+        my @itemid       = $input->multi_param('itemid[]');
         #Rebuilding ALL the data for items into a hash
         # parting them on $itemid.
         my %itemhash;
@@ -189,7 +211,15 @@ if (C4::Context->preference("AcquisitionLog")) {
         bookfund         => $bookfund || 'unchanged',
         tax_rate         => $input->param("tax_rate"),
         replacementprice => $replacementprice,
-        unitprice        => $unitprice
+        unitprice        => $unitprice,
+        (
+            defined $invoice_unitprice && $invoice_unitprice ne ''
+            ? (
+                invoice_unitprice => $invoice_unitprice,
+                invoice_currency  => $invoice_currency,
+              )
+            : ()
+        ),
     };
 
     logaction(

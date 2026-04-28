@@ -23,6 +23,8 @@ use Test::Mojo;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
+use C4::Biblio qw( GetMarcFromKohaField );
+
 use Koha::ERM::EHoldings::Titles;
 use Koha::ERM::EHoldings::Packages;
 use Koha::Virtualshelves;
@@ -190,7 +192,7 @@ subtest 'get() tests' => sub {
 
 subtest 'add() tests' => sub {
 
-    plan tests => 24;
+    plan tests => 25;
 
     $schema->storage->txn_begin;
 
@@ -273,9 +275,9 @@ subtest 'add() tests' => sub {
     my $ehtitle_id =
       $t->post_ok(
         "//$userid:$password@/api/v1/erm/eholdings/local/titles" => json =>
-          $ehtitle )->status_is( 201, 'SWAGGER3.2.1' )->header_like(
+          $ehtitle )->status_is( 201, 'REST3.2.1' )->header_like(
         Location => qr|^/api/v1/erm/eholdings/local/titles/\d*|,
-        'SWAGGER3.4.1'
+        'REST3.4.1'
     )->json_is( '/publication_title' => $ehtitle->{publication_title} )
       ->json_is( '/print_identifier' => $ehtitle->{print_identifier} )
       ->json_is( '/notes'            => $ehtitle->{notes} )
@@ -307,11 +309,8 @@ subtest 'add() tests' => sub {
 
     # Attempt to import titles from a virtualshelf that doesn't exist
     $virtual_shelf->delete;
-    $t->post_ok(
-    "//$userid:$password@/api/v1/erm/eholdings/local/titles/import" => json =>
-      $import_request )->status_is(404)->json_is(
-        { error => 'List not found' }
-      );
+    $t->post_ok( "//$userid:$password@/api/v1/erm/eholdings/local/titles/import" => json => $import_request )
+        ->status_is(404)->json_is( '/error' => 'List not found' );
 
     # Authorized attempt to create with null id
     $ehtitle->{title_id} = undef;
@@ -332,12 +331,28 @@ subtest 'add() tests' => sub {
         ]
           );
 
+    subtest 'add eholdings title linked to biblio tests' => sub {
+
+        plan tests => 4;
+
+        delete $ehtitle->{title_id};
+        my $request_body = {
+            %{$ehtitle},
+        };
+        $request_body->{create_linked_biblio} = 1;
+        my $biblios_count = Koha::Biblios->search()->count;
+        $t->post_ok( "//$userid:$password@/api/v1/erm/eholdings/local/titles/" => json => $request_body )
+            ->status_is(201)->json_is( '/publication_title' => 'Publication title' );
+        my $new_biblios_count = Koha::Biblios->search()->count;
+        is( $new_biblios_count, $biblios_count + 1, "Biblio was added" );
+    };
+
     $schema->storage->txn_rollback;
 };
 
 subtest 'update() tests' => sub {
 
-    plan tests => 15;
+    plan tests => 16;
 
     $schema->storage->txn_begin;
 
@@ -362,8 +377,8 @@ subtest 'update() tests' => sub {
     my $unauth_userid = $patron->userid;
 
     my $ehtitle_id =
-      $builder->build_object( { class => 'Koha::ERM::EHoldings::Titles' } )
-      ->title_id;
+        $builder->build_object( { class => 'Koha::ERM::EHoldings::Titles', value => { biblio_id => undef } } )
+        ->title_id;
 
     # Unauthorized attempt to update
     $t->put_ok(
@@ -460,6 +475,40 @@ subtest 'update() tests' => sub {
         "//$userid:$password@/api/v1/erm/eholdings/local/titles/$ehtitle_id" =>
           json => $ehtitle_with_updated_field )->status_is(404);
 
+    subtest 'update eholdings title linked to biblio tests' => sub {
+
+        plan tests => 6;
+
+        my $biblio = $builder->build_sample_biblio();
+        my $record = $biblio->metadata->record();
+
+        my $ehtitle_id =
+            $builder->build_object( { class => 'Koha::ERM::EHoldings::Titles', value => { biblio_id => $biblio->id } } )
+            ->title_id;
+        my $ehtitle_updated_title = { publication_title => "The journal of writing unit tests :" };
+
+        $t->put_ok( "//$userid:$password@/api/v1/erm/eholdings/local/titles/$ehtitle_id" => json =>
+                { %$ehtitle_updated_title, create_linked_biblio => 1 } )->status_is(200)
+            ->json_is( '/publication_title' => 'The journal of writing unit tests :' );
+
+        $biblio->discard_changes;
+
+        my $record_after = $biblio->metadata->record;
+
+        my ( $title_tag, $title_subfield ) = GetMarcFromKohaField('biblio.title');
+        is(
+            $record_after->subfield( $title_tag, $title_subfield ), "The journal of writing unit tests :",
+            "Biblio title is correctly updated by eholding title update"
+        );
+
+        is( $record->fields(), $record_after->fields(), "We have the same number of fields after edit" );
+        my ($author_tag) = GetMarcFromKohaField('biblio.author');
+        my $old_author   = $record->field($author_tag);
+        my $new_author   = $record_after->field($author_tag);
+        is( $old_author->as_string, $new_author->as_string, "The record is otherwise untouched" );
+
+    };
+
     $schema->storage->txn_rollback;
 };
 
@@ -501,7 +550,7 @@ subtest 'delete() tests' => sub {
     # Delete existing EHolding title
     $t->delete_ok(
         "//$userid:$password@/api/v1/erm/eholdings/local/titles/$ehtitle_id")
-      ->status_is( 204, 'SWAGGER3.2.4' )->content_is( '', 'SWAGGER3.3.4' );
+      ->status_is( 204, 'REST3.2.4' )->content_is( '', 'REST3.3.4' );
 
     # Attempt to delete non-existent EHolding title
     $t->delete_ok(

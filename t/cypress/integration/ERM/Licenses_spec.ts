@@ -8,29 +8,6 @@ const dates = {
     tomorrow_iso: dayjs().add(1, "day").format("YYYY-MM-DD"),
     tomorrow_us: dayjs().add(1, "day").format("MM/DD/YYYY"),
 };
-function get_license() {
-    return {
-        license_id: 1,
-        name: "license 1",
-        description: "my first license",
-        type: "local",
-        status: "active",
-        started_on: dates["today_iso"],
-        ended_on: dates["tomorrow_iso"],
-        user_roles: [],
-        documents: [
-            {
-                license_id: 1,
-                file_description: "file description",
-                file_name: "file.json",
-                notes: "file notes",
-                physical_location: "file physical location",
-                uri: "file uri",
-                uploaded_on: "2022-10-27T11:57:02+00:00",
-            },
-        ],
-    };
-}
 
 describe("License CRUD operations", () => {
     beforeEach(() => {
@@ -50,7 +27,7 @@ describe("License CRUD operations", () => {
         });
         cy.visit("/cgi-bin/koha/erm/erm.pl");
         cy.get("#navmenulist").contains("Licenses").click();
-        cy.get("main div[class='dialog alert']").contains(
+        cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: Internal Server Error"
         );
 
@@ -60,7 +37,7 @@ describe("License CRUD operations", () => {
         cy.get("#licenses_list").contains("There are no licenses defined");
 
         // GET licenses returns something
-        let license = get_license();
+        let license = cy.get_license();
         let licenses = [license];
 
         cy.intercept("GET", "/api/v1/erm/licenses*", {
@@ -77,14 +54,20 @@ describe("License CRUD operations", () => {
     });
 
     it("Add license", () => {
+        let license = cy.get_license();
+        let vendors = cy.get_vendors_to_relate();
+        //Intercept vendors request
+        cy.intercept("GET", "/api/v1/acquisitions/vendors*", {
+            statusCode: 200,
+            body: vendors,
+        });
         // Click the button in the toolbar
         cy.visit("/cgi-bin/koha/erm/licenses");
         cy.contains("New license").click();
         cy.get("#licenses_add h2").contains("New license");
+        cy.left_menu_active_item_is("Licenses");
 
         // Fill in the form for normal attributes
-        let license = get_license();
-
         cy.get("#licenses_add").contains("Submit").click();
         cy.get("input:invalid,textarea:invalid,select:invalid").should(
             "have.length",
@@ -99,6 +82,22 @@ describe("License CRUD operations", () => {
         cy.get("#license_status .vs__search").type(license.status + "{enter}", {
             force: true,
         });
+
+        // vendors
+        cy.get("#license_vendor_id .vs__selected").should("not.exist"); //no vendor pre-selected for new license
+
+        // vendor aliases
+        cy.get("#license_vendor_id .vs__search").click();
+        cy.get("#license_vendor_id #vs1__option-1").contains(vendors[1].name);
+        cy.get("#license_vendor_id #vs1__option-1 cite").contains(
+            vendors[1].aliases[0].alias
+        );
+
+        cy.get("#license_vendor_id .vs__search").type(
+            vendors[0].name + "{enter}",
+            { force: true }
+        );
+        cy.get("#license_vendor_id .vs__selected").contains(vendors[0].name);
 
         cy.get("#started_on+input").click();
         cy.get(".flatpickr-calendar")
@@ -134,7 +133,7 @@ describe("License CRUD operations", () => {
             statusCode: 500,
         });
         cy.get("#licenses_add").contains("Submit").click();
-        cy.get("main div[class='dialog alert']").contains(
+        cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: Internal Server Error"
         );
 
@@ -144,12 +143,22 @@ describe("License CRUD operations", () => {
             body: license,
         });
         cy.get("#licenses_add").contains("Submit").click();
-        cy.get("main div[class='dialog message']").contains("License created");
+        cy.get("main div[class='alert alert-info']").contains(
+            "License created"
+        );
     });
 
     it("Edit license", () => {
-        let license = get_license();
+        let license = cy.get_license();
         let licenses = [license];
+        let vendors = cy.get_vendors_to_relate();
+
+        // Intercept vendors request
+        cy.intercept("GET", "/api/v1/acquisitions/vendors*", {
+            statusCode: 200,
+            body: vendors,
+        }).as("get-vendor-options");
+
         // Click the 'Edit' button from the list
         cy.intercept("GET", "/api/v1/erm/licenses*", {
             statusCode: 200,
@@ -167,9 +176,28 @@ describe("License CRUD operations", () => {
         cy.wait("@get-license");
         cy.wait(500); // Cypress is too fast! Vue hasn't populated the form yet!
         cy.get("#licenses_add h2").contains("Edit license");
+        cy.left_menu_active_item_is("Licenses");
 
         // Form has been correctly filled in
         cy.get("#license_name").should("have.value", license.name);
+
+        //vendors
+        cy.get("#license_vendor_id .vs__selected").contains(
+            license.vendor[0].name
+        );
+
+        cy.get("#license_vendor_id .vs__search").type(
+            vendors[1].name + "{enter}",
+            { force: true }
+        );
+
+        //vendor aliases
+        cy.get("#license_vendor_id .vs__search").click();
+        cy.get("#license_vendor_id #vs1__option-1").contains(vendors[1].name);
+        cy.get("#license_vendor_id #vs1__option-1 cite").contains(
+            vendors[1].aliases[0].alias
+        );
+
         cy.get("#license_description").should(
             "have.value",
             license.description
@@ -187,7 +215,7 @@ describe("License CRUD operations", () => {
             statusCode: 500,
         });
         cy.get("#licenses_add").contains("Submit").click();
-        cy.get("main div[class='dialog alert']").contains(
+        cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: Internal Server Error"
         );
 
@@ -197,11 +225,13 @@ describe("License CRUD operations", () => {
             body: license,
         });
         cy.get("#licenses_add").contains("Submit").click();
-        cy.get("main div[class='dialog message']").contains("License updated");
+        cy.get("main div[class='alert alert-info']").contains(
+            "License updated"
+        );
     });
 
     it("Show license", () => {
-        let license = get_license();
+        let license = cy.get_license();
         let licenses = [license];
         // Click the "name" link from the list
         cy.intercept("GET", "/api/v1/erm/licenses*", {
@@ -227,10 +257,11 @@ describe("License CRUD operations", () => {
         cy.wait("@get-license");
         cy.wait(500); // Cypress is too fast! Vue hasn't populated the form yet!
         cy.get("#licenses_show h2").contains("License #" + license.license_id);
+        cy.left_menu_active_item_is("Licenses");
     });
 
     it("Delete license", () => {
-        let license = get_license();
+        let license = cy.get_license();
         let licenses = [license];
 
         // Click the 'Delete' button from the list
@@ -248,7 +279,9 @@ describe("License CRUD operations", () => {
         cy.get("#licenses_list table tbody tr:first")
             .contains("Delete")
             .click();
-        cy.get(".dialog.alert.confirmation h1").contains("remove this license");
+        cy.get(".alert-warning.confirmation h1").contains(
+            "remove this license"
+        );
         cy.contains(license.name);
 
         // Accept the confirmation dialog, get 500
@@ -256,7 +289,7 @@ describe("License CRUD operations", () => {
             statusCode: 500,
         });
         cy.contains("Yes, delete").click();
-        cy.get("main div[class='dialog alert']").contains(
+        cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: Internal Server Error"
         );
 
@@ -268,9 +301,11 @@ describe("License CRUD operations", () => {
         cy.get("#licenses_list table tbody tr:first")
             .contains("Delete")
             .click();
-        cy.get(".dialog.alert.confirmation h1").contains("remove this license");
+        cy.get(".alert-warning.confirmation h1").contains(
+            "remove this license"
+        );
         cy.contains("Yes, delete").click();
-        cy.get("main div[class='dialog message']")
+        cy.get("main div[class='alert alert-info']")
             .contains("License")
             .contains("deleted");
 
@@ -300,8 +335,10 @@ describe("License CRUD operations", () => {
         cy.wait(500); // Cypress is too fast! Vue hasn't populated the form yet!
         cy.get("#licenses_show h2").contains("License #" + license.license_id);
 
-        cy.get("#licenses_show .action_links .fa-trash").click();
-        cy.get(".dialog.alert.confirmation h1").contains("remove this license");
+        cy.get("#licenses_show #toolbar").contains("Delete").click();
+        cy.get(".alert-warning.confirmation h1").contains(
+            "remove this license"
+        );
         cy.contains("Yes, delete").click();
 
         //Make sure we return to list after deleting from show

@@ -53,8 +53,10 @@ my $fee_amount;
 my $fee_identifier;
 my $transaction_id;
 my $pickup_location;
-my $hold_mode;
-my $no_block = 'N';
+my $hold_mode = '+';
+my $no_block  = 'N';
+my $start_item;
+my $end_item;
 
 my $terminator = q{};
 
@@ -85,6 +87,8 @@ GetOptions(
     "pickup-location=s" => \$pickup_location,
     "hold-mode=s"       => \$hold_mode,
     "n|no-block=s"      => \$no_block,
+    "start-item=s"      => \$start_item,
+    "end-item=s"        => \$end_item,
 
     "t|terminator=s" => \$terminator,
 
@@ -158,8 +162,10 @@ my $handlers = {
             terminal_password => $terminal_password,
             patron_password   => $patron_password,
             summary           => $summary,
+            start_item        => $start_item,
+            end_item          => $end_item,
         },
-        optional => [ 'patron_password', 'summary' ],
+        optional => [ 'patron_password', 'summary', 'start_item', 'end_item' ],
     },
     item_information => {
         name       => 'Item Information',
@@ -301,6 +307,31 @@ my $handlers = {
     },
 };
 
+my $param_to_cli = {
+    currency_type     => 'currency-type',
+    current_location  => 'location',
+    end_item          => 'end-item',
+    fee_acknowledged  => 'fee-acknowledged',
+    fee_amount        => 'fee-amount',
+    fee_identifier    => 'fee-identifier',
+    fee_type          => 'fee-type',
+    hold_mode         => 'hold-mode',
+    institution_id    => 'location',
+    item_identifier   => 'item',
+    location_code     => 'location',
+    login_password    => 'sip_pass',
+    login_user_id     => 'sip_user',
+    no_block          => 'no-block',
+    patron_identifier => 'patron',
+    patron_password   => 'password',
+    payment_type      => 'payment-type',
+    pickup_location   => 'pickup-location',
+    start_item        => 'start-item',
+    summary           => 'summary',
+    terminal_password => 'sip_pass',
+    transaction_id    => 'transaction-id',
+};
+
 my $data = run_command_message('login');
 
 if ( $data =~ '^941' ) {    ## we are logged in
@@ -331,7 +362,8 @@ sub build_command_message {
     foreach my $key ( keys %$parameters ) {
         unless ( $parameters->{$key} ) {
             unless ( $optional{$key} ) {
-                say "$key is required for $message";
+                my $param_name = $param_to_cli->{$key} // $key;
+                say "$param_name is required for $message";
                 return;
             }
         }
@@ -352,7 +384,7 @@ sub run_command_message {
 
     my $data = <$socket>;
 
-    say "READ: $data";
+    say "READ: " . ( defined $data ? $data : 'undef' );
 
     return $data;
 }
@@ -404,9 +436,13 @@ sub build_patron_information_command_message {
     my $patron_identifier = $params->{patron_identifier};
     my $terminal_password = $params->{terminal_password};
     my $patron_password   = $params->{patron_password};
+    my $start_item        = $params->{start_item};
+    my $end_item          = $params->{end_item};
     my $summary           = $params->{summary};
 
     $summary //= "          ";
+    $start_item //= "";
+    $end_item //= "";
 
     return
         PATRON_INFO
@@ -416,7 +452,9 @@ sub build_patron_information_command_message {
       . build_field( FID_INST_ID,      $institution_id )
       . build_field( FID_PATRON_ID,    $patron_identifier )
       . build_field( FID_TERMINAL_PWD, $terminal_password )
-      . build_field( FID_PATRON_PWD,   $patron_password, { optional => 1 } );
+      . build_field( FID_PATRON_PWD,   $patron_password, { optional => 1 } )
+      . build_field( FID_START_ITEM,   $start_item, { optional => 1 } )
+      . build_field( FID_END_ITEM,     $end_item, { optional => 1 } );
 }
 
 sub build_item_information_command_message {

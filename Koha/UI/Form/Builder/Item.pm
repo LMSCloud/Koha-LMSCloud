@@ -16,8 +16,10 @@ package Koha::UI::Form::Builder::Item;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use feature qw(fc);
 use List::Util qw( any );
 use MARC::Record;
+
 use C4::Context;
 use C4::Biblio qw( GetFrameworkCode GetMarcStructure IsMarcStructureInternal );
 use C4::Koha qw( GetAuthorisedValues );
@@ -107,7 +109,7 @@ sub generate_subfield_form {
 
     $subfield_data{tag}      = $tag;
     $subfield_data{subfield} = $subfieldtag;
-    $subfield_data{marc_lib} = $subfield->{lib};
+    $subfield_data{marc_lib}      = $subfield->{lib};
     $subfield_data{mandatory}     = $subfield->{mandatory};
     $subfield_data{important}     = $subfield->{important};
     $subfield_data{repeatable}    = $subfield->{repeatable};
@@ -140,6 +142,10 @@ sub generate_subfield_form {
             $value =~ s/<<USER>>/$username/g;
         }
     }
+
+    my $columns = Koha::Items->_resultset->result_source->columns_info;
+    $subfield_data{data_type} =
+        defined $subfield->{kohafield} ? $columns->{ $subfield->{kohafield} =~ s|^items\.||r }->{data_type} : undef;
 
     $subfield_data{visibility} = "display:none;"
       if ( ( $subfield->{hidden} > 4 ) || ( $subfield->{hidden} <= -4 ) );
@@ -176,10 +182,14 @@ sub generate_subfield_form {
         if ( $subfield->{authorised_value} eq "LOST" ) {
             my $ClaimReturnedLostValue =
               C4::Context->preference('ClaimReturnedLostValue');
-            my $item_is_return_claim =
-                 $ClaimReturnedLostValue
-              && exists $item->{itemlost}
-              && $ClaimReturnedLostValue eq $item->{itemlost};
+            my $claim = Koha::Checkouts::ReturnClaims->find(
+                {
+                    itemnumber => $item->{itemnumber},
+                    resolution => undef,
+                }
+            );
+            my $item_is_return_claim = $ClaimReturnedLostValue
+                && $claim;
             $subfield_data{IS_RETURN_CLAIM} = $item_is_return_claim;
 
             $subfield_data{IS_LOST_AV} = 1;
@@ -238,14 +248,14 @@ sub generate_subfield_form {
             my $default_source =
               C4::Context->preference("DefaultClassificationSource");
 
-            foreach my $class_source ( sort keys %$class_sources ) {
+            foreach my $class_source ( sort { fc($a) cmp fc($b) } keys %$class_sources ) {
                 next
-                  unless $class_sources->{$class_source}->{'used'}
-                  or ( $value and $class_source eq $value )
-                  or ( $class_source eq $default_source );
+                    unless $class_sources->{$class_source}->{'used'}
+                    or ( $value and $class_source eq $value )
+                    or ( $class_source eq $default_source );
                 push @authorised_values, $class_source;
                 $authorised_lib{$class_source} =
-                  $class_sources->{$class_source}->{'description'};
+                    $class_sources->{$class_source}->{'description'};
             }
             $value = $default_source if !$value && $prefill_with_default_values;
 
@@ -305,7 +315,20 @@ sub generate_subfield_form {
             authtypecode => $subfield->{authtypecode},
         };
     }
-
+    elsif ( defined $subfield_data{data_type} && $subfield_data{data_type} eq 'date' ) {
+        $subfield_data{marc_value} = {
+            type => 'date_field',
+            id => $subfield_data{id},
+            value => $value,
+        }
+    }
+    elsif ( defined $subfield_data{data_type} && $subfield_data{data_type} eq 'datetime' ) {
+        $subfield_data{marc_value} = {
+            type => 'datetime_field',
+            id => $subfield_data{id},
+            value => $value,
+        }
+    }
     # it's a plugin field
     elsif ( $subfield->{value_builder} ) {    # plugin
         require Koha::FrameworkPlugin;

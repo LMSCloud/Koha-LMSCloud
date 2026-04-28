@@ -9,14 +9,20 @@ export class AVAPIClient extends HttpClient {
 
     get values() {
         return {
-            getCategoriesWithValues: (cat_array) =>
+            get: category =>
                 this.get({
-                    endpoint: "?q={\"me.category_name\":["+(cat_array.join(", "))+"]}",
+                    endpoint: `/${category}/authorised_values`,
+                }),
+            getCategoriesWithValues: cat_array =>
+                this.get({
+                    endpoint:
+                        '?q={"me.category_name":[' +
+                        cat_array.join(", ") +
+                        "]}",
                     headers: {
-                        "x-koha-embed":
-                            "authorised_values",
+                        "x-koha-embed": "authorised_values",
                     },
-            }),
+                }),
         };
     }
 }

@@ -22,13 +22,14 @@ use Digest::MD5 qw( md5_base64 md5_hex );
 use JSON qw( to_json );
 use List::MoreUtils qw( any each_array uniq );
 use String::Random qw( random_string );
+use Try::Tiny;
 
 use C4::Auth qw( get_template_and_user );
 use C4::Output qw( output_html_with_http_headers );
 use C4::Context;
 use C4::Letters qw( GetPreparedLetter EnqueueLetter SendQueuedMessages );
-use C4::Members qw( checkcardnumber );
 use C4::Form::MessagingPreferences;
+use C4::Members::Messaging qw( SetMessagingPreferencesFromDefaults );
 use Koha::AuthUtils;
 use Koha::Patrons;
 use Koha::Patron::Consent;
@@ -42,7 +43,7 @@ use Koha::Patron::Attribute::Types;
 use Koha::Patron::Attributes;
 use Koha::Patron::Images;
 use Koha::Patron::Categories;
-use Koha::Token;
+use Koha::Policy::Patrons::Cardnumber;
 use Koha::AuthorisedValues;
 my $cgi = CGI->new;
 my $dbh = C4::Context->dbh;
@@ -56,38 +57,42 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
-unless ( C4::Context->preference('PatronSelfRegistration') || $borrowernumber )
+my $op = $cgi->param('op') || q{};
+if ( $borrowernumber && ( $op eq 'cud-create' || $op eq 'new' ) ) {
+    print $cgi->redirect("/cgi-bin/koha/opac-main.pl");
+    exit;
+}
+
+if ( $op eq q{} ) {
+    if ($borrowernumber) {
+        $op = 'edit';
+    }
+    else {
+        $op = 'new';
+    }
+}
+
+my $PatronSelfRegistrationDefaultCategory = C4::Context->preference('PatronSelfRegistrationDefaultCategory');
+my $defaultCategory = Koha::Patron::Categories->find($PatronSelfRegistrationDefaultCategory);
+# Having a valid PatronSelfRegistrationDefaultCategory is mandatory
+if ( !C4::Context->preference('PatronSelfRegistration') && !$borrowernumber
+    || ( ( $op eq 'new' || $op eq 'cud-create' ) && !$defaultCategory ) )
 {
     print $cgi->redirect("/cgi-bin/koha/opac-main.pl");
     exit;
 }
 
-my $action = $cgi->param('action') || q{};
-if ( $borrowernumber && ( $action eq 'create' || $action eq 'new' ) ) {
-    print $cgi->redirect("/cgi-bin/koha/opac-main.pl");
-    exit;
-}
-
-if ( $action eq q{} ) {
-    if ($borrowernumber) {
-        $action = 'edit';
-    }
-    else {
-        $action = 'new';
-    }
-}
-
-my $mandatory = GetMandatoryFields($action);
+my $mandatory = GetMandatoryFields($op);
 
 my $params = {};
-if ( $action eq 'create' || $action eq 'new' ) {
+if ( $op eq 'cud-create' || $op eq 'new' ) {
     my @PatronSelfRegistrationLibraryList = split '\|', C4::Context->preference('PatronSelfRegistrationLibraryList');
     $params = { branchcode => { -in => \@PatronSelfRegistrationLibraryList } }
       if @PatronSelfRegistrationLibraryList;
 }
-my $libraries = Koha::Libraries->search($params);
+my $libraries = Koha::Libraries->search( $params, { order_by => ['branchname'] } );
 
-my ( $min, $max ) = C4::Members::get_cardnumber_length();
+my ( $min, $max ) = Koha::Policy::Patrons::Cardnumber->get_valid_length();
 if ( defined $min ) {
      $template->param(
          minlength_cardnumber => $min,
@@ -95,15 +100,16 @@ if ( defined $min ) {
      );
  }
 
-my $defaultCategory = Koha::Patron::Categories->find(C4::Context->preference('PatronSelfRegistrationDefaultCategory'));
+my $translated_languages = C4::Languages::getTranslatedLanguages( 'opac', C4::Context->preference('opacthemes') );
 
 $template->param(
-    action            => $action,
-    hidden            => GetHiddenFields( $mandatory, $action ),
+    op                => $op,
+    hidden            => GetHiddenFields( $mandatory, $op ),
     mandatory         => $mandatory,
     libraries         => $libraries,
     OPACPatronDetails => C4::Context->preference('OPACPatronDetails'),
-    defaultCategory  => $defaultCategory,
+    defaultCategory   => $defaultCategory,
+    languages         => $translated_languages,
 );
 
 my $attributes = ParsePatronAttributes($borrowernumber,$cgi);
@@ -122,29 +128,35 @@ foreach my $attr (@$attributes) {
     }
 }
 
-if ( $action eq 'create' ) {
+if ( $op eq 'cud-create' ) {
 
     my %borrower = ParseCgiForBorrower($cgi);
 
     %borrower = DelEmptyFields(%borrower);
-    $borrower{categorycode} ||= C4::Context->preference('PatronSelfRegistrationDefaultCategory');
+    $borrower{categorycode} ||= $PatronSelfRegistrationDefaultCategory;
 
-    my @empty_mandatory_fields = (CheckMandatoryFields( \%borrower, $action ), CheckMandatoryAttributes( \%borrower, $attributes ) );
-    my $invalidformfields = CheckForInvalidFields(\%borrower);
+    my @empty_mandatory_fields = (CheckMandatoryFields( \%borrower, $op ), CheckMandatoryAttributes( \%borrower, $attributes ) );
+    my $invalidformfields = CheckForInvalidFields( { borrower => \%borrower, context => 'create' } );
     delete $borrower{'password2'};
-    my $cardnumber_error_code;
+    my $is_cardnumber_valid;
     if ( !grep { $_ eq 'cardnumber' } @empty_mandatory_fields ) {
         # No point in checking the cardnumber if it's missing and mandatory, it'll just generate a
         # spurious length warning.
-        $cardnumber_error_code = checkcardnumber( $borrower{cardnumber}, $borrower{borrowernumber} );
+        my $patron = Koha::Patrons->find($borrower{borrowernumber});
+        $is_cardnumber_valid = Koha::Policy::Patrons::Cardnumber->is_valid($borrower{cardnumber}, $patron);
+        unless ($is_cardnumber_valid) {
+            for my $m ( @{ $is_cardnumber_valid->messages } ) {
+                my $message = $m->message;
+                if ( $message eq 'already_exists' ) {
+                    $template->param( cardnumber_already_exists => 1 );
+                } elsif ( $message eq 'invalid_length' ) {
+                    $template->param( cardnumber_wrong_length => 1 );
+                }
+            }
+        }
     }
 
-    if ( @empty_mandatory_fields || @$invalidformfields || $cardnumber_error_code || $conflicting_attribute ) {
-        if ( $cardnumber_error_code == 1 ) {
-            $template->param( cardnumber_already_exists => 1 );
-        } elsif ( $cardnumber_error_code == 2 ) {
-            $template->param( cardnumber_wrong_length => 1 );
-        }
+    if ( @empty_mandatory_fields || @$invalidformfields || !$is_cardnumber_valid || $conflicting_attribute ) {
 
         $template->param(
             empty_mandatory_fields => \@empty_mandatory_fields,
@@ -189,6 +201,7 @@ if ( $action eq 'create' ) {
             $borrower{verification_token} = $verification_token;
 
             $borrower{extended_attributes} = to_json($attributes);
+            $borrower{borrowernumber}      = 0;                      # prevent warn Missing value for PK column
             Koha::Patron::Modification->new( \%borrower )->store();
 
             #Send verification email
@@ -211,9 +224,24 @@ if ( $action eq 'create' ) {
                     branchcode             => $borrower{'branchcode'}
                 }
             );
-            C4::Letters::SendQueuedMessages({ message_id => $message_id });
+            C4::Letters::SendQueuedMessages( { message_id => $message_id } ) if $message_id;
         }
         else {
+            $borrower{password}         ||= Koha::AuthUtils::generate_password(Koha::Patron::Categories->find($borrower{categorycode}));
+            my $consent_dt = delete $borrower{gdpr_proc_consent};
+            my $patron;
+            try {
+                $patron = Koha::Patron->new( \%borrower )->store;
+                Koha::Patron::Consent->new({ borrowernumber => $patron->borrowernumber, type => 'GDPR_PROCESSING', given_on => $consent_dt })->store if $patron && $consent_dt;
+                C4::Members::Messaging::SetMessagingPreferencesFromDefaults(
+                    { borrowernumber => $patron->borrowernumber, categorycode => $patron->categorycode } );
+            } catch {
+                my $type = ref($_);
+                my $info = "$_";
+                $template->param( error_type => $type, error_info => $info );
+                $template->param( borrower => \%borrower );
+            };
+
             ( $template, $borrowernumber, $cookie ) = get_template_and_user(
                 {
                     template_name   => "opac-registration-confirmation.tt",
@@ -221,27 +249,16 @@ if ( $action eq 'create' ) {
                     query           => $cgi,
                     authnotrequired => 1,
                 }
-            );
+            ) if $patron;
 
-            $borrower{password}         ||= Koha::AuthUtils::generate_password(Koha::Patron::Categories->find($borrower{categorycode}));
-            my $consent_dt = delete $borrower{gdpr_proc_consent};
-            my $patron = Koha::Patron->new( \%borrower )->store;
-            Koha::Patron::Consent->new({ borrowernumber => $patron->borrowernumber, type => 'GDPR_PROCESSING', given_on => $consent_dt })->store if $consent_dt;
             if ( $patron ) {
                 $patron->extended_attributes->filter_by_branch_limitations->delete;
                 $patron->extended_attributes($attributes);
-                if ( C4::Context->preference('EnhancedMessagingPreferences') ) {
-                    C4::Form::MessagingPreferences::handle_form_action(
-                        $cgi,
-                        { borrowernumber => $patron->borrowernumber },
-                        $template,
-                        1,
-                        C4::Context->preference('PatronSelfRegistrationDefaultCategory')
-                    );
-                }
 
                 $template->param( password_cleartext => $patron->plain_text_password );
                 $template->param( borrower => $patron->unblessed );
+
+                $template->param( confirmed => 1 );
 
                 # If 'AutoEmailNewUser' syspref is on, email user their account details from the 'notice' that matches the user's branchcode.
                 if ( C4::Context->preference("AutoEmailNewUser") ) {
@@ -271,7 +288,7 @@ if ( $action eq 'create' ) {
                                     branchcode             => $patron->branchcode,
                                 }
                             );
-                            SendQueuedMessages({ message_id => $message_id });
+                            SendQueuedMessages( { message_id => $message_id } ) if $message_id;
                         };
                     }
                 }
@@ -282,33 +299,21 @@ if ( $action eq 'create' ) {
                     $patron->notify_library_of_registration($notify_library);
                 }
 
-            } else {
-                # FIXME Handle possible errors here
             }
-            $template->param(
-                PatronSelfRegistrationAdditionalInstructions =>
-                  C4::Context->preference(
-                    'PatronSelfRegistrationAdditionalInstructions')
-            );
         }
     }
 }
-elsif ( $action eq 'update' ) {
+elsif ( $op eq 'cud-update' ) {
 
     my $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
-    die "Wrong CSRF token"
-        unless Koha::Token->new->check_csrf({
-            session_id => scalar $cgi->cookie('CGISESSID'),
-            token  => scalar $cgi->param('csrf_token'),
-        });
 
     my %borrower = ParseCgiForBorrower($cgi);
     $borrower{borrowernumber} = $borrowernumber;
     $borrower{categorycode}   = $borrower->{categorycode};
 
     my @empty_mandatory_fields = grep { $_ ne 'password' } # password is not required when editing personal details
-      ( CheckMandatoryFields( \%borrower, $action ), CheckMandatoryAttributes( \%borrower, $attributes ) );
-    my $invalidformfields = CheckForInvalidFields(\%borrower);
+      ( CheckMandatoryFields( \%borrower, $op ), CheckMandatoryAttributes( \%borrower, $attributes ) );
+    my $invalidformfields = CheckForInvalidFields( { borrower => \%borrower, context => 'update' } );
 
     # Send back the data to the template
     %borrower = ( %$borrower, %borrower );
@@ -318,20 +323,20 @@ elsif ( $action eq 'update' ) {
             empty_mandatory_fields => \@empty_mandatory_fields,
             invalid_form_fields    => $invalidformfields,
             borrower               => \%borrower,
-            csrf_token             => Koha::Token->new->generate_csrf({
-                session_id => scalar $cgi->cookie('CGISESSID'),
-            }),
         );
         $template->param( patron_attribute_classes => GeneratePatronAttributesForm( $borrowernumber, $attributes ) );
 
-        $template->param( action => 'edit' );
+        $template->param( op => 'edit' );
     }
     else {
+        # If preferred name is not included but firstname is then set preferred_name to firstname
+        $borrower{preferred_name} = $borrower{firstname}
+            if defined $borrower{firstname} && !defined $borrower{preferred_name};
         my %borrower_changes = DelUnchangedFields( $borrowernumber, %borrower );
         $borrower_changes{'changed_fields'} = join ',', keys %borrower_changes;
         my $extended_attributes_changes = FilterUnchangedAttributes( $borrowernumber, $attributes );
 
-        if ( %borrower_changes || scalar @{$extended_attributes_changes} > 0 ) {
+        if ( $borrower_changes{'changed_fields'} || scalar @{$extended_attributes_changes} > 0 ) {
             ( $template, $borrowernumber, $cookie ) = get_template_and_user(
                 {
                     template_name   => "opac-memberentry-update-submitted.tt",
@@ -346,6 +351,7 @@ elsif ( $action eq 'update' ) {
 
             Koha::Patron::Modifications->search({ borrowernumber => $borrowernumber })->delete;
 
+            $borrower_changes{verification_token} = q{};    # prevent warn Missing value for PK column
             my $m = Koha::Patron::Modification->new( \%borrower_changes )->store();
             #Automatically approve patron profile changes if set in syspref
 
@@ -362,27 +368,21 @@ elsif ( $action eq 'update' ) {
         else {
             my $patron = Koha::Patrons->find( $borrowernumber );
             $template->param(
-                action => 'edit',
+                op => 'edit',
                 nochanges => 1,
                 borrower => $patron->unblessed,
                 patron_attribute_classes => GeneratePatronAttributesForm( $borrowernumber, $attributes ),
-                csrf_token => Koha::Token->new->generate_csrf({
-                    session_id => scalar $cgi->cookie('CGISESSID'),
-                }),
             );
         }
     }
 }
-elsif ( $action eq 'edit' ) {    #Display logged in borrower's data
+elsif ( $op eq 'edit' ) {    #Display logged in borrower's data
     my $patron = Koha::Patrons->find( $borrowernumber );
     my $borrower = $patron->unblessed;
 
     $template->param(
         borrower  => $borrower,
         hidden => GetHiddenFields( $mandatory, 'edit' ),
-        csrf_token => Koha::Token->new->generate_csrf({
-            session_id => scalar $cgi->cookie('CGISESSID'),
-        }),
     );
 
     if (C4::Context->preference('OPACpatronimages')) {
@@ -410,10 +410,10 @@ $template->param(
 output_html_with_http_headers $cgi, $cookie, $template->output, undef, { force_no_caching => 1 };
 
 sub GetHiddenFields {
-    my ( $mandatory, $action ) = @_;
+    my ( $mandatory, $op ) = @_;
     my %hidden_fields;
 
-    my $BorrowerUnwantedField = $action eq 'edit' || $action eq 'update' ?
+    my $BorrowerUnwantedField = $op eq 'edit' || $op eq 'cud-update' ?
       C4::Context->preference( "PatronSelfModificationBorrowerUnwantedField" ) :
       C4::Context->preference( "PatronSelfRegistrationBorrowerUnwantedField" );
 
@@ -429,22 +429,22 @@ sub GetHiddenFields {
 }
 
 sub GetMandatoryFields {
-    my ($action) = @_;
+    my ($op) = @_;
 
     my %mandatory_fields;
 
-    my $BorrowerMandatoryField = $action eq 'edit' || $action eq 'update' ?
+    my $BorrowerMandatoryField = $op eq 'edit' || $op eq 'cud-update' ?
       C4::Context->preference("PatronSelfModificationMandatoryField") :
       C4::Context->preference("PatronSelfRegistrationBorrowerMandatoryField");
 
     my @fields = split( /\|/, $BorrowerMandatoryField );
-    push @fields, 'gdpr_proc_consent' if C4::Context->preference('PrivacyPolicyConsent') && $action eq 'create';
+    push @fields, 'gdpr_proc_consent' if C4::Context->preference('PrivacyPolicyConsent') && $op eq 'cud-create';
 
     foreach (@fields) {
         $mandatory_fields{$_} = 1;
     }
 
-    if ( $action eq 'create' || $action eq 'new' ) {
+    if ( $op eq 'cud-create' || $op eq 'new' ) {
         $mandatory_fields{'email'} = 1
           if C4::Context->preference(
             'PatronSelfRegistrationVerifyByEmail');
@@ -454,11 +454,11 @@ sub GetMandatoryFields {
 }
 
 sub CheckMandatoryFields {
-    my ( $borrower, $action ) = @_;
+    my ( $borrower, $op ) = @_;
 
     my @empty_mandatory_fields;
 
-    my $mandatory_fields = GetMandatoryFields($action);
+    my $mandatory_fields = GetMandatoryFields($op);
     delete $mandatory_fields->{'cardnumber'};
 
     foreach my $key ( keys %$mandatory_fields ) {
@@ -484,12 +484,14 @@ sub CheckMandatoryAttributes{
 }
 
 sub CheckForInvalidFields {
-    my $borrower = shift;
+    my $params   = shift;
+    my $borrower = $params->{borrower};
+    my $context  = $params->{context};
     my @invalidFields;
     if ($borrower->{'email'}) {
         unless ( Koha::Email->is_valid($borrower->{email}) ) {
             push(@invalidFields, "email");
-        } elsif ( C4::Context->preference("PatronSelfRegistrationEmailMustBeUnique") ) {
+        } elsif ( C4::Context->preference("PatronSelfRegistrationEmailMustBeUnique") && $context eq 'create' ) {
             my $patrons_with_same_email = Koha::Patrons->search( # FIXME Should be search_limited?
                 {
                     email => $borrower->{email},
@@ -550,6 +552,16 @@ sub CheckForInvalidFields {
 		}
     }
 
+    if ( $borrower->{'dateofbirth'} ) {
+        my $patron           = Koha::Patron->new( { dateofbirth => $borrower->{'dateofbirth'} } );
+        my $age              = $patron->get_age;
+        my $borrowercategory = Koha::Patron::Categories->find( $borrower->{'categorycode'} );
+        my ( $low, $high ) = ( $borrowercategory->dateofbirthrequired, $borrowercategory->upperagelimit );
+        if ( ( $high && ( $age > $high ) ) or ( $age < $low ) ) {
+            push @invalidFields, 'ERROR_age_limitations';
+        }
+    }
+
     return \@invalidFields;
 }
 
@@ -574,7 +586,7 @@ sub ParseCgiForBorrower {
     # Replace checkbox 'agreed' by datetime in gdpr_proc_consent
     $borrower{gdpr_proc_consent} = dt_from_string if  $borrower{gdpr_proc_consent} && $borrower{gdpr_proc_consent} eq 'agreed';
 
-    delete $borrower{$_} for qw/borrowernumber date_renewed debarred debarredcomment flags privacy privacy_guarantor_fines privacy_guarantor_checkouts checkprevcheckout updated_on lastseen lang login_attempts overdrive_auth_token anonymized/; # See also members/memberentry.pl
+    delete $borrower{$_} for qw/borrowernumber date_renewed debarred debarredcomment flags privacy privacy_guarantor_fines privacy_guarantor_checkouts checkprevcheckout updated_on lastseen login_attempts overdrive_auth_token anonymized/; # See also members/memberentry.pl
     delete $borrower{$_} for qw/dateenrolled dateexpiry borrowernotes opacnote sort1 sort2 sms_provider_id autorenew_checkouts gonenoaddress lost relationship/; # On OPAC only
     delete $borrower{$_} for split( /\s*\|\s*/, C4::Context->preference('PatronSelfRegistrationBorrowerUnwantedField') || q{} );
 
@@ -590,12 +602,12 @@ sub DelUnchangedFields {
     # get the hidden fields so we don't obliterate them should they have data patrons aren't allowed to modify
     my $hidden_fields = GetHiddenFields($mandatory, 'edit');
 
-
     foreach my $key ( keys %new_data ) {
-        next if defined($new_data{$key}) xor defined($current_data->{$key});
-        if ( !defined($new_data{$key}) || $current_data->{$key} eq $new_data{$key} || $hidden_fields->{$key} ) {
-           delete $new_data{$key};
-        }
+        next
+            if ( $new_data{$key} || $current_data->{$key} )
+            && $new_data{$key} ne $current_data->{$key}
+            && !$hidden_fields->{$key};
+        delete $new_data{$key};
     }
 
     return %new_data;
@@ -686,7 +698,7 @@ sub GeneratePatronAttributesForm {
     # or taken from the patron itself
     if ( defined $entered_attributes ) {
         foreach my $attr (@$entered_attributes) {
-            push @{ $attr_values{ $attr->{code} } }, $attr->{value};
+            push @{ $attr_values{ $attr->{code} } }, $attr->{attribute};
         }
     }
     elsif ( defined $borrowernumber ) {

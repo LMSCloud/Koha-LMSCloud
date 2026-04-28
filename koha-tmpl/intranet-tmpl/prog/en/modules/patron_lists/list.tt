@@ -1,11 +1,18 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE KohaDates %]
 [% USE TablesSettings %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 [% INCLUDE 'columns_settings.inc' %]
-<title>Add patrons &rsaquo; [% list.name | html %] &rsaquo; Patron lists &rsaquo; Tools &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% list.name | html %] &rsaquo;
+    [% t("Patron lists") | html %] &rsaquo;
+    [% t("Tools") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 
 <style>
@@ -37,27 +44,25 @@
         [% WRAPPER breadcrumb_item %]
             <a href="lists.pl">Patron lists</a>
         [% END %]
-        [% WRAPPER breadcrumb_item %]
-            <a href="/cgi-bin/koha/patron_lists/list.pl?patron_list_id=[% list.id | uri %]">[% list.name | html %]</a>
-        [% END %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
-            <span>Add patrons</span>
+            [% tx("Add patrons to '{patron_list_name}'", { patron_list_name = list.name }) | html %]
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
         <h1>[% list.name | html %]</h1>
 
         [% IF ( not_found.size > 0 ) %]
         [% IF id_column == 'borrowernumbers' %]
-            <div class="dialog alert"><p>Warning, the following borrowernumbers were not found:</p></div>
+            <div class="alert alert-warning"><p>Warning, the following borrowernumbers were not found:</p></div>
         [% ELSE %]
-            <div class="dialog alert"><p>Warning, the following cardnumbers were not found:</p></div>
+            <div class="alert alert-warning"><p>Warning, the following cardnumbers were not found:</p></div>
         [% END %]
         <table style="margin:auto;">
             <thead>
@@ -77,9 +82,9 @@
 
         [% IF ( existed.size > 0 ) %]
         [% IF id_column == 'borrowernumbers' %]
-            <div class="dialog alert"><p>Warning, the following borrowernumbers were already in this list:</p></div>
+            <div class="alert alert-warning"><p>Warning, the following borrowernumbers were already in this list:</p></div>
         [% ELSE %]
-            <div class="dialog alert"><p>Warning, the following cardnumbers were already in this list:</p></div>
+            <div class="alert alert-warning"><p>Warning, the following cardnumbers were already in this list:</p></div>
         [% END %]
         <table style="margin:auto;">
             <thead>
@@ -98,6 +103,7 @@
         [% END %]
 
         <form action="list.pl" id="add_patrons" method="post" class="clearfix">
+            [% INCLUDE 'csrf-token.inc' %]
             <fieldset class="rows">
                 <legend>Add patrons</legend>
                 <ol>
@@ -119,7 +125,7 @@
                                 <span class="add_by_cardnumbers">Cardnumbers</span>
                             </label>
                             <label class="id_choice" for="add_by_borrowernumbers">
-                                <input id="add_by_borrwernumbers" type="radio" name="id_column" value="borrowernumbers">
+                                <input id="add_by_borrowernumbers" type="radio" name="id_column" value="borrowernumbers">
                                 <span class="add_by_borrowernumbers">Borrowernumbers</span>
                             </label>
                         </li>
@@ -141,6 +147,7 @@
                 <div id="patrons_to_add"></div>
 
                 <fieldset class="action">
+                    <input type="hidden" name="op" value="cud-add" />
                     <input type="hidden" name="patron_list_id" value="[% list.patron_list_id | html %]" />
                     <input type="submit" class="btn btn-primary" value="Add patrons" />
                     <a href="lists.pl" class="cancel">Cancel</a>
@@ -149,12 +156,13 @@
         </form>
 
         <form action="list.pl" id="remove_patrons" method="post">
+            [% INCLUDE 'csrf-token.inc' %]
 
             <div class="searchheader" id="searchheader">
                 <span class="checkall"><a id="CheckAll" href="#"><i class="fa fa-check"></i> Select all</a></span> |
-                <span class="clearall"><a id="CheckNone" href="#"><i class="fa fa-remove"></i> Clear all</a></span> |
+                <span class="clearall"><a id="CheckNone" href="#"><i class="fa fa-times"></i> Clear all</a></span> |
                 <div class="btn-group">
-                    <button class="btn btn-default btn-xs list-remove" type="submit"><i class="fa fa-trash"></i> Remove selected</button>
+                    <button class="btn btn-default btn-xs list-remove" type="submit"><i class="fa fa-trash-can"></i> Remove selected</button>
                 </div>
                 |
                 <div class="btn-group">
@@ -210,20 +218,21 @@
             </div> <!-- /.page-section -->
 
             <fieldset class="action">
+                <input type="hidden" name="op" value="cud-delete" />
                 <input type="hidden" name="patron_list_id" value="[% list.patron_list_id | html %]" />
-                <button type="submit" class="btn btn-default btn-sm list-remove"><i class="fa fa-trash" aria-hidden="true"></i> Remove selected patrons</button>
+                <button type="submit" class="btn btn-default btn-sm list-remove"><i class="fa fa-trash-can" aria-hidden="true"></i> Remove selected patrons</button>
                 <button class="btn btn-default btn-sm merge-patrons" type="submit"><i class="fa fa-compress"></i> Merge selected patrons</button>
             </fieldset>
         </form>
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'tools-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -237,11 +246,11 @@
 
                 var table_settings = [% TablesSettings.GetTableSettings('members', 'patron-lists', 'patron-list-table', 'json') | $raw %]
                 KohaTable('patron-list-table', {
-                    "sPaginationType": "full"
+                    "pagingType": "full"
                 }, table_settings);
 
             function AddPatron( patron_name, value, container, input_name ) {
-                div = "<div id='borrower_" + value + "'>" + patron_name + " ( <a href='#' class='removePatron'><i class='fa fa-trash' aria-hidden='true'></i> " + MSG_REMOVE_PATRON + " </a> ) <input type='hidden' name='" + input_name + "' value='" + value + "' /></div>";
+                div = "<div id='borrower_" + value + "'>" + patron_name + " ( <a href='#' class='removePatron'><i class='fa fa-trash-can' aria-hidden='true'></i> " + MSG_REMOVE_PATRON + " </a> ) <input type='hidden' name='" + input_name + "' value='" + value + "' /></div>";
                 $(container).append( div );
 
                 $(container).parent().show( 800 );

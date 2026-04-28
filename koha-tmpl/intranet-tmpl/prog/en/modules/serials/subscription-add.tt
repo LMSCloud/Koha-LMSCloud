@@ -4,9 +4,19 @@
 [% USE KohaDates %]
 [% USE Branches %]
 [% USE Koha %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( modify ) %][% bibliotitle | html %] &rsaquo; Modify subscription[% ELSE %]New subscription[% END %] &rsaquo; Serials &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF( modify ) %]
+        [% t("Modify subscription") | html %] &rsaquo;
+        [% bibliotitle | html %]
+    [% ELSE %]
+        [% t("New subscription") | html %]
+    [% END %] &rsaquo;
+    [% t("Serials") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
 fieldset.rows li.radio { width: 100%; } /* override staff-global.css */
@@ -50,18 +60,20 @@ fieldset.rows table { clear: none; margin: 0; }
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+        <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
+            [% INCLUDE 'messages.inc' %]
             <h1>[% IF ( modify ) %] Modify subscription for <em>[% bibliotitle | html %]</em>[% ELSE %]Add a new subscription[% END %] (<span id="page_number">1/2</span>)</h1>
         </div>
     </div>
     <form method="post" id="subscription_add_form" name="f" action="/cgi-bin/koha/serials/subscription-add.pl" class="validated">
+        [% INCLUDE 'csrf-token.inc' %]
                 <div class="row" id="page_1">
-                    <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+                    <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
                         [% IF ( modify ) %]
-                            <input type="hidden" name="op" value="modsubscription" />
+                            <input type="hidden" name="op" value="cud-modsubscription" />
                             <input type="hidden" name="subscriptionid" value="[% subscriptionid | html %]" />
                         [% ELSE %]
-                                <input type="hidden" name="op" value="addsubscription" />
+                                <input type="hidden" name="op" value="cud-addsubscription" />
                         [% END %]
                         <input type="hidden" name="user" value="[% logged_in_user.userid | html %]" />
                         <input type="hidden" name="irreg_check" value="0" />
@@ -84,7 +96,7 @@ fieldset.rows table { clear: none; margin: 0; }
                                     <div class="inputnote"> <a href="#" id="record_search"><i class="fa fa-search"></i> Search for record</a>
                                         [% IF ( CAN_user_editcatalogue ) %]
                                             [% IF ( modify ) %]
-                                            | <a href="#" id="biblio_add_edit" data-biblionumber="[% bibnum | html %]"><i class="fa fa-pencil"></i> Edit record</a>
+                                            | <a href="#" id="biblio_add_edit" data-biblionumber="[% bibnum | html %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit record</a>
                                             [% ELSE %]
                                             | <a href="#" id="biblio_add_edit"><i class="fa fa-plus"></i> Create record</a>
                                             [% END %]
@@ -266,19 +278,19 @@ fieldset.rows table { clear: none; margin: 0; }
                             </ol>
                         </fieldset>
                         <fieldset class="action">
-                            <button type="button" class="btn btn-primary" id="subscription_add_next" style="float:right;">Next <i class="fa fa-long-arrow-right"></i></button>
+                            <button type="button" class="btn btn-primary" id="subscription_add_next" style="float:right;">Next <i class="fa-solid fa-right-long"></i></button>
                         </fieldset>
-                    </div> <!-- /.col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2 -->
+                    </div> <!-- /.col-md-10 offset-md-1 col-lg-8 offset-lg-2 -->
                 </div> <!-- /.row#page_1 -->
                 <div class="row" id="page_2">
-                    <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+                    <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
                 [% IF ( Koha.Preference('Mana') == 1) && !mana_url %]
                     <fieldset>
                         <p><center>The Mana Knowledge Base can be used to import subscription patterns submitted by other libraries and save you extra work. Ask your system administrator to configure this service and complete the configuration, or remove this message by disabling the system preference
                         <a href=/cgi-bin/koha/admin/preferences.pl?tab=&op=search&searchfield=request+to+mana+webservice>here</a></center></p>
                     </fieldset>
                 [% END %]
-                        <div hidden id="mana_search" class="dialog message">
+                        <div style="display:none" id="mana_search" class="alert alert-info">
                         </div>
                         <div id="subscription_form_planning">
                             <fieldset class="rows">
@@ -314,6 +326,7 @@ fieldset.rows table { clear: none; margin: 0; }
                                                 </option>
                                             [% END %]
                                         </select>
+                                        <span class="required">Required</span>
                                     </li>
                                     <li>
                                         <label for="subtype">Subscription length:</label>
@@ -352,6 +365,7 @@ fieldset.rows table { clear: none; margin: 0; }
                                     <li>
                                         <label for="from" class="required"> Subscription start date:</label>
                                         <input type="text" size="10" id="from" name="startdate" value="[% startdate | html %]" class="flatpickr required" data-date_to="to" required="required" />
+                                        <span class="required">Required</span>
                                     </li>
                                     <li>
                                         <label for="to">Subscription end date:</label>
@@ -372,6 +386,10 @@ fieldset.rows table { clear: none; margin: 0; }
                                             [% END %]
                                         </select>
                                         <span class="required">Required</span>
+                                    </li>
+                                    <li>
+                                        <label for="published_on_template">Publication date template:</label>
+                                        <textarea id="published_on_template" name="published_on_template">[% published_on_template | html %]</textarea>
                                     </li>
                                     <li>
                                         <label for="locale">Locale:</label>
@@ -514,7 +532,7 @@ fieldset.rows table { clear: none; margin: 0; }
                                     </li>
                                     <li>
                                         <span class="label">&nbsp;</span>
-                                        <a href="#" id="modifyadvancedpatternbutton"><i class="fa fa-pencil"></i> Modify pattern</a>
+                                        <a href="#" id="modifyadvancedpatternbutton"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Modify pattern</a>
                                         <button type="button" class="btn btn-default btn-xs" id="saveadvancedpatternbutton" style="display:none"><i class="fa fa-save"></i> Save as new pattern</button>
                                         <a class="cancel" href="#" id="restoreadvancedpatternbutton" style="display:none">Cancel modifications</a>
                                     </li>
@@ -538,7 +556,7 @@ fieldset.rows table { clear: none; margin: 0; }
                             <input type="hidden" id="unitsperissue"  name="unitsperissue" value=""/>
                             <input type="hidden" id="issuesperunit"  name="issuesperunit" value=""/>
                             <fieldset class="action">
-                                <button type="button" class="btn btn-default" id="subscription_add_previous" style="float:left"><i class="fa fa-long-arrow-left"></i> Previous</button>
+                                <button type="button" class="btn btn-default" id="subscription_add_previous" style="float:left"><i class="fa-solid fa-left-long"></i> Previous</button>
                                 <input id="save-subscription" class="btn btn-primary" type="submit" value="Save subscription" style="float:right;" accesskey="w"/>
                             </fieldset>
                         </div>
@@ -552,16 +570,16 @@ fieldset.rows table { clear: none; margin: 0; }
 
         <!-- Mana Search Result Modal -->
         <div class="modal" id="mana_search_result" tabindex="-1" role="dialog" aria-labelledby="mana_search_result_label">
-            <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                        <h4 class="modal-title" id="mana_search_result_label">Modal title</h4>
+                        <h1 class="modal-title" id="mana_search_result_label">Modal title</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
              </div>
@@ -590,6 +608,7 @@ fieldset.rows table { clear: none; margin: 0; }
     </script>
     [% Asset.js("js/subscription-add.js") | $raw %]
     [% Asset.js("js/showpredictionpattern.js") | $raw %]
+    [% Asset.js("js/additional-fields-entry.js") | $raw %]
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

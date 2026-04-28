@@ -119,7 +119,7 @@ the date the item was last checked out
 
 =head2 datelastseen
 
-  data_type: 'date'
+  data_type: 'datetime'
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
@@ -216,6 +216,13 @@ number of times this item has been checked out
   is_nullable: 1
 
 number of times this item has been renewed
+
+=head2 localuse
+
+  data_type: 'smallint'
+  is_nullable: 1
+
+number of times this item has been recorded as localuse
 
 =head2 reserves
 
@@ -413,7 +420,11 @@ __PACKAGE__->add_columns(
   "datelastborrowed",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "datelastseen",
-  { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
+  {
+    data_type => "datetime",
+    datetime_undef_if_invalid => 1,
+    is_nullable => 1,
+  },
   "stack",
   { data_type => "tinyint", is_nullable => 1 },
   "notforloan",
@@ -449,6 +460,8 @@ __PACKAGE__->add_columns(
   "issues",
   { data_type => "smallint", default_value => 0, is_nullable => 1 },
   "renewals",
+  { data_type => "smallint", is_nullable => 1 },
+  "localuse",
   { data_type => "smallint", is_nullable => 1 },
   "reserves",
   { data_type => "smallint", is_nullable => 1 },
@@ -518,8 +531,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("itemnumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ICRWanZFXwfrSvYx0wn8kg
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-10-25 13:25:14
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:O22k3Wztw3YjkijGj+Xakw
 
 __PACKAGE__->add_columns(
     '+bookable'                          => { is_boolean => 1 },

@@ -19,12 +19,16 @@ package Koha::Suggestion;
 
 use Modern::Perl;
 
+use C4::Context;
+use C4::Letters;
+use C4::Reserves qw( AddReserve );
 
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Patrons;
 use Koha::AuthorisedValues;
 use Koha::Exceptions::Suggestion;
+use C4::Log qw(logaction);
 
 use base qw(Koha::Object);
 
@@ -64,7 +68,75 @@ sub store {
         $self->suggesteddate( dt_from_string()->ymd );
     }
 
-    return $self->SUPER::store();
+    my $emailpurchasesuggestions = C4::Context->preference("EmailPurchaseSuggestions");
+
+    my $new_suggestion = !$self->in_storage;
+
+    my $result = $self->SUPER::store();
+
+    if ( C4::Context->preference("SuggestionsLog") ) {
+        my $action = $new_suggestion ? 'CREATE' : 'MODIFY';
+        logaction( 'SUGGESTION', $action, $result->suggestionid, $self );
+    }
+
+    if ( $emailpurchasesuggestions && $self->STATUS eq 'ASKED' ) {
+
+        if (
+            my $letter = C4::Letters::GetPreparedLetter(
+                module      => 'suggestions',
+                letter_code => 'NEW_SUGGESTION',
+                tables      => {
+                    'branches'    => $result->branchcode,
+                    'borrowers'   => $result->suggestedby,
+                    'suggestions' => $result->unblessed,
+                },
+            )
+        ){
+
+            my $toaddress;
+            if ( $emailpurchasesuggestions eq "BranchEmailAddress" ) {
+                my $library = $result->library;
+                $toaddress = $library->inbound_email_address;
+            }
+            elsif ( $emailpurchasesuggestions eq "KohaAdminEmailAddress" ) {
+                $toaddress = C4::Context->preference('ReplytoDefault')
+                  || C4::Context->preference('KohaAdminEmailAddress');
+            }
+            else {
+                $toaddress =
+                     C4::Context->preference($emailpurchasesuggestions)
+                  || C4::Context->preference('ReplytoDefault')
+                  || C4::Context->preference('KohaAdminEmailAddress');
+            }
+
+            C4::Letters::EnqueueLetter(
+                {
+                    letter         => $letter,
+                    borrowernumber => $result->suggestedby,
+                    suggestionid   => $result->id,
+                    to_address     => $toaddress,
+                    message_transport_type => 'email',
+                }
+            ) or warn "can't enqueue letter $letter";
+        }
+    }
+
+    return $result;
+}
+
+=head3 library
+
+my $library = $suggestion->library;
+
+Returns the library of the suggestion (Koha::Library for branchcode field)
+
+=cut
+
+sub library {
+    my ($self) = @_;
+    my $library_rs = $self->_result->branchcode;
+    return unless $library_rs;
+    return Koha::Library->_new_from_dbic($library_rs);
 }
 
 =head3 suggester
@@ -142,6 +214,30 @@ sub fund {
     my $fund_rs = $self->_result->budgetid;
     return unless $fund_rs;
     return Koha::Acquisition::Fund->_new_from_dbic($fund_rs);
+}
+
+=head3 place_hold
+
+my $hold_id = $suggestion->place_hold();
+
+Places a hold for the suggester if the suggestion is tied to a biblio.
+
+=cut
+
+sub place_hold {
+    my ($self) = @_;
+
+    return unless C4::Context->preference('PlaceHoldsOnOrdersFromSuggestions');
+    return unless $self->biblionumber;
+
+    my $hold_id = AddReserve(
+        {
+            borrowernumber => $self->suggestedby,
+            biblionumber   => $self->biblionumber,
+            branchcode     => $self->branchcode,
+            title          => $self->title,
+        }
+    );
 }
 
 =head3 type

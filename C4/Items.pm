@@ -46,6 +46,7 @@ BEGIN {
 }
 
 use Carp qw( croak );
+use C4::Circulation qw( barcodedecode );
 use C4::Context;
 use C4::Koha;
 use C4::Biblio qw( GetMarcStructure TransformMarcToKoha );
@@ -55,6 +56,7 @@ use C4::Log qw( logaction );
 use List::MoreUtils qw( any );
 use DateTime::Format::MySQL;
                   # debugging; so please don't remove this
+use Try::Tiny qw( catch try );
 
 use Koha::AuthorisedValues;
 use Koha::DateUtils qw( dt_from_string );
@@ -369,34 +371,67 @@ The last optional parameter allows for passing skip_record_index through to the 
 sub ModItemTransfer {
     my ( $itemnumber, $frombranch, $tobranch, $trigger, $params ) = @_;
 
-    my $dbh = C4::Context->dbh;
-    my $item = Koha::Items->find( $itemnumber );
+    my $dbh  = C4::Context->dbh;
+    my $item = Koha::Items->find($itemnumber);
 
     # NOTE: This retains the existing hard coded behaviour by ignoring transfer limits
     # and always replacing any existing transfers. (In theory, calls to ModItemTransfer
     # will have been preceded by a check of branch transfer limits)
     my $to_library = Koha::Libraries->find($tobranch);
-    my $transfer = $item->request_transfer(
-        {
-            to            => $to_library,
-            reason        => $trigger,
-            ignore_limits => 1,
-            replace       => 1
+    my $transfer;
+    try {
+        $transfer = $item->request_transfer(
+            {
+                to            => $to_library,
+                reason        => $trigger,
+                ignore_limits => 1,
+            }
+        );
+    } catch {
+        if ( $_->isa('Koha::Exceptions::Item::Transfer::InQueue') ) {
+            my $exception      = $_;
+            my $found_transfer = $_->transfer;
+
+            # If StockRotationAdvance, leave in place but ensure transit state is reset
+            if ( $found_transfer->reason eq 'StockrotationAdvance' ) {
+                $transfer = $item->request_transfer(
+                    {
+                        to            => $to_library,
+                        reason        => $trigger,
+                        ignore_limits => 1,
+                        enqueue       => 1
+                    }
+                );
+
+                # Ensure transit is reset
+                $found_transfer->datesent(undef)->store;
+            } else {
+                $transfer = $item->request_transfer(
+                    {
+                        to            => $to_library,
+                        reason        => $trigger,
+                        ignore_limits => 1,
+                        replace       => $trigger
+                    }
+                );
+            }
+        } else {
+            $_->rethrow();
         }
-    );
+    };
 
     # Immediately set the item to in transit if it is checked in
     if ( !$item->checkout ) {
         $item->holdingbranch($frombranch)->store(
             {
                 log_action        => 0,
-                skip_record_index => $params->{skip_record_index}
+                skip_record_index => 1,    # avoid indexing duplication, let ->transit handle it
             }
         );
-        $transfer->transit;
+        $transfer->transit( { skip_record_index => $params->{skip_record_index} } );
     }
 
-    return;
+    return $transfer;
 }
 
 =head2 ModDateLastSeen
@@ -415,7 +450,7 @@ sub ModDateLastSeen {
     my ( $itemnumber, $leave_item_lost, $params ) = @_;
 
     my $item = Koha::Items->find($itemnumber);
-    $item->datelastseen(dt_from_string->ymd);
+    $item->datelastseen(dt_from_string);
     my $log = $item->itemlost && !$leave_item_lost ? 1 : 0; # If item was lost, record the change to the item
     $item->itemlost(0) unless $leave_item_lost;
     $item->store({ log_action => $log, skip_record_index => $params->{skip_record_index}, skip_holds_queue => $params->{skip_holds_queue} });
@@ -469,11 +504,15 @@ sub CheckItemPreSave {
     my %errors = ();
 
     # check for duplicate barcode
-    if (exists $item_ref->{'barcode'} and defined $item_ref->{'barcode'}) {
-        my $existing_item= Koha::Items->find({barcode => $item_ref->{'barcode'}});
+    if ( exists $item_ref->{'barcode'} and defined $item_ref->{'barcode'} ) {
+        my $barcode       = C4::Circulation::barcodedecode( $item_ref->{'barcode'} );
+        my $existing_item = Koha::Items->find( { barcode => $barcode } );
         if ($existing_item) {
-            if (!exists $item_ref->{'itemnumber'}                       # new item
-                or $item_ref->{'itemnumber'} != $existing_item->itemnumber) { # existing item
+            if (
+                !exists $item_ref->{'itemnumber'}    # new item
+                or $item_ref->{'itemnumber'} != $existing_item->itemnumber
+                )
+            {                                        # existing item
                 $errors{'duplicate_barcode'} = $item_ref->{'barcode'};
             }
         }
@@ -788,9 +827,7 @@ sub Item2Marc {
     };
     my $framework = C4::Biblio::GetFrameworkCode( $biblionumber );
     my $itemmarc = C4::Biblio::TransformKohaToMarc( $mungeditem, { framework => $framework } );
-    my ( $itemtag, $itemsubfield ) = C4::Biblio::GetMarcFromKohaField(
-        "items.itemnumber", $framework,
-    );
+    my ( $itemtag, $itemsubfield ) = C4::Biblio::GetMarcFromKohaField('items.itemnumber');
 
     my $unlinked_item_subfields = _parse_unlinked_item_subfields_from_xml($mungeditem->{'items.more_subfields_xml'});
     if (defined $unlinked_item_subfields and $#$unlinked_item_subfields > -1) {
@@ -1216,7 +1253,7 @@ sub SearchItems {
           LEFT JOIN biblio ON biblio.biblionumber = items.biblionumber
           LEFT JOIN biblioitems ON biblioitems.biblioitemnumber = items.biblioitemnumber
           LEFT JOIN biblio_metadata ON biblio_metadata.biblionumber = biblio.biblionumber
-          LEFT JOIN issues ON issues.itemnumber = items.itemnumber
+          LEFT JOIN issues USING (itemnumber)
           WHERE 1
     };
     if (defined $where_str and $where_str ne '') {
@@ -1237,6 +1274,7 @@ sub SearchItems {
     } else {
         my $sortby = (0 < grep {$params->{sortby} eq $_} @columns)
             ? $params->{sortby} : 'itemnumber';
+        $sortby = 'cn_sort' if $sortby eq 'itemcallnumber';
         my $sortorder = (uc($params->{sortorder}) eq 'ASC') ? 'ASC' : 'DESC';
         $query .= qq{ ORDER BY $sortby $sortorder };
     }
@@ -1596,23 +1634,25 @@ sub PrepareItemrecordDisplay {
 }
 
 sub ToggleNewStatus {
-    my ( $params ) = @_;
-    my @rules = @{ $params->{rules} };
+    my ($params)    = @_;
+    my @rules       = @{ $params->{rules} };
     my $report_only = $params->{report_only};
 
     my $dbh = C4::Context->dbh;
     my @errors;
-    my @item_columns = map { "items.$_" } Koha::Items->columns;
+    my @item_columns       = map { "items.$_" } Koha::Items->columns;
     my @biblioitem_columns = map { "biblioitems.$_" } Koha::Biblioitems->columns;
+    my @biblio_columns     = map { "biblio.$_" } Koha::Biblios->columns;
     my $report;
-    for my $rule ( @rules ) {
+    for my $rule (@rules) {
         my $age = $rule->{age};
+
         # Default to using items.dateaccessioned if there's an old item modification rule
         # missing an agefield value
-        my $agefield = $rule->{agefield} ? $rule->{agefield} : 'items.dateaccessioned';
-        my $conditions = $rule->{conditions};
+        my $agefield      = $rule->{agefield} ? $rule->{agefield} : 'items.dateaccessioned';
+        my $conditions    = $rule->{conditions};
         my $substitutions = $rule->{substitutions};
-        foreach ( @$substitutions ) {
+        foreach (@$substitutions) {
             ( $_->{item_field} ) = ( $_->{field} =~ /items\.(.*)/ );
         }
         my @params;
@@ -1621,19 +1661,18 @@ sub ToggleNewStatus {
             SELECT items.*
             FROM items
             LEFT JOIN biblioitems ON biblioitems.biblionumber = items.biblionumber
+            LEFT JOIN biblio ON biblio.biblionumber = biblioitems.biblionumber
             WHERE 1
         |;
-        for my $condition ( @$conditions ) {
+        for my $condition (@$conditions) {
             next unless $condition->{field};
-            if (
-                 grep { $_ eq $condition->{field} } @item_columns
-              or grep { $_ eq $condition->{field} } @biblioitem_columns
-            ) {
+            if (   grep { $_ eq $condition->{field} } @item_columns
+                or grep { $_ eq $condition->{field} } @biblioitem_columns
+                or grep { $_ eq $condition->{field} } @biblio_columns )
+            {
                 if ( $condition->{value} =~ /\|/ ) {
                     my @values = split /\|/, $condition->{value};
-                    $query .= qq| AND $condition->{field} IN (|
-                        . join( ',', ('?') x scalar @values )
-                        . q|)|;
+                    $query .= qq| AND $condition->{field} IN (| . join( ',', ('?') x scalar @values ) . q|)|;
                     push @params, @values;
                 } else {
                     $query .= qq| AND $condition->{field} = ?|;
@@ -1646,16 +1685,18 @@ sub ToggleNewStatus {
             push @params, $age;
         }
         my $sth = $dbh->prepare($query);
-        $sth->execute( @params );
+        $sth->execute(@params);
         while ( my $values = $sth->fetchrow_hashref ) {
             my $biblionumber = $values->{biblionumber};
-            my $itemnumber = $values->{itemnumber};
-            my $item = Koha::Items->find($itemnumber);
-            for my $substitution ( @$substitutions ) {
+            my $itemnumber   = $values->{itemnumber};
+            my $item         = Koha::Items->find($itemnumber);
+            for my $substitution (@$substitutions) {
                 my $field = $substitution->{item_field};
                 my $value = $substitution->{value};
                 next unless $substitution->{field};
-                next if ( defined $values->{ $substitution->{item_field} } and $values->{ $substitution->{item_field} } eq $substitution->{value} );
+                next
+                    if ( defined $values->{ $substitution->{item_field} }
+                    and $values->{ $substitution->{item_field} } eq $substitution->{value} );
                 $item->$field($value);
                 push @{ $report->{$itemnumber} }, $substitution;
             }

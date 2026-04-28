@@ -4,9 +4,14 @@
 [% USE AuthorisedValues %]
 [% USE Branches %]
 [% USE KohaDates %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Sent notices for [% INCLUDE 'patron-title.inc' no_html = 1 %]</title>
+<title>[% FILTER collapse %]
+    [% t("Sent notices for") | html %] [% INCLUDE 'patron-title.inc' no_html = 1 %]
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
     .notice { display: none; }
@@ -36,8 +41,9 @@
 
     <div class="main container-fluid">
         <div class="row">
-            <div class="col-sm-10 col-sm-push-2">
+            <div class="col-md-10 order-md-2 order-sm-1">
                 <main>
+                    [% INCLUDE 'messages.inc' %]
 
                     [% INCLUDE 'members-toolbar.inc' %]
                     <h1>Sent notices for [% INCLUDE 'patron-title.inc' %]</h1>
@@ -60,7 +66,7 @@
                                         <tr>
                                             <td>
                                                 <a class="notice-title" data-noticeid="[% QUEUED_MESSAGE.message_id | html %]" href="/cgi-bin/koha/members/notices.pl?borrowernumber=[% borrowernumber | uri %]&amp;noticeid=[% QUEUED_MESSAGE.message_id | uri %]">[% QUEUED_MESSAGE.subject | html %]</a>
-                                                <iframe class="notice" id="notice[% QUEUED_MESSAGE.message_id | html %]" srcdoc="[% QUEUED_MESSAGE.content | html | html_line_break %]"></iframe>
+                                                <iframe class="notice" id="notice[% QUEUED_MESSAGE.message_id | html %]" srcdoc="[% QUEUED_MESSAGE.html_content | html %]"></iframe>
                                             </td>
                                             <td>
                                                 [% IF ( QUEUED_MESSAGE.message_transport_type == 'email' ) %]<span>email</span>
@@ -78,7 +84,8 @@
                                                 [% IF ( QUEUED_MESSAGE.status != 'pending' ) %]
                                                     <div class="notice">
                                                         <form id="resend_notice[% QUEUED_MESSAGE.message_id | html %]" action="/cgi-bin/koha/members/notices.pl?borrowernumber=[% borrowernumber | html %]" method="POST">
-                                                            <input type="hidden" name="op" value="resend_notice" />
+                                                            [% INCLUDE 'csrf-token.inc' %]
+                                                            <input type="hidden" name="op" value="cud-resend_notice" />
                                                             <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]" />
                                                             <input type="hidden" name="message_id" value="[% QUEUED_MESSAGE.message_id | html %]" />
                                                         </form>
@@ -89,16 +96,29 @@
                                             <td data-order="[% QUEUED_MESSAGE.time_queued | html %]">[% QUEUED_MESSAGE.time_queued | $KohaDates  with_hours => 1 %]</td>
                                             <td>
                                                 [% IF ( QUEUED_MESSAGE.failure_code ) %]
-                                                    [% IF ( QUEUED_MESSAGE.failure_code == "INVALID_BORNUMBER" ) %]<span>Invalid borrowernumber [% borrowernumber | html %]</span>
-                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_EMAIL' ) %]<span>Unable to find an email address for this borrower</span>
-                                                    [% ELSIF (matches = QUEUED_MESSAGE.failure_code.match('INVALID_EMAIL:(\w+)') ) %]<span>Invalid [% matches.0 | html %] email address found [% borrowernumber | html %]</span>
-                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_FROM' ) %]<span>Missing from email address</span>
-                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'MISSING_SMS' ) %]<span>Missing SMS number</span>
-                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'DUPLICATE_MESSAGE' ) %]<span>Message is duplicate</span>
-                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_NOTES' ) %]<span>No notes from SMS driver</span>
-                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'SENDMAIL' ) %]<span>Unhandled email failure, check the logs for further details</span>
-                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == "UNKNOWN_ERROR" ) %]<span>Unknown error</span>
-                                                    [% ELSE %]<span>Error occurred while sending email.</span>
+                                                    [% IF ( QUEUED_MESSAGE.failure_code == "INVALID_BORNUMBER" ) %]<span class="clearfix">Invalid borrowernumber [% borrowernumber | html %]</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_EMAIL' ) %]<span class="clearfix">Unable to find an email address for this patron</span>
+                                                    [% ELSIF (matches = QUEUED_MESSAGE.failure_code.match('INVALID_EMAIL:(\w+)') ) %]<span class="clearfix">Invalid [% matches.0 | html %] email address found [% borrowernumber | html %]</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_FROM' ) %]<span class="clearfix">Missing from email address</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'MISSING_SMS' ) %]<span class="clearfix">Missing SMS number</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'DUPLICATE_MESSAGE' ) %]<span class="clearfix">Message is duplicate</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'NO_NOTES' ) %]<span class="clearfix">No notes from SMS driver</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'SMS_SEND_DRIVER_MISSING' ) %]<span class="clearfix">The SMS driver could not be loaded</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == 'SENDMAIL' ) %]<span class="clearfix">Unhandled email failure, check the logs for further details</span>
+                                                    [% ELSIF ( QUEUED_MESSAGE.failure_code == "UNKNOWN_ERROR" ) %]<span class="clearfix">Unknown error</span>
+                                                    [% ELSE %]
+                                                        <span class="clearfix">Message failed to send with the following error: [% QUEUED_MESSAGE.failure_code | html %]</span>
+                                                    [% END %]
+                                                [% END %]
+                                                [% IF ( QUEUED_MESSAGE.status == 'sent' ) %]
+                                                    [% IF ( QUEUED_MESSAGE.from_address && QUEUED_MESSAGE.message_transport_type != 'print') %]
+                                                        <span class="clearfix"><span class="label">From:</span> [% QUEUED_MESSAGE.from_address | html %]</span>
+                                                    [% END %]
+                                                    [% IF ( QUEUED_MESSAGE.to_address && QUEUED_MESSAGE.message_transport_type != 'print') %]
+                                                        <span class="clearfix"><span class="label">To:</span> [% QUEUED_MESSAGE.to_address | html %]</span>
+                                                    [% END %]
+                                                    [% IF ( QUEUED_MESSAGE.cc_address && QUEUED_MESSAGE.message_transport_type != 'print') %]
+                                                        <span class="clearfix"><span class="label">CC:</span> [% QUEUED_MESSAGE.cc_address | html %]</span>
                                                     [% END %]
                                                 [% END %]
                                             </td>
@@ -108,17 +128,17 @@
                             </table>
                         </div> <!-- /.page-section -->
                     [% ELSE %]
-                        <div class="dialog message">There is no record of any messages that have been sent to this patron.</div>
+                        <div class="alert alert-info">There is no record of any messages that have been sent to this patron.</div>
                     [% END %]
 
                 </main>
-            </div> <!-- /.col-sm-10.col-sm-push-2 -->
+            </div> <!-- /.col-md-10.order-md-2 -->
 
-            <div class="col-sm-2 col-sm-pull-10">
+            <div class="col-md-2 order-sm-2 order-md-1">
                 <aside>
                     [% INCLUDE 'circ-menu.inc' %]
                 </aside>
-            </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+            </div> <!-- /.col-md-2.order-md-1 -->
         </div> <!-- /.row -->
 
         <!-- Modal -->
@@ -126,17 +146,15 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                        <h5 class="modal-title" id="noticeModalLabel">Notice</h5>
+                        <h1 class="modal-title" id="noticeModalLabel">Notice</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         ...
                     </div>
                     <div class="modal-footer">
-                        <button type="button" id="resend-notice" class="btn btn-default" style="display:none"><i class="fa fa-refresh" aria-hidden="true"></i> Resend</button>
-                        <button type="button" class="btn btn-default deny cancel" data-dismiss="modal"><i class="fa fa-remove"></i> Close</button>
+                        <button type="button" id="resend-notice" class="btn btn-default" style="display:none"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Resend</button>
+                        <button type="button" class="btn btn-default deny cancel" data-bs-dismiss="modal"><i class="fa fa-times"></i> Close</button>
                     </div>
                 </div> <!-- /.modal-content -->
             </div> <!-- /.modal-dialog -->
@@ -147,8 +165,8 @@
     <script>
         $(document).ready(function() {
             $("#noticestable").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aaSorting": [[ 3, "desc" ]],
-                "sPaginationType": "full"
+                "order": [[ 3, "desc" ]],
+                "pagingType": "full"
             }));
 
             $("#noticestable").on("click", ".notice-title", function(e){

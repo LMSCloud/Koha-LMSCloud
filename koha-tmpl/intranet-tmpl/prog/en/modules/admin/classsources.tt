@@ -1,26 +1,33 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
-[% IF op == 'add_source' %]
-    [% IF class_source %]
-        Modify classification source
-    [% ELSE %]
-        Add classification source
-    [% END %] &rsaquo; [% ELSIF op == 'add_sort_rule' %]
-    [% IF sort_rule %]
-        Modify filing rule
-    [% ELSE %]
-        Add filing rule
-    [% END %] &rsaquo; [% ELSIF op == 'add_split_rule' %]
-    [% IF split_rule %]
-        Modify splitting rule
-    [% ELSE %]
-        Add splitting rule
-    [% END %] &rsaquo; [% END %]
-Classification sources &rsaquo; Administration &rsaquo; Koha
-</title>
+<title>[% FILTER collapse %]
+    [% IF op == 'add_source' %]
+        [% IF class_source %]
+            [% tx("Modify classification source '{description}'", { description = class_source.description }) | html %]
+        [% ELSE %]
+            [% t("New classification source") | html %]
+        [% END %] &rsaquo;
+    [% ELSIF op == 'add_sort_rule' %]
+        [% IF sort_rule %]
+            [% tx("Modify filing rule '{description}'", { description = sort_rule.description }) | html %]
+        [% ELSE %]
+            [% t("New filing rule") | html %]
+        [% END %] &rsaquo;
+    [% ELSIF op == 'add_split_rule' %]
+        [% IF split_rule %]
+            [% tx("Modify splitting rule '{description}'", { description = split_rule.description }) | html %]
+        [% ELSE %]
+            [% t("New splitting rule") | html %]
+        [% END %] &rsaquo;
+    [% END %]
+    [% t("Classification configuration") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
     #button_add,
@@ -56,27 +63,27 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
         [% IF op == 'add_source' %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
                 [% IF class_source %]
-                    <span>Modify classification source</span>
+                    [% tx("Modify classification source '{description}'", { description = class_source.description }) | html %]
                 [% ELSE %]
-                    <span>Add classification source</span>
+                    <span>New classification source</span>
                 [% END %]
             [% END %]
 
         [% ELSIF op == 'add_sort_rule' %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
                 [% IF sort_rule %]
-                    <span>Modify filing rule</span>
+                    [% tx("Modify filing rule '{description}'", { description = sort_rule.description }) | html %]
                 [% ELSE %]
-                    <span>Add filing rule</span>
+                    <span>New filing rule</span>
                 [% END %]
             [% END %]
 
         [% ELSIF op == 'add_split_rule' %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
                 [% IF split_rule %]
-                    <span>Modify splitting rule</span>
+                    [% tx("Modify splitting rule '{description}'", { description = split_rule.description }) | html %]
                 [% ELSE %]
-                    <span>Add splitting rule</span>
+                    <span>New splitting rule</span>
                 [% END %]
             [% END %]
 
@@ -86,14 +93,15 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% FOR m IN messages %]
-    <div class="dialog [% m.type | html %]">
+    <div class="alert alert-[% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE 'error_on_update_source' %]
-            <span>An error occurred when updating this classification source.</span>
+            <span>An error occurred when updating this classification source. Check the logs for details.</span>
         [% CASE 'success_on_update_source' %]
             <span>Classification source updated successfully.</span>
         [% CASE 'error_on_insert_source' %]
@@ -105,7 +113,7 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
         [% CASE 'success_on_delete_source' %]
             <span>Classification source deleted successfully.</span>
         [% CASE 'error_on_update_sort_rule' %]
-            <span>An error occurred when updating this filing rule.</span>
+            <span>An error occurred when updating this filing rule. Check the logs for details.</span>
         [% CASE 'success_on_update_sort_rule' %]
             <span>Filing rule updated successfully.</span>
         [% CASE 'error_on_insert_sort_rule' %]
@@ -117,7 +125,7 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
         [% CASE 'success_on_delete_sort_rule' %]
             <span>Filing rule deleted successfully.</span>
         [% CASE 'error_on_update_split_rule' %]
-            <span>An error occurred when updating this splitting rule.</span>
+            <span>An error occurred when updating this splitting rule. Check the logs for details.</span>
         [% CASE 'success_on_update_split_rule' %]
             <span>Splitting rule updated successfully.</span>
         [% CASE 'error_on_insert_split_rule' %]
@@ -137,12 +145,13 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
 
 [% IF op == 'add_source' %]
   [% IF class_source %]
-<h1>Modify classification source</h1>
+<h1>[% tx("Modify classification source '{description}'", { description = class_source.description }) | html %]</h1>
   [% ELSE %]
-<h1>Add classification source</h1>
+<h1>New classification source</h1>
   [% END %]
-<form action="[% script_name | html %]" name="Aform" class="validated" method="post">
-  <input type="hidden" name="op" value="add_source_validate" />
+<form action="/cgi-bin/koha/admin/classsources.pl" name="Aform" class="validated" method="post">
+    [% INCLUDE 'csrf-token.inc' %]
+  <input type="hidden" name="op" value="cud-add_source_validate" />
   <fieldset class="rows">
     <ol>
       <li>
@@ -201,12 +210,13 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
 
 [% IF op == 'add_sort_rule' %]
   [% IF sort_rule %]
-<h1>Modify filing rule</h1>
+<h1>[% tx("Modify filing rule '{description}'", { description = sort_rule.description }) | html %]</h1>
   [% ELSE %]
-<h1>Add filing rule</h1>
+<h1>New filing rule</h1>
   [% END %]
-<form action="[% script_name | html %]" name="Aform" class="validated" method="post">
-  <input type="hidden" name="op" value="add_sort_rule_validate" />
+<form action="/cgi-bin/koha/admin/classsources.pl" name="Aform" class="validated" method="post">
+    [% INCLUDE 'csrf-token.inc' %]
+  <input type="hidden" name="op" value="cud-add_sort_rule_validate" />
   <fieldset class="rows">
     <ol>
       <li>
@@ -247,12 +257,13 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
 
 [% IF op == 'add_split_rule' %]
   [% IF split_rule %]
-<h1>Modify splitting rule</h1>
+<h1>[% tx("Modify splitting rule '{description}'", { description = split_rule.description }) | html %]</h1>
   [% ELSE %]
-<h1>Add splitting rule</h1>
+<h1>New splitting rule</h1>
   [% END %]
-<form action="[% script_name | html %]" name="Aform" class="validated" method="post">
-  <input type="hidden" name="op" value="add_split_rule_validate" />
+<form action="/cgi-bin/koha/admin/classsources.pl" name="Aform" class="validated" method="post">
+    [% INCLUDE 'csrf-token.inc' %]
+  <input type="hidden" name="op" value="cud-add_split_rule_validate" />
   <fieldset class="rows">
     <ol>
       <li>
@@ -289,13 +300,13 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
                     [% FOR re IN split_rule.regexs %]
                         <div class="split_regex">
                             <input type="text" name="split_regex" id="split_regex" value="[% re | html %]" />
-                            <a href="#" title="Delete" class="del_regex"><i class="fa fa-fw fa-trash"></i>Delete</a>
+                            <a href="#" title="Delete" class="del_regex"><i class="fa fa-fw fa-trash-can"></i>Delete</a>
                         </div>
                     [% END %]
                 [% ELSE %]
                     <div class="split_regex">
                         <input type="text" name="split_regex" id="split_regex" value="" />
-                        <a href="#" title="Delete" class="del_regex"><i class="fa fa-fw fa-trash"></i>Delete</a>
+                        <a href="#" title="Delete" class="del_regex"><i class="fa fa-fw fa-trash-can"></i>Delete</a>
                     </div>
                 [% END %]
             </div>
@@ -322,9 +333,9 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
 [% IF op == 'list' %]
 
 <div id="toolbar" class="btn-toolbar">
-    <a class="btn btn-default" id="newsource" href="[% script_name | url %]?op=add_source"><i class="fa fa-plus"></i> New classification source</a>
-    <a class="btn btn-default" id="newrule" href="[% script_name | url %]?op=add_sort_rule"><i class="fa fa-plus"></i> New filing rule</a>
-    <a class="btn btn-default" id="newrule" href="[% script_name | url %]?op=add_split_rule"><i class="fa fa-plus"></i> New splitting rule</a>
+    <a class="btn btn-default" id="newsource" href="/cgi-bin/koha/admin/classsources.pl?op=add_source"><i class="fa fa-plus"></i> New classification source</a>
+    <a class="btn btn-default" id="newrule" href="/cgi-bin/koha/admin/classsources.pl?op=add_sort_rule"><i class="fa fa-plus"></i> New filing rule</a>
+    <a class="btn btn-default" id="newrule" href="/cgi-bin/koha/admin/classsources.pl?op=add_split_rule"><i class="fa fa-plus"></i> New splitting rule</a>
 </div>
 <h1>Classification configuration</h1>
 <div class="page-section">
@@ -346,8 +357,13 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
     <td>[% class_source.class_sort_rule | html %]</td>
     <td>[% class_source.class_split_rule | html %]</td>
     <td class="actions">
-      <a class="btn btn-default btn-xs" href="[% script_name | url %]?op=add_source&amp;cn_source=[% class_source.cn_source | uri %]"><i class="fa fa-pencil"></i> Edit</a>
-      <a class="btn btn-default btn-xs delete_class_source" href="[% script_name | url %]?op=delete_source_confirmed&amp;cn_source=[% class_source.cn_source | uri%]"><i class="fa fa-trash"></i> Delete</a>
+      <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/classsources.pl?op=add_source&amp;cn_source=[% class_source.cn_source | uri %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+        <form action="/cgi-bin/koha/admin/classsources.pl" method="post">
+            [% INCLUDE 'csrf-token.inc' %]
+            <input type="hidden" name="op" value="cud-delete_source_confirmed" />
+            <input type="hidden" name="cn_source" value="[% class_source.cn_source | uri%]" />
+            <button class="btn btn-default btn-xs delete_class_source"><i class="fa fa-trash-can"></i> Delete</button>
+        </form>
     </td>
   </tr>
   [% END %]
@@ -369,8 +385,13 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
     <td>[% rule.description |html | html %]</td>
     <td>[% rule.sort_routine | html %]</td>
     <td class="actions">
-      <a class="btn btn-default btn-xs" href="[% script_name | html %]?op=add_sort_rule&amp;class_sort_rule=[% rule.class_sort_rule |url %]"><i class="fa fa-pencil"></i> Edit</a>
-      <a class="btn btn-default btn-xs delete_sort_rule" href="[% script_name | html %]?op=delete_sort_rule&amp;class_sort_rule=[% rule.class_sort_rule |url %]"><i class="fa fa-trash"></i> Delete</a>
+      <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/classsources.pl?op=add_sort_rule&amp;class_sort_rule=[% rule.class_sort_rule |url %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+        <form action="/cgi-bin/koha/admin/classsources.pl" method="post">
+            [% INCLUDE 'csrf-token.inc' %]
+            <input type="hidden" name="op" value="cud-delete_sort_rule" />
+            <input type="hidden" name="class_sort_rule" value="[% rule.class_sort_rule |url %]" />
+            <button class="btn btn-default btn-xs delete_class_source"><i class="fa fa-trash-can"></i> Delete</button>
+        </form>
     </td>
   </tr>
   [% END %]
@@ -392,8 +413,14 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
     <td>[% rule.description | html %]</td>
     <td>[% rule.split_routine | html %]</td>
     <td class="actions">
-      <a class="btn btn-default btn-xs" href="[% script_name | url %]?op=add_split_rule&amp;class_split_rule=[% rule.class_split_rule | uri %]"><i class="fa fa-pencil"></i> Edit</a>
-      <a class="btn btn-default btn-xs delete_split_rule" href="[% script_name | url %]?op=delete_split_rule&amp;class_split_rule=[% rule.class_split_rule | uri %]"><i class="fa fa-trash"></i> Delete</a>
+      <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/classsources.pl?op=add_split_rule&amp;class_split_rule=[% rule.class_split_rule | uri %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+        <form action="/cgi-bin/koha/admin/classsources.pl" method="post">
+            [% INCLUDE 'csrf-token.inc' %]
+            <input type="hidden" name="op" value="cud-delete_split_rule" />
+            <input type="hidden" name="class_split_rule" value="[% rule.class_split_rule | html %]" />
+            <input type="hidden" name="op" value="cud-delete_split_rule" />
+            <button class="btn btn-default btn-xs delete_split_rule"><i class="fa fa-trash-can"></i> Delete</button>
+        </form>
     </td>
   </tr>
   [% END %]
@@ -404,13 +431,13 @@ Classification sources &rsaquo; Administration &rsaquo; Koha
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

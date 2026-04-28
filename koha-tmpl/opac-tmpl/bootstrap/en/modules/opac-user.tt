@@ -3,6 +3,7 @@
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Branches %]
+[% USE I18N %]
 [% USE ItemTypes %]
 [% USE Price %]
 [% USE AuthorisedValues %]
@@ -10,9 +11,10 @@
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacMySummaryNote = AdditionalContents.get( location => "OpacMySummaryNote", lang => lang, library => branchcode ) %]
-
 [% SET borrower_club_enrollments = logged_in_user.get_club_enrollments %]
 [% SET borrower_enrollable_clubs = logged_in_user.get_enrollable_clubs(1) %] <!-- 1 => OPAC -->
+[% SET OverDriveEnabled = ( Koha.Preference( "OPACOverDrive" ) && Koha.Preference('OverDriveLibraryID') && Koha.Preference('OverDriveClientKey') && Koha.Preference('OverDriveClientSecret') ) %]
+[% SET OverDriveCirculation = ( OverDriveEnabled && Koha.Preference( "OverDriveCirculation" ) ) %]
 
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Your library home &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
@@ -29,22 +31,15 @@
     [% AmazonAssocTag = '' %]
 [% END %]
 
-[% itemtypes = ItemTypes.Get() %]
-
 <div class="main">
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-            </li>
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
-            </li>
-            <li class="breadcrumb-item active">
-                <a href="#" aria-current="page">Your summary</a>
-            </li>
-        </ol>
-    </nav> <!-- /#breadcrumbs -->
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Your summary</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
 
     <div class="container-fluid">
         <div class="row">
@@ -62,7 +57,7 @@
 
                     <p>Hello, [% INCLUDE 'patron-title.inc' patron = logged_in_user %]
                     <br />
-                    <a href="/cgi-bin/koha/opac-main.pl?logout.x=1">Click here if you're not [% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a></p>
+                    <a href="/cgi-bin/koha/opac-main.pl?logout.x=1" class="d-print-none">Click here if you're not [% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a></p>
 
                     [% IF ( patronupdate ) %]<div class="alert alert-info"><h2>Thank you!</h2><p>Your corrections have been submitted to the library, and a staff member will update your record as soon as possible.</p></div>[% END %]
 
@@ -125,22 +120,14 @@
 
                     [% IF ( borrower.warndeparture ) %]
                         <div class="alert alert-warning" id="warndeparture">
-                            [% IF ( borrower.opaccardrenewalpermitted ) %]
                             <strong>Please note:</strong><span> Your library card will expire on <span id="warndeparture_date">[% borrower.warndeparture | $KohaDates %]</span>. You may contact the library for more information or <a href="/cgi-bin/koha/opac-renewcard.pl">renew your card yourself</a>.</span>
-                            [% ELSE %]
-                            <strong>Please note:</strong><span> Your library card will expire on <span id="warndeparture_date">[% borrower.warndeparture | $KohaDates %]</span>. Please contact the library for more information.</span>
-                            [% END %]
                                 [% IF ( borrower.returnbeforeexpiry ) %]<span id="warndeparture_returnbeforeexpiry"> Also note that you must return all checked out items before your library card expires.</span>[% END %]
                         </div>
                     [% END %]
 
                     [% IF ( borrower.warnexpired ) %]
                         <div class="alert alert-warning" id="warnexpired">
-                            [% IF ( borrower.opaccardrenewalpermitted ) %]
                             <strong>Please note: </strong><span>Your account has expired as of [% borrower.warnexpired | $KohaDates %]. In order to renew your account you may contact the library or <a href="/cgi-bin/koha/opac-renewcard.pl">renew it yourself</a>.</span>
-                            [% ELSE %]
-                            <strong>Please note: </strong><span>Your account has expired as of [% borrower.warnexpired | $KohaDates %]. Please contact the library if you wish to renew your account.</span>
-                            [% END %]
                         </div>
                     [% END %]
 
@@ -162,6 +149,8 @@
                                             <li>This item is on hold for another patron.</li>
                                         [% ELSIF error == 'item_denied_renewal' %]
                                             <li>Item renewal is not allowed.</li>
+                                        [% ELSIF error == 'item_issued_to_other_patron'%]
+                                            <li>This item is already checked out to another patron.</li>
                                         [% ELSIF error == 'auto_too_soon' %]
                                             <li>This item is scheduled for auto renewal.</li>
                                         [% END %]
@@ -204,7 +193,8 @@
                                                 </ul>
                                             [% END %]
 
-                                        <em>Usually the reason for freezing an account is old overdues or damage fees. If your account shows to be clear, please contact the library.</em> <a href="/cgi-bin/koha/opac-account.pl">Go to your account page</a></li>
+                                            <p><em>Usually the reason for freezing an account is old overdues or damage fees. If your account shows to be clear, please contact the library.</em> <a href="/cgi-bin/koha/opac-account.pl">Go to your charges page</a></p>
+                                        </li>
                                     [% END %]
                                 [% END %]
                                 [% IF ( borrower.gonenoaddress ) %]
@@ -223,6 +213,12 @@
                         </div>
                     [% END # / IF patron_flagged %]
 
+                    [% IF savings %]
+                        <div class="alert alert-info" id="savings">
+                            Congratulations, you have saved a total of [% savings | $Price with_symbol => 1 %] by using the library.
+                        </div>
+                    [% END %]
+
                     <div class="alert alert-info" id="notesaved" style="display:none;"></div>
                     [% IF ( OpacMySummaryNote ) %]
                         [% PROCESS koha_news_block news => OpacMySummaryNote %]
@@ -230,6 +226,7 @@
 
                     [% IF Koha.Preference('AllowPatronToControlAutorenewal') %]
                     <form id="autorenewal_option" action="/cgi-bin/koha/opac-user.pl" method="post">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <legend class="sr-only">Auto-renewal</legend>
                             <label for="yes-autorenew_checkouts">
                                 Allow auto-renewal:
@@ -254,90 +251,92 @@
                                         <input type="radio" id="no-autorenew_checkouts" name="borrower_autorenew_checkouts" value="0" checked="checked" />
                                     </label>
                                 [% END %]
-                        <input type="hidden" name="csrf_token" value="[% csrf_token | html %]" />
-                        <input type="hidden" name="update_arc" value="1" />
+                        <input type="hidden" name="op" value="cud-update_arc" />
                         <input type="submit" value="Update auto-renewal preference" />
                     </form>
                     [% END %]
 
-                    <div id="opac-user-views" class="toptabs">
-                        <ul class="nav nav-tabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <a class="nav-link active" id="opac-user-checkouts-tab" data-toggle="tab" role="tab" aria-controls="opac-user-checkouts" aria-selected="true"  href="#opac-user-checkouts">Checked out ([% issues_count | html %])</a>
-                            </li>
+                    [% WRAPPER tabs id= "opac-user-views" %]
+                        [% WRAPPER tabs_nav %]
+                            [% WRAPPER tab_item tabname= "opac-user-checkouts" %]
+                                <span>Checked out ([% issues_count | html %])</span>
+                            [% END %]
                             [% IF relatives %]
-                                <li class="nav-item" role="presentation">
-                                    <a class="nav-link" id="opac-user-relative-issues-tab" data-toggle="tab" role="tab" aria-controls="opac-user-relative-issues" aria-selected="false" href="#opac-user-relative-issues">Relatives' checkouts</a>
-                                </li>
+                                [% WRAPPER tab_item tabname= "opac-user-relative-issues" %]
+                                    <span>Relatives' checkouts</span>
+                                [% END %]
+                            [% END %]
+
+                            [% IF Koha.Preference('DivibibEnabled') && divibib_issues_count %]
+                                [% WRAPPER tab_item tabname= "opac-user-divibibcheckouts" %]
+                                    <span>Onleihen ([% divibib_issues_count %])</span>
+                                [% END %]
                             [% END %]
                             [% IF ( overdues_count ) %]
-                                <li class="nav-item" role="presentation">
-                                    <a class="nav-link" id="opac-user-overdues-tab" data-toggle="tab" role="tab" aria-controls="opac-user-overdues" aria-selected="false" href="#opac-user-overdues">Overdue ([% overdues_count | html %])</a>
-                                </li>
-                            [% END %]
-                            [% IF ( divibib_issues_count ) %]
-                                <li class="nav-item" role="presentation">
-                                    <a class="nav-link" id="opac-user-relative-issues-tab" data-toggle="tab" role="tab" aria-controls="opac-user-divibibcheckouts" aria-selected="false" href="#opac-user-divibibcheckouts">Onleihen ([% divibib_issues_count %])</a>
-                                </li>
+                                [% WRAPPER tab_item tabname= "opac-user-overdues" %]
+                                    <span>Overdue ([% overdues_count | html %])</span>
+                                [% END %]
                             [% END %]
                             [% IF ( OPACFinesTab ) %]
                                 [% IF ( amountoutstanding > 0 ) %]
-                                    <li class="nav-item" role="presentation">
-                                        <a class="nav-link" id="opac-user-fines-tab" data-toggle="tab" role="tab" aria-controls="opac-user-fines" aria-selected="false" href="#opac-user-fines">Charges ([% amountoutstanding | $Price %])</a>
-                                    </li>
+                                    [% WRAPPER tab_item tabname= "opac-user-fines" %]
+                                        <span>Charges ([% amountoutstanding | $Price %])</span>
+                                    [% END %]
                                 [% END %]
                                 [% IF ( amountoutstanding < 0 ) %]
-                                    <li class="nav-item" role="presentation">
-                                        <a class="nav-link" id="opac-user-fines-tab" data-toggle="tab" role="tab" aria-controls="opac-user-fines" aria-selected="false" href="#opac-user-fines">Credits ([% amountoutstanding * -1 | $Price %])</a>
-                                    </li>
+                                    [% WRAPPER tab_item tabname= "opac-user-fines" %]
+                                        <span>Credits ([% amountoutstanding * -1 | $Price %])</span>
+                                    [% END %]
                                 [% END %]
                                 [% IF relatives_with_fines %]
-                                    <li class="nav-item" role="presentation">
-                                        <a class="nav-link" id="opac-user-relative-fines-tab" data-toggle="tab" role="tab" aria-controls="opac-user-relative-fines" aria-selected="false" href="#opac-user-relative-fines">Relatives' charges</a>
-                                    </li>
+                                    [% WRAPPER tab_item tabname= "opac-user-relative-fines" %]
+                                        <span>Relatives' charges</span>
+                                    [% END %]
                                 [% END %]
                             [% END %]
 
                             [% IF borrower_club_enrollments.count || borrower_enrollable_clubs.count %]
-                                <li class="nav-item" role="presentation">
-                                    <a class="nav-link" data-toggle="tab" role="tab" aria-controls="opac-user-clubs" aria-selected="false" id="opac-user-clubs-tab-link" href="#opac-user-clubs">
-                                        Clubs ([% borrower_club_enrollments.count || 0 | html %]/[% borrower_enrollable_clubs.count || 0 | html %])
-                                    </a>
-                                </li>
+                                [% WRAPPER tab_item tabname= "opac-user-clubs" %]
+                                    <span>Clubs ([% borrower_club_enrollments.count || 0 | html %]/[% borrower_enrollable_clubs.count || 0 | html %])</span>
+                                [% END %]
                             [% END %]
 
                             [% IF ( RESERVES.count ) %]
-                                <li class="nav-item" role="presentation">
-                                    <a class="nav-link" id="opac-user-holds-tab" data-toggle="tab" role="tab" aria-controls="opac-user-holds" aria-selected="false" href="#opac-user-holds">Holds ([% RESERVES.count | html %])</a>
-                                </li>
+                                [% WRAPPER tab_item tabname= "opac-user-holds" %]
+                                    <span>Holds ([% RESERVES.count | html %])</span>
+                                [% END %]
                             [% END %]
                             [% IF Koha.Preference('OPACBookings') && BOOKINGS.count %]
-                                <li class="nav-item" role="presentation">
-                                    <a class="nav-link" id="opac-user-bookings-tab" data-toggle="tab" role="tab" aria-controls="opac-user-bookings" aria-selected="false" href="#opac-user-bookings">Bookings ([% BOOKINGS.count | html %])</a>
-                                </li>
+                                [% WRAPPER tab_item tabname= "opac-user-bookings" %]
+                                    <span>Bookings ([% BOOKINGS.count | html %])</span>
+                                [% END %]
                             [% END %]
                             [% IF Koha.Preference('UseRecalls') && RECALLS.count %]
-                                <li class="nav-item" role="presentation">
-                                    <a class="nav-link" id="opac-user-recalls-tab" data-toggle="tab" role="tab" aria-controls="opac-user-recalls" aria-selected="false" href="#opac-user-recalls">Recalls ([% RECALLS.count | html %])</a>
-                                </li>
+                                [% WRAPPER tab_item tabname= "opac-user-recalls" %]
+                                    <span>Recalls ([% RECALLS.count | html %])</span>
+                                [% END %]
                             [% END %]
                             [% IF Koha.Preference('ArticleRequests') %]
-                                <li class="nav-item" role="presentation">
-                                    <a class="nav-link" id="opac-user-article-requests-tab" data-toggle="tab" role="tab" aria-controls="opac-user-article-requests" aria-selected="false" href="#opac-user-article-requests">Article requests ([% current_article_requests.size || 0 | html %])</a>
-                                </li>
+                                [% WRAPPER tab_item tabname= "opac-user-article-requests" %]
+                                    <span>Article requests ([% current_article_requests.size || 0 | html %])</span>
+                                [% END %]
                             [% END %]
                             [% IF ( OverDriveCirculation ) %]
-                                <li class="nav-item" role="presentation">
-                                    <a class="nav-link" id="opac-user-overdrive-tab" data-toggle="tab" role="tab" aria-controls="opac-user-overdrive" aria-selected="false" href="#opac-user-overdrive">OverDrive account</a>
-                                </li>
+                                [% WRAPPER tab_item tabname= "opac-user-overdrive" %]
+                                    <span>OverDrive account</span>
+                                [% END %]
                             [% END %]
-                        </ul>
-                        <div class="tab-content">
-                            <div id="opac-user-overdrive" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-overdrive-tab">
-                            </div>
-                            <div id="opac-user-checkouts" class="tab-pane active" role="tabpanel" aria-labelledby="opac-user-checkouts-tab">
+                        [% END # /WRAPPER tabs_nav %]
+
+                        [% WRAPPER tab_panels %]
+                            [% IF ( OverDriveCirculation ) %]
+                                [% WRAPPER tab_panel tabname="opac-user-overdrive" %]
+                                [% END # /tab_panel#opac-user-overdrive %]
+                            [% END %]
+                            [% WRAPPER tab_panel tabname="opac-user-checkouts" %]
                                 [% IF ( issues_count ) %]
                                     <form id="renewselected" action="/cgi-bin/koha/opac-renew.pl" method="post">
+                                        [% INCLUDE 'csrf-token.inc' %]
                                         <legend class="sr-only">Renew selected</legend>
                                         <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]">
                                         <input type="hidden" name="from" value="opac_user" />
@@ -345,27 +344,24 @@
                                             <caption>[% issues_count | html %] Item(s) checked out</caption>
                                             <thead>
                                                 <tr>
-                                                    [% IF ( JacketImages ) %]<th class="nosort jacketcol">&nbsp;</th>[% END %]
-                                                    <th class="all anti-the titlecol">Title</th>
+                                                    [% IF ( JacketImages ) %]<th class="nosort">&nbsp;</th>[% END %]
+                                                    <th class="all anti-the">Title</th>
                                                     <th>Author</th>
-                                                    <th>Item type</th>
-                                                    <th class="psort duedatecol">Due</th>
-                                                    [% IF ( Koha.Preference('OPACMySummaryLibrary') ) %]
-                                                        <th>Library</th>
+                                                    <th class="psort">Due</th>
+                                                    [% IF ( Koha.Preference('BiblioItemtypeInfo') || !item_level_itypes ) %]
+                                                        <th>Item type</th>
                                                     [% END %]
                                                     [% IF ( show_barcode ) %]
                                                         <th>Barcode</th>
                                                     [% END %]
-                                                    [% IF ( Koha.Preference('OPACMySummaryCallNumber') ) %]
                                                         <th>Call number</th>
-                                                    [% END %]
-                                                    [% IF ( OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions ) ) %]
-                                                        <th class="renewcol">Renew</th>
+                                                    [% IF ( OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions_contains('renew') ) ) %]
+                                                        <th>Renew</th>
                                                     [% END %]
                                                     [% IF ( OPACFinesTab ) %]
                                                         <th>Fines</th>
                                                     [% END %]
-                                                    [% IF ( OPACMySummaryHTML ) %]
+                                                    [% IF Koha.Preference('OPACMySummaryHTML') %]
                                                         <th class="nosort">Links</th>
                                                     [% END %]
                                                     [% IF ( Koha.Preference('AllowCheckoutNotes') ) %]
@@ -380,6 +376,10 @@
                                                     [% IF ( ISSUE.overdue ) %]<tr class="overdue">[% ELSE %]<tr>[% END %]
                                                     [% IF ( JacketImages ) %]
                                                         <td class="jacketcell">
+                                                            [% IF ISSUE.titlecoverurl %]
+                                                                <img src="[% ISSUE.titlecoverurl | html %]" class="ekzcover" title="[% ISSUE.biblionumber | url %]" alt="Cover" />
+                                                            [% END %]
+
                                                             [% IF ( OPACAmazonCoverImages ) %]
                                                                 [% IF ( ISSUE.normalized_isbn ) %]
                                                                     <a href="http://www.amazon.com/gp/reader/[% ISSUE.normalized_isbn | uri %][% AmazonAssocTag | uri %]#reader-link" title="View on Amazon.com"><img src="https://images-na.ssl-images-amazon.com/images/P/[% ISSUE.normalized_isbn | html %].01.THUMBZZZ.jpg" alt="View on Amazon.com" class="item-thumbnail"/></a>
@@ -415,10 +415,6 @@
                                                             [% IF ( SyndeticsEnabled && SyndeticsCoverImages ) %]
                                                                 <img src="https://secure.syndetics.com/index.aspx?isbn=[% ISSUE.normalized_isbn | html %]/[% SyndeticsCoverImageSize | uri %].GIF&amp;client=[% SyndeticsClientCode | html %]&amp;type=xw10&amp;upc=[% ISSUE.normalized_upc | html %]&amp;oclc=[% ISSUE.normalized_oclc | html %]" alt="" class="item-thumbnail" />
                                                             [% END %]
-                                                            
-                                                            [% IF ( ISSUE.titlecoverurl ) %]
-                                                                <img src="[% ISSUE.titlecoverurl | html %]" class="ekzcover" title="[% ISSUE.biblionumber |url %]" alt="Cover" />
-                                                            [% END %]
                                                         </td>
                                                     [% END # / IF JacketImages %]
 
@@ -436,69 +432,52 @@
                                                     </td>
 
                                                     <td class="author">[% ISSUE.author | html %]</td>
-                                                    
-                                                    <td class="itype">
-                                                        [% IF ( item_level_itypes ) %]
-                                                            [% IF ( ISSUE.itype_imageurl  && !Koha.Preference('OpacNoItemTypeImages') ) %]
-                                                                <img src="[% ISSUE.itype_imageurl | html %]" title="[% ISSUE.description | html %]" alt="[% ISSUE.description | html %]" />
-                                                            [% END %] [% ISSUE.description | html %]
-                                                        [% ELSE %]
-                                                            [% IF ( ISSUE.imageurl  && !Koha.Preference('OpacNoItemTypeImages') ) %]
-                                                                <img src="[% ISSUE.imageurl | html %]" title="[% ISSUE.description | html %]" alt="[% ISSUE.description | html %]" />
-                                                            [% END %] [% ISSUE.description | html %]
-                                                        [% END %]
-                                                    </td>
                                                     [% IF ( ISSUE.overdue ) %]
                                                         <td class="date_due overdue" data-order="[% ISSUE.date_due | html %]">
-                                                            <span class="tdlabel">Date due:</span>
                                                             [% ISSUE.date_due | $KohaDates as_due_date => 1 %]
                                                         </td>
                                                     [% ELSE %]
                                                         <td class="date_due" data-order="[% ISSUE.date_due | html %]">
-                                                            <span class="tdlabel">Date due:</span>
                                                             [% ISSUE.date_due | $KohaDates as_due_date => 1 %]
                                                         </td>
                                                     [% END %]
-                                                    [% IF ( Koha.Preference('OPACMySummaryLibrary') ) %]
-                                                        <td class="branch">
-                                                            <span class="tdlabel">Library:</span>
-                                                            [% Branches.GetName(ISSUE.branchcode) %]
+                                                    [% IF ( Koha.Preference('BiblioItemtypeInfo') || !item_level_itypes ) %]
+                                                        <td class="itype">
+                                                            [% IF ( ISSUE.imageurl && !Koha.Preference('OpacNoItemTypeImages') ) %]
+                                                                <img class="itemtype-image" src="[% ISSUE.imageurl | html %]" title="[% ISSUE.description | html %]" alt="[% ISSUE.description | html %]" />
+                                                                [% END %] <span class="itypetext">[% ISSUE.description | html %]</span>
                                                         </td>
                                                     [% END %]
                                                     [% IF ( show_barcode ) %]
                                                         <td class="barcode">
-                                                            <span class="tdlabel">Barcode:</span>
                                                             [% ISSUE.barcode | html %]
                                                         </td>
                                                     [% END %]
-                                                    [% IF ( Koha.Preference('OPACMySummaryCallNumber') ) %]
-                                                        <td class="call_no">
-                                                            <span class="tdlabel">Call number:</span>
-                                                            [% ISSUE.itemcallnumber | html %]
-                                                        </td>
-                                                    [% END %]
-                                                    [% IF ( OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions ) ) %]
+                                                    <td class="call_no">
+                                                        [% ISSUE.itemcallnumber | html %]
+                                                    </td>
+                                                    [% IF ( OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions_contains('renew') ) ) %]
                                                         [% IF ( ISSUE.status && canrenew ) %]
                                                             <td class="renew" data-order="[% ISSUE.renewsleft | html %]">
                                                         [% ELSE %]
                                                             <td class="renew" data-order="0">
                                                         [% END %]
-                                                        [% IF ISSUE.renewed %]<span class="blabel label-success">Renewed!</span><br />[% END %]
+                                                        [% IF ISSUE.renewed %]<span class="bbadge text-bg-success">Renewed!</span><br />[% END %]
                                                         [% IF ( ISSUE.status ) %]
                                                             [% IF ( canrenew ) %]
-                                                                <input type="checkbox" name="item" value="[% ISSUE.itemnumber | uri %]"/> <a href="/cgi-bin/koha/opac-renew.pl?from=opac_user&amp;item=[% ISSUE.itemnumber | uri %]&amp;borrowernumber=[% ISSUE.borrowernumber | uri %]">Renew</a>
+                                                                <input type="checkbox" name="issue" value="[% ISSUE.issue_id | uri %]"/> <a class="submit-form-link" href="#" data-method="post" data-action="/cgi-bin/koha/opac-renew.pl?from=opac_user" data-issue="[% ISSUE.issue_id | html %]" data-borrowernumber="[% ISSUE.borrowernumber | html%]" data-op="cud-renew">Renew</a>
                                                             [% END %]
                                                             [% IF ISSUE.renewalfee > 0 %]
-                                                                <span class="renewalfee label label-warning">Fee for item type '[% ItemTypes.GetDescription( ISSUE.renewalitemtype) | html %]': [% ISSUE.renewalfee | $Price %]</span>
+                                                                <span class="renewalfee badge text-bg-warning">Fee for item type '[% ItemTypes.GetDescription( ISSUE.renewalitemtype) | html %]': [% ISSUE.renewalfee | $Price %]</span>
                                                             [% END %]
                                                             [% IF ISSUE.itemtype_object.rentalcharge_daily > 0 %]
-                                                                <span class="renewalfee label label-warning">[% ISSUE.itemtype_object.rentalcharge_daily | $Price %] per day</span>
+                                                                <span class="renewalfee badge text-bg-warning">[% ISSUE.itemtype_object.rentalcharge_daily | $Price %] per day</span>
                                                             [% END %]
                                                             [% IF ISSUE.itemtype_object.rentalcharge_hourly > 0 %]
-                                                                <span class="renewalfee label label-warning">[% ISSUE.itemtype_object.rentalcharge_hourly | $Price %] per hour</span>
+                                                                <span class="renewalfee badge text-bg-warning">[% ISSUE.itemtype_object.rentalcharge_hourly | $Price %] per hour</span>
                                                             [% END %]
                                                             <span class="renewals">(
-                                                                [% ISSUE.renewsleft | html %] of [% ISSUE.renewsallowed | html %] renewals remaining
+                                                                [% I18N.tx("{renewals_left} of {renewals_allowed} renewals remaining", { renewals_left = ISSUE.renewsleft, renewals_allowed = ISSUE.renewsallowed }) %]
                                                                 [% IF Koha.Preference('UnseenRenewals') && ISSUE.unseenallowed %]
                                                                     / [% ISSUE.unseenleft | html %] of [% ISSUE.unseenallowed | html %] renewals left before the item must be seen by the library
                                                                 [% END %]
@@ -516,7 +495,7 @@
                                                         [% ELSIF ISSUE.auto_too_much_oweing %]
                                                             <span class="usr-msg auto-renew-fines">Automatic renewal failed, you have unpaid fines.</span>
                                                             <span class="renewals">(
-                                                                [% ISSUE.renewsleft | html %] of [% ISSUE.renewsallowed | html %] renewals remaining
+                                                                [% I18N.tx("{renewals_left} of {renewals_allowed} renewals remaining", { renewals_left = ISSUE.renewsleft, renewals_allowed = ISSUE.renewsallowed }) %]
                                                                 [% IF Koha.Preference('UnseenRenewals') && ISSUE.unseenallowed %]
                                                                     / [% ISSUE.unseenleft | html %] of [% ISSUE.unseenallowed | html %] renewals left before the item must be seen by the library
                                                                 [% END %]
@@ -524,7 +503,7 @@
                                                         [% ELSIF ISSUE.auto_account_expired %]
                                                             <span class="usr-msg auto-renew-expired">Automatic renewal failed, your account is expired.</span>
                                                             <span class="renewals">(
-                                                                [% ISSUE.renewsleft | html %] of [% ISSUE.renewsallowed | html %] renewals remaining
+                                                                [% I18N.tx("{renewals_left} of {renewals_allowed} renewals remaining", { renewals_left = ISSUE.renewsleft, renewals_allowed = ISSUE.renewsallowed }) %]
                                                                 [% IF Koha.Preference('UnseenRenewals') && ISSUE.unseenallowed %]
                                                                     / [% ISSUE.unseenleft | html %] of [% ISSUE.unseenallowed | html %] renewals left before the item must be seen by the library
                                                                 [% END %]
@@ -532,15 +511,7 @@
                                                         [% ELSIF ( ISSUE.too_soon ) %]
                                                             <span class="usr-msg no-renewal-before">No renewal before [% ISSUE.soonestrenewdate | $KohaDates  as_due_date => 1 %]</span>
                                                             <span class="renewals">(
-                                                                [% ISSUE.renewsleft | html %] of [% ISSUE.renewsallowed | html %] renewals remaining
-                                                                [% IF Koha.Preference('UnseenRenewals') && ISSUE.unseenallowed %]
-                                                                    / [% ISSUE.unseenleft | html %] of [% ISSUE.unseenallowed | html %] renewals left before the item must be seen by the library
-                                                                [% END %]
-                                                            )</span>
-                                                        [% ELSIF ( ISSUE.auto_renew || ISSUE.auto_too_soon ) %]
-                                                            <span class="usr-msg automatic-renewal">Automatic renewal</span>
-                                                            <span class="renewals">(
-                                                                [% ISSUE.renewsleft | html %] of [% ISSUE.renewsallowed | html %] renewals remaining
+                                                                [% I18N.tx("{renewals_left} of {renewals_allowed} renewals remaining", { renewals_left = ISSUE.renewsleft, renewals_allowed = ISSUE.renewsallowed }) %]
                                                                 [% IF Koha.Preference('UnseenRenewals') && ISSUE.unseenallowed %]
                                                                     / [% ISSUE.unseenleft | html %] of [% ISSUE.unseenallowed | html %] renewals left before the item must be seen by the library
                                                                 [% END %]
@@ -548,11 +519,13 @@
                                                         [% ELSIF ( ISSUE.item_denied_renewal ) %]
                                                             Renewal not allowed
                                                         [% END %]
+                                                        [% IF ( ISSUE.auto_renew || ISSUE.auto_too_soon ) %]
+                                                            <br><span class="usr-msg automatic-renewal">This item is scheduled for auto renewal.</span>
+                                                        [% END %]
                                                         </td>
                                                     [% END %]
                                                     [% IF ( OPACFinesTab ) %]
                                                         <td class="fines">
-                                                            <span class="tdlabel">Fines:</span>
                                                             [% IF ( ISSUE.charges ) %]
                                                                 <span>Yes (Item overdue or lost)</span>
                                                             [% ELSIF ( ISSUE.rentalfines ) %]
@@ -562,8 +535,8 @@
                                                             [% END %]
                                                         </td>
                                                     [% END %]
-                                                    [% IF ( OPACMySummaryHTML ) %]
-                                                        <td class="links">[% ISSUE.MySummaryHTML | $raw %]</td>
+                                                    [% IF Koha.Preference('OPACMySummaryHTML') %]
+                                                        <td class="links">[% ISSUE.biblio_object.opac_summary_html| $raw %]</td>
                                                     [% END %]
                                                     [% IF ( Koha.Preference('AllowCheckoutNotes') ) %]
                                                         <td>
@@ -588,20 +561,23 @@
                                                 [% END # /FOREACH ISSUES %]
                                             </tbody>
                                         </table>
-                                        [% IF ( canrenew && !userdebarred && OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions ) ) %]
-                                            <input type="submit" class="btn btn-primary" value="Renew selected" />
-                                            <button type="button" id="renewall_js" class="btn btn-primary">Renew all</button>
+                                        [% IF ( canrenew && !userdebarred && OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions_contains('renew') ) ) %]
+                                            <input type="submit" class="btn btn-primary d-print-none" value="Renew selected" />
+                                            <input type="hidden" name="op" value="cud-renew" />
+                                            <button type="button" id="renewall_js" class="btn btn-primary d-print-none">Renew all</button>
                                         [% END %]
                                     </form>
 
-                                    [% IF ( canrenew && !userdebarred && OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions ) ) %]
+                                    [% IF ( canrenew && !userdebarred && OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions_contains('renew') ) ) %]
                                         <form id="renewall" class="js-hide" action="/cgi-bin/koha/opac-renew.pl" method="post">
+                                            [% INCLUDE 'csrf-token.inc' %]
                                             <legend class="sr-only">Renew</legend>
                                             <input type="hidden" name="from" value="opac_user" />
+                                            <input type="hidden" name="op" value="cud-renew" />
                                             <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]" />
                                             [% FOREACH ISSUE IN ISSUES %]
                                                 [% IF ISSUE.status %]
-                                                    <input type="hidden" name="item" value="[% ISSUE.itemnumber | html %]" />
+                                                    <input type="hidden" name="issue" value="[% ISSUE.issue_id | html %]" />
                                                 [% END %]
                                             [% END %]
                                             <input type="submit" class="btn btn-primary" value="Renew all" />
@@ -610,20 +586,18 @@
                                 [% ELSE %]
                                     <table class="table table-bordered table-striped">
                                         <caption class="sr-only">Checked out</caption>
-                                        <tr><td>You have nothing checked out</td></tr>  
+                                        <tr><td>You have nothing checked out</td></tr>
                                     </table>
                                 [% END # IF issues_count %]
 
                                 <!-- Add note modal -->
                                 <div class="modal" id="addNoteModal" tabindex="-1" aria-labelledby="addNoteLabel" aria-hidden="true">
                                     <div class="modal-dialog">
-                                        <form action="#" id="addNoteForm">
+                                        <form method="get" action="#" id="addNoteForm">
                                             <div class="modal-content">
                                                 <div class="modal-header">
-                                                    <h5 class="modal-title" id="addNoteLabel">Report a problem</h5>
-                                                    <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close">
-                                                        <span aria-hidden="true">&times;</span>
-                                                    </button>
+                                                    <h1 class="modal-title" id="addNoteLabel">Report a problem</h1>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                 </div>
                                                 <div class="modal-body" id="addNoteBody">
                                                     <h6 id="addNoteTitle"></h6>
@@ -633,161 +607,24 @@
                                                 </div>
                                                 <div class="modal-footer">
                                                     <button type="submit" class="btn btn-primary">Submit note</button>
-                                                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                                                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
                                                 </div>
                                             </div>
                                         </form>
                                     </div>
                                 </div>
-
-                            </div> <!-- / .opac-user-checkouts -->
-                        
-                            [% IF ( divibib_issues_count ) %]
-                                <div id="opac-user-divibibcheckouts" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-divibibcheckouts-tab">
-                                    <table id="divibibcheckoutst" class="table table-bordered table-striped">
-                                        <caption>[% divibib_issues_count %] Item(s) checked out</caption>
-                                        <thead>
-                                            <tr>
-                                                <th>Item type</th>
-
-                                                <th class="nosort jacketcol">&nbsp;</th>
-
-                                                <th class="anti-the titlecol">Title</th>
-                                                
-                                                <th>Author</th>
-                                                
-                                                <th class="title-string psort">Due</th>
-
-                                                [% IF ( Koha.Preference('OPACMySummaryLibrary') ) %]
-                                                    <th>Library</th>
-                                                [% END %]
-
-                                                [% IF ( show_barcode ) %]
-                                                    <th>Barcode</th>
-                                                [% END %]
-
-                                                [% IF ( Koha.Preference('OPACMySummaryCallNumber') ) %]
-                                                    <th>Call no.</th>
-                                                [% END %]
-
-                                                [% IF ( OPACMySummaryHTML ) %]
-                                                    <th class="nosort">Links</th>
-                                                [% END %]
-
-                                                [% IF ( OPACFinesTab ) %]
-                                                    <th>Fines</th>
-                                                [% END %]
-
-                                                [% IF ( OpacRenewalAllowed && !( borrower.is_expired && borrower.BlockExpiredPatronOpacActions ) ) %]
-                                                    <th class="nosort">Renew</th>
-                                                [% END %]
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            [% FOREACH ISSUE IN DIVIBIB_ISSUES %]
-
-                                                <tr>
-
-                                                    <td class="itype">
-                                                        <span class="tdlabel">Item type:</span>
-                                                        [% UNLESS ( noItemTypeImages ) %]
-                                                            [% IF ( item_level_itypes ) %]
-                                                                [% IF ( ISSUE.itype_imageurl ) %]
-                                                                    <img src="[% ISSUE.itype_imageurl %]" title="[% ISSUE.itype_description %]" alt="[% ISSUE.itype_description %]" />
-                                                                [% END %]
-                                                            [% ELSE %]
-                                                                [% IF ( ISSUE.imageurl ) %]
-                                                                    <img src="[% ISSUE.imageurl %]" title="[% ISSUE.description %]" alt="[% ISSUE.description %]" />
-                                                                [% END %]
-                                                            [% END %]
-                                                        [% END %]
-                                                        [% IF ( item_level_itypes ) %]
-                                                            [% ISSUE.itype_description %]
-                                                        [% ELSE %]
-                                                            [% ISSUE.description %]
-                                                        [% END %]
-                                                    </td>
-                                                    
-                                                    <td class="jacketcell">
-                                                        [% IF ( ISSUE.titlecoverurl ) %]
-                                                            <img src="[% ISSUE.titlecoverurl | html %]" class="ekzcover" title="[% ISSUE.biblionumber |url %]" alt="Onleihe-Cover" />
-                                                        [% END %]
-                                                    </td>
-
-                                                    <td class="title">
-                                                        <a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% ISSUE.biblionumber %]">[% ISSUE.title |html %] [% FOREACH subtitl IN ISSUE.subtitle %] [% subtitl.subfield %][% END %]</a>
-                                                        [% IF ( ISSUE.enumchron ) %] [% ISSUE.enumchron %][% END %]
-                                                    </td>
-
-                                                    <td class="author">[% ISSUE.author %]</td>
-
-                                                    <td class="date_due">
-                                                        <span title="[% ISSUE.date_due %]">
-                                                            <span class="tdlabel">Date due:</span>
-                                                            [% ISSUE.date_due_sql | $KohaDates as_due_date => 1 %]
-                                                        </span>
-                                                    </td>
-
-                                                    [% IF ( Koha.Preference('OPACMySummaryLibrary') ) %]
-                                                        <td class="branch">
-                                                            <span class="tdlabel">Library:</span>
-                                                            [% Branches.GetName('eBib') %]
-                                                        </td>
-                                                    [% END %]
-
-                                                    [% IF ( show_barcode ) %]
-                                                        <td class="barcode">
-                                                            <span class="tdlabel">Barcode:</span>
-                                                            [% ISSUE.barcode %]
-                                                        </td>
-                                                    [% END %]
-
-                                                    [% IF ( Koha.Preference('OPACMySummaryCallNumber') ) %]
-                                                        <td class="call_no">
-                                                            <span class="tdlabel">Call no.:</span>
-                                                            [% ISSUE.itemcallnumber %]
-                                                        </td>
-                                                    [% END %]
-
-                                                    [% IF ( OPACMySummaryHTML ) %]
-                                                        <td class="links">[% ISSUE.MySummaryHTML %]</td>
-                                                    [% END %]
-
-                                                    [% IF ( OPACFinesTab ) %]
-                                                        <td class="fines">
-                                                            <span class="tdlabel">Fines:</span>
-                                                            [% IF ( ISSUE.charges ) %]
-                                                                Yes
-                                                            [% ELSE %]
-                                                                No
-                                                            [% END %]
-                                                        </td>
-                                                    [% END %]
-
-                                                    [% IF ( OpacRenewalAllowed && !( borrower.is_expired && borrower.BlockExpiredPatronOpacActions ) ) %]
-                                                        <td class="renew">
-                                                            Not renewable here
-                                                        </td>
-                                                    [% END %]
-
-                                                </tr>
-                                            [% END # /FOREACH DIVIBIB_ISSUES %]
-                                        </tbody>
-                                    </table>
-                                </div> <!-- / .opac-user-divibibcheckouts -->
-                            [% END # IF divibib_issues_count %]
-
+                            [% END # /tab_panel#opac-user-checkouts %]
 
                             [% IF borrower_club_enrollments.count || borrower_enrollable_clubs.count %]
-                                <div id="opac-user-clubs" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-clubs-tab-link">
+                                [% WRAPPER tab_panel tabname="opac-user-clubs" %]
                                     Loading...
-                                </div>
+                                [% END # /tab_panel#opac-user-clubs %]
                             [% END %]
 
                             [% IF ( OPACFinesTab ) %]
                                 <!-- FINES BOX -->
                                 [% IF ( amountoutstanding > 0 ) %]
-                                    <div id="opac-user-fines" class="tab-pane" id="home" role="tabpanel" aria-labelledby="opac-user-fines-tab">
+                                    [% WRAPPER tab_panel tabname="opac-user-fines" %]
                                         <table class="table table-bordered table-striped">
                                             <caption>Charges</caption>
                                             <thead><tr><th colspan="2">Amount</th></tr></thead>
@@ -798,11 +635,11 @@
                                                 </tr>
                                             </tbody>
                                         </table>
-                                    </div>
+                                    [% END # /tab_panel#opac-user-fines %]
                                 [% END %]
 
                                 [% IF ( amountoutstanding < 0 ) %]
-                                    <div id="opac-user-fines" class="tab-pane" id="home" role="tabpanel" aria-labelledby="opac-user-fines-tab">
+                                    [% WRAPPER tab_panel tabname="opac-user-fines" %]
                                         <table class="table table-bordered table-striped">
                                             <caption>Credits</caption>
                                             <thead><tr><th colspan="2">Amount</th></tr></thead>
@@ -812,11 +649,11 @@
                                                 </tr>
                                             </tbody>
                                         </table>
-                                    </div>
+                                    [% END # /tab_panel#opac-user-fines %]
                                 [% END %]
 
                                 [% IF relatives_with_fines %]
-                                    <div id="opac-user-relative-fines" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-relative-fines-tab">
+                                    [% WRAPPER tab_panel tabname="opac-user-relative-fines" %]
                                         <table class="table table-bordered table-striped">
                                             <caption>Fines and charges</caption>
                                             <thead>
@@ -833,27 +670,20 @@
                                                 [% END %]
                                             </tbody>
                                         </table>
-                                    </div>
+                                    [% END # /tab_panel#opac-user-relative-fines %]
                                 [% END %]
                             [% END # / OPACFinesTab %]
 
                             [% IF relatives %]
-                                <div id="opac-user-relative-issues" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-relative-issues-tab">
+                                [% WRAPPER tab_panel tabname="opac-user-relative-issues" %]
                                     <table id="opac-user-relative-issues-table" class="table table-bordered table-striped">
                                         <caption class="sr-only">Relatives' checkouts</caption>
                                         <thead>
                                             <tr>
-                                                <th>Item type</th>
                                                 <th class="all anti-the">Title</th>
-                                                <th>Author</th>
                                                 <th>Due</th>
-                                                [% IF ( Koha.Preference('OPACMySummaryLibrary') ) %]
-                                                    <th>Library</th>
-                                                [% END %]
                                                 <th>Barcode</th>
-                                                [% IF ( Koha.Preference('OPACMySummaryCallNumber') ) %]
-                                                    <th>Call number</th>
-                                                [% END %]
+                                                <th>Call number</th>
                                                 <th class="psort">Relative</th>
                                                 <th></th>
                                             </tr>
@@ -863,52 +693,23 @@
                                             [% FOREACH r IN relatives %]
                                                 [% FOREACH c IN r.checkouts %]
                                                     <tr>
-                                                        <td class="itype">
-                                                            [% itypelookup = c.item.itype %][% IF (! item_level_itypes ) %][% itypelookup = c.item.bilioitem.itemtype %][% END %]
-                                                            <span class="tdlabel">Item type:</span>
-                                                            [% FOREACH itype IN itemtypes %]
-                                                                [% IF itype.itemtype == itypelookup %]
-                                                                    [% UNLESS ( noItemTypeImages ) %]
-                                                                        [% IF ( itype.imageurl ) %]
-                                                                            <img src="[% ItemTypes.GetImageLocation('opac',itype.imageurl) %]" title="[% itype.description | html %]" alt="[%itype.description | html %]" />
-                                                                        [% END %]
-                                                                    [% END %]
-                                                                    [% itype.description | html %]
-                                                                [% END %]
-                                                            [% END %]
-                                                        </td>
-                                                        
                                                         <td>
                                                             <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% c.item.biblio.biblionumber | uri %]">
                                                                 [% c.item.biblio.title | html %][% IF ( c.item.enumchron ) %] [% c.item.enumchron | html %][% END %]
                                                             </a>
                                                         </td>
-                                                        
-                                                        <td>
-                                                            [% c.item.biblio.author | html %]
-                                                        </td>
 
                                                         <td>
                                                             [% c.date_due | $KohaDates %]
                                                         </td>
-                                                        
-                                                        [% IF ( Koha.Preference('OPACMySummaryLibrary') ) %]
-                                                            <td class="branch">
-                                                                <span class="tdlabel">Library:</span> 
-                                                                [% Branches.GetName(c.branchcode) | html %]
-                                                            </td>
-                                                        [% END %]
 
                                                         <td>
                                                             [% c.item.barcode | html %]
                                                         </td>
 
-
-                                                        [% IF ( Koha.Preference('OPACMySummaryCallNumber') ) %]
-                                                            <td>
-                                                                [% c.item.itemcallnumber | html %]
-                                                            </td>
-                                                        [% END %]
+                                                        <td>
+                                                            [% c.item.itemcallnumber | html %]
+                                                        </td>
 
                                                         <td>
                                                             [% r.firstname | html %] [% r.surname | html %]
@@ -919,11 +720,45 @@
                                             [% END %]
                                         </tbody>
                                     </table>
-                                </div>
+                                [% END # /tab_panel#opac-user-relative-issues %]
+                            [% END %]
+
+                            [% IF Koha.Preference('DivibibEnabled') && divibib_issues_count %]
+                                [% WRAPPER tab_panel tabname="opac-user-divibibcheckouts" %]
+                                    <table id="divibibcheckoutst" class="table table-bordered table-striped">
+                                        <caption>[% divibib_issues_count %] Item(s) checked out</caption>
+                                        <thead>
+                                            <tr>
+                                                <th class="anti-the">Title</th>
+                                                <th>Item type</th>
+                                                <th>Date due</th>
+                                                <th>Checked out on</th>
+                                                <th>Checked out from</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            [% FOREACH ISSUE IN DIVIBIB_ISSUES %]
+                                                <tr>
+                                                    <td>
+                                                        [% IF ISSUE.titlecoverurl %]
+                                                            <img src="[% ISSUE.titlecoverurl | html %]" class="ekzcover" alt="Onleihe-Cover" />
+                                                        [% END %]
+                                                        [% INCLUDE 'biblio-title.inc' biblio=ISSUE link=1 %]
+                                                        [% IF ISSUE.author %] by [% ISSUE.author | html %][% END %]
+                                                    </td>
+                                                    <td>[% ISSUE.itemtype_description | html %]</td>
+                                                    <td data-order="[% ISSUE.date_due | html %]">[% ISSUE.date_due | $KohaDates %]</td>
+                                                    <td data-order="[% ISSUE.issuedate | html %]">[% ISSUE.issuedate | $KohaDates %]</td>
+                                                    <td>[% Branches.GetName(ISSUE.branchcode) | html %]</td>
+                                                </tr>
+                                            [% END %]
+                                        </tbody>
+                                    </table>
+                                [% END # /tab_panel#opac-user-divibibcheckouts %]
                             [% END %]
 
                             [% IF ( overdues_count ) %]
-                                <div id="opac-user-overdues" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-overdues-tab">
+                                [% WRAPPER tab_panel tabname="opac-user-overdues" %]
                                     <table id="overduest" class="table table-bordered table-striped">
                                         <caption>Overdues <span class="count">([% overdues_count | html %] total)</span></caption>
                                         <!-- OVERDUES TABLE ROWS -->
@@ -931,18 +766,10 @@
                                             <tr>
                                                 [% IF ( JacketImages ) %]<th class="nosort">&nbsp;</th>[% END %]
                                                 <th class="all anti-the">Title</th>
-                                                <th>Item type</th>
-                                                [% IF ( Koha.Preference('OPACMySummaryLibrary') ) %]
-                                                    <th>Library</th>
-                                                [% END %]
+                                                [% UNLESS ( item_level_itypes ) %]<th>Item type</th> [% END %]
                                                 [% IF ( show_barcode ) %]<th>Barcode</th>[% END %]
-                                                [% IF ( Koha.Preference('OPACMySummaryCallNumber') ) %]
-                                                    <th>Call number</th>
-                                                [% END %]
+                                                <th>Call number</th>
                                                 <th class="psort">Due</th>
-                                                [% IF ( OPACMySummaryHTML ) %]
-                                                    <th class="nosort">Links</th>
-                                                [% END %]
                                                 [% IF ( OpacRenewalAllowed ) %]
                                                     <th class="nosort">Renew</th>
                                                 [% END %]
@@ -957,6 +784,9 @@
                                                 <tr>
                                                     [% IF ( JacketImages ) %]
                                                         <td class="jacketcell">
+                                                        [% IF OVERDUE.titlecoverurl %]
+                                                            <img src="[% OVERDUE.titlecoverurl | html %]" class="ekzcover" title="[% OVERDUE.biblionumber | url %]" alt="Cover" />
+                                                        [% END %]
                                                         [% IF ( OPACAmazonCoverImages ) %]
                                                             [% IF ( OVERDUE.normalized_isbn ) %]
                                                                 <a href="http://www.amazon.com/gp/reader/[% OVERDUE.normalized_isbn | uri %][% AmazonAssocTag | uri %]#reader-link" title="View on Amazon.com"><img src="https://images-na.ssl-images-amazon.com/images/P/[% OVERDUE.normalized_isbn | html %].01.THUMBZZZ.jpg" alt="View on Amazon.com" class="item-thumbnail" /></a>
@@ -982,80 +812,53 @@
                                                             [% END %]
                                                         [% END %]
 
-                                                        [% IF Koha.Preference('OPACCustomCoverImages') AND Koha.Preference('CustomCoverImagesURL') %]
-                                                            [% SET custom_cover_image_url = OVERDUE.biblio_object.custom_cover_image_url %]
-                                                            [% IF custom_cover_image_url %]
-                                                                <a class="custom_cover_image" href="[% custom_cover_image_url | url %]"><img alt="Cover image" src="[% custom_cover_image_url | url %]" /></a>
-                                                            [% END %]
-                                                        [% END %]
-                                                            
                                                         [% IF ( SyndeticsCoverImages ) %]
                                                             <img src="https://secure.syndetics.com/index.aspx?isbn=[% OVERDUE.normalized_isbn | html %]/[% SyndeticsCoverImageSize | uri %].GIF&amp;client=[% SyndeticsClientCode | html %]&amp;upc=[% OVERDUE.normalized_upc | html %]&amp;oclc=[% OVERDUE.normalized_oclc | html %]&amp;type=xw10" alt="" class="item-thumbnail" />
                                                         [% END %]
-                                                        
-                                                        [% IF ( OVERDUE.titlecoverurl ) %]
-                                                            <img src="[% OVERDUE.titlecoverurl | html %]" class="ekzcover" title="[% OVERDUE.biblionumber |url %]" alt="Cover" />
-                                                        [% END %]
                                                         </td>
                                                     [% END # /IF jacketcell %]
-                                                    
+
                                                     <td>
                                                         [% INCLUDE 'biblio-title.inc' biblio=OVERDUE link=> 1 %]
                                                         <span class="item-details">[% OVERDUE.author | html %]</span>
                                                     </td>
-                                                    
-                                                    <td class="itype">
-                                                        [% IF ( item_level_itypes ) %]
-                                                            [% IF ( OVERDUE.itype_imageurl  && !Koha.Preference('OpacNoItemTypeImages') ) %]
-                                                                <img src="[% OVERDUE.itype_imageurl | html %]" title="[% OVERDUE.description | html %]" alt="[% OVERDUE.description | html %]" />
-                                                            [% END %] [% OVERDUE.description | html %]
-                                                        [% ELSE %]
+
+                                                    [% UNLESS ( item_level_itypes ) %]
+                                                        <td>
                                                             [% IF ( OVERDUE.imageurl  && !Koha.Preference('OpacNoItemTypeImages') ) %]
                                                                 <img src="[% OVERDUE.imageurl | html %]" title="[% OVERDUE.description | html %]" alt="[% OVERDUE.description | html %]" />
                                                             [% END %] [% OVERDUE.description | html %]
-                                                        [% END %]
-                                                    </td>
-                                                    
-                                                    [% IF ( Koha.Preference('OPACMySummaryLibrary') ) %]
-                                                        <td class="branch">
-                                                            <span class="tdlabel">Library:</span>
-                                                            [% Branches.GetName(OVERDUE.branchcode) %]
                                                         </td>
                                                     [% END %]
-                                                    
                                                     [% IF ( show_barcode ) %]
                                                         <td>
-                                                            <span class="tdlabel">Barcode:</span>
                                                             [% OVERDUE.barcode | html %]
                                                         </td>
                                                     [% END %]
-                                                    
-                                                    [% IF ( Koha.Preference('OPACMySummaryCallNumber') ) %]
-                                                        <td>
-                                                            <span class="tdlabel">Call number:</span>
-                                                            [% OVERDUE.itemcallnumber | html %]
-                                                        </td>
-                                                    [% END %]
-
+                                                    <td>
+                                                        [% OVERDUE.itemcallnumber | html %]
+                                                    </td>
                                                     <td data-order="[% OVERDUE.date_due | html %]">
-                                                        <span class="tdlabel">Date due:</span>
                                                         [% OVERDUE.date_due | $KohaDates as_due_date => 1 %]
                                                     </td>
-                                                    
-                                                    [% IF ( OPACMySummaryHTML ) %]
-                                                        <td class="links">[% OVERDUE.MySummaryHTML %]</td>
-                                                    [% END %]
-
                                                     [% IF ( OpacRenewalAllowed ) %]
                                                         <td>
                                                             [% IF ( OVERDUE.debarred ) %]
                                                                 Account frozen
                                                             [% ELSIF ( OVERDUE.status ) %]
                                                                 [% IF ( canrenew ) %]
-                                                                    <a href="/cgi-bin/koha/opac-renew.pl?from=opac_user&amp;item=[% OVERDUE.itemnumber | uri %]&amp;bornum=[% OVERDUE.borrowernumber | uri %]">Renew</a>
+                                                                    <a
+                                                                        class="submit-form-link"
+                                                                        href="#"
+                                                                        data-method="post"
+                                                                        data-action="/cgi-bin/koha/opac-renew.pl?from=opac_user"
+                                                                        data-issue="[% ISSUE.issue_id | html %]"
+                                                                        data-op="cud-renew"
+                                                                        >Renew</a
+                                                                    >
                                                                 [% END %]
                                                                     <span class="renewals">(
-                                                                        [% OVERDUE.renewsleft | html %] of [% OVERDUE.renewsallowed | html %] renewals remaining
+                                                                        [% I18N.tx("{renewals_left} of {renewals_allowed} renewals remaining", { renewals_left = OVERDUE.renewsleft, renewals_allowed = OVERDUE.renewsallowed }) %]
                                                                         [% IF Koha.Preference('UnseenRenewals') && ISSUE.unseenallowed %]
                                                                             / [% OVERDUE.unseenleft | html %] of [% OVERDUE.unseenallowed | html %] renewals left before the item must be seen by the library
                                                                         [% END %]
@@ -1071,7 +874,6 @@
                                                     [% END %]
                                                     [% IF ( OPACFinesTab ) %]
                                                         <td>
-                                                            <span class="tdlabel">Fines:</span>
                                                             [% IF ( OVERDUE.charges ) %]
                                                                 <span>Yes</span>
                                                             [% ELSE %]
@@ -1084,16 +886,24 @@
                                             [% END %]
                                         </tbody>
                                     </table>
-                                </div> <!-- / #opac-user-overdues -->
+                                [% END # /tab_panel#opac-user-overdues %]
                             [% END # /overdues_count %]
 
                             [% IF ( RESERVES.count ) %]
-                                [% PROCESS 'holds-table.inc' HOLDS = RESERVES, SuspendHoldsOpac = SuspendHoldsOpac, showpriority = showpriority, AutoResumeSuspendedHolds = AutoResumeSuspendedHolds %]
+                                [% WRAPPER tab_panel tabname="opac-user-holds" %]
+                                    [% PROCESS 'holds-table.inc' HOLDS = RESERVES, SuspendHoldsOpac = SuspendHoldsOpac, showpriority = showpriority, AutoResumeSuspendedHolds = AutoResumeSuspendedHolds %]
+                                [% END # /tab_panel#opac-user-holds %]
                             [% END # / #RESERVES.count %]
 
+                            [% IF Koha.Preference('OPACBookings') && BOOKINGS.count %]
+                                [% WRAPPER tab_panel tabname="opac-user-bookings" %]
+                                    [% INCLUDE 'bookings-table.inc' %]
+                                    [% INCLUDE 'modals/booking/cancel.inc' %]
+                                [% END # /tab_panel#opac-user-bookings %]
+                            [% END %]
 
                             [% IF Koha.Preference('UseRecalls') && RECALLS.count %]
-                                <div id="opac-user-recalls" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-recalls-tab">
+                                [% WRAPPER tab_panel tabname="opac-user-recalls" %]
                                     <table id="recalls-table" class="table table-bordered table-striped">
                                         <caption>Recalls <span class="count">([% RECALLS.count | html %])</span></caption>
                                         <thead>
@@ -1116,29 +926,24 @@
                                                 </td>
                                                 <td class="recalldate" data-order="[% RECALL.created_date | html %]">
                                                     <span title="[% RECALL.created_date | html %]">
-                                                        <span class="tdlabel">Recall date:</span>
                                                         [% RECALL.created_date | $KohaDates %]
                                                     </span>
                                                 </td>
                                                 <td class="expirationdate" data-order="[% RECALL.expiration_date | html %]">
                                                     [% IF ( RECALL.expiration_date ) %]
                                                         <span title="[% RECALL.expiration_date | html %]">
-                                                            <span class="tdlabel">Expiration:</span>
                                                             [% RECALL.expiration_date | $KohaDates %]
                                                         </span>
                                                     [% ELSE %]
                                                         <span title="0000-00-00">
-                                                            <span class="tdlabel">Expiration:</span>
                                                             Never expires
                                                         </span>
                                                     [% END %]
                                                 </td>
                                                 <td class="branch">
-                                                    <span class="tdlabel">Pick up location:</span>
                                                     [% RECALL.library.branchname | html %]
                                                 </td>
                                                 <td class="status">
-                                                    <span class="tdlabel">Status:</span>
                                                     [% IF ( RECALL.requested ) %]
                                                         <span>Requested</span>
                                                     [% ELSIF ( RECALL.overdue ) %]
@@ -1152,30 +957,24 @@
                                                 <td class="cancelrecall">
                                                     [% IF ( RECALL.requested or RECALL.overdue ) %]
                                                         <form action="/cgi-bin/koha/opac-recall.pl" method="post">
-                                                            <input type="hidden" name="op" value="cancel">
+                                                            [% INCLUDE 'csrf-token.inc' %]
+                                                            <input type="hidden" name="op" value="cud-cancel">
                                                             <input type="hidden" name="recall_id" value="[% RECALL.id | html %]">
                                                             <input type="hidden" name="biblionumber" value="[% RECALL.biblio_id | html %]">
-                                                            <button type="submit" name="submit" class="btn btn-sm btn-danger cancel_recall"><i class="fa fa-remove" aria-hidden="true"></i> Cancel</button>
+                                                            <button type="submit" name="submit" class="btn btn-sm btn-danger cancel_recall"><i class="fa fa-times" aria-hidden="true"></i> Cancel</button>
                                                         </form>
                                                     [% END %]
                                                 </td>
+                                                <td></td>
                                             [% END %]
-                                            <td></td>
                                             </tr>
                                         </tbody>
                                     </table>
-                                </div>
+                                [% END # /tab_panel#opac-user-recalls %]
                             [% END # / # RECALLS.count %]
 
-                            [% IF Koha.Preference('OPACBookings') && BOOKINGS.count %]
-                                <div id="opac-user-bookings" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-bookings-tab">
-                                    [% INCLUDE 'bookings-table.inc' %]
-                                    [% INCLUDE 'modals/booking/cancel.inc' %]
-                                </div> <!-- / #opac-user-bookings -->
-                            [% END %]
-
                             [% IF Koha.Preference('ArticleRequests') %]
-                                <div id="opac-user-article-requests" class="tab-pane" role="tabpanel" aria-labelledby="opac-user-article-requests-tab">
+                                [% WRAPPER tab_panel tabname="opac-user-article-requests" %]
                                     [% IF current_article_requests.size %]
                                         <table id="article-requests-table" class="table table-bordered table-striped">
                                             <caption>Article requests <span class="count"></span></caption>
@@ -1195,14 +994,14 @@
                                                     <th class="article-request-format">Format</th>
                                                     <th class="article-request-status">Status</th>
                                                     <th class="article-request-branchcode">Pickup library</th>
-                                                    <th class="nosort article-request-cancel">&nbsp;</th>
+                                                    <th class="article-request-cancel">Actions</th>
                                                     <th></th>
                                                 </tr>
                                             </thead>
 
                                             <tbody>
                                                     [% FOREACH ar IN current_article_requests %]
-                                                        <tr>
+                                                    <tr id="article_[% ar.id | html %]">
                                                             <td class="article-request-record-title">
                                                                 [% INCLUDE 'biblio-title.inc' biblio=ar.biblio link=> 1 %]
                                                                 [% ar.item.enumchron | html %]
@@ -1250,7 +1049,13 @@
                                                                 [% ar.patron_notes | html %]
                                                             </td>
 
-                                                            <td class="article-request-format">[% IF ar.format == 'PHOTOCOPY' %]<span>Copy</span>[% ELSIF ar.format == 'SCAN' %]<span>Scan</span>[% END %]</td>
+                                                            <td class="article-request-format">
+                                                                [% IF ar.format == 'PHOTOCOPY' %]
+                                                                    <span>Copy</span>
+                                                                [% ELSIF ar.format == 'SCAN' %]
+                                                                    <span>Scan</span>
+                                                                [% END %]
+                                                            </td>
 
                                                             <td class="article-request-status">
                                                                 [% IF ar.status == 'PENDING' %]
@@ -1271,7 +1076,7 @@
                                                             </td>
 
                                                             <td class="article-request-cancel">
-                                                                <button data-title="[% ar.biblio.title | html %] [% ar.item.enumchron | html %]" data-article-request_id="[% ar.id | html %]" class="btn btn-sm btn-danger btn-delete-article-request"><i class="fa fa-remove" aria-hidden="true"></i> Cancel</button>
+                                                                <button data-title="[% ar.biblio.title | html %] [% ar.item.enumchron | html %]" data-article-request_id="[% ar.id | html %]" class="btn btn-sm btn-danger btn-delete-article-request"><i class="fa fa-times" aria-hidden="true"></i> Cancel</button>
                                                             </td>
                                                             <td></td>
                                                         </tr>
@@ -1284,10 +1089,10 @@
                                             <tr><td>You have no article requests currently.</td></tr>
                                         </table>
                                     [% END # IF current_article_requests.size %]
-                                </div> <!-- / #opac-user-article-requests -->
+                                [% END # /tab_panel#opac-user-article-requests %]
                             [% END %]
-                        </div> <!-- /.tab-content -->
-                    </div> <!-- /#opac-user-views -->
+                        [% END # /WRAPPER tab_panels %]
+                    [% END # /WRAPPER tabs#opac-user-views %]
                 </div> <!-- /#userdetails -->
             </div> <!-- /.col-10 -->
         </div> <!-- /.row -->
@@ -1299,15 +1104,16 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form action="/cgi-bin/koha/opac-modrequest-suspend.pl" method="post">
+                [% INCLUDE 'csrf-token.inc' %]
                 <div class="modal-header">
                     [% IF HOLD.suspend %]
-                        <h5 class="modal-title" id="suspendModalLabel">Resume hold</h5>
+                        <h1 class="modal-title" id="suspendModalLabel">Resume hold</h1>
+                        <input type="hidden" name="op" value="cud-unsuspend" />
                     [% ELSE %]
-                        <h5 class="modal-title" id="suspendModalLabel">Suspend hold</h5>
+                        <h1 class="modal-title" id="suspendModalLabel">Suspend hold</h1>
+                        <input type="hidden" name="op" value="cud-suspend" />
                     [% END %]
-                    <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">x</span>
-                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <h6 id="suspendHoldTitle"></h6>
@@ -1318,8 +1124,8 @@
                     <p><a href="#" class="clear-flatpickr" data-fp="suspend_untilDate">Clear date to suspend indefinitely</a></p>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-primary"><i class="fa fa-check" aria-hidden="true"></i> Suspend</button>
-                    <button data-dismiss="modal" class="btn btn-secondary"><i class="fa fa-remove" aria-hidden="true"></i> Do not suspend</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-check" aria-hidden="true"></i> Suspend</button>
+                    <button type="button" data-bs-dismiss="modal" class="btn btn-secondary"><i class="fa fa-times" aria-hidden="true"></i> Do not suspend</button>
                 </div>
             </form>
         </div> <!-- /.modal-content -->
@@ -1354,11 +1160,13 @@
             }
         }
         $(document).ready(function(){
-            var tab = $(location).attr('hash');
-            if ( tab.length ) {
-                $("#opac-user-views a[href='" + tab + "']").tab("show");
-            }
-            $('#opac-user-article-requests caption .count').html(AR_CAPTION_COUNT.format('[% current_article_requests.size | html %]'));
+            [% IF ( opac_user_holds ) %]
+                $("#opac-user-views a[href='#opac-user-holds_panel']").tab("show");
+            [% END %]
+            [% IF ( opac_user_article_requests ) %]
+                $("#opac-user-views a[href='#opac-user-article-requests_panel']").tab("show");
+            [% END %]
+            $('#article-requests-table caption .count').html(AR_CAPTION_COUNT.format('[% current_article_requests.size | html %]'));
 
             $(".modal-nojs").addClass("modal").addClass("hide").removeClass("modal-nojs");
 
@@ -1367,7 +1175,6 @@
                 var hold_title = $(this).data("title");
                 var reserve_id = $(this).data("reserve_id");
                 confirmModal( hold_title, _("Are you sure you want to cancel this hold?"), _("Yes, cancel hold"), _("No, do not cancel hold"), function( result ){
-                        $("#bootstrap-confirm-box-modal").remove()
                         if( result ){
                             $("#delete_hold_" + reserve_id ).submit();
                         }
@@ -1380,7 +1187,6 @@
                 var hold_title = $(this).data("title");
                 var reserve_id = $(this).data("reserve_id");
                 confirmModal( hold_title, _("Are you sure you want to request cancelling this hold?"), _("Yes"), _("No"), function( result ){
-                        $("#bootstrap-confirm-box-modal").remove()
                         if( result ){
                             $("#req_cancel_hold_" + reserve_id ).submit();
                         }
@@ -1388,28 +1194,29 @@
                 );
             });
 
-            $(".btn-delete-article-request").on("click", function(e){
+            $("#article-requests-table").on("click", ".btn-delete-article-request", function(e){
                 e.preventDefault();
                 var article_request = $(this).data("title");
                 var article_request_id = $(this).data("article-request_id");
                 (function(row){
                     var doCancel = function( result ){
-                        $("#bootstrap-confirm-box-modal").remove();
                         if( result ){
                             $.ajax({
                                 type: "DELETE",
                                 url: '/api/v1/public/patrons/'+borrowernumber+'/article_requests/'+article_request_id+'?cancellation_reason=OPAC',
                                 success: function( data ) {
-                                    row.parents('tr').hide({
+                                    $("#article_" + article_request_id ).hide({
                                         duration: 'slow',
                                         complete: function() {
-                                            var ar_tab = $('a[href="#opac-user-article-requests"');
+                                            $(this).siblings(".child").hide();
+                                            var ar_tab = $('a[href="#opac-user-article-requests_panel"');
                                             var ar_table = $('#article-requests-table');
                                             var ar_length = $('tbody tr:visible', ar_table).length;
                                             var ar_count = $('caption .count', ar_table);
 
                                             ar_tab.html(ar_tab.html().replace(/\(\d+\)/, '('+ar_length+')'));
                                             ar_count.html(AR_CAPTION_COUNT.format(ar_length));
+
                                         }
                                     });
                                 }
@@ -1445,7 +1252,6 @@
                 var title = _("Are you sure you want to suspend all holds?");
                 var body = _("All holds will be suspended.");
                 confirmModal( body, title, _("Yes, suspend all holds"), "", function( result ){
-                        $("#bootstrap-confirm-box-modal").remove()
                         if( result ){
                             $("#suspend_all_holds").submit();
                         }
@@ -1458,7 +1264,6 @@
                 var title = _("Are you sure you want to resume all suspended holds?");
                 var body = _("All holds will resume.");
                 confirmModal( body, title, _("Yes, resume all holds"), _("No, do not resume holds"), function( result ){
-                        $("#bootstrap-confirm-box-modal").remove()
                         if( result ){
                             $("#resume_all_holds").submit();
                         }
@@ -1467,39 +1272,25 @@
             });
 
             const export_format_spreadsheet = ButtonsShim.export_format_spreadsheet;
-            
-            var parseBookingDateAttribute = function(value) {
-                if (!value) {
-                    return null;
-                }
 
+            // LMS: booking status derivation for the OPAC bookings tab.
+            // The backend ships raw `status` ("new") on each row; we refine
+            // it to active/pending/expired based on start/end date attrs.
+            var parseBookingDateAttribute = function(value) {
+                if (!value) { return null; }
                 var trimmed = value.trim();
                 var normalized = trimmed.indexOf('T') !== -1 ? trimmed : trimmed.replace(' ', 'T');
                 var parsed = new Date(normalized);
-
-                if (!isNaN(parsed.getTime())) {
-                    return parsed;
-                }
-
+                if (!isNaN(parsed.getTime())) { return parsed; }
                 var fallback = new Date(trimmed.split(' ')[0]);
                 return isNaN(fallback.getTime()) ? null : fallback;
             };
 
             var normalizeBookingDateOnly = function(value) {
-                if (!value) {
-                    return null;
-                }
-
+                if (!value) { return null; }
                 var dateObject = value instanceof Date ? value : parseBookingDateAttribute(value);
-                if (!dateObject || isNaN(dateObject.getTime())) {
-                    return null;
-                }
-
-                return new Date(
-                    dateObject.getFullYear(),
-                    dateObject.getMonth(),
-                    dateObject.getDate()
-                );
+                if (!dateObject || isNaN(dateObject.getTime())) { return null; }
+                return new Date(dateObject.getFullYear(), dateObject.getMonth(), dateObject.getDate());
             };
 
             var bookingStatusLabelMap = {
@@ -1510,51 +1301,34 @@
             };
 
             var bookingStatusBadgeClassMap = {
-                active: 'badge-primary',
-                pending: 'badge-warning',
-                expired: 'badge-secondary',
-                new: 'badge-info'
+                active: 'text-bg-primary',
+                pending: 'text-bg-warning',
+                expired: 'text-bg-secondary',
+                new: 'text-bg-info'
             };
 
             var deriveBookingStatus = function(rawStatus, startAttr, endAttr) {
-                if (!rawStatus) {
-                    return 'unknown';
-                }
-
-                if (rawStatus !== 'new') {
-                    return rawStatus;
-                }
+                if (!rawStatus) { return 'unknown'; }
+                if (rawStatus !== 'new') { return rawStatus; }
 
                 var today = normalizeBookingDateOnly(new Date());
                 var startDate = normalizeBookingDateOnly(startAttr);
                 var endDate = normalizeBookingDateOnly(endAttr);
 
-                if (endDate && today && endDate < today) {
-                    return 'expired';
-                }
-
-                if (startDate && today && startDate > today) {
-                    return 'pending';
-                }
-
+                if (endDate && today && endDate < today) { return 'expired'; }
+                if (startDate && today && startDate > today) { return 'pending'; }
                 if (startDate && today) {
-                    if (!endDate || endDate >= today) {
-                        return 'active';
-                    }
+                    if (!endDate || endDate >= today) { return 'active'; }
                 }
-
                 if (!startDate && endDate && today) {
                     return endDate < today ? 'expired' : 'active';
                 }
-
                 return 'new';
             };
 
             var updateBookingRowStatus = function($row) {
                 var statusCell = $row.find('td.status');
-                if (!statusCell.length) {
-                    return 'unknown';
-                }
+                if (!statusCell.length) { return 'unknown'; }
 
                 var rawStatus = statusCell.attr('data-raw-status') || statusCell.attr('data-status') || '';
                 if (rawStatus !== 'new') {
@@ -1574,7 +1348,7 @@
                     var badgeClass = bookingStatusBadgeClassMap[derivedStatus] || bookingStatusBadgeClassMap.new;
 
                     badge
-                        .removeClass('badge-primary badge-secondary badge-success badge-info badge-warning badge-danger')
+                        .removeClass('text-bg-primary text-bg-secondary text-bg-success text-bg-info text-bg-warning text-bg-danger')
                         .addClass(badgeClass)
                         .text(label);
                 }
@@ -1583,41 +1357,32 @@
             };
 
             var dTables = $("#checkoutst,#holdst,#overduest,#opac-user-relative-issues-table,#divibibcheckoutst,#opac-user-bookings-table");
-
             dTables.each(function(){
                 var $table = $(this);
                 var tableId = $table.attr("id");
                 var isBookingsTable = tableId === "opac-user-bookings-table";
-                var psortIndex = $table.find("th.psort").index();
-                if (psortIndex < 0) {
-                    psortIndex = 0;
-                }
-                var defaultOrder = isBookingsTable ? [[3, 'asc'], [4, 'asc']] : [[ psortIndex, 'asc' ]];
+                var thIndex = $table.find("th.psort").index();
+                if (thIndex < 0) { thIndex = 0; }
+                var defaultOrder = isBookingsTable ? [[3, 'asc'], [4, 'asc']] : [[ thIndex, 'asc' ]];
 
                 var config = {
-                    "sorting": defaultOrder,
+                    "sorting" : defaultOrder,
                     "order": defaultOrder,
                     "dom": '<"top"<"table_entries"><"table_controls"fB>>t',
                     "columnDefs": [
                         { "targets": [ "nosort" ],"sortable": false,"searchable": false },
                         { "type": "anti-the", "targets" : [ "anti-the" ] },
                         { "visible": false, "targets" : [ "hidden" ] },
-                        { "responsivePriority":  1, "className": 'all', "targets": ["titlecol"] },
-                        { "responsivePriority":  2, "targets": ["renewcol"] },
-                        { "responsivePriority":  3, "targets": ["duedatecol"] },
-                        { "responsivePriority":  4, "targets": ["jacketcol"] },
-                        { "className": 'dtr-control', "orderable": false, "targets": -1 },
+                        { "className": 'dtr-control', "orderable": false, "targets": -1 }
                     ],
                     "language": {
                         "search": "_INPUT_",
                         "searchPlaceholder": _("Search")
                     },
-                    "autoWidth": false,
                     "responsive": {
                         details: {
                             type: 'column',
-                            target: -1,
-                            display: $.fn.dataTable.Responsive.display.childRowImmediate
+                            target: -1
                         }
                     },
                     buttons: [
@@ -1650,21 +1415,6 @@
                         apiTable.rows({ page: 'current' }).every(function() {
                             updateBookingRowStatus($(this.node()));
                         });
-
-                        /* Apply Bootstrap pagination classes */
-                        $(this).closest('.dataTables_wrapper').find('.dataTables_paginate').addClass('pagination');
-                        $('.paginate_button').each(function() {
-                            $(this).addClass('page-link');
-                            if (!$(this).parent().hasClass('page-item')) {
-                                $(this).wrap('<li class="page-item"></li>');
-                            }
-                            if ($(this).hasClass('current')) {
-                                $(this).parent().addClass('active');
-                            }
-                            if ($(this).hasClass('disabled')) {
-                                $(this).parent().addClass('disabled');
-                            }
-                        });
                     };
                 }
 
@@ -1686,7 +1436,6 @@
                     "searching": false,
                     "paging": false,
                     "info": false,
-                    "autoWidth": false,
                     "responsive": {
                         "details": { "type": 'column',"target": -1 }
                     },
@@ -1695,11 +1444,11 @@
                     ],
                 }));
             });
-            $('a[data-toggle="tab"]').on('shown.bs.tab', function (event) {
+            $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (event) {
                 dTables.DataTable().responsive.recalc();
                 dataTables.DataTable().responsive.recalc();
 
-                // Initialize combobox for cancellation reason when bookings tab is shown
+                // LMS: initialize combobox for cancellation reason when bookings tab is shown
                 if (event.target.id === 'opac-user-bookings-tab') {
                     $("#cancellation-reason").comboBox({
                         displayProperty: 'name',
@@ -1772,10 +1521,10 @@
                 $("#change-pickup-location" + hold_id ).show();
             });
 
-            if ( $('#opac-user-clubs').length ) {
-                $('#opac-user-clubs-tab-link').on('click', function() {
-                    $('#opac-user-clubs').text(_("Loading..."));
-                    $('#opac-user-clubs').load('/cgi-bin/koha/clubs/clubs-tab.pl?borrowernumber=[% borrowernumber | html %]');
+            if ( $('#opac-user-clubs_panel').length ) {
+                $('#opac-user-clubs-tab').on('click', function() {
+                    $('#opac-user-clubs_panel').text(_("Loading..."));
+                    $('#opac-user-clubs_panel').load('/cgi-bin/koha/clubs/clubs-tab.pl?borrowernumber=[% borrowernumber | html %]');
                 });
             }
 
@@ -1807,6 +1556,18 @@
                 $("#addNoteTitle").text("");
                 $("#addNote").val("");
             });
+
+            $(".dismiss-message-button").click(function(e){
+                return confirmDelete(_("Are you sure you want to dismiss this message?"));
+            });
+
+            [% IF ( tab ) %]
+                $("#opac-user-views #[% tab | html %]-tab").tab("show");
+            [% END %]
+
+            if( $("#opac-user-views .tab-pane.active").length < 1 ){
+                $("#opac-user-views a:first").tab("show");
+            }
         });
 
         function submitNote( title, issue_id, note ){
@@ -1817,7 +1578,9 @@
             var ajaxData = {
                 'action': 'issuenote',
                 'issue_id': issue_id,
-                'note': note
+                'note': note,
+                csrf_token: $('meta[name="csrf-token"]').attr('content'),
+                op: 'cud-add_note',
             };
 
             $.ajax({
@@ -1879,27 +1642,27 @@
         [% Asset.js("lib/jquery/plugins/jquery.barrating.min.js") | $raw %]
         [% Asset.js("js/ratings.js") | $raw %]
     [% END %]
-    [% IF Koha.Preference('OverDriveCirculation') %]
-    [% Asset.js("js/overdrive.js") | $raw %]
-    <script>
-    [%- IF Koha.Preference('OverDrivePasswordRequired') -%]
-        var OD_password_required = 1;
-    [%- ELSE -%]
-        var OD_password_required = 0;
-    [%- END -%]
-    $(document).ready(function() {
-        [% IF ( overdrive_error ) %]
-            KOHA.OverDriveCirculation.display_error("#opac-user-overdrive", "[% overdrive_error.dquote | html %]");
-        [% END %]
+    [% IF OverDriveCirculation %]
+        [% Asset.js("js/overdrive.js") | $raw %]
+        <script>
+            [%- IF Koha.Preference('OverDrivePasswordRequired') -%]
+                var OD_password_required = 1;
+            [%- ELSE -%]
+                var OD_password_required = 0;
+            [%- END -%]
+            $(document).ready(function() {
+                [% IF ( overdrive_error ) %]
+                    KOHA.OverDriveCirculation.display_error("#opac-user-overdrive_panel", "[% overdrive_error.dquote | html %]");
+                [% END %]
 
-        [% IF ( overdrive_tab ) %]
-            $("#opac-user-views a[href='#opac-user-overdrive']").tab("show");
-        [% END %]
+                [% IF ( overdrive_tab ) %]
+                    $("#opac-user-views a[href='#opac-user-overdrive_panel']").tab("show");
+                [% END %]
 
-        $("#opac-user-overdrive").each( function() {
-            KOHA.OverDriveCirculation.display_account_details(this);
-        } );
-    });
-    </script>
+                $("#opac-user-overdrive_panel").each( function() {
+                    KOHA.OverDriveCirculation.display_account_details(this);
+                } );
+            });
+        </script>
     [% END %]
 [% END %]

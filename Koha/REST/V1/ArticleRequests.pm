@@ -42,17 +42,13 @@ Controller function that handles cancelling a Koha::ArticleRequest object
 sub cancel {
     my $c = shift->openapi->valid_input or return;
 
-    my $article_request = Koha::ArticleRequests->find( $c->validation->param('article_request_id') );
+    my $article_request = Koha::ArticleRequests->find( $c->param('article_request_id') );
 
-    unless ( $article_request ) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Article request not found" }
-        );
-    }
+    return $c->render_resource_not_found("Article request")
+        unless $article_request;
 
-    my $reason = $c->validation->param('cancellation_reason');
-    my $notes  = $c->validation->param('notes');
+    my $reason = $c->param('cancellation_reason');
+    my $notes  = $c->param('notes');
 
     return try {
 
@@ -62,10 +58,7 @@ sub cancel {
                 notes               => $notes
             }
         );
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
+        return $c->render_resource_deleted;
     } catch {
         $c->unhandled_exception($_);
     };
@@ -80,30 +73,20 @@ Controller function that handles cancelling a patron's Koha::ArticleRequest obje
 sub patron_cancel {
     my $c = shift->openapi->valid_input or return;
 
+    my $patron_id = $c->param('patron_id');
     return try {
-
-        my $patron_id = $c->param('patron_id');
         $c->auth->public($patron_id);
-
         my $patron = Koha::Patrons->find($patron_id);
 
-        unless ( $patron ) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => "Patron not found" }
-            );
-        }
+        return $c->render_resource_not_found("Patron")
+            unless $patron;
 
-        # patron_id has been validated by the allow-owner check, so the following call to related
+        # patron_id has been validated by the $c->auth->public check, so the following call to related
         # article requests covers the case of article requests not belonging to the patron
         my $article_request = $patron->article_requests->find( $c->param('article_request_id') );
 
-        unless ( $article_request ) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => "Article request not found" }
-            );
-        }
+        return $c->render_resource_not_found("Article request")
+            unless $article_request;
 
         my $reason = $c->param('cancellation_reason');
         my $notes  = $c->param('notes');
@@ -114,12 +97,8 @@ sub patron_cancel {
                 notes               => $notes
             }
         );
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
-    }
-    catch {
+        return $c->render_resource_deleted;
+    } catch {
         $c->unhandled_exception($_);
     };
 }

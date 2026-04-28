@@ -66,18 +66,10 @@ sub get {
 
     return try {
 
-        my $identity_provider_id = $c->validation->param('identity_provider_id');
-        my $provider = $c->objects->find( Koha::Auth::Identity::Providers->new, $identity_provider_id );
+        my $provider = $c->objects->find( Koha::Auth::Identity::Providers->new, $c->param('identity_provider_id') );
 
-        unless ( $provider ) {
-            return $c->render(
-                status  => 404,
-                openapi => {
-                    error      => 'Object not found',
-                    error_code => 'not_found',
-                }
-            );
-        }
+        return $c->render_resource_not_found("Identity provider")
+            unless $provider;
 
         return $c->render( status => 200, openapi => $provider );
     }
@@ -100,7 +92,7 @@ sub add {
         Koha::Database->new->schema->txn_do(
             sub {
 
-                my $body = $c->validation->param('body');
+                my $body = $c->req->json;
 
                 my $config   = delete $body->{config};
                 my $mapping  = delete $body->{mapping};
@@ -116,7 +108,7 @@ sub add {
                 $c->res->headers->location( $c->req->url->to_string . '/' . $provider->identity_provider_id );
                 return $c->render(
                     status  => 201,
-                    openapi => $provider->to_api
+                    openapi => $c->objects->to_api($provider),
                 );
             }
         );
@@ -147,25 +139,17 @@ Controller method for updating an identity provider.
 sub update {
     my $c = shift->openapi->valid_input or return;
 
-    my $identity_provider_id = $c->validation->param('identity_provider_id');
-    my $provider = Koha::Auth::Identity::Providers->find( $identity_provider_id );
+    my $provider = Koha::Auth::Identity::Providers->find( $c->param('identity_provider_id') );
 
-    unless ( $provider ) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error      => 'Object not found',
-                error_code => 'not_found',
-            }
-        );
-    }
+    return $c->render_resource_not_found("Identity provider")
+        unless $provider;
 
     return try {
 
         Koha::Database->new->schema->txn_do(
             sub {
 
-                my $body = $c->validation->param('body');
+                my $body = $c->req->json;
 
                 my $config   = delete $body->{config};
                 my $mapping  = delete $body->{mapping};
@@ -180,7 +164,7 @@ sub update {
 
                 return $c->render(
                     status  => 200,
-                    openapi => $provider->to_api
+                    openapi => $c->objects->to_api($provider),
                 );
             }
         );
@@ -211,25 +195,15 @@ Controller method for deleting an identity provider.
 sub delete {
     my $c = shift->openapi->valid_input or return;
 
-    my $provider = Koha::Auth::Identity::Providers->find( $c->validation->param('identity_provider_id') );
-    unless ( $provider ) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error      => 'Object not found',
-                error_code => 'not_found',
-            }
-        );
-    }
+    my $provider = Koha::Auth::Identity::Providers->find( $c->param('identity_provider_id') );
+
+    return $c->render_resource_not_found("Identity provider")
+        unless $provider;
 
     return try {
         $provider->delete;
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
-    }
-    catch {
+        return $c->render_resource_deleted;
+    } catch {
         $c->unhandled_exception($_);
     };
 }

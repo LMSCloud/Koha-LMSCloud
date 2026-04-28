@@ -4,12 +4,34 @@
 [% USE Koha %]
 [% USE Biblio %]
 [% USE KohaDates %]
+[% USE KohaPlugins %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
+[% SET CoverImagePlugins = KohaPlugins.get_plugins_intranet_cover_images %]
 [% USE AuthorisedValues %]
 [% INCLUDE 'doc-head-open.inc' %]
 
-<title>[% IF ( searchdesc ) %]Results of search [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %]&nbsp;with limit(s):&nbsp;'[% limit_desc | html %]'[% END %][% ELSE %]You did not specify any search criteria[% END %] &rsaquo; Catalog &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF ( searchdesc ) %]
+        [% IF ( query_desc ) %]
+            [% IF ( limit_desc ) %]
+                [% tx("Results of search for {query_desc} with limit(s): '{limit_desc}'", { query_desc = query_desc, limit_desc = limit_desc }) | html %]
+            [% ELSE %]
+                [% tx("Results of search for {query_desc}", { query_desc = query_desc }) | html %]
+            [% END %]
+        [% ELSE %]
+            [% IF ( limit_desc ) %]
+                [% tx("Results of search for {limit_desc}", { limit_desc = limit_desc }) | html %]
+            [% ELSE %]
+                [% t("Results of search") | html %]
+            [% END %]
+        [% END %]
+    [% ELSE %]
+        [% t("You did not specify any search criteria") | html %]
+    [% END %] &rsaquo;
+    [% t("Catalog") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -45,26 +67,15 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
             <h1>Search results</h1>
 
                 [% IF ( outer_sup_results_loop ) %]
                     <div class="row">
                         <div class="col-sm-8">
-                [% END %]
-
-                [% IF ( koha_spsuggest ) %]
-                    <div style="font-size: 12px;">Did you mean:
-                        <ul style="list-style: none;">
-                            [% FOREACH SPELL_SUGGES IN SPELL_SUGGEST %]
-                                <li>
-                                    <a href="/cgi-bin/koha/catalogue/search.pl?q=[% SPELL_SUGGES.spsuggestion | uri %]">[% SPELL_SUGGES.spsuggestion | html %]</a>
-                                </li>
-                            [% END %]
-                        </ul>
-                    </div>
                 [% END %]
 
                 [% IF ( total ) %]
@@ -80,7 +91,7 @@
                     [% END %]
 
                     <div id="search_within_results">
-                        <form id="refine_search">
+                        <form method="get" id="refine_search">
                             <label for="limit">Search within results</label>
                             [% IF ( Koha.Preference('IntranetCatalogSearchPulldown') ) %]
                                 [% INCLUDE 'search_indexes.inc' ms_kw = 1 refiner = 1 %]
@@ -90,10 +101,10 @@
                         </form>
                     </div>
 
-                    <div class="searchheader" id="searchheader">
+                    <div class="searchheader sticky" id="searchheader">
                         <div id="selection_ops">
                             <a href="#" class="btn btn-link" id="select_all"><i class="fa fa-check"></i> Select all</a>
-                            <a href="#" class="btn btn-link" id="clear_all"><i class="fa fa-remove"></i> Clear all</a>
+                            <a href="#" class="btn btn-link" id="clear_all"><i class="fa fa-times"></i> Clear all</a>
                             |
                             [% IF Koha.Preference("StaffHighlightedWords") == 1 %]
                                 <a href="#" class="highlight_toggle" id="highlight_toggle_off">Unhighlight</a>
@@ -109,17 +120,17 @@
 
                             [% IF Koha.Preference('virtualshelves') %]
                                 <div class="btn-group">
-                                    <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                        <i class="fa fa-list"></i> Add to list <span class="caret"></span>
+                                    <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class="fa fa-list"></i> Add to list
                                     </button>
                                     <ul class="dropdown-menu">
                                         [% IF add_to_some_private_shelves.count %]
-                                            <li class="dropdown-header">Your lists</li>
+                                            <li><h6 class="dropdown-header">Your lists</h6></li>
                                             [% SET number_of_private_shelves = 0 %]
                                             [% FOREACH s IN add_to_some_private_shelves %]
                                                 [% IF shelfnumber != s.shelfnumber %]
                                                     <li>
-                                                        <a href="#" class="addtolist" data-shelfnumber="[% s.shelfnumber | html %]">[% s.shelfname | html %]</a>
+                                                        <a href="#" class="addtolist dropdown-item" data-shelfnumber="[% s.shelfnumber | html %]">[% s.shelfname | html %]</a>
                                                     </li>
                                                     [% SET number_of_private_shelves = number_of_private_shelves + 1 %]
                                                     [% IF number_of_private_shelves == 10 %][% LAST %][% END %]
@@ -127,26 +138,26 @@
                                             [% END %]
                                         [% END %]
                                         [% IF add_to_some_public_shelves.count %]
-                                            <li class="dropdown-header">Public lists</li>
+                                            <li><h6 class="dropdown-header">Public lists</h6></li>
                                             [% SET number_of_public_shelves = 0 %]
                                             [% FOREACH s IN add_to_some_public_shelves %]
                                                 [% IF shelfnumber != s.shelfnumber %]
                                                     <li>
-                                                        <a href="#" data-shelfnumber="[% s.shelfnumber | html %]" class="addtolist">[% s.shelfname | html %]</a>
+                                                        <a class="addtolist dropdown-item" href="#" data-shelfnumber="[% s.shelfnumber | html %]">[% s.shelfname | html %]</a>
                                                     </li>
                                                     [% SET number_of_public_shelves = number_of_public_shelves + 1 %]
                                                     [% IF number_of_public_shelves == 10 %][% LAST %][% END %]
                                                 [% END %]
                                             [% END %]
                                         [% END %]
-                                        <li role="separator" class="divider"></li>
+                                        <li><hr class="dropdown-divider"></li>
                                         [% IF add_to_some_private_shelves.count > 10 or add_to_some_public_shelves.count > 10 %]
                                             <li>
-                                                <a href="#" class="addtolist morelists">More lists</a>
+                                                <a href="#" class="addtolist morelists dropdown-item">More lists</a>
                                             </li>
                                         [% END %]
                                         <li>
-                                            <a href="#" class="addtolist newlist">New list</a>
+                                            <a href="#" class="dropdown-item addtolist newlist dropdown-item">New list</a>
                                         </li>
                                     </ul>
                                 </div>
@@ -155,34 +166,34 @@
                             [% IF ( CAN_user_reserveforothers_place_holds && DisplayMultiPlaceHold ) %]
                                 [% IF ( holdfor or holdforclub ) %]
                                     <div id="placeholdc" class="btn-group">
-                                        <button class="btn btn-default btn-xs placehold"><i class="fa fa-sticky-note-o"></i> Place hold</button>
-                                        <button class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
-                                        <span class="caret"></span>
+                                        <button class="btn btn-default btn-xs placehold"><i class="fa-solid fa-bookmark"></i> Place hold</button>
+                                        <button class="btn btn-default btn-xs dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+
                                         </button>
                                         <ul class="dropdown-menu">
-                                            <li><a href="#" class="placehold">Place hold</a></li>
+                                            <li><a href="#" class="placehold dropdown-item">Place hold</a></li>
                                             [% IF holdfor %]
-                                            <li><a href="#" class="placeholdfor">Place hold for [% INCLUDE 'patron-title.inc' patron => holdfor_patron no_title => 1 no_cardnumber => 1 %]</a></li>
-                                                <li class="divider"></li>
-                                                <li><a href="#" id="forgetholdfor">Forget [% INCLUDE 'patron-title.inc' patron => holdfor_patron no_title => 1 no_cardnumber => 1 %]</a></li>
+                                            <li><a href="#" class="placeholdfor dropdown-item">Place hold for [% INCLUDE 'patron-title.inc' patron => holdfor_patron no_title => 1 no_cardnumber => 1 %]</a></li>
+                                                <li><hr class="dropdown-divider" /></li>
+                                                <li><a class="dropdown-item" href="#" id="forgetholdfor">Forget [% INCLUDE 'patron-title.inc' patron => holdfor_patron no_title => 1 no_cardnumber => 1 %]</a></li>
                                             [% END %]
                                             [% IF holdforclub %]
-                                                <li><a href="#" class="placeholdforclub">Place hold for [% holdforclub_name | html %]</a></li>
-                                                <li class="divider"></li>
-                                                <li><a href="#" id="forgetholdforclub">Forget  [% holdforclub_name | html %]</a></li>
+                                                <li><a href="#" class="placeholdforclub dropdown-item">Place hold for [% holdforclub_name | html %]</a></li>
+                                                <li><hr class="dropdown-divider" /></li>
+                                                <li><a class="dropdown-item" href="#" id="forgetholdforclub">Forget  [% holdforclub_name | html %]</a></li>
                                             [% END %]
                                         </ul>
                                     </div>
                                 [% ELSE %]
                                     <div id="placeholdc" class="btn-group">
-                                        <a class="btn btn-default btn-xs placehold" href="#"><i class="fa fa-sticky-note-o"></i> Place hold</a>
+                                        <a class="btn btn-default btn-xs placehold" href="#"><i class="fa-solid fa-bookmark"></i> Place hold</a>
                                     </div>
                                 [% END # /IF holfor %]
                             [% END # /IF CAN_user_reserveforothers_place_holds %]
 
                             [% IF Koha.Preference('BrowseResultSelection') %]
                                 <div id="browse_selection" class="btn-group">
-                                    <a class="btn btn-default btn-xs browse_selection" href="#"><i class="fa fa-sticky-note-o"></i> Browse selected records</a>
+                                    <a class="btn btn-default btn-xs browse_selection" href="#"><i class="fa-solid fa-note-sticky"></i> Browse selected records</a>
                                 </div>
                             [% END %]
 
@@ -190,19 +201,20 @@
                                 <div class="btn-group">
                                     <a class="btn btn-default btn-xs" id="z3950submit" href="#"><i class="fa fa-search"></i> Z39.50/SRU search</a>
                                 </div>
+
                                 <div class="btn-group">
-                                    <button type="button" id="results_batch_ops" class="btn btn-default btn-xs dropdown-toggle disabled" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                        <i class="fa fa-pencil"></i> Edit <span class="caret"></span>
+                                    <button type="button" id="results_batch_ops" class="btn btn-default btn-xs dropdown-toggle disabled" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit
                                     </button>
                                     [% IF ( CAN_user_tools_records_batchmod || CAN_user_tools_records_batchdel || CAN_user_editcatalogue_edit_catalogue ) %]
                                     <ul class="dropdown-menu">
                                         [% IF ( CAN_user_tools_records_batchmod ) %]
-                                        <li><a class="results_batch_op" data-op="edit" href="#">Batch edit records</a></li>
+                                        <li><a class="results_batch_op dropdown-item" data-op="edit" href="#">Batch edit records</a></li>
                                         [% END %]
                                         [% IF ( CAN_user_tools_records_batchdel ) %]
-                                        <li><a class="results_batch_op" data-op="delete" href="#">Batch delete records</a></li>
+                                        <li><a class="results_batch_op dropdown-item" data-op="delete" href="#">Batch delete records</a></li>
                                         [% END %]
-                                        <li><a class="results_batch_op" data-op="merge" href="#">Merge records</a></li>
+                                        <li><a class="results_batch_op dropdown-item" data-op="merge" href="#">Merge records</a></li>
                                     </ul>
                                     [% END %]
                                 </div>
@@ -220,128 +232,135 @@
                             [% END %]
 
                             <div class="btn-group">
-                                <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    Sort <span class="caret"></span>
+                                <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    Sort
                                 </button>
                                 <ul class="dropdown-menu">
                                     [% IF ( sort_by == "relevance" ) %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=relevance[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Relevance</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=relevance[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Relevance</a></li>
                                     [% ELSE %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=relevance[% PROCESS sort_search_query %]">Relevance</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=relevance[% PROCESS sort_search_query %]">Relevance</a></li>
                                     [% END %]
-                                    <li class="dropdown-header">Popularity</li>
+                                    <li><h6 class="dropdown-header">Popularity</h6></li>
                                     [% IF ( sort_by == "popularity_dsc" ) %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=popularity_dsc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Popularity (most to least)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=popularity_dsc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Popularity (most to least)</a></li>
                                     [% ELSE %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=popularity_dsc[% PROCESS sort_search_query %]">Popularity (most to least)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=popularity_dsc[% PROCESS sort_search_query %]">Popularity (most to least)</a></li>
                                     [% END %]
 
                                     [% IF ( sort_by == "popularity_asc" ) %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=popularity_asc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Popularity (least to most)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=popularity_asc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Popularity (least to most)</a></li>
                                     [% ELSE %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=popularity_asc[% PROCESS sort_search_query %]">Popularity (least to most)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=popularity_asc[% PROCESS sort_search_query %]">Popularity (least to most)</a></li>
                                     [% END %]
 
-                                    <li class="dropdown-header">Author</li>
+                                    <li><h6 class="dropdown-header">Author</h6></li>
 
                                     [% IF ( sort_by == "author_az" || sort_by == "author_asc" ) %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=author_a[% PROCESS sort_search_query %]z"><i class="fa fa-check"></i> Author (A-Z)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=author_a[% PROCESS sort_search_query %]z"><i class="fa fa-check"></i> Author (A-Z)</a></li>
                                     [% ELSE %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=author_az[% PROCESS sort_search_query %]">Author (A-Z)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=author_az[% PROCESS sort_search_query %]">Author (A-Z)</a></li>
                                     [% END %]
 
                                     [% IF ( sort_by == "author_za" || sort_by == "author_dsc" ) %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=author_za[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Author (Z-A)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=author_za[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Author (Z-A)</a></li>
                                     [% ELSE %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=author_za[% PROCESS sort_search_query %]">Author (Z-A)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=author_za[% PROCESS sort_search_query %]">Author (Z-A)</a></li>
                                     [% END %]
 
-                                    <li class="dropdown-header">Call number</li>
+                                    <li><h6 class="dropdown-header">Call number</h6></li>
 
                                     [% IF ( sort_by == "call_number_asc" ) %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=call_number_asc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Call number (0-9 to A-Z)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=call_number_asc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Call number (0-9 to A-Z)</a></li>
                                     [% ELSE %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=call_number_asc[% PROCESS sort_search_query %]">Call number (0-9 to A-Z)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=call_number_asc[% PROCESS sort_search_query %]">Call number (0-9 to A-Z)</a></li>
                                     [% END %]
 
                                     [% IF ( sort_by == "call_number_dsc" ) %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=call_number_dsc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Call number (Z-A to 9-0)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=call_number_dsc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Call number (Z-A to 9-0)</a></li>
                                     [% ELSE %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=call_number_dsc[% PROCESS sort_search_query %]">Call number (Z-A to 9-0)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=call_number_dsc[% PROCESS sort_search_query %]">Call number (Z-A to 9-0)</a></li>
                                     [% END %]
 
-                                    <li class="dropdown-header">Dates</li>
+                                    <li><h6 class="dropdown-header">Dates</h6></li>
                                     [% IF ( sort_by == "pubdate_dsc" ) %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=pubdate_dsc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Publication/Copyright date: newest to oldest</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=pubdate_dsc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Publication/Copyright date: newest to oldest</a></li>
                                     [% ELSE %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=pubdate_dsc[% PROCESS sort_search_query %]">Publication/Copyright date: newest to oldest</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=pubdate_dsc[% PROCESS sort_search_query %]">Publication/Copyright date: newest to oldest</a></li>
                                     [% END %]
 
                                     [% IF ( sort_by == "pubdate_asc" ) %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=pubdate_asc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Publication/Copyright date: oldest to newest</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=pubdate_asc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Publication/Copyright date: oldest to newest</a></li>
                                     [% ELSE %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=pubdate_asc[% PROCESS sort_search_query %]">Publication/Copyright date: oldest to newest</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=pubdate_asc[% PROCESS sort_search_query %]">Publication/Copyright date: oldest to newest</a></li>
                                     [% END %]
 
                                     [% IF ( sort_by == "acqdate_dsc" ) %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=acqdate_dsc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Acquisition date: newest to oldest</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=acqdate_dsc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Acquisition date: newest to oldest</a></li>
                                     [% ELSE %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=acqdate_dsc[% PROCESS sort_search_query %]">Acquisition date: newest to oldest</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=acqdate_dsc[% PROCESS sort_search_query %]">Acquisition date: newest to oldest</a></li>
                                     [% END %]
 
                                     [% IF ( sort_by == "acqdate_asc" ) %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=acqdate_asc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Acquisition date: oldest to newest</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=acqdate_asc[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Acquisition date: oldest to newest</a></li>
                                     [% ELSE %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=acqdate_asc[% PROCESS sort_search_query %]">Acquisition date: oldest to newest</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=acqdate_asc[% PROCESS sort_search_query %]">Acquisition date: oldest to newest</a></li>
                                     [% END %]
 
-                                    <li class="dropdown-header">Title</li>
+                                    <li><h6 class="dropdown-header">Title</h6></li>
                                     [% IF ( sort_by == "title_az" || sort_by == "title_asc" ) %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=title_az[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Title (A-Z)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=title_az[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Title (A-Z)</a></li>
                                     [% ELSE %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=title_az[% PROCESS sort_search_query %]">Title (A-Z)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=title_az[% PROCESS sort_search_query %]">Title (A-Z)</a></li>
                                     [% END %]
 
                                     [% IF ( sort_by == "title_za" || sort_by == "title_dsc" ) %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=title_za[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Title (Z-A)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=title_za[% PROCESS sort_search_query %]"><i class="fa fa-check"></i> Title (Z-A)</a></li>
                                     [% ELSE %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=title_za[% PROCESS sort_search_query %]">Title (Z-A)</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&sort_by=title_za[% PROCESS sort_search_query %]">Title (Z-A)</a></li>
                                     [% END %]
                                 </ul>
                             </div> <!-- /.btn-group -->
 
                             [% IF Koha.Preference('numSearchResultsDropdown') %]
                                 <div class="btn-group">
-                                    <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                        Results per page: [% results_per_page | html %] <span class="caret"></span>
+                                    <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        Results per page: [% results_per_page | html %]
                                     </button>
                                     <ul class="dropdown-menu">
                                         [% IF Koha.Preference('numSearchResults') %]
-                                            <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% Koha.Preference('numSearchResults') | uri %][% PROCESS sort_search_query %]" id="resultsperpage-default">
+                                            <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=[% Koha.Preference('numSearchResults') | uri %][% PROCESS sort_search_query %]" id="resultsperpage-default">
                                                 [% IF results_per_page == Koha.Preference('numSearchResults') %]
                                                     <i class="fa fa-check"></i>
                                                 [% END %] [% Koha.Preference('numSearchResults') | html %] (default)
                                             </a></li>
                                         [% END %]
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=20[% PROCESS sort_search_query %]">[% IF results_per_page == '20' %]<i class="fa fa-check"></i>[% END %] 20</a></li>
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=40[% PROCESS sort_search_query %]" id="resultsperpage-40">[% IF results_per_page == '40' %]<i class="fa fa-check"></i>[% END %] 40</a></li>
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=60[% PROCESS sort_search_query %]" id="resultsperpage-60">[% IF results_per_page == '60' %]<i class="fa fa-check"></i>[% END %] 60</a></li>
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=80[% PROCESS sort_search_query %]" id="resultsperpage-80">[% IF results_per_page == '80' %]<i class="fa fa-check"></i>[% END %] 80</a></li>
-                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=100[% PROCESS sort_search_query %]" id="resultsperpage-100">[% IF results_per_page == '100' %]<i class="fa fa-check"></i>[% END %] 100</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=20[% PROCESS sort_search_query %]">[% IF results_per_page == '20' %]<i class="fa fa-check"></i>[% END %] 20</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=40[% PROCESS sort_search_query %]" id="resultsperpage-40">[% IF results_per_page == '40' %]<i class="fa fa-check"></i>[% END %] 40</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=60[% PROCESS sort_search_query %]" id="resultsperpage-60">[% IF results_per_page == '60' %]<i class="fa fa-check"></i>[% END %] 60</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=80[% PROCESS sort_search_query %]" id="resultsperpage-80">[% IF results_per_page == '80' %]<i class="fa fa-check"></i>[% END %] 80</a></li>
+                                        <li><a class="dropdown-item" href="/cgi-bin/koha/catalogue/search.pl?count=100[% PROCESS sort_search_query %]" id="resultsperpage-100">[% IF results_per_page == '100' %]<i class="fa fa-check"></i>[% END %] 100</a></li>
                                     </ul>
                                 </div> <!-- /.btn-group -->
                             [% END %]
 
                         </div> <!-- /#selection_ops -->
+                        <form id="build_batch_record_modification" method="post" action="/cgi-bin/koha/tools/batch_record_modification.pl">
+                            [% INCLUDE 'csrf-token.inc' %]
+                            <input type="hidden" name="recordtype" value="biblio">
+                            <input type="hidden" name="op" value="cud-list">
+                            <textarea id="recordnumber_list" name="bib_list" style="display:none"></textarea>
+                        </form>
                     </div> <!-- /#searchheader -->
                 [% END %]
 
                 [% ELSE # /IF total %]
-                    <form method="post" name="fz3950" class="fz3950bigrpad">
-                        <div id="toolbar" class="btn-toolbar" style="background-color:transparent"><div>
-                            <button class="btn btn-default" type="button" id="z3950submit"><i class="fa fa-search"></i> Z39.50/SRU search</button>
-                        </div></div>
-                    </form>
+                    <div id="toolbar" class="btn-toolbar fz3950bigrpad" style="background-color:transparent">
+                        <div>
+                            <a class="btn btn-default" type="button" id="z3950submit"><i class="fa fa-search"></i> Z39.50/SRU search</a>
+                        </div>
+                    </div>
+
 
                     <div id="searchheader">
                         <h3>No results found</h3>
@@ -363,7 +382,7 @@
                 [% END # /IF total %]
 
                 [% IF ( query_error ) %]
-                    <div class="dialog alert"><p><strong>Error:</strong> [% query_error | html %]</p></div>
+                    <div class="alert alert-warning"><p><strong>Error:</strong> [% query_error | html %]</p></div>
                 [% END %]
 
                 <!-- Search Results Table -->
@@ -398,6 +417,8 @@
                                 [% ELSE %]<option value="sn">ISBN</option>[% END %]
                                 [% IF ( header_pulldown ==  "ms_ss" ) %]<option selected="selected" value="ss">ISSN</option>
                                 [% ELSE %]<option value="ss">ISSN</option>[% END %]
+                                [% IF ( header_pulldown ==  "ms_callnum" ) %]<option selected="selected" value="callnum">Call number</option>
+                                [% ELSE %]<option value="callnum">Call number</option>[% END %]
                             </select>
                             [% IF ( scan_search_term_to_use ) %]
                                  <input type="text" name="q" id="scan-index-term" size="35" value="[% scan_search_term_to_use | html %]" />
@@ -534,7 +555,7 @@
                                                 [% IF ( !item_level_itypes ) || Koha.Preference('BiblioItemtypeInfo') %]
                                                     <div class="result-biblio-itemtype">
                                                         [% IF !noItemTypeImages && SEARCH_RESULT.imageurl %]
-                                                            <img src="[% SEARCH_RESULT.imageurl | html %]" alt="[%  SEARCH_RESULT.description | html %]" />
+                                                    <img class="itemtype-image" src="[% SEARCH_RESULT.imageurl | html %]" alt="" />
                                                         [% END %]
                                                         <span class="itypetext">[% SEARCH_RESULT.description | html %]</span>
                                                     </div>
@@ -548,15 +569,15 @@
                                                         <span class="noholdstext">No holds allowed</span>
                                                     [% ELSE %]
                                                         [% IF CAN_user_reserveforothers_place_holds %]
-                                                            <a id="reserve_[% SEARCH_RESULT.biblionumber | html %]" href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% SEARCH_RESULT.biblionumber | html %]">Holds ([% Biblio.HoldsCount( SEARCH_RESULT.biblionumber ) | html %])</a>
+                                                            <a id="reserve_[% SEARCH_RESULT.biblionumber | html %]" href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% SEARCH_RESULT.biblionumber | html %]">Holds ([% SEARCH_RESULT.biblio_object.holds.count | html %])</a>
                                                             [% IF ( holdfor ) %] <span class="holdforlink">| <a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% SEARCH_RESULT.biblionumber | uri %]&amp;findborrower=[% holdfor_patron.cardnumber | uri %]">Place hold for [% INCLUDE 'patron-title.inc' patron => holdfor_patron no_title => 1 no_cardnumber => 1 %]</a></span>[% END %]
                                                             [% IF ( holdforclub ) %] <span class="holdforlink">| <a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% SEARCH_RESULT.biblionumber | uri %]&amp;club=[% holdforclub | uri %]">Place hold for [% holdforclub_name | html %]</a></span>[% END %]
                                                         [% ELSE %]
-                                                            <span>Holds ([% Biblio.HoldsCount( SEARCH_RESULT.biblionumber ) | html %])</span>
+                                                            <span>Holds ([% SEARCH_RESULT.biblio_object.holds.count | html %])</span>
                                                         [% END %]
                                                     [% END # /IF SEARCH_RESULT.norequests %]
                                                     [% IF Koha.Preference('UseRecalls') and CAN_user_recalls %]
-                                                        | <a id="recall_[% SEARCH_RESULT.biblionumber | html %]" href="/cgi-bin/koha/recalls/request.pl?biblionumber=[% SEARCH_RESULT.biblionumber | html %]">Recalls ([% Biblio.RecallsCount( SEARCH_RESULT.biblionumber ) | html %])</a>
+                                                        | <a id="recall_[% SEARCH_RESULT.biblionumber | html %]" href="/cgi-bin/koha/recalls/request.pl?biblionumber=[% SEARCH_RESULT.biblionumber | html %]">Recalls ([% SEARCH_RESULT.biblio_object.recalls.search( completed => 0 ).count | html %])</a>
                                                     [% END %]
 
                                                     [% IF Koha.Preference('intranetbookbag') == 1 %]
@@ -621,16 +642,19 @@
                                                                 <ul class="[% items_loop | html %]_items">
                                                                     [% FOREACH items_loo IN SEARCH_RESULT.${items_loop} %]
                                                                         [% IF item_level_itypes && !noItemTypeImages && items_loo.imageurl %]
-                                                                            <li class="result_itype_image">
-                                                                                <img src="[% items_loo.imageurl | html %]" title="[% items_loo.description | html %]" alt="[% items_loo.description | html %]" />
+                                                                            <li class="result_itype_image [% items_loo.branchcode | html %]">
+                                                                                <img class="itemtype-image" src="[% items_loo.imageurl | html %]" alt="" />
                                                                         [% ELSE %]
-                                                                            <li>
+                                                                            <li class="[% items_loo.branchcode | html %]">
                                                                         [% END %]
                                                                         [% IF ( items_loo.branchname ) %]
                                                                             [% items_loo.branchname | html %]
                                                                         [% END %]
                                                                         [% IF ( items_loo.location ) %]
                                                                             <span class="shelvingloc">[% items_loo.location | html %]</span>
+                                                                        [% END %]
+                                                                        [% IF ( items_loo.collectioncode ) %]
+                                                                            <span class="ccode">[% items_loo.collectioncode | html %]</span>
                                                                         [% END %]
 
                                                                             [% IF ( items_loo.itemcallnumber ) %]
@@ -733,8 +757,8 @@
                         <div class="modal-dialog">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
-                                <h3 id="search_filters_label">Save: '[% query_desc | html %]' with limits '[% limit_desc | html %]' as filter</h3>
+                                <h1 class="modal-title" id="search_filters_label">Save: '[% query_desc | html %]' with limits '[% limit_desc | html %]' as filter</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
                                 <h6>Visibility:</h6>
@@ -756,7 +780,7 @@
                                 </span>
                             </div>
                             <div class="modal-footer">
-                                <a href="#" data-dismiss="modal" aria-hidden="true" class="cancel">Cancel</a>
+                                <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
                             </div>
                         </div>
                         </div>
@@ -775,20 +799,19 @@
                 </form>
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'facets.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 <input type="hidden" id="query_json" value="[% query_json | html %]">
 <input type="hidden" id="limit_json" value="[% limit_json | html %]">
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/browser.js") | $raw %]
-    [% Asset.js("lib/hc-sticky.js") | $raw %]
     [% Asset.js("js/coce.js") | $raw %]
     [% IF Koha.Preference('IssuingStatsOnIntranetResultPageYears') %]
     [% Asset.js("js/issuingstats.js") %]
@@ -799,7 +822,6 @@
     <script>
         var PREF_AmazonCoverImages = parseInt( "[% Koha.Preference('AmazonCoverImages') | html %]", 10);
         var q_array = new Array();  // will hold search terms, if present
-        var PREF_LocalCoverImages = parseInt( "[% Koha.Preference('LocalCoverImages') | html %]", 10);
         var PREF_IntranetCoce = parseInt( "[% Koha.Preference('IntranetCoce') | html %]", 10);
         var PREF_CoceProviders = "[% Koha.Preference('CoceProviders') | html %]";
         var CoceHost = "[% CoceHost | html %]";
@@ -939,6 +961,7 @@
         [% END %]
     </script>
     [% Asset.js("js/pages/results.js") | $raw %]
+    [% CoverImagePlugins | $raw %]
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

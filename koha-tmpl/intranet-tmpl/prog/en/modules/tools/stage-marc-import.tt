@@ -1,8 +1,17 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Stage MARC records for import &rsaquo; Cataloging &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF ( job_enqueued ) %]
+        [% t("Job enqueued") | html %] &rsaquo;
+    [% END %]
+    [% t("Stage MARC records for import") | html %] &rsaquo;
+    [% t("Cataloging") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
     #fileuploadstatus,#fileuploadfailed,#fileuploadcancel { display : none; }
@@ -22,33 +31,34 @@
             <a href="/cgi-bin/koha/cataloguing/cataloging-home.pl">Cataloging</a>
         [% END %]
 
-        [% IF ( uploadmarc ) %]
+        [% IF ( job_enqueued ) %]
             [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/tools/stage-marc-import.pl">Stage MARC records for import</a>
             [% END %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>MARC staging results</span>
+                [% t("Job enqueued") | html %]
             [% END %]
         [% ELSE %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
                 <span>Stage MARC records for import</span>
             [% END %]
-        [% END # /IF ( uploadmarc ) %]
+        [% END # /IF ( job_enqueued ) %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
         [% FOREACH message IN messages %]
           [% IF message.type == 'success' %]
-            <div class="dialog message">
+            <div class="alert alert-info">
           [% ELSIF message.type == 'warning' %]
-            <div class="dialog alert">
+            <div class="alert alert-warning">
           [% ELSIF message.type == 'error' %]
-            <div class="dialog alert" style="margin:auto;">
+            <div class="alert alert-warning" style="margin:auto;">
           [% END %]
           [% IF message.code == 'cannot_enqueue_job' %]
               <span>Cannot enqueue this job.</span>
@@ -66,8 +76,9 @@
             </div>
 
             <h1>MARC staging</h1>
-            <div class="dialog message">
-              <p>The job has been enqueued! It will be processed as soon as possible.</p>
+            <div class="alert alert-info">
+                <h1>The job has been enqueued!</h1>
+                <p>It will be processed as soon as possible.</p>
                [% INCLUDE "job_progress.inc" job_id=job_id %]
               <p><a class="job_details" href="/cgi-bin/koha/admin/background_jobs.pl?op=view&id=[% job_id | uri %]" title="View detail of the enqueued job">View detail of the enqueued job</a>
               <div id="job_callback"></div>
@@ -78,7 +89,7 @@
     <li>Select a MARC file to stage in the import reservoir.  It will be parsed, and each valid record staged for later import into the catalog.</li>
     <li>You can enter a name for this import. It may be useful, when creating a record, to remember where the suggested MARC data comes from!</li>
 </ul>
-<form method="post" id="uploadfile" enctype="multipart/form-data">
+<form method="get" id="uploadfile" enctype="multipart/form-data">
 <fieldset class="rows" id="uploadform">
 <legend>Upload a file to stage</legend>
 <ol>
@@ -119,6 +130,8 @@
 </fieldset>
 
     <form method="post" id="processfile" enctype="multipart/form-data">
+        [% INCLUDE 'csrf-token.inc' %]
+        <input type="hidden" name="op" value="cud-stage" />
 [% IF basketno && booksellerid %]
     <input type="hidden" name="basketno" id="basketno" value="[% basketno | html %]" />
     <input type="hidden" name="booksellerid" id="booksellerid" value="[% booksellerid | html %]" />
@@ -126,8 +139,6 @@
     <input type="hidden" name="profile_id" id="profile_id"/>
 <fieldset class="rows">
         <input type="hidden" name="uploadedfileid" id="uploadedfileid" value="" />
-        <input type="hidden" name="runinbackground" id="runinbackground" value="" />
-        <input type="hidden" name="completedJobID" id="completedJobID" value="" />
     <legend>Settings</legend>
 	<ol><li>
 		<label for="comments">Comments about this file: </label>
@@ -227,7 +238,7 @@
                 <label for="profile_name">Profile name:</label>
                 <input type="text" id="profile_name" name="profile_name" />
                 <button class="btn btn-default btn-xs" id="add_profile" disabled>Save profile</button>
-                <button class="btn btn-link" id="del_profile" disabled><i class="fa fa-trash"></i> <span>Remove profile</span></button>
+                <button class="btn btn-link" id="del_profile" disabled><i class="fa fa-trash-can"></i> <span>Remove profile</span></button>
             </li>
         </ol>
     </fieldset>
@@ -240,13 +251,13 @@
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'cat-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -419,16 +430,18 @@
                 })
             });
             [% IF job_enqueued %]
-                updateProgress([% job_id | html %], function(){
-                    $.getJSON('/api/v1/jobs/[% job_id | html %]', function(job){
-                        let import_batch_id = job.data.report.import_batch_id;
-                        $('<p><a href="/cgi-bin/koha/tools/manage-marc-import.pl?import_batch_id=%s">%s</a></p>'.format(import_batch_id, _("View batch"))).appendTo("#job_callback");
-                        let basket_id = job.data.report.basket_id;
-                        let vendor_id = job.data.report.vendor_id;
-                        if ( basket_id && vendor_id ) {
-                            $('<p><a id="addtobasket" class="btn btn-default" href="/cgi-bin/koha/acqui/addorderiso2709.pl?import_batch_id=%s&basketno=%s&booksellerid=%s">%s</a></p>'.format(import_batch_id, basket_id, vendor_id, _("Add staged files to basket"))).appendTo("#job_callback");
-                        }
-                    });
+                updateProgress([% job_id | html %], {
+                    finish_callback : function(){
+                        $.getJSON('/api/v1/jobs/[% job_id | html %]', function(job){
+                            let import_batch_id = job.data.report.import_batch_id;
+                            $('<p><a href="/cgi-bin/koha/tools/manage-marc-import.pl?import_batch_id=%s">%s</a></p>'.format(import_batch_id, _("View batch"))).appendTo("#job_callback");
+                            let basket_id = job.data.report.basket_id;
+                            let vendor_id = job.data.report.vendor_id;
+                            if ( basket_id && vendor_id ) {
+                                $('<p><a id="addtobasket" class="btn btn-default" href="/cgi-bin/koha/acqui/addorderiso2709.pl?import_batch_id=%s&basketno=%s&booksellerid=%s">%s</a></p>'.format(import_batch_id, basket_id, vendor_id, _("Add staged files to basket"))).appendTo("#job_callback");
+                            }
+                        });
+                    }
                 });
             [% END %]
         });
@@ -460,7 +473,7 @@
                 $('#fileuploadbutton').show();
                 $("#fileuploadcancel").hide();
                 var filename=$('#fileToUpload').prop('files')[0].name;
-                if( filename.match( new RegExp(/\.[^.]+xml$/) ) ) {
+                if( filename.match( new RegExp(/[^.]+\.xml$/) ) ) {
                     $('#format').val('MARCXML');
                 }
                 $("#processfile").show();

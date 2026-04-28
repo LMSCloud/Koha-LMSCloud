@@ -17,7 +17,10 @@ package Koha::Acquisition::Bookseller;
 
 use Modern::Perl;
 
+use Koha::Acquisition::Bookseller::Aliases;
 use Koha::Acquisition::Bookseller::Contacts;
+use Koha::Acquisition::Bookseller::Interfaces;
+use Koha::Acquisition::Bookseller::Issues;
 use Koha::Subscriptions;
 
 use base qw( Koha::Object );
@@ -71,9 +74,79 @@ Returns the list of subscriptions for the vendor
 
 sub subscriptions {
     my ($self) = @_;
+    my $rs = $self->_result->subscriptions;
+    return Koha::Subscriptions->_new_from_dbic($rs);
+}
 
-    # FIXME FK missing at DB level
-    return Koha::Subscriptions->search( { aqbooksellerid => $self->id } );
+=head3 aliases
+
+    my $aliases = $vendor->aliases
+
+    $vendor->aliases([{ alias => 'one alias'}]);
+
+=cut
+
+sub aliases {
+    my ($self, $aliases) = @_;
+
+    if ($aliases) {
+        my $schema = $self->_result->result_source->schema;
+        $schema->txn_do(
+            sub {
+                $self->aliases->delete;
+                for my $alias (@$aliases) {
+                    $self->_result->add_to_aqbookseller_aliases($alias);
+                }
+            }
+        );
+    }
+
+    my $rs = $self->_result->aqbookseller_aliases;
+    return Koha::Acquisition::Bookseller::Aliases->_new_from_dbic( $rs );
+}
+
+=head3 interfaces
+
+    my $interfaces = $vendor->interfaces
+
+    $vendor->interfaces(\@interfaces);
+
+=cut
+
+sub interfaces {
+    my ($self, $interfaces) = @_;
+
+    if ($interfaces) {
+        my $schema = $self->_result->result_source->schema;
+        $schema->txn_do(
+            sub {
+                $self->interfaces->delete;
+                for my $interface (@$interfaces) {
+                    Koha::Acquisition::Bookseller::Interface->new(
+                        {
+                            %$interface,
+                            vendor_id => $self->id,
+                        }
+                    )->store;
+                }
+            }
+        );
+    }
+
+    my $rs = $self->_result->aqbookseller_interfaces;
+    return Koha::Acquisition::Bookseller::Interfaces->_new_from_dbic( $rs );
+}
+
+=head3 issues
+
+    my $issues = $vendor->issues
+
+=cut
+
+sub issues {
+    my ($self) = @_;
+    my $rs = $self->_result->aqbookseller_issues;
+    return Koha::Acquisition::Bookseller::Issues->_new_from_dbic($rs);
 }
 
 =head3 to_api_mapping

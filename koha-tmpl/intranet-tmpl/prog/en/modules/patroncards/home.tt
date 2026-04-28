@@ -1,6 +1,12 @@
 [% USE raw %]
+[% USE Koha %]
+[% PROCESS 'i18n.inc' %]
     [% INCLUDE 'doc-head-open.inc' %]
-    <title>Patron card creator &rsaquo; Tools &rsaquo; Koha</title>
+    <title>[% FILTER collapse %]
+        [% t("Patron card creator") | html %] &rsaquo;
+        [% t("Tools") | html %] &rsaquo;
+        [% t("Koha") | html %]
+    [% END %]</title>
     [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="pcard_home" class="tools pcard">
@@ -21,21 +27,22 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
                 [% INCLUDE 'patroncards-toolbar.inc' %]
 
                 <h1>Patron card creator</h1>
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'tools-menu.inc' %]
             </aside>
-        </div> <!-- .col-sm-2.col-sm-pull-10 -->
+        </div> <!-- .col-sm-2.order-sm-1 -->
      </div> <!-- /.row -->
 
 [% INCLUDE 'intranet-bottom.inc' %]

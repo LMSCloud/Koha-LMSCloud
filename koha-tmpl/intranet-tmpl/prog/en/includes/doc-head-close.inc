@@ -6,6 +6,7 @@
 [% PROCESS 'html_helpers.inc' %]
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="csrf-token" content="[% Koha.GenerateCSRF | $raw %]">
 [% IF logged_in_user %]<meta name="generator" content="Koha [% Koha.Version.maintenance | html %]" />[% END %]
 [%# Prevent XFS attacks -%]
 [% UNLESS popup %]
@@ -15,13 +16,13 @@
 <link rel="shortcut icon" href="[% IF ( IntranetFavicon ) %][% IntranetFavicon | html %][% ELSE %][% interface | html %]/[% theme | html %]/img/favicon.ico[% END %]" type="image/x-icon" />
 
 [% IF ( bidi ) %]
-    [% Asset.css("lib/jquery/jquery-ui-rtl-1.13.1.min.css") | $raw %]
+    [% Asset.css("lib/jquery/jquery-ui-rtl-1.13.2.min.css") | $raw %]
 [% ELSE %]
-    [% Asset.css("lib/jquery/jquery-ui-1.13.1.min.css") | $raw %]
+    [% Asset.css("lib/jquery/jquery-ui-1.13.2.min.css") | $raw %]
 [% END %]
-[% Asset.css("lib/bootstrap/bootstrap.min.css") | $raw %]
-[% Asset.css("lib/bootstrap/bootstrap-theme.min.css") | $raw %]
-[% Asset.css("lib/font-awesome/css/font-awesome.min.css") | $raw %]
+[% Asset.css("lib/fontawesome/css/fontawesome.min.css") | $raw %]
+[% Asset.css("lib/fontawesome/css/brands.min.css") | $raw %]
+[% Asset.css("lib/fontawesome/css/solid.min.css") | $raw %]
 [% Asset.css("lib/datatables/datatables.min.css") | $raw %]
 [% Asset.css("css/print.css", { media = "print" }) | $raw %]
 [% INCLUDE intranetstylesheet.inc %]

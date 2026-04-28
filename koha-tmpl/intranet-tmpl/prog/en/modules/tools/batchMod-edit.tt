@@ -3,9 +3,20 @@
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Branches %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Batch item modification &rsaquo; Cataloging &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF ( show ) %]
+        [% t("Modifications") | html %] &rsaquo;
+    [% END %]
+    [% IF op == 'enqueued' %]
+        [% t("Job enqueued") | html %] &rsaquo;
+    [% END %]
+    [% t("Batch item modification") | html %] &rsaquo;
+    [% t("Cataloging") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>input[type=checkbox]{ margin : 0 .5em; }</style>
 [% Asset.css("css/addbiblio.css") | $raw %]
@@ -22,18 +33,36 @@
             [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/cataloguing/cataloging-home.pl">Cataloging</a>
             [% END %]
-            [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Batch item modification</span>
+            [% IF ( show || op == "enqueued") %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/tools/batchMod.pl">Batch item modification</a>
+                [% END %]
+            [% ELSE %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Batch item modification</span>
+                [% END %]
+            [% END %]
+            [% IF ( op == 'enqueued' ) %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    [% t("Job enqueued") | html %]
+                [% END %]
+            [% END %]
+            [% IF ( show ) %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    [% t("Modifications") | html %]
+                [% END %]
             [% END %]
         [% END #/ WRAPPER breadcrumbs %]
     [% END #/ WRAPPER sub-header.inc %]
 
     <div class="main container-fluid">
+        [% INCLUDE 'messages.inc' %]
 
         <h1>Batch item modification</h1>
         [% IF op == 'enqueued' %]
-            <div class="dialog message">
-              <p>The job has been enqueued! It will be processed as soon as possible.</p>
+            <div class="alert alert-info">
+                <h1>The job has been enqueued!</h1>
+                <p>It will be processed as soon as possible.</p>
               <p><a href="/cgi-bin/koha/admin/background_jobs.pl?op=view&id=[% job_id | uri %]" title="View detail of the enqueued job">View detail of the enqueued job</a>
               | <a href="/cgi-bin/koha/tools/batchMod.pl" title="New batch item modification">New batch item modification</a></p>
             </div>
@@ -55,11 +84,11 @@
 
         [% FOREACH message IN messages %]
           [% IF message.type == 'success' %]
-            <div class="dialog message">
+            <div class="alert alert-info">
           [% ELSIF message.type == 'warning' %]
-            <div class="dialog alert">
+            <div class="alert alert-warning">
           [% ELSIF message.type == 'error' %]
-            <div class="dialog alert" style="margin:auto;">
+            <div class="alert alert-warning" style="margin:auto;">
           [% END %]
           [% IF message.code == 'cannot_enqueue_job' %]
               <span>Cannot enqueue this job.</span>
@@ -71,18 +100,18 @@
         [% END %]
 
         [% IF ( barcode_not_unique ) %]
-            <div class="dialog alert">
+            <div class="alert alert-warning">
                 <strong>Error saving item</strong>: Barcode must be unique.
             </div>
         [% END %]
         [% IF ( no_next_barcode ) %]
-            <div class="dialog alert">
+            <div class="alert alert-warning">
                 <strong>Error saving items</strong>: Unable to automatically determine values for barcodes. No item has been inserted.
             </div>
         [% END %]
 
         [% IF ( notfoundbarcodes.size ) %]
-            <div class="dialog alert">
+            <div class="alert alert-warning">
                 <p>Warning, the following barcodes were not found:</p>
                 <br/>
                 <table style="margin:auto;">
@@ -105,7 +134,7 @@
         [% END # /IF notfoundbarcodes.size %]
 
         [% IF ( notfounditemnumbers.size ) %]
-            <div class="dialog alert">
+            <div class="alert alert-warning">
                 <p>Warning, the following itemnumbers were not found:</p>
                 <br/>
                 <table style="margin:auto;">
@@ -128,6 +157,7 @@
 
 
         <form name="f" action="batchMod.pl" method="post">
+            [% INCLUDE 'csrf-token.inc' %]
             <input type="hidden" name="op" value="[% op | html %]" />
             <input type="hidden" name="searchid" value="[% searchid | html %]" />
             <input type="hidden" name="uploadedfileid" id="uploadedfileid" value="" />
@@ -190,6 +220,21 @@
                                 </li>
                             </ol>
                         </fieldset>
+                        <fieldset class="rows">
+                            <legend>Options</legend>
+                            <ol>
+                                <li>
+                                    <div class="hint">This option checks in items to remove them from patron accounts.</br>Items are not marked found, nor do damaged/withdrawn statuses prevent this return, nor are item locations updated. This feature is intended to allow removal of checkouts from patron accounts without affecting fines or other statuses.</div></br>
+                                    <div class="subfield_line">
+                                        <label for="mark_items_returned">Check in items:</label>
+                                        <select id="mark_items_returned" name="mark_items_returned" class="input_marceditor select2" style="width: 50px">
+                                            <option value="1">Yes</option>
+                                            <option value="0" selected>No</option>
+                                        </select>
+                                    </div>
+                                </li>
+                            </ol>
+                        </fieldset>
 
                         <fieldset class="action">
                             <input type="submit" id="mainformsubmit" class="btn btn-primary" value="Save" />
@@ -203,14 +248,14 @@
                 <fieldset class="action">
                     [% IF src == 'CATALOGUING' # from catalogue/detail.pl > Edit items in a batch%]
                         [% IF searchid %]
-                            <a class="btn btn-default" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber | uri %]&searchid=[% searchid | uri %]"><i class="fa fa-check-square-o"></i> Return to the record</a>
+                            <a class="btn btn-default" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber | uri %]&searchid=[% searchid | uri %]"><i class="fa fa-check-square"></i> Return to the record</a>
                         [% ELSE %]
-                            <a class="btn btn-default" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber | uri %]"><i class="fa fa-check-square-o"></i> Return to the record</a>
+                            <a class="btn btn-default" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber | uri %]"><i class="fa fa-check-square"></i> Return to the record</a>
                         [% END %]
                     [% ELSIF src %]
-                        <a class="btn btn-default" href="[% src | url %]"><i class="fa fa-check-square-o"></i> Return to where you were</a>
+                        <a class="btn btn-default" href="[% src | url %]"><i class="fa fa-check-square"></i> Return to where you were</a>
                     [% ELSE %]
-                        <a class="btn btn-default" href="/cgi-bin/koha/tools/batchMod.pl"><i class="fa fa-check-square-o"></i> Return to batch item modification</a>
+                        <a class="btn btn-default" href="/cgi-bin/koha/tools/batchMod.pl"><i class="fa fa-check-square"></i> Return to batch item modification</a>
                     [% END %]
                 </fieldset> <!-- /.action -->
             [% END %]
@@ -220,6 +265,7 @@
         [% Asset.js("lib/jquery/plugins/humanmsg.js") | $raw %]
         [% Asset.js("js/cataloging.js") | $raw %]
         [% INCLUDE 'datatables.inc' %]
+        [% INCLUDE 'columns_settings.inc' %]
         [% Asset.js("js/pages/batchMod.js") | $raw %]
         [% INCLUDE 'select2.inc' %]
         [% INCLUDE 'calendar.inc' %]
@@ -228,7 +274,7 @@
             // two to accommodate control and title columns
             var allColumns = new Array([% FOREACH item_header_loo IN item_header_loop %]'[% loop.count | html %]'[% UNLESS ( loop.last ) %],[% END %][% END %]);
             for( x=0; x<allColumns.length; x++ ){
-                allColumns[x] = Number(allColumns[x]) + 2;
+                allColumns[x] = Number(allColumns[x]) + 3;
             }
 
             $(document).ready(function(){

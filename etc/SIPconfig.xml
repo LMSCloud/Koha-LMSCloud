@@ -15,13 +15,13 @@
     min_servers='1'
     min_spare_servers='0'
     max_servers='1'
-    log_file='Sys::Syslog'
-    syslog_ident='koha_sip'
-    syslog_facility='local6'
     setsid="1"
     user='koha'
     group='koha'
     pid_file='/var/run/sipserver.pid'
+    custom_tcp_keepalive='0'
+    custom_tcp_keepalive_time='7200'
+    custom_tcp_keepalive_intvl='75'
   />
 
   <listeners>
@@ -32,13 +32,13 @@
       protocol="NCIP/1.0" />
 -->
     <service
-      port="8023/tcp"
+      port="127.0.0.1:8023/tcp/IPv4"
       transport="telnet"
       protocol="SIP/2.00"
       timeout="60" />
 
     <service
-      port="127.0.0.1:6001/tcp"
+      port="127.0.0.1:6001/tcp/IPv4"
       transport="RAW"
       protocol="SIP/2.00"
       client_timeout="600"
@@ -56,8 +56,10 @@
       <login id="staff"  password="staff" delimiter="|" error-detect="enabled" institution="CPL" encoding="ascii" checked_in_ok="1" payment_type_writeoff="06" disallow_overpayment="1" />
       <login id="koha"   password="koha"  delimiter="|" error-detect="enabled" institution="kohalibrary" encoding="utf8" />
       <login id="koha2"  password="koha" institution="kohalibrary2" terminator="CR" />
-      <login id="lpl-sc" password="1234" institution="LPL" />
+      <login id="lpl-sc" password="1234" institution="LPL" allow_fields="AO,AA,AE"/>
+      <!-- allow_fields hides all fields not in the list, it is the inverse of hide_fields ( hide_fields takes precedence ) -->
       <login id="lpl-sc-beacock" password="xyzzy"
+             convert_nonprinting_characters=" "
              delimiter="|" error-detect="enabled" institution="LPL"
              send_patron_home_library_in_af="1"
              cv_send_00_on_success="1"
@@ -69,17 +71,25 @@
              da_field_template="[% patron.surname %][% IF patron.firstname %], [% patron.firstname %][% END %]"
              av_field_template="[% accountline.description %] [% accountline.amountoutstanding | format('%.2f') %]"
              hide_fields="BD,BE,BF,PB"
+             allow_additional_materials_checkout="1"
              register_id=''
              holds_block_checkin="0"
              holds_get_captured="1"
              prevcheckout_block_checkout="0"
              overdues_block_checkout="1"
+             show_outstanding_amount="1"
+             show_checkin_message="0"
              format_due_date="0"
              inhouse_item_types=""
              inhouse_patron_categories=""
+             lost_status_for_missing="4"
+             blocked_item_types="VM|MU"
              seen_on_item_information="mark_found"> <!-- could be "keep_lost", empty to disable -->
+             <!-- convert_nonprinting_characters: Convert control and non-space separator characters into the given string -->
+             <!-- show_checkin_message: If enabled, successful checking responses will contain an AF screen message -->
              <!-- lost_block_checkout sets flag if patron has more than the given current checkouts that are lost ( itemlost > 0 by default ) -->
              <!-- lost_block_checkout_value determines the minimum lost item value to count ( that is, the value in items.itemlost ) -->
+             <!-- lost_status_for_missing defines which Koha lost status will return the circulation status 13 ( i.e. missing ) for this account -->
           <!-- Refer to syspref SIP2SortBinMapping for full explanation of sort bin mapping -->
           <sort_bin_mapping mapping="CPL:itype:eq:BK:1"/>
           <sort_bin_mapping mapping="CPL:location:eq:OFFICE:2"/>

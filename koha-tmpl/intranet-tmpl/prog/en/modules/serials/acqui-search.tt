@@ -1,5 +1,11 @@
+[% USE raw %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Search for vendor &rsaquo; Serials &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Search for vendor") | html %] &rsaquo;
+    [% t("Serials") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -8,10 +14,23 @@
 <div class="container-fluid">
 
 <h1>Serial subscription: search for vendor </h1>
-    <form action="/cgi-bin/koha/serials/acqui-search-result.pl" method="post">
-        <label for="text">Vendor name: </label>
-        <input id="text" type="text"  size="25" name="supplier" autofocus="autofocus" />
-        <input type="submit" class="btn btn-primary" value="OK" />
+    <form action="/cgi-bin/koha/serials/acqui-search-result.pl" method="get">
+        <fieldset class="rows">
+            <ol>
+                <li>
+                    <label for="text">Vendor name: </label>
+                    <input id="text" type="text"  size="25" name="supplier" autofocus="autofocus" />
+                </li>
+            </ol>
+        </fieldset>
+        <nav class="navbar navbar-default fixed-bottom">
+            <div class="container-fluid">
+                <fieldset class="action">
+                    <input type="submit" class="btn btn-primary" value="Search" />
+                    <button type="button" class="btn btn-default close_window">Close window</button>
+                </fieldset>
+            </div>
+        </nav>
     </form>
 
 [% INCLUDE 'intranet-bottom.inc' popup_window=1 %]

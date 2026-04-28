@@ -39,26 +39,26 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
+my $op = $query->param('op');
 my $reserve_id = $query->param('reserve_id');
-my $cancellation_request = $query->param('cancellation_request');
 my $new_pickup_location  = $query->param('new_pickup_location');
 
 if ( $reserve_id && $borrowernumber ) {
 
     my $hold = Koha::Holds->find($reserve_id);
 
-    unless ( $hold->borrowernumber == $borrowernumber ) {
+    unless ( $hold && $hold->borrowernumber == $borrowernumber ) {
 
         # whatcha tryin to do?
         print $query->redirect('/cgi-bin/koha/errors/403.pl');
         exit;
     }
 
-    if ( $cancellation_request ) {
+    if ( $op eq 'cud-request_cancellation' ) {
         $hold->add_cancellation_request
           if $hold->cancellation_requestable_from_opac;
     }
-    elsif ( $new_pickup_location ) {
+    elsif ( $op eq 'cud-change_branch' && $new_pickup_location ) {
 
         if ($hold->can_update_pickup_location_opac) {
             $hold->set_pickup_location({ library_id => $new_pickup_location });
@@ -69,9 +69,9 @@ if ( $reserve_id && $borrowernumber ) {
             exit;
         }
     }
-    elsif ( $hold->is_cancelable_from_opac ) {
+    elsif ( $op eq 'cud-cancel' && $hold->is_cancelable_from_opac ) {
         $hold->cancel;
     }
 }
 
-print $query->redirect("/cgi-bin/koha/opac-user.pl#opac-user-holds");
+print $query->redirect("/cgi-bin/koha/opac-user.pl?opac-user-holds=1");

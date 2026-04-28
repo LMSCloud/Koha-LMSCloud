@@ -1,0 +1,89 @@
+type: object
+properties:
+  account_line_id:
+    type:
+      - integer
+      - "null"
+    readOnly: true
+    description: Internal account line identifier
+  amount:
+    type: number
+    minimum: 0
+    description: Debit amount
+  amount_outstanding:
+    type: number
+    description: Outstanding amount
+  cash_register_id:
+    type:
+      - integer
+      - "null"
+    description: Internal identifier for the cash register used for the payout (if any)
+  checkout_id:
+    type:
+      - integer
+      - "null"
+    description: Internal identifier for the checkout the account line is related to
+  old_checkout_id:
+    type:
+      - integer
+      - "null"
+    description: Internal identifier for the old checkout the account line is related to
+  date:
+    type: string
+    format: date-time
+    description: Date the account line was created
+  description:
+    type:
+      - string
+      - "null"
+    description: Account line description
+  interface:
+    type:
+      - string
+      - "null"
+    description: 'Interface in which the account line was generated (values can be: api, cron, commandline, intranet, opac and sip)'
+  internal_note:
+    type:
+      - string
+      - "null"
+    description: Internal note
+  item_id:
+    type:
+      - integer
+      - "null"
+    description: Internal identifier for the item the account line is related to
+  library_id:
+    type:
+      - string
+      - "null"
+    description: Internal identifier for the library in which the transaction took place
+  patron_id:
+    type: integer
+    description: Internal identifier for the patron the account line belongs to
+  payout_type:
+    type:
+      - string
+      - "null"
+    description: Payout type
+  status:
+    type:
+      - string
+      - "null"
+    description: The debit status
+  timestamp:
+    type: string
+    format: date-time
+    description: Timestamp for the latest line update
+  type:
+    type:
+      - string
+      - "null"
+    description: Account debit type
+  user_id:
+    type:
+      - integer
+      - "null"
+    description: Internal patron identifier for the staff member that introduced the account line
+required:
+  - amount
+additionalProperties: false

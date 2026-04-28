@@ -55,7 +55,7 @@
                 <li><a href="/cgi-bin/koha/admin/curbside_pickup.pl">Curbside pickup</a></li>
             [% END %]
             [% IF ( CAN_user_parameters_manage_patron_restrictions ) %]
-                <li><a href="/cgi-bin/koha/admin/restrictions.pl">Patron restrictions</a></li>
+                <li><a href="/cgi-bin/koha/admin/restrictions.pl">Patron restriction types</a></li>
             [% END %]
         </ul>
     [% END %]
@@ -104,6 +104,9 @@
             [% IF ( CAN_user_parameters_manage_matching_rules ) %]
                 <li><a href="/cgi-bin/koha/admin/matching-rules.pl">Record matching rules</a></li>
             [% END %]
+            [% IF ( CAN_user_parameters_manage_record_sources ) %]
+                <li><a href="/cgi-bin/koha/admin/record_sources">Record sources</a></li>
+            [% END %]
             [% IF ( CAN_user_parameters_manage_marc_overlay_rules ) %]
                 <li><a href="/cgi-bin/koha/admin/marc-overlay-rules.pl">Record overlay rules</a></li>
             [% END %]
@@ -122,7 +125,7 @@
         </ul>
     [% END %]
 
-    [% IF ( CAN_user_acquisition_currencies_manage || CAN_user_acquisition_period_manage || CAN_user_acquisition_budget_manage || ( Koha.Preference('EDIFACT') && CAN_user_acquisition_edi_manage ) ) %]
+    [% IF ( CAN_user_acquisition_currencies_manage || CAN_user_acquisition_period_manage || CAN_user_acquisition_budget_manage || ( Koha.Preference('EDIFACT') && CAN_user_acquisition_edi_manage ) ) || ( Koha.Preference('MarcOrderingAutomation') && CAN_user_acquisition_marc_order_manage ) %]
         <h5>Acquisition parameters</h5>
         <ul>
             [% IF ( CAN_user_acquisition_currencies_manage ) %]
@@ -138,6 +141,9 @@
                 <li><a href="/cgi-bin/koha/admin/edi_accounts.pl">EDI accounts</a></li>
                 <li><a href="/cgi-bin/koha/admin/edi_ean_accounts.pl">Library EANs</a></li>
             [% END %]
+            [% IF ( Koha.Preference('MarcOrderingAutomation') && CAN_user_acquisition_marc_order_manage ) %]
+                <li><a href="/cgi-bin/koha/admin/edi_accounts.pl">MARC ordering accounts</a></li>
+            [% END %]
         </ul>
     [% END %]
 
@@ -149,6 +155,7 @@
             [% END %]
             [% IF ( CAN_user_parameters_manage_search_targets ) %]
                 <li><a href="/cgi-bin/koha/admin/z3950servers.pl">Z39.50/SRU servers</a></li>
+                <li><a href="/cgi-bin/koha/admin/oai_servers.pl">OAI repositories</a></li>
             [% END %]
             [% IF ( CAN_user_parameters_manage_smtp_servers ) %]
                 <li><a href="/cgi-bin/koha/admin/smtp_servers.pl">SMTP servers</a></li>
@@ -176,6 +183,9 @@
             [% END %]
             [% IF ( Koha.Preference('EnableAdvancedCatalogingEditor') && CAN_user_parameters_manage_keyboard_shortcuts ) %]
                 <li><a href="/cgi-bin/koha/admin/adveditorshortcuts.pl">Keyboard shortcuts</a></li>
+            [% END %]
+            [% IF Koha.Preference('ILLModule ') && CAN_user_ill %]
+                <li><a href="/cgi-bin/koha/admin/ill_batch_statuses.pl">Interlibrary loan batch statuses</a></li>
             [% END %]
         </ul>
     [% END %]

@@ -62,7 +62,7 @@ sub new {
     
     my @includes;
     foreach (@$activethemes) {
-        if ( -e "$opaccustomdocs" ) {
+        if ( defined $opaccustomdocs && -e "$opaccustomdocs" ) {
             if ( -e "$opaccustomdocs/$_/$lang/includes" ) {
                 push @includes, "$opaccustomdocs/$_/$lang/includes";
             }
@@ -73,6 +73,13 @@ sub new {
         push @includes, "$htdocs/$_/$lang/includes";
         push @includes, "$htdocs/$_/en/includes" unless $lang eq 'en';
     }
+
+    my @plugins_include_paths = Koha::Plugins->call(
+        'template_include_paths',
+        { interface => $interface, lang => $lang }
+    );
+    push @includes, map { $_ ? @$_ : () } @plugins_include_paths;
+
     # Do not use template cache if script is called from commandline
     my $use_template_cache = C4::Context->config('template_cache_dir') && defined $ENV{GATEWAY_INTERFACE};
     my $template = Template->new(
@@ -188,9 +195,9 @@ sub _get_template_file {
         
         if (! $is_intranet ) {
             my $customdocs = C4::Context->config('opaccustomdocs');
-            if ( -e "$customdocs" ) {
+            if ( defined $customdocs && -e "$customdocs" ) {
                 my $customfile = "$customdocs/$theme/$lang/modules/$tmplbase";
-                if ( -e $customfile ) { 
+                if ( -e $customfile ) {
                     $filename = $customfile;
                 }
             }
@@ -333,14 +340,14 @@ sub availablethemes {
     for my $theme (@themes) {
         if ( (defined($opaccustomdocs) && -e "$opaccustomdocs/$theme/$lang/$where/$tmpl") || 
              (-e "$htdocs/$theme/$lang/$where/$tmpl") ) {
-            return ( $theme, $lang, uniq( \@themes ) );
+            return ( $theme, $lang, [ uniq(@themes) ] );
         }
     }
     # Otherwise return theme/'en', last resort fallback/'en'
     for my $theme (@themes) {
         if ( (defined($opaccustomdocs) && -e "$opaccustomdocs/$theme/en/$where/$tmpl") ||
              (-e "$htdocs/$theme/en/$where/$tmpl") ) {
-            return ( $theme, 'en', uniq( \@themes ) );
+            return ( $theme, 'en', [ uniq(@themes) ] );
         }
     }
     # tmpl is a full path, so this is a template for a plugin

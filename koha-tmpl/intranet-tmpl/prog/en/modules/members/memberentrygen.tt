@@ -1,4 +1,3 @@
-[% PROCESS 'i18n.inc' %]
 [% USE raw %]
 [% USE Asset %]
 [% USE To %]
@@ -9,26 +8,51 @@
 [% PROCESS 'member-alt-address-style.inc' %]
 [% PROCESS 'member-alt-contact-style.inc' %]
 [% PROCESS 'restriction-types.inc' %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
-[% INCLUDE 'doc-head-open.inc' %]
+[% PROCESS 'patron-search.inc' %]
 [% SET IsFamilyCard = patron.is_family_card %][% FOREACH gr IN patron.guarantor_relationships %][% SET IsFamilyCard = (IsFamilyCard || gr.guarantor.is_family_card) %][% END %]
-    <title>
+[% INCLUDE 'doc-head-open.inc' %]
+<title>[% FILTER collapse %]
         [% UNLESS blocking_error %]
-            [% IF ( opadd ) %]
-                Add patron
+            [% IF ( op == 'add_form' ) %]
+                [% t("Add patron") | html %]
             [% ELSE %]
-                Modify patron
+                [% t("Modify patron") | html %]
             [% END %]
             [% INCLUDE 'patron-title.inc' no_html = 1 %]
-            [%IF IsFamilyCard %](Family card member, [% IF patron_category %]([% patron_category.description | html %])[% END %])[% ELSE %][% IF patron_category %]([% patron_category.description | html %])[% END %][% END %]
-        [% END %] &rsaquo; Patrons &rsaquo; Koha
-    </title>
-<style>
-legend:hover {
+            [% IF IsFamilyCard %](Family card member, [% IF patron_category %]([% patron_category.description | html %])[% END %])[% ELSE %][% IF patron_category %]([% patron_category.description | html %])[% END %][% END %]
+        [% END %] &rsaquo;
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
+[% INCLUDE 'doc-head-close.inc' %]
+<style>[% FILTER collapse %]
+fieldset legend {
+    border: 1px solid #FFF;
+    margin-left: -.5em;
+    margin-top: -.5em;
+    padding: .7em;
+}
+fieldset legend:hover {
+    border: 1px solid #6FAF44;
     cursor: pointer;
 }
-</style>
-[% INCLUDE 'doc-head-close.inc' %]
+
+fieldset legend i {
+    color: #4C7AA8;
+    font-size: 80%;
+    padding-right: .2rem;
+}
+
+fieldset legend.collapsed {
+    margin-bottom: -.5em;
+}
+
+legend.collapsed i.fa.fa-caret-down::before {
+    content: "\f0da";
+}
+[% END %]</style>
 </head>
 
 <body id="pat_memberentrygen" class="pat">
@@ -42,7 +66,7 @@ legend:hover {
                     <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
             [% END %]
             [% UNLESS blocking_error %]
-                [% UNLESS opadd %]
+                [% UNLESS op == 'add_form' %]
                     [% IF (borrower_data.firstname || borrower_data.surname ) %]
                         [% WRAPPER breadcrumb_item %]
                             <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% borrowernumber | uri %]">
@@ -53,7 +77,7 @@ legend:hover {
                 [% END %]
             [% END %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                [% IF ( opadd ) %]
+                [% IF ( op == 'add_form' ) %]
                     <span>Add patron</span>
                 [% ELSE %]
                     <span>Modify patron</span>
@@ -71,39 +95,39 @@ legend:hover {
                 [% FOR message IN borrower_data.messages %]
                     [% SWITCH message.error %]
                         [% CASE 'error_on_insert_patron' %]
-                            <div class="dialog alert">Something went wrong when creating the patron. Check the logs.</div>
+                            <div class="alert alert-warning">Something went wrong when creating the patron. Check the logs for details.</div>
                         [% CASE 'error_on_update_patron' %]
-                            <div class="dialog alert">Something went wrong when updating the patron. Check the logs.</div>
-                        [% CASE %]<div class="dialog alert">Unhandled error: [% message.error | html %]</div>
+                            <div class="alert alert-warning">Something went wrong when updating the patron. Check the logs for details.</div>
+                        [% CASE %]<div class="alert alert-warning">Unhandled error: [% message.error | html %]</div>
                     [% END %]
                 [% END %]
             [% END %]
-            [% IF ( opadd ) %]
-                <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+            [% IF ( op == 'add_form' ) %]
+                <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
             [% ELSE %]
-                <div class="col-sm-10 col-sm-push-2">
+                <div class="col-md-10 order-md-2 order-sm-1">
             [% END %]
                 <main class="clearfix">
-                    [% INCLUDE 'blocking_errors.inc' %]
+                    [% INCLUDE 'messages.inc' %]
 
                     [% IF error_alert %]
                         [% IF ( error_alert == "no_email" ) %]
-                            <div class="dialog alert">This member has no email</div>
+                            <div class="alert alert-warning">This member has no email</div>
                         [% ELSE %]
-                            <div class="dialog alert">[% error_alert | html %]</div>
+                            <div class="alert alert-warning">[% error_alert | html %]</div>
                         [% END %]
                     [% END %]
                     [% IF info_alert %]
-                        <div class="dialog message">Email has been sent.</div>
+                        <div class="alert alert-info">Email has been sent.</div>
                     [% END %]
 
                     [% INCLUDE 'noadd-warnings.inc' %]
 
                     [% UNLESS ( no_add ) %]
                         <h1>
-                            [% IF ( opadd ) %]
+                            [% IF ( op == 'add_form' ) %]
                                 <span>Add patron</span>
-                            [% ELSIF ( opduplicate ) %]
+                            [% ELSIF ( op == 'duplicate' ) %]
                                 <span>Duplicate patron</span>
                             [% ELSE %]
                                 <span>Modify patron</span>
@@ -112,32 +136,35 @@ legend:hover {
                             [% IF patron_category %]([% patron_category.description | html %])[% END %]
                         </h1>
 
-                        [% IF quickadd && opadd && !check_member %]
+                        [% IF quickadd && op == 'add_form' && !check_member %]
                             <a href="#" class="toggle_quick_add"><i class="fa fa-plus-square"></i> Show full form</a>
                             <a href="#" class="toggle_quick_add" style="display:none"><i class="fa fa-minus-square"></i> Show brief form</a>
                         [% END %]
 
                         [% IF ( check_member ) %]
-                            <div class="dialog alert">
+                            <div class="alert alert-warning">
                                 <h3>Duplicate patron record?</h3>
-                                <p><a class="popup_patronview" href="/cgi-bin/koha/members/moremember.pl?print=brief&amp;borrowernumber=[% check_member | uri %]"><i class="fa fa-window-restore"></i> View existing record</a></p>
-                                <button id="duplicate" type="submit" class="new"> <i class="fa fa-pencil"></i> It is a duplicate. Edit existing record </button>
+                                <p>[%- INCLUDE 'patron-title.inc' patron => check_patron hide_patron_infos_if_needed => 1 -%]</p>
+                                [% IF logged_in_user.can_see_patron_infos( check_patron ) %]
+                                    <p><a class="popup_patronview" href="/cgi-bin/koha/members/moremember.pl?print=brief&amp;borrowernumber=[% check_member | uri %]"><i class="fa-solid fa-window-restore"></i> View existing record</a></p>
+                                [% END %]
+                                <a href="/cgi-bin/koha/members/memberentry.pl?op=edit_form&borrowernumber=[% check_member | uri %]" class="btn btn-default" id="duplicate"> <i class="fa-solid fa-pencil" aria-hidden="true"></i> It is a duplicate. Edit existing record </a>
                                 <button type="submit" id="not-duplicate" class="new"> <i class="fa fa-plus"></i> Not a duplicate. Save as new record </button>
                             </div>
                         [% END %]
 
                         [% IF ( nok ) %]
-                            <div class="dialog alert">
+                            <div class="alert alert-warning">
                                 <p>The following fields are wrong. Please fix them.</p>
                                 <ul>
                                     [% IF ( ERROR_login_exist ) %]
-                                        <li id="ERROR_login_exist">Username/password already exists.</li>
+                                        <li id="ERROR_login_exist">Username already exists or could not create unique new one.</li>
                                     [% END %]
                                     [% IF ERROR_cardnumber_already_exists %]
-                                        <li id="ERROR_cardnumber">Cardnumber already in use.</li>
+                                        <li id="ERROR_cardnumber">Card number already in use.</li>
                                     [% END %]
                                     [% IF ERROR_cardnumber_length %]
-                                        <li id="ERROR_cardnumber">Cardnumber length is incorrect.</li>
+                                        <li id="ERROR_cardnumber">Card number length is incorrect.</li>
                                     [% END %]
                                     [% IF ( ERROR_age_limitations ) %]
                                     <li id="ERROR_age_limitations">Patron's age is incorrect for their category.
@@ -182,18 +209,34 @@ legend:hover {
                                     [% IF ERROR_bad_email_alternative %]
                                         <li id="ERROR_bad_email_alternative">The alternative email is invalid.</li>
                                     [% END %]
+                                    [% IF ( ERROR_child_no_guarantor ) %]
+                                        <li id="ERROR_child_no_guarantor">A child patron needs a guarantor.</li>
+                                    [% END %]
+                                [% IF ( ERROR_child_is_guarantor ) %]
+                                    <li id="ERROR_child_is_guarantor">Child patron cannot be a guarantor.</li>
+                                [% END %]
+                                    [% IF ( ERROR_guarantor_is_guarantee ) %]
+                                        <li id="ERROR_guarantor_is_guarantee">A guarantor cannot be a guarantee.</li>
+                                    [% END %]
+                                    [% IF ( ERROR_cannot_delete_guarantor ) %]
+                                        <li id="ERROR_cannot_delete_guarantor">Cannot delete guarantor(s). A child patron needs a guarantor.</li>
+                                    [% END %]
+                                    [% IF ( ERROR_invalid_relationship ) %]
+                                        <li id="ERROR_invalid_relationship">Guarantor relationship cannot be left blank according to configuration.</li>
+                                    [% END %]
                                 </ul>
                             </div>
                         [% END %]
 
-                        [% SET fieldstohide = Koha.Preference('CollapseFieldsPatronAddForm') %]
+                    [% SET fieldstohide = Koha.Preference('CollapseFieldsPatronAddForm').split(',') %]
                         [% IF Koha.Preference('CollapseFieldsPatronAddForm') %][% UNLESS step %]
                             <p id="selections">
-                                <input type="checkbox" id="toggle_hidden_fields" title="These fields are collapsed by default by the CollapseFieldsPatronAddForm system preference"><strong>Show collapsed fields:</strong>
-                                [% FOREACH field IN fieldstohide.split(',') %]
+                                <label><input type="checkbox" id="toggle_hidden_fields" title="These fields are collapsed by default by the CollapseFieldsPatronAddForm system preference"><strong>Show collapsed fields:</strong></label>
+                                [% FOREACH field IN fieldstohide %]
                                     [% SWITCH field %]
                                         [% CASE 'identity' %] <span>Patron identity</span> |
                                         [% CASE 'guarantor' %] <span>Guarantor information</span> |
+                                        [% CASE 'nonpatron_guarantor' %] <span>Non-patron guarantor</span> |
                                         [% CASE 'primary_address' %] <span>Main address</span> |
                                         [% CASE 'primary_contact' %] <span>Contact information</span> |
                                         [% CASE 'alt_address' %] <span>Alternate address</span> |
@@ -203,7 +246,7 @@ legend:hover {
                                         [% CASE 'login' %] <span>OPAC/Staff interface login</span> |
                                         [% CASE 'flags' %] <span>Patron account flags</span> |
                                         [% CASE 'debarments' %] <span>Patron restrictions</span> |
-                                        [% CASE 'housebound' %] <span>Housebound roles</span> |
+                                        [% CASE 'housebound' %][% IF Koha.Preference('HouseboundModule')%] <span>Housebound roles</span> |[% END %]
                                         [% CASE 'additional' %] <span>Additional attributes and identifiers</span> |
                                         [% CASE 'messaging' %] <span>Patron messaging preferences</span> |
                                     [% END %]
@@ -212,13 +255,13 @@ legend:hover {
                         [% END %][% END %]
 
                         [% UNLESS ( check_member ) %]
-                            <div id="toolbar" class="btn-toolbar">
-                                [% IF quickadd && opadd %]
+                            <div id="toolbar" class="btn-toolbar sticky">
+                                [% IF quickadd && op == 'add_form' %]
                                     <button class="btn btn-primary toggler" id="save_quick_add" name="save"><i class="fa fa-save"></i> Save</button>
                                 [% END %]
                                 <button class="btn btn-primary toggler" id="saverecord" name="save" ><i class="fa fa-save"></i> Save</button>
-                                [% IF opadd %]
-                                    <a class="btn btn-link" href="/cgi-bin/koha/members/member.pl" class="toggler save_entryform">
+                                [% IF op == 'add_form' %]
+                                    <a class="btn btn-link toggler save_entryform" href="/cgi-bin/koha/members/member.pl">
                                 [% ELSE %]
                                     <a class="btn btn-link" href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% borrowernumber | html %]">
                                 [% END %]
@@ -236,18 +279,18 @@ legend:hover {
                             <input type="hidden" name="updtype" value="[% updtype | html %]" />
                             <input type="hidden" name="destination" value="[% destination | html %]" />
                             <input type="hidden" name="check_member" value="[% check_member | html %]" />
-                            <input type="hidden" name="borrowernumber" value="[% borrowernumber | html UNLESS opduplicate %]" />
-                            <input type="hidden" name="nodouble"  value="[% nodouble | html UNLESS opduplicate %]" />
-                            <input type="hidden" name="csrf_token" value="[% csrf_token | html %]" />
+                            <input type="hidden" name="borrowernumber" value="[% borrowernumber | html UNLESS op == 'duplicate' %]" />
+                            <input type="hidden" name="nodouble"  value="[% nodouble | html UNLESS op == 'duplicate' %]" />
+                            [% INCLUDE 'csrf-token.inc' %]
                             [% IF ( step ) %]
                                 <input type="hidden" name="step"  value="[% step | html %]" />
                             [% END %]
-                            [% IF ( opadd ) %]
-                                <input type="hidden" name="op" value="insert" />
-                            [% ELSIF ( opduplicate ) %]
-                                <input type="hidden" name="op" value="insert" />
+                            [% IF ( op == 'add_form' ) %]
+                                <input type="hidden" name="op" value="cud-insert" />
+                            [% ELSIF ( op == 'duplicate' ) %]
+                                <input type="hidden" name="op" value="cud-insert" />
                             [% ELSE %]
-                                <input type="hidden" name="op" value="save" />
+                                <input type="hidden" name="op" value="cud-save" />
                                 [% IF step == 4 || step == 5 || step == 6 || step == 2 || step == 1 || step == 7 %]
                                     [%# Only put the card number if we arent showing it in the form later %]
                                     [% IF borrower_data.cardnumber %]
@@ -257,9 +300,12 @@ legend:hover {
                             [% END %]
 
                             [% IF ( step_1 ) %]
-                                [% UNLESS notitle && nosurname && nofirstname && nomiddle_name && nodateofbirth && noinitials && noothernames &&nosex && nopronouns %]
+                                [% UNLESS notitle && nosurname && nofirstname && nopreferred_name && nomiddle_name && nodateofbirth && noinitials && noothernames &&nosex && nopronouns %]
                                     <fieldset class="rows" id="memberentry_identity">
-                                        <legend id="identity_lgd">[% IF ( patron_category.category_type == 'I' ) %]<span>Organization [% ELSE %]Patron [% END %]identity</span></legend>
+                                        <legend class="expanded" id="identity_lgd">
+                                            <i class="fa fa-caret-down" title="Collapse this section"></i>
+                                            [% IF ( patron_category.category_type == 'I' ) %]<span>Organization [% ELSE %]Patron [% END %]identity</span>
+                                        </legend>
                                         <ol>
                                             [% UNLESS ( patron_category.category_type == 'I' ) %]
                                                 [% UNLESS notitle %]
@@ -273,11 +319,11 @@ legend:hover {
                                                             Salutation: </label>
                                                             <select id="btitle" name="title">
                                                                 <option value=""></option>
-                                                                [% FOREACH t IN Koha.Preference('BorrowersTitles').split('\|') %]
-                                                                    [% IF btitle == t %]
-                                                                        <option value="[% t | html %]" selected="selected">[% t | html %]</option>
+                                                                [% FOREACH patron_title IN Koha.Preference('BorrowersTitles').split('\|') %]
+                                                                    [% IF btitle == patron_title %]
+                                                                        <option value="[% patron_title | html %]" selected="selected">[% patron_title | html %]</option>
                                                                     [% ELSE %]
-                                                                        <option value="[% t | html %]">[% t | html %]</option>
+                                                                        <option value="[% patron_title | html %]">[% patron_title | html %]</option>
                                                                     [% END %]
                                                                 [% END %]
                                                             </select>
@@ -325,12 +371,27 @@ legend:hover {
                                                         [% END %]
                                                             First name:
                                                         </label>
-                                                        <input type="text" id="firstname" name="firstname" size="20"  value="[% borrower_data.firstname | html UNLESS opduplicate %]" />
+                                                        <input type="text" id="firstname" name="firstname" size="20"  value="[% borrower_data.firstname | html UNLESS op == 'duplicate' %]" />
                                                         [% IF ( mandatoryfirstname ) %]
                                                             <span class="required">Required</span>
                                                         [% END %]
                                                     </li>
                                                 [% END #/UNLESS nofirstname %]
+                                                [% UNLESS nopreferred_name %]
+                                                    <li>
+                                                        [% IF ( mandatorypreferred_name ) %]
+                                                            <label for="preferred_name" class="required">
+                                                        [% ELSE %]
+                                                            <label for="preferred_name">
+                                                        [% END %]
+                                                            Preferred name:
+                                                        </label>
+                                                        <input type="text" id="preferred_name" name="preferred_name" size="20"  value="[% borrower_data.preferred_name | html UNLESS op == 'duplicate' %]" />
+                                                        [% IF ( mandatorypreferred_name ) %]
+                                                            <span class="required">Required</span>
+                                                        [% END %]
+                                                    </li>
+                                                [% END #/UNLESS nopreferred_name %]
                                                 [% UNLESS nomiddle_name %]
                                                     <li>
                                                         [% IF ( mandatorymiddle_name ) %]
@@ -340,7 +401,7 @@ legend:hover {
                                                         [% END %]
                                                             Middle name:
                                                         </label>
-                                                        <input type="text" id="middle_name" name="middle_name" size="20"  value="[% borrower_data.middle_name | html UNLESS opduplicate %]" />
+                                                        <input type="text" id="middle_name" name="middle_name" size="20"  value="[% borrower_data.middle_name | html UNLESS op == 'duplicate' %]" />
                                                         [% IF ( mandatorymiddle_name ) %]
                                                             <span class="required">Required</span>
                                                         [% END %]
@@ -355,7 +416,7 @@ legend:hover {
                                                         [% END %]
                                                         Date of birth:
                                                         </label>
-                                                        <input type="text" id="dateofbirth" name="dateofbirth" size="20" value="[% borrower_data.dateofbirth | html UNLESS opduplicate %]" class="flatpickr" data-flatpickr-pastinclusive="true" />
+                                                        <input type="text" id="dateofbirth" name="dateofbirth" size="20" value="[% borrower_data.dateofbirth | html UNLESS op == 'duplicate' %]" class="flatpickr" data-flatpickr-pastinclusive="true" />
                                                          [% IF ( mandatorydateofbirth ) %]
                                                             <span class="required">Required</span>
                                                         [% END %]
@@ -374,7 +435,7 @@ legend:hover {
                                                         [% END %]
                                                             Initials:
                                                         </label>
-                                                        <input type="text" id="initials" name="initials" size="20"  value="[% borrower_data.initials | html UNLESS opduplicate %]" />
+                                                        <input type="text" id="initials" name="initials" size="20"  value="[% borrower_data.initials | html UNLESS op == 'duplicate' %]" />
                                                         [% IF ( mandatoryinitials ) %]
                                                             <span class="required">Required</span>
                                                         [% END %]
@@ -389,7 +450,7 @@ legend:hover {
                                                         [% END %]
                                                             Pronouns:
                                                         </label>
-                                                        <input type="text" id="pronouns" name="pronouns" size="20"  value="[% borrower_data.pronouns | html UNLESS opduplicate %]" />
+                                                        <input type="text" id="pronouns" name="pronouns" size="20"  value="[% borrower_data.pronouns | html UNLESS op == 'duplicate' %]" />
                                                         [% IF ( mandatorypronouns ) %]
                                                             <span class="required">Required</span>
                                                         [% END %]
@@ -405,7 +466,7 @@ legend:hover {
                                                     [% END %]
                                                         Other name:
                                                     </label>
-                                                    <input type="text" id="othernames" name="othernames" size="20"  value="[% borrower_data.othernames | html UNLESS opduplicate %]" />
+                                                    <input type="text" id="othernames" name="othernames" size="20"  value="[% borrower_data.othernames | html UNLESS op == 'duplicate' %]" />
                                                     [% IF ( mandatoryothernames ) %]
                                                         <span class="required">Required</span>
                                                     [% END %]
@@ -416,7 +477,7 @@ legend:hover {
                                             [% UNLESS ( patron_category.category_type == 'I' ) %]
                                                 [% UNLESS nosex %]
                                                     <li class="radio">
-                                                        [% UNLESS ( opduplicate ) %]
+                                                        [% UNLESS ( op == 'duplicate' ) %]
                                                             [% IF ( female ) %]
                                                                 <label for="sex-female"><input type="radio" name="sex" id="sex-female" value="F" checked="checked" /><span class="patronsex-female"> Female</span></label>
                                                             [% ELSE %]
@@ -428,9 +489,9 @@ legend:hover {
                                                                 <label for="sex-male"><input type="radio" name="sex" id="sex-male" value="M" /><span class="patronsex-male"> Male</span></label>
                                                             [% END %]
                                                             [% IF ( other ) %]
-                                                                <label for="sex-other"><input type="radio" name="sex" id="sex-other" value="O" checked="checked" /><span class="patronsex-other"> Other</span></label>
+                                                                <label for="sex-other"><input type="radio" name="sex" id="sex-other" value="O" checked="checked" /><span class="patronsex-other"> [% tp('gender', 'Other') | html %]</span></label>
                                                             [% ELSE %]
-                                                                <label for="sex-other"><input type="radio" name="sex" id="sex-other" value="O" /><span class="patronsex-other"> Other</span></label>
+                                                                <label for="sex-other"><input type="radio" name="sex" id="sex-other" value="O" /><span class="patronsex-other"> [% tp('gender', 'Other') | html %]</span></label>
                                                             [% END %]
                                                             [% IF ( none ) %]
                                                                 <label for="sex-none"><input type="radio" name="sex" id="sex-none" value=""  checked="checked" /><span class="patronsex-none"> None specified</span></label>
@@ -440,9 +501,9 @@ legend:hover {
                                                         [% ELSE %]
                                                             <label for="sex-female"><span class="patronsex-female">Female </span></label><input type="radio" name="sex" id="sex-female" value="F" />
                                                             <label for="sex-male"><span class="patronsex-male">Male </span></label><input type="radio" name="sex" id="sex-male" value="M" />
-                                                            <label for="sex-other"><span class="patronsex-other">Other </span></label><input type="radio" name="sex" id="sex-other" value="O" />
+                                                            <label for="sex-other"><span class="patronsex-other">[% tp('gender', 'Other') | html %] </span></label><input type="radio" name="sex" id="sex-other" value="O" />
                                                             <label for="sex-none"><span class="patronsex-none">None specified </span></label><input type="radio" name="sex" id="sex-none" value="" checked="checked" />
-                                                        [% END # /UNLESS ( opduplicate )%]
+                                                        [% END # /UNLESS ( op == 'duplicate' )%]
                                                     </li>
                                                 [% END # /UNLESS nosex %]
                                             [% END # /UNLESS ( I ) %]
@@ -454,7 +515,10 @@ legend:hover {
                                     [% SET possible_relationships = Koha.Preference('borrowerRelationship') %]
                                     <div id="memberentry_guarantor_anchor">
                                         <fieldset id="memberentry_guarantor" class="rows">
-                                            <legend>Patron guarantor</legend>
+                                            <legend class="expanded" id="patron_guarantor_lgd">
+                                                <i class="fa fa-caret-down" aria-hidden="true"></i>
+                                                Patron guarantor
+                                            </legend>
 
                                             <div id="guarantor_relationships">
                                                 [% FOREACH r IN relationships %]
@@ -473,15 +537,17 @@ legend:hover {
                                                                 <li class="guarantor-details" data-borrowernumber="[% r.guarantor_id | $raw %]">
                                                                     <span class="label">Guarantor:</span>
                                                                     [% INCLUDE 'patron-title.inc' patron=r.guarantor hide_patron_infos_if_needed=1 %]
+                                                                    <input type="hidden" class="guarantor_id relation-[% r.id | html %]" name="guarantor_id" value="[% r.guarantor_id | html %]" />
                                                                 </li>
                                                                 <li>
                                                                     <span class="label">Relationship:</span>
                                                                     <span>[% r.relationship | html %]</span>
+                                                                    <input type=hidden class="guarantor_relationship relation-[% r.id | html %]" name="guarantor_relationship" value="[% r.relationship | html %]" />
                                                                 </li>
 
                                                                 <li>
                                                                     <label for="delete_guarantor-[% r.id | uri %]">Remove: </label>
-                                                                    <input type="checkbox" id="delete_guarantor-[% r.id | uri %]" name="delete_guarantor" value="[% r.id | html %]" />
+                                                                    <input type="checkbox" id="delete_guarantor-[% r.id | uri %]" name="delete_guarantor" value="[% r.id | html %]" onclick="toggle_guarantor_field([% r.id | html %])" />
                                                                 </li>
                                                             [% END %]
                                                         </ol>
@@ -496,23 +562,23 @@ legend:hover {
                                                                 <input type="hidden" class="new_guarantor_id" name="new_guarantor_id" value="[% guarantor.borrowernumber | html %]"/>
                                                             </li>
 
-                                                            [% IF possible_relationships %]
+                                                            [% UNLESS norelationship %]
                                                                 <li>
-                                                                    [% UNLESS empty_relationship_allowed %]
+                                                                    [% IF mandatoryrelationship %]
                                                                         <label for="guarantor_relationship" class="required">Relationship: </label>
                                                                         <select class="new_guarantor_relationship" name="new_guarantor_relationship" required="required">
                                                                     [% ELSE %]
                                                                         <label for="guarantor_relationship">Relationship: </label>
                                                                         <select class="new_guarantor_relationship" name="new_guarantor_relationship">
                                                                     [% END %]
-                                                                        <option value="" selected></option>
+                                                                        <option value=""></option>
                                                                         [% FOREACH pr IN possible_relationships.split('\|') %]
                                                                             [% IF pr != "" %]
                                                                                 <option value="[% pr | html %]">[% pr | html %]</option>
                                                                             [% END %]
                                                                         [% END %]
                                                                     </select>
-                                                                    [% UNLESS empty_relationship_allowed %]
+                                                                    [% IF mandatoryrelationship %]
                                                                         <span class="required">Required</span>
                                                                     [% END %]
                                                                 </li>
@@ -522,7 +588,7 @@ legend:hover {
 
                                                             <li>
                                                                 <label for="guarantor_cancel">&nbsp;</label>
-                                                                <span><a href="#" class="guarantor_cancel"><i class="fa fa-trash" aria-hidden="true"></i> Remove</a></span>
+                                                                <span><a href="#" class="guarantor_cancel"><i class="fa fa-trash-can" aria-hidden="true"></i> Remove</a></span>
                                                             </li>
                                                         </ol>
                                                     </fieldset>
@@ -540,9 +606,9 @@ legend:hover {
                                                         <input type="hidden" class="new_guarantor_id" name="new_guarantor_id" value=""/>
                                                     </li>
 
-                                                    [% IF possible_relationships %]
+                                                    [% UNLESS norelationship %]
                                                         <li>
-                                                            [% UNLESS empty_relationship_allowed %]
+                                                            [% IF mandatoryrelationship %]
                                                                 <label for="guarantor_relationship" class="required">Relationship: </label>
                                                                 <select class="new_guarantor_relationship" name="new_guarantor_relationship" required="required">
                                                             [% ELSE %]
@@ -556,7 +622,7 @@ legend:hover {
                                                                     [% END %]
                                                                 [% END %]
                                                             </select>
-                                                            [% UNLESS empty_relationship_allowed %]
+                                                            [% IF mandatoryrelationship %]
                                                                 <span class="required">Required</span>
                                                             [% END %]
                                                         </li>
@@ -566,7 +632,7 @@ legend:hover {
 
                                                     <li>
                                                         <label for="guarantor_cancel">&nbsp;</label>
-                                                        <span><a href="#" class="guarantor_cancel"><i class="fa fa-trash"></i> Remove</a></span>
+                                                        <span><a href="#" class="guarantor_cancel"><i class="fa fa-trash-can"></i> Remove</a></span>
                                                     </li>
                                                 </ol>
                                             </fieldset>
@@ -577,7 +643,7 @@ legend:hover {
                                                 <input name="guarantor_firstname" id="guarantor_firstname" type="hidden" />
 
                                                 <li>
-                                                    <a href="#" id="guarantor_search" class="btn btn-default"><i class="fa fa-plus"></i> Add guarantor</a>
+                                                    <a href="#patron_search_modal" class="btn btn-default" data-bs-toggle="modal"><i class="fa fa-plus"></i> Add guarantor</a>
                                                 </li>
 
                                                 [% IF Koha.Preference('AllowStaffToSetCheckoutsVisibilityForGuarantor') %]
@@ -616,7 +682,10 @@ legend:hover {
 
                                     [% UNLESS nocontactname && nocontactfirstname && norelationship %]
                                         <fieldset class="rows" id="non_patron_guarantor">
-                                            <legend>Non-patron guarantor</legend>
+                                            <legend class="expanded" id="non_patron_guarantor_lgd">
+                                                <i class="fa fa-caret-down" aria-hidden="true"></i>
+                                                Non-patron guarantor
+                                            </legend>
                                             <ol>
                                                 [% UNLESS nocontactname %]
                                                     <li>
@@ -653,21 +722,27 @@ legend:hover {
                                                 [% END # /UNLESS noaltcontactfirstname %]
 
                                                 [% UNLESS norelationship %]
-                                                    [% IF possible_relationships %]
-                                                        <li>
+                                                    <li>
+                                                        [% IF mandatoryrelationship %]
+                                                            <label for="relationship" class="required">Relationship: </label>
+                                                            <select class="relationship" name="relationship" id="relationship" required="required">
+                                                        [% ELSE %]
                                                             <label for="relationship">Relationship: </label>
-                                                            <select class="relationship" name="relationship">
-                                                                <option value=""></option>
-                                                                [% FOREACH pr IN possible_relationships.split('\|') %]
-                                                                    [% IF pr == borrower_data.relationship %]
-                                                                        <option value="[% pr | html %]" selected="selected">[% pr | html %]</option>
-                                                                    [% ELSE %]
-                                                                        <option value="[% pr | html %]">[% pr | html %]</option>
-                                                                    [% END %]
+                                                            <select class="relationship" name="relationship" id="relationship">
+                                                        [% END %]
+                                                            <option value=""></option>
+                                                            [% FOREACH pr IN possible_relationships.split('\|') %]
+                                                                [% IF pr == borrower_data.relationship %]
+                                                                    <option value="[% pr | html %]" selected="selected">[% pr | html %]</option>
+                                                                [% ELSE %]
+                                                                    <option value="[% pr | html %]">[% pr | html %]</option>
                                                                 [% END %]
-                                                            </select>
-                                                        </li>
-                                                    [% END #/IF possible_relationships %]
+                                                            [% END %]
+                                                        </select>
+                                                        [% IF mandatoryrelationship %]
+                                                            <span class="required">Required</span>
+                                                        [% END %]
+                                                    </li>
                                                 [% END # /UNLESS norelationship %]
                                             </ol>
                                         </fieldset> <!-- /#non_patron_guarantor -->
@@ -680,7 +755,10 @@ legend:hover {
 
                                 [% UNLESS nophone && nophonepro && nomobile && noemail && noemailpro && nofax %]
                                     <fieldset class="rows" id="memberentry_contact">
-                                        <legend id="contact_lgd">Contact information</legend>
+                                        <legend class="expanded" id="contact_lgd">
+                                            <i class="fa fa-caret-down" aria-hidden="true"></i>
+                                            Contact information
+                                        </legend>
                                         <ol>
                                             [% UNLESS nophone %]
                                                 <li>
@@ -869,7 +947,10 @@ legend:hover {
                             [% IF ( step_3 ) %]
                                 [% SET autoMemberNum = Koha.Preference('autoMemberNum') %]
                                 <fieldset class="rows" id="memberentry_library_management">
-                                    <legend id="library_management_lgd">Library management</legend>
+                                    <legend class="expanded" id="library_management_lgd">
+                                        <i class="fa fa-caret-down" aria-hidden="true"></i>
+                                        Library management
+                                    </legend>
                                     <ol>
                                         [% UNLESS nocardnumber %]
                                             <li>
@@ -912,7 +993,7 @@ legend:hover {
                                                 [% END %]
                                                 [% IF autoMemberNum %]
                                                     [% IF mandatorycardnumber %]
-                                                        <br/><span class="error">AutoMemberNum is set to enabled, but card number is marked as mandatory in BorrowerMandatoryField: auto calc has been disabled.</span>
+                                                        <br/><span class="error">autoMemberNum is set to enabled, but card number is marked as mandatory in BorrowerMandatoryField: auto calc has been disabled.</span>
                                                     [% ELSE %]
                                                         <br/>Leave blank for auto calc during registration
                                                     [% END %]
@@ -934,7 +1015,7 @@ legend:hover {
                                         <li>
                                             <label for="categorycode_entry" class="required">Category: </label>
                                             <select id="categorycode_entry" name="categorycode">
-                                                [% FOREACH category_type IN patron_categories.keys %]
+                                                [% FOREACH category_type IN patron_categories.keys.sort %]
                                                     [% SWITCH category_type %]
                                                     [% CASE 'C' %]
                                                         <optgroup label="Child">
@@ -962,7 +1043,7 @@ legend:hover {
                                                 [% END %]
                                             </select>
                                             [% IF limited_category %]
-                                                <span style="float:right;" title="The patron's current category ([% patron_category.description | html %]) is limited to other libraries"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></span>
+                                                <span title="The patron's current category ([% patron_category.description | html %]) is limited to other libraries"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i></span>
                                             [% END %]
                                             <span class="required">Required</span>
                                         </li>
@@ -1004,7 +1085,7 @@ legend:hover {
                                                 <label for="yes-autorenew_checkouts">
                                                     Allow auto-renewal of items:
                                                 </label>
-                                                    [% IF ( borrower_data.autorenew_checkouts || opadd ) %]
+                                                    [% IF ( borrower_data.autorenew_checkouts || op == 'add_form' ) %]
                                                         <label for="yes-autorenew_checkouts">
                                                             Yes
                                                             <input type="radio" id="yes-autorenew_checkouts" name="autorenew_checkouts" value="1" checked="checked" />
@@ -1023,6 +1104,31 @@ legend:hover {
                                                             <input type="radio" id="no-autorenew_checkouts" name="autorenew_checkouts" value="0" checked="checked" />
                                                         </label>
                                                     [% END %]
+                                            </li>
+                                        [% END %]
+
+                                        [% UNLESS noprotected || !CanUpdateProtectPatron %]
+                                            <li class="radio">
+                                                <label for="protected">Protected:</label>
+                                                [% IF ( patron.protected == 1 ) %]
+                                                    <label for="yes-protected">
+                                                        Yes
+                                                        <input type="radio" id="yes-protected" name="protected" value="1" checked="checked" />
+                                                    </label>
+                                                    <label for="no-protected">
+                                                        No
+                                                        <input type="radio" id="no-protected" name="protected" value="0" />
+                                                    </label>
+                                                [% ELSE %]
+                                                    <label for="yes-protected">
+                                                        Yes
+                                                        <input type="radio" id="yes-protected" name="protected" value="1" />
+                                                    </label>
+                                                    <label for="no-protected">
+                                                        No
+                                                        <input type="radio" id="no-protected" name="protected" value="0" checked="checked" />
+                                                    </label>
+                                                [% END %]
                                             </li>
                                         [% END %]
 
@@ -1077,7 +1183,11 @@ legend:hover {
 
                                 [% UNLESS nodateenrolled &&  noopacnote && noborrowernotes %]
                                     <fieldset class="rows" id="memberentry_subscription">
-                                        <legend id="library_setup_lgd">Library setup</legend><ol>
+                                        <legend class="expanded" id="library_setup_lgd">
+                                            <i class="fa fa-caret-down" aria-hidden="true"></i>
+                                            Library setup
+                                        </legend>
+                                        <ol>
                                         [% UNLESS nodateenrolled %]
                                             <li>
                                                 [% IF ( mandatorydateenrolled ) %]
@@ -1110,8 +1220,8 @@ legend:hover {
                                             [% END %]
                                                     Expiry date (leave blank for auto calc):
                                                 </label>
-                                                [% UNLESS ( opadd ) %]
-                                                    <input type="text" id="to" name="dateexpiry" maxlength="10"  size="10" value="[% borrower_data.dateexpiry | html UNLESS opduplicate %]" class="flatpickr" />
+                                                [% UNLESS ( op == 'add_form' ) %]
+                                                    <input type="text" id="to" name="dateexpiry" maxlength="10"  size="10" value="[% borrower_data.dateexpiry | html UNLESS op == 'duplicate' %]" class="flatpickr" />
                                                 [% ELSE %]
                                                     <input type="text" id="to" name="dateexpiry" maxlength="10"  size="10" value="[% borrower_data.dateexpiry | html %]" class="flatpickr" />
                                                 [% END %]
@@ -1133,7 +1243,7 @@ legend:hover {
                                                     [% END %]
                                                         OPAC note:
                                                     </label>
-                                                    <textarea id="opacnote" name="opacnote" cols="55" rows="5">[% borrower_data.opacnote | html UNLESS opduplicate %]</textarea>
+                                                    <textarea id="opacnote" name="opacnote" cols="55" rows="5">[% borrower_data.opacnote | html UNLESS op == 'duplicate' %]</textarea>
                                                     <div class="hint">This message appears on this patron's user page in the OPAC</div>
                                                     [% IF ( mandatoryopacnote ) %]
                                                         <span class="required">Required</span>
@@ -1150,7 +1260,7 @@ legend:hover {
                                                     [% END %]
                                                         Circulation note:
                                                     </label>
-                                                    <textarea id="borrowernotes" name="borrowernotes" cols="55" rows="5">[% borrower_data.borrowernotes | $raw UNLESS opduplicate %]</textarea>
+                                                    <textarea id="borrowernotes" name="borrowernotes" cols="55" rows="5">[% borrower_data.borrowernotes | $raw UNLESS op == 'duplicate' %]</textarea>
                                                     <div class="hint">This message displays when checking out to this patron</div>
                                                     [% IF ( mandatoryborrowernotes ) %]
                                                         <span class="required">Required</span>
@@ -1163,7 +1273,10 @@ legend:hover {
 
                                 [% UNLESS nouserid && nopassword && !CanUpdatePasswordExpiration %]
                                     <fieldset class="rows" id="memberentry_userid">
-                                        <legend id="opac_staff_login_lgd">OPAC/Staff interface login</legend>
+                                        <legend class="expanded" id="opac_staff_login_lgd">
+                                            <i class="fa fa-caret-down" aria-hidden="true"></i>
+                                            OPAC/Staff interface login
+                                        </legend>
                                         <ol>
                                             [% UNLESS nouserid %]
                                                 <li>
@@ -1175,22 +1288,22 @@ legend:hover {
                                                         Username:
                                                     </label>
 
+                                                    [%# Dummy input to avoid Firefox from using userid/password saved for authentication %]
+                                                    <input type="text" disabled="disabled" style="display:none" />
+
                                                     [% IF ( NoUpdateLogin ) %]
-                                                        [% IF ( opduplicate ) %]
+                                                        [% IF ( op == 'duplicate' ) %]
                                                             <input type="text" id="userid" name="userid" size="20" disabled="disabled" />
                                                         [% ELSE %]
                                                             <input type="text" id="userid" name="userid" size="20" disabled="disabled" value="[% borrower_data.userid | html %]" />
                                                         [% END %]
                                                     [% ELSE %]
-                                                        [% IF ( opduplicate ) %]
+                                                        [% IF ( op == 'duplicate' ) %]
                                                             <input type="text" id="userid" name="userid" size="20" value="" />
                                                         [% ELSE %]
                                                             <input type="text" id="userid" name="userid" size="20" value="[% borrower_data.userid | html %]" />
                                                         [% END %]
                                                     [% END # /IF ( NoUpdateLogin ) %]
-
-                                                    [%# Dummy input to avoid Firefox from using userid/password saved for authentication %]
-                                                    <input type="text" disabled="disabled" style="display:none" />
 
                                                     [% IF ( mandatoryuserid ) %]
                                                         <span class="required">Required</span>
@@ -1207,27 +1320,27 @@ legend:hover {
                                                     [% END %]
                                                         Password:
                                                     </label>
-                                                    [% IF ( opadd ) %]
+                                                    [% IF ( op == 'add_form' ) %]
                                                         [% IF ( NoUpdateLogin ) %]
-                                                            [% IF ( opduplicate ) %]
+                                                            [% IF ( op == 'duplicate' ) %]
                                                                 <input type="password" id="password" name="password" size="20"  disabled="disabled" />
                                                             [% ELSE %]
                                                                 <input type="password" id="password" name="password" size="20"  disabled="disabled" value="[% borrower_data.password | html %]" />
                                                             [% END %]
                                                         [% ELSE %]
-                                                            [% IF ( opduplicate ) %]
+                                                            [% IF ( op == 'duplicate' ) %]
                                                                 <input type="password" id="password" name="password" size="20" autocomplete="new-password" />
                                                             [% ELSE %]
                                                                 <input type="password" id="password" name="password" size="20" autocomplete="new-password" value="[% borrower_data.password | html %]" />
                                                             [% END %]
                                                         [% END # /IF ( NoUpdateLogin ) %]
-                                                    [% ELSE # IF ( opadd ) %]
+                                                    [% ELSE # IF ( op == 'add_form' ) %]
 
                                                         [% IF ( borrower_data.password ) %]
                                                             [% IF ( NoUpdateLogin ) %]
                                                                 <input type="password" id="password" name="password" size="20"  disabled="disabled" value="****" />
                                                             [% ELSE %]
-                                                                [% IF ( opduplicate ) %]
+                                                                [% IF ( op == 'duplicate' ) %]
                                                                     <input type="password" id="password" name="password" autocomplete="new-password" size="20" />
                                                                 [% ELSE %]
                                                                     <input type="password" id="password" name="password" size="20" value="****" />
@@ -1240,7 +1353,7 @@ legend:hover {
                                                                 <input type="password" id="password" name="password" size="20" autocomplete="new-password" value="" />
                                                             [% END %]
                                                         [% END # /IF ( password ) %]
-                                                    [% END # /IF ( opadd )  %]
+                                                    [% END # /IF ( op == 'add_form' )  %]
                                                     [% IF ( mandatorypassword ) %]
                                                         <span class="required">Required</span>
                                                     [% END %]
@@ -1264,26 +1377,26 @@ legend:hover {
                                                     [% END %]
                                                         Confirm password:
                                                     </label>
-                                                    [% IF ( opadd ) %]
+                                                    [% IF ( op == 'add_form' ) %]
                                                         [% IF ( NoUpdateLogin ) %]
-                                                            [% IF ( opduplicate ) %]
+                                                            [% IF ( op == 'duplicate' ) %]
                                                                 <input type="password" id="password2" name="password2" size="20"  disabled="disabled" />
                                                             [% ELSE %]
                                                                 <input type="password" id="password2" name="password2" size="20"  disabled="disabled" value="[% borrower_data.password | html %]" />
                                                             [% END %]
                                                         [% ELSE %]
-                                                            [% IF ( opduplicate ) %]
+                                                            [% IF ( op == 'duplicate' ) %]
                                                                 <input type="password" id="password2" name="password2" size="20" />
                                                             [% ELSE %]
                                                                 <input type="password" id="password2" name="password2" size="20" value="[% borrower_data.password | html %]" />
                                                             [% END %]
                                                         [% END %]
-                                                    [% ELSE # IF ( opadd ) %]
+                                                    [% ELSE # IF ( op == 'add_form' ) %]
                                                         [% IF ( borrower_data.password ) %]
                                                             [% IF ( NoUpdateLogin ) %]
                                                                 <input type="password" id="password2" name="password2" size="20"  disabled="disabled" value="****" />
                                                             [% ELSE %]
-                                                                [% IF ( opduplicate ) %]
+                                                                [% IF ( op == 'duplicate' ) %]
                                                                     <input type="password" id="password2" name="password2" size="20" />
                                                                 [% ELSE %]
                                                                     <input type="password" id="password2" name="password2" size="20" value="****" />
@@ -1296,7 +1409,7 @@ legend:hover {
                                                                 <input type="password" id="password2" name="password2" size="20" value="" />
                                                             [% END %]
                                                         [% END %]
-                                                    [% END # /IF ( opadd ) %]
+                                                    [% END # /IF ( op == 'add_form' ) %]
 
                                                     [% IF ( mandatorypassword ) %]
                                                         <span class="required">Required</span>
@@ -1309,7 +1422,7 @@ legend:hover {
                                             [% UNLESS ( !CanUpdatePasswordExpiration ) %]
                                                 <li>
                                                     <label for="password_expiration_date">Password expiration date:</label>
-                                                    <input type="text" id="password_expiration_date" name="password_expiration_date" maxlength="10" size="10" value="[% password_expiration_date | html %]" class="flatpickr" />
+                                                    <input type="text" id="password_expiration_date" name="password_expiration_date" maxlength="10" size="10" value="[% borrower_data.password_expiration_date | html %]" class="flatpickr" />
                                                 </li>
                                             [% END %]
                                         </ol>
@@ -1317,9 +1430,12 @@ legend:hover {
                                 [% END # UNLESS nouserid && nopassword && !CanUpdatePasswordExpiration %]
 
                                 <!--this zones are not necessary in modif mode -->
-                                [% UNLESS ( opadd || opduplicate || ( nogonenoaddress && nolost ) ) %]
+                                [% UNLESS ( op == 'add_form' || op == 'duplicate' || ( nogonenoaddress && nolost ) ) %]
                                     <fieldset class="rows" id="memberentry_account_flags">
-                                        <legend id="account_flags_lgd">Patron account flags</legend>
+                                        <legend class="expanded" id="account_flags_lgd">
+                                            <i class="fa fa-caret-down" aria-hidden="true"></i>
+                                            Patron account flags
+                                        </legend>
                                         <p>Setting a value here will prevent patron from circulating materials and placing holds on the OPAC</p>
                                         <ol class="radio">
                                             [% UNLESS nogonenoaddress %]
@@ -1395,7 +1511,10 @@ legend:hover {
                                     </fieldset> <!-- /#memberentry_account_flags -->
                                 [% END %]
                                     <fieldset class="rows" id="memberentry_restrictions">
-                                        <legend id="restrictions_lgd">Patron restrictions</legend>
+                                        <legend class="expanded" id="restrictions_lgd">
+                                            <i class="fa fa-caret-down" aria-hidden="true"></i>
+                                            Patron restrictions
+                                        </legend>
                                         [% IF ( patron.restrictions.count ) %]
                                             <table>
                                                 <thead>
@@ -1484,7 +1603,10 @@ legend:hover {
                             [% IF ( step_7 ) %]
                                 [% IF Koha.Preference('HouseboundModule') %]
                                     <fieldset class="rows" id="memberentry_housebound_roles">
-                                        <legend id="housebound_roles">Housebound roles</legend>
+                                        <legend class="expanded" id="housebound_roles">
+                                            <i class="fa fa-caret-down" aria-hidden="true"></i>
+                                            Housebound roles
+                                        </legend>
                                         <ol class="radio">
                                             <li>
                                                 <label class="radio" for="housebound_chooser">
@@ -1525,7 +1647,10 @@ legend:hover {
                                 [% IF Koha.Preference('ExtendedPatronAttributes') %]
                                     [% UNLESS ( no_patron_attribute_types ) %]
                                         <fieldset class="rows" id="memberentry_patron_attributes">
-                                            <legend id="patron_attributes_lgd">Additional attributes and identifiers</legend>
+                                            <legend class="expanded" id="patron_attributes_lgd">
+                                                <i class="fa fa-caret-down" aria-hidden="true"></i>
+                                                Additional attributes and identifiers
+                                            </legend>
                                             <input type="hidden" name="setting_extended_patron_attributes" value="1" />
                                             [% FOREACH pa_loo IN patron_attributes %]
                                                 <ol class="attributes_table">
@@ -1534,7 +1659,7 @@ legend:hover {
                                                         <h3 id="[% pa_loo.class | html %]_lgd">[% pa_loo.lib | html %]</h3>
                                                     [% END %]
                                                     [% FOREACH patron_attribute IN pa_loo.items %]
-                                                        <li data-category_code="[% patron_attribute.category_code | html %]">
+                                                        <li data-category_code="[% patron_attribute.category_code | html %]" data-pa_code="[% patron_attribute.code | replace('[^a-zA-Z0-9_-]', '') %]">
                                                             [% IF patron_attribute.mandatory %]
                                                                 <label for="[% patron_attribute.form_id | html %]" class="required" required="required">[% patron_attribute.description | html %]: </label>
                                                             [% ELSE %]
@@ -1561,13 +1686,23 @@ legend:hover {
                                                                 </select>
                                                             [% ELSE %]
                                                                 [% IF patron_attribute.mandatory %]
-                                                                <textarea rows="2" cols="30" id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]" required="required">[% patron_attribute.value | html %]</textarea>
+                                                                    [% IF patron_attribute.is_date %]
+                                                                        <input type="text" id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]"  maxlength="10" size="10" value="[% patron_attribute.value | html %]" required="required" class="flatpickr" />
+                                                                    [% ELSE %]
+                                                                        <textarea rows="2" cols="30" id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]" required="required">[% patron_attribute.value | html %]</textarea>
+                                                                    [% END %]
                                                                 [% ELSE %]
-                                                                <textarea rows="2" cols="30" id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]">[% patron_attribute.value | html %]</textarea>
+                                                                    [% IF patron_attribute.is_date %]
+                                                                        <input type="text" id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]"  maxlength="10" size="10" value="[% patron_attribute.value | html %]" class="flatpickr" />
+                                                                    [% ELSE %]
+                                                                        <textarea rows="2" cols="30" id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]">[% patron_attribute.value | html %]</textarea>
+                                                                    [% END %]
                                                                 [% END %]
                                                             [% END # /IF ( patron_attribute.use_dropdown ) %]
                                                             <input type="hidden" id="[% patron_attribute.form_id | html %]_code" name="[% patron_attribute.form_id | html %]_code" value="[% patron_attribute.code | html %]" />
-                                                            <a href="#" class="clear_attribute"><i class="fa fa-fw fa-trash"></i> Clear</a>
+                                                            [% IF ( !patron_attribute.is_date ) %]
+                                                                <a href="#" class="clear_attribute"><i class="fa fa-fw fa-trash-can"></i> Clear</a>
+                                                            [% END %]
                                                             [% IF ( patron_attribute.repeatable ) %]
                                                                 <a href="#" class="clone_attribute"><i class="fa fa-fw fa-plus"></i> New</a>
                                                             [% END %]
@@ -1585,18 +1720,23 @@ legend:hover {
                             [% IF ( step_5 ) %]
                                 [% IF ( EnhancedMessagingPreferences ) %]
                                     <fieldset class="rows" id="memberentry_messaging_prefs">
-                                        <legend id="patron_messaging_prefs_lgd">Patron messaging preferences</legend>
+                                        <legend class="expanded" id="patron_messaging_prefs_lgd">
+                                            <i class="fa fa-caret-down" aria-hidden="true"></i>
+                                            Patron messaging preferences
+                                        </legend>
                                         <div id="messaging_prefs_loading" class="form-message" style="display:none">
                                             <img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" alt="" /> Loading new messaging defaults
                                         </div>
                                         <input type="hidden" name="setting_messaging_prefs" value="1" />
                                         [% INCLUDE 'messaging-preference-form.inc' %]
                                         [% IF ( SMSSendDriver ) %]
-                                            <p>
-                                                <label for="SMSnumber">SMS number:</label>
-                                                <input type="text" id="SMSnumber" name="SMSnumber" value="[% SMSnumber | html %]" />
-                                                <span class="hint sms_number_help">Please enter numbers only. Prefix the number with + or 00 if including the country code.</span>
-                                            </p>
+                                            [% IF !nosmsalertnumber %]
+                                                <p>
+                                                    <label for="SMSnumber">SMS number:</label>
+                                                    <input type="text" id="SMSnumber" name="SMSnumber" value="[% SMSnumber | html %]" />
+                                                    <span class="hint sms_number_help">Please enter numbers only. Prefix the number with + or 00 if including the country code.</span>
+                                                </p>
+                                            [% END %]
                                             [% IF SMSSendDriver == 'Email' && !nosms_provider_id %]
                                                 <p>
                                                     <label for="sms_provider_id">SMS provider:</label>
@@ -1618,8 +1758,8 @@ legend:hover {
                             [% END # /IF step_5 %]
                         </form> <!-- /#entryform -->
 
-                        [% IF quickadd && opadd  && !check_member %]
-                            <form id="quick_add_form" class="toggler">
+                        [% IF quickadd && op == 'add_form'  && !check_member %]
+                            <form method="get" id="quick_add_form" class="toggler">
                                 <fieldset class="rows quick_add"><legend>Quick add</legend>
                                     <ol id="quick_add_list">
                                     </ol>
@@ -1629,19 +1769,17 @@ legend:hover {
 
                     [% END # /UNLESS ( no_add ) %]
                 </main>
-            </div> <!-- /.col-sm-10.col-sm-push-2 -->
+            </div> <!-- /.col-md-10.order-md-2 -->
 
-            [% UNLESS ( opadd ) %]
-                <div class="col-sm-2 col-sm-pull-10">
+            [% UNLESS ( op == 'add_form' ) %]
+                <div class="col-md-2 order-sm-2 order-md-1">
                     <aside>
                         [% INCLUDE 'circ-menu.inc' %]
                     </aside>
-                </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+                </div> <!-- /.col-md-2.order-md-1 -->
             [% END %]
         </div> <!-- /.row -->
-
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("lib/hc-sticky.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'str/members-menu.inc' %]
     [% Asset.js("js/members-menu.js") | $raw %]
@@ -1654,80 +1792,99 @@ legend:hover {
                 $("#cn_max").hide();
             }
         }
-        var Sticky;
+
+        function toggle_guarantor_field(rel_number){
+            $(".relation-"+rel_number).prop('disabled', (i, v) => !v);
+        }
+
         function showHideFields(){
+            $("#messaging_prefs_loading, #guarantor_template").hide();
             [% UNLESS step == 1 %]
-                [% IF fieldstohide.match('identity') %]
-                    $("#memberentry_identity").find('legend').nextAll().toggle();
+                [% IF fieldstohide.grep('^identity$').size %]
+                    togglePanel( $("#identity_lgd") );
                 [% END %]
                 [% IF show_guarantor || guarantor %]
-                    [% IF fieldstohide.match('guarantor') %]
-                        $("#memberentry_guarantor").find('legend').nextAll().toggle();
-                        $("#guarantor_template").toggle();
+                    [% IF fieldstohide.grep('^guarantor$').size %]
+                        togglePanel( $("#patron_guarantor_lgd") );
+                    [% END %]
+                    [% IF fieldstohide.grep('^nonpatron_guarantor$').size %]
+                        togglePanel( $("#non_patron_guarantor_lgd") );
                     [% END %]
                 [% END %]
-                [% IF fieldstohide.match('primary_address') %]
-                    $("#memberentry_mainaddress").find('legend').nextAll().toggle();
+                [% IF fieldstohide.grep('^primary_address$').size %]
+                    togglePanel( $("#main_address_lgd") );
                 [% END %]
-                [% IF fieldstohide.match('primary_contact') %]
-                    $("#memberentry_contact").find('legend').nextAll().toggle();
+                [% IF fieldstohide.grep('^primary_contact$').size %]
+                    togglePanel( $("#contact_lgd") );
                 [% END %]
             [% END %]
             [% UNLESS step == 6 %]
-                [% IF fieldstohide.match('alt_address') %]
-                    $("#memberentry_address").find('legend').nextAll().toggle();
+                [% IF fieldstohide.grep('^alt_address$').size %]
+                    togglePanel( $("#alt_address_lgd") );
                 [% END %]
             [% END %]
             [% UNLESS step == 2 %]
-                [% IF fieldstohide.match('alt_contact') %]
-                    $("#memberentry_altaddress").find('legend').nextAll().toggle();
+                [% IF fieldstohide.grep('^alt_contact$').size %]
+                    togglePanel( $("#alt_contact_lgd") );
                 [% END %]
             [% END %]
             [% UNLESS step == 3 %]
-                [% IF fieldstohide.match('lib_mgmt') %]
-                        $("#memberentry_library_management").find('legend').nextAll().toggle();
+                [% IF fieldstohide.grep('^lib_mgmt$').size %]
+                    togglePanel( $("#library_management_lgd") );
                 [% END %]
                 [% UNLESS nodateenrolled && noopacnote && noborrowernotes %]
-                    [% IF fieldstohide.match('lib_setup') %]
-                        $("#memberentry_subscription").find('legend').nextAll().toggle();
+                    [% IF fieldstohide.grep('^lib_setup$').size %]
+                        togglePanel( $("#library_setup_lgd") );
                     [% END %]
                 [% END %]
                 [% UNLESS nouserid && nopassword %]
-                    [% IF fieldstohide.match('login') %]
-                        $("#memberentry_userid").find('legend').nextAll().toggle();
+                    [% IF fieldstohide.grep('^login$').size %]
+                        togglePanel( $("#opac_staff_login_lgd") );
                     [% END %]
                 [% END %]
-                [% UNLESS ( opadd || opduplicate ) %]
-                    [% IF fieldstohide.match('flags') %]
-                        $("#memberentry_account_flags").find('legend').nextAll().toggle();
+                [% UNLESS ( op == 'add_form' || op == 'duplicate' ) %]
+                    [% IF fieldstohide.grep('^flags$').size %]
+                        togglePanel( $("#account_flags_lgd") );
                     [% END %]
                 [% END %]
-                [% IF fieldstohide.match('debarments') %]
-                    $("#memberentry_restrictions").find('legend').nextAll().toggle();
+                [% IF fieldstohide.grep('^debarments$').size %]
+                    togglePanel( $("#restrictions_lgd") );
                 [% END %]
             [% END %]
             [% UNLESS step == 7 %]
                 [% IF Koha.Preference('HouseboundModule') %]
-                    [% IF fieldstohide.match('housebound') %]
-                        $("#memberentry_housebound_roles").find('legend').nextAll().toggle();
+                    [% IF fieldstohide.grep('^housebound$').size %]
+                        togglePanel( $("#housebound_roles") );
                     [% END %]
                 [% END %]
             [% END %]
             [% UNLESS step == 4 %]
                 [% IF Koha.Preference('ExtendedPatronAttributes') %]
-                    [% IF fieldstohide.match('additional') %]
-                        $("#memberentry_patron_attributes").find('legend').nextAll().toggle();
+                    [% IF fieldstohide.grep('^additional$').size %]
+                        togglePanel( $("#patron_attributes_lgd") );
                     [% END %]
                 [% END %]
             [% END %]
             [% UNLESS step == 5 %]
                 [% IF Koha.Preference('EnhancedMessagingPreferences') %]
-                    [% IF fieldstohide.match('messaging') %]
-                        $("#memberentry_messaging_prefs").find('legend').nextAll().toggle();
+                    [% IF fieldstohide.grep('^messaging$').size %]
+                        togglePanel( $("#patron_messaging_prefs_lgd") );
                         $("#messaging_prefs_loading").toggle();
                     [% END %]
                 [% END %]
             [% END %]
+        }
+
+        function togglePanel( node ){
+            var panel = node.nextAll();
+            if(panel.is(":visible")){
+                node.addClass("collapsed").removeClass("expanded").attr("title", _("Click to expand this section") );
+                panel.hide();
+            } else {
+                node.addClass("expanded").removeClass("collapsed").attr("title", _("Click to collapse this section") );
+                panel.show();
+                panel.find("input, select, textarea").eq(0).focus();
+            }
         }
 
         $(document).ready(function() {
@@ -1736,19 +1893,13 @@ legend:hover {
                 showHideFields();
             });
 
-            $("legend").click(function(){
-                $(this).nextAll().toggle();
+            $(".collapsed,.expanded").on("click",function(){
+                togglePanel( $(this) );
                 $("#messaging_prefs_loading").hide();
                 $("#guarantor_template").hide();
             });
 
             $("#saverecord").css({ 'margin-left': 0 });
-
-            Sticky = $("#toolbar");
-            Sticky.hcSticky({
-                stickTo: "main",
-                stickyClass: "floating"
-            });
 
             [% IF borrower_data.categorycode %]
                 update_category_code( "[% borrower_data.categorycode | html %]" );
@@ -1826,13 +1977,6 @@ legend:hover {
                 }
             });
 
-            $('#duplicate').on('click', function() {
-                $("input[name='op']").val('modify');
-                $("input[name='borrowernumber']").val('[% check_member | html %]');
-                $("input[name='check_member']").val('');
-                $('#entryform').submit();
-            });
-
             $('#not-duplicate').on('click', function() {
                 $("input[name='nodouble']").val('1');
                 $('#entryform').submit();
@@ -1870,9 +2014,19 @@ legend:hover {
             $("#categorycode_entry").on("change", function(){
                 update_category_code(this);
             });
+
+            [% IF logged_in_user.borrowernumber == borrowernumber %]
+                $("#userid").on("change", function(){
+                    $(this).parent().find("div.hint").remove();
+                    if ( "[% borrower_data.userid | html %]" != $(this).val() ) {
+                        $(this).parent().append('<div class="hint">%s</div>'.format(_("You will be logged out if you modify your username")));
+                    }
+                });
+            [% END %]
+
         });
 
-        [% IF quickadd && opadd  && !check_member %]
+        [% IF quickadd && op == 'add_form' && !check_member %]
             $(document).ready(function () {
 
                 $("#entryform,#saverecord").hide();
@@ -1896,10 +2050,12 @@ legend:hover {
                             });
                            new_field.appendTo("#quick_add_list");
                        } else {
-                           let orig_input_id = orig_li.children("input,textarea,select").attr("id");
-                           let new_field = orig_li.clone();
-                           new_field.children("#"+orig_input_id).attr("id",orig_input_id + "_quick_add");
-                           new_field.appendTo("#quick_add_list");
+                           let orig_input_id = orig_li.children("input,textarea,select").last().attr("id");
+                           if ( orig_input_id ) {
+                               let new_field = orig_li.clone();
+                               new_field.children("#"+orig_input_id).attr("id",orig_input_id + "_quick_add");
+                               new_field.appendTo("#quick_add_list");
+                           }
                            [% UNLESS mandatorypassword %]
                                  if( input_label == 'password' ){
                                      let orig_p2 = $("#entryform label[for='password2']").parent();
@@ -1922,6 +2078,14 @@ legend:hover {
             });
         [% END %]
         $("#guarantor_template").hide();
+        var prefill_fields;
+        var to_api_mapping;
+        [% IF prefill_fields %]
+            prefill_fields = [% To.json(prefill_fields)  | $raw %];
+        [% END %]
+        [% IF to_api_mapping %]
+            to_api_mapping = [% To.json(to_api_mapping) | $raw %];
+        [% END %]
 
         var TalkingTechItivaPhoneNotification = [% Koha.Preference('TalkingTechItivaPhoneNotification') || 0 | html %];
         var PhoneNotification = [% Koha.Preference('PhoneNotification') || 0 | html %];
@@ -1930,6 +2094,11 @@ legend:hover {
     [% Asset.js("js/members.js") | $raw %]
     [% Asset.js("js/messaging-preference-form.js") | $raw %]
     [% PROCESS 'password_check.inc' new_password => 'password', category_selector => '#categorycode_entry', minPasswordLength => patron.category.effective_min_password_length, RequireStrongPassword => patron.category.effective_require_strong_password %]
+
+    [% INCLUDE 'select2.inc' %]
+    [% SET columns = ['cardnumber','name','category','branch','dateofbirth','address-library','action'] %]
+    [% PROCESS patron_search_modal columns => columns, modal_title => t("Add guarantor") %]
+    [% PROCESS patron_search_js columns => columns, actions => ["select"], preview_on_name_click => 1 %]
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

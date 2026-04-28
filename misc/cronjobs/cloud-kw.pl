@@ -27,7 +27,7 @@ use Pod::Usage qw( pod2usage );
 use Getopt::Long qw( GetOptions );
 
 use Koha::Script -cron;
-use C4::Context;
+use C4::Context qw($context);
 use C4::Log qw( cronlogaction );
 
 my $verbose     = 0;
@@ -35,6 +35,7 @@ my $help        = 0;
 my $conf        = '';
 
 my $command_line_options = join(" ",@ARGV);
+cronlogaction({ info => $command_line_options });
 
 GetOptions( 
     'verbose'   => \$verbose,
@@ -49,8 +50,6 @@ sub usage {
 
 usage() if $help || !$conf;
 
-cronlogaction({ info => $command_line_options });
-
 my @clouds;
 print "Reading configuration file: $conf\n" if $verbose;
 eval {
@@ -58,6 +57,7 @@ eval {
 };
 croak "Unable to read configuration file: $conf\n" if $@;
 
+my $original_context = $C4::Context::context;
 for my $cloud ( @clouds ) {
     print "Create a cloud\n",
           "  Koha conf file:  ", $cloud->{KohaConf} ? $cloud->{KohaConf} : "default", "\n",
@@ -69,12 +69,10 @@ for my $cloud ( @clouds ) {
       if $verbose;  
 
     # Set Koha context if KohaConf is present
-    my $set_new_context = 0;
     if ( $cloud->{KohaConf} ) {
         if ( -e $cloud->{KohaConf} ) {
             my $context = C4::Context->new( $cloud->{KohaConf} );
             $context->set_context();
-            $set_new_context = 1;
         }
         else {
             carp "Koha conf file doesn't exist: ", $cloud->{KohaConf}, " ; use KOHA_CONF\n";
@@ -90,8 +88,8 @@ for my $cloud ( @clouds ) {
     my $withcss = $cloud->{Withcss} =~ /^yes/i;
     print $fh $index->html_cloud( $cloud->{KohaIndex}, $withcss );
     close $fh;
-    $set_new_context && restore_context C4::Context;
 }
+$original_context->set_context;
 
 cronlogaction({ action => 'End', info => "COMPLETED" });
 

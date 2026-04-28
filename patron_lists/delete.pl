@@ -26,18 +26,29 @@ use C4::Output;
 use Koha::List::Patron qw( DelPatronList );
 
 my $cgi = CGI->new;
+my $op  = $cgi->param('op') // q{};
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
-        template_name   => "patron_lists/lists.tt",
-        query           => $cgi,
-        type            => "intranet",
+        template_name => "patron_lists/lists.tt",
+        query         => $cgi,
+        type          => "intranet",
         flagsrequired => { tools => 'manage_patron_lists' },
     }
 );
 
-my $id = $cgi->param('patron_list_id');
+my $id        = $cgi->param('patron_list_id');
+my @lists_ids = $cgi->multi_param('patron_lists_ids');
 
-DelPatronList( { patron_list_id => $id } );
+if ( $op eq 'cud-delete' ) {
+    if ( defined $id && $id ne '' ) {
+        DelPatronList( { patron_list_id => $id } );
+    }
+    if (@lists_ids) {
+        foreach my $list_id (@lists_ids) {
+            DelPatronList( { patron_list_id => $list_id } );
+        }
+    }
+}
 
 print $cgi->redirect('lists.pl');

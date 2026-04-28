@@ -77,7 +77,7 @@ sub _process_tt_content {
               if $line =~ m{\[%(\s|-|~)*USE raw(\s|-|~)*%\]};    # Does [% Use raw %] exist?
 
             my $e;
-            if ( $line =~ qr{<a href="([^"]+)} ) {
+            while ( $line =~ m{<a href="([^"]+)}g ) {
                 my $to_uri_escape = $1;
                 while (
                     $to_uri_escape =~ m{
@@ -144,6 +144,7 @@ sub process_tt_block {
         # Already escaped with a special filter
         # We could escape it but should be safe
         or $tt_block =~ m{\s?\|\s?\$KohaDates[^\|]*$}
+        or $tt_block =~ m{\s?\|\s?\$KohaTimes[^\|]*$}
         or $tt_block =~ m{\s?\|\s?\$Price[^\|]*$}
         or $tt_block =~ m{\s?\|\s?\$HtmlTags[^\|]*$}
         or $tt_block =~ m{\s?\|\s?\$HtmlId[^\|]*$}
@@ -159,6 +160,9 @@ sub process_tt_block {
 
         # Already has trim filter
         or $tt_block =~ m{\|\s?trim}
+
+        # Already has safe_url filter
+        or $tt_block =~ m{\|\s?safe_url}
 
         # Specific for [% foo UNLESS bar %]
         or $tt_block =~ m{^(?<before>\S+)\s+UNLESS\s+(?<after>\S+)}

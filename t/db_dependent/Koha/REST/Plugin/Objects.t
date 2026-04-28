@@ -23,6 +23,7 @@ use Koha::AuthorisedValues;
 use Koha::Cities;
 use Koha::Biblios;
 use Koha::Patrons;
+use Koha::DateUtils qw(dt_from_string);
 
 use Mojo::JSON qw(encode_json);
 
@@ -81,7 +82,6 @@ get '/biblios' => sub {
     my $output = $c->req->params->to_hash;
     $output->{query} = $c->req->json if defined $c->req->json;
     my $headers = $c->req->headers->to_hash;
-    $output->{'x-koha-query'} = $headers->{'x-koha-query'} if defined $headers->{'x-koha-query'};
     $c->validation->output($output);
     my $biblios_set = Koha::Biblios->new;
     $c->stash("koha.embed", {
@@ -139,21 +139,8 @@ get '/cities/:city_id/rs' => sub {
     $c->render( status => 200, json => { name => $city->city_name } );
 };
 
-get '/my_patrons/:patron_id' => sub {
-
-    my $c = shift;
-
-    my $patron_id = $c->param('patron_id');
-    my $patron    = $c->objects->find( scalar Koha::Patrons->new, $patron_id );
-
-    $c->render(
-        status => 200,
-        json   => $patron
-    );
-};
-
 # The tests
-use Test::More tests => 19;
+use Test::More tests => 18;
 use Test::Mojo;
 
 use t::lib::Mocks;
@@ -436,6 +423,16 @@ subtest 'objects.search helper with query parameter' => sub {
     my $suggestion3 = $builder->build_object( { class => "Koha::Suggestions", value => { suggestedby => $patron2->borrowernumber, biblionumber => $biblio3->biblionumber} } );
 
     my $t = Test::Mojo->new;
+
+    # Set valid koha.user in stash for to_api
+    my $superlibrarian =
+      $builder->build_object( { class => 'Koha::Patrons', value => { flags => 1 } } );
+    $t->app->hook(before_dispatch => sub {
+       my $c = shift;
+       $c->stash('koha.user' => $superlibrarian);
+    });
+    t::lib::Mocks::mock_userenv({ patron => $superlibrarian });
+
     $t->get_ok('/biblios' => json => {"suggestions.suggester.patron_id" => $patron1->borrowernumber })
       ->json_is('/count' => 1, 'there should be 1 biblio with suggestions of patron 1');
 
@@ -469,30 +466,6 @@ subtest 'objects.search helper with q parameter' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'objects.search helper with x-koha-query header' => sub {
-    plan tests => 4;
-
-    $schema->storage->txn_begin;
-
-    my $patron1 = $builder->build_object( { class => "Koha::Patrons" } );
-    my $patron2 = $builder->build_object( { class => "Koha::Patrons" } );
-    my $biblio1 = $builder->build_sample_biblio;
-    my $biblio2 = $builder->build_sample_biblio;
-    my $biblio3 = $builder->build_sample_biblio;
-    my $suggestion1 = $builder->build_object( { class => "Koha::Suggestions", value => { suggestedby => $patron1->borrowernumber, biblionumber => $biblio1->biblionumber} } );
-    my $suggestion2 = $builder->build_object( { class => "Koha::Suggestions", value => { suggestedby => $patron2->borrowernumber, biblionumber => $biblio2->biblionumber} } );
-    my $suggestion3 = $builder->build_object( { class => "Koha::Suggestions", value => { suggestedby => $patron2->borrowernumber, biblionumber => $biblio3->biblionumber} } );
-
-    my $t = Test::Mojo->new;
-    $t->get_ok('/biblios' => {'x-koha-query' => '{"suggestions.suggester.patron_id": "'.$patron1->borrowernumber.'"}'})
-      ->json_is('/count' => 1, 'there should be 1 biblio with suggestions of patron 1');
-
-    $t->get_ok('/biblios' => {'x-koha-query' => '{"suggestions.suggester.patron_id": "'.$patron2->borrowernumber.'"}'})
-      ->json_is('/count' => 2, 'there should be 2 biblios with suggestions of patron 2');
-
-    $schema->storage->txn_rollback;
-};
-
 subtest 'objects.search helper with all query methods' => sub {
     plan tests => 6;
 
@@ -508,14 +481,29 @@ subtest 'objects.search helper with all query methods' => sub {
     my $suggestion3 = $builder->build_object( { class => "Koha::Suggestions", value => { suggestedby => $patron2->borrowernumber, biblionumber => $biblio3->biblionumber} } );
 
     my $t = Test::Mojo->new;
-    $t->get_ok('/biblios?q={"suggestions.suggester.firstname": "'.$patron1->firstname.'"}' => {'x-koha-query' => '{"suggestions.suggester.patron_id": "'.$patron1->borrowernumber.'"}'} => json => {"suggestions.suggester.cardnumber" => $patron1->cardnumber})
-      ->json_is('/count' => 1, 'there should be 1 biblio with suggestions of patron 1');
+    my $query = {
+        "suggestions.suggester.firstname" => $patron1->firstname,
+        "suggestions.suggester.patron_id" => $patron1->id,
+    };
+    $t->get_ok(
+        '/biblios?q=' . encode_json($query) => json => { "suggestions.suggester.cardnumber" => $patron1->cardnumber } )
+        ->json_is( '/count' => 1, 'there should be 1 biblio with suggestions of patron 1' );
 
-    $t->get_ok('/biblios?q={"suggestions.suggester.firstname": "'.$patron2->firstname.'"}' => {'x-koha-query' => '{"suggestions.suggester.patron_id": "'.$patron2->borrowernumber.'"}'} => json => {"suggestions.suggester.cardnumber" => $patron2->cardnumber})
-      ->json_is('/count' => 2, 'there should be 2 biblios with suggestions of patron 2');
+    $query = {
+        "suggestions.suggester.firstname" => $patron2->firstname,
+        "suggestions.suggester.patron_id" => $patron2->id,
+    };
+    $t->get_ok(
+        '/biblios?q=' . encode_json($query) => json => { "suggestions.suggester.cardnumber" => $patron2->cardnumber } )
+        ->json_is( '/count' => 2, 'there should be 2 biblios with suggestions of patron 2' );
 
-    $t->get_ok('/biblios?q={"suggestions.suggester.firstname": "'.$patron1->firstname.'"}' => {'x-koha-query' => '{"suggestions.suggester.patron_id": "'.$patron2->borrowernumber.'"}'} => json => {"suggestions.suggester.cardnumber" => $patron2->cardnumber})
-      ->json_is('/count' => 0, 'there shouldn\'t be biblios where suggester has patron1 fistname and patron2 id');
+    $query = {
+        "suggestions.suggester.firstname" => $patron1->firstname,
+        "suggestions.suggester.patron_id" => $patron2->id,
+    };
+    $t->get_ok(
+        '/biblios?q=' . encode_json($query) => json => { "suggestions.suggester.cardnumber" => $patron2->cardnumber } )
+        ->json_is( '/count' => 0, 'there shouldn\'t be biblios where suggester has patron1 fistname and patron2 id' );
 
     $schema->storage->txn_rollback;
 };
@@ -662,7 +650,7 @@ subtest 'objects.search helper, search_limited() tests' => sub {
     my $t = Test::Mojo->new;
 
     my $mocked_patron = Test::MockModule->new('Koha::Patron');
-    $mocked_patron->mock( 'libraries_where_can_see_patrons', sub
+    $mocked_patron->mock( 'libraries_where_can_see_things', sub
         {
             return @libraries_where_can_see_patrons;
         }
@@ -920,6 +908,7 @@ subtest 'objects.search helper with expanded authorised values' => sub {
       ->json_is( '/0/name' => 'Manuel' )->json_hasnt('/0/_strings')
       ->json_is( '/1/name' => 'Manuela' )->json_hasnt('/1/_strings');
 
+
     $schema->storage->txn_rollback;
 };
 
@@ -927,6 +916,10 @@ subtest 'objects.find_rs helper' => sub {
     plan tests => 9;
 
     $schema->storage->txn_begin;
+
+    my $superlibrarian =
+      $builder->build_object( { class => 'Koha::Patrons', value => { flags => 1 } } );
+    t::lib::Mocks::mock_userenv({ patron => $superlibrarian });
 
     # Remove existing cities to have more control on the search results
     Koha::Cities->delete;
@@ -972,43 +965,77 @@ subtest 'objects.find_rs helper' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'objects.find helper, search_limited() tests' => sub {
-
-    plan tests => 12;
+subtest 'date handling' => sub {
+    plan tests => 9;
 
     $schema->storage->txn_begin;
 
-    my $library_1 = $builder->build_object( { class => 'Koha::Libraries' } );
-    my $library_2 = $builder->build_object( { class => 'Koha::Libraries' } );
+    t::lib::Mocks::mock_preference( 'RESTBasicAuth', 1 );
 
-    my $patron_1 = $builder->build_object( { class => 'Koha::Patrons', value => { branchcode => $library_1->id } } );
-    my $patron_2 = $builder->build_object( { class => 'Koha::Patrons', value => { branchcode => $library_2->id } } );
+    my $patron =
+        $builder->build_object( { class => 'Koha::Patrons', value => { flags => 1 } } );
+    my $password = 'thePassword123';
+    $patron->set_password( { password => $password, skip_validation => 1 } );
+    my $userid = $patron->userid;
+    t::lib::Mocks::mock_userenv( { patron => $patron } );
 
-    my @libraries_where_can_see_patrons = ( $library_1->id, $library_2->id );
+    my $now           = dt_from_string();
+    my $one_hour_ago  = $now->clone->subtract( hours => 1 );
+    my $one_day_ago   = $now->clone->subtract( days  => 1 );
+    my $one_day_later = $now->clone->add( hours => 1 );
 
-    my $t = Test::Mojo->new;
-
-    my $mocked_patron = Test::MockModule->new('Koha::Patron');
-    $mocked_patron->mock(
-        'libraries_where_can_see_patrons',
-        sub {
-            return @libraries_where_can_see_patrons;
+    # one hour ago job
+    my $job_1 = $builder->build_object(
+        {
+            class => 'Koha::BackgroundJobs',
+            value => {
+                borrowernumber => $patron->borrowernumber,
+                enqueued_on    => $one_hour_ago,
+                data           => '{}',
+            }
         }
     );
 
-    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    # yesterday job
+    my $job_2 = $builder->build_object(
+        {
+            class => 'Koha::BackgroundJobs',
+            value => {
+                borrowernumber => $patron->borrowernumber,
+                enqueued_on    => $one_day_ago,
+                data           => '{}',
+            }
+        }
+    );
 
-    t::lib::Mocks::mock_userenv( { patron => $patron } );
+    # tomorrow job
+    my $job_3 = $builder->build_object(
+        {
+            class => 'Koha::BackgroundJobs',
+            value => {
+                borrowernumber => $patron->borrowernumber,
+                enqueued_on    => $one_day_later,
+                data           => '{}',
+            }
+        }
+    );
 
-    $t->get_ok( "/my_patrons/" . $patron_1->id )->status_is(200)->json_is( '/patron_id' => $patron_1->id );
+    my $t = Test::Mojo->new('Koha::REST::V1');
+    my $q = encode_json( { enqueued_on => $one_hour_ago->rfc3339, borrowernumber => $patron->id } );
+    $t->get_ok( "//$userid:$password@/api/v1/jobs?q=" . $q )->status_is(200)->json_is( '/0/job_id' => $job_1->id );
+    my $response_count = scalar @{ $t->tx->res->json };
+    is( $response_count, 1 );
 
-    $t->get_ok( "/my_patrons/" . $patron_2->id )->status_is(200)->json_is( '/patron_id' => $patron_2->id );
-
-    @libraries_where_can_see_patrons = ( $library_2->id );
-
-    $t->get_ok( "/my_patrons/" . $patron_1->id )->status_is(200)->json_is(undef);
-
-    $t->get_ok( "/my_patrons/" . $patron_2->id )->status_is(200)->json_is( '/patron_id' => $patron_2->id );
+    $q = encode_json(
+        {
+            enqueued_on    => [ { '>' => $now->rfc3339 }, { '=' => $one_hour_ago->rfc3339 } ],
+            borrowernumber => $patron->id
+        }
+    );
+    $t->get_ok( "//$userid:$password@/api/v1/jobs?q=" . $q )->status_is(200)->json_is( '/0/job_id' => $job_1->id )
+        ->json_is( '/1/job_id' => $job_3->id );
+    $response_count = scalar @{ $t->tx->res->json };
+    is( $response_count, 2 );
 
     $schema->storage->txn_rollback;
 };

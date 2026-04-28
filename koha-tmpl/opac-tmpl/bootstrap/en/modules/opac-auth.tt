@@ -3,17 +3,18 @@
 [% USE Categories %]
 [% USE AdditionalContents %]
 [% USE AuthClient %]
+[% PROCESS 'i18n.inc' %]
 [% PROCESS 'html_helpers.inc' %]
 [% SET OpacLoginInstructions = AdditionalContents.get( location => "OpacLoginInstructions", lang => lang, library => branchcode || default_branch ) %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
-[% IF Koha.Preference( 'opacuserlogin' ) == 1 %]
-    Log in to your account
-[% ELSE %]
-    Catalog login disabled
-[% END %] &rsaquo;
- [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog
-</title>
+<title>[% FILTER collapse %]
+    [% IF Koha.Preference( 'opacuserlogin' ) == 1 %]
+        [% t("Log in to your account") | html %]
+    [% ELSE %]
+        [% t("Catalog login disabled") | html %]
+    [% END %] &rsaquo;
+    [% PROCESS 'library_name_title' %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
@@ -21,16 +22,15 @@
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-            </li>
-            <li class="breadcrumb-item active">
-                <a href="#" aria-current="page">Log in</a>
-            </li>
-        </ol>
-    </nav> <!-- /#breadcrumbs -->
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            [% IF Koha.Preference( 'opacuserlogin' ) == 1 %]
+                <span>Log in to your account</span>
+            [% ELSE %]
+                <span>Catalog login disabled</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
 
     <div class="container-fluid">
         <div class="row justify-content-center">
@@ -93,7 +93,7 @@
                                             [% IF ( casAuthentication ) %]
                                                 [% IF ( invalidCasLogin ) %]
                                                     <!-- This is what is displayed if cas login has failed -->
-                                                    <p>Sorry, the CAS login also failed. If you have a local login you may use that below.</p>
+                                                    <p class="cas_invalid">Sorry, the CAS login also failed. If you have a local login you may use that below.</p>
                                                 [% ELSE %]
                                                     <p>If you have a CAS account, you may use that below.</p>
                                                 [% END %]
@@ -108,7 +108,7 @@
                                 [% END # /IF invalidShibLogin %]
                                 [% UNLESS ( Koha.Preference('OPACShibOnly') ) %]
                                     [% IF ( casAuthentication ) %]
-                                        <h2>CAS login</h2>
+                                        <h2 class="cas_title">CAS login</h2>
                                         <p>If you do not have a Shibboleth account, but you do have a CAS account, you can use CAS.</p>
                                     [% ELSE %]
                                         <h2 class="shib_local_title">Local login</h2>
@@ -121,34 +121,36 @@
                             [% IF ( casAuthentication ) %]
                                 [% IF ( shibbolethAuthentication ) %]
                                     [% IF ( casServerUrl ) %]
-                                        <p><a href="[% casServerUrl | $raw %]">Log in.</a><p>
+                                        <p><a class="cas_url" href="[% casServerUrl | $raw %]">Log in.</a><p>
                                     [% END %]
 
                                     [% IF ( casServersLoop ) %]
                                         <p>Please choose against which one you would like to authenticate: </p>
                                         <ul>
                                             [% FOREACH casServer IN casServersLoop %]
-                                                <li><a href="[% casServer.value | $raw %]">[% casServer.name | html %]</a></li>
+                                                <li><a class="cas_url" href="[% casServer.value | $raw %]">[% casServer.name | html %]</a></li>
                                             [% END %]
                                         </ul>
                                     [% END %]
                                 [% ELSE %]
-                                    <h2>CAS login</h2>
-
                                     [% IF ( invalidCasLogin ) %]
-                                        <!-- This is what is displayed if cas login has failed -->
-                                        <p>Sorry, the CAS login failed.</p>
+                                        <div class="alert alert-info">
+                                            <!-- This is what is displayed if cas login has failed -->
+                                            <p class="cas_invalid">Sorry, the CAS login failed.</p>
+                                        </div>
                                     [% END %]
 
+                                    <h2 class="cas_title">CAS login</h2>
+
                                     [% IF ( casServerUrl ) %]
-                                       <p><a href="[% casServerUrl | $raw %]">Log in using a CAS account.</a><p>
+                                       <p><a class="cas_url" href="[% casServerUrl | $raw %]">Log in using a CAS account.</a><p>
                                     [% END %]
 
                                     [% IF ( casServersLoop ) %]
                                         <p>If you have a CAS account, please choose against which one you would like to authenticate:</p>
                                         <ul>
                                             [% FOREACH casServer IN casServersLoop %]
-                                            <li><a href="[% casServer.value | $raw %]">[% casServer.name | html %]</a></li>
+                                            <li><a class="cas_url" href="[% casServer.value | $raw %]">[% casServer.name | html %]</a></li>
                                             [% END %]
                                         </ul>
                                     [% END %]
@@ -188,15 +190,27 @@
                                     <p>Please note that the Google login will only work if you are using the e-mail address registered with this library.</p>
                                     <p>If you want to, you can try to <a href="/cgi-bin/koha/svc/auth/googleopenidconnect?reauthenticate=select_account">log in using a different account</a>
                                 [% END %]
-                                <a href="/cgi-bin/koha/svc/auth/googleopenidconnect" class="btn btn-light" id="openid_connect"><i class="fa fa-google" aria-hidden="true"></i> Log in with Google</a>
+                                <a href="/cgi-bin/koha/svc/auth/googleopenidconnect" class="btn btn-light" id="openid_connect"><i class="fa-brands fa-google" aria-hidden="true"></i> Log in with Google</a>
                                 <p>If you do not have a Google account, but do have a local account, you can still log in: </p>
                             [% END # /IF GoogleOpenIDConnect %]
                         [% END # /UNLESS OPACShibOnly %]
 
-                        [% IF !(invalid_username_or_password || too_many_login_attempts) and password_has_expired %]
+                        [% IF !(invalid_username_or_password || too_many_login_attempts) and is_anonymous_patron %]
                             <div class="alert alert-info">
-                                <p><strong>Error: </strong>Your password has expired!</p>
+                                <p><strong>Error: </strong>You can't log in as the anonymous patron!</p>
                             </div>
+                        [% END %]
+
+                        [% IF !(invalid_username_or_password || too_many_login_attempts) and password_has_expired %]
+                            [% IF date_enrolled == password_expiration_date %]
+                                <div class="alert alert-info">
+                                    <p><strong>Error: </strong>It's your first login! You need to reset your password.</p>
+                                </div>
+                            [% ELSE %]
+                                <div class="alert alert-info">
+                                    <p><strong>Error: </strong>Your password has expired!</p>
+                                </div>
+                            [% END %]
                             [% IF Koha.Preference('EnableExpiredPasswordReset') %]
                                 <a href="/cgi-bin/koha/opac-reset-password.pl">Reset your password</a>.
                             [% ELSIF Koha.Preference('OpacPasswordChange') && Categories.can_any_reset_password %]
@@ -214,21 +228,26 @@
                             [% ELSE %]
                                 <form action="[% script_name | html %]" name="auth" id="auth" method="post" autocomplete="off">
                             [% END %]
+                                     [% INCLUDE 'csrf-token.inc' %]
+                                <input type="hidden" name="op" value="cud-login" />
                                 <input type="hidden" name="koha_login_context" value="opac" />
 
                                 <div class="local-login">
                                     <fieldset class="brief">
                                         [% FOREACH INPUT IN INPUTS %]
                                             [% NEXT IF INPUT.name == 'logout.x' %]
+                                            [% NEXT IF INPUT.name == "op" %]
+                                            [% NEXT IF INPUT.name == "csrf_token" %]
+                                            [% NEXT IF INPUT.name == "koha_login_context" %]
                                             <input type="hidden" name="[% INPUT.name | html %]" value="[% INPUT.value | html %]" />
                                         [% END %]
                                         <div class="form-group">
-                                            <label for="userid">Login:</label>
-                                            <input class="form-control" type="text"  size="25" id="userid"  name="userid" />
+                                            [% PROCESS login_label for="userid" %]
+                                            <input class="form-control" type="text"  size="25" id="userid"  name="login_userid" autocomplete="off" />
                                         </div>
                                         <div class="form-group">
                                             <label for="password">Password:</label>
-                                            <input class="form-control" type="password"  size="25" id="password"  name="password" />
+                                            <input class="form-control" type="password"  size="25" id="password"  name="login_password" autocomplete="off" />
                                         </div>
                                         <fieldset class="action">
                                             <input type="submit" value="Log in" class="btn btn-primary" />
@@ -248,14 +267,12 @@
                                 </div>
                                 [% IF Koha.Preference('OpacPasswordChange') && Categories.can_any_reset_password %]
                                     <div id="forgotpassword">
-                                        <a href="/cgi-bin/koha/opac-password-recovery.pl">Forgot your password?</a>
+                                        <p><a href="/cgi-bin/koha/opac-password-recovery.pl">Forgot your password?</a></p>
                                     </div>
                                 [% END %]
-                                [% IF PatronSelfRegistration && PatronSelfRegistrationDefaultCategory %]
+                                [% IF Koha.Preference('PatronSelfRegistration') && Categories.all( categorycode => Koha.Preference('PatronSelfRegistrationDefaultCategory') ).count %]
                                     <div id="registrationinstructions">
-                                        <span>
-                                            <a href="/cgi-bin/koha/opac-memberentry.pl">You may register here.</a>
-                                        </span>
+                                        <p><a href="/cgi-bin/koha/opac-memberentry.pl">Create an account</a></p>
                                     </div>
                                 [% END %]
                             </form>

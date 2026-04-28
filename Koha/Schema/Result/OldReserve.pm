@@ -54,6 +54,13 @@ the date the hold was places
 
 foreign key from the biblio table defining which bib record this hold is on
 
+=head2 deleted_biblionumber
+
+  data_type: 'integer'
+  is_nullable: 1
+
+links the hold to the deleted bibliographic record (deletedbiblio.biblionumber)
+
 =head2 item_group_id
 
   data_type: 'integer'
@@ -65,6 +72,7 @@ foreign key from the item_groups table defining if this is an item group level h
 =head2 branchcode
 
   data_type: 'varchar'
+  is_foreign_key: 1
   is_nullable: 1
   size: 10
 
@@ -234,10 +242,12 @@ __PACKAGE__->add_columns(
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "biblionumber",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
+  "deleted_biblionumber",
+  { data_type => "integer", is_nullable => 1 },
   "item_group_id",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "branchcode",
-  { data_type => "varchar", is_nullable => 1, size => 10 },
+  { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
   "desk_id",
   { data_type => "integer", is_nullable => 1 },
   "notificationdate",
@@ -346,6 +356,26 @@ __PACKAGE__->belongs_to(
   },
 );
 
+=head2 branchcode
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Branch>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "branchcode",
+  "Koha::Schema::Result::Branch",
+  { branchcode => "branchcode" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "SET NULL",
+    on_update     => "CASCADE",
+  },
+);
+
 =head2 item_group
 
 Type: belongs_to
@@ -407,8 +437,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:TERpWQRu2aCbsG8tZhL3uA
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-10-30 17:21:09
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:6huDoFe9Uil1WyJ7EOcQSw
 
 __PACKAGE__->belongs_to(
   "item",
@@ -443,6 +473,18 @@ __PACKAGE__->belongs_to(
     join_type     => "LEFT",
     on_delete     => "SET NULL",
     on_update     => "SET NULL",
+  },
+);
+
+__PACKAGE__->belongs_to(
+  "pickup_library",
+  "Koha::Schema::Result::Branch",
+  { branchcode => "branchcode" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "SET NULL",
+    on_update     => "CASCADE",
   },
 );
 

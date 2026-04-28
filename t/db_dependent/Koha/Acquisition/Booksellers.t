@@ -17,7 +17,8 @@
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use utf8;
+use Test::More tests => 6;
 
 use t::lib::TestBuilder;
 
@@ -169,6 +170,87 @@ subtest '->contacts() tests' => sub {
     my $contacts = $vendor->contacts;
     is( $contacts->count, 2, 'Vendor has two contacts' );
     is( ref($contacts), 'Koha::Acquisition::Bookseller::Contacts', 'Type is correct' );
+
+    $schema->storage->txn_rollback();
+};
+
+subtest 'aliases' => sub {
+
+    plan tests => 3;
+
+    $schema->storage->txn_begin();
+
+    my $vendor = $builder->build_object( { class => 'Koha::Acquisition::Booksellers' } );
+
+    is( $vendor->aliases->count, 0, 'Vendor has no aliases' );
+
+    $vendor->aliases( [ { alias => 'alias 1' }, { alias => 'alias 2' } ] );
+
+    $vendor = $vendor->get_from_storage;
+    my $aliases = $vendor->aliases;
+    is( $aliases->count, 2 );
+    is( ref($aliases), 'Koha::Acquisition::Bookseller::Aliases', 'Type is correct' );
+
+    $schema->storage->txn_rollback();
+};
+
+subtest 'interfaces' => sub {
+
+    plan tests => 11;
+
+    $schema->storage->txn_begin();
+
+    my $vendor = $builder->build_object( { class => 'Koha::Acquisition::Booksellers' } );
+
+    is( $vendor->interfaces->count, 0, 'Vendor has no interfaces' );
+
+    $vendor->interfaces( [ { name => 'first interface' }, { name => 'second interface', login => 'one_login' } ] );
+
+    $vendor = $vendor->get_from_storage;
+    my $interfaces = $vendor->interfaces;
+    is( $interfaces->count, 2, '2 interfaces stored' );
+    is( ref($interfaces), 'Koha::Acquisition::Bookseller::Interfaces', 'Type is correct' );
+
+    $vendor->interfaces( [ { name => 'first interface', login => 'one_login', password => 'oneP@sswOrd❤' } ] );
+    $vendor     = $vendor->get_from_storage;
+    $interfaces = $vendor->interfaces;
+    is( $interfaces->count, 1, '1 interface stored' );
+    my $interface = $interfaces->next;
+    is( $interface->name,  'first interface', 'name correctly saved' );
+    is( $interface->login, 'one_login',       'login correctly saved' );
+    is( $interface->uri,   undef,             'no value is stored as NULL' );
+    isnt( $interface->password, 'oneP@sswOrd❤', 'Password is not stored in plain text' );
+    isnt( $interface->password, '',            'Password is not removed' );
+    isnt( $interface->password, undef,         'Password is not set to NULL' );
+    is( $interface->plain_text_password, 'oneP@sswOrd❤', 'Password can be retrieved using ->plain_text_password' );
+
+    $schema->storage->txn_rollback();
+};
+
+subtest 'issues' => sub {
+
+    plan tests => 4;
+
+    $schema->storage->txn_begin();
+
+    my $vendor = $builder->build_object( { class => 'Koha::Acquisition::Booksellers' } );
+
+    is( $vendor->issues->count, 0, 'Vendor has no issues' );
+
+    Koha::Acquisition::Bookseller::Issue->new(
+        {
+            vendor_id => $vendor->id,
+            type      => 'MAINTENANCE',
+            notes     => 'a vendor issue'
+        }
+    )->store;
+
+    $vendor = $vendor->get_from_storage;
+    my $issues = $vendor->issues;
+    is( $issues->count, 1,                                       '1 issue stored' );
+    is( ref($issues),   'Koha::Acquisition::Bookseller::Issues', 'Type is correct' );
+
+    is( $issues->next->strings_map->{type}->{str}, 'Maintenance' );
 
     $schema->storage->txn_rollback();
 };

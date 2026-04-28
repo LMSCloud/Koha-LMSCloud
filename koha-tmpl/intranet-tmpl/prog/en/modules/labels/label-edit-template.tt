@@ -1,7 +1,19 @@
 [% USE raw %]
+[% USE Koha %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
     [% INCLUDE 'doc-head-open.inc' %]
-    <title>[% IF ( template_id ) %]Edit label template [% template_id | html %] [% ELSE %] New label template [% END %] &rsaquo; Templates &rsaquo; Label creator &rsaquo; Cataloging &rsaquo; Koha</title>
+    <title>[% FILTER collapse %]
+        [% IF( template_id ) %]
+            [% tx("Edit label template {template_id}", { template_id = template_id }) | html %]
+        [% ELSE %]
+            [% t("New label template") | html %]
+        [% END %] &rsaquo;
+        [% t("Templates") | html %] &rsaquo;
+        [% t("Label creator") | html %] &rsaquo;
+        [% t("Cataloging") | html %] &rsaquo;
+        [% t("Koha") | html %]
+    [% END %]</title>
     [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -33,8 +45,9 @@
 
     <div class="main container-fluid">
         <div class="row">
-            <div class="col-sm-10 col-sm-push-2">
+            <div class="col-md-10 order-md-2 order-sm-1">
                 <main>
+                    [% INCLUDE 'messages.inc' %]
                     [% INCLUDE 'labels-toolbar.inc' %]
 
                     [% IF ( template_id ) %]
@@ -43,9 +56,9 @@
                         <h1>New label template</h1>
                     [% END %]
 
-                    <form name="input" action="/cgi-bin/koha/labels/label-edit-template.pl" method="get">
+                    <form name="input" action="/cgi-bin/koha/labels/label-edit-template.pl" method="post">
                     <div class="row">
-                        <div class="col-sm-6">
+                        <div class="col-md-6">
                             <fieldset class="rows">
                                 <ol>
                                     <li>
@@ -105,7 +118,7 @@
                                 </ol>
                             </fieldset>
                         </div>
-                        <div class="col-sm-6">
+                        <div class="col-md-6">
                             <fieldset class="rows">
                                 <ol><li>
                                     <label for="top_margin">Top page margin:</label>
@@ -165,22 +178,23 @@
                         </div>
                     </div>
                         <fieldset class="action">
-                            <input type="submit" class="btn btn-primary" value="Save" /><a class="cancel" href="/cgi-bin/koha/labels/label-manage.pl?label_element=template">Cancel</a>
-                            <input type="hidden" name="op" value="save" />
+                            [% INCLUDE 'csrf-token.inc' %]
+                            <input type="hidden" name="op" value="cud-save" />
                             [% IF ( template_id ) %]
                             <input type="hidden" name="template_id" value="[% template_id | html %]" />
                             [% END %]
+                            <input type="submit" class="btn btn-primary" value="Save" /><a class="cancel" href="/cgi-bin/koha/labels/label-manage.pl?label_element=template">Cancel</a>
                         </fieldset>
                 </form>
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'cat-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

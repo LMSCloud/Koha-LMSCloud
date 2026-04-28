@@ -63,7 +63,7 @@ if ( $op eq 'view' ) {
     }
 }
 
-if ( $op eq 'cancel' ) {
+if ( $op eq 'cud-cancel' ) {
     my $id = $input->param('id');
     my $job = Koha::BackgroundJobs->find($id);
     if (   $can_manage_background_jobs
@@ -81,5 +81,29 @@ $template->param(
     messages => \@messages,
     op       => $op,
 );
+
+my @plugins        = ();
+my $plugin_manager = Koha::Plugins->new();
+if ($plugin_manager) {
+    @plugins = $plugin_manager->GetPlugins(
+        {
+            method => 'background_tasks',
+        }
+    );
+}
+my @plugin_job_types;
+for my $plugin (@plugins) {
+    my $tasks = $plugin->background_tasks;
+    for my $id ( keys %$tasks ) {
+
+        # fallback to package name if no human-readable name is available
+        my $name = ( ref $tasks->{$id} eq 'HASH' ) ? $tasks->{$id}{name} : $tasks->{$id};
+        push @plugin_job_types, {
+            id  => 'plugin_' . $plugin->get_metadata->{namespace} . "_$id",
+            str => $name,
+        };
+    }
+}
+$template->param( plugin_job_types => \@plugin_job_types );
 
 output_html_with_http_headers $input, $cookie, $template->output;

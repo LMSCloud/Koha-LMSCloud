@@ -61,9 +61,11 @@ subtest 'list() tests' => sub {
         {
             class => 'Koha::Acquisition::Orders',
             value => {
-                basketno     => $basket->basketno,
-                orderstatus  => 'new',
-                biblionumber => $biblio->biblionumber
+                basketno         => $basket->basketno,
+                orderstatus      => 'new',
+                biblionumber     => $biblio->biblionumber,
+                quantityreceived => 0,
+                quantity         => 1,
             }
         }
     );
@@ -72,10 +74,10 @@ subtest 'list() tests' => sub {
     $another_order = $builder->build_object({ class => 'Koha::Acquisition::Orders', value => $another_order });
 
     ## Authorized user tests
-    my $count_of_orders = Koha::Acquisition::Orders->search->count;
+    my $count_of_orders = Koha::Acquisition::Orders->search( { orderstatus => 'new' } )->count;
     # Make sure we are returned with the correct amount of orders
-    $t->get_ok( "//$userid:$password@/api/v1/acquisitions/orders?_per_page=-1" )
-      ->status_is( 200, 'SWAGGER3.2.2' )
+    $t->get_ok( "//$userid:$password@/api/v1/acquisitions/orders?status=new&_per_page=-1" )
+      ->status_is( 200, 'REST3.2.2' )
       ->json_has('/'.($count_of_orders-1).'/order_id')
       ->json_hasnt('/'.($count_of_orders).'/order_id');
 
@@ -245,8 +247,8 @@ subtest 'get() tests' => sub {
     my $userid = $patron->userid;
 
     $t->get_ok( "//$userid:$password@/api/v1/acquisitions/orders/" . $order->ordernumber )
-      ->status_is( 200, 'SWAGGER3.2.2' )
-      ->json_is( '' => $order->to_api, 'SWAGGER3.3.2' );
+      ->status_is( 200, 'REST3.2.2' )
+      ->json_is( '' => $order->to_api, 'REST3.3.2' );
 
     my $non_existent_order_id = $order->ordernumber;
     $order->delete;
@@ -337,9 +339,9 @@ subtest 'add() tests' => sub {
 
     # Authorized attempt to write
     $t->post_ok( "//$auth_userid:$password@/api/v1/acquisitions/orders" => json => $order )
-      ->status_is( 201, 'SWAGGER3.2.1' )
-      ->json_is( '/internal_note' => $order->{internal_note}, 'SWAGGER3.3.1' )
-      ->header_like( Location => qr/\/api\/v1\/acquisitions\/orders\/\d*/, 'SWAGGER3.4.1' );
+      ->status_is( 201, 'REST3.2.1' )
+      ->json_is( '/internal_note' => $order->{internal_note}, 'REST3.3.1' )
+      ->header_like( Location => qr/\/api\/v1\/acquisitions\/orders\/\d*/, 'REST3.4.1' );
 
     # save the order_id
     my $order_id = $order->{order_id};
@@ -423,8 +425,8 @@ subtest 'update() tests' => sub {
     $deleted_library->delete;
 
     $t->put_ok( "//$auth_userid:$password@/api/v1/libraries/$library_id" => json => $library_with_updated_field )
-      ->status_is(200, 'SWAGGER3.2.1')
-      ->json_is( '' => $library_with_updated_field, 'SWAGGER3.3.3' );
+      ->status_is(200, 'REST3.2.1')
+      ->json_is( '' => $library_with_updated_field, 'REST3.3.3' );
 
     # Authorized attempt to write invalid data
     my $library_with_invalid_field = { %$library_with_updated_field };
@@ -449,7 +451,7 @@ subtest 'update() tests' => sub {
 };
 
 subtest 'delete() tests' => sub {
-    plan tests => 7;
+    plan tests => 9;
 
     $schema->storage->txn_begin;
 
@@ -474,10 +476,13 @@ subtest 'delete() tests' => sub {
     $t->delete_ok( "//$unauth_userid:$password@/api/v1/acquisitions/orders/" . $order->ordernumber )
       ->status_is(403);
 
+    # Check if status is cancelled?
+    $order->orderstatus('new')->store;
+    $t->delete_ok( "//$auth_userid:$password@/api/v1/acquisitions/orders/" . $order->ordernumber )->status_is(409);
+    $order->orderstatus('cancelled')->store;
     $t->delete_ok( "//$auth_userid:$password@/api/v1/acquisitions/orders/" . $order->ordernumber )
-      ->status_is(204, 'SWAGGER3.2.4')
-      ->content_is('', 'SWAGGER3.3.4');
-
+      ->status_is(204, 'REST3.2.4')
+      ->content_is('', 'REST3.3.4');
     $t->delete_ok( "//$auth_userid:$password@/api/v1/acquisitions/orders/" . $order->ordernumber )
       ->status_is(404);
 

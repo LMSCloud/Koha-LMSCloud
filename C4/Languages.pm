@@ -28,6 +28,7 @@ use List::MoreUtils qw( any );
 use C4::Context;
 use Koha::Caches;
 use Koha::Cache::Memory::Lite;
+use Koha::Language;
 
 our (@ISA, @EXPORT_OK);
 BEGIN {
@@ -111,12 +112,19 @@ Returns a reference to an array of hashes:
 =cut
 
 sub getTranslatedLanguages {
-    my ($interface, $theme, $current_language, $which) = @_;
+    my ($interface, $theme, $current_language) = @_;
+    $interface //= q{};
+    $theme     //= q{};
     my @languages;
-    my @enabled_languages =
-      ( $interface && $interface eq 'intranet' )
-      ? split ",", C4::Context->preference('language')
-      : split ",", C4::Context->preference('OPACLanguages');
+
+    my @enabled_languages;
+    if ($interface) {
+        if ($interface eq 'intranet') {
+            @enabled_languages = split ",", C4::Context->preference('StaffInterfaceLanguages');
+        } elsif ($interface eq 'opac') {
+            @enabled_languages = split ",", C4::Context->preference('OPACLanguages');
+        }
+    }
 
     my $cache = Koha::Caches->get_instance;
     my $cache_key = "languages_${interface}_${theme}";
@@ -191,57 +199,81 @@ sub getLanguages {
     my $lang = shift;
     my $isFiltered = shift;
 
-    my @languages_loop;
-    my $dbh=C4::Context->dbh;
+    my $dbh = C4::Context->dbh;
+
     my $default_language = 'en';
     my $current_language = $default_language;
-    my $language_list = $isFiltered ? C4::Context->preference("AdvancedSearchLanguages") : undef;
     if ($lang) {
         $current_language = regex_lang_subtags($lang)->{'language'};
     }
-    my $sth = $dbh->prepare('SELECT * FROM language_subtag_registry WHERE type=\'language\' ORDER BY description');
-    $sth->execute();
-    while (my $language_subtag_registry = $sth->fetchrow_hashref) {
-        my $desc;
-        # check if language name is stored in current language
-        my $sth4= $dbh->prepare("SELECT description FROM language_descriptions WHERE type='language' AND subtag =? AND lang = ?");
-        $sth4->execute($language_subtag_registry->{subtag},$current_language);
-        while (my $language_desc = $sth4->fetchrow_hashref) {
-             $desc=$language_desc->{description};
-        }
-        my $sth2= $dbh->prepare("SELECT * FROM language_descriptions LEFT JOIN language_rfc4646_to_iso639 on language_rfc4646_to_iso639.rfc4646_subtag = language_descriptions.subtag WHERE type='language' AND subtag =? AND language_descriptions.lang = ?");
-        if ($desc) {
-            $sth2->execute($language_subtag_registry->{subtag},$current_language);
-        }
-        else {
-            $sth2->execute($language_subtag_registry->{subtag},$default_language);
-        }
-        my $sth3 = $dbh->prepare("SELECT description FROM language_descriptions WHERE type='language' AND subtag=? AND lang=?");
-        # add the correct description info
-        while (my $language_descriptions = $sth2->fetchrow_hashref) {
-            $sth3->execute($language_subtag_registry->{subtag},$language_subtag_registry->{subtag});
-            my $native_description;
-            while (my $description = $sth3->fetchrow_hashref) {
-                $native_description = $description->{description};
-            }
 
-            # fill in the ISO6329 code
-            $language_subtag_registry->{iso639_2_code} = $language_descriptions->{iso639_2_code};
-            # fill in the native description of the language, as well as the current language's translation of that if it exists
-            if ($native_description) {
-                $language_subtag_registry->{language_description} = $native_description;
-                $language_subtag_registry->{language_description}.=" ($language_descriptions->{description})" if $language_descriptions->{description};
-            }
-            else {
-                $language_subtag_registry->{language_description} = $language_descriptions->{description};
-            }
-        }
-        # Do not push unless valid iso639-2 code
-        if ( $language_subtag_registry->{ iso639_2_code } and ( !$language_list || index (  $language_list, $language_subtag_registry->{ iso639_2_code } ) >= 0) ) {
-            push @languages_loop, $language_subtag_registry;
-        }
+    my $language_list = $isFiltered ? C4::Context->preference("AdvancedSearchLanguages") : undef;
+    my $language_list_cond = $language_list ? 'AND FIND_IN_SET(language_rfc4646_to_iso639.iso639_2_code, ?)' : '';
+
+    my $sth = $dbh->prepare("
+    SELECT
+    language_subtag_registry.*,
+    language_rfc4646_to_iso639.iso639_2_code,
+    CASE
+        -- If user's localized name of given lang is available
+        WHEN current_language_descriptions.description IS NOT NULL
+        THEN
+            CASE
+                -- Append native translation of given language if possible
+                WHEN native_language_descriptions.description IS NOT NULL
+                    AND native_language_descriptions.description != current_language_descriptions.description
+                THEN CONCAT(current_language_descriptions.description, ' (', native_language_descriptions.description, ')')
+                ELSE current_language_descriptions.description
+            END
+        ELSE -- fall back to English description
+            CASE
+                -- Append native translation of given language if possible
+                WHEN native_language_descriptions.description IS NOT NULL
+                    AND native_language_descriptions.description != language_subtag_registry.description
+                THEN CONCAT(language_subtag_registry.description, ' (', native_language_descriptions.description, ')')
+                ELSE language_subtag_registry.description
+            END
+    END AS language_description
+
+    -- Useful if debugging the query:
+    -- current_language_descriptions.description AS _current_language_descriptions_description,
+    -- native_language_descriptions.description AS _native_language_descriptions_description
+
+    FROM language_subtag_registry
+
+    -- Grab ISO code for language
+    INNER JOIN language_rfc4646_to_iso639
+    ON language_rfc4646_to_iso639.rfc4646_subtag = language_subtag_registry.subtag
+    AND language_rfc4646_to_iso639.iso639_2_code IS NOT NULL
+
+    -- Grab language name in user's current language
+    LEFT JOIN language_descriptions current_language_descriptions
+    ON current_language_descriptions.subtag = language_subtag_registry.subtag
+    AND current_language_descriptions.lang = ?
+    AND current_language_descriptions.type = 'language'
+
+    -- Grab language name in the given language itself
+    LEFT JOIN language_descriptions native_language_descriptions
+    ON native_language_descriptions.subtag = language_subtag_registry.subtag
+    AND native_language_descriptions.lang = language_subtag_registry.subtag
+    AND native_language_descriptions.type = 'language'
+
+    WHERE language_subtag_registry.type = 'language'
+    ${language_list_cond}
+
+    ORDER BY language_rfc4646_to_iso639.iso639_2_code ASC");
+
+    if ($language_list) {
+        $sth->execute($current_language, join ',' => split(/,|\|/, $language_list));
+    } else {
+        $sth->execute($current_language);
     }
-    return \@languages_loop;
+
+    my @languages_list;
+    while (my $row = $sth->fetchrow_hashref) {
+        push @languages_list, $row;
+    }
+    return \@languages_list;
 }
 
 sub _get_opac_language_dirs {
@@ -618,8 +650,26 @@ sub accept_language {
 
 =head2 getlanguage
 
-    Select a language based on the URL parameter 'language', a cookie,
-    syspref available languages & browser
+Select a language based on:
+
+=over
+
+=item * the URL parameter 'language' (staff and opac interfaces only),
+
+=item * the 'KohaOpacLanguage' cookie (staff and opac interfaces only),
+
+=item * the language set by C<Koha::Language::set_requested_language>
+(interfaces other than staff and opac only). The REST API sets this to the
+value of 'KohaOpacLanguage' cookie,
+
+=item * syspref StaffInterfaceLanguages (staff only)
+
+=item * syspref OpacLanguages (opac only),
+
+=item * HTTP header Accept-Language (more precisely, environment variable
+HTTP_ACCEPT_LANGUAGE)
+
+=back
 
 =cut
 
@@ -633,29 +683,36 @@ sub getlanguage {
         return $cached if $cached;
     }
 
-    $cgi //= CGI->new;
     my $interface = C4::Context->interface;
-    my $theme = C4::Context->preference( ( $interface eq 'opac' ) ? 'opacthemes' : 'template' );
+    my $theme = '';
     my $language;
-
-    my $preference_to_check =
-      $interface eq 'intranet' ? 'language' : 'OPACLanguages';
-    # Get the available/valid languages list
     my @languages;
-    my $preference_value = C4::Context->preference($preference_to_check);
-    if ($preference_value) {
-        @languages = split /,/, $preference_value;
-    }
 
-    # Chose language from the URL
-    my $cgi_param_language = $cgi->param( 'language' );
-    if ( defined $cgi_param_language && any { $_ eq $cgi_param_language } @languages) {
-        $language = $cgi_param_language;
-    }
+    if ($interface eq 'opac' || $interface eq 'intranet') {
+        $cgi //= CGI->new;
+        $theme = C4::Context->preference( ( $interface eq 'opac' ) ? 'opacthemes' : 'template' );
 
-    # cookie
-    if (not $language and my $cgi_cookie_language = $cgi->cookie('KohaOpacLanguage') ) {
-        ( $language = $cgi_cookie_language ) =~ s/[^a-zA-Z_-]*//; # sanitize cookie
+        my $preference_to_check =
+          $interface eq 'intranet' ? 'StaffInterfaceLanguages' : 'OPACLanguages';
+        # Get the available/valid languages list
+        my $preference_value = C4::Context->preference($preference_to_check);
+        if ($preference_value) {
+            @languages = split /,/, $preference_value;
+        }
+
+        # Choose language from the URL
+        my $cgi_param_language = $cgi->param( 'language' );
+        if ( defined $cgi_param_language && any { $_ eq $cgi_param_language } @languages) {
+            $language = $cgi_param_language;
+        }
+
+        # cookie
+        if (not $language and my $cgi_cookie_language = $cgi->cookie('KohaOpacLanguage') ) {
+            ( $language = $cgi_cookie_language ) =~ s/[^a-zA-Z_-]*//; # sanitize cookie
+        }
+    } else {
+        @languages = map { $_->{rfc4646_subtag} } @{ getTranslatedLanguages($interface, $theme) };
+        $language = Koha::Language->get_requested_language();
     }
 
     # HTTP_ACCEPT_LANGUAGE

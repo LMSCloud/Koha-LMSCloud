@@ -1,12 +1,13 @@
+[% USE raw %]
 [% USE UUID %]
 [% SET auth_uuid = UUID.generate('auth') %]
 [% IF loggedinusername %]
-    [% content %]
+    [% content | $raw %]
 [% ELSE %]
-    <a class="btn btn-link btn-lg" data-auth-uuid="[% auth_uuid %]" href="/cgi-bin/koha/opac-user.pl"><i class="[% icon | html %]" aria-hidden="true"></i> [% label | html %]</a>
+    <a class="btn btn-link btn-lg" data-auth-uuid="[% auth_uuid | html %]" href="/cgi-bin/koha/opac-user.pl"><i class="[% icon | html %]" aria-hidden="true"></i> [% label | html %]</a>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const link = document.querySelector('[data-auth-uuid="[% auth_uuid %]"]');
+            const link = document.querySelector('[data-auth-uuid="[% auth_uuid | html %]"]');
             if (link) {
                 const baseUrl = '[% Koha.Preference("OPACBaseURL") | html %]';
                 const currentPath = window.location.pathname + window.location.search;

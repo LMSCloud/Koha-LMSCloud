@@ -1,9 +1,16 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE KohaDates %]
 [% SET footerjs = 1 %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Files &rsaquo; Invoice &rsaquo; Acquisitions &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Files") | html %] &rsaquo;
+    [% t("Invoice") | html %] &rsaquo;
+    [% t("Acquisitions") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -31,60 +38,74 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-2">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
       <h1>Files for invoice: [% invoicenumber | html %]</h1>
       <p><strong>Vendor: </strong><a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% suppliername | html %]</a></p>
       <br />
       [% IF errors %]
-        <div class="dialog alert">
+        <div class="alert alert-warning">
           [% IF errors.empty_upload %]The file you are attempting to upload has no contents.[% END %]
           [% IF errors.no_file %]You did not select a file to upload.[% END %]
           [% IF errors.invalid_parameter %]Invalid or missing script parameter.[% END %]
         </div>
       [% END %]
       [% IF files %]
-          <table id="invoice_files_details_table">
-              <thead>
-                  <tr>
-                      <th>Name</th>
-                      <th>Type</th>
-                      <th>Description</th>
-                      <th>Uploaded</th>
-                      <th>Bytes</th>
-                      <th>&nbsp;</th>
-                      <th>&nbsp;</th>
-                  </tr>
-              </thead>
-              <tbody>
-                [% FOREACH f IN files %]
-                  <tr>
-                      <td><a href="?invoiceid=[% invoiceid | uri %]&amp;op=download&amp;view=1&amp;file_id=[% f.file_id | uri %]">[% f.file_name | html %]</a></td>
-                      <td>[% f.file_type | html %]</td>
-                      <td>[% f.file_description | html %]</td>
-                      <td data-order="[% f.date_uploaded | html %]">
-                        [% f.date_uploaded | $KohaDates %]
-                      </td>
-                      <td>[% f.file_size | html %]</td>
-                      <td><a class="delete_file" href="?invoiceid=[% invoiceid | html %]&amp;op=delete&amp;file_id=[% f.file_id | html %]">Delete</a></td>
-                      <td><a href="?invoiceid=[% invoiceid | uri %]&amp;op=download&amp;file_id=[% f.file_id | uri %]">Download</a></td>
-                  </tr>
-                [% END %]
-              </tbody>
-          </table>
+          <div class="page-section">
+              <table id="invoice_files_details_table">
+                  <thead>
+                      <tr>
+                          <th>Name</th>
+                          <th>Type</th>
+                          <th>Description</th>
+                          <th>Uploaded</th>
+                          <th>Bytes</th>
+                          <th>&nbsp;</th>
+                          <th>&nbsp;</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                    [% FOREACH f IN files %]
+                      <tr>
+                            <td><a href="?invoiceid=[% invoiceid | uri %]&amp;op=download&amp;file_id=[% f.file_id | uri %]">[% f.file_name | html %]</a></td>
+                          <td>[% f.file_type | html %]</td>
+                          <td>[% f.file_description | html %]</td>
+                          <td data-order="[% f.date_uploaded | html %]">
+                            [% f.date_uploaded | $KohaDates %]
+                          </td>
+                          <td>[% f.file_size | html %]</td>
+                          <td>
+                                <form action="invoice-files.pl" method="post">
+                                    [% INCLUDE 'csrf-token.inc' %]
+                                    <input type="hidden" name="invoiceid" value="[% invoiceid | html %]" />
+                                    <input type="hidden" name="file_id" value="[% f.file_id | html %]" />
+                                    <input type="hidden" name="op" value="cud-delete" />
+                                    <button type="submit" class="btn btn-default btn-xs delete_file">
+                                        <i class="fa fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </td>
+                          <td><a class="btn btn-default btn-xs" href="?invoiceid=[% invoiceid | uri %]&amp;op=download&amp;file_id=[% f.file_id | uri %]"><i class="fa fa-download"></i> Download</a></td>
+                      </tr>
+                    [% END %]
+                  </tbody>
+              </table>
+            </div>
       [% ELSE %]
-          <div class="dialog message">
+          <div class="alert alert-info">
               <p>This invoice has no files attached.</p>
           </div>
       [% END %]
       [% IF invoiceid %]
           <br />
           <form method="post" action="/cgi-bin/koha/acqui/invoice-files.pl" enctype="multipart/form-data">
+              [% INCLUDE 'csrf-token.inc' %]
               <fieldset class="rows">
                   <legend>Upload new file</legend>
                   <ol>
-                      <li><input type="hidden" name="op" value="upload" />
+                      <li><input type="hidden" name="op" value="cud-upload" />
                       <input type="hidden" name="invoiceid" value="[% invoiceid | html %]" />
                       <label for="description">Description:</label>
                       <input name="description" id="description" type="text" /></li>
@@ -95,13 +116,13 @@
           </form>
       [% END %]
     </main>
-  </div> <!-- /.col-sm-10.col-sm-push-2 -->
+  </div> <!-- /.col-md-10.order-md-2 -->
 
-<div class="col-sm-2 col-sm-pull-10">
+<div class="col-md-2 order-sm-2 order-md-1">
     <aside>
         [% INCLUDE 'acquisitions-menu.inc' %]
     </aside>
-</div> <!-- /.col-sm-2.col-sm-pull-10 -->
+</div> <!-- /.col-md-2.order-md-1 -->
 </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -110,16 +131,16 @@
     <script>
         $(document).ready(function() {
             $("#invoice_files_details_table").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [ -1, -2 ], "bSortable": false, "bSearchable": false }
+                "columnDefs": [
+                    { "targets": [ -1, -2 ], "orderable": false, "searchable":  false }
                 ],
-                bInfo: false,
-                bPaginate: false,
-                bFilter: false,
-                sDom: "t"
+                "info": false,
+                "paging": false,
+                "searching": false,
+                "dom": "t"
             }));
-            $("a.delete_file").click(function(){
-                return ( confirm( _("Are you sure you want to delete this file ?") ) );
+            $(".delete_file").click(function(){
+                return ( confirm( _("Are you sure you want to delete this file?") ) );
             });
         });
     </script>

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Test::More tests => 3;
+use Test::More tests => 6;
 use t::lib::TestBuilder;
 use String::Random qw(random_string);
 use Koha::Database;
@@ -10,12 +10,13 @@ use Koha::AdditionalField;
 use Koha::AuthorisedValueCategory;
 use Koha::ERM::License;
 use C4::Context;
+use CGI;
 
 my $builder = t::lib::TestBuilder->new;
 my $schema = Koha::Database->schema;
 
 subtest 'set_additional_fields with marcfield_mode = "get"' => sub {
-    plan tests => 1;
+    plan tests => 2;
 
     $schema->txn_begin;
 
@@ -51,6 +52,30 @@ subtest 'set_additional_fields with marcfield_mode = "get"' => sub {
     my $values = $subscription->additional_field_values()->as_list();
 
     is($values->[0]->value, 'some value', 'value was copied from the biblio record to the field');
+
+    $field->delete;
+    my $get_marcfield_field = Koha::AdditionalField->new(
+        {
+            tablename      => 'subscription',
+            name           => random_string( 'c' x 100 ),
+            marcfield      => '998$Z',
+            marcfield_mode => 'get',
+        }
+    );
+    $get_marcfield_field->store()->discard_changes();
+    my $q = CGI->new;
+    $q->param(
+        -name  => 'additional_field_' . $get_marcfield_field->id,
+        -value => '',
+    );
+
+    my @additional_fields =
+        Koha::Object::Mixin::AdditionalFields->prepare_cgi_additional_field_values( $q, 'subscription' );
+    $subscription->set_additional_fields( \@additional_fields );
+
+    $values = $subscription->additional_field_values()->as_list();
+
+    is( $values->[0]->value, 'some value', 'value was copied from the biblio record to the field' );
 
     $schema->txn_rollback;
 };
@@ -241,6 +266,13 @@ subtest 'prepare_cgi_additional_field_values' => sub {
         }
     );
     $field2->store()->discard_changes();
+    my $field3 = Koha::AdditionalField->new(
+        {
+            tablename => 'subscription',
+            name      => random_string( 'c' x 100 )
+        }
+    );
+    $field3->store()->discard_changes();
 
     my $q = CGI->new;
     $q->param(
@@ -250,6 +282,10 @@ subtest 'prepare_cgi_additional_field_values' => sub {
     $q->param(
         -name  => 'additional_field_' . $field2->id,
         -value => '0',
+    );
+    $q->param(
+        -name  => 'additional_field_' . $field3->id,
+        -value => '',
     );
     $q->param(
         -name  => 'irrelevant_param',
@@ -273,20 +309,22 @@ subtest 'prepare_cgi_additional_field_values' => sub {
             {
                 'value' => '0',
                 'id'    => $field2->id
+            },
+            {
+                'value' => '',
+                'id'    => $field3->id
             }
         ],
         'Return of prepare_cgi_additional_field_values should be correct'
     );
-
     $schema->txn_rollback;
-
 };
 
 subtest 'strings_map() tests' => sub {
     plan tests => 1;
-     $schema->txn_begin;
-     Koha::AdditionalFields->search->delete;
-     my $license = Koha::ERM::License->new(
+    $schema->txn_begin;
+    Koha::AdditionalFields->search->delete;
+    my $license = Koha::ERM::License->new(
         {
             name   => "license name",
             type   => "national",
@@ -295,7 +333,7 @@ subtest 'strings_map() tests' => sub {
         }
     );
     $license->store()->discard_changes();
-     my $field = Koha::AdditionalField->new(
+    my $field = Koha::AdditionalField->new(
         {
             tablename => 'erm_licenses',
             name      => 'af_1',
@@ -303,7 +341,7 @@ subtest 'strings_map() tests' => sub {
         }
     );
     $field->store()->discard_changes();
-     my $field2 = Koha::AdditionalField->new(
+    my $field2 = Koha::AdditionalField->new(
         {
             tablename => 'erm_licenses',
             name      => 'af_2',
@@ -311,7 +349,7 @@ subtest 'strings_map() tests' => sub {
         }
     );
     $field2->store()->discard_changes();
-     my $value = 'some license value';
+    my $value = 'some license value';
     $license->set_additional_fields(
         [
             {
@@ -326,23 +364,23 @@ subtest 'strings_map() tests' => sub {
             }
         ]
     );
-     $license->add_additional_fields(
+    $license->add_additional_fields(
         {
             $field2->id => ['second field'],
 
         },
         'erm_licenses'
     );
-      my $av_category = Koha::AuthorisedValueCategory->new( { category_name => "AV_CAT_NAME" } );
+    my $av_category = Koha::AuthorisedValueCategory->new( { category_name => "AV_CAT_NAME" } );
     $av_category->store()->discard_changes();
-     my $av_value = Koha::AuthorisedValue->new(
+    my $av_value = Koha::AuthorisedValue->new(
         {
             category         => $av_category->category_name,
             authorised_value => 'BOB',
             lib              => "Robert"
         }
     );
-     my $av_field = Koha::AdditionalField->new(
+    my $av_field = Koha::AdditionalField->new(
         {
             tablename                 => "erm_licenses",
             name                      => "av_field",
@@ -351,15 +389,15 @@ subtest 'strings_map() tests' => sub {
         }
     );
     $av_field->store()->discard_changes();
-       $license->add_additional_fields(
+    $license->add_additional_fields(
         {
             $av_field->id => [ $av_value->authorised_value ],
 
         },
         'erm_licenses'
     );
-     my $values      = $license->get_additional_field_values_for_template;
-     my $strings_map = $license->strings_map;
+    my $values      = $license->get_additional_field_values_for_template;
+    my $strings_map = $license->strings_map;
     is_deeply(
         $strings_map,
         {
@@ -386,6 +424,6 @@ subtest 'strings_map() tests' => sub {
         },
         'strings_map looks good'
     );
-     $schema->txn_rollback;
-    ;
+    $schema->txn_rollback;
+
 };

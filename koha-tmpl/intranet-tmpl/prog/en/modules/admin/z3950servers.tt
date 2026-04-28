@@ -1,25 +1,29 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% USE HtmlTags %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 
-[% BLOCK ServerType %]
-    [% IF (server.servertype||type) == 'sru' %]
-        <span>SRU</span>
-    [% ELSIF (server.servertype||type) == 'zed' %]
-        <span>Z39.50</span>
-    [% END %]
+[% IF (server.servertype||type) == 'sru' %]
+    [% SET servertype = "SRU" %]
+[% ELSIF (server.servertype||type) == 'zed' %]
+    [% SET servertype = "Z39.50" %]
 [% END %]
 
-<title>
+<title>[% FILTER collapse %]
     [% IF op == 'edit' %]
-        Modify [% PROCESS ServerType | remove("</*span>") %] server [% server.servername | html %] &rsaquo; [% END %]
-
-    [% IF op ==  'add' %]
-        New [% PROCESS ServerType | remove("</*span>") %] server &rsaquo; [% END %]
-
-    Z39.50/SRU servers &rsaquo; Administration &rsaquo; Koha
-</title>
+        [% tx("Modify {servertype} server '{servername}'", { servertype = servertype, servername = server.servername }) | html %] &rsaquo;
+    [% ELSIF op ==  'add' %]
+        [% tx("New {servertype} server", { servertype = servertype }) | html %] &rsaquo;
+    [% ELSIF searchfield %]
+        [% tx("Search results for '{search_keyword}'", { search_keyword = searchfield }) | html %] &rsaquo;
+    [% END %]
+    [% t("Z39.50/SRU servers") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -34,55 +38,62 @@
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
         [% END %]
 
-        [% IF op == 'edit' || op == 'add' %]
+        [% IF op == 'edit' || op == 'add' || searchfield %]
             [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/admin/z3950servers.pl">Z39.50/SRU servers</a>
-           [% END %]
+            [% END %]
         [% END %]
 
         [% IF op == 'edit' %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Modify [% PROCESS ServerType %] server [% server.servername | html %]</span>
-           [% END %]
+                [% tx("Modify {servertype} server '{servername}'", { servertype = servertype, servername = server.servername }) | html %]
+            [% END %]
 
         [% ELSIF op == 'add' %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>New [% PROCESS ServerType %] server</span>
-           [% END %]
+                [% tx("New {servertype} server", { servertype = servertype }) | html %]
+            [% END %]
 
+        [% ELSIF searchfield %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% tx("Search results for '{search_keyword}'", { search_keyword = searchfield }) | html %]
+            [% END %]
         [% ELSE %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
                 <span>Z39.50/SRU servers</span>
-           [% END %]
+            [% END %]
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% IF msg_deleted %]
-    <div class="dialog alert">Z39.50/SRU server deleted ([% msg_add | html %])</div>
+    <div class="alert alert-warning">Z39.50/SRU server deleted ([% msg_add | html %])</div>
 [% ELSIF msg_updated %]
-    <div class="dialog message">Z39.50/SRU server updated ([% msg_add | html %])</div>
+    <div class="alert alert-info">Z39.50/SRU server updated ([% msg_add | html %])</div>
 [% ELSIF msg_added %]
-    <div class="dialog message">Z39.50/SRU server added ([% msg_add | html %])</div>
+    <div class="alert alert-info">Z39.50/SRU server added ([% msg_add | html %])</div>
 [% ELSIF msg_notfound %]
-    <div class="dialog alert">Error: Server with ID [% msg_add | html %] not found</div>
+    <div class="alert alert-warning">Error: Server with ID [% msg_add | html %] not found</div>
 [% END %]
 
 [% IF ( add_form ) %]
-    <form action="[% script_name | html %]" name="Aform" method="post" id="serverentry">
-        <input type="hidden" name="op" value="add_validated" />
-        <input type="hidden" name="servertype" value="[% server.servertype||type||'zed' | html %]"/>
+    <form action="/cgi-bin/koha/admin/z3950servers.pl" name="Aform" method="post" id="serverentry">
+        [% INCLUDE 'csrf-token.inc' %]
         [% IF op == 'edit' %]
-            <h1>Modify [% PROCESS ServerType %] server</h1>
+            <h1>[% tx("Modify {servertype} server '{servername}'", { servertype = servertype, servername = server.servername }) | html %]</h1>
             <input type="hidden" name="id" value="[% server.id | html %]" />
         [% ELSE %]
-            <h1>New [% PROCESS ServerType %] server</h1>
+            <h1>[% tx("New {servertype} server", { servertype = servertype }) | html %]</h1>
         [% END %]
+
+        <input type="hidden" name="op" value="cud-add_validated" />
+        <input type="hidden" name="servertype" value="[% server.servertype||type||'zed' | html %]"/>
         <fieldset class="rows">
         <ol>
         <li><label for="name" class="required">Server name: </label>
@@ -203,11 +214,11 @@
         <a id="newserver" class="btn btn-default" href="/cgi-bin/koha/admin/z3950servers.pl?op=add&type=zed"><i class="fa fa-plus"></i> New Z39.50 server</a>
         <a id="newserver" class="btn btn-default" href="/cgi-bin/koha/admin/z3950servers.pl?op=add&type=sru"><i class="fa fa-plus"></i> New SRU server</a>
     </div>
-    <h1>Z39.50/SRU servers administration</h1>
-    [% IF id %]
-        You searched for record [% id | html %]
-    [% ELSIF searchfield %]
-        You searched for [% searchfield | html %]
+    <h1>Z39.50/SRU servers</h1>
+    [% IF searchfield %]
+        <h2>
+            [% tx("Searching by target starting with '{search_keyword}'", { search_keyword = searchfield }) | html %]
+        </h2>
     [% END %]
 
     <div class="page-section">
@@ -229,13 +240,20 @@
             <td>[% loo.attributes | html %]</td>
             <td>
                 <div class="btn-group dropup">
-                    <a class="btn btn-default btn-xs dropdown-toggle" id="reportactions[% savedreport.id | html %]" role="button" data-toggle="dropdown" href="#">
-                        Actions <b class="caret"></b>
+                    <a class="btn btn-default btn-xs dropdown-toggle" id="reportactions[% savedreport.id | html %]" role="button" data-bs-toggle="dropdown" href="#">
+                        Actions
                     </a>
-                    <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="reportactions[% savedreport.id | html %]">
-                        <li><a href="/cgi-bin/koha/admin/z3950servers.pl?op=edit&amp;id=[% loo.id | uri %]"><i class="fa fa-pencil"></i> Edit</a></li>
-                        <li><a href="/cgi-bin/koha/admin/z3950servers.pl?op=add&amp;id=[% loo.id | uri %]"><i class="fa fa-copy"></i> Copy</a></li>
-                        <li><a href="/cgi-bin/koha/admin/z3950servers.pl?op=delete_confirmed&amp;id=[% loo.id | uri %]" class="delete" data-servername="[% loo.servername | html %]"><i class="fa fa-trash"></i> Delete</a></li>
+                    <ul class="dropdown-menu" role="menu" aria-labelledby="reportactions[% savedreport.id | html %]">
+                        <li><a class="dropdown-item" href="/cgi-bin/koha/admin/z3950servers.pl?op=edit&amp;id=[% loo.id | uri %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a></li>
+                        <li><a class="dropdown-item" href="/cgi-bin/koha/admin/z3950servers.pl?op=add&amp;id=[% loo.id | uri %]"><i class="fa fa-copy"></i> Copy</a></li>
+                        <li>
+                            <a href="#" class="dropdown-item delete" data-formid="server_row_[% loo.id | uri %]" data-servername="[% loo.servername | html %]"><i class="fa fa-trash-can"></i> Delete</a>
+                            <form id="server_row_[% loo.id | uri %]" action="/cgi-bin/koha/admin/z3950servers.pl" method="post">
+                                [% INCLUDE 'csrf-token.inc' %]
+                                <input type="hidden" name="op" value="cud-delete_confirmed">
+                                <input type="hidden" name="id" value="[% loo.id | uri %]">
+                            </form>
+                        </li>
                     </ul>
                 </div>
             </td>
@@ -247,13 +265,13 @@
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -309,15 +327,17 @@
         [% ELSE %]
             $(document).ready(function() {
                 $("#serverst").dataTable($.extend(true, {}, dataTablesDefaults, {
-                    "aoColumnDefs": [
-                        { "aTargets": [-1], "bSortable": false, "bSearchable": false },
+                    "columnDefs": [
+                        { "targets": [-1], "orderable": false, "searchable":  false },
                     ],
-                    "sPaginationType": "full"
+                    "pagingType": "full"
                 }));
-                $(".delete").on("click",function(e){
+                $("#serverst").on("click", ".delete", function(e) {
                     var servername = $(this).data("servername");
+                    let formid = $(this).data("formid");
                     if( confirm( _("Are you sure you want to delete server %s?").format(servername) ) ) {
-                        return true;
+                        $('#'+formid).submit();
+                        return false;
                     } else {
                         e.preventDefault();
                     }

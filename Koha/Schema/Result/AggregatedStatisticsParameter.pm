@@ -81,4 +81,10 @@ __PACKAGE__->set_primary_key("statistics_id", "name");
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration
+sub koha_object_class {
+    'Koha::AggregatedStatistics::AggregatedStatisticsParameter';
+}
+sub koha_objects_class {
+    'Koha::AggregatedStatistics::AggregatedStatisticsParameters';
+}
 1;

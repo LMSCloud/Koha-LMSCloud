@@ -53,6 +53,13 @@ patron/borrower's last name (surname)
 
 patron/borrower's first name
 
+=head2 preferred_name
+
+  data_type: 'longtext'
+  is_nullable: 1
+
+patron/borrower's preferred name
+
 =head2 middle_name
 
   data_type: 'longtext'
@@ -652,6 +659,14 @@ flag for allowing auto-renewal
 
 useful for reporting purposes
 
+=head2 protected
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+boolean flag to mark selected patrons as protected from deletion
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -663,6 +678,8 @@ __PACKAGE__->add_columns(
   { data_type => "longtext", is_nullable => 1 },
   "firstname",
   { data_type => "mediumtext", is_nullable => 1 },
+  "preferred_name",
+  { data_type => "longtext", is_nullable => 1 },
   "middle_name",
   { data_type => "longtext", is_nullable => 1 },
   "title",
@@ -845,18 +862,21 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", default_value => 1, is_nullable => 0 },
   "primary_contact_method",
   { data_type => "varchar", is_nullable => 1, size => 45 },
+  "protected",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:RGzcFWhZkhlYxPAduQzX4A
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:55
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:0fhFnrvw4r2/BN14/LB5kw
 
 __PACKAGE__->add_columns(
-    '+anonymized'    => { is_boolean => 1 },
-    '+lost'          => { is_boolean => 1 },
-    '+gonenoaddress' => { is_boolean => 1 },
+    '+anonymized'              => { is_boolean => 1 },
+    '+autorenew_checkouts'     => { is_boolean => 1 },
+    '+gonenoaddress'           => { is_boolean => 1 },
+    '+lost'                    => { is_boolean => 1 },
     '+privacy_guarantor_fines' => { is_boolean => 1 },
-    '+autorenew_checkouts' => { is_boolean => 1 }
+    '+protected'               => { is_boolean => 1 },
 );
 
 sub koha_objects_class {

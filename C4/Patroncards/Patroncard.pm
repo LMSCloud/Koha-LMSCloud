@@ -273,8 +273,6 @@ sub draw_text {
 ## Please see file perltidy.ERR
         my $string_width = C4::Creators::PDF->StrWidth( $line, $text_attribs->{'font'}, $text_attribs->{'font_size'} );
         if ( ( $string_width + $llx_text_attr ) > $self->{'width'} ) {
-            # counter for a breaking condition to prevent endless looping
-            my $innerwhile = 0;
             my $cur_line = "";
         WRAP_LINES:
             while (1) {
@@ -290,7 +288,7 @@ sub draw_text {
 
                 #                $font_units_width = $m->string_width($line);
                 #                $string_width = ($font_units_width * $text_attribs->{'font_size'}) / $units_per_em;
-                if ( ( $string_width + $text_attribs->{'llx'} ) < $self->{'width'} ) {
+                if ( $string_width && ( ( $string_width + $text_attribs->{'llx'} ) < $self->{'width'} ) ) {
                     ( $Tx, $Tw ) = text_alignment(
                         $origin_llx, $self->{'width'}, $text_attribs->{'llx'}, $string_width, $line,
                         $text_attribs->{'text_alignment'}
@@ -307,6 +305,11 @@ sub draw_text {
                     #$font_units_width = $m->string_width($line);
                     #$string_width = ($font_units_width * $text_attribs->{'font_size'}) / $units_per_em;
                     if ( $string_width + ( $text_attribs->{'llx'} * $self->{'unitvalue'} ) < $self->{'width'} ) {
+                        ( $Tx, $Tw ) = text_alignment(
+                            $origin_llx, $self->{'width'},
+                            $text_attribs->{'llx'} * $self->{'unitvalue'}, $string_width, $line,
+                            $text_attribs->{'text_alignment'}
+                        );
                         $line =~ s/^\s+//g;     # strip naughty leading spaces
                         ( $Tx, $Tw ) = text_alignment(
                             $origin_llx, $self->{'width'},
@@ -323,13 +326,10 @@ sub draw_text {
                     last WRAP_LINES if $cur_line eq $line;
                     $cur_line = $line;
                 }
-                if ( ++$innerwhile == 1000 ) {
-                    warn "Patroncard.pm => draw_text: Leaving inner while draw_text with innerwhile ($innerwhile): line is: $line\n";
-                    last WRAP_LINES;
-                }
             }
         }
         else {
+            ($Tx, $Tw) = text_alignment($origin_llx, $self->{'width'}, $lly_text_attr * $self->{'unitvalue'}, $string_width, $line, $text_attribs->{'text_alignment'});
             $line =~ s/^\s+//g;     # strip naughty leading spaces
             ($Tx, $Tw) = text_alignment($origin_llx, $self->{'width'}, $llx_text_attr * $self->{'unitvalue'}, $string_width, $line, $text_attribs->{'text_alignment'});
             push @lines, {line=> $line, Tx => $Tx, Ty => $Ty, Tw => $Tw};

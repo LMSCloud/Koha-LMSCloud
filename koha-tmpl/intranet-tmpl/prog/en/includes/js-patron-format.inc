@@ -20,24 +20,43 @@
 
             var name;
             var firstname   = escape_str(patron.firstname);
+            var preferred_name = escape_str(patron.preferred_name);
             var surname     = escape_str(patron.surname);
 
-            if ( patron.middle_name != null && patron.middle_name != '' ) {
-                firstname += ' ' + escape_str(patron.middle_name);
+            if (patron.middle_name != null && patron.middle_name != "") {
+                firstname += " " + escape_str(patron.middle_name);
+                preferred_name += " " + escape_str(patron.middle_name);
             }
 
-            if ( patron.other_name != null && patron.other_name != '' ) {
-                firstname += ' (' + escape_str(patron.other_name) + ')';
+            if (patron.other_name != null && patron.other_name != "") {
+                firstname += " (" + escape_str(patron.other_name) + ")";
+                preferred_name += " (" + escape_str(patron.other_name) + ")";
             }
             if ( config && config.invert_name ) {
-                name = surname + ( firstname ? ', ' + firstname : '' );
+                name = surname + ( preferred_name ? ', ' + preferred_name : '' );
             }
             else {
-                name = firstname + ' ' + surname;
+                name = preferred_name + ' ' + surname;
+            }
+            if ( name.replace(' ', '').length == 0 ) {
+                if ( patron.library ) {
+                    return _("A patron from %s").format(patron.library.name);
+                }
+                else {
+                    return _("A patron from another library");
+                }
+            }
+
+            if ( config && config.hide_patron_name ) {
+                name = '';
             }
 
             if ( config && config.display_cardnumber ) {
-                name = name + ' (' + escape_str(patron.cardnumber)  + ')';
+                if ( name.length > 0 ) {
+                    name = name + ' (' + escape_str(patron.cardnumber)  + ')';
+                } else {
+                    name = escape_str(patron.cardnumber);
+                }
             }
 
             if (config && config.url) {

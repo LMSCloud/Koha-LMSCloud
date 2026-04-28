@@ -1,0 +1,287 @@
+---
+"/authorities":
+  get:
+    x-mojo-to: Authorities#list
+    operationId: listAuthorities
+    tags:
+      - authorities
+    summary: List authorities
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
+    produces:
+      - application/json
+      - application/marcxml+xml
+      - application/marc-in-json
+      - application/marc
+      - text/plain
+    responses:
+      "200":
+        description: A list of authorities
+      "400":
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `invalid_query`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Authority not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "406":
+        description: Not acceptable
+        schema:
+          type: array
+          description: Accepted content-types
+          items:
+            type: string
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        catalogue: "1"
+  post:
+    x-mojo-to: Authorities#add
+    operationId: addAuthority
+    tags:
+      - authorities
+    summary: Add authority
+    description: |
+      Add an authority record to Koha. An optional `x-authority-type`
+      may be passed to specify the cataloguing framework to be used (instead
+      of the default).
+
+      The request body is expected to contain a MARC record in the format specified in
+      the `Content-type` header you pass. Possible values for this header and the corresponding
+      record formats expected are listed below:
+
+      * application/marcxml+xml: MARCXML
+      * application/marc-in-json: MARC-in-JSON
+      * application/marc: Raw USMARC binary data
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/authority_type_header"
+      - name: x-koha-override
+        in: header
+        required: false
+        description: Overrides list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - any
+            - duplicate
+        collectionFormat: csv
+    responses:
+      "201":
+        description: An authority
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "406":
+        description: Not acceptable
+        schema:
+          type: array
+          description: Accepted content-types
+          items:
+            type: string
+      "409":
+        description: |
+          Conflict creating the resource. Possible `error_code` attribute values:
+
+          * `duplicate`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        editauthorities: "1"
+"/authorities/{authority_id}":
+  get:
+    x-mojo-to: Authorities#get
+    operationId: getAuthority
+    tags:
+      - authorities
+    summary: Get authority
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/authority_id_pp"
+    produces:
+      - application/json
+      - application/marcxml+xml
+      - application/marc-in-json
+      - application/marc
+      - text/plain
+    responses:
+      "200":
+        description: An authority
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Authority not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "406":
+        description: Not acceptable
+        schema:
+          type: array
+          description: Accepted content-types
+          items:
+            type: string
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        catalogue: "1"
+  delete:
+    x-mojo-to: Authorities#delete
+    operationId: deleteAuthority
+    tags:
+      - authorities
+    summary: Delete authority
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/authority_id_pp"
+    produces:
+      - application/json
+    responses:
+      "204":
+        description: Authority deleted
+        schema:
+          type: string
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Authority not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: Internal error
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        editauthorities: "1"
+  put:
+    x-mojo-to: Authorities#update
+    operationId: updateAuthority
+    tags:
+      - authorities
+    summary: Update authority
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/authority_id_pp"
+      - $ref: "../swagger.yaml#/parameters/authority_type_header"
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: An authority id
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Authority not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "406":
+        description: Not acceptable
+        schema:
+          type: array
+          description: Accepted content-types
+          items:
+            type: string
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        editauthorities: "1"

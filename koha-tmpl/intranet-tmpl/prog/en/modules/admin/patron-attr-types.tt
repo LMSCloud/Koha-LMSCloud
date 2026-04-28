@@ -4,20 +4,24 @@
 [% USE AuthorisedValues %]
 [% USE Branches %]
 [% USE scalar %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
-[% IF ( attribute_type_form ) %]
-    [% IF ( edit_attribute_type ) %]
-        Modify patron attribute type &rsaquo; [% ELSE %]
-        Add patron attribute type &rsaquo; [% END %]
-[% END %]
-
-[% IF ( delete_attribute_type_form ) %]
-    Confirm deletion of patron attribute type &quot;[% code | html %]&quot; &rsaquo; [% END %]
-
-Patron attribute types &rsaquo; Administration &rsaquo; Koha
-</title>
+<title>[% FILTER collapse %]
+    [% IF ( attribute_type_form ) %]
+        [% IF ( edit_attribute_type ) %]
+            [% tx("Modify patron attribute type '{code}'", { code = attribute_type.code }) | html %] &rsaquo;
+        [% ELSE %]
+            [% t("New patron attribute type") | html %] &rsaquo;
+        [% END %]
+    [% END %]
+    [% IF ( delete_attribute_type_form ) %]
+        [% tx("Confirm deletion of patron attribute type '{code}'", { code = code }) | html %] &rsaquo;
+    [% END %]
+    [% t("Patron attribute types") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -41,15 +45,15 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
         [% IF ( attribute_type_form ) %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
                 [% IF ( edit_attribute_type ) %]
-                    <span>Modify patron attribute type</span>
+                    [% tx("Modify patron attribute type '{code}'", { code = attribute_type.code }) | html %]
                 [% ELSE %]
-                    <span>Add patron attribute type</span>
+                    <span>New patron attribute type</span>
                 [% END %]
             [% END %]
 
         [% ELSIF ( delete_attribute_type_form ) %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Confirm deletion of patron attribute type '[% code | html %]'</span>
+                [% tx("Confirm deletion of patron attribute type '{code}'", { code = code }) | html %]
             [% END %]
 
         [% ELSE %]
@@ -62,25 +66,27 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% IF ( WARNING_extended_attributes_off ) %]
-<div class="dialog message">Because the 'ExtendedPatronAttributes` system preference is currently not enabled, extended patron attributes cannot be given to patron records.  <br/>Go to the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&amp;searchfield=ExtendedPatronAttributes">ExtendedPatronAttributes</a> system preference if you wish to enable this feature.</div>
+<div class="alert alert-info">Because the 'ExtendedPatronAttributes` system preference is currently not enabled, extended patron attributes cannot be given to patron records.  <br/>Go to the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&amp;searchfield=ExtendedPatronAttributes">ExtendedPatronAttributes</a> system preference if you wish to enable this feature.</div>
 [% END %]
 
 [% IF ( attribute_type_form ) %]
   [% IF ( edit_attribute_type ) %]
-<h1>Modify patron attribute type</h1>
+<h1>[% tx("Modify patron attribute type '{code}'", { code = attribute_type.code }) | html %]</h1>
   [% ELSE %]
-<h1>Add patron attribute type</h1>
+<h1>New patron attribute type</h1>
   [% END %]
 [% IF ( duplicate_code_error ) %]
-<div class="dialog message">Could not add patron attribute type &quot;[% duplicate_code_error | html %]&quot; 
+<div class="alert alert-info">Could not add patron attribute type &quot;[% duplicate_code_error | html %]&quot;
     &mdash; one with that code already exists.
 </div>
 [% END %]
-<form action="[% script_name | html %]" class="validated" method="post">
+<form action="/cgi-bin/koha/admin/patron-attr-types.pl" class="validated" method="post">
+    [% INCLUDE 'csrf-token.inc' %]
   <input type="hidden" name="op" value="[% confirm_op | html %]" />
   <fieldset class="rows">
     <ol>
@@ -91,7 +97,7 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
             [% attribute_type.code |html %]
           [% ELSE %]
               <label for="code" class="required">Patron attribute type code: </label>
-              <input type="text" id="code" name="code" required="required" class="required focus" size="10" maxlength="10" />
+              <input type="text" id="code" name="code" required="required" class="required focus" maxlength="64" />
               <span class="required">Required</span>
           [% END %]
        </li>
@@ -142,7 +148,14 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
             <span class="hint">If checked, attribute will be a unique identifier. If a value is given to a patron record, the same value
                   cannot be given to a different record.</span>
         </li>
-
+        <li><label for="is_date">Is a date: </label>
+            [% IF attribute_type AND attribute_type.is_date %]
+                <input type="checkbox" id="is_date" name="is_date" checked="checked" />
+            [% ELSE %]
+                <input type="checkbox" id="is_date" name="is_date" />
+            [% END %]
+            <span class="hint">If checked, the attribute will be a date. Date attributes can be repeatable, but cannot be linked to an authorized value category.</span>
+        </li>
        <li><label for="opac_display">Display in OPAC: </label>
           [% IF attribute_type AND attribute_type.opac_display %]
             <input type="checkbox" id="opac_display" name="opac_display" checked="checked" />
@@ -165,7 +178,21 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
           [% ELSE %]
             <input type="checkbox" id="staff_searchable" name="staff_searchable" />
           [% END %]
-            <span class="hint">Check to make this attribute staff_searchable in the staff patron search.</span>
+            <span class="hint">
+                Check to make this attribute searchable in staff patron searches. If
+                checked, this attribute will appear in patron search dropdowns.
+            </span>
+       </li>
+       <li><label for="searched_by_default">Search by default: </label>
+          [% IF attribute_type AND attribute_type.searched_by_default %]
+            <input type="checkbox" id="searched_by_default" name="searched_by_default" checked="checked" />
+          [% ELSE %]
+            <input type="checkbox" id="searched_by_default" name="searched_by_default" />
+          [% END %]
+            <span class="hint">
+                If checked, this field will be included in 'Standard' patron searches. Requires
+                field to be marked as searchable above
+            </span>
        </li>
        <li><label for="mandatory">Mandatory: </label>
           [% IF attribute_type AND attribute_type.mandatory %]
@@ -242,15 +269,18 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
 [% END %]
 
 [% IF ( delete_attribute_type_form ) %]
-    <div class="dialog alert">
-        <h1>Confirm deletion of patron attribute type <span class="ex">'[% code | html %]' ([% description | html %])</span>?</h1>
-        <form action="[% script_name | html %]" name="Aform" method="post">
+    <div class="alert alert-warning">
+        <h1>
+            [% tx("Confirm deletion of patron attribute type '{code}' ({description})?", { code = code, description = description }) | html %]
+        </h1>
+        <form action="/cgi-bin/koha/admin/patron-attr-types.pl" name="Aform" method="post">
+            [% INCLUDE 'csrf-token.inc' %]
             <input type="hidden" name="op" value="[% confirm_op | html %]" />
             <input type="hidden" name="code" value="[% code | html %]" />
-            <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> Yes, delete patron attribute type</button>
+            <button type="submit" class="btn btn-default approve"><i class="fa fa-fw fa-check"></i> Yes, delete patron attribute type</button>
         </form>
-        <form action="[% script_name | html %]" method="get">
-            <button type="submit" class="deny"><i class="fa fa-fw fa-remove"></i> No, do not delete</button>
+        <form action="/cgi-bin/koha/admin/patron-attr-types.pl" method="get">
+            <button type="submit" class="btn btn-default deny"><i class="fa fa-fw fa-times"></i> No, do not delete</button>
         </form>
     </div>
 [% END %]
@@ -258,25 +288,25 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
 [% IF ( display_list ) %]
 
 <div id="toolbar" class="btn-toolbar">
-    <a class="btn btn-default" id="newrule" href="[% script_name | url %]?op=add_attribute_type"><i class="fa fa-plus"></i> New patron attribute type</a>
+    <a class="btn btn-default" id="newrule" href="/cgi-bin/koha/admin/patron-attr-types.pl?op=add_attribute_type"><i class="fa fa-plus"></i> New patron attribute type</a>
 </div>
 
 <h1>Patron attribute types</h1>
 [% IF ( added_attribute_type ) %]
-<div class="dialog message">Added patron attribute type &quot;[% added_attribute_type | html %]&quot;</div>
+<div class="alert alert-info">Added patron attribute type &quot;[% added_attribute_type | html %]&quot;</div>
 [% END %]
 [% IF ( edited_attribute_type ) %]
-<div class="dialog message">Modified patron attribute type &quot;[% edited_attribute_type | html %]&quot;</div>
+<div class="alert alert-info">Modified patron attribute type &quot;[% edited_attribute_type | html %]&quot;</div>
 [% END %]
 [% IF ( deleted_attribute_type ) %]
-<div class="dialog message">Deleted patron attribute type &quot;[% deleted_attribute_type | html %]&quot;</div>
+<div class="alert alert-info">Deleted patron attribute type &quot;[% deleted_attribute_type | html %]&quot;</div>
 [% END %]
 [% IF ( ERROR_delete_in_use ) %]
-<div class="dialog message">Could not delete patron attribute type &quot;[% ERROR_delete_in_use | html %]&quot; 
+<div class="alert alert-info">Could not delete patron attribute type &quot;[% ERROR_delete_in_use | html %]&quot;
     &mdash; it is in use by [% ERROR_num_patrons | html %] patron records</div>
 [% END %]
 [% IF ( ERROR_delete_not_found ) %]
-<div class="dialog message">Could not delete patron attribute type &quot;[% ERROR_delete_not_found | html %]&quot; 
+<div class="alert alert-info">Could not delete patron attribute type &quot;[% ERROR_delete_not_found | html %]&quot;
     &mdash; it was already absent from the database.</div>
 [% END %]
 [% IF ( available_attribute_types ) %]
@@ -295,6 +325,7 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
               <th>Library limitation</th>
               <th>Authorized value category</th>
               <th>Mandatory</th>
+              <th>Searching</th>
               <th class="NoSort noExport">Actions</th>
             </tr>
           </thead>
@@ -334,9 +365,20 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
                        <span>No</span>
                     [% END %]
                 </td>
+                <td>
+                    [% IF ( item.staff_searchable ) %]
+                        [% IF( item.searched_by_default ) %]
+                            <span>Searched by default</span>
+                        [% ELSE %]
+                            <span>Searchable</span>
+                        [% END %]
+                    [% ELSE %]
+                        <span>Not searchable</span>
+                    [% END %]
+                </td>
                 <td class="actions">
-                  <a class="btn btn-default btn-xs" href="[% script_name | url %]?op=edit_attribute_type&amp;code=[% item.code | uri %]"><i class="fa fa-pencil"></i> Edit</a>
-                  <a class="btn btn-default btn-xs" href="[% script_name | url %]?op=delete_attribute_type&amp;code=[% item.code | uri %]"><i class="fa fa-trash"></i> Delete</a>
+                  <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/patron-attr-types.pl?op=edit_attribute_type&amp;code=[% item.code | uri %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+                  <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/patron-attr-types.pl?op=delete_attribute_type&amp;code=[% item.code | uri %]"><i class="fa fa-trash-can"></i> Delete</a>
                 </td>
               </tr>
             [% END %]
@@ -353,13 +395,13 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -368,6 +410,22 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
     [% INCLUDE 'columns_settings.inc' %]
     <script>
         $(document).ready(function() {
+
+            function toggle_search_default(){
+                if( $("#staff_searchable").is(":checked") ){
+                    $("#searched_by_default").prop('disabled', false);
+                } else {
+
+                    $("#searched_by_default").prop('disabled', true).prop('checked',false);
+                }
+            }
+            $("#staff_searchable").on('change',function(){
+                toggle_search_default();
+            });
+
+            toggle_search_default();
+
+
             if ( $("#branches option:selected").length < 1 ) {
                 $("#branches option:first").attr("selected", "selected");
             }
@@ -380,10 +438,26 @@ Patron attribute types &rsaquo; Administration &rsaquo; Koha
                 }
             } ).change();
 
+            $("#is_date").change( function() {
+                if ( this.checked ) {
+                    $("#authorised_value_category").attr('disabled', true).parent().attr('aria-disabled', 'true');
+                } else {
+                    $("#authorised_value_category").removeAttr('disabled').parent().removeAttr('aria-disabled');
+                }
+            } ).change();
+
+            $("#authorised_value_category").change( function() {
+                if ( $(this).val() != "" ) {
+                    $("#is_date").attr('disabled', true).parent().attr('aria-disabled', 'true');
+                } else {
+                    $("#is_date").removeAttr('disabled').parent().removeAttr('aria-disabled');
+                }
+            } ).change();
+
             $(".patron_attributes_types").each(function(){
                 var tableid = $(this).attr("id");
                 KohaTable( tableid, {
-                    "bPaginate": false,
+                    "paginate": false,
                     'autoWidth': false,
                 }, null );
             });

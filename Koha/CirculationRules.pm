@@ -156,6 +156,9 @@ our $RULE_KINDS = {
     norenewalbefore => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
     },
+    noautorenewalbefore => {
+        scope => [ 'branchcode', 'categorycode', 'itemtype' ],
+    },
     onshelfholds => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
     },
@@ -209,6 +212,9 @@ our $RULE_KINDS = {
         is_monetary => 1,
     },
     recall_shelf_time => {
+        scope => [ 'branchcode', 'categorycode', 'itemtype' ],
+    },
+    holds_pickup_period => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
     },
     bookings_lead_period => {

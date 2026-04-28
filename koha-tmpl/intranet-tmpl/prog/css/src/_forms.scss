@@ -21,9 +21,13 @@ fieldset {
     &.rows {
         clear: left;
         float: left;
-        margin: .9em 0 0;
+        margin: 0;
         padding: 1rem;
         width: 100%;
+
+        & + fieldset.rows {
+            margin-top: .9em;
+        }
 
         fieldset {
             background-color: transparent;
@@ -71,7 +75,6 @@ fieldset {
 
         div {
             &.hint {
-                font-size: 1.25rem;
                 margin: .5rem 0;
                 margin-left: 11rem;
             }
@@ -161,12 +164,28 @@ fieldset {
                 }
 
                 legend {
-                    font-size: 1.55rem;
+                    font-size: 1.2rem;
                     margin: 0 0 0 1em;
                 }
 
                 li.radio {
                     padding-left: 0;
+                }
+            }
+
+            div.ms-drop {
+                label {
+                    text-align: left;
+                    width:auto;
+                    span{
+                        margin-left:5px;
+                        width:auto;
+                    }
+                }
+
+                ul>li.hide-radio.selected {
+                    color: initial;
+                    background-color: initial;
                 }
             }
         }
@@ -219,15 +238,10 @@ fieldset {
                 text-align: right;
                 width: 10rem;
             }
-
-            &.hint {
-                font-size: 1.25rem;
-            }
         }
 
         table {
             clear: both;
-            font-size: 1.25rem;
             margin: 1em 0 1em 1em;
 
             &.dataTable {
@@ -258,7 +272,7 @@ fieldset {
             padding-top: .5em;
         }
 
-        .dataTables_wrapper {
+        .dt-container {
             label {
                 font-weight: 400;
                 width: unset;

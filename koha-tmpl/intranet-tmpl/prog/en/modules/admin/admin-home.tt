@@ -1,9 +1,12 @@
-
 [% USE raw %]
 [% USE Koha %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Administration &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="admin_admin-home" class="admin">
@@ -21,11 +24,12 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+        <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
+            [% INCLUDE 'messages.inc' %]
         <h1>Koha administration</h1>
             [% IF ( CAN_user_parameters_manage_mana ) %]
                 [% IF ( Koha.Preference('Mana') == 1) && !mana_url %]
-                    <div class="dialog message">
+                    <div class="alert alert-info">
                         <h4>The Mana Knowledge Base feature is enabled but not configured.</h4>
                         <p>This feature allows you to retrieve and share data (subscription patterns and reports) with other Koha libraries.</p>
                         <p>
@@ -34,7 +38,7 @@
                     </div>
                 [% END %]
                 [% IF ( Koha.Preference('Mana') == 2 ) %]
-                    <div class="dialog message">
+                    <div class="alert alert-info">
                         <h4>Share content with Mana KB?</h4>
                         <p> You haven't decided if you want to activate Mana Knowledge Base. <a href=/cgi-bin/koha/admin/share_content.pl>Change your Mana KB settings</a>.</p>
                     </div>
@@ -42,7 +46,7 @@
             [% END %]
             [% IF ( CAN_user_parameters_manage_usage_stats ) %]
                 [% IF ( Koha.Preference('UsageStats') == 2 ) %]
-                    <div class="dialog message">
+                    <div class="alert alert-info">
                         <h4>Share anonymous usage statistics with the Koha community?</h4>
                         <p> You haven't decided if you want to activate usage statistic sharing in Koha yet. <a href=/cgi-bin/koha/admin/usage_statistics.pl>Change your Hea settings</a>.</p>
                         <p> This feature gives the Koha developers valuable information regarding how Koha is being used and helps to drive decisions during the development cycle</p>
@@ -52,10 +56,10 @@
         <div class="row">
             <div class="col-md-6 sysprefs">
             [% IF ( CAN_user_parameters_manage_sysprefs ) %]
-                <form action="/cgi-bin/koha/admin/preferences.pl" method="post">
+                <form action="/cgi-bin/koha/admin/preferences.pl" method="get">
                 <fieldset>
-                    <h4><a href="/cgi-bin/koha/admin/preferences.pl">Global system preferences</a></h4>
-                    <p>Manage global system preferences like MARC flavor, date format, administrator email, and templates.</p>
+                    <h4><a href="/cgi-bin/koha/admin/preferences.pl">System preferences</a></h4>
+                    <p>Manage system preferences like MARC flavor, date format, administrator email, and templates.</p>
                     <input type="hidden" name="op" value="search" />
                     <input type="text" name="searchfield" value="[% searchfield | html %]" />
                     <input type="submit" name="ok" class="btn btn-primary" value="Search" />
@@ -110,7 +114,7 @@
                     <dd>Define rules for check-in and checkout notifications for combinations of libraries, patron categories, and item types</dd>
                 [% END %]
                 [% IF ( Koha.Preference('UseCirculationDesks') && CAN_user_parameters_manage_libraries ) %]
-                        <dt><a href="/cgi-bin/koha/admin/desks.pl">Circulation desks</a></dt>
+                        <dt><a href="/cgi-bin/koha/admin/desks.pl">Desks</a></dt>
                         <dd>Define circulation desks</dd>
                 [% END %]
                 [% IF ( CAN_user_parameters_manage_cities ) %]
@@ -122,8 +126,8 @@
                     <dd>Configure curbside pickup for libraries</dd>
                 [% END %]
                 [% IF ( CAN_user_parameters_manage_patron_restrictions ) %]
-                    <dt><a href="/cgi-bin/koha/admin/restrictions.pl">Patron restrictions</a></dt>
-                    <dd>Define patron restrictions.</dd>
+                    <dt><a href="/cgi-bin/koha/admin/restrictions.pl">Patron restriction types</a></dt>
+                    <dd>Define manual patron restriction types</dd>
                 [% END %]
                 </dl>
             [% END %]
@@ -144,11 +148,19 @@
                 </dl>
             [% END %]
 
-            [% IF CAN_user_plugins && plugins_enabled %]
+            [% IF plugins_enabled && ( CAN_user_plugins_manage || CAN_user_plugins_configure || ( CAN_user_plugins_admin && admin_plugins)) %]
                 <h3>Plugins</h3>
                 <dl>
+                [% IF CAN_user_plugins_manage || CAN_user_plugins_configure %]
                     <dt><a href="/cgi-bin/koha/plugins/plugins-home.pl">Manage plugins</a></dt>
                     <dd>View, manage, configure and run plugins.</dd>
+                [% END %]
+                [% IF ( CAN_user_plugins_admin && admin_plugins ) %]
+                    [% FOREACH plugin IN admin_plugins %]
+                        <dt><a href="/cgi-bin/koha/plugins/run.pl?class=[% plugin.class | uri %]&method=admin"><span class="plugin_name">[% plugin.metadata.name | html %]</span></a></dt>
+                        <dd>[% plugin.metadata.description | html %]</dd>
+                    [% END %]
+                [% END %]
                 </dl>
             [% END %]
 
@@ -186,6 +198,10 @@
                         <dt><a href="/cgi-bin/koha/admin/matching-rules.pl">Record matching rules</a></dt>
                         <dd>Manage rules for automatically matching MARC records during record imports</dd>
                     [% END %]
+                    [% IF ( CAN_user_parameters_manage_record_sources ) %]
+                        <dt><a href="/cgi-bin/koha/admin/record_sources">Record sources</a></dt>
+                        <dd>Define record sources to import from</dd>
+                    [% END %]
                     [% IF ( CAN_user_parameters_manage_marc_overlay_rules ) %]
                         <dt><a href="/cgi-bin/koha/admin/marc-overlay-rules.pl">Record overlay rules</a></dt>
                         <dd>Managed rules for automatic overlay of MARC fields during record imports and updates</dd>
@@ -209,7 +225,7 @@
                 </dl>
             [% END %]
 
-            [% IF ( CAN_user_acquisition_currencies_manage || CAN_user_acquisition_period_manage || CAN_user_acquisition_budget_manage || ( Koha.Preference('EDIFACT') && CAN_user_acquisition_edi_manage ) ) %]
+            [% IF ( CAN_user_acquisition_currencies_manage || CAN_user_acquisition_period_manage || CAN_user_acquisition_budget_manage || ( Koha.Preference('EDIFACT') && CAN_user_acquisition_edi_manage ) || ( Koha.Preference('MarcOrderingAutomation') && CAN_user_acquisition_marc_order_manage ) ) %]
                 <h3>Acquisition parameters</h3>
                 <dl>
                     [% IF ( CAN_user_acquisition_currencies_manage ) %]
@@ -230,6 +246,10 @@
                         <dt><a href="/cgi-bin/koha/admin/edi_ean_accounts.pl">Library EANs</a></dt>
                         <dd>Manage library EDI EANs</dd>
                     [% END %]
+                    [% IF ( Koha.Preference('MarcOrderingAutomation') && CAN_user_acquisition_marc_order_manage ) %]
+                        <dt><a href="/cgi-bin/koha/admin/marc_order_accounts.pl">MARC order accounts</a></dt>
+                        <dd>Manage vendor accounts for automated order line creation from MARC records</dd>
+                    [% END %]
                 </dl>
             [% END %]
 
@@ -245,6 +265,8 @@
                     [% IF ( CAN_user_parameters_manage_search_targets ) %]
                         <dt><a href="/cgi-bin/koha/admin/z3950servers.pl">Z39.50/SRU servers</a></dt>
                         <dd>Define which external servers to query for MARC data</dd>
+                        <dt><a href="/cgi-bin/koha/admin/oai_servers.pl">OAI repositories</a></dt>
+                        <dd>Define which OAI repositories to harvest data from</dd>
                     [% END %]
                     [% IF ( CAN_user_parameters_manage_smtp_servers ) %]
                         <dt><a href="/cgi-bin/koha/admin/smtp_servers.pl">SMTP servers</a></dt>
@@ -281,6 +303,10 @@
                     [% IF Koha.Preference('EnableAdvancedCatalogingEditor') && ( CAN_user_parameters_manage_keyboard_shortcuts ) %]
                         <dt><a href="/cgi-bin/koha/admin/adveditorshortcuts.pl">Keyboard shortcuts</a></dt>
                         <dd>Define which keys trigger actions in the advanced cataloging editor</dd>
+                    [% END %]
+                    [% IF Koha.Preference('ILLModule') && CAN_user_ill %]
+                        <dt><a href="/cgi-bin/koha/admin/ill_batch_statuses.pl">Interlibrary loan batch statuses</a></dt>
+                        <dd>Manage the statuses that can be assigned to Interlibrary loan batches</dd>
                     [% END %]
                 </dl>
             [% END %]

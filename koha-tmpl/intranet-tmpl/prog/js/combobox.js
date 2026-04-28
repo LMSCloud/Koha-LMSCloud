@@ -11,6 +11,7 @@
      * @param {boolean} [config.useKeyAsValue=false] - Whether to use the option's key (either HTML data-* or JavaScript `valueProperty`) as the value of the input (default: false).
      * @param {string} [config.placeholder='Select or type a value'] - Placeholder text for the input element.
      * @param {string} [config.labelId=''] - Optional ID of the associated label element.
+     * @param {string} [config.context='default'] - Positioning context ('default' or 'modal').
      *
      * @example
      * ```html
@@ -35,9 +36,10 @@
      *     displayProperty: 'name',
      *     valueProperty: 'id',
      *     useKeyAsValue: true,
+     *     context: 'modal',
      * });
      * // or using jQuery
-     * $("#generic-combobox").comboBox({ ... });
+     * $("#generic-combobox").comboBox({ displayProperty: 'name', context: 'modal' });
      * </script>
      * ```
      */
@@ -51,6 +53,7 @@
             placeholder = "Select or type a value",
             labelId = "",
             useKeyAsValue = false,
+            context = "default",
         } = config;
 
         const input = document.getElementById(inputId);
@@ -60,10 +63,16 @@
             return;
         }
 
-        const uniqueId = `combobox-${createHash(inputId)}`;
-        const $container = $(input).closest(".combobox-container");
-        $container.addClass(uniqueId);
-        initializeStyles(uniqueId);
+        const dropdownOptions = {
+            autoClose: false,
+            popperConfig: {
+                strategy: { default: "absolute", modal: "fixed" }[context],
+            },
+        };
+        const bootstrapDropdown = new bootstrap.Dropdown(
+            input,
+            dropdownOptions
+        );
 
         // Existing options from HTML
         const existingOptions = Array.from(dropdownMenu.querySelectorAll("li"))
@@ -125,59 +134,10 @@
         dropdownMenu.addEventListener("click", handleOptionSelect);
 
         /**
-         * Creates a hash from a string
-         * @param {string} str - String to hash
-         * @returns {string} Hashed string in base36
-         */
-        function createHash(str) {
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                const char = str.charCodeAt(i);
-                hash = (hash << 5) - hash + char;
-                hash = hash & hash;
-            }
-            return Math.abs(hash).toString(36);
-        }
-
-        /**
-         * Initializes styles for the combobox instance
-         * @param {string} uniqueId - Unique identifier for this instance
-         */
-        function initializeStyles(uniqueId) {
-            const styleElement = document.createElement("style");
-            styleElement.textContent = `
-                .${uniqueId} {
-                    position: relative;
-                }
-                .${uniqueId} .dropdown-menu {
-                    position: absolute;
-                    top: 100%;
-                    left: 0;
-                    right: 0;
-                    z-index: 1000;
-                }
-                .${uniqueId} .dropdown-menu button {
-                    width: 100%;
-                    text-align: left;
-                    border: 0;
-                    background: none;
-                    padding: 3px 20px;
-                    cursor: pointer;
-                }
-                .${uniqueId} .dropdown-menu button:hover,
-                .${uniqueId} .dropdown-menu button:focus,
-                .${uniqueId} .dropdown-menu button.active {
-                    background-color: #e8e8e8;
-                }
-            `;
-            document.head.appendChild(styleElement);
-        }
-
-        /**
          * Shows the dropdown and updates the options.
          */
         function showDropdown() {
-            $container.addClass("open");
+            bootstrapDropdown.show();
             input.setAttribute("aria-expanded", "true");
             updateDropdown();
         }
@@ -186,7 +146,11 @@
          * Hides the dropdown and resets focus.
          */
         function hideDropdown() {
-            $container.removeClass("open");
+            try {
+                bootstrapDropdown.hide();
+            } catch (e) {
+                // Dropdown may already be destroyed when parent modal closes
+            }
             input.setAttribute("aria-expanded", "false");
             focusedIndex = -1;
             input.removeAttribute("aria-activedescendant");

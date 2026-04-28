@@ -4,11 +4,12 @@
 
 use Modern::Perl;
 
-use Test::More tests => 11;
+use Test::More tests => 12;
 
 use Getopt::Long;
 use MARC::Record;
 use Test::MockModule;
+use Test::Warn;
 
 use t::lib::Mocks;
 use t::lib::TestBuilder;
@@ -21,16 +22,34 @@ use Koha::Biblios;
 use Koha::Database;
 
 BEGIN {
-        use_ok('C4::AuthoritiesMarc', qw( merge AddAuthority compare_fields DelAuthority ModAuthority ));
+        use_ok('C4::AuthoritiesMarc', qw( merge AddAuthority DelAuthority ModAuthority ));
 }
 
+# FIXME These tests fail if you pass this variable because we don't scaffold the authority types for UNIMARC
+# we should rewrite these tests to cover both flavours if we don't believe testing one is sufficient
 # Optionally change marc flavour
 my $marcflavour;
 GetOptions( 'flavour:s' => \$marcflavour );
+$marcflavour //= 'MARC21';
 t::lib::Mocks::mock_preference( 'marcflavour', $marcflavour ) if $marcflavour;
 
 my $schema  = Koha::Database->new->schema;
 $schema->storage->txn_begin;
+
+my $heading_module = Test::MockModule->new('C4::Heading::MARC21');
+$heading_module->mock(
+    'valid_heading_tag',
+    sub {
+        return 1;
+    }
+);
+my $auth_module = Test::MockModule->new('C4::AuthoritiesMarc');
+$auth_module->mock(
+    'GuessAuthTypeCode',
+    sub {
+        $marcflavour eq 'MARC21' ? return 'PERSO_NAME' : return 'NP';
+    }
+);
 
 # Global variables, mocking and framework modifications
 our @linkedrecords;
@@ -182,7 +201,7 @@ subtest 'Test merge A1 to B1 (changing authtype)' => sub {
     my $authid1 = AddAuthority( $auth1, undef, $authtype1 );
     my $auth2 = MARC::Record->new;
     $auth2->append_fields( MARC::Field->new( '112', '0', '0', 'a' => 'Batman', c => 'cc' ));
-    my $authid2 = AddAuthority($auth1, undef, $authtype2 );
+    my $authid2 = AddAuthority($auth2, undef, $authtype2 );
 
     # create a biblio with one 109 and two 609s to be touched
     # seems exceptional see bug 13760 comment10
@@ -481,7 +500,7 @@ subtest 'merge should not reorder too much' => sub {
 };
 
 subtest 'Test how merge handles controlled indicators' => sub {
-    plan tests => 4;
+    plan tests => 8;
 
     # Note: See more detailed tests in t/Koha/Authority/ControlledIndicators.t
 
@@ -514,6 +533,78 @@ subtest 'Test how merge handles controlled indicators' => sub {
     merge({ mergefrom => $id, MARCfrom => $authmarc, mergeto => $id, MARCto => $authmarc, biblionumbers => [ $biblionumber ] });
     $biblio2 = Koha::Biblios->find($biblionumber)->metadata->record;
     is( $biblio2->subfield('609', '2'), undef, 'No subfield $2 left' );
+    isnt( $biblio2->subfield( '609', '2' ), '', 'Subfield $2 does not exist or exists and is not empty' );
+
+    # auth 040 / biblio 6XX $2 manipulation
+    # Case 1: auth 040 $f modification
+    my $auth_record = MARC::Record->new;
+    $auth_record->append_fields( MARC::Field->new( '008', ' ' x 11 . 'z' . ' ' x 28 ) );
+    $auth_record->append_fields( MARC::Field->new( '040', ' ', ' ', a => 'OrgCode', f => 'special_thes' ) );
+    $auth_record->append_fields( MARC::Field->new( '109', '0', ' ', a => 'Name' ) );
+    my $authid        = AddAuthority( $auth_record, undef, $authtype1 );
+    my $biblio_record = MARC::Record->new;
+    $biblio_record->append_fields(
+        MARC::Field->new( '609', '0', '7', a => 'Name', 2 => 'other_special', 9 => $authid ) );
+    ($biblionumber) = AddBiblio( $biblio_record, '' );
+    merge(
+        {
+            mergefrom     => $authid, MARCfrom => $auth_record, mergeto => $authid, MARCto => $auth_record,
+            biblionumbers => [$biblionumber],
+        }
+    );
+    $biblio_record = Koha::Biblios->find($biblionumber)->metadata->record;
+    is( $biblio_record->subfield( '609', '2' ), 'special_thes', 'Thesaurus correctly updated' );
+
+    # Case 2: auth 040 $f removal
+    $auth_record->field('040')->delete_subfield( code => 'f' );
+    ModAuthority( $authid, $auth_record, $authtype1 );
+    merge(
+        {
+            mergefrom     => $authid, MARCfrom => $auth_record, mergeto => $authid, MARCto => $auth_record,
+            biblionumbers => [$biblionumber],
+        }
+    );
+    $biblio_record = Koha::Biblios->find($biblionumber)->metadata->record;
+    isnt( $biblio_record->subfield( '609', '2' ), '', 'Subfield $2 does not exist or exists and is not empty' );
+    is( $biblio_record->subfield( '609', '2' ), 'special_thes', 'Subfield $2 contains didn\'t change' );
+
+};
+
+subtest "Test bibs not auto linked when merging" => sub {
+    plan tests => 1;
+
+    my $authmarc = MARC::Record->new;
+    $authmarc->append_fields( MARC::Field->new( '109', '', '', 'a' => 'aa', b => 'bb' ) );
+    my $oldauthmarc = MARC::Record->new;
+    $oldauthmarc->append_fields( MARC::Field->new( '112', '', '', c => 'cc' ) );
+    my $new_id = AddAuthority( $authmarc,    undef, $authtype1 );
+    my $old_id = AddAuthority( $oldauthmarc, undef, $authtype1 );
+    my $biblio = MARC::Record->new;
+    $biblio->append_fields(
+        MARC::Field->new( '109', '', '', a => 'a1', 9 => $old_id ),
+        MARC::Field->new( '612', '', '', a => 'a2', c => 'cc', 9 => $old_id ),
+    );
+    my ($biblionumber) = C4::Biblio::AddBiblio( $biblio, '' );
+
+    my $biblio_module = Test::MockModule->new('C4::AuthoritiesMarc');
+    $biblio_module->mock(
+        'ModBiblio',
+        sub {
+            my ( undef, undef, undef, $params ) = @_;
+            warn "Auto link disabled" if $params->{disable_autolink};
+        }
+    );
+
+    warnings_are {
+        merge(
+            {
+                mergefrom     => $old_id, MARCfrom => $oldauthmarc, mergeto => $new_id, MARCto => $authmarc,
+                biblionumbers => [$biblionumber]
+            }
+        );
+    }
+    ["Auto link disabled"], "Auto link disabled when merging authorities";
+
 };
 
 sub set_mocks {
@@ -598,6 +689,8 @@ sub compare_fields { # mode parameter: order or count
         # By default exclude field 100 from comparison in UNIMARC.
         # Will have been added by ModBiblio in merge.
         $exclude->{100} = 1;
+    } else { #MARC21
+        $exclude->{'005'} = 1;
     }
     my @oldfields = map { $exclude->{$_->tag} ? () : $_->tag } $oldmarc->fields;
     my @newfields = map { $exclude->{$_->tag} ? () : $_->tag } $newmarc->fields;

@@ -59,22 +59,14 @@ sub get {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $smtp_server = Koha::SMTP::Servers->find( $c->validation->param('smtp_server_id') );
+        my $smtp_server = Koha::SMTP::Servers->find( $c->param('smtp_server_id') );
 
-        unless ($smtp_server) {
-            return $c->render(
-                status  => 404,
-                openapi => {
-                    error => "SMTP server not found"
-                }
-            );
-        }
-
-        my $embed = $c->stash('koha.embed');
+        return $c->render_resource_not_found("SMTP server")
+            unless $smtp_server;
 
         return $c->render(
             status  => 200,
-            openapi => $smtp_server->to_api({ embed => $embed })
+            openapi => $c->objects->to_api($smtp_server),
         );
     }
     catch {
@@ -93,14 +85,14 @@ sub add {
 
     return try {
 
-        my $smtp_server = Koha::SMTP::Server->new_from_api( $c->validation->param('body') );
+        my $smtp_server = Koha::SMTP::Server->new_from_api( $c->req->json );
         $smtp_server->store->discard_changes;
 
         $c->res->headers->location( $c->req->url->to_string . '/' . $smtp_server->id );
 
         return $c->render(
             status  => 201,
-            openapi => $smtp_server->to_api
+            openapi => $c->objects->to_api($smtp_server),
         );
     }
     catch {
@@ -127,24 +119,18 @@ Controller method that handles updating a Koha::SMTP::Server object
 sub update {
     my $c = shift->openapi->valid_input or return;
 
-    my $smtp_server = Koha::SMTP::Servers->find( $c->validation->param('smtp_server_id') );
+    my $smtp_server = Koha::SMTP::Servers->find( $c->param('smtp_server_id') );
 
-    if ( not defined $smtp_server ) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error => "Object not found"
-            }
-        );
-    }
+    return $c->render_resource_not_found("SMTP server")
+        unless $smtp_server;
 
     return try {
-        $smtp_server->set_from_api( $c->validation->param('body') );
+        $smtp_server->set_from_api( $c->req->json );
         $smtp_server->store->discard_changes;
 
         return $c->render(
             status  => 200,
-            openapi => $smtp_server->to_api
+            openapi => $c->objects->to_api($smtp_server),
         );
     }
     catch {
@@ -171,22 +157,15 @@ Controller method that handles deleting a Koha::SMTP::Server object
 sub delete {
     my $c = shift->openapi->valid_input or return;
 
-    my $smtp_server = Koha::SMTP::Servers->find( $c->validation->param('smtp_server_id') );
+    my $smtp_server = Koha::SMTP::Servers->find( $c->param('smtp_server_id') );
 
-    if ( not defined $smtp_server ) {
-        return $c->render( status  => 404,
-                           openapi => { error => "Object not found" } );
-    }
+    return $c->render_resource_not_found("SMTP server")
+        unless $smtp_server;
 
     return try {
         $smtp_server->delete;
-
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
-    }
-    catch {
+        return $c->render_resource_deleted;
+    } catch {
         $c->unhandled_exception($_);
     };
 }

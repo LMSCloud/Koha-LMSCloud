@@ -46,15 +46,13 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user( {
     type => "intranet",
     flagsrequired => { parameters => 'manage_search_targets' },
 });
-my $script_name = "/cgi-bin/koha/admin/z3950servers.pl";
-$template->param( script_name => $script_name );
 
 my $schema = Koha::Database->new()->schema();
 
 # Main code
 # First process a confirmed delete, or save a validated record
 
-if( $op eq 'delete_confirmed' && $id ) {
+if( $op eq 'cud-delete_confirmed' && $id ) {
     my $server = Koha::Z3950Servers->find($id);
     if ( $server ) {
         $server->delete;
@@ -63,7 +61,7 @@ if( $op eq 'delete_confirmed' && $id ) {
         $template->param( msg_notfound => 1, msg_add => $id );
     }
     $id = 0;
-} elsif ( $op eq 'add_validated' ) {
+} elsif ( $op eq 'cud-add_validated' ) {
     my @fields=qw/host port db userid password rank syntax encoding timeout
         recordtype checked servername servertype sru_options sru_fields attributes
         add_xslt/;
@@ -81,7 +79,7 @@ if( $op eq 'delete_confirmed' && $id ) {
         Koha::Z3950Server->new( $formdata )->store;
         $template->param( msg_added => 1, msg_add => $formdata->{servername} );
     }
-} else {
+} elsif ($op eq 'search') {
     #use searchfield only in remaining operations
     $searchfield = $input->param('searchfield') || '';
 }

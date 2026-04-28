@@ -17,12 +17,13 @@
 
 use Modern::Perl;
 
-use Test::More tests => 26;
+use Test::More tests => 40;
 use Test::Exception;
 use Test::Warn;
 
 use C4::Biblio qw( AddBiblio ModBiblio ModBiblioMarc );
 use C4::Circulation qw( AddIssue AddReturn );
+use C4::Reserves qw( AddReserve );
 
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string );
@@ -37,6 +38,7 @@ use Koha::Exception;
 use MARC::Field;
 use MARC::Record;
 
+use t::lib::Dates;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 use Test::MockModule;
@@ -545,14 +547,27 @@ subtest 'to_api() tests' => sub {
     my $biblioitem_api = $biblio->biblioitem->to_api;
     my $biblio_api     = $biblio->to_api;
 
-    plan tests => (scalar keys %{ $biblioitem_api }) + 1;
+    plan tests => ( scalar keys %{$biblioitem_api} ) + 4;
 
     foreach my $key ( keys %{ $biblioitem_api } ) {
+        if ( $key eq 'timestamp' ) {
+            t::lib::Dates::compare(
+                $biblio_api->{$key}, $biblioitem_api->{$key},
+                "$key is added to the biblio object"
+            );
+        }
         is( $biblio_api->{$key}, $biblioitem_api->{$key}, "$key is added to the biblio object" );
     }
 
     $biblio_api = $biblio->to_api({ embed => { items => {} } });
     is_deeply( $biblio_api->{items}, [ $item->to_api ], 'Item correctly embedded' );
+
+    $biblio->biblioitem->delete();
+    throws_ok { $biblio->to_api }
+    'Koha::Exceptions::RelatedObjectNotFound',
+        'Exception thrown if the biblioitem accessor returns undef';
+    is( $@->class,    'Koha::Biblioitem' );
+    is( $@->accessor, 'biblioitem' );
 
     $schema->storage->txn_rollback;
 };
@@ -589,6 +604,202 @@ subtest 'bookings() tests' => sub {
     );
 
     $schema->storage->txn_rollback;
+};
+
+subtest 'merge of records' => sub {
+    plan tests => 9;
+
+    subtest 'move items' => sub {
+        plan tests => 9;
+        $schema->storage->txn_begin;
+
+        # 3 items from 3 different biblio records
+        my $item1 = $builder->build_sample_item;
+        my $item2 = $builder->build_sample_item;
+        my $item3 = $builder->build_sample_item;
+
+        my $biblio1 = $item1->biblio;
+        my $biblio2 = $item2->biblio;
+        my $biblio3 = $item3->biblio;
+
+        my $pre_merged_rs = Koha::Biblios->search(
+            { biblionumber => [ $biblio1->biblionumber, $biblio2->biblionumber, $biblio3->biblionumber ] } );
+        is( $pre_merged_rs->count, 3, '3 biblios exist' );
+
+        warning_like { $biblio1->merge_with( [ $biblio2->biblionumber, $biblio3->biblionumber ] ) } q{};
+        is( $biblio1->items->count, 3, "After merge we have 3 items on first record" );
+
+        is( ref( $biblio1->get_from_storage ), 'Koha::Biblio', 'biblio record 1 still exists' );
+        is( $biblio2->get_from_storage,        undef,          'biblio record 2 no longer exists' );
+        is( $biblio3->get_from_storage,        undef,          'biblio record 3 no longer exists' );
+
+        is( $item1->get_from_storage->biblionumber, $biblio1->biblionumber );
+        is( $item2->get_from_storage->biblionumber, $biblio1->biblionumber );
+        is( $item3->get_from_storage->biblionumber, $biblio1->biblionumber );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'move holds' => sub {
+        plan tests => 3;
+        $schema->storage->txn_begin;
+
+        my $biblio1 = $builder->build_sample_biblio;
+        my $biblio2 = $builder->build_sample_biblio;
+
+        my $hold1 =
+            $builder->build_object( { class => 'Koha::Holds', value => { biblionumber => $biblio1->biblionumber } } );
+        my $hold2 =
+            $builder->build_object( { class => 'Koha::Holds', value => { biblionumber => $biblio2->biblionumber } } );
+
+        warning_like { $biblio1->merge_with( [ $biblio2->biblionumber ] ) } q{};
+
+        is( $hold1->get_from_storage->biblionumber, $biblio1->biblionumber );
+        is( $hold2->get_from_storage->biblionumber, $biblio1->biblionumber );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'move item groups' => sub {
+        plan tests => 3;
+        $schema->storage->txn_begin;
+
+        my $biblio1 = $builder->build_sample_biblio;
+        my $biblio2 = $builder->build_sample_biblio;
+
+        my $ig1 = $builder->build_object(
+            { class => 'Koha::Biblio::ItemGroups', value => { biblio_id => $biblio1->biblionumber } } );
+        my $ig2 = $builder->build_object(
+            { class => 'Koha::Biblio::ItemGroups', value => { biblio_id => $biblio2->biblionumber } } );
+
+        warning_like { $biblio1->merge_with( [ $biblio2->biblionumber ] ) } q{};
+
+        is( $ig1->get_from_storage->biblio_id, $biblio1->biblionumber );
+        is( $ig2->get_from_storage->biblio_id, $biblio1->biblionumber );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'move article requests' => sub {
+        plan tests => 3;
+        $schema->storage->txn_begin;
+
+        my $biblio1 = $builder->build_sample_biblio;
+        my $biblio2 = $builder->build_sample_biblio;
+
+        my $ar1 = $builder->build_object(
+            { class => 'Koha::ArticleRequests', value => { biblionumber => $biblio1->biblionumber } } );
+        my $ar2 = $builder->build_object(
+            { class => 'Koha::ArticleRequests', value => { biblionumber => $biblio2->biblionumber } } );
+
+        warning_like { $biblio1->merge_with( [ $biblio2->biblionumber ] ) } q{};
+
+        is( $ar1->get_from_storage->biblionumber, $biblio1->biblionumber );
+        is( $ar2->get_from_storage->biblionumber, $biblio1->biblionumber );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'move subscriptions' => sub {
+        plan tests => 3;
+        $schema->storage->txn_begin;
+
+        my $biblio1 = $builder->build_sample_biblio;
+        my $biblio2 = $builder->build_sample_biblio;
+
+        my $sub1 = $builder->build_object(
+            { class => 'Koha::Subscriptions', value => { biblionumber => $biblio1->biblionumber } } );
+        my $sub2 = $builder->build_object(
+            { class => 'Koha::Subscriptions', value => { biblionumber => $biblio2->biblionumber } } );
+
+        warning_like { $biblio1->merge_with( [ $biblio2->biblionumber ] ) } q{};
+
+        is( $sub1->get_from_storage->biblionumber, $biblio1->biblionumber );
+        is( $sub2->get_from_storage->biblionumber, $biblio1->biblionumber );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'move serials' => sub {
+        plan tests => 3;
+        $schema->storage->txn_begin;
+
+        my $biblio1 = $builder->build_sample_biblio;
+        my $biblio2 = $builder->build_sample_biblio;
+
+        my $serial1 =
+            $builder->build_object( { class => 'Koha::Serials', value => { biblionumber => $biblio1->biblionumber } } );
+        my $serial2 =
+            $builder->build_object( { class => 'Koha::Serials', value => { biblionumber => $biblio2->biblionumber } } );
+
+        warning_like { $biblio1->merge_with( [ $biblio2->biblionumber ] ) } q{};
+
+        is( $serial1->get_from_storage->biblionumber, $biblio1->biblionumber );
+        is( $serial2->get_from_storage->biblionumber, $biblio1->biblionumber );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'move subscription history' => sub {
+        plan tests => 3;
+        $schema->storage->txn_begin;
+
+        my $biblio1 = $builder->build_sample_biblio;
+        my $biblio2 = $builder->build_sample_biblio;
+
+        my $sh1 = $builder->build_object(
+            { class => 'Koha::Subscription::Histories', value => { biblionumber => $biblio1->biblionumber } } );
+        my $sh2 = $builder->build_object(
+            { class => 'Koha::Subscription::Histories', value => { biblionumber => $biblio2->biblionumber } } );
+
+        warning_like { $biblio1->merge_with( [ $biblio2->biblionumber ] ) } q{};
+
+        is( $sh1->get_from_storage->biblionumber, $biblio1->biblionumber );
+        is( $sh2->get_from_storage->biblionumber, $biblio1->biblionumber );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'move suggestions' => sub {
+        plan tests => 3;
+        $schema->storage->txn_begin;
+
+        my $biblio1 = $builder->build_sample_biblio;
+        my $biblio2 = $builder->build_sample_biblio;
+
+        my $suggestion1 = $builder->build_object(
+            { class => 'Koha::Suggestions', value => { biblionumber => $biblio1->biblionumber } } );
+        my $suggestion2 = $builder->build_object(
+            { class => 'Koha::Suggestions', value => { biblionumber => $biblio2->biblionumber } } );
+
+        warning_like { $biblio1->merge_with( [ $biblio2->biblionumber ] ) } q{};
+
+        is( $suggestion1->get_from_storage->biblionumber, $biblio1->biblionumber );
+        is( $suggestion2->get_from_storage->biblionumber, $biblio1->biblionumber );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'move orders' => sub {
+        plan tests => 3;
+        $schema->storage->txn_begin;
+
+        my $biblio1 = $builder->build_sample_biblio;
+        my $biblio2 = $builder->build_sample_biblio;
+
+        my $order1 = $builder->build_object(
+            { class => 'Koha::Acquisition::Orders', value => { biblionumber => $biblio1->biblionumber } } );
+        my $order2 = $builder->build_object(
+            { class => 'Koha::Acquisition::Orders', value => { biblionumber => $biblio2->biblionumber } } );
+
+        warning_like { $biblio1->merge_with( [ $biblio2->biblionumber ] ) } q{};
+
+        is( $order1->get_from_storage->biblionumber, $biblio1->biblionumber );
+        is( $order2->get_from_storage->biblionumber, $biblio1->biblionumber );
+
+        $schema->storage->txn_rollback;
+    };
+
 };
 
 subtest 'suggestions() tests' => sub {
@@ -681,6 +892,8 @@ subtest 'get_marc_components() tests' => sub {
 subtest 'get_components_query' => sub {
     plan tests => 12;
 
+    $schema->storage->txn_begin;
+
     my $biblio = $builder->build_sample_biblio();
     my $biblionumber = $biblio->biblionumber;
     my $record = $biblio->metadata->record;
@@ -718,21 +931,221 @@ subtest 'get_components_query' => sub {
         is($comp_sort, "title_asc", "$engine: UseControlNumber enabled with MarcOrgCode sort if correct");
         $record->delete_field($marc_003_field);
     }
+
+    $schema->storage->txn_rollback;
+
 };
 
-subtest 'orders() and active_orders() tests' => sub {
+subtest 'get_volumes_query' => sub {
+    plan tests => 3;
 
-    plan tests => 5;
+    $schema->storage->txn_begin;
+
+    my $biblio       = $builder->build_sample_biblio();
+    my $biblionumber = $biblio->biblionumber;
+    my $record       = $biblio->metadata->record;
+
+    # Ensure our mocked record is captured as a set or monographic series
+    my $ldr = $record->leader();
+    substr( $ldr, 19, 1 ) = 'a';
+    $record->leader($ldr);
+    C4::Biblio::ModBiblio( $record, $biblio->biblionumber );
+    $biblio = Koha::Biblios->find( $biblio->biblionumber );
+
+    t::lib::Mocks::mock_preference( 'UseControlNumber', '0' );
+    is(
+        $biblio->get_volumes_query,
+        "(title-series,phr:(\"Some boring read\") OR Host-item,phr:(\"Some boring read\") NOT (bib-level:a OR bib-level:b))",
+        "UseControlNumber disabled"
+    );
+
+    t::lib::Mocks::mock_preference( 'UseControlNumber', '1' );
+    my $marc_001_field = MARC::Field->new( '001', $biblionumber );
+    $record->append_fields($marc_001_field);
+    C4::Biblio::ModBiblio( $record, $biblio->biblionumber );
+    $biblio = Koha::Biblios->find( $biblio->biblionumber );
+
+
+    is(
+        $biblio->get_volumes_query, "(rcn:$biblionumber NOT (bib-level:a OR bib-level:b))",
+        "UseControlNumber enabled without MarcOrgCode"
+    );
+
+    my $marc_003_field = MARC::Field->new( '003', 'OSt' );
+    $record->append_fields($marc_003_field);
+    C4::Biblio::ModBiblio( $record, $biblio->biblionumber );
+    $biblio = Koha::Biblios->find( $biblio->biblionumber );
+
+    is(
+        $biblio->get_volumes_query,
+        "(((rcn:$biblionumber AND cni:OSt) OR rcn:\"OSt $biblionumber\") NOT (bib-level:a OR bib-level:b))",
+        "UseControlNumber enabled with MarcOrgCode"
+    );
+
+    $schema->storage->txn_rollback;
+
+};
+
+subtest 'generate_marc_host_field' => sub {
+    plan tests => 24;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'marcflavour', 'MARC21' );
+
+    my $biblio = $builder->build_sample_biblio();
+    my $record = $biblio->metadata->record;
+    $record->append_fields(
+        MARC::Field->new( '001', '1234' ),
+        MARC::Field->new( '003', 'FIRST' ),
+        MARC::Field->new( '240', '', '', a => 'A uniform title' ),
+        MARC::Field->new( '260', '', '', a => 'Publication 260' ),
+        MARC::Field->new( '250', '', '', a => 'Edition a', b => 'Edition b' ),
+        MARC::Field->new( '022', '', '', a => '0317-8471' ),
+    );
+    C4::Biblio::ModBiblio( $record, $biblio->biblionumber );
+    $biblio = Koha::Biblios->find( $biblio->biblionumber );
+
+    t::lib::Mocks::mock_preference( 'UseControlNumber', '0' );
+    my $link = $biblio->generate_marc_host_field();
+
+    is( ref($link),           'MARC::Field',         "->generate_marc_host_field returns a MARC::Field object" );
+    is( $link->tag,           '773',                 "MARC::Field->tag returns '773' when marcflavour is 'MARC21" );
+    is( $link->subfield('a'), 'Some boring author',  'MARC::Field->subfield(a) returns content from 100ab' );
+    is( $link->subfield('b'), 'Edition a Edition b', 'MARC::Field->subfield(b) returns content from 250ab' );
+    is( $link->subfield('d'), 'Publication 260',     'MARC::Field->subfield(c) returns content from 260abc' );
+    is( $link->subfield('s'), 'A uniform title',     'MARC::Field->subfield(s) returns content from 240a' );
+    is( $link->subfield('t'), 'Some boring read',    'MARC::Field->subfield(s) returns content from 245ab' );
+    is( $link->subfield('x'), '0317-8471',           'MARC::Field->subfield(s) returns content from 022a' );
+    is( $link->subfield('z'), undef,                 'MARC::Field->subfield(s) returns undef when 020a is empty' );
+    is( $link->subfield('w'), undef, 'MARC::Field->subfield(w) returns undef when "UseControlNumber" is disabled' );
+
+    t::lib::Mocks::mock_preference( 'UseControlNumber', '1' );
+    $link = $biblio->generate_marc_host_field();
+    is(
+        $link->subfield('w'), '(FIRST)1234',
+        'MARC::Field->subfield(w) returns content from 003 and 001 when "UseControlNumber" is enabled'
+    );
+
+    $record->append_fields(
+        MARC::Field->new( '264', '', '', a => 'Publication 264' ),
+    );
+    C4::Biblio::ModBiblio( $record, $biblio->biblionumber );
+    $biblio = Koha::Biblios->find( $biblio->biblionumber );
+
+    $link = $biblio->generate_marc_host_field();
+    is(
+        $link->subfield('d'), 'Publication 264',
+        'MARC::Field->subfield(d) returns content from 264 in preference to 260'
+    );
+
+    $record->append_fields(
+        MARC::Field->new( '264', '3', '', a => 'Publication 264', b => 'Preferred' ),
+    );
+    C4::Biblio::ModBiblio( $record, $biblio->biblionumber );
+    $biblio = Koha::Biblios->find( $biblio->biblionumber );
+
+    $link = $biblio->generate_marc_host_field();
+    is(
+        $link->subfield('d'), 'Publication 264 Preferred',
+        'MARC::Field->subfield(d) returns content from 264 with indicator 1 = 3 in preference to 264 without'
+    );
+
+    # UNIMARC tests
+    t::lib::Mocks::mock_preference( 'marcflavour', 'UNIMARC' );
+
+    $biblio = $builder->build_sample_biblio();
+    $record = $biblio->metadata->record;
+    $record->append_fields(
+        MARC::Field->new( '001', '1234' ),
+        MARC::Field->new( '700', '', '', a => 'A nice author' ),
+        MARC::Field->new( '210', '', '', a => 'A publication', d => 'A date' ),
+        MARC::Field->new( '205', '', '', a => "Fun things" ),
+        MARC::Field->new( '856', '', '', u => 'http://myurl.com/' ),
+        MARC::Field->new( '011', '', '', a => '0317-8471' ),
+        MARC::Field->new( '545', '', '', a => 'Invisible on OPAC' ),
+    );
+    C4::Biblio::ModBiblio( $record, $biblio->biblionumber );
+    $biblio = Koha::Biblios->find( $biblio->biblionumber );
+
+    $link = $biblio->generate_marc_host_field();
+
+    is( ref($link),           'MARC::Field',       "->generate_marc_host_field returns a MARC::Field object" );
+    is( $link->tag,           '461',               "MARC::Field->tag returns '461' when marcflavour is 'UNIMARC" );
+    is( $link->subfield('a'), 'A nice author',     'MARC::Field->subfield(a) returns content from 700ab' );
+    is( $link->subfield('c'), 'A publication',     'MARC::Field->subfield(b) returns content from 210a' );
+    is( $link->subfield('d'), 'A date',            'MARC::Field->subfield(c) returns content from 210d' );
+    is( $link->subfield('e'), 'Fun things',        'MARC::Field->subfield(s) returns content from 205' );
+    is( $link->subfield('t'), 'Some boring read',  'MARC::Field->subfield(s) returns content from 200a' );
+    is( $link->subfield('u'), 'http://myurl.com/', 'MARC::Field->subfield(s) returns content from 856u' );
+    is( $link->subfield('x'), '0317-8471',         'MARC::Field->subfield(s) returns content from 011a' );
+    is( $link->subfield('y'), undef,               'MARC::Field->subfield(w) returns undef if 010a is empty' );
+    is( $link->subfield('0'), '1234',              'MARC::Field->subfield(0) returns content from 001' );
+
+    $schema->storage->txn_rollback;
+    t::lib::Mocks::mock_preference( 'marcflavour', 'MARC21' );
+};
+
+subtest 'link_marc_host' => sub {
+    plan tests => 6;
+    $schema->storage->txn_begin;
+
+    my $host = $builder->build_sample_biblio();
+
+    my $child        = $builder->build_sample_biblio();
+    my $child_record = $child->metadata->record;
+
+    is( $child_record->field('773'), undef, "773 field is undefined before link_marc_host" );
+    $child->link_marc_host( { host => $host->biblionumber } );
+    $child->discard_changes;
+    $child_record = $child->metadata->record;
+    is(
+        ref( $child_record->field('773') ), 'MARC::Field',
+        '773 field is set after calling link_marc_host({ host => $biblionumber })'
+    );
+
+    $child        = $builder->build_sample_biblio();
+    $child_record = $child->metadata->record;
+    is( $child_record->field('773'), undef, "773 field is undefined before link_marc_host" );
+    $child->link_marc_host( { host => $host } );
+    $child->discard_changes;
+    $child_record = $child->metadata->record;
+    is(
+        ref( $child_record->field('773') ), 'MARC::Field',
+        '773 field is set after calling link_marc_host({ host => $biblio })'
+    );
+
+    $child        = $builder->build_sample_biblio();
+    $child_record = $child->metadata->record;
+    is( $child_record->field('773'), undef, "773 field is undefined before link_marc_host" );
+    my $link_field = $host->generate_marc_host_field;
+    $child->link_marc_host( { field => $link_field } );
+    $child->discard_changes;
+    $child_record = $child->metadata->record;
+    is(
+        ref( $child_record->field('773') ), 'MARC::Field',
+        '773 field is set after calling link_marc_host({ field => $link_field })'
+    );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest '->orders, ->uncancelled_orders and ->acq_status tests' => sub {
+
+    plan tests => 9;
 
     $schema->storage->txn_begin;
 
     my $biblio = $builder->build_sample_biblio();
 
-    my $orders        = $biblio->orders;
-    my $active_orders = $biblio->active_orders;
+    my $orders             = $biblio->orders;
+    my $uncancelled_orders = $biblio->uncancelled_orders;
 
     is( ref($orders), 'Koha::Acquisition::Orders', 'Result type is correct' );
-    is( $biblio->orders->count, $biblio->active_orders->count, '->orders->count returns the count for the resultset' );
+    is(
+        $biblio->orders->count, $biblio->uncancelled_orders->count,
+        '->orders->count returns the count for the resultset'
+    );
 
     # Add a couple orders
     foreach (1..2) {
@@ -740,8 +1153,9 @@ subtest 'orders() and active_orders() tests' => sub {
             {
                 class => 'Koha::Acquisition::Orders',
                 value => {
-                    biblionumber => $biblio->biblionumber,
-                    datecancellationprinted => '2019-12-31'
+                    biblionumber            => $biblio->biblionumber,
+                    datecancellationprinted => '2019-12-31',
+                    orderstatus             => 'cancelled',
                 }
             }
         );
@@ -751,18 +1165,93 @@ subtest 'orders() and active_orders() tests' => sub {
         {
             class => 'Koha::Acquisition::Orders',
             value => {
-                biblionumber => $biblio->biblionumber,
-                datecancellationprinted => undef
+                biblionumber            => $biblio->biblionumber,
+                datecancellationprinted => undef,
+                orderstatus             => 'ordered',
+                quantity                => 1,
+                quantityreceived        => 0,
             }
         }
     );
 
-    $orders = $biblio->orders;
-    $active_orders = $biblio->active_orders;
+    $orders             = $biblio->orders;
+    $uncancelled_orders = $biblio->uncancelled_orders;
 
-    is( ref($orders), 'Koha::Acquisition::Orders', 'Result type is correct' );
-    is( ref($active_orders), 'Koha::Acquisition::Orders', 'Result type is correct' );
-    is( $orders->count, $active_orders->count + 2, '->active_orders->count returns the rigt count' );
+    is( ref($orders),             'Koha::Acquisition::Orders', 'Result type is correct' );
+    is( ref($uncancelled_orders), 'Koha::Acquisition::Orders', 'Result type is correct' );
+    is( $orders->count, $uncancelled_orders->count + 2,        '->uncancelled_orders->count returns the right count' );
+
+    # Check acq status
+    is( $biblio->acq_status, 'processing', 'Processing for presence of ordered lines' );
+    $orders->filter_by_active->update( { orderstatus => 'new' } );
+    is( $biblio->acq_status, 'processing', 'Still processing for presence of new lines' );
+    $orders->filter_out_cancelled->update( { orderstatus => 'complete' } );
+    is( $biblio->acq_status, 'acquired', 'Acquired: some complete, rest cancelled' );
+    $orders->update( { orderstatus => 'cancelled', datecancellationprinted => dt_from_string() } );
+    is( $biblio->acq_status, 'cancelled', 'Cancelled for only cancelled lines' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'tickets() tests' => sub {
+
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    my $biblio = $builder->build_sample_biblio();
+    my $tickets = $biblio->tickets;
+    is( ref($tickets), 'Koha::Tickets', 'Koha::Biblio->tickets should return a Koha::Tickets object' );
+    is( $tickets->count, 0, 'Koha::Biblio->tickets should return a count of 0 when there are no related tickets' );
+
+    # Add two tickets
+    foreach (1..2) {
+        $builder->build_object(
+            {
+                class => 'Koha::Tickets',
+                value => { biblio_id => $biblio->biblionumber }
+            }
+        );
+    }
+
+    $tickets = $biblio->tickets;
+    is( ref($tickets), 'Koha::Tickets', 'Koha::Biblio->tickets should return a Koha::Tickets object' );
+    is( $tickets->count, 2, 'Koha::Biblio->tickets should return the correct number of tickets' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'serials() tests' => sub {
+
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    my $biblio = $builder->build_sample_biblio;
+
+    my $serials = $biblio->serials;
+    is(
+        ref($serials), 'Koha::Serials',
+        'Koha::Biblio->serials should return a Koha::Serials object'
+    );
+    is( $serials->count, 0, 'Koha::Biblio->serials should return the correct number of serials' );
+
+    # Add two serials
+    foreach ( 1 .. 2 ) {
+        $builder->build_object(
+            {
+                class => 'Koha::Serials',
+                value => { biblionumber => $biblio->biblionumber }
+            }
+        );
+    }
+
+    $serials = $biblio->serials;
+    is(
+        ref($serials), 'Koha::Serials',
+        'Koha::Biblio->serials should return a Koha::Serials object'
+    );
+    is( $serials->count, 2, 'Koha::Biblio->serials should return the correct number of serials' );
 
     $schema->storage->txn_rollback;
 };
@@ -796,6 +1285,47 @@ subtest 'subscriptions() tests' => sub {
         'Koha::Biblio->subscriptions should return a Koha::Subscriptions object'
     );
     is( $subscriptions->count, 2, 'Koha::Biblio->subscriptions should return the correct number of subscriptions');
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'subscription_histories() tests' => sub {
+
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    my $biblio = $builder->build_sample_biblio;
+
+    my $sub_histories = $biblio->subscription_histories;
+    is(
+        ref($sub_histories), 'Koha::Subscription::Histories',
+        'Koha::Biblio->subscription_histories should return a Koha::Subscription::Histories object'
+    );
+    is(
+        $sub_histories->count, 0,
+        'Koha::Biblio->subscription_histories should return the correct number of subscription histories'
+    );
+
+    # Add two subscription histories
+    foreach ( 1 .. 2 ) {
+        $builder->build_object(
+            {
+                class => 'Koha::Subscription::Histories',
+                value => { biblionumber => $biblio->biblionumber }
+            }
+        );
+    }
+
+    $sub_histories = $biblio->subscription_histories;
+    is(
+        ref($sub_histories), 'Koha::Subscription::Histories',
+        'Koha::Biblio->subscription_histories should return a Koha::Subscription::Histories object'
+    );
+    is(
+        $sub_histories->count, 2,
+        'Koha::Biblio->subscription_histories should return the correct number of subscription histories'
+    );
 
     $schema->storage->txn_rollback;
 };
@@ -888,7 +1418,7 @@ subtest 'get_marc_notes() UNIMARC tests' => sub {
 };
 
 subtest 'host_items() tests' => sub {
-    plan tests => 6;
+    plan tests => 8;
 
     $schema->storage->txn_begin;
 
@@ -919,10 +1449,54 @@ subtest 'host_items() tests' => sub {
     is_deeply( [ $host_items->get_column('itemnumber') ],
         [ $host_item_1->itemnumber, $host_item_2->itemnumber ] );
 
+    my $transfer = $builder->build_object(
+        {
+            class => 'Koha::Item::Transfers',
+            value => {
+                itemnumber => $host_item_1->itemnumber,
+                frombranch => $host_item_1->holdingbranch,
+            }
+        }
+    );
+    ok(
+        $host_items->search(
+            {},
+            {
+                join     => 'branchtransfers',
+                order_by => 'branchtransfers.daterequested'
+            }
+        )->as_list,
+        "host_items can be used with a join query on itemnumber"
+    );
+    $transfer->delete;
+
     t::lib::Mocks::mock_preference( 'EasyAnalyticalRecords', 0 );
     $host_items = $biblio->host_items;
     is( ref($host_items),   'Koha::Items' );
     is( $host_items->count, 0 );
+
+    subtest 'test host_items param in items()' => sub {
+        plan tests => 5;
+
+        t::lib::Mocks::mock_preference( 'EasyAnalyticalRecords', 1 );
+
+        my $items = $biblio->items;
+        is( $items->count, 1, "Without host_items param we only get the items on the biblio");
+
+        $items = $biblio->items({ host_items => 1 });
+        is( $items->count, 3, "With param host_items we get the biblio items plus analytics");
+        is( ref($items), 'Koha::Items', "We correctly get an Items object");
+        is_deeply( [ $items->get_column('itemnumber') ],
+            [ $item_1->itemnumber, $host_item_1->itemnumber, $host_item_2->itemnumber ] );
+
+        t::lib::Mocks::mock_preference( 'EasyAnalyticalRecords', 0 );
+
+        $items = $biblio->items( { host_items => 1 } );
+        is(
+            $items->count, 1,
+            "With host_items param but EasyAnalyticalRecords disabled we only get the items on the biblio"
+        );
+    };
 
     $schema->storage->txn_rollback;
 };
@@ -973,8 +1547,8 @@ subtest 'current_checkouts() and old_checkouts() tests' => sub {
 
     my $library = $builder->build_object({ class => 'Koha::Libraries' });
 
-    my $patron_1 = $builder->build_object({ class => 'Koha::Patrons' })->unblessed;
-    my $patron_2 = $builder->build_object({ class => 'Koha::Patrons' })->unblessed;
+    my $patron_1 = $builder->build_object({ class => 'Koha::Patrons' });
+    my $patron_2 = $builder->build_object({ class => 'Koha::Patrons' });
 
     my $item_1 = $builder->build_sample_item;
     my $item_2 = $builder->build_sample_item({ biblionumber => $item_1->biblionumber });
@@ -1113,7 +1687,7 @@ subtest 'Recalls tests' => sub {
     is( $biblio->can_be_recalled({ patron => $patron1 }), 0, "Can't recall if patron has more existing recall(s) than recalls_per_record" );
 
     $recall1->set_cancelled;
-    C4::Circulation::AddIssue( $patron1->unblessed, $item2->barcode );
+    C4::Circulation::AddIssue( $patron1, $item2->barcode );
     is( $biblio->can_be_recalled({ patron => $patron1 }), 0, "Can't recall if patron has already checked out an item attached to this biblio" );
 
     is( $biblio->can_be_recalled({ patron => $patron1 }), 0, "Can't recall if on_shelf_recalls = all and items are still available" );
@@ -1132,8 +1706,8 @@ subtest 'Recalls tests' => sub {
     is( $biblio->can_be_recalled({ patron => $patron1 }), 0, "Can't recall if no items are checked out" );
 
     $recall2->set_cancelled;
-    C4::Circulation::AddIssue( $patron2->unblessed, $item2->barcode );
-    C4::Circulation::AddIssue( $patron2->unblessed, $item1->barcode );
+    C4::Circulation::AddIssue( $patron2, $item2->barcode );
+    C4::Circulation::AddIssue( $patron2, $item1->barcode );
     is( $biblio->can_be_recalled({ patron => $patron1 }), 2, "Can recall two items" );
 
     $item1->update({ withdrawn => 1 });
@@ -1151,13 +1725,13 @@ subtest 'ill_requests() tests' => sub {
     my $biblio = $builder->build_sample_biblio;
 
     my $rs = $biblio->ill_requests;
-    is( ref($rs), 'Koha::Illrequests' );
+    is( ref($rs), 'Koha::ILL::Requests' );
     is( $rs->count, 0, 'No linked requests' );
 
     foreach ( 1..10 ) {
         $builder->build_object(
             {
-                class => 'Koha::Illrequests',
+                class => 'Koha::ILL::Requests',
                 value => { biblio_id => $biblio->id }
             }
         );
@@ -1195,6 +1769,214 @@ subtest 'item_groups() tests' => sub {
     $schema->storage->txn_rollback;
 };
 
+subtest 'normalized_isbn() tests' => sub {
+    plan tests => 1;
+
+    $schema->storage->txn_begin;
+
+    # We will move the tests from GetNormalizedISBN here when it will get replaced
+    my $biblio = $builder->build_sample_biblio();
+    $biblio->biblioitem->set( { isbn => '9781250067128 | 125006712X' } )->store;
+    is(
+        $biblio->normalized_isbn, C4::Koha::GetNormalizedISBN( $biblio->biblioitem->isbn ),
+        'normalized_isbn is a wrapper around C4::Koha::GetNormalizedISBN'
+    );
+
+    $schema->storage->txn_rollback;
+
+};
+
+subtest 'normalized_upc() tests' => sub {
+    plan tests => 1;
+
+    $schema->storage->txn_begin;
+
+    # We will move the tests from GetNormalizedUPC here when it will get replaced
+    # Note that only a single test exist and it's not really meaningful...
+    my $biblio = $builder->build_sample_biblio();
+    is(
+        $biblio->normalized_upc, C4::Koha::GetNormalizedUPC( $biblio->metadata->record ),
+        'normalized_upc is a wrapper around C4::Koha::GetNormalizedUPC'
+    );
+
+    $schema->storage->txn_rollback;
+
+};
+
+subtest 'normalized_oclc() tests' => sub {
+    plan tests => 1;
+
+    $schema->storage->txn_begin;
+
+    # We will move the tests from GetNormalizedOCLC here when it will get replaced
+    # Note that only a single test exist and it's not really meaningful...
+    my $biblio = $builder->build_sample_biblio();
+    is(
+        $biblio->normalized_oclc, C4::Koha::GetNormalizedOCLCNumber( $biblio->metadata->record ),
+        'normalized_oclc is a wrapper around C4::Koha::GetNormalizedOCLCNumber'
+    );
+
+    $schema->storage->txn_rollback;
+
+};
+
+subtest 'opac_suppressed() tests' => sub {
+
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    my $record = MARC::Record->new;
+    $record->append_fields(
+        MARC::Field->new( '245', '', '', a => 'Some title 1' ),
+        MARC::Field->new( '942', '', '', n => '1' ),
+    );
+
+    my ($biblio_id) = AddBiblio( $record, qw{} );
+    my $biblio = Koha::Biblios->find($biblio_id);
+
+    ok( $biblio->opac_suppressed(), 'Record is suppressed' );
+
+    $record->field('942')->replace_with( MARC::Field->new( '942', '', '', n => '0' ) );
+    ($biblio_id) = AddBiblio( $record, qw{} );
+    $biblio = Koha::Biblios->find($biblio_id);
+
+    ok( !$biblio->opac_suppressed(), 'Record is not suppressed' );
+
+    $record->field('942')->replace_with( MARC::Field->new( '942', '', '', n => '' ) );
+    ($biblio_id) = AddBiblio( $record, qw{} );
+    $biblio = Koha::Biblios->find($biblio_id);
+
+    ok( !$biblio->opac_suppressed(), 'Record is not suppressed' );
+
+    $record->delete_field( $record->field('942') );
+    ($biblio_id) = AddBiblio( $record, qw{} );
+    $biblio = Koha::Biblios->find($biblio_id);
+
+    ok( !$biblio->opac_suppressed(), 'Record is not suppressed' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'ratings' => sub {
+    plan tests => 1;
+
+    $schema->storage->txn_begin;
+
+    # See t/db_dependent/Koha/Ratings.t
+    ok(1);
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'opac_summary_html' => sub {
+
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $author = 'my author';
+    my $title  = 'my title';
+    my $isbn   = '9781250067128 | 125006712X';
+    my $biblio = $builder->build_sample_biblio( { author => $author, title => $title } );
+    $biblio->biblioitem->set( { isbn => '9781250067128 | 125006712X' } )->store;
+
+    t::lib::Mocks::mock_preference( 'OPACMySummaryHTML', '' );
+    is( $biblio->opac_summary_html, '', 'opac_summary_html returns empty string if pref is off' );
+
+    t::lib::Mocks::mock_preference(
+        'OPACMySummaryHTML',
+        'Replace {AUTHOR}, {TITLE}, {ISBN} AND {BIBLIONUMBER} please'
+    );
+    is(
+        $biblio->opac_summary_html,
+        sprintf( 'Replace %s, %s, %s AND %s please', $author, $title, $biblio->normalized_isbn, $biblio->biblionumber ),
+        'opac_summary_html replaces the different patterns'
+    );
+
+    $schema->storage->txn_rollback;
+
+};
+
+subtest 'can_be_edited() tests' => sub {
+
+    plan tests => 9;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons', value => { flags => 0 } } );
+    my $biblio = $builder->build_sample_biblio;
+
+    my $source_allows_editing = 1;
+
+    my $mock_metadata = Test::MockModule->new('Koha::Biblio::Metadata');
+    $mock_metadata->mock( 'source_allows_editing', sub { return $source_allows_editing; } );
+
+    ok( !$biblio->can_be_edited($patron), "Patron needs 'edit_catalog' subpermission" );
+
+    # Add editcatalogue => edit_catalog subpermission
+    $builder->build(
+        {
+            source => 'UserPermission',
+            value  => {
+                borrowernumber => $patron->id,
+                module_bit     => 9,                  # editcatalogue
+                code           => 'edit_catalogue',
+            },
+        }
+    );
+
+    ok( $biblio->can_be_edited($patron), "Patron with 'edit_catalogue' can edit" );
+
+    my $fa_biblio = $builder->build_sample_biblio( { frameworkcode => 'FA' } );
+    my $fa_patron = $builder->build_object( { class => 'Koha::Patrons', value => { flags => 0 } } );
+
+    # Add editcatalogue => edit_catalog subpermission
+    $builder->build(
+        {
+            source => 'UserPermission',
+            value  => {
+                borrowernumber => $fa_patron->id,
+                module_bit     => 9,                   # editcatalogue
+                code           => 'fast_cataloging',
+            },
+        }
+    );
+
+    ok( !$biblio->can_be_edited($fa_patron),   "Fast add permissions are not enough" );
+    ok( $fa_biblio->can_be_edited($fa_patron), "Fast add user can edit FA records" );
+    ok( $fa_biblio->can_be_edited($patron),    "edit_catalogue user can edit FA records" );
+
+    # Mock the record source doesn't allow direct editing
+    $source_allows_editing = 0;
+    ok( !$biblio->can_be_edited($patron), "Patron needs 'edit_locked_record' subpermission for locked records" );
+
+    # Add editcatalogue => edit_catalog subpermission
+    $builder->build(
+        {
+            source => 'UserPermission',
+            value  => {
+                borrowernumber => $patron->id,
+                module_bit     => 9,                       # editcatalogue
+                code           => 'edit_locked_records',
+            },
+        }
+    );
+    ok( $biblio->can_be_edited($patron), "Patron needs 'edit_locked_record' subpermission for locked records" );
+
+    throws_ok { $biblio->can_be_edited() }
+    'Koha::Exceptions::MissingParameter',
+        'Exception thrown on missing parameter';
+
+    my $potato = 'Potato';
+
+    throws_ok { $biblio->can_be_edited($potato) }
+    'Koha::Exceptions::MissingParameter',
+        'Exception thrown if parameter not a Koha::Patron reference';
+
+    $schema->storage->txn_rollback;
+};
+
 sub component_record1 {
     my $marc = MARC::Record->new;
     $marc->append_fields(
@@ -1225,7 +2007,7 @@ sub host_record {
 }
 
 subtest 'check_booking tests' => sub {
-    plan tests => 5;
+    plan tests => 6;
 
     $schema->storage->txn_begin;
 
@@ -1339,6 +2121,73 @@ subtest 'check_booking tests' => sub {
         1,
         "Koha::Item->check_booking takes account of cancelled status in bookings check"
     );
+
+    my $patron_1 = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $library  = $builder->build_object( { class => 'Koha::Libraries' } );
+    t::lib::Mocks::mock_userenv( { branchcode => $library->id } );
+
+    # Create a a test biblio with 8 items
+    my $new_biblio = $builder->build_object(
+        {
+            class => 'Koha::Biblios',
+            value => { title => 'Test biblio with items' }
+        }
+    );
+    my @new_items;
+    for ( 1 .. 8 ) {
+        my $item = $builder->build_object(
+            {
+                class => 'Koha::Items',
+                value => {
+                    homebranch    => $library->branchcode,
+                    holdingbranch => $library->branchcode,
+                    biblionumber  => $new_biblio->biblionumber,
+                    bookable      => 1
+                }
+            }
+        );
+        push @new_items, $item;
+    }
+
+    my @item_numbers  = map { $_->itemnumber } @new_items;
+    my @item_barcodes = map { $_->barcode } @new_items;
+
+    # Check-out all of those 6 items
+    @item_barcodes = splice @item_barcodes, 0, 6;
+    for my $item_barcode (@item_barcodes) {
+        AddIssue( $patron_1, $item_barcode );
+    }
+
+    @item_numbers = splice @item_numbers, 0, 6;
+    my @new_bookings;
+    for my $itemnumber (@item_numbers) {
+        my $booking = $builder->build_object(
+            {
+                class => 'Koha::Bookings',
+                value => {
+                    biblio_id  => $new_biblio->biblionumber,
+                    item_id    => $itemnumber,
+                    start_date => $start_2,
+                    end_date   => $end_2,
+                    status     => 'new'
+                }
+            }
+        );
+        push @new_bookings, $booking;
+    }
+
+    # Place a booking on one of the 2 remaining items
+    my $item = ( grep { $_->itemnumber ne $new_bookings[0]->item_id } @new_items )[0];
+
+    my $check_booking = $new_biblio->get_from_storage->check_booking(
+        {
+            start_date => $start_2,
+            end_date   => $end_2,
+            item_id    => $item->itemnumber
+        }
+    );
+
+    is( $check_booking, 1, "Koha::Biblio->check_booking returns true when we can book on an item" );
 
     $schema->storage->txn_rollback;
 };

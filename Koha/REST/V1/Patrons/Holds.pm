@@ -40,28 +40,64 @@ Controller function that handles listing Koha::Hold objects for the requested pa
 sub list {
     my $c = shift->openapi->valid_input or return;
 
-    my $patron = Koha::Patrons->find( $c->validation->param('patron_id') );
+    my $patron = Koha::Patrons->find( $c->param('patron_id') );
 
-    unless ( $patron ) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error => 'Patron not found'
-            }
-        );
-    }
+    return $c->render_resource_not_found("Patron")
+        unless $patron;
+
+    my $old = $c->param('old');
+    $c->req->params->remove('old');
 
     return try {
+        my $holds_set =
+            $old
+            ? $patron->old_holds
+            : $patron->holds;
 
-        my $holds_rs = $patron->holds;
-        my $holds    = $c->objects->search( $holds_rs );
+        my $holds = $c->objects->search( $holds_set );
+        return $c->render( status => 200, openapi => $holds );
+    } catch {
+        $c->unhandled_exception($_);
+    };
+}
 
-        return $c->render(
-            status  => 200,
-            openapi => $holds
-        );
-    }
-    catch {
+
+=head3 delete_public
+
+Controller function that handles cancelling a hold for the requested patron. Returns
+a I<204> if cancelling took place, and I<202> if a cancellation request is recorded
+instead.
+
+=cut
+
+sub delete_public {
+    my $c = shift->openapi->valid_input or return;
+
+    return try {
+        $c->auth->public( $c->param('patron_id') );
+
+        my $hold = $c->objects->find_rs( Koha::Holds->new, $c->param('hold_id') );
+
+        unless ( $hold and $c->param('patron_id') == $hold->borrowernumber ) {
+            return $c->render_resource_not_found("Hold");
+        }
+
+        if ( $hold->is_cancelable_from_opac ) {
+            $hold->cancel;
+            return $c->render_resource_deleted;
+        } elsif ( $hold->is_waiting and $hold->cancellation_requestable_from_opac ) {
+            $hold->add_cancellation_request;
+            return $c->render(
+                status  => 202,
+                openapi => q{},
+            );
+        } else {    # reject
+            return $c->render(
+                status  => 403,
+                openapi => { error => 'Cancellation forbidden' }
+            );
+        }
+    } catch {
         $c->unhandled_exception($_);
     };
 }

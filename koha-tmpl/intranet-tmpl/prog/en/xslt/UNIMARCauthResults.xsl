@@ -1,75 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:marc="http://www.loc.gov/MARC21/slim" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
-  <xsl:output omit-xml-declaration="yes"/>
-  <!-- ***************** Templates *************-->
-  <xsl:template name="tag_152">
-    <li class="authtype">
-      <xsl:value-of select="marc:datafield[@tag='152']/marc:subfield[@code='b']"/>
-    </li>
-  </xsl:template>
-  <xsl:template name="tag_3xx">
-    <li class="note">
-      <xsl:for-each select="marc:datafield[@tag &gt;= 300 and @tag &lt; 400]">
-        <xsl:value-of select="marc:subfield[@code='a']"/>
-        <xsl:text>. </xsl:text>
-      </xsl:for-each>
-    </li>
-  </xsl:template>
-  <xsl:template name="tag_5xx">
-    <li class="related">
-      <xsl:for-each select="marc:datafield[@tag &gt;= 500 and @tag &lt; 600]">
-        <xsl:choose>
-          <xsl:when test="marc:subfield[@code='5']='g'">
-            <span class="leg">GT : </span>
-          </xsl:when>
-          <xsl:when test="marc:subfield[@code='5']='h'">
-            <span class="leg">ST : </span>
-          </xsl:when>
-          <xsl:otherwise>
-            <span class="leg">RT : </span>
-          </xsl:otherwise>
-        </xsl:choose>
-        <xsl:choose>
-          <xsl:when test="marc:subfield[@code='9']">
-            <a>
-              <xsl:attribute name="href">/cgi-bin/koha/authorities/detail.pl?authid=<xsl:value-of select="marc:subfield[@code='9']"/></xsl:attribute>
-              <xsl:value-of select="marc:subfield[@code='a']"/>
-              <xsl:if test="marc:subfield[@code='b']">
-                <xsl:text> </xsl:text>
-                <xsl:value-of select="."/>
-              </xsl:if>
-            </a>
-          </xsl:when>
-          <xsl:when test="marc:subfield[@code='3']">
-            <a>
-              <xsl:attribute name="href">/cgi-bin/koha/authorities/authorities-home.pl?op=do_search&amp;type=intranet&amp;value=identifier-standard%3A<xsl:value-of select="marc:subfield[@code='3']"/></xsl:attribute>
-              <xsl:value-of select="marc:subfield[@code='a']"/>
-              <xsl:if test="marc:subfield[@code='b']">
-                <xsl:text> </xsl:text>
-                <xsl:value-of select="."/>
-              </xsl:if>
-            </a>
-          </xsl:when>
-          <xsl:otherwise>
-            <xsl:value-of select="marc:subfield[@code='a']"/>
-            <xsl:if test="marc:subfield[@code='b']">
-              <xsl:text> </xsl:text>
-              <xsl:value-of select="."/>
-            </xsl:if>
-          </xsl:otherwise>
-        </xsl:choose>
-        <xsl:text> ; </xsl:text>
-      </xsl:for-each>
-    </li>
-  </xsl:template>
-  <!--*** End Templates **-->
+  <xsl:import href="UNIMARCauthUtils.xsl"/>
+  <xsl:output omit-xml-declaration="yes" method="html" />
   <!-- ****************** Authority display *************** -->
   <xsl:template match="marc:record">
     <xsl:variable name="authid" select="marc:controlfield[@tag='001']"/>
-    <xsl:element name="div">
-      <xsl:attribute name="class">
-        <xsl:text>authority-summary</xsl:text>
-      </xsl:attribute>
+    <div class="authority-summary">
       <!-- *********** Personal Name 200 ********* -->
       <xsl:if test="marc:datafield[@tag='200']">
         <ul>
@@ -107,15 +43,9 @@
             <xsl:call-template name="tag_3xx"/>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag=400]">
-            <li class="usefor">
-              <span class="leg">UF : </span>
-              <xsl:for-each select="marc:datafield[@tag=400]">
-                <xsl:value-of select="marc:subfield[@code='a']"/>
-                <xsl:text> </xsl:text>
-                <xsl:value-of select="marc:subfield[@code='b']"/>
-                <xsl:text> ; </xsl:text>
-              </xsl:for-each>
-            </li>
+            <xsl:call-template name="tag_4xx">
+              <xsl:with-param name="tag">400</xsl:with-param>
+            </xsl:call-template>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag &gt;= 500 and @tag &lt; 600]">
             <xsl:call-template name="tag_5xx"/>
@@ -160,15 +90,9 @@
             <xsl:call-template name="tag_3xx"/>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag=410]">
-            <li class="usefor">
-              <span class="leg">UF : </span>
-              <xsl:for-each select="marc:datafield[@tag=410]">
-                <xsl:value-of select="marc:subfield[@code='a']"/>
-                <xsl:text> </xsl:text>
-                <xsl:value-of select="marc:subfield[@code='b']"/>
-                <xsl:text> ; </xsl:text>
-              </xsl:for-each>
-            </li>
+            <xsl:call-template name="tag_4xx">
+              <xsl:with-param name="tag">410</xsl:with-param>
+            </xsl:call-template>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag &gt;= 500 and @tag &lt; 600]">
             <xsl:call-template name="tag_5xx"/>
@@ -210,13 +134,9 @@
             <xsl:call-template name="tag_3xx"/>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag=415]">
-            <li class="usefor">
-              <span class="leg">UF : </span>
-              <xsl:for-each select="marc:datafield[@tag=415]">
-                <xsl:value-of select="marc:subfield[@code='a']"/>
-                <xsl:text> ; </xsl:text>
-              </xsl:for-each>
-            </li>
+            <xsl:call-template name="tag_4xx">
+              <xsl:with-param name="tag">415</xsl:with-param>
+            </xsl:call-template>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag &gt;= 500 and @tag &lt; 600]">
             <xsl:call-template name="tag_5xx"/>
@@ -259,15 +179,9 @@
             <xsl:call-template name="tag_3xx"/>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag=416]">
-            <li class="usefor">
-              <span class="leg">UF : </span>
-              <xsl:for-each select="marc:datafield[@tag=416]">
-                <xsl:value-of select="marc:subfield[@code='a']"/>
-                <xsl:text> </xsl:text>
-                <xsl:value-of select="marc:subfield[@code='b']"/>
-                <xsl:text> ; </xsl:text>
-              </xsl:for-each>
-            </li>
+            <xsl:call-template name="tag_4xx">
+              <xsl:with-param name="tag">416</xsl:with-param>
+            </xsl:call-template>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag &gt;= 500 and @tag &lt; 600]">
             <xsl:call-template name="tag_5xx"/>
@@ -310,15 +224,9 @@
             <xsl:call-template name="tag_3xx"/>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag=420]">
-            <li class="usefor">
-              <span class="leg">UF : </span>
-              <xsl:for-each select="marc:datafield[@tag=420]">
-                <xsl:value-of select="marc:subfield[@code='a']"/>
-                <xsl:text> </xsl:text>
-                <xsl:value-of select="marc:subfield[@code='b']"/>
-                <xsl:text> ; </xsl:text>
-              </xsl:for-each>
-            </li>
+            <xsl:call-template name="tag_4xx">
+              <xsl:with-param name="tag">420</xsl:with-param>
+            </xsl:call-template>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag &gt;= 500 and @tag &lt; 600]">
             <xsl:call-template name="tag_5xx"/>
@@ -373,15 +281,9 @@
             <xsl:call-template name="tag_3xx"/>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag=430]">
-            <li class="usefor">
-              <span class="leg">UF : </span>
-              <xsl:for-each select="marc:datafield[@tag=430]">
-                <xsl:value-of select="marc:subfield[@code='a']"/>
-                <xsl:text> </xsl:text>
-                <xsl:value-of select="marc:subfield[@code='b']"/>
-                <xsl:text> ; </xsl:text>
-              </xsl:for-each>
-            </li>
+            <xsl:call-template name="tag_4xx">
+              <xsl:with-param name="tag">430</xsl:with-param>
+            </xsl:call-template>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag &gt;= 500 and @tag &lt; 600]">
             <xsl:call-template name="tag_5xx"/>
@@ -425,15 +327,9 @@
             <xsl:call-template name="tag_3xx"/>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag=440]">
-            <li class="usefor">
-              <span class="leg">UF : </span>
-              <xsl:for-each select="marc:datafield[@tag=440]">
-                <xsl:value-of select="marc:subfield[@code='a']"/>
-                <xsl:text> </xsl:text>
-                <xsl:value-of select="marc:subfield[@code='b']"/>
-                <xsl:text> ; </xsl:text>
-              </xsl:for-each>
-            </li>
+            <xsl:call-template name="tag_4xx">
+              <xsl:with-param name="tag">440</xsl:with-param>
+            </xsl:call-template>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag &gt;= 500 and @tag &lt; 600]">
             <xsl:call-template name="tag_5xx"/>
@@ -475,13 +371,9 @@
             <xsl:call-template name="tag_3xx"/>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag=450]">
-            <li class="usefor">
-              <span class="leg">UF : </span>
-              <xsl:for-each select="marc:datafield[@tag=450]">
-                <xsl:value-of select="marc:subfield[@code='a']"/>
-                <xsl:text> ; </xsl:text>
-              </xsl:for-each>
-            </li>
+            <xsl:call-template name="tag_4xx">
+              <xsl:with-param name="tag">450</xsl:with-param>
+            </xsl:call-template>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag &gt;= 500 and @tag &lt; 600]">
             <xsl:call-template name="tag_5xx"/>
@@ -523,22 +415,17 @@
             <xsl:call-template name="tag_3xx"/>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag=480]">
-            <li class="usefor">
-              <span class="leg">UF : </span>
-              <xsl:for-each select="marc:datafield[@tag=450]">
-                <xsl:value-of select="marc:subfield[@code='a']"/>
-                <xsl:text> ; </xsl:text>
-              </xsl:for-each>
-            </li>
+            <xsl:call-template name="tag_4xx">
+              <xsl:with-param name="tag">480</xsl:with-param>
+            </xsl:call-template>
           </xsl:if>
           <xsl:if test="marc:datafield[@tag &gt;= 500 and @tag &lt; 600]">
             <xsl:call-template name="tag_5xx"/>
           </xsl:if>
         </ul>
       </xsl:if>
-      <!-- *** End Subject **-->
-      <!-- end div class authority-summary-->
-    </xsl:element>
+      <!-- *** End Genre/Form **-->
+    </div> <!-- /div.authority-summary -->
     <!-- end template -->
   </xsl:template>
 </xsl:stylesheet>

@@ -86,8 +86,7 @@ my $err=0;
 # save the values entered into tables
 my %temphash;
 my $input_saved = 0;
-if ($op eq 'save') {
-    my $type = $input->param('type');
+if ($op eq 'cud-save') {
     my @names=$input->multi_param();
     my $sth_search = $dbh->prepare("SELECT count(*) AS total FROM overduerules WHERE branchcode=? AND categorycode=?");
 

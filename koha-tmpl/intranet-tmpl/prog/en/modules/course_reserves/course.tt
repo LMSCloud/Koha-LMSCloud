@@ -1,9 +1,18 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE HtmlTags %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF course_name %] Edit [% course_name | html %] [% ELSE %] New course [% END %] &rsaquo; Course reserves &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF ( course_name ) %]
+        [% tx("Edit {course_name}", { course_name = course_name }) | html %][% IF course.section %] - [% course.section | html %][% END %]
+    [% ELSE %]
+        [% t("New course") | html %]
+    [% END %] &rsaquo;
+    [% t("Course reserves") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
     #course_instructors {
@@ -28,7 +37,7 @@
         [% END %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
             [% IF course_name %]
-                <span>Edit [% course_name | html | $HtmlTags tag="em" %]</span>
+                <span>Edit [% course_name | html | $HtmlTags tag="em" %][%- IF course.section -%] - [% course.section | html | $HtmlTags tag="em" %][%- END -%]</span>
             [% ELSE %]
                 <span>New course</span>
             [% END %]
@@ -40,7 +49,8 @@
 
     <div class="main container-fluid">
         <div class="row">
-            <div class="col-md-8 col-md-offset-2">
+            <div class="col-md-8 offset-md-2">
+                [% INCLUDE 'messages.inc' %]
                 <h1>
                     [% IF course_name %]
                         <span>Edit [% course_name | html | $HtmlTags tag="em" %]</span>
@@ -50,7 +60,13 @@
                 </h1>
 
             <form method="post" action="/cgi-bin/koha/course_reserves/mod_course.pl" class="validated">
-                [% IF course_id %]<input type="hidden" name="course_id" value="[% course_id | html %]" />[% END %]
+                [% INCLUDE 'csrf-token.inc' %]
+                [% IF course_id %]
+                    <input type="hidden" name="course_id" value="[% course_id | html %]" />
+                    <input type="hidden" name="op" value="cud-update" />
+                [% ELSE %]
+                    <input type="hidden" name="op" value="cud-add" />
+                [% END %]
                 <fieldset class="rows">
                     <legend>[% IF course_id %]Edit course[% ELSE %]Create course[% END %]</legend>
                     <ol>
@@ -113,7 +129,7 @@
                             <div id="course_instructors">
                                  <div id="instructors">
                                     [% FOREACH i IN instructors %]
-                                        <div class="instructor_line" id="borrower_[% i.borrowernumber | html %]">[% i.surname | html %], [% i.firstname | html %] ( <a href="#" class="removeInstructor"><i class="fa fa-trash"></i> Remove </a> )
+                                        <div class="instructor_line" id="borrower_[% i.borrowernumber | html %]">[% i.surname | html %], [% i.firstname | html %] ( <a href="#" class="removeInstructor"><i class="fa fa-trash-can"></i> Remove </a> )
                                              <input type='hidden' name='instructors' value='[% i.borrowernumber | html %]' />
                                          </div>
                                      [% END %]
@@ -165,7 +181,7 @@
 
 [% ELSE %]
 
-<div class="dialog alert">
+<div class="alert alert-warning">
     <h1>No DEPARTMENT authorized values found!</h1>
     <p>
         [% IF ( CAN_user_parameters ) %]
@@ -201,7 +217,7 @@
             });
 
             function AddInstructor( name, borrowernumber ) {
-                div = "<div class='instructor_line' id='borrower_" + borrowernumber + "'>" + ( name ? name.escapeHtml() : "" ) + " ( <a href='#' class='removeInstructor'><i class='fa fa-trash'></i> " + _("Remove")+ " </a> ) <input type='hidden' name='instructors' value='" + borrowernumber + "' /></div>";
+                div = "<div class='instructor_line' id='borrower_" + borrowernumber + "'>" + ( name ? name.escapeHtml() : "" ) + " ( <a href='#' class='removeInstructor'><i class='fa fa-trash-can'></i> " + _("Remove")+ " </a> ) <input type='hidden' name='instructors' value='" + borrowernumber + "' /></div>";
                 $('#instructors').append( div );
 
                 $('#find_instructor').val('').focus();

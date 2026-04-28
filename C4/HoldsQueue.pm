@@ -25,12 +25,15 @@ use warnings;
 use C4::Context;
 use C4::Circulation qw( GetBranchItemRule );
 use Koha::DateUtils qw( dt_from_string );
+use Koha::Hold::HoldsQueueItems;
 use Koha::Items;
-use Koha::Patrons;
 use Koha::Libraries;
+use Koha::Logger;
+use Koha::Patrons;
 
 use List::Util qw( shuffle );
 use List::MoreUtils qw( any );
+use Algorithm::Munkres qw();
 
 our (@ISA, @EXPORT_OK);
 BEGIN {
@@ -125,52 +128,35 @@ sub GetHoldsQueueItems {
     my $params = shift;
     my $dbh   = C4::Context->dbh;
 
-    my @bind_params = ();
-    my $query = q/SELECT tmp_holdsqueue.*, biblio.author, items.ccode, items.itype, biblioitems.itemtype, items.location,
-                         items.enumchron, items.cn_sort, biblioitems.publishercode,
-                         biblio.copyrightdate, biblio.subtitle, biblio.medium,
-                         biblio.part_number, biblio.part_name,
-                         biblioitems.publicationyear, biblioitems.pages, biblioitems.size,
-                         biblioitems.isbn, biblioitems.editionstatement, items.copynumber,
-                         item_groups.item_group_id, item_groups.description AS item_group_description
-                  FROM tmp_holdsqueue
-                       JOIN biblio      USING (biblionumber)
-                  LEFT JOIN biblioitems USING (biblionumber)
-                  LEFT JOIN items       USING (  itemnumber)
-                  LEFT JOIN item_group_items ON ( items.itemnumber =  item_group_items.item_id )
-                  LEFT JOIN item_groups ON ( item_group_items.item_group_id = item_groups.item_group_id )
-                  WHERE 1=1
-                /;
-    if ($params->{branchlimit}) {
-        $query .="AND tmp_holdsqueue.holdingbranch = ? ";
-        push @bind_params, $params->{branchlimit};
-    }
-    if( $params->{itemtypeslimit} ) {
-        $query .=" AND items.itype = ? ";
-        push @bind_params, $params->{itemtypeslimit};
-    }
-    if( $params->{ccodeslimit} ) {
-        $query .=" AND items.ccode = ? ";
-        push @bind_params, $params->{ccodeslimit};
-    }
-    if( $params->{locationslimit} ) {
-        $query .=" AND items.location = ? ";
-        push @bind_params, $params->{locationslimit};
-    }
-    $query .= " ORDER BY ccode, location, cn_sort, author, title, pickbranch, reservedate";
-    my $sth = $dbh->prepare($query);
-    $sth->execute(@bind_params);
-    my $items = [];
-    while ( my $row = $sth->fetchrow_hashref ){
-        # return the bib-level or item-level itype per syspref
-        if (!C4::Context->preference('item-level_itypes')) {
-            $row->{itype} = $row->{itemtype};
-        }
-        delete $row->{itemtype};
+    my $search_params;
+    $search_params->{'me.holdingbranch'} = $params->{branchlimit} if $params->{branchlimit};
+    $search_params->{'itype'} = $params->{itemtypeslimit} if $params->{itemtypeslimit};
+    $search_params->{'ccode'} = $params->{ccodeslimit} if $params->{ccodeslimit};
+    $search_params->{'location'} = $params->{locationslimit} if $params->{locationslimit};
 
-        push @$items, $row;
-    }
-    return $items;
+    my $results = Koha::Hold::HoldsQueueItems->search(
+        $search_params,
+        {
+            join => [
+                'borrower',
+            ],
+            prefetch => [
+                'biblio',
+                'biblioitem',
+                {
+                    'item' => {
+                        'item_group_item' => 'item_group'
+                    }
+                }
+            ],
+            order_by => [
+                'ccode',        'location',   'item.cn_sort', 'author',
+                'biblio.title', 'pickbranch', 'reservedate'
+            ],
+        }
+    );
+
+    return $results;
 }
 
 =head2 CreateQueue
@@ -182,10 +168,15 @@ Top level function that turns reserves into tmp_holdsqueue and hold_fill_targets
 =cut
 
 sub CreateQueue {
-    my $dbh   = C4::Context->dbh;
+    my $params      = shift;
+    my $unallocated = $params->{unallocated};
+    my $loops       = $params->{loops} || 1;
+    my $dbh         = C4::Context->dbh;
 
-    $dbh->do("DELETE FROM tmp_holdsqueue");  # clear the old table for new info
-    $dbh->do("DELETE FROM hold_fill_targets");
+    unless ($unallocated) {
+        $dbh->do("DELETE FROM tmp_holdsqueue");    # clear the old table for new info
+        $dbh->do("DELETE FROM hold_fill_targets");
+    }
 
     my $total_bibs            = 0;
     my $total_requests        = 0;
@@ -197,7 +188,7 @@ sub CreateQueue {
     my $use_transport_cost_matrix = C4::Context->preference("UseTransportCostMatrix");
     if ($use_transport_cost_matrix) {
         $transport_cost_matrix = TransportCostMatrix();
-        unless (keys %$transport_cost_matrix) {
+        unless ( keys %$transport_cost_matrix ) {
             warn "UseTransportCostMatrix set to yes, but matrix not populated";
             undef $transport_cost_matrix;
         }
@@ -207,22 +198,50 @@ sub CreateQueue {
 
     my $bibs_with_pending_requests = GetBibsWithPendingHoldRequests();
 
-    foreach my $biblionumber (@$bibs_with_pending_requests) {
+    # Split the list of bibs into chunks to run in parallel
+    my @chunks;
+    if ( $loops > 1 ) {
+        my $i = 0;
+        while (@$bibs_with_pending_requests) {
+            push( @{ $chunks[$i] }, pop(@$bibs_with_pending_requests) );
 
-        $total_bibs++;
+            $i++;
+            $i = 0 if $i >= $loops;
+        }
 
-        my $result = update_queue_for_biblio(
-            {   biblio_id             => $biblionumber,
-                branches_to_use       => $branches_to_use,
-                transport_cost_matrix => $transport_cost_matrix,
+        my $pm = Parallel::ForkManager->new($loops);
+
+    DATA_LOOP:
+        foreach my $chunk (@chunks) {
+            my $pid = $pm->start and next DATA_LOOP;
+            foreach my $biblionumber (@$chunk) {
+                update_queue_for_biblio(
+                    {
+                        biblio_id             => $biblionumber,
+                        branches_to_use       => $branches_to_use,
+                        transport_cost_matrix => $transport_cost_matrix,
+                        unallocated           => $unallocated
+                    }
+                );
             }
-        );
+            $pm->finish;
+        }
 
-        $total_requests        += $result->{requests};
-        $total_available_items += $result->{available_items};
-        $num_items_mapped      += $result->{mapped_items};
+        $pm->wait_all_children;
+    } else {
+        foreach my $biblionumber (@$bibs_with_pending_requests) {
+            update_queue_for_biblio(
+                {
+                    biblio_id             => $biblionumber,
+                    branches_to_use       => $branches_to_use,
+                    transport_cost_matrix => $transport_cost_matrix,
+                    unallocated           => $unallocated
+                }
+            );
+        }
     }
 }
+
 
 =head2 GetBibsWithPendingHoldRequests
 
@@ -242,6 +261,7 @@ sub GetBibsWithPendingHoldRequests {
                      AND priority > 0
                      AND reservedate <= CURRENT_DATE()
                      AND suspend = 0
+                     AND reserve_id NOT IN (SELECT reserve_id FROM hold_fill_targets)
                      ";
     my $sth = $dbh->prepare($bib_query);
 
@@ -253,10 +273,10 @@ sub GetBibsWithPendingHoldRequests {
 
 =head2 GetPendingHoldRequestsForBib
 
-  my $requests = GetPendingHoldRequestsForBib($biblionumber);
+    my $requests = GetPendingHoldRequestsForBib( { biblionumber => $biblionumber, unallocated => $unallocated } );
 
 Returns an arrayref of hashrefs to pending, unfilled hold requests
-on the bib identified by $biblionumber.  The following keys
+on the bib identified by $biblionumber. Optionally returns only unallocated holds.  The following keys
 are present in each hashref:
 
     biblionumber
@@ -273,7 +293,9 @@ The arrayref is sorted in order of increasing priority.
 =cut
 
 sub GetPendingHoldRequestsForBib {
-    my $biblionumber = shift;
+    my $params       = shift;
+    my $biblionumber = $params->{biblionumber};
+    my $unallocated  = $params->{unallocated};
 
     my $dbh = C4::Context->dbh;
 
@@ -285,8 +307,9 @@ sub GetPendingHoldRequestsForBib {
                          AND found IS NULL
                          AND priority > 0
                          AND reservedate <= CURRENT_DATE()
-                         AND suspend = 0
-                         ORDER BY priority";
+                         AND suspend = 0 ";
+    $request_query .= "AND reserve_id NOT IN (SELECT reserve_id FROM hold_fill_targets) " if $unallocated;
+    $request_query .= "ORDER BY priority";
     my $sth = $dbh->prepare($request_query);
     $sth->execute($biblionumber);
 
@@ -320,10 +343,10 @@ sub GetItemsAvailableToFillHoldRequestsForBib {
     my $items_query = "SELECT items.itemnumber, homebranch, holdingbranch, itemtypes.itemtype AS itype
                        FROM items ";
 
-    if (C4::Context->preference('item-level_itypes')) {
-        $items_query .=   "LEFT JOIN itemtypes ON (itemtypes.itemtype = items.itype) ";
+    if ( C4::Context->preference('item-level_itypes') ) {
+        $items_query .= "LEFT JOIN itemtypes ON (itemtypes.itemtype = items.itype) ";
     } else {
-        $items_query .=   "JOIN biblioitems USING (biblioitemnumber)
+        $items_query .= "JOIN biblioitems USING (biblioitemnumber)
                            LEFT JOIN itemtypes USING (itemtype) ";
     }
     $items_query .=  " LEFT JOIN branchtransfers ON (
@@ -344,10 +367,15 @@ sub GetItemsAvailableToFillHoldRequestsForBib {
                            AND itemnumber IS NOT NULL
                            AND (found IS NOT NULL OR priority = 0)
                         )
+                        AND items.itemnumber NOT IN (
+                           SELECT itemnumber
+                           FROM tmp_holdsqueue
+                           WHERE biblionumber = ?
+                        )
                        AND items.biblionumber = ?
                        AND branchtransfers.itemnumber IS NULL";
 
-    my @params = ($biblionumber, $biblionumber);
+    my @params = ($biblionumber, $biblionumber, $biblionumber);
     if ($branches_to_use && @$branches_to_use) {
         $items_query .= " AND holdingbranch IN (" . join (",", map { "?" } @$branches_to_use) . ")";
         push @params, @$branches_to_use;
@@ -413,9 +441,277 @@ sub _checkHoldPolicy {
 
 }
 
+sub _allocateWithTransportCostMatrix {
+    my (
+        $hold_requests, $available_items, $branches_to_use, $libraries, $transport_cost_matrix, $allocated_items,
+        $items_by_itemnumber
+    ) = @_;
+
+    my @allocated;
+
+    my @remaining_items =
+        shuffle( grep { !exists $allocated_items->{ $_->{itemnumber} } && $_->{holdallowed} ne 'not_allowed'; }
+            @$available_items );
+
+    my @requests  = grep { !defined $_->{itemnumber} && !defined $_->{allocated} } @$hold_requests;
+    my @remaining = ();
+
+    my $num_agents = scalar(@remaining_items);
+    my $num_tasks  = scalar(@requests);
+
+    return [] if $num_agents == 0 || $num_tasks == 0;
+
+    if ( $num_tasks > $num_agents ) {
+        @remaining = @requests[ $num_agents .. $num_tasks - 1 ];
+        @requests  = @requests[ 0 .. $num_agents - 1 ];
+        $num_tasks = $num_agents;
+    }
+
+    my @m = map { [ (undef) x $num_tasks ] } ( 1 .. $num_agents );
+
+    my $inf = -1;    # Initially represent infinity with a negative value.
+    my $max = 0;
+
+    # If some candidate holds requests cannot be filled and there are
+    # hold requests remaining, we will try again a limited number of
+    # times.
+    #
+    # The limit is chosen arbitrarily and only servers to keep the
+    # asymptotic worst case to O(num_tasks³).
+    my $RETRIES          = 8;
+    my $retries          = $RETRIES;
+    my $r                = 0;
+    my @candidate_tasks  = ( (0) x $num_tasks );
+    my @candidate_agents = ( (0) x $num_agents );
+
+RETRY:
+    while (1) {
+        return [] if $num_agents == 0 || $num_tasks == 0;
+
+        if ( $num_tasks < $num_agents && @remaining ) {
+
+            # On retry, move tasks from @remaining to @requests up to
+            # the number of agents.
+            my $nr = scalar(@remaining);
+            my $na = $num_agents - $num_tasks;
+            my $nm = $nr < $na ? $nr : $na;
+            push @requests, ( splice @remaining, 0, $nm );
+            $num_tasks += $nm;
+            for ( my $t = scalar(@candidate_tasks) ; $t < $num_tasks ; $t++ ) {
+                push @candidate_tasks, 0;
+            }
+        }
+
+        for ( my $i = 0 ; $i < $num_agents ; $i++ ) {
+            for ( my $j = $r ; $j < $num_tasks ; $j++ ) {
+                my $item    = $remaining_items[$i];
+                my $request = $requests[$j];
+
+                my $pickup_branch = $request->{branchcode} || $request->{borrowerbranch};
+                my $srcbranch     = $item->{holdingbranch};
+
+                $m[$i][$j] = $inf
+                    and next
+                    unless _checkHoldPolicy( $item, $request );
+                $m[$i][$j] = $inf
+                    and next
+                    unless $items_by_itemnumber->{ $item->{itemnumber} }->{_object}
+                    ->can_be_transferred( { to => $libraries->{ $request->{branchcode} } } );
+
+                # If hold itemtype is set, item's itemtype must match
+                $m[$i][$j] = $inf
+                    and next
+                    unless ( !$request->{itemtype}
+                    || $item->{itype} eq $request->{itemtype} );
+
+                # If hold item_group is set, item's item_group must match
+                $m[$i][$j] = $inf
+                    and next
+                    unless (
+                    !$request->{item_group_id}
+                    || (   $item->{_object}->item_group
+                        && $item->{_object}->item_group->id eq $request->{item_group_id} )
+                    );
+
+                my $cell = $transport_cost_matrix->{$pickup_branch}{$srcbranch};
+                my $cost;
+
+                if ( !defined $cell && $pickup_branch eq $srcbranch ) {
+                    $cost = 0;
+                } elsif ( !defined $cell || $cell->{disable_transfer} ) {
+                    $cost = $inf;
+                } else {
+                    if ( defined $cell->{cost} ) {
+                        $cost = $cell->{cost};
+                    } else {
+                        $cost = $inf;
+                    }
+                }
+
+                $m[$i][$j] = $cost;
+
+                if ( $cost != $inf ) {
+
+                    # There is at least one possible item in row $i and column $j
+                    $candidate_tasks[$j]  = 1;
+                    $candidate_agents[$i] = 1;
+                }
+
+                if ( $cost > $max ) {
+                    $max = $cost;
+                }
+            }
+        }
+
+        # Remove any hold request for which there is no finite transport cost item available.
+        my $removed_something = 0;
+
+        for ( my $j = 0, my $j0 = 0 ; $j < $num_tasks ; $j++ ) {
+            if ( !$candidate_tasks[$j] ) {
+                for ( my $i = 0 ; $i < $num_agents ; $i++ ) {
+                    splice @{ $m[$i] }, $j - $j0, 1;
+                }
+                splice @requests, $j - $j0, 1;
+                $j0++;
+                $removed_something = 1;
+            }
+        }
+
+        $num_tasks = scalar(@requests);
+
+        if ( $num_agents > $num_tasks && @remaining ) {
+
+            $r                = $num_tasks;
+            @candidate_tasks  = ( (1) x $num_tasks );
+            @candidate_agents = ( (1) x $num_agents );
+            next RETRY;
+        }
+
+        if ( $num_tasks > $num_agents ) {
+
+            return [] if $num_agents == 0;
+            unshift @remaining, ( splice @requests, $num_agents );
+            $num_tasks = $num_agents;
+        }
+
+        return [] if $num_agents == 0 || $num_tasks == 0;
+
+        # Substitute infinity with a cost that is higher than the total of
+        # any possible assignment.  This ensures that any possible
+        # assignment will be selected before any assignment of infinite
+        # cost.  Infinite cost assignments can be be filtered out at the
+        # end.
+        $inf = $max * $num_tasks + 1;
+
+        my @m0 = map {[(undef) x  $num_tasks]} (1..$num_agents);
+        for ( my $i = 0 ; $i < $num_agents ; $i++ ) {
+            for ( my $j = 0 ; $j < $num_tasks ; $j++ ) {
+                if ( $m[$i][$j] < 0 ) {
+                    # Bias towards not allocating items to holds closer to
+                    # the end of the queue in the queue if not all holds
+                    # can be filled by representing infinity with
+                    # different values.
+                    $m0[$i][$j] = $inf + ( $num_tasks - $j );
+                } else {
+                    $m0[$i][$j] = $m[$i][$j];
+                }
+            }
+        }
+
+        my $res = [ (undef) x $num_agents ];
+
+        Algorithm::Munkres::assign( \@m0, $res );
+
+        my @unallocated = ();
+        @allocated = ();
+        for ( my $i = 0 ; $i < $num_agents ; $i++ ) {
+            my $j = $res->[$i];
+            if ( !defined $j || $j >= $num_tasks ) {
+
+                # If the algorithm zero-pads the matrix
+                # (Algorithm::Munkres version 0.08) holds may be
+                # allocated to nonexisting items ($j >= 0).  We just ignore these.
+                next;
+            }
+            if ( $m0[$i][$j] > $max ) {
+
+                # No finite cost item was assigned to this hold.
+                push @unallocated, $j;
+            } else {
+
+                my $request = $requests[$j];
+                my $item    = $remaining_items[$i];
+                push @allocated, [
+                    $item->{itemnumber},
+                    {
+                        borrowernumber => $request->{borrowernumber},
+                        biblionumber   => $request->{biblionumber},
+                        holdingbranch  => $item->{holdingbranch},
+                        pickup_branch  => $request->{branchcode}
+                            || $request->{borrowerbranch},
+                        reserve_id   => $request->{reserve_id},
+                        item_level   => $request->{item_level_hold},
+                        reservedate  => $request->{reservedate},
+                        reservenotes => $request->{reservenotes},
+                    }
+                ];
+            }
+        }
+
+        if ( $retries-- > 0 && @unallocated && @remaining ) {
+
+            # Remove the transport cost of unfilled holds and compact the matrix.
+            # Also remove the hold request from the array.
+            for ( my $i = 0 ; $i < $num_agents ; $i++ ) {
+                my $u = 0;
+                for ( my $j = 0 ; $j < $num_tasks ; $j++ ) {
+                    if ( $u < scalar(@unallocated) && $unallocated[$u] == $j ) {
+                        $u++;
+                    } elsif ( $u > 0 ) {
+                        $m[$i][ $j - $u ] = $m[$i][$j];
+                    }
+                }
+            }
+            for ( my $u = 0 ; $u < scalar(@unallocated) ; $u++ ) {
+                splice @requests, $unallocated[$u], 1;
+            }
+            $num_tasks = scalar(@requests);
+
+            $r = $num_tasks;
+        } else {
+            if ( $retries == 0 && @unallocated && @remaining ) {
+                Koha::Logger->get->warn(
+                    "There are available items that have not been allocated and remaining holds, but we abort trying to fill these after $RETRIES retries."
+                );
+            }
+            last RETRY;
+        }
+    }
+
+    return \@allocated;
+}
+
 =head2 MapItemsToHoldRequests
 
-  MapItemsToHoldRequests($hold_requests, $available_items, $branches, $transport_cost_matrix)
+  my $item_map = MapItemsToHoldRequests($hold_requests, $available_items, $branches, $transport_cost_matrix)
+
+  Parameters:
+  $hold_requests is a hash containing hold information built by GetPendingHoldRequestsForBib
+  $available_items is a hash containing item information built by GetItemsAvailableToFillHoldRequestsForBib
+  $branches is an arrayref to a list of branches filled by load_branches_to_pull_from
+  $transport_cost_matrix is a hash of hashes with branchcodes as keys, listing the cost to transfer from that branch to another
+
+  Returns a hash of hashes with itemnumbers as keys, each itemnumber containing a hash with the information
+  about the hold it has been mapped to.
+
+  This routine attempts to match the holds in the following priority
+  1 - If local holds priority is enabled we check all requests to see if local matches can be found
+  2 - We check for item level matches and fill those
+  3 - We now loop the remaining requests in priority order attempting to fill with
+      a - Items where HoldsQueuePrioritizeBranch matches either from items held at the pickup branch, or at the least cost branch (if Transport Cost Matrix is being used)
+      b - Items where the homebranch of the item and the pickup library match
+      c - Items from the least cost branch (or items at the pickup location if available)
+      d - Any item that can fill the hold
 
 =cut
 
@@ -425,11 +721,6 @@ sub MapItemsToHoldRequests {
     # handle trival cases
     return unless scalar(@$hold_requests) > 0;
     return unless scalar(@$available_items) > 0;
-
-    # identify item-level requests
-    my %specific_items_requested = map { $_->{itemnumber} => 1 }
-                                   grep { defined($_->{itemnumber}) }
-                                   @$hold_requests;
 
     map { $_->{_object} = Koha::Items->find( $_->{itemnumber} ) } @$available_items;
     my $libraries = {};
@@ -463,13 +754,9 @@ sub MapItemsToHoldRequests {
             foreach my $item (@$available_items) {
                 next if $item->{_object}->exclude_from_local_holds_priority;
 
-                next unless _checkHoldPolicy($item, $request);
+                next unless _can_item_fill_request( $item, $request, $libraries );
 
                 next if $request->{itemnumber} && $request->{itemnumber} != $item->{itemnumber};
-
-                next if $request->{item_group_id} && $item->{_object}->item_group && $item->{_object}->item_group->id ne $request->{item_group_id};
-
-                next unless $item->{_object}->can_be_transferred( { to => $libraries->{ $request->{branchcode} } } );
 
                 my $local_holds_priority_item_branchcode =
                   $item->{$LocalHoldsPriorityItemControl};
@@ -510,6 +797,10 @@ sub MapItemsToHoldRequests {
         }
     }
 
+    # Handle item level requests
+    # Note that we loop the requests in priority order reserving an item for each title level hold
+    # So we will only fill item level requests if there are enough items to fill higher priority
+    # title level holds.
     foreach my $request (@$hold_requests) {
         last if $num_items_remaining == 0;
         next if $request->{allocated};
@@ -517,18 +808,9 @@ sub MapItemsToHoldRequests {
         # is this an item-level request?
         if (defined($request->{itemnumber})) {
             # fill it if possible; if not skip it
-            if (
-                    exists $items_by_itemnumber{ $request->{itemnumber} }
+            if (    exists $items_by_itemnumber{ $request->{itemnumber} }
                 and not exists $allocated_items{ $request->{itemnumber} }
-                and  _checkHoldPolicy($items_by_itemnumber{ $request->{itemnumber} }, $request) # Don't fill item level holds that contravene the hold pickup policy at this time
-                and ( !$request->{itemtype} # If hold itemtype is set, item's itemtype must match
-                    || $items_by_itemnumber{ $request->{itemnumber} }->{itype} eq $request->{itemtype} )
-                and ( !$request->{item_group_id} # If hold item_group is set, item's item_group must match
-                      || ( $items_by_itemnumber{ $request->{itemnumber} }->{_object}->item_group
-                        && $items_by_itemnumber{ $request->{itemnumber} }->{_object}->item_group->id eq $request->{item_group_id} ) )
-                and $items_by_itemnumber{ $request->{itemnumber} }->{_object}->can_be_transferred( { to => $libraries->{ $request->{branchcode} } } )
-
-              )
+                and _can_item_fill_request( $items_by_itemnumber{ $request->{itemnumber} }, $request, $libraries ) )
             {
 
                 $item_map{ $request->{itemnumber} } = {
@@ -550,6 +832,18 @@ sub MapItemsToHoldRequests {
         }
     }
 
+    if ( defined $transport_cost_matrix ) {
+        my $allocations = _allocateWithTransportCostMatrix(
+            $hold_requests,         $available_items,  $branches_to_use, $libraries,
+            $transport_cost_matrix, \%allocated_items, \%items_by_itemnumber
+        );
+        for my $allocation (@$allocations) {
+            $item_map{ $allocation->[0] } = $allocation->[1];
+            $num_items_remaining--;
+        }
+        return \%item_map;
+    }
+
     # group available items by branch
     my %items_by_branch = ();
     foreach my $item (@$available_items) {
@@ -568,78 +862,50 @@ sub MapItemsToHoldRequests {
         next if $request->{allocated};
         next if defined($request->{itemnumber}); # already handled these
 
-        # look for local match first
+        # HoldsQueuePrioritizeBranch check
+        # ********************************
         my $pickup_branch = $request->{branchcode} || $request->{borrowerbranch};
-        my ($itemnumber, $holdingbranch);
+        my ( $itemnumber, $holdingbranch );    # These variables are used for tracking the filling of the hold
+                                               # $itemnumber, when set, is the item that has been chosen for the hold
+            # $holdingbranch gets set to the pickup branch of the request if there are items held at that branch
+            # otherwise it gets set to the least cost branch of the transport cost matrix
+            # otherwise it gets sets to the first branch from the list of branches to pull from
 
         my $holding_branch_items = $items_by_branch{$pickup_branch};
-        if ( $holding_branch_items ) {
-            foreach my $item (@$holding_branch_items) {
-                next unless $items_by_itemnumber{ $item->{itemnumber} }->{_object}->can_be_transferred( { to => $libraries->{ $request->{branchcode} } } );
-
-                if (
-                    $request->{borrowerbranch} eq $item->{homebranch}
-                    && _checkHoldPolicy($item, $request) # Don't fill item level holds that contravene the hold pickup policy at this time
-                    && ( !$request->{itemtype} # If hold itemtype is set, item's itemtype must match
-                        || ( $request->{itemnumber} && ( $items_by_itemnumber{ $request->{itemnumber} }->{itype} eq $request->{itemtype} ) ) )
-                    && ( !$request->{item_group_id} # If hold item_group is set, item's item_group must match
-                        || ( $item->{_object}->item_group && $item->{_object}->item_group->id eq $request->{item_group_id} ) )
-                  )
-                {
-                    $itemnumber = $item->{itemnumber};
-                    last;
-                }
-            }
+        if ($holding_branch_items) {
             $holdingbranch = $pickup_branch;
         }
-        elsif ($transport_cost_matrix) {
-            $pull_branches = [keys %items_by_branch];
-            $holdingbranch = least_cost_branch( $pickup_branch, $pull_branches, $transport_cost_matrix );
-            if ( $holdingbranch ) {
 
-                my $holding_branch_items = $items_by_branch{$holdingbranch};
-                foreach my $item (@$holding_branch_items) {
-                    next if $request->{borrowerbranch} ne $item->{homebranch};
-                    next unless $items_by_itemnumber{ $item->{itemnumber} }->{_object}->can_be_transferred( { to => $libraries->{ $request->{branchcode} } } );
-
-                    # Don't fill item level holds that contravene the hold pickup policy at this time
-                    next unless _checkHoldPolicy($item, $request);
-
-                    # If hold itemtype is set, item's itemtype must match
-                    next unless ( !$request->{itemtype}
-                        || $item->{itype} eq $request->{itemtype} );
-
-                    # If hold item_group is set, item's item_group must match
-                    next unless (
-                        !$request->{item_group_id}
-                        || (   $item->{_object}->item_group
-                            && $item->{_object}->item_group->id eq $request->{item_group_id} )
-                    );
-
-                    $itemnumber = $item->{itemnumber};
-                    last;
-                }
-            }
-            else {
-                next;
+        my $priority_branch = C4::Context->preference('HoldsQueuePrioritizeBranch') // 'homebranch';
+        foreach my $item (@$holding_branch_items) {
+            if ( _can_item_fill_request( $item, $request, $libraries )
+                && $request->{borrowerbranch} eq $item->{$priority_branch} )
+            {
+                $itemnumber = $item->{itemnumber};
+                last;
             }
         }
+        # End HoldsQueuePrioritizeBranch check
+        # ********************************
 
+
+        # Not found yet, fall back to basics
         unless ($itemnumber) {
-            # not found yet, fall back to basics
             if ($branches_to_use) {
                 $pull_branches = $branches_to_use;
             } else {
                 $pull_branches = [keys %items_by_branch];
             }
+            $holdingbranch ||= $pull_branches->[0];    # We set this as the first from the list of pull branches
+                 # unless we set it above to the pickupbranch or the least cost branch
+                 # FIXME: The intention is to follow StaticHoldsQueueWeight, but we don't check that pref
 
             # Try picking items where the home and pickup branch match first
             PULL_BRANCHES:
             foreach my $branch (@$pull_branches) {
                 my $holding_branch_items = $items_by_branch{$branch}
-                  or next;
+                    or next;
 
-                $holdingbranch ||= $branch;
                 foreach my $item (@$holding_branch_items) {
                     next if $pickup_branch ne $item->{homebranch};
                     next unless _checkHoldPolicy($item, $request);
@@ -666,26 +932,13 @@ sub MapItemsToHoldRequests {
                     $holdingbranch = $branch;
                     last PULL_BRANCHES;
                 }
+                last if $itemnumber;
             }
 
             # Now try items from the least cost branch based on the transport cost matrix or StaticHoldsQueueWeight
             unless ( $itemnumber || !$holdingbranch) {
                 foreach my $current_item ( @{ $items_by_branch{$holdingbranch} } ) {
-                    next unless _checkHoldPolicy($current_item, $request); # Don't fill item level holds that contravene the hold pickup policy at this time
-
-                    # If hold itemtype is set, item's itemtype must match
-                    next unless ( !$request->{itemtype}
-                        || $current_item->{itype} eq $request->{itemtype} );
-
-                    next unless $items_by_itemnumber{ $current_item->{itemnumber} }->{_object}->can_be_transferred( { to => $libraries->{ $request->{branchcode} } } );
-
-                    # If hold item_group is set, item's item_group must match
-                    next unless (
-                        !$request->{item_group_id}
-                        || (   $current_item->{_object}->item_group
-                            && $current_item->{_object}->item_group->id eq $request->{item_group_id} )
-                    );
-
+                    next unless _can_item_fill_request( $current_item, $request, $libraries );
 
                     $itemnumber = $current_item->{itemnumber};
                     last; # quit this loop as soon as we have a suitable item
@@ -694,32 +947,18 @@ sub MapItemsToHoldRequests {
 
             # Now try for items for any item that can fill this hold
             unless ( $itemnumber ) {
-                PULL_BRANCHES2:
                 foreach my $branch (@$pull_branches) {
                     my $holding_branch_items = $items_by_branch{$branch}
                       or next;
 
                     foreach my $item (@$holding_branch_items) {
-                        # Don't fill item level holds that contravene the hold pickup policy at this time
-                        next unless _checkHoldPolicy($item, $request);
-
-                        # If hold itemtype is set, item's itemtype must match
-                        next unless ( !$request->{itemtype}
-                            || $item->{itype} eq $request->{itemtype} );
-
-                        # If hold item_group is set, item's item_group must match
-                        next unless (
-                            !$request->{item_group_id}
-                            || (   $item->{_object}->item_group
-                                && $item->{_object}->item_group->id eq $request->{item_group_id} )
-                        );
-
-                        next unless $items_by_itemnumber{ $item->{itemnumber} }->{_object}->can_be_transferred( { to => $libraries->{ $request->{branchcode} } } );
-
-                        $itemnumber = $item->{itemnumber};
-                        $holdingbranch = $branch;
-                        last PULL_BRANCHES2;
+                        if( _can_item_fill_request( $item, $request, $libraries ) ){
+                            $itemnumber = $item->{itemnumber};
+                            $holdingbranch = $branch;
+                            last;
+                        }
                     }
+                    last if $itemnumber;
                 }
             }
         }
@@ -745,6 +984,42 @@ sub MapItemsToHoldRequests {
     }
     return \%item_map;
 }
+
+
+=head2 _can_item_fill_request
+
+  my $bool = _can_item_fill_request( $item, $request, $libraries );
+
+  This is an internal function of MapItemsToHoldRequests for checking an item against a hold. It uses the custom hashes for item and hold information
+  used by that routine
+
+=cut
+
+sub _can_item_fill_request {
+    my ( $item, $request, $libraries ) = @_;
+
+    # Don't fill item level holds that contravene the hold pickup policy at this time
+    return unless _checkHoldPolicy( $item, $request );
+
+    # If hold itemtype is set, item's itemtype must match
+    return unless ( !$request->{itemtype}
+        || $item->{itype} eq $request->{itemtype} );
+
+    # If hold item_group is set, item's item_group must match
+    return
+        unless (
+        !$request->{item_group_id}
+        || (   $item->{_object}->item_group
+            && $item->{_object}->item_group->id eq $request->{item_group_id} )
+        );
+
+    return
+        unless $item->{_object}->can_be_transferred( { to => $libraries->{ $request->{branchcode} } } );
+
+    return 1;
+}
+
+
 
 =head2 CreatePickListFromItemMap
 
@@ -910,7 +1185,8 @@ sub least_cost_branch {
             biblio_id             => $biblio_id,
           [ branches_to_use       => $branches_to_use,
             transport_cost_matrix => $transport_cost_matrix,
-            delete                => $delete, ]
+            delete                => $delete,
+            unallocated           => $unallocated, ]
         }
     );
 
@@ -941,6 +1217,9 @@ It return a hashref containing:
 
 =item I<delete> tells the method to delete prior entries on the related tables for the biblio_id.
 
+=item I<unallocated> tells the method to limit the holds to those not in the holds queue, should not
+    be passed at the same time as delete.
+
 =back
 
 Note: All the optional parameters will be calculated in the method if omitted. They
@@ -961,7 +1240,7 @@ sub update_queue_for_biblio {
         $dbh->do("DELETE FROM hold_fill_targets WHERE biblionumber=$biblio_id");
     }
 
-    my $hold_requests   = GetPendingHoldRequestsForBib($biblio_id);
+    my $hold_requests   = GetPendingHoldRequestsForBib({ biblionumber => $biblio_id });
     $result->{requests} = scalar( @{$hold_requests} );
     # No need to check anything else if there are no holds to fill
     return $result unless $result->{requests};

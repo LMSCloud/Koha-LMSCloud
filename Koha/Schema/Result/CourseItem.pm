@@ -152,7 +152,7 @@ a place to store the holdingbranch when item is on course reserve
   is_nullable: 1
   size: 80
 
-new shelving location for the item to have while on reseve (optional)
+new shelving location for the item to have while on reserve (optional)
 
 =head2 location_enabled
 
@@ -177,7 +177,7 @@ a place to store the location when the item is on course reserve
   extra: {list => ["yes","no"]}
   is_nullable: 0
 
-if at least one enabled course has this item on reseve, this field will be 'yes', otherwise it will be 'no'
+if at least one enabled course has this item on reserve, this field will be 'yes', otherwise it will be 'no'
 
 =head2 timestamp
 
@@ -380,8 +380,11 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07046 @ 2021-06-11 18:35:38
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:3fFJ3uJr+5pMZniZ1glIpg
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-07-19 12:30:40
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ZlR7CGNngDWQKmuggaYgVw
+
+
+# You can replace this text with custom code or comments, and it will be preserved on regeneration
 
 __PACKAGE__->add_columns(
     '+itype_enabled'         => { is_boolean => 1 },

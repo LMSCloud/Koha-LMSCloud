@@ -44,8 +44,8 @@ sub add {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $body    = $c->validation->param('body');
-        my $club_id = $c->validation->param('club_id');
+        my $body    = $c->req->json;
+        my $club_id = $c->param('club_id');
 
         my $biblio;
 
@@ -76,10 +76,7 @@ sub add {
             my $item = Koha::Items->find($item_id);
 
             unless ($item) {
-                return $c->render(
-                    status  => 404,
-                    openapi => { error => "Item not found" }
-                );
+                return $c->render_resource_not_found("Item");
             }
             else {
                 $biblio = $item->biblio;
@@ -95,12 +92,8 @@ sub add {
             );
         }
 
-        unless ($biblio) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => "Biblio not found" }
-            );
-        }
+        return $c->render_resource_not_found("Bibliographic record")
+            unless $biblio;
 
         my $club_hold = Koha::Club::Hold::add(
             {
@@ -115,9 +108,11 @@ sub add {
             }
         );
 
+        $c->res->headers->location( $c->req->url->to_string . '/' . $club_hold->id );
+
         return $c->render(
             status  => 201,
-            openapi => $club_hold->to_api
+            openapi => $c->objects->to_api($club_hold),
         );
     }
     catch {

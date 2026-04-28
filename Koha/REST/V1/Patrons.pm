@@ -22,6 +22,7 @@ use Mojo::Base 'Mojolicious::Controller';
 use Koha::Database;
 use Koha::Exceptions;
 use Koha::Patrons;
+use C4::Letters qw( GetPreparedLetter EnqueueLetter SendQueuedMessages );
 
 use List::MoreUtils qw(any);
 use Scalar::Util qw( blessed );
@@ -49,7 +50,8 @@ sub list {
     return try {
 
         my $query = {};
-        my $restricted = delete $c->validation->output->{restricted};
+        my $restricted = $c->param('restricted');
+        $c->req->params->remove('restricted');
         $query->{debarred} = { '!=' => undef }
             if $restricted;
         
@@ -250,15 +252,11 @@ sub get {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $patron_id = $c->validation->param('patron_id');
+        my $patron_id = $c->param('patron_id');
         my $patron    = $c->objects->find( Koha::Patrons->search_limited, $patron_id );
 
-        unless ($patron) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => "Patron not found." }
-            );
-        }
+        return $c->render_resource_not_found("Patron")
+            unless $patron;
 
         return $c->render(
             status  => 200,
@@ -309,17 +307,50 @@ sub add {
         Koha::Database->new->schema->txn_do(
             sub {
 
-                my $body = $c->validation->param('body');
+                my $body = $c->req->json;
 
                 my $extended_attributes = delete $body->{extended_attributes} // [];
 
                 my $patron = Koha::Patron->new_from_api($body)->store;
+
                 $patron->extended_attributes(
-                    [
-                        map { { code => $_->{type}, attribute => $_->{value} } }
-                          @$extended_attributes
-                    ]
-                );
+                    [ map { { code => $_->{type}, attribute => $_->{value} } } @$extended_attributes ] );
+
+                my $overrides = $c->stash('koha.overrides');
+                if ( $overrides->{welcome_yes}
+                    || ( C4::Context->preference("AutoEmailNewUser") && !$overrides->{welcome_no} ) )
+                {
+
+                    # if we manage to find a valid email address, send notice
+                    if ( $patron->notice_email_address ) {
+                        my $letter = GetPreparedLetter(
+                            module      => 'members',
+                            letter_code => 'WELCOME',
+                            branchcode  => $patron->branchcode,
+                            lang   => $patron->lang || 'default',
+                            tables => {
+                                'branches'  => $patron->branchcode,
+                                'borrowers' => $patron->borrowernumber,
+                            },
+                            want_librarian => 1,
+                        );
+
+                        if ($letter) {
+                            my $message_id = EnqueueLetter(
+                                {
+                                    letter                 => $letter,
+                                    borrowernumber         => $patron->id,
+                                    to_address             => $patron->notice_email_address,
+                                    message_transport_type => 'email'
+                                }
+                            );
+
+                            # Don't send a message if we didn't generate one for some reason
+                            SendQueuedMessages( { message_id => $message_id } ) if $message_id;
+                        }
+                    }
+                }
+
                 if ( C4::Context->preference('EnhancedMessagingPreferences') ) {
                     C4::Members::Messaging::SetMessagingPreferencesFromDefaults(
                         {
@@ -332,7 +363,7 @@ sub add {
                 $c->res->headers->location($c->req->url->to_string . '/' . $patron->borrowernumber);
                 return $c->render(
                     status  => 201,
-                    openapi => $patron->to_api
+                    openapi => $c->objects->to_api($patron),
                 );
             }
         );
@@ -348,6 +379,12 @@ sub add {
                     openapi => { error => $_->error, conflict => $_->duplicate_id }
                 );
             }
+            elsif ( $_->isa('Koha::Exceptions::Patron::InvalidUserid') ) {
+                return $c->render(
+                    status  => 400,
+                    openapi => { error => "Problem with ". $_->userid }
+                );
+            }
             elsif ( $_->isa('Koha::Exceptions::Object::FKConstraint') ) {
                 return $c->render(
                     status  => 400,
@@ -359,13 +396,12 @@ sub add {
                 );
             }
             elsif ( $_->isa('Koha::Exceptions::BadParameter') ) {
+                my $parameter = $to_api_mapping->{ $_->parameter } || $_->parameter;
+                my $error =
+                    $parameter ? "Given " . $to_api_mapping->{ $_->parameter } . " does not exist" : $_->full_message;
                 return $c->render(
                     status  => 400,
-                    openapi => {
-                            error => "Given "
-                            . $to_api_mapping->{ $_->parameter }
-                            . " does not exist"
-                    }
+                    openapi => { error => $error }
                 );
             }
             elsif (
@@ -374,7 +410,7 @@ sub add {
             {
                 return $c->render(
                     status  => 400,
-                    openapi => { error => "$_" }
+                    openapi => { error => "$_", error_code => 'missing_mandatory_attribute' }
                 );
             }
             elsif (
@@ -383,7 +419,7 @@ sub add {
             {
                 return $c->render(
                     status  => 400,
-                    openapi => { error => "$_" }
+                    openapi => { error => "$_", error_code => 'invalid_attribute_type' }
                 );
             }
             elsif (
@@ -392,7 +428,7 @@ sub add {
             {
                 return $c->render(
                     status  => 400,
-                    openapi => { error => "$_" }
+                    openapi => { error => "$_", error_code => 'non_repeatable_attribute' }
                 );
             }
             elsif (
@@ -401,7 +437,7 @@ sub add {
             {
                 return $c->render(
                     status  => 400,
-                    openapi => { error => "$_" }
+                    openapi => { error => "$_", error_code => 'attribute_not_unique' }
                 );
             }
         }
@@ -420,18 +456,13 @@ Controller function that handles updating a Koha::Patron object
 sub update {
     my $c = shift->openapi->valid_input or return;
 
-    my $patron_id = $c->validation->param('patron_id');
-    my $patron    = Koha::Patrons->find( $patron_id );
+    my $patron = Koha::Patrons->find( $c->param('patron_id') );
 
-    unless ($patron) {
-         return $c->render(
-             status  => 404,
-             openapi => { error => "Patron not found" }
-         );
-     }
+    return $c->render_resource_not_found("Patron")
+        unless $patron;
 
     return try {
-        my $body = $c->validation->param('body');
+        my $body = $c->req->json;
         my $user = $c->stash('koha.user');
 
         if (
@@ -440,14 +471,15 @@ sub update {
             and (  exists $body->{email}
                 or exists $body->{secondary_email}
                 or exists $body->{altaddress_email} )
-          )
+            )
         {
-            foreach my $email_field ( qw(email secondary_email altaddress_email) ) {
+            foreach my $email_field (qw(email secondary_email altaddress_email)) {
                 my $exists_email = exists $body->{$email_field};
                 next unless $exists_email;
 
                 # exists, verify if we are asked to change it
-                my $put_email      = $body->{$email_field};
+                my $put_email = $body->{$email_field};
+
                 # As of writing this patch, 'email' is the only unmapped field
                 # (i.e. it preserves its name, hence this fallback)
                 my $db_email_field = $patron->to_api_mapping->{$email_field} // 'email';
@@ -456,25 +488,38 @@ sub update {
                 return $c->render(
                     status  => 403,
                     openapi => { error => "Not enough privileges to change a superlibrarian's email" }
-                  )
-                  unless ( !defined $put_email and !defined $db_email )
-                  or (  defined $put_email
+                    )
+                    unless ( !defined $put_email and !defined $db_email )
+                    or (defined $put_email
                     and defined $db_email
                     and $put_email eq $db_email );
             }
         }
 
-        $patron->set_from_api($c->validation->param('body'))->store;
-        $patron->discard_changes;
-        return $c->render( status => 200, openapi => $patron->to_api );
-    }
-    catch {
+        $patron->_result->result_source->schema->txn_do(
+            sub {
+                # Remove `extended_attributes` before storing
+                my $extended_attributes = delete $body->{extended_attributes};
+
+                if ($extended_attributes) {
+                    my $rs = $patron->extended_attributes(
+                        [ map { { code => $_->{type}, attribute => $_->{value} } } @{$extended_attributes} ] );
+                }
+
+                $patron->set_from_api($body)->store;
+                $patron->discard_changes;
+
+                return $c->render(
+                    status  => 200,
+                    openapi => $c->objects->to_api($patron),
+                );
+            }
+        );
+    } catch {
         unless ( blessed $_ && $_->can('rethrow') ) {
             return $c->render(
                 status  => 500,
-                openapi => {
-                    error => "Something went wrong, check Koha logs for details."
-                }
+                openapi => { error => "Something went wrong, check Koha logs for details." }
             );
         }
         if ( $_->isa('Koha::Exceptions::Object::DuplicateID') ) {
@@ -482,16 +527,17 @@ sub update {
                 status  => 409,
                 openapi => { error => $_->error, conflict => $_->duplicate_id }
             );
-        }
-        elsif ( $_->isa('Koha::Exceptions::Object::FKConstraint') ) {
+        } elsif ( $_->isa('Koha::Exceptions::Patron::InvalidUserid') ) {
             return $c->render(
                 status  => 400,
-                openapi => { error => "Given " .
-                            $patron->to_api_mapping->{$_->broken_fk}
-                            . " does not exist" }
+                openapi => { error => "Problem with " . $_->userid }
             );
-        }
-        elsif ( $_->isa('Koha::Exceptions::MissingParameter') ) {
+        } elsif ( $_->isa('Koha::Exceptions::Object::FKConstraint') ) {
+            return $c->render(
+                status  => 400,
+                openapi => { error => "Given " . $patron->to_api_mapping->{ $_->broken_fk } . " does not exist" }
+            );
+        } elsif ( $_->isa('Koha::Exceptions::MissingParameter') ) {
             return $c->render(
                 status  => 400,
                 openapi => {
@@ -499,8 +545,7 @@ sub update {
                     parameters => $_->parameter
                 }
             );
-        }
-        elsif ( $_->isa('Koha::Exceptions::BadParameter') ) {
+        } elsif ( $_->isa('Koha::Exceptions::BadParameter') ) {
             return $c->render(
                 status  => 400,
                 openapi => {
@@ -508,16 +553,34 @@ sub update {
                     parameters => $_->parameter
                 }
             );
-        }
-        elsif ( $_->isa('Koha::Exceptions::NoChanges') ) {
+        } elsif ( $_->isa('Koha::Exceptions::NoChanges') ) {
             return $c->render(
                 status  => 204,
                 openapi => { error => "No changes have been made" }
             );
+        } elsif ( $_->isa('Koha::Exceptions::Patron::Attribute::InvalidType') ) {
+            return $c->render(
+                status  => 400,
+                openapi => { error => "$_", error_code => 'invalid_attribute_type' }
+            );
+        } elsif ( $_->isa('Koha::Exceptions::Patron::Attribute::UniqueIDConstraint') ) {
+            return $c->render(
+                status  => 400,
+                openapi => { error => "$_", error_code => 'attribute_not_unique' }
+            );
+        } elsif ( $_->isa('Koha::Exceptions::Patron::Attribute::NonRepeatable') ) {
+            return $c->render(
+                status  => 400,
+                openapi => { error => "$_", error_code => 'non_repeatable_attribute' }
+            );
+        } elsif ( $_->isa('Koha::Exceptions::Patron::MissingMandatoryExtendedAttribute') ) {
+            return $c->render(
+                status  => 400,
+                openapi => { error => "$_", error_code => 'missing_mandatory_attribute' }
+            );
         }
-        else {
-            $c->unhandled_exception($_);
-        }
+
+        $c->unhandled_exception($_);
     };
 }
 
@@ -530,14 +593,10 @@ Controller function that handles deleting a Koha::Patron object
 sub delete {
     my $c = shift->openapi->valid_input or return;
 
-    my $patron = Koha::Patrons->find( $c->validation->param('patron_id') );
+    my $patron = Koha::Patrons->find( $c->param('patron_id') );
 
-    unless ( $patron ) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Patron not found" }
-        );
-    }
+    return $c->render_resource_not_found("Patron")
+        unless $patron;
 
     return try {
 
@@ -551,10 +610,11 @@ sub delete {
             }
 
             my $error_descriptions = {
-                has_checkouts  => 'Pending checkouts prevent deletion',
-                has_debt       => 'Pending debts prevent deletion',
-                has_guarantees => 'Patron is a guarantor and it prevents deletion',
+                has_checkouts       => 'Pending checkouts prevent deletion',
+                has_debt            => 'Pending debts prevent deletion',
+                has_guarantees      => 'Patron is a guarantor and it prevents deletion',
                 is_anonymous_patron => 'Anonymous patron cannot be deleted',
+                is_protected        => 'Protected patrons cannot be deleted',
             };
 
             if ( any { $error->message eq $_ } keys %{$error_descriptions} ) {
@@ -575,10 +635,7 @@ sub delete {
                 $patron->move_to_deleted;
                 $patron->delete;
 
-                return $c->render(
-                    status  => 204,
-                    openapi => q{}
-                );
+                return $c->render_resource_deleted;
             }
         );
     } catch {

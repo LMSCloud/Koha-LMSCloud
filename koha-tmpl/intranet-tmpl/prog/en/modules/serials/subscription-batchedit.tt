@@ -1,10 +1,17 @@
 [% USE raw %]
+[% USE Koha %]
+[% USE Asset %]
 [% USE AuthorisedValues %]
 [% USE Branches %]
 [% USE ItemTypes %]
 [% USE KohaDates %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-    <title>Batch edit &rsaquo; Serials &rsaquo; Koha</title>
+    <title>[% FILTER collapse %]
+    [% t("Batch edit") | html %] &rsaquo;
+    [% t("Serials") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
     [% INCLUDE 'doc-head-close.inc' %]
     [% INCLUDE 'calendar.inc' %]
 </head>
@@ -26,8 +33,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
                     <h1>Subscription batch edit</h1>
 
@@ -76,6 +84,7 @@
                     </div>
 
                     <form method="post">
+                        [% INCLUDE 'csrf-token.inc' %]
                         [% FOREACH subscription IN subscriptions %]
                             <input type="hidden" name="subscriptionid" value="[% subscription.subscriptionid | html %]"/>
                         [% END %]
@@ -141,39 +150,28 @@
                                     <label for="enddate">Expiration date: </label>
                                     <input type="text" class="flatpickr" id="enddate" name="enddate" placeholder="No change"/>
                                 </li>
-                                [% FOREACH field IN additional_fields %]
-                                    <li>
-                                        <label for="field_[% field.id | html %]">[% field.name | html %]</label>
-                                        [% IF field.authorised_value_category %]
-                                            <select id="field_[% field.id | html %]" name="field_[% field.id | html %]">
-                                                <option value="">No change</option>
-                                                [% FOREACH av IN AuthorisedValues.Get(field.authorised_value_category) %]
-                                                    <option value="[% av.authorised_value | html %]">[% av.lib | html %]</option>
-                                                [% END %]
-                                            </select>
-                                        [% ELSE %]
-                                            <input type="text" id="field_[% field.id | html %]" name="field_[% field.id | html %]" placeholder="No change"/>
-                                        [% END %]
-                                    </li>
+                                [% IF available_additional_fields.count %]
+                                    [% INCLUDE 'additional-fields-entry.inc' available=available_additional_fields values=additional_field_values batch_edit=1 %]
                                 [% END %]
                             </ol>
                         </fieldset>
 
                         <fieldset class="action">
-                            <button type="submit" name="batchedit" class="btn btn-primary" value="1">Save</button>
+                            <input type="hidden" name="op" value="cud-batchedit" />
+                            <button type="submit" class="btn btn-primary">Save</button>
                             <a class="cancel" href="[% referrer | url %]">Cancel</a>
                         </fieldset>
                     </form>
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'serials-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
     </div> <!-- /.row -->
 
-
+    [% Asset.js("js/additional-fields-entry.js") | $raw %]
     [% INCLUDE 'intranet-bottom.inc' %]

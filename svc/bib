@@ -64,15 +64,23 @@ if ($query->request_method eq "GET") {
 exit 0;
 
 sub fetch_bib {
-    my $query = shift;
-    my $biblionumber = shift;
-    my $biblio = Koha::Biblios->find( $biblionumber );
-    my $record = $biblio->metadata->record({ embed_items => scalar $query->param('items') });
-    if  (defined $record) {
-        print $query->header(-type => 'text/xml',-charset => 'utf-8',);
+    my ( $query, $biblionumber ) = @_;
+    my $biblio = Koha::Biblios->find($biblionumber);
+    my $record;
+    my $exception;
+    my $invalid_metadata = 0;
+    if ( defined $biblio ) {
+        eval { $record = $biblio->metadata_record( { embed_items => scalar $query->param('items') } ) };
+        if ($@) {
+            $exception = $@;
+            $exception->rethrow unless ( $exception->isa('Koha::Exceptions::Metadata::Invalid') );
+            $record = $biblio->metadata->record_strip_nonxml( { embed_items => scalar $query->param('items') } );
+            $invalid_metadata = 1;
+        }
+        print $query->header( -type => 'text/xml', -charset => 'utf-8', -invalid_metadata => $invalid_metadata );
         print $record->as_xml_record();
     } else {
-        print $query->header(-type => 'text/xml', -status => '404 Not Found');
+        print $query->header( -type => 'text/xml', -status => '404 Not Found' );
     }
 }
 
@@ -80,7 +88,7 @@ sub update_bib {
     my $query = shift;
     my $biblionumber = shift;
     my $biblio = Koha::Biblios->find( $biblionumber );
-    my $old_record = $biblio->metadata->record;
+    my $old_record = $biblio->metadata;
     my $frameworkcode = $query->url_param('frameworkcode') // GetFrameworkCode($biblionumber);
     unless  (defined $old_record) {
         print $query->header(-type => 'text/xml', -status => '404 Not Found');
@@ -117,7 +125,7 @@ sub update_bib {
 
         C4::Biblio::ModBiblio( $record, $biblionumber, $frameworkcode );
         my $biblio = Koha::Biblios->find( $biblionumber );
-        my $new_record = $biblio->metadata->record({ embed_items => scalar $query->url_param('items') });
+        my $new_record = $biblio->metadata_record( { embed_items => scalar $query->url_param('items') } );
 
         $result->{'status'} = "ok";
         $result->{'biblionumber'} = $biblionumber;

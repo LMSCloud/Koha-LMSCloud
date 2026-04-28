@@ -19,9 +19,11 @@
 
 use Modern::Perl;
 
-use Test::More tests => 4;
+use Test::More tests => 5;
 
 use Test::MockModule;
+use Test::MockObject;
+use Test::NoWarnings;
 use Test::Exception;
 
 use JSON qw(encode_json);
@@ -38,6 +40,7 @@ my $schema  = Koha::Database->new->schema;
 my $builder = t::lib::TestBuilder->new;
 
 subtest 'get_user() tests' => sub {
+
     plan tests => 4;
 
     $schema->storage->txn_begin;
@@ -49,7 +52,8 @@ subtest 'get_user() tests' => sub {
             value => { identity_provider_id => $provider->id, domain => '', update_on_auth => 0, allow_opac => 1, allow_staff => 0 }
         }
     );
-    my $patron  = $builder->build_object( { class => 'Koha::Patrons', value => { email => 'patron@test.com' } } );
+    my $patron = $builder->build_object( { class => 'Koha::Patrons', value => { email => 'patron@test.com' } } );
+    t::lib::Mocks::mock_userenv( { patron => $patron } );
     my $mapping = {
         email     => 'electronic_mail',
         firstname => 'given_name',
@@ -69,13 +73,15 @@ subtest 'get_user() tests' => sub {
     my $data = { id_token => $id_token };
 
     my ( $resolved_patron, $mapped_data, $resolved_domain ) = $client->get_user( { provider => $provider->code, data => $data, interface => 'opac' } );
-    is_deeply( $resolved_patron->to_api, $patron->to_api, 'Patron correctly retrieved' );
+    is_deeply(
+        $resolved_patron->to_api( { user => $patron } ), $patron->to_api( { user => $patron } ),
+        'Patron correctly retrieved'
+    );
     is( $mapped_data->{firstname},            'test name',                                   'Data mapped correctly' );
     is( $mapped_data->{surname},              undef,                                         'No surname mapped' );
     is( $domain->identity_provider_domain_id, $resolved_domain->identity_provider_domain_id, 'Is the same domain' );
 
     $schema->storage->txn_rollback;
-
 };
 
 subtest 'get_valid_domain_config() tests' => sub {

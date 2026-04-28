@@ -1,5 +1,5 @@
 <template>
-    <li>
+    <li class="breadcrumb-item">
         <span>
             <router-link
                 v-if="item.name"
@@ -31,14 +31,14 @@
                 </template>
                 <span v-if="item.title">{{ $__(item.title) }}</span>
             </a>
-            <span v-else :class="{ disabled: item.disabled }">
+            <a v-else href="#" aria-current="page">
                 <template v-if="item.icon">
                     <i :class="`${item.icon}`"></i>&nbsp;
                 </template>
                 <span class="item-last" v-if="item.title">{{
                     $__(item.title)
                 }}</span>
-            </span>
+            </a>
         </span>
         <ul v-if="item.children && item.children.length">
             <NavigationItem
@@ -62,5 +62,8 @@ export default {
 <style>
 span.item-last {
     padding: 7px 3px;
+}
+#navmenulist .breadcrumb-item::before {
+    display: none;
 }
 </style>

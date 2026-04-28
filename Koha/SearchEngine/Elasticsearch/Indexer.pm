@@ -19,10 +19,10 @@ package Koha::SearchEngine::Elasticsearch::Indexer;
 
 use Carp qw( carp croak );
 use Modern::Perl;
-use Try::Tiny qw( catch try );
-use List::Util qw( any );
-use base qw(Koha::SearchEngine::Elasticsearch);
-use Data::Dumper;
+use Try::Tiny       qw( catch try );
+use List::Util      qw( any );
+use List::MoreUtils qw( natatime );
+use base            qw(Koha::SearchEngine::Elasticsearch);
 
 use Koha::Exceptions;
 use Koha::Exceptions::Elasticsearch;
@@ -276,7 +276,7 @@ sub update_mappings {
     try {
         my $response = $elasticsearch->indices->put_mapping(
             index => $self->index_name,
-            body => $mappings
+            body => $mappings,
         );
     } catch {
         $self->set_index_status_recreate_required();
@@ -316,6 +316,9 @@ at the moment.
 The other variables are used for parity with Zebra indexing calls. Currently the calls are passed through
 to Zebra as well.
 
+Will obey the chunk_size defined in koha-conf for amount of records to send during a single reindex, or default
+to 5000.
+
 =cut
 
 sub index_records {
@@ -323,10 +326,19 @@ sub index_records {
     $record_numbers = [$record_numbers] if ref $record_numbers ne 'ARRAY' && defined $record_numbers;
     $records = [$records] if ref $records ne 'ARRAY' && defined $records;
     if ( $op eq 'specialUpdate' ) {
-        if ($records){
-            $self->update_index( $record_numbers, $records );
+        my $config    = $self->get_elasticsearch_params;
+        my $at_a_time = $config->{chunk_size} // 5000;
+        my ( $record_chunks, $record_id_chunks );
+        $record_chunks    = natatime $at_a_time, @$records        if ($records);
+        $record_id_chunks = natatime $at_a_time, @$record_numbers if ($record_numbers);
+        if ($records) {
+            while ( (my @records = $record_chunks->()) && (my @record_ids = $record_id_chunks->()) ) {
+                $self->update_index( \@record_ids, \@records );
+            }
         } else {
-            $self->update_index_background( $record_numbers, $server );
+            while ( my @record_ids = $record_id_chunks->() ) {
+                $self->update_index_background( \@record_ids, $server );
+            }
         }
     }
     elsif ( $op eq 'recordDelete' ) {
@@ -343,7 +355,7 @@ sub _get_record {
 
     if ( $self->index eq $Koha::SearchEngine::BIBLIOS_INDEX ) {
         my $biblio = Koha::Biblios->find($record_id);
-        $record = $biblio->metadata->record( { embed_items => 1 } )
+        $record = $biblio->metadata_record( { embed_items => 1 } )
           if $biblio;
     } else {
         $record = C4::AuthoritiesMarc::GetAuthority($record_id);

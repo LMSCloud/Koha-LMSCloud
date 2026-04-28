@@ -23,10 +23,16 @@ define( [ '/cgi-bin/koha/svc/cataloguing/framework?frameworkcode=&callback=defin
     var _framework_mappings = {};
     var _framework_kohafields = {};
 
+    async function _readStream(stream){
+        let xml_response = new Response(stream);
+        let the_xml = await xml_response.text();
+        return the_xml;
+    }
+
     function _fromXMLStruct( data ) {
         result = {};
 
-        $(data).children().eq(0).children().each( function() {
+        $(data).children().each( function() {
             var $contents = $(this).contents();
             if ( $contents.length == 1 && $contents[0].nodeType == Node.TEXT_NODE ) {
                 result[ this.localName ] = $contents[0].data;
@@ -106,7 +112,11 @@ define( [ '/cgi-bin/koha/svc/cataloguing/framework?frameworkcode=&callback=defin
         GetRecord: function( id, remove_control_num, callback ) {
             $.get(
                 '/cgi-bin/koha/svc/bib/'+ id
-            ).done( function( metadata ) {
+            ).done( function( metadata, status, xhr ) {
+                let encoding_issues = xhr.getResponseHeader('invalid-metadata');
+                if( encoding_issues > 0 ){
+                    humanMsg.displayAlert( _("Record had encoding issues, please switch to the basic editor to view details") );
+                }
                 $.get(
                     '/cgi-bin/koha/svc/bib_framework/' + id
                 ).done( function( frameworkcode ) {
@@ -134,20 +144,26 @@ define( [ '/cgi-bin/koha/svc/cataloguing/framework?frameworkcode=&callback=defin
             record = record.clone();
             _removeBiblionumberFields( record );
 
-            $.ajax( {
-                type: 'POST',
-                url: '/cgi-bin/koha/svc/new_bib?frameworkcode=' + encodeURIComponent(frameworkcode),
-                data: record.toXML(),
-                contentType: 'text/xml'
-            } ).done( function( data ) {
-                var record = _fromXMLStruct( data );
-                if ( record.marcxml ) {
-                    record.marcxml[0].frameworkcode = frameworkcode;
+            const client = APIClient.cataloguing;
+            client.catalog_bib.create({ frameworkcode: frameworkcode, record: record }).then(
+                success => {
+                    _readStream( success.body ).then(
+                    success=> {
+                        var xml_response = success;
+                        var record =_fromXMLStruct( xml_response );
+                        if ( record.marcxml ) {
+                            record.marcxml[0].frameworkcode = frameworkcode;
+                        }
+                        callback( record );
+                    },
+                    error => {
+                        callback( { error: _('Could not parse response') } );
+                    }
+                );},
+                error => {
+                    callback( { error: _('Could not save record') } );
                 }
-                callback( record );
-            } ).fail( function( data ) {
-                callback( { error: _('Could not save record') } );
-            } );
+            );
         },
 
         SaveRecord: function( id, record, callback ) {
@@ -155,20 +171,26 @@ define( [ '/cgi-bin/koha/svc/cataloguing/framework?frameworkcode=&callback=defin
             record = record.clone();
             _removeBiblionumberFields( record );
 
-            $.ajax( {
-                type: 'POST',
-                url: '/cgi-bin/koha/svc/bib/' + id + '?frameworkcode=' + encodeURIComponent(frameworkcode),
-                data: record.toXML(),
-                contentType: 'text/xml'
-            } ).done( function( data ) {
-                var record = _fromXMLStruct( data );
-                if ( record.marcxml ) {
-                    record.marcxml[0].frameworkcode = frameworkcode;
+            const client = APIClient.cataloguing;
+            client.catalog_bib.update({ frameworkcode: frameworkcode, record: record, id: id }).then(
+                success => {
+                    _readStream( success.body ).then(
+                    success=> {
+                        var xml_response = success;
+                        var record =_fromXMLStruct( xml_response );
+                        if ( record.marcxml ) {
+                            record.marcxml[0].frameworkcode = frameworkcode;
+                        }
+                        callback( record );
+                    },
+                    error => {
+                        callback( { error: _('Could not parse response') } );
+                    }
+                );},
+                error => {
+                    callback( { error: _('Could not save record') } );
                 }
-                callback( record );
-            } ).fail( function( data ) {
-                callback( { error: _('Could not save record') } );
-            } );
+            );
         },
 
         GetTagsBy: function( frameworkcode, field, value ) {

@@ -3,13 +3,16 @@
 [% USE Koha %]
 [% USE AuthorisedValues %]
 [% USE Branches %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% UNLESS blocking_error %]
-        Statistics for [% INCLUDE 'patron-title.inc' no_html = 1 %]
-    [% END %] &rsaquo; Patrons &rsaquo; Koha
-</title>
+        [% t("Statistics for") | html %] [% INCLUDE 'patron-title.inc' no_html = 1 %]
+    [% END %] &rsaquo;
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -34,8 +37,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
         [% INCLUDE 'members-toolbar.inc' %]
 
@@ -91,17 +95,17 @@
                     </table>
                 </div> <!-- /.page-section -->
             [% ELSE %]
-                <div class="dialog message">There are no statistics for this patron.</div>
+                <div class="alert alert-info">There are no statistics for this patron.</div>
             [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'circ-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -111,8 +115,8 @@
     <script>
         $(document).ready(function() {
             $("#statistics").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "sDom": 't',
-                "bPaginate": false
+                "dom": 't',
+                "paginate": false
             }));
         });
     </script>

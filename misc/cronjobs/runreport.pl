@@ -54,6 +54,8 @@ runreport.pl [ -h | -m ] [ -v ] reportID [ reportID ... ]
    --format=s      selects format. Choice of text, html, csv or tsv
 
    -e --email      whether to use e-mail (implied by --to or --from)
+   --send_empty    whether to send an email when there are no results from the
+                   specified report
    -a --attachment additionally attach the report as a file. cannot be used with html format
    --username      username to pass to the SMTP server for authentication
    --password      password to pass to the SMTP server for authentication
@@ -61,8 +63,10 @@ runreport.pl [ -h | -m ] [ -v ] reportID [ reportID ... ]
    --to=s          e-mail address to send report to
    --from=s        e-mail address to send report from
    --subject=s     subject for the e-mail
-   --param=s      parameters for the report
+   --param=s       parameters for the report
    --store-results store the result of the report
+   --separator     separator character for csv
+   --quote         quote character for csv
    --csv-header    add column names as first line of csv output
 
 
@@ -92,6 +96,11 @@ Current options are text, html, csv, and tsv. At the moment, text and tsv both p
 =item B<--separator>
 
 Separator character, only for csv format. Default to comma.
+
+=item B<--quote>
+
+Quote character, only for csv format. Default to double quote.
+Empty string is allowed.
 
 =item B<--email>
 
@@ -173,27 +182,30 @@ binmode STDOUT, ":encoding(UTF-8)";
 # These variables can be set by command line options,
 # initially set to default values.
 
-my $help    = 0;
-my $man     = 0;
-my $verbose = 0;
-my $send_email = 0;
-my $attachment = 0;
-my $format  = "text";
-my $to      = "";
-my $from    = "";
-my $subject = "";
-my @params = ();
-my $separator = ',';
-my $quote = '"';
+my $help          = 0;
+my $man           = 0;
+my $verbose       = 0;
+my $send_email    = 0;
+my $send_empty    = 0;
+my $attachment    = 0;
+my $format        = "text";
+my $to            = "";
+my $from          = "";
+my $subject       = "";
+my @params        = ();
+my $separator     = ',';
+my $quote         = '"';
 my $store_results = 0;
-my $csv_header = 0;
+my $csv_header    = 0;
 my $csv_separator = "";
+my $csv_quote     = "";
 
 my $username = undef;
 my $password = undef;
 my $method = 'LOGIN';
 
 my $command_line_options = join(" ",@ARGV);
+cronlogaction({ info => $command_line_options });
 
 GetOptions(
     'help|?'            => \$help,
@@ -201,11 +213,13 @@ GetOptions(
     'verbose'           => \$verbose,
     'format=s'          => \$format,
     'separator=s'       => \$csv_separator,
+    'quote=s'           => \$csv_quote,
     'to=s'              => \$to,
     'from=s'            => \$from,
     'subject=s'         => \$subject,
     'param=s'           => \@params,
     'email'             => \$send_email,
+    'send_empty'        => \$send_empty,
     'a|attachment'      => \$attachment,
     'username:s'        => \$username,
     'password:s'        => \$password,
@@ -218,8 +232,6 @@ pod2usage( -verbose => 2 ) if ($man);
 pod2usage( -verbose => 2 ) if ($help and $verbose);
 pod2usage(1) if $help;
 
-cronlogaction({ info => $command_line_options });
-
 unless ($format) {
     $verbose and print STDERR "No format specified, assuming 'text'\n";
     $format = 'text';
@@ -230,6 +242,14 @@ if ($csv_separator) {
         $separator = "$csv_separator";
     } else {
         print STDERR "Cannot specify separator if not using CSV format\n";
+    }
+}
+
+if ($csv_quote) {
+    if ( $format eq 'csv' ) {
+        $quote = "$csv_quote";
+    } else {
+        print STDERR "Cannot specify quote if not using CSV format\n";
     }
 }
 
@@ -288,7 +308,7 @@ foreach my $report_id (@ARGV) {
         }
     );
     my $count = scalar($sth->rows);
-    unless ($count) {
+    unless ($count || $send_empty ) {
         print "NO OUTPUT: 0 results from execute_query\n";
         next;
     }
@@ -296,7 +316,9 @@ foreach my $report_id (@ARGV) {
 
     my $message;
     my @rows_to_store;
-    if ($format eq 'html') {
+    if( !$count ){
+        $message = "No results were returned for the report\n";
+    } elsif ($format eq 'html') {
         my $cgi = CGI->new();
         my @rows;
         while (my $line = $sth->fetchrow_arrayref) {
@@ -330,7 +352,7 @@ foreach my $report_id (@ARGV) {
         }
         $message = Encode::decode_utf8($message);
     }
-    if ( $store_results ) {
+    if ( $store_results && $count ) {
         my $json = to_json( \@rows_to_store );
         C4::Reports::Guided::store_results( $report_id, $json );
     }

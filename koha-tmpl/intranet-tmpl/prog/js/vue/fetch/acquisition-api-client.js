@@ -10,10 +10,13 @@ export class AcquisitionAPIClient extends HttpClient {
     get vendors() {
         return {
             getAll: (query, params) =>
-                this.get({
+                this.getAll({
                     endpoint: "vendors",
                     query,
-                    params,
+                    params: { _order_by: "name", ...params },
+                    headers: {
+                        "x-koha-embed": "aliases",
+                    },
                 }),
         };
     }

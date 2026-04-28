@@ -20,7 +20,7 @@ use Data::Dumper;
 
 use MARC::Record;
 use C4::Items
-    qw( ModItemTransfer SearchItems AddItemFromMarc ModItemFromMarc get_hostitemnumbers_of Item2Marc ModDateLastSeen CartToShelf );
+    qw( ModItemTransfer SearchItems AddItemFromMarc ModItemFromMarc get_hostitemnumbers_of Item2Marc ModDateLastSeen CartToShelf CheckItemPreSave );
 use C4::Biblio qw( GetMarcFromKohaField AddBiblio );
 use C4::Circulation qw( AddIssue );
 use Koha::BackgroundJobs;
@@ -36,7 +36,7 @@ use Koha::AuthorisedValues;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
-use Test::More tests => 13;
+use Test::More tests => 14;
 
 use Test::Warn;
 
@@ -129,8 +129,30 @@ subtest 'General Add, Get and Del tests' => sub {
     $schema->storage->txn_rollback;
 };
 
+subtest 'CheckItemPreSave tests' => sub {
+    plan tests => 1;
+
+    $schema->storage->txn_begin;
+
+    my $builder = t::lib::TestBuilder->new;
+    my $item    = Koha::Items->find( { barcode => 'SPAGHETTI' } );
+    $item = $builder->build_sample_item( { barcode => "SPAGHETTI" } ) unless $item;
+
+    my $check_item = $item->unblessed;
+    delete $check_item->{itemnumber};
+    $check_item->{barcode} = " SPAGHETTI";
+
+    my %errors = CheckItemPreSave($check_item);
+    is_deeply(
+        \%errors, { duplicate_barcode => " SPAGHETTI" },
+        "We get a duplicate item error for barcode even if whitespace"
+    );
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'ModItemTransfer tests' => sub {
-    plan tests => 8;
+    plan tests => 14;
 
     $schema->storage->txn_begin;
 
@@ -189,6 +211,34 @@ subtest 'ModItemTransfer tests' => sub {
     my $transfer3 = $transfers->next;
     is($transfer3->reason, 'Manual', "Reason set via ModItemTransfer");
 
+    # Ensure StockrotationAdvance transfers are not cancelled
+    my $stock_transfer = $transfer3->reason('StockrotationAdvance')->store();
+    is(
+        $stock_transfer->reason, 'StockrotationAdvance',
+        'StockrotationAdvance transfer set'
+    );
+    ok(
+        $stock_transfer->datesent,
+        'StockrotationAdvance transfer is in transit'
+    );
+
+    ModItemTransfer( $item->itemnumber, $library1->{branchcode}, $library2->{branchcode}, 'Manual' );
+    $transfers = Koha::Item::Transfers->search(
+        { itemnumber => $item->itemnumber, },
+        { order_by   => { '-desc' => 'branchtransfer_id' } }
+    );
+
+    my $replaced_transfer = $transfers->next;
+    is(
+        $replaced_transfer->reason, 'Manual',
+        'StockrotationAdvance transfer "replaced" by manual transfer at top of queue'
+    );
+    $stock_transfer->discard_changes;
+    is( $stock_transfer->datecancelled, undef, "StockrotationAdvance transfer not cancelled" );
+    is( $stock_transfer->datesent,      undef, "StockrotationAdvance transfer no longer in transit" );
+    $transfers = $item->get_transfers;
+    is( $transfers->count, 2, "There are now 2 live transfers in the queue" );
+
     $schema->storage->txn_rollback;
 };
 
@@ -233,7 +283,7 @@ subtest q{Test Koha::Database->schema()->resultset('Item')->itemtype()} => sub {
 };
 
 subtest 'SearchItems test' => sub {
-    plan tests => 20;
+    plan tests => 21;
 
     $schema->storage->txn_begin;
     my $dbh = C4::Context->dbh;
@@ -455,8 +505,8 @@ subtest 'SearchItems test' => sub {
     is($total_results, 1, 'found all items of library1 with new_status=0 with ifnull = 0');
 
     t::lib::Mocks::mock_userenv({ branchcode => $item1->homebranch });
-    my $patron_borrower = $builder->build_object({ class => 'Koha::Patrons' })->unblessed;
-    AddIssue( $patron_borrower, $item1->barcode );
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    AddIssue( $patron, $item1->barcode );
     # Search item where item is checked out
     $filter = {
         conjunction => 'AND',
@@ -488,6 +538,37 @@ subtest 'SearchItems test' => sub {
     };
     ($items, $total_results) = SearchItems($filter,$params);
     is($items->[0]->{barcode}, $item1->barcode, 'Items sorted as expected by availability');
+
+    subtest 'Sort items by callnumber' => sub {
+        plan tests => 2;
+
+        # Add two items
+        my $item1 = $builder->build_sample_item(
+            {
+                itemcallnumber => 'D102.D3 1930',
+                cn_source      => 'lcc'
+            }
+        );
+        my $item2 = $builder->build_sample_item(
+            {
+                library        => $item1->homebranch,
+                itemcallnumber => 'D1015.B4 1965',
+                cn_source      => 'lcc'
+            }
+        );
+        my $filter = {
+            field    => 'homebranch',
+            query    => $item1->homebranch,
+            operator => '=',
+        };
+        my $params = {
+            sortby    => 'itemcallnumber',
+            sortorder => 'DESC',
+        };
+        ( $items, $total_results ) = SearchItems( $filter, $params );
+        is( $items->[0]->{barcode}, $item2->barcode, 'Items sorted by cn_sort correctly' );
+        is( $items->[1]->{barcode}, $item1->barcode, 'Items sorted by cn_sort correctly' );
+    };
 
     subtest 'Search items by ISSN and ISBN with variations' => sub {
         plan tests => 4;
@@ -541,7 +622,7 @@ subtest 'SearchItems test' => sub {
 
 subtest 'Koha::Item(s) tests' => sub {
 
-    plan tests => 7;
+    plan tests => 9;
 
     $schema->storage->txn_begin();
 
@@ -575,10 +656,12 @@ subtest 'Koha::Item(s) tests' => sub {
     my $homebranch = $item->home_branch();
     is( ref($homebranch), 'Koha::Library', "Got Koha::Library from home_branch method" );
     is( $homebranch->branchcode(), $library1->{branchcode}, "Home branch code matches homebranch" );
+    is( ref( $item->home_library ), 'Koha::Library', 'home_library returns a Koha::Library object' );
 
     my $holdingbranch = $item->holding_branch();
     is( ref($holdingbranch), 'Koha::Library', "Got Koha::Library from holding_branch method" );
     is( $holdingbranch->branchcode(), $library2->{branchcode}, "Home branch code matches holdingbranch" );
+    is( ref( $item->holding_library ), 'Koha::Library', 'holding_library returns a Koha::Library object' );
 
     $biblio = $item->biblio();
     is( ref($item->biblio), 'Koha::Biblio', "Got Koha::Biblio from biblio method" );

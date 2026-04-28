@@ -14,7 +14,6 @@
       - $ref: "../swagger.yaml#/parameters/order_by"
       - $ref: "../swagger.yaml#/parameters/q_param"
       - $ref: "../swagger.yaml#/parameters/q_body"
-      - $ref: "../swagger.yaml#/parameters/q_header"
       - $ref: "../swagger.yaml#/parameters/request_id_header"
       - name: checked_in
         in: query
@@ -31,6 +30,10 @@
           enum:
             - booking
             - issuer
+            - item
+            - item.biblio
+            - library
+            - patron
             - renewals
         collectionFormat: csv
     produces:
@@ -70,6 +73,68 @@
       permissions:
         - circulate: circulate_remaining_permissions
         - circulate: manage_bookings
+  post:
+    x-mojo-to: Checkouts#add
+    operationId: addCheckout
+    tags:
+      - checkouts
+      - patrons
+    summary: Add a new checkout
+    parameters:
+      - name: body
+        in: body
+        description: A JSON object containing information about the new checkout
+        required: true
+        schema:
+          $ref: "../swagger.yaml#/definitions/checkout"
+      - name: confirmation
+        in: query
+        description: A JWT confirmation token
+        required: false
+        type: string
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      "201":
+        description: Created checkout
+        schema:
+          $ref: "../swagger.yaml#/definitions/checkout"
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Cannot create checkout
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "409":
+        description: Conflict in creating checkout
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "412":
+        description: Precondition failed
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        circulate: circulate_remaining_permissions
 "/checkouts/{checkout_id}":
   get:
     x-mojo-to: Checkouts#get
@@ -89,6 +154,10 @@
           enum:
             - booking
             - issuer
+            - item
+            - item.biblio
+            - library
+            - patron
             - renewals
         collectionFormat: csv
     produces:
@@ -303,3 +372,88 @@
     x-koha-authorization:
       permissions:
         circulate: circulate_remaining_permissions
+"/checkouts/availability":
+  get:
+    x-mojo-to: Checkouts#get_availability
+    operationId: availabilityCheckouts
+    tags:
+      - checkouts
+    summary: Get checkout availability
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/patron_id_qp"
+      - $ref: "../swagger.yaml#/parameters/item_id_qp"
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: Availability
+        schema:
+          $ref: "../swagger.yaml#/definitions/checkout_availability"
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        circulate: circulate_remaining_permissions
+"/public/checkouts/availability":
+  get:
+    x-mojo-to: Checkouts#get_availability
+    operationId: availabilityCheckoutsPublic
+    tags:
+      - checkouts
+    summary: Get checkout availability
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/patron_id_qp"
+      - $ref: "../swagger.yaml#/parameters/item_id_qp"
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: Availability
+        schema:
+          type: "object"
+          properties:
+            blockers:
+              type: object
+            confirms:
+              type: object
+            warnings:
+              type: object
+            confirmation_token:
+              type: string
+          additionalProperties: false
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"

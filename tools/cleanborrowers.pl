@@ -37,17 +37,20 @@ use CGI qw ( -utf8 );
 use C4::Auth qw( get_template_and_user );
 use C4::Output qw( output_html_with_http_headers );
 use C4::Members qw( GetBorrowersToExpunge );
+
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Old::Checkouts;
 use Koha::Patron::Categories;
 use Koha::Patrons;
 use Koha::List::Patron qw( GetPatronLists );
 
 my $cgi = CGI->new;
+my $op  = $cgi->param('op') // q{};
 
-# Fetch the paramater list as a hash in scalar context:
-#  * returns paramater list as tied hash ref
+# Fetch the parameter list as a hash in scalar context:
+#  * returns parameter list as tied hash ref
 #  * we can edit the values by changing the key
-#  * multivalued CGI paramaters are returned as a packaged string separated by "\0" (null)
+#  * multivalued CGI parameters are returned as a packaged string separated by "\0" (null)
 my $params = $cgi->Vars;
 
 my $step = $params->{step} || 1;
@@ -107,7 +110,7 @@ if ( $step == 2 ) {
     );
 }
 
-elsif ( $step == 3 ) {
+elsif ( $op eq 'cud-delete' && $step == 3 ) {
     my $do_delete = $params->{'do_delete'};
     my $do_anonym = $params->{'do_anonym'};
 
@@ -148,7 +151,7 @@ elsif ( $step == 3 ) {
         my $rows = Koha::Old::Checkouts
                      ->filter_by_anonymizable
                      ->filter_by_last_update({
-                         to => $last_issue_date, timestamp_column_name => 'returndate' })
+                         to => dt_from_string($last_issue_date), timestamp_column_name => 'returndate' })
                      ->anonymize;
 
         $template->param(

@@ -16,11 +16,13 @@
 
 <xsl:template match="marc:record">
   <xsl:variable name="Show856uAsImage" select="marc:sysprefs/marc:syspref[@name='Display856uAsImage']"/>
+  <xsl:variable name="ContentWarningField" select="marc:sysprefs/marc:syspref[@name='ContentWarningField']"/>
   <xsl:variable name="leader" select="marc:leader"/>
   <xsl:variable name="leader6" select="substring($leader,7,1)"/>
   <xsl:variable name="leader7" select="substring($leader,8,1)"/>
   <xsl:variable name="biblionumber" select="marc:controlfield[@tag=001]"/>
-
+  <xsl:variable name="AuthorLinkSortBy" select="marc:sysprefs/marc:syspref[@name='AuthorLinkSortBy']"/>
+  <xsl:variable name="AuthorLinkSortOrder" select="marc:sysprefs/marc:syspref[@name='AuthorLinkSortOrder']"/>
 
   <xsl:if test="marc:datafield[@tag=200]">
     <xsl:for-each select="marc:datafield[@tag=200]">
@@ -58,36 +60,48 @@
     <xsl:with-param name="tag">700</xsl:with-param>
     <xsl:with-param name="label">Main Author</xsl:with-param>
     <xsl:with-param name="spanclass">main_author</xsl:with-param>
+    <xsl:with-param name="AuthorLinkSortOrder" select="$AuthorLinkSortOrder"/>
+    <xsl:with-param name="AuthorLinkSortBy" select="$AuthorLinkSortBy"/>
   </xsl:call-template>
 
   <xsl:call-template name="tag_7xx">
     <xsl:with-param name="tag">710</xsl:with-param>
     <xsl:with-param name="label">Corporate Author (Main)</xsl:with-param>
     <xsl:with-param name="spanclass">corporate_main_author</xsl:with-param>
+    <xsl:with-param name="AuthorLinkSortOrder" select="$AuthorLinkSortOrder"/>
+    <xsl:with-param name="AuthorLinkSortBy" select="$AuthorLinkSortBy"/>
   </xsl:call-template>
 
   <xsl:call-template name="tag_7xx">
     <xsl:with-param name="tag">701</xsl:with-param>
     <xsl:with-param name="label">Coauthor</xsl:with-param>
     <xsl:with-param name="spanclass">coauthor</xsl:with-param>
+    <xsl:with-param name="AuthorLinkSortOrder" select="$AuthorLinkSortOrder"/>
+    <xsl:with-param name="AuthorLinkSortBy" select="$AuthorLinkSortBy"/>
   </xsl:call-template>
 
   <xsl:call-template name="tag_7xx">
     <xsl:with-param name="tag">702</xsl:with-param>
     <xsl:with-param name="label">Secondary Author</xsl:with-param>
     <xsl:with-param name="spanclass">secondary_author</xsl:with-param>
+    <xsl:with-param name="AuthorLinkSortOrder" select="$AuthorLinkSortOrder"/>
+    <xsl:with-param name="AuthorLinkSortBy" select="$AuthorLinkSortBy"/>
   </xsl:call-template>
 
   <xsl:call-template name="tag_7xx">
     <xsl:with-param name="tag">711</xsl:with-param>
     <xsl:with-param name="label">Corporate Author (Coauthor)</xsl:with-param>
     <xsl:with-param name="spanclass">corporate_coauthor</xsl:with-param>
+    <xsl:with-param name="AuthorLinkSortOrder" select="$AuthorLinkSortOrder"/>
+    <xsl:with-param name="AuthorLinkSortBy" select="$AuthorLinkSortBy"/>
   </xsl:call-template>
 
   <xsl:call-template name="tag_7xx">
     <xsl:with-param name="tag">712</xsl:with-param>
     <xsl:with-param name="label">Corporate Author (Secondary)</xsl:with-param>
     <xsl:with-param name="spanclass">corporate_secondary_author</xsl:with-param>
+    <xsl:with-param name="AuthorLinkSortOrder" select="$AuthorLinkSortOrder"/>
+    <xsl:with-param name="AuthorLinkSortBy" select="$AuthorLinkSortBy"/>
   </xsl:call-template>
 
   <xsl:if test="marc:datafield[@tag=101]">
@@ -305,6 +319,11 @@
       </xsl:for-each>
     </span>
   </xsl:if>
+
+  <!-- Content Warning -->
+  <xsl:call-template name="tag_content_warning">
+    <xsl:with-param name="tag" select="$ContentWarningField" />
+  </xsl:call-template>
 
   <xsl:if test="marc:datafield[@tag=955]">
     <span class="results_summary sudoc_serial_history">

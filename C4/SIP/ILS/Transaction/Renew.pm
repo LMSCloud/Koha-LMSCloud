@@ -32,8 +32,9 @@ sub new {
 
 sub do_renew_for  {
     my $self = shift;
-    my $borrower = shift;
-    my ($renewokay,$renewerror) = CanBookBeRenewed($borrower->{borrowernumber},$self->{item}->{itemnumber});
+    my $patron = shift;
+    my $checkout = Koha::Checkouts->find({ itemnumber => $self->{item}->{itemnumber} });
+    my ($renewokay,$renewerror) = CanBookBeRenewed($patron, $checkout);
     if ($renewokay) { # ok so far check charges
         my ($fee, undef) = GetIssuingCharges($self->{item}->{itemnumber}, $self->{patron}->{borrowernumber});
         if ($fee > 0) {
@@ -46,7 +47,7 @@ sub do_renew_for  {
 
     }
     if ($renewokay){
-        my $issue = AddIssue( $borrower, $self->{item}->id, undef, 0 );
+        my $issue = AddIssue( $patron, $self->{item}->id, undef, 0 );
         $self->{due} = $self->duedatefromissue($issue, $self->{item}->{itemnumber});
         $self->renewal_ok(1);
     } else {
@@ -68,7 +69,7 @@ sub do_renew {
     siplog('LOG_DEBUG', "ILS::Transaction::Renew performing renewal...");
     my $patron = Koha::Patrons->find( $self->{patron}->borrowernumber );
     $patron or return; # FIXME we should log that
-    return $self->do_renew_for($patron->unblessed);
+    return $self->do_renew_for($patron);
 }
 
 1;

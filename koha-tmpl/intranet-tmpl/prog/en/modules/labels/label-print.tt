@@ -1,19 +1,25 @@
 [% USE raw %]
 [% SET footerjs = 1 %]
     [% INCLUDE 'doc-head-open.inc' %]
-    <title>Label printing/exporting &rsaquo; Label creator &rsaquo; Tools &rsaquo; Koha</title>
+    <title>[% FILTER collapse %]
+        [% t("Label printing/exporting") | html %] &rsaquo;
+        [% t("Label creator") | html %] &rsaquo;
+    [% t("Tools") | html %] &rsaquo;
+        [% t("Koha") | html %]
+    [% END %]</title>
     [% INCLUDE 'doc-head-close.inc' popup => 1 %]
     <style>table {border-collapse: separate; border-spacing: 0; border: hidden none;} .header {cursor: auto; background-position: center center; background-repeat: repeat;}</style>
 </head>
 
 <body id="labels_label-print" class="tools labels">
     <div class="main container-fluid">
+        [% INCLUDE 'messages.inc' %]
         <h1>Label printing/exporting</h1>
         [% IF ( batches ) %]
-            <form>
+            <form method="get">
                 <h3>Click on the following links to download the exported batch(es).</h3>
                 [% IF warn_empty_range %]
-                <div class="dialog alert">
+                <div class="alert alert-warning">
                     <p>Some or all of the barcodes in the range you have selected have no corresponding items.</p>
                     <p>If you are using a layout without barcodes, this may result in missing entries or a blank page</p>
                 </div>
@@ -66,7 +72,8 @@
                 [% END %]
             </h3>
             <form name="exporting" method="post" action="/cgi-bin/koha/labels/label-print.pl">
-                <input type="hidden" name="op" value="export" />
+                [% INCLUDE 'csrf-token.inc' %]
+                <input type="hidden" name="op" value="cud-export" />
                 <input type="hidden" name="referer" value="[% referer | html %]" />
                 [% FOREACH batch_id IN batch_ids %]
                     <input type="hidden" name="batch_id" value="[% batch_id.batch_id | html %]" />

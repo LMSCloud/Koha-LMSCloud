@@ -35,12 +35,12 @@ use Koha::BackgroundJob::BatchCancelHold;
 
 my $input = CGI->new;
 
+my $op             = $input->param('op') || q{};
 my $item           = $input->param('itemnumber');
 my $borrowernumber = $input->param('borrowernumber');
 my $fbr            = $input->param('fbr') || '';
 my $tbr            = $input->param('tbr') || '';
 my $all_branches   = $input->param('allbranches') || '';
-my $cancelall      = $input->param('cancelall');
 my $tab            = $input->param('tab');
 my $cancelBulk     = $input->param('cancelBulk');
 
@@ -60,7 +60,7 @@ $template->param( TransferWhenCancelAllWaitingHolds => 1 ) if $transfer_when_can
 
 my @cancel_result;
 # if we have a return from the form we cancel the holds
-if ($item) {
+if ( $op eq 'cud-cancel' && $item) {
     my $res = cancel( $item, $borrowernumber, $fbr, $tbr );
     push @cancel_result, $res if $res;
 }
@@ -106,7 +106,7 @@ while ( my $hold = $holds->next ) {
     }
 
     if ($calcDate && $today > $calcDate) {
-        if ($cancelall) {
+        if ( $op eq 'cud-cancelall' ) {
             my $res = cancel( $hold->item->itemnumber, $hold->borrowernumber, $hold->item->holdingbranch, $hold->item->homebranch, !$transfer_when_cancel_all );
             push @cancel_result, $res if $res;
             next;
@@ -138,8 +138,8 @@ $template->param(
 $template->param( fast_cataloging => 1 ) if Koha::BiblioFrameworks->find( 'FA' );
 
 if ($item && $tab eq 'holdsover' && !@cancel_result) {
-    print $input->redirect("/cgi-bin/koha/circ/waitingreserves.pl#holdsover");
-} elsif ($cancelall) {
+    print $input->redirect("/cgi-bin/koha/circ/waitingreserves.pl?tab=holdsover");
+} elsif ( $op eq 'cud-cancelall' ) {
     print $input->redirect("/cgi-bin/koha/circ/waitingreserves.pl");
 } else {
     output_html_with_http_headers $input, $cookie, $template->output;
@@ -148,23 +148,24 @@ if ($item && $tab eq 'holdsover' && !@cancel_result) {
 exit;
 
 sub cancel {
-    my ($item, $borrowernumber, $fbr, $tbr, $skip_transfers ) = @_;
+    my ( $itemnumber, $borrowernumber, $fbr, $tbr, $skip_transfers ) = @_;
 
     my $transfer = $fbr ne $tbr; # XXX && !$nextreservinfo;
+    my $item     = Koha::Items->find( $itemnumber );
 
     return if $transfer && $skip_transfers;
 
-    my ( $messages, $nextreservinfo ) = ModReserveCancelAll( $item, $borrowernumber );
+    my ( $messages, $nextreservinfo ) = ModReserveCancelAll( $itemnumber, $borrowernumber );
 
 # 	if the document is not in his homebranch location and there is not reservation after, we transfer it
-    if ($transfer && !$nextreservinfo) {
-        ModItemTransfer( $item, $fbr, $tbr, 'CancelReserve' );
+    if ( $transfer && !$nextreservinfo && !$item->itemlost ) {
+        ModItemTransfer( $itemnumber, $fbr, $tbr, 'CancelReserve' );
     }
     # if we have a result
     if ($nextreservinfo) {
         my %res;
         my $patron = Koha::Patrons->find( $nextreservinfo );
-        my $title = Koha::Items->find( $item )->biblio->title;
+        my $title  = $item->biblio->title;
         if ( $messages->{'transfert'} ) {
             $res{messagetransfert} = $messages->{'transfert'};
             $res{branchcode}       = $messages->{'transfert'};
@@ -174,7 +175,7 @@ sub cancel {
         $res{nextreservnumber}    = $nextreservinfo;
         $res{nextreservsurname}   = $patron->surname;
         $res{nextreservfirstname} = $patron->firstname;
-        $res{nextreservitem}      = $item;
+        $res{nextreservitem}      = $itemnumber;
         $res{nextreservtitle}     = $title;
         $res{waiting}             = $messages->{'waiting'} ? 1 : 0;
 

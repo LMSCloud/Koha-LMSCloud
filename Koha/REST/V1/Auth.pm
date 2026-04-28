@@ -74,11 +74,12 @@ sub under {
             $is_plugin = 1;
         }
 
-        if ( $is_public
-            and !C4::Context->preference('RESTPublicAPI') )
-        {
+        if ($is_public) {
+            Koha::Exceptions::UnderMaintenance->throw('Under maintenance')
+                if C4::Context->preference('OPACMaintenance');
             Koha::Exceptions::Authorization->throw(
-                "Configuration prevents the usage of this endpoint by unprivileged users");
+                "Configuration prevents the usage of this endpoint by unprivileged users")
+                if !C4::Context->preference('RESTPublicAPI');
         }
 
         if ( $c->req->url->to_abs->path =~ m#^/api/v1/oauth/# || $c->req->url->to_abs->path =~ m#^/api/v1/public/oauth/#) {
@@ -94,10 +95,7 @@ sub under {
 
     } catch {
         unless (blessed($_)) {
-            return $c->render(
-                status => 500,
-                json => { error => 'Something went wrong, check the logs.' }
-            );
+            $c->unhandled_exception($_);
         }
         if ($_->isa('Koha::Exceptions::UnderMaintenance')) {
             return $c->render(status => 503, json => { error => $_->error });
@@ -127,10 +125,7 @@ sub under {
             return $c->render(status => 500, json => { error => $_->error });
         }
         else {
-            return $c->render(
-                status => 500,
-                json => { error => 'Something went wrong, check the logs.' }
-            );
+            $c->unhandled_exception($_);
         }
     };
 
@@ -355,6 +350,9 @@ sub validate_query_parameters {
         push @errors, { path => "/query/" . $param, message => 'Malformed query string' } unless exists $valid_parameters{$param};
     }
 
+    push @errors, { path => "/query/_per_page", message => 'Invalid value: 0' }
+        if exists $existing_params->{_per_page} && $existing_params->{_per_page} == 0;
+
     Koha::Exceptions::BadParameter->throw(
         error => \@errors
     ) if @errors;
@@ -375,14 +373,16 @@ sub _basic_auth {
         Koha::Exceptions::Authentication::Required->throw( error => 'Authentication failure.' );
     }
 
-    my $decoded_credentials = decode_base64( $credentials );
-    my ( $user_id, $password ) = split( /:/, $decoded_credentials, 2 );
+    my $decoded_credentials = decode_base64($credentials);
+    my ( $identifier, $password ) = split( /:/, $decoded_credentials, 2 );
 
-    unless ( checkpw_internal($user_id, $password ) ) {
+    my $patron = Koha::Patrons->find( { userid => $identifier } );
+    $patron //= Koha::Patrons->find( { cardnumber => $identifier } );
+
+    unless ( checkpw_internal( $identifier, $password ) ) {
         Koha::Exceptions::Authorization::Unauthorized->throw( error => 'Invalid password' );
     }
 
-    my $patron = Koha::Patrons->find({ userid => $user_id });
     if ( $patron->password_expired ) {
         Koha::Exceptions::Authorization::Unauthorized->throw( error => 'Password has expired' );
     }
@@ -414,7 +414,6 @@ sub _set_userenv {
         $THE_library = $patron->library;
     }
 
-    C4::Context->_new_userenv( $patron->borrowernumber );
     C4::Context->set_userenv(
         $patron->borrowernumber,  # number,
         $patron->userid,          # userid,

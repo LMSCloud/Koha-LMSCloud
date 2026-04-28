@@ -2,9 +2,14 @@
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Recalls queue &rsaquo; Circulation &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Recalls queue") | html %] &rsaquo;
+    [% t("Circulation") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="circ_recalls_queue" class="circ">
@@ -26,18 +31,20 @@
 <div class="main container-fluid">
     <div class="row">
         [% IF Koha.Preference('CircSidebar') %]
-            <div class="col-sm-10 col-sm-push-2">
+            <div class="col-md-10 order-md-2 order-sm-1">
         [% ELSE %]
-            <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+            <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
         [% END %]
         <main>
+            [% INCLUDE 'messages.inc' %]
 
         <h1>Recalls queue</h1>
         [% IF Koha.Preference('UseRecalls') %]
             [% IF recalls.count %]
                 <div class="page-section">
                     <form method="post" action="/cgi-bin/koha/recalls/recalls_queue.pl">
-                        <input type="hidden" name="op" value="cancel_multiple_recalls">
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-cancel_multiple_recalls">
                         <input type="checkbox" id="select_all"> <span id="select_all_text">Select all</span>
                         [% INCLUDE 'recalls.inc' %]
                         <fieldset class="action">
@@ -46,21 +53,21 @@
                     </form>
                 </div> <!-- /.page-section -->
             [% ELSE %]
-                <div class="dialog message">There are no recalls to show.</div>
+                <div class="alert alert-info">There are no recalls to show.</div>
             [% END %]
         [% ELSE %]
-            <div class="dialog message">Recalls have not been enabled. Enable the <a href="/cgi-bin/koha/admin/preferences.pl?tab=circulation">UseRecalls</a> system preference to use recalls.</div>
+            <div class="alert alert-info">Recalls have not been enabled. Enable the <a href="/cgi-bin/koha/admin/preferences.pl?tab=circulation">UseRecalls</a> system preference to use recalls.</div>
         [% END %]
 
         </main>
         </div> <!-- /.col-etc -->
 
         [% IF Koha.Preference('CircSidebar') %]
-            <div class="col-sm-2 col-sm-pull-10">
+            <div class="col-md-2 order-sm-2 order-md-1">
                 <aside>
                     [% INCLUDE 'circ-nav.inc' %]
                 </aside>
-            </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+            </div> <!-- /.col-md-2.order-md-1 -->
         [% END %]
 
     </div> <!-- /.row -->

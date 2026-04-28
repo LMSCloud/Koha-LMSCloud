@@ -1,17 +1,22 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE HtmlTags %]
 [% USE KohaDates %]
 [% USE Branches %]
 [% USE AuthorisedValues %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF club %]
-        Modify club [% club.name | html %]
+        [% tx("Modify club {club_name}", { club_name = club.name }) | html %]
     [% ELSE %]
-        Create a new [% club_template.name | html %] club
-    [% END %] &rsaquo; Patron clubs &rsaquo; Tools &rsaquo; Koha
-</title>
+        [% tx("Create a new {club_template} club", { club_template = club_template.name }) | html %]
+    [% END %] &rsaquo;
+    [% t("Patron clubs") | html %] &rsaquo;
+    [% t("Tools") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -40,9 +45,12 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-md-8 col-md-offset-2">
+        <div class="col-md-8 offset-md-2">
+            [% INCLUDE 'messages.inc' %]
 
             <form method="post" class="validated">
+                [% INCLUDE 'csrf-token.inc' %]
+                <input type="hidden" name="op" value="cud-update" />
                 <input type="hidden" name="id" value="[% club.id | html %]" />
                 <input type="hidden" name="club_template_id" value="[% club_template.id | html %]" />
 

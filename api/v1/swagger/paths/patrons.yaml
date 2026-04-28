@@ -29,6 +29,11 @@
         description: Case insensitive search on firstname
         required: false
         type: string
+      - name: preferred_name
+        in: query
+        description: Case insensitive search on preferred name
+        required: false
+        type: string
       - name: title
         in: query
         description: Case insensitive search on title
@@ -344,13 +349,17 @@
         description: Search on login_attempts
         required: false
         type: string
+      - name: protected
+        in: query
+        description: Search on protected status
+        required: false
+        type: boolean
       - $ref: "../swagger.yaml#/parameters/match"
       - $ref: "../swagger.yaml#/parameters/order_by"
       - $ref: "../swagger.yaml#/parameters/page"
       - $ref: "../swagger.yaml#/parameters/per_page"
       - $ref: "../swagger.yaml#/parameters/q_param"
       - $ref: "../swagger.yaml#/parameters/q_body"
-      - $ref: "../swagger.yaml#/parameters/q_header"
       - $ref: "../swagger.yaml#/parameters/request_id_header"
       - name: x-koha-embed
         in: header
@@ -401,10 +410,7 @@
           $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
-        - borrowers: "edit_borrowers"
-        - tools: "label_creator"
-        - serials: "routing"
-        - acquisition: "order_manage"
+        - borrowers: "list_borrowers"
   post:
     x-mojo-to: Patrons#add
     operationId: addPatron
@@ -418,6 +424,17 @@
         required: true
         schema:
           $ref: "../swagger.yaml#/definitions/patron"
+      - name: x-koha-override
+        in: header
+        required: false
+        description: Overrides list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - welcome_yes
+            - welcome_no
+        collectionFormat: csv
     consumes:
       - application/json
     produces:
@@ -485,6 +502,7 @@
         items:
           type: string
           enum:
+            - +strings
             - extended_attributes
         collectionFormat: csv
     produces:
@@ -523,7 +541,8 @@
           $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
-        borrowers: edit_borrowers
+        - borrowers: "list_borrowers"
+        - borrowers: "edit_borrowers"
   put:
     x-mojo-to: Patrons#update
     operationId: updatePatron
@@ -538,6 +557,16 @@
         required: true
         schema:
           $ref: "../swagger.yaml#/definitions/patron"
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - extended_attributes
+        collectionFormat: csv
     consumes:
       - application/json
     produces:
@@ -621,6 +650,7 @@
             * `has_debt`: The patron has pending debts
             * `has_guarantees`: The patron has guarantees
             * `is_anonymous_patron`: The system-wide anonymous patron cannot be deleted
+            * `is_protected`: Protected patrons cannot be deleted
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "500":

@@ -253,9 +253,14 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:qJLDvSJHio9dLcT7wJFqbw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:55
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:NvJi6L9fVbm/iOh1tKN6tQ
 
+sub koha_object_class {
+    'Koha::OverdueRule';
+}
+sub koha_objects_class {
+    'Koha::OverdueRules';
+}
 
-# You can replace this text with custom content, and it will be preserved on regeneration
 1;

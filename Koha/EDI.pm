@@ -39,12 +39,13 @@ use C4::Biblio qw(
 use Koha::Edifact::Order;
 use Koha::Edifact;
 use C4::Log qw( logaction );
-use Log::Log4perl;
 use Text::Unidecode qw( unidecode );
+use Koha::Logger;
 use Koha::Plugins; # Adds plugin dirs to @INC
 use Koha::Plugins::Handler;
 use Koha::Acquisition::Baskets;
 use Koha::Acquisition::Booksellers;
+use Koha::Util::FrameworkPlugin qw( biblio_008 );
 
 our $VERSION = 1.1;
 
@@ -172,7 +173,7 @@ sub process_ordrsp {
     $response_message->status('processing');
     $response_message->update;
     my $schema = Koha::Database->new()->schema();
-    my $logger = Log::Log4perl->get_logger();
+    my $logger = Koha::Logger->get( { interface => 'edi' } );
     my $vendor_acct;
     my $edi =
       Koha::Edifact->new( { transmission => $response_message->raw_msg, } );
@@ -226,7 +227,7 @@ sub process_invoice {
     $invoice_message->status('processing');
     $invoice_message->update;
     my $schema = Koha::Database->new()->schema();
-    my $logger = Log::Log4perl->get_logger();
+    my $logger = Koha::Logger->get( { interface => 'edi' } );
     my $vendor_acct;
 
     my $plugin_class = $invoice_message->edi_acct()->plugin();
@@ -289,8 +290,7 @@ sub process_invoice {
                 )->single;
             }
             if ( !$vendor_acct ) {
-                carp
-"Cannot find vendor with ean $vendor_ean for invoice $invoicenumber in $invoice_message->filename";
+                carp "Cannot find vendor with ean $vendor_ean for invoice $invoicenumber in ".$invoice_message->filename;
                 next;
             }
             $invoice_message->edi_acct( $vendor_acct->id );
@@ -312,104 +312,104 @@ sub process_invoice {
 
             foreach my $line ( @{$lines} ) {
                 my $ordernumber = $line->ordernumber;
-                if (!$ordernumber ) {
-                   $logger->trace( "Skipping invoice line, no associated ordernumber" );
-                   next;
-                }
-
-                $logger->trace( "Receipting order:$ordernumber Qty: ",
-                    $line->quantity );
-
-                my $order = $schema->resultset('Aqorder')->find($ordernumber);
-                if (my $bib = $order->biblionumber) {
-                    my $b = $bib->biblionumber;
-                    my $id = $line->item_number_id;
-                    $logger->trace("Updating bib:$b id:$id");
+                if ( !$ordernumber ) {
+                    $logger->error("Skipping invoice line, no associated ordernumber");
+                    next;
                 }
 
                 # ModReceiveOrder does not validate that $ordernumber exists validate here
-                if ($order) {
-
-                    # check suggestions
-                    my $s = $schema->resultset('Suggestion')->search(
-                        {
-                            biblionumber => $order->biblionumber->biblionumber,
-                        }
-                    )->single;
-                    if ($s) {
-                        ModSuggestion(
-                            {
-                                suggestionid => $s->suggestionid,
-                                STATUS       => 'AVAILABLE',
-                            }
-                        );
-                    }
-                    # If quantity_invoiced is present use it in preference
-                    my $quantity = $line->quantity_invoiced;
-                    if (!$quantity) {
-                        $quantity = $line->quantity;
-                    }
-
-                    my ( $price, $price_excl_tax ) = _get_invoiced_price($line, $quantity);
-                    my $tax_rate = $line->tax_rate;
-                    if ($tax_rate && $tax_rate->{rate} != 0) {
-                       $tax_rate->{rate} /= 100;
-                    }
-
-                    if ( $order->quantity > $quantity ) {
-                        my $ordered = $order->quantity;
-
-                        my $replacementprice = $order->replacementprice;
-                        $replacementprice = $price if (! $replacementprice);
-                        # part receipt
-                        $order->orderstatus('partial');
-                        $order->quantity( $ordered - $quantity );
-                        $order->update;
-                        my $received_order = $order->copy(
-                            {
-                                ordernumber            => undef,
-                                quantity               => $quantity,
-                                quantityreceived       => $quantity,
-                                orderstatus            => 'complete',
-                                replacementprice       => $replacementprice,
-                                unitprice              => $price,
-                                unitprice_tax_included => $price,
-                                unitprice_tax_excluded => $price_excl_tax,
-                                invoiceid              => $invoiceid,
-                                datereceived           => $msg_date,
-                                tax_rate_on_receiving  => $tax_rate->{rate},
-                                tax_value_on_receiving => $quantity * $price_excl_tax * $tax_rate->{rate},
-                            }
-                        );
-                        transfer_items( $schema, $line, $order,
-                            $received_order, $quantity );
-                        receipt_items( $schema, $line,
-                            $received_order->ordernumber, $quantity );
-                    }
-                    else {    # simple receipt all copies on order
-                        $order->quantityreceived( $quantity );
-                        $order->datereceived($msg_date);
-                        $order->invoiceid($invoiceid);
-                        $order->replacementprice($price) if (! $order->replacementprice);
-                        $order->unitprice($price);
-                        $order->unitprice_tax_excluded($price_excl_tax);
-                        $order->unitprice_tax_included($price);
-                        $order->tax_rate_on_receiving($tax_rate->{rate});
-                        $order->tax_value_on_receiving( $quantity * $price_excl_tax * $tax_rate->{rate});
-                        $order->orderstatus('complete');
-                        $order->update;
-                        receipt_items( $schema, $line, $ordernumber, $quantity );
-                    }
+                my $order = $schema->resultset('Aqorder')->find($ordernumber);
+                if ( !$order ) {
+                    $logger->error("Skipping invoice line, no order found for $ordernumber, invoice:$invoicenumber");
+                    next;
                 }
-                else {
+
+                my $bib = $order->biblionumber;
+                if ( !$bib ) {
                     $logger->error(
-                        "No order found for $ordernumber Invoice:$invoicenumber"
+                        "Skipping invoice line, no bibliographic record found for $ordernumber, invoice:$invoicenumber"
                     );
                     next;
                 }
 
-            }
+                $logger->trace( "Receipting order:$ordernumber Qty: " . $line->quantity );
+                $logger->trace( "Updating bib:" . $bib->biblionumber . " id:" . $line->item_number_id );
 
+                # check suggestions
+                my $s = $schema->resultset('Suggestion')->search(
+                    {
+                        biblionumber => $bib->biblionumber,
+                    }
+                )->single;
+                if ($s) {
+                    ModSuggestion(
+                        {
+                            suggestionid => $s->suggestionid,
+                            STATUS       => 'AVAILABLE',
+                        }
+                    );
+                }
+
+                # If quantity_invoiced is present use it in preference
+                my $quantity = $line->quantity_invoiced;
+                if ( !$quantity ) {
+                    $quantity = $line->quantity;
+                }
+
+                my ( $price, $price_excl_tax ) = _get_invoiced_price( $line, $quantity );
+                my $tax_rate = $line->tax_rate;
+                if ( $tax_rate && $tax_rate->{rate} != 0 ) {
+                    $tax_rate->{rate} /= 100;
+                }
+
+                if ( $order->quantity > $quantity ) {
+                    my $ordered = $order->quantity;
+
+                    my $replacementprice = $order->replacementprice;
+                    $replacementprice = $price if (! $replacementprice);
+                    # part receipt
+                    $order->orderstatus('partial');
+                    $order->quantity( $ordered - $quantity );
+                    $order->update;
+                    my $received_order = $order->copy(
+                        {
+                            ordernumber            => undef,
+                            quantity               => $quantity,
+                            quantityreceived       => $quantity,
+                            orderstatus            => 'complete',
+                            replacementprice       => $replacementprice,
+                            unitprice              => $price,
+                            unitprice_tax_included => $price,
+                            unitprice_tax_excluded => $price_excl_tax,
+                            invoiceid              => $invoiceid,
+                            datereceived           => $msg_date,
+                            tax_rate_on_receiving  => $tax_rate->{rate},
+                            tax_value_on_receiving => $quantity * $price_excl_tax * $tax_rate->{rate},
+                        }
+                    );
+                    transfer_items(
+                        $schema,         $line, $order,
+                        $received_order, $quantity
+                    );
+                    receipt_items(
+                        $schema,                      $line,
+                        $received_order->ordernumber, $quantity
+                    );
+                } else {    # simple receipt all copies on order
+                    $order->quantityreceived($quantity);
+                    $order->datereceived($msg_date);
+                    $order->invoiceid($invoiceid);
+                    $order->replacementprice($price) if (! $order->replacementprice);
+                    $order->unitprice($price);
+                    $order->unitprice_tax_excluded($price_excl_tax);
+                    $order->unitprice_tax_included($price);
+                    $order->tax_rate_on_receiving( $tax_rate->{rate} );
+                    $order->tax_value_on_receiving( $quantity * $price_excl_tax * $tax_rate->{rate} );
+                    $order->orderstatus('complete');
+                    $order->update;
+                    receipt_items( $schema, $line, $ordernumber, $quantity );
+                }
+            }
         }
     }
 
@@ -445,7 +445,7 @@ sub _get_invoiced_price {
 
 sub receipt_items {
     my ( $schema, $inv_line, $ordernumber, $quantity ) = @_;
-    my $logger   = Log::Log4perl->get_logger();
+    my $logger   = Koha::Logger->get( { interface => 'edi' } );
 
     # itemnumber is not a foreign key ??? makes this a bit cumbersome
     my @item_links = $schema->resultset('AqordersItem')->search(
@@ -480,8 +480,7 @@ sub receipt_items {
             my $order = Koha::Acquisition::Orders->find($ordernumber);
             $biblionumber = $order->biblionumber;
             my $frameworkcode = GetFrameworkCode($biblionumber);
-            ($itemfield) = GetMarcFromKohaField( 'items.itemnumber',
-                $frameworkcode );
+            ($itemfield) = GetMarcFromKohaField('items.itemnumber');
         }
     }
 
@@ -546,7 +545,7 @@ sub transfer_items {
         }
         ++$gocc;
     }
-    my $logger = Log::Log4perl->get_logger();
+    my $logger = Koha::Logger->get( { interface => 'edi' } );
     my $o1     = $order_from->ordernumber;
     my $o2     = $order_to->ordernumber;
     $logger->warn("transferring $quantity copies from order $o1 to order $o2");
@@ -590,7 +589,7 @@ sub process_quote {
 
     my $messages       = $edi->message_array();
     my $process_errors = 0;
-    my $logger         = Log::Log4perl->get_logger();
+    my $logger         = Koha::Logger->get( { interface => 'edi' } );
     my $schema         = Koha::Database->new()->schema();
     my $message_count  = 0;
     my @added_baskets;    # if auto & multiple baskets need to order all
@@ -675,7 +674,7 @@ sub quote_item {
     my ( $item, $quote, $basketno ) = @_;
 
     my $schema = Koha::Database->new()->schema();
-    my $logger = Log::Log4perl->get_logger();
+    my $logger = Koha::Logger->get( { interface => 'edi' } );
 
     # $basketno is the return from AddBasket in the calling routine
     # So this call should not fail unless that has
@@ -689,6 +688,10 @@ sub quote_item {
     if ( !defined $bib ) {
         $bib = {};
         my $bib_record = _create_bib_from_quote( $item, $quote );
+
+        # Check for and add default 008 as this is a mandatory field
+        $bib_record = _handle_008_field($bib_record);
+
         ( $bib->{biblionumber}, $bib->{biblioitemnumber} ) =
           AddBiblio( $bib_record, q{} );
         $logger->trace("New biblio added $bib->{biblionumber}");
@@ -833,6 +836,20 @@ sub quote_item {
                     }
                 );
                 ++$created;
+
+                my $lrp = $item->girfield('library_rotation_plan');
+                if ($lrp) {
+                    my $rota = Koha::StockRotationRotas->find(
+                        { title => $lrp },
+                        { key   => 'stockrotationrotas_title' }
+                    );
+                    if ($rota) {
+                        $rota->add_item($itemnumber);
+                        $logger->trace("Item added to rota $rota->id");
+                    } else {
+                        $logger->error("No rota found matching $lrp in orderline");
+                    }
+                }
             }
         }
     }
@@ -1206,6 +1223,17 @@ sub _create_item_from_quote {
     return $item_hash;
 }
 
+sub _handle_008_field {
+    my ($bib_record) = @_;
+
+    if ( !$bib_record->field('008') ) {
+        my $default008 = biblio_008();
+        $bib_record->insert_fields_ordered( MARC::Field->new( '008', $default008 ) );
+    }
+
+    return $bib_record;
+}
+
 1;
 __END__
 
@@ -1363,6 +1391,14 @@ Koha::EDI
 
      Returns the Aqbudget object for the active budget given the passed budget_code
      or undefined if one does not exist
+
+=head2 _handle_008_field
+
+     bib_record = _handle_008_field($bib_record)
+
+     Checks whether an 008 field exists on the record and adds a default field it does not
+
+     Returns the bib_record
 
 =head1 AUTHOR
 

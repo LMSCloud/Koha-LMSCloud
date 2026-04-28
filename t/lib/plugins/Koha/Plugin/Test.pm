@@ -9,6 +9,8 @@ use Koha::Plugins::Tab;
 use MARC::Field;
 use Mojo::JSON qw( decode_json );
 
+use t::lib::TestBuilder;
+
 ## Required for all plugins
 use base qw(Koha::Plugins::Base);
 
@@ -147,6 +149,11 @@ sub api_namespace {
 sub after_hold_create {
     my ( $self, $param ) = @_;
     Koha::Exception->throw("after_hold_create called with parameter " . ref($param) );
+}
+
+sub before_send_messages {
+    my ( $self, $param ) = @_;
+    Koha::Exception->throw("before_send_messages called");
 }
 
 sub before_biblio_action {
@@ -363,7 +370,10 @@ sub intranet_catalog_biblio_tab {
 sub background_tasks {
     return {
         foo => 'MyPlugin::Class::Foo',
-        bar => 'MyPlugin::Class::Bar',
+        bar => {
+            class => 'MyPlugin::Class::Bar',
+            name  => "Bar task",
+        },
     };
 }
 
@@ -388,8 +398,88 @@ sub after_recall_action {
         "after_recall_action called with action: $action, ref: " . ref($recall) );
 }
 
+sub template_include_paths {
+    my ($self) = @_;
+
+    return [
+        $self->mbf_path('inc'),
+    ];
+}
+
+sub ill_table_actions {
+    my ( $self, $table_actions ) = @_;
+
+    push(
+        @{$$table_actions},
+        {
+            button_link_text           => 'Test text',
+            append_column_data_to_link => 1,
+            button_class               => 'test class',
+            button_link                => 'test link'
+        }
+    );
+}
+
+sub transform_prepared_letter {
+    my ( $self, $params ) = @_;
+
+    $params->{letter}->{title}   .= '!';
+    $params->{letter}->{content} .= "\nThank you for using your local library!";
+
+    Koha::Exception->throw("transform_prepared_letter called with letter content $params->{letter}->{content}");
+}
+
+sub auth_client_get_user {
+    my ( $self, $params ) = @_;
+
+    my $builder = t::lib::TestBuilder->new;
+
+    my $new_patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    $params->{patron} = $new_patron;
+
+    my $new_domain = $builder->build_object(
+        {
+            class => 'Koha::Auth::Identity::Provider::Domains',
+            value => {
+                domain      => 'changed', update_on_auth => 0, allow_opac => 1,
+                allow_staff => 0
+            }
+        }
+    );
+    $params->{domain} = $new_domain;
+
+    if ( defined $params->{mapped_data}->{'cardnumber'} ) {
+
+        # Split data (e. g. kit.edu:123456789) and set the card number.
+        my ( $card_domain, $cardnumber ) = split( /\:/, $params->{mapped_data}->{'cardnumber'} );
+        $params->{mapped_data}->{'cardnumber'} = $cardnumber;
+    }
+    return;
+}
+
+sub overwrite_calc_fine {
+    my ( $self, $params ) = @_;
+
+    warn "itemnumber:" . $params->{itemnumber};
+    warn "borrowernumber:" . $params->{borrowernumber};
+    warn "branchcode:" . $params->{branchcode};
+    warn "categorycode:" . $params->{categorycode};
+    warn "due_date_type:" . ref( $params->{due_date} );
+    warn "end_date_type:" . ref( $params->{end_date} );
+
+    return [ 1, 2, 3 ];
+}
+
 sub _private_sub {
     return "";
+}
+
+sub elasticsearch_to_document {
+    my ( $self, $params ) = @_;
+    my $record = $params->{record};
+    my $doc    = $params->{document};
+
+    Koha::Exception->throw( "elasticsearch_to_document ref record: " . ref($record) . " - ref document: " . ref($doc) );
 }
 
 1;

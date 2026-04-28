@@ -27,7 +27,6 @@ use C4::Output qw( output_html_with_http_headers );
 use C4::Suggestions qw(
     DelSuggestion
     MarcRecordFromNewSuggestion
-    NewSuggestion
 );
 use C4::Koha qw( GetAuthorisedValues );
 use C4::Scrubber;
@@ -36,6 +35,7 @@ use C4::Search qw( FindDuplicate );
 use Koha::AuthorisedValues;
 use Koha::Libraries;
 use Koha::Patrons;
+use Koha::Suggestions;
 
 use Koha::DateUtils qw( dt_from_string );
 
@@ -138,13 +138,13 @@ $suggestion = {
 };
 $suggestion->{suggestedby} = $borrowernumber;
 
-if ( $op eq "add_validate" && not $biblionumber ) { # If we are creating the suggestion from an existing record we do not want to search for duplicates
-    $op = 'add_confirm';
+if ( $op eq "cud-add_validate" && not $biblionumber ) { # If we are creating the suggestion from an existing record we do not want to search for duplicates
+    $op = 'cud-add_confirm';
     my $biblio = MarcRecordFromNewSuggestion($suggestion);
     if ( my ($duplicatebiblionumber, $duplicatetitle) = FindDuplicate($biblio) ) {
         push @messages, { type => 'error', code => 'biblio_exists', id => $duplicatebiblionumber, title => $duplicatetitle };
         $need_confirm = 1;
-        $op = 'add';
+        $op = 'add_form';
     }
 }
 
@@ -161,7 +161,7 @@ if ( $borrowernumber ){
     }
 }
 
-if ( $op eq "add_confirm" ) {
+if ( $op eq "cud-add_confirm" ) {
     my $suggestions = Koha::Suggestions->search($suggestion);
     if ( C4::Context->preference("MaxTotalSuggestions") ne '' && $patrons_total_suggestions_count >= C4::Context->preference("MaxTotalSuggestions") )
     {
@@ -211,7 +211,7 @@ if ( $op eq "add_confirm" ) {
             $suggestion->{place} = $biblio->biblioitem->place;
         }
 
-        &NewSuggestion($suggestion);
+        Koha::Suggestion->new($suggestion)->store();
         $patrons_pending_suggestions_count++;
         $patrons_total_suggestions_count++;
 
@@ -232,7 +232,7 @@ my $suggestions = [ Koha::Suggestions->search_limited(
     }
 )->as_list ];
 
-if ( $op eq "delete_confirm" ) {
+if ( $op eq "cud-delete" ) {
     my @delete_field = $input->multi_param("delete_field");
     foreach my $delete_field (@delete_field) {
         &DelSuggestion( $borrowernumber, $delete_field );
@@ -245,7 +245,7 @@ if ( $op eq "delete_confirm" ) {
 my $patron_reason_loop = GetAuthorisedValues("OPAC_SUG", "opac");
 
 my @mandatoryfields;
-if ( $op eq 'add' ) {
+if ( $op eq 'add_form' ) {
     my $fldsreq_sp = C4::Context->preference("OPACSuggestionMandatoryFields") || 'title';
     @mandatoryfields = sort split(/\s*\|\s*/, $fldsreq_sp);
     foreach (@mandatoryfields) {
@@ -268,7 +268,7 @@ if ( $op eq 'add' ) {
 
 my @unwantedfields;
 {
-    last unless ($op eq 'add');
+    last unless ($op eq 'add_form');
     my $fldsreq_sp = C4::Context->preference("OPACSuggestionUnwantedFields");
     @unwantedfields = sort split(/\s*\|\s*/, $fldsreq_sp);
     foreach (@unwantedfields) {

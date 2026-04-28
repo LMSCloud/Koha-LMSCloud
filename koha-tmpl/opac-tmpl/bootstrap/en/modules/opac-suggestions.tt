@@ -8,8 +8,9 @@
 [% SET opacsuggestion = AdditionalContents.get( location => "OpacSuggestioninstructions", lang => lang, library => logged_in_user.branchcode || default_branch ) %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET AllPublicBranches = Branches.all(  search_params => { public => 1 }, selected => logged_in_user.branchcode ) %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( op_add ) %]Enter a new purchase suggestion[% END %]
+<title>[% IF ( op_add_form ) %]Enter a new purchase suggestion[% END %]
 [% IF ( op_else ) %]Purchase suggestions[% END %] &rsaquo;
 [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
@@ -19,21 +20,25 @@
 [% INCLUDE 'masthead.inc' %]
 
     <div class="main">
-        <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-                </li>
-                [% IF ( logged_in_user ) %]
-                    <li class="breadcrumb-item">
-                        <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
-                    </li>
+        [% WRAPPER breadcrumbs %]
+            [% IF ( logged_in_user ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
                 [% END %]
-                <li class="breadcrumb-item active">
-                    <a href="#" aria-current="page">Purchase suggestions</a>
-                </li>
-            </ol>
-        </nav> <!-- /#breadcrumbs -->
+            [% END %]
+            [% IF ( op_add_form ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/opac-suggestions.pl">Purchase suggestions</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>New purchase suggestion</span>
+                [% END %]
+            [% ELSE %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Purchase suggestions</span>
+                [% END %]
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
 
         <div class="container-fluid">
             <div class="row">
@@ -45,7 +50,7 @@
                 <div class="col-md-12 col-lg-10 order-1">
 
                     <div id="usersuggestions" class="maincontent">
-                        [% IF ( op_add ) %]
+                        [% IF ( op_add_form ) %]
                             <h1>Your purchase suggestions</h1>
                             [% IF ( Koha.Preference('MaxTotalSuggestions') != '' && patrons_total_suggestions_count >= Koha.Preference('MaxTotalSuggestions') ) %]
                                     <h2 class="TooManySuggestions">You cannot place any more suggestions</h2>
@@ -75,6 +80,7 @@
                             [% END %]
 
                             <form action="/cgi-bin/koha/opac-suggestions.pl" method="post" id="add_suggestion_form">
+                                [% INCLUDE 'csrf-token.inc' %]
                                 <fieldset class="rows">
                                     <ol>
                                         [% IF Koha.Preference( 'OPACSuggestionAutoFill' ) %]
@@ -214,7 +220,7 @@
                                             [% END %]
                                             </li>
                                         [% END %]
-                                        [% UNLESS ( branchcode_hidden )%]
+                                        [% UNLESS ( branchcode_hidden || AllPublicBranches.size < 2 )%]
                                             <li>
                                                 [% IF ( branchcode_required ) %]
                                                     <label for="branch" class="required">Library:</label>
@@ -286,21 +292,21 @@
                                 <fieldset class="action">
                                     <input type="hidden" name="suggested_by_anyone" value="[% suggested_by_anyone | html %]" />
                                     [% IF need_confirm # Confirm that we want a duplicate %]
-                                        <input type="hidden" name="op" value="add_confirm" />
+                                        <input type="hidden" name="op" value="cud-add_confirm" />
                                         <input type="submit" class="btn btn-primary" value="Confirm your suggestion" />
                                     [% ELSIF biblionumber # Create from an existing title %]
-                                        <input type="hidden" name="op" value="add_confirm" />
+                                        <input type="hidden" name="op" value="cud-add_confirm" />
                                         <input type="hidden" name="biblionumber" value="[% biblionumber | html %]" />
                                         <input type="submit" class="btn btn-primary" value="Submit your suggestion" />
                                     [% ELSE # Not created from an existing title, search for possible duplicate %]
-                                        <input type="hidden" name="op" value="add_validate" />
+                                        <input type="hidden" name="op" value="cud-add_validate" />
                                         <input type="submit" class="btn btn-primary" value="Submit your suggestion" />
                                     [% END %]
                                     <a class="action" href="/cgi-bin/koha/opac-suggestions.pl">Cancel</a>
                                 </fieldset>
                             </form>
                             [% END %]
-                        [% END #  IF op_add %]
+                        [% END #  IF op_add_form %]
 
                         [% IF ( op_else ) %]
                             <h1>
@@ -335,19 +341,18 @@
 
                             [% IF (Koha.Preference( 'OPACViewOthersSuggestions' ) || loggedinusername) && (suggestions.size > 0 OR title_filter) %]
                                 [% SET can_delete_suggestion = 0 %]
-                                <form action="/cgi-bin/koha/opac-suggestions.pl" class="form-inline" id="search_suggestions_form" method="get">
-                                    <div class="form-row">
-                                        <div class="col-auto my-1">
+                                <form action="/cgi-bin/koha/opac-suggestions.pl" class="row" id="search_suggestions_form" method="get">
+                                        <div class="col-auto gx-2 ms-2 my-1">
                                             <label for="title_filter">Search for:</label>
                                         </div>
-                                        <div class="col-auto my-1">
+                                        <div class="col-auto gx-2 my-1">
                                             <input type="text" name="title_filter" id="title_filter" value="[% title_filter | html %]" size="30" class="form-control form-control-sm" />
                                         </div>
                                         [% IF Koha.Preference( 'OPACViewOthersSuggestions' ) %]
                                             [% IF loggedinusername %]
-                                                <div class="col-auto my-1">
+                                                <div class="col-auto gx-2 my-1">
                                                     <label class="sr-only" for="suggested_by_anyone">Suggested by:</label>
-                                                    <select class="form-control form-control-sm" name="suggested_by_anyone" id="suggested_by_anyone">
+                                                    <select class="form-select form-select-sm" name="suggested_by_anyone" id="suggested_by_anyone">
                                                         [% IF suggested_by_anyone %]
                                                             <option value="0">Suggested by me</option>
                                                             <option value="1" selected="selected">Suggested by anyone</option>
@@ -359,16 +364,16 @@
                                                 </div>
                                             [% END %]
                                         [% END %]
-                                        <div class="col-auto my-1">
+                                        <div class="col-auto gx-2 my-1">
                                             <button type="submit" class="btn btn-sm btn-primary">Go</button>
                                         </div>
-                                    </div>
                                 </form>
                             [% END %]
                             [% IF suggestions.size > 0 %]
                                 [% SET can_delete_suggestion = 0 %]
                                 <form action="/cgi-bin/koha/opac-suggestions.pl" method="post" id="delete_suggestions">
-                                    <input type="hidden" name="op" value="delete_confirm" />
+                                    [% INCLUDE 'csrf-token.inc' %]
+                                    <input type="hidden" name="op" value="cud-delete" />
                                     [% IF ( loggedinusername || ( Koha.Preference( 'AnonSuggestions' ) == 1 ) ) %]
                                         <div id="toolbar" class="toolbar clearfix">
                                         [% IF ( Koha.Preference('MaxTotalSuggestions') != '' && patrons_total_suggestions_count >= Koha.Preference('MaxTotalSuggestions') ) %]
@@ -376,7 +381,7 @@
                                         [% ELSIF ( Koha.Preference('MaxOpenSuggestions') != '' && patrons_pending_suggestions_count >= Koha.Preference('MaxOpenSuggestions') ) %]
                                                 <p class="TooManySuggestionsText">You have reached your limit for suggestions you can place at this time ([% Koha.Preference('MaxOpenSuggestions') | html %]).</br>Once the library has processed those suggestions you will be able to place more.</p>
                                         [% ELSE %]
-                                                <a class="btn btn-link new" href="/cgi-bin/koha/opac-suggestions.pl?op=add"><i class="fa fa-plus"  aria-hidden="true"></i> New purchase suggestion</a>
+                                                <a class="btn btn-link new" href="/cgi-bin/koha/opac-suggestions.pl?op=add_form"><i class="fa fa-plus"  aria-hidden="true"></i> New purchase suggestion</a>
                                         [% END %]
                                         </div>
                                     [% END %]
@@ -389,7 +394,7 @@
                                             <div class="links">
                                                 <span class="selections">Select suggestions to: </span>
                                                 <span id="removeitems">
-                                                    <a href="#" class="btn btn-link removeitems tag_hides disabled"><i class="fa fa-trash" aria-hidden="true"></i> Delete</a>
+                                                    <a href="#" class="btn btn-link removeitems tag_hides disabled"><i class="fa fa-trash-can" aria-hidden="true"></i> Delete</a>
                                                 </span>
                                             </div>
                                         </div>
@@ -444,7 +449,6 @@
                                                     </td>
                                                     <td>
                                                         [% IF ( suggestion.note ) %]
-                                                            <span class="tdlabel">Note: </span>
                                                             [% suggestion.note | html %]
                                                         [% END %]
                                                     </td>
@@ -459,14 +463,12 @@
                                                     [% IF Koha.Preference( 'OpacSuggestionManagedBy' ) %]
                                                     <td>
                                                         [% IF suggestion.managedby %]
-                                                            <span class="tdlabel">Managed by:</span>
                                                             [% INCLUDE 'patron-title.inc' patron = suggestion.manager %]
                                                             [% IF ( suggestion.manageddate ) %] - [% suggestion.manageddate | $KohaDates %][% END %]
                                                         [% END %]
                                                     </td>
                                                     [% END %]
                                                     <td>
-                                                        <span class="tdlabel">Status:</span>
                                                         [% IF ( suggestion.STATUS == 'ASKED' ) %]<span>Requested</span>
                                                         [% ELSIF ( suggestion.STATUS == 'CHECKED' ) %]<span>Checked by the library</span>
                                                         [% ELSIF ( suggestion.STATUS == 'ACCEPTED' ) %]<span>Accepted by the library</span>
@@ -515,7 +517,7 @@
                                     [% ELSIF ( Koha.Preference('MaxOpenSuggestions') != ''  && patrons_pending_suggestions_count >= Koha.Preference('MaxOpenSuggestions') ) %]
                                         <p class="TooManySuggestionsText">You have reached your limit for suggestions you can place at this time.</br>Once the library has processed those suggestions you will be able to place more.</p>
                                     [% ELSE %]
-                                        <p><a class="btn btn-link new" href="/cgi-bin/koha/opac-suggestions.pl?op=add"><i class="fa fa-plus" aria-hidden="true"></i> New purchase suggestion</a></p>
+                                        <p><a class="btn btn-link new" href="/cgi-bin/koha/opac-suggestions.pl?op=add_form"><i class="fa fa-plus" aria-hidden="true"></i> New purchase suggestion</a></p>
                                     [% END %]
                                 [% END %]
                             [% END # / IF suggestions.size %]
@@ -565,7 +567,6 @@
     $(function() {
         $("#suggestt").dataTable($.extend(true, {}, dataTablesDefaults, {
             "order": [[ 1, "asc" ]],
-            "autoWidth": false,
             "columnDefs": [
               [% IF ( loggedinusername ) %]{ "targets": [ 0 ], "sortable": false, "searchable": false }[% END %],
                 { "className": 'dtr-control', "orderable": false, "targets": -1 },
@@ -614,7 +615,7 @@
             var no_label;
             var message = "";
             if ( selected_titles.size() < 1 ) {
-                alert(MSG_NO_SUGGESTION_SELECTED);
+                alert( _("No suggestion was selected") );
                 return false;
             } else {
                 if( selected_titles.size() > 1 ){

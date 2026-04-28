@@ -26,6 +26,7 @@ use C4::Auth qw( get_template_and_user );
 use C4::Output qw( output_html_with_http_headers );
 use Koha::Checkouts;
 use Koha::DateUtils qw( dt_from_string );
+use Koha::Items;
 
 my $input = CGI->new;
 my $op = $input->param('op') // q|form|;
@@ -45,9 +46,10 @@ my @issue_ids;
 if ( $op eq 'form' ) {
     $template->param( view => 'form', );
 }
-elsif ( $op eq 'list' ) {
+elsif ( $op eq 'cud-list' ) {
 
     my @categorycodes     = $input->multi_param('categorycodes');
+    my @itemtypecodes     = $input->multi_param('itemtypecodes');
     my @branchcodes       = $input->multi_param('branchcodes');
     my $from_due_date     = $input->param('from_due_date');
     my $to_due_date       = $input->param('to_due_date');
@@ -61,9 +63,16 @@ elsif ( $op eq 'list' ) {
     if (@categorycodes) {
         $search_params->{'patron.categorycode'} = { -in => \@categorycodes };
     }
+    if (@itemtypecodes) {
+        my $search_items->{'itype'} = { -in => \@itemtypecodes };
+        my @itemnumbers = Koha::Items->search($search_items)->get_column('itemnumber');
+
+        $search_params->{'itemnumber'} = { -in => \@itemnumbers };
+    }
     if (@branchcodes) {
         $search_params->{'me.branchcode'} = { -in => \@branchcodes };
     }
+
     if ( $from_due_date and $to_due_date ) {
         my $to_due_date_endday = dt_from_string($to_due_date);
         $to_due_date_endday
@@ -129,11 +138,11 @@ elsif ( $op eq 'list' ) {
             view          => 'list',
         );
     } else {
-        $op = 'modify';
+        $op = 'cud-modify';
     }
 }
 
-if ( $op eq 'modify' ) {
+if ( $op eq 'cud-modify' ) {
 
     # We want to modify selected checkouts!
     my $new_hard_due_date = $input->param('new_hard_due_date');

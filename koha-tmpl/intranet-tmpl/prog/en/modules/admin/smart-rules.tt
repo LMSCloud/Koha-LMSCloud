@@ -7,24 +7,20 @@
 [% USE ItemTypes %]
 [% USE CirculationRules %]
 [% USE Price %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 
 [% SET branchcode = humanbranch || undef %]
 
-[% SET categorycodes = [] %]
-[% FOREACH pc IN patron_categories %]
-    [% categorycodes.push( pc.id ) %]
-[% END %]
-[% categorycodes.push(undef) %]
-
-[% SET itemtypes = [] %]
-[% FOREACH i IN itemtypeloop %]
-    [% itemtypes.push( i.itemtype ) %]
-[% END %]
-[% itemtypes.push(undef) %]
+[% SET categorycodes = used_categorycodes %]
+[% SET itemtypes = used_itemtypes %]
 
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Circulation and fine rules &rsaquo; Administration &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Circulation and fine rules") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -46,8 +42,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
                 <h1 class="parameters">
                     [% IF humanbranch %]
                         Defining circulation and fine rules for "[% Branches.GetName( humanbranch ) | html %]"
@@ -56,7 +53,7 @@
                     [% END %]
                 </h1>
 
-                <div class="page-section bg-info">
+                <div class="page-section bg-info-subtle">
                     <p>The rules are applied from most specific to less specific, using the first found in this order:</p>
                     <ul>
                         <li>same library, same patron category, same item type</li>
@@ -73,6 +70,7 @@
                     current checkouts allowed will be limited to either the maximum for the parent (counting sibling types)
                     or the specific rule's type, whichever is less.</p>
                     <p>To modify a rule, create a new one with the same patron category and item type.</p>
+                    <p>The circulation and fine rules are applied based on the CircControl system preference which is set to <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=CircControl">[% Koha.Preference('CircControl') | html %]</a> and the HomeOrHoldingBranch system preference which is set to <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=HomeOrHoldingBranch">[% Koha.Preference('HomeOrHoldingBranch') | html %]</a>.</p>
                 </div>
 
                 <div class="page-section">
@@ -86,11 +84,13 @@
                         </form>
                         [% IF ( definedbranch ) %]
                             <form action="/cgi-bin/koha/admin/clone-rules.pl" method="post">
+                                [% INCLUDE 'csrf-token.inc' %]
                                 <label for="tobranch"><strong>Clone these rules to:</strong></label>
                                 <input type="hidden" name="frombranch" value="[% current_branch | html %]" />
                                 <select name="tobranch" id="tobranch">
                                     [% PROCESS options_for_libraries libraries => Branches.all( unfiltered => 1 ) %]
                                 </select>
+                                <input type="hidden" name="op" value="cud-clone" />
                                 <input type="submit" id="clone_rules" class="btn btn-primary" value="Clone" />
                             </form>
                         [% END %]
@@ -99,7 +99,8 @@
 
                 <div class="page-section">
                     <form method="post" action="/cgi-bin/koha/admin/smart-rules.pl">
-                        <input type="hidden" name="op" value="add" />
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-add" />
                         <input type="hidden" name="branch" value="[% current_branch | html %]"/>
                         <table id="default-circulation-rules">
                         <thead>
@@ -132,6 +133,7 @@
                             [% END %]
                             <th>Renewal period</th>
                             <th>No renewal before</th>
+                            <th>No automatic renewal before</th>
                             <th>Automatic renewal</th>
                             <th>No automatic renewal after</th>
                             <th>No automatic renewal after (hard limit)</th>
@@ -140,6 +142,7 @@
                             <th>Holds per record (count)</th>
                             <th>On shelf holds allowed</th>
                             <th>OPAC item level holds</th>
+                            <th>Holds pickup period (day)</th>
                             [% IF Koha.Preference('ArticleRequests') %]
                             <th>Article requests</th>
                             [% END %]
@@ -182,6 +185,7 @@
                                     [% SET unseenrenewalsallowed = all_rules.$c.$i.unseen_renewals_allowed %]
                                     [% SET renewalperiod = all_rules.$c.$i.renewalperiod %]
                                     [% SET norenewalbefore = all_rules.$c.$i.norenewalbefore %]
+                                    [% SET noautorenewalbefore = all_rules.$c.$i.noautorenewalbefore %]
                                     [% SET auto_renew = all_rules.$c.$i.auto_renew %]
                                     [% SET no_auto_renewal_after = all_rules.$c.$i.no_auto_renewal_after %]
                                     [% SET no_auto_renewal_after_hard_limit = all_rules.$c.$i.no_auto_renewal_after_hard_limit %]
@@ -199,8 +203,9 @@
                                     [% SET recall_due_date_interval = all_rules.$c.$i.recall_due_date_interval %]
                                     [% SET recall_overdue_fine = all_rules.$c.$i.recall_overdue_fine %]
                                     [% SET recall_shelf_time = all_rules.$c.$i.recall_shelf_time %]
+                                    [% SET holds_pickup_period = all_rules.$c.$i.holds_pickup_period %]
 
-                                    [% SET show_rule = note || maxissueqty || maxonsiteissueqty || issuelength || daysmode || lengthunit || hardduedate || hardduedatecompare || fine || chargeperiod || chargeperiod_charge_at || firstremind || overduefinescap || cap_fine_to_replacement_price || finedays || maxsuspensiondays || suspension_chargeperiod || renewalsallowed || unseenrenewalsallowed || renewalperiod || norenewalbefore || auto_renew || no_auto_renewal_after || no_auto_renewal_after_hard_limit || reservesallowed || holds_per_day || holds_per_record || onshelfholds || opacitemholds || article_requests || rentaldiscount || decreaseloanholds || recalls_allowed || recalls_per_record || on_shelf_recalls || recall_due_date_interval || recall_overdue_fine || recall_shelf_time %]
+                                    [% SET show_rule = note || maxissueqty || maxonsiteissueqty || issuelength || daysmode || lengthunit || hardduedate || hardduedatecompare || fine || chargeperiod || chargeperiod_charge_at || firstremind || overduefinescap || cap_fine_to_replacement_price || finedays || maxsuspensiondays || suspension_chargeperiod || renewalsallowed || unseenrenewalsallowed || renewalperiod || norenewalbefore || noautorenewalbefore || auto_renew || no_auto_renewal_after || no_auto_renewal_after_hard_limit || reservesallowed || holds_per_day || holds_per_record || onshelfholds || opacitemholds || article_requests || rentaldiscount || decreaseloanholds || recalls_allowed || recalls_per_record || on_shelf_recalls || recall_due_date_interval || recall_overdue_fine || recall_shelf_time || holds_pickup_period %]
                                     [% IF show_rule %]
                                         [% SET row_count = row_count + 1 %]
                                         <tr row_countd="row_[% row_count | html %]">
@@ -229,12 +234,12 @@
                                                     [% END %]
                                                 </td>
                                                 <td class="actions">
-                                                  <a href="#" class="editrule btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
-                                                  <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/admin/smart-rules.pl?op=delete&amp;itemtype=[% i || '*' | html %]&amp;categorycode=[% c || '*' | html %]&amp;branch=[% current_branch | html %]"><i class="fa fa-trash"></i> Delete</a>
+                                                  <a href="#" class="editrule btn btn-default btn-xs"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+                                                  <a href="#" class="delete btn btn-default btn-xs" data-itemtype="[% i || '*' | html %]" data-categorycode="[% c || '*' | html %]" data-branch="[% current_branch | html %]"><i class="fa fa-trash-can"></i> Delete</a>
                                                 </td>
                                                 <td>
                                                     [% IF note.defined && note != '' %]
-                                                        <a name="viewnote" data-toggle="popover" title="Note" data-content="[% note | html %]" data-placement="top" data-trigger="hover">View note</a>
+                                                        <a id="viewnote" data-bs-toggle="popover" title="Note" data-bs-content="[% note | html %]" data-bs-placement="top" data-bs-trigger="hover">View note</a>
                                                     [% ELSE %]<span>&nbsp;</span>[% END %]
                                                 </td>
                                                 <td>
@@ -274,13 +279,10 @@
                                                   [% IF ( hardduedate ) %]
                                                     [% IF ( hardduedatecompare == '-1' ) %]
                                                       before [% hardduedate | $KohaDates %]
-                                                      <input type="hidden" name="hardduedatecomparebackup" value="-1" />
                                                     [% ELSIF ( hardduedatecompare == '0' ) %]
                                                       on [% hardduedate | $KohaDates %]
-                                                      <input type="hidden" name="hardduedatecomparebackup" value="0" />
                                                     [% ELSIF ( hardduedatecompare == '1' ) %]
                                                       after [% hardduedate | $KohaDates %]
-                                                      <input type="hidden" name="hardduedatecomparebackup" value="1" />
                                                     [% END %]
                                                   [% ELSE %]
                                                     <span>None defined</span>
@@ -397,8 +399,8 @@
                                                     <td>[% recall_shelf_time | html %]</td>
                                                 [% END %]
                                                 <td class="actions">
-                                                  <a href="#" class="editrule btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
-                                                  <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/admin/smart-rules.pl?op=delete&amp;itemtype=[% i || '*' | uri %]&amp;categorycode=[% c || '*' | uri %]&amp;branch=[% current_branch | uri %]"><i class="fa fa-trash"></i> Delete</a>
+                                                  <a href="#" class="editrule btn btn-default btn-xs"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+                                                  <a href="#" class="delete btn btn-default btn-xs" data-itemtype="[% i || '*' | html %]" data-categorycode="[% c || '*' | html %]" data-branch="[% current_branch | html %]"><i class="fa fa-trash-can"></i> Delete</a>
                                                 </td>
                                         </tr>
                                     [% END %]
@@ -464,7 +466,7 @@
                                        <option value="0">Exactly on</option>
                                        <option value="1">After</option>
                                     </select>
-                                    <input type="text" size="10" id="hardduedate" name="hardduedate" value="[% hardduedate | html %]" class="flatpickr" />
+                                    <input type="text" size="10" id="hardduedate" name="hardduedate" class="flatpickr" />
                                     <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
                                 </td>
                                 <td><input type="text" name="decreaseloanholds" id="decreaseloanholds" size="2" /></td>
@@ -488,6 +490,7 @@
                                 [% END %]
                                 <td><input type="text" name="renewalperiod" id="renewalperiod" size="3" /></td>
                                 <td><input type="text" name="norenewalbefore" id="norenewalbefore" size="3" /></td>
+                                <td><input type="text" name="noautorenewalbefore" id="noautorenewalbefore" size="3" /></td>
                                 <td>
                                     <select name="auto_renew" id="auto_renew">
                                         <option value="no" selected>No</option>
@@ -496,7 +499,7 @@
                                 </td>
                                 <td><input type="text" name="no_auto_renewal_after" id="no_auto_renewal_after" size="3" /></td>
                                 <td>
-                                    <input type="text" size="10" name="no_auto_renewal_after_hard_limit" id="no_auto_renewal_after_hard_limit" value="[% no_auto_renewal_after_hard_limit | html %]" class="flatpickr"/>
+                                    <input type="text" size="10" name="no_auto_renewal_after_hard_limit" id="no_auto_renewal_after_hard_limit" class="flatpickr"/>
                                     <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
                                 </td>
                                 <td><input type="text" name="reservesallowed"  id="reservesallowed"  size="2" /></td>
@@ -516,6 +519,7 @@
                                         <option value="F">Force</option>
                                     </select>
                                 </td>
+                                <td><input type="text" name="holds_pickup_period" id="holds_pickup_period" size="2" /></td>
                                 [% IF Koha.Preference('ArticleRequests') %]
                                 <td>
                                     <select id="article_requests" name="article_requests">
@@ -526,7 +530,7 @@
                                     </select>
                                 </td>
                                 [% END %]
-                                <td><input type="text" name="rentaldiscount" id="rentaldiscount" size="2" /></td>
+                                <td><input type="text" name="rentaldiscount" id="rentaldiscount" size="3" inputmode="decimal" pattern="^\d+(\.\d{2})?$" /></td>
                                 [% IF Koha.Preference('UseRecalls') %]
                                     <td><input type="text" name="recalls_allowed" id="recalls_allowed" size="3"></td>
                                     <td><input type="text" name="recalls_per_record" id="recalls_per_record" size="3"></td>
@@ -577,6 +581,7 @@
                                   [% END %]
                                   <th>Renewal period</th>
                                   <th>No renewal before</th>
+                                  <th>No automatic renewal before</th>
                                   <th>Automatic renewal</th>
                                   <th>No automatic renewal after</th>
                                   <th>No automatic renewal after (hard limit)</th>
@@ -585,6 +590,7 @@
                                   <th>Holds per record (count)</th>
                                   <th>On shelf holds allowed</th>
                                   <th>OPAC item level holds</th>
+                                  <th>Holds pickup period (day)</th>
                                   [% IF Koha.Preference('ArticleRequests') %]
                                   <th>Article requests</th>
                                   [% END %]
@@ -608,7 +614,8 @@
                     <h2>Default checkout, hold and return policy[% IF humanbranch %] for [% Branches.GetName( humanbranch ) | html %][% END %]</h2>
                     <p>You can set a default maximum number of checkouts, hold policy and return policy that will be used if none is defined below for a particular item type or category.</p>
                     <form method="post" action="/cgi-bin/koha/admin/smart-rules.pl">
-                        <input type="hidden" name="op" value="set-branch-defaults" />
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-set-branch-defaults" />
                         <input type="hidden" name="branch" value="[% current_branch | html %]"/>
                         <table>
                             <tr>
@@ -782,12 +789,19 @@
                                         [% END %]
                                             Item floats
                                         </option>
+                                        [% IF returnbranch.rule_value == 'returnbylibrarygroup' %]
+                                        <option value="returnbylibrarygroup" selected="selected">
+                                        [% ELSE %]
+                                        <option value="returnbylibrarygroup">
+                                        [% END %]
+                                            Item floats by library group
+                                        </option>
                                     </select>
                                 </td>
                                 <td class="actions">
                                     <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-save"></i> Save</button>
                                     [% IF ( default_checkout_hold_and_return_policy ) %]
-                                        <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/admin/smart-rules.pl?op=delete-branch-cat&amp;categorycode=*&amp;branch=[% current_branch | html %]" id="unset"><i class="fa fa-undo"></i> Unset</a>
+                                        <a href="#" class="delete-branch-cat btn btn-default btn-xs" data-categorycode="*" data-branch="[% current_branch | html %]"><i class="fa fa-undo"></i> Unset</a>
                                     [% END %]
                                 </td>
                             </tr>
@@ -805,7 +819,8 @@
                        no limit applies, except possibly for a limit you define for a specific item type.
                     </p>
                     <form method="post" action="/cgi-bin/koha/admin/smart-rules.pl">
-                        <input type="hidden" name="op" value="add-branch-cat" />
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-add-branch-cat" />
                         <input type="hidden" name="branch" value="[% current_branch | html %]"/>
                         <table>
                             <tr>
@@ -817,9 +832,10 @@
                             </tr>
                             [% FOREACH c IN categorycodes %]
                                 [% NEXT UNLESS c %]
-                                [% SET patron_maxissueqty = CirculationRules.Search( branchcode, c, undef, 'patron_maxissueqty' ) %]
-                                [% SET patron_maxonsiteissueqty = CirculationRules.Search( branchcode, c, undef, 'patron_maxonsiteissueqty' ) %]
-                                [% SET max_holds = CirculationRules.Search( branchcode, c, undef, 'max_holds' ) %]
+                                [% SET i = undef %]
+                                [% SET patron_maxissueqty = all_rules.$c.$i.patron_maxissueqty %]
+                                [% SET patron_maxonsiteissueqty = all_rules.$c.$i.patron_maxonsiteissueqty %]
+                                [% SET max_holds = all_rules.$c.$i.max_holds %]
 
                                 [% IF  ( patron_maxissueqty.defined && patron_maxissueqty != '' ) || ( patron_maxonsiteissueqty.defined && patron_maxonsiteissueqty != '' ) || ( max_holds.defined && max_holds != '' ) %]
                                 <tr>
@@ -853,7 +869,7 @@
                                     </td>
 
                                     <td class="actions">
-                                        <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/admin/smart-rules.pl?op=delete-branch-cat&amp;categorycode=[% c | html %]&amp;branch=[% current_branch | html %]"><i class="fa fa-trash"></i> Delete</a>
+                                        <a href="#" class="delete-branch-cat btn btn-default btn-xs" data-categorycode="[% c | html %]" data-branch="[% current_branch | html %]"><i class="fa fa-trash-can"></i> Delete</a>
                                     </td>
                                 </tr>
                                 [% END %]
@@ -884,7 +900,8 @@
                 [% END %]
                     <p>Specify if waiting holds can be cancelled for a given patron category.</p>
                     <form id="set-waiting-hold-cancellation" method="post" action="/cgi-bin/koha/admin/smart-rules.pl">
-                        <input type="hidden" name="op" value="set-waiting-hold-cancellation" />
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-set-waiting-hold-cancellation" />
                         <input type="hidden" name="branch" value="[% current_branch | html %]"/>
                         <table>
                             <tr>
@@ -894,23 +911,20 @@
                                 <th>&nbsp;</th>
                             </tr>
                             [% FOREACH c IN categorycodes %]
-                                [% SET c = '*' UNLESS c.defined AND c != '' %]
                                 [% FOREACH i IN itemtypes %]
-                                    [% SET i = '*' UNLESS i.defined AND i != '' %]
-
-                                    [% SET waiting_hold_cancellation = CirculationRules.Search( current_branch, c, i, 'waiting_hold_cancellation' ) %]
+                                    [% SET waiting_hold_cancellation = all_rules.$c.$i.waiting_hold_cancellation %]
 
                                     [% IF ( waiting_hold_cancellation.defined && waiting_hold_cancellation != '' ) %]
                                         <tr>
                                             <td>
-                                                [% IF c == '*' %]
+                                                [% IF c == undef %]
                                                     <em>All</em>
                                                 [% ELSE %]
                                                     [% Categories.GetName(c) | html %]
                                                 [% END %]
                                             </td>
                                             <td>
-                                                [% IF i == '*' %]
+                                                [% IF i == undef %]
                                                     <em>All</em>
                                                 [% ELSE %]
                                                     [% ItemTypes.GetDescription(i,1) | html %]
@@ -924,7 +938,7 @@
                                                 [% END %]
                                             </td>
                                             <td class="actions">
-                                                <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/admin/smart-rules.pl?op=del-waiting-hold-cancellation&amp;waiting_hold_cancellation_category=[% c | uri %]&amp;waiting_hold_cancellation_itemtype=[% i | uri %]&amp;branch=[% current_branch | uri %]"><i class="fa fa-trash"></i> Delete</a>
+                                                <a href="#" class="del-waiting-hold-cancellation btn btn-default btn-xs" data-categorycode="[% c || '*' | html %]" data-itemtype="[% i|| '*' | html %]" data-branch="[% current_branch | html %]"><i class="fa fa-trash-can"></i> Delete</a>
                                             </td>
                                         </tr>
                                     [% END %]
@@ -968,7 +982,8 @@
                 [% END %]
                     <p>Specify the maximum number simultaneous current article requests a patron of a given category can have.</p>
                     <form id="set-article-requests-daily-limit" method="post" action="/cgi-bin/koha/admin/smart-rules.pl">
-                        <input type="hidden" name="op" value="add-open-article-requests-limit" />
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-add-open-article-requests-limit" />
                         <input type="hidden" name="branch" value="[% current_branch | html %]"/>
                         <table>
                             <tr>
@@ -978,7 +993,8 @@
                             </tr>
                             [% FOREACH c IN categorycodes %]
                                 [% NEXT UNLESS c %]
-                                [% SET open_article_requests_limit = CirculationRules.Search( branchcode, c, undef, 'open_article_requests_limit' ) %]
+                                [% SET i = undef %]
+                                [% SET open_article_requests_limit = all_rules.$c.$i.open_article_requests_limit %]
 
                                 [% IF ( open_article_requests_limit.defined && open_article_requests_limit != '' ) %]
                                 <tr>
@@ -994,7 +1010,7 @@
                                     </td>
 
                                     <td class="actions">
-                                        <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/admin/smart-rules.pl?op=del-open-article-requests-limit&amp;categorycode=[% c | html %]&amp;branch=[% current_branch | html %]"><i class="fa fa-trash"></i> Delete</a>
+                                        <a href="#" class="del-open-article-requests-limit btn btn-default btn-xs" data-categorycode="[% c | html %]" data-branch="[% current_branch | html %]"><i class="fa fa-trash-can"></i> Delete</a>
                                     </td>
                                 </tr>
                                 [% END %]
@@ -1022,7 +1038,8 @@
                 [% END %]
                     <p>Specify the article request fee for a given patron category.</p>
                     <form id="set-article-request-fee" method="post" action="/cgi-bin/koha/admin/smart-rules.pl">
-                        <input type="hidden" name="op" value="set-article-request-fee" />
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-set-article-request-fee" />
                         <input type="hidden" name="branch" value="[% current_branch | html %]"/>
                         <table>
                             <tr>
@@ -1031,14 +1048,13 @@
                                 <th>&nbsp;</th>
                             </tr>
                             [% FOREACH c IN categorycodes %]
-                                [% SET c = '*' UNLESS c.defined AND c != '' %]
-
-                                [% SET article_request_fee = CirculationRules.Search( current_branch, c, undef, 'article_request_fee' ) %]
+                                [% SET i = undef %]
+                                [% SET article_request_fee = all_rules.$c.$i.article_request_fee %]
 
                                 [% IF ( article_request_fee.defined && article_request_fee != '' ) %]
                                 <tr>
                                     <td>
-                                        [% IF c == '*' %]
+                                        [% IF c == undef %]
                                             <em>All</em>
                                         [% ELSE %]
                                             [% Categories.GetName(c) | html %]
@@ -1052,7 +1068,7 @@
                                         [% END %]
                                     </td>
                                     <td class="actions">
-                                        <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/admin/smart-rules.pl?op=del-article-request-fee&amp;article_request_fee_category=[% c | uri %]&amp;branch=[% current_branch | uri %]"><i class="fa fa-trash"></i> Delete</a>
+                                        <a href="#" class="del-article-request-fee btn btn-default btn-xs" data-categorycode="[% c || '*' | html %]" data-branch="[% current_branch | html %]"><i class="fa fa-trash-can"></i> Delete</a>
                                     </td>
                                 </tr>
                                 [% END %]
@@ -1082,7 +1098,8 @@
                 [% END %]
                     <p>Specify the default policy for lost item fees on return.</p>
                     <form method="post" action="/cgi-bin/koha/admin/smart-rules.pl">
-                        <input type="hidden" name="op" value="mod-refund-lost-item-fee-rule" />
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-mod-refund-lost-item-fee-rule" />
                         <input type="hidden" name="branch" value="[% current_branch | html %]" />
                         <table>
                             <tr>
@@ -1167,7 +1184,7 @@
                                             [% ELSIF ( refundLostItemFeeRule.rule_value == 'refund_unpaid' ) %]
                                             <option value="refund">Refund lost item charge</option>
                                             <option value="refund_unpaid" selected="selected">Refund lost item charge (only if unpaid)</option>
-                                            <option value="charge" selected="selected">Refund lost item charge and charge new overdue fine</option>
+                                            <option value="charge">Refund lost item charge and charge new overdue fine</option>
                                             <option value="restore">Refund lost item charge and restore overdue fine</option>
                                             <option value="0">Leave lost item charge</option>
                                             [% ELSIF ( refundLostItemFeeRule.rule_value == 'charge' ) %]
@@ -1280,10 +1297,12 @@
                     <ul>
                         <li>The hold policies are applied based on the ReservesControlBranch system preference which is set to <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=ReservesControlBranch">[% Koha.Preference('ReservesControlBranch') | html %]</a>.</li>
                         <li>The return policy is applied based on the CircControlReturnsBranch system preference which is set to <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=CircControlReturnsBranch">[% Koha.Preference('CircControlReturnsBranch') | html %]</a>.</li>
+                        <li>When return policy is set to 'item floats by library group' the item's homebranch will be used to find groups.</li>
                     </ul>
 
                     <form method="post" action="/cgi-bin/koha/admin/smart-rules.pl">
-                        <input type="hidden" name="op" value="add-branch-item" />
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-add-branch-item" />
                         <input type="hidden" name="branch" value="[% current_branch | html %]"/>
                         <table>
                             <tr>
@@ -1346,10 +1365,12 @@
                                                 <span>Item returns to issuing branch</span>
                                             [% ELSIF returnbranch == 'noreturn' %]
                                                 <span>Item floats</span>
+                                            [% ELSIF returnbranch == 'returnbylibrarygroup'%]
+                                                <span>Item floats by library group</span>
                                             [% END %]
                                         </td>
                                         <td class="actions">
-                                            <a class="btn btn-default btn-xs delete" href="/cgi-bin/koha/admin/smart-rules.pl?op=delete-branch-item&amp;itemtype=[% i.itemtype | uri %]&amp;branch=[% current_branch | uri %]"><i class="fa fa-trash"></i> Delete</a>
+                                            <a href="#" class="delete-branch-item btn btn-default btn-xs" data-itemtype="[% i.itemtype | html %]" data-branch="[% current_branch | html %]"><i class="fa fa-trash-can"></i> Delete</a>
                                         </td>
                                     </tr>
                                 [% END %]
@@ -1404,21 +1425,32 @@
                                         <option value="homebranch">Item returns home</option>
                                         <option value="holdingbranch">Item returns to issuing library</option>
                                         <option value="noreturn">Item floats</option>
+                                        <option value="returnbylibrarygroup">Item floats by library group</option>
                                     </select>
                                 </td>
                                 <td class="actions"><button type="submit" class="btn btn-default btn-xs"><i class="fa fa-plus"></i> Add</button></td>
                             </tr>
                         </table>
                     </form>
+
+                    <!-- This is a placeholder form to be filled by JS functions attached to buttons/links -->
+                    <form id="delete_form" action="/cgi-bin/koha/admin/smart-rules.pl" method="post">
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-" />
+                        <input type="hidden" name="itemtype" value="" />
+                        <input type="hidden" name="categorycode" value="" />
+                        <input type="hidden" name="branch" value="" />
+                    </form>
+
                 </div>
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -1430,13 +1462,13 @@
     <script>
          $(document).ready(function() {
             KohaTable("default-circulation-rules", {
-                "aoColumnDefs": [
-                    { "bVisible": false, "aTargets": [ 0,2 ] },
-                    { "bSortable": false, "aTargets": ["_all"] }
+                "columnDefs": [
+                    { "visible": false, "targets": [ 0,2 ] },
+                    { "orderable": false, "targets": ["_all"] }
                 ],
-                "aaSortingFixed": [ [0,'asc'], [1,'asc'], [2,'asc'], [3,'asc'] ],
-                "bPaginate": false,
-                "bAutoWidth": false
+                "orderFixed": [ [0,'asc'], [1,'asc'], [2,'asc'], [3,'asc'] ],
+                "paginate": false,
+                "autoWidth": false
             });
         });
 
@@ -1456,6 +1488,7 @@
                 }
             });
             $(edit_row).find("select").prop('disabled', false);
+            $(edit_row).find("select option:selected").removeAttr('selected');
             $(edit_row).find("select option:first-child").attr("selected", "selected");
             $(edit_row).find("td:last input[name='clear']").remove();
         }
@@ -1463,11 +1496,7 @@
         var MSG_CONFIRM_DELETE = _("Are you sure you want to delete this rule? This cannot be undone.");
 
         $(document).ready(function() {
-            $('[data-toggle="popover"]').popover();
-
-            $(".delete").on("click",function(){
-                return confirmDelete(MSG_CONFIRM_DELETE);
-            });
+            $('[data-bs-toggle="popover"]').popover();
 
             $("#clone_rules").on("click",function(){
                 var library_dropdown = document.getElementById("branch");
@@ -1495,14 +1524,16 @@
                 }
                 $('#default-circulation-rules td').removeClass('highlighted-row');
                 $(this).parent().parent().find("td").each(function (i) {
+
                     $(this).addClass('highlighted-row');
                     itm_code = $(this).data('code');
                     itm_text = $(this).text();
                     itm_text = itm_text.replace(/^\s*|\s*$/g,'');
                     var current_column = $("#edit_row td:eq("+i+")");
-                    if ( i == 3 ) {
+                    var current_input_id = $(current_column).children('input').first().attr('id');
+                    if ( current_input_id === "note" ) {
                         // specific processing for the Note column
-                        var note = $(this).find("a[name='viewnote']").data("content");
+                        var note = $(this).find("a[id='viewnote']").data("content");
                         $(current_column).find("input[type='text']").val(note);
                     } else if ( i == 9 ) {
                         // specific processing for the Hard due date column
@@ -1513,9 +1544,15 @@
                         }else {
                             input_value = itm_text.split(' ')[1];
                         }
-                        $(current_column).find("input[type='text']").val(input_value);
-                        $(current_column).find("select").val(select_value);
-                    } else if ( i == 16 ) {
+                    } else if ( current_input_id === "no_auto_renewal_after_hard_limit" ) {
+                        // specific processing for No automatic renewal after (hard limit)
+                        var renewdate = itm_text;
+                        if (renewdate) {
+                            var fp = document.querySelector("#no_auto_renewal_after_hard_limit")._flatpickr;
+                            renewdate = fp.parseDate( renewdate, flatpickr_dateformat_string );
+                            if( renewdate) fp.setDate( renewdate, 1 );
+                        }
+                    } else if ( current_input_id === "cap_fine_to_replacement_price" ) {
                         // specific processing for cap_fine_to_replacement_price
                         var cap_fine_to_replacement_price = $(this).find("input[type='checkbox']");
                         $('#cap_fine_to_replacement_price').prop('checked', cap_fine_to_replacement_price.is(':checked') );
@@ -1555,6 +1592,7 @@
                             //     - "Holds allowed (total)"
                             //     - "Holds allowed (daily)"
                             //     - "Holds per record (count)"
+                            //     - "Holds pickup period (day)"
                             // The value is "Unlimited" (or an equivalent translated string)
                             // an it should be set to an empty string
                             if( !((parseFloat(itm_text) == parseInt(itm_text)) && !isNaN(itm_text)) ) {
@@ -1587,6 +1625,81 @@
                 }
                 return true;
             });
+
+            $(".delete").on("click", function(e){
+                e.preventDefault();
+                if ( !confirmDelete(MSG_CONFIRM_DELETE) ) {
+                    return false;
+                }
+                let f = $("#delete_form");
+                f.find("[name='op']").val('cud-delete');
+                f.find("[name='itemtype']").val($(this).data('itemtype'));
+                f.find("[name='categorycode']").val($(this).data('categorycode'));
+                f.find("[name='branch']").val($(this).data('branch'));
+                return f.submit();
+            });
+
+            $(".delete-branch-cat").on("click", function(e){
+                e.preventDefault();
+                if ( !confirmDelete(MSG_CONFIRM_DELETE) ) {
+                    return false;
+                }
+                let f = $("#delete_form");
+                f.find("[name='op']").val('cud-delete-branch-cat');
+                f.find("[name='categorycode']").val($(this).data('categorycode'));
+                f.find("[name='branch']").val($(this).data('branch'));
+                return f.submit();
+            });
+
+            $(".del-waiting-hold-cancellation").on("click", function(e){
+                e.preventDefault();
+                if ( !confirmDelete(MSG_CONFIRM_DELETE) ) {
+                    return false;
+                }
+                let f = $("#delete_form");
+                f.find("[name='op']").val('cud-del-waiting-hold-cancellation');
+                f.find("[name='itemtype']").val($(this).data('itemtype'));
+                f.find("[name='categorycode']").val($(this).data('categorycode'));
+                f.find("[name='branch']").val($(this).data('branch'));
+                return f.submit();
+            });
+
+            $(".del-open-article-requests-limit").on("click", function(e){
+                e.preventDefault();
+                if ( !confirmDelete(MSG_CONFIRM_DELETE) ) {
+                    return false;
+                }
+                let f = $("#delete_form");
+                f.find("[name='op']").val('cud-del-open-article-requests-limit');
+                f.find("[name='categorycode']").val($(this).data('categorycode'));
+                f.find("[name='branch']").val($(this).data('branch'));
+                return f.submit();
+            });
+
+            $(".del-article-request-fee").on("click", function(e){
+                e.preventDefault();
+                if ( !confirmDelete(MSG_CONFIRM_DELETE) ) {
+                    return false;
+                }
+                let f = $("#delete_form");
+                f.find("[name='op']").val('cud-del-article-request-fee');
+                f.find("[name='categorycode']").val($(this).data('categorycode'));
+                f.find("[name='branch']").val($(this).data('branch'));
+                return f.submit();
+            });
+
+            $(".delete-branch-item").on("click", function(e){
+                e.preventDefault();
+                if ( !confirmDelete(MSG_CONFIRM_DELETE) ) {
+                    return false;
+                }
+                let f = $("#delete_form");
+                f.find("[name='op']").val('cud-delete-branch-item');
+                f.find("[name='itemtype']").val($(this).data('itemtype'));
+                f.find("[name='branch']").val($(this).data('branch'));
+                return f.submit();
+            });
+
         });
     </script>
 [% END %]

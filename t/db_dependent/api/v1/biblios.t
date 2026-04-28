@@ -20,7 +20,8 @@ use Modern::Perl;
 use utf8;
 use Encode;
 
-use Test::More tests => 12;
+use Test::More tests => 16;
+use Test::NoWarnings;
 use Test::MockModule;
 use Test::Mojo;
 use Test::Warn;
@@ -28,12 +29,14 @@ use Test::Warn;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
+use Mojo::JSON qw(encode_json);
+
 use C4::Auth;
 use C4::Circulation qw( AddIssue AddReturn );
 
 use Koha::Biblios;
 use Koha::Database;
-use Koha::DateUtils qw (dt_from_string);
+use Koha::DateUtils qw (dt_from_string output_pref);
 use Koha::Checkouts;
 use Koha::Old::Checkouts;
 
@@ -48,7 +51,7 @@ my $t = Test::Mojo->new('Koha::REST::V1');
 
 subtest 'get() tests' => sub {
 
-    plan tests => 22;
+    plan tests => 26;
 
     $schema->storage->txn_begin;
 
@@ -99,11 +102,18 @@ subtest 'get() tests' => sub {
       ->status_is(200)
       ->content_is($biblio->metadata->record->as_formatted);
 
+    # Simulate a data error situation (BZ35246)
+    $biblio->biblioitem->delete();
+
+    $t->get_ok( "//$userid:$password@/api/v1/biblios/" . $biblio->biblionumber => { Accept => 'application/json' } )
+        ->status_is(500)->json_is( '/error_code', 'internal_server_error' )
+        ->json_is( '/error', 'Something went wrong, check Koha logs for details.' );
+
     $biblio->delete;
     $t->get_ok( "//$userid:$password@/api/v1/biblios/" . $biblio->biblionumber
                  => { Accept => 'application/marc' } )
       ->status_is(404)
-      ->json_is( '/error', 'Object not found.' );
+      ->json_is( '/error', 'Bibliographic record not found' );
 
     subtest 'marc-in-json encoding tests' => sub {
 
@@ -163,7 +173,7 @@ subtest 'get() tests' => sub {
 
 subtest 'get_items() tests' => sub {
 
-    plan tests => 11;
+    plan tests => 12;
 
     $schema->storage->txn_begin;
 
@@ -191,7 +201,7 @@ subtest 'get_items() tests' => sub {
     my $item_1 = $builder->build_sample_item({ biblionumber => $biblio->biblionumber });
     my $item_2 = $builder->build_sample_item({ biblionumber => $biblio->biblionumber });
 
-    $t->get_ok( "//$userid:$password@/api/v1/biblios/" . $biblio->biblionumber . "/items")
+    $t->get_ok( "//$userid:$password@/api/v1/biblios/" . $biblio->biblionumber . "/items?_order_by=item_id" )
       ->status_is(200)
       ->json_is( '' => [ $item_1->to_api, $item_2->to_api ], 'The items are returned' );
 
@@ -199,6 +209,45 @@ subtest 'get_items() tests' => sub {
         "//$userid:$password@/api/v1/biblios/" . $biblio->biblionumber . "/items" => { "x-koha-embed" => "+strings" } )
         ->status_is(200)
         ->json_has( '/0/_strings/home_library_id/str' => $item_1->holding_branch->branchname, '_strings are embedded' );
+
+    subtest 'first_hold+strings' => sub {
+
+        plan tests => 6;
+
+        my $patron = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => {
+                    flags => 1,
+                }
+            }
+        );
+        $patron->set_password( { password => $password, skip_validation => 1 } );
+        my $userid = $patron->userid;
+        my $pickup_library =
+            $builder->build_object( { class => 'Koha::Libraries', value => { pickup_location => 1 } } );
+
+        my $item = $builder->build_sample_item;
+        my $data = {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $item->biblionumber,
+            item_id           => $item->itemnumber,
+            pickup_library_id => $pickup_library->branchcode,
+            expiration_date   => output_pref(
+                {
+                    dt       => dt_from_string()->add( days => "3" )->truncate( to => 'day' ), dateformat => 'iso',
+                    dateonly => 1
+                }
+            ),
+        };
+        $t->post_ok( "//$userid:$password@/api/v1/holds" => json => $data )->status_is(201)->json_has('/hold_id');
+
+        $t->get_ok( "//$userid:$password@/api/v1/biblios/"
+                . $item->biblionumber
+                . "/items" => { "x-koha-embed" => "first_hold+strings" } )->status_is(200)
+            ->json_is(
+            '/0/first_hold/_strings/pickup_library_id' => { type => 'library', str => $pickup_library->branchname } );
+    };
 
     $schema->storage->txn_rollback;
 };
@@ -246,8 +295,8 @@ subtest 'delete() tests' => sub {
 
     # Bibs with no items can be deleted
     $t->delete_ok("//$userid:$password@/api/v1/biblios/$biblio_id")
-      ->status_is(204, 'SWAGGER3.2.4')
-      ->content_is('', 'SWAGGER3.3.4');
+      ->status_is(204, 'REST3.2.4')
+      ->content_is('', 'REST3.3.4');
 
     $t->delete_ok("//$userid:$password@/api/v1/biblios/$biblio_id")
       ->status_is(404);
@@ -406,7 +455,7 @@ subtest 'get_public() tests' => sub {
     $t->get_ok( "//$userid:$password@/api/v1/public/biblios/" . $biblio->biblionumber
                  => { Accept => 'application/marc' } )
       ->status_is(404)
-      ->json_is( '/error', 'Object not found.' );
+      ->json_is( '/error', 'Bibliographic record not found' );
 
     $schema->storage->txn_rollback;
 };
@@ -571,7 +620,7 @@ subtest 'pickup_locations() tests' => sub {
           . "/pickup_locations?"
           . "patron_id=" . $patron->id )
       ->status_is( 404 )
-      ->json_is( '/error' => 'Biblio not found' );
+      ->json_is( '/error' => 'Bibliographic record not found' );
 
     $schema->storage->txn_rollback;
 };
@@ -789,8 +838,8 @@ subtest 'get_checkouts() tests' => sub {
     my $item_1 = $builder->build_sample_item({ biblionumber => $biblio->biblionumber });
     my $item_2 = $builder->build_sample_item({ biblionumber => $biblio->biblionumber });
 
-    AddIssue( $patron->unblessed, $item_1->barcode );
-    AddIssue( $patron->unblessed, $item_2->barcode );
+    AddIssue( $patron, $item_1->barcode );
+    AddIssue( $patron, $item_2->barcode );
 
     my $ret = $t->get_ok( "//$userid:$password@/api/v1/biblios/" . $biblio->biblionumber . "/checkouts")
       ->status_is(200)
@@ -858,9 +907,9 @@ subtest 'set_rating() tests' => sub {
 };
 
 
-subtest 'post() tests' => sub {
+subtest 'add() tests' => sub {
 
-    plan tests => 13;
+    plan tests => 18;
 
     $schema->storage->txn_begin;
 
@@ -1271,9 +1320,11 @@ subtest 'post() tests' => sub {
     $t->post_ok("//$userid:$password@/api/v1/biblios" => {'Content-Type' => 'application/marcxml+xml', 'x-framework-id' => $frameworkcode, "x-record-schema" => 'INVALID'})
       ->status_is(400, 'Invalid header x-record-schema');
 
-    $t->post_ok("//$userid:$password@/api/v1/biblios" => {'Content-Type' => 'application/marcxml+xml', 'x-framework-id' => $frameworkcode} => $marcxml)
-      ->status_is(200)
-      ->json_has('/id');
+    $t->post_ok( "//$userid:$password@/api/v1/biblios" =>
+            { 'Content-Type' => 'application/marcxml+xml', 'x-framework-id' => $frameworkcode } => $marcxml )
+        ->status_is(200)
+        ->json_has('/id')
+        ->header_is( 'Location' => "/api/v1/biblios/" . $t->tx->res->json->{id}, "REST3.4.1" );
 
     $t->post_ok("//$userid:$password@/api/v1/biblios" => {'Content-Type' => 'application/marc-in-json', 'x-framework-id' => $frameworkcode, 'x-confirm-not-duplicate' => 1} => $mij)
       ->status_is(200)
@@ -1282,6 +1333,56 @@ subtest 'post() tests' => sub {
     $t->post_ok("//$userid:$password@/api/v1/biblios" => {'Content-Type' => 'application/marc', 'x-framework-id' => $frameworkcode} => $marc)
       ->status_is(200)
       ->json_has('/id');
+
+    subtest 'x-record-source-id header tests' => sub {
+
+        plan tests => 5;
+
+        my $record_source =
+            $builder->build_object( { class => 'Koha::RecordSources', value => { can_be_edited => 0 } } );
+
+        $t->post_ok(
+            "//$userid:$password@/api/v1/biblios" => {
+                'Content-Type'       => 'application/marc', 'x-framework-id' => $frameworkcode,
+                'x-record-source-id' => $record_source->id
+            } => $marc
+        )->status_is(403)->json_is( '/error' => 'You do not have permission to set the record source' );
+
+        # Add required subpermission
+        $builder->build(
+            {
+                source => 'UserPermission',
+                value  => {
+                    borrowernumber => $patron->id,
+                    module_bit     => 9,
+                    code           => 'set_record_sources'
+                }
+            }
+        );
+
+        $t->post_ok(
+            "//$userid:$password@/api/v1/biblios" => {
+                'Content-Type'       => 'application/marc', 'x-framework-id' => $frameworkcode,
+                'x-record-source-id' => $record_source->id
+            } => $marc
+        )->status_is(200);
+    };
+
+    my $mock_biblio = Test::MockModule->new('C4::Biblio');
+
+    # FIXME: AddBiblio wraps everything inside a transaction and a try/catch block
+    # this will need a tweak if this behavior changes
+    $mock_biblio->mock( 'AddBiblio', sub { return ( undef, undef ); } );
+
+    $t->post_ok( "//$userid:$password@/api/v1/biblios" =>
+            { 'Content-Type' => 'application/marc', 'x-framework-id' => $frameworkcode } => $marc )
+        ->status_is(400)
+        ->json_is(
+        {
+            error      => 'Error creating record',
+            error_code => 'record_creation_failed'
+        }
+        );
 
     $schema->storage->txn_rollback;
 };
@@ -1729,7 +1830,7 @@ subtest 'put() tests' => sub {
 
 subtest 'list() tests' => sub {
 
-    plan tests => 17;
+    plan tests => 20;
 
     $schema->storage->txn_begin;
 
@@ -1758,45 +1859,34 @@ subtest 'list() tests' => sub {
     $record->leader('     nam         3  4500');
     $biblio->metadata->metadata($record->as_xml_record('UNIMARC'))->store;
 
-    my $biblionumber1 = $biblio->biblionumber;
+    my $biblio_id_1 = $biblio->id;
 
     t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
-    my $biblionumber2 = $builder->build_sample_biblio->biblionumber;
+    my $biblio_id_2 = $builder->build_sample_biblio->id;
 
-    my $search = 
-      encode_json( [ { 'me.biblio_id' => $biblionumber1 }, { 'me.biblio_id' => $biblionumber2 } ] );
-    $t->get_ok(
-        "//$userid:$password@/api/v1/biblios/" => { 'x-koha-query' => $search }
-    )->status_is(403);
+    my $query = encode_json( [ { biblio_id => $biblio_id_1 }, { biblio_id => $biblio_id_2 } ] );
+
+    $t->get_ok("//$userid:$password@/api/v1/biblios?q=$query")->status_is(403);
 
     $patron->flags(4)->store;
 
-    $t->get_ok( "//$userid:$password@/api/v1/biblios/" =>
-          { Accept => 'application/weird+format', 'x-koha-query' => $search } )
-      ->status_is(400, 'Status is 400 for bad format');
+    $t->get_ok( "//$userid:$password@/api/v1/biblios?q=$query" => { Accept => 'application/weird+format' } )
+        ->status_is(400);
 
-    $t->get_ok( "//$userid:$password@/api/v1/biblios/" =>
-          { Accept => 'application/json', 'x-koha-query' => $search } )
-      ->status_is(200, 'Status is 200 for application/json');
+    $t->get_ok( "//$userid:$password@/api/v1/biblios?q=$query" => { Accept => 'application/json' } )->status_is(200);
 
-    my $result = $t->get_ok( "//$userid:$password@/api/v1/biblios/" =>
-          { Accept => 'application/marcxml+xml', 'x-koha-query' => $search } )
-      ->status_is(200, 'Status is 200 for application/marcxml+xml')->tx->res->body;
+    my $result = $t->get_ok( "//$userid:$password@/api/v1/biblios?q=$query" => { Accept => 'application/marcxml+xml' } )
+        ->status_is(200)->tx->res->body;
 
-    my $encoded_title  = Encode::encode( "UTF-8", $title_with_diacritics );
+    my $encoded_title = Encode::encode( "UTF-8", $title_with_diacritics );
     like( $result, qr/\Q$encoded_title/, "The title is not double encoded" );
 
-    $t->get_ok( "//$userid:$password@/api/v1/biblios/" =>
-          { Accept => 'application/marc-in-json', 'x-koha-query' => $search } )
-      ->status_is(200, 'Status is 200 for application/marc-in-json');
+    $t->get_ok( "//$userid:$password@/api/v1/biblios?q=$query" => { Accept => 'application/marc-in-json' } )
+        ->status_is(200);
 
-    $t->get_ok( "//$userid:$password@/api/v1/biblios/" =>
-          { Accept => 'application/marc', 'x-koha-query' => $search } )
-      ->status_is(200, 'Status is 200 for application/marc');
+    $t->get_ok( "//$userid:$password@/api/v1/biblios?q=$query" => { Accept => 'application/marc' } )->status_is(200);
 
-    $t->get_ok( "//$userid:$password@/api/v1/biblios/" =>
-          { Accept => 'text/plain', 'x-koha-query' => $search } )
-      ->status_is(200, 'Status is 200 for text/plain');
+    $t->get_ok( "//$userid:$password@/api/v1/biblios?q=$query" => { Accept => 'text/plain' } )->status_is(200);
 
     # DELETE any biblio with ISBN = TOMAS
     Koha::Biblios->search({ 'biblioitem.isbn' => 'TOMAS' }, { join => [ 'biblioitem' ] })
@@ -1809,5 +1899,393 @@ subtest 'list() tests' => sub {
           { Accept => 'text/plain' } )
       ->status_is(200);
 
+    my $fixed_date = dt_from_string("2017-01-01 01:00:00");
+    my $next_day   = $fixed_date->clone->add( days => 1 );
+
+    # bug 39397
+    $biblio->timestamp($fixed_date)->store();
+    $biblio->biblioitem->timestamp($next_day)->store();
+
+    $query = encode_json( { biblio_id => $biblio->id } );
+
+    $t->get_ok( "//$userid:$password@/api/v1/biblios?q=$query" => { Accept => 'application/json' } )->status_is(200)
+        ->json_is( '/0/timestamp' =>
+            output_pref( { dt => $fixed_date, dateformat => 'rfc3339' }, 'biblio table timestamp takes precedence' ) );
+
     $schema->storage->txn_rollback;
 };
+
+subtest 'add_item() tests' => sub {
+
+    plan tests => 10;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 0 }
+        }
+    );
+    my $password = 'thePassword123';
+    $patron->set_password( { password => $password, skip_validation => 1 } );
+    my $userid = $patron->userid;
+
+    my $biblio    = $builder->build_sample_biblio();
+    my $biblio_id = $biblio->biblionumber;
+
+    my $barcode        = 'mybarcode';
+    my $matching_items = Koha::Items->search( { barcode => $barcode } );
+
+    while ( my $item = $matching_items->next ) {
+        $item->delete;
+    }
+
+    $t->post_ok( "//$userid:$password@/api/v1/biblios/$biblio_id/items" => json => { external_id => $barcode } )
+        ->status_is( 403, 'Not enough permissions to create an item' );
+
+    # Add permissions
+    $builder->build(
+        {
+            source => 'UserPermission',
+            value  => {
+                borrowernumber => $patron->borrowernumber,
+                module_bit     => 9,
+                code           => 'edit_items'
+            }
+        }
+    );
+
+    $t->post_ok(
+        "//$userid:$password@/api/v1/biblios/$biblio_id/items" => json => {
+            external_id => $barcode,
+        }
+    )->status_is( 201, 'Item created' )->json_is( '/biblio_id', $biblio_id );
+
+    my $item_id = $t->tx->res->json->{item_id};
+    $t->header_is( 'Location' => "/api/v1/items/$item_id", "REST3.4.1" );
+
+    my $item = $builder->build_sample_item();
+
+    warnings_like {
+        $t->post_ok(
+            "//$userid:$password@/api/v1/biblios/$biblio_id/items" => json => {
+                external_id => $item->barcode,
+            }
+        )->status_is( 409, 'Duplicate barcode' )->json_is( "/error" => "Duplicate barcode." );
+    }
+    qr{DBD::mysql::st execute failed: Duplicate entry '(.*?)' for key '(.*\.?)itembarcodeidx'};
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'update_item() tests' => sub {
+    plan tests => 9;
+
+  $schema->storage->txn_begin;
+
+  my $patron = $builder->build_object(
+      {
+          class => 'Koha::Patrons',
+          value => { flags => 0 }
+      }
+  );
+  my $password = 'thePassword123';
+  $patron->set_password( { password => $password, skip_validation => 1 } );
+  my $userid = $patron->userid;
+
+  my $item = $builder->build_sample_item({ replacementprice => 5 });
+  my $biblio_id = $item->biblionumber;
+  my $item_id = $item->itemnumber;
+
+  my $biblio = Koha::Biblios->find($item->biblionumber);
+
+  my $matching_items = Koha::Items->search({ barcode => $item->barcode });
+
+  while (my $mbcitem = $matching_items->next) {
+    $mbcitem->delete if $mbcitem->biblionumber != $item->biblionumber;
+  }
+
+  $t->put_ok("//$userid:$password@/api/v1/biblios/$biblio_id/items/$item_id" => json => { external_id => 'something' })
+    ->status_is(403, 'Not enough permissions to update an item');
+
+  # Add permissions
+  $builder->build(
+      {
+          source => 'UserPermission',
+          value  => {
+              borrowernumber => $patron->borrowernumber,
+              module_bit     => 9,
+              code           => 'edit_items'
+          }
+      }
+  );
+
+  my $other_item = $builder->build_sample_item();
+
+    warnings_like {
+        $t->put_ok(
+            "//$userid:$password@/api/v1/biblios/$biblio_id/items/$item_id" => json => {
+                external_id => $other_item->barcode,
+            }
+        )->status_is( 409, 'Barcode not unique' )->json_is( "/error" => "Duplicate barcode." );
+    }
+    qr{DBD::mysql::st execute failed: Duplicate entry '(.*?)' for key '(.*\.?)itembarcodeidx'};
+
+  $t->put_ok("//$userid:$password@/api/v1/biblios/$biblio_id/items/$item_id" => json => {
+      replacement_price => 30,
+    })
+    ->status_is(200, 'Item updated')
+    ->json_is('/replacement_price', 30);
+
+  $schema->storage->txn_rollback;
+};
+
+subtest 'merge() tests' => sub {
+    plan tests => 12;
+    $schema->storage->txn_begin;
+
+    my $mij_rec = q|{
+      "fields": [
+        {
+          "001": "2504398"
+        },
+        {
+          "005": "20200421093816.0"
+        },
+        {
+          "008": "920610s1993    caub         s001 0 eng  "
+        },
+        {
+          "010": {
+            "ind1": " ",
+            "subfields": [
+              {
+                "a": "   92021731 "
+              }
+            ],
+            "ind2": " "
+          }
+        },
+        {
+          "020": {
+            "subfields": [
+              {
+                "a": "05200784462 (Test mij)"
+              }
+            ],
+            "ind1": " ",
+            "ind2": " "
+          }
+        },
+        {
+          "040": {
+            "subfields": [
+              {
+                "a": "DLC"
+              },
+              {
+                "c": "DLC"
+              },
+              {
+                "d": "DLC"
+              }
+            ],
+            "ind2": " ",
+            "ind1": " "
+          }
+        },
+        {
+          "041": {
+            "ind2": " ",
+            "subfields": [
+              {
+                "a": "enggrc"
+              }
+            ],
+            "ind1": "0"
+          }
+        },
+        {
+          "082": {
+            "subfields": [
+              {
+                "a": "480"
+              },
+              {
+                "2": "20"
+              }
+            ],
+            "ind2": "0",
+            "ind1": "0"
+          }
+        },
+        {
+          "100": {
+            "ind2": " ",
+            "subfields": [
+              {
+                "a": "Mastronarde, Donald J."
+              },
+              {
+                "9": "389"
+              }
+            ],
+            "ind1": "1"
+          }
+        },
+        {
+          "245": {
+            "ind1": "1",
+            "subfields": [
+              {
+                "a": "Introduction to Attic Greek  (Using mij) /"
+              },
+              {
+                "c": "Donald J. Mastronarde."
+              }
+            ],
+            "ind2": "0"
+          }
+        },
+        {
+          "260": {
+            "subfields": [
+              {
+                "a": "Berkeley :"
+              },
+              {
+                "b": "University of California Press,"
+              },
+              {
+                "c": "c1993."
+              }
+            ],
+            "ind2": " ",
+            "ind1": " "
+          }
+        },
+        {
+          "300": {
+            "ind1": " ",
+            "subfields": [
+              {
+                "a": "ix, 425 p. :"
+              },
+              {
+                "b": "maps ;"
+              },
+              {
+                "c": "26 cm."
+              }
+            ],
+            "ind2": " "
+          }
+        },
+        {
+          "650": {
+            "subfields": [
+              {
+                "a": "Attic Greek dialect"
+              },
+              {
+                "9": "7"
+              }
+            ],
+            "ind2": "0",
+            "ind1": " "
+          }
+        },
+        {
+          "942": {
+            "subfields": [
+              {
+                "2": "ddc"
+              },
+              {
+                "c": "BK"
+              }
+            ],
+            "ind2": " ",
+            "ind1": " "
+          }
+        },
+        {
+          "955": {
+            "subfields": [
+              {
+                "a": "pc05 to ea00 06-11-92; ea04 to SCD 06-11-92; fd11 06-11-92 (PA522.M...); fr21 06-12-92; fs62 06-15-92; CIP ver. pv07 11-12-93"
+              }
+            ],
+            "ind2": " ",
+            "ind1": " "
+          }
+        },
+        {
+          "999": {
+            "subfields": [
+              {
+                "c": "3"
+              },
+              {
+                "d": "3"
+              }
+            ],
+            "ind1": " ",
+            "ind2": " "
+          }
+        }
+      ],
+      "leader": "01102pam a2200289 a 8500"
+    }|;
+
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 0 }
+        }
+    );
+    my $password = 'thePassword123';
+    $patron->set_password( { password => $password, skip_validation => 1 } );
+    my $userid = $patron->userid;
+
+    my $title_1     = 'Title number 1';
+    my $title_2     = 'Title number 2';
+    my $biblio1     = $builder->build_sample_biblio( { title => $title_1 } );
+    my $biblio2     = $builder->build_sample_biblio( { title => $title_2 } );
+    my $biblio_id1  = $biblio1->biblionumber;
+    my $biblio_id2  = $biblio2->biblionumber;
+    my $json_input1 = '{ "biblio_id_to_merge": "' . $biblio_id2 . '" }';
+
+    $t->post_ok( "//$userid:$password@/api/v1/biblios/$biblio_id1/merge" =>
+            { 'Content-Type' => 'application/json', 'Accept' => 'application/marc-in-json' } => $json_input1 )
+        ->status_is( 403, 'Not enough permissions to merge two bib records' );
+
+    # Add permissions
+    $patron->flags(516)->store;
+
+    $t->post_ok(
+        "//$userid:$password@/api/v1/biblios/$biblio_id1/merge" => { 'Content-Type' => 'application/weird+format' } =>
+            $json_input1 )->status_is( 400, 'Not correct headers' );
+
+    my $result =
+        $t->post_ok( "//$userid:$password@/api/v1/biblios/$biblio_id1/merge" =>
+            { 'Content-Type' => 'application/json', 'Accept' => 'application/marc-in-json' } => $json_input1 )
+        ->status_is(200)->tx->res->body;
+    like( $result, qr/$title_1/, "Merged record has the correct title" );
+    unlike( $result, qr/$title_2/, "Merged record doesn't have the wrong title" );
+
+    my $biblio3     = $builder->build_sample_biblio( { title => 'Title number 3' } );
+    my $biblio_id3  = $biblio3->biblionumber;
+    my $json_input2 = '{ "biblio_id_to_merge": "' . $biblio_id3 . '",
+                         "rules": "override_ext",
+                         "datarecord": ' . $mij_rec . ' }';
+    $result =
+        $t->post_ok( "//$userid:$password@/api/v1/biblios/$biblio_id1/merge" =>
+            { 'Content-Type' => 'application/json', 'Accept' => 'application/marc-in-json' } => $json_input2 )
+        ->status_is(200)->tx->res->body;
+    like( $result, qr/Using mij/, "Update with Marc-in-json record" );
+    unlike( $result, qr/$title_1/, "Change all record with dat in the 'datarecord' field" );
+
+    $schema->storage->txn_rollback;
+    }

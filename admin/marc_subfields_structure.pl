@@ -27,6 +27,7 @@ use C4::Context;
 use Koha::Authority::Types;
 use Koha::AuthorisedValueCategories;
 use Koha::Filter::MARC::ViewPolicy;
+use Koha::BiblioFrameworks;
 
 use List::MoreUtils qw( uniq );
 
@@ -37,7 +38,6 @@ my $frameworkcode = $input->param('frameworkcode');
 my $pkfield       = "tagfield";
 my $offset        = $input->param('offset');
 $offset = 0 if not defined $offset or $offset < 0;
-my $script_name   = "/cgi-bin/koha/admin/marc_subfields_structure.pl";
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
@@ -52,19 +52,21 @@ my $cache = Koha::Caches->get_instance();
 my $op       = $input->param('op') || "";
 $tagfield =~ s/\,//g;
 
+my $framework = Koha::BiblioFrameworks->search({ frameworkcode => $frameworkcode })->next;
+
 if ($op) {
     $template->param(
-        script_name   => $script_name,
         tagfield      => $tagfield,
         frameworkcode => $frameworkcode,
+        framework     => $framework,
         $op           => 1
     );    # we show only the TMPL_VAR names $op
 }
 else {
     $template->param(
-        script_name   => $script_name,
         tagfield      => $tagfield,
         frameworkcode => $frameworkcode,
+        framework     => $framework,
         else          => 1
     );    # we show only the TMPL_VAR names $op
 }
@@ -96,8 +98,6 @@ if ( $op eq 'add_form' ) {
 
     # build authorised value list
     $sth2->finish;
-    $sth2 = $dbh->prepare("select distinct category from authorised_values");
-    $sth2->execute;
     my @authorised_values= Koha::AuthorisedValueCategories->search->get_column('category_name');
 
     # build thesaurus categories list
@@ -199,7 +199,6 @@ if ( $op eq 'add_form' ) {
     $template->param( 'use_heading_flags_p'      => 1 );
     $template->param( 'heading_edit_subfields_p' => 1 );
     $template->param(
-        action   => "Edit subfields",
         tagfield => $tagfield,
         tagsubfield => $tagsubfield,
         loop           => \@loop_data,
@@ -210,7 +209,7 @@ if ( $op eq 'add_form' ) {
 ################## ADD_VALIDATE ##################################
     # called by add_form, used to insert/modify data in DB
 }
-elsif ( $op eq 'add_validate' ) {
+elsif ( $op eq 'cud-add_validate' ) {
     my $dbh = C4::Context->dbh;
     $template->param( tagfield => "$input->param('tagfield')" );
     my $tagfield    = $input->param('tagfield');
@@ -318,14 +317,13 @@ elsif ( $op eq 'delete_confirm' ) {
     );
     $template->param(
         mss => $mss,
-        delete_link   => $script_name,
     );
 
     # END $OP eq DELETE_CONFIRM
 ################## DELETE_CONFIRMED ##################################
   # called by delete_confirm, used to effectively confirm deletion of data in DB
 }
-elsif ( $op eq 'delete_confirmed' ) {
+elsif ( $op eq 'cud-delete_confirmed' ) {
     Koha::MarcSubfieldStructures->find(
         {
             tagfield      => $tagfield,

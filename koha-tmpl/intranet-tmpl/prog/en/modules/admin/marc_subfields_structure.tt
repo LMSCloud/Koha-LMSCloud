@@ -1,36 +1,34 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
-    [%- IF ( add_form ) -%]
-        [%- IF ( use_heading_flags_p ) -%]
-            [%- IF ( heading_edit_subfields_p ) -%]
-                Edit MARC subfields constraints &rsaquo; MARC subfield structure
-            [%- END -%]
+<title>[% FILTER collapse %]
+    [% IF ( add_form ) %]
+        [% t("Edit subfield constraints") | html %] &rsaquo;
+    [% END %]
 
-        [%- ELSE -%]
-            [%- action | html -%] &rsaquo; MARC subfield structure
-        [%- END -%]
+    [% IF ( delete_confirm ) %]
+        [% tx("Confirm deletion of subfield '{subfield}'", {subfield = mss.tagsubfield }) | html %] &rsaquo;
+    [% END %]
 
-    [%- END -%]
+    [% IF ( add_form || delete_confirm || else ) %]
+        [% tx("Tag {tag}", { tag = tagfield}) | html %] &rsaquo;
+    [% END %]
 
-    [%- IF ( delete_confirm ) -%]
+    [% IF ( frameworkcode ) %]
+        [% framework.frameworktext | html %] ([% framework.frameworkcode | html %])
+    [% ELSE %]
+        [% t("Default framework") | html %]
+    [% END %] &rsaquo;
 
-        MARC subfield structure &rsaquo; Confirm deletion of subfield [%- mss.tagsubfield | html -%]
+    [% t("MARC bibliographic frameworks") | html %] &rsaquo;
 
-        Confirm deletion of subfield [%- tagsubfield | html -%] &rsaquo; MARC subfield structure
-    [%- END -%]
+    [% t("Administration") | html %] &rsaquo;
 
-    [%- IF ( delete_confirmed ) -%]
-        Subfield deleted &rsaquo; MARC subfield structure
-
-    [%- END -%]
-
-    [%- IF ( else ) -%]
-        MARC subfield structure
-    [%- END -%] &rsaquo; Administration &rsaquo; Koha
-</title>
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>.constraints::after { content:  " "; clear: both; display:block; }</style>
 </head>
@@ -46,50 +44,39 @@
                 <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
             [% END %]
             [% WRAPPER breadcrumb_item %]
-                <a href="/cgi-bin/koha/admin/biblio_framework.pl">MARC frameworks</a>
+                <a href="/cgi-bin/koha/admin/biblio_framework.pl">MARC bibliographic frameworks</a>
             [% END %]
             [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/admin/marctagstructure.pl?frameworkcode=[% frameworkcode | uri %]&amp;searchfield=[% tagfield | uri %]">
                     [% IF ( frameworkcode ) %]
-                        <span>[% frameworkcode | html %] framework structure</span>
+                        [% framework.frameworktext | html %] ([% framework.frameworkcode | html %])
                     [% ELSE %]
-                        <span>Default framework structure</span>
+                        <span>Default framework</span>
                     [% END %]
                 </a>
             [% END %]
 
             [% IF ( add_form ) %]
-                [% IF ( use_heading_flags_p ) %]
-                    [% IF ( heading_edit_subfields_p ) %]
-                        [% WRAPPER breadcrumb_item %]
-                            <a href="/cgi-bin/koha/admin/marc_subfields_structure.pl?tagfield=[% tagfield | uri %]&amp;frameworkcode=[% frameworkcode | uri %]">Tag [% tagfield | html %] subfield structure</a>
-                        [% END %]
-                        [% WRAPPER breadcrumb_item bc_active= 1 %]
-                            <span>Edit subfields constraints</span>
-                        [% END %]
-                    [% END %]
-                [% ELSE %]
-                    [% WRAPPER breadcrumb_item %]
-                        <a href="/cgi-bin/koha/admin/marc_subfields_structure.pl?tagfield=[% tagfield | uri %]&amp;frameworkcode=[% frameworkcode | uri %]">Tag [% tagfield | html %] Subfield structure</a>
-                    [% END %]
-                    [% WRAPPER breadcrumb_item bc_active= 1 %]
-                        [% action | html %]
-                    [% END %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/admin/marc_subfields_structure.pl?tagfield=[% tagfield | uri %]&amp;frameworkcode=[% frameworkcode | uri %]">[% tx("Tag {tag}", { tag = tagfield}) | html %]</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>Edit subfield constraints</span>
                 [% END %]
             [% END %]
 
             [% IF ( delete_confirm ) %]
                 [% WRAPPER breadcrumb_item %]
-                    <a href="/cgi-bin/koha/admin/marc_subfields_structure.pl?tagfield=[% mss.tagfield | uri %]&amp;frameworkcode=[% mss.frameworkcode | uri %]">Tag [% mss.tagfield | html %] Subfield structure</a>
+                    <a href="/cgi-bin/koha/admin/marc_subfields_structure.pl?tagfield=[% mss.tagfield | uri %]&amp;frameworkcode=[% mss.frameworkcode | uri %]">[% tx("Tag {tag}", { tag = tagfield}) | html %]</a>
                 [% END %]
                 [% WRAPPER breadcrumb_item bc_active= 1 %]
-                    <span>Confirm deletion of subfield [% mss.tagsubfield | html %]</span>
+                    [% tx("Confirm deletion of subfield '{subfield}'?", {subfield = mss.tagsubfield }) | html %]
                 [% END %]
             [% END %]
 
             [% IF ( else ) %]
                 [% WRAPPER breadcrumb_item bc_active= 1 %]
-                    <span>Tag [% tagfield | html %] Subfield structure</span>
+                    <span>[% tx("Tag {tag} subfield structure", { tag = tagfield}) | html %]</span>
                 [% END %]
             [% END %]
         [% END #/ WRAPPER breadcrumbs %]
@@ -97,20 +84,19 @@
 
     <div class="main container-fluid">
         <div class="row">
-            <div class="col-sm-10 col-sm-push-2">
+            <div class="col-md-10 order-md-2 order-sm-1">
                 <main>
+                    [% INCLUDE 'messages.inc' %]
 
                     [% IF ( add_form ) %]
                         <h1>
-                            [% IF ( use_heading_flags_p ) %]
-                                [% IF ( heading_edit_subfields_p ) %]<span>Tag</span> [% tagfield | html %] <span>Subfield constraints</span>[% END %]
-                            [% ELSE %]
-                                [% action | html %]
-                            [% END %]
+                            [% tx("Tag {tag} subfield constraints", { tag = tagfield}) | html %]
                         </h1>
+                        <div class="hint">You can drag and drop the subfield tabs to change the order.</div>
 
-                        <form action="[% script_name | html %]" name="Aform" method="post">
-                            <input type="hidden" name="op" value="add_validate" />
+                        <form action="/cgi-bin/koha/admin/marc_subfields_structure.pl" name="Aform" method="post">
+                            [% INCLUDE 'csrf-token.inc' %]
+                            <input type="hidden" name="op" value="cud-add_validate" />
                             <input type="hidden" name="tagfield" value="[% tagfield | html %]" />
                             <input type="hidden" name="frameworkcode" value="[% frameworkcode | html %]" />
 
@@ -125,27 +111,26 @@
                                 [% END %]
                             [% END %][% END %]
 
-                            <div id="subfieldtabs" class="toptabs numbered">
-                                 <ul class="nav nav-tabs" role="tablist">
+                            [% WRAPPER tabs id= "subfieldtabs" %]
+                                [% WRAPPER tabs_nav %]
                                     [% FOREACH loo IN loop %]
-                                        <li id="tab_subfield_[%- PROCESS outputsubfield subfieldanchor = loo.subfieldcode -%]" class="tab-item" role="presentation">
+                                        [% outputsubfield = PROCESS outputsubfield subfieldanchor = loo.subfieldcode %]
+                                        [% WRAPPER tab_item tabname= outputsubfield id= "tab_subfield_${outputsubfield}" %]
                                             [% IF ( loo.new_subfield ) %]
-                                                <a href="#sub[%- PROCESS outputsubfield subfieldanchor = loo.subfieldcode -%]field" aria-controls="sub[%- PROCESS outputsubfield subfieldanchor = loo.subfieldcode -%]field" role="tab" data-toggle="tab" title="[% loo.liblibrarian | html_entity %]">New</a>
+                                                <span>New</span>
                                             [% ELSE %]
-                                                <a href="#sub[%- PROCESS outputsubfield subfieldanchor = loo.subfieldcode -%]field" aria-controls="sub[%- PROCESS outputsubfield subfieldanchor = loo.subfieldcode -%]field" role="tab" data-toggle="tab" title="[% loo.liblibrarian | html_entity %]">
-                                                    [% loo.subfieldcode | html %]
-                                                </a>
-                                            [% END %]
-                                        </li>
-                                    [% END %]
-                                </ul>
+                                                [% loo.subfieldcode | html %]
+                                            [% END # IF loo.new_subfield%]
+                                        [% END # WRAPPER tab_item %]
+                                    [% END # FOREACH loo %]
+                                [% END # /WRAPPER tabs_nav %]
 
-                                <div class="tab-content">
-
+                                [% WRAPPER tab_panels %]
                                     [% FOREACH loo IN loop %]
-                                        <div class="constraints tab-pane" role="tabpanel" id="sub[%- PROCESS outputsubfield subfieldanchor = loo.subfieldcode -%]field">
+                                        [% outputsubfield = PROCESS outputsubfield subfieldanchor = loo.subfieldcode %]
+                                        [% WRAPPER tab_panel tabname=outputsubfield %]
                                             <input type="hidden" name="tab_id" value="[% loo.row | html %]" />
-                                            <div id="basic[%- PROCESS outputsubfield subfieldanchor = loo.subfieldcode -%]" class="contraints">
+                                            <div id="basic[%- outputsubfield | html -%]" class="contraints">
                                                 <fieldset class="rows">
                                                     <legend>Basic constraints</legend>
                                                     <ol>
@@ -162,12 +147,12 @@
                                                                 </li>
                                                         [% END %]
                                                         <li>
-                                                            <label for="liblibrarian[% loo.row | html %]">Text for librarian: </label>
-                                                            <input id="liblibrarian[% loo.row | html %]" type="text" name="liblibrarian_[% loo.row | html %]" value="[% loo.liblibrarian | html_entity %]" size="40" maxlength="80" />
+                                                            <label for="liblibrarian[% loo.row | html %]">Description in staff interface: </label>
+                                                            <input id="liblibrarian[% loo.row | html %]" type="text" name="liblibrarian_[% loo.row | html %]" value="[% loo.liblibrarian | html_entity %]" size="40" maxlength="255" />
                                                         </li>
                                                         <li>
-                                                            <label for="libopac[% loo.row | html %]">Text for OPAC: </label>
-                                                            <input type="text" id="libopac[% loo.row | html %]" name="libopac_[% loo.row | html %]" value="[% loo.libopac | html_entity %]" size="40" maxlength="80" />
+                                                            <label for="libopac[% loo.row | html %]">Description in OPAC: </label>
+                                                            <input type="text" id="libopac[% loo.row | html %]" name="libopac_[% loo.row | html %]" value="[% loo.libopac | html_entity %]" size="40" maxlength="255" />
                                                         </li>
                                                         <li>
                                                             <label for="repeatable[% loo.row | html %]">Repeatable: </label>
@@ -213,13 +198,13 @@
                                                                 <option value="10">items (10)</option>
                                                             [%- END -%]
                                                             </select>
-                                                            <div class="hint"><i class="fa fa-warning"></i> <span>Ignore means that the subfield does not display in the record editor and that its value, if any, is deleted from the record</span></div>
+                                                            <div class="hint"><i class="fa-solid fa-triangle-exclamation"></i> <span>Ignore means that the subfield does not display in the record editor and that its value, if any, is deleted from the record</span></div>
                                                         </li>
                                                     </ol>
                                                 </fieldset> <!-- /.rows -->
                                             </div> <!-- /#basic[%- PROCESS outputsubfield subfieldanchor = subfieldcode -%] -->
 
-                                            <div id="advanced[%- PROCESS outputsubfield subfieldanchor = loo.subfieldcode -%]" class="contraints">
+                                            <div id="advanced[%- outputsubfield | html -%]" class="contraints">
                                                 <fieldset class="rows">
                                                     <legend>Advanced constraints</legend>
                                                     <ol>
@@ -266,23 +251,16 @@
                                                         <li>
                                                             <label for="kohafield[% loo.row | html %]">Koha link:</label>
                                                             <!-- This select should be DISABLED; value is submitted by the following hidden input -->
-                                                            <select name="kohafield_[% loo.row | html %]" id="kohafield[% loo.row | html %]" disabled>
-                                                            [% FOREACH value IN loo.kohafields %]
-                                                            [% IF ( value == loo.kohafield ) %]
-                                                                <option value="[% value | html %]" selected="selected">[% value | html %]</option>
-                                                            [% ELSE %]
-                                                                <option value="[% value | html %]">[% value | html %]</option>
-                                                            [% END %]
-                                                            [% END %]
-                                                            </select>
+                                                            [% loo.kohafield | html %]
                                                             <!-- Do NOT remove this next hidden input! We need it to save kohafield. -->
                                                             <input type="hidden" name="kohafield_[% loo.row | html %]" value="[% loo.kohafield | html %]"/>
+                                                            <div class="hint">Edit in 'Koha to MARC mapping'</div>
                                                         </li>
                                                     </ol>
                                                 </fieldset> <!-- /.rows -->
                                             </div> <!-- /#advanced[%- PROCESS outputsubfield subfieldanchor = subfieldcode -%] -->
 
-                                            <div id="oth[%- PROCESS outputsubfield subfieldanchor = loo.subfieldcode -%]" class="constraints">
+                                            <div id="oth[%- outputsubfield | html -%]" class="constraints">
                                                 <fieldset class="rows">
                                                     <legend>Other options (choose one)</legend>
                                                     <ol>
@@ -325,11 +303,11 @@
                                                         </li>
                                                     </ol>
                                                 </fieldset> <!-- /.rows -->
-                                            </div> <!-- /#oth[%- PROCESS outputsubfield subfieldanchor = loo.subfieldcode -%] -->
-                                        </div><!-- /constraints -->
+                                            </div> <!-- /#oth_outputsubfield -->
+                                        [% END # /WRAPPER   tab_panel %]
                                     [% END # /FOREACH loo %]
-                                </div> <!-- /.tab-content -->
-                            </div><!-- /subfieldtabs -->
+                                [% END # /WRAPPER tab_panels %]
+                            [% END # /WRAPPER tabs %]
 
                             <fieldset class="action">
                                 <input type="submit" class="btn btn-primary" value="Save changes" /> <a href="/cgi-bin/koha/admin/marc_subfields_structure.pl?tagfield=[% tagfield  | uri %]&amp;frameworkcode=[% frameworkcode | uri %]" class="cancel">Cancel</a>
@@ -338,33 +316,33 @@
                     [% END # /IF ( add_form ) %]
 
                     [% IF ( delete_confirm ) %]
-                        <div class="dialog alert">
-                            <h1>Confirm deletion of subfield [% mss.tagsubfield | html %]?</h1>
+                        <div class="alert alert-warning">
+                            <h1>[% tx("Confirm deletion of subfield '{subfield}'?", {subfield = mss.tagsubfield }) | html %]</h1>
                             <p>Subfield: [% mss.tagsubfield | html %]</p>
                             <p>Description: [% mss.liblibrarian | html_entity %]</p>
 
-                            <form action="[% delete_link | html %]" method="post"><input type="hidden" name="op" value="delete_confirmed" />
+                            <form action="[% delete_link | html %]" method="post"><input type="hidden" name="op" value="cud-delete_confirmed" />
+                                [% INCLUDE 'csrf-token.inc' %]
                                 <input type="hidden" name="tagfield" value="[% mss.tagfield | html %]" />
                                 <input type="hidden" name="tagsubfield" value="[% mss.tagsubfield | html %]" />
                                 <input type="hidden" name="frameworkcode" value="[% mss.frameworkcode | html %]" />
-                                <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> Yes, delete this subfield</button>
+                                <button type="submit" class="btn btn-default approve"><i class="fa fa-fw fa-check"></i> Yes, delete this subfield</button>
                             </form>
 
 
-                            <form action="[% script_name | html %]" method="post">
+                            <form action="/cgi-bin/koha/admin/marc_subfields_structure.pl" method="get">
                                 <input type="hidden" name="tagfield" value="[% mss.tagfield | html %]" />
-                                <input type="hidden" name="tagsubfield" value="[% mss.tagsubfield | html %]" />
                                 <input type="hidden" name="frameworkcode" value="[% mss.frameworkcode | html %]" />
-                                <button type="submit" class="deny"><i class="fa fa-fw fa-remove"></i> No, do not delete</button>
+                                <button type="submit" class="btn btn-default deny"><i class="fa fa-fw fa-times"></i> No, do not delete</button>
                             </form>
                         </div> <!-- /.dialog.alert -->
                     [% END # /IF ( delete_confirm ) %]
 
                     [% IF ( else ) %]
                         [% IF ( frameworkcode ) %]
-                            <h1>MARC subfield structure admin for [% tagfield | html %] (framework [% frameworkcode | html %])</h1>
+                            <h1>[% tx("Tag {tag} subfield structure (framework {frameworkcode})", { tag = tagfield, frameworkcode = frameworkcode }) | html %]</h1>
                         [% ELSE %]
-                            <h1>MARC subfield structure admin for [% tagfield | html %] (default framework)</h1>
+                            <h1>[% tx("Tag {tag} subfield structure (default framework)", { tag = tagfield}) | html %]</h1>
                         [% END %]
 
                         <p>This screen shows the subfields associated with the selected tag. You can edit subfields or add a new one by clicking on edit.</p>
@@ -410,8 +388,8 @@
                                                 [% END %]
                                             </td>
                                             <td class="actions">
-                                                <a href="/cgi-bin/koha/admin/marc_subfields_structure.pl?op=add_form&amp;tagfield=[% loo.tagfield | uri %]&tagsubfield=[% loo.tagsubfield | uri %]&amp;frameworkcode=[% frameworkcode | uri %]#sub[% loo.tagsubfield | uri %]field" class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
-                                                <a href="/cgi-bin/koha/admin/marc_subfields_structure.pl?op=delete_confirm&amp;tagfield=[% loo.tagfield | uri %]&amp;tagsubfield=[% loo.tagsubfield | uri %]&amp;frameworkcode=[% frameworkcode | uri %]" class="btn btn-default btn-xs"><i class="fa fa-trash"></i> Delete</a>
+                                                <a href="/cgi-bin/koha/admin/marc_subfields_structure.pl?op=add_form&amp;tagfield=[% loo.tagfield | uri %]&tagsubfield=[% loo.tagsubfield | uri %]&amp;frameworkcode=[% frameworkcode | uri %]#sub[% loo.tagsubfield | uri %]field" class="btn btn-default btn-xs"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+                                                <a href="/cgi-bin/koha/admin/marc_subfields_structure.pl?op=delete_confirm&amp;tagfield=[% loo.tagfield | uri %]&amp;tagsubfield=[% loo.tagsubfield | uri %]&amp;frameworkcode=[% frameworkcode | uri %]" class="btn btn-default btn-xs"><i class="fa fa-trash-can"></i> Delete</a>
                                             </td>
                                         </tr>
                                     [% END %]
@@ -419,7 +397,7 @@
                             </table> <!-- /#table_marcsubfieldstructure -->
                         </div><!-- /.page-section -->
 
-                        <form action="[% script_name | html %]" method="get">
+                        <form action="/cgi-bin/koha/admin/marc_subfields_structure.pl" method="get">
                             <fieldset class="action"><input type="hidden" name="op" value="add_form" />
                                 <input type="hidden" name="tagfield" value="[% edit_tagfield | html %]" />
                                 <input type="hidden" name="frameworkcode" value="[% edit_frameworkcode | html %]" />
@@ -431,17 +409,18 @@
                     [% END # /IF else %]
 
                 </main>
-            </div> <!-- /.col-sm-10.col-sm-push-2 -->
+            </div> <!-- /.col-md-10.order-md-2 -->
 
-            <div class="col-sm-2 col-sm-pull-10">
+            <div class="col-md-2 order-sm-2 order-md-1">
                 <aside>
                     [% INCLUDE 'admin-menu.inc' %]
                 </aside>
-            </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+            </div> <!-- /.col-md-2.order-md-1 -->
         </div> <!-- /.row -->
 
     [% MACRO jsinclude BLOCK %]
         [% INCLUDE 'datatables.inc' %]
+        [% Asset.js( "lib/sortable/Sortable.min.js" ) | $raw %]
         [% Asset.js("js/admin-menu.js") | $raw %]
         <script>
             var tagsubfield = "[% tagsubfield | html %]";

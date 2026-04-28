@@ -3,8 +3,8 @@
 
 [% BLOCK 'modal-claims-display' %]
     <!-- Claims Returned Modal -->
-    <div class="modal fade" id="claims-returned-modal" tabindex="-1" role="dialog" aria-labelledby="claims-returned-modal-label">
-        <div class="modal-dialog" role="document">
+    <div class="modal" id="claims-returned-modal" tabindex="-1" role="dialog" aria-labelledby="claims-returned-modal-label">
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <h4 class="modal-title" id="claims-returned-modal-label">Claim returned</h4>
@@ -26,6 +26,12 @@
                             Charge lost fee
                             </label>
                         </div>
+                        <div class="checkbox">
+                            <label for="claims-returned-refund-lost-fee">
+                            <input id="claims-returned-refund-lost-fee" type="checkbox" value="1">
+                            Refund previous lost fee
+                            </label>
+                        </div>
                         </div>
                     [% END %]
 
@@ -33,7 +39,7 @@
                 </div>
                 <div class="modal-footer">
                     <button id="claims-returned-modal-btn-submit" type="button" class="btn btn-primary"><i class="fa fa-exclamation-circle"></i> Make claim</button>
-                    <button class="btn btn-default deny cancel" href="#" data-dismiss="modal" aria-hidden="true"><i class="fa fa-times"></i> Cancel</button>
+                    <button class="btn btn-default deny cancel" type="button" data-bs-dismiss="modal"><i class="fa fa-times"></i> Cancel</button>
                 </div>
             </div>
         </div>
@@ -58,12 +64,13 @@
         $('#claims-returned-itemnumber').val(itemnumber);
         $('#claims-returned-notes').val("");
         $('#claims-returned-charge-lost-fee').attr('checked', false);
-        $('#claims-returned-modal').modal();
+        $('#claims-returned-modal').modal("show");
     });
     $(document).on("click", '#claims-returned-modal-btn-submit', function(e){
         let itemnumber = $('#claims-returned-itemnumber').val();
         let notes = $('#claims-returned-notes').val();
-        let fee = $('#claims-returned-charge-lost-fee').prop('checked') ? true : false;
+        let charge_lost_fee = $('#claims-returned-charge-lost-fee').prop('checked') ? true : false;
+        let refund_lost_fee = $('#claims-returned-refund-lost-fee').prop('checked') ? true : false;
 
         $('#claims-returned-modal').modal('hide');
 
@@ -74,7 +81,8 @@
         params = {
             item_id: itemnumber,
             notes: notes,
-            charge_lost_fee: fee,
+            charge_lost_fee,
+            refund_lost_fee,
             created_by: logged_in_user_borrowernumber,
         };
 
@@ -86,7 +94,7 @@
 
             let content = "";
             if ( data.claim_id ) {
-                content = '<span class="badge">' + formatted_date + '</span>';
+                content = '<span class="badge text-bg-info">' + formatted_date + '</span>';
                 $(id).parent().parent().addClass('ok');
             } else {
                 content = _("Unable to claim as returned");

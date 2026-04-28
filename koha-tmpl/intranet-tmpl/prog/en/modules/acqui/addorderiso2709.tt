@@ -1,39 +1,47 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE KohaDates %]
 [% USE Branches %]
+[% USE Price %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
-[% IF ( batch_details ) %]
-    Batch [% import_batch_id | html %]
-[% ELSE %]
-    Batch list
-[% END %] &rsaquo; Order staged MARC records &rsaquo; Acquisitions &rsaquo; Koha
-</title>
-<style>
-    .biblio {
-        padding: 0 .5em;
-        margin:0;
-    }
-    .order_details {
-        display: flex;
-        justify-content: space-between;
-    }
-    .biblio .actions {
-        float: right;
-    }
-    @media (max-width: 992px) {
+<title>[% FILTER collapse %]
+    [% IF ( batch_details ) %]
+        [% tx('Batch {batch_id}', { batch_id = import_batch_id } ) | html %]
+    [% ELSE %]
+        [% t("Batch list") | html %]
+    [% END %] &rsaquo;
+    [% t("Order staged MARC records") | html %] &rsaquo;
+    [% t("Acquisitions") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
+[% FILTER collapse %]
+    <style>
+        .biblio {
+            padding: 0 .5em;
+            margin:0;
+        }
         .order_details {
-            display: block;
+            display: flex;
+            justify-content: space-between;
         }
-    }
-    @media (max-width: 767px) {
-        #dataPreview {
-            margin: 0;
-            width : auto;
+        .biblio .actions {
+            float: right;
         }
-    }
-</style>
+        @media (max-width: 992px) {
+            .order_details {
+                display: block;
+            }
+        }
+        @media (max-width: 767px) {
+            #dataPreview {
+                margin: 0;
+                width : auto;
+            }
+        }
+    </style>
+[% END %]
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("css/addbiblio.css") | $raw %]
 [%# As long as cataloging plugins rely on 'script' tags added inline, JS must be in the header %]
@@ -73,9 +81,9 @@
 
     <div class="container-fluid">
         <div class="row">
-            <div class="col-md-10 col-md-offset-1">
+            <div class="col-md-10 offset-md-1">
                 [% IF ( allmatch ) %]
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         <h4>No records imported</h4>
                         No records have been imported because they all match existing records in your catalog.<br />You'll have to treat them individually.
                     </div>
@@ -86,7 +94,8 @@
                         Add orders from [% comments | html %]
                         ([% file_name | html %] staged on [% upload_timestamp | $KohaDates  with_hours => 1 %])
                     </h1>
-                    <form action="/cgi-bin/koha/acqui/addorderiso2709.pl" method="post" id="Aform">
+                    <form action="/cgi-bin/koha/acqui/addorderiso2709.pl" method="post" id="Aform" class="validated">
+                        [% INCLUDE 'csrf-token.inc' %]
                         [% WRAPPER tabs id= "tabs" %]
                             [% WRAPPER tabs_nav %]
                                 [% WRAPPER tab_item tabname= "records_to_import" bt_active= 1 %] <span>Select to import</span> [% END %]
@@ -130,7 +139,7 @@
                                         </div>
                                     </div> <!-- /#searchheader -->
 
-                                    <input type="hidden" name="op" value="import_records"/>
+                                    <input type="hidden" name="op" value="cud-import_records"/>
                                     <input type="hidden" name="basketno" value="[% basketno | html %]" />
                                     <input type="hidden" name="booksellerid" value="[% booksellerid | html %]" />
                                     <input type="hidden" name="import_batch_id" value="[% import_batch_id | html %]" />
@@ -158,9 +167,9 @@
                                                         <span class="actions">
                                                             <a href="/cgi-bin/koha/catalogue/showmarc.pl?importid=[% biblio.import_record_id | uri %]" class="previewData btn btn-default btn-xs">MARC</a>
                                                             <a href="/cgi-bin/koha/catalogue/showmarc.pl?viewas=card&amp;importid=[% biblio.import_record_id | uri %]" class="previewData btn btn-default btn-xs">Card</a>
-                                                            <a href="/cgi-bin/koha/acqui/neworderempty.pl?booksellerid=[% booksellerid | uri %]&amp;basketno=[% basketno | uri %]&amp;breedingid=[% biblio.import_record_id | uri %]&amp;import_batch_id=[% biblio.import_batch_id | uri %]&amp;biblionumber=[% biblio.match_biblionumber | uri %]" class="btn btn-default btn-xs">Add order</a>
+                                                            <a href="/cgi-bin/koha/acqui/neworderempty.pl?booksellerid=[% booksellerid | uri %]&amp;basketno=[% basketno | uri %]&amp;breedingid=[% biblio.import_record_id | uri %]&amp;import_batch_id=[% biblio.import_batch_id | uri %]&amp;biblionumber=[% biblio.match_biblionumber | uri %]" class="btn btn-default btn-xs">New order</a>
                                                         </span>
-                                                        <fieldset class="rows order_details">
+                                                            <fieldset class="rows order_details">
                                                             <ol>
                                                                 <li class="status">
                                                                     <span class="label">Match:</span>
@@ -186,11 +195,11 @@
                                                                 </li>
                                                                 <li class="price">
                                                                     <label for="price_record_[% biblio.import_record_id | html %]">Price: </label>
-                                                                    <input id="price_record_[% biblio.import_record_id | html %]" type="text" value="[% biblio.price | html %]" name="price_[% biblio.import_record_id | html %]" />
+                                                                    <input id="price_record_[% biblio.import_record_id | html %]" class="decimal" type="text" value="[% biblio.price | $Price on_editing => 1 %]" name="price_[% biblio.import_record_id | html %]" onchange="syncReplacementPrice('price_record_[% biblio.import_record_id | html %]', 'replacementprice_record_[% biblio.import_record_id | html %]')" />
                                                                 </li>
                                                                 <li class="replacementprice">
                                                                     <label for="replacementprice_record_[% biblio.import_record_id | html %]">Replacement price: </label>
-                                                                    <input id="replacementprice_record_[% biblio.import_record_id | html %]" type="text" value="[% biblio.replacementprice | html %]" name="replacementprice_[% biblio.import_record_id | html %]" />
+                                                                    <input id="replacementprice_record_[% biblio.import_record_id | html %]" class="decimal" type="text" value="[% biblio.replacementprice | $Price on_editing => 1 %]" name="replacementprice_[% biblio.import_record_id | html %]" />
                                                                 </li>
                                                                 <li class="discount">
                                                                     <label for="discount_record_[% biblio.import_record_id | html %]">Discount: </label>
@@ -200,7 +209,7 @@
                                                                 <li class="fund">
                                                                     [% IF ( close ) %]
                                                                         <label for="fund_record_[% biblio.import_record_id | html %]">Fund: </label>
-                                                                        <input type="hidden" size="20" name="budget_id" value="[% budget_id | html %]" />[% Budget_name | html %]
+                                                                        <input type="hidden" name="budget_id" value="[% budget_id | html %]" />[% Budget_name | html %]
                                                                     [% ELSE %]
                                                                         <label for="fund_record_[% biblio.import_record_id | html %]">Fund: </label>
                                                                         <select id="fund_record_[% biblio.import_record_id | html %]" name="budget_id_[% biblio.import_record_id | html %]">
@@ -289,7 +298,7 @@
                                                                                     <select id="loc_item_[% item.item_id | html %]" name="loc_[% biblio.import_record_id | html %]">
                                                                                         <option value=""> </option>
                                                                                         [% FOREACH locationloo IN locationloop %]
-                                                                                            [% IF ( locationloo.code ) == (item.loc) %]
+                                                                                            [% IF ( locationloo.code ) == (item.location) %]
                                                                                                 <option value="[% locationloo.code | html %]" selected="selected">[% locationloo.description | html %]</option>
                                                                                             [% ELSE %]
                                                                                                 <option value="[% locationloo.code | html %]">[% locationloo.description | html %]</option>
@@ -357,15 +366,27 @@
                                                                                 </li>
                                                                                 <li>
                                                                                     <label for="price_item_[% item.item_id | html %]">price</label>
-                                                                                    <input type="text" id="price_item_[% item.item_id | html %]" name="itemprice_[% biblio.import_record_id | html %]" value="[% item.itemprice | html %]">
+                                                                                    <input type="text" id="price_item_[% item.item_id | html %]" class="decimal" name="itemprice_[% biblio.import_record_id | html %]" value="[% item.price | $Price on_editing => 1 %]">
                                                                                 </li>
                                                                                 <li>
                                                                                     <label for="replacementprice_item_[% item.item_id | html %]">replacement price</label>
-                                                                                    <input type="text" id="replacementprice_item_[% item.item_id | html %]" name="replacementprice_[% biblio.import_record_id | html %]" value="[% item.replacementprice | html %]">
+                                                                                    <input type="text" id="replacementprice_item_[% item.item_id | html %]" class="decimal" name="itemreplacementprice_[% biblio.import_record_id | html %]" value="[% item.replacementprice | $Price on_editing => 1 %]">
                                                                                 </li>
                                                                                 <li>
                                                                                     <label for="callnumber_item_[% item.item_id | html %]">callnumber</label>
                                                                                     <input type="text" id="callnumber_item_[% item.item_id | html %]" name="itemcallnumber_[% biblio.import_record_id | html %]" value="[% item.itemcallnumber | html %]">
+                                                                                </li>
+                                                                                <li>
+                                                                                    <label for="coded_location_qualifier_item_[% item.item_id | html %]">coded location qualifier</label>
+                                                                                    <input type="text" id="coded_location_qualifier_item_[% item.item_id | html %]" name="coded_location_qualifier_[% biblio.import_record_id | html %]" value="[% item.coded_location_qualifier | html %]">
+                                                                                </li>
+                                                                                <li>
+                                                                                    <label for="barcode_item_[% item.item_id | html %]">barcode</label>
+                                                                                    <input type="text" id="barcode_item_[% item.item_id | html %]" name="barcode_[% biblio.import_record_id | html %]" value="[% item.barcode | html %]">
+                                                                                </li>
+                                                                                <li>
+                                                                                    <label for="enumchron_item_[% item.item_id | html %]">enumchron</label>
+                                                                                    <input type="text" id="enumchron_item_[% item.item_id | html %]" name="enumchron_[% biblio.import_record_id | html %]" value="[% item.enumchron | html %]">
                                                                                 </li>
                                                                             </ol>
                                                                         </fieldset>
@@ -380,18 +401,17 @@
                                     </table> <!-- .biblio.unselected.rows -->
 
                                     <div class="modal" id="dataPreview" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel">
-                                        <div class="modal-dialog modal-lg" role="document">
+                                        <div class="modal-dialog modal-lg">
                                             <div class="modal-content">
                                                 <div class="modal-header">
-                                                    <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span
-                                                            aria-hidden="true">&times;</span></button>
-                                                    <h4 id="dataPreviewLabel">MARC preview</h4>
+                                                    <h1 class="modal-title" id="dataPreviewLabel">MARC preview</h1>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                 </div>
                                                 <div class="modal-body">
                                                     <div id="loading"> <img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" alt="" /> Loading </div>
                                                 </div>
                                                 <div class="modal-footer">
-                                                    <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+                                                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
                                                 </div>
                                             </div> <!-- /.modal-content -->
                                         </div> <!-- /.modal-dialog -->
@@ -406,7 +426,7 @@
                                         <fieldset class="rows" style="float:none;">
                                             <legend>Item</legend>
                                             [% IF ( NoACQframework ) %]
-                                                <div class="dialog message">No ACQ framework, using default. You should create a framework with code ACQ, the items framework would be used</div>
+                                                <div class="alert alert-info">No ACQ framework, using default. You should create a framework with code ACQ, the items framework would be used</div>
                                             [% END %]
                                             <div class="item_edit_form">
                                                 [% FOREACH item IN items %]
@@ -417,9 +437,9 @@
                                                                     <li style="[% iteminformatio.hidden | html %];">
                                                                         <div class="subfield_line" id="subfield[% iteminformatio.serialid | html %][% iteminformatio.countitems | html %][% iteminformatio.subfield | html %][% iteminformatio.random | html %]">
                                                                             [% IF (iteminformatio.mandatory) %]
-                                                                                <label class="required">[% iteminformatio.subfield | html %] - [% iteminformatio.marc_lib | html %]</label>
+                                                                            <label class="required">[% iteminformatio.subfield | html %] - [% iteminformatio.marc_lib | html %]</label>
                                                                             [% ELSE %]
-                                                                                <label>[% iteminformatio.subfield | html %] - [% iteminformatio.marc_lib | html %]</label>
+                                                                            <label>[% iteminformatio.subfield | html %] - [% iteminformatio.marc_lib | html %]</label>
                                                                             [% END %]
 
                                                                             [% IF ( iteminformatio.marc_value.type == 'select' ) %]
@@ -467,7 +487,7 @@
                                             [% IF ( close ) %]
                                                 <li>
                                                     <span class="label">Fund: </span>
-                                                    <input type="hidden" size="20" name="budget_id" id="budget_id" value="[% budget_id | html %]" />[% Budget_name | html %]
+                                                    <input type="hidden" name="budget_id" id="budget_id" value="[% budget_id | html %]" />[% Budget_name | html %]
                                                 </li>
                                             [% ELSE %]
                                                 <li>
@@ -527,8 +547,9 @@
                         </fieldset>
                     </form> <!-- /#Aform -->
                 [% ELSE # IF ( batch_details ) %]
-                    <div>
-                        <h1>Choose the file to add to the basket</h1>
+                    <h1>Choose the file to add to the basket</h1>
+
+                    <div class="page-section">
                         <table id="files">
                             <thead>
                                 <tr>
@@ -573,7 +594,7 @@
                                 [% END # /FOREACH batch_lis %]
                             </tbody>
                         </table> <!-- /#files -->
-                    </div>
+                    </div> <!-- /.page-section -->
                 [% END # /IF ( batch_details ) %]
             </div> [% # /div.col-sm-6 %]
         </div> [% # /div.row %]

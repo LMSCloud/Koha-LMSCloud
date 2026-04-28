@@ -114,6 +114,10 @@ while ( my $additional_field = $additional_fields->next ) {
 }
 $filters->{additional_fields} = \@additional_field_filters;
 
+# Set filter for 'all status'
+if ( $filters->{orderstatus} eq "any" ) {
+    $filters->{get_canceled_order} = 1;
+}
 
 my $order_loop;
 # If we're supplied any value then we do a search. Otherwise we don't.

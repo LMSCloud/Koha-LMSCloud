@@ -23,8 +23,10 @@ use Scalar::Util qw( blessed );
 use C4::Biblio qw( GetMarcFromKohaField );
 use C4::Charset qw( StripNonXmlChars );
 use C4::Items qw( GetMarcItem );
+
 use Koha::Database;
 use Koha::Exceptions::Metadata;
+use Koha::RecordSources;
 
 use base qw(Koha::Object);
 
@@ -127,6 +129,12 @@ sub record {
             'Koha::Biblio::Metadata->record called on unhandled format: ' . $format );
     }
 
+    # FIXME: Remove existing items from the MARC record. This should be handled
+    #        at store() time or pre-filtering in {Add|Mod}Biblio. Remove the FIXME
+    #        once we reach some consensus on how to handle this.
+    my ( $itemtag, $itemsubfield ) = C4::Biblio::GetMarcFromKohaField("items.itemnumber");
+    $record->delete_field( ( $record->field($itemtag) ) );
+
     if ( $embed_items ) {
         $self->_embed_items({ %$params, format => $format, record => $record });
     }
@@ -170,6 +178,39 @@ sub record_strip_nonxml {
     return $self->record( { %$params, record => $record } );
 }
 
+=head3 source_allows_editing
+
+    if ( $metadata->source_allows_editing ) { ... }
+
+Returns a boolean denoting whether the metadata's record source allows
+it to be edited.
+
+=cut
+
+sub source_allows_editing {
+    my ($self) = @_;
+
+    my $rs = $self->_result->record_source;
+    return 1 unless $rs;
+    return $rs->can_be_edited;
+}
+
+=head3 record_source
+
+    my $record_source = $metadata->record_source;
+
+Returns a I<Koha::RecordSource> object for the linked record source.
+
+=cut
+
+sub record_source {
+    my ($self) = @_;
+
+    my $rs = $self->_result->record_source;
+    return unless $rs;
+    return Koha::RecordSource->_new_from_dbic($rs);
+}
+
 =head2 Internal methods
 
 =head3 _embed_items
@@ -188,12 +229,7 @@ sub _embed_items {
 
     if ( $format eq 'marcxml' ) {
 
-        # First remove the existing items from the MARC record
         my ( $itemtag, $itemsubfield ) = C4::Biblio::GetMarcFromKohaField( "items.itemnumber" );
-        foreach my $field ( $record->field($itemtag) ) {
-            $record->delete_field($field);
-        }
-
         my $biblio = Koha::Biblios->find($biblionumber);
 
         my $items = $biblio->items;

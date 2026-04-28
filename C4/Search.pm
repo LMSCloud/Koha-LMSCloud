@@ -585,6 +585,7 @@ sub getRecords {
                             "type_label_"
                               . $facets_info->{$link_value}->{'label_value'} =>
                               1,
+                            label      => $facets_info->{$link_value}->{'label_value'},
                             facets     => \@this_facets_array,
                           }
                           unless (
@@ -1022,6 +1023,7 @@ sub getIndexes{
                     'Conference-name-seealso',
                     'Content-type',
                     'Control-number',
+                    'cnum',
                     'Control-number-identifier',
                     'cni',
                     'copydate',
@@ -1726,7 +1728,7 @@ sub searchResults {
         $times = $offset + $results_per_page;
     }
     else {
-        $times = $hits; # If less hits than results_per_page+offset we go to the end
+        $times = $hits // 0; # If less hits than results_per_page+offset we go to the end
     }
 
     my $marcflavour = C4::Context->preference("marcflavour");
@@ -1901,19 +1903,21 @@ sub searchResults {
 
             my $hbranch     = C4::Context->preference('StaffSearchResultsDisplayBranch');
             my $otherbranch = $hbranch eq 'homebranch' ? 'holdingbranch' : 'homebranch';
-
             # set item's branch name, use HomeOrHoldingBranch syspref first, fall back to the other one
             if ($item->{$hbranch}) {
                 $item->{'branchname'} = $branches{$item->{$hbranch}};
+                $item->{'branchcode'} = $item->{$hbranch};
             }
             elsif ($item->{$otherbranch}) {	# Last resort
                 $item->{'branchname'} = $branches{$item->{$otherbranch}};
+                $item->{'branchcode'} = $item->{$otherbranch};
             }
 
             my $prefix =
                 ( $item->{$hbranch} ? $item->{$hbranch} . '--' : q{} )
               . ( $item->{location} ? $item->{location} : q{} )
               . ( $item->{itype}    ? $item->{itype}    : q{} )
+              . ( $item->{ccode}    ? $item->{ccode}    : q{} )
               . ( $item->{itemcallnumber} ? $item->{itemcallnumber} : q{} );
 # For each grouping of items (onloan, available, unavailable), we build a key to store relevant info about that item
             if ( $item->{onloan}
@@ -1925,6 +1929,7 @@ sub searchResults {
                 $onloan_items->{$key}->{due_date} = $item->{onloan};
                 $onloan_items->{$key}->{count}++ if $item->{$hbranch};
                 $onloan_items->{$key}->{branchname}     = $item->{branchname};
+                $onloan_items->{$key}->{branchcode}     = $item->{branchcode};
                 $onloan_items->{$key}->{location}       = $shelflocations->{ $item->{location} } if $item->{location};
                 $onloan_items->{$key}->{itemcallnumber} = $item->{itemcallnumber};
                 $onloan_items->{$key}->{description}    = $item->{description};
@@ -1932,6 +1937,7 @@ sub searchResults {
                   getitemtypeimagelocation( $search_context->{'interface'}, $itemtypes{ $item->{itype} }->{imageurl} );
                 $onloan_items->{$key}->{itemnumbers} .= '|' if ( exists($onloan_items->{$key}->{itemnumbers}) );
                 $onloan_items->{$key}->{itemnumbers} .= $item->{itemnumber};
+                $onloan_items->{$key}->{collectioncode} = GetAuthorisedValueDesc('','',$item->{ccode},'','','CCODE');
 
                 # if something's checked out and lost, mark it as 'long overdue'
                 if ( $item->{itemlost} ) {
@@ -2023,6 +2029,7 @@ sub searchResults {
                     foreach (qw(withdrawn itemlost damaged branchname itemcallnumber)) {
                         $other_items->{$key}->{$_} = $item->{$_};
                     }
+                    $other_items->{$key}->{branchcode}     = $item->{branchcode};
                     $other_items->{$key}->{intransit} = ( $transfertwhen ne '' ) ? 1 : 0;
                     $other_items->{$key}->{recalled} = ($recallstatus) ? 1 : 0;
                     $other_items->{$key}->{onhold} = ($reservestatus) ? 1 : 0;
@@ -2033,6 +2040,7 @@ sub searchResults {
                     $other_items->{$key}->{imageurl} = getitemtypeimagelocation( $search_context->{'interface'}, $itemtypes{ $item->{itype}//q{} }->{imageurl} );
 					$other_items->{$key}->{itemnumbers} .= '|' if ( exists($other_items->{$key}->{itemnumbers}) );
                     $other_items->{$key}->{itemnumbers} .= $item->{itemnumber};
+                    $other_items->{$key}->{collectioncode} = GetAuthorisedValueDesc('','',$item->{ccode},'','','CCODE');
                 }
                 # item is available
                 else {
@@ -2041,10 +2049,12 @@ sub searchResults {
                     foreach (qw(branchname itemcallnumber description)) {
                         $available_items->{$prefix}->{$_} = $item->{$_};
                     }
+                    $available_items->{$prefix}->{branchcode} = $item->{branchcode};
                     $available_items->{$prefix}->{location} = $shelflocations->{ $item->{location} } if $item->{location};
                     $available_items->{$prefix}->{imageurl} = getitemtypeimagelocation( $search_context->{'interface'}, $itemtypes{ $item->{itype}//q{} }->{imageurl} );
 					$available_items->{$prefix}->{itemnumbers} .= '|' if ( exists($available_items->{$prefix}->{itemnumbers}) );
                     $available_items->{$prefix}->{itemnumbers} .= $item->{itemnumber};
+                    $available_items->{$prefix}->{collectioncode} = GetAuthorisedValueDesc('','',$item->{ccode},'','','CCODE');
                 }
             }
         }    # notforloan, item level and biblioitem level

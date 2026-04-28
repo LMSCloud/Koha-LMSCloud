@@ -26,6 +26,7 @@ printed out
 =cut
 
 use Modern::Perl;
+use Try::Tiny;
 use CGI qw ( -utf8 );
 use C4::Koha;
 use C4::Auth qw( get_template_and_user );
@@ -41,7 +42,7 @@ my $query = CGI->new;
 my $subscriptionid = $query->param('subscriptionid');
 my $serialseq = $query->param('serialseq');
 my $routingid = $query->param('routingid');
-my $borrowernumber = $query->param('borrowernumber');
+my $borrowernumbers = $query->param('borrowernumbers');
 my $notes = $query->param('notes');
 my $op = $query->param('op') || q{};
 my $date_selected = $query->param('date_selected');
@@ -62,14 +63,22 @@ my $subs = GetSubscription($subscriptionid);
 output_and_exit( $query, $cookie, $template, 'unknown_subscription')
     unless $subs;
 
-if($op eq 'delete'){
+if($op eq 'cud-delete'){
     delroutingmember($routingid,$subscriptionid);
 }
 
-if($op eq 'add'){
-    addroutingmember($borrowernumber,$subscriptionid);
+if ( $op eq 'cud-add_new_recipients' ) {
+    for my $borrowernumber ( split ':', $borrowernumbers ) {
+        try {
+            addroutingmember( $borrowernumber, $subscriptionid );
+        } catch {
+            if ( $_ !~ m{Duplicate entry .* for key 'subscriptionid'} ) {
+                warn $_;
+            }
+        };
+    }
 }
-if($op eq 'save'){
+if($op eq 'cud-save'){
     my $sth = $dbh->prepare('UPDATE serial SET routingnotes = ? WHERE subscriptionid = ?');
     $sth->execute($notes,$subscriptionid);
     my $urldate = URI::Escape::uri_escape_utf8($date_selected);

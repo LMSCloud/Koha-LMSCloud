@@ -1,6 +1,9 @@
 [% USE raw %]
 [% USE AuthorisedValues %]
 [% USE Languages %]
+[% PROCESS 'i18n.inc' %]
+[% USE AdditionalContents %]
+[% SET OPACResultsSidebar = AdditionalContents.get( location => "OPACResultsSidebar", lang => lang, library => logged_in_user.branchcode || default_branch ) %]
 [% IF ( opacfacets && facets_loop && total ) %]
     <div id="search-facets">
         <h2><a href="#" class="menu-collapse-toggle">Refine your search</a></h2>
@@ -27,9 +30,9 @@
                 <ul>
                     <li>
                         [% IF ( available ) %]
-                            <strong>Showing only available items</strong></li><li><a href="/cgi-bin/koha/opac-search.pl?[% query_cgi | $raw %][% limit_cgi_not_availablity | $raw %][% IF ( sort_by ) %]&amp;sort_by=[% sort_by |uri %][% END %]">Show all items</a>
+                            <strong>Showing only records with available items</strong></li><li><a href="/cgi-bin/koha/opac-search.pl?[% query_cgi | $raw %][% limit_cgi_not_availablity | $raw %][% IF ( sort_by ) %]&amp;sort_by=[% sort_by |uri %][% END %]">Show all records</a>
                         [% ELSE %]
-                            <a href="/cgi-bin/koha/opac-search.pl?[% query_cgi | $raw %][% limit_cgi | $raw %][% IF ( sort_by ) %]&amp;sort_by=[% sort_by |uri %][% END %]&amp;limit=available">Limit to currently available items</a>
+                            <a href="/cgi-bin/koha/opac-search.pl?[% query_cgi | $raw %][% limit_cgi | $raw %][% IF ( sort_by ) %]&amp;sort_by=[% sort_by |uri %][% END %]&amp;limit=available">Limit to records with available items</a>
                         [% END %]
                     </li>
                 </ul>
@@ -39,21 +42,32 @@
             [% FOREACH facets_loo IN facets_loop %]
                 [% IF facets_loo.facets.size > 0 %]
                     <li id="[% facets_loo.type_id | html %]">
-                        [% IF facets_loo.type_label_Authors %]<h3 id="facet-authors">Authors</h3>[% END %]
-                        [% IF facets_loo.type_label_Titles %]<h3 id="facet-titles">Titles</h3>[% END %]
-                        [% IF facets_loo.type_label_Topics %]<h3 id="facet-topics">Topics</h3>[% END %]
-                        [% IF facets_loo.type_label_Places %]<h3 id="facet-places">Places</h3>[% END %]
-                        [% IF facets_loo.type_label_Series %]<h3 id="facet-series">Series</h3>[% END %]
-                        [% IF facets_loo.type_label_Genres %]<h3 id="facet-genres">Genres</h3>[% END %]
-                        [% IF facets_loo.type_label_Years %]<h3 id="facet-years">Publication years</h3>[% END %]
-                        [% IF facets_loo.type_label_ItemTypes %]<h3 id="facet-itemtypes">Item types</h3>[% END %]
-                        [% IF facets_loo.type_label_CollectionCodes %]<h3 id="facet-collections">Collections</h3>[% END %]
-                        [% IF facets_loo.type_label_Language %]<h3 id="facet-languages">Languages</h3>[% END %]
-                        [% UNLESS singleBranchMode %]
-                            [% IF ( facets_loo.type_label_HomeLibrary ) %]<h3 id="facet-home-libraries">Home libraries</h3>[% END %]
-                            [% IF ( facets_loo.type_label_HoldingLibrary ) %]<h3 id="facet-holding-libraries">Holding libraries</h3>[% END %]
-                        [% END %]
-                        [% IF facets_loo.type_label_Location %]<h3 id="facet-locations">Locations</h3>[% END %]
+                            [% SWITCH facets_loo.label %]
+                            [% CASE 'Authors' %]
+                                <h3 id="facet-authors">Authors</h3>
+                            [% CASE 'Titles' %]
+                                <h3 id="facet-titles">Titles</h3>
+                            [% CASE 'Topics' %]
+                                <h3 id="facet-topics">Topics</h3>
+                            [% CASE 'Places' %]
+                                <h3 id="facet-places">Places</h3>
+                            [% CASE 'Series' %]
+                                <h3 id="facet-series">Series</h3>
+                            [% CASE 'Item types' %]
+                                <h3 id="facet-itemtypes">Item types</h3>
+                            [% CASE 'Home libraries' %]
+                                <h3 id="facet-home-libraries">Home libraries</h3>
+                            [% CASE 'Holding libraries' %]
+                                <h3 id="facet-holding-libraries">Holding libraries</h3>
+                            [% CASE 'Location' %]
+                                <h3 id="facet-locations">Locations</h3>
+                            [% CASE 'Collections' %]
+                                <h3 id="facet-collections">Collections</h3>
+                            [% CASE 'Languages' %]
+                                <h3 id="facet-languages">Languages</h3>
+                            [% CASE %]
+                                <h3 id="facet-[% facets_loo.type_link_value | html %]">[% facets_loo.label | html %]</h3>
+                            [% END %]
                         <ul>
                             [% SET url = "/cgi-bin/koha/opac-search.pl?" _ query_cgi _ limit_cgi %]
                             [% IF ( sort_by ) %]
@@ -63,9 +77,8 @@
                               [% url = BLOCK %][% url | $raw %][% "&amp;count=" _ results_per_page | url %][% END %]
                             [% END %]
                             [% FOREACH facet IN facets_loo.facets %]
-                            [% NEXT IF !facet.facet_label_value %]
-                            [% IF facets_loo.type_label_CollectionCodes %][% SET facet.facet_label_value = AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => facet.facet_label_value, opac =>1 ) || facet.facet_label_value %][% END %]
-                            [% IF facets_loo.type_label_Language %][% SET facet.facet_label_value = Languages.GetByISOCode(lang,facet.facet_label_value) || facet.facet_label_value %][% END %]
+                            [% IF facets_loo.label == 'Collections' %][% SET facet.facet_label_value = AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => facet.facet_label_value, opac =>1 ) || facet.facet_label_value %][% END %]
+                            [% IF facets_loo.label == 'Languages' %][% SET facet.facet_label_value = Languages.GetByISOCode(lang,facet.facet_label_value) || facet.facet_label_value %][% END %]
                             [% IF loop.count > 5 && !facet.active %]
                                 <li class="collapsible-facet" style="display:none">
                             [% ELSE %]
@@ -89,10 +102,64 @@
                             [% END %]
                             [% IF facets_loo.facets.size > 5 %]
                                 <li class="moretoggle">
-                                    <a href="#"><strong>Show more</strong></a>
+                                    [% SET aria_label = t("Show more") %]
+                                    [% SWITCH facets_loo.label %]
+                                    [% CASE 'Authors' %]
+                                        [% aria_label = t("Show more authors") %]
+                                    [% CASE 'Titles' %]
+                                        [% aria_label = t("Show more titles") %]
+                                    [% CASE 'Topics' %]
+                                        [% aria_label = t("Show more topics") %]
+                                    [% CASE 'Places' %]
+                                        [% aria_label = t("Show more places") %]
+                                    [% CASE 'Series' %]
+                                        [% aria_label = t("Show more series") %]
+                                    [% CASE 'Item types' %]
+                                        [% aria_label = t("Show more item types") %]
+                                    [% CASE 'Home libraries' %]
+                                        [% aria_label = t("Show more home libraries") %]
+                                    [% CASE 'Holding libraries' %]
+                                        [% aria_label = t("Show more holding libraries") %]
+                                    [% CASE 'Location' %]
+                                        [% aria_label = t("Show more locations") %]
+                                    [% CASE 'Collections' %]
+                                        [% aria_label = t("Show more collections") %]
+                                    [% CASE 'Languages' %]
+                                        [% aria_label = t("Show more languages") %]
+                                    [% END %]
+
+                                    <a href="#" aria-label="[% aria_label | html | trim %]"><strong>Show more</strong></a>
                                 </li>
                                 <li class="moretoggle" style="display:none">
-                                    <a href="#"><strong>Show less</strong></a>
+                                    [% SET aria_label = t("Show more") %]
+                                    [% SWITCH facets_loo.label %]
+                                    [% CASE 'Authors' %]
+                                        [% aria_label = t("Show fewer authors") %]
+                                    [% CASE 'Titles' %]
+                                        [% aria_label = t("Show fewer titles") %]
+                                    [% CASE 'Topics' %]
+                                        [% aria_label = t("Show fewer topics") %]
+                                    [% CASE 'Places' %]
+                                        [% aria_label = t("Show fewer places") %]
+                                    [% CASE 'Series' %]
+                                        [% aria_label = t("Show fewer series") %]
+                                    [% CASE 'Item types' %]
+                                        [% aria_label = t("Show fewer item types") %]
+                                    [% CASE 'Home libraries' %]
+                                        [% aria_label = t("Show fewer home libraries") %]
+                                    [% CASE 'Holding libraries' %]
+                                        [% aria_label = t("Show fewer holding libraries") %]
+                                    [% CASE 'Location' %]
+                                        [% aria_label = t("Show fewer locations") %]
+                                    [% CASE 'Collections' %]
+                                        [% aria_label = t("Show fewer collections") %]
+                                    [% CASE 'Languages' %]
+                                        [% aria_label = t("Show fewer languages") %]
+                                    [% END %]
+
+                                    [% IF aria_label %]
+                                        <a href="#" aria-label="[% aria_label | html | trim %]"><strong>Show less</strong></a>
+                                    [% END %]
                                 </li>
                             [% END %]
                         </ul>
@@ -104,7 +171,7 @@
 
     [% IF ( OPACResultsSidebar ) %]
         <div id="opacresultssidebar">
-            [% OPACResultsSidebar | $raw %]
+            [% PROCESS koha_news_block news => OPACResultsSidebar %]
         </div>
     [% END %]
 [% END # / IF opacfacets && facets_loop %]

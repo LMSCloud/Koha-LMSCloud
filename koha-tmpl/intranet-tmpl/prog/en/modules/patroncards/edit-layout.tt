@@ -1,7 +1,19 @@
 [% USE raw %]
+[% USE Koha %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
     [% INCLUDE 'doc-head-open.inc' %]
-    <title>[% IF ( layout_id ) %]Edit ([% layout_id | html %])[% ELSE %]New[% END %] &rsaquo; Layout &rsaquo; Patron card creator &rsaquo; Tools &rsaquo; Koha</title>
+    <title>[% FILTER collapse %]
+        [% IF( layout_id ) %]
+            [% t("Edit patron card layout") | html %] ([% layout_id | html %])
+        [% ELSE %]
+            [% t("New patron card layout") | html %]
+        [% END %] &rsaquo;
+        [% t("Layout") | html %] &rsaquo;
+        [% t("Patron card creator") | html %] &rsaquo;
+        [% t("Tools") | html %] &rsaquo;
+        [% t("Koha") | html %]
+    [% END %]</title>
     [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -25,7 +37,7 @@
                 [% IF ( layout_id ) %]
                     <span>Edit ([% layout_id | html %])</span>
                 [% ELSE %]
-                    <span>New</span>
+                    <span>New patron card layout</span>
                 [% END %]
             [% END %]
         [% END #/ WRAPPER breadcrumbs %]
@@ -33,21 +45,27 @@
 
     <div class="main container-fluid">
         <div class="row">
-            <div class="col-sm-10 col-sm-push-2">
+            <div class="col-md-10 order-md-2 order-sm-1">
                 <main>
+                    [% INCLUDE 'messages.inc' %]
 
                     [% INCLUDE 'patroncards-toolbar.inc' %]
 
-                    <h1>[% IF ( layout_id ) %]<span>Edit patron card layout</span> [% layout_id | html %]
-                        [% ELSE %]<span>Create patron card layout</span>[% END %]
+                    <h1>
+                        [% IF ( layout_id ) %]
+                            <span>Edit patron card layout [% layout_id | html %]</span>
+                        [% ELSE %]
+                            <span>New patron card layout</span>
+                        [% END %]
                     </h1>
 
                 <!-- NOTE: The order of the elements on this form is crictical to correct processing. You've been warned...  -->
-                <form name="input" action="/cgi-bin/koha/patroncards/edit-layout.pl" method="get">
+                <form name="input" action="/cgi-bin/koha/patroncards/edit-layout.pl" method="post">
+                    [% INCLUDE 'csrf-token.inc' %]
                 <div class="row">
                 <div class="col-sm-6">
                         <fieldset class="rows">
-                            <legend>[% IF ( layout_id ) %]Edit[% ELSE %]Create[% END %] patron card text layout</legend>
+                            <legend>Patron card text layout</legend>
                             <ol>
                                 <li>
                                 <fieldset>
@@ -278,9 +296,7 @@
                 </div>
                 <div class="col-sm-6">
                     <fieldset class="rows">
-                    <legend>[% IF ( layout_id ) %]<span>Edit patron card graphic layout</span>
-                            [% ELSE %]<span>Create patron card graphic layout</span>[% END %]
-                    </legend>
+                    <legend>Patron card graphic layout</legend>
                     <ol>
 <!--
                             <li>
@@ -475,19 +491,19 @@
                     <fieldset class="action">
                         <input class="btn btn-primary" type="submit" value="Save" />
                         <a class="cancel" href="/cgi-bin/koha/patroncards/manage.pl?card_element=layout">Cancel</a>
-                        <input type="hidden" name="op" value="save" />
+                        <input type="hidden" name="op" value="cud-save" />
                         <input type="hidden" name="layout_id" value="[% layout_id | html %]" />
                     </fieldset>
                 </form>
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'tools-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

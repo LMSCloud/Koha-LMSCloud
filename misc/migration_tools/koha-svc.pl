@@ -95,17 +95,29 @@ Specified user must have C<editcatalogue> permission.
 
 sub new {
     my $class = shift;
-    my $self = {@_};
+    my $self  = {@_};
     bless $self, $class;
 
-    my $url = $self->{url} || die "no url found";
-    my $user = $self->{user} || die "no user specified";
+    my $url      = $self->{url}      || die "no url found";
+    my $user     = $self->{user}     || die "no user specified";
     my $password = $self->{password} || die "no password";
 
     my $ua = LWP::UserAgent->new();
-    $ua->cookie_jar({});
-    my $resp = $ua->post( "$url/authentication", {userid =>$user, password => $password} );
+    $ua->cookie_jar( {} );
+
+    my $get_resp   = $ua->get("$url/authentication");
+    my $csrf_token = $get_resp->header('CSRF-TOKEN');
+
+    my $resp = $ua->post(
+        "$url/authentication",
+        'Csrf-Token' => $csrf_token,
+        'Content'    => { login_userid => $user, login_password => $password }
+    );
     die $resp->status_line unless $resp->is_success;
+
+    #NOTE: A successful authentication means we have a new CGISESSID and a new CSRF Token
+    $csrf_token = $resp->header('CSRF-TOKEN');
+    $self->{csrf_token} = $csrf_token;
 
     warn "# $user $url = ", $resp->decoded_content, "\n" if $self->{debug};
 
@@ -137,10 +149,16 @@ sub get {
 =cut
 
 sub post {
-    my ($self,$biblionumber,$marcxml) = @_;
+    my ( $self, $biblionumber, $marcxml ) = @_;
     my $url = $self->{url};
     warn "# post $url/bib/$biblionumber\n" if $self->{debug};
-    my $resp = $self->{ua}->post( "$url/bib/$biblionumber", 'Content_type' => 'text/xml', Content => $marcxml );
+    my $csrf_token = $self->{csrf_token};
+    my $resp       = $self->{ua}->post(
+        "$url/bib/$biblionumber",
+        'Content_type' => 'text/xml',
+        'Csrf_Token'   => $csrf_token,
+        'Content'      => $marcxml,
+    );
     die $resp->status_line unless $resp->is_success;
     return $resp->decoded_content;
 }

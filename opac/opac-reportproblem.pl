@@ -63,7 +63,7 @@ $template->param(
 );
 
 my $op = $input->param('op') || '';
-if ( $op eq 'addreport' ) {
+if ( $op eq 'cud-addreport' ) {
 
     my $subject = $input->param('subject');
     my $message = $input->param('message');

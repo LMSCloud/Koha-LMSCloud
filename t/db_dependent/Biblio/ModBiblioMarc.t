@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::More tests => 3;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 use MARC::Record;
@@ -27,6 +27,8 @@ use Koha::Database;
 use Koha::Biblios;
 
 my $schema  = Koha::Database->new->schema;
+my $builder = t::lib::TestBuilder->new;
+
 $schema->storage->txn_begin;
 
 subtest "Check MARC field length calculation" => sub {
@@ -47,4 +49,74 @@ subtest "Check MARC field length calculation" => sub {
     like( substr($savedrec->leader,12,5), qr/^\d{5}$/, 'Base address found' );
 };
 
+subtest "StripWhitespaceChars tests" => sub {
+    plan tests => 4;
+
+    t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
+    t::lib::Mocks::mock_preference('StripWhitespaceChars', 0);
+
+    my $biblio = t::lib::TestBuilder->new->build_sample_biblio;
+    my $record = MARC::Record->new;
+    $record->append_fields(
+        MARC::Field->new( '003', "abcdefg\n" ),
+        MARC::Field->new( '245', '', '', a => "  My\ntitle\n" ),
+    );
+
+    my $title = $record->title;
+    is( $title, "  My\ntitle\n", 'Title has whitespace characters' );
+
+    C4::Biblio::ModBiblioMarc( $record, $biblio->biblionumber );
+    $biblio = Koha::Biblios->find( $biblio->biblionumber );
+    my $savedrec = $biblio->metadata->record;
+    my $savedtitle = $savedrec->title;
+    is( $savedtitle, "  My\ntitle\n", "Title still has whitespace characters because StripWhitespaceChars is disabled" );
+
+    t::lib::Mocks::mock_preference('StripWhitespaceChars', 1);
+
+    C4::Biblio::ModBiblioMarc( $record, $biblio->biblionumber );
+    $biblio = Koha::Biblios->find( $biblio->biblionumber );
+    my $amendedrec = $biblio->metadata->record;
+    my $amendedtitle = $amendedrec->title;
+    is( $amendedtitle, "My title", "Whitespace characters removed from title because StripWhitespaceChars is enabled" );
+
+    my $f003 = $record->field('003')->data;
+    is( $f003, "abcdefg\n", "Whitespace characters are not stripped from control fields" );
+};
+
 $schema->storage->txn_rollback;
+
+subtest "record_source_id parameter tests" => sub {
+
+    plan tests => 5;
+
+    $schema->storage->txn_begin;
+
+    my $biblio = $builder->build_sample_biblio;
+    my $source = $builder->build_object( { class => 'Koha::RecordSources' } );
+
+    my $metadata = $biblio->metadata;
+
+    is( $metadata->record_source_id, undef, 'Record source not set for biblio' );
+
+    C4::Biblio::ModBiblioMarc( $metadata->record, $biblio->id, { record_source_id => undef } );
+    $metadata->discard_changes;
+
+    is( $metadata->record_source_id, undef, 'Record source not set for biblio' );
+
+    C4::Biblio::ModBiblioMarc( $metadata->record, $biblio->id, { record_source_id => $source->id } );
+    $metadata->discard_changes;
+
+    is( $metadata->record_source_id, $source->id, 'Record source set for biblio' );
+
+    C4::Biblio::ModBiblioMarc( $metadata->record, $biblio->id );
+    $metadata->discard_changes;
+
+    is( $metadata->record_source_id, $source->id, 'Record source param not passed, no change' );
+
+    C4::Biblio::ModBiblioMarc( $metadata->record, $biblio->id, { record_source_id => undef } );
+    $metadata->discard_changes;
+
+    is( $metadata->record_source_id, undef, 'Record source passed but undef, unset for biblio' );
+
+    $schema->storage->txn_rollback;
+};

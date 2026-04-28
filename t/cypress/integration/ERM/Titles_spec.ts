@@ -47,6 +47,7 @@ describe("Title CRUD operations", () => {
         cy.wait(500);
         cy.get("#toolbar a").contains("Import from list").click();
         cy.get("h2").contains("Import from a list");
+        cy.left_menu_active_item_is("Titles");
         cy.get("#package_list .vs__selected").should("not.exist");
 
         // Make sure packages are returned
@@ -65,7 +66,7 @@ describe("Title CRUD operations", () => {
             body: { job_id: 1 },
         }).as("get-job-response");
         cy.get("#list_list tbody tr:first td a").contains("Import").click();
-        cy.get("main div[class='dialog message']").contains(
+        cy.get("main div[class='alert alert-info']").contains(
             "Import in progress, see job #1"
         );
     });
@@ -78,7 +79,7 @@ describe("Title CRUD operations", () => {
         });
         cy.visit("/cgi-bin/koha/erm/erm.pl");
         cy.get("#navmenulist").contains("Titles").click();
-        cy.get("main div[class='dialog alert']").contains(
+        cy.get("main div[class='alert alert-warning']").contains(
             /Something went wrong/
         );
 
@@ -127,6 +128,7 @@ describe("Title CRUD operations", () => {
         cy.wait(500); // Cypress is too fast! Vue hasn't populated the form yet!
         cy.contains("New title").click();
         cy.get("#titles_add h2").contains("New title");
+        cy.left_menu_active_item_is("Titles");
 
         // Fill in the form for normal attributes
         let erm_title = cy.get_title();
@@ -192,7 +194,7 @@ describe("Title CRUD operations", () => {
             error: "Something went wrong",
         });
         cy.get("#titles_add").contains("Submit").click();
-        cy.get("main div[class='dialog alert']").contains(
+        cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: Internal Server Error"
         );
 
@@ -202,7 +204,7 @@ describe("Title CRUD operations", () => {
             body: erm_title,
         });
         cy.get("#titles_add").contains("Submit").click();
-        cy.get("main div[class='dialog message']").contains("Title created");
+        cy.get("main div[class='alert alert-info']").contains("Title created");
 
         // Add new related package (resource)
         let related_package = erm_title.resources[0];
@@ -249,6 +251,7 @@ describe("Title CRUD operations", () => {
         cy.wait("@get-title");
         cy.wait(500); // Cypress is too fast! Vue hasn't populated the form yet!
         cy.get("#titles_add h2").contains("Edit title");
+        cy.left_menu_active_item_is("Titles");
 
         // Form has been correctly filled in
         cy.get("#title_publication_title").should(
@@ -349,7 +352,7 @@ describe("Title CRUD operations", () => {
             statusCode: 500,
         });
         cy.get("#titles_add").contains("Submit").click();
-        cy.get("main div[class='dialog alert']").contains(
+        cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: Internal Server Error"
         );
 
@@ -359,7 +362,7 @@ describe("Title CRUD operations", () => {
             body: erm_title,
         });
         cy.get("#titles_add").contains("Submit").click();
-        cy.get("main div[class='dialog message']").contains("Title updated");
+        cy.get("main div[class='alert alert-info']").contains("Title updated");
     });
 
     it("Show title", () => {
@@ -401,6 +404,7 @@ describe("Title CRUD operations", () => {
         cy.get("#eholdings_title_show h2").contains(
             "Title #" + erm_title.title_id
         );
+        cy.left_menu_active_item_is("Titles");
         // There are no packages, the table should not be displayed
         cy.contains("Packages (0)");
         cy.get("#table#package_list").should("not.exist");
@@ -448,7 +452,7 @@ describe("Title CRUD operations", () => {
         cy.visit("/cgi-bin/koha/erm/eholdings/local/titles");
 
         cy.get("#titles_list table tbody tr:first").contains("Delete").click();
-        cy.get(".dialog.alert.confirmation h1").contains("remove this title");
+        cy.get(".alert-warning.confirmation h1").contains("remove this title");
         cy.contains(erm_title.publication_title);
 
         // Accept the confirmation dialog, get 500
@@ -456,7 +460,7 @@ describe("Title CRUD operations", () => {
             statusCode: 500,
         });
         cy.contains("Yes, delete").click();
-        cy.get("main div[class='dialog alert']").contains(
+        cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: Internal Server Error"
         );
 
@@ -466,9 +470,9 @@ describe("Title CRUD operations", () => {
             body: null,
         });
         cy.get("#titles_list table tbody tr:first").contains("Delete").click();
-        cy.get(".dialog.alert.confirmation h1").contains("remove this title");
+        cy.get(".alert-warning.confirmation h1").contains("remove this title");
         cy.contains("Yes, delete").click();
-        cy.get("main div[class='dialog message']")
+        cy.get("main div[class='alert alert-info']")
             .contains("Local title")
             .contains("deleted");
 
@@ -510,8 +514,8 @@ describe("Title CRUD operations", () => {
             "Title #" + erm_title.title_id
         );
 
-        cy.get("#eholdings_title_show .action_links .fa-trash").click();
-        cy.get(".dialog.alert.confirmation h1").contains("remove this title");
+        cy.get("#eholdings_title_show #toolbar").contains("Delete").click();
+        cy.get(".alert-warning.confirmation h1").contains("remove this title");
         cy.contains("Yes, delete").click();
 
         //Make sure we return to list after deleting from show

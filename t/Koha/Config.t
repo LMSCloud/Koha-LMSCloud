@@ -223,7 +223,6 @@ subtest 'read_from_file() tests' => sub {
                 'staff_request_comments' => 'hide',
                 'reply_date' => 'hide',
                 'digital_recipient' => 'branch',
-                'partner_code' => 'ILLLIBS',
             },
             'timezone' => '',
             'bcrypt_settings' => '__BCRYPT_SETTINGS__',

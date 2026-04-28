@@ -1,9 +1,8 @@
 $(document).ready(function() {
-
     // Display the modal containing request supplier metadata
     $('#ill-request-display-log').on('click', function(e) {
         e.preventDefault();
-        $('#requestLog').modal({show:true});
+        $('#requestLog').modal("show");
     });
 
     // Toggle request attributes in Illview
@@ -40,7 +39,7 @@ $(document).ready(function() {
     // Display the modal containing request supplier metadata
     $('#ill-request-display-metadata').on('click', function(e) {
         e.preventDefault();
-        $('#dataPreview').modal({show:true});
+        $('#dataPreview').modal("show");
     });
 
     function display_extended_attribute(row, type) {
@@ -670,7 +669,7 @@ $(document).ready(function() {
     populateBackendFilter();
 
     // Clear all filters
-    $('#clear_search').click(function() {
+    $('.clear_search').click(function() {
         clearSearch();
     });
 

@@ -20,12 +20,12 @@ use Modern::Perl;
 use Mojo::Base 'Mojolicious::Controller';
 
 use Koha::Biblios;
+use Koha::DateUtils;
 use Koha::Ratings;
-use Koha::RecordProcessor;
-use Koha::SearchEngine::Search;
 use C4::Biblio qw( DelBiblio AddBiblio ModBiblio );
 use C4::Search qw( FindDuplicate );
 
+use C4::Auth qw( haspermission );
 use C4::Barcodes::ValueBuilder;
 use C4::Context;
 
@@ -35,6 +35,7 @@ use List::MoreUtils qw( any );
 use MARC::Record::MiJ;
 
 use Try::Tiny qw( catch try );
+use JSON qw( decode_json );
 
 =head1 API
 
@@ -53,23 +54,17 @@ sub get {
     $attributes = { prefetch => [ 'metadata' ] } # don't prefetch metadata if not needed
         unless $c->req->headers->accept =~ m/application\/json/;
 
-    my $biblio = Koha::Biblios->find( { biblionumber => $c->validation->param('biblio_id') }, $attributes );
+    my $biblio = Koha::Biblios->find( { biblionumber => $c->param('biblio_id') }, $attributes );
 
-    unless ( $biblio ) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error => "Object not found."
-            }
-        );
-    }
+    return $c->render_resource_not_found("Bibliographic record")
+        unless $biblio;
 
     return try {
 
         if ( $c->req->headers->accept =~ m/application\/json/ ) {
             return $c->render(
                 status => 200,
-                json   => $biblio->to_api
+                json   => $c->objects->to_api($biblio),
             );
         }
         else {
@@ -125,14 +120,10 @@ Controller function that handles deleting a biblio object
 sub delete {
     my $c = shift->openapi->valid_input or return;
 
-    my $biblio = Koha::Biblios->find( $c->validation->param('biblio_id') );
+    my $biblio = Koha::Biblios->find( $c->param('biblio_id') );
 
-    if ( not defined $biblio ) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Object not found" }
-        );
-    }
+    return $c->render_resource_not_found("Bibliographic record")
+        unless $biblio;
 
     return try {
         my $error = DelBiblio( $biblio->id );
@@ -144,7 +135,7 @@ sub delete {
             );
         }
         else {
-            return $c->render( status => 204, openapi => "" );
+            return $c->render_resource_deleted;
         }
     }
     catch {
@@ -222,52 +213,27 @@ sub get_public {
     my $c = shift->openapi->valid_input or return;
 
     my $biblio = Koha::Biblios->find(
-        { biblionumber => $c->validation->param('biblio_id') },
+        { biblionumber => $c->param('biblio_id') },
         { prefetch     => ['metadata'] } );
 
-    unless ($biblio) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error => "Object not found."
-            }
-        );
-    }
+    return $c->render_resource_not_found("Bibliographic record")
+        unless $biblio;
 
     return try {
 
-        my $metadata = $biblio->metadata;
-        my $record   = $metadata->record;
-
-        my $opachiddenitems_rules = C4::Context->yaml_preference('OpacHiddenItems');
+        my $schema = $biblio->metadata->schema // C4::Context->preference("marcflavour");
         my $patron = $c->stash('koha.user');
 
-        # Check if the biblio should be hidden for unprivileged access
-        # unless there's a logged in user, and there's an exception for it's
-        # category
+        # Check if the bibliographic record should be hidden for unprivileged access
+        # unless there's a logged in user, and there's an exception for it's category
+        my $opachiddenitems_rules = C4::Context->yaml_preference('OpacHiddenItems');
         unless ( $patron and $patron->category->override_hidden_items ) {
-            if ( $biblio->hidden_in_opac({ rules => $opachiddenitems_rules }) )
-            {
-                return $c->render(
-                    status  => 404,
-                    openapi => {
-                        error => "Object not found."
-                    }
-                );
+            if ( $biblio->hidden_in_opac( { rules => $opachiddenitems_rules } ) ) {
+                return $c->render_resource_not_found("Bibliographic record");
             }
         }
 
-        my $schema = $metadata->schema // C4::Context->preference("marcflavour");
-
-        my $record_processor = Koha::RecordProcessor->new({
-            filters => 'ViewPolicy',
-            options => {
-                interface => 'opac',
-                frameworkcode => $biblio->frameworkcode
-            }
-        });
-        # Apply framework's filtering to MARC::Record object
-        $record_processor->process($record);
+        my $record = $biblio->metadata_record( { interface => 'opac', patron => $patron } );
 
         $c->respond_to(
             marcxml => {
@@ -318,12 +284,8 @@ sub get_bookings {
 
     my $biblio = Koha::Biblios->find( { biblionumber => $c->param('biblio_id') }, { prefetch => ['bookings'] } );
 
-    unless ($biblio) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Object not found." }
-        );
-    }
+    return $c->render_resource_not_found("Bibliographic record")
+        unless $biblio;
 
     return try {
 
@@ -353,18 +315,19 @@ sub get_items {
     # Deletion of parameter to avoid filtering on the items table in the case of bookings on 'itemtype'
     $c->req->params->remove('bookable');
 
-    unless ($biblio) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Object not found." }
-        );
-    }
+    return $c->render_resource_not_found("Bibliographic record")
+        unless $biblio;
 
     return try {
 
-        my $items_rs = $biblio->items;
+        # FIXME We need to order_by serial.publisheddate if we have _order_by=+me.serial_issue_number
+        # FIXME Do we always need host_items => 1 or depending on a flag?
+        # FIXME Should we prefetch => ['issue','branchtransfer']?
+        my $items_rs = $biblio->items( { host_items => 1 } )->search_ordered( {}, { join => 'biblioitem' } );
         $items_rs = $items_rs->filter_by_bookable if $bookable_only;
+        # FIXME We need to order_by serial.publisheddate if we have _order_by=+me.serial_issue_number
         my $items = $c->objects->search($items_rs);
+
         return $c->render(
             status  => 200,
             openapi => $items
@@ -372,6 +335,168 @@ sub get_items {
     } catch {
         $c->unhandled_exception($_);
     };
+}
+
+=head3 add_item
+
+Controller function that handles creating a biblio's item
+
+=cut
+
+sub add_item {
+    my $c = shift->openapi->valid_input or return;
+
+    try {
+        my $biblio_id = $c->param('biblio_id');
+        my $biblio    = Koha::Biblios->find( $biblio_id );
+
+        return $c->render_resource_not_found("Bibliographic record")
+            unless $biblio;
+
+        my $body = $c->req->json;
+
+        $body->{biblio_id} = $biblio_id;
+
+        # Don't save extended subfields yet. To be done in another bug.
+        $body->{extended_subfields} = undef;
+
+        my $item = Koha::Item->new_from_api($body);
+
+        if ( !defined $item->barcode ) {
+
+            # FIXME This should be moved to Koha::Item->store
+            my $autoBarcode = C4::Context->preference('autoBarcode');
+            my $barcode     = '';
+
+            if ( !$autoBarcode || $autoBarcode eq 'OFF' ) {
+                #We do nothing
+            }
+            elsif ( $autoBarcode eq 'incremental' ) {
+                ($barcode) =
+                  C4::Barcodes::ValueBuilder::incremental::get_barcode;
+            }
+            elsif ( $autoBarcode eq 'annual' ) {
+                my $year = Koha::DateUtils::dt_from_string()->year();
+                ($barcode) =
+                  C4::Barcodes::ValueBuilder::annual::get_barcode(
+                    { year => $year } );
+            }
+            elsif ( $autoBarcode eq 'hbyymmincr' ) {
+
+                # Generates a barcode where
+                #  hb = home branch Code,
+                #  yymm = year/month catalogued,
+                #  incr = incremental number,
+                #  reset yearly -fbcit
+                my $now        = Koha::DateUtils::dt_from_string();
+                my $year       = $now->year();
+                my $month      = $now->month();
+                my $homebranch = $item->homebranch // '';
+                ($barcode) =
+                  C4::Barcodes::ValueBuilder::hbyymmincr::get_barcode(
+                    { year => $year, mon => $month } );
+                $barcode = $homebranch . $barcode;
+            }
+            elsif ( $autoBarcode eq 'EAN13' ) {
+
+                # not the best, two catalogers could add the same
+                # barcode easily this way :/
+                my $query = "select max(abs(barcode)) from items";
+                my $dbh   = C4::Context->dbh;
+                my $sth   = $dbh->prepare($query);
+                $sth->execute();
+                my $nextnum;
+                while ( my ($last) = $sth->fetchrow_array ) {
+                    $nextnum = $last;
+                }
+                my $ean = CheckDigits('ean');
+                if ( $ean->is_valid($nextnum) ) {
+                    my $next = $ean->basenumber($nextnum) + 1;
+                    $nextnum = $ean->complete($next);
+                    $nextnum =
+                      '0' x ( 13 - length($nextnum) ) . $nextnum;    # pad zeros
+                }
+                else {
+                    warn "ERROR: invalid EAN-13 $nextnum, using increment";
+                    $nextnum++;
+                }
+                $barcode = $nextnum;
+            }
+            else {
+                warn "ERROR: unknown autoBarcode: $autoBarcode";
+            }
+            $item->barcode($barcode) if $barcode;
+        }
+
+        $item->store->discard_changes;
+
+        my $base_url = $c->req->url->to_string;
+        $base_url =~ s|/biblios/\d+||;
+        $c->res->headers->location( $base_url . '/' . $item->id );
+
+        $c->render(
+            status  => 201,
+            openapi => $c->objects->to_api($item),
+        );
+    }
+    catch {
+        if ( blessed $_ and $_->isa('Koha::Exceptions::Object::DuplicateID') ) {
+            return $c->render(
+                status  => 409,
+                openapi => { error => 'Duplicate barcode.' }
+            );
+        }
+        $c->unhandled_exception($_);
+    }
+}
+
+=head3 update_item
+
+Controller function that handles updating a biblio's item
+
+=cut
+
+sub update_item {
+    my $c = shift->openapi->valid_input or return;
+
+    try {
+        my $biblio_id = $c->param('biblio_id');
+        my $item_id   = $c->param('item_id');
+        my $biblio    = Koha::Biblios->find( { biblionumber => $biblio_id } );
+
+        return $c->render_resource_not_found("Bibliographic record")
+            unless $biblio;
+
+        my $item = $biblio->items->find({ itemnumber => $item_id });
+
+        return $c->render_resource_not_found("Item")
+            unless $item;
+
+        my $body = $c->req->json;
+
+        $body->{biblio_id} = $biblio_id;
+
+        # Don't save extended subfields yet. To be done in another bug.
+        $body->{extended_subfields} = undef;
+
+        $item->set_from_api($body);
+
+        $item->store->discard_changes;
+
+        $c->render(
+            status  => 200,
+            openapi => $c->objects->to_api($item),
+        );
+    }
+    catch {
+        if ( blessed $_ and $_->isa('Koha::Exceptions::Object::DuplicateID') ) {
+            return $c->render(
+                status  => 409,
+                openapi => { error => 'Duplicate barcode.' }
+            );
+        }
+        $c->unhandled_exception($_);
+    }
 }
 
 =head3 get_checkouts
@@ -383,17 +508,14 @@ List Koha::Checkout objects
 sub get_checkouts {
     my $c = shift->openapi->valid_input or return;
 
-    my $checked_in = delete $c->validation->output->{checked_in};
+    my $checked_in = $c->param('checked_in');
+    $c->req->params->remove('checked_in');
 
     try {
-        my $biblio = Koha::Biblios->find( $c->validation->param('biblio_id') );
+        my $biblio = Koha::Biblios->find( $c->param('biblio_id') );
 
-        unless ($biblio) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => 'Object not found' }
-            );
-        }
+        return $c->render_resource_not_found("Bibliographic record")
+            unless $biblio;
 
         my $checkouts =
           ($checked_in)
@@ -454,18 +576,13 @@ used for building the dropdown selector
 sub pickup_locations {
     my $c = shift->openapi->valid_input or return;
 
-    my $biblio_id = $c->validation->param('biblio_id');
-    my $biblio = Koha::Biblios->find( $biblio_id );
+    my $biblio = Koha::Biblios->find( $c->param('biblio_id') );
 
-    unless ($biblio) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Biblio not found" }
-        );
-    }
+    return $c->render_resource_not_found("Bibliographic record")
+        unless $biblio;
 
-    my $patron_id = delete $c->validation->output->{patron_id};
-    my $patron    = Koha::Patrons->find( $patron_id );
+    my $patron = Koha::Patrons->find( $c->param('patron_id') );
+    $c->req->params->remove('patron_id');
 
     unless ($patron) {
         return $c->render(
@@ -531,16 +648,13 @@ access.
 sub get_items_public {
     my $c = shift->openapi->valid_input or return;
 
-    my $biblio = Koha::Biblios->find( { biblionumber => $c->validation->param('biblio_id') }, { prefetch => ['items'] } );
+    my $biblio = Koha::Biblios->find(
+        $c->param('biblio_id'),
+        { prefetch => ['items'] }
+    );
 
-    unless ( $biblio ) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error => "Object not found."
-            }
-        );
-    }
+    return $c->render_resource_not_found("Bibliographic record")
+        unless $biblio;
 
     return try {
 
@@ -568,16 +682,10 @@ Set rating for the logged in user
 sub set_rating {
     my $c = shift->openapi->valid_input or return;
 
-    my $biblio = Koha::Biblios->find( $c->validation->param('biblio_id') );
+    my $biblio = Koha::Biblios->find( $c->param('biblio_id') );
 
-    unless ($biblio) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error => "Object not found."
-            }
-        );
-    }
+    $c->render_resource_not_found("Bibliographic record")
+        unless $biblio;
 
     my $patron = $c->stash('koha.user');
     unless ($patron) {
@@ -588,7 +696,7 @@ sub set_rating {
         );
     }
 
-    my $body   = $c->validation->param('body');
+    my $body         = $c->req->json;
     my $rating_value = $body->{rating};
 
     return try {
@@ -643,6 +751,19 @@ sub add {
         my $flavour = $headers->header('x-record-schema');
         $flavour //= C4::Context->preference('marcflavour');
 
+        my $record_source_id = $headers->header('x-record-source-id');
+
+        if ($record_source_id) {
+
+            # We've been passed a record source. Verify they are allowed to
+            unless ( haspermission( $c->stash('koha.user')->userid, { editcatalogue => 'set_record_sources' } ) ) {
+                return $c->render(
+                    status  => 403,
+                    openapi => { error => 'You do not have permission to set the record source' }
+                );
+            }
+        }
+
         my $record;
 
         my $frameworkcode = $headers->header('x-framework-id');
@@ -668,23 +789,39 @@ sub add {
             );
         }
 
-        my ( $duplicatebiblionumber, $duplicatetitle ) = FindDuplicate($record);
-
         my $confirm_not_duplicate = $headers->header('x-confirm-not-duplicate');
 
+        if ( !$confirm_not_duplicate ) {
+            my ( $duplicatebiblionumber, $duplicatetitle ) = FindDuplicate($record);
+
+            return $c->render(
+                status  => 400,
+                openapi => {
+                    error => "Duplicate biblio $duplicatebiblionumber",
+                }
+            ) if $duplicatebiblionumber;
+        }
+
+        my ($biblio_id) = C4::Biblio::AddBiblio( $record, $frameworkcode, { record_source_id => $record_source_id } );
+
+        if ( !$biblio_id ) {
+
+            # FIXME: AddBiblio wraps everything inside a transaction and a try/catch block
+            # this will need a tweak if this behavior changes
+            return $c->render(
+                status  => 400,
+                openapi => {
+                    error      => 'Error creating record',
+                    error_code => 'record_creation_failed',
+                },
+            );
+        }
+
+        $c->res->headers->location( $c->req->url->to_string . '/' . $biblio_id );
+
         return $c->render(
-            status  => 400,
-            openapi => {
-                error => "Duplicate biblio $duplicatebiblionumber",
-            }
-        ) unless !$duplicatebiblionumber || $confirm_not_duplicate;
-
-        my ( $biblionumber, $oldbibitemnum );
-            ( $biblionumber, $oldbibitemnum ) = AddBiblio( $record, $frameworkcode );
-
-        $c->render(
             status  => 200,
-            openapi => { id => $biblionumber }
+            openapi => { id => $biblio_id }
         );
     }
     catch {
@@ -701,15 +838,10 @@ Controller function that handles modifying an biblio object
 sub update {
     my $c = shift->openapi->valid_input or return;
 
-    my $biblio_id = $c->param('biblio_id');
-    my $biblio    = Koha::Biblios->find($biblio_id);
+    my $biblio = Koha::Biblios->find( $c->param('biblio_id') );
 
-    if ( ! defined $biblio ) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Object not found" }
-        );
-    }
+    $c->render_resource_not_found("Bibliographic record")
+        unless $biblio;
 
     try {
         my $headers = $c->req->headers;
@@ -744,11 +876,11 @@ sub update {
             );
         }
 
-        ModBiblio( $record, $biblio_id, $frameworkcode );
+        ModBiblio( $record, $biblio->id, $frameworkcode );
 
         $c->render(
             status  => 200,
-            openapi => { id => $biblio_id }
+            openapi => { id => $biblio->id }
         );
     }
     catch {
@@ -824,6 +956,79 @@ sub list {
     }
     catch {
         $c->unhandled_exception($_);
+    };
+}
+
+=head3 merge
+
+Controller function that handles merging two biblios. If an optional
+MARCXML is provided as the request body, this MARCXML replaces the
+bibliodata of the merge target biblio. Syntax format inside the request body
+must match with the Marc format used into Koha installation (MARC21 or UNIMARC)
+
+=cut
+
+sub merge {
+    my $c                = shift->openapi->valid_input or return;
+    my $ref_biblionumber = $c->param('biblio_id');
+    my $json             = decode_json( $c->req->body );
+    my $bn_merge         = $json->{'biblio_id_to_merge'};
+    my $framework        = $json->{'framework_to_use'} // q{};
+    my $rules            = $json->{'rules'} || q{override};
+    my $override_rec     = $json->{'datarecord'} // q{};
+
+    my $biblio = Koha::Biblios->find($ref_biblionumber);
+    if ( not defined $biblio ) {
+        return $c->render(
+            status => 404,
+            json   => { error => sprintf( "[%s] biblio to merge into not found", $ref_biblionumber ) }
+        );
+    }
+    my $frombib = Koha::Biblios->find($bn_merge);
+    if ( not defined $frombib ) {
+        return $c->render(
+            status => 404,
+            json   => { error => sprintf( "[%s] from which to merge not found", $bn_merge ) }
+        );
+    }
+
+    if ( ( $rules eq 'override_ext' ) && ( $override_rec eq '' ) ) {
+        return $c->render(
+            status => 404,
+            json   => {
+                error =>
+                    "With the rule 'override_ext' you need to insert a bib record in marc-in-json format into 'record' field."
+            }
+        );
+    }
+
+    if ( ( $rules eq 'override' ) && ( $framework ne '' ) ) {
+        return $c->render(
+            status => 404,
+            json   => { error => "With the rule 'override' you can not use the field 'framework_to_use'." }
+        );
+    }
+
+    return try {
+        if ( $rules eq 'override_ext' ) {
+            my $record = MARC::Record::MiJ->new_from_mij_structure($override_rec);
+            $record->encoding('UTF-8');
+            $framework ||= $biblio->frameworkcode;
+            my $chk = ModBiblio( $record, $ref_biblionumber, $framework );
+            if ( $chk != 1 ) { die "Error on ModBiblio"; }    # ModBiblio returns 1 if everything as gone well
+        }
+
+        $biblio->merge_with( [$bn_merge] );
+
+        $c->respond_to(
+            mij => {
+                status => 200,
+                format => 'mij',
+                data   => $biblio->metadata->record->to_mij
+            }
+        );
+    } catch {
+        $c->render( status => 400, json => { error => $@ } );
     };
 }
 

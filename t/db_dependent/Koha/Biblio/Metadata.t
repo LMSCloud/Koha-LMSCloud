@@ -17,8 +17,9 @@
 
 use Modern::Perl;
 
-use Test::More tests => 4;
+use Test::More tests => 5;
 use Test::Exception;
+use Test::MockModule;
 use Test::Warn;
 
 use t::lib::TestBuilder;
@@ -36,7 +37,7 @@ my $builder = t::lib::TestBuilder->new;
 
 subtest 'record() tests' => sub {
 
-    plan tests => 9;
+    plan tests => 11;
 
     $schema->storage->txn_begin;
 
@@ -45,11 +46,32 @@ subtest 'record() tests' => sub {
     # Create a valid record
     my $record = MARC::Record->new();
     my $field  = MARC::Field->new( '245', '', '', 'a' => $title );
-    $record->append_fields($field);
+    my $f952_1 = MARC::Field->new(
+        '952', '', '', 0 => '1',
+        y => 'BK',
+        c => 'GEN',
+        d => '2001-06-25',
+    );
+    my $f952_2 = MARC::Field->new(
+        '952', '', '', 0 => '1',
+        y => 'BK',
+        c => 'GEN',
+        d => '2001-06-25',
+    );
+    $record->append_fields( $field, $f952_1, $f952_2 );
     my ($biblio_id) = C4::Biblio::AddBiblio( $record, '' );
+
+    my @fields_952 = $record->field('952');
+    is( scalar @fields_952, 2, 'The record to be inserted contains 2 item fields' );
+
+    my $c4_biblio = Test::MockModule->new('C4::Biblio');
+    $c4_biblio->mock( 'GetMarcFromKohaField', sub { return '952'; } );
 
     my $metadata = Koha::Biblios->find($biblio_id)->metadata;
     my $record2  = $metadata->record;
+
+    @fields_952 = $record2->field('952');
+    is( scalar @fields_952, 0, 'Item fields stripped out then calling $metadata->record' );
 
     is( ref $record2, 'MARC::Record', 'Method record() returned a MARC::Record object' );
     is( $record2->field('245')->subfield("a"),
@@ -263,6 +285,36 @@ subtest '_embed_items' => sub {
     $record = $biblio->metadata->record({ embed_items => 1 });
     $field_list = join ',', map { $_->tag } $record->fields;
     ok( $field_list =~ /951,(952,)+953/, "951-952s-953 in $field_list" );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'record_source() and source_allows_editing() tests' => sub {
+
+    plan tests => 7;
+
+    $schema->storage->txn_begin;
+
+    my $biblio = $builder->build_sample_biblio;
+
+    my $metadata = $biblio->metadata;
+    is( $metadata->record_source_id, undef, 'No record source defined for metatada object' );
+    ok( $metadata->source_allows_editing, 'No record source, can be edited' );
+    is( $metadata->record_source, undef );
+
+    my $source = $builder->build_object( { class => 'Koha::RecordSources', value => { can_be_edited => 1 } } );
+    $metadata->record_source_id( $source->id )->store();
+
+    my $retrieved_source = $metadata->record_source;
+
+    ok( $metadata->source_allows_editing, 'Record source allows, can be edited' );
+    is( ref($retrieved_source), 'Koha::RecordSource' );
+    is( $retrieved_source->id,  $source->id );
+
+    $source->can_be_edited(0)->store();
+    $metadata->discard_changes;
+
+    ok( !$metadata->source_allows_editing, 'Record source does not allow, cannot be edited' );
 
     $schema->storage->txn_rollback;
 };

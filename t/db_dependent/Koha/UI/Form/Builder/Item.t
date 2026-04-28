@@ -16,13 +16,14 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 9;
+use Test::More tests => 10;
 use Test::MockModule;
 use Data::Dumper qw( Dumper );
 use utf8;
 
 use List::MoreUtils qw( uniq );
 
+use Koha::ClassSources;
 use Koha::Libraries;
 use Koha::MarcSubfieldStructures;
 use Koha::UI::Form::Builder::Item;
@@ -99,16 +100,16 @@ subtest 'authorised values' => sub {
     };
 
     subtest 'cn_source' => sub {
-        plan tests => 2;
-        my ( $subfield ) = grep { $_->{kohafield} eq 'items.cn_source' } @$subfields;
-        is_deeply( $subfield->{marc_value}->{values}, [ '', 'ddc', 'lcc' ] );
-        is_deeply(
-            $subfield->{marc_value}->{labels},
-            {
-                ddc => "Dewey Decimal Classification",
-                lcc => "Library of Congress Classification",
-            }
-        );
+        plan tests => 3;
+        my ($subfield) = grep { $_->{kohafield} eq 'items.cn_source' } @$subfields;
+
+        my @class_sources = Koha::ClassSources->search( { used => 1 }, { order_by => 'cn_source' } )->as_list;
+        my %labels        = map { $_->cn_source => $_->description } @class_sources;
+        my @values        = ( '', map { $_->cn_source } @class_sources );
+
+        is( $subfield->{marc_value}->{type}, 'select' );
+        is_deeply( $subfield->{marc_value}->{labels}, \%labels );
+        is_deeply( $subfield->{marc_value}->{values}, \@values );
     };
     subtest 'branches' => sub {
         plan tests => 2;
@@ -236,6 +237,33 @@ subtest 'default_branches_empty' => sub {
 
     ( $subfield ) = grep { $_->{kohafield} eq 'items.homebranch' } @$subfields;
     is( $subfield->{marc_value}->{values}->[0], "", 'empty option for branches if default_branches_empty passed' );
+};
+
+subtest 'kohafields_to_add_datepicker' => sub {
+    plan tests => 5;
+
+    my $biblio =
+      $builder->build_sample_biblio( { value => { frameworkcode => '' } } );
+    my $subfields =
+      Koha::UI::Form::Builder::Item->new(
+        { biblionumber => $biblio->biblionumber } )->edit_form;
+
+    my @itemfield_test_cases = (
+        { kohafield => 'items.dateaccessioned', expected_type => 'date' },
+        { kohafield => 'items.replacementpricedate', expected_type => 'date' },
+        { kohafield => 'items.datelastborrowed', expected_type => 'date' },
+        { kohafield => 'items.onloan', expected_type => 'date' },
+        { kohafield => 'items.datelastseen', expected_type => 'datetime' },
+    );
+
+    foreach my $itemfield_test_case (@itemfield_test_cases) {
+        my ( $subfield ) = grep { $_->{kohafield} eq $itemfield_test_case->{kohafield} } @$subfields;
+        if ( $subfield ) {
+            is( $subfield->{data_type}, $itemfield_test_case->{expected_type}, "Correct datetype for $itemfield_test_case->{kohafield}" );
+        } else {
+            ok( 0, "Subfield for $itemfield_test_case->{kohafield} not found" );
+        }
+    }
 };
 
 subtest 'kohafields_to_ignore' => sub {

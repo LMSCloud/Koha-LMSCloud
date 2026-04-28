@@ -1,9 +1,15 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% PROCESS 'merge-record.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Merging records &rsaquo; Cataloging &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Merging records") | html %] &rsaquo;
+    [% t("Authorities") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
 div.record ul, div.record li { float:none; display:block; }
@@ -30,15 +36,16 @@ div#result { margin-top: 1em; }
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-md-8 col-md-offset-2">
+        <div class="col-lg-8 offset-lg-2 col-xl-12 offset-xl-0">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 <h1>Merging records</h1>
 
 [% IF ( errors ) %]
 
     [% FOREACH error IN errors %]
-        <div class="dialog alert">
+        <div class="alert alert-warning">
             [% IF error.code == 'WRONG_COUNT' %]
                 <span>Number of records provided for merging: [% error.value | html %]. Currently only 2 records can be merged at a time.</span>
             [% ELSIF error.code == 'DESTRUCTIVE_MERGE' %]
@@ -62,7 +69,7 @@ div#result { margin-top: 1em; }
 [% ELSIF ( choosereference ) %]
 
 <p>Please choose which record will be the reference for the merge. The record chosen as reference will be kept, and the other will be deleted.</p>
-<form id="mergeform" action="/cgi-bin/koha/authorities/merge.pl" method="post">
+<form id="mergeform_ref" action="/cgi-bin/koha/authorities/merge.pl" method="get">
     <fieldset class="rows">
     <legend>Merge reference</legend>
     <ol>
@@ -96,6 +103,7 @@ div#result { margin-top: 1em; }
 [% ELSE %]
 
 <form id="mergeform" action="/cgi-bin/koha/authorities/merge.pl" method="post" onsubmit="return mergeformsubmit()">
+    [% INCLUDE 'csrf-token.inc' %]
 
     <div class="row">
         <div class="col-sm-6">
@@ -112,16 +120,19 @@ div#result { margin-top: 1em; }
 <input type="hidden" name="frameworkcode" value="[% framework | html %]" />
 
 [% IF multipleauthtypes %]
-    <div class="dialog alert multiple-auth-types">Multiple authority types are used. There may be data loss when merging.</div>
+    <div class="alert alert-warning multiple-auth-types">Multiple authority types are used. There may be data loss when merging.</div>
 [% END %]
 
-<fieldset class="action"><input type="submit" name="merge" class="btn btn-primary" value="Merge" /></fieldset>
+<fieldset class="action">
+    <input type="hidden" name="op" value="cud-merge" />
+    <input type="submit" class="btn btn-primary" value="Merge" />
+</fieldset>
 </form>
 
 [% END %]
 
         </main>
-    </div> <!-- /.col-md-8 col-md-offset-2 -->
+    </div> <!-- /.col-md-8 offset-md-2 -->
 </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

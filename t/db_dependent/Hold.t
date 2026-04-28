@@ -146,7 +146,7 @@ $schema->storage->txn_rollback();
 
 subtest "store() tests" => sub {
 
-    plan tests => 5;
+    plan tests => 7;
 
     $schema->storage->txn_begin();
 
@@ -221,6 +221,51 @@ subtest "store() tests" => sub {
 
     is( $hold->expirationdate,
         $passed_date->ymd, 'Passed expiration date when updating hold correctly set (Passing both reservedate and expirationdate.' );
+
+    $passed_date = dt_from_string('2023-06-20');
+    $hold->set(
+        {
+            reservedate => $passed_date->ymd,
+            waitingdate => $passed_date->ymd,
+        }
+    )->store();
+    $hold->discard_changes;
+
+    $hold->set_waiting;
+    C4::Reserves::RevertWaitingStatus( { itemnumber => $item->itemnumber } );
+    $hold->discard_changes;
+
+    $expected_date = dt_from_string( $hold->reservedate )->add( years => 2 )->ymd;
+    is(
+        $hold->expirationdate,
+        $expected_date, 'Expiration date set after reverting holds waiting status.'
+    );
+
+    my $patron_expiration_date = dt_from_string('2023-11-06')->ymd;
+    $hold = Koha::Hold->new(
+        {
+            biblionumber           => $biblio->biblionumber,
+            itemnumber             => $item->id,
+            reservedate            => '2023-10-15',
+            expirationdate         => $patron_expiration_date,
+            waitingdate            => '2023-10-15',
+            borrowernumber         => $borrower->borrowernumber,
+            branchcode             => $library->branchcode,
+            suspend                => 0,
+            patron_expiration_date => $patron_expiration_date,
+        }
+    )->store;
+    $hold->discard_changes;
+
+    $hold->set_waiting;
+    C4::Reserves::RevertWaitingStatus( { itemnumber => $item->itemnumber } );
+    $hold->discard_changes;
+
+    is(
+        $hold->expirationdate,
+        $patron_expiration_date,
+        'Expiration date set same as patron_expiration_date after reverting holds waiting status.'
+    );
 
     $schema->storage->txn_rollback();
 };

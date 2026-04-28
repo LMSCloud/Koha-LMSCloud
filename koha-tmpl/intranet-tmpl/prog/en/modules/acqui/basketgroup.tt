@@ -3,187 +3,16 @@
 [% USE Branches %]
 [% USE Price %]
 [% USE Koha %]
+[% PROCESS 'i18n.inc' %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Basket grouping for [% booksellername | html %] &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% tx("Basket grouping for '{vendor}'", { vendor = booksellername }) %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'datatables.inc' %]
-<script>
-
-    var MSG_CONFIRM_CLOSE_BASKETGROUP = _("Are you sure you want to close this basketgroup?");
-    var MSG_CLOSE_EMPTY_BASKET = _("Why close an empty basket?");
-    var MSG_SAVE_BEFORE_PRINTING = _("You need to save the page before printing");
-    var MSG_REOPEN_BASKETGROUP = _("reopen basketgroup");
-    var MSG_FILE_DOWNLOAD_ERROR = _("Error downloading the file");
-
-    function submitForm(form) {
-        if (form.close.checked == true) {
-            var input = document.createElement("input");
-            input.setAttribute("type", "hidden");
-            input.setAttribute("name", "closed");
-            input.setAttribute("value", "1");
-            form.appendChild(input);
-        }
-    }
-
-    function closeandprint(bg){
-        if(document.location = '/cgi-bin/koha/acqui/basketgroup.pl?op=closeandprint&amp;basketgroupid=' + bg ){
-            setTimeout("window.location.reload();", 3000);
-        } else {
-            alert(MSG_FILE_DOWNLOAD_ERROR);
-        }
-    }
-
-    $(document).ready(function() {
-        [% IF ( listclosed) %]
-            $("#basket_groups a[href='#closed']").tab("show");
-        [% ELSE %]
-            $("#basket_groups a[href='#opened']").tab("show");
-        [% END %]
-        [% UNLESS ( grouping ) %]
-            $("#basket_group_closed").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-                ],
-                'aoColumns': [
-                    { 'sName': 'name' },
-                    { 'sName': 'id'   },
-                    { 'sName': 'billingplace' },
-                    { 'sName': 'deliveryplace' },
-                    { 'sName': 'basketsqty'  },
-                    { 'sName': 'action', 
-                      'bSortable': false,
-                      "render": function ( data, type, full, meta ) {
-                          return '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="add" /><input type="hidden" name="booksellerid" value="' + data + '" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('View') + '" /></form> ' + 
-                                 '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="reopen" /><input type="hidden" name="booksellerid" value="' + data + '" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Reopen') + '" /></form> ' + 
-                                 '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="print" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Export as PDF') + '" /></form> ' + 
-                                 '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="export" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Export as CSV') + '" /></form> '
-                                [% IF Koha.Preference('EDIFACT') %]
-                                    [% IF (ediaccount) %]
-                                         + '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="booksellerid" value="' + data + '" /><input type="hidden" name="op" value="ediprint" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Generate EDIFACT order') + '" /></form>'
-                                    [% END %]
-                                [% END %];
-                      }
-                    }
-                ],
-                "paging" : true,
-                "order": [[ 1, "desc" ]],
-                "iDisplayLength": 20,
-                "bAutoWidth": false,
-                "sPaginationType": "full",
-                "serverSide": true,
-                'bProcessing': true,
-                'bDestroy': true,
-                "ajax": '/cgi-bin/koha/svc/basketgroups',
-                "sAjaxSource": '/cgi-bin/koha/svc/basketgroups',
-                "fnServerData": function(sSource, aoData, fnCallback) {
-                    aoData.push( { 'name': 'format', 'value': 'json' } );
-                    aoData.push( { 'name': 'booksellerid', 'value': '[% booksellerid | uri %]' } );
-                    aoData.push( { 'name': 'closed', 'value': '1' } );
-                    $.ajax({
-                        'dataType': 'json',
-                        'type': 'POST',
-                        'url': sSource,
-                        'data': aoData,
-                        'success': function(json){
-                            fnCallback(json);
-                        }
-                    });
-                }
-            } ));
-            $("#basket_group_opened").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-                ],
-                'aoColumns': [
-                    { 'sName': 'name' },
-                    { 'sName': 'id'   },
-                    { 'sName': 'billingplace' },
-                    { 'sName': 'deliveryplace' },
-                    { 'sName': 'basketsqty'  },
-                    { 'sName': 'action', 
-                      'bSortable': false,
-                      "render": function ( data, type, full, meta ) {
-                          var cont = '<input type="button" onclick="closeandprint(' + full[1] + ');" value="' + _('Close and export as PDF') + '" /> ' + 
-                                     '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="add" /><input type="hidden" name="booksellerid" value="' + data + '" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Edit') + '" /></form> ';
-                          if ( Number(full[4]) == 0 ) {
-                              cont += '<form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="delete" /><input type="hidden" name="booksellerid" value="' + data + '" /><input type="hidden" name="basketgroupid" value="' + full[1] + '" /><input type="submit" class="btn btn-primary" value="' + _('Delete') + 'Delete" /></form>';
-                          }
-                          return cont;
-                      }
-                    }
-                ],
-                "paging" : true,
-                "order": [[ 1, "desc" ]],
-                "iDisplayLength": 20,
-                "bAutoWidth": false,
-                "sPaginationType": "full",
-                "serverSide": true,
-                'bProcessing': true,
-                'bDestroy': true,
-                "ajax": '/cgi-bin/koha/svc/basketgroups',
-                "sAjaxSource": '/cgi-bin/koha/svc/basketgroups',
-                "fnServerData": function(sSource, aoData, fnCallback) {
-                    aoData.push( { 'name': 'format', 'value': 'json' } );
-                    aoData.push( { 'name': 'booksellerid', 'value': '[% booksellerid | uri %]' } );
-                    aoData.push( { 'name': 'opened', 'value': '1' } );
-                    $.ajax({
-                        'dataType': 'json',
-                        'type': 'POST',
-                        'url': sSource,
-                        'data': aoData,
-                        'success': function(json){
-                            fnCallback(json);
-                        }
-                    });
-                }
-            } ));
-        [% ELSE %]
-            grouped = $("#grouped").DataTable($.extend(true, {}, dataTablesDefaults, {
-                "dom": 't',
-                "columnDefs": [
-                    { 'sortable': false, 'targets': [ 'NoSort' ] }
-                ],
-                'autoWidth': false,
-                "language": {
-                    "emptyTable": _("There are no baskets in this group")
-                }
-            } ));
-            ungrouped = $("#ungrouped").DataTable($.extend(true, {}, dataTablesDefaults, {
-                "dom": 't',
-                "columnDefs": [
-                    { 'sortable': false, 'targets': [ 'NoSort' ] }
-                ],
-                'autoWidth': false,
-                "language": {
-                    "emptyTable": _("There are no ungrouped baskets")
-                }
-            } ));
-        [% END %]
-
-        $("#basketgroupcolumns").on("click", ".addtogroup", function(){
-            const row = $("#" + $(this).data("basketid") );
-            if( row ){
-                $(this).removeClass("addtogroup").addClass("removefromgroup").html("<i class=\"fa fa-trash\" aria-hidden=\"true\"></i> " + _("Remove") );
-                row.removeClass("ungrouped").addClass("grouped");
-                ungrouped.row( row ).remove().draw();
-                grouped.row.add( row ).draw();
-            }
-        });
-
-        $("#basketgroupcolumns").on("click", ".removefromgroup", function(){
-            const row = $("#" + $(this).data("basketid") );
-            if( row ){
-                $(this).removeClass("removefromgroup").addClass("addtogroup").html("<i class=\"fa fa-plus\" aria-hidden=\"true\"></i> " + _("Add to group") );
-                $(this).removeClass("").addClass("");
-                row.removeClass("grouped").addClass("ungrouped");
-                grouped.row( row ).remove().draw();
-                ungrouped.row.add( row ).draw();
-            }
-        });
-    });
-</script>
-
 </head>
+
 <body id="acq_basketgroup" class="acq">
 [% WRAPPER 'header.inc' %]
     [% INCLUDE 'acquisitions-search.inc' %]
@@ -217,17 +46,18 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-2">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
                 [% IF ( grouping ) %]
                     [% IF (closedbg) %]
                         <div id="toolbar" class="btn-toolbar">
-                            <div class="btn-group"><a href="[% script_name | url %]?op=reopen&amp;basketgroupid=[% basketgroupid | uri %]&amp;booksellerid=[% booksellerid | uri %]&amp;mode=singlebg" class="btn btn-default" id="reopenbutton"><i class="fa fa-download"></i> Reopen basket group</a></div>
-                            <div class="btn-group"><a href="[% script_name | url %]?op=export&amp;basketgroupid=[% basketgroupid | uri %]&amp;booksellerid=[% booksellerid | uri %]" class="btn btn-default" id="exportbutton"><i class="fa fa-download"></i> Export basket group as CSV</a></div>
-                            <div class="btn-group"><a href="[% script_name | url %]?op=print&amp;basketgroupid=[% basketgroupid | uri %]&amp;booksellerid=[% booksellerid | uri %]" class="btn btn-default" id="printbutton"><i class="fa fa-download"></i> Print basket group in PDF</a></div>
+                            <div class="btn-group"><a href="/cgi-bin/koha/acqui/basketgroup.pl?op=reopen&amp;basketgroupid=[% basketgroupid | uri %]&amp;booksellerid=[% booksellerid | uri %]&amp;mode=singlebg" class="btn btn-default" id="reopenbutton"><i class="fa fa-download"></i> Reopen basket group</a></div>
+                            <div class="btn-group"><a href="/cgi-bin/koha/acqui/basketgroup.pl?op=export&amp;basketgroupid=[% basketgroupid | uri %]&amp;booksellerid=[% booksellerid | uri %]" class="btn btn-default" id="exportbutton"><i class="fa fa-download"></i> Export basket group as CSV</a></div>
+                            <div class="btn-group"><a href="/cgi-bin/koha/acqui/basketgroup.pl?op=print&amp;basketgroupid=[% basketgroupid | uri %]&amp;booksellerid=[% booksellerid | uri %]" class="btn btn-default" id="printbutton"><i class="fa fa-download"></i> Print basket group in PDF</a></div>
                         [% IF (ediaccount) %]
-                            <div class="btn-group"><a href="[% script_name | url %]?op=ediprint&amp;basketgroupid=[% basketgroupid | uri %]&amp;booksellerid=[% booksellerid | uri %]" class="btn btn-default" id="printbutton"><i class="fa fa-download"></i> Generate EDIFACT order</a></div>
+                            <div class="btn-group"><a href="/cgi-bin/koha/acqui/basketgroup.pl?op=ediprint&amp;basketgroupid=[% basketgroupid | uri %]&amp;booksellerid=[% booksellerid | uri %]" class="btn btn-default" id="printbutton"><i class="fa fa-download"></i> Generate EDIFACT order</a></div>
                         [% END %]
                         </div>
                     [% END %]
@@ -240,58 +70,58 @@
                     [% END %]
                     <div id="basketgroupcolumns" class="row">
                         [% UNLESS (closedbg) %]
-                            <div class="col-xs-6 col-xs-push-6">
-                                    <div id="groups">
-                                        <div class="workarea_alt" >
-                                            <h3>Ungrouped baskets</h3>
-                                                <div class="page-section">
-                                                    <table id="ungrouped" class="basketgroup_baskets">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>Basket</th>
-                                                                <th>Total</th>
-                                                                <th class="NoSort"></th>
+                            <div class="col-sm-6 order-sm-2">
+                                <div id="groups">
+                                    <div class="workarea_alt" >
+                                        <h3>Ungrouped baskets</h3>
+                                        <div class="page-section">
+                                            <table id="ungrouped" class="basketgroup_baskets">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Basket</th>
+                                                        <th>Total</th>
+                                                        <th class="NoSort"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    [% IF ( baskets ) %]
+                                                        [% FOREACH basket IN baskets %]
+                                                            <tr class="ungrouped" id="b-[% basket.basketno | html %]">
+                                                                <td>
+                                                                    <a href="basket.pl?basketno=[% basket.basketno | uri %]">
+                                                                        [% IF ( basket.basketname ) %]
+                                                                            [% basket.basketname | html %]
+                                                                        [% ELSE %]
+                                                                            <span>No name, basketnumber: [% basket.basketno | html %]</span>
+                                                                        [% END %]
+                                                                    </a>
+                                                                </td>
+                                                                <td data-sort="[% basket.total | html %]">
+                                                                    [% basket.total | $Price %]
+                                                                    <input type="hidden" class="basket" name="basket" value="[% basket.basketno | html %]" />
+                                                                </td>
+                                                                <td>
+                                                                    <a class="addtogroup btn btn-default btn-xs" data-basketid="b-[% basket.basketno | html %]">
+                                                                        <i class="fa fa-plus" aria-hidden="true"></i> Add to group
+                                                                    </a>
+                                                                </td>
                                                             </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            [% IF ( baskets ) %]
-                                                                [% FOREACH basket IN baskets %]
-                                                                    <tr class="ungrouped" id="b-[% basket.basketno | html %]">
-                                                                        <td>
-                                                                            <a href="basket.pl?basketno=[% basket.basketno | uri %]">
-                                                                                [% IF ( basket.basketname ) %]
-                                                                                    [% basket.basketname | html %]
-                                                                                [% ELSE %]
-                                                                                    <span>No name, basketnumber: [% basket.basketno | html %]</span>
-                                                                                [% END %]
-                                                                            </a>
-                                                                        </td>
-                                                                        <td data-sort="[% basket.total | html %]">
-                                                                            [% basket.total | $Price %]
-                                                                            <input type="hidden" class="basket" name="basket" value="[% basket.basketno | html %]" />
-                                                                        </td>
-                                                                        <td>
-                                                                            <a class="addtogroup btn btn-default btn-xs" data-basketid="b-[% basket.basketno | html %]">
-                                                                                <i class="fa fa-plus" aria-hidden="true"></i> Add to group
-                                                                            </a>
-                                                                        </td>
-                                                                    </tr>
-                                                                [% END %]
-                                                            [% END %]
-                                                        </tbody>
-                                                    </table>
-                                                </div><!--/.page-section -->
-                                        </div><!-- /#groups -->
-                                    </div><!-- /.col-xs-6 -->
-
-                            </div>
+                                                        [% END %]
+                                                    [% END %]
+                                                </tbody>
+                                            </table>
+                                        </div><!--/.page-section -->
+                                    </div> <!-- /.workarea_alt -->
+                                </div><!-- /#groups -->
+                            </div><!-- /.col.order-2 -->
                         [% END %]
                         [% IF ( closedbg ) %]
-                            <div class="col-xs-12">
+                            <div class="col">
                         [% ELSE %]
-                            <div class="col-xs-6 col-xs-pull-6">
+                            <div class="col-sm-6 order-sm-1">
                         [% END %]
-                            <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="post" id="groupingform" onsubmit="return submitForm(this)">
+                            <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="post" id="groupingform">
+                                [% INCLUDE 'csrf-token.inc' %]
                                 <fieldset id="various" class="brief">
                                     <ol>
                                         [% UNLESS (closedbg) %]
@@ -380,7 +210,7 @@
                                                             [% IF ( closedbg ) %]
                                                             [% ELSE %]
                                                                 <a class="removefromgroup btn btn-default btn-xs" data-basketid="b-[% selectedbasket.basketno | html %]" id="addtogroup[% selectedbasket.basketno | html %]">
-                                                                    <i class="fa fa-trash" aria-hidden="true"></i> Remove
+                                                                    <i class="fa fa-trash-can" aria-hidden="true"></i> Remove
                                                                 </a>
                                                             [% END %]
                                                         </td>
@@ -402,16 +232,16 @@
                                         [% IF ( basketgroupid ) %]
                                             <input type="hidden" name="basketgroupid" value="[% basketgroupid | html %]" />
                                         [% END %]
-                                        <input type="hidden" name="op" value="attachbasket" />
+                                        <input type="hidden" name="op" value="cud-attachbasket" />
                                         <input type="submit" class="btn btn-primary" value="Save" /> <a href="/cgi-bin/koha/acqui/basketgroup.pl?booksellerid=[% booksellerid | uri %]" class="cancel">Cancel</a>
                                     </fieldset>
                                 [% END %]
                             </form>
-                        </div>
-                    </div>
+                        </div> <!-- /.col -->
+                    </div> <!-- /#basketgroupcolumns.row -->
                 [% ELSE %]
                     <div id="toolbar" class="btn-toolbar">
-                        <div class="btn-group"><a href="/cgi-bin/koha/acqui/basketgroup.pl?op=add&amp;booksellerid=[% booksellerid | uri %]" class="btn btn-default" id="newbasketgroup"><i class="fa fa-plus"></i> New basket group</a></div>
+                        <div class="btn-group"><a href="/cgi-bin/koha/acqui/basketgroup.pl?op=add_form&amp;booksellerid=[% booksellerid | uri %]" class="btn btn-default" id="newbasketgroup"><i class="fa fa-plus"></i> New basket group</a></div>
                     </div>
                     <h1>Basket grouping for <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% booksellername | html %]</a></h1>
                     [% IF (NoEDIMessage && Koha.Preference('EDIFACT')) %]<div><strong>No EDIFACT configuration for [% booksellername | html %]</strong></div>[% END %]
@@ -435,6 +265,41 @@
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        [% FOREACH basketgroup IN basketgroups %]
+                                            [% UNLESS ( basketgroup.closed ) %]
+                                                <tr>
+                                                    <td>
+                                                        [% IF ( basketgroup.name ) %]
+                                                            [% basketgroup.name | html %]
+                                                        [% ELSE %]
+                                                            <span>Basket group no. [% basketgroup.id | html %]</span>
+                                                        [% END %]
+                                                    </td>
+                                                    <td>[% basketgroup.id | html %]</td>
+                                                    <td>[% Branches.GetName( basketgroup.billingplace ) | html %]</td>
+                                                    <td>[% IF (basketgroup.freedeliveryplace) %]Free delivery place[% ELSE %][% Branches.GetName( basketgroup.deliveryplace ) | html %][% END %]</td>
+                                                    <td>[% basketgroup.basketsqty | html %]</td>
+                                                    <td>
+                                                        <input type="button" id="close_and_print" data-basketgroupid="[% basketgroup.id | html %]" value="Close and export as PDF" />
+                                                        <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get">
+                                                            <input type="hidden" name="op" value="add_form" />
+                                                            <input type="hidden" name="booksellerid" value="[% basketgroup.booksellerid | html %]" />
+                                                            <input type="hidden" name="basketgroupid" value="[% basketgroup.id | html %]" />
+                                                            <input type="submit" class="btn btn-primary" value="Edit" />
+                                                        </form>
+                                                        [% UNLESS basketgroup.basketsqty %]
+                                                            <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="post">
+                                                                <input type="hidden" name="op" value="cud-delete" />
+                                                                <input type="hidden" name="booksellerid" value="[% basketgroup.booksellerid | html %]" />
+                                                                <input type="hidden" name="basketgroupid" value="[% basketgroup.id | html %]" />
+                                                                <input type="submit" id="delete_basketgroup" class="btn btn-primary" value="Delete" />
+                                                                [% INCLUDE 'csrf-token.inc' %]
+                                                            </form>
+                                                        [% END %]
+                                                    </td>
+                                                </tr>
+                                            [% END %]
+                                        [% END %]
                                     </tbody>
                                 </table>
                             [% END #/opened %]
@@ -452,6 +317,40 @@
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        [% FOREACH basketgroup IN basketgroups %]
+                                            [% IF ( basketgroup.closed ) %]
+                                                <tr>
+                                                    <td>
+                                                        [% IF ( basketgroup.name ) %]
+                                                            [% basketgroup.name | html %]
+                                                            [% ELSE %]
+                                                                <span>Basket group no. [% basketgroup.id | html %]</span>
+                                                            [% END %]
+                                                    </td>
+                                                    <td>[% basketgroup.id | html %]</td>
+                                                    <td>[% Branches.GetName( basketgroup.billingplace ) | html %]</td>
+                                                    <td>[% IF (basketgroup.freedeliveryplace) %]Free delivery place[% ELSE %][% Branches.GetName( basketgroup.deliveryplace ) | html %][% END %]</td>
+                                                    <td>[% basketgroup.basketsqty | html %]</td>
+                                                    <td>
+                                                        <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="add_form" /><input type="hidden" name="booksellerid" value="[% basketgroup.booksellerid | html %]" /><input type="hidden" name="basketgroupid" value="[% basketgroup.id | html %]" /><input type="submit" class="btn btn-primary" value="View" /></form>
+                                                        <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="post"><input type="hidden" name="op" value="cud-reopen" /><input type="hidden" name="booksellerid" value="[% basketgroup.booksellerid | html %]" /><input type="hidden" name="basketgroupid" value="[% basketgroup.id | html %]" /><input type="submit" class="btn btn-primary" value="Reopen" />
+                                                        [% INCLUDE 'csrf-token.inc' %]
+                                                        </form>
+                                                        <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="print" /><input type="hidden" name="basketgroupid" value="[% basketgroup.id | html %]" /><input type="submit" class="btn btn-primary" value="Export as PDF" /></form>
+                                                        <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="get"><input type="hidden" name="op" value="export" /><input type="hidden" name="basketgroupid" value="[% basketgroup.id | html %]" /><input type="submit" class="btn btn-primary" value="Export as CSV" /></form>
+                                                        [% IF Koha.Preference('EDIFACT') %]
+                                                            [% IF (ediaccount) %]
+                                                                 <form action="/cgi-bin/koha/acqui/basketgroup.pl" method="post"><input type="hidden" name="op" value="cud-ediprint" /><input type="hidden" name="basketgroupid" value="[% basketgroup.id | html %]" /><input type="hidden" name="booksellerid" value="[% basketgroup.booksellerid | html %]" /><input type="submit" class="btn btn-primary" value="Generate EDIFACT order" />
+                                                                 [% INCLUDE 'csrf-token.inc' %]
+                                                                 </form>
+                                                            [% ELSE %]
+                                                                <div>No EDIFACT configuration for [% booksellername | html %]</div>
+                                                            [% END %]
+                                                        [% END %]
+                                                    </td>
+                                                </tr>
+                                            [% END %]
+                                        [% END %]
                                     </tbody>
                                 </table>
                             [% END #/closed %]
@@ -459,9 +358,9 @@
                     [% END # /#basket_groups %]
                 [% END %]
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% IF ( booksellerid ) %]
                     [% INCLUDE 'vendor-menu.inc' %]
@@ -470,4 +369,102 @@
             </aside>
         </div>
     </div> <!-- /.row -->
-    [% INCLUDE 'intranet-bottom.inc' %]
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    <script>
+        function submitForm(form) {
+            if (form.closedbg.checked == true) {
+                var input = document.createElement("input");
+                input.setAttribute("type", "hidden");
+                input.setAttribute("name", "closed");
+                input.setAttribute("value", "1");
+                form.appendChild(input);
+            }
+            form.submit();
+        }
+
+        function closeandprint(bg){
+            if(document.location = '/cgi-bin/koha/acqui/basketgroup.pl?op=closeandprint&amp;basketgroupid=' + bg ){
+                setTimeout("window.location.reload();", 3000);
+            } else {
+                alert( _("Error downloading the file") );
+            }
+        }
+
+        $(document).ready(function() {
+            [% IF ( listclosed) %]
+                $("#basket_groups a[href='#closed']").tab("show");
+            [% ELSE %]
+                $("#basket_groups a[href='#opened']").tab("show");
+            [% END %]
+            [% UNLESS ( grouping ) %]
+                $("table").dataTable($.extend(true, {}, dataTablesDefaults, {
+                    "columnDefs": [
+                        { "targets": [ -1 ], "orderable": false, "searchable":  false },
+                    ],
+                    "autoWidth": false,
+                    "pagingType": "full"
+                } ));
+            [% ELSE %]
+                grouped = $("#grouped").DataTable($.extend(true, {}, dataTablesDefaults, {
+                    "dom": 't',
+                    "columnDefs": [
+                        { 'sortable': false, 'targets': [ 'NoSort' ] }
+                    ],
+                    'autoWidth': false,
+                    "language": {
+                        "emptyTable": _("There are no baskets in this group")
+                    }
+                } ));
+                ungrouped = $("#ungrouped").DataTable($.extend(true, {}, dataTablesDefaults, {
+                    "dom": 't',
+                    "columnDefs": [
+                        { 'sortable': false, 'targets': [ 'NoSort' ] }
+                    ],
+                    'autoWidth': false,
+                    "language": {
+                        "emptyTable": _("There are no ungrouped baskets")
+                    }
+                } ));
+            [% END %]
+
+            $("#basketgroupcolumns").on("click", ".addtogroup", function(){
+                const row = $("#" + $(this).data("basketid") );
+                if( row ){
+                    $(this).removeClass("addtogroup").addClass("removefromgroup").html("<i class=\"fa fa-trash-can\" aria-hidden=\"true\"></i> " + _("Remove") );
+                    row.removeClass("ungrouped").addClass("grouped");
+                    ungrouped.row( row ).remove().draw();
+                    grouped.row.add( row ).draw();
+                }
+            });
+
+            $("#basketgroupcolumns").on("click", ".removefromgroup", function(){
+                const row = $("#" + $(this).data("basketid") );
+                if( row ){
+                    $(this).removeClass("removefromgroup").addClass("addtogroup").html("<i class=\"fa fa-plus\" aria-hidden=\"true\"></i> " + _("Add to group") );
+                    $(this).removeClass("").addClass("");
+                    row.removeClass("grouped").addClass("ungrouped");
+                    grouped.row( row ).remove().draw();
+                    ungrouped.row.add( row ).draw();
+                }
+            });
+
+            $("#close_and_print").on("click", function(e){
+                e.preventDefault();
+                const basketgroupid = $(this).data("basketgroupid");
+                closeandprint( basketgroupid );
+            });
+
+            $("#groupingform").on("submit", function(e){
+                e.preventDefault();
+                submitForm(this);
+            });
+
+            $("#delete_basketgroup").on("click", function(e){
+                return confirm(_("Are you sure you want to delete this basket group?"));
+            });
+        });
+    </script>
+[% END %]
+[% INCLUDE 'intranet-bottom.inc' %]

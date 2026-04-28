@@ -35,12 +35,13 @@ my ( $auth_status ) =
   check_cookie_auth( $input->cookie('CGISESSID'),
     { circulate => 'circulate_remaining_permissions' } );
 
-if ( $auth_status ne "ok" ) {
+my $op = $input->param('op') || q{};
+if ( $auth_status ne "ok" || $op ne "cud-checkin" ) {
     exit 0;
 }
 
 binmode STDOUT, ":encoding(UTF-8)";
-print $input->header( -type => 'text/plain', -charset => 'UTF-8' );
+print $input->header( -type => 'application/json', -charset => 'UTF-8' );
 
 my $itemnumber     = $input->param('itemnumber');
 my $borrowernumber = $input->param('borrowernumber');

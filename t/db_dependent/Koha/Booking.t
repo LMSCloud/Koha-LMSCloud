@@ -20,11 +20,16 @@
 use Modern::Perl;
 use utf8;
 
-use Test::More tests => 2;
+use Test::More tests => 3;
+use Test::NoWarnings;
+
+use Test::Warn;
 
 use Test::Exception;
 
 use Koha::DateUtils qw( dt_from_string );
+use Koha::Notice::Template;
+use Koha::Notice::Templates;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -33,7 +38,7 @@ my $schema  = Koha::Database->new->schema;
 my $builder = t::lib::TestBuilder->new;
 
 subtest 'Relation accessor tests' => sub {
-    plan tests => 6;
+    plan tests => 4;
 
     subtest 'biblio relation tests' => sub {
         plan tests => 3;
@@ -120,94 +125,10 @@ subtest 'Relation accessor tests' => sub {
 
         $schema->storage->txn_rollback;
     };
-
-    subtest 'checkout relation tests' => sub {
-        plan tests => 4;
-        $schema->storage->txn_begin;
-
-        my $patron  = $builder->build_object( { class => "Koha::Patrons" } );
-        my $item    = $builder->build_sample_item( { bookable => 1 } );
-        my $booking = $builder->build_object(
-            {
-                class => 'Koha::Bookings',
-                value => {
-                    patron_id => $patron->borrowernumber,
-                    item_id   => $item->itemnumber,
-                    status    => 'completed'
-                }
-            }
-        );
-
-        my $checkout = $booking->checkout;
-        is( $checkout, undef, "Koha::Booking->checkout returns undef when no checkout exists" );
-
-        my $issue = $builder->build_object(
-            {
-                class => 'Koha::Checkouts',
-                value => {
-                    borrowernumber => $patron->borrowernumber,
-                    itemnumber     => $item->itemnumber,
-                    booking_id     => $booking->booking_id
-                }
-            }
-        );
-
-        $checkout = $booking->checkout;
-        is( ref($checkout),        'Koha::Checkout',     "Koha::Booking->checkout returns a Koha::Checkout object" );
-        is( $checkout->issue_id,   $issue->issue_id,     "Koha::Booking->checkout returns the linked checkout" );
-        is( $checkout->booking_id, $booking->booking_id, "The checkout is properly linked to the booking" );
-
-        $schema->storage->txn_rollback;
-    };
-
-    subtest 'old_checkout relation tests' => sub {
-        plan tests => 4;
-        $schema->storage->txn_begin;
-
-        my $patron  = $builder->build_object( { class => "Koha::Patrons" } );
-        my $item    = $builder->build_sample_item( { bookable => 1 } );
-        my $booking = $builder->build_object(
-            {
-                class => 'Koha::Bookings',
-                value => {
-                    patron_id => $patron->borrowernumber,
-                    item_id   => $item->itemnumber,
-                    status    => 'completed'
-                }
-            }
-        );
-
-        my $old_checkout = $booking->old_checkout;
-        is( $old_checkout, undef, "Koha::Booking->old_checkout returns undef when no old_checkout exists" );
-
-        my $old_issue = $builder->build_object(
-            {
-                class => 'Koha::Old::Checkouts',
-                value => {
-                    borrowernumber => $patron->borrowernumber,
-                    itemnumber     => $item->itemnumber,
-                    booking_id     => $booking->booking_id
-                }
-            }
-        );
-
-        $old_checkout = $booking->old_checkout;
-        is(
-            ref($old_checkout), 'Koha::Old::Checkout',
-            "Koha::Booking->old_checkout returns a Koha::Old::Checkout object"
-        );
-        is(
-            $old_checkout->issue_id, $old_issue->issue_id,
-            "Koha::Booking->old_checkout returns the linked old_checkout"
-        );
-        is( $old_checkout->booking_id, $booking->booking_id, "The old_checkout is properly linked to the booking" );
-
-        $schema->storage->txn_rollback;
-    };
 };
 
 subtest 'store() tests' => sub {
-    plan tests => 17;
+    plan tests => 16;
     $schema->storage->txn_begin;
 
     my $patron = $builder->build_object( { class => "Koha::Patrons" } );
@@ -425,8 +346,8 @@ subtest 'store() tests' => sub {
         # Cancel both bookings so we can check that cancelled bookings are allowed in the auto-assign
         $booking->status('cancelled')->store();
         $second_booking->status('cancelled')->store();
-        is($booking->status, 'cancelled', "Booking is cancelled");
-        is($second_booking->status, 'cancelled', "Second booking is cancelled");
+        is( $booking->status,        'cancelled', "Booking is cancelled" );
+        is( $second_booking->status, 'cancelled', "Second booking is cancelled" );
 
         # Test randomness of selection
         my %seen_items;
@@ -451,7 +372,40 @@ subtest 'store() tests' => sub {
     };
 
     subtest 'confirmation notice trigger' => sub {
-        plan tests => 2;
+        plan tests => 4;
+
+        # FIXME: This is a bandaid solution to prevent test failures when running
+        # the Koha_Main_My8 job because notices are not added at upgrade time.
+        my $template = Koha::Notice::Templates->search(
+            {
+                module                 => 'bookings',
+                code                   => 'BOOKING_CONFIRMATION',
+                message_transport_type => 'email',
+            }
+        )->single;
+
+        if ( !$template ) {
+            my $default_content = Koha::Notice::Template->new(
+                {
+                    module                 => 'bookings',
+                    code                   => 'BOOKING_CONFIRMATION',
+                    lang                   => 'default',
+                    message_transport_type => 'email',
+                }
+            )->get_default();
+
+            Koha::Notice::Template->new(
+                {
+                    module                 => 'bookings',
+                    code                   => 'BOOKING_CONFIRMATION',
+                    name                   => 'BOOKING_CONFIRMATION Test Notice',
+                    title                  => 'BOOKING_CONFIRMATION Test Notice',
+                    content                => $default_content || 'Dummy content for BOOKING_CONFIRMATION.',
+                    branchcode             => undef,
+                    message_transport_type => 'email',
+                }
+            )->store;
+        }
 
         my $original_notices_count = Koha::Notice::Messages->search(
             {
@@ -461,7 +415,16 @@ subtest 'store() tests' => sub {
         )->count;
 
         # Reuse previous booking to produce a clash
-        eval { $booking = Koha::Booking->new( $booking->unblessed )->store };
+        warning_like(
+            sub {
+                throws_ok {
+                    Koha::Booking->new( $booking->unblessed )->store
+                }
+                'Koha::Exceptions::Object::DuplicateID',
+                    'Exception is thrown correctly';
+            },
+            qr{Duplicate entry '(.*?)' for key '(.*\.?)PRIMARY'}
+        );
 
         my $post_notices_count = Koha::Notice::Messages->search(
             {
@@ -503,6 +466,41 @@ subtest 'store() tests' => sub {
 
     subtest 'modification/cancellation notice triggers' => sub {
         plan tests => 5;
+
+        # FIXME: This is a bandaid solution to prevent test failures when running
+        # the Koha_Main_My8 job because notices are not added at upgrade time.
+        for my $notice_type (qw(BOOKING_MODIFICATION BOOKING_CANCELLATION)) {
+            my $template = Koha::Notice::Templates->search(
+                {
+                    module                 => 'bookings',
+                    code                   => $notice_type,
+                    message_transport_type => 'email',
+                }
+            )->single;
+
+            if ( !$template ) {
+                my $default_content = Koha::Notice::Template->new(
+                    {
+                        module                 => 'bookings',
+                        code                   => $notice_type,
+                        lang                   => 'default',
+                        message_transport_type => 'email',
+                    }
+                )->get_default();
+
+                Koha::Notice::Template->new(
+                    {
+                        module                 => 'bookings',
+                        code                   => $notice_type,
+                        name                   => "$notice_type Test Notice",
+                        title                  => "$notice_type Test Notice",
+                        content                => $default_content || "Dummy content for $notice_type.",
+                        branchcode             => undef,
+                        message_transport_type => 'email',
+                    }
+                )->store;
+            }
+        }
 
         my $original_modification_notices_count = Koha::Notice::Messages->search(
             {
@@ -626,322 +624,21 @@ subtest 'store() tests' => sub {
     };
 
     subtest 'status change exception' => sub {
-        plan tests => 2;
+        plan tests => 3;
 
         $booking->discard_changes;
         my $status = $booking->status;
-        throws_ok { $booking->update( { status => 'blah' } ) } 'Koha::Exceptions::Object::BadValue',
-            'Throws exception when passed booking status would fail enum constraint';
+        warning_like(
+            sub {
+                throws_ok { $booking->update( { status => 'blah' } ) } 'Koha::Exceptions::Object::BadValue',
+                    'Throws exception when passed booking status would fail enum constraint';
+            },
+            qr{Data truncated for column 'status'}
+        );
 
         # Status unchanged
         $booking->discard_changes;
         is( $booking->status, $status, 'Booking status is unchanged' );
-    };
-
-    subtest 'date range constraint validation' => sub {
-        plan tests => 11;
-
-        # Set up fresh test data for constraint testing
-        my $constraint_patron = $builder->build_object( { class => 'Koha::Patrons' } );
-        my $constraint_biblio = $builder->build_sample_biblio();
-        my $constraint_item   = $builder->build_sample_item(
-            {
-                biblionumber => $constraint_biblio->biblionumber,
-                bookable     => 1
-            }
-        );
-        my $library = $constraint_item->homebranch;
-
-        # Test 1: No constraint - should allow long bookings
-        t::lib::Mocks::mock_preference( 'BookingDateRangeConstraint', q{} );
-
-        my $long_booking = Koha::Booking->new(
-            {
-                patron_id         => $constraint_patron->borrowernumber,
-                biblio_id         => $constraint_biblio->biblionumber,
-                item_id           => $constraint_item->itemnumber,
-                pickup_library_id => $library,
-                start_date        => '2024-01-01',
-                end_date          => '2024-12-31',                         # Full year
-            }
-        );
-
-        lives_ok { $long_booking->store() }
-        'Year-long booking allowed when no constraint set';
-        $long_booking->delete if $long_booking->in_storage;
-
-        # Test 2: issuelength constraint in Days mode
-        t::lib::Mocks::mock_preference( 'BookingDateRangeConstraint', 'issuelength' );
-
-        # Set circulation rules
-        use Koha::CirculationRules;
-        Koha::CirculationRules->set_rules(
-            {
-                branchcode   => $library,
-                categorycode => $constraint_patron->categorycode,
-                itemtype     => $constraint_item->effective_itemtype,
-                rules        => {
-                    issuelength => 3,
-                    daysmode    => 'Days',
-                }
-            }
-        );
-
-        # Test 2a: Booking within limits (4 calendar days for issuelength=3)
-        my $valid_booking = Koha::Booking->new(
-            {
-                patron_id         => $constraint_patron->borrowernumber,
-                biblio_id         => $constraint_biblio->biblionumber,
-                item_id           => $constraint_item->itemnumber,
-                pickup_library_id => $library,
-                start_date        => '2024-02-01',
-                end_date          => '2024-02-04',                         # 4 days total
-            }
-        );
-
-        lives_ok { $valid_booking->store() }
-        'Booking with 4 calendar days allowed for issuelength=3';
-        $valid_booking->delete if $valid_booking->in_storage;
-
-        # Test 2b: Booking exactly at limit
-        my $exact_booking = Koha::Booking->new(
-            {
-                patron_id         => $constraint_patron->borrowernumber,
-                biblio_id         => $constraint_biblio->biblionumber,
-                item_id           => $constraint_item->itemnumber,
-                pickup_library_id => $library,
-                start_date        => '2024-03-01',
-                end_date          => '2024-03-04',                         # Exactly 4 days
-            }
-        );
-
-        lives_ok { $exact_booking->store() }
-        'Booking with exactly 4 days allowed';
-        $exact_booking->delete if $exact_booking->in_storage;
-
-        # Test 2c: Booking exceeding limits
-        my $invalid_booking = Koha::Booking->new(
-            {
-                patron_id         => $constraint_patron->borrowernumber,
-                biblio_id         => $constraint_biblio->biblionumber,
-                item_id           => $constraint_item->itemnumber,
-                pickup_library_id => $library,
-                start_date        => '2024-04-01',
-                end_date          => '2024-04-05',                         # 5 days total
-            }
-        );
-
-        throws_ok { $invalid_booking->store() }
-        'Koha::Exceptions::Booking::DateRangeConstraint',
-            'Booking with 5 days throws exception when issuelength=3';
-
-        # Test 3: Calendar mode with mocked calendar
-        require Test::MockModule;
-        my $calendar_mock = Test::MockModule->new('Koha::Calendar');
-
-        # Mock addDuration to simulate calendar behavior with closed days
-        # This simulates skipping weekends or holidays
-        $calendar_mock->mock(
-            'addDuration',
-            sub {
-                my ( $self, $start_dt, $duration ) = @_;
-                my $days_to_add = $duration->in_units('days');
-
-                # For testing: simulate that adding 3 days skips a weekend
-                # So May 1 (Wed) + 3 working days = May 6 (Mon) instead of May 4 (Sat)
-                if ( $start_dt->ymd eq '2024-05-01' && $days_to_add == 3 ) {
-
-                    # Skip weekend: May 4-5
-                    return dt_from_string('2024-05-06');
-                }
-
-                # June 1 is a Saturday, so adding days would skip weekend
-                elsif ( $start_dt->ymd eq '2024-06-01' && $days_to_add == 3 ) {
-
-                    # Jun 1 (Sat) closed, Jun 2 (Sun) closed
-                    # Jun 3 (Mon) day 1, Jun 4 (Tue) day 2, Jun 5 (Wed) day 3
-                    return dt_from_string('2024-06-05');
-                }
-
-                # Default: just add the days without skipping
-                return $start_dt->clone->add($duration);
-            }
-        );
-
-        # Update rules for Calendar mode
-        Koha::CirculationRules->set_rules(
-            {
-                branchcode   => $library,
-                categorycode => $constraint_patron->categorycode,
-                itemtype     => $constraint_item->effective_itemtype,
-                rules        => {
-                    issuelength => 3,
-                    daysmode    => 'Calendar',
-                }
-            }
-        );
-
-        # Test 3a: Valid booking in Calendar mode with closed days
-        # May 1 (Wed) + 3 working days = May 6 (Mon) due to weekend
-        my $cal_valid = Koha::Booking->new(
-            {
-                patron_id         => $constraint_patron->borrowernumber,
-                biblio_id         => $constraint_biblio->biblionumber,
-                item_id           => $constraint_item->itemnumber,
-                pickup_library_id => $library,
-                start_date        => '2024-05-01',
-                end_date          => '2024-05-06',                         # Matches calculated limit with weekend
-            }
-        );
-
-        lives_ok { $cal_valid->store() }
-        'Calendar mode: booking within calculated limit allowed (with weekend)';
-        $cal_valid->delete if $cal_valid->in_storage;
-
-        # Test 3b: Invalid booking in Calendar mode
-        # May 1 + 3 working days = May 6, so May 7 should fail
-        my $cal_invalid = Koha::Booking->new(
-            {
-                patron_id         => $constraint_patron->borrowernumber,
-                biblio_id         => $constraint_biblio->biblionumber,
-                item_id           => $constraint_item->itemnumber,
-                pickup_library_id => $library,
-                start_date        => '2024-05-01',
-                end_date          => '2024-05-07',                         # Exceeds calculated limit
-            }
-        );
-
-        throws_ok { $cal_invalid->store() }
-        'Koha::Exceptions::Booking::DateRangeConstraint',
-            'Calendar mode: booking exceeding calculated limit throws exception';
-
-        # Test 3c: Booking ending before the calculated maximum should work
-        my $cal_shorter = Koha::Booking->new(
-            {
-                patron_id         => $constraint_patron->borrowernumber,
-                biblio_id         => $constraint_biblio->biblionumber,
-                item_id           => $constraint_item->itemnumber,
-                pickup_library_id => $library,
-                start_date        => '2024-05-01',
-                end_date          => '2024-05-04',                         # Before the max (May 6)
-            }
-        );
-
-        lives_ok { $cal_shorter->store() }
-        'Calendar mode: booking ending before calculated max allowed';
-        $cal_shorter->delete if $cal_shorter->in_storage;
-
-        # Test 4: issuelength_with_renewals constraint
-        t::lib::Mocks::mock_preference( 'BookingDateRangeConstraint', 'issuelength_with_renewals' );
-
-        Koha::CirculationRules->set_rules(
-            {
-                branchcode   => $library,
-                categorycode => $constraint_patron->categorycode,
-                itemtype     => $constraint_item->effective_itemtype,
-                rules        => {
-                    issuelength     => 7,
-                    renewalperiod   => 7,
-                    renewalsallowed => 2,
-                    daysmode        => 'Days',
-                }
-            }
-        );
-
-        # Total allowed: 7 + (7 * 2) = 21, so 22 calendar days
-
-        # Test 4a: Within extended limits
-        my $renewal_valid = Koha::Booking->new(
-            {
-                patron_id         => $constraint_patron->borrowernumber,
-                biblio_id         => $constraint_biblio->biblionumber,
-                item_id           => $constraint_item->itemnumber,
-                pickup_library_id => $library,
-                start_date        => '2024-07-01',
-                end_date          => '2024-07-22',                         # 22 days total
-            }
-        );
-
-        lives_ok { $renewal_valid->store() }
-        'Booking with 22 days allowed when issuelength=7 + 2 renewals of 7 days';
-        $renewal_valid->delete if $renewal_valid->in_storage;
-
-        # Test 4b: Exceeding extended limits
-        my $renewal_invalid = Koha::Booking->new(
-            {
-                patron_id         => $constraint_patron->borrowernumber,
-                biblio_id         => $constraint_biblio->biblionumber,
-                item_id           => $constraint_item->itemnumber,
-                pickup_library_id => $library,
-                start_date        => '2024-08-01',
-                end_date          => '2024-08-23',                         # 23 days total
-            }
-        );
-
-        throws_ok { $renewal_invalid->store() }
-        'Koha::Exceptions::Booking::DateRangeConstraint',
-            'Booking with 23 days throws exception when max is 22';
-
-        # Test 5: Edge case - zero issuelength
-        Koha::CirculationRules->set_rules(
-            {
-                branchcode   => $library,
-                categorycode => $constraint_patron->categorycode,
-                itemtype     => $constraint_item->effective_itemtype,
-                rules        => {
-                    issuelength => 0,
-                    daysmode    => 'Days',
-                }
-            }
-        );
-
-        my $zero_booking = Koha::Booking->new(
-            {
-                patron_id         => $constraint_patron->borrowernumber,
-                biblio_id         => $constraint_biblio->biblionumber,
-                item_id           => $constraint_item->itemnumber,
-                pickup_library_id => $library,
-                start_date        => '2024-09-01',
-                end_date          => '2024-09-01',                         # Same day
-            }
-        );
-
-        lives_ok { $zero_booking->store() }
-        'Same-day booking allowed even with issuelength=0';
-        $zero_booking->delete if $zero_booking->in_storage;
-
-        # Test 6: Timezone/time component handling
-        Koha::CirculationRules->set_rules(
-            {
-                branchcode   => $library,
-                categorycode => $constraint_patron->categorycode,
-                itemtype     => $constraint_item->effective_itemtype,
-                rules        => {
-                    issuelength => 3,
-                    daysmode    => 'Days',
-                }
-            }
-        );
-
-        # Test timezone handling
-        # Test dates with time components that could cause day-boundary issues
-        my $timezone_booking = Koha::Booking->new(
-            {
-                patron_id         => $constraint_patron->borrowernumber,
-                biblio_id         => $constraint_biblio->biblionumber,
-                item_id           => $constraint_item->itemnumber,
-                pickup_library_id => $library,
-                start_date        => '2024-10-12 22:00:00',                # Late evening start
-                end_date          => '2024-10-15 22:00:00',                # Late evening end (3 days later)
-            }
-        );
-
-        lives_ok { $timezone_booking->store() }
-        'UTC timestamps handled correctly for day-level validation';
-        $timezone_booking->delete if $timezone_booking->in_storage;
-
-        # Clean up
-        $calendar_mock->unmock('addDuration');
     };
 
     $schema->storage->txn_rollback;

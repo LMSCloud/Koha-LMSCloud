@@ -19,7 +19,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 9;
+use Test::More tests => 10;
 use MARC::Field;
 use MARC::File::XML;
 use MARC::Record;
@@ -187,6 +187,12 @@ unimarc,*,ind1:auth2,ind2:auth1|);
     $record = MARC::Record->new;
     $record->append_fields( MARC::Field->new( '210', '1', '2', a => 'Name' ) );
     $type = $builder->build({ source => 'AuthType', value => { auth_tag_to_report => '210'} });
+    my $dbh = C4::Context->dbh;
+    $dbh->do(
+        "INSERT INTO marc_subfield_structure (tagfield,authtypecode,frameworkcode) VALUES ('210',?,'')", undef,
+        $type->{authtypecode}
+    ) or die $dbh->errstr;
+
     $authid = C4::AuthoritiesMarc::AddAuthority( $record, undef, $type->{authtypecode} );
     $auth = Koha::Authorities->find( $authid );
     is( $auth->controlled_indicators({ biblio_tag => '345' })->{ind1}, '2', 'UNIMARC: Swapped ind2' );
@@ -242,10 +248,11 @@ sub few_marc_records {
     return [ $marc ];
 }
 
-subtest 'get_identifiers' => sub {
+subtest 'get_identifiers_and_information' => sub {
     plan tests => 1;
 
     t::lib::Mocks::mock_preference( 'marcflavour', 'MARC21' );
+    t::lib::Mocks::mock_preference( 'OPACAuthorIdentifiersAndInformation', 'identifiers' );
     my $record = MARC::Record->new();
     $record->add_fields(
         [
@@ -271,17 +278,19 @@ subtest 'get_identifiers' => sub {
     my $authid = C4::AuthoritiesMarc::AddAuthority($record, undef, 'PERSO_NAME');
     my $authority = Koha::Authorities->find($authid);
     is_deeply(
-        $authority->get_identifiers,
-        [
-            {
-                source  => 'orcid',
-                number  => '0000-0002-1234-5678',
-            },
-            {
-                source => 'scopus',
-                number => '01234567890',
-            }
-        ]
+        $authority->get_identifiers_and_information,
+        {
+            identifiers => [
+                {
+                    source => 'orcid',
+                    number => '0000-0002-1234-5678',
+                },
+                {
+                    source => 'scopus',
+                    number => '01234567890',
+                }
+            ]
+        }
     );
 };
 
@@ -319,6 +328,20 @@ subtest 'record tests' => sub {
     is ($fields_024[0]->subfield('a'), '0000-0002-1234-5678');
     is ($fields_024[1]->subfield('a'), '01234567890');
 
+};
+
+subtest 'record_schema tests' => sub {
+    plan tests => 2;
+
+    my $authority = $builder->build_object({class => 'Koha::Authorities'});
+
+    t::lib::Mocks::mock_preference( 'marcflavour', 'MARC21' );
+
+    is($authority->record_schema, 'MARC21');
+
+    t::lib::Mocks::mock_preference( 'marcflavour', 'UNIMARC' );
+
+    is($authority->record_schema, 'UNIMARCAUTH');
 };
 
 $schema->storage->txn_rollback;

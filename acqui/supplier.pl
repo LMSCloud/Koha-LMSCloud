@@ -85,9 +85,10 @@ if ( $op eq 'display' ) {
         listprice     => $supplier->listprice,
         basketcount   => $supplier->baskets->count,
         subscriptioncount => $supplier->subscriptions->count,
+        vendor        => $supplier,
         contracts     => $contracts,
     );
-} elsif ( $op eq 'delete' ) {
+} elsif ( $op eq 'cud-delete' ) {
     # no further message needed for the user
     # the DELETE button only appears in the template if basketcount == 0 AND subscriptioncount == 0
     if ( $supplier->baskets->count == 0 && $supplier->subscriptions->count == 0) {
@@ -106,6 +107,7 @@ if ( $op eq 'display' ) {
         # set active ON by default for supplier add (id empty for add)
         active     => $supplier ? $supplier->active         : 1,
         tax_rate   => $supplier ? $supplier->tax_rate + 0.0 : 0,
+        vendor        => $supplier,
         gst_values    => \@gst_values,
         currencies    => Koha::Acquisition::Currencies->search,
         enter         => 1,

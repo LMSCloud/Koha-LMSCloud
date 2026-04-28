@@ -1,5 +1,3 @@
-var Sticky;
-
 function tickAll(section){
     $("input[type='checkbox'][name='" + section + "']").prop("checked", true);
     $("#" + section.slice(0,-1) + "ALL").prop("checked", true);
@@ -56,14 +54,6 @@ $(document).ready(function(){
         /* Remove toolbar if there are no system preference
            entries to compare */
         $("#toolbar").remove();
-    }
-
-    if ($('#toolbar').length) {
-        Sticky = $("#toolbar");
-        Sticky.hcSticky({
-            stickTo: "main",
-            stickyClass: "floating"
-        });
     }
 
     if ( $('input[type="checkbox"][name="modules"]:checked').length == 0 ) {
@@ -149,4 +139,12 @@ $(document).ready(function(){
             return false;
         }
     });
+
+    $(".log-disabled").each(function(){
+        if( CAN_user_parameters_manage_sysprefs ){
+            let pref = $(this).data("log")
+            url = "/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=";
+            $(this).wrap("<a href='" + url + pref + "' target='_blank'></a>")
+        }
+    }).tooltip();
 });

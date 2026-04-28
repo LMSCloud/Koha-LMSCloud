@@ -49,7 +49,6 @@ use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
 use C4::Letters qw( GetMessageTransportTypes );
 use C4::Log qw( logaction );
-
 use Koha::Notice::Templates;
 use Koha::Patron::Attribute::Types;
 
@@ -63,7 +62,6 @@ sub protected_letters {
 
 our $input       = CGI->new;
 my $searchfield = $input->param('searchfield');
-my $script_name = '/cgi-bin/koha/tools/letter.pl';
 our $branchcode  = $input->param('branchcode');
 $branchcode = '' if defined $branchcode and $branchcode eq '*';
 my $code        = $input->param('code');
@@ -92,15 +90,13 @@ our $my_branch = C4::Context->preference("IndependentBranches") && !$staffflags-
 
 $template->param(
     independant_branch => $my_branch,
-    script_name        => $script_name,
     searchfield        => $searchfield,
     branchcode         => $branchcode,
     section            => $section,
     langtab            => $langtab,
-    action             => $script_name
 );
 
-if ( $op eq 'add_validate' or $op eq 'copy_validate' ) {
+if ( $op eq 'cud-add_validate' or $op eq 'cud-copy_validate' ) {
     add_validate();
     if( $redirect eq "just_save" ){
         print $input->redirect("/cgi-bin/koha/tools/letter.pl?op=add_form&branchcode=$branchcode&module=$module&code=$code&redirect=done&section=$section&langtab=$langtab");
@@ -109,14 +105,14 @@ if ( $op eq 'add_validate' or $op eq 'copy_validate' ) {
         $op = q{}; # we return to the default screen for the next operation
     }
 }
-if ($op eq 'copy_form') {
+if ($op eq 'cud-copy_form') {
     my $oldbranchcode = $input->param('oldbranchcode') || q||;
     my $branchcode = $input->param('branchcode');
     add_form($oldbranchcode, $module, $code);
     $template->param(
         oldbranchcode => $oldbranchcode,
         branchcode => $branchcode,
-        copying => 1,
+        copy_form => 1,
         modify => 0,
     );
 }
@@ -126,7 +122,7 @@ elsif ( $op eq 'add_form' ) {
 elsif ( $op eq 'delete_confirm' ) {
     delete_confirm($branchcode, $module, $code);
 }
-elsif ( $op eq 'delete_confirmed' ) {
+elsif ( $op eq 'cud-delete_confirmed' ) {
     delete_confirmed($branchcode, $module, $code);
     $op = q{}; # next operation is to return to default screen
 }
@@ -160,50 +156,50 @@ sub add_form {
 
     my $message_transport_types = GetMessageTransportTypes();
     my $templates = { map { $_ => { message_transport_type => $_ } } sort @$message_transport_types };
-    my %letters = ( default => { templates => $templates } );
+    my %letters = ( default => { templates => {%$templates} } );
 
+    my $translated_languages = C4::Languages::getTranslatedLanguages(
+        'opac',
+        C4::Context->preference('template')
+    );
     if ( C4::Context->preference('TranslateNotices') ) {
-        my $translated_languages =
-          C4::Languages::getTranslatedLanguages( 'opac',
-            C4::Context->preference('template') );
         for my $language (@$translated_languages) {
-            for my $sublanguage( @{ $language->{sublanguages_loop} } ) {
+            for my $sublanguage ( @{ $language->{sublanguages_loop} } ) {
                 if ( $language->{plural} ) {
                     $letters{ $sublanguage->{rfc4646_subtag} } = {
-                        description => $sublanguage->{native_description}
-                          . ' '
-                          . $sublanguage->{region_description} . ' ('
-                          . $sublanguage->{rfc4646_subtag} . ')',
-                        templates => { %$templates },
+                              description => $sublanguage->{native_description} . ' '
+                            . $sublanguage->{region_description} . ' ('
+                            . $sublanguage->{rfc4646_subtag} . ')',
+                        templates => {%$templates},
                     };
-                }
-                else {
+                } else {
                     $letters{ $sublanguage->{rfc4646_subtag} } = {
-                        description => $sublanguage->{native_description}
-                          . ' ('
-                          . $sublanguage->{rfc4646_subtag} . ')',
-                        templates => { %$templates },
+                        description => $sublanguage->{native_description} . ' (' . $sublanguage->{rfc4646_subtag} . ')',
+                        templates   => {%$templates},
                     };
                 }
             }
         }
         $template->param( languages => $translated_languages );
     }
+    my $default_language = @{ @{$translated_languages}[0]->{sublanguages_loop} }[0]->{native_description};
+    $template->param( default_language => $default_language );
     if ($letters) {
         $template->param(
-            modify     => 1,
-            code       => $code,
+            modify => 1,
+            code   => $code,
         );
         my $first_flag_name = 1;
         my $lang;
 
         # The letter name is contained into each mtt row.
         # So we can only sent the first one to the template.
-        for my $letter ( @$letters ) {
+        for my $letter (@$letters) {
+
             # The letter_name
             if ( $first_flag_name and $letter->{name} ) {
                 $template->param(
-                    letter_name=> $letter->{name},
+                    letter_name => $letter->{name},
                 );
                 $first_flag_name = 0;
             }
@@ -219,18 +215,31 @@ sub add_form {
             };
 
             my $lang = $letter->{lang};
-            my $mtt = $letter->{message_transport_type};
-            $letters{ $lang }{templates}{$mtt} = {
+            my $mtt  = $letter->{message_transport_type};
+            $letters{$lang}{templates}{$mtt} = {
                 message_transport_type => $letter->{message_transport_type},
-                is_html    => $letter->{is_html},
-                updated_on => $letter->{updated_on},
-                title      => $letter->{title},
-                content    => $letter->{content} // '',
-                tt_error   => $letter->{tt_error},
+                is_html                => $letter->{is_html},
+                updated_on             => $letter->{updated_on},
+                title                  => $letter->{title},
+                content                => $letter->{content} // '',
+                tt_error               => $letter->{tt_error},
             };
+            $letters{$lang}{params} = $letter;
         }
-    }
-    else {
+
+        # Fetch sample notices
+        for my $lang_key ( keys %letters ) {
+            for my $mtt_key ( keys %{ $letters{$lang_key}{templates} } ) {
+                my $object = Koha::Notice::Template->new(
+                    { module => $module, code => $code, message_transport_type => $mtt_key, lang => $lang_key } );
+                my $sample   = $object->get_default;
+                my $template = { %{ $letters{$lang_key}{templates}{$mtt_key} } };
+                $template->{sample} = $sample;
+                $template->{id}     = lc( "$module" . "_" . $code . "_" . $mtt_key . "_" . $lang_key );
+                $letters{$lang_key}{templates}{$mtt_key} = $template;
+            }
+        }
+    } else {
         $template->param( adding => 1 );
     }
 
@@ -248,6 +257,8 @@ sub add_form {
         push @{$field_selection}, add_fields( 'aqbooksellers', 'aqbasket', 'aqorders', 'biblio', 'biblioitems' );
     } elsif ( $module eq 'claimissues' ) {
         push @{$field_selection}, add_fields( 'aqbooksellers', 'serial', 'subscription', 'biblio', 'biblioitems' );
+    } elsif ( $module eq 'patron_slip' ) {
+        push @{$field_selection}, add_fields('borrowers');
     } elsif ( $module eq 'serial' ) {
         push @{$field_selection},
             add_fields( 'branches', 'biblio', 'biblioitems', 'borrowers', 'subscription', 'serial' );
@@ -258,11 +269,11 @@ sub add_form {
     } else {
         push @{$field_selection}, add_fields( 'biblio', 'biblioitems' ),
             add_fields('items'),
-            {value => 'items.content', text => 'items.content'},
-            {value => 'items.fine',    text => 'items.fine'},
+            { value => 'items.content', text => 'items.content' },
+            { value => 'items.fine',    text => 'items.fine' },
             add_fields('borrowers');
-        if ($module eq 'circulation') {
-            push @{$field_selection}, add_fields('additional_contents', 'recalls');
+        if ( $module eq 'circulation' ) {
+            push @{$field_selection}, add_fields( 'additional_contents', 'recalls' );
 
         }
 
@@ -272,7 +283,7 @@ sub add_form {
             push @{$field_selection}, add_fields('issues');
         }
 
-        if ( $module eq 'circulation' and $code and $code =~ /^AR_/  ) {
+        if ( $module eq 'circulation' and $code and $code =~ /^AR_/ ) {
             push @{$field_selection}, add_fields('article_requests');
         }
 
@@ -312,7 +323,15 @@ sub add_validate {
     my @content       = $input->multi_param('content');
     my @lang          = $input->multi_param('lang');
     for my $mtt ( @mtt ) {
-        my $lang = shift @lang;
+        my $lang       = shift @lang;
+        my $style      = $input->param("style_$lang");
+        my $format_all = $input->param("format_all_$lang");
+        if ($format_all) {
+            my @letters = Koha::Notice::Templates->search( { lang => $lang } )->as_list;
+            foreach my $letter (@letters) {
+                $letter->set( { style => $style } )->store;
+            }
+        }
         my $is_html = $input->param("is_html_$mtt\_$lang");
         my $title   = shift @title;
         my $content = shift @content;
@@ -345,7 +364,8 @@ sub add_validate {
                     is_html    => $is_html || 0,
                     title      => $title,
                     content    => $content,
-                    lang       => $lang
+                    lang       => $lang,
+                    style      => $style
                 }
             )->store;
 
@@ -360,7 +380,8 @@ sub add_validate {
                     title                  => $title,
                     content                => $content,
                     message_transport_type => $mtt,
-                    lang                   => $lang
+                    lang                   => $lang,
+                    style                  => $style
                 }
             )->store;
             logaction( 'NOTICES', 'CREATE', $letter->id, $letter->content,

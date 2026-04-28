@@ -67,6 +67,8 @@ $template->param(
     title          => $letter->{name},
     plain          => !$letter->{is_html},
     borrowernumber => $borrowernumber,
+    style          => $letter->{style},
+    id             => 'overdues_slip',
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

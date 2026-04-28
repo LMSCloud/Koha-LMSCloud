@@ -47,14 +47,33 @@ sub list_managers {
     return try {
 
         my $patrons_rs = Koha::Patrons->search->filter_by_have_permission('acquisition.order_manage');
-        my $patrons    = $c->objects->search( $patrons_rs );
+        my $patrons    = $c->objects->search($patrons_rs);
 
         return $c->render(
             status  => 200,
             openapi => $patrons
         );
-    }
-    catch {
+    } catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 list
+
+Return a list of baskets
+
+=cut
+
+sub list {
+    my $c = shift->openapi->valid_input or return;
+
+    return try {
+
+        return $c->render(
+            status  => 200,
+            openapi => $c->objects->search( Koha::Acquisition::Baskets->new ),
+        );
+    } catch {
         $c->unhandled_exception($_);
     };
 }

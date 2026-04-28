@@ -46,8 +46,7 @@ sub list {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $libraries_set = Koha::Libraries->new;
-        my $libraries     = $c->objects->search( $libraries_set );
+        my $libraries = $c->objects->search( Koha::Libraries->new );
         return $c->render( status => 200, openapi => $libraries );
     }
     catch {
@@ -65,20 +64,16 @@ sub get {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $library_id = $c->validation->param('library_id');
-        my $library = Koha::Libraries->find( $library_id );
+        my $library = Koha::Libraries->find( $c->param('library_id') );
 
-        unless ($library) {
-            return $c->render( status  => 404,
-                            openapi => { error => "Library not found" } );
-        }
+        return $c->render_resource_not_found("Library")
+            unless $library;
 
         return $c->render(
             status  => 200,
-            openapi => $library->to_api
+            openapi => $c->objects->to_api($library),
         );
-    }
-    catch {
+    } catch {
         $c->unhandled_exception($_);
     };
 }
@@ -93,13 +88,13 @@ sub add {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $library = Koha::Library->new_from_api( $c->validation->param('body') );
+        my $library = Koha::Library->new_from_api( $c->req->json );
         $library->store;
         $c->res->headers->location( $c->req->url->to_string . '/' . $library->branchcode );
 
         return $c->render(
             status  => 201,
-            openapi => $library->to_api
+            openapi => $c->objects->to_api($library),
         );
     }
     catch {
@@ -123,14 +118,10 @@ Controller function that handles updating a Koha::Library object
 sub update {
     my $c = shift->openapi->valid_input or return;
 
-    my $library = Koha::Libraries->find( $c->validation->param('library_id') );
+    my $library = Koha::Libraries->find( $c->param('library_id') );
 
-    if ( not defined $library ) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Library not found" }
-        );
-    }
+    return $c->render_resource_not_found("Library")
+        unless $library;
 
     return try {
         my $params = $c->req->json;
@@ -138,7 +129,7 @@ sub update {
         $library->store();
         return $c->render(
             status  => 200,
-            openapi => $library->to_api
+            openapi => $c->objects->to_api($library),
         );
     }
     catch {
@@ -156,15 +147,14 @@ sub delete {
 
     my $c = shift->openapi->valid_input or return;
 
-    my $library = Koha::Libraries->find( $c->validation->param( 'library_id' ) );
+    my $library = Koha::Libraries->find( $c->param( 'library_id' ) );
 
-    if ( not defined $library ) {
-        return $c->render( status => 404, openapi => { error => "Library not found" } );
-    }
+    return $c->render_resource_not_found("Library")
+        unless $library;
 
     return try {
         $library->delete;
-        return $c->render( status => 204, openapi => '');
+        return $c->render_resource_deleted;
     }
     catch {
         $c->unhandled_exception($_);
@@ -222,6 +212,60 @@ sub list_holidays {
         );
     }
     catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 list_desks
+
+Controller function that handles retrieving the library's desks
+
+=cut
+
+sub list_desks {
+    my $c = shift->openapi->valid_input or return;
+
+    return $c->render( status => 404, openapi => { error => "Feature disabled" } )
+        unless C4::Context->preference('UseCirculationDesks');
+
+    return try {
+        my $library = Koha::Libraries->find( $c->param('library_id') );
+
+        return $c->render_resource_not_found("Library")
+            unless $library;
+
+        return $c->render(
+            status  => 200,
+            openapi => $c->objects->to_api( $library->desks )
+        );
+    } catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 list_cash_registers
+
+Controller function that handles retrieving the library's cash registers
+
+=cut
+
+sub list_cash_registers {
+    my $c = shift->openapi->valid_input or return;
+
+    return $c->render( status => 404, openapi => { error => "Feature disabled" } )
+        unless C4::Context->preference('UseCashRegisters');
+
+    return try {
+        my $library = Koha::Libraries->find( $c->param('library_id') );
+
+        return $c->render_resource_not_found("Library")
+            unless $library;
+
+        return $c->render(
+            status  => 200,
+            openapi => $c->objects->to_api( $library->cash_registers )
+        );
+    } catch {
         $c->unhandled_exception($_);
     };
 }

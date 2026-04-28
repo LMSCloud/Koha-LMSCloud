@@ -135,6 +135,8 @@ sub _autocreate {
     }
 
     my $patron = Koha::Patron->new( \%borrower )->store;
+    $patron->discard_changes;
+
     C4::Members::Messaging::SetMessagingPreferencesFromDefaults(
         {
             borrowernumber => $patron->borrowernumber,
@@ -170,7 +172,7 @@ sub _autocreate {
                     branchcode             => $patron->branchcode
                 }
             );
-            C4::Letters::SendQueuedMessages( { message_id => $message_id } );
+            C4::Letters::SendQueuedMessages( { message_id => $message_id } ) if $message_id;
         }
     }
     return ( 1, $patron->cardnumber, $patron->userid, $patron );

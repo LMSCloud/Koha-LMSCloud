@@ -638,9 +638,3 @@ sub normalizeSearchRequest {
 }
 
 1;
-
-my $helimaService = C4::External::HeLiMa->new();
-
-# my $result = $helimaService->simpleSearch(1,"Hase");
-my $result = $helimaService->simpleSearch(1,"Hase",2);
-print Dumper($result);

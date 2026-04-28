@@ -20,8 +20,10 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-
 use CGI;
+use POSIX     qw( strftime );
+use Try::Tiny qw(catch try);
+
 use C4::Output qw( output_html_with_http_headers );
 use C4::Auth qw( get_template_and_user haspermission );
 use C4::Biblio qw(
@@ -32,7 +34,6 @@ use C4::Biblio qw(
     GetMarcStructure
     GetUsedMarcStructure
     ModBiblio
-    prepare_host_field
     PrepHostMarcField
     TransformHtmlToMarc
     ApplyMarcOverlayRules
@@ -47,6 +48,7 @@ use C4::Charset qw( SetMarcUnicodeFlag );
 use Koha::BiblioFrameworks;
 use Koha::DateUtils qw( dt_from_string );
 
+use Koha::Acquisition::Orders;
 use Koha::Biblios;
 use Koha::ItemTypes;
 use Koha::Libraries;
@@ -63,7 +65,7 @@ if ( C4::Context->preference('marcflavour') eq 'UNIMARC' ) {
     MARC::File::XML->default_record_format('UNIMARC');
 }
 
-our($tagslib,$authorised_values_sth,$is_a_modif,$usedTagsLib,$mandatory_z3950);
+our ( $tagslib, $usedTagsLib, $mandatory_z3950, $is_a_modif, $op, $changed_framework );
 
 =head1 FUNCTIONS
 
@@ -316,8 +318,8 @@ sub build_tabs {
                                     index_tag         => $index_tag,
                                     record            => $record,
                                     hostitemnumber    => scalar $input->param('hostitemnumber'),
-                                    op                => scalar $input->param('op'),
-                                    changed_framework => scalar $input->param('changed_framework'),
+                                    op                => $op,
+                                    changed_framework => $changed_framework,
                                     breedingid        => scalar $input->param('breedingid'),
                                     tagslib           => $tagslib,
                                     mandatory_z3950   => $mandatory_z3950,
@@ -342,8 +344,8 @@ sub build_tabs {
                                         index_tag         => $index_tag,
                                         record            => $record,
                                         hostitemnumber    => scalar $input->param('hostitemnumber'),
-                                        op                => scalar $input->param('op'),
-                                        changed_framework => scalar $input->param('changed_framework'),
+                                        op                => $op,
+                                        changed_framework => $changed_framework,
                                         breedingid        => scalar $input->param('breedingid'),
                                         tagslib           => $tagslib,
                                         mandatory_z3950   => $mandatory_z3950,
@@ -383,8 +385,8 @@ sub build_tabs {
                                     index_tag         => $index_tag,
                                     record            => $record,
                                     hostitemnumber    => scalar $input->param('hostitemnumber'),
-                                    op                => scalar $input->param('op'),
-                                    changed_framework => scalar $input->param('changed_framework'),
+                                    op                => $op,
+                                    changed_framework => $changed_framework,
                                     breedingid        => scalar $input->param('breedingid'),
                                     tagslib           => $tagslib,
                                     mandatory_z3950   => $mandatory_z3950,
@@ -450,8 +452,8 @@ sub build_tabs {
                                     index_tag         => $index_tag,
                                     record            => $record,
                                     hostitemnumber    => scalar $input->param('hostitemnumber'),
-                                    op                => scalar $input->param('op'),
-                                    changed_framework => scalar $input->param('changed_framework'),
+                                    op                => $op,
+                                    changed_framework => $changed_framework,
                                     breedingid        => scalar $input->param('breedingid'),
                                     tagslib           => $tagslib,
                                     mandatory_z3950   => $mandatory_z3950,
@@ -498,7 +500,6 @@ my $biblionumber  = $input->param('biblionumber'); # if biblionumber exists, it'
 my $parentbiblio  = $input->param('parentbiblionumber');
 my $breedingid    = $input->param('breedingid');
 my $z3950         = $input->param('z3950');
-my $op            = $input->param('op') // q{};
 my $mode          = $input->param('mode') // q{};
 my $frameworkcode = $input->param('frameworkcode');
 my $redirect      = $input->param('redirect');
@@ -513,17 +514,16 @@ my $fa_branch             = $input->param('branch');
 my $fa_stickyduedate      = $input->param('stickyduedate');
 my $fa_duedatespec        = $input->param('duedatespec');
 
-my $userflags = 'edit_catalogue';
-
-my $changed_framework = $input->param('changed_framework') // q{};
+$op            = $input->param('op') // q{};
 $frameworkcode = &GetFrameworkCode($biblionumber)
-  if ( $biblionumber and not( defined $frameworkcode) and $op ne 'addbiblio' );
+  if ( $biblionumber and not( defined $frameworkcode) and $op ne 'cud-addbiblio' );
+$frameworkcode //= '';
 
-if ($frameworkcode eq 'FA'){
-    $userflags = 'fast_cataloging';
-}
+my $userflags =
+    $frameworkcode eq 'FA'
+    ? [ 'fast_cataloging', 'edit_catalogue' ]
+    : 'edit_catalogue';
 
-$frameworkcode = '' if ( $frameworkcode eq 'Default' );
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "cataloguing/addbiblio.tt",
@@ -533,10 +533,35 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
+$frameworkcode = '' if ( $frameworkcode eq 'Default' );
+
+# Set default values for global variable
+$tagslib           = &GetMarcStructure( 1, $frameworkcode );
+$usedTagsLib       = &GetUsedMarcStructure($frameworkcode);
+$mandatory_z3950   = GetMandatoryFieldZ3950($frameworkcode);
+$is_a_modif        = 0;
+$changed_framework = 0;
+
+if ( $op eq 'cud-change-framework' ) {
+    $op = $input->param('original_op');
+    $changed_framework = 1;
+}
+
+my $logged_in_patron = Koha::Patrons->find($loggedinuser);
 my $biblio;
-if ($biblionumber){
+
+if ($biblionumber) {
+
     $biblio = Koha::Biblios->find($biblionumber);
-    unless ( $biblio ) {
+
+    # just in case $biblionumber obtained from CGI contains weird characters like spaces
+    $biblionumber = $biblio->biblionumber if $biblio;
+    if ($biblio) {
+        unless ( $biblio->can_be_edited($logged_in_patron) ) {
+            print $input->redirect("/cgi-bin/koha/errors/403.pl");    # escape early
+            exit;
+        }
+    } else {
         $biblionumber = undef;
         $template->param( bib_doesnt_exist => 1 );
     }
@@ -551,7 +576,7 @@ if ($frameworkcode eq 'FA'){
         'stickyduedate'      => $fa_stickyduedate,
         'duedatespec'        => $fa_duedatespec,
     );
-} elsif ( $op ne "delete" &&
+} elsif ( $op ne "cud-delete" &&
             C4::Context->preference('EnableAdvancedCatalogingEditor') &&
             C4::Auth::haspermission(C4::Context->userenv->{id},{'editcatalogue'=>'advanced_editor'}) &&
             $input->cookie( 'catalogue_editor_' . $loggedinuser ) eq 'advanced' &&
@@ -569,12 +594,6 @@ $template->param(
     breedingid => $breedingid,
 );
 
-# ++ Global
-$tagslib         = &GetMarcStructure( 1, $frameworkcode );
-$usedTagsLib     = &GetUsedMarcStructure( $frameworkcode );
-$mandatory_z3950 = GetMandatoryFieldZ3950($frameworkcode);
-# -- Global
-
 my $record   = -1;
 my $encoding = "";
 my (
@@ -586,7 +605,13 @@ my (
 );
 
 if ( $biblio && !$breedingid ) {
-    $record = $biblio->metadata->record;
+    eval { $record = $biblio->metadata->record };
+    if ($@) {
+        my $exception = $@;
+        $exception->rethrow unless ( $exception->isa('Koha::Exceptions::Metadata::Invalid') );
+        $record = $biblio->metadata->record_strip_nonxml;
+        $template->param( INVALID_METADATA => $exception );
+    }
 }
 if ($breedingid) {
     ( $record, $encoding ) = MARCfindbreeding( $breedingid ) ;
@@ -595,6 +620,19 @@ if ( $record && $op eq 'duplicate' &&
      C4::Context->preference('autoControlNumber') eq 'biblionumber' ){
     my @control_num = $record->field('001');
     $record->delete_fields(@control_num);
+}
+if ( $record && $op eq 'duplicate' ) {
+    if ( C4::Context->preference('marcflavour') eq 'MARC21' && $record->field('008') ) {
+        my $s008 = $record->field('008')->data;
+        my $date = POSIX::strftime( "%y%m%d", localtime );
+        substr( $s008, 0, 6, $date );
+        $record->field('008')->update($s008);
+    } elsif ( C4::Context->preference('marcflavour') eq 'UNIMARC' && $record->subfield( '100', 'a' ) ) {
+        my $s100a = $record->subfield( '100', 'a' );
+        my $date  = POSIX::strftime( "%Y%m%d", localtime );
+        substr( $s100a, 0, 8, $date );
+        $record->field('100')->update( a => $s100a );
+    }
 }
 #populate hostfield if hostbiblionumber is available
 if ($hostbiblionumber) {
@@ -611,13 +649,12 @@ if ($parentbiblio) {
     my $marcflavour = C4::Context->preference('marcflavour');
     $record = MARC::Record->new();
     SetMarcUnicodeFlag($record, $marcflavour);
-    my $hostfield = prepare_host_field($parentbiblio,$marcflavour);
+    my $parent    = Koha::Biblios->find($parentbiblio);
+    my $hostfield = $parent->generate_marc_host_field;
     if ($hostfield) {
         $record->append_fields($hostfield);
     }
 }
-
-$is_a_modif = 0;
 
 if ($biblionumber) {
     $is_a_modif = 1;
@@ -635,15 +672,14 @@ if ($biblionumber) {
     $sth->execute($biblionumber);
     ($biblioitemnumber) = $sth->fetchrow;
     if (C4::Context->preference('MARCOverlayRules')) {
-        my $member = Koha::Patrons->find($loggedinuser);
         $record = ApplyMarcOverlayRules(
             {
                 biblionumber    => $biblionumber,
                 record          => $record,
                 overlay_context =>  {
                         source       => $z3950 ? 'z3950' : 'intranet',
-                        categorycode => $member->categorycode,
-                        userid       => $member->userid
+                        categorycode => $logged_in_patron->categorycode,
+                        userid       => $logged_in_patron->userid,
                 }
             }
         );
@@ -651,7 +687,7 @@ if ($biblionumber) {
 }
 
 #-------------------------------------------------------------------------------------
-if ( $op eq "addbiblio" ) {
+if ( $op eq "cud-addbiblio" ) {
 #-------------------------------------------------------------------------------------
     $template->param(
         biblionumberdata => $biblionumber,
@@ -669,7 +705,6 @@ if ( $op eq "addbiblio" ) {
     if ( !$duplicatebiblionumber or $confirm_not_duplicate ) {
         my $oldbibitemnum;
         if ( $is_a_modif ) {
-            my $member = Koha::Patrons->find($loggedinuser);
             ModBiblio(
                 $record,
                 $biblionumber,
@@ -677,8 +712,8 @@ if ( $op eq "addbiblio" ) {
                 {
                     overlay_context => {
                         source       => $z3950 ? 'z3950' : 'intranet',
-                        categorycode => $member->categorycode,
-                        userid       => $member->userid
+                        categorycode => $logged_in_patron->categorycode,
+                        userid       => $logged_in_patron->userid,
                     }
                 }
             );
@@ -755,15 +790,29 @@ if ( $op eq "addbiblio" ) {
         );
     }
 }
-elsif ( $op eq "delete" ) {
     
-    my $error = &DelBiblio($biblionumber);
+elsif ( $op eq "cud-delete" ) {
+
+    # Cancel attached order lines first before deleting biblio !
+    my $error;
+    try {
+        my @result = Koha::Acquisition::Orders->search( { biblionumber => $biblionumber } )->cancel;
+        my $warns  = @{ $result[1] };
+        if ($warns) {    # warnings about order lines not cancelled
+            warn sprintf( "%d order lines were cancelled, but %d lines gave a warning\n", $result[0], $warns );
+        }
+        $error = &DelBiblio($biblionumber);
+    } catch {
+        $error = ref($_) ? 'Exception raised - ' . $_->error : $_;
+    };
+
     if ($error) {
+        #FIXME This should be handled in template alert
         warn "ERROR when DELETING BIBLIO $biblionumber : $error";
         print "Content-Type: text/html\n\n<html><body><h1>ERROR when DELETING BIBLIO $biblionumber : $error</h1></body></html>";
-	exit;
+        exit;
     }
-    
+
     print $input->redirect('/cgi-bin/koha/catalogue/search.pl' . ($searchid ? "?searchid=$searchid" : ""));
     exit;
     
@@ -780,7 +829,7 @@ elsif ( $op eq "delete" ) {
         $biblionumber = "";
     }
 
-    if($changed_framework eq "changed"){
+    if($changed_framework){
         $record = TransformHtmlToMarc( $input, 1 );
     }
     elsif( $record ne -1 ) {

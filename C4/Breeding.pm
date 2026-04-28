@@ -192,7 +192,7 @@ sub Z3950Search {
                             push @errconn, { server => $servers[$k]->{servername}, error => $error, seq => $i+1 } if $error;
                         }
                         else {
-                            push @errconn, { 'server' => $servers[$k]->{servername}, error => ( ( $oConnection[$k]->error_x() )[0] ), seq => $i+1 };
+                            push @errconn, { 'server' => $servers[$k]->{servername}, error => ( ( $oConnection[$k]->error_x() )[0] ), error_msg => ( ( $oConnection[$k]->error_x() )[1] ), seq => $i+1 };
                         }
                     }
                 }    #if $numresults
@@ -355,8 +355,8 @@ sub _do_xslt_proc {
 
 sub _add_custom_field_rowdata
 {
-    my ( $row, $record ) = @_;
-    my $pref_newtags = C4::Context->preference('AdditionalFieldsInZ3950ResultSearch');
+    my ( $row, $record, $pref_newtags ) = @_;
+    $pref_newtags //= '';
     my $pref_flavour = C4::Context->preference('MarcFlavour');
 
     $pref_newtags =~ s/^\s+|\s+$//g;
@@ -612,6 +612,10 @@ sub Z3950SearchAuth {
                             $row_data{heading}      = $heading;
                             $row_data{authid}       = $authid;
                             $row_data{heading_code} = $heading_authtype_code;
+                            $row_data{row}          = _add_custom_field_rowdata(
+                                { %row_data }, $marcrecord,
+                                C4::Context->preference('AdditionalFieldsInZ3950ResultAuthSearch')
+                            ) if C4::Context->preference('AdditionalFieldsInZ3950ResultAuthSearch');
                             push( @breeding_loop, \%row_data );
                         }
                         else {

@@ -1,6 +1,10 @@
 [% USE raw %]
+[% USE Koha %]
+[% USE To %]
 [% USE Asset %]
 [% USE KohaDates %]
+[% USE AuthorisedValues %]
+[% PROCESS 'i18n.inc' %]
 [% BLOCK edit_contact %]
     <ol id="contact-form">
         <input type="hidden" name="contact_id" value="[% contact.id | html %]" />
@@ -9,87 +13,152 @@
         <li><label for="contact_position[% contact.id | html %]">Position: </label>
             <input type="text" size="40" id="contact_position[% contact.id | html %]" name="contact_position" value="[% contact.position | html %]" /></li>
         <li><label for="contact_phone[% contact.id | html %]">Phone: </label>
-                <input type="text" size="20" id="contact_phone[% contact.id | html %]" name="contact_phone" value="[% contact.phone | html %]" /> </li>
+                <input type="tel" size="20" id="contact_phone[% contact.id | html %]" name="contact_phone" value="[% contact.phone | html %]" /> </li>
         <li><label for="contact_altphone[% contact.id | html %]">Alternative phone: </label>
-            <input type="text" size="20" id="contact_altphone[% contact.id | html %]" name="contact_altphone" value="[% contact.altphone | html %]" /></li>
+            <input type="tel" size="20" id="contact_altphone[% contact.id | html %]" name="contact_altphone" value="[% contact.altphone | html %]" /></li>
         <li><label for="contact_fax[% contact.id | html %]">Fax: </label>
-            <input type="text" size="20" id="contact_fax[% contact.id | html %]" name="contact_fax" value="[% contact.fax | html %]" /></li>
+            <input type="tel" size="20" id="contact_fax[% contact.id | html %]" name="contact_fax" value="[% contact.fax | html %]" /></li>
         <li><label for="contact_email[% contact.id | html %]">Email: </label>
-            <input type="text" size="40" id="contact_email[% contact.id | html %]" name="contact_email" value="[% contact.email | html %]" class="email" /></li>
+            <input type="email" size="40" id="contact_email[% contact.id | html %]" name="contact_email" value="[% contact.email | html %]" class="email" /></li>
         <li><label for="contact_notes[% contact.id | html %]">Notes: </label>
             <textarea id="contact_notes[% contact.id | html %]" name="contact_notes" cols="40" rows="4">[% contact.notes | html %]</textarea></li>
-        <li><label for="contact_acqprimary[% contact.id | html %]">Primary acquisitions contact:</label>
-            [% IF contact.acqprimary %]
-                <input type="checkbox" id="contact_acqprimary[% contact.id | html %]" class="contact_acqprimary" checked="checked"></input>
-            [% ELSE %]
-                <input type="checkbox" id="contact_acqprimary[% contact.id | html %]" class="contact_acqprimary"></input>
-            [% END %]
-            <input type="hidden" class="contact_acqprimary_hidden" name="contact_acqprimary" value="[% contact.acqprimary | html %]"></input>
-        <li><label for="contact_serialsprimary[% contact.id | html %]">Primary serials contact:</label>
-            [% IF contact.serialsprimary %]
-                <input type="checkbox" id="contact_serialsprimary[% contact.id | html %]" class="contact_serialsprimary" checked="checked"></input>
-            [% ELSE %]
-                <input type="checkbox" id="contact_serialsprimary[% contact.id | html %]" class="contact_serialsprimary"></input>
-            [% END %]
-            <input type="hidden" class="contact_serialsprimary_hidden" name="contact_serialsprimary" value="[% contact.serialsprimary | html %]"></input>
-        <li><label for="contact_orderacquisition[% contact.id | html %]">Contact when ordering?</label>
-            [% IF contact.orderacquisition %]
-                <input type="checkbox" id="contact_orderacquisition[% contact.id | html %]" class="contact_orderacquisition" checked="checked"></input>
-            [% ELSE %]
-                <input type="checkbox" id="contact_orderacquisition[% contact.id | html %]" class="contact_orderacquisition"></input>
-            [% END %]
-            <input type="hidden" class="contact_orderacquisition_hidden" name="contact_orderacquisition" value="[% contact.orderacquisition | html %]"></input>
-        <li><label for="contact_claimacquisition[% contact.id | html %]">Contact about late orders?</label>
-            [% IF contact.claimacquisition %]
-                <input type="checkbox" id="contact_claimacquisition[% contact.id | html %]" class="contact_claimacquisition" checked="checked"></input>
-            [% ELSE %]
-                <input type="checkbox" id="contact_claimacquisition[% contact.id | html %]" class="contact_claimacquisition"></input>
-            [% END %]
-            <input type="hidden" class="contact_claimacquisition_hidden" name="contact_claimacquisition" value="[% contact.claimacquisition | html %]"></input>
-        <li><label for="contact_claimissues[% contact.id | html %]">Contact about late issues?</label>
-            [% IF contact.claimissues %]
-                <input type="checkbox" id="contact_claimissues[% contact.id | html %]" class="contact_claimissues" checked="checked"></input>
-            [% ELSE %]
-                <input type="checkbox" id="contact_claimissues[% contact.id | html %]" class="contact_claimissues"></input>
-            [% END %]
-            <input type="hidden" class="contact_claimissues_hidden" name="contact_claimissues" value="[% contact.claimissues | html %]"></input>
-        </li>
-        [% IF contact.id %]<li><button class="btn btn-default delete-contact"><i class="fa fa-trash"></i> Delete contact</li>[% END %]
+    </ol>
+    <div style="display:flex">
+        <div>
+            <fieldset class="rows">
+                <legend>Acquisitions options</legend>
+                <ol class="radio">
+                    <li>
+                        <label>
+                            [% IF contact.acqprimary %]
+                                <input type="checkbox" id="contact_acqprimary[% contact.id | html %]" class="contact_acqprimary" checked="checked" />
+                            [% ELSE %]
+                                <input type="checkbox" id="contact_acqprimary[% contact.id | html %]" class="contact_acqprimary" />
+                            [% END %]
+                            <input type="hidden" class="contact_acqprimary_hidden" name="contact_acqprimary" value="[% contact.acqprimary | html %]" />
+                            Primary acquisitions contact
+                        </label>
+                    </li>
+                    <li>
+                        <label>
+                            [% IF contact.orderacquisition %]
+                                <input type="checkbox" id="contact_orderacquisition[% contact.id | html %]" class="contact_orderacquisition" checked="checked" />
+                            [% ELSE %]
+                                <input type="checkbox" id="contact_orderacquisition[% contact.id | html %]" class="contact_orderacquisition" />
+                            [% END %]
+                            <input type="hidden" class="contact_orderacquisition_hidden" name="contact_orderacquisition" value="[% contact.orderacquisition | html %]" />
+                            Contact when ordering
+                        </label>
+                    </li>
+                    <li>
+                        <label>
+                            [% IF contact.claimacquisition %]
+                                <input type="checkbox" id="contact_claimacquisition[% contact.id | html %]" class="contact_claimacquisition" checked="checked" />
+                            [% ELSE %]
+                                <input type="checkbox" id="contact_claimacquisition[% contact.id | html %]" class="contact_claimacquisition" />
+                            [% END %]
+                            <input type="hidden" class="contact_claimacquisition_hidden" name="contact_claimacquisition" value="[% contact.claimacquisition | html %]" />
+                            Contact about late orders
+                        </label>
+                    </li>
+                </ol>
+            </fieldset>
+        </div>
+        <div>
+            <fieldset class="rows">
+                <legend>Serials options</legend>
+                <ol class="radio">
+                    <li>
+                        <label>
+                            [% IF contact.serialsprimary %]
+                                <input type="checkbox" id="contact_serialsprimary[% contact.id | html %]" class="contact_serialsprimary" checked="checked" />
+                            [% ELSE %]
+                                <input type="checkbox" id="contact_serialsprimary[% contact.id | html %]" class="contact_serialsprimary" />
+                            [% END %]
+                            <input type="hidden" class="contact_serialsprimary_hidden" name="contact_serialsprimary" value="[% contact.serialsprimary | html %]" />
+                            Primary serials contact
+                        </label>
+                    </li>
+                    <li>
+                        <label>
+                            [% IF contact.claimissues %]
+                                <input type="checkbox" id="contact_claimissues[% contact.id | html %]" class="contact_claimissues" checked="checked" />
+                            [% ELSE %]
+                                <input type="checkbox" id="contact_claimissues[% contact.id | html %]" class="contact_claimissues" />
+                            [% END %]
+                            <input type="hidden" class="contact_claimissues_hidden" name="contact_claimissues" value="[% contact.claimissues | html %]" />
+                            Contact about late issues
+                        </label>
+                    </li>
+                </ol>
+            </fieldset>
+        </div>
+    </div>
+
+        [% IF contact.id %]<li><button class="btn btn-default delete-contact"><i class="fa fa-trash-can"></i> Delete contact</li>[% END %]
     </ol>
 [% END %]
 
 [% BLOCK show_contact %]
     <h3>[% contact.name | html %]</h3>
-    <p><span class="label">Position: </span>[% contact.position | html %]</p>
-    <p><span class="label">Phone: </span>[% contact.phone | html %]</p>
-    <p><span class="label">Alternative phone: </span>[% contact.altphone | html %]</p>
-    <p><span class="label">Fax: </span>[% contact.fax | html %]</p>
-    [% IF ( contact.email ) %]
-        <p><span class="label">Email: </span><a href="mailto:[% contact.email | uri %]">[% contact.email | html %]</a></p>
-    [% END %]
-    [% IF ( contact.notes ) %]
-        <p><span class="label">Notes: </span>[% contact.notes | html %]</p>
-    [% END %]
-    [% IF ( contact.acqprimary ) %]
-        <p><span class="label">Primary acquisitions contact</span></p>
-    [% END %]
-    [% IF ( contact.serialsprimary ) %]
-        <p><span class="label">Primary serials contact</span></p>
-    [% END %]
-    [% IF ( contact.orderacquisition ) %]
-        <p><span class="label">Receives orders</span></p>
-    [% END %]
-    [% IF ( contact.claimacquisition ) %]
-        <p><span class="label">Receives claims for late orders</span></p>
-    [% END %]
-    [% IF ( contact.claimissues ) %]
-        <p><span class="label">Receives claims for late issues</span></p>
-    [% END %]
+    <ol>
+        <li><span class="label">Position: </span>[% contact.position | html %]</li>
+        <li><span class="label">Phone: </span>[% contact.phone | html %]</li>
+        <li><span class="label">Alternative phone: </span>[% contact.altphone | html %]</li>
+        <li><span class="label">Fax: </span>[% contact.fax | html %]</li>
+        [% IF ( contact.email ) %]
+            <li><span class="label">Email: </span><a href="mailto:[% contact.email | uri %]">[% contact.email | html %]</a></li>
+        [% END %]
+        [% IF ( contact.notes ) %]
+            <li><span class="label">Notes: </span>[% contact.notes | html %]</li>
+        [% END %]
+        [% IF ( contact.acqprimary || contact.orderacquisition || contact.claimacquisition ) %]
+            <li>
+                <span class="label">Acquisitions options:</span>
+                <ol>
+                    [% IF ( contact.acqprimary ) %]
+                        <li><span class="label"></span> <i class="fa fa-check"></i> Primary acquisitions contact</li>
+                    [% END %]
+                    [% IF ( contact.orderacquisition ) %]
+                        <li><span class="label"></span> <i class="fa fa-check"></i> Receives orders</li>
+                    [% END %]
+                    [% IF ( contact.claimacquisition ) %]
+                        <li><span class="label"></span> <i class="fa fa-check"></i> Receives claims for late orders</li>
+                    [% END %]
+                </ol>
+            </li>
+        [% END %]
+        [% IF ( contact.serialsprimary || contact.claimissues ) %]
+            <li>
+                <span class="label">Serials options:</span>
+                <ol>
+                    [% IF ( contact.serialsprimary ) %]
+                        <li><span class="label"></span> <i class="fa fa-check"></i> Primary serials contact</li>
+                    [% END %]
+                    [% IF ( contact.claimissues ) %]
+                        <li><span class="label"></span> <i class="fa fa-check"></i> Receives claims for late issues</li>
+                    [% END %]
+                </ol>
+            </li>
+        [% END %]
+    </ol>
 [% END %]
 
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Vendor [% name | html %] &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF ( enter ) %]
+        [% IF ( booksellerid ) %]
+            [% tx("Modify vendor '{vendor}'", { vendor = name }) | html %]
+        [% ELSE %]
+            [% t("Add vendor") | html %]
+        [% END %]
+    [% ELSE %]
+        [% tx("Vendor '{vendor}'", { vendor = name }) | html %]
+    [% END %] &rsaquo;
+    [% t("Acquisitions") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -109,7 +178,7 @@
                     <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% name | html %]</a>
                 [% END %]
                 [% WRAPPER breadcrumb_item bc_active= 1 %]
-                    <span>Modify [% name | html %]</span>
+                    [% tx("Modify vendor '{vendor}'", { vendor = name }) | html %]
                 [% END %]
             [% ELSE %]
                 [% WRAPPER breadcrumb_item bc_active= 1 %]
@@ -126,26 +195,32 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
-            <main>
 
     [% IF ( enter ) %]
-        [% IF ( booksellerid ) %]
-        <h1>Update: [% name | html %]</h1>
+        <div class="col-md-10 order-sm-1 order-md-2">
+            <main>
+                [% INCLUDE 'messages.inc' %]
+                [% IF ( booksellerid ) %]
+                    <h1>Modify vendor '[% name | html %]'</h1>
+                [% ELSE %]
+                    <h1>Add vendor</h1>
+                [% END %]
     [% ELSE %]
-        <h1>Add vendor</h1>
-    [% END %]
+        <div class="col-md-10 order-sm-1 order-md-2">
+            <main>
     [% END %]
 [% UNLESS ( enter ) %][% INCLUDE 'acquisitions-toolbar.inc' %][% END %]
 [% IF ( enter ) %]
-    <form action="updatesupplier.pl" name="updatesupplier" style="display:block" class="validated" method="post">
-        <div id="toolbar" class="btn-toolbar">
+    <form action="updatesupplier.pl" name="updatesupplier" class="validated" method="post">
+        <input type="hidden" name="op" value="cud-add"/>
+        [% INCLUDE 'csrf-token.inc' %]
+        <div id="toolbar" class="btn-toolbar sticky">
             <button class="btn btn-primary" type="submit"><i class="fa fa-save"></i> Save</button>
             [% IF ( booksellerid ) %]
                 <a class="btn btn-default cancel" href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | html %]">
             [% ELSE %]
                 <a class="btn btn-default cancel" href="/cgi-bin/koha/acqui/acqui-home.pl">
-            [% END %] <i class="fa fa-remove"></i> Cancel</a>
+            [% END %] <i class="fa fa-times"></i> Cancel</a>
         </div>
 
         <input type="hidden" name="booksellerid" value="[% booksellerid | html %]" />
@@ -158,16 +233,20 @@
             <li><label for="physical">Physical address: </label>
                 <textarea id="physical" name="physical" cols="40" rows="3">[% address1 | html %][% address2 | html %][% address3 | html %][% address4 | html %]</textarea></li>
             <li><label for="company_phone">Phone: </label>
-                <input type="text" size="20" id="company_phone" name="company_phone" value="[% phone | html %]" /></li>
+                <input type="tel" size="20" id="company_phone" name="company_phone" value="[% phone | html %]" /></li>
             <li><label for="company_fax">Fax: </label>
-                <input type="text" size="20" id="company_fax" name="company_fax" value="[% fax | html %]" /></li>
+                <input type="tel" size="20" id="company_fax" name="company_fax" value="[% fax | html %]" /></li>
             <li><label for="website">Website: </label>
-                <input type="text" size="40" id="website" name="website" value="[% url | html %]" class="url" /></li>
+                <input type="url" size="40" id="website" name="website" value="[% url | html %]" class="url" /></li>
             <li><label for="accountnumber">Account number: </label>
                 <input type="text" size="40" id="accountnumber" name="accountnumber" value="[% accountnumber | html %]" /></li>
                 <li>
                     <label for="vendor_type">Vendor type: </label>
                     [% PROCESS 'av-build-dropbox.inc' name="vendor_type", category="VENDOR_TYPE", default=type, empty=1, size = 20 %]
+                </li>
+                <li>
+                    <label for="aliases">Aliases: </label>
+                    <div id="aliases" style="padding-left: 11rem;"></div>
                 </li>
             </ol>
         </fieldset>
@@ -184,6 +263,11 @@
                 </fieldset>
             [% END %]
             <button id="add-contact" class="btn btn-default"><i class="fa fa-plus"></i> Add another contact</button>
+        </fieldset>
+
+        <fieldset class="rows">
+            <legend>Interfaces</legend>
+            <div id="interfaces"></div>
         </fieldset>
 
         <fieldset class="rows">
@@ -278,7 +362,7 @@
                 <input type="hidden" name="tax_rate" value="0" />
             [% END %]
             <li><label for="discount">Discount: </label>
-                <input type="text" size="6" id="discount" name="discount" value="[% discount | format ('%.1f') %]" />%</li>
+                <input class="rate" type="text" size="6" id="discount" name="discount" value="[% discount | html %]" />%</li>
             <li>
                 <label for="deliverytime">Delivery time: </label>
                 <input type="text" size="2" id="deliverytime" name="deliverytime" value="[% deliverytime | html %]" /> days
@@ -292,46 +376,92 @@
 [% ELSE %]
     <h1>[% name | html %]</h1>
         <div class="row">
-            <div class="col-sm-6">
-                <div id="supplier-company-details" class="page-section">
+            <div class="col">
+                <div id="supplier-company-details" class="page-section rows">
                     <h2>Vendor details</h2>
-                    <p><span class="label">Type: </span>[% type | html %]</p>
-                    <p><span class="label">Company name: </span>[% name | html %]</p>
-                    <p><span class="label">Postal address: </span>[% postal | html %]</p>
-                    <p><span class="label">Physical address: </span>[% address1 | html %][% address2 | html %][% address3 | html %][% address4 | html %]</p>
-                    <p><span class="label">Phone: </span>[% phone | html %]</p>
-                    <p><span class="label">Fax: </span>[% fax | html %]</p>
+                    <ol>
+                    <li>
+                        <span class="label">Type: </span>
+                        [% IF (type) %][% AuthorisedValues.GetByCode( 'VENDOR_TYPE', type ) | html %][% END %]
+                    </li>
+                    <li><span class="label">Company name: </span>[% name | html %]</li>
+                    <li><span class="label">Postal address: </span>[% postal | html %]</li>
+                    <li><span class="label">Physical address: </span>[% address1 | html %][% address2 | html %][% address3 | html %][% address4 | html %]</li>
+                    <li><span class="label">Phone: </span>[% phone | html %]</li>
+                    <li><span class="label">Fax: </span>[% fax | html %]</li>
                     [% IF ( url ) %]
-                        <p><span class="label">Website: </span><a href="[% url | url %]">[% url | html %]</a></p>
+                        <li><span class="label">Website: </span><a href="[% url | url %]" target="_blank">[% url | html %]</a></li>
                     [% END %]
                     [% IF ( accountnumber ) %]
-                        <p><span class="label">Account number: </span>[% accountnumber | html %]</p>
+                        <li><span class="label">Account number: </span>[% accountnumber | html %]</li>
                     [% END %]
+                    [% IF vendor.aliases.count %]
+                        <li>
+                            <span class="label">Aliases: </span>
+                            <ul>
+                            [% FOR alias IN vendor.aliases %]
+                                <li>[% alias.alias | html %]</li>
+                            [% END %]
+                            </ul>
+                        </li>
+                    [% END %]
+                    </ol>
                 </div> <!-- /#supplier-company-details -->
 
-                <div id="supplier-ordering-information" class="page-section">
+                <div id="supplier-ordering-information" class="page-section rows">
                     <h2>Ordering information</h2>
-                    <p><strong>Vendor is: </strong>[% IF ( active ) %]Active[% ELSE %]Inactive[% END %]</p>
-                    <p><strong>List prices are: </strong>[% listprice | html %]</p>
-                    <p><strong>Invoice prices are: </strong>[% invoiceprice | html %]</p>
+                    <li><span class="label">Vendor is: </span>[% IF ( active ) %]Active[% ELSE %]Inactive[% END %]</li>
+                    <li><span class="label">List prices are: </span>[% listprice | html %]</li>
+                    <li><span class="label">Invoice prices are: </span>[% invoiceprice | html %]</li>
                     [% IF ( tax_rate ) %]
-                        <p><strong>Tax number registered: </strong>[% IF ( gstreg ) %]Yes[% ELSE %]No[% END %]</p>
-                        <p><strong>List item price includes tax: </strong>[% IF ( listincgst ) %]Yes[% ELSE %]No[% END %]</p>
-                        <p><strong>Invoice item price includes tax: </strong>[% IF ( invoiceincgst ) %]Yes[% ELSE %]No[% END %]</p>
+                        <li><span class="label">Tax number registered: </span>[% IF ( gstreg ) %]Yes[% ELSE %]No[% END %]</li>
+                        <li><span class="label">List item price includes tax: </span>[% IF ( listincgst ) %]Yes[% ELSE %]No[% END %]</li>
+                        <li><span class="label">Invoice item price includes tax: </span>[% IF ( invoiceincgst ) %]Yes[% ELSE %]No[% END %]</li>
                     [% END %]
-                    <p><strong>Discount: </strong>[% discount | format("%.1f") %] %</p>
-                    <p><strong>Tax rate: </strong>[% ( tax_rate || 0 ) * 100 | html %] %</p>
+                    <li><span class="label">Discount: </span>[% ( discount || 0 ) | format("%.1f" ) %] %</li>
+                    <li><span class="label">Tax rate: </span>[% ( tax_rate || 0 ) * 100 | html %] %</li>
                     [% IF deliverytime.defined %]
-                        <p><strong>Delivery time: </strong>[% deliverytime | html %] days</p>
+                        <li><span class="label">Delivery time: </span>[% deliverytime | html %] days</li>
                     [% END %]
                     [% IF ( notes ) %]
-                        <p><strong>Notes: </strong>[% notes | html %]</p>
+                        <li><span class="label">Notes: </span>[% notes | html %]</li>
                     [% END %]
                 </div> <!-- #supplier-ordering-information -->
-            </div> <!-- /.col-sm-6 -->
 
-            <div class="col-sm-6">
-                <div id="supplier-contact-details" class="page-section">
+                [% IF vendor.interfaces.count %]
+                <div id="supplier-interfaces" class="page-section rows">
+                    <h2>Interfaces</h2>
+
+                    [% FOR i IN vendor.interfaces %]
+                        <h3>[% i.name | html %]</h3>
+                        [% IF i.type %]
+                            <li><span class="label">Type: </span>[% AuthorisedValues.GetByCode( 'VENDOR_INTERFACE_TYPE', i.type) | html %]</li>
+                        [% END %]
+                        [% IF i.uri %]
+                            <li>
+                                <span class="label">URI: </span><a href="[% i.uri | url %]" target="_blank">[% i.uri | html %]</a>
+                            </li>
+                        [% END %]
+                        [% IF i.login %]
+                            <li><span class="label">Login: </span>[% i.login | html %]</li>
+                        [% END %]
+                        [% IF i.password %]
+                            <li><span class="label">Password: </span><span class="password"><a href="#" class="show_password" data-plain-text-password="[% i.plain_text_password | html %]">Show</a></span></span></li>
+                        [% END %]
+                        [% IF i.account_email %]
+                            <li><span class="label">Account email: </span>[% i.account_email | html %]</li>
+                        [% END %]
+                        [% IF i.notes %]
+                            <li><span class="label">Notes: </span>[% i.notes | html %]</li>
+                        [% END %]
+                    [% END %]
+                </div>
+                [% END %]
+
+            </div> <!-- /.col -->
+
+            <div class="col">
+                <div id="supplier-contact-details" class="page-section rows">
                     <h2>Contact</h2>
                     [% FOREACH contact IN contacts %]
                         [% INCLUDE show_contact %]
@@ -348,12 +478,12 @@
                         [% END %]
                     </p>
                 </div> <!-- /#subscription-details -->
-            </div> <!-- /.col-sm-6 -->
+            </div> <!-- /.col -->
 
-        </div>
+        </div> <!-- /.row -->
 
         [% IF ( contracts ) %]
-            <div id="supplier-contracts" class="page-section">
+            <div id="supplier-contracts" class="page-section rows">
                 <h2>Contract(s)</h2>
                 <table id="contractst">
                   <thead>
@@ -378,8 +508,8 @@
                         <td data-order="[% contract.contractenddate | html %]">[% contract.contractenddate | $KohaDates %]</td>
                         [% IF CAN_user_acquisition_contracts_manage %]
                             <td class="actions">
-                                <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/aqcontract.pl?op=add_form&amp;contractnumber=[% contract.contractnumber | html %]&amp;booksellerid=[% contract.booksellerid | html %]"><i class="fa fa-pencil"></i> Edit</a>
-                                <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/aqcontract.pl?op=delete_confirm&amp;contractnumber=[% contract.contractnumber | html %]&amp;booksellerid=[% contract.booksellerid | html %]"><i class="fa fa-trash"></i> Delete</a>
+                                <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/aqcontract.pl?op=add_form&amp;contractnumber=[% contract.contractnumber | html %]&amp;booksellerid=[% contract.booksellerid | html %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+                                <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/aqcontract.pl?op=delete_confirm&amp;contractnumber=[% contract.contractnumber | html %]&amp;booksellerid=[% contract.booksellerid | html %]"><i class="fa fa-trash-can"></i> Delete</a>
                             </td>
                         [% END %]
                         </tr>
@@ -392,35 +522,26 @@
 [% END %]
 
 </main>
-</div> <!-- /.col-sm-10.col-sm-push-2 -->
+</div> <!-- /.col-md-10.order-md-2 -->
 
-<div class="col-sm-2 col-sm-pull-10">
+<div class="col-md-2 order-sm-2 order-md-1">
     <aside>
         [% INCLUDE 'vendor-menu.inc' %]
     </aside>
-</div> <!-- /.col-sm-2.col-sm-pull-10 -->
+</div> <!-- /.col-md-2.order-md-1 -->
 </div> <!-- /.row -->
+
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/acquisitions-menu.js") | $raw %]
-    [% Asset.js("lib/hc-sticky.js") | $raw %]
     [% Asset.js("js/acq.js") | $raw %]
     [% INCLUDE 'datatables.inc' %]
     <script>
-        function confirm_deletion() {
-            if (confirm(_("Confirm deletion of this vendor ?"))) {
-                window.location="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | html %]&op=delete";
-            }
-        }
-
         function add_contact() {
             var new_contact = $('#contact-template').clone();
             var timestamp = new Date().getTime();
             $(new_contact).removeAttr('id');
             $('input, textarea', new_contact).each(function () {
                 $(this).attr('id', $(this).attr('id') + '_' + timestamp);
-            });
-            $('label', new_contact).each(function () {
-                $(this).attr('for', $(this).attr('for') + '_' + timestamp);
             });
             $(new_contact).insertBefore(this);
             if ($('.supplier-contact').length === 2) { // First contact
@@ -437,14 +558,143 @@
             ev.preventDefault();
         }
 
-        var Sticky;
+        [% IF vendor %]
+        let aliases = [% To.json(vendor.aliases.unblessed) | $raw %];
+        [% ELSE %]
+        let aliases = [];
+        [% END %]
+        function remove_alias(i){
+            aliases.splice(i, 1);
+            refresh_aliases();
+        }
+
+        function encodeHTMLEntities(str){
+            return str.replace(/[&<>'"]/g,
+              tag => ({
+                  '&': '&amp;',
+                  '<': '&lt;',
+                  '>': '&gt;',
+                  "'": '&#39;',
+                  '"': '&quot;'
+                }[tag]));
+        }
+
+        function add_alias(){
+            let alias = $("#new_alias").val();
+            if ( !alias.length > 0 ) { return }
+            aliases.push({alias});
+            refresh_aliases();
+        }
+        function refresh_aliases(){
+            let nodes = $("<div></div>");
+            aliases.forEach((a, i) => {
+                let alias_str = encodeHTMLEntities(a.alias);
+                let n = $("<div></div>").append(alias_str);
+                let input = $('<input type="hidden" name="alias" />');
+                input.val(a.alias);
+                n.append(input);
+                n.append(` <a style="cursor: pointer;" onclick="remove_alias(${i});"><i class="fa fa-trash" aria-hidden="true"></i> ` + _("Remove") + '</a>');
+                nodes.append(n);
+            });
+            nodes.append("<input id='new_alias' type='text' class='noEnterSubmit' />");
+            nodes.append(' <a style="cursor: pointer;" onclick="add_alias();"><i class="fa fa-plus" aria-hidden="true"></i> ' + _("Add") + '</a>');
+            $("#aliases").html(nodes.html());
+        }
+
+        [% IF vendor %]
+            let interfaces = [];
+            [% FOR i_object IN vendor.interfaces %]
+                [% SET i = i_object.unblessed %]
+                [% SET i.password = i_object.plain_text_password %]
+                interfaces.push([% To.json(i) | $raw %]);
+            [% END %]
+        [% ELSE %]
+            let interfaces = [];
+        [% END %]
+        function serialize_interface_form(){
+            interfaces = [];
+            $("#interfaces > fieldset.supplier-interface > ol.interface-form").each( (index, interface_form )=> {
+                let interface = {};
+                $(interface_form).find('input,textarea,select').serializeArray().map(attr => {
+                    let name = attr.name.replace(/interface_([\w_]+)_\d+/, "$1");
+                    interface[name] = attr.value
+                })
+                interfaces.push(interface);
+            });
+            return interfaces;
+        }
+        function remove_interface(i){
+            interfaces = serialize_interface_form();
+            interfaces.splice(i, 1);
+            refresh_interfaces();
+        }
+        function add_interface(){
+            interfaces = serialize_interface_form();
+            interfaces.push({
+                type: "",
+                name: "",
+                uri: "",
+                login: "",
+                password: "",
+                account_email: "",
+                notes: "",
+            });
+            refresh_interfaces();
+        }
+        let av_select = {
+            VENDOR_INTERFACE_TYPE: $("[% PROCESS 'av-build-dropbox.inc', category="VENDOR_INTERFACE_TYPE" empty=1 | replace('\n', '') | replace('"', '\"') %]"),
+        };
+        function refresh_interfaces(){
+            let nodes = $("<div id='interfaces'></div>");
+            interfaces.forEach((interface, i) => {
+                let n = $("<fieldset class='supplier-interface'></fieldset>");
+                n.append("<legend>" + _("Interface details") + "</legend>");
+                n.append(`<input type="hidden" name="interface_counter" value="${i}" />`);
+                let ol = $('<ol class="interface-form"></ol>');
+                let attributes = [
+                    { label: _("Name:"),          name: 'name',          type: 'text',     node: 'input' },
+                    { label: _("Type:"),          name: 'type',          type: 'select',   node: 'av_select', av_cat: 'VENDOR_INTERFACE_TYPE' },
+                    { label: _("URI:"),           name: 'uri',           type: 'url',      node: 'input' },
+                    { label: _("Login:"),         name: 'login',         type: 'text',     node: 'input' },
+                    { label: _("Password:"),      name: 'password',      type: 'text',     node: 'input' },
+                    { label: _("Account email:"), name: 'account_email', type: 'email',    node: 'input' },
+                    { label: _("Notes:"),         name: 'notes',         type: 'textarea', node: 'textarea' }
+                ];
+                attributes.forEach((attribute, ii) => {
+                    let li = $('<li></li>');
+                    li.append(`<label for="interface_${attribute.name}_${i}">${attribute.label}</label>`);
+                    if( attribute.node == 'input' ) {
+                        li.append(`<input type="${attribute.type}" size="40" id="interface_${attribute.name}_${i}" name="interface_${attribute.name}_${i}" value="${interface[attribute.name]}" />`);
+                    } else if ( attribute.node == 'textarea' ) {
+                        li.append(`<textarea cols="40" rows="3" id="interface_${attribute.name}_${i}" name="interface_${attribute.name}_${i}">${interface[attribute.name]}</textarea>`);
+                    } else if ( attribute.node == 'av_select' ) {
+                        let select = av_select[attribute.av_cat].clone();
+                        select.attr('name', `interface_${attribute.name}_${i}`);
+                        select.find(`option[value='${interface[attribute.name]}']`).prop("selected", true);
+                        li.append(select);
+                    }
+                    ol.append(li);
+                });
+                ol.append(`<li><button class="btn btn-default" onclick="remove_interface(${i});"><i class="fa fa-trash"></i> ` + _("Delete interface") + '</li>');
+                n.append(ol);
+                nodes.append(n);
+            });
+            nodes.append(`<button onclick="add_interface();" class="btn btn-default"><i class="fa fa-plus"></i> ` + _("Add another interface") + '</button>')
+            $("#interfaces").replaceWith(nodes);
+
+            interfaces.forEach((interface, i) => {
+                $("#interface_account_email_" + i).rules("add", {
+                    email: true,
+                });
+            });
+        }
 
          $(document).ready(function() {
             var contractst = $("#contractst").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "bSortable": false, "bSearchable": false, 'aTargets': [ 'NoSort' ] }
+                "columnDefs": [
+                    { "orderable": false, "searchable":  false, "targets": [ 'NoSort' ] }
                 ],
-                'sDom': 't'
+                "dom": 't'
             } ) );
             $('body').on('click', '.delete-contact', null, delete_contact);
             $('#add-contact').click(add_contact);
@@ -476,11 +726,13 @@
                 $(this).next('.contact_claimissues_hidden').val($(this).is(':checked') ? '1' : '0');
             });
 
-            Sticky = $("#toolbar");
-            Sticky.hcSticky({
-                stickTo: "main",
-                stickyClass: "floating"
+            $('body').on('click', '.show_password', null, function(e){
+                e.preventDefault();
+                $(this).parent().replaceWith($(this).data('plain-text-password'));
             });
+            refresh_aliases();
+            refresh_interfaces();
+
         });
     </script>
 [% END %]

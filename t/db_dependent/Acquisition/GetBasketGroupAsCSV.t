@@ -28,10 +28,22 @@ my $vendor = Koha::Acquisition::Bookseller->new({
     deliverytime => 5,
 })->store;
 
-my $budget_id = C4::Budgets::AddBudget({
-    budget_code => 'my_budget_code',
-    budget_name => 'My budget name',
-});
+my $budget_period_id = C4::Budgets::AddBudgetPeriod(
+    {
+        budget_period_startdate   => '2024-01-01',
+        budget_period_enddate     => '2049-01-01',
+        budget_period_active      => 1,
+        budget_period_description => "TEST PERIOD"
+    }
+);
+
+my $budget_id = C4::Budgets::AddBudget(
+    {
+        budget_code      => 'my_budget_code',
+        budget_name      => 'My budget name',
+        budget_period_id => $budget_period_id,
+    }
+);
 my $budget = C4::Budgets::GetBudget( $budget_id );
 
 my $basketno = C4::Acquisition::NewBasket($vendor->id, 1);
@@ -58,16 +70,27 @@ my $order = Koha::Acquisition::Order->new({
     entrydate => '2016-01-02',
 })->store;
 
-my $basketgroup_csv1 = C4::Acquisition::GetBasketGroupAsCSV($basketgroupid, $query);
-is($basketgroup_csv1, 'Account number,Basket name,Order number,Author,Title,Publisher,Publication year,Collection title,ISBN,Quantity,RRP tax included,RRP tax excluded,Discount,Estimated cost tax included,Estimated cost tax excluded,Note for vendor,Entry date,Bookseller name,Bookseller physical address,Bookseller postal address,Contract number,Contract name,Basket group delivery place,Basket group billing place,Basket delivery place,Basket billing place
-,"",' . $order->ordernumber  . ',"King, Stephen","Test Record","",,"",,3,0.00,0.00,,0.00,0.00,"",2016-01-02,"my vendor","vendor address","",,"","","","",""
-', 'CSV should be generated');
+t::lib::Mocks::mock_preference('CSVDelimiter', ',');
+
+my $basketgroup_csv1 = C4::Acquisition::GetBasketGroupAsCSV( $basketgroupid, $query );
+is(
+    $basketgroup_csv1,
+    '"Account number","Basket name","Order number","Author","Title","Publisher","Publication year","Collection title","ISBN","Quantity","RRP tax included","RRP tax excluded","Discount","Estimated cost tax included","Estimated cost tax excluded","Note for vendor","Entry date","Vendor name","Vendor physical address","Vendor postal address","Contract number","Contract name","Basket group delivery place","Basket group billing place","Basket delivery place","Basket billing place"
+,"",'
+        . $order->ordernumber
+        . ',"King, Stephen","Test Record","",,"",,3,0.00,0.00,,0.00,0.00,"",2016-01-02,"my vendor","vendor address","",,"","","","",""
+', 'CSV should be generated'
+);
 
 Koha::Biblios->find($biblionumber)->delete;
-my $basketgroup_csv2 = C4::Acquisition::GetBasketGroupAsCSV($basketgroupid, $query);
-is($basketgroup_csv2, 'Account number,Basket name,Order number,Author,Title,Publisher,Publication year,Collection title,ISBN,Quantity,RRP tax included,RRP tax excluded,Discount,Estimated cost tax included,Estimated cost tax excluded,Note for vendor,Entry date,Bookseller name,Bookseller physical address,Bookseller postal address,Contract number,Contract name,Basket group delivery place,Basket group billing place,Basket delivery place,Basket billing place
-,"",' . $order->ordernumber  . ',"","","",,"",,3,0.00,0.00,,0.00,0.00,"",2016-01-02,"my vendor","vendor address","",,"","","","",""
-', 'CSV should not fail if biblio does not exist');
-
+my $basketgroup_csv2 = C4::Acquisition::GetBasketGroupAsCSV( $basketgroupid, $query );
+is(
+    $basketgroup_csv2,
+    '"Account number","Basket name","Order number","Author","Title","Publisher","Publication year","Collection title","ISBN","Quantity","RRP tax included","RRP tax excluded","Discount","Estimated cost tax included","Estimated cost tax excluded","Note for vendor","Entry date","Vendor name","Vendor physical address","Vendor postal address","Contract number","Contract name","Basket group delivery place","Basket group billing place","Basket delivery place","Basket billing place"
+,"",'
+        . $order->ordernumber
+        . ',"","","",,"",,3,0.00,0.00,,0.00,0.00,"",2016-01-02,"my vendor","vendor address","",,"","","","",""
+', 'CSV should not fail if biblio does not exist'
+);
 
 $schema->storage->txn_rollback();

@@ -1,18 +1,30 @@
+[% USE raw %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Add to list &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Add to list") | html %] &rsaquo;
+    [% t("Lists") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
+<style>
+    fieldset.rows {
+        float: none;
+    }
+</style>
 </head>
 
 <body id="lists_addbybiblionumber" class="lists">
     <div class="container-fluid">
 
 [% UNLESS (authorized) %]
-<h1>Error adding to list</h1>
-    <p align="center">
-        [% IF (errcode==1) %]Could not create a new list. Please check the name.<br/>[% END %]
-        [% IF (errcode==2) %]Sorry, you do not have permission to add items to this list.<br/>[% END %]
-        <a href="javascript:self.close();">Close this window.</a>
-    </p>
+    <h1>Error adding to list</h1>
+    <div class="alert alert-warning">
+        [% IF (errcode==1) %]<p>Could not create a new list. Please check the name.</p>[% END %]
+        [% IF (errcode==2) %]<p>Sorry, you do not have permission to add items to this list.</p>[% END %]
+        [% IF (errcode==3) %]<p>The titles selected were not found</p>[% END %]
+        <button class="btn btn-default close_window focus">Close window</button>
+    </div>
 [% ELSE %]
 
                 [% IF ( multiple ) %]
@@ -29,6 +41,7 @@
                 </ul>
 
         <form name="f1" action="/cgi-bin/koha/virtualshelves/addbybiblionumber.pl" method="post">
+            [% INCLUDE 'csrf-token.inc' %]
                         [% FOREACH biblio IN biblios %] <input type="hidden" name="biblionumber" value="[% biblio.biblionumber | html %]" />[% END %]
             <input type="hidden" name="confirmed" value="1" />
             [% IF ( shelfnumber ) %]<input type="hidden" name="shelfnumber" value="[% shelfnumber | html %]" />[% END %]
@@ -105,15 +118,17 @@
 
 [% END %]
 
-
-<!-- SAVE -->
-            <fieldset class="action">
-            <input type="hidden" name="sortfield" value="title" />
-            <input type="submit" class="btn btn-primary" value="Save" /> <a class="close cancel" href="#">Cancel</a>
-            </fieldset>
-        </form>
-<!-- /SAVE -->
-
+        <input type="hidden" name="sortfield" value="title" />
+        <nav class="navbar navbar-default fixed-bottom">
+            <div class="container-fluid">
+                <fieldset class="action">
+                    <input type="hidden" name="op" value="cud-add" />
+                    <input type="submit" class="btn btn-primary" value="Save" />
+                    <button class="btn btn-default close_window">Cancel</button>
+                </fieldset>
+            </div>
+        </nav>
+    </form>
 [% END %]
 
 [% SET popup_window = 1 %]

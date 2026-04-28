@@ -19,13 +19,15 @@ use Modern::Perl;
 use utf8;
 use Encode;
 
-use Test::More tests => 5;
+use Test::More tests => 6;
 use Test::MockModule;
 use Test::Exception;
+use Test::Warn;
 
 use Koha::Database;
 use Koha::BackgroundJobs;
 use Koha::BackgroundJob::BatchUpdateItem;
+use Koha::BackgroundJob::MARCImportCommitBatch;
 
 use t::lib::Mocks;
 use t::lib::Mocks::Logger;
@@ -69,9 +71,22 @@ subtest '_derived_class() tests' => sub {
 
 subtest 'enqueue() tests' => sub {
 
-    plan tests => 8;
+    plan tests => 10;
 
     $schema->storage->txn_begin;
+
+    # Enqueue without args
+    throws_ok { Koha::BackgroundJob::BatchUpdateItem->new->enqueue }
+    'Koha::Exceptions::BackgroundJob',
+        'Enqueue BatchUpdateItem without data throws exception';
+
+    # The following test needs a mock to trigger the exception
+    my $mock = Test::MockModule->new('Net::Stomp');
+    $mock->mock( 'send_with_receipt', sub { 0 } );
+    throws_ok { Koha::BackgroundJob::MARCImportCommitBatch->new->enqueue }
+    'Koha::Exceptions::BackgroundJob',
+        'Enqueue MARCImportCommitBatch with mock throws exception';
+    $mock->unmock('send_with_receipt');
 
     # FIXME: This all feels we need to do it better...
     my $job_id = Koha::BackgroundJob::BatchUpdateItem->new->enqueue( { record_ids => [ 1, 2 ] } );
@@ -215,8 +230,8 @@ subtest 'process tests' => sub {
         { size => 10, a => 'aaa', b => 'bbb' } );
     my $job    = Koha::BackgroundJobs->find($job_id);
 
-    C4::Context->_new_userenv(-1);
     C4::Context->interface('opac');
+    C4::Context->unset_userenv;
     is( C4::Context->userenv, undef, "Userenv unset prior to calling process");
     is( C4::Context->interface, 'opac', "Interface set to opac prior to calling process");
 
@@ -282,4 +297,38 @@ subtest 'decoded_data() and set_encoded_data() tests' => sub {
     is( ord( $job->decoded_data->{favorite_Chinese}->[0] ), 232, 'We still found a UTF8 encoded byte' ); # ord does not need substr here
 
     $schema->storage->txn_rollback;
+};
+
+subtest 'connect' => sub {
+    plan tests => 2;
+
+    subtest 'JobsNotificationMethod' => sub {
+        plan tests => 3;
+    t::lib::Mocks::mock_config( 'message_broker', { hostname => 'not_localhost', port => '99999' } );
+
+    t::lib::Mocks::mock_preference('JobsNotificationMethod', 'STOMP');
+    my $job;
+    warning_like { $job = Koha::BackgroundJob->connect() } qr{Cannot connect to broker};
+    is( $job, undef, "Return undef if unable to connect when using stomp" );
+
+    t::lib::Mocks::mock_preference('JobsNotificationMethod', 'polling');
+    $job = Koha::BackgroundJob->connect();
+    is( $job, undef, "Return undef if using polling" );
+};
+
+    subtest 'wrong credentials' => sub {
+        plan tests => 2;
+        t::lib::Mocks::mock_preference( 'JobsNotificationMethod', 'STOMP' );
+
+        t::lib::Mocks::mock_config(
+            'message_broker',
+            { hostname => 'localhost', port => '61613', username => 'guest', password => 'wrong_password' }
+        );
+
+        my $job;
+        warning_is { $job = Koha::BackgroundJob->connect() }
+        q{Cannot connect to broker (Access refused for user 'guest')};
+        is( $job, undef, "Return undef if unable to connect when using stomp" );
+
+    };
 };

@@ -1,0 +1,65 @@
+[% USE AdditionalContents %]
+[% USE raw %]
+[% USE Asset %]
+[% USE Koha %]
+[% USE Branches %]
+[% USE KohaDates %]
+[% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>My virtual card &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+[% INCLUDE 'doc-head-close.inc' %]
+[% BLOCK cssinclude %]
+[% END %]
+</head>
+[% INCLUDE 'bodytag.inc' bodyid='opac-virtual-card' %]
+[% INCLUDE 'masthead.inc' %]
+
+<div class="main">
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>My virtual card</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-lg-2">
+                <div id="navigation">
+                    [% INCLUDE 'navigation.inc' IsPatronPage=1 %]
+                </div>
+            </div>
+            <div class="col-10 order-first order-lg-2">
+                <h1>My virtual card </h1>
+                <div id="patron-virtual-card">
+                    [% IF ( display_patron_image ) %]
+                        <div id="image-container">
+                            <img id="patron-image" src="/cgi-bin/koha/opac-patron-image.pl" alt="" />
+                        </div>
+                    [% END %]
+                    <div id="barcode-container">
+                        <svg id="patron-barcode" data-barcode="[% patron.cardnumber | html %]" data-barcode-format="[% barcode_format | html %]"></svg>
+                    </div>
+                    <div id="lib-container">
+                        <p id="patron-lib"><strong>Library:</strong> [% Branches.GetName( patron.branchcode ) | html %]</p>
+                    </div>
+                    <div id="cardnumber-container">
+                        <p id="patron-cardnumber"><strong>Card number:</strong> [% patron.cardnumber | html %]</p>
+                    </div>
+                    <div id="dateexpiry-container">
+                        <p id="patron-dateexpiry"><strong>Expiration date:</strong> [% patron.dateexpiry | $KohaDates %]</p>
+                    </div>
+                </div>
+            </div> <!-- / .col-10 -->
+        </div> <!-- / .row -->
+    </div> <!-- / .container-fluid -->
+</div> <!-- / .main -->
+
+[% INCLUDE 'opac-bottom.inc' %]
+[% BLOCK jsinclude %]
+    [% Asset.js("lib/bwip-js/bwip-js-min.js") | $raw %]
+    [% Asset.js("js/barcode-generator.js") | $raw %]
+[% END %]

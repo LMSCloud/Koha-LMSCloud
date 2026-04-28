@@ -1,16 +1,21 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Branches %]
 [% USE AuthorisedValues %]
 [% USE HtmlTags %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF club_template %]
-        Modify club template [% club_template.name | html %]
+        [% tx("Modify club template {club_template}", { club_template = club_template.name }) | html %] &rsaquo;
     [% ELSE %]
-        Create a new club template
-    [% END %] &rsaquo; Patron clubs &rsaquo; Tools &rsaquo; Koha
-</title>
+        [% t("New club template") | html %]
+    [% END %] &rsaquo;
+    [% t("Patron clubs") | html %] &rsaquo;
+    [% t("Tools") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
     .club-field,
@@ -37,7 +42,7 @@
             [% IF club_template %]
                 <span>Modify club template [% club_template.name | html | $HtmlTags tag="em" %]</span>
             [% ELSE %]
-                <span>Create a new club template</span>
+                <span>New club template</span>
             [% END %]
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
@@ -45,16 +50,18 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-md-8 col-md-offset-2">
+        <div class="col-md-8 offset-md-2">
+            [% INCLUDE 'messages.inc' %]
 
             <form method="post" class="validated">
+                [% INCLUDE 'csrf-token.inc' %]
                 <input type="hidden" name="id" value="[% club_template.id | html %]" />
-
+                <input type="hidden" name="op" value="cud-update" />
                 <h1>
                     [% IF club_template %]
                         <span>Modify club template [% club_template.name | html | $HtmlTags tag="em" %]</span>
                     [% ELSE %]
-                        <span>Create a new club template</span>
+                        <span>New club template</span>
                     [% END %]
                 </h1>
 
@@ -197,7 +204,7 @@
                 </fieldset>
             </form>
 
-        </div> <!-- /.col-md-8 .col-md-offset-2 -->
+        </div> <!-- /.col-md-8 .offset-md-2 -->
     </div> <!-- /.row -->
 
 
@@ -224,7 +231,7 @@
             </select>
         </li>
     </ol>
-    <fieldset class="action"><a href="#" class="delete_club_field"><i class="fa fa-trash"></i> Delete field</a></fieldset>
+    <fieldset class="action"><a href="#" class="delete_club_field"><i class="fa fa-trash-can"></i> Delete field</a></fieldset>
     <hr/>
 </div>
 
@@ -251,7 +258,7 @@
             </select>
         </li>
     </ol>
-    <fieldset class="action"><a href="#" class="delete_enrollment_field"><i class="fa fa-trash"></i> Delete field</a></fieldset>
+    <fieldset class="action"><a href="#" class="delete_enrollment_field"><i class="fa fa-trash-can"></i> Delete field</a></fieldset>
 </div>
 
 

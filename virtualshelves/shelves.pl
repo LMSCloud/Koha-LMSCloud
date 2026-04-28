@@ -40,8 +40,9 @@ use Koha::CsvProfiles;
 use Koha::Patrons;
 use Koha::Virtualshelves;
 
-use constant ANYONE => 2;
-use constant STAFF  => 3;
+use constant ANYONE    => 2;
+use constant STAFF     => 3;
+use constant PERMITTED => 4;
 
 my $query = CGI->new;
 
@@ -53,10 +54,17 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
-my $op       = $query->param('op')      || 'list';
-my $referer  = $query->param('referer') || $op;
-my $public   = $query->param('public') ? 1 : 0;
-my ( $shelf, $shelfnumber, @messages, $allow_transfer );
+my $op      = $query->param('op')      || 'list';
+my $referer = $query->param('referer') || $op;
+my $page    = int( $query->param('page') || 1 );
+my ( $public, $shelf, $shelfnumber, @messages, $allow_transfer, $allow_create_public_lists );
+
+# work out permissions once
+# this check is for the create list permission
+$allow_create_public_lists = haspermission( C4::Context->userenv->{id}, { lists => 'create_public_lists' } ) ? 1 : 0;
+
+# we want the user to be able to pick if public or private only if they are allowed
+$public = ( $query->param('public') == 1 && $allow_create_public_lists == 1 ) ? 1 : 0;
 
 # PART1: Perform a few actions
 if ( $op eq 'add_form' ) {
@@ -77,7 +85,7 @@ if ( $op eq 'add_form' ) {
     } else {
         push @messages, { type => 'alert', code => 'does_not_exist' };
     }
-} elsif ( $op eq 'add' ) {
+} elsif ( $op eq 'cud-add' ) {
     output_and_exit_if_error($query, $cookie, $template, { check => 'csrf_token' });
     my $allow_changes_from = $query->param('allow_changes_from');
     eval {
@@ -85,9 +93,10 @@ if ( $op eq 'add_form' ) {
             {   shelfname          => scalar $query->param('shelfname'),
                 sortfield          => scalar $query->param('sortfield'),
                 public             => $public,
-                allow_change_from_owner => $allow_changes_from > 0,
-                allow_change_from_others => $allow_changes_from == ANYONE,
-                allow_change_from_staff => $allow_changes_from == STAFF,
+                allow_change_from_owner           => $allow_changes_from > 0,
+                allow_change_from_others          => $allow_changes_from == ANYONE,
+                allow_change_from_staff           => $allow_changes_from == STAFF,
+                allow_change_from_permitted_staff => $allow_changes_from == PERMITTED,
                 owner              => scalar $query->param('owner'),
             }
         );
@@ -103,7 +112,7 @@ if ( $op eq 'add_form' ) {
         push @messages, { type => 'message', code => 'success_on_insert' };
         $op = 'view';
     }
-} elsif ( $op eq 'edit' ) {
+} elsif ( $op eq 'cud-edit' ) {
     output_and_exit_if_error($query, $cookie, $template, { check => 'csrf_token' });
     $shelfnumber = $query->param('shelfnumber');
     $shelf       = Koha::Virtualshelves->find($shelfnumber);
@@ -119,12 +128,13 @@ if ( $op eq 'add_form' ) {
             $shelf->allow_change_from_owner( $allow_changes_from > 0 );
             $shelf->allow_change_from_others( $allow_changes_from == ANYONE );
             $shelf->allow_change_from_staff( $allow_changes_from == STAFF );
+            $shelf->allow_change_from_permitted_staff( $allow_changes_from == PERMITTED );
             $shelf->public( scalar $query->param('public') );
             eval { $shelf->store };
 
             if ($@) {
                 push @messages, { type => 'alert', code => 'error_on_update' };
-                $op = 'edit_form';
+                $op = 'cud-edit_form';
             } else {
                 push @messages, { type => 'message', code => 'success_on_update' };
             }
@@ -134,7 +144,7 @@ if ( $op eq 'add_form' ) {
     } else {
         push @messages, { type => 'alert', code => 'does_not_exist' };
     }
-} elsif ( $op eq 'delete' ) {
+} elsif ( $op eq 'cud-delete' ) {
     output_and_exit_if_error($query, $cookie, $template, { check => 'csrf_token' });
     $shelfnumber = $query->param('shelfnumber');
     $shelf       = Koha::Virtualshelves->find($shelfnumber);
@@ -153,7 +163,7 @@ if ( $op eq 'add_form' ) {
         push @messages, { type => 'alert', code => 'does_not_exist' };
     }
     $op = 'list';
-} elsif ( $op eq 'add_biblio' ) {
+} elsif ( $op eq 'cud-add_biblio' ) {
     output_and_exit_if_error($query, $cookie, $template, { check => 'csrf_token' });
     $shelfnumber = $query->param('shelfnumber');
     $shelf = Koha::Virtualshelves->find($shelfnumber);
@@ -210,7 +220,7 @@ if ( $op eq 'add_form' ) {
         push @messages, { type => 'alert', code => 'does_not_exist' };
     }
     $op = $referer;
-} elsif ( $op eq 'remove_biblios' ) {
+} elsif ( $op eq 'cud-remove_biblios' ) {
     output_and_exit_if_error($query, $cookie, $template, { check => 'csrf_token' });
     $shelfnumber = $query->param('shelfnumber');
     $shelf = Koha::Virtualshelves->find($shelfnumber);
@@ -242,6 +252,9 @@ if ( $op eq 'add_form' ) {
 } elsif ( $op eq 'transfer' ) {
     $shelfnumber = $query->param('shelfnumber');
     $shelf = Koha::Virtualshelves->find($shelfnumber) if $shelfnumber;
+} elsif ( $op eq 'cud-transfer' ) {
+    $shelfnumber = $query->param('shelfnumber');
+    $shelf = Koha::Virtualshelves->find($shelfnumber) if $shelfnumber;
     my $new_owner = $query->param('new_owner'); # is a borrowernumber
     my $error_code = $shelf
         ? $shelf->cannot_be_transferred({ by => $loggedinuser, to => $new_owner, interface => 'intranet' })
@@ -253,7 +266,7 @@ if ( $op eq 'add_form' ) {
         push @messages, { type => 'error', code => $error_code };
         $op = 'list';
     } else {
-        $shelf->owner($new_owner)->store;
+        $shelf->transfer_ownership($new_owner);
         $op = 'list';
     }
 }
@@ -268,17 +281,19 @@ if ( $op eq 'view' ) {
             $sortfield = 'title' unless grep { $_ eq $sortfield } qw( title author copyrightdate itemcallnumber dateadded );
             my $direction = $query->param('direction') || 'asc';
             $direction = 'asc' if $direction ne 'asc' and $direction ne 'desc';
-            my ( $rows, $page );
-            unless ( $query->param('print') ) {
+            my $rows;
+            if ( $query->param('print') ) {
+                $page = "";
+            } else {
                 $rows = C4::Context->preference('numSearchResults') || 20;
-                $page = ( $query->param('page') ? $query->param('page') : 1 );
             }
 
             my $order_by = $sortfield eq 'itemcallnumber' ? 'items.cn_sort' : $sortfield;
             my $contents = $shelf->get_contents->search(
                 {},
                 {
-                    prefetch => [ { 'biblionumber' => { 'biblioitems' => 'items' } } ],
+                    distinct => 'biblionumber',
+                    join     => [ { 'biblionumber' => { 'biblioitems' => 'items' } } ],
                     page     => $page,
                     rows     => $rows,
                     order_by => { "-$direction" => $order_by },
@@ -390,6 +405,7 @@ $template->param(
     print    => scalar $query->param('print') || 0,
     csv_profiles => [ Koha::CsvProfiles->search({ type => 'marc', used_for => 'export_records' })->as_list ],
     allow_transfer => $allow_transfer,
+    allow_create_public_lists => $allow_create_public_lists,
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

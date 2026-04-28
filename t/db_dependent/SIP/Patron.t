@@ -4,7 +4,7 @@
 # This needs to be extended! Your help is appreciated..
 
 use Modern::Perl;
-use Test::More tests => 10;
+use Test::More tests => 11;
 
 use t::lib::Mocks;
 use t::lib::TestBuilder;
@@ -188,28 +188,6 @@ subtest "Test build_custom_field_string" => sub {
 
 };
 
-subtest "update_lastseen tests" => sub {
-    plan tests => 2;
-
-    my $seen_patron = $builder->build(
-        {
-            source => 'Borrower',
-            value  => {
-                lastseen    => "2001-01-01",
-            }
-        }
-    );
-    my $sip_patron = C4::SIP::ILS::Patron->new( $seen_patron->{cardnumber} );
-    t::lib::Mocks::mock_preference( 'TrackLastPatronActivity', '' );
-    $sip_patron->update_lastseen();
-    $seen_patron = Koha::Patrons->find({ cardnumber => $seen_patron->{cardnumber} });
-    is( output_pref({str => $seen_patron->lastseen(), dateonly => 1}), output_pref({str => '2001-01-01', dateonly => 1}),'Last seen not updated if not tracking patrons');
-    t::lib::Mocks::mock_preference( 'TrackLastPatronActivity', '1' );
-    $sip_patron->update_lastseen();
-    $seen_patron = Koha::Patrons->find({ cardnumber => $seen_patron->cardnumber() });
-    is( output_pref({str => $seen_patron->lastseen(), dateonly => 1}), output_pref({dt => dt_from_string(), dateonly => 1}),'Last seen updated to today if tracking patrons');
-};
-
 subtest "fine_items tests" => sub {
 
     plan tests => 12;
@@ -274,6 +252,70 @@ subtest "fine_items tests" => sub {
 
 $schema->storage->txn_rollback;
 
+subtest "Patron expiration tests" => sub {
+
+    plan tests => 5;
+
+    $schema->storage->txn_begin;
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                opacnote => "",
+
+                # dateexpiry is today when unspecified
+            }
+        }
+    );
+
+    t::lib::Mocks::mock_preference( 'NotifyBorrowerDeparture', 0 );
+    my $sip_patron = C4::SIP::ILS::Patron->new( $patron->cardnumber );
+    like(
+        $sip_patron->screen_msg, qr/^Greetings from Koha. $/,
+        "No message is displayed when NotifyBorrowerDeparture is disabled"
+    );
+
+    t::lib::Mocks::mock_preference( 'NotifyBorrowerDeparture', 1 );
+    $sip_patron = C4::SIP::ILS::Patron->new( $patron->cardnumber );
+    like(
+        $sip_patron->screen_msg, qr/Your card will expire on/,
+        "A message is displayed when the card expires within NotifyBorrowerDeparture days"
+    );
+
+    $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                opacnote   => "",
+                dateexpiry => "1900-01-01",
+            }
+        }
+    );
+    $sip_patron = C4::SIP::ILS::Patron->new( $patron->cardnumber );
+    like(
+        $sip_patron->screen_msg, qr/Your account has expired as of/,
+        "A message is displayed when the card has expired and NotifyBorrowerDeparture is not disabled"
+    );
+
+    # Bug 38658 - SIP not marking patrons expired unless NotifyBorrowerDeparture has a positive value
+    t::lib::Mocks::mock_preference( 'NotifyBorrowerDeparture', 0 );
+    $sip_patron = C4::SIP::ILS::Patron->new( $patron->cardnumber );
+    like(
+        $sip_patron->screen_msg, qr/Your account has expired as of/,
+        "A message is displayed when the card has expired and NotifyBorrowerDeparture has a value of 0"
+    );
+
+    t::lib::Mocks::mock_preference( 'NotifyBorrowerDeparture', undef );
+    $sip_patron = C4::SIP::ILS::Patron->new( $patron->cardnumber );
+    like(
+        $sip_patron->screen_msg, qr/Your account has expired as of/,
+        "A message is displayed when the card has expired and NotifyBorrowerDeparture has no value"
+    );
+
+    $schema->storage->txn_rollback;
+
+};
+
 subtest "NoIssuesChargeGuarantees tests" => sub {
 
     plan tests => 6;
@@ -282,7 +324,24 @@ subtest "NoIssuesChargeGuarantees tests" => sub {
 
     $schema->storage->txn_begin;
 
-    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+    my $patron_category = $builder->build(
+        {
+            source => 'Category',
+            value  => {
+                categorycode   => 'NOT_X', category_type => 'P', enrolmentfee => 0, noissueschargeguarantees => 0,
+                noissuescharge => 0,       noissueschargeguarantorswithguarantees => 0
+            }
+        }
+    );
+
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $patron_category->{categorycode},
+            }
+        }
+    );
     my $child  = $builder->build_object({ class => 'Koha::Patrons' });
     my $sibling  = $builder->build_object({ class => 'Koha::Patrons' });
     $child->add_guarantor({ guarantor_id => $patron->borrowernumber, relationship => 'parent' });
@@ -298,6 +357,7 @@ subtest "NoIssuesChargeGuarantees tests" => sub {
             value  => {
                 borrowernumber => $patron->borrowernumber,
                 amountoutstanding => 11,
+                debit_type_code   => 'OVERDUE',
             }
         }
     )->store;
@@ -308,6 +368,7 @@ subtest "NoIssuesChargeGuarantees tests" => sub {
             value  => {
                 borrowernumber => $child->borrowernumber,
                 amountoutstanding => 0.11,
+                debit_type_code   => 'OVERDUE',
             }
         }
     )->store;
@@ -346,8 +407,32 @@ subtest "NoIssuesChargeGuarantorsWithGuarantees tests" => sub {
 
     $schema->storage->txn_begin;
 
-    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
-    my $child  = $builder->build_object({ class => 'Koha::Patrons' });
+    my $patron_category = $builder->build(
+        {
+            source => 'Category',
+            value  => {
+                categorycode   => 'NOT_X', category_type => 'P', enrolmentfee => 0, noissueschargeguarantees => 0,
+                noissuescharge => 0,       noissueschargeguarantorswithguarantees => 0
+            }
+        }
+    );
+
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $patron_category->{categorycode},
+            }
+        }
+    );
+    my $child = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $patron_category->{categorycode},
+            }
+        }
+    );
     $child->add_guarantor({ guarantor_id => $patron->borrowernumber, relationship => 'parent' });
 
     t::lib::Mocks::mock_preference('noissuescharge', 50);
@@ -359,6 +444,7 @@ subtest "NoIssuesChargeGuarantorsWithGuarantees tests" => sub {
             value  => {
                 borrowernumber => $patron->borrowernumber,
                 amountoutstanding => 11,
+                debit_type_code   => 'OVERDUE',
             }
         }
     )->store;
@@ -369,6 +455,7 @@ subtest "NoIssuesChargeGuarantorsWithGuarantees tests" => sub {
             value  => {
                 borrowernumber => $child->borrowernumber,
                 amountoutstanding => 0.11,
+                debit_type_code   => 'OVERDUE',
             }
         }
     )->store;
@@ -398,6 +485,44 @@ subtest "NoIssuesChargeGuarantorsWithGuarantees tests" => sub {
     is( $sip_patron->fines_amount, 11, "Personal fines correctly reported");
     ok( $sip_patron->charge_ok, "Patron not blocked");
     unlike( $sip_patron->screen_msg, qr/Patron blocked by fines .* on related accounts/,"Screen message does not indicate block");
+
+    $schema->storage->txn_rollback;
+};
+
+subtest "Patron messages tests" => sub {
+    plan tests => 2;
+    $schema->storage->txn_begin;
+    my $today         = output_pref( { dt => dt_from_string(), dateonly => 1 } );
+    my $patron        = $builder->build_object( { class => 'Koha::Patrons', value => { opacnote => q{} } } );
+    my $library       = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $new_message_1 = Koha::Patron::Message->new(
+        {
+            borrowernumber => $patron->id,
+            branchcode     => $library->branchcode,
+            message_type   => 'B',
+            message        => 'my message 1',
+        }
+    )->store;
+
+    my $new_message_2 = Koha::Patron::Message->new(
+        {
+            borrowernumber => $patron->id,
+            branchcode     => $library->branchcode,
+            message_type   => 'B',
+            message        => 'my message 2',
+        }
+    )->store;
+
+    t::lib::Mocks::mock_preference( 'SIP2AddOpacMessagesToScreenMessage', 0 );
+    my $sip_patron = C4::SIP::ILS::Patron->new( $patron->cardnumber );
+    is( $sip_patron->screen_msg, 'Greetings from Koha. ' );
+
+    t::lib::Mocks::mock_preference( 'SIP2AddOpacMessagesToScreenMessage', 1 );
+    $sip_patron = C4::SIP::ILS::Patron->new( $patron->cardnumber );
+    like(
+        $sip_patron->screen_msg, qr/Messages for you: $today: my message 1 \/ $today: my message 2/,
+        "Screen message includes patron messages"
+    );
 
     $schema->storage->txn_rollback;
 };

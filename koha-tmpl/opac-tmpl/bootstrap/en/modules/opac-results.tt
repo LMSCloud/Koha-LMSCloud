@@ -7,6 +7,26 @@
 [% IF firstPage %]
      [% SET OverDriveEnabled = Koha.Preference('OverDriveLibraryID') && Koha.Preference('OverDriveClientKey') && Koha.Preference('OverDriveClientSecret') %]
 [% END %]
+[% SET CartEnabled = ( Koha.Preference('opacbookbag') == 1 ) %]
+[% SET ListsEnabled = ( Koha.Preference('virtualshelves') == 1 ) && LoginEnabled %]
+[% SET HoldsEnabled = ( Koha.Preference('OPACHoldRequests') == 1 ) && LoginEnabled %]
+[% SET RecallsEnabled = ( Koha.Preference('UseRecalls') == 1 ) && LoginEnabled %]
+[% SET ArticleRequestsEnabled = ( Koha.Preference('ArticleRequests') == 1 ) && LoginEnabled %]
+[% SET MultiHolds = ( Koha.Preference('DisplayMultiPlaceHold') == 1 ) && HoldsEnabled %]
+[% SET CoverImagePlugins = KohaPlugins.get_plugins_opac_cover_images %]
+[% SET OPACLocalCoverImages = Koha.Preference('OPACLocalCoverImages') %]
+[% SET OPACAmazonCoverImages = Koha.Preference('OPACAmazonCoverImages') %]
+[% SET SyndeticsCoverImages = ( Koha.Preference('SyndeticsEnabled') && Koha.Preference('SyndeticsCoverImages') ) %]
+[% SET GoogleJackets = Koha.Preference('GoogleJackets') %]
+[% SET OpenLibraryCovers = Koha.Preference('OpenLibraryCovers') %]
+[% SET BakerTaylorEnabled = Koha.Preference('BakerTaylorEnabled') %]
+[% SET OPACCoce = ( Koha.Preference('OPACCoce') && Koha.Preference('CoceProviders') ) %]
+[% IF ( CoverImagePlugins || OPACLocalCoverImages || OPACAmazonCoverImages || SyndeticsCoverImages || GoogleJackets || OpenLibraryCovers || BakerTaylorEnabled || OPACCoce || OPACCustomCoverImages ) %]
+    [% SET CoverImages = 1 %]
+    [% SET OPACCustomCoverImages = ( Koha.Preference('OPACCustomCoverImages') && Koha.Preference('CustomCoverImagesURL') ) %]
+    [% SET OverDriveEnabled = Koha.Preference('OverDriveLibraryID') && Koha.Preference('OverDriveClientKey') && Koha.Preference('OverDriveClientSecret') %]
+[% END %]
+[% SET OverDriveEnabled = ( Koha.Preference( "OPACOverDrive" ) && Koha.Preference('OverDriveLibraryID') && Koha.Preference('OverDriveClientKey') && Koha.Preference('OverDriveClientSecret') ) %]
 
 [% INCLUDE 'doc-head-open.inc' %]
 <title>
@@ -22,25 +42,22 @@
 &rsaquo;
 [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog
 </title>
+<meta name="robots" content="noindex">
+[% Asset.css("lib/Chocolat/css/chocolat.css") | $raw %]
 [% INCLUDE 'doc-head-close.inc' %]
+[% BLOCK cssinclude %][% END %]
 
 <link rel="alternate" type="application/rss+xml" title="[% LibraryName | html %] Search RSS feed" href="[% OPACBaseURL | url %]/cgi-bin/koha/opac-search.pl?[% query_cgi | $raw %][% limit_cgi | $raw %]&amp;count=[% countrss |uri %]&amp;sort_by=acqdate_dsc&amp;format=rss" />
 </head>
-[% BLOCK cssinclude %][% END %]
 [% INCLUDE 'bodytag.inc' bodyid='results' bodyclass='scrollto' %]
 [% INCLUDE 'masthead.inc' %]
 
     <div class="main">
-        <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-                </li>
-                [% IF ( searchdesc ) %]
-                    [% IF ( ReturnPath ) %]
-                        <li class="breadcrumb-item">
-                            <a href="[% ReturnPath | url %]">Advanced search</a>
-                        </li>
+        [% WRAPPER breadcrumbs %]
+            [% IF ( searchdesc ) %]
+                [% IF ( ReturnPath ) %]
+                    [% WRAPPER breadcrumb_item %]
+                        <a href="[% ReturnPath | url %]">Advanced search</a>
                     [% END %]
                     <li class="breadcrumb-item active">
                         [% IF ( ms_value ) %]
@@ -50,12 +67,23 @@
                         [% END %]
                     </li>
                 [% ELSE %]
-                    <li class="breadcrumb-item active">
-                        <a href="#" aria-current="page">You did not specify any search criteria</a>
-                    </li>
+                    [% WRAPPER breadcrumb_item %]
+                        <a href="/cgi-bin/koha/opac-search.pl">Advanced search</a>
+                    [% END %]
                 [% END %]
-            </ol>
-        </nav> <!-- /#breadcrumbs -->
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    [% IF ( ms_value ) %]
+                        <span title="You searched [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %] with limit(s): '[% limit_desc | html %]'[% END %]">Results of search for '[% ms_value | html %]'[% IF ( pages && pages > 1) %], page [% current_page_number | html %] of [% pages | html %][% END %]</span>
+                    [% ELSE %]
+                        <span title="You searched [% IF ( query_desc ) %]for '[% query_desc | html %]'[% END %][% IF ( limit_desc ) %] with limit(s): '[% limit_desc | html %]'[% END %]">Search results</span>
+                    [% END %]
+                [% END %]
+            [% ELSE %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>You did not specify any search criteria</span>
+                [% END %]
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
 
         [% UNLESS ( total ) %]
             <div class="container-fluid">
@@ -159,16 +187,6 @@
                         <div id="didyoumean">Not what you expected? Check for <a href="/cgi-bin/koha/svc/suggestion?render=standalone&amp;q=[% querystring | uri %]">suggestions</a></div>
                     [% END %]
 
-                    [% IF ( koha_spsuggest ) %]
-                        Did you mean:
-                        <ul style="list-style: none;">
-                            [% FOREACH SPELL_SUGGES IN SPELL_SUGGEST %]
-                            <li>
-                                <a href="/cgi-bin/koha/opac-search.pl?q=[% SPELL_SUGGES.spsuggestion | uri %]">[% SPELL_SUGGES.spsuggestion | html %]</a>
-                            </li>
-                            [% END %]
-                        </ul>
-                    [% END # / IF koha_spsuggest%]
                     [% IF ( total ) %]
                         [% IF ( ReturnPath ) %]
                             <div class="returntosearch">
@@ -177,7 +195,7 @@
                         [% END %]
                     [% END %]
                     [% IF ( query_error ) %]
-                        <div class="dialog alert">
+                        <div class="alert alert-warning">
                             <h2>Error:</h2>
                             [% query_error | html %]
                         </div>
@@ -198,7 +216,7 @@
                                     [% END %]
                                 [% END # IF /searchdesc %]
 
-                                <div id="floating">
+                                <div id="floating" class="sticky">
                                     <div id="toolbar" class="toolbar row align-items-center">
                                         [% UNLESS tag %]
                                             <div class="sort_by col">
@@ -209,7 +227,7 @@
 
                                                 [% IF Koha.Preference('OPACnumSearchResultsDropdown') %]
                                                     <label for="results_per_page">Results per page: </label>
-                                                    <select id="results_per_page" name="count">
+                                                    <select id="results_per_page" class="form-select" name="count">
                                                         [% IF Koha.Preference('OPACnumSearchResults') %]
                                                             [% IF results_per_page == Koha.Preference('OPACnumSearchResults') %]
                                                                 <option value="[% Koha.Preference('OPACnumSearchResults') | html %]" selected="selected">[% Koha.Preference('OPACnumSearchResults') | html %] (default)</option>
@@ -333,8 +351,8 @@
                                 </div><!-- /#floating -->
 
                                 <!-- TABLE RESULTS START -->
-                                <table class="table table-striped">
-                                    <caption class="sr-only">Results</caption>
+                                <table class="table table-striped" role="presentation">
+                                    <span class="sr-only">Results</span>
 
                                     <!-- Actual Search Results -->
                                     [% FOREACH SEARCH_RESULT IN SEARCH_RESULTS %]
@@ -374,7 +392,7 @@
                                                 [% # Cell 3: Show item type image %]
                                                 <td class="itypecol">
                                                     [% IF ( SEARCH_RESULT.imageurl ) %]
-                                                        <img src="[% SEARCH_RESULT.imageurl | html %]" title="[% SEARCH_RESULT.description | html %]" alt="[% SEARCH_RESULT.description | html %]" />
+                                                        <img class="itemtype-image" src="[% SEARCH_RESULT.imageurl | html %]" title="[% SEARCH_RESULT.description | html %]" alt="[% SEARCH_RESULT.description | html %]" />
                                                     [% END %]
                                                     [% IF ( SEARCH_RESULT.score_avg ) %]
                                                         <img src="[% themelang | html %]/../images/bonus.png" title="bonus" style="max-height: 35px;"/>
@@ -590,7 +608,6 @@
                             </form> <!-- / #bookbag_form -->
 
                             <form id="hold_form" name="hold_form" method="get" action="/cgi-bin/koha/opac-reserve.pl">
-                                <legend class="sr-only">Pages</legend>
                                 <!-- The value will be set by holdBiblioNums() in basket.js -->
                                 <input id="hold_form_biblios" type="hidden" name="biblionumbers" value=""/>
                             </form>
@@ -631,14 +648,20 @@
     [% IF ( Koha.Preference( 'FilmfriendSearchActive' ) ) %][% Asset.js("js/filmfriend.js") %][% END %]
     [% IF ( Koha.Preference('DivibibEnabled') ) %][% INCLUDE 'divibib-js.inc' %][% END %]
     [% Asset.js("js/authtoresults.js") | $raw %]
-    [% Asset.js("lib/hc-sticky.js") | $raw %]
     [% IF ( OpacHighlightedWords ) %]
         [% Asset.js("lib/jquery/plugins/jquery.highlight-5.js") | $raw %]
     [% END %]
     [% IF OpenLibraryCovers || OpenLibrarySearch %]
         [% Asset.js("js/openlibrary.js") | $raw %]
     [% END %]
-
+    [% Asset.js("lib/Chocolat/js/chocolat.js") | $raw %]
+    [% CoverImagePlugins | $raw %]
+    <script>
+        const loggedinusername = [% ( loggedinusername ) ? 1 : 0 | html %];
+        const opacbookbag = [% ( opacbookbag ) ? 1 : 0 | html %];
+        const virtualshelves = [% ( virtualshelves ) ? 1 : 0 | html %];
+    </script>
+    [% Asset.js("js/results-list.js") | $raw %]
     <script>
         [% IF ( Koha.Preference( 'DivibibEnabled' ) == 1 )  %]
             [% IF ( Koha.Preference( 'DivibibAvailabilityCheckSingle' ) == 1 )  %]
@@ -761,6 +784,175 @@
             }
         [% END # /IF OpacHighlightedWords %]
 
+        function verify_cover_images() {
+            // Loop over each container in the template which contains covers
+            $(".cover-slider").each(function( index ){
+                let biblionumber = $(this).data("biblionumber");
+                let booktitle = $(this).data("title");
+                var lightbox_descriptions = [];
+                $(this).find(".cover-image").each( function( index ){
+                    var div = $(this);
+                    // Find the image in the container
+                    var img = div.find("img")[0];
+                    if( img && $(img).length > 0 ){
+                        // All slides start hidden. If this is the first one, show it.
+                        // Check if Amazon image is present
+                        if ( div.hasClass("amazon-coverimg") ) {
+                            let w = img.width;
+                            let h = img.height;
+                            if ((w == 1) || (h == 1)) {
+                                // Amazon returned single-pixel placeholder
+                                // Remove the container
+                                div.remove();
+                            } else {
+                                lightbox_descriptions.push(_("Amazon cover image (<a href='%s'>see the original image</a>)").format($(img).data('link')));
+                            }
+                        } else if( div.hasClass("custom-coverimg") ){
+
+                            if ( (img.complete != null) && (!img.complete) || img.naturalHeight == 0 ) {
+                                // No image was loaded via the CustomCoverImages system preference
+                                // Remove the container
+                                div.remove();
+                            } else {
+                                lightbox_descriptions.push(_("Custom cover image"));
+                            }
+                        } else if( div.hasClass("syndetics-coverimg") ){
+                            lightbox_descriptions.push(_("Image from Syndetics"))
+                        } else if( div.hasClass("googlejacket-coverimg" ) ){
+                            if( img.naturalHeight  ){
+                                lightbox_descriptions.push(_("Image from Google Books (<a href='%s'>see the original image</a>)").format($(img).data('link')));
+                            }
+                        } else if( div.hasClass("openlibrary-coverimg") ){
+                            lightbox_descriptions.push(_("Image from OpenLibrary (<a href='%s'>see the original image</a>)").format($(img).data('link')));
+                        } else if( div.hasClass("coce-coverimg" ) ){
+                            // Identify which service's image is being loaded by Coce
+                            var coce_description;
+                            let src = $(img).attr("src");
+                            if( src.indexOf('amazon.com') >= 0 ){
+                                coce_description = _("Coce image from Amazon.com");
+                            } else if( src.indexOf('google.com') >= 0 ){
+                                coce_description = _("Coce image from Google Books");
+                            } else if( src.indexOf('openlibrary.org') >= 0 ){
+                                coce_description = _("Coce image from Open Library");
+                            }
+                            div.find(".hint").html(coce_description);
+                            lightbox_descriptions.push(coce_description);
+                        } else if ( div.hasClass("bakertaylor-coverimg" ) ){
+                            lightbox_descriptions.push(_("Image from Baker &amp; Taylor"));
+                        } else if ( div.hasClass("cover-image local-coverimg" ) ){
+                            lightbox_descriptions.push(_("Local cover image"));
+                        } else {
+                            lightbox_descriptions.push(_("Cover image source unknown"));
+                        }
+                    } else {
+                        div.remove();
+                    }
+                });
+
+                // Lightbox for cover images
+                Chocolat(this.querySelectorAll('.cover-image a'), {
+                    description: function(){
+                        return lightbox_descriptions[this.settings.currentImageIndex];
+                    }
+                });
+
+            });
+
+            $(".cover-slider").each(function(){
+                var coverSlide = this;
+                var coverImages = $(this).find(".cover-image");
+                if( coverImages.length > 1 ){
+                    coverImages.each(function( index ){
+                        // If more that one image is present, add a navigation link
+                        // for activating the slide
+                        var covernav = $("<a href=\"#\" data-num=\"" + index + "\" class=\"cover-nav\"></a>");
+                        if( index == 0 ){
+                            // Set the first navigation link as active
+                            $(covernav).addClass("nav-active");
+                        }
+                        $(covernav).html("<i class=\"fa fa-circle\"></i>");
+                        $(coverSlide).append( covernav );
+                    });
+                }
+
+                $(coverSlide).find(".cover-image").eq(0).show();
+
+                if( $(coverSlide).find(".cover-image").length < 1 ){
+                    $(coverSlide).remove();
+                } else {
+                    // This is a suboptimal workaround; we should do this via load, but
+                    // the image code is scattered all over now. We come here now after
+                    // window load and wait_for_images (so load completed).
+                    var check_complete = 1;
+                    $(coverSlide).find("img").each( function() {
+                        if( !this.complete || this.naturalHeight == 0 ) check_complete = 0;
+                    });
+                    if( check_complete ) $(coverSlide).removeClass('cover-slides');
+                }
+            });
+
+            $(".cover-slider").on("click",".cover-nav", function(e){
+                e.preventDefault();
+                var cover_slider = $(this).parent();
+                // Adding click handler for cover image navigation links
+                var num = $(this).data("num");
+                $(cover_slider).find(".cover-nav").removeClass("nav-active");
+                $(this).addClass("nav-active");
+                $(cover_slider).find(".cover-image").hide();
+                $(cover_slider).find(".cover-image").eq( num ).show();
+            });
+
+            $("#editions img").each(function(i){
+                if ( this.src.indexOf('amazon.com') >= 0 ) {
+                    let w = this.width;
+                    let h = this.height;
+                    if ((w == 1) || (h == 1)) {
+                        this.src = 'https://images-na.ssl-images-amazon.com/images/G/01/x-site/icons/no-img-sm.gif';
+                    } else if ( (this.complete != null) && (!this.complete) || this.naturalHeight == 0 ) {
+                        this.src = 'https://images-na.ssl-images-amazon.com/images/G/01/x-site/icons/no-img-sm.gif';
+                    }
+                }
+            });
+        } /* /verify_images */
+
+
+        let counter_wait = 0;
+        function wait_for_images(cb){
+
+            var loaded = 1;
+            counter_wait++;
+
+            [% IF GoogleJackets %]
+                if ( loaded ) {
+                    loaded = KOHA.Google.done;
+                }
+            [% END %]
+
+            [% IF OpenLibraryCovers %]
+                if ( loaded ) {
+                    loaded = KOHA.OpenLibrary.done;
+                }
+            [% END %]
+
+            [% IF ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) %]
+                if ( loaded ) {
+                    loaded = KOHA.coce.done;
+                }
+            [% END %]
+
+            if (!loaded && counter_wait < 50) {// Do not wait more than 5 seconds
+                window.setTimeout(function(){wait_for_images(cb);}, 100);
+            } else {
+                if (counter_wait >= 50 ) {
+                }
+                cb();
+            }
+        }
+
+        $(window).load(function() {
+            wait_for_images(verify_cover_images);
+        });
+
         $(document).ready(function(){
             
             $("#didyoumean").bind("DOMSubtreeModified", function() {
@@ -794,11 +986,6 @@
                 });
             [% END %]
 
-            $(".cb").click(function(){
-                enableCheckboxActions();
-            });
-            enableCheckboxActions();
-
             $(".br-readonly a").on("click", function(e){
                 e.preventDefault();
             });
@@ -809,70 +996,6 @@
 
             $('#results_per_page').change(function() {
                 $('#bookbag_form').submit();
-            });
-
-            [% IF ( ( Koha.Preference( 'opacbookbag' ) == 1 ) || ( Koha.Preference( 'virtualshelves' ) == 1 ) ) %]
-                [% IF Koha.Preference( 'virtualshelves' ) == 1 %]
-                    $("#addto").on("change",function(){
-                        cartList();
-                    });
-                    $(".addto").find("input:submit").click(function(){
-                        cartList();
-                        return false;
-                    });
-                [% ELSE %]
-                    $("#addto").on("click",function(){
-                        cartList();
-                        return false;
-                    });
-                [% END %]
-            [% END %]
-
-            function cartList(){
-                addtoOption = $("#addto").find("option:selected");
-                addtoval = addtoOption.val();
-                if(addtoval == "addtolist"){
-                    var shelfnumber = addtoOption.attr("id").replace("s","");
-                    if (vShelfAdd()) {
-                        Dopop('/cgi-bin/koha/opac-addbybiblionumber.pl?selectedshelf='+shelfnumber+'&' + vShelfAdd());
-                    }
-                    return false;
-                } else if(addtoval == "newlist"){
-                    [% IF ( loggedinusername ) %]if (vShelfAdd()) {
-                        Dopop('/cgi-bin/koha/opac-addbybiblionumber.pl?newshelf=1&' + vShelfAdd());
-                    }[% ELSE %]
-                        alert(_("You must be logged in to create or add to lists"));
-                    [% END %]
-                    return false;
-                } else if(addtoval == "morelists"){
-                    [% IF ( loggedinusername ) %]
-                        if (vShelfAdd()) {
-                            Dopop('/cgi-bin/koha/opac-addbybiblionumber.pl?' + vShelfAdd());
-                        }
-                    [% ELSE %]
-                        alert(_("You must be logged in to create or add to lists"));
-                    [% END %]
-                    return false;
-                }
-                if(addtoval == "addtocart" || $("#addto").attr("class") == "addtocart"){
-                    addMultiple();
-                    return false;
-                }
-            }
-            $("#CheckAll").on("click",function(e){
-                e.preventDefault();
-                $(".cb").prop("checked", true);
-                enableCheckboxActions();
-            });
-            $("#CheckNone").on("click",function(e){
-                e.preventDefault();
-                $(".cb").prop("checked", false);
-                enableCheckboxActions();
-            });
-
-            $(".hold").on("click", function(e){
-                e.preventDefault();
-                holdMultiple();
             });
 
             [% IF ( query_desc ) %]
@@ -893,8 +1016,8 @@
                         highlightOff();
                     });
                 [% END # /IF OpacHighlightedWords %]
-                [% IF ( OverDriveEnabled ) %]
-                    var $overdrive_results = $( '<div id="overdrive-results">' + MSG_SEARCHING.format('OverDrive') + ' <img class="throbber" src="[% interface | html %]/[% theme | html %]/images/spinner-small.gif" /></div>' );
+                [% IF ( OverDriveEnabled && firstPage ) %]
+                    var $overdrive_results = $( '<div id="overdrive-results">' + _("Searching %s...").format('OverDrive') + ' <img class="throbber" src="[% interface | html %]/[% theme | html %]/images/spinner-small.gif" /></div>' );
                     $( '#numresults' ) .after( $overdrive_results );
                     //Clean querystring, first we remove CCL entities, then decode HTML entities, then swap double quotes for single quotes
                     //as the overdrive API treats double quotes as a search term and returns extra results
@@ -903,78 +1026,34 @@
                     od_querystring = od_querystring.replace(/\"/g,"'");
                     KOHA.OverDrive.Search( "[% Koha.Preference('OverDriveLibraryID') | html %]", od_querystring, 1, 0, function( data ) {
                         if ( data.error ) {
-                            $overdrive_results.html( MSG_ERROR_SEARCHING_COLLECTION.format('OverDrive') );
+                            $overdrive_results.html( _("Error searching %s collection").format('OverDrive') );
                             return;
                         }
 
                         if ( data.totalItems ) {
-                            $overdrive_results.html( '<a href="/cgi-bin/koha/opac-overdrive-search.pl?q=' + encodeURIComponent( od_querystring ) + '">' + MSG_RESULTS_FOUND_IN_COLLECTION.format(data.totalItems, 'OverDrive') + '</a>' );
+                            $overdrive_results.html( '<a href="/cgi-bin/koha/opac-overdrive-search.pl?q=' + encodeURIComponent( od_querystring ) + '">' + _("Found %s results in the library's %s collection").format(data.totalItems, 'OverDrive') + '</a>' );
                         } else {
                             $overdrive_results.remove();
                         }
                     } );
                 [% END # /IF OverDriveEnabled %]
                 [% IF ( OpenLibrarySearch ) %]
-                    var $openlibrary_results = $( '<div id="openlibrary-results">' + MSG_SEARCHING.format('OpenLibrary' ) + ' <img class="throbber" src="[% interface | html %]/[% theme | html %]/images/spinner-small.gif" /></div>' );
+                    var $openlibrary_results = $( '<div id="openlibrary-results">' + _("Searching %s...").format('OpenLibrary' ) + ' <img class="throbber" src="[% interface | html %]/[% theme | html %]/images/spinner-small.gif" /></div>' );
                     $( '#numresults' ) .after( $openlibrary_results );
                     KOHA.OpenLibrary.search( querystring, null, function( data ) {
                         if ( data.error ) {
-                            $openlibrary_results.html( MSG_ERROR_SEARCHING_COLLECTION.format('OpenLibrary') );
+                            $openlibrary_results.html( _("Error searching %s collection").format('OpenLibrary') );
                             return;
                         }
 
                         if ( data.numFound > 0 ) {
-                            $openlibrary_results.html( '<a href="' + KOHA.OpenLibrary.searchUrl(querystring) + '" target="openlibrary">'  + MSG_RESULTS_FOUND_IN_COLLECTION.format(data.numFound, 'OpenLibrary') + '</a>' );
+                            $openlibrary_results.html( '<a href="' + KOHA.OpenLibrary.searchUrl(querystring) + '" target="openlibrary">'  + _("Found %s results in the library's %s collection").format(data.numFound, 'OpenLibrary') + '</a>' );
                         } else {
                             $openlibrary_results.remove();
                         }
                     } );
                 [% END # /IF OpenLibrarySearch %]
             [% END # /IF query_desc %]
-
-            [% IF ( TagsInputEnabled && loggedinusername ) %]
-                $("#tagsel_tag").show().click(function(){
-                    tagSelected();
-                    return false;
-                });
-                $("#tagsel_cancel").click(function(){
-                    tagCanceled();
-                    return false;
-                });
-                $("#tagsel_button").click(function(){
-                    tagAdded();
-                    return false;
-                });
-
-                $(".tag_add").click(function(){
-                    var thisid = $(this).attr("id");
-                    thisid = thisid.replace("tag_add","");
-                    $(this).addClass("hidden");
-                    $("#tagform"+thisid).show();
-                    $("#newtag"+thisid).focus();
-                    $("#newtag"+thisid+"_status").empty().hide();
-                    return false;
-                });
-                $(".cancel_tag_add").click(function(){
-                    var thisid = $(this).attr("id");
-                    thisid = thisid.replace("cancel","");
-                    $("#tagform"+thisid).hide();
-                    $("#tag_add"+thisid).removeClass("hidden");
-                    $("#newtag"+thisid).val("");
-                    $("#newtag"+thisid+"_status").empty().hide();
-                    return false;
-                });
-                $(".tagbutton").click(function(){
-                    var thisid = $(this).attr("title");
-                    var tag = $("#newtag"+thisid).val();
-                    if (!tag || (tag == "")) {
-                        alert(MSG_NO_TAG_SPECIFIED);
-                        return false;
-                    }
-                    KOHA.Tags.add_tag_button(thisid, tag);
-                    return false;
-                });
-            [% END # /IF TagsInputEnabled && loggedinusername %]
 
             [% IF OpenLibraryCovers %]KOHA.OpenLibrary.GetCoverFromIsbn();[% END %]
             [% IF OPACLocalCoverImages %]KOHA.LocalCover.GetCoverFromBibnumber(false);[% END %]

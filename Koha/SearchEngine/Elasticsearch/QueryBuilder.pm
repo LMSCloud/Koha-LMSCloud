@@ -48,6 +48,7 @@ use URI::Escape qw( uri_escape_utf8 );
 use C4::Context;
 use Koha::Exceptions;
 use Koha::Caches;
+use Koha::AuthorisedValueCategories;
 
 our %index_field_convert = (
     'kw' => '',
@@ -82,6 +83,7 @@ our %index_field_convert = (
     'notes' => 'note',
     'rcn' => 'record-control-number',
     'cni' => 'control-number-identifier',
+    'cnum' => 'control-number',
     'su' => 'subject',
     'su-to' => 'subject',
     'su-ut' => 'subject',
@@ -150,6 +152,7 @@ our %index_field_convert = (
 );
 my $field_name_pattern = '[\w\-]+';
 my $multi_field_pattern = "(?:\\.$field_name_pattern)*";
+my $es_advanced_searches = [];
 
 =head2 get_index_field_convert
 
@@ -236,31 +239,20 @@ sub build_query {
         }
     }
 
-    # See _convert_facets in Search.pm for how these get turned into
-    # things that Koha can use.
-    my $size = C4::Context->preference('FacetMaxCount');
-    $res->{aggregations} = {
-        author         => { terms => { field => "author__facet" , size => $size } },
-        subject        => { terms => { field => "subject__facet", size => $size } },
-        itype          => { terms => { field => "itype__facet", size => $size} },
-        location       => { terms => { field => "location__facet", size => $size } },
-        'su-geo'       => { terms => { field => "su-geo__facet", size => $size} },
-        'title-series' => { terms => { field => "title-series__facet", size => $size } },
-        ccode          => { terms => { field => "ccode__facet", size => $size } },
-        ln             => { terms => { field => "ln__facet", size => $size } },
-        'subject-genre-form'  => { terms => { field => "subject-genre-form__facet", size => $size } },
-        'publyear'     => { terms => { field => "publyear__facet", size => $size } },
-    };
+    unless ( $options{skip_facets} ) {
 
-    my $display_library_facets = C4::Context->preference('DisplayLibraryFacets');
-    if (   $display_library_facets eq 'both'
-        or $display_library_facets eq 'home' ) {
-        $res->{aggregations}{homebranch} = { terms => { field => "homebranch__facet", size => $size } };
+        # See _convert_facets in Search.pm for how these get turned into
+        # things that Koha can use.
+        my $size = C4::Context->preference('FacetMaxCount');
+        my @facets = Koha::SearchEngine::Elasticsearch->get_facet_fields;
+        for my $f ( @facets ) {
+            my $name = $f->name;
+            $res->{aggregations}->{$name} = { terms => { field => "${name}__facet" , size => $size } };
+        };
+
     }
-    if (   $display_library_facets eq 'both'
-        or $display_library_facets eq 'holding' ) {
-        $res->{aggregations}{holdingbranch} = { terms => { field => "holdingbranch__facet", size => $size } };
-    }
+
+    $res = _rebuild_to_es_advanced_query($res) if @$es_advanced_searches ;
     return $res;
 }
 
@@ -310,7 +302,8 @@ sub build_query_compat {
         while ( my ( $oand, $otor, $index ) = $ea->() ) {
             next if ( !defined($oand) || $oand eq '' );
             $oand = $self->clean_search_term($oand);
-            $oand = $self->_truncate_terms($oand) if ($truncate);
+            $oand = $self->_truncate_terms($oand)
+                if $truncate && $self->_is_safe_to_auto_truncate( $index->{field}, $oand );
             push @search_params, {
                 operand => $oand,      # the search terms
                 operator => defined($otor) ? uc $otor : undef,    # AND and so on
@@ -340,6 +333,7 @@ sub build_query_compat {
         $options{is_opac} = $params->{is_opac};
         $options{weighted_fields} = $params->{weighted_fields};
         $options{whole_record} = $params->{whole_record};
+        $options{skip_facets}     = $params->{skip_facets};
         $query = $self->build_query( $query_str, %options );
     }
 
@@ -490,9 +484,13 @@ sub build_authorities_query {
     # Merge the query parts appropriately
     # 'should' behaves like 'or'
     # 'must' behaves like 'and'
-    # Zebra behaviour seem to match must so using that here
+    # We will obey the first and_or passed in here:
+    # authfinder.pl is hardcoded to 'AND'
+    # authorities-home.pl only allows searching a single index
+    # for matching we 'OR' together multiple fields
+    my $search_type   = defined $search->{and_or} && uc( $search->{and_or}->[0] ) eq 'OR' ? 'should' : 'must';
     my $elastic_query = {};
-    $elastic_query->{bool}->{must} = \@query_parts;
+    $elastic_query->{bool}->{$search_type} = \@query_parts;
 
     # Filter by authtypecode if set
     if ($search->{authtypecode}) {
@@ -534,7 +532,8 @@ thesaurus. If left blank, any field is used.
 
 =item and_or
 
-Totally ignored. It is never used in L<C4::AuthoritiesMarc::SearchAuthorities>.
+This takes an array to match Zebra, however, we only care about the first value.
+This will determine whether searches are combined as 'must' (AND) or 'should' (OR).
 
 =item excluding
 
@@ -645,6 +644,7 @@ sub build_authorities_query_compat {
     my %search = (
         searches     => \@searches,
         authtypecode => $authtypecode,
+        and_or       => $and_or,
     );
     $search{sort} = \%sort if %sort;
     my $query = $self->build_authorities_query( \%search );
@@ -661,11 +661,12 @@ the provided string input.
 =cut
 
 our %scan_field_convert = (
-    'ti' => 'title',
-    'au' => 'author',
-    'su' => 'subject',
-    'se' => 'title-series',
-    'pb' => 'publisher',
+    'ti'      => 'title',
+    'au'      => 'author',
+    'su'      => 'subject',
+    'se'      => 'title-series',
+    'pb'      => 'publisher',
+    'callnum' => 'local-classification',
 );
 
 sub _build_scan_query {
@@ -746,11 +747,12 @@ sub _convert_sort_fields {
     # Convert the fields and orders, drop anything we don't know about.
     grep { $_->{field} } map {
         my ( $f, $d ) = /(.+)_(.+)/;
-        defined $f && defined $d ?
-        {
+        defined $f && defined $d
+            ? {
             field     => $sort_field_convert{$f},
             direction => $sort_order_convert{$d}
-        } : { field => undef };
+            }
+            : { field => undef };
     } @sort_by;
 }
 
@@ -778,6 +780,8 @@ sub _convert_index_fields {
             field => exists $index_field_convert{$f} ? $index_field_convert{$f} : $f,
             type  => $index_type_convert{ $t // '__default' }
         };
+        $r->{field} .= '-all'
+            if C4::Context->preference('SearchCancelledAndInvalidISBNandISSN') && $r->{field} =~ /^is[bs]n$/;
         $r->{field} = ($mc . $r->{field}) if $mc && $r->{field};
         $r->{field} || $r->{type} ? $r : undef;
     } @indexes;
@@ -845,6 +849,9 @@ sub _convert_index_strings_freeform {
     $search =~ s/($field_name_pattern)(?:,[\w-]*)?($multi_field_pattern):/\L$1\E$2:/og;
     # Resolve possible field aliases
     $search =~ s/($field_name_pattern)($multi_field_pattern):/(exists $index_field_convert{$1} ? $index_field_convert{$1} : $1).($1 eq 'kw' ? "$2" : "$2:")/oge;
+    if ( C4::Context->preference('SearchCancelledAndInvalidISBNandISSN') ) {
+        $search =~ s/\b(is[bs]n)(?=$multi_field_pattern:)/$1-all/g;
+    }
     return $search;
 }
 
@@ -870,6 +877,12 @@ sub _modify_string_by_type {
     if ($type eq 'st-year') {
         if ($str =~ /^(.*)-(.*)$/) {
             my $from = $1 || '*';
+            my $until = $2 || '*';
+            $str = "[$from TO $until]";
+        }
+    } elsif ( $type eq 'st-date-normalized' ) {
+        if ( $str =~ /^(.*) - (.*)$/ ) {
+            my $from  = $1 || '*';
             my $until = $2 || '*';
             $str = "[$from TO $until]";
         }
@@ -946,6 +959,17 @@ operand.
 
 sub _create_query_string {
     my ( $self, @queries ) = @_;
+    $es_advanced_searches = [];
+    my @string_queries;
+    foreach my $q (@queries) {
+        if ( $q->{field} && $q->{field} eq 'geolocation' ) {
+            push( @$es_advanced_searches, $q );
+        } else {
+            push( @string_queries, $q );
+        }
+    }
+
+    @queries = @string_queries;
 
     map {
         my $otor  = $_->{operator} ? $_->{operator} . ' ' : '';
@@ -1045,6 +1069,14 @@ sub clean_search_term {
     # screen all brackets with backslash
     $term =~ s/(?<!\\)(?:[\\]{2})*([\{\}\[\]])$lookahead/\\$1/g;
 
+    # Remove problematic punctuation  and escaped slashes surrounded by spaces if truncate.
+    # This mainly relates to ISBD punctuation.
+    # Note that slashes identified as RE limits will not be removed nor the contents of RE
+    # will be altered (cf. @saved_regexes).  In other cases (i.e. escaped slashes
+    # (cf. QueryRegexEscapeOptions) and unescaped slashes not identified as being limits
+    # to a RE, i.e. the last odd unescaped slash), the slashes will be removed.
+    $term =~ s/\s([&;,:\.=\-\/\s]|(\\\/))+\s$lookahead/ /g if $truncate;
+
     # restore all regex contents after escaping brackets:
     for (my $i = 0; $i < @saved_regexes; $i++) {
         $term =~ s/~~RE$i~~/$saved_regexes[$i]/;
@@ -1104,7 +1136,6 @@ sub _fix_limit_special_cases {
 
     my @new_lim;
     foreach my $l (@$limits) {
-
         # This is set up by opac-search.pl
         if ( $l =~ /^yr,st-numeric,ge[=:]/ ) {
             my ( $start, $end ) =
@@ -1186,6 +1217,20 @@ sub _fix_limit_special_cases {
             else {
                 push @new_lim, $term;
             }
+        }
+        elsif ( $l =~ /^\s*(kw\b[\w,-]*?):(.*)/) {
+            my ( $field, $term ) = ($1, $2);
+            if ( defined($field) && defined($term) && $field =~ /,phr$/) {
+                push @new_lim, "(\"$term\")";
+            }
+            else {
+                push @new_lim, $term;
+            }
+        } elsif ( $l =~ /^acqdate,st-date-normalized=/ ) {
+            my ($date) = ( $l =~ /^acqdate,st-date-normalized=(.*)$/ );
+            next unless defined($date);
+            $date = $self->_modify_string_by_type( type => 'st-date-normalized', operand => $date );
+            push @new_lim, "date-of-acquisition.raw:$date";
         }
         else {
             my ( $field, $term ) = $l =~ /^\s*([\w,-]*?):(.*)/;
@@ -1375,5 +1420,106 @@ sub _search_fields {
         return [map { $_->[0] } @{$search_fields}];
     }
 }
+
+
+=pod
+
+=head2 _is_safe_to_auto_truncate
+
+_is_safe_to_auto_truncate($index_field, $oand);
+
+Checks if it is safe to auto truncate a search term within a given search field.
+
+The search term should not be auto truncated when searching for identifiers, e.g.
+koha-auth-number, record-control-number, local-number etc.  Also, non-text fields
+must not be auto truncated (doing so would generate ES exception).
+
+=cut
+
+sub _is_safe_to_auto_truncate {
+    my ( $self, $index_field, $oand ) = @_;
+
+    # Do not auto truncate fields that should not be auto truncated,
+    # primarily various types of identifiers, above all record identifiers.
+    # Other search fields that should not be auto truncated can be defined
+    # with ESPreventAutoTruncate syspref.
+    my %do_not_autotruncate_fields;
+    my $cache                          = Koha::Caches->get_instance();
+    my $cache_key                      = 'elasticsearch_search_do_not_autotruncate';
+    my $do_not_autotruncate_fields_ref = $cache->get_from_cache( $cache_key, { unsafe => 1 } );
+    %do_not_autotruncate_fields = %$do_not_autotruncate_fields_ref if $do_not_autotruncate_fields_ref;
+    if ( !scalar( keys %do_not_autotruncate_fields ) ) {
+        %do_not_autotruncate_fields =
+            map { $_ => 1 } qw / biblioitemnumber host-item-number itemnumber koha-auth-number local-number /;
+
+        # In addition, under no circumstances should non-text fields
+        # be auto truncated.
+        my $schema = Koha::Database->new()->schema();
+        my $sfs =
+            $schema->resultset('SearchField')
+            ->search(
+            { '-or' => [ { type => 'boolean' }, { type => 'number' }, { type => 'sum' }, { type => 'year' } ] } );
+        while ( my $sf = $sfs->next ) {
+            $do_not_autotruncate_fields{ $sf->name } = 1;
+        }
+        $cache->set_in_cache( $cache_key, \%do_not_autotruncate_fields );
+    }
+
+    # processing of the syspref is done outside cache since the systempreference
+    # can be modified and the modification should be reflected in the
+    # $do_not_autotruncate_fields array
+    my $prevent_autotruncate = C4::Context->preference('ESPreventAutoTruncate');
+    for my $field ( split( /\s*[,;|]\s*/, $prevent_autotruncate ) ) {
+        $do_not_autotruncate_fields{$field} = 1;
+    }
+
+    # search fields can be given as a explicit index name (e.g. from advanced
+    # search):
+    if ($index_field) {
+        return 0 if grep { $index_field eq $_ } keys %do_not_autotruncate_fields;
+
+        # OR can be given implicitly, as prefix in the operand (e.g. in links generated
+        # by Koha like catalogue/search.pl?q=an:<authid>):
+    } elsif ( $oand =~ /\b($field_name_pattern):/ ) {    # check field name prefixing operand
+        my $field_name = $1;
+        return 0 if grep { $field_name eq $_ } keys %do_not_autotruncate_fields;
+    }
+
+    # It is safe to auto truncate:
+    return 1;
+}
+
+sub _rebuild_to_es_advanced_query {
+    my ($res) = @_;
+    my $query_string = $res->{query}->{query_string};
+    $query_string->{query} = '*' unless $query_string->{query};
+    delete $res->{query}->{query_string};
+
+    my %filter;
+    for my $advanced_query (@$es_advanced_searches) {
+        if ( $advanced_query->{field} eq 'geolocation' ) {
+            my ( $lat, $lon, $distance ) = map { $_ =~ /:(.*)\*/ } split( '\s+', $advanced_query->{operand} );
+            $filter{geo_distance} = {
+                distance    => $distance,
+                geolocation => {
+                    lat => $lat,
+                    lon => $lon,
+                }
+            };
+        } else {
+            warn "unknown advanced ElasticSearch query: " . join( ', ', %$advanced_query );
+        }
+    }
+
+    $res->{query} = {
+        bool => {
+            must   => { query_string => $query_string },
+            filter => \%filter,
+        }
+    };
+
+    return $res;
+}
+
 
 1;

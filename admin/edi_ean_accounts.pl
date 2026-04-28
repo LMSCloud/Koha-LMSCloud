@@ -62,7 +62,7 @@ elsif ( $op eq 'delete_confirm' ) {
     );
 }
 else {
-    if ( $op eq 'save' ) {
+    if ( $op eq 'cud-save' ) {
         my $change = $id;
         if ($change) {
             $schema->resultset('EdifactEan')->find($id)->update(
@@ -86,7 +86,7 @@ else {
             $new_ean->insert();
         }
     }
-    elsif ( $op eq 'delete_confirmed' ) {
+    elsif ( $op eq 'cud-delete_confirmed' ) {
         my $e = $schema->resultset('EdifactEan')->find($id);
         $e->delete if $e;
     }

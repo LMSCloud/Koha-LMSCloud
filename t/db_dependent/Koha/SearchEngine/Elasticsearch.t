@@ -16,8 +16,11 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use Encode;
 
-use Test::More tests => 8;
+use Test::More tests => 9;
+use Test::NoWarnings;
+use Test::Warn;
 use Test::Exception;
 
 use t::lib::Mocks;
@@ -145,14 +148,15 @@ subtest 'get_elasticsearch_mappings() tests' => sub {
             marc_field => '001',
         },
         {
-            name => 'isbn',
-            type => 'string',
-            facet => 0,
+            name        => 'isbn',
+            type        => 'string',
+            facet       => 0,
             suggestible => 0,
-            searchable => 1,
-            sort => 1,
-            marc_type => 'marc21',
-            marc_field => '020a',
+            searchable  => 1,
+            filter      => 'punctuation',
+            sort        => 1,
+            marc_type   => 'marc21',
+            marc_field  => '020a',
         },
     );
     my $search_engine_module = Test::MockModule->new('Koha::SearchEngine::Elasticsearch');
@@ -167,6 +171,7 @@ subtest 'get_elasticsearch_mappings() tests' => sub {
                 $map->{suggestible},
                 $map->{sort},
                 $map->{searchable},
+                $map->{filter},
                 $map->{marc_type},
                 $map->{marc_field}
             );
@@ -184,7 +189,7 @@ subtest 'get_elasticsearch_mappings() tests' => sub {
 
 subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' => sub {
 
-    plan tests => 65;
+    plan tests => 71;
 
     t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
     t::lib::Mocks::mock_preference('ElasticsearchMARCFormat', 'ISO2709');
@@ -239,6 +244,17 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
             sort => 1,
             marc_type => 'marc21',
             marc_field => '245(ab)ab',
+        },
+        {
+            name        => 'title-no-punctuation',
+            type        => 'string',
+            facet       => 0,
+            suggestible => 1,
+            searchable  => 1,
+            sort        => undef,
+            filter      => 'punctuation',
+            marc_type   => 'marc21',
+            marc_field  => '245(ab)ab',
         },
         {
             name => 'unimarc_title',
@@ -380,6 +396,16 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
             marc_type => 'marc21',
             marc_field => '650(avxyz)',
         },
+        {
+            name        => 'note',
+            type        => 'string',
+            facet       => 0,
+            suggestible => 0,
+            searchable  => 1,
+            sort        => 1,
+            marc_type   => 'marc21',
+            marc_field  => '522a',
+        },
     );
 
     my $se = Test::MockModule->new('Koha::SearchEngine::Elasticsearch');
@@ -394,6 +420,7 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
                 $map->{suggestible},
                 $map->{sort},
                 $map->{searchable},
+                $map->{filter},
                 $map->{marc_type},
                 $map->{marc_field}
             );
@@ -454,11 +481,11 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
     my $marc_record_4 = MARC::Record->new();
     $marc_record_4->leader('     cam  22      a 4500');
     $marc_record_4->append_fields(
-        MARC::Field->new('008', '901111s19uu xxk|||| |00| ||eng c'),
-        MARC::Field->new('100', '', '', a => 'Author 2'),
-        MARC::Field->new('245', '', '4', a => 'The Title :', b => 'fourth record'),
-        MARC::Field->new('260', '', '', a => 'New York :', b => 'Ace ,', c => ' 89 '),
-        MARC::Field->new('999', '', '', c => '1234568'),
+        MARC::Field->new( '008', '901111s19uu xxk|||| |00| ||eng c' ),
+        MARC::Field->new( '100', '', '', a => 'Author 2' ),
+        MARC::Field->new( '245', '', '4', a => 'The Title\'s the thing :', b => 'fourth record' ),
+        MARC::Field->new( '260', '', '', a => 'New York :', b => 'Ace ,', c => ' 89 ' ),
+        MARC::Field->new( '999', '', '', c => '1234568' ),
     );
 
     my $records = [$marc_record_1, $marc_record_2, $marc_record_3, $marc_record_4];
@@ -487,7 +514,15 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
     is_deeply($docs->[0]->{title__sort}, ['Title: first record Title: first record'], 'First document title__sort field should be set correctly');
 
     is(scalar @{$docs->[3]->{title__sort}}, 1, 'First document title__sort field should have a single');
-    is_deeply($docs->[3]->{title__sort}, ['Title : fourth record The Title : fourth record'], 'Fourth document title__sort field should be set correctly');
+    is_deeply(
+        $docs->[3]->{title__sort}, ['Title\'s the thing : fourth record The Title\'s the thing : fourth record'],
+        'Fourth document title__sort field should be set correctly'
+    );
+    is_deeply(
+        $docs->[3]->{'title-no-punctuation'},
+        [ 'The Titles the thing ', 'Titles the thing ', 'fourth record', 'The Titles the thing  fourth record' ],
+        'Fourth document title-no-punctuation field should be set correctly'
+    );
 
     is($docs->[0]->{issues}, 6, 'Issues field should be sum of the issues for each item');
     is($docs->[0]->{issues__sort}, 6, 'Issues sort field should also be a sum of the issues');
@@ -578,8 +613,8 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
     # Nonfiling characters for sort fields
     is_deeply(
         $docs->[0]->{uniform_title},
-        ['The uniform title with nonfiling indicator'],
-        'First document uniform_title field should contain the title verbatim'
+        [ 'The uniform title with nonfiling indicator', 'uniform title with nonfiling indicator' ],
+        'First document uniform_title field should contain the title verbatim and with four initial characters removed'
     );
     is_deeply(
         $docs->[0]->{uniform_title__sort},
@@ -658,7 +693,7 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
         MARC::Field->new('999', '', '', c => '1234567'),
     );
 
-    my $item_field = MARC::Field->new('952', '', '', o => '123456789123456789123456789', p => '123456789', z => 'test');
+    my $item_field = MARC::Field->new('952', '', '', o => '123456789123456789123456789', p => '123456789', z => Encode::decode('UTF-8','To naprawdę bardzo długa notatka. Myślę, że będzie sprawiać kłopoty.'));
     my $items_count = 1638;
     while(--$items_count) {
         $large_marc_record->append_fields($item_field);
@@ -730,6 +765,48 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
     is_deeply( $docs->[0]->{author},[],'No value placed into field if mapped marc field is blank');
     is_deeply( $docs->[0]->{author__suggestion},[],'No value placed into suggestion if mapped marc field is blank');
 
+    my $marc_record_with_large_field = MARC::Record->new();
+    $marc_record_with_large_field->leader('     cam  22      a 4500');
+
+    my $xs = 'X' x 8191;
+    my $ys = 'Y' x 8191;
+    my $zs = 'Z' x 8191 . 'W';    # one extra character so it needs splitting
+
+    $marc_record_with_large_field->append_fields(
+        MARC::Field->new( '100', '', '', a => 'Author 1' ),
+        MARC::Field->new( '245', '', '', a => 'Title:', b => 'record with large field' ),
+        MARC::Field->new( '500', '', '', a => 'X' x 15000 ),
+        MARC::Field->new( '522', '', '', a => "$xs $ys $zs" ),
+        MARC::Field->new( '999', '', '', c => '1234567' ),
+    );
+
+    warning_is {
+        $docs = $see->marc_records_to_documents( [$marc_record_with_large_field] );
+    }
+    "Warnings encountered while roundtripping a MARC record to/from USMARC. Failing over to MARCXML.";
+
+    subtest '_process_mappings() split tests' => sub {
+
+        plan tests => 4;
+
+        my $note_indexes = $docs->[0]->{note};
+
+        is( $note_indexes->[0], $xs,                    'First chunk split using the space' );
+        is( $note_indexes->[1], $ys,                    'Second chunk split using the space' );
+        is( $note_indexes->[2], substr( $zs, 0, 8191 ), 'Third chunk is forced to split' );
+        is( $note_indexes->[3], substr( $zs, 8191, 1 ), 'Fourth chunk is just the remaining char' );
+    };
+
+    is( $docs->[0]->{marc_format}, 'MARCXML', 'For record with large field marc_format should be set correctly' );
+
+    $decoded_marc_record = $see->decode_record_from_result( $docs->[0] );
+
+    ok( $decoded_marc_record->isa('MARC::Record'), "MARCXML record successfully decoded from result" );
+    is(
+        $decoded_marc_record->as_xml_record(), $marc_record_with_large_field->as_xml_record(),
+        "Decoded MARCXML record has same data as original record"
+    );
+
 };
 
 subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents_array () tests' => sub {
@@ -764,6 +841,7 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents_array () t
                 $map->{suggestible},
                 $map->{sort},
                 $map->{searchable},
+                $map->{filter},
                 $map->{marc_type},
                 $map->{marc_field}
             );
@@ -859,6 +937,7 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () authori
                 $map->{suggestible},
                 $map->{sort},
                 $map->{searchable},
+                $map->{filter},
                 $map->{marc_type},
                 $map->{marc_field}
             );
@@ -959,6 +1038,7 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents with Inclu
                 $map->{suggestible},
                 $map->{sort},
                 $map->{searchable},
+                $map->{filter},
                 $map->{marc_type},
                 $map->{marc_field}
             );
@@ -1001,19 +1081,18 @@ subtest 'marc_records_to_documents should set the "available" field' => sub {
     # sort_fields will call this and use the actual db values unless we call it first
     $see->get_elasticsearch_mappings();
 
-    my $marc_record_1 = MARC::Record->new();
-    $marc_record_1->leader('     cam  22      a 4500');
-    $marc_record_1->append_fields(
-        MARC::Field->new('245', '', '', a => 'Title'),
-    );
-    my ($biblionumber) = C4::Biblio::AddBiblio($marc_record_1, '', { defer_marc_save => 1 });
+    my $builder       = t::lib::TestBuilder->new;
+    my $biblio        = $builder->build_sample_biblio;
+    my $marc_record_1 = $biblio->metadata->record;
 
     my $docs = $see->marc_records_to_documents([$marc_record_1]);
     is_deeply($docs->[0]->{available}, \0, 'a biblio without items is not available');
 
-    my $item = Koha::Item->new({
-        biblionumber => $biblionumber,
-    })->store();
+    my $item = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->biblionumber,
+        }
+    );
 
     $docs = $see->marc_records_to_documents([$marc_record_1]);
     is_deeply($docs->[0]->{available}, \1, 'a biblio with one item that has no particular status is available');
@@ -1038,9 +1117,11 @@ subtest 'marc_records_to_documents should set the "available" field' => sub {
     $docs = $see->marc_records_to_documents([$marc_record_1]);
     is_deeply($docs->[0]->{available}, \1, 'a biblio with one item that is damaged is available');
 
-    my $item2 = Koha::Item->new({
-        biblionumber => $biblionumber,
-    })->store();
+    my $item2 = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->biblionumber,
+        }
+    );
     $docs = $see->marc_records_to_documents([$marc_record_1]);
     is_deeply($docs->[0]->{available}, \1, 'a biblio with at least one item that has no particular status is available');
 };

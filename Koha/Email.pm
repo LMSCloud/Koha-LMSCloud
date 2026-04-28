@@ -121,7 +121,7 @@ sub create {
     Koha::Exceptions::BadParameter->throw(
         error     => "Invalid 'to' parameter: " . $args->{to},
         parameter => 'to'
-    ) unless Koha::Email->is_valid( $args->{to} );    # to is mandatory
+    ) unless Koha::Email->is_valid( $args->{to} );
 
     my $addresses = {};
     $addresses->{reply_to} = $params->{reply_to};
@@ -173,10 +173,14 @@ sub create {
     $email->header( 'Reply-To', $addresses->{reply_to} )
         if $addresses->{reply_to};
 
-    $email->header( 'Sender'       => $addresses->{sender} ) if $addresses->{sender};
+    $email->header( 'Sender'       => $addresses->{sender} )   if $addresses->{sender};
     $email->header( 'Content-Type' => $params->{contenttype} ) if $params->{contenttype};
     $email->header( 'X-Mailer'     => "Koha" );
     $email->header( 'Message-ID'   => Email::MessageID->new->in_brackets );
+
+    # Add Koha message headers to aid later message identification
+    $email->header( 'X-Koha-Template-ID' => $params->{template_id} ) if $params->{template_id};
+    $email->header( 'X-Koha-Message-ID'  => $params->{message_id} )  if $params->{message_id};
 
     if ( $params->{text_body} ) {
         $email->text_body( $params->{text_body}, %{ $params->{body_params} } );

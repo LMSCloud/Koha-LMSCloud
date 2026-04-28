@@ -68,7 +68,7 @@ sub to_api {
 
     my $json = $self->SUPER::to_api($params);
 
-    $json->{resource_type} = $table_to_resource->{ $self->tablename };
+    $json->{resource_type} = $table_to_resource->{ $self->tablename } || $self->tablename;
 
     return $json;
 }

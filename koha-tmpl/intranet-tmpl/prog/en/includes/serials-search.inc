@@ -1,8 +1,10 @@
+[% USE raw %]
 [% USE Koha %]
+[% PROCESS 'html_helpers.inc' %]
 <!-- serials-search.inc -->
-<div id="header_search" role="tablist">
-    <div class="tab-content">
-        <div id="subscription_search" role="tabpanel" class="tab-pane active">
+[% WRAPPER tabs id="header_search" %]
+    [% WRAPPER tab_panels %]
+        [% WRAPPER tab_panel tabname="subscription_search" bt_active= 1 %]
             <form action="/cgi-bin/koha/serials/serials-search.pl" method="get">
                 [% IF ( routing ) %]
                     <input type="hidden" name="routing" value="[% routing | html %]" />
@@ -10,7 +12,7 @@
                 <input type="hidden" name="searched" value="1" />
 
                 <div class="form-title">
-                    <label class="control-label">Search subscriptions</label>
+                    <label class="control-label" for="ISSN_filter"><span class="control-text">Search subscriptions</span> <i class="fa fa-fw fa-book" aria-hidden="true"></i></label>
                 </div>
 
                 <div class="form-content">
@@ -21,11 +23,11 @@
                     [% END %]
 
                     <input type="text" class="form-control" placeholder="Title" size="11" name="title_filter" id="title_filter" value="[% title_filter | html %]" />
-                    <button type="button" class="form-extra-content-toggle"><i class="fa fa-sliders"></i></button>
+                    <button type="button" class="form-extra-content-toggle" title="More options"><i class="form-extra-content-icon fa-solid fa-sliders" aria-hidden="true"></i></button>
 
                 </div>
 
-                <button type="submit"><i class="fa fa-arrow-right"></i></button>
+                <button type="submit" aria-label="Search"><i class="fa fa-arrow-right"></i></button>
                 <div class="form-extra-content">
                     <div>
                         <label for="callnumber_filter">Call number:</label>
@@ -44,7 +46,7 @@
                     </div>
                 </div> <!-- /.form-extra-content -->
             </form>
-        </div> <!-- /#subscription_search -->
+        [% END # /tab_panel %]
 
         [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
             [% INCLUDE 'patron-search-box.inc' %]
@@ -53,21 +55,21 @@
             [% INCLUDE 'catalogue-search-box.inc' %]
         [% END %]
 
-    </div><!-- /.tab-content -->
-    <ul class="nav nav-tabs" role="tablist">
-        <li role="presentation" class="active">
-            <a title="Search subscriptions" href="#subscription_search" aria-controls="subscription_search" aria-expanded="true" role="tab" aria-expanded="true" data-toggle="tab" class="keep_text"><i class="fa fa-book"></i> <span class="tab-title">Search subscriptions</span></a>
-        </li>
+    [% END # /tab_panels %]
+    [% WRAPPER tabs_nav %]
+        [% WRAPPER tab_item tabname= "subscription_search" bt_active= 1 %]
+            <i class="fa fa-book" aria-hidden="true"></i> <span class="tab-title">Search subscriptions</span>
+        [% END %]
         [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
-            <li role="presentation">
-                <a title="Check out" href="#circ_search" aria-controls="circ_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-upload"></i> <span class="tab-title">Check out</span></a>
-            </li>
+            [% WRAPPER tab_item tabname= "circ_search" %]
+                <i class="fa fa-upload" aria-hidden="true"></i> <span class="tab-title">Check out</span>
+            [% END %]
         [% END %]
         [% IF ( CAN_user_catalogue ) %]
-            <li role="presentation">
-                <a title="Search catalog" href="#catalog_search" aria-controls="catalog_search" role="tab" data-toggle="tab" class="keep_text"><i class="fa fa-fw fa-search"></i> <span class="tab-title">Search catalog</span></a>
-            </li>
+            [% WRAPPER tab_item tabname= "catalog_search" %]
+                <i class="fa fa-fw fa-search" aria-hidden="true"></i> <span class="tab-title">Search catalog</span>
+            [% END %]
         [% END %]
-    </ul>
-</div><!-- /#header_search -->
+    [% END # /tabs_nav %]
+[% END # /WRAPPER tabs %]
 <!-- /serials-search.inc -->

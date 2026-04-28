@@ -33,7 +33,46 @@ my $builder = t::lib::TestBuilder->new;
 
 subtest 'store() tests' => sub {
 
-    plan tests => 4;
+    plan tests => 6;
+
+    subtest 'Update an attribute should update the patron "updated_on" field' => sub {
+
+        plan tests => 1;
+
+        $schema->storage->txn_begin;
+
+        my $patron     = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $updated_on = $patron->updated_on;
+
+        sleep 1;    # Timestamps are in one second increments, so we need to wait one second
+
+        my $type = $builder->build_object(
+            {
+                class => 'Koha::Patron::Attribute::Types',
+                value => {
+                    mandatory     => 0,
+                    repeatable    => 0,
+                    unique_id     => 0,
+                    category_code => undef
+                }
+            }
+        );
+
+        my $attr = $patron->add_extended_attribute(
+            {
+                code      => $type->code,
+                attribute => 'TEST'
+            }
+        );
+
+        $attr->set( { attribute => 'TEST' } )->store();
+
+        $patron->discard_changes;
+
+        isnt( $updated_on, $patron->updated_on, "Updated on was updated by attribute storage" );
+
+        $schema->storage->txn_rollback;
+    };
 
     subtest 'repeatable attributes tests' => sub {
 
@@ -43,8 +82,9 @@ subtest 'store() tests' => sub {
 
         my $patron = $builder->build( { source => 'Borrower' } )->{borrowernumber};
         my $attribute_type_1 = $builder->build(
-            {   source => 'BorrowerAttributeType',
-                value  => { repeatable => 1 }
+            {
+                source => 'BorrowerAttributeType',
+                value  => { repeatable => 1, is_date => 0 }
             }
         );
         Koha::Patron::Attribute->new(
@@ -67,8 +107,9 @@ subtest 'store() tests' => sub {
             '2 repeatable attributes stored and retrieved correcctly' );
 
         my $attribute_type_2 = $builder->build(
-            {   source => 'BorrowerAttributeType',
-                value  => { repeatable => 0 }
+            {
+                source => 'BorrowerAttributeType',
+                value  => { repeatable => 0, is_date => 0 }
             }
         );
 
@@ -106,6 +147,55 @@ subtest 'store() tests' => sub {
         $schema->storage->txn_rollback;
     };
 
+    subtest 'is_date attributes tests' => sub {
+        plan tests => 3;
+
+        $schema->storage->txn_begin;
+
+        my $patron           = $builder->build( { source => 'Borrower' } )->{borrowernumber};
+        my $attribute_type_1 = $builder->build(
+            {
+                source => 'BorrowerAttributeType',
+                value  => { is_date => 1 }
+            }
+        );
+
+        throws_ok {
+            Koha::Patron::Attribute->new(
+                {
+                    borrowernumber => $patron,
+                    code           => $attribute_type_1->{code},
+                    attribute      => 'not_a_date'
+                }
+            )->store;
+        }
+        'Koha::Exceptions::Patron::Attribute::InvalidAttributeValue',
+            'Exception thrown trying to store a date attribute with non-date value';
+
+        is(
+            "$@",
+            "Tried to use an invalid value for attribute type. type=" . $attribute_type_1->{code} . " value=not_a_date",
+            'Exception stringified correctly, attribute passed correctly'
+        );
+
+        Koha::Patron::Attribute->new(
+            {
+                borrowernumber => $patron,
+                code           => $attribute_type_1->{code},
+                attribute      => '2024-03-04'
+            }
+        )->store;
+
+        my $attr_count =
+            Koha::Patron::Attributes->search( { borrowernumber => $patron, code => $attribute_type_1->{code} } )->count;
+        is(
+            $attr_count, 1,
+            '1 date attribute stored and retrieved correctly'
+        );
+
+        $schema->storage->txn_rollback;
+    };
+
     subtest 'unique_id attributes tests' => sub {
 
         plan tests => 5;
@@ -116,8 +206,9 @@ subtest 'store() tests' => sub {
         my $patron_2 = $builder->build( { source => 'Borrower' } )->{borrowernumber};
 
         my $attribute_type_1 = $builder->build(
-            {   source => 'BorrowerAttributeType',
-                value  => { unique_id => 0 }
+            {
+                source => 'BorrowerAttributeType',
+                value  => { unique_id => 0, is_date => 0 }
             }
         );
         Koha::Patron::Attribute->new(
@@ -140,8 +231,9 @@ subtest 'store() tests' => sub {
             '2 non-unique attributes stored and retrieved correcctly' );
 
         my $attribute_type_2 = $builder->build(
-            {   source => 'BorrowerAttributeType',
-                value  => { unique_id => 1 }
+            {
+                source => 'BorrowerAttributeType',
+                value  => { unique_id => 1, is_date => 0 }
             }
         );
 
@@ -191,7 +283,8 @@ subtest 'store() tests' => sub {
                 class => 'Koha::Patron::Attribute::Types',
                 value => {
                     unique_id  => 0,
-                    repeatable => 0
+                    repeatable => 0,
+                    is_date    => 0
                 }
             }
         );
@@ -230,6 +323,7 @@ subtest 'store() tests' => sub {
                     mandatory     => 0,
                     repeatable    => 0,
                     unique_id     => 1,
+                    is_date       => 0,
                     category_code => undef
                 }
             }
@@ -304,19 +398,31 @@ subtest 'merge_and_replace_with' => sub {
     my $unique_attribute_type = $builder->build_object(
         {
             class => 'Koha::Patron::Attribute::Types',
-            value => { unique_id=> 1, repeatable => 0 }
+            value => {
+                unique_id  => 1,
+                repeatable => 0,
+                is_date    => 0
+            }
         }
     );
     my $repeatable_attribute_type = $builder->build_object(
         {
             class => 'Koha::Patron::Attribute::Types',
-            value => { unique_id => 0, repeatable => 1 }
+            value => {
+                unique_id  => 0,
+                repeatable => 1,
+                is_date    => 0
+            }
         }
     );
     my $normal_attribute_type = $builder->build_object(
         {
             class => 'Koha::Patron::Attribute::Types',
-            value => { unique_id => 0, repeatable => 0 }
+            value => {
+                unique_id  => 0,
+                repeatable => 0,
+                is_date    => 0
+            }
         }
     );
     my $non_existent_attribute_type = $builder->build_object(

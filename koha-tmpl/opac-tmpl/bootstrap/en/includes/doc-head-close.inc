@@ -1,21 +1,21 @@
 [% USE raw %]
 [% USE Koha %]
+[% USE Branches %]
 [%- USE KohaPlugins -%]
 [% USE Asset %]
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="Koha" /> <!-- leave this for stats -->
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="csrf-token" content="[% Koha.GenerateCSRF | $raw %]">
 [% Asset.css("lib/jquery/responsive.dataTables.min.css") | $raw %]
 [% IF ( Koha.Preference('OpacMetaDescription') ) %]
     <meta name="description" content="[% Koha.Preference('OpacMetaDescription') | html %]" />
 [% END %]
+[% IF ( Koha.Preference('OpacMetaRobots') ) %]
+    <meta name="robots" content="[% Koha.Preference('OpacMetaRobots') | html %]" />
+[% END %]
 <link rel="shortcut icon" href="[% IF ( Koha.Preference('OpacFavicon') ) %][% Koha.Preference('OpacFavicon') | url %][% ELSE %][% interface | url %]/[% theme | url %]/images/favicon.ico[% END %]" type="image/x-icon" />
 <link rel="apple-touch-icon" href="[% IF ( Koha.Preference('OpacFavicon') ) %][% Koha.Preference('OpacFavicon') | url %][% ELSE %][% interface | url %]/[% theme | url %]/images/favicon.ico[% END %]" type="image/x-icon" />
-[% IF ( bidi ) %]
-    [% Asset.css("lib/jquery/jquery-ui-rtl-1.13.1.min.css") | $raw %]
-[% ELSE %]
-    [% Asset.css("lib/jquery/jquery-ui-1.13.1.min.css") | $raw %]
-[% END %]
 [% IF ( Koha.Preference('opaclayoutstylesheet') && Koha.Preference('opaclayoutstylesheet') != "opac.css" ) %]
     [% SET opaclayoutstylesheet = Koha.Preference('opaclayoutstylesheet') %]
 [% ELSE %]
@@ -49,6 +49,11 @@
 [% IF ( Koha.Preference('OPACUserCSS') ) %]
     <style>[% Koha.Preference('OPACUserCSS') | $raw %]</style>
 [% END %]
+[% IF Branches.GetBranchSpecificCSS( Branches.GetLoggedInBranchcode() || default_branch) %]
+    <style>
+        [% Branches.GetBranchSpecificCSS( Branches.GetLoggedInBranchcode() || default_branch) | $raw %]
+    </style>
+[% END %]
 [% IF SCO_login %]
     [% SET SCOUserCSS = Koha.Preference('SCOUserCSS') %]
     [% IF SCOUserCSS %]
@@ -73,6 +78,8 @@
 [% Asset.js('js/Gettext.js') | $raw %]
 [% Asset.js('js/i18n.js') | $raw %]
 
-[% Asset.css("lib/font-awesome/css/font-awesome.min.css") | $raw %]
+[% Asset.css("lib/fontawesome/css/fontawesome.min.css") | $raw %]
+[% Asset.css("lib/fontawesome/css/brands.min.css") | $raw %]
+[% Asset.css("lib/fontawesome/css/solid.min.css") | $raw %]
 [% PROCESS 'html_helpers.inc' %]
 [% KohaPlugins.get_plugins_opac_head | $raw %]

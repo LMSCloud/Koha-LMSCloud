@@ -21,6 +21,7 @@ use Koha::Database;
 use Koha::Exceptions::Patron::Attribute;
 use Koha::Patron::Attribute::Types;
 use Koha::AuthorisedValues;
+use Koha::DateUtils qw( dt_from_string );
 
 use base qw(Koha::Object);
 
@@ -54,6 +55,14 @@ sub store {
 
     Koha::Exceptions::Patron::Attribute::UniqueIDConstraint->throw( attribute => $self )
         unless $self->unique_ok();
+
+    Koha::Exceptions::Patron::Attribute::InvalidAttributeValue->throw( attribute => $self )
+        unless $self->value_ok();
+
+    C4::Context->dbh->do(
+        "UPDATE borrowers SET updated_on = NOW() WHERE borrowernumber = ?", undef,
+        $self->borrowernumber
+    );
 
     return $self->SUPER::store();
 }
@@ -94,7 +103,7 @@ sub authorised_value {
             authorised_value => $self->attribute,
         }
     );
-    return unless $av->count; # Data inconsistency
+    return unless $av->count;    # Data inconsistency
     return $av->next;
 }
 
@@ -110,7 +119,7 @@ displayed instead of the code.
 =cut
 
 sub description {
-    my ( $self) = @_;
+    my ($self) = @_;
     if ( $self->type->authorised_value_category ) {
         my $av = $self->authorised_value;
         return $av ? $av->lib : "";
@@ -143,10 +152,10 @@ whether storing the current object state would break the repeatable constraint.
 
 sub repeatable_ok {
 
-    my ( $self ) = @_;
+    my ($self) = @_;
 
     my $ok = 1;
-    if ( ! $self->type->repeatable ) {
+    if ( !$self->type->repeatable ) {
         my $params = {
             borrowernumber => $self->borrowernumber,
             code           => $self->code
@@ -170,7 +179,7 @@ whether storing the current object state would break the unique constraint.
 
 sub unique_ok {
 
-    my ( $self ) = @_;
+    my ($self) = @_;
 
     my $ok = 1;
     if ( $self->type->unique_id ) {
@@ -179,11 +188,30 @@ sub unique_ok {
         $params->{borrowernumber} = { '!=' => $self->borrowernumber } if $self->borrowernumber;
         $params->{id}             = { '!=' => $self->id }             if $self->in_storage;
 
-        my $unique_count = Koha::Patron::Attributes
-            ->search( $params )
-            ->count;
+        my $unique_count = Koha::Patron::Attributes->search($params)->count;
 
         $ok = 0 if $unique_count > 0;
+    }
+
+    return $ok;
+}
+
+=head3 value_ok
+
+Checks if the value of the attribute is valid for the type
+
+=cut
+
+sub value_ok {
+
+    my ($self) = @_;
+
+    my $ok = 1;
+    if ( $self->type->is_date ) {
+        eval { dt_from_string( $self->attribute ); };
+        if ($@) {
+            $ok = 0;
+        }
     }
 
     return $ok;

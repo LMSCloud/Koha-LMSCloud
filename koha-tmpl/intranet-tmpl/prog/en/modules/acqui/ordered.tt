@@ -1,4 +1,5 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE KohaDates %]
 [% USE ItemTypes %]
@@ -6,7 +7,11 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Ordered &rsaquo; Acquisitions &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Ordered") | html %] &rsaquo;
+    [% t("Acquisitions") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -28,8 +33,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-2">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 <h1>Ordered - Fund: [% fund_code | html %]</h1>
 
@@ -75,7 +81,11 @@
                             [% order.left | html %]
                         </td>
                         <td class="data cell">
-                            [% order.ecost_tax_included | $Price %]
+                            [% IF Koha.Preference('CalculateFundValuesIncludingTax') %]
+                                [% order.ecost_tax_included | $Price %]
+                            [% ELSE %]
+                                [% order.ecost_tax_excluded | $Price %]
+                            [% END %]
                         </td>
                         <td class="cell" data-order="[% order.entrydate | html %]">
                             [% order.entrydate | $KohaDates %]
@@ -119,13 +129,13 @@
                 </div> <!-- /.page-section -->
 
 </main>
-</div> <!-- /.col-sm-10.col-sm-push-2 -->
+</div> <!-- /.col-md-10.order-md-2 -->
 
-<div class="col-sm-2 col-sm-pull-10">
+<div class="col-md-2 order-sm-2 order-md-1">
     <aside>
         [% INCLUDE 'acquisitions-menu.inc' %]
     </aside>
-</div> <!-- /.col-sm-2.col-sm-pull-10 -->
+</div> <!-- /.col-md-2.order-md-1 -->
 </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -134,10 +144,10 @@
     <script>
         $(document).ready(function() {
             $("#spent").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "sType": "anti-the", "aTargets" : [ "anti-the" ] }
+                "columnDefs": [
+                    { "type": "anti-the", "targets":  [ "anti-the" ] }
                 ],
-                "sPaginationType": "full"
+                "pagingType": "full"
             }));
         });
     </script>

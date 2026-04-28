@@ -5,7 +5,7 @@
 
 use Modern::Perl;
 
-use C4::Serials qw( updateClaim NewSubscription GetSubscription GetSubscriptionHistoryFromSubscriptionId SearchSubscriptions ModSubscription GetExpirationDate GetSerials GetSerialInformation NewIssue AddItem2Serial DelSubscription GetFullSubscription PrepareSerialsData GetSubscriptionsFromBiblionumber ModSubscriptionHistory GetSerials2 GetLatestSerials GetNextSeq GetSeq CountSubscriptionFromBiblionumber ModSerialStatus findSerialsByStatus HasSubscriptionStrictlyExpired HasSubscriptionExpired GetLateOrMissingIssues check_routing addroutingmember GetNextDate );
+use C4::Serials qw( getroutinglist updateClaim NewSubscription GetSubscription GetSubscriptionHistoryFromSubscriptionId SearchSubscriptions ModSubscription GetExpirationDate GetSerials GetSerialInformation NewIssue AddItem2Serial DelSubscription GetFullSubscription PrepareSerialsData GetSubscriptionsFromBiblionumber ModSubscriptionHistory GetSerials2 GetLatestSerials GetNextSeq GetSeq CountSubscriptionFromBiblionumber ModSerialStatus findSerialsByStatus HasSubscriptionStrictlyExpired HasSubscriptionExpired GetLateOrMissingIssues check_routing addroutingmember GetNextDate );
 use C4::Serials::Frequency;
 use C4::Serials::Numberpattern;
 use C4::Biblio qw( AddBiblio GetMarcFromKohaField );
@@ -17,7 +17,7 @@ use Koha::Acquisition::Booksellers;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 use Test::MockModule;
-use Test::More tests => 52;
+use Test::More tests => 63;
 
 BEGIN {
     use_ok('C4::Serials', qw( updateClaim NewSubscription GetSubscription GetSubscriptionHistoryFromSubscriptionId SearchSubscriptions ModSubscription GetExpirationDate GetSerials GetSerialInformation NewIssue AddItem2Serial DelSubscription GetFullSubscription PrepareSerialsData GetSubscriptionsFromBiblionumber ModSubscriptionHistory GetSerials2 GetLatestSerials GetNextSeq GetSeq CountSubscriptionFromBiblionumber ModSerialStatus findSerialsByStatus HasSubscriptionStrictlyExpired HasSubscriptionExpired GetLateOrMissingIssues check_routing addroutingmember GetNextDate ));
@@ -30,6 +30,8 @@ $mAuth->mock( 'check_cookie_auth', sub { return ('ok') } );
 my $schema = Koha::Database->new->schema;
 $schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
+
+$dbh->do('DELETE FROM subscription');
 
 my $builder = t::lib::TestBuilder->new();
 
@@ -81,14 +83,84 @@ my $notes = "a\nnote\non\nseveral\nlines";
 my $internalnotes = 'intnotes';
 my $ccode = 'FIC';
 my $subscriptionid = NewSubscription(
-    undef,      "",     undef, undef, $budget_id, $biblionumber,
-    '2013-01-01', $frequency_id, undef, undef,  undef,
-    undef,      undef,  undef, undef, undef, undef,
-    1,          $notes, ,undef, '2013-01-01', undef, $pattern_id,
-    undef,       undef,  0,    $internalnotes,  0,
-    undef, undef, 0,          undef,         '2013-12-31', 0,
-    undef, undef, undef, $ccode
+    undef,
+    "",
+    undef,
+    undef,
+    $budget_id,
+    $biblionumber,
+    '2013-01-01',
+    $frequency_id,
+    undef,
+    undef,
+    undef,
+    undef,
+    undef,
+    undef,
+    undef,
+    undef,
+    undef,
+    1,
+    $notes,
+    undef,
+    '2013-01-01',
+    undef,
+    $pattern_id,
+    undef,
+    undef,
+    0,
+    $internalnotes,
+    0,
+    undef,
+    undef,
+    0,
+    undef,
+    '2013-12-31', 0,
+    undef,
+    undef,
+    undef,
+    $ccode
+);
 
+NewSubscription(
+    undef,
+    "",
+    undef,
+    undef,
+    $budget_id,
+    $biblionumber,
+    '2013-01-02',
+    $frequency_id,
+    undef,
+    undef,
+    undef,
+    undef,
+    undef,
+    undef,
+    undef,
+    undef,
+    undef,
+    1,
+    $notes,
+    undef,
+    '2013-01-02',
+    undef,
+    $pattern_id,
+    undef,
+    undef,
+    0,
+    $internalnotes,
+    0,
+    undef,
+    undef,
+    0,
+    undef,
+    '2013-12-31',
+    0,
+    undef,
+    undef,
+    undef,
+    $ccode
 );
 
 my $subscriptioninformation = GetSubscription( $subscriptionid );
@@ -112,6 +184,75 @@ isa_ok( \@subscriptions, 'ARRAY' );
 
 @subscriptions = SearchSubscriptions({ biblionumber => $subscriptioninformation->{bibnum}, orderby => 'title' });
 isa_ok( \@subscriptions, 'ARRAY' );
+
+@subscriptions = SearchSubscriptions({});
+is(
+    @subscriptions,
+    2,
+    'SearchSubscriptions returned the expected number of subscriptions when results_limit is not set'
+);
+
+@subscriptions = SearchSubscriptions({}, { results_limit => 1 });
+is(
+    @subscriptions,
+    1,
+    'SearchSubscriptions returned only one subscription when results_limit is set to "1"'
+);
+
+# Set up fake data
+my $subscriptionwithroutinglistid = NewSubscription(
+    undef,        "",            undef, undef,          $budget_id, $biblionumber,
+    '2013-01-01', $frequency_id, undef, undef,          undef,
+    undef,        undef,         undef, undef,          undef, undef,
+    1,            $notes,        undef, '2013-01-01',   undef, $pattern_id,
+    undef,        undef,         0,     $internalnotes, 0,
+    undef,        undef,         0,     undef,          '2013-12-31', 0
+);
+
+#creating fake patrons
+my $patron = $builder->build_object(
+    {
+        class => 'Koha::Patrons',
+    }
+);
+my $patron2 = $builder->build_object(
+    {
+        class => 'Koha::Patrons',
+    }
+);
+my $patronid1 = $patron->borrowernumber;
+my $patronid2 = $patron2->borrowernumber;
+
+# Add a fake routing list with fake patrons
+addroutingmember( $patronid1, $subscriptionwithroutinglistid );
+addroutingmember( $patronid2, $subscriptionwithroutinglistid );
+
+my @routinglist = getroutinglist($subscriptionwithroutinglistid);
+
+is( scalar @routinglist,               2,             'Two members on the routing list' );
+is( $routinglist[0]->{biblionumber},   $biblionumber, 'biblionumber is correct' );
+is( $routinglist[1]->{biblionumber},   $biblionumber, 'biblionumber is correct' );
+is( $routinglist[0]->{borrowernumber}, $patronid1,    'First patron added has the lowest rank' );
+is( $routinglist[0]->{ranking},        1,             'Rank 1 set for first subscription list member' );
+is( $routinglist[1]->{ranking},        2, 'Next rank value set for the second added subscription list member' );
+
+# Perform SearchSubscriptions
+my $fake_subscription = GetSubscription($subscriptionwithroutinglistid);
+
+my @subscriptionswithroutinglist = SearchSubscriptions(
+    {
+        issn        => $fake_subscription->{issn},
+        orderby     => 'title',
+        routinglist => 1
+    }
+);
+
+# Check the results
+is( @subscriptionswithroutinglist, 1, 'SearchSubscriptions returned the expected number of subscriptions' );
+is(
+    $subscriptionswithroutinglist[0]->{title}, $fake_subscription->{title},
+    'SearchSubscriptions returned the correct subscription'
+);
 
 my $frequency = GetSubscriptionFrequency($subscriptioninformation->{periodicity});
 my $old_frequency;
@@ -464,6 +605,42 @@ subtest "NewSubscription|ModSubscription" => sub {
     $serials = Koha::Serials->search({ subscriptionid => $subscriptionid });
     is( $serials->count, 1, "Still only one serial" );
     is( $serials->next->biblionumber, $biblio_2->biblionumber, 'ModSubscription should have updated serial.biblionumber');
+};
+
+subtest "test numbering pattern with dates in GetSeq GetNextSeq" => sub {
+    plan tests => 4;
+    $subscription = {
+        lastvalue1     => 1, lastvalue2 => 1, lastvalue3 => 1,
+        innerloop1     => 0, innerloop2 => 0, innerloop3 => 0,
+        skip_serialseq => 0,
+        irregularity   => '',
+        locale         => 'C',            # locale set to 'C' to ensure we'll have english strings
+        firstacquidate => '1970-11-01',
+    };
+    $pattern = {
+        numberingmethod => '{Year} {Day} {DayName} {Month} {MonthName}',
+    };
+
+    my $numbering = GetSeq( $subscription, $pattern );
+    is( $numbering, '1970 1 Sunday 11 November', 'GetSeq correctly calculates numbering from first aqui date' );
+    $subscription->{firstacquidate} = '2024-02-29';
+
+    $numbering = GetSeq( $subscription, $pattern );
+    is(
+        $numbering, '2024 29 Thursday 2 February',
+        'GetSeq correctly calculates numbering from first aqui date, leap year'
+    );
+
+    my $planneddate = '1970-11-01';
+    ($numbering) = GetNextSeq( $subscription, $pattern, undef, $planneddate );
+    is( $numbering, '1970 1 Sunday 11 November', 'GetNextSeq correctly calculates numbering from planned date' );
+    $planneddate = '2024-02-29';
+    ($numbering) = GetNextSeq( $subscription, $pattern, undef, $planneddate );
+    is(
+        $numbering, '2024 29 Thursday 2 February',
+        'GetNextSeq correctly calculates numbering from planned date, leap year'
+    );
+
 };
 
 subtest "_numeration" => sub {

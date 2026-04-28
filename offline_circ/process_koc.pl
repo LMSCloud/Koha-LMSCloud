@@ -25,12 +25,8 @@ use CGI qw ( -utf8 );
 use C4::Output qw( output_html_with_http_headers );
 use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Accounts;
 use C4::Circulation qw( barcodedecode AddRenewal AddIssue MarkIssueReturned );
 use C4::Items qw( ModDateLastSeen );
-use C4::Members;
-use C4::Stats;
-use C4::BackgroundJob;
 use Koha::UploadedFiles;
 use Koha::Account;
 use Koha::Checkouts;
@@ -54,65 +50,19 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user({
 
 
 my $fileID=$query->param('uploadedfileid');
-my $runinbackground = $query->param('runinbackground');
-my $completedJobID = $query->param('completedJobID');
+my $op = $query->param('op') || q{};
 my %cookies = CGI::Cookie->fetch();
 my $sessionID = $cookies{'CGISESSID'}->value;
 ## 'Local' globals.
 our $dbh = C4::Context->dbh();
 our @output = (); ## For storing messages to be displayed to the user
 
-
-if ($completedJobID) {
-    my $job = C4::BackgroundJob->fetch($sessionID, $completedJobID);
-    my $results = $job->results();
-    $template->param(transactions_loaded => 1);
-    $template->param(messages => $results->{results});
-} elsif ($fileID) {
+if ( $op eq 'cud-upload' && $fileID ) {
     my $upload = Koha::UploadedFiles->find( $fileID );
     my $fh = $upload? $upload->file_handle: undef;
     my $filename = $upload? $upload->filename: undef;
     my @input_lines = $fh? <$fh>: ();
     $fh->close if $fh;
-
-    my $job = undef;
-
-    if ($runinbackground) {
-        my $job_size = scalar(@input_lines);
-        $job = C4::BackgroundJob->new($sessionID, $filename, '/cgi-bin/koha/offline_circ/process_koc.pl', $job_size);
-        my $jobID = $job->id();
-
-        # fork off
-        if (my $pid = fork) {
-            # parent
-            # return job ID as JSON
-
-            # prevent parent exiting from
-            # destroying the kid's database handle
-            # FIXME: according to DBI doc, this may not work for Oracle
-            $dbh->{InactiveDestroy}  = 1;
-
-            my $reply = CGI->new("");
-            print $reply->header(-type => 'text/html');
-            print '{"jobID":"' . $jobID . '"}';
-            exit 0;
-        } elsif (defined $pid) {
-            # child
-            # close STDOUT to signal to Apache that
-            # we're now running in the background
-            close STDOUT;
-            close STDERR;
-        } else {
-            # fork failed, so exit immediately
-            # fork failed, so exit immediately
-            warn "fork failed while attempting to run offline_circ/process_koc.pl as a background job";
-            exit 0;
-        }
-
-        # if we get here, we're a child that has detached
-        # itself from Apache
-
-    }
 
     my $header_line = shift @input_lines;
     my $file_info   = parse_header_line($header_line);
@@ -143,18 +93,10 @@ if ($completedJobID) {
         } else {
             warn "unknown command: '$command_line->{command}' not processed";
         }
-
-        if ($runinbackground) {
-            $job->progress($i);
-        }
     }
 
-    if ($runinbackground) {
-        $job->finish({ results => \@output }) if defined($job);
-    } else {
-        $template->param(transactions_loaded => 1);
-        $template->param(messages => \@output);
-    }
+    $template->param(transactions_loaded => 1);
+    $template->param(messages => \@output);
 }
 
 output_html_with_http_headers $query, $cookie, $template->output;
@@ -246,7 +188,6 @@ sub kocIssueItem {
 
     my $branchcode = C4::Context->userenv->{branch};
     my $patron = Koha::Patrons->find( { cardnumber => $circ->{cardnumber} } );
-    my $borrower = $patron->unblessed;
     my $item = Koha::Items->find({ barcode => $circ->{barcode} });
     my $issue = Koha::Checkouts->find( { itemnumber => $item->itemnumber } );
     my $biblio = $item->biblio;
@@ -254,15 +195,15 @@ sub kocIssueItem {
     if ( $issue ) { ## Item is currently checked out to another person.
         #warn "Item Currently Issued.";
 
-        if ( $issue->borrowernumber eq $borrower->{'borrowernumber'} ) { ## Issued to this person already, renew it.
+        if ( $issue->borrowernumber eq $patron->borrowernumber ) { ## Issued to this person already, renew it.
             #warn "Item issued to this member already, renewing.";
 
             C4::Circulation::AddRenewal(
-                $issue->borrowernumber,        # borrowernumber
-                $item->itemnumber,             # itemnumber
-                undef,                         # branch
-                undef,                         # datedue - let AddRenewal calculate it automatically
-                $circ->{'date'},               # issuedate
+                {
+                    borrowernumber  => $issue->borrowernumber,
+                    itemnumber      => $item->itemnumber,
+                    lastreneweddate => $circ->{'date'},
+                }
             ) unless (DEBUG);
 
             push @output, {
@@ -270,11 +211,11 @@ sub kocIssueItem {
                 title => $biblio->title,
                 biblionumber => $biblio->biblionumber,
                 barcode => $item->barcode,
-                firstname => $borrower->{ 'firstname' },
-                surname => $borrower->{ 'surname' },
-                borrowernumber => $borrower->{'borrowernumber'},
-                cardnumber => $borrower->{'cardnumber'},
-                datetime => $circ->{ 'datetime' }
+                firstname => $patron->firstname,
+                surname => $patron->surname,
+                borrowernumber => $patron->borrowernumber,
+                cardnumber => $patron->cardnumber,
+                datetime => $circ->datetime
             };
 
         } else {
@@ -285,17 +226,17 @@ sub kocIssueItem {
             my ( $c_y, $c_m, $c_d ) = split( /-/, $circ->{'date'} );
 
             if ( Date_to_Days( $i_y, $i_m, $i_d ) < Date_to_Days( $c_y, $c_m, $c_d ) ) { ## Current issue to a different persion is older than this issue, return and issue.
-                C4::Circulation::AddIssue( $borrower, $circ->{'barcode'}, undef, undef, $circ->{'date'} ) unless ( DEBUG );
+                C4::Circulation::AddIssue( $patron, $circ->{'barcode'}, undef, undef, $circ->{'date'} ) unless ( DEBUG );
                 push @output, {
                     issue => 1,
                     title => $biblio->title,
                     biblionumber => $biblio->biblionumber,
                     barcode => $item->barcode,
-                    firstname => $borrower->{ 'firstname' },
-                    surname => $borrower->{ 'surname' },
-                    borrowernumber => $borrower->{'borrowernumber'},
-                    cardnumber => $borrower->{'cardnumber'},
-                    datetime => $circ->{ 'datetime' }
+                    firstname => $patron->firstname,
+                    surname => $patron->surname,
+                    borrowernumber => $patron->borrowernumber,
+                    cardnumber => $patron->cardnumber,
+                    datetime => $circ->datetime
                 };
 
             } else { ## Current issue is *newer* than this issue, write a 'returned' issue, as the item is most likely in the hands of someone else now.
@@ -305,17 +246,17 @@ sub kocIssueItem {
             }
         }
     } else { ## Item is not checked out to anyone at the moment, go ahead and issue it
-        C4::Circulation::AddIssue( $borrower, $circ->{'barcode'}, undef, undef, $circ->{'date'} ) unless ( DEBUG );
+        C4::Circulation::AddIssue( $patron, $circ->{'barcode'}, undef, undef, $circ->{'date'} ) unless ( DEBUG );
         push @output, {
             issue => 1,
             title => $biblio->title,
             biblionumber => $biblio->biblionumber,
             barcode => $item->barcode,
-            firstname => $borrower->{ 'firstname' },
-            surname => $borrower->{ 'surname' },
-            borrowernumber => $borrower->{'borrowernumber'},
-            cardnumber => $borrower->{'cardnumber'},
-            datetime =>$circ->{ 'datetime' }
+            firstname => $patron->firstname,
+            surname => $patron->surname,
+            borrowernumber => $patron->borrowernumber,
+            cardnumber => $patron->cardnumber,
+            datetime =>$circ->datetime
         };
     }
 }

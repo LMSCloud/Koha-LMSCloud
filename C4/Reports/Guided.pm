@@ -18,25 +18,26 @@ package C4::Reports::Guided;
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
+
 use CGI qw ( -utf8 );
 use Carp qw( carp croak );
 use JSON qw( from_json );
 
 use C4::Context;
-use C4::Templates qw/themelanguage/;
 use C4::Koha qw( GetAuthorisedValues );
+use C4::Log qw( logaction );
+use C4::Output;
+use C4::Templates qw/themelanguage/;
+use Koha::AuthorisedValues;
+use Koha::Database::Columns;
 use Koha::DateUtils qw( dt_from_string );
+use Koha::Logger;
+use Koha::Notice::Templates;
+use Koha::Patron::Categories;
 use Koha::Patrons;
 use Koha::Reports;
-use C4::Output;
-use C4::Log qw( logaction );
-use Koha::Notice::Templates;
-
-use Koha::Database::Columns;
-use Koha::Logger;
-use Koha::AuthorisedValues;
-use Koha::Patron::Categories;
 use Koha::SharedContent;
+use Koha::TemplateUtils qw( process_tt );
 
 our (@ISA, @EXPORT_OK);
 BEGIN {
@@ -190,45 +191,39 @@ This will return a list of all columns for a report area
 =cut
 
 sub get_columns {
-
-    # this calls the internal function _get_columns
-    my ( $area, $cgi ) = @_;
+    my ($area)      = @_;
     my %table_areas = get_table_areas;
-    my $tables = $table_areas{$area}
-      or die qq{Unsuported report area "$area"};
+    my $tables      = $table_areas{$area}
+        or die qq{Unsupported report area "$area"};
 
-    my @allcolumns;
-    my $first = 1;
-    foreach my $table (@$tables) {
-        my @columns = _get_columns($table,$cgi, $first);
-        $first = 0;
-        push @allcolumns, @columns;
+    my $columns;
+    for my $table (@$tables) {
+        $columns->{$table} = _get_columns($table);
     }
-    return ( \@allcolumns );
+    return $columns;
 }
 
 sub _get_columns {
-    my ($tablename,$cgi, $first) = @_;
-    my $dbh         = C4::Context->dbh();
-    my $sth         = $dbh->prepare("show columns from $tablename");
-    $sth->execute();
-    my @columns;
-    my $columns = Koha::Database::Columns->columns;
-	my %tablehash;
-	$tablehash{'table'}=$tablename;
-    $tablehash{'__first__'} = $first;
-	push @columns, \%tablehash;
-    while ( my $data = $sth->fetchrow_arrayref() ) {
-        my $forbidden   = Koha::Report->new->check_columns( undef, [$data->[0]] );
-        unless ( $forbidden ) {
-            my %temphash;
-            $temphash{'name'}        = "$tablename.$data->[0]";
-            $temphash{'description'} = $columns->{$tablename}->{$data->[0]};
-            push @columns, \%temphash;
-        }
-    }
-    $sth->finish();
-    return (@columns);
+    my ($table_name) = @_;
+    my $dbh          = C4::Context->dbh();
+    my $all_columns  = Koha::Database::Columns->columns;
+
+    # Sanitize input, just in case
+    die sprintf( 'Invalid table name %s', $table_name ) unless exists $all_columns->{$table_name};
+
+    my $columns = $dbh->selectall_arrayref( sprintf( q{SHOW COLUMNS FROM %s}, $table_name ), { Slice => {} } );
+    return [
+        map {
+            my $column_name = $_->{Field};
+            my $forbidden   = Koha::Report->new->check_columns( undef, [$column_name] );
+            $forbidden ? () : (
+                {
+                    name        => sprintf( "%s.%s", $table_name, $column_name ),
+                    description => $all_columns->{$table_name}->{$column_name},
+                }
+            );
+        } @$columns
+    ];
 }
 
 =head2 build_query($columns,$criteria,$orderby,$area)
@@ -558,11 +553,10 @@ and that the number placeholders matches the number of parameters.
 =cut
 
 sub execute_query {
-
     my $params     = shift;
     my $sql        = $params->{sql};
     my $offset     = $params->{offset} || 0;
-    my $limit      = $params->{limit}  || C4::Context->config('report_results_limit') || 999999;
+    my $limit      = $params->{limit} || C4::Context->config('report_results_limit') || 999999;
     my $sql_params = defined $params->{sql_params} ? $params->{sql_params} : [];
     my $report_id  = $params->{report_id};
 
@@ -574,35 +568,36 @@ sub execute_query {
 
     Koha::Logger->get->debug("Report - execute_query($sql, $offset, $limit)");
 
-    my ( $is_sql_valid, $errors ) = Koha::Report->new({ savedsql => $sql })->is_sql_valid;
-    return (undef, @{$errors}[0]) unless $is_sql_valid;
+    my ( $is_sql_valid, $errors ) = Koha::Report->new( { savedsql => $sql } )->is_sql_valid;
+    return ( undef, @{$errors}[0] ) unless $is_sql_valid;
 
-    foreach my $sql_param ( @$sql_params ){
-        if ( $sql_param =~ m/\n/ ){
+    foreach my $sql_param (@$sql_params) {
+        if ( $sql_param =~ m/\n/ ) {
             my @list = split /\n/, $sql_param;
             my @quoted_list;
-            foreach my $item ( @list ){
+            foreach my $item (@list) {
                 $item =~ s/\r//;
-              push @quoted_list, C4::Context->dbh->quote($item);
+                push @quoted_list, C4::Context->dbh->quote($item);
             }
-            $sql_param = "(".join(",",@quoted_list).")";
+            $sql_param = "(" . join( ",", @quoted_list ) . ")";
         }
     }
 
-    my ($useroffset, $userlimit);
+    my ( $useroffset, $userlimit );
 
     # Grab offset/limit from user supplied LIMIT and drop the LIMIT so we can control pagination
-    ($sql, $useroffset, $userlimit) = strip_limit($sql);
+    ( $sql, $useroffset, $userlimit ) = strip_limit($sql);
 
     Koha::Logger->get->debug(
         sprintf "User has supplied (OFFSET,) LIMIT = %s, %s",
-        $useroffset, ( defined($userlimit) ? $userlimit : 'UNDEF' ) );
+        $useroffset, ( defined($userlimit) ? $userlimit : 'UNDEF' )
+    );
 
     $offset += $useroffset;
-    if (defined($userlimit)) {
-        if ($offset + $limit > $userlimit ) {
+    if ( defined($userlimit) ) {
+        if ( $offset + $limit > $userlimit ) {
             $limit = $userlimit - $offset;
-        } elsif ( ! $offset && $limit < $userlimit ) {
+        } elsif ( !$offset && $limit < $userlimit ) {
             $limit = $userlimit;
         }
     }
@@ -612,19 +607,25 @@ sub execute_query {
 
     $dbh->do( 'UPDATE saved_sql SET last_run = NOW() WHERE id = ?', undef, $report_id ) if $report_id;
 
+    Koha::Logger->get( { prefix => 0, interface => 'reports', category => 'execute.query' } )
+        ->info("Report $report_id : $sql, $offset, $limit") if $report_id;
+    Koha::Logger->get( { prefix => 0, interface => 'reports', category => 'execute.time.start' } )
+        ->info("Report starting: $report_id") if $report_id;
+
     my $sth = $dbh->prepare($sql);
-    eval {
-        $sth->execute(@$sql_params, $offset, $limit);
-    };
+    eval { $sth->execute( @$sql_params, $offset, $limit ); };
     warn $@ if $@;
 
-    return ( $sth, { queryerr => $sth->errstr } ) if ($sth->err);
+    Koha::Logger->get( { prefix => 0, interface => 'reports', category => 'execute.time.end' } )
+        ->info("Report finished: $report_id") if $report_id;
+
+    return ( $sth, { queryerr => $sth->errstr } ) if ( $sth->err );
 
     # Check if table.* contained forbidden column names
     return ( $sth, { passworderr => "Illegal column in results" } )
         if Koha::Report->new->check_columns( undef, $sth->{NAME_lc} );
 
-    return ( $sth );
+    return ($sth);
 }
 
 =head2 save_report($sql,$name,$type,$notes)
@@ -983,7 +984,7 @@ sub GetParametersFromSQL {
 
     for ( my $i = 0; $i < ($#split/2) ; $i++ ) {
         my ($name,$authval) = split(/\|/,$split[$i*2+1]);
-        $authval =~ s/\:all$// if $authval;
+        $authval =~ s/\:all$|\:in$// if $authval;
         push @sql_parameters, { 'name' => $name, 'authval' => $authval };
     }
 
@@ -1070,7 +1071,7 @@ sub EmailReport {
 
         my $from_address = $from || $row->{from};
         my $to_address = $row->{$email_col};
-        push ( @errors, { NOT_PARSE => $counter } ) unless my $content = _process_row_TT( $row, $template );
+        push ( @errors, { NOT_PARSE => $counter } ) unless my $content = process_tt( $template, $row );
         $counter++;
         next if scalar @errors > $err_count; #If any problems, try next
 
@@ -1084,29 +1085,6 @@ sub EmailReport {
     }
 
     return ( \@emails, \@errors );
-
-}
-
-
-
-=head2 ProcessRowTT
-
-   my $content = ProcessRowTT($row_hashref, $template);
-
-Accepts a hashref containing values and processes them against Template Toolkit
-to produce content
-
-=cut
-
-sub _process_row_TT {
-
-    my ($row, $template) = @_;
-
-    return 0 unless ($row && $template);
-    my $content;
-    my $processor = Template->new();
-    $processor->process( \$template, $row, \$content);
-    return $content;
 
 }
 

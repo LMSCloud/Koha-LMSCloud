@@ -31,6 +31,9 @@ use C4::Members;
 use Koha::Items;
 use Koha::Patrons;
 my $query = CGI->new;
+my $op = $query->param('op') || q{};
+
+die "op must be set" unless $op eq 'cud-renew';
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 	{
@@ -38,8 +41,8 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         query           => $query,
         type            => "opac",
 	}
-); 
-my @items = $query->multi_param('item');
+);
+my @issues = $query->multi_param('issue');
 
 my $opacrenew = C4::Context->preference("OpacRenewalAllowed");
 
@@ -48,19 +51,32 @@ my $renewed     = q{};
 
 my $patron = Koha::Patrons->find( $borrowernumber );
 
-if (   $patron->category->effective_BlockExpiredPatronOpacActions
+if (   $patron->category->effective_BlockExpiredPatronOpacActions_contains('renew')
     && $patron->is_expired )
 {
     $errorstring = 'card_expired';
 }
 else {
     my @renewed;
-    for my $itemnumber (@items) {
+    my $issues = Koha::Checkouts->search(
+        {
+            issue_id => { -in => \@issues }
+        }, {
+            prefetch => 'item'
+        }
+    );
+    while( my $issue = $issues->next) {
         my ( $status, $error ) =
-          CanBookBeRenewed( $borrowernumber, $itemnumber );
+          CanBookBeRenewed( $patron, $issue );
         if ( $status == 1 && $opacrenew == 1 ) {
-            AddRenewal( $borrowernumber, $itemnumber, undef, undef, undef, undef, 0 );
-            push( @renewed, $itemnumber );
+            AddRenewal(
+                {
+                    borrowernumber => $borrowernumber,
+                    itemnumber     => $issue->itemnumber,
+                    seen           => 0
+                }
+            );
+            push( @renewed, $issue->itemnumber );
         }
         else {
             $errorstring .= $error . "|";

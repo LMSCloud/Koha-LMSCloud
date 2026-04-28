@@ -50,7 +50,7 @@ if ( $op eq 'add_form' ) {
     }
 
     $template->param( desk => $desk, );
-} elsif ( $op eq 'add_validate' ) {
+} elsif ( $op eq 'cud-add_validate' ) {
     my $desk_id       = $input->param('desk_id');
     my $desk_name    = $input->param('desk_name');
     my $branchcode   = $input->param('branchcode');
@@ -85,7 +85,7 @@ if ( $op eq 'add_form' ) {
 } elsif ( $op eq 'delete_confirm' ) {
     my $desk = Koha::Desks->find($desk_id);
     $template->param( desk => $desk, );
-} elsif ( $op eq 'delete_confirmed' ) {
+} elsif ( $op eq 'cud-delete_confirmed' ) {
     my $desk = Koha::Desks->find($desk_id);
     my $deleted = eval { $desk->delete; };
 

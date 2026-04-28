@@ -2,17 +2,18 @@ package Koha::REST::V1::Suggestions;
 
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http:°www.gnu.org/licenses>.
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -63,15 +64,10 @@ sub get {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $suggestion_id = $c->validation->param('suggestion_id');
-        my $suggestion = $c->objects->find( Koha::Suggestions->new, $suggestion_id );
+        my $suggestion = $c->objects->find( Koha::Suggestions->new, $c->param('suggestion_id') );
 
-        unless ($suggestion) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => "Suggestion not found." }
-            );
-        }
+        return $c->render_resource_not_found("Suggestion")
+            unless $suggestion;
 
         return $c->render(
             status  => 200,
@@ -92,7 +88,7 @@ Controller method that handles adding a new Koha::Suggestion object
 sub add {
     my $c = shift->openapi->valid_input or return;
 
-    my $body = $c->validation->param('body');
+    my $body = $c->req->json;
 
     my $overrides = $c->stash('koha.overrides');
 
@@ -150,7 +146,7 @@ sub add {
 
         return $c->render(
             status  => 201,
-            openapi => $suggestion->to_api
+            openapi => $c->objects->to_api($suggestion),
         );
     }
     catch {
@@ -167,24 +163,21 @@ Controller method that handles modifying Koha::Suggestion object
 sub update {
     my $c = shift->openapi->valid_input or return;
 
-    my $suggestion_id = $c->validation->param('suggestion_id');
-    my $suggestion = Koha::Suggestions->find( $suggestion_id );
+    my $suggestion = Koha::Suggestions->find( $c->param('suggestion_id') );
 
-    return $c->render(
-        status  => 404,
-        openapi => { error => 'Suggestion not found.' }
-    ) unless $suggestion;
+    return $c->render_resource_not_found("Suggestion")
+        unless $suggestion;
 
     return try {
 
-        my $body = $c->validation->param('body');
+        my $body = $c->req->json;
 
         $suggestion->set_from_api( $body )->store;
         $suggestion->discard_changes;
 
         return $c->render(
             status  => 200,
-            openapi => $suggestion->to_api
+            openapi => $c->objects->to_api($suggestion),
         );
     }
     catch {
@@ -202,22 +195,15 @@ Controller method that handles removing a Koha::Suggestion object
 sub delete {
     my $c = shift->openapi->valid_input or return;
 
-    my $suggestion_id = $c->validation->param('suggestion_id');
-    my $suggestion = Koha::Suggestions->find( $suggestion_id );
+    my $suggestion = Koha::Suggestions->find( $c->param('suggestion_id') );
 
-    return $c->render(
-        status  => 404,
-        openapi => { error => 'Suggestion not found.' }
-    ) unless $suggestion;
+    return $c->render_resource_not_found("Suggestion")
+        unless $suggestion;
 
     return try {
         $suggestion->delete;
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
-    }
-    catch {
+        return $c->render_resource_deleted;
+    } catch {
         $c->unhandled_exception($_);
     };
 }

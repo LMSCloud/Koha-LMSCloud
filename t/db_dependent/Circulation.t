@@ -18,7 +18,7 @@
 use Modern::Perl;
 use utf8;
 
-use Test::More tests => 69;
+use Test::More tests => 77;
 use Test::Exception;
 use Test::MockModule;
 use Test::Deep qw( cmp_deeply );
@@ -33,11 +33,11 @@ use t::lib::TestBuilder;
 
 use C4::Accounts;
 use C4::Calendar qw( new insert_single_holiday insert_week_day_holiday delete_holiday );
-use C4::Circulation qw( AddIssue AddReturn CanBookBeRenewed GetIssuingCharges AddRenewal GetSoonestRenewDate GetLatestAutoRenewDate LostItem GetUpcomingDueIssues CanBookBeIssued AddIssuingCharge MarkIssueReturned ProcessOfflinePayment transferbook updateWrongTransfer );
+use C4::Circulation qw( AddIssue AddReturn CanBookBeRenewed GetIssuingCharges AddRenewal GetSoonestRenewDate GetLatestAutoRenewDate LostItem GetUpcomingDueIssues CanBookBeIssued AddIssuingCharge MarkIssueReturned ProcessOfflinePayment transferbook );
 use C4::Biblio;
 use C4::Items qw( ModItemTransfer );
 use C4::Log;
-use C4::Reserves qw( AddReserve ModReserve ModReserveCancelAll ModReserveAffect CheckReserves GetOtherReserves );
+use C4::Reserves qw( AddReserve ModReserve ModReserveCancelAll ModReserveAffect CheckReserves );
 use C4::Overdues qw( CalcFine UpdateFine get_chargeable_units );
 use C4::Members::Messaging qw( SetMessagingPreference );
 use Koha::DateUtils qw( dt_from_string output_pref );
@@ -91,7 +91,7 @@ sub test_debarment_on_checkout {
     );
     my @caller      = caller;
     my $line_number = $caller[2];
-    AddIssue( $patron->unblessed, $item->barcode, $due_date );
+    AddIssue( $patron, $item->barcode, $due_date );
 
     my ( undef, $message ) = AddReturn( $item->barcode, $library->{branchcode}, undef, $return_date );
     is( $message->{WasReturned} && exists $message->{Debarred}, 1, 'AddReturn must have debarred the patron' )
@@ -143,11 +143,11 @@ my $itemtype = $builder->build(
     {
         source => 'Itemtype',
         value  => {
-            notforloan          => undef,
-            rentalcharge        => 0,
+            notforloan         => 0,
+            rentalcharge       => 0,
             rentalcharge_daily => 0,
-            defaultreplacecost  => undef,
-            processfee          => undef
+            defaultreplacecost => undef,
+            processfee         => undef
         }
     }
 )->{itemtype};
@@ -157,7 +157,7 @@ my $patron_category = $builder->build(
         value  => {
             category_type                 => 'P',
             enrolmentfee                  => 0,
-            BlockExpiredPatronOpacActions => -1, # Pick the pref value
+            BlockExpiredPatronOpacActions => 'follow_syspref_BlockExpiredPatronOpacActions',
         }
     }
 );
@@ -165,14 +165,18 @@ my $patron_category = $builder->build(
 my $CircControl = C4::Context->preference('CircControl');
 my $HomeOrHoldingBranch = C4::Context->preference('HomeOrHoldingBranch');
 
-my $item = {
-    homebranch => $library2->{branchcode},
-    holdingbranch => $library2->{branchcode}
-};
+my $item = $builder->build_object({
+    class => 'Koha::Items',
+    value => {
+        homebranch => $library2->{branchcode},
+        holdingbranch => $library2->{branchcode}
+    }
+});
 
-my $borrower = {
-    branchcode => $library2->{branchcode}
-};
+my $borrower = $builder->build_object({
+    class => 'Koha::Patrons',
+    value => { branchcode => $library2->{branchcode} }
+});
 
 t::lib::Mocks::mock_preference('AutoReturnCheckedOutItems', 0);
 
@@ -186,7 +190,7 @@ is(
 );
 is(
     C4::Circulation::_GetCircControlBranch($item, $borrower),
-    $item->{$HomeOrHoldingBranch},
+    $item->get_column($HomeOrHoldingBranch),
     '_GetCircControlBranch returned item branch (no userenv defined)'
 );
 
@@ -199,7 +203,7 @@ is(
 );
 is(
     C4::Circulation::_GetCircControlBranch($item, $borrower),
-    $borrower->{branchcode},
+    $borrower->branchcode,
     '_GetCircControlBranch returned borrower branch'
 );
 
@@ -211,7 +215,7 @@ is(
     'CircControl changed to ItemHomeLibrary'
 );
 is(
-    $item->{$HomeOrHoldingBranch},
+    $item->get_column($HomeOrHoldingBranch),
     C4::Circulation::_GetCircControlBranch($item, $borrower),
     '_GetCircControlBranch returned item branch'
 );
@@ -242,7 +246,7 @@ is(
 );
 is(
     C4::Circulation::_GetCircControlBranch($item, $borrower),
-    $borrower->{branchcode},
+    $borrower->branchcode,
     '_GetCircControlBranch returned borrower branch'
 );
 
@@ -255,7 +259,7 @@ is(
 );
 is(
     C4::Circulation::_GetCircControlBranch($item, $borrower),
-    $item->{$HomeOrHoldingBranch},
+    $item->get_column($HomeOrHoldingBranch),
     '_GetCircControlBranch returned item branch'
 );
 
@@ -275,18 +279,64 @@ Koha::CirculationRules->set_rules(
         branchcode   => undef,
         itemtype     => undef,
         rules        => {
-            reservesallowed => 25,
-            issuelength     => 14,
-            lengthunit      => 'days',
-            renewalsallowed => 1,
-            renewalperiod   => 7,
-            norenewalbefore => undef,
-            auto_renew      => 0,
-            fine            => .10,
-            chargeperiod    => 1,
+            reservesallowed     => 25,
+            issuelength         => 14,
+            lengthunit          => 'days',
+            renewalsallowed     => 1,
+            renewalperiod       => 7,
+            norenewalbefore     => undef,
+            noautorenewalbefore => undef,
+            auto_renew          => 0,
+            fine                => .10,
+            chargeperiod        => 1,
         }
     }
 );
+
+subtest 'AddIssue | renewal when adding issue to same borrower' => sub {
+    plan tests => 2;
+
+    my $item = $builder->build_sample_item();
+
+    # Set a simple circ policy
+    Koha::CirculationRules->set_rules(
+        {
+            categorycode => undef,
+            branchcode   => undef,
+            itemtype     => $item->itype,
+            rules        => {
+                maxissueqty     => 1,
+                reservesallowed => 25,
+                issuelength     => 7,
+                lengthunit      => 'days',
+                renewalsallowed => 5,
+                renewalperiod   => 7,
+                norenewalbefore => undef,
+                auto_renew      => 0,
+                fine            => .10,
+                chargeperiod    => 1,
+            }
+        }
+    );
+
+    my $now           = dt_from_string()->truncate( to => 'day' );
+    my $seven_days    = $now->clone->add( days => 7 )->truncate( to => 'day' );
+    my $fourteen_days = $now->clone->add( days => 14 )->truncate( to => 'day' );
+    my $patron        = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $staff         = $builder->build_object( { class => "Koha::Patrons" } );
+    t::lib::Mocks::mock_userenv( { patron => $staff } );
+
+    t::lib::Mocks::mock_preference( 'RenewalPeriodBase', 'date_due' );
+
+    my $issue = AddIssue( $patron, $item->barcode );
+    is( dt_from_string( $issue->date_due )->truncate( to => 'day' ), $seven_days, "Item issued for correct term" );
+    $issue = AddIssue( $patron, $item->barcode );
+    is(
+        dt_from_string( $issue->date_due )->truncate( to => 'day' ), $fourteen_days,
+        "Second issue renews item for correct term"
+    );
+
+};
 
 subtest "CanBookBeRenewed AllowRenewalIfOtherItemsAvailable multiple borrowers and items tests" => sub {
     plan tests => 7;
@@ -311,7 +361,7 @@ subtest "CanBookBeRenewed AllowRenewalIfOtherItemsAvailable multiple borrowers a
     );
 
     # Patrons from three different branches
-    my $patron_borrower = $builder->build_object({ class => 'Koha::Patrons' });
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
     my $patron_hold_1   = $builder->build_object({ class => 'Koha::Patrons' });
     my $patron_hold_2   = $builder->build_object({ class => 'Koha::Patrons' });
     my $biblio = $builder->build_sample_biblio();
@@ -319,7 +369,7 @@ subtest "CanBookBeRenewed AllowRenewalIfOtherItemsAvailable multiple borrowers a
     # Item at each patron branch
     my $item_1 = $builder->build_sample_item({
         biblionumber => $biblio->biblionumber,
-        homebranch   => $patron_borrower->branchcode
+        homebranch   => $patron->branchcode
     });
     my $item_2 = $builder->build_sample_item({
         biblionumber => $biblio->biblionumber,
@@ -330,7 +380,7 @@ subtest "CanBookBeRenewed AllowRenewalIfOtherItemsAvailable multiple borrowers a
         homebranch   => $patron_hold_1->branchcode
     });
 
-    my $issue = AddIssue( $patron_borrower->unblessed, $item_1->barcode);
+    my $issue = AddIssue( $patron, $item_1->barcode);
     my $datedue = dt_from_string( $issue->date_due() );
     is (defined $issue->date_due(), 1, "Item 1 checked out, due date: " . $issue->date_due() );
 
@@ -361,13 +411,13 @@ subtest "CanBookBeRenewed AllowRenewalIfOtherItemsAvailable multiple borrowers a
     );
     t::lib::Mocks::mock_preference('AllowRenewalIfOtherItemsAvailable', 0 );
 
-    my ( $renewokay, $error ) = CanBookBeRenewed($patron_borrower->borrowernumber, $item_1->itemnumber);
+    my ( $renewokay, $error ) = CanBookBeRenewed($patron, $issue);
     is( $renewokay, 0, 'Cannot renew, reserved');
     is( $error, 'on_reserve', 'Cannot renew, reserved (returned error is on_reserve)');
 
     t::lib::Mocks::mock_preference('AllowRenewalIfOtherItemsAvailable', 1 );
 
-    ( $renewokay, $error ) = CanBookBeRenewed($patron_borrower->borrowernumber, $item_1->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($patron, $issue);
     is( $renewokay, 1, 'Can renew, two items available for two holds');
     is( $error, undef, 'Can renew, each reserve has an item');
 
@@ -375,10 +425,9 @@ subtest "CanBookBeRenewed AllowRenewalIfOtherItemsAvailable multiple borrowers a
     my $hold = Koha::Holds->find( $reserve_1 );
     $hold->itemnumber( $item_1->itemnumber )->store;
 
-    ( $renewokay, $error ) = CanBookBeRenewed($patron_borrower->borrowernumber, $item_1->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($patron, $issue);
     is( $renewokay, 0, 'Cannot renew when there is an item specific hold');
     is( $error, 'on_reserve', 'Cannot renew, only this item can fill the reserve');
-
 };
 
 subtest "GetIssuingCharges tests" => sub {
@@ -428,7 +477,7 @@ subtest "GetIssuingCharges tests" => sub {
 
 my ( $reused_itemnumber_1, $reused_itemnumber_2 );
 subtest "CanBookBeRenewed tests" => sub {
-    plan tests => 104;
+    plan tests => 114;
 
     C4::Context->set_preference('ItemsDeniedRenewal','');
     # Generate test biblio
@@ -466,53 +515,71 @@ subtest "CanBookBeRenewed tests" => sub {
     );
 
     # Create borrowers
-    my %renewing_borrower_data = (
-        firstname =>  'John',
-        surname => 'Renewal',
-        categorycode => $patron_category->{categorycode},
-        branchcode => $branch,
+
+    my $renewing_borrower_obj = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                firstname =>  'John',
+                surname => 'Renewal',
+                categorycode => $patron_category->{categorycode},
+                branchcode => $branch,
+                autorenew_checkouts => 1,
+            }
+        }
+    )->store;
+    my $renewing_borrowernumber = $renewing_borrower_obj->borrowernumber;
+
+    my $reserving_borrowernumber = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                firstname =>  'Katrin',
+                surname => 'Reservation',
+                categorycode => $patron_category->{categorycode},
+                branchcode => $branch,
+            }
+        }
+    )->store->borrowernumber;
+
+    my $hold_waiting_borrowernumber = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                firstname =>  'Kyle',
+                surname => 'Reservation',
+                categorycode => $patron_category->{categorycode},
+                branchcode => $branch,
+            }
+        }
+    )->store->borrowernumber;
+
+    my $restricted_borrower_obj = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                firstname =>  'Alice',
+                surname => 'Reservation',
+                categorycode => $patron_category->{categorycode},
+                debarred => '3228-01-01',
+                branchcode => $branch,
+            }
+        }
+    )->store;
+
+    my $expired_borrower_obj = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                firstname =>  'Ça',
+                surname => 'Glisse',
+                categorycode => $patron_category->{categorycode},
+                branchcode => $branch,
+                dateexpiry => dt_from_string->subtract( months => 1 ),
+                autorenew_checkouts => 1,
+            }
+        }
     );
-
-    my %reserving_borrower_data = (
-        firstname =>  'Katrin',
-        surname => 'Reservation',
-        categorycode => $patron_category->{categorycode},
-        branchcode => $branch,
-    );
-
-    my %hold_waiting_borrower_data = (
-        firstname =>  'Kyle',
-        surname => 'Reservation',
-        categorycode => $patron_category->{categorycode},
-        branchcode => $branch,
-    );
-
-    my %restricted_borrower_data = (
-        firstname =>  'Alice',
-        surname => 'Reservation',
-        categorycode => $patron_category->{categorycode},
-        debarred => '3228-01-01',
-        branchcode => $branch,
-    );
-
-    my %expired_borrower_data = (
-        firstname =>  'Ça',
-        surname => 'Glisse',
-        categorycode => $patron_category->{categorycode},
-        branchcode => $branch,
-        dateexpiry => dt_from_string->subtract( months => 1 ),
-    );
-
-    my $renewing_borrowernumber = Koha::Patron->new(\%renewing_borrower_data)->store->borrowernumber;
-    my $reserving_borrowernumber = Koha::Patron->new(\%reserving_borrower_data)->store->borrowernumber;
-    my $hold_waiting_borrowernumber = Koha::Patron->new(\%hold_waiting_borrower_data)->store->borrowernumber;
-    my $restricted_borrowernumber = Koha::Patron->new(\%restricted_borrower_data)->store->borrowernumber;
-    my $expired_borrowernumber = Koha::Patron->new(\%expired_borrower_data)->store->borrowernumber;
-
-    my $renewing_borrower_obj = Koha::Patrons->find( $renewing_borrowernumber );
-    my $renewing_borrower = $renewing_borrower_obj->unblessed;
-    my $restricted_borrower = Koha::Patrons->find( $restricted_borrowernumber )->unblessed;
-    my $expired_borrower = Koha::Patrons->find( $expired_borrowernumber )->unblessed;
 
     my $bibitems       = '';
     my $priority       = '1';
@@ -522,19 +589,17 @@ subtest "CanBookBeRenewed tests" => sub {
     my $checkitem      = undef;
     my $found          = undef;
 
-    my $issue = AddIssue( $renewing_borrower, $item_1->barcode);
-    my $datedue = dt_from_string( $issue->date_due() );
-    is (defined $issue->date_due(), 1, "Item 1 checked out, due date: " . $issue->date_due() );
+    my $issue_1 = AddIssue( $renewing_borrower_obj, $item_1->barcode);
+    my $datedue = dt_from_string( $issue_1->date_due() );
+    is (defined $issue_1->date_due(), 1, "Item 1 checked out, due date: " . $issue_1->date_due() );
 
-    my $issue2 = AddIssue( $renewing_borrower, $item_2->barcode);
-    $datedue = dt_from_string( $issue->date_due() );
-    is (defined $issue2, 1, "Item 2 checked out, due date: " . $issue2->date_due());
-
+    my $issue_2 = AddIssue( $renewing_borrower_obj, $item_2->barcode);
+    is (defined $issue_2, 1, "Item 2 checked out, due date: " . $issue_2->date_due());
 
     my $borrowing_borrowernumber = Koha::Checkouts->find( { itemnumber => $item_1->itemnumber } )->borrowernumber;
-    is ($borrowing_borrowernumber, $renewing_borrowernumber, "Item checked out to $renewing_borrower->{firstname} $renewing_borrower->{surname}");
+    is ($borrowing_borrowernumber, $renewing_borrowernumber, "Item checked out to ".$renewing_borrower_obj->firstname." ".$renewing_borrower_obj->surname);
 
-    my ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_1->itemnumber, 1);
+    my ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_1, 1);
     is( $renewokay, 1, 'Can renew, no holds for this title or item');
 
 
@@ -573,9 +638,9 @@ subtest "CanBookBeRenewed tests" => sub {
         }
     );
     t::lib::Mocks::mock_preference('AllowRenewalIfOtherItemsAvailable', 1 );
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_1->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_1);
     is( $renewokay, 1, 'Bug 11634 - Allow renewal of item with unfilled holds if other available items can fill those holds');
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_2->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_2);
     is( $renewokay, 1, 'Bug 11634 - Allow renewal of item with unfilled holds if other available items can fill those holds');
 
 
@@ -593,7 +658,7 @@ subtest "CanBookBeRenewed tests" => sub {
             found            => $found,
         }
     );
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_1->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_1);
     is( $renewokay, 0, 'Renewal not possible when single patron\'s holds exceed the number of available items');
     Koha::Holds->find($reserve_id)->delete;
 
@@ -608,7 +673,7 @@ subtest "CanBookBeRenewed tests" => sub {
             reservedate    => '1999-01-01',
         }
     );
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_1->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_1);
     is( $renewokay, 0, 'Bug 13919 - Renewal possible with item level hold on item');
     $hold->delete();
 
@@ -624,22 +689,22 @@ subtest "CanBookBeRenewed tests" => sub {
             found          => 'W'
         }
     );
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_1->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_1);
     is( $renewokay, 0, 'Bug 11634 - Allow renewal of item with unfilled holds if other available items can fill those holds');
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_2->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_2);
     is( $renewokay, 0, 'Bug 11634 - Allow renewal of item with unfilled holds if other available items can fill those holds');
     t::lib::Mocks::mock_preference('AllowRenewalIfOtherItemsAvailable', 0 );
 
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_1->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_1);
     is( $renewokay, 0, '(Bug 10663) Cannot renew, reserved');
     is( $error, 'on_reserve', '(Bug 10663) Cannot renew, reserved (returned error is on_reserve)');
 
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_2->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_2);
     is( $renewokay, 0, '(Bug 10663) Cannot renew, reserved');
     is( $error, 'on_reserve', '(Bug 10663) Cannot renew, reserved (returned error is on_reserve)');
 
     my $reserveid = Koha::Holds->search({ biblionumber => $biblio->biblionumber, borrowernumber => $reserving_borrowernumber })->next->reserve_id;
-    my $reserving_borrower = Koha::Patrons->find( $reserving_borrowernumber )->unblessed;
+    my $reserving_borrower = Koha::Patrons->find( $reserving_borrowernumber );
     AddIssue($reserving_borrower, $item_3->barcode);
     my $reserve = $dbh->selectrow_hashref(
         'SELECT * FROM old_reserves WHERE reserve_id = ?',
@@ -663,16 +728,16 @@ subtest "CanBookBeRenewed tests" => sub {
         }
     );
 
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_1->itemnumber, 1);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_1, 1);
     is( $renewokay, 0, '(Bug 10663) Cannot renew, item reserved');
     is( $error, 'on_reserve', '(Bug 10663) Cannot renew, item reserved (returned error is on_reserve)');
 
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_2->itemnumber, 1);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_2, 1);
     is( $renewokay, 1, 'Can renew item 2, item-level hold is on item 1');
 
     # Items can't fill hold for reasons
-    $item_1->notforloan(1)->store;
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_1->itemnumber, 1);
+    $issue_1->item->notforloan(1)->store;
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_1, 1);
     is( $renewokay, 0, 'Cannot renew, item is marked not for loan, but an item specific hold always blocks');
     $item_1->set({notforloan => 0, itype => $itemtype })->store;
 
@@ -687,13 +752,13 @@ subtest "CanBookBeRenewed tests" => sub {
             itype            => $itemtype,
         }
     );
-    my $datedue5 = AddIssue($restricted_borrower, $item_5->barcode);
-    is (defined $datedue5, 1, "Item with date due checked out, due date: $datedue5");
+    my $issue_5 = AddIssue($restricted_borrower_obj, $item_5->barcode);
+    is (defined $issue_5, 1, "Item with date due checked out, due date: ". $issue_5->date_due);
 
     t::lib::Mocks::mock_preference('RestrictionBlockRenewing','1');
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_2->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_2);
     is( $renewokay, 1, '(Bug 8236), Can renew, user is not restricted');
-    ( $renewokay, $error ) = CanBookBeRenewed($restricted_borrowernumber, $item_5->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($restricted_borrower_obj, $issue_5);
     is( $renewokay, 0, '(Bug 8236), Cannot renew, user is restricted');
     is( $error, 'restriction', "Correct error returned");
 
@@ -716,44 +781,44 @@ subtest "CanBookBeRenewed tests" => sub {
         }
     );
 
-    my $datedue6 = AddIssue( $renewing_borrower, $item_6->barcode);
-    is (defined $datedue6, 1, "Item 2 checked out, due date: ".$datedue6->date_due);
+    my $issue_6 = AddIssue( $renewing_borrower_obj, $item_6->barcode);
+    is (defined $issue_6, 1, "Item 2 checked out, due date: ".$issue_6->date_due);
 
     my $now = dt_from_string();
     my $five_weeks = DateTime::Duration->new(weeks => 5);
     my $five_weeks_ago = $now - $five_weeks;
     t::lib::Mocks::mock_preference('finesMode', 'production');
 
-    my $passeddatedue1 = AddIssue($renewing_borrower, $item_7->barcode, $five_weeks_ago);
-    is (defined $passeddatedue1, 1, "Item with passed date due checked out, due date: " . $passeddatedue1->date_due);
+    my $issue_7 = AddIssue($renewing_borrower_obj, $item_7->barcode, $five_weeks_ago);
+    is (defined $issue_7, 1, "Item with passed date due checked out, due date: " . $issue_7->date_due);
 
     t::lib::Mocks::mock_preference('OverduesBlockRenewing','allow');
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_6->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_6);
     is( $renewokay, 1, '(Bug 8236), Can renew, this item is not overdue');
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_7->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_7);
     is( $renewokay, 1, '(Bug 8236), Can renew, this item is overdue but not pref does not block');
 
     t::lib::Mocks::mock_preference('OverduesBlockRenewing','block');
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_6->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_6);
     is( $renewokay, 0, '(Bug 8236), Cannot renew, this item is not overdue but patron has overdues');
     is( $error, 'overdue', "Correct error returned");
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_7->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_7);
     is( $renewokay, 0, '(Bug 8236), Cannot renew, this item is overdue so patron has overdues');
     is( $error, 'overdue', "Correct error returned");
 
     t::lib::Mocks::mock_preference('OverduesBlockRenewing','blockitem');
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_6->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_6);
     is( $renewokay, 1, '(Bug 8236), Can renew, this item is not overdue');
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_7->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_7);
     is( $renewokay, 0, '(Bug 8236), Cannot renew, this item is overdue');
     is( $error, 'overdue', "Correct error returned");
 
-    my ( $fine ) = CalcFine( $item_7->unblessed, $renewing_borrower->{categorycode}, $branch, $five_weeks_ago, $now );
+    my ( $fine ) = CalcFine( $item_7->unblessed, $renewing_borrower_obj->categorycode, $branch, $five_weeks_ago, $now );
     C4::Overdues::UpdateFine(
         {
-            issue_id       => $passeddatedue1->id(),
+            issue_id       => $issue_7->id(),
             itemnumber     => $item_7->itemnumber,
-            borrowernumber => $renewing_borrower->{borrowernumber},
+            borrowernumber => $renewing_borrower_obj->borrowernumber,
             amount         => $fine,
             due            => Koha::DateUtils::output_pref($five_weeks_ago)
         }
@@ -784,7 +849,13 @@ subtest "CanBookBeRenewed tests" => sub {
     my $old_log_size = Koha::ActionLogs->count( \%params_renewal );
     my $dt = dt_from_string();
     Time::Fake->offset( $dt->epoch );
-    my $datedue1 = AddRenewal( $renewing_borrower->{borrowernumber}, $item_7->itemnumber, $branch );
+    my $datedue1 = AddRenewal(
+        {
+            borrowernumber => $renewing_borrower_obj->borrowernumber,
+            itemnumber     => $item_7->itemnumber,
+            branch         => $branch
+        }
+    );
     my $new_log_size = Koha::ActionLogs->count( \%params_renewal );
     is ($new_log_size, $old_log_size, 'renew log not added because of the syspref RenewalLog');
     isnt (DateTime->compare($datedue1, $dt), 0, "AddRenewal returned a good duedate");
@@ -793,18 +864,32 @@ subtest "CanBookBeRenewed tests" => sub {
     t::lib::Mocks::mock_preference('RenewalLog', 1);
     $date = output_pref( { dt => dt_from_string(), dateonly => 1, dateformat => 'iso' } );
     $old_log_size = Koha::ActionLogs->count( \%params_renewal );
-    AddRenewal( $renewing_borrower->{borrowernumber}, $item_7->itemnumber, $branch );
+    AddRenewal(
+        {
+            borrowernumber => $renewing_borrower_obj->borrowernumber,
+            itemnumber     => $item_7->itemnumber,
+            branch         => $branch
+        }
+    );
     $new_log_size = Koha::ActionLogs->count( \%params_renewal );
     is ($new_log_size, $old_log_size + 1, 'renew log successfully added');
 
-    my $fines = Koha::Account::Lines->search( { borrowernumber => $renewing_borrower->{borrowernumber}, itemnumber => $item_7->itemnumber } );
+    my $fines = Koha::Account::Lines->search( { borrowernumber => $renewing_borrower_obj->borrowernumber, itemnumber => $item_7->itemnumber } );
     is( $fines->count, 1, 'AddRenewal left fine' );
     is( $fines->next->status, 'RENEWED', 'Fine on renewed item is closed out properly' );
     $fines->delete();
 
     my $old_issue_log_size = Koha::ActionLogs->count( \%params_issue );
     my $old_renew_log_size = Koha::ActionLogs->count( \%params_renewal );
-    AddIssue( $renewing_borrower,$item_7->barcode,Koha::DateUtils::output_pref({str=>$datedue6->date_due, dateformat =>'iso'}),0,$date, 0, undef );
+    AddIssue(
+        $renewing_borrower_obj,
+        $item_7->barcode,
+        Koha::DateUtils::output_pref({str=>$issue_6->date_due, dateformat =>'iso'}),
+        0,
+        $date,
+        0,
+        undef
+    ); # TODO: Already issued???
     $new_log_size = Koha::ActionLogs->count( \%params_renewal );
     is ($new_log_size, $old_renew_log_size + 1, 'renew log successfully added when renewed via issuing');
     $new_log_size = Koha::ActionLogs->count( \%params_issue );
@@ -815,7 +900,7 @@ subtest "CanBookBeRenewed tests" => sub {
 
     # Bug 14101
     # Test automatic renewal before value for "norenewalbefore" in policy is set
-    # In this case automatic renewal is not permitted prior to due date
+    # In this case automatic renewal should still be permitted
     my $item_4 = $builder->build_sample_item(
         {
             biblionumber     => $biblio->biblionumber,
@@ -825,14 +910,23 @@ subtest "CanBookBeRenewed tests" => sub {
         }
     );
 
-    $issue = AddIssue( $renewing_borrower, $item_4->barcode, undef, undef, undef, undef, { auto_renew => 1 } );
+    my $auto_renew_issue =
+        AddIssue( $renewing_borrower_obj, $item_4->barcode, undef, undef, undef, undef, { auto_renew => 1 } );
     my $info;
-    ( $renewokay, $error, $info ) =
-      CanBookBeRenewed( $renewing_borrowernumber, $item_4->itemnumber );
-    is( $renewokay, 0, 'Bug 14101: Cannot renew, renewal is automatic and premature' );
-    is( $error, 'auto_too_soon',
-        'Bug 14101: Cannot renew, renewal is automatic and premature, "No renewal before" = undef (returned code is auto_too_soon)' );
-    is( $info->{soonest_renew_date} , dt_from_string($issue->date_due), "Due date is returned as earliest renewal date when error is 'auto_too_soon'" );
+    ( $renewokay, $error, $info ) = CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue );
+    is( $info->{soonest_renew_date}, undef, "soonest_renew_date is not returned because this issue can be renewed" );
+    is( $renewokay, 1, 'Bug 25393: Can do a manual renew, even if renewal is automatic and premature' );
+    is(
+        $error, 'auto_renew',
+        'Bug 25393: Can do a manual renew, even if renewal is automatic and premature, norenewalbefore = undef -> manual renewals are allowed at any time'
+    );
+
+    my ( $renewokay_cron, $error_cron, $info_cron ) =
+        CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue, undef, 1 );
+    is(
+        $info_cron->{soonest_renew_date}, dt_from_string( $auto_renew_issue->date_due ),
+        "Due date is returned as earliest renewal date when the CanBookBeRenewed check is done by cron and error is 'auto_too_soon'"
+    );
     AddReserve(
         {
             branchcode       => $branch,
@@ -848,30 +942,29 @@ subtest "CanBookBeRenewed tests" => sub {
             found            => $found
         }
     );
-    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrowernumber, $item_4->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue );
     is( $renewokay, 0, 'Still should not be able to renew' );
     is( $error, 'on_reserve', 'returned code is on_reserve, reserve checked when not checking for cron' );
-    ( $renewokay, $error, $info ) = CanBookBeRenewed( $renewing_borrowernumber, $item_4->itemnumber, undef, 1 );
+    ( $renewokay, $error, $info ) = CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue, undef, 1 );
     is( $renewokay, 0, 'Still should not be able to renew' );
     is( $error, 'auto_too_soon', 'returned code is auto_too_soon, reserve not checked when checking for cron' );
-    is( $info->{soonest_renew_date}, dt_from_string($issue->date_due), "Due date is returned as earliest renewal date when error is 'auto_too_soon'" );
-    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrowernumber, $item_4->itemnumber, 1 );
+    is( $info->{soonest_renew_date}, dt_from_string($auto_renew_issue->date_due), "Due date is returned as earliest renewal date when error is 'auto_too_soon'" );
+    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue, 1 );
     is( $renewokay, 0, 'Still should not be able to renew' );
     is( $error, 'on_reserve', 'returned code is on_reserve, auto_too_soon limit is overridden' );
-    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrowernumber, $item_4->itemnumber, 1, 1 );
+    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue, 1, 1 );
     is( $renewokay, 0, 'Still should not be able to renew' );
     is( $error, 'on_reserve', 'returned code is on_reserve, auto_too_soon limit is overridden' );
     $dbh->do('UPDATE circulation_rules SET rule_value = 0 where rule_name = "norenewalbefore"');
     Koha::Cache::Memory::Lite->flush();
-    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrowernumber, $item_4->itemnumber, 1 );
+    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue, 1 );
     is( $renewokay, 0, 'Still should not be able to renew' );
     is( $error, 'on_reserve', 'returned code is on_reserve, auto_renew only happens if not on reserve' );
     ModReserveCancelAll($item_4->itemnumber, $reserving_borrowernumber);
 
-
-
+    $renewing_borrower_obj = Koha::Patrons->find($renewing_borrower_obj->borrowernumber);
     $renewing_borrower_obj->autorenew_checkouts(0)->store;
-    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrowernumber, $item_4->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue );
     is( $renewokay, 1, 'No renewal before is undef, but patron opted out of auto_renewal' );
     $renewing_borrower_obj->autorenew_checkouts(1)->store;
 
@@ -888,26 +981,45 @@ subtest "CanBookBeRenewed tests" => sub {
         }
     );
 
-    ( $renewokay, $error, $info ) = CanBookBeRenewed($renewing_borrowernumber, $item_1->itemnumber);
+    ( $renewokay, $error, $info ) = CanBookBeRenewed($renewing_borrower_obj, $issue_1);
     is( $renewokay, 0, 'Bug 7413: Cannot renew, renewal is premature');
     is( $error, 'too_soon', 'Bug 7413: Cannot renew, renewal is premature (returned code is too_soon)');
-    is( $info->{soonest_renew_date}, dt_from_string($issue->date_due)->subtract( days => 7 ), "Soonest renew date returned when error is 'too_soon'");
+    is( $info->{soonest_renew_date}, dt_from_string($issue_1->date_due)->subtract( days => 7 ), "Soonest renew date returned when error is 'too_soon'");
 
-    # Bug 14101
+    # Bug 25393
     # Test premature automatic renewal
-    ( $renewokay, $error, $info ) =
-      CanBookBeRenewed( $renewing_borrowernumber, $item_4->itemnumber );
-    is( $renewokay, 0, 'Bug 14101: Cannot renew, renewal is automatic and premature' );
-    is( $error, 'auto_too_soon',
-        'Bug 14101: Cannot renew, renewal is automatic and premature (returned code is auto_too_soon)'
+    Koha::CirculationRules->set_rule(
+        {
+            categorycode => undef,
+            branchcode   => undef,
+            itemtype     => undef,
+            rule_name    => 'noautorenewalbefore',
+            rule_value   => '7',
+        }
     );
-    is( $info->{soonest_renew_date}, dt_from_string($issue->date_due)->subtract( days => 7 ), "Soonest renew date returned when error is 'auto_too_soon'");
 
+    ( $renewokay, $error, $info ) =
+    CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue );
+    is( $renewokay, 0, 'Bug 25393: Cannot renew, renewal is premature' );
+    is( $error, 'too_soon',
+        'Bug 25393: Cannot renew, renewal is premature (returned code is too_soon)'
+    );
+    is(
+        $info->{soonest_renew_date}, dt_from_string( $auto_renew_issue->date_due )->subtract( days => 7 ),
+        "Soonest renew date returned when error is 'auto_too_soon'"
+    );
+
+    ( $renewokay_cron, $error_cron, $info_cron ) =
+        CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue, undef, 1 );
+    is(
+        $error_cron, 'auto_too_soon',
+        'Bug 25393: Cannot renew, renewal is automatic and premature (returned code is auto_too_soon)'
+    );
     $renewing_borrower_obj->autorenew_checkouts(0)->store;
-    ( $renewokay, $error, $info ) = CanBookBeRenewed( $renewing_borrowernumber, $item_4->itemnumber );
+    ( $renewokay, $error, $info ) = CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue );
     is( $renewokay, 0, 'No renewal before is 7, patron opted out of auto_renewal still cannot renew early' );
     is( $error, 'too_soon', 'Error is too_soon, no auto' );
-    is( $info->{soonest_renew_date}, dt_from_string($issue->date_due)->subtract( days => 7 ), "Soonest renew date returned when error is 'too_soon'");
+    is( $info->{soonest_renew_date}, dt_from_string($auto_renew_issue->date_due)->subtract( days => 7 ), "Soonest renew date returned when error is 'too_soon'");
     $renewing_borrower_obj->autorenew_checkouts(1)->store;
 
     # Change policy so that loans can only be renewed exactly on due date (0 days prior to due date)
@@ -915,18 +1027,29 @@ subtest "CanBookBeRenewed tests" => sub {
     $dbh->do(q{UPDATE circulation_rules SET rule_value = '0' WHERE rule_name = 'norenewalbefore'});
     Koha::Cache::Memory::Lite->flush();
     ( $renewokay, $error, $info ) =
-      CanBookBeRenewed( $renewing_borrowernumber, $item_4->itemnumber );
-    is( $renewokay, 0, 'Bug 14101: Cannot renew, renewal is automatic and premature' );
-    is( $error, 'auto_too_soon',
-        'Bug 14101: Cannot renew, renewal is automatic and premature, "No renewal before" = 0 (returned code is auto_too_soon)'
+      CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue );
+    is( $renewokay, 0, 'Bug 25393: Cannot manual renew, renewal is too soon' );
+    is( $error, 'too_soon',
+        'Bug 25393: Cannot manual renew, renewal is too soon, even though it\'s also scheduled for auto renewal'
     );
-    is( $info->{soonest_renew_date}, dt_from_string($issue->date_due), "Soonest renew date returned when error is 'auto_too_soon'");
+    is( $info->{soonest_renew_date}, dt_from_string($auto_renew_issue->date_due), "Soonest renew date returned when error is 'auto_too_soon'");
+
+    # Now we test for noautorenewalbefore if cron
+    $dbh->do(q{UPDATE circulation_rules SET rule_value = '0' WHERE rule_name = 'noautorenewalbefore'});
+    Koha::Cache::Memory::Lite->flush();
+    ( $renewokay, $error, $info ) =
+      CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue, undef, 1 );
+    is( $renewokay, 0, 'Bug 25393: Cannot auto renew, renewal is too soon' );
+    is( $error, 'auto_too_soon',
+        'Bug 25393: Cannot auto renew, auto renewal is too soon'
+    );
+    is( $info->{soonest_renew_date}, dt_from_string($auto_renew_issue->date_due), "Soonest renew date returned when error is 'auto_too_soon'");
 
     $renewing_borrower_obj->autorenew_checkouts(0)->store;
-    ( $renewokay, $error, $info ) = CanBookBeRenewed( $renewing_borrowernumber, $item_4->itemnumber );
+    ( $renewokay, $error, $info ) = CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue );
     is( $renewokay, 0, 'No renewal before is 0, patron opted out of auto_renewal still cannot renew early' );
     is( $error, 'too_soon', 'Error is too_soon, no auto' );
-    is( $info->{soonest_renew_date}, dt_from_string($issue->date_due), "Soonest renew date returned when error is 'auto_too_soon'");
+    is( $info->{soonest_renew_date}, dt_from_string($auto_renew_issue->date_due), "Soonest renew date returned when error is 'auto_too_soon'");
     $renewing_borrower_obj->autorenew_checkouts(1)->store;
 
     # Change policy so that loans can be renewed 99 days prior to the due date
@@ -934,19 +1057,70 @@ subtest "CanBookBeRenewed tests" => sub {
     $dbh->do(q{UPDATE circulation_rules SET rule_value = '99' WHERE rule_name = 'norenewalbefore'});
     Koha::Cache::Memory::Lite->flush();
     ( $renewokay, $error ) =
-      CanBookBeRenewed( $renewing_borrowernumber, $item_4->itemnumber );
-    is( $renewokay, 0, 'Bug 14101: Cannot renew, renewal is automatic' );
+      CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue );
+    is( $renewokay, 1, 'Bug 25393: Can do a manual renew, even if renewal is automatic and premature' );
     is( $error, 'auto_renew',
         'Bug 14101: Cannot renew, renewal is automatic (returned code is auto_renew)'
     );
 
+    # Now we test for noautorenewalbefore if cron
+    $dbh->do(q{UPDATE circulation_rules SET rule_value = '99' WHERE rule_name = 'noautorenewalbefore'});
+    Koha::Cache::Memory::Lite->flush();
+    ( $renewokay, $error, $info ) = CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue, undef, 1 );
+    is( $renewokay, 1, 'Bug 25393: Can auto renew' );
+    is( $error, 'auto_renew', 'Bug 25393: Can auto renew' );
+    is( $info->{soonest_renew_date}, undef, "soonest_renew_date is not returned because this issue can be renewed" );
+
     $renewing_borrower_obj->autorenew_checkouts(0)->store;
-    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrowernumber, $item_4->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $auto_renew_issue );
     is( $renewokay, 1, 'No renewal before is 99, patron opted out of auto_renewal so can renew' );
     $renewing_borrower_obj->autorenew_checkouts(1)->store;
 
+
+    # Bug 31427
+    # Ensure autorenewal errors always take highest precedence
+    subtest "auto_renewal errors first" => sub {
+        plan tests => 4;
+
+        my $auto_renew_item = $builder->build_sample_item(
+            {
+                biblionumber => $biblio->biblionumber,
+                library      => $branch,
+            }
+        );
+
+        my $ten_days_ahead = dt_from_string->add( days => 10 );
+        my $issue          = AddIssue(
+            $renewing_borrower_obj, $auto_renew_item->barcode, $ten_days_ahead, undef, undef, undef,
+            { auto_renew => 1 }
+        );
+
+        Koha::CirculationRules->set_rules(
+            {
+                categorycode => undef,
+                branchcode   => undef,
+                itemtype     => undef,
+                rules        => {
+                    noautorenewalbefore => 7,
+                    renewalsallowed     => 2,
+                }
+            }
+        );
+        my ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $issue, undef, 'cron' );
+        is( $renewokay, 0,               'Do not renew, renewal is automatic' );
+        is( $error,     'auto_too_soon', 'Cannot auto renew, too soon - returned code is auto_too_soon' );
+
+        $issue->renewals_count(2)->store;
+        ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $issue, undef, 'cron' );
+        is( $renewokay, 0, 'Do not renew, renewal is automatic' );
+        is(
+            $error, 'auto_too_soon',
+            'Cannot auto renew, too soon - auto renewal error takes precedence over non-autorenewal error too_many'
+        );
+    };
+
     subtest "too_late_renewal / no_auto_renewal_after" => sub {
-        plan tests => 14;
+        plan tests => 16;
         my $item_to_auto_renew = $builder->build_sample_item(
             {
                 biblionumber => $biblio->biblionumber,
@@ -956,7 +1130,7 @@ subtest "CanBookBeRenewed tests" => sub {
 
         my $ten_days_before = dt_from_string->add( days => -10 );
         my $ten_days_ahead  = dt_from_string->add( days => 10 );
-        AddIssue( $renewing_borrower, $item_to_auto_renew->barcode, $ten_days_ahead, undef, $ten_days_before, undef, { auto_renew => 1 } );
+        my $issue = AddIssue( $renewing_borrower_obj, $item_to_auto_renew->barcode, $ten_days_ahead, undef, $ten_days_before, undef, { auto_renew => 1 } );
 
         Koha::CirculationRules->set_rules(
             {
@@ -970,7 +1144,7 @@ subtest "CanBookBeRenewed tests" => sub {
             }
         );
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
+          CanBookBeRenewed( $renewing_borrower_obj, $issue );
         is( $renewokay, 0, 'Do not renew, renewal is automatic' );
         is( $error, 'auto_too_late', 'Cannot renew, too late(returned code is auto_too_late)' );
 
@@ -986,7 +1160,7 @@ subtest "CanBookBeRenewed tests" => sub {
             }
         );
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
+          CanBookBeRenewed( $renewing_borrower_obj, $issue );
         is( $renewokay, 0, 'Do not renew, renewal is automatic' );
         is( $error, 'auto_too_late', 'Cannot auto renew, too late - no_auto_renewal_after is inclusive(returned code is auto_too_late)' );
 
@@ -1002,9 +1176,28 @@ subtest "CanBookBeRenewed tests" => sub {
             }
         );
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
-        is( $renewokay, 0, 'Do not renew, renewal is automatic' );
-        is( $error, 'auto_too_soon', 'Cannot auto renew, too soon - no_auto_renewal_after is defined(returned code is auto_too_soon)' );
+          CanBookBeRenewed( $renewing_borrower_obj, $issue );
+        is( $renewokay, 0, 'Do not renew, too_soon' );
+        is( $error, 'too_soon', 'Cannot renew, too_soon - no_auto_renewal_after is defined(returned code is too_soon)' );
+
+        # Now check for cron
+        Koha::CirculationRules->set_rules(
+            {
+                categorycode => undef,
+                branchcode   => undef,
+                itemtype     => undef,
+                rules        => {
+                    noautorenewalbefore   => '9',
+                    no_auto_renewal_after => '11',
+                }
+            }
+        );
+        ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $issue, undef, 1 );
+        is( $renewokay, 0, 'Do not renew, too_soon' );
+        is(
+            $error, 'auto_too_soon',
+            'Cannot renew, too_soon - no_auto_renewal_after is defined(returned code is too_soon)'
+        );
 
         Koha::CirculationRules->set_rules(
             {
@@ -1018,8 +1211,8 @@ subtest "CanBookBeRenewed tests" => sub {
             }
         );
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
-        is( $renewokay, 0,            'Do not renew, renewal is automatic' );
+          CanBookBeRenewed( $renewing_borrower_obj, $issue );
+        is( $renewokay, 1,            'Renew, even if renewal is automatic' );
         is( $error,     'auto_renew', 'Cannot renew, renew is automatic' );
 
         Koha::CirculationRules->set_rules(
@@ -1035,7 +1228,7 @@ subtest "CanBookBeRenewed tests" => sub {
             }
         );
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
+          CanBookBeRenewed( $renewing_borrower_obj, $issue );
         is( $renewokay, 0, 'Do not renew, renewal is automatic' );
         is( $error, 'auto_too_late', 'Cannot renew, too late(returned code is auto_too_late)' );
 
@@ -1052,7 +1245,7 @@ subtest "CanBookBeRenewed tests" => sub {
             }
         );
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
+          CanBookBeRenewed( $renewing_borrower_obj, $issue );
         is( $renewokay, 0, 'Do not renew, renewal is automatic' );
         is( $error, 'auto_too_late', 'Cannot renew, too late(returned code is auto_too_late)' );
 
@@ -1069,12 +1262,12 @@ subtest "CanBookBeRenewed tests" => sub {
             }
         );
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
-        is( $renewokay, 0, 'Do not renew, renewal is automatic' );
+          CanBookBeRenewed( $renewing_borrower_obj, $issue );
+        is( $renewokay, 1, 'Renew, even if renewal is automatic' );
         is( $error, 'auto_renew', 'Cannot renew, renew is automatic' );
     };
 
-    subtest "auto_too_much_oweing | OPACFineNoRenewalsBlockAutoRenew & OPACFineNoRenewalsIncludeCredit" => sub {
+    subtest "auto_too_much_oweing | OPACFineNoRenewalsBlockAutoRenew & OPACFineNoRenewalsIncludeCredits" => sub {
         plan tests => 10;
         my $item_to_auto_renew = $builder->build_sample_item(
             {
@@ -1085,7 +1278,7 @@ subtest "CanBookBeRenewed tests" => sub {
 
         my $ten_days_before = dt_from_string->add( days => -10 );
         my $ten_days_ahead = dt_from_string->add( days => 10 );
-        AddIssue( $renewing_borrower, $item_to_auto_renew->barcode, $ten_days_ahead, undef, $ten_days_before, undef, { auto_renew => 1 } );
+        my $issue = AddIssue( $renewing_borrower_obj, $item_to_auto_renew->barcode, $ten_days_ahead, undef, $ten_days_before, undef, { auto_renew => 1 } );
 
         Koha::CirculationRules->set_rules(
             {
@@ -1100,7 +1293,7 @@ subtest "CanBookBeRenewed tests" => sub {
         );
         C4::Context->set_preference('OPACFineNoRenewalsBlockAutoRenew','1');
         C4::Context->set_preference('OPACFineNoRenewals','10');
-        C4::Context->set_preference('OPACFineNoRenewalsIncludeCredit','1');
+        C4::Context->set_preference( 'OPACFineNoRenewalsIncludeCredits',  '1' );
         my $fines_amount = 5;
         my $account = Koha::Account->new({patron_id => $renewing_borrowernumber});
         $account->add_debit(
@@ -1113,8 +1306,8 @@ subtest "CanBookBeRenewed tests" => sub {
             }
         )->status('RETURNED')->store;
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
-        is( $renewokay, 0, 'Do not renew, renewal is automatic' );
+          CanBookBeRenewed( $renewing_borrower_obj, $issue );
+        is( $renewokay, 1, 'Renew, even if renewal is automatic' );
         is( $error, 'auto_renew', 'Can auto renew, OPACFineNoRenewals=10, patron has 5' );
 
         $account->add_debit(
@@ -1127,8 +1320,8 @@ subtest "CanBookBeRenewed tests" => sub {
             }
         )->status('RETURNED')->store;
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
-        is( $renewokay, 0, 'Do not renew, renewal is automatic' );
+          CanBookBeRenewed( $renewing_borrower_obj, $issue );
+        is( $renewokay, 1, 'Renew, even if renewal is automatic' );
         is( $error, 'auto_renew', 'Can auto renew, OPACFineNoRenewals=10, patron has 10' );
 
         $account->add_debit(
@@ -1141,7 +1334,7 @@ subtest "CanBookBeRenewed tests" => sub {
             }
         )->status('RETURNED')->store;
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
+          CanBookBeRenewed( $renewing_borrower_obj, $issue );
         is( $renewokay, 0, 'Do not renew, renewal is automatic' );
         is( $error, 'auto_too_much_oweing', 'Cannot auto renew, OPACFineNoRenewals=10, patron has 15' );
 
@@ -1154,18 +1347,18 @@ subtest "CanBookBeRenewed tests" => sub {
             }
         )->store;
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
-        is( $renewokay, 0, 'Do not renew, renewal is automatic' );
-        is( $error, 'auto_renew', 'Can auto renew, OPACFineNoRenewals=10, OPACFineNoRenewalsIncludeCredit=1, patron has 15 debt, 5 credit'  );
+          CanBookBeRenewed( $renewing_borrower_obj, $issue );
+        is( $renewokay, 1, 'Renew, even if renewal is automatic' );
+        is( $error, 'auto_renew', 'Can auto renew, OPACFineNoRenewals=10, OPACFineNoRenewalsIncludeCredits=1, patron has 15 debt, 5 credit'  );
 
-        C4::Context->set_preference('OPACFineNoRenewalsIncludeCredit','0');
+        C4::Context->set_preference('OPACFineNoRenewalsIncludeCredits','0');
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
+          CanBookBeRenewed( $renewing_borrower_obj, $issue );
         is( $renewokay, 0, 'Do not renew, renewal is automatic' );
-        is( $error, 'auto_too_much_oweing', 'Cannot auto renew, OPACFineNoRenewals=10, OPACFineNoRenewalsIncludeCredit=1, patron has 15 debt, 5 credit'  );
+        is( $error, 'auto_too_much_oweing', 'Cannot auto renew, OPACFineNoRenewals=10, OPACFineNoRenewalsIncludeCredits=1, patron has 15 debt, 5 credit'  );
 
         $dbh->do('DELETE FROM accountlines WHERE borrowernumber=?', undef, $renewing_borrowernumber);
-        C4::Context->set_preference('OPACFineNoRenewalsIncludeCredit','1');
+        C4::Context->set_preference( 'OPACFineNoRenewalsIncludeCredits', '1' );
     };
 
     subtest "auto_account_expired | BlockExpiredPatronOpacActions" => sub {
@@ -1192,40 +1385,36 @@ subtest "CanBookBeRenewed tests" => sub {
         my $ten_days_before = dt_from_string->add( days => -10 );
         my $ten_days_ahead = dt_from_string->add( days => 10 );
 
-        # Patron is expired and BlockExpiredPatronOpacActions=0
+        # Patron is expired and BlockExpiredPatronOpacActions=''
         # => auto renew is allowed
-        t::lib::Mocks::mock_preference('BlockExpiredPatronOpacActions', 0);
-        my $patron = $expired_borrower;
-        my $checkout = AddIssue( $patron, $item_to_auto_renew->barcode, $ten_days_ahead, undef, $ten_days_before, undef, { auto_renew => 1 } );
+        t::lib::Mocks::mock_preference('BlockExpiredPatronOpacActions', '');
+        my $issue = AddIssue( $expired_borrower_obj, $item_to_auto_renew->barcode, $ten_days_ahead, undef, $ten_days_before, undef, { auto_renew => 1 } );
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $patron->{borrowernumber}, $item_to_auto_renew->itemnumber );
-        is( $renewokay, 0, 'Do not renew, renewal is automatic' );
-        is( $error, 'auto_renew', 'Can auto renew, patron is expired but BlockExpiredPatronOpacActions=0' );
-        Koha::Checkouts->find( $checkout->issue_id )->delete;
+          CanBookBeRenewed( $expired_borrower_obj, $issue );
+        is( $renewokay, 1, 'Renew, even if renewal is automatic' );
+        is( $error, 'auto_renew', 'Can auto renew, patron is expired but BlockExpiredPatronOpacActions=\'\'' );
+        Koha::Checkouts->find( $issue->issue_id )->delete;
 
 
-        # Patron is expired and BlockExpiredPatronOpacActions=1
+        # Patron is expired and BlockExpiredPatronOpacActions='renew'
         # => auto renew is not allowed
-        t::lib::Mocks::mock_preference('BlockExpiredPatronOpacActions', 1);
-        $patron = $expired_borrower;
-        $checkout = AddIssue( $patron, $item_to_auto_renew->barcode, $ten_days_ahead, undef, $ten_days_before, undef, { auto_renew => 1 } );
+        t::lib::Mocks::mock_preference('BlockExpiredPatronOpacActions', 'renew');
+        $issue = AddIssue( $expired_borrower_obj, $item_to_auto_renew->barcode, $ten_days_ahead, undef, $ten_days_before, undef, { auto_renew => 1 } );
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $patron->{borrowernumber}, $item_to_auto_renew->itemnumber );
+          CanBookBeRenewed( $expired_borrower_obj, $issue );
         is( $renewokay, 0, 'Do not renew, renewal is automatic' );
         is( $error, 'auto_account_expired', 'Can not auto renew, lockExpiredPatronOpacActions=1 and patron is expired' );
-        Koha::Checkouts->find( $checkout->issue_id )->delete;
-
+        $issue->delete;
 
         # Patron is not expired and BlockExpiredPatronOpacActions=1
         # => auto renew is allowed
-        t::lib::Mocks::mock_preference('BlockExpiredPatronOpacActions', 1);
-        $patron = $renewing_borrower;
-        $checkout = AddIssue( $patron, $item_to_auto_renew->barcode, $ten_days_ahead, undef, $ten_days_before, undef, { auto_renew => 1 } );
+        t::lib::Mocks::mock_preference('BlockExpiredPatronOpacActions', 'renew');
+        $issue = AddIssue( $renewing_borrower_obj, $item_to_auto_renew->barcode, $ten_days_ahead, undef, $ten_days_before, undef, { auto_renew => 1 } );
         ( $renewokay, $error ) =
-          CanBookBeRenewed( $patron->{borrowernumber}, $item_to_auto_renew->itemnumber );
-        is( $renewokay, 0, 'Do not renew, renewal is automatic' );
-        is( $error, 'auto_renew', 'Can auto renew, BlockExpiredPatronOpacActions=1 but patron is not expired' );
-        Koha::Checkouts->find( $checkout->issue_id )->delete;
+          CanBookBeRenewed( $renewing_borrower_obj, $issue );
+        is( $renewokay, 1, 'Renew, even if renewal is automatic' );
+        is( $error, 'auto_renew', 'Can auto renew, BlockExpiredPatronOpacActions=\'renew\' but patron is not expired' );
+        $issue->delete;
     };
 
     subtest "GetLatestAutoRenewDate" => sub {
@@ -1239,7 +1428,7 @@ subtest "CanBookBeRenewed tests" => sub {
 
         my $ten_days_before = dt_from_string->add( days => -10 );
         my $ten_days_ahead  = dt_from_string->add( days => 10 );
-        AddIssue( $renewing_borrower, $item_to_auto_renew->barcode, $ten_days_ahead, undef, $ten_days_before, undef, { auto_renew => 1 } );
+        my $issue = AddIssue( $renewing_borrower_obj, $item_to_auto_renew->barcode, $ten_days_ahead, undef, $ten_days_before, undef, { auto_renew => 1 } );
         Koha::CirculationRules->set_rules(
             {
                 categorycode => undef,
@@ -1252,7 +1441,7 @@ subtest "CanBookBeRenewed tests" => sub {
                 }
             }
         );
-        my $latest_auto_renew_date = GetLatestAutoRenewDate( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
+        my $latest_auto_renew_date = GetLatestAutoRenewDate( $renewing_borrower_obj, $issue );
         is( $latest_auto_renew_date, undef, 'GetLatestAutoRenewDate should return undef if no_auto_renewal_after or no_auto_renewal_after_hard_limit are not defined' );
         my $five_days_before = dt_from_string->add( days => -5 );
         Koha::CirculationRules->set_rules(
@@ -1267,7 +1456,7 @@ subtest "CanBookBeRenewed tests" => sub {
                 }
             }
         );
-        $latest_auto_renew_date = GetLatestAutoRenewDate( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
+        $latest_auto_renew_date = GetLatestAutoRenewDate( $renewing_borrower_obj,, $issue );
         is( $latest_auto_renew_date->truncate( to => 'minute' ),
             $five_days_before->truncate( to => 'minute' ),
             'GetLatestAutoRenewDate should return -5 days if no_auto_renewal_after = 5 and date_due is 10 days before'
@@ -1289,7 +1478,7 @@ subtest "CanBookBeRenewed tests" => sub {
                 }
             }
         );
-        $latest_auto_renew_date = GetLatestAutoRenewDate( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
+        $latest_auto_renew_date = GetLatestAutoRenewDate( $renewing_borrower_obj, $issue );
         is( $latest_auto_renew_date->truncate( to => 'minute' ),
             $five_days_ahead->truncate( to => 'minute' ),
             'GetLatestAutoRenewDate should return +5 days if no_auto_renewal_after = 15 and date_due is 10 days before'
@@ -1307,7 +1496,7 @@ subtest "CanBookBeRenewed tests" => sub {
                 }
             }
         );
-        $latest_auto_renew_date = GetLatestAutoRenewDate( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
+        $latest_auto_renew_date = GetLatestAutoRenewDate( $renewing_borrower_obj, $issue );
         is( $latest_auto_renew_date->truncate( to => 'day' ),
             $two_days_ahead->truncate( to => 'day' ),
             'GetLatestAutoRenewDate should return +2 days if no_auto_renewal_after_hard_limit is defined and not no_auto_renewal_after'
@@ -1324,15 +1513,79 @@ subtest "CanBookBeRenewed tests" => sub {
                 }
             }
         );
-        $latest_auto_renew_date = GetLatestAutoRenewDate( $renewing_borrowernumber, $item_to_auto_renew->itemnumber );
+        $latest_auto_renew_date = GetLatestAutoRenewDate( $renewing_borrower_obj, $issue );
         is( $latest_auto_renew_date->truncate( to => 'day' ),
             $two_days_ahead->truncate( to => 'day' ),
             'GetLatestAutoRenewDate should return +2 days if no_auto_renewal_after_hard_limit is < no_auto_renewal_after'
         );
 
     };
-    # Too many renewals
 
+    subtest "auto_renew_final" => sub {
+        plan tests => 6;
+        my $item_to_auto_renew = $builder->build_sample_item();
+        Koha::CirculationRules->set_rules(
+            {
+                categorycode => undef,
+                branchcode   => undef,
+                itemtype     => $item_to_auto_renew->itype,
+                rules        => {
+                    norenewalbefore => undef,
+                    renewalsallowed => 1,
+                }
+            }
+        );
+
+        my $ten_days_before = dt_from_string->add( days => -10 );
+        my $ten_days_ahead  = dt_from_string->add( days => 10 );
+        my $issue           = AddIssue(
+            $renewing_borrower_obj, $item_to_auto_renew->barcode, $ten_days_ahead, undef, $ten_days_before,
+            undef, { auto_renew => 1 }
+        );
+        $issue->renewals_count(0)->store;
+
+        ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $issue );
+        is( $renewokay, 1,                  'Success for auto_renewal' );
+        is( $error,     'auto_renew_final', 'Auto renewal allowed, but it is the last one' );
+
+        # Final unseen renewal
+        Koha::CirculationRules->set_rules(
+            {
+                categorycode => undef,
+                branchcode   => undef,
+                itemtype     => $item_to_auto_renew->itype,
+                rules        => {
+                    unseen_renewals_allowed => 2,
+                    renewalsallowed         => 10,
+                }
+            }
+        );
+        t::lib::Mocks::mock_preference( 'UnseenRenewals', 1 );
+        $issue->unseen_renewals(1)->renewals_count(1)->store;
+
+        ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $issue );
+        is( $renewokay, 1,                   'Success for auto_renewal' );
+        is( $error,     'auto_unseen_final', 'Final unseen renewal reported, not final overall' );
+
+        # Final unseen renewal
+        Koha::CirculationRules->set_rules(
+            {
+                categorycode => undef,
+                branchcode   => undef,
+                itemtype     => $item_to_auto_renew->itype,
+                rules        => {
+                    unseen_renewals_allowed => 2,
+                    renewalsallowed         => 2,
+                }
+            }
+        );
+        ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $issue );
+        is( $renewokay, 1,                  'Success for auto_renewal' );
+        is( $error,     'auto_renew_final', 'Final auto renewal reported' );
+
+    };
+
+    # Too many renewals
     # set policy to forbid renewals
     Koha::CirculationRules->set_rules(
         {
@@ -1346,7 +1599,7 @@ subtest "CanBookBeRenewed tests" => sub {
         }
     );
 
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_1->itemnumber);
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_1);
     is( $renewokay, 0, 'Cannot renew, 0 renewals allowed');
     is( $error, 'too_many', 'Cannot renew, 0 renewals allowed (returned code is too_many)');
 
@@ -1363,8 +1616,10 @@ subtest "CanBookBeRenewed tests" => sub {
         }
     );
     t::lib::Mocks::mock_preference('UnseenRenewals', 1);
-    $dbh->do('UPDATE issues SET unseen_renewals = 2 where borrowernumber = ? AND itemnumber = ?', undef, ($renewing_borrowernumber, $item_1->itemnumber));
-    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_1->itemnumber);
+
+    $issue_1->unseen_renewals(2)->store;
+
+    ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrower_obj, $issue_1);
     is( $renewokay, 0, 'Cannot renew, 0 unseen renewals allowed');
     is( $error, 'too_unseen', 'Cannot renew, returned code is too_unseen');
     Koha::CirculationRules->set_rules(
@@ -1386,21 +1641,21 @@ subtest "CanBookBeRenewed tests" => sub {
 
     C4::Overdues::UpdateFine(
         {
-            issue_id       => $issue->id(),
+            issue_id       => $issue_1->id(),
             itemnumber     => $item_1->itemnumber,
-            borrowernumber => $renewing_borrower->{borrowernumber},
+            borrowernumber => $renewing_borrower_obj->borrowernumber,
             amount         => 15.00,
             type           => q{},
             due            => Koha::DateUtils::output_pref($datedue)
         }
     );
 
-    my $line = Koha::Account::Lines->search({ borrowernumber => $renewing_borrower->{borrowernumber} })->next();
+    my $line = Koha::Account::Lines->search({ borrowernumber => $renewing_borrower_obj->borrowernumber })->next();
     is( $line->debit_type_code, 'OVERDUE', 'Account line type is OVERDUE' );
     is( $line->status, 'UNRETURNED', 'Account line status is UNRETURNED' );
     is( $line->amountoutstanding+0, 15, 'Account line amount outstanding is 15.00' );
     is( $line->amount+0, 15, 'Account line amount is 15.00' );
-    is( $line->issue_id, $issue->id, 'Account line issue id matches' );
+    is( $line->issue_id, $issue_1->id, 'Account line issue id matches' );
 
     my $offset = Koha::Account::Offsets->search({ debit_id => $line->id })->next();
     is( $offset->type, 'CREATE', 'Account offset type is CREATE' );
@@ -1422,7 +1677,7 @@ subtest "CanBookBeRenewed tests" => sub {
 
     my $total_due = $dbh->selectrow_array(
         'SELECT SUM( amountoutstanding ) FROM accountlines WHERE borrowernumber = ?',
-        undef, $renewing_borrower->{borrowernumber}
+        undef, $renewing_borrower_obj->borrowernumber
     );
 
     is( $total_due+0, 15, 'Borrower only charged replacement fee with both WhenLostForgiveFine and WhenLostChargeReplacementFee enabled' );
@@ -1431,9 +1686,9 @@ subtest "CanBookBeRenewed tests" => sub {
 
     C4::Overdues::UpdateFine(
         {
-            issue_id       => $issue2->id(),
+            issue_id       => $issue_2->id(),
             itemnumber     => $item_2->itemnumber,
-            borrowernumber => $renewing_borrower->{borrowernumber},
+            borrowernumber => $renewing_borrower_obj->borrowernumber,
             amount         => 15.00,
             type           => q{},
             due            => Koha::DateUtils::output_pref($datedue)
@@ -1448,7 +1703,7 @@ subtest "CanBookBeRenewed tests" => sub {
 
     $total_due = $dbh->selectrow_array(
         'SELECT SUM( amountoutstanding ) FROM accountlines WHERE borrowernumber = ?',
-        undef, $renewing_borrower->{borrowernumber}
+        undef, $renewing_borrower_obj->borrowernumber
     );
 
     ok( $total_due == 15, 'Borrower only charged fine with both WhenLostForgiveFine and WhenLostChargeReplacementFee disabled' );
@@ -1486,11 +1741,11 @@ subtest "CanBookBeRenewed tests" => sub {
         },
     });
     my $recall_borrower = $builder->build_object({ class => 'Koha::Patrons' });
-    my $recall_biblio = $builder->build_object({ class => 'Koha::Biblios' });
-    my $recall_item1 = $builder->build_object({ class => 'Koha::Items' }, { value => { biblionumber => $recall_biblio->biblionumber } });
-    my $recall_item2 = $builder->build_object({ class => 'Koha::Items' }, { value => { biblionumber => $recall_biblio->biblionumber } });
+    my $recall_biblio = $builder->build_sample_biblio();
+    my $recall_item1 = $builder->build_sample_item({ biblionumber => $recall_biblio->biblionumber });
+    my $recall_item2 = $builder->build_sample_item({ biblionumber => $recall_biblio->biblionumber });
 
-    AddIssue( $renewing_borrower, $recall_item1->barcode );
+    my $recall_issue = AddIssue( $renewing_borrower_obj, $recall_item1->barcode );
 
     # item-level and this item: renewal not allowed
     my $recall = Koha::Recall->new({
@@ -1500,7 +1755,7 @@ subtest "CanBookBeRenewed tests" => sub {
         pickup_library_id => $recall_borrower->branchcode,
         item_level => 1,
     })->store;
-    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrowernumber, $recall_item1->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $recall_issue );
     is( $error, 'recalled', 'Cannot renew item that has been recalled' );
     $recall->set_cancelled;
 
@@ -1512,7 +1767,7 @@ subtest "CanBookBeRenewed tests" => sub {
         pickup_library_id => $recall_borrower->branchcode,
         item_level => 0,
     })->store;
-    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrowernumber, $recall_item1->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $recall_issue );
     is( $error, 'recalled', 'Cannot renew item if biblio is recalled and has no item allocated' );
     $recall->set_cancelled;
 
@@ -1524,7 +1779,7 @@ subtest "CanBookBeRenewed tests" => sub {
         pickup_library_id => $recall_borrower->branchcode,
         item_level => 1,
     })->store;
-    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrowernumber, $recall_item1->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $recall_issue );
     is( $renewokay, 1, 'Can renew item if item-level recall on biblio is not on this item' );
     $recall->set_cancelled;
 
@@ -1537,7 +1792,7 @@ subtest "CanBookBeRenewed tests" => sub {
         item_level => 0,
     })->store;
     $recall->set_waiting({ item => $recall_item1 });
-    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrowernumber, $recall_item1->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $renewing_borrower_obj, $recall_issue );
     is( $renewokay, 1, 'Can renew item if biblio-level recall has already been allocated an item' );
     $recall->set_cancelled;
 };
@@ -1548,7 +1803,8 @@ subtest "CanBookBeRenewed | bookings" => sub {
     my $schema = Koha::Database->schema;
     $schema->storage->txn_begin;
 
-    t::lib::Mocks::mock_preference( 'RenewalPeriodBase', 'date_due' );
+    t::lib::Mocks::mock_preference( 'RenewalPeriodBase',   'date_due' );
+    t::lib::Mocks::mock_preference( 'ChildNeedsGuarantor', 0 );
 
     my $renewing_patron = $builder->build_object( { class => 'Koha::Patrons' } );
     my $booked_patron   = $builder->build_object( { class => 'Koha::Patrons' } );
@@ -1609,7 +1865,7 @@ subtest "GetUpcomingDueIssues" => sub {
     );
 
     my $a_borrower_borrowernumber = Koha::Patron->new(\%a_borrower_data)->store->borrowernumber;
-    my $a_borrower = Koha::Patrons->find( $a_borrower_borrowernumber )->unblessed;
+    my $a_borrower = Koha::Patrons->find( $a_borrower_borrowernumber );
 
     my $yesterday = DateTime->today(time_zone => C4::Context->tz())->add( days => -1 );
     my $two_days_ahead = DateTime->today(time_zone => C4::Context->tz())->add( days => 2 );
@@ -1617,7 +1873,7 @@ subtest "GetUpcomingDueIssues" => sub {
 
     my $issue = AddIssue( $a_borrower, $item_1->barcode, $yesterday );
     my $datedue = dt_from_string( $issue->date_due() );
-    my $issue2 = AddIssue( $a_borrower, $item_2->barcode, $two_days_ahead );
+    my $issue_2 = AddIssue( $a_borrower, $item_2->barcode, $two_days_ahead );
     my $datedue2 = dt_from_string( $issue->date_due() );
 
     my $upcoming_dues;
@@ -1686,7 +1942,7 @@ subtest "Bug 13841 - Do not create new 0 amount fines" => sub {
 
     my $borrowernumber = Koha::Patron->new(\%a_borrower_data)->store->borrowernumber;
 
-    my $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
+    my $borrower = Koha::Patrons->find( $borrowernumber );
     my $issue = AddIssue( $borrower, $item->barcode );
     UpdateFine(
         {
@@ -1742,42 +1998,57 @@ subtest "AllowRenewalIfOtherItemsAvailable tests" => sub {
         }
     );
 
+    my $borrower1 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                firstname    => 'Kyle',
+                surname      => 'Hall',
+                categorycode => $patron_category->{categorycode},
+                branchcode   => $library2->{branchcode},
+            }
+        }
+    );
 
-    my $borrowernumber1 = Koha::Patron->new({
-        firstname    => 'Kyle',
-        surname      => 'Hall',
-        categorycode => $patron_category->{categorycode},
-        branchcode   => $library2->{branchcode},
-    })->store->borrowernumber;
-    my $borrowernumber2 = Koha::Patron->new({
-        firstname    => 'Chelsea',
-        surname      => 'Hall',
-        categorycode => $patron_category->{categorycode},
-        branchcode   => $library2->{branchcode},
-    })->store->borrowernumber;
+    my $borrowernumber2 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                firstname    => 'Chelsea',
+                surname      => 'Hall',
+                categorycode => $patron_category->{categorycode},
+                branchcode   => $library2->{branchcode},
+
+            }
+        }
+    )->borrowernumber;
+
     my $patron_category_2 = $builder->build(
         {
             source => 'Category',
             value  => {
                 category_type                 => 'P',
                 enrolmentfee                  => 0,
-                BlockExpiredPatronOpacActions => -1, # Pick the pref value
+                BlockExpiredPatronOpacActions => 'follow_syspref_BlockExpiredPatronOpacActions',
             }
         }
     );
-    my $borrowernumber3 = Koha::Patron->new({
-        firstname    => 'Carnegie',
-        surname      => 'Hall',
-        categorycode => $patron_category_2->{categorycode},
-        branchcode   => $library2->{branchcode},
-    })->store->borrowernumber;
 
-    my $borrower1 = Koha::Patrons->find( $borrowernumber1 )->unblessed;
-    my $borrower2 = Koha::Patrons->find( $borrowernumber2 )->unblessed;
+    my $borrowernumber3 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                firstname    => 'Carnegie',
+                surname      => 'Hall',
+                categorycode => $patron_category_2->{categorycode},
+                branchcode   => $library2->{branchcode},
+            }
+        }
+    )->borrowernumber;
 
     my $issue = AddIssue( $borrower1, $item_1->barcode );
 
-    my ( $renewokay, $error ) = CanBookBeRenewed( $borrowernumber1, $item_1->itemnumber );
+    my ( $renewokay, $error ) = CanBookBeRenewed( $borrower1, $issue );
     is( $renewokay, 1, 'Bug 14337 - Verify the borrower can renew with no hold on the record' );
 
     AddReserve(
@@ -1800,11 +2071,11 @@ subtest "AllowRenewalIfOtherItemsAvailable tests" => sub {
         }
     );
     t::lib::Mocks::mock_preference( 'AllowRenewalIfOtherItemsAvailable', 0 );
-    ( $renewokay, $error ) = CanBookBeRenewed( $borrowernumber1, $item_1->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $borrower1, $issue );
     is( $renewokay, 0, 'Bug 14337 - Verify the borrower cannot renew with a hold on the record if AllowRenewalIfOtherItemsAvailable and onshelfholds are disabled' );
 
     t::lib::Mocks::mock_preference( 'AllowRenewalIfOtherItemsAvailable', 1 );
-    ( $renewokay, $error ) = CanBookBeRenewed( $borrowernumber1, $item_1->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $borrower1, $issue );
     is( $renewokay, 0, 'Bug 14337 - Verify the borrower cannot renew with a hold on the record if AllowRenewalIfOtherItemsAvailable is enabled and onshelfholds is disabled' );
 
     Koha::CirculationRules->set_rules(
@@ -1818,11 +2089,11 @@ subtest "AllowRenewalIfOtherItemsAvailable tests" => sub {
         }
     );
     t::lib::Mocks::mock_preference( 'AllowRenewalIfOtherItemsAvailable', 0 );
-    ( $renewokay, $error ) = CanBookBeRenewed( $borrowernumber1, $item_1->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $borrower1, $issue );
     is( $renewokay, 0, 'Bug 14337 - Verify the borrower cannot renew with a hold on the record if AllowRenewalIfOtherItemsAvailable is disabled and onshelfhold is enabled' );
 
     t::lib::Mocks::mock_preference( 'AllowRenewalIfOtherItemsAvailable', 1 );
-    ( $renewokay, $error ) = CanBookBeRenewed( $borrowernumber1, $item_1->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $borrower1, $issue );
     is( $renewokay, 1, 'Bug 14337 - Verify the borrower can renew with a hold on the record if AllowRenewalIfOtherItemsAvailable and onshelfhold are enabled' );
 
     AddReserve(
@@ -1834,7 +2105,7 @@ subtest "AllowRenewalIfOtherItemsAvailable tests" => sub {
         }
     );
 
-    ( $renewokay, $error ) = CanBookBeRenewed( $borrowernumber1, $item_1->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $borrower1, $issue );
     is( $renewokay, 0, 'Verify the borrower cannot renew with 2 holds on the record if AllowRenewalIfOtherItemsAvailable and onshelfhold are enabled and one other item on record' );
 
     my $item_3= $builder->build_sample_item(
@@ -1845,7 +2116,7 @@ subtest "AllowRenewalIfOtherItemsAvailable tests" => sub {
         }
     );
 
-    ( $renewokay, $error ) = CanBookBeRenewed( $borrowernumber1, $item_1->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $borrower1, $issue );
     is( $renewokay, 1, 'Verify the borrower cannot renew with 2 holds on the record if AllowRenewalIfOtherItemsAvailable and onshelfhold are enabled and two other items on record' );
 
     Koha::CirculationRules->set_rules(
@@ -1859,7 +2130,7 @@ subtest "AllowRenewalIfOtherItemsAvailable tests" => sub {
         }
     );
 
-    ( $renewokay, $error ) = CanBookBeRenewed( $borrowernumber1, $item_1->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $borrower1, $issue );
     is( $renewokay, 0, 'Verify the borrower cannot renew with 2 holds on the record, but only one of those holds can be filled when AllowRenewalIfOtherItemsAvailable and onshelfhold are enabled and two other items on record' );
 
     Koha::CirculationRules->set_rules(
@@ -1876,7 +2147,7 @@ subtest "AllowRenewalIfOtherItemsAvailable tests" => sub {
     # Setting item not checked out to be not for loan but holdable
     $item_2->notforloan(-1)->store;
 
-    ( $renewokay, $error ) = CanBookBeRenewed( $borrowernumber1, $item_1->itemnumber );
+    ( $renewokay, $error ) = CanBookBeRenewed( $borrower1, $issue );
     is( $renewokay, 0, 'Bug 14337 - Verify the borrower can not renew with a hold on the record if AllowRenewalIfOtherItemsAvailable is enabled but the only available item is notforloan' );
 
     my $mock_circ = Test::MockModule->new("C4::Circulation");
@@ -1890,7 +2161,7 @@ subtest "AllowRenewalIfOtherItemsAvailable tests" => sub {
     # Two items total, one item available, one issued, two holds on record
 
     warnings_are{
-       ( $renewokay, $error ) = CanBookBeRenewed( $borrowernumber1, $item_1->itemnumber );
+       ( $renewokay, $error ) = CanBookBeRenewed( $borrower1, $issue );
     } [], "CanItemBeReserved not called when there are more possible holds than available items";
     is( $renewokay, 0, 'Borrower cannot renew when there are more holds than available items' );
 
@@ -1914,7 +2185,7 @@ subtest "AllowRenewalIfOtherItemsAvailable tests" => sub {
     );
 
     warnings_are{
-       ( $renewokay, $error ) = CanBookBeRenewed( $borrowernumber1, $item_1->itemnumber );
+       ( $renewokay, $error ) = CanBookBeRenewed( $borrower1, $issue );
     } ["Checked","Checked"], "CanItemBeReserved only called once per available item if it returns a negative result for all items for a borrower";
     is( $renewokay, 0, 'Borrower cannot renew when there are more holds than available items' );
 
@@ -1935,17 +2206,20 @@ subtest "AllowRenewalIfOtherItemsAvailable tests" => sub {
         }
     );
 
-    my $borrowernumber = Koha::Patron->new({
-        firstname =>  'fn',
-        surname => 'dn',
-        categorycode => $patron_category->{categorycode},
-        branchcode => $branch,
-    })->store->borrowernumber;
-
-    my $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
+    my $borrower = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                firstname =>  'fn',
+                surname => 'dn',
+                categorycode => $patron_category->{categorycode},
+                branchcode => $branch,
+            }
+        }
+    );
 
     my $issue = AddIssue( $borrower, $item->barcode, undef, undef, undef, undef, { onsite_checkout => 1 } );
-    my ( $renewed, $error ) = CanBookBeRenewed( $borrowernumber, $item->itemnumber );
+    my ( $renewed, $error ) = CanBookBeRenewed( $borrower, $issue );
     is( $renewed, 0, 'CanBookBeRenewed should not allow to renew on-site checkout' );
     is( $error, 'onsite_checkout', 'A correct error code should be returned by CanBookBeRenewed for on-site checkout' );
 }
@@ -1962,24 +2236,23 @@ subtest "AllowRenewalIfOtherItemsAvailable tests" => sub {
             itype            => $itemtype,
         }
     );
-
-    my $patron = $builder->build({ source => 'Borrower', value => { branchcode => $library->{branchcode}, categorycode => $patron_category->{categorycode} } } );
+    my $patron = $builder->build_object( { class => 'Koha::Patrons',  value => { branchcode => $library->{branchcode}, categorycode => $patron_category->{categorycode} } } );
 
     my $issue = AddIssue( $patron, $item->barcode );
     UpdateFine(
         {
-            issue_id       => $issue->id(),
+            issue_id       => $issue->id,
             itemnumber     => $item->itemnumber,
-            borrowernumber => $patron->{borrowernumber},
+            borrowernumber => $patron->borrowernumber,
             amount         => 1,
             type           => q{}
         }
     );
     UpdateFine(
         {
-            issue_id       => $issue->id(),
+            issue_id       => $issue->id,
             itemnumber     => $item->itemnumber,
-            borrowernumber => $patron->{borrowernumber},
+            borrowernumber => $patron->borrowernumber,
             amount         => 2,
             type           => q{}
         }
@@ -1988,7 +2261,7 @@ subtest "AllowRenewalIfOtherItemsAvailable tests" => sub {
 }
 
 subtest 'CanBookBeIssued & AllowReturnToBranch' => sub {
-    plan tests => 24;
+    plan tests => 27;
 
     my $homebranch    = $builder->build( { source => 'Branch' } );
     my $holdingbranch = $builder->build( { source => 'Branch' } );
@@ -2024,7 +2297,7 @@ subtest 'CanBookBeIssued & AllowReturnToBranch' => sub {
 
     set_userenv($holdingbranch);
 
-    my $issue = AddIssue( $patron_1->unblessed, $item->barcode );
+    my $issue = AddIssue( $patron_1, $item->barcode );
     is( ref($issue), 'Koha::Checkout', 'AddIssue should return a Koha::Checkout object' );
 
     my ( $error, $question, $alerts );
@@ -2035,10 +2308,20 @@ subtest 'CanBookBeIssued & AllowReturnToBranch' => sub {
     set_userenv($homebranch);
     ( $error, $question, $alerts ) = CanBookBeIssued( $patron_2, 'KohaIsAwesome' );
     ok( $error->{UNKNOWN_BARCODE}, '"KohaIsAwesome" is not a valid barcode as expected.' );
+    ( $error, $question, $alerts ) = CanBookBeIssued( $patron_2, undef );
+    ok( $error->{UNKNOWN_BARCODE}, 'undef is not a valid barcode as expected.' );
+    ( $error, $question, $alerts ) = CanBookBeIssued( $patron_2, '' );
+    ok( $error->{UNKNOWN_BARCODE}, '"" is not a valid barcode as expected.' );
     ## Can be issued from homebranch
     set_userenv($homebranch);
     ( $error, $question, $alerts ) = CanBookBeIssued( $patron_2, $item->barcode );
     is( keys(%$error) + keys(%$alerts), 0, 'There should not be any errors or alerts (impossible)' . str($error, $question, $alerts) );
+    ( $error, $question, $alerts ) = CanBookBeIssued( $patron_2, undef, undef, 0, 0, { item => $item } );
+    is(
+        keys(%$error) + keys(%$alerts), 0,
+        'There should not be any errors or alerts (impossible) when passing a valid item object rather than a barcode'
+            . str( $error, $question, $alerts )
+    );
     is( exists $question->{ISSUED_TO_ANOTHER}, 1, 'ISSUED_TO_ANOTHER must be set' );
     ## Can be issued from holdingbranch
     set_userenv($holdingbranch);
@@ -2099,8 +2382,17 @@ subtest 'AddIssue & AllowReturnToBranch' => sub {
     my $homebranch    = $builder->build( { source => 'Branch' } );
     my $holdingbranch = $builder->build( { source => 'Branch' } );
     my $otherbranch   = $builder->build( { source => 'Branch' } );
-    my $patron_1      = $builder->build( { source => 'Borrower', value => { categorycode => $patron_category->{categorycode} } } );
-    my $patron_2      = $builder->build( { source => 'Borrower', value => { categorycode => $patron_category->{categorycode} } } );
+
+    my $patron_1  = $builder->build_object({
+        class => 'Koha::Patrons',
+        value => { categorycode => $patron_category->{categorycode} }
+    });
+
+    my $patron_2  = $builder->build_object({
+        class => 'Koha::Patrons',
+        value => { categorycode => $patron_category->{categorycode} }
+    });
+
 
     my $item = $builder->build_sample_item(
         {
@@ -2149,7 +2441,7 @@ subtest 'AddIssue & AllowReturnToBranch' => sub {
     ## Can be issued from homebranch
     set_userenv($homebranch);
     is ( ref( AddIssue( $patron_2, $item->barcode ) ), $ref_issue, 'AllowReturnToBranch - homebranch | Can be issued from homebranch' );
-    set_userenv($holdingbranch); AddIssue( $patron_1, $item->barcode ); # Reinsert the original issue
+    AddIssue( $patron_1, $item->barcode ); # Re-issue to patron 1
     ## Cannot be issued from holdinbranch
     set_userenv($holdingbranch);
     is ( ref( AddIssue( $patron_2, $item->barcode ) ), '', 'AllowReturnToBranch - homebranch | Cannot be issued from holdingbranch' );
@@ -2185,7 +2477,7 @@ subtest 'AddIssue | recalls' => sub {
             pickup_library_id => $patron1->branchcode,
         }
     )->store;
-    AddIssue( $patron1->unblessed, $item->barcode, undef, undef, undef, undef, { recall_id => $recall1->id } );
+    AddIssue( $patron1, $item->barcode, undef, undef, undef, undef, { recall_id => $recall1->id } );
     $recall1 = Koha::Recalls->find( $recall1->id );
     is( $recall1->fulfilled, 1, 'Recall was fulfilled when patron checked out item' );
     AddReturn( $item->barcode, $item->homebranch );
@@ -2199,7 +2491,7 @@ subtest 'AddIssue | recalls' => sub {
             pickup_library_id => $patron2->branchcode,
         }
     )->store;
-    AddIssue( $patron1->unblessed, $item->barcode, undef, undef, undef, undef, { recall_id => $recall2->id, cancel_recall => 'cancel' } );
+    AddIssue( $patron1, $item->barcode, undef, undef, undef, undef, { recall_id => $recall2->id, cancel_recall => 'cancel' } );
     $recall2 = Koha::Recalls->find( $recall2->id );
     is( $recall2->cancelled, 1, 'Recall was cancelled when patron checked out item' );
     AddReturn( $item->barcode, $item->homebranch );
@@ -2214,7 +2506,7 @@ subtest 'AddIssue | recalls' => sub {
         }
     )->store;
     $recall3->set_waiting;
-    AddIssue( $patron1->unblessed, $item->barcode, undef, undef, undef, undef, { recall_id => $recall3->id, cancel_recall => 'revert' } );
+    AddIssue( $patron1, $item->barcode, undef, undef, undef, undef, { recall_id => $recall3->id, cancel_recall => 'revert' } );
     $recall3 = Koha::Recalls->find( $recall3->id );
     is( $recall3->requested, 1, 'Recall was reverted from waiting when patron checked out item' );
     AddReturn( $item->barcode, $item->homebranch );
@@ -2230,30 +2522,30 @@ subtest 'AddIssue & illrequests.due_date' => sub {
 
     set_userenv($library);
 
-    my $custom_date_due = '9999-12-18 12:34:56';
-    my $expected_date_due = '9999-12-18 23:59:00';
-    my $illrequest = Koha::Illrequest->new({
+    my $custom_date_due = '4999-12-18 12:34:56';
+    my $expected_date_due = '4999-12-18 23:59:00';
+    my $illrequest = Koha::ILL::Request->new({
         borrowernumber => $patron->borrowernumber,
         biblio_id => $item->biblionumber,
         branchcode => $library->{'branchcode'},
         due_date => $custom_date_due,
     })->store;
 
-    my $issue = AddIssue( $patron->unblessed, $item->barcode );
+    my $issue = AddIssue( $patron, $item->barcode );
     is( $issue->date_due, $expected_date_due, 'Custom illrequest date due has been set for this issue');
 
     $patron = $builder->build_object( { class => 'Koha::Patrons' } );
     $item = $builder->build_sample_item();
-    $custom_date_due = '9999-12-19';
-    $expected_date_due = '9999-12-19 23:59:00';
-    $illrequest = Koha::Illrequest->new({
+    $custom_date_due = '4999-12-19';
+    $expected_date_due = '4999-12-19 23:59:00';
+    $illrequest = Koha::ILL::Request->new({
         borrowernumber => $patron->borrowernumber,
         biblio_id => $item->biblionumber,
         branchcode => $library->{'branchcode'},
         due_date => $custom_date_due,
     })->store;
 
-    $issue = AddIssue( $patron->unblessed, $item->barcode );
+    $issue = AddIssue( $patron, $item->barcode );
     is( $issue->date_due, $expected_date_due, 'Custom illrequest date due has been set for this issue');
 };
 
@@ -2296,7 +2588,7 @@ subtest 'CanBookBeIssued + Koha::Patron->is_debarred|has_overdues' => sub {
 
     # Patron cannot issue item_1, they have overdues
     my $yesterday = DateTime->today( time_zone => C4::Context->tz() )->add( days => -1 );
-    my $issue = AddIssue( $patron->unblessed, $item_1->barcode, $yesterday );    # Add an overdue
+    my $issue = AddIssue( $patron, $item_1->barcode, $yesterday );    # Add an overdue
 
     t::lib::Mocks::mock_preference( 'OverduesBlockCirc', 'confirmation' );
     ( $error, $question, $alerts ) = CanBookBeIssued( $patron, $item_2->barcode );
@@ -2321,10 +2613,10 @@ subtest 'CanBookBeIssued + Koha::Patron->is_debarred|has_overdues' => sub {
     is( $error->{USERBLOCKEDNOENDDATE},    '9999-12-31', 'USERBLOCKEDNOENDDATE should be 9999-12-31 for unlimited debarments' );
 };
 
-subtest 'CanBookBeIssued + Statistic patrons "X"' => sub {
-    plan tests => 9;
+subtest 'Statistic patrons "X"' => sub {
+    plan tests => 15;
 
-    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $library           = $builder->build_object( { class => 'Koha::Libraries' } );
     my $patron_category_x = $builder->build_object(
         {
             class => 'Koha::Patron::Categories',
@@ -2350,7 +2642,10 @@ subtest 'CanBookBeIssued + Statistic patrons "X"' => sub {
     );
 
     my ( $error, $question, $alerts ) = CanBookBeIssued( $patron, $item_1->barcode );
-    is( $error->{STATS}, 1, '"Error" flag "STATS" must be set if CanBookBeIssued is called with a statistic patron (category_type=X)' );
+    is(
+        $error->{STATS}, 1,
+        '"Error" flag "STATS" must be set if CanBookBeIssued is called with a statistic patron (category_type=X)'
+    );
 
     my $stat = Koha::Statistics->search( { itemnumber => $item_1->itemnumber } )->next;
     is( $stat->branch,         C4::Context->userenv->{'branch'}, 'Recorded a branch' );
@@ -2362,7 +2657,113 @@ subtest 'CanBookBeIssued + Statistic patrons "X"' => sub {
     is( $stat->categorycode,   $patron->categorycode,            'Recorded a categorycode' );
     is( $stat->location,       $item_1->location,                'Recorded a location' );
 
+    t::lib::Mocks::mock_userenv( { branchcode => $library->branchcode } );
+    my $patron_2 = $builder->build_object(
+        { class => 'Koha::Patrons', value => { categorycode => $patron_category->{categorycode} } } );
+    my $item_2 = $builder->build_sample_item( { library => $library->branchcode } );
+    my $issue  = AddIssue( $patron_2, $item_2->barcode );
+    $item_2->discard_changes;
+    ok( $item_2->onloan, "Item is checked out" );
+
+    my $item_3 = $builder->build_sample_item( { library => $library->branchcode } );
+    CanBookBeIssued( $patron, $item_3->barcode );
+    $item_3->discard_changes;
+    is(
+        Koha::Statistics->search( { itemnumber => $item_3->itemnumber } )->count, 1,
+        'Single entry recorded in the stats table'
+    );
+
+    AddReturn( $item_3->barcode, C4::Context->userenv->{'branch'}, undef, undef, 1 );
+    $item_3->discard_changes;
+    is(
+        Koha::Statistics->search( { itemnumber => $item_3->itemnumber } )->count, 1,
+        'Stats skipped in AddReturn when there was no checkout and skip_localuse was passed'
+    );
+
+    my $item_4 = $builder->build_sample_item( { library => $library->branchcode } );
+    AddIssue( $patron_2, $item_4->barcode );
+    $item_4->discard_changes;
+    is(
+        Koha::Statistics->search( { itemnumber => $item_4->itemnumber } )->count, 1,
+        'Issue should be recorded in statistics table for item 4.'
+    );
+    CanBookBeIssued( $patron, $item_4->barcode );
+    $item_4->discard_changes;
+    is(
+        Koha::Statistics->search( { itemnumber => $item_4->itemnumber } )->count, 2,
+        'Issue and localuse should be recorded in statistics table for item 4.'
+    );
+
+    AddReturn( $item_4->barcode, C4::Context->userenv->{'branch'}, undef, undef, 1 );
+    $item_4->discard_changes;
+    is(
+        Koha::Statistics->search( { itemnumber => $item_4->itemnumber } )->count, 3,
+        'Issue, return, and localuse should be recorded in statistics table for item 4.'
+    );
+
     # TODO There are other tests to provide here
+};
+
+
+subtest "Bug 27753 - Add AutoClaimReturnStatusOnCheckin" => sub {
+    plan tests => 8;
+
+    t::lib::Mocks::mock_preference( 'AllowReturnToBranch',            'anywhere' );
+    t::lib::Mocks::mock_preference( 'ClaimReturnedLostValue',         1 );
+    t::lib::Mocks::mock_preference( 'AutoClaimReturnStatusOnCheckin', '' );
+    t::lib::Mocks::mock_preference( 'BlockReturnOfLostItems',         1 );
+    my $item      = $builder->build_sample_item( { library => $library2->{branchcode} } );
+    my $patron    = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $librarian = $builder->build_object( { class => 'Koha::Patrons' } );
+    t::lib::Mocks::mock_userenv( { patron => $librarian, branchcode => $library2->{branchcode} } );
+    my $future   = dt_from_string()->add( days => 7 );
+    my $checkout = $builder->build_object(
+        {
+            class => 'Koha::Checkouts',
+            value => {
+                returndate      => undef,
+                renewals_count  => 0,
+                auto_renew      => 0,
+                borrowernumber  => $patron->borrowernumber,
+                itemnumber      => $item->itemnumber,
+                onsite_checkout => 0,
+                date_due        => $future,
+            }
+        }
+    );
+
+    # Claim return
+    my $claim = $checkout->claim_returned(
+        {
+            created_by => $patron->id,
+            notes      => "Test note",
+        }
+    );
+    is( $claim->issue_id, $checkout->id, "Return claim created for issue" );
+    $item->discard_changes;
+    is( $item->itemlost, 1, "Item set to lost as 1" );
+
+    # Return tests with feature disabled
+    my ( $doreturn, $messages ) = AddReturn( $item->barcode, $library->{branchcode} );
+    is(
+        ref $messages->{ReturnClaims}, 'Koha::Checkouts::ReturnClaim',
+        "AddReturn returns message 'ReturnClaims' containing the ReturnClaim object"
+    );
+    $item->discard_changes;
+    is( $item->itemlost, 1, "Item lost status follows BlockReturnOfLostItems preference when feature is disabled" );
+
+    # Now test with the feature enabled
+    t::lib::Mocks::mock_preference( 'AutoClaimReturnStatusOnCheckin', 'RETURNED_ON_CLAIM' );
+    ( $doreturn, $messages ) = AddReturn( $item->barcode, $library->{branchcode} );
+    is(
+        ref $messages->{ClaimAutoResolved}, 'Koha::Checkouts::ReturnClaim',
+        "AddReturn returns message 'ClaimAutoResolved' containing the ReturnClaim object"
+    );
+    $claim->discard_changes;
+    is( $claim->resolved_by, $librarian->borrowernumber, "Claim marked as resolved by librarian calling AddReturn when AutoClaimReturnStatusOnCheckin set" );
+    is( $claim->resolution, 'RETURNED_ON_CLAIM', "Claim resolution set to match AutoClaimReturnStatusOnCheckin value" );
+    $item->discard_changes;
+    is( $item->itemlost, 1, "Item lost status follows BlockReturnOfLostItems when feature is enabled" );
 };
 
 subtest 'MultipleReserves' => sub {
@@ -2398,26 +2799,36 @@ subtest 'MultipleReserves' => sub {
     my $checkitem      = undef;
     my $found          = undef;
 
-    my %renewing_borrower_data = (
-        firstname =>  'John',
-        surname => 'Renewal',
-        categorycode => $patron_category->{categorycode},
-        branchcode => $branch,
+    # Renewing borrower
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                firstname =>  'John',
+                surname => 'Renewal',
+                categorycode => $patron_category->{categorycode},
+                branchcode => $branch,
+            }
+        }
     );
-    my $renewing_borrowernumber = Koha::Patron->new(\%renewing_borrower_data)->store->borrowernumber;
-    my $renewing_borrower = Koha::Patrons->find( $renewing_borrowernumber )->unblessed;
-    my $issue = AddIssue( $renewing_borrower, $item_1->barcode);
+
+    my $issue = AddIssue( $patron, $item_1->barcode);
     my $datedue = dt_from_string( $issue->date_due() );
     is (defined $issue->date_due(), 1, "item 1 checked out");
     my $borrowing_borrowernumber = Koha::Checkouts->find({ itemnumber => $item_1->itemnumber })->borrowernumber;
 
-    my %reserving_borrower_data1 = (
-        firstname =>  'Katrin',
-        surname => 'Reservation',
-        categorycode => $patron_category->{categorycode},
-        branchcode => $branch,
-    );
-    my $reserving_borrowernumber1 = Koha::Patron->new(\%reserving_borrower_data1)->store->borrowernumber;
+    my $reserving_borrowernumber1 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                firstname =>  'Katrin',
+                surname => 'Reservation',
+                categorycode => $patron_category->{categorycode},
+                branchcode => $branch,
+            }
+        }
+    )->borrowernumber;
+
     AddReserve(
         {
             branchcode       => $branch,
@@ -2432,13 +2843,18 @@ subtest 'MultipleReserves' => sub {
         }
     );
 
-    my %reserving_borrower_data2 = (
-        firstname =>  'Kirk',
-        surname => 'Reservation',
-        categorycode => $patron_category->{categorycode},
-        branchcode => $branch,
-    );
-    my $reserving_borrowernumber2 = Koha::Patron->new(\%reserving_borrower_data2)->store->borrowernumber;
+    my $reserving_borrowernumber2 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                firstname =>  'Kirk',
+                surname => 'Reservation',
+                categorycode => $patron_category->{categorycode},
+                branchcode => $branch,
+            }
+        }
+    )->borrowernumber;
+
     AddReserve(
         {
             branchcode       => $branch,
@@ -2454,7 +2870,7 @@ subtest 'MultipleReserves' => sub {
     );
 
     {
-        my ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_1->itemnumber, 1);
+        my ( $renewokay, $error ) = CanBookBeRenewed($patron, $issue, 1);
         is($renewokay, 0, 'Bug 17941 - should cover the case where 2 books are both reserved, so failing');
     }
 
@@ -2468,7 +2884,7 @@ subtest 'MultipleReserves' => sub {
     );
 
     {
-        my ( $renewokay, $error ) = CanBookBeRenewed($renewing_borrowernumber, $item_1->itemnumber, 1);
+        my ( $renewokay, $error ) = CanBookBeRenewed($patron, $issue, 1);
         is($renewokay, 1, 'Bug 17941 - should cover the case where 2 books are reserved, but a third one is available');
     }
 };
@@ -2519,7 +2935,7 @@ subtest 'CanBookBeIssued + AllowMultipleIssuesOnABiblio' => sub {
     );
 
     my ( $error, $question, $alerts );
-    my $issue = AddIssue( $patron->unblessed, $item_1->barcode, dt_from_string->add( days => 1 ) );
+    my $issue = AddIssue( $patron, $item_1->barcode, dt_from_string->add( days => 1 ) );
 
     t::lib::Mocks::mock_preference('AllowMultipleIssuesOnABiblio', 0);
     ( $error, $question, $alerts ) = CanBookBeIssued( $patron, $item_2->barcode );
@@ -2603,8 +3019,8 @@ subtest 'AddReturn + CumulativeRestrictionPeriods' => sub {
     my $now = dt_from_string;
     my $five_days_ago = $now->clone->subtract( days => 5 );
     my $ten_days_ago  = $now->clone->subtract( days => 10 );
-    AddIssue( $patron->unblessed, $item_1->barcode, $five_days_ago );    # Add an overdue
-    AddIssue( $patron->unblessed, $item_2->barcode, $ten_days_ago )
+    AddIssue( $patron, $item_1->barcode, $five_days_ago );    # Add an overdue
+    AddIssue( $patron, $item_2->barcode, $ten_days_ago )
       ;    # Add another overdue
 
     t::lib::Mocks::mock_preference( 'CumulativeRestrictionPeriods', '0' );
@@ -2642,8 +3058,8 @@ subtest 'AddReturn + CumulativeRestrictionPeriods' => sub {
         { borrowernumber => $patron->borrowernumber, type => 'SUSPENSION' } );
 
     t::lib::Mocks::mock_preference( 'CumulativeRestrictionPeriods', '1' );
-    AddIssue( $patron->unblessed, $item_1->barcode, $five_days_ago );    # Add an overdue
-    AddIssue( $patron->unblessed, $item_2->barcode, $ten_days_ago )
+    AddIssue( $patron, $item_1->barcode, $five_days_ago );    # Add an overdue
+    AddIssue( $patron, $item_2->barcode, $ten_days_ago )
       ;    # Add another overdue
     AddReturn( $item_1->barcode, $library->{branchcode}, undef, $now );
     $suspensions = $patron->restrictions->search( { type => 'SUSPENSION' } );
@@ -2926,7 +3342,7 @@ subtest 'AddReturn + suspension_chargeperiod' => sub {
         }
     );
 
-    AddIssue( $patron->unblessed, $item_1->barcode, $now->clone->subtract( days => 1 ) );
+    AddIssue( $patron, $item_1->barcode, $now->clone->subtract( days => 1 ) );
     my ( undef, $message ) = AddReturn( $item_1->barcode, $library->{branchcode}, undef, $now );
     is( $message->{WasReturned} && exists $message->{ForeverDebarred}, 1, 'Forever debarred message for Addreturn when overdue');
 
@@ -2944,7 +3360,7 @@ subtest 'AddReturn + suspension_chargeperiod' => sub {
         }
     );
 
-    AddIssue( $patron->unblessed, $item_1->barcode, $now->clone->subtract( days => 1 ) );
+    AddIssue( $patron, $item_1->barcode, $now->clone->subtract( days => 1 ) );
     (undef, $message) = AddReturn( $item_1->barcode, $library->{branchcode}, undef, $now );
     is( $message->{WasReturned} && exists $message->{PrevDebarred}, 1, 'Previously debarred message for Addreturn when overdue');
 };
@@ -2981,7 +3397,7 @@ subtest 'CanBookBeIssued + AutoReturnCheckedOutItems' => sub {
     );
 
     my ( $error, $question, $alerts );
-    my $issue = AddIssue( $patron1->unblessed, $item->barcode );
+    my $issue = AddIssue( $patron1, $item->barcode );
 
     t::lib::Mocks::mock_preference('AutoReturnCheckedOutItems', 0);
     ( $error, $question, $alerts ) = CanBookBeIssued( $patron2, $item->barcode );
@@ -3042,25 +3458,25 @@ subtest 'AddReturn | is_overdue' => sub {
     my $ten_days_ago  = $now->clone->subtract( days => 10 );
 
     # No return date specified, today will be used => 10 days overdue charged
-    AddIssue( $patron->unblessed, $item->barcode, $ten_days_ago ); # date due was 10d ago
+    AddIssue( $patron, $item->barcode, $ten_days_ago ); # date due was 10d ago
     AddReturn( $item->barcode, $library->{branchcode} );
     is( int($patron->account->balance()), 10, 'Patron should have a charge of 10 (10 days x 1)' );
     Koha::Account::Lines->search({ borrowernumber => $patron->borrowernumber })->delete;
 
     # specify return date 5 days before => no overdue charged
-    AddIssue( $patron->unblessed, $item->barcode, $five_days_ago ); # date due was 5d ago
+    AddIssue( $patron, $item->barcode, $five_days_ago ); # date due was 5d ago
     AddReturn( $item->barcode, $library->{branchcode}, undef, $ten_days_ago );
     is( int($patron->account->balance()), 0, 'AddReturn: pass return_date => no overdue' );
     Koha::Account::Lines->search({ borrowernumber => $patron->borrowernumber })->delete;
 
     # specify return date 5 days later => 5 days overdue charged
-    AddIssue( $patron->unblessed, $item->barcode, $ten_days_ago ); # date due was 10d ago
+    AddIssue( $patron, $item->barcode, $ten_days_ago ); # date due was 10d ago
     AddReturn( $item->barcode, $library->{branchcode}, undef, $five_days_ago );
     is( int($patron->account->balance()), 5, 'AddReturn: pass return_date => overdue' );
     Koha::Account::Lines->search({ borrowernumber => $patron->borrowernumber })->delete;
 
     # specify return date 5 days later, specify exemptfine => no overdue charge
-    AddIssue( $patron->unblessed, $item->barcode, $ten_days_ago ); # date due was 10d ago
+    AddIssue( $patron, $item->barcode, $ten_days_ago ); # date due was 10d ago
     AddReturn( $item->barcode, $library->{branchcode}, 1, $five_days_ago );
     is( int($patron->account->balance()), 0, 'AddReturn: pass return_date => no overdue' );
     Koha::Account::Lines->search({ borrowernumber => $patron->borrowernumber })->delete;
@@ -3069,7 +3485,7 @@ subtest 'AddReturn | is_overdue' => sub {
 
         plan tests => 3;
 
-        my $issue = AddIssue( $patron->unblessed, $item->barcode, $ten_days_ago );    # date due was 10d ago
+        my $issue = AddIssue( $patron, $item->barcode, $ten_days_ago );    # date due was 10d ago
 
         # Fake fines cronjob on this checkout
         my ($fine) =
@@ -3107,7 +3523,7 @@ subtest 'AddReturn | is_overdue' => sub {
 
         t::lib::Mocks::mock_preference('CalculateFinesOnBackdate', 1);
 
-        my $issue = AddIssue( $patron->unblessed, $item->barcode, $one_day_ago );    # date due was 1d ago
+        my $issue = AddIssue( $patron, $item->barcode, $one_day_ago );    # date due was 1d ago
 
         # Fake fines cronjob on this checkout
         my ($fine) =
@@ -3132,7 +3548,7 @@ subtest 'AddReturn | is_overdue' => sub {
         my $lines = Koha::Account::Lines->search({ borrowernumber => $patron->borrowernumber });
         is( $lines->count, 0, "Overdue fine accountline has been removed");
 
-        $issue = AddIssue( $patron->unblessed, $item->barcode, $two_days_ago );    # date due was 2d ago
+        $issue = AddIssue( $patron, $item->barcode, $two_days_ago );    # date due was 2d ago
 
         # Fake fines cronjob on this checkout
         ($fine) =
@@ -3198,7 +3614,7 @@ subtest 'AddReturn | is_overdue' => sub {
 
         t::lib::Mocks::mock_preference('CalculateFinesOnBackdate', 1);
 
-        my $issue = AddIssue( $patron->unblessed, $item->barcode, $one_day_ago );    # date due was 1d ago
+        my $issue = AddIssue( $patron, $item->barcode, $one_day_ago );    # date due was 1d ago
 
         # Fake fines cronjob on this checkout
         my ($fine) =
@@ -3231,7 +3647,7 @@ subtest 'AddReturn | is_overdue' => sub {
         t::lib::Mocks::mock_preference( 'CalculateFinesOnBackdate', 1 );
 
         my $due_date = dt_from_string;
-        my $issue = AddIssue( $patron->unblessed, $item->barcode, $due_date );
+        my $issue = AddIssue( $patron, $item->barcode, $due_date );
 
         # Add fine
         UpdateFine(
@@ -3256,7 +3672,7 @@ subtest 'AddReturn | is_overdue' => sub {
         ok( !$accountline, 'accountline removed as expected' );
 
         # Re-issue
-        $issue = AddIssue( $patron->unblessed, $item->barcode, $due_date );
+        $issue = AddIssue( $patron, $item->barcode, $due_date );
 
         # Add fine
         UpdateFine(
@@ -3298,7 +3714,7 @@ subtest 'AddReturn | is_overdue' => sub {
         $lines = Koha::Account::Lines->search(
             {
                 borrowernumber => $patron->borrowernumber,
-                issue_id       => $issue->id
+                old_issue_id   => $issue->id
             }
         );
         $accountline = $lines->next;
@@ -3412,7 +3828,7 @@ subtest 'AddReturn | is_overdue' => sub {
             );
 
             # Issue the item
-            my $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+            my $issue = C4::Circulation::AddIssue( $patron, $item->barcode );
 
             # Mark item as lost
             $item->itemlost(3)->store;
@@ -3462,7 +3878,7 @@ subtest 'AddReturn | is_overdue' => sub {
             );
 
             # Issue the item
-            $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+            $issue = C4::Circulation::AddIssue( $patron, $item->barcode );
 
             # Mark item as lost
             $item->itemlost(3)->store;
@@ -3522,7 +3938,7 @@ subtest 'AddReturn | is_overdue' => sub {
             );
 
             # Issue the item
-            $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+            $issue = C4::Circulation::AddIssue( $patron, $item->barcode );
 
             # Mark item as lost
             $item->itemlost(3)->store;
@@ -3587,7 +4003,7 @@ subtest 'AddReturn | is_overdue' => sub {
             );
 
             # Issue the item
-            my $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode, $ten_days_ago );
+            my $issue = C4::Circulation::AddIssue( $patron, $item->barcode, $ten_days_ago );
 
             # Fake fines cronjob on this checkout
             my ($fine) =
@@ -3670,7 +4086,7 @@ subtest 'AddReturn | is_overdue' => sub {
             );
 
             # Issue the item
-            my $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode, $ten_days_ago );
+            my $issue = C4::Circulation::AddIssue( $patron, $item->barcode, $ten_days_ago );
 
             # Fake fines cronjob on this checkout
             my ($fine) =
@@ -3752,7 +4168,7 @@ subtest 'AddReturn | is_overdue' => sub {
             );
 
             # Issue the item
-            my $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode , $ten_days_ago);
+            my $issue = C4::Circulation::AddIssue( $patron, $item->barcode , $ten_days_ago);
 
             # Fake fines cronjob on this checkout
             my ($fine) =
@@ -3838,7 +4254,7 @@ subtest 'AddReturn | is_overdue' => sub {
         };
 
         subtest 'lostreturn | charge' => sub {
-            plan tests => 16;
+            plan tests => 18;
 
             t::lib::Mocks::mock_userenv({ patron => $manager, branchcode => $branchcode_charge });
 
@@ -3849,7 +4265,7 @@ subtest 'AddReturn | is_overdue' => sub {
             );
 
             # Issue the item
-            my $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode, $ten_days_ago );
+            my $issue = C4::Circulation::AddIssue( $patron, $item->barcode, $ten_days_ago );
 
             # Fake fines cronjob on this checkout
             my ($fine) =
@@ -3949,6 +4365,44 @@ subtest 'AddReturn | is_overdue' => sub {
             is( $overdue_fee->amountoutstanding + 0,
                 5,
                 'The new OVERDUE amountoutstanding is correct for the backdated return' );
+
+            my $patron_2 = $builder->build_object(
+                {
+                    class => 'Koha::Patrons',
+                    value => { categorycode => $patron_category->{categorycode} }
+                }
+            );
+            $issue = C4::Circulation::AddIssue( $patron_2, $item->barcode, $five_days_ago );
+
+            # Do nothing
+            my $four_days_ago = $now->clone->subtract( days => 4 );
+            ( undef, $message ) = AddReturn( $item->barcode, $branchcode_charge, undef, $four_days_ago );
+            my $overdue_fees_2 = Koha::Account::Lines->search(
+                {
+                    borrowernumber  => $patron_2->id,
+                    itemnumber      => $item->itemnumber,
+                    debit_type_code => 'OVERDUE'
+                }
+            );
+            is( $overdue_fees_2->count, 1, 'Normal overdue generated when item returned late' );
+
+            # Simulate item marked as lost
+            $item->itemlost(2)->store;
+            $item->discard_changes();
+
+            #C4::Circulation::LostItem( $item->itemnumber, 1 );
+            ( undef, $message ) = AddReturn( $item->barcode, $branchcode_charge, undef );
+            $overdue_fees_2 = Koha::Account::Lines->search(
+                {
+                    borrowernumber  => $patron_2->id,
+                    itemnumber      => $item->itemnumber,
+                    debit_type_code => 'OVERDUE'
+                }
+            );
+            is(
+                $overdue_fees_2->count, 1,
+                'No overdue generated when an item previously lost by a patron is lost after another patron has borrwed it'
+            );
         };
     };
 };
@@ -4070,7 +4524,7 @@ subtest 'Set waiting flag' => sub {
     my $hold = Koha::Holds->find( $reserve_id );
     is( $hold->found, 'T', 'Hold is in transit' );
 
-    my ( $status ) = CheckReserves($item->itemnumber);
+    my ( $status ) = CheckReserves($item);
     is( $status, 'Transferred', 'Hold is not waiting yet');
 
     set_userenv( $library_2 );
@@ -4079,7 +4533,7 @@ subtest 'Set waiting flag' => sub {
     ModReserveAffect( $item->itemnumber, undef, $do_transfer, $reserve_id );
     $hold = Koha::Holds->find( $reserve_id );
     is( $hold->found, 'W', 'Hold is waiting' );
-    ( $status ) = CheckReserves($item->itemnumber);
+    ( $status ) = CheckReserves($item);
     is( $status, 'Waiting', 'Now the hold is waiting');
 
     #Bug 21944 - Waiting transfer checked in at branch other than pickup location
@@ -4202,7 +4656,7 @@ subtest 'CanBookBeIssued | is_overdue' => sub {
         }
     );
 
-    my $issue = AddIssue( $patron->unblessed, $item->barcode, $five_days_go ); # date due was 10d ago
+    my $issue = AddIssue( $patron, $item->barcode, $five_days_go ); # date due was 10d ago
     my $actualissue = Koha::Checkouts->find( { itemnumber => $item->itemnumber } );
     is( output_pref({ str => $actualissue->date_due, dateonly => 1}), output_pref({ str => $five_days_go, dateonly => 1}), "First issue works");
     my ($issuingimpossible, $needsconfirmation) = CanBookBeIssued($patron, $item->barcode, $ten_days_go, undef, undef, undef);
@@ -4233,12 +4687,9 @@ subtest 'ItemsDeniedRenewal rules are checked' => sub {
         }
     );
 
-    my $allow_book = $builder->build_object({ class => 'Koha::Items', value => {
+    my $allow_book = $builder->build_sample_item({
         homebranch => $idr_lib->branchcode,
-        withdrawn => 0,
-        itype => 'NOHIDE',
-        location => 'NOPROC'
-        }
+        holdingbranch => $idr_lib->branchcode,
     });
 
     my $idr_borrower = $builder->build_object({ class => 'Koha::Patrons', value=> {
@@ -4264,14 +4715,14 @@ subtest 'ItemsDeniedRenewal rules are checked' => sub {
     my $mock_item_class = Test::MockModule->new("Koha::Item");
     $mock_item_class->mock( 'is_denied_renewal', sub { return 1; } );
 
-    my ( $mayrenew, $error ) = CanBookBeRenewed( $idr_borrower->borrowernumber, $issue->itemnumber );
+    my ( $mayrenew, $error ) = CanBookBeRenewed( $idr_borrower, $issue );
     is( $mayrenew, 0, 'Renewal blocked when $item->is_denied_renewal returns true' );
     is( $error, 'item_denied_renewal', 'Renewal blocked when $item->is_denied_renewal returns true' );
 
     $mock_item_class->unmock( 'is_denied_renewal' );
     $mock_item_class->mock( 'is_denied_renewal', sub { return 0; } );
 
-    ( $mayrenew, $error ) = CanBookBeRenewed( $idr_borrower->borrowernumber, $issue->itemnumber );
+    ( $mayrenew, $error ) = CanBookBeRenewed( $idr_borrower, $issue );
     is( $mayrenew, 1, 'Renewal allowed when $item->is_denied_renewal returns false' );
     is( $error, undef, 'Renewal allowed when $item->is_denied_renewal returns false' );
 
@@ -4283,7 +4734,7 @@ subtest 'CanBookBeIssued | item-level_itypes=biblio' => sub {
 
     t::lib::Mocks::mock_preference('item-level_itypes', 0); # biblio
     my $library = $builder->build( { source => 'Branch' } );
-    my $patron  = $builder->build_object( { class => 'Koha::Patrons', value => { categorycode => $patron_category->{categorycode} } } )->store;
+    my $patron  = $builder->build_object( { class => 'Koha::Patrons', value => { categorycode => $patron_category->{categorycode} } } );
 
     my $item = $builder->build_sample_item(
         {
@@ -4302,12 +4753,12 @@ subtest 'CanBookBeIssued | notforloan' => sub {
     t::lib::Mocks::mock_preference('AllowNotForLoanOverride', 0);
 
     my $library = $builder->build( { source => 'Branch' } );
-    my $patron  = $builder->build_object( { class => 'Koha::Patrons', value => { categorycode => $patron_category->{categorycode} } } )->store;
+    my $patron  = $builder->build_object( { class => 'Koha::Patrons', value => { categorycode => $patron_category->{categorycode} } } );
 
     my $itemtype = $builder->build(
         {
             source => 'Itemtype',
-            value  => { notforloan => undef, }
+            value  => { notforloan => 0, }
         }
     );
     my $item = $builder->build_sample_item(
@@ -4341,7 +4792,7 @@ subtest 'CanBookBeIssued | notforloan' => sub {
         );
 
         # not for loan at item level
-        Koha::ItemTypes->find( $itemtype->{itemtype} )->notforloan(undef)->store;
+        Koha::ItemTypes->find( $itemtype->{itemtype} )->notforloan(0)->store;
         $item->notforloan( 1 )->store;
         ( $issuingimpossible, $needsconfirmation ) = CanBookBeIssued( $patron, $item->barcode, undef, undef, undef, undef );
         is_deeply( $needsconfirmation, {}, 'No confirmation needed, AllowNotForLoanOverride=0' );
@@ -4361,7 +4812,7 @@ subtest 'CanBookBeIssued | notforloan' => sub {
         my $itemtype = $builder->build(
             {
                 source => 'Itemtype',
-                value  => { notforloan => undef, }
+                value  => { notforloan => 0, }
             }
         );
 
@@ -4383,7 +4834,7 @@ subtest 'CanBookBeIssued | notforloan' => sub {
         );
 
         # not for loan at item level
-        Koha::ItemTypes->find( $itemtype->{itemtype} )->notforloan(undef)->store;
+        Koha::ItemTypes->find( $itemtype->{itemtype} )->notforloan(0)->store;
         $item->notforloan( 1 )->store;
         ( $issuingimpossible, $needsconfirmation ) = CanBookBeIssued( $patron, $item->barcode, undef, undef, undef, undef );
         is_deeply( $needsconfirmation, {}, 'No confirmation needed, AllowNotForLoanOverride=0' );
@@ -4567,7 +5018,7 @@ subtest 'AddReturn | recalls' => sub {
     });
 
     # this item can fill a recall with pickup at this branch
-    AddIssue( $patron1->unblessed, $item1->barcode );
+    AddIssue( $patron1, $item1->barcode );
     my $recall1 = Koha::Recall->new(
         {   patron_id         => $patron2->borrowernumber,
             biblio_id         => $item1->biblionumber,
@@ -4581,7 +5032,7 @@ subtest 'AddReturn | recalls' => sub {
     $recall1->set_cancelled;
 
     # this item can fill a recall but needs transfer
-    AddIssue( $patron1->unblessed, $item1->barcode );
+    AddIssue( $patron1, $item1->barcode );
     $recall1 = Koha::Recall->new(
         {   patron_id         => $patron2->borrowernumber,
             biblio_id         => $item1->biblionumber,
@@ -4595,7 +5046,7 @@ subtest 'AddReturn | recalls' => sub {
     $recall1->set_cancelled;
 
     # this item is already in transit, do not ask to transfer
-    AddIssue( $patron1->unblessed, $item1->barcode );
+    AddIssue( $patron1, $item1->barcode );
     $recall1 = Koha::Recall->new(
         {   patron_id         => $patron2->borrowernumber,
             biblio_id         => $item1->biblionumber,
@@ -4673,10 +5124,17 @@ subtest 'AddRenewal and AddIssuingCharge tests' => sub {
     $context->mock( userenv => { branch => $library->id } );
 
     # Check the item out
-    AddIssue( $patron->unblessed, $item->barcode );
+    AddIssue( $patron, $item->barcode );
 
     throws_ok {
-        AddRenewal( $patron->borrowernumber, $item->itemnumber, $library->id, undef, {break=>"the_renewal"} );
+        AddRenewal(
+            {
+                borrowernumber  => $patron->borrowernumber,
+                itemnumber      => $item->itemnumber,
+                branch          => $library->id,
+                lastreneweddate => { break => "the_renewal" }
+            }
+        );
     } 'Koha::Exceptions::Checkout::FailedRenewal', 'Exception is thrown when renewal update to issues fails';
 
     t::lib::Mocks::mock_preference( 'RenewalLog', 0 );
@@ -4687,7 +5145,13 @@ subtest 'AddRenewal and AddIssuingCharge tests' => sub {
         action => "RENEWAL",
     );
     my $old_log_size = Koha::ActionLogs->count( \%params_renewal );;
-    AddRenewal( $patron->id, $item->id, $library->id );
+    AddRenewal(
+        {
+            borrowernumber => $patron->id,
+            itemnumber     => $item->id,
+            branch         => $library->id
+        }
+    );
     my $new_log_size = Koha::ActionLogs->count( \%params_renewal );
     is( $new_log_size, $old_log_size, 'renew log not added because of the syspref RenewalLog' );
 
@@ -4723,7 +5187,13 @@ subtest 'AddRenewal and AddIssuingCharge tests' => sub {
     my $sth = $dbh->prepare("SELECT COUNT(*) FROM statistics WHERE itemnumber = ? AND branch = ?");
     $sth->execute($item->id, $library->id);
     my ($old_stats_size) = $sth->fetchrow_array;
-    AddRenewal( $patron->id, $item->id, $library->id );
+    AddRenewal(
+        {
+            borrowernumber => $patron->id,
+            itemnumber     => $item->id,
+            branch         => $library->id
+        }
+    );
     $new_log_size = Koha::ActionLogs->count( \%params_renewal );
     $sth->execute($item->id, $library->id);
     my ($new_stats_size) = $sth->fetchrow_array;
@@ -4731,8 +5201,15 @@ subtest 'AddRenewal and AddIssuingCharge tests' => sub {
     is( $new_stats_size, $old_stats_size + 1, 'renew statistic successfully added with passed branch' );
 
     AddReturn( $item->id, $library->id, undef, $date );
-    AddIssue( $patron->unblessed, $item->barcode, $now );
-    AddRenewal( $patron->id, $item->id, $library->id, undef, undef, 1 );
+    AddIssue( $patron, $item->barcode, $now );
+    AddRenewal(
+        {
+            borrowernumber => $patron->id,
+            itemnumber     => $item->id,
+            branch         => $library->id,
+            skipfinecalc   => 1
+        }
+    );
     my $lines_skipped = Koha::Account::Lines->search({
         borrowernumber => $patron->id,
         itemnumber     => $item->id
@@ -4755,11 +5232,18 @@ subtest 'AddRenewal() adds to renewals' => sub {
     set_userenv( $library->unblessed );
 
     # Check the item out
-    my $issue = AddIssue( $patron->unblessed, $item->barcode );
+    my $issue = AddIssue( $patron, $item->barcode );
     is(ref($issue), 'Koha::Checkout', 'Issue added');
 
     # Renew item
-    my $duedate = AddRenewal( $patron->id, $item->id, $library->id, undef, undef, undef, undef, 1 );
+    my $duedate = AddRenewal(
+        {
+            borrowernumber => $patron->id,
+            itemnumber     => $item->id,
+            branch         => $library->id,
+            automatic      => 1
+        }
+    );
 
     ok( $duedate, "Renewal added" );
 
@@ -4809,13 +5293,13 @@ subtest 'Incremented fee tests' => sub {
             class => 'Koha::Patrons',
             value => { categorycode => $patron_category->{categorycode} }
         }
-    )->store;
+    );
 
     my $itemtype = $builder->build_object(
         {
             class => 'Koha::ItemTypes',
             value => {
-                notforloan                   => undef,
+                notforloan                   => 0,
                 rentalcharge                 => 0,
                 rentalcharge_daily           => 1,
                 rentalcharge_daily_calendar  => 0
@@ -4840,7 +5324,7 @@ subtest 'Incremented fee tests' => sub {
 
     # Daily Tests
     my $issue =
-      AddIssue( $patron->unblessed, $item->barcode, $dt_to, undef, $dt_from );
+      AddIssue( $patron, $item->barcode, $dt_to, undef, $dt_from );
     my $accountline = Koha::Account::Lines->find( { itemnumber => $item->id } );
     is(
         $accountline->amount + 0,
@@ -4848,7 +5332,15 @@ subtest 'Incremented fee tests' => sub {
         "Daily rental charge calculated correctly with rentalcharge_daily_calendar = 0"
     );
     $accountline->delete();
-    AddRenewal( $patron->id, $item->id, $library->id, $dt_to_renew, $dt_to );
+    AddRenewal(
+        {
+            borrowernumber  => $patron->id,
+            itemnumber      => $item->id,
+            branch          => $library->id,
+            datedue         => $dt_to_renew,
+            lastreneweddate => $dt_to
+        }
+    );
     $accountline = Koha::Account::Lines->find( { itemnumber => $item->id } );
     is(
         $accountline->amount + 0,
@@ -4861,7 +5353,7 @@ subtest 'Incremented fee tests' => sub {
     t::lib::Mocks::mock_preference( 'finesCalendar', 'noFinesWhenClosed' );
     $itemtype->rentalcharge_daily_calendar(1)->store();
     $issue =
-      AddIssue( $patron->unblessed, $item->barcode, $dt_to, undef, $dt_from );
+      AddIssue( $patron, $item->barcode, $dt_to, undef, $dt_from );
     $accountline = Koha::Account::Lines->find( { itemnumber => $item->id } );
     is(
         $accountline->amount + 0,
@@ -4869,7 +5361,15 @@ subtest 'Incremented fee tests' => sub {
         "Daily rental charge calculated correctly with rentalcharge_daily_calendar = 1"
     );
     $accountline->delete();
-    AddRenewal( $patron->id, $item->id, $library->id, $dt_to_renew, $dt_to );
+    AddRenewal(
+        {
+            borrowernumber  => $patron->id,
+            itemnumber      => $item->id,
+            branch          => $library->id,
+            datedue         => $dt_to_renew,
+            lastreneweddate => $dt_to
+        }
+    );
     $accountline = Koha::Account::Lines->find( { itemnumber => $item->id } );
     is(
         $accountline->amount + 0,
@@ -4892,7 +5392,7 @@ subtest 'Incremented fee tests' => sub {
         description => 'Test holiday'
     );
     $issue =
-      AddIssue( $patron->unblessed, $item->barcode, $dt_to, undef, $dt_from );
+      AddIssue( $patron, $item->barcode, $dt_to, undef, $dt_from );
     $accountline = Koha::Account::Lines->find( { itemnumber => $item->id } );
     is(
         $accountline->amount + 0,
@@ -4900,7 +5400,15 @@ subtest 'Incremented fee tests' => sub {
         "Daily rental charge calculated correctly with rentalcharge_daily_calendar = 1 and closed $closed_day_name"
     );
     $accountline->delete();
-    AddRenewal( $patron->id, $item->id, $library->id, $dt_to_renew, $dt_to );
+    AddRenewal(
+        {
+            borrowernumber  => $patron->id,
+            itemnumber      => $item->id,
+            branch          => $library->id,
+            datedue         => $dt_to_renew,
+            lastreneweddate => $dt_to
+        }
+    );
     $accountline = Koha::Account::Lines->find( { itemnumber => $item->id } );
     is(
         $accountline->amount + 0,
@@ -4913,12 +5421,20 @@ subtest 'Incremented fee tests' => sub {
     $itemtype->rentalcharge(2)->store;
     is( $itemtype->rentalcharge + 0, 2, 'Rental charge updated and retreived correctly' );
     $issue =
-      AddIssue( $patron->unblessed, $item->barcode, $dt_to, undef, $dt_from );
+      AddIssue( $patron, $item->barcode, $dt_to, undef, $dt_from );
     my $accountlines =
       Koha::Account::Lines->search( { itemnumber => $item->id } );
     is( $accountlines->count, '2', "Fixed charge and accrued charge recorded distinctly" );
     $accountlines->delete();
-    AddRenewal( $patron->id, $item->id, $library->id, $dt_to_renew, $dt_to );
+    AddRenewal(
+        {
+            borrowernumber  => $patron->id,
+            itemnumber      => $item->id,
+            branch          => $library->id,
+            datedue         => $dt_to_renew,
+            lastreneweddate => $dt_to
+        }
+    );
     $accountlines = Koha::Account::Lines->search( { itemnumber => $item->id } );
     is( $accountlines->count, '2', "Fixed charge and accrued charge recorded distinctly, for renewal" );
     $accountlines->delete();
@@ -4945,7 +5461,7 @@ subtest 'Incremented fee tests' => sub {
 
     $itemtype->rentalcharge_hourly_calendar(0)->store();
     $issue =
-      AddIssue( $patron->unblessed, $item->barcode, $dt_to, undef, $dt_from );
+      AddIssue( $patron, $item->barcode, $dt_to, undef, $dt_from );
     $accountline = Koha::Account::Lines->find( { itemnumber => $item->id } );
     is(
         $accountline->amount + 0,
@@ -4953,7 +5469,15 @@ subtest 'Incremented fee tests' => sub {
         "Hourly rental charge calculated correctly with rentalcharge_hourly_calendar = 0 (168h * 0.25u)"
     );
     $accountline->delete();
-    AddRenewal( $patron->id, $item->id, $library->id, $dt_to_renew, $dt_to );
+    AddRenewal(
+        {
+            borrowernumber  => $patron->id,
+            itemnumber      => $item->id,
+            branch          => $library->id,
+            datedue         => $dt_to_renew,
+            lastreneweddate => $dt_to
+        }
+    );
     $accountline = Koha::Account::Lines->find( { itemnumber => $item->id } );
     is(
         $accountline->amount + 0,
@@ -4965,7 +5489,7 @@ subtest 'Incremented fee tests' => sub {
 
     $itemtype->rentalcharge_hourly_calendar(1)->store();
     $issue =
-      AddIssue( $patron->unblessed, $item->barcode, $dt_to, undef, $dt_from );
+      AddIssue( $patron, $item->barcode, $dt_to, undef, $dt_from );
     $accountline = Koha::Account::Lines->find( { itemnumber => $item->id } );
     is(
         $accountline->amount + 0,
@@ -4973,7 +5497,15 @@ subtest 'Incremented fee tests' => sub {
         "Hourly rental charge calculated correctly with rentalcharge_hourly_calendar = 1 and closed $closed_day_name (168h - 24h * 0.25u)"
     );
     $accountline->delete();
-    AddRenewal( $patron->id, $item->id, $library->id, $dt_to_renew, $dt_to );
+    AddRenewal(
+        {
+            borrowernumber  => $patron->id,
+            itemnumber      => $item->id,
+            branch          => $library->id,
+            datedue         => $dt_to_renew,
+            lastreneweddate => $dt_to
+        }
+    );
     $accountline = Koha::Account::Lines->find( { itemnumber => $item->id } );
     is(
         $accountline->amount + 0,
@@ -4985,7 +5517,7 @@ subtest 'Incremented fee tests' => sub {
 
     $calendar->delete_holiday( weekday => $closed_day );
     $issue =
-      AddIssue( $patron->unblessed, $item->barcode, $dt_to, undef, $dt_from );
+      AddIssue( $patron, $item->barcode, $dt_to, undef, $dt_from );
     $accountline = Koha::Account::Lines->find( { itemnumber => $item->id } );
     is(
         $accountline->amount + 0,
@@ -4993,7 +5525,15 @@ subtest 'Incremented fee tests' => sub {
         "Hourly rental charge calculated correctly with rentalcharge_hourly_calendar = 1 (168h - 0h * 0.25u"
     );
     $accountline->delete();
-    AddRenewal( $patron->id, $item->id, $library->id, $dt_to_renew, $dt_to );
+    AddRenewal(
+        {
+            borrowernumber  => $patron->id,
+            itemnumber      => $item->id,
+            branch          => $library->id,
+            datedue         => $dt_to_renew,
+            lastreneweddate => $dt_to
+        }
+    );
     $accountline = Koha::Account::Lines->find( { itemnumber => $item->id } );
     is(
         $accountline->amount + 0,
@@ -5018,14 +5558,14 @@ subtest 'CanBookBeIssued & RentalFeesCheckoutConfirmation' => sub {
             class => 'Koha::Patrons',
             value => { categorycode => $patron_category->{categorycode} }
         }
-    )->store;
+    );
 
     my $itemtype = $builder->build_object(
         {
             class => 'Koha::ItemTypes',
             value => {
-                notforloan             => 0,
-                rentalcharge           => 0,
+                notforloan         => 0,
+                rentalcharge       => 0,
                 rentalcharge_daily => 0
             }
         }
@@ -5065,7 +5605,7 @@ subtest 'CanBookBeIssued & CircConfirmItemParts' => sub {
             class => 'Koha::Patrons',
             value => { categorycode => $patron_category->{categorycode} }
         }
-    )->store;
+    );
 
     my $item = $builder->build_sample_item(
         {
@@ -5099,7 +5639,7 @@ subtest 'Do not return on renewal (LOST charge)' => sub {
     );
 
     my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
-    AddIssue( $patron->unblessed, $item->barcode );
+    AddIssue( $patron, $item->barcode );
 
     my $accountline = Koha::Account::Line->new(
         {
@@ -5114,11 +5654,238 @@ subtest 'Do not return on renewal (LOST charge)' => sub {
     )->store();
 
     # AddRenewal doesn't call _FixAccountForLostAndFound
-    AddIssue( $patron->unblessed, $item->barcode );
+    AddIssue( $patron, $item->barcode );
 
     is( $patron->checkouts->count, 1,
         'Renewal should not return the item even if a LOST payment has been made earlier'
     );
+};
+
+subtest 'Lost status does not change when preferences are set to 0' => sub {
+    plan tests => 2;
+
+    my $library = $builder->build_object( { class => "Koha::Libraries" } );
+    my $manager = $builder->build_object( { class => "Koha::Patrons" } );
+    t::lib::Mocks::mock_userenv( { patron => $manager, branchcode => $manager->branchcode } );
+
+    my $biblio = $builder->build_sample_biblio;
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    my $item = $builder->build_sample_item(
+        {
+            biblionumber     => $biblio->biblionumber,
+            library          => $library->branchcode,
+            replacementprice => 99,
+            itype            => $itemtype,
+            itemlost         => 1,
+        }
+    );
+
+    my $debitCharge = Koha::Account::Line->new(
+        {
+            borrowernumber    => $patron->borrowernumber,
+            debit_type_code   => 'LOST',
+            status            => undef,
+            itemnumber        => $item->itemnumber,
+            amount            => 12,
+            amountoutstanding => 12,
+            interface         => 'something',
+        }
+    )->store();
+
+    # Test for UpdateItemLostStatusWhenPaid
+    t::lib::Mocks::mock_preference( 'UpdateItemLostStatusWhenPaid', 0 );
+
+    my $paymentLine = Koha::Account::Line->new(
+        {
+            borrowernumber    => $patron->borrowernumber,
+            credit_type_code  => 'CREDIT',
+            status            => undef,
+            itemnumber        => $item->itemnumber,
+            amountoutstanding => 0 - 12,
+            amount            => 0 - 12,
+            interface         => 'something',
+        }
+    )->store();
+
+    my $offset = Koha::Account::Offset->new(
+        {
+            credit_id => $paymentLine->id,
+            debit_id  => $debitCharge->id,
+            type      => 'APPLY',
+            amount    => 0
+        }
+    )->store();
+
+    $paymentLine->apply( { debits => [$debitCharge] } );
+
+    is(
+        Koha::Items->find( $item->itemnumber )->itemlost, 1,
+        "Payment should not change itemlost status when UpdateItemLostStatusWhenPaid is 0"
+    );
+
+    # Test for UpdateItemLostStatusWhenWriteOff
+    t::lib::Mocks::mock_preference( 'UpdateItemLostStatusWhenWriteOff', 0 );
+
+    my $writeOffLine = Koha::Account::Line->new(
+        {
+            borrowernumber    => $patron->borrowernumber,
+            credit_type_code  => 'WRITEOFF',
+            status            => undef,
+            itemnumber        => $item->itemnumber,
+            amountoutstanding => 0 - 12,
+            amount            => 0 - 12,
+            interface         => 'something',
+        }
+    )->store();
+
+    $offset = Koha::Account::Offset->new(
+        {
+            credit_id => $writeOffLine->id,
+            debit_id  => $debitCharge->id,
+            type      => 'APPLY',
+            amount    => 0
+        }
+    )->store();
+
+    $writeOffLine->apply( { debits => [$debitCharge] } );
+
+    is(
+        Koha::Items->find( $item->itemnumber )->itemlost, 1,
+        "Write-off should not change itemlost status when UpdateItemLostStatusWhenWriteOff is 0"
+    );
+};
+
+# Test for UpdateItemLostStatusWhenPaid
+subtest 'Update lost item to authorized value on payment of balance' => sub {
+    plan tests => 5;
+
+    my $library = $builder->build_object( { class => "Koha::Libraries" } );
+    my $manager = $builder->build_object( { class => "Koha::Patrons" } );
+    t::lib::Mocks::mock_userenv( { patron => $manager, branchcode => $manager->branchcode } );
+
+    my $biblio = $builder->build_sample_biblio;
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    for my $status ( 2 .. 6 ) {
+        t::lib::Mocks::mock_preference( 'UpdateItemLostStatusWhenPaid', $status );
+
+        my $item = $builder->build_sample_item(
+            {
+                biblionumber     => $biblio->biblionumber,
+                library          => $library->branchcode,
+                replacementprice => 99,
+                itype            => $itemtype,
+                itemlost         => 1,
+            }
+        );
+
+        my $debitCharge = Koha::Account::Line->new(
+            {
+                borrowernumber    => $patron->borrowernumber,
+                debit_type_code   => 'LOST',
+                status            => undef,
+                itemnumber        => $item->itemnumber,
+                amount            => 12,
+                amountoutstanding => 12,
+                interface         => 'something',
+            }
+        )->store();
+
+        my $paymentLine = Koha::Account::Line->new(
+            {
+                borrowernumber    => $patron->borrowernumber,
+                credit_type_code  => 'CREDIT',
+                status            => undef,
+                itemnumber        => $item->itemnumber,
+                amountoutstanding => 0 - 12,
+                amount            => 0 - 12,
+                interface         => 'something',
+            }
+        )->store();
+
+        my $offset = Koha::Account::Offset->new(
+            {
+                credit_id => $paymentLine->id,
+                debit_id  => $debitCharge->id,
+                type      => 'APPLY',
+                amount    => 0
+            }
+        )->store();
+
+        $paymentLine->apply( { debits => [$debitCharge] } );
+
+        is(
+            Koha::Items->find( $item->itemnumber )->itemlost, $status,
+            "Payment should set itemlost to status $status"
+        );
+    }
+};
+
+# Test for UpdateItemLostStatusWhenWriteOff
+subtest 'Update lost item to authorized value on write-off of balance' => sub {
+    plan tests => 5;
+
+    my $library = $builder->build_object( { class => "Koha::Libraries" } );
+    my $manager = $builder->build_object( { class => "Koha::Patrons" } );
+    t::lib::Mocks::mock_userenv( { patron => $manager, branchcode => $manager->branchcode } );
+
+    my $biblio = $builder->build_sample_biblio;
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    for my $status ( 2 .. 6 ) {
+        t::lib::Mocks::mock_preference( 'UpdateItemLostStatusWhenWriteOff', $status );
+
+        my $item = $builder->build_sample_item(
+            {
+                biblionumber     => $biblio->biblionumber,
+                library          => $library->branchcode,
+                replacementprice => 99,
+                itype            => $itemtype,
+                itemlost         => 1,
+            }
+        );
+
+        my $debitCharge = Koha::Account::Line->new(
+            {
+                borrowernumber    => $patron->borrowernumber,
+                debit_type_code   => 'LOST',
+                status            => undef,
+                itemnumber        => $item->itemnumber,
+                amount            => 12,
+                amountoutstanding => 12,
+                interface         => 'something',
+            }
+        )->store();
+
+        my $writeOffLine = Koha::Account::Line->new(
+            {
+                borrowernumber    => $patron->borrowernumber,
+                credit_type_code  => 'WRITEOFF',
+                status            => undef,
+                itemnumber        => $item->itemnumber,
+                amountoutstanding => 0 - 12,
+                amount            => 0 - 12,
+                interface         => 'something',
+            }
+        )->store();
+
+        my $offset = Koha::Account::Offset->new(
+            {
+                credit_id => $writeOffLine->id,
+                debit_id  => $debitCharge->id,
+                type      => 'APPLY',
+                amount    => 0
+            }
+        )->store();
+
+        $writeOffLine->apply( { debits => [$debitCharge] } );
+
+        is(
+            Koha::Items->find( $item->itemnumber )->itemlost, $status,
+            "Write-off should set itemlost to status $status"
+        );
+    }
 };
 
 subtest 'Filling a hold should cancel existing transfer' => sub {
@@ -5136,7 +5903,7 @@ subtest 'Filling a hold should cancel existing transfer' => sub {
                 branchcode => $libraryA->branchcode,
             }
         }
-    )->store;
+    );
 
     my $item = $builder->build_sample_item({
         homebranch => $libraryB->branchcode,
@@ -5220,7 +5987,7 @@ subtest 'Tests for NoRefundOnLostReturnedItemsAge with AddReturn' => sub {
                 replacementprice => '42',
             }
         );
-        my $issue = AddIssue( $patron->unblessed, $item->barcode );
+        my $issue = AddIssue( $patron, $item->barcode );
         LostItem( $item->itemnumber, 'cli', 0 );
         $item->_result->itemlost(1);
         $item->_result->itemlost_on( $lost_on );
@@ -5255,7 +6022,7 @@ subtest 'Tests for NoRefundOnLostReturnedItemsAge with AddReturn' => sub {
                 replacementprice => '42',
             }
         );
-        my $issue = AddIssue( $patron->unblessed, $item->barcode );
+        my $issue = AddIssue( $patron, $item->barcode );
         LostItem( $item->itemnumber, 'cli', 0 );
         $item->_result->itemlost(1);
         $item->_result->itemlost_on( $lost_on );
@@ -5290,7 +6057,7 @@ subtest 'Tests for NoRefundOnLostReturnedItemsAge with AddReturn' => sub {
                 replacementprice => '42',
             }
         );
-        my $issue = AddIssue( $patron->unblessed, $item->barcode );
+        my $issue = AddIssue( $patron, $item->barcode );
         LostItem( $item->itemnumber, 'cli', 0 );
         $item->_result->itemlost(1);
         $item->_result->itemlost_on( $lost_on );
@@ -5325,7 +6092,7 @@ subtest 'Tests for NoRefundOnLostReturnedItemsAge with AddReturn' => sub {
                 replacementprice => '42',
             }
         );
-        my $issue = AddIssue( $patron->unblessed, $item->barcode );
+        my $issue = AddIssue( $patron, $item->barcode );
         LostItem( $item->itemnumber, 'cli', 0 );
         $item->_result->itemlost(1);
         $item->_result->itemlost_on( $lost_on );
@@ -5413,7 +6180,7 @@ subtest 'Tests for NoRefundOnLostReturnedItemsAge with AddIssue' => sub {
                 replacementprice => '42',
             }
         );
-        my $issue = AddIssue( $patron->unblessed, $item->barcode );
+        my $issue = AddIssue( $patron, $item->barcode );
         LostItem( $item->itemnumber, 'cli', 0 );
         $item->_result->itemlost(1);
         $item->_result->itemlost_on( $lost_on );
@@ -5427,7 +6194,7 @@ subtest 'Tests for NoRefundOnLostReturnedItemsAge with AddIssue' => sub {
         )->next;
         ok( $a, "Found accountline for lost fee" );
         is( $a->amountoutstanding + 0, 42, "Lost fee charged correctly" );
-        $issue = AddIssue( $patron2->unblessed, $item->barcode );
+        $issue = AddIssue( $patron2, $item->barcode );
         $a = $a->get_from_storage;
         is( $a->amountoutstanding + 0, 0, "Lost fee was refunded" );
         $a->delete;
@@ -5449,7 +6216,7 @@ subtest 'Tests for NoRefundOnLostReturnedItemsAge with AddIssue' => sub {
                 replacementprice => '42',
             }
         );
-        my $issue = AddIssue( $patron->unblessed, $item->barcode );
+        my $issue = AddIssue( $patron, $item->barcode );
         LostItem( $item->itemnumber, 'cli', 0 );
         $item->_result->itemlost(1);
         $item->_result->itemlost_on( $lost_on );
@@ -5463,7 +6230,7 @@ subtest 'Tests for NoRefundOnLostReturnedItemsAge with AddIssue' => sub {
         )->next;
         ok( $a, "Found accountline for lost fee" );
         is( $a->amountoutstanding + 0, 42, "Lost fee charged correctly" );
-        $issue = AddIssue( $patron2->unblessed, $item->barcode );
+        $issue = AddIssue( $patron2, $item->barcode );
         $a = $a->get_from_storage;
         is( $a->amountoutstanding + 0, 0, "Lost fee was refunded" );
         $a->delete;
@@ -5484,7 +6251,7 @@ subtest 'Tests for NoRefundOnLostReturnedItemsAge with AddIssue' => sub {
                 replacementprice => '42',
             }
         );
-        my $issue = AddIssue( $patron->unblessed, $item->barcode );
+        my $issue = AddIssue( $patron, $item->barcode );
         LostItem( $item->itemnumber, 'cli', 0 );
         $item->_result->itemlost(1);
         $item->_result->itemlost_on( $lost_on );
@@ -5498,7 +6265,7 @@ subtest 'Tests for NoRefundOnLostReturnedItemsAge with AddIssue' => sub {
         )->next;
         ok( $a, "Found accountline for lost fee" );
         is( $a->amountoutstanding + 0, 42, "Lost fee charged correctly" );
-        $issue = AddIssue( $patron2->unblessed, $item->barcode );
+        $issue = AddIssue( $patron2, $item->barcode );
         $a = $a->get_from_storage;
         is( $a->amountoutstanding + 0, 42, "Lost fee was not refunded" );
         $a->delete;
@@ -5519,7 +6286,7 @@ subtest 'Tests for NoRefundOnLostReturnedItemsAge with AddIssue' => sub {
                 replacementprice => '42',
             }
         );
-        my $issue = AddIssue( $patron->unblessed, $item->barcode );
+        my $issue = AddIssue( $patron, $item->barcode );
         LostItem( $item->itemnumber, 'cli', 0 );
         $item->_result->itemlost(1);
         $item->_result->itemlost_on( $lost_on );
@@ -5534,7 +6301,7 @@ subtest 'Tests for NoRefundOnLostReturnedItemsAge with AddIssue' => sub {
         $a = $a->next;
         ok( $a, "Found accountline for lost fee" );
         is( $a->amountoutstanding + 0, 42, "Lost fee charged correctly" );
-        $issue = AddIssue( $patron2->unblessed, $item->barcode );
+        $issue = AddIssue( $patron2, $item->barcode );
         $a = $a->get_from_storage;
         is( $a->amountoutstanding + 0, 42, "Lost fee was not refunded" );
         $a->delete;
@@ -5608,10 +6375,8 @@ subtest 'Checkout should correctly terminate a transfer' => sub {
 
     my $do_transfer = 1;
     ModItemTransfer( $item->itemnumber, $library_1->branchcode,
-        $library_2->branchcode, 'Manual' );
+        $library_2->branchcode, 'Reserve' );
     ModReserveAffect( $item->itemnumber, undef, $do_transfer, $reserve_id );
-    GetOtherReserves( $item->itemnumber )
-      ;    # To put the Reason, it's what does returns.pl...
     my $hold = Koha::Holds->find($reserve_id);
     is( $hold->found, 'T', 'Hold is in transit' );
     my $transfer = $item->get_transfer;
@@ -5620,11 +6385,11 @@ subtest 'Checkout should correctly terminate a transfer' => sub {
     is( $transfer->reason,     'Reserve' );
 
     t::lib::Mocks::mock_userenv( { branchcode => $library_2->branchcode } );
-    AddIssue( $patron_1->unblessed, $item->barcode );
+    AddIssue( $patron_1, $item->barcode );
     $transfer = $transfer->get_from_storage;
     isnt( $transfer->datearrived, undef );
     $hold = $hold->get_from_storage;
-    is( $hold->found, undef, 'Hold is waiting' );
+    is( $hold->found, undef, 'Hold is not waiting or transit' );
     is( $hold->priority, 1, );
 };
 
@@ -5663,14 +6428,14 @@ subtest 'AddIssue records staff who checked out item if appropriate' => sub  {
     my $dt_from = dt_from_string();
     my $dt_to   = dt_from_string()->add( days => 7 );
 
-    my $issue_1 = AddIssue( $patron->unblessed, $item_1->barcode, $dt_to, undef, $dt_from );
+    my $issue_1 = AddIssue( $patron, $item_1->barcode, $dt_to, undef, $dt_from );
 
     is( $issue_1->issuer, undef, "Staff who checked out the item not recorded when RecordStaffUserOnCheckout turned off" );
 
     t::lib::Mocks::mock_preference('RecordStaffUserOnCheckout', 1);
 
     my $issue_2 =
-      AddIssue( $patron->unblessed, $item_2->barcode, $dt_to, undef, $dt_from );
+      AddIssue( $patron, $item_2->barcode, $dt_to, undef, $dt_from );
 
     is( $issue_2->issuer->borrowernumber, $issuer->borrowernumber, "Staff who checked out the item recorded when RecordStaffUserOnCheckout turned on" );
 };
@@ -5823,50 +6588,10 @@ subtest "Item's onloan value should be set if checked out item is checked out to
         }
     );
 
-    AddIssue( $patron_1->unblessed, $item->barcode );
+    AddIssue( $patron_1, $item->barcode );
     ok( $item->get_from_storage->onloan, "Item's onloan column is set after initial checkout" );
-    AddIssue( $patron_2->unblessed, $item->barcode );
+    AddIssue( $patron_2, $item->barcode );
     ok( $item->get_from_storage->onloan, "Item's onloan column is set after second checkout" );
-};
-
-subtest "updateWrongTransfer tests" => sub {
-    plan tests => 5;
-
-    my $library1 = $builder->build_object( { class => 'Koha::Libraries' } );
-    my $library2 = $builder->build_object( { class => 'Koha::Libraries' } );
-    my $library3 = $builder->build_object( { class => 'Koha::Libraries' } );
-    my $item     = $builder->build_sample_item(
-        {
-            homebranch    => $library1->branchcode,
-            holdingbranch => $library2->branchcode,
-            datelastseen  => undef
-        }
-    );
-
-    my $transfer = $builder->build_object(
-        {
-            class => 'Koha::Item::Transfers',
-            value => {
-                itemnumber    => $item->itemnumber,
-                frombranch    => $library2->branchcode,
-                tobranch      => $library1->branchcode,
-                daterequested => dt_from_string,
-                datesent      => dt_from_string,
-                datecancelled => undef,
-                datearrived   => undef,
-                reason        => 'Manual'
-            }
-        }
-    );
-    is( ref($transfer), 'Koha::Item::Transfer', 'Mock transfer added' );
-
-    my $new_transfer = C4::Circulation::updateWrongTransfer($item->itemnumber, $library1->branchcode);
-    is(ref($new_transfer), 'Koha::Item::Transfer', "updateWrongTransfer returns a 'Koha::Item::Transfer' object");
-    ok( !$new_transfer->in_transit, "New transfer is NOT created as in transit (or cancelled)");
-
-    my $original_transfer = $transfer->get_from_storage;
-    ok( defined($original_transfer->datecancelled), "Original transfer was cancelled");
-    is( $original_transfer->cancellation_reason, 'WrongTransfer', "Original transfer cancellation reason is 'WrongTransfer'");
 };
 
 subtest "SendCirculationAlert" => sub {
@@ -5902,7 +6627,7 @@ subtest "SendCirculationAlert" => sub {
     })->store;
 
     # Checkout an item, mark it returned, generate a notice
-    my $issue_1 = AddIssue( $patron->unblessed, $item->barcode);
+    my $issue_1 = AddIssue( $patron, $item->barcode);
     MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, undef, 0, { skip_record_index => 1} );
     C4::Circulation::SendCirculationAlert({
         type => 'CHECKIN',
@@ -5916,7 +6641,7 @@ subtest "SendCirculationAlert" => sub {
     is($notice->to_address, $patron->smsalertnumber, "Letter has the correct to_address set to smsalertnumber for SMS type notices");
 
     # Checkout an item, mark it returned, generate a notice
-    my $issue_2 = AddIssue( $patron->unblessed, $item->barcode);
+    my $issue_2 = AddIssue( $patron, $item->barcode);
     MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, undef, 0, { skip_record_index => 1} );
     C4::Circulation::SendCirculationAlert({
         type => 'CHECKIN',
@@ -5928,104 +6653,6 @@ subtest "SendCirculationAlert" => sub {
     $notice->discard_changes();
     is($notice->content,"Checkins:\n".$item->biblio->title."-".$issue_1->id."\n".$item->biblio->title."-".$issue_2->id."\nThank you.", 'Letter appended with expected output on second checkin' );
 
-};
-
-subtest 'AddIssue | booking_id field linkage' => sub {
-    plan tests => 6;
-
-    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
-    my $patron1 = $builder->build_object( { class => 'Koha::Patrons' } );
-    my $patron2 = $builder->build_object( { class => 'Koha::Patrons' } );
-    my $item    = $builder->build_sample_item( { bookable => 1 } );
-
-    # Patron checks out item with their own booking - booking_id should be set
-    my $booking1 = Koha::Booking->new(
-        {
-            patron_id         => $patron1->borrowernumber,
-            pickup_library_id => $library->branchcode,
-            item_id           => $item->itemnumber,
-            biblio_id         => $item->biblio->biblionumber,
-            start_date        => dt_from_string(),
-            end_date          => dt_from_string()->add( days => 5 ),
-        }
-    )->store();
-
-    my $issue1 = AddIssue( $patron1, $item->barcode, dt_from_string()->add( days => 7 ) );
-    is( $issue1->booking_id, $booking1->booking_id, "Checkout linked to patron's own booking via booking_id" );
-
-    # Verify the relationship accessor works
-    my $linked_booking = $issue1->booking;
-    is( $linked_booking->booking_id, $booking1->booking_id, "Booking relationship accessor returns correct booking" );
-
-    # Verify booking_id is preserved when moved to old_issues on return
-    my ( $returned, undef, undef, undef ) = AddReturn( $item->barcode, $library->branchcode );
-    is( $returned, 1, "Item returned successfully" );
-
-    my $old_checkout = Koha::Old::Checkouts->find( { issue_id => $issue1->issue_id } );
-    is( $old_checkout->booking_id, $booking1->booking_id, "booking_id preserved in old_issues after return" );
-
-    # Verify old_checkout booking relationship works
-    my $old_linked_booking = $old_checkout->booking;
-    is( $old_linked_booking->booking_id, $booking1->booking_id, "Old checkout booking relationship accessor works" );
-
-    # Another patron checks out - no booking_id should be set
-    $booking1->delete();
-    my $issue2 = AddIssue( $patron2, $item->barcode, dt_from_string()->add( days => 7 ) );
-    is( $issue2->booking_id, undef, "No booking_id set when checkout is not from a patron's own booking" );
-};
-
-subtest 'AddRenewal | booking_id preservation' => sub {
-    plan tests => 3;
-
-    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
-    my $patron  = $builder->build_object( { class => 'Koha::Patrons' } );
-    my $item    = $builder->build_sample_item( { library => $library->branchcode } );
-
-    # Set up renewal rules
-    Koha::CirculationRules->set_rules(
-        {
-            branchcode   => $library->branchcode,
-            categorycode => $patron->categorycode,
-            itemtype     => $item->effective_itemtype,
-            rules        => {
-                renewalsallowed => 10,
-                renewalperiod   => 7,
-                issuelength     => 7,
-            }
-        }
-    );
-
-    # Create a simple booking using the builder
-    my $booking = $builder->build_object(
-        {
-            class => 'Koha::Bookings',
-            value => {
-                patron_id         => $patron->borrowernumber,
-                item_id           => $item->itemnumber,
-                pickup_library_id => $library->branchcode,
-                status            => 'completed'
-            }
-        }
-    );
-
-    # Create a checkout and manually set booking_id to simulate a booking-linked checkout
-    my $issue = AddIssue( $patron, $item->barcode );
-    $issue->booking_id( $booking->booking_id )->store;
-
-    # Renew the checkout
-    AddRenewal(
-        {
-            borrowernumber => $patron->borrowernumber,
-            itemnumber     => $item->itemnumber,
-            branch         => $library->branchcode,
-        }
-    );
-
-    # Refresh the issue object and test that booking_id is preserved
-    $issue = $issue->get_from_storage;
-    is( $issue->booking_id,     $booking->booking_id, "booking_id preserved after renewal" );
-    is( $issue->renewals_count, 1,                    "Renewal count incremented" );
-    ok( defined $issue->booking_id, "booking_id field is not null after renewal" );
 };
 
 subtest "GetSoonestRenewDate tests" => sub {
@@ -6048,14 +6675,14 @@ subtest "GetSoonestRenewDate tests" => sub {
         }
     );
     my $item = $builder->build_sample_item();
-    my $issue = AddIssue( $patron->unblessed, $item->barcode);
+    my $issue = AddIssue( $patron, $item->barcode);
     my $datedue = dt_from_string( $issue->date_due() );
 
     # Bug 14395
     # Test 'exact time' setting for syspref NoRenewalBeforePrecision
     t::lib::Mocks::mock_preference( 'NoRenewalBeforePrecision', 'exact_time' );
     is(
-        GetSoonestRenewDate( $issue ),
+        GetSoonestRenewDate( $patron, $issue ),
         $datedue->clone->add( days => -7 ),
         'Bug 14395: Renewals permitted 7 days before due date, as expected'
     );
@@ -6064,7 +6691,7 @@ subtest "GetSoonestRenewDate tests" => sub {
     # Test 'date' setting for syspref NoRenewalBeforePrecision
     t::lib::Mocks::mock_preference( 'NoRenewalBeforePrecision', 'date' );
     is(
-        GetSoonestRenewDate( $issue ),
+        GetSoonestRenewDate( $patron, $issue ),
         $datedue->clone->add( days => -7 )->truncate( to => 'day' ),
         'Bug 14395: Renewals permitted 7 days before due date, as expected'
     );
@@ -6081,7 +6708,7 @@ subtest "GetSoonestRenewDate tests" => sub {
     );
 
     is(
-        GetSoonestRenewDate( $issue ),
+        GetSoonestRenewDate( $patron, $issue ),
         dt_from_string,
         'Checkouts without auto-renewal can be renewed immediately if no norenewalbefore'
     );
@@ -6089,15 +6716,15 @@ subtest "GetSoonestRenewDate tests" => sub {
     t::lib::Mocks::mock_preference( 'NoRenewalBeforePrecision', 'date' );
     $issue->auto_renew(1)->store;
     is(
-        GetSoonestRenewDate( $issue ),
+        GetSoonestRenewDate( $patron, $issue, 1 ),
         $datedue->clone->truncate( to => 'day' ),
-        'Checkouts with auto-renewal can be renewed earliest on due date if no renewalbefore'
+        'Checkouts with auto-renewal can be renewed earliest on due date if noautorenewalbefore'
     );
     t::lib::Mocks::mock_preference( 'NoRenewalBeforePrecision', 'exact' );
     is(
-        GetSoonestRenewDate( $issue ),
+        GetSoonestRenewDate( $patron, $issue, 1 ),
         $datedue,
-        'Checkouts with auto-renewal can be renewed earliest on due date if no renewalbefore'
+        'Checkouts with auto-renewal can be renewed earliest on due date if noautorenewalbefore'
     );
 
     t::lib::Mocks::mock_preference( 'NoRenewalBeforePrecision', 'date' );
@@ -6110,12 +6737,13 @@ subtest "GetSoonestRenewDate tests" => sub {
             rule_value   => 1,
         }
     );
-    $issue->date_due( dt_from_string )->store;
+    $issue->date_due(dt_from_string)->store;
     is(
-        GetSoonestRenewDate( $issue ),
+        GetSoonestRenewDate( $patron, $issue ),
         dt_from_string->subtract( days => 1 )->truncate( to => 'day' ),
         'Checkouts with auto-renewal can be renewed 1 day before due date if no renewalbefore = 1 and precision = "date"'
     );
+
 };
 
 subtest "CanBookBeIssued + needsconfirmation message" => sub {
@@ -6125,7 +6753,7 @@ subtest "CanBookBeIssued + needsconfirmation message" => sub {
     my $library = $builder->build_object( { class => 'Koha::Libraries' } );
     my $biblio = $builder->build_object({ class => 'Koha::Biblios' });
     my $biblioitem = $builder->build_object({ class => 'Koha::Biblioitems', value => { biblionumber => $biblio->biblionumber }});
-    my $item = $builder->build_object({ class => 'Koha::Items' , value => { biblionumber => $biblio->biblionumber }});
+    my $item = $builder->build_object({ class => 'Koha::Items' , value => { itype => $itemtype, biblionumber => $biblio->biblionumber }});
 
     my $hold = $builder->build_object({ class => 'Koha::Holds', value => {
         biblionumber => $item->biblionumber,
@@ -6135,6 +6763,7 @@ subtest "CanBookBeIssued + needsconfirmation message" => sub {
         priority => 1,
         found => undef,
         suspend => 0,
+        item_group_id => undef
     }});
 
     my ( $error, $needsconfirmation, $alerts, $messages );
@@ -6175,44 +6804,500 @@ subtest 'Tests for transfer not in transit' => sub {
 
     plan tests => 2;
 
-
     # These tests are to ensure a 'pending' transfer, generated by
     # stock rotation, will be advanced when checked in
 
-    my $item = $builder->build_sample_item();
-    my $transfer = $builder->build_object({ class => 'Koha::Item::Transfers', value => {
-        itemnumber => $item->id,
-        reason => 'StockrotationRepatriation',
-        datesent => undef,
-        frombranch => $item->homebranch,
-    }});
+    my $item     = $builder->build_sample_item();
+    my $transfer = $builder->build_object(
+        {
+            class => 'Koha::Item::Transfers',
+            value => {
+                itemnumber => $item->id,
+                reason     => 'StockrotationRepatriation',
+                datesent   => undef,
+                frombranch => $item->homebranch,
+            }
+        }
+    );
     my @return = AddReturn( $item->barcode, $item->homebranch, 0, undef );
     is_deeply(
         \@return,
-        [ 0, { WasTransfered => $transfer->tobranch, TransferTrigger => 'StockrotationRepatriation', NotIssued => $item->barcode }, undef, {} ], "Item is reported to have been transferred");
+        [
+            0,
+            {
+                TransferTo      => $transfer->tobranch,         WasTransfered => $transfer->id,
+                TransferTrigger => 'StockrotationRepatriation', NotIssued     => $item->barcode
+            },
+            undef,
+            {}
+        ],
+        "Item is reported to have been transferred"
+    );
 
     $transfer->discard_changes;
-    ok( $transfer->datesent, 'The datesent field is populated, i.e. transfer is initiated');
-
+    is( $transfer->datesent, undef, 'The datesent field remains unpopulated, i.e. transfer is not yet initiated' );
 };
 
 subtest 'Tests for RecordLocalUseOnReturn' => sub {
 
-    plan tests => 2;
+    plan tests => 5;
 
-    t::lib::Mocks::mock_preference('RecordLocalUseOnReturn', 0);
+    t::lib::Mocks::mock_preference( 'RecordLocalUseOnReturn', 0 );
     my $item = $builder->build_sample_item();
+
+    my $item_2 = $builder->build_sample_item(
+        {
+            onloan => undef,
+        }
+    );
+
     $item->withdrawn(1)->itemlost(1)->store;
     my @return = AddReturn( $item->barcode, $item->homebranch, 0, undef );
     is_deeply(
         \@return,
-        [ 0, { NotIssued => $item->barcode, withdrawn => 1  }, undef, {} ], "RecordLocalUSeOnReturn is off, no local use recorded");
+        [ 0, { NotIssued => $item->barcode, withdrawn => 1 }, undef, {} ],
+        "RecordLocalUSeOnReturn is off, no local use recorded"
+    );
 
-    t::lib::Mocks::mock_preference('RecordLocalUseOnReturn', 1);
+    AddReturn( $item_2->barcode, $item_2->homebranch );
+    $item_2->discard_changes;    # refresh
+    is( $item_2->localuse, undef, 'Without RecordLocalUseOnReturn no localuse is recorded.' );
+
+    t::lib::Mocks::mock_preference( 'RecordLocalUseOnReturn', 1 );
     my @return2 = AddReturn( $item->barcode, $item->homebranch, 0, undef );
     is_deeply(
         \@return2,
-        [ 0, { NotIssued => $item->barcode, withdrawn => 1, LocalUse => 1  }, undef, {} ], "Local use is recorded");
+        [ 0, { NotIssued => $item->barcode, withdrawn => 1, LocalUse => 1 }, undef, {} ], "Local use is recorded"
+    );
+
+    AddReturn( $item_2->barcode, $item_2->homebranch );
+    $item_2->discard_changes;    # refresh
+    is( $item_2->localuse, 1, 'With RecordLocalUseOnReturn localuse is recorded.' );
+
+    AddReturn( $item_2->barcode, $item_2->homebranch );
+    $item_2->discard_changes;    # refresh
+    is( $item_2->localuse, 2, 'With RecordLocalUseOnReturn localuse is recorded.' );
+};
+
+subtest 'Test CanBookBeIssued param ignore_reserves (Bug 35322)' => sub {
+    plan tests => 4;
+
+    my $homebranch    = $builder->build( { source => 'Branch' } );
+    my $holdingbranch = $builder->build( { source => 'Branch' } );
+    my $patron_1      = $builder->build_object(
+        { class => 'Koha::Patrons', value => { categorycode => $patron_category->{categorycode} } } );
+    my $patron_2 = $builder->build_object(
+        { class => 'Koha::Patrons', value => { categorycode => $patron_category->{categorycode} } } );
+
+    my $item = $builder->build_sample_item(
+        {
+            homebranch    => $homebranch->{branchcode},
+            holdingbranch => $holdingbranch->{branchcode},
+        }
+    );
+
+    Koha::CirculationRules->search()->delete();
+    Koha::CirculationRules->set_rules(
+        {
+            categorycode => undef,
+            itemtype     => undef,
+            branchcode   => undef,
+            rules        => {
+                reservesallowed => 25,
+                issuelength     => 14,
+                lengthunit      => 'days',
+                renewalsallowed => 1,
+                renewalperiod   => 7,
+                chargeperiod    => 1,
+                maxissueqty     => 20,
+            }
+        }
+    );
+
+    my $reserve_id = AddReserve(
+        {
+            branchcode       => $homebranch,
+            borrowernumber   => $patron_1->id,
+            biblionumber     => $item->biblionumber,
+            priority         => 1,
+            reservation_date => dt_from_string,
+            expiration_date  => dt_from_string,
+            itemnumber       => $item->id,
+            found            => 'W',
+        }
+    );
+
+    set_userenv($holdingbranch);
+
+    my ( $error, $question, $alerts ) = CanBookBeIssued( $patron_2, $item->barcode, undef, undef, 0 );
+    is(
+        keys(%$error) + keys(%$alerts), 0,
+        'There should not be any errors or alerts (impossible)' . str( $error, $question, $alerts )
+    );
+    is( exists $question->{RESERVE_WAITING}, 1, 'RESERVE_WAITING is set' );
+
+    ( $error, $question, $alerts ) = CanBookBeIssued( $patron_2, $item->barcode, undef, undef, 1 );
+    is(
+        keys(%$error) + keys(%$alerts), 0,
+        'There should not be any errors or alerts (impossible)' . str( $error, $question, $alerts )
+    );
+    isnt( exists $question->{RESERVE_WAITING}, 1, 'RESERVE_WAITING is not set' );
+
+};
+
+subtest 'NoRefundOnLostFinesPaidAge' => sub {
+    plan tests => 2;
+
+    t::lib::Mocks::mock_preference( 'BlockReturnOfLostItems', 0 );
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron  = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { categorycode => $patron_category->{categorycode} }
+        }
+    );
+
+    my $biblionumber = $builder->build_sample_biblio(
+        {
+            branchcode => $library->branchcode,
+        }
+    )->biblionumber;
+
+    Koha::CirculationRules->search->delete;
+    Koha::CirculationRules->set_rules(
+        {
+            categorycode => undef,
+            itemtype     => undef,
+            branchcode   => undef,
+            rules        => {
+                issuelength => 14,
+                lengthunit  => 'days',
+            }
+        }
+    );
+    $builder->build(
+        {
+            source => 'CirculationRule',
+            value  => {
+                branchcode   => undef,
+                categorycode => undef,
+                itemtype     => undef,
+                rule_name    => 'lostreturn',
+                rule_value   => 'refund'
+            }
+        }
+    );
+
+    my $item = $builder->build_sample_item(
+        {
+            biblionumber => $biblionumber,
+            library      => $library->branchcode,
+        }
+    );
+    my $lost_on = dt_from_string->subtract( days => 5 )->date;
+    my $issue   = AddIssue( $patron, $item->barcode );
+    LostItem( $item->itemnumber, 'cli', 0 );
+    $item->_result->itemlost(1);
+    $item->_result->itemlost_on($lost_on);
+    $item->_result->update();
+
+    my $debit = Koha::Account::Line->new(
+        {
+            borrowernumber    => $patron->id,
+            date              => '1970-01-01 14:00:01',
+            amount            => 5,
+            amountoutstanding => 0,
+            interface         => 'commandline',
+            debit_type_code   => 'LOST',
+            itemnumber        => $item->itemnumber
+        }
+    )->store();
+    my $credit = Koha::Account::Line->new(
+        {
+            borrowernumber    => $patron->id,
+            date              => '1970-01-01 14:00:01',
+            amountoutstanding => 0,
+            amount            => -5,
+            interface         => 'commandline',
+            credit_type_code  => 'PAYMENT'
+        }
+    )->store();
+    my $offset = Koha::Account::Offset->new(
+        {
+            credit_id  => $credit->id,
+            debit_id   => $debit->id,
+            type       => 'APPLY',
+            amount     => -5,
+            created_on => '1971-01-01 14:00:01'
+        }
+    )->store();
+
+    t::lib::Mocks::mock_preference( 'NoRefundOnLostFinesPaidAge', undef );
+    my ( $return, $messages ) = AddReturn( $item->barcode, $library->branchcode, undef, dt_from_string );
+
+    is( $patron->account->balance, -5, 'Lost fine has been refunded' );
+
+    my $patron2 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { categorycode => $patron_category->{categorycode} }
+        }
+    );
+    my $item2 = $builder->build_sample_item(
+        {
+            biblionumber => $biblionumber,
+            library      => $library->branchcode,
+        }
+    );
+    my $lost_on2 = dt_from_string->subtract( days => 5 )->date;
+    my $issue2   = AddIssue( $patron2, $item2->barcode );
+    LostItem( $item2->itemnumber, 'cli', 0 );
+    $item2->_result->itemlost(1);
+    $item2->_result->itemlost_on($lost_on2);
+    $item2->_result->update();
+
+    my $debit2 = Koha::Account::Line->new(
+        {
+            borrowernumber    => $patron2->id,
+            date              => '1970-01-01 14:00:01',
+            amount            => 5,
+            amountoutstanding => 0,
+            interface         => 'commandline',
+            debit_type_code   => 'LOST',
+            itemnumber        => $item2->itemnumber
+        }
+    )->store();
+    my $credit2 = Koha::Account::Line->new(
+        {
+            borrowernumber    => $patron2->id,
+            date              => '1970-01-01 14:00:01',
+            amount            => -5,
+            amountoutstanding => 0,
+            interface         => 'commandline',
+            credit_type_code  => 'PAYMENT'
+        }
+    )->store();
+    my $offset2 = Koha::Account::Offset->new(
+        {
+            credit_id  => $credit2->id,
+            debit_id   => $debit2->id,
+            type       => 'APPLY',
+            amount     => -5,
+            created_on => '1971-01-01 14:00:01'
+        }
+    )->store();
+
+    t::lib::Mocks::mock_preference( 'NoRefundOnLostFinesPaidAge', 5 );
+    my ( $return2, $messages2 ) = AddReturn( $item2->barcode, $library->branchcode, undef, dt_from_string );
+
+    is(
+        $patron2->account->balance, 0,
+        'Lost fine has not been refunded as it is older than NoRefundOnLostFinesPaidAge'
+    );
+};
+
+subtest 'ChildNeedsGuarantor' => sub {
+    plan tests => 18;
+
+    t::lib::Mocks::mock_preference( 'ChildNeedsGuarantor', 0 );
+    my $library        = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $child_category = $builder->build_object(
+        {
+            class => 'Koha::Patron::Categories',
+            value => {
+                category_type => 'C',
+                enrolmentfee  => 0,
+            }
+        }
+    );
+    my $guarantee_category = $builder->build_object(
+        {
+            class => 'Koha::Patron::Categories',
+            value => {
+                category_type    => 'P',
+                enrolmentfee     => 0,
+                can_be_guarantee => 1,
+            }
+        }
+    );
+    my $guarantor_category = $builder->build_object(
+        {
+            class => 'Koha::Patron::Categories',
+            value => {
+                category_type    => 'P',
+                enrolmentfee     => 0,
+                can_be_guarantee => 0,
+            }
+        }
+    );
+    my $child_patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { categorycode => $child_category->categorycode, contactname => '' }
+        }
+    );
+    my $guarantee_patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { categorycode => $guarantee_category->categorycode, contactname => '' }
+        }
+    );
+    my $guarantor_patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { categorycode => $guarantee_category->categorycode, contactname => '' }
+        }
+    );
+    t::lib::Mocks::mock_preference( 'ChildNeedsGuarantor',             1 );
+    t::lib::Mocks::mock_preference( 'TrackLastPatronActivityTriggers', 'check_in,check_out,renewal' );
+
+    my $biblionumber = $builder->build_sample_biblio(
+        {
+            branchcode => $library->branchcode,
+        }
+    )->biblionumber;
+
+    Koha::CirculationRules->set_rules(
+        {
+            categorycode => undef,
+            itemtype     => undef,
+            branchcode   => $library->branchcode,
+            rules        => {
+                issuelength => 14,
+                lengthunit  => 'days',
+            }
+        }
+    );
+
+    my $item = $builder->build_sample_item(
+        {
+            biblionumber => $biblionumber,
+            library      => $library->branchcode,
+        }
+    );
+    warnings_like {
+        AddIssue( $child_patron, $item->barcode, undef );
+    }
+    qr/Problem updating lastseen/,
+        "AddIssue generates a warning when Child type patron is missing a guarantor and ChildsNeedsGuarantor";
+    warnings_like {
+        AddRenewal(
+            {
+                borrowernumber => $child_patron->borrowernumber, itemnumber => $item->itemnumber,
+                branch         => $library->branchcode
+            }
+        );
+    }
+    qr/Problem updating lastseen/,
+        "AddRenewal generates a warning when Child type patron is missing a guarantor and ChildNeedsGuarantor";
+    warnings_like {
+        AddReturn( $item->barcode, $library->branchcode, undef, undef );
+    }
+    qr/Problem updating lastseen/,
+        "AddReturn generates a warning when Child type patron is missing a guarantor and ChildNeedsGuarantor";
+
+    warnings_like {
+        AddIssue( $guarantee_patron, $item->barcode, undef );
+    }
+    qr/Problem updating lastseen/,
+        "AddIssue generates a warning when can_be_guarantee type patron is missing a guarantor and ChildsNeedsGuarantor";
+    warnings_like {
+        AddRenewal(
+            {
+                borrowernumber => $guarantee_patron->borrowernumber, itemnumber => $item->itemnumber,
+                branch         => $library->branchcode
+            }
+        );
+    }
+    qr/Problem updating lastseen/,
+        "AddRenewal generates a warning when can_be_guarantee type patron is missing a guarantor and ChildNeedsGuarantor";
+    warnings_like {
+        AddReturn( $item->barcode, $library->branchcode, undef, undef );
+    }
+    qr/Problem updating lastseen/,
+        "AddReturn generates a warning when can_be_guarantee type patron is missing a guarantor and ChildNeedsGuarantor";
+
+    t::lib::Mocks::mock_preference( 'ChildNeedsGuarantor', 0 );
+    warnings_like {
+        AddIssue( $child_patron, $item->barcode, undef );
+    }
+    undef, "AddIssue generates no warning when Child type patron is missing a guarantor and not ChildsNeedsGuarantor";
+    warnings_like {
+        AddRenewal(
+            {
+                borrowernumber => $child_patron->borrowernumber, itemnumber => $item->itemnumber,
+                branch         => $library->branchcode
+            }
+        );
+    }
+    undef, "AddRenewal generates no warning when Child type patron is missing a guarantor and not ChildNeedsGuarantor";
+    warnings_like {
+        AddReturn( $item->barcode, $library->branchcode, undef, undef );
+    }
+    undef, "AddReturn generates no warning when Child type patron is missing a guarantor and not ChildNeedsGuarantor";
+
+    warnings_like {
+        AddIssue( $guarantee_patron, $item->barcode, undef );
+    }
+    undef,
+        "AddIssue generates no warning when can_be_guarantee type patron is missing a guarantor and not ChildsNeedsGuarantor";
+    warnings_like {
+        AddRenewal(
+            {
+                borrowernumber => $guarantee_patron->borrowernumber, itemnumber => $item->itemnumber,
+                branch         => $library->branchcode
+            }
+        );
+    }
+    undef,
+        "AddRenewal generates no warning when can_be_guarantee type patron is missing a guarantor and not ChildNeedsGuarantor";
+    warnings_like {
+        AddReturn( $item->barcode, $library->branchcode, undef, undef );
+    }
+    undef,
+        "AddReturn generates no warning when can_be_guarantee type patron is missing a guarantor and not ChildNeedsGuarantor";
+
+    t::lib::Mocks::mock_preference( 'ChildNeedsGuarantor', 1 );
+    $child_patron->contactname("Anybody")->store;
+    warnings_like {
+        AddIssue( $child_patron, $item->barcode, undef );
+    }
+    undef, "AddIssue generates no warning when Child type patron has a guarantor and ChildsNeedsGuarantor";
+    warnings_like {
+        AddRenewal(
+            {
+                borrowernumber => $child_patron->borrowernumber, itemnumber => $item->itemnumber,
+                branch         => $library->branchcode
+            }
+        );
+    }
+    undef, "AddRenewal generates no warning when Child type patron has a guarantor and not ChildNeedsGuarantor";
+    warnings_like {
+        AddReturn( $item->barcode, $library->branchcode, undef, undef );
+    }
+    undef, "AddReturn generates no warning when Child type patron has a guarantor and not ChildNeedsGuarantor";
+
+    $guarantee_patron->add_guarantor( { guarantor_id => $guarantor_patron->borrowernumber, relationship => 'father' } );
+    warnings_like {
+        AddIssue( $guarantee_patron, $item->barcode, undef );
+    }
+    undef,
+        "AddIssue generates no warning when can_be_guarantee type patron has a guarantor and not ChildsNeedsGuarantor";
+    warnings_like {
+        AddRenewal(
+            {
+                borrowernumber => $guarantee_patron->borrowernumber, itemnumber => $item->itemnumber,
+                branch         => $library->branchcode
+            }
+        );
+    }
+    undef,
+        "AddRenewal generates no warning when can_be_guarantee type patron has a guarantor and not ChildNeedsGuarantor";
+    warnings_like {
+        AddReturn( $item->barcode, $library->branchcode, undef, undef );
+    }
+    undef,
+        "AddReturn generates no warning when can_be_guarantee type patron has a guarantor and not ChildNeedsGuarantor";
 };
 
 $schema->storage->txn_rollback;

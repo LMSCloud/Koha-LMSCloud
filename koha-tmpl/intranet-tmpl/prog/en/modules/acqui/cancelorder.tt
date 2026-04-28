@@ -1,6 +1,12 @@
 [% USE raw %]
+[% USE Koha %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Cancel order &rsaquo; Acquisition &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Cancel order") | html %] &rsaquo;
+    [% t("Acquisition") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -26,11 +32,13 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+        <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
+            [% INCLUDE 'messages.inc' %]
 
       [% UNLESS ( confirmcancel ) %]
       <form method="post" action="">
-        <div class="dialog alert">
+          [% INCLUDE 'csrf-token.inc' %]
+        <div class="alert alert-warning">
           <h1>Are you sure you want to cancel this order ([% ordernumber | html %])</h1>
           <p>
             [% IF (del_biblio) %]
@@ -42,7 +50,7 @@
           <p>
             [% PROCESS 'av-build-dropbox.inc' name="reason", category="ORDER_CANCELLATION_REASON" default="0" %]
           </p>
-          <input type="hidden" name="action" value="confirmcancel" />
+          <input type="hidden" name="op" value="cud-confirmcancel" />
           <input type="hidden" value="[% ordernumber | html %]" name="ordernumber" />
           <input type="hidden" value="[% biblionumber | html %]" name="biblionumber" />
           <input type="hidden" value="[% basket.basketno | html %]" name="basketno" />
@@ -50,16 +58,16 @@
           [% IF (del_biblio) %]
             <input type="hidden" value="1" name="del_biblio" />
           [% END %]
-          <button type="submit" class="approve" accesskey="y"><i class="fa fa-fw fa-check"></i> Yes, cancel (Y)</button>
-          <button class="deny" accesskey="n" onclick="window.location='[% referrer | html %]';return false;"><i class="fa fa-fw fa-remove"></i> No, don't cancel (N)</button>
+          <button type="submit" class="btn btn-default approve" accesskey="y"><i class="fa fa-fw fa-check"></i> Yes, cancel (Y)</button>
+          <button class="btn btn-default deny" accesskey="n" onclick="window.location='[% referrer | html %]';return false;"><i class="fa fa-fw fa-times"></i> No, don't cancel (N)</button>
         </div>
       </form>
       [% ELSE %]
         [% IF ( success_cancelorder ) %]
-            <div class="dialog message">
+            <div class="alert alert-info">
                 The order has been successfully cancelled
         [% ELSE %]
-            <div class="dialog alert">
+            <div class="alert alert-warning">
                 An error has occurred.
                 [% IF error_order_already_cancelled %]
                     <p>The order has been cancelled already.</p>

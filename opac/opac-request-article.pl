@@ -47,7 +47,7 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
-my $action = $cgi->param('action') || q{};
+my $op = $cgi->param('op') || q{};
 my $biblionumber = $cgi->param('biblionumber');
 my $biblio = Koha::Biblios->find($biblionumber);
 if( !$biblio ) {
@@ -55,7 +55,7 @@ if( !$biblio ) {
     exit;
 }
 
-if ( $action eq 'create' ) {
+if ( $op eq 'cud-create' ) {
     my $branchcode = $cgi->param('branchcode');
 
     my $itemnumber   = $cgi->param('itemnumber')   || undef;
@@ -108,12 +108,12 @@ if ( $action eq 'create' ) {
     };
 
     if ( $success ) {
-        print $cgi->redirect("/cgi-bin/koha/opac-user.pl#opac-user-article-requests");
+        print $cgi->redirect("/cgi-bin/koha/opac-user.pl?opac-user-article-requests=1");
         exit;
     }
 # Should we redirect?
 }
-elsif ( !$action && C4::Context->preference('ArticleRequestsOpacHostRedirection') ) {
+elsif ( !$op && C4::Context->preference('ArticleRequestsOpacHostRedirection') ) {
   # Conditions: no items, host item entry (MARC21 773)
   my ( $host, $pageinfo ) = $biblio->get_marc_host( { no_items => 1 } );
   if ($host) {
@@ -135,12 +135,13 @@ if(!$patron->can_request_article) {
 }
 
 $template->param( article_request_fee => $patron->article_request_fee )
-  if $action ne 'create';
+  if $op ne 'cud-create';
 
 $template->param(
     biblio => $biblio,
     patron => $patron,
-    action => $action
+    op     => $op,
+    accepted => scalar $cgi->param('accepted'),
 );
 
 output_html_with_http_headers $cgi, $cookie, $template->output, undef, { force_no_caching => 1 };

@@ -19,7 +19,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 12;
+use Test::More tests => 15;
 
 use Test::Exception;
 use Test::MockModule;
@@ -87,9 +87,26 @@ subtest 'biblio() tests' => sub {
     $schema->storage->txn_rollback;
 };
 
+subtest 'pickup_library/branch tests' => sub {
+
+    plan tests => 1;
+
+    $schema->storage->txn_begin;
+
+    my $hold = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+        }
+    );
+
+    is( ref( $hold->pickup_library ), 'Koha::Library', '->pickup_library should return a Koha::Library object' );
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'fill() tests' => sub {
 
-    plan tests => 14;
+    plan tests => 15;
 
     $schema->storage->txn_begin;
 
@@ -119,6 +136,7 @@ subtest 'fill() tests' => sub {
                 biblionumber   => $biblio->id,
                 borrowernumber => $patron->id,
                 itemnumber     => $item->id,
+                timestamp      => dt_from_string('2021-06-25 14:05:35'),
                 priority       => 10,
             }
         }
@@ -131,7 +149,7 @@ subtest 'fill() tests' => sub {
 
     my $interface = 'api';
     C4::Context->interface($interface);
-
+    my $hold_timestamp = $hold->timestamp;
     my $ret = $hold->fill;
 
     is( ref($ret), 'Koha::Hold', '->fill returns the object type' );
@@ -142,6 +160,7 @@ subtest 'fill() tests' => sub {
 
     is( $old_hold->id, $hold->id, 'reserve_id retained' );
     is( $old_hold->priority, 0, 'priority set to 0' );
+    isnt( $old_hold->timestamp, $hold_timestamp, 'timestamp updated' );
     is( $old_hold->found, 'F', 'found set to F' );
 
     subtest 'item_id parameter' => sub {
@@ -302,22 +321,28 @@ subtest 'fill() tests' => sub {
 
     subtest 'holds_queue update tests' => sub {
 
-        plan tests => 1;
+        plan tests => 2;
 
         my $biblio = $builder->build_sample_biblio;
 
-        my $mock = Test::MockModule->new('Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue');
-        $mock->mock( 'enqueue', sub {
-            my ( $self, $args ) = @_;
-            is_deeply(
-                $args->{biblio_ids},
-                [ $biblio->id ],
-                '->fill triggers a holds queue update for the related biblio'
-            );
-        } );
+        # The check of the pref is in the Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue
+        # so we mock the base enqueue method here to see if it is called
+        my $mock = Test::MockModule->new('Koha::BackgroundJob');
+        $mock->mock(
+            'enqueue',
+            sub {
+                my ( $self, $args ) = @_;
+                is_deeply(
+                    $args->{job_args}->{biblio_ids},
+                    [ $biblio->id ],
+                    'when pref enabled the previous action triggers a holds queue update for the related biblio'
+                );
+            }
+        );
 
         t::lib::Mocks::mock_preference( 'RealTimeHoldsQueue', 1 );
 
+        # Filling a hold when pref enabled should trigger a test
         $builder->build_object(
             {
                 class => 'Koha::Holds',
@@ -328,7 +353,8 @@ subtest 'fill() tests' => sub {
         )->fill;
 
         t::lib::Mocks::mock_preference( 'RealTimeHoldsQueue', 0 );
-        # this call shouldn't add a new test
+
+        # Filling a hold when pref disabled should not trigger a test
         $builder->build_object(
             {
                 class => 'Koha::Holds',
@@ -337,6 +363,42 @@ subtest 'fill() tests' => sub {
                 }
             }
         )->fill;
+
+        my $library_1 = $builder->build_object(
+            {
+                class => 'Koha::Libraries',
+            }
+        )->store;
+        my $library_2 = $builder->build_object(
+            {
+                class => 'Koha::Libraries',
+            }
+        )->store;
+
+        my $hold = $builder->build_object(
+            {
+                class => 'Koha::Holds',
+                value => {
+                    biblionumber => $biblio->id,
+                    branchcode   => $library_1->branchcode,
+                }
+            }
+        )->store;
+
+        # Pref is off, no test triggered
+        # Updating a hold location when pref disabled should not trigger a test
+        $hold->branchcode( $library_2->branchcode )->store;
+
+        t::lib::Mocks::mock_preference( 'RealTimeHoldsQueue', 1 );
+
+        # Updating a hold location when pref enabled should trigger a test
+
+        # Pref is on, test triggered
+        $hold->branchcode( $library_1->branchcode )->store;
+
+        # Update with no change to pickup location should not trigger a test
+        $hold->branchcode( $library_1->branchcode )->store;
+
     };
 
     $schema->storage->txn_rollback;
@@ -996,4 +1058,138 @@ subtest 'Koha::Hold::item_group tests' => sub {
     is( $hold->item_group->id, $item_group->id, "Got correct item group" );
 
     $schema->storage->txn_rollback;
+};
+
+subtest 'change_type() tests' => sub {
+
+    plan tests => 13;
+
+    $schema->storage->txn_begin;
+
+    my $item = $builder->build_object( { class => 'Koha::Items', } );
+    my $hold = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => {
+                itemnumber      => undef,
+                item_level_hold => 0,
+            }
+        }
+    );
+
+    my $hold2 = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => {
+                borrowernumber => $hold->borrowernumber,
+            }
+        }
+    );
+
+    ok( $hold->change_type );
+
+    $hold->discard_changes;
+
+    is( $hold->itemnumber, undef, 'record hold to record hold, no changes' );
+
+    is( $hold->item_level_hold, 0, 'item_level_hold=0' );
+
+    ok( $hold->change_type( $item->itemnumber ) );
+
+    $hold->discard_changes;
+
+    is( $hold->itemnumber, $item->itemnumber, 'record hold to item hold' );
+
+    is( $hold->item_level_hold, 1, 'item_level_hold=1' );
+
+    ok( $hold->change_type( $item->itemnumber ) );
+
+    $hold->discard_changes;
+
+    is( $hold->itemnumber, $item->itemnumber, 'item hold to item hold, no changes' );
+
+    is( $hold->item_level_hold, 1, 'item_level_hold=1' );
+
+    ok( $hold->change_type );
+
+    $hold->discard_changes;
+
+    is( $hold->itemnumber, undef, 'item hold to record hold' );
+
+    is( $hold->item_level_hold, 0, 'item_level_hold=0' );
+
+    my $hold3 = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => {
+                biblionumber   => $hold->biblionumber,
+                borrowernumber => $hold->borrowernumber,
+            }
+        }
+    );
+
+    throws_ok { $hold->change_type }
+    'Koha::Exceptions::Hold::CannotChangeHoldType',
+        'Exception thrown because more than one hold per record';
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'strings_map() tests' => sub {
+
+    plan tests => 3;
+
+    $schema->txn_begin;
+
+    my $av = Koha::AuthorisedValue->new(
+        {
+            category         => 'HOLD_CANCELLATION',
+            authorised_value => 'JUST_BECAUSE',
+            lib              => 'Just because',
+            lib_opac         => 'Serious reasons',
+        }
+    )->store;
+
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+
+    my $hold = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => { cancellation_reason => $av->authorised_value, branchcode => $library->id }
+        }
+    );
+
+    my $strings_map = $hold->strings_map( { public => 0 } );
+    is_deeply(
+        $strings_map,
+        {
+            pickup_library_id   => { str => $library->branchname, type => 'library' },
+            cancellation_reason => { str => $av->lib, type => 'av', category => 'HOLD_CANCELLATION' },
+        },
+        'Strings map is correct'
+    );
+
+    $strings_map = $hold->strings_map( { public => 1 } );
+    is_deeply(
+        $strings_map,
+        {
+            pickup_library_id   => { str => $library->branchname, type => 'library' },
+            cancellation_reason => { str => $av->lib_opac, type => 'av', category => 'HOLD_CANCELLATION' },
+        },
+        'Strings map is correct (OPAC)'
+    );
+
+    $av->delete();
+
+    $strings_map = $hold->strings_map( { public => 1 } );
+    is_deeply(
+        $strings_map,
+        {
+            pickup_library_id   => { str => $library->branchname, type => 'library' },
+            cancellation_reason => { str => $hold->cancellation_reason, type => 'av', category => 'HOLD_CANCELLATION' },
+        },
+        'Strings map shows the cancellation_value when AV not present'
+    );
+
+    $schema->txn_rollback;
 };

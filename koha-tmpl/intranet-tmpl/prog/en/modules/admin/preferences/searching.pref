@@ -8,6 +8,7 @@ Searching:
                   1: automatically.
                   0: only if * is added.
             - "<br />(The * character would be used like so: <cite>Har*</cite> or <cite>*logging</cite>.)"
+            - <strong>NOTE:</strong> Record identifiers (biblionumber, authid) will never be autotruncated.
         -
             - pref: QueryFuzzy
               type: boolean
@@ -64,7 +65,14 @@ Searching:
               choices:
                   1: Include
                   0: "Don't include"
-            - "<em>see from</em> (non-preferred form) headings in bibliographic searches. Please note: you will need to reindex your bibliographic database when changing this preference."
+            - "<em>see from</em> (non-preferred form) headings in bibliographic searches. Please note: you will need to reindex your bibliographic database when changing this system preference."
+        -
+            - pref: IncludeSeeAlsoFromInSearches
+              default: 0
+              choices:
+                  1: Include
+                  0: "Don't include"
+            - "<em>see also from</em> headings in bibliographic searches. Please note: you will need to reindex your bibliographic database when changing this preference."
         -
             - pref: EnableSearchHistory
               default: 0
@@ -102,9 +110,30 @@ Searching:
                   1: Enable
                   0: Disable
             - "the option for staff with permission to create/edit custom saved search filters."
+        -
+            - "List of search fields (separated by | or ,) that should not be autotruncated by Elasticsearch even if <a href='/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=QueryAutoTruncate'>QueryAutoTruncate</a> is set to 'Yes':"
+            - pref: ESPreventAutoTruncate
+              class: long
+        -
+            - pref: SearchCancelledAndInvalidISBNandISSN
+              default: 0
+              choices:
+                  1: Do
+                  0: "Don't"
+            - "search for cancelled or invalid forms of ISBN/ISSN when performing ISBN/ISSN search (when using Elasticsearch)."
+        -
+            - pref: z3950Status
+              type: textarea
+              syntax: text/x-yaml
+              class: code
+            - "Define custom rules to show specific items as not available in Z3950. Rules are defined with item database fields as keys and an array of values.<br/>"
+            - "Examples:<br/><br/>"
+            - "<pre>ccode: [REF,ARC]</pre><br/>  - would mark all REF and ARC collections (Reference and Archives) items as unavailable in Z3950 results.<br/><br/>"
+            - "You can define multiple keys and values, items meeting ANY of the criteria will be marked unavailable:<br/><br/>"
+            - "<pre>itype: [REF]<br/>holdingbranch: [REPAIR]</pre><br/>  - would mark all reference items AND items at the REPAIR branch as unavailable."
     Search form:
         -
-            - pref : LoadSearchHistoryToTheFirstLoggedUser
+            - pref: LoadSearchHistoryToTheFirstLoggedUser
               default: 0
               choices:
                    1: "Add"
@@ -182,6 +211,25 @@ Searching:
                   dsc: descending.
                   az: from A to Z.
                   za: from Z to A.
+        -
+            - By default, sort search results from author links in detail pages and result lists by
+            - pref: AuthorLinkSortBy
+              default: default
+              choices:
+                  default: default sort field and order specified in defaultSortField or OPACdefaultSortField
+                  call_number: call number
+                  pubdate: date of publication
+                  acqdate: date added
+                  title: title
+            - ','
+            - pref: AuthorLinkSortOrder
+              choices:
+                  asc: ascending
+                  dsc: descending
+                  az: from A to Z
+                  za: from Z to A
+            - .
+            - "<br /><strong>NOTE:</strong> If you are using custom XSLT you need to make sure the system preference check is implemented."
         -
             - When limiting search results with a library or library group, limit by the item's
             - pref: SearchLimitLibrary
@@ -268,6 +316,7 @@ Searching:
                   home: "home library"
                   holding: "holding library"
                   both: "both home and holding library"
+            - (Zebra only).
         -
             - Truncate facets length to
             - pref: FacetLabelTruncationLength
@@ -323,6 +372,13 @@ Searching:
                   1: Show
                   0: "Don't show"
             - "whether an authority record contains an established heading that conforms to descriptive cataloguing rules, and can therefore be used as a main/added entry, or subject, or series title."
+        -
+            - pref: RedirectToSoleResult
+              choices:
+                  1: Redirect
+                  0: "Don't redirect"
+            - to the result if a catalog search via the OPAC or staff interface returns only one record.
+
     Did you mean/spell checking:
         -
             - "Swedish service for spellchecking.<br/>"

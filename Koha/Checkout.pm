@@ -23,7 +23,7 @@ use Modern::Perl;
 use DateTime;
 use Try::Tiny qw( catch try );
 
-use C4::Circulation qw( LostItem MarkIssueReturned );
+use C4::Circulation qw( AddRenewal CanBookBeRenewed LostItem MarkIssueReturned );
 use Koha::Booking;
 use Koha::Checkouts::Renewals;
 use Koha::Checkouts::ReturnClaims;
@@ -91,6 +91,20 @@ Return the checked out account_lines
 sub account_lines {
     my ( $self ) = @_;
     my $account_lines_rs = $self->_result->account_lines;
+    return Koha::Account::Lines->_new_from_dbic( $account_lines_rs );
+}
+
+=head3 overdue_fines
+
+  my $fines = $checkout->overdue_fines;
+
+Return the account lines for just the overdue fines
+
+=cut
+
+sub overdue_fines {
+    my ( $self ) = @_;
+    my $account_lines_rs = $self->_result->account_lines->search( { debit_type_code => 'OVERDUE' } );
     return Koha::Account::Lines->_new_from_dbic( $account_lines_rs );
 }
 
@@ -167,6 +181,55 @@ sub booking {
     return Koha::Booking->_new_from_dbic($booking_rs);
 }
 
+=head3 attempt_auto_renew
+
+  my ($success, $error, $updated) = $checkout->auto_renew({ confirm => 1 });
+
+Attempt to automatically renew a book. Return error reason if it cannot be renewed.
+Also return whether a change has been made to avoid notifying on more than one attempt.
+
+If not passed confirm, we will only report and no changes will be made.
+
+=cut
+
+sub attempt_auto_renew {
+    my ( $self, $params ) = @_;
+    my $confirm = $params->{confirm} // 0;
+
+    # CanBookBeRenewed returns 'auto_renew' when the renewal should be done by this script
+    my ( $ok, $error ) = C4::Circulation::CanBookBeRenewed( $self->patron, $self, undef, 1 );
+    my $store_error;
+    if ( $error eq 'auto_renew' || $error eq 'auto_renew_final' || $error eq 'auto_unseen_final' ) {
+        if ($confirm) {
+            my $date_due = C4::Circulation::AddRenewal(
+                {
+                    borrowernumber => $self->borrowernumber,
+                    itemnumber     => $self->itemnumber,
+                    branch         => $self->branchcode,
+                    seen           => 0,
+                    automatic      => 1,
+                }
+            );
+            $store_error = $error eq 'auto_renew' ? undef : $error;
+            $self->auto_renew_error($store_error)->store;
+        }
+        return ( 1, $store_error, 1 );
+    } else {
+        my $updated = 0;
+        if ( !$self->auto_renew_error || $error ne $self->auto_renew_error ) {
+            $updated = 1
+                unless (
+                $self->auto_renew_error
+                && (   $self->auto_renew_error eq 'auto_renew_final' && $error eq 'too_many'
+                    || $self->auto_renew_error eq 'auto_unseen_final' && $error eq 'too_unseen' )
+                );
+            $self->auto_renew_error($error)->store if $confirm;
+        }
+        return ( 0, $error, $updated );
+    }
+
+}
+
 =head3 to_api_mapping
 
 This method returns the mapping for representing a Koha::Checkout object
@@ -176,6 +239,7 @@ on the API.
 
 sub to_api_mapping {
     return {
+        checkin_library => 'checkin_library_id',
         issue_id        => 'checkout_id',
         borrowernumber  => 'patron_id',
         itemnumber      => 'item_id',
@@ -192,18 +256,16 @@ sub to_api_mapping {
 
 =head3 public_read_list
 
-    my @public_read_list = @{$checkout->public_read_list};
-
-Returns the list of database columns that are allowed to be passed to render
-checkout objects on the public API.
+This method returns the list of publicly readable database fields for both API and UI output purposes
 
 =cut
 
 sub public_read_list {
     return [
-        'itemnumber',
-        'issuedate',
-        'date_due',
+        'checkin_library', 'issue_id',        'borrowernumber',
+        'itemnumber',      'date_due',        'branchcode',
+        'returndate',      'lastreneweddate', 'issuedate',
+        'notedate',        'noteseen'
     ];
 }
 
@@ -227,6 +289,7 @@ sub claim_returned {
     my ( $self, $params ) = @_;
 
     my $charge_lost_fee = $params->{charge_lost_fee};
+    my $refund_lost_fee = $params->{refund_lost_fee};
 
     try {
         $self->_result->result_source->schema->txn_do(
@@ -243,7 +306,7 @@ sub claim_returned {
                 )->store();
 
                 my $ClaimReturnedLostValue = C4::Context->preference('ClaimReturnedLostValue');
-                $self->item->itemlost($ClaimReturnedLostValue)->store;
+                $self->item->itemlost($ClaimReturnedLostValue)->store unless $self->item->itemlost;
 
                 my $ClaimReturnedChargeFee = C4::Context->preference('ClaimReturnedChargeFee');
                 $charge_lost_fee =
@@ -256,6 +319,10 @@ sub claim_returned {
                 }
                 elsif ( C4::Context->preference( 'MarkLostItemsAsReturned' ) =~ m/claim_returned/ ) {
                     C4::Circulation::MarkIssueReturned( $self->borrowernumber, $self->itemnumber, undef, $self->patron->privacy );
+                }
+
+                if ($refund_lost_fee) {
+                    $self->item->store( { refund_lost_fee => $refund_lost_fee } );
                 }
 
                 return $claim;

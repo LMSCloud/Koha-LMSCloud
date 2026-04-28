@@ -200,6 +200,20 @@ the ability to act as a pickup location
 
 whether this library should show in the opac
 
+=head2 opacuserjs
+
+  data_type: 'longtext'
+  is_nullable: 1
+
+branch specific javascript for the OPAC
+
+=head2 opacusercss
+
+  data_type: 'longtext'
+  is_nullable: 1
+
+branch specific css for the OPAC
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -251,6 +265,10 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", default_value => 1, is_nullable => 0 },
   "public",
   { data_type => "tinyint", default_value => 1, is_nullable => 0 },
+  "opacuserjs",
+  { data_type => "longtext", is_nullable => 1 },
+  "opacusercss",
+  { data_type => "longtext", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -717,6 +735,21 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 illbatches
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Illbatch>
+
+=cut
+
+__PACKAGE__->has_many(
+  "illbatches",
+  "Koha::Schema::Result::Illbatch",
+  { "foreign.library_id" => "self.branchcode" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 illrequests
 
 Type: has_many
@@ -792,6 +825,21 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 library_hours
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::LibraryHour>
+
+=cut
+
+__PACKAGE__->has_many(
+  "library_hours",
+  "Koha::Schema::Result::LibraryHour",
+  { "foreign.library_id" => "self.branchcode" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 library_smtp_server
 
 Type: might_have
@@ -833,6 +881,21 @@ Related object: L<Koha::Schema::Result::OldIllrequest>
 __PACKAGE__->has_many(
   "old_illrequests",
   "Koha::Schema::Result::OldIllrequest",
+  { "foreign.branchcode" => "self.branchcode" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 old_reserves
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::OldReserve>
+
+=cut
+
+__PACKAGE__->has_many(
+  "old_reserves",
+  "Koha::Schema::Result::OldReserve",
   { "foreign.branchcode" => "self.branchcode" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
@@ -973,8 +1036,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:KWtKxdruohD9ZyCsuWoy6g
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:54
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ygw1c25h8ArDBBQ7cxZzuw
 
 __PACKAGE__->add_columns(
     '+pickup_location' => { is_boolean => 1 },

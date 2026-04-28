@@ -107,7 +107,7 @@ if (!defined $op) {
         op   => $op
     );
 
-} elsif ($op eq 'toggle_rota') {
+} elsif ($op eq 'cud-toggle_rota') {
 
     # Find and update the active status of the rota
     my $rota = Koha::StockRotationRotas->find($params{rota_id});
@@ -119,7 +119,7 @@ if (!defined $op) {
     # Return to rotas page
     print $input->redirect('stockrotation.pl');
 
-} elsif ($op eq 'process_rota') {
+} elsif ($op eq 'cud-process_rota') {
 
     # Get a hashref of the submitted rota data
     my $rota = get_rota_from_form();
@@ -161,10 +161,12 @@ if (!defined $op) {
 
     if (!defined $stage_id) {
 
+        my $rota = Koha::StockRotationRotas->find($rota_id);
         # No ID supplied, we're creating a new stage
         $template->param(
             branches => get_branches(),
             stage    => {},
+            rota     => $rota,
             rota_id  => $rota_id,
             op       => $op
         );
@@ -173,10 +175,12 @@ if (!defined $op) {
 
         # ID supplied, we're editing an existing stage
         my $stage = Koha::StockRotationStages->find($stage_id);
+        my $rota  = Koha::StockRotationRotas->find( $stage->rota->rota_id );
 
         $template->param(
             branches => get_branches(),
             stage    => $stage,
+            rota     => $rota,
             rota_id  => $stage->rota->rota_id,
             op       => $op
         );
@@ -219,7 +223,7 @@ if (!defined $op) {
         op       => $op
     );
 
-} elsif ($op eq 'delete_rota') {
+} elsif ($op eq 'cud-delete_rota') {
 
     # Get the rota we're deleting
     my $rota = Koha::StockRotationRotas->find($params{rota_id});
@@ -239,7 +243,7 @@ if (!defined $op) {
         stage => $stage
     );
 
-} elsif ($op eq 'delete_stage') {
+} elsif ($op eq 'cud-delete_stage') {
 
     # Get the stage we're deleting
     my $stage = Koha::StockRotationStages->find($params{stage_id});
@@ -253,7 +257,7 @@ if (!defined $op) {
     # Return to the stages list
     print $input->redirect("?op=manage_stages&rota_id=$rota_id");
 
-} elsif ($op eq 'process_stage') {
+} elsif ($op eq 'cud-process_stage') {
 
     # Get a hashref of the submitted stage data
     my $stage = get_stage_from_form();
@@ -311,14 +315,14 @@ if (!defined $op) {
         op       => $op
     );
 
-} elsif ($op eq 'move_to_next_stage') {
+} elsif ($op eq 'cud-move_to_next_stage') {
 
     move_to_next_stage($params{item_id}, $params{stage_id});
 
     # Return to the items list
     print $input->redirect("?op=manage_items&rota_id=" . $params{rota_id});
 
-} elsif ($op eq 'toggle_in_demand') {
+} elsif ($op eq 'cud-toggle_in_demand') {
 
     # Toggle the item's in_demand
     toggle_indemand($params{item_id}, $params{stage_id});
@@ -326,7 +330,7 @@ if (!defined $op) {
     # Return to the items list
     print $input->redirect("?op=manage_items&rota_id=".$params{rota_id});
 
-} elsif ($op eq 'remove_item_from_stage') {
+} elsif ($op eq 'cud-remove_item_from_stage') {
 
     # Remove the item from the stage
     remove_from_stage($params{item_id}, $params{stage_id});
@@ -334,7 +338,7 @@ if (!defined $op) {
     # Return to the items list
     print $input->redirect("?op=manage_items&rota_id=".$params{rota_id});
 
-} elsif ($op eq 'add_items_to_rota') {
+} elsif ($op eq 'cud-add_items_to_rota') {
 
     # The item's barcode,
     # which we may or may not have been passed
@@ -342,6 +346,7 @@ if (!defined $op) {
 
     # The rota we're adding the item to
     my $rota_id = $params{rota_id};
+    my $rota    = Koha::StockRotationRotas->find($rota_id);
 
     # The uploaded file filehandle,
     # which we may or may not have been passed
@@ -404,12 +409,13 @@ if (!defined $op) {
         $template->param(
             barcode_status => $barcode_status,
             rota_id        => $rota_id,
+            rota           => $rota,
             op             => $op
         );
 
     }
 
-} elsif ($op eq 'move_items_to_rota') {
+} elsif ($op eq 'cud-move_items_to_rota') {
 
     # The barcodes of the items we're moving
     my @move = $input->multi_param('move_item');

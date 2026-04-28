@@ -58,7 +58,6 @@ use Koha::DateUtils qw( dt_from_string output_pref );
 my $query = CGI->new;
 my $dbh   = C4::Context->dbh;
 
-my $mode           = $query->param('mode') || q{};
 my $op             = $query->param('op') || 'display';
 my @subscriptionids = $query->multi_param('subscriptionid');
 my $branchcode     = $query->param('branchcode');
@@ -66,7 +65,6 @@ my $sublength = $query->param('sublength');
 my $subtype = $query->param('subtype');
 my ($numberlength, $weeklength, $monthlength);
 
-my $done = 0;    # for after form has been submitted
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => "serials/subscription-renew.tt",
@@ -75,12 +73,18 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         flagsrequired   => { serials => 'renew_subscription' },
     }
 );
-if ( $op eq "renew" ) {
+if ( $op eq "cud-renew" ) {
     # Do not use this script with op=renew and @subscriptionids > 1!
     my $subscriptionid = $subscriptionids[0];
     # Make sure the subscription exists
     my $subscription = GetSubscription( $subscriptionid );
     output_and_exit( $query, $cookie, $template, 'unknown_subscription') unless $subscription;
+
+    if ($subscription->{cannotedit}){
+      carp "Attempt to renew subscription $subscriptionid by ".C4::Context->userenv->{'id'}." not allowed";
+      print $query->redirect("/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=$subscriptionid");
+    }
+
     my $startdate = output_pref( { str => scalar $query->param('startdate'), dateonly => 1, dateformat => 'iso' } );
     ($numberlength, $weeklength, $monthlength) = GetSubscriptionLength( $subtype, $sublength );
     ReNewSubscription(
@@ -95,10 +99,11 @@ if ( $op eq "renew" ) {
             branchcode     => $branchcode
         }
     );
-} elsif ( $op eq 'multi_renew' ) {
+} elsif ( $op eq 'cud-multi_renew' ) {
     for my $subscriptionid ( @subscriptionids ) {
         my $subscription = GetSubscription( $subscriptionid );
         next unless $subscription;
+        next if $subscription->{cannotedit};
         ReNewSubscription(
             {
                 subscriptionid => $subscriptionid,
@@ -110,7 +115,21 @@ if ( $op eq "renew" ) {
             }
         );
     }
-} else {
+}
+elsif ( $op eq 'multi_renew' ) {
+    my @subscriptions;
+    for my $subscriptionid ( @subscriptionids ) {
+        my $subscription = GetSubscription( $subscriptionid );
+        next unless $subscription;
+        next if $subscription->{cannotedit};
+        push @subscriptions, $subscription;
+    }
+
+    $template->param(
+        subscriptions => \@subscriptions,
+    );
+}
+else {
     my $subscriptionid = $subscriptionids[0];
     my $subscription = GetSubscription($subscriptionid);
     output_and_exit( $query, $cookie, $template, 'unknown_subscription') unless $subscription;

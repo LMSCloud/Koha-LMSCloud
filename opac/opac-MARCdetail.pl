@@ -52,13 +52,13 @@ use CGI qw ( -utf8 );
 use C4::Biblio qw(
     CountItemsIssued
     GetAuthorisedValueDesc
-    GetMarcControlnumber
     GetMarcFromKohaField
     GetMarcISSN
     GetMarcStructure
     TransformMarcToKoha
     CleanCopyRightOrProtectedDataFromRecord
 );
+use C4::Record qw( marc2cites );
 use C4::Reserves qw( IsAvailableForItemLevelRequest );
 use C4::Members;
 use C4::Koha qw( GetNormalizedISBN );
@@ -93,12 +93,36 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my $patron = Koha::Patrons->find($loggedinuser);
 my $biblio = Koha::Biblios->find($biblionumber);
-my $record = $biblio->metadata->record;
-$record = CleanCopyRightOrProtectedDataFromRecord($record);
-
-if ( ! $record ) {
+if ( !$biblio ) {
     print $query->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
+}
+
+# If record should be suppressed, handle it early
+if ( C4::Context->preference('OpacSuppression') ) {
+
+    # redirect to opac-blocked info page or 404?
+    my $redirect_url;
+    if ( C4::Context->preference("OpacSuppressionRedirect") ) {
+        $redirect_url = "/cgi-bin/koha/opac-blocked.pl";
+    } else {
+        $redirect_url = "/cgi-bin/koha/errors/404.pl";
+    }
+    if ( $biblio->opac_suppressed() ) {
+
+        # if OPAC suppression by IP address
+        if ( C4::Context->preference('OpacSuppressionByIPRange') ) {
+            my $IPAddress = $ENV{'REMOTE_ADDR'};
+            my $IPRange   = C4::Context->preference('OpacSuppressionByIPRange');
+            if ( $IPAddress !~ /^$IPRange/ ) {
+                print $query->redirect($redirect_url);
+                exit;
+            }
+        } else {
+            print $query->redirect($redirect_url);
+            exit;
+        }
+    }
 }
 
 unless ( $patron and $patron->category->override_hidden_items ) {
@@ -110,19 +134,26 @@ unless ( $patron and $patron->category->override_hidden_items ) {
     }
 }
 
+my $metadata_extractor = $biblio->metadata_extractor;
+
 my $items = $biblio->items->filter_by_visible_in_opac({ patron => $patron });
 my $framework = $biblio ? $biblio->frameworkcode : q{};
 my $tagslib   = &GetMarcStructure( 0, $framework );
 
-my $record_processor = Koha::RecordProcessor->new({
-    filters => [ 'EmbedItems', 'ViewPolicy' ],
-    options => {
-        interface     => 'opac',
-        frameworkcode => $framework,
-        items         => [ $items->as_list ],
+my $record = $biblio
+    ? $biblio->metadata_record(
+    {
+        embed_items => 1,
+        opac        => 1,
+        patron      => $patron,
     }
-});
-$record_processor->process($record);
+    )
+    : undef;
+$record = CleanCopyRightOrProtectedDataFromRecord($record) if $record;
+if ( !$record ) {
+    print $query->redirect("/cgi-bin/koha/errors/404.pl");
+    exit;
+}
 
 # get biblionumbers stored in the cart
 if(my $cart_list = $query->cookie("bib_list")){
@@ -138,16 +169,21 @@ $template->param(
 ) if $tagslib->{$bt_tag}->{$bt_subtag}->{hidden} <= 0 && # <=0 OPAC visible.
      $tagslib->{$bt_tag}->{$bt_subtag}->{hidden} > -8;   # except -8;
 
-my $can_item_be_reserved = 0;
-$items->reset;
+# Count the number of items that allow holds at the 'All libraries' rule level
+my $holdable_items = $biblio->items->filter_by_for_hold->count;
 
-while ( my $item = $items->next ) {
-    $can_item_be_reserved = $can_item_be_reserved || $patron && IsAvailableForItemLevelRequest( $item, $patron, undef );
+# If we have a patron we need to check their policies for holds in the loop below
+# If we don't have a patron, then holdable items determines holdability
+my $can_holds_be_placed = $patron ? 0 : $holdable_items;
+
+if ($patron) {
+    $items->reset;
+    while ( my $item = $items->next ) {
+        $can_holds_be_placed = $can_holds_be_placed || IsAvailableForItemLevelRequest( $item, $patron, undef );
+    }
 }
 
-if( $can_item_be_reserved || CountItemsIssued($biblionumber) || $biblio->has_items_waiting_or_intransit ) {
-    $template->param( ReservableItems => 1 );
-}
+$template->param( ReservableItems => $can_holds_be_placed );
 
 # fill arrays
 my @loop_data = ();
@@ -336,12 +372,12 @@ if ( C4::Context->preference("OPACISBD") ) {
 }
 
 #Search for title in links
-my $marcflavour  = C4::Context->preference("marcflavour");
-my $dat = TransformMarcToKoha({ record => $record });
-my $isbn = GetNormalizedISBN(undef,$record,$marcflavour);
-my $marccontrolnumber   = GetMarcControlnumber ($record, $marcflavour);
-my $marcissns = GetMarcISSN( $record, $marcflavour );
-my $issn = $marcissns->[0] || '';
+my $marcflavour    = C4::Context->preference("marcflavour");
+my $dat            = TransformMarcToKoha( { record => $record } );
+my $isbn           = GetNormalizedISBN( undef, $record, $marcflavour );
+my $control_number = $metadata_extractor->get_control_number();
+my $marcissns      = GetMarcISSN( $record, $marcflavour );
+my $issn           = $marcissns->[0] || '';
 
 if (my $search_for_title = C4::Context->preference('OPACSearchForTitleIn')){
     $dat->{title} =~ s/\/+$//; # remove trailing slash
@@ -354,7 +390,7 @@ if (my $search_for_title = C4::Context->preference('OPACSearchForTitleIn')){
             AUTHOR        => $dat->{author},
             ISBN          => $isbn,
             ISSN          => $issn,
-            CONTROLNUMBER => $marccontrolnumber,
+            CONTROLNUMBER => $control_number,
             BIBLIONUMBER  => $biblionumber,
             OCLC_NO       => $oclc_no,
         }
@@ -379,6 +415,10 @@ $template->param(
     item_subfield_codes => \@item_subfield_codes,
     biblio              => $biblio,
     norequests          => $norequests,
+    borrowernumber      => $loggedinuser,
 );
+
+# Cites
+$template->param( cites => C4::Record::marc2cites($record) );
 
 output_html_with_http_headers $query, $cookie, $template->output;

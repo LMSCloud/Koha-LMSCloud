@@ -9,7 +9,7 @@ $(document).ready(function(){
         e.preventDefault();
         finderjump('authorities.pl?index=' + index + '&authtypecode=' + authtypecode, 'full' );
     });
-    // marclist
+    // marclistanywhere
     $( "#value_any" ).autocomplete({
         source: function(request, response) {
             $.ajax({
@@ -34,6 +34,40 @@ $(document).ready(function(){
                     }));
                 }
             });
+        },
+        select: function( event, ui ) {
+            $("#marclistanywhere").val("exact");
+        },
+        minLength: 3,
+    });
+    // marclistheading
+    $( "#value_match" ).autocomplete({
+        source: function(request, response) {
+            $.ajax({
+                url: "/cgi-bin/koha/authorities/ysearch.pl",
+                dataType: "json",
+                data: {
+                    authtypecode : authtypecode,
+                    term: request.term,
+                    op: "do_search",
+                    type: "intranet",
+                    and_or: "and",
+                    operator: "start",
+                    orderby: "HeadingAsc",
+                    querytype: "match"
+                },
+                success: function(data) {
+                    response( $.map( data, function( item ) {
+                        return {
+                            label: item.summary,
+                            value: item.summary
+                        };
+                    }));
+                }
+            });
+        },
+        select: function( event, ui ) {
+            $("#marclistheading").val("exact");
         },
         minLength: 3,
     });
@@ -63,6 +97,9 @@ $(document).ready(function(){
                 }
             });
         },
+        select: function( event, ui ) {
+            $("#mainentry").val("exact");
+        },
         minLength: 3,
     });
     // mainmainentry
@@ -91,7 +128,21 @@ $(document).ready(function(){
                 }
             });
         },
+        select: function( event, ui ) {
+            $("#mainmainentry").val("exact");
+        },
         minLength: 3,
+    });
+    $("#clear-form").click(function(){
+        setTimeout(function(){
+            $(":input[type='text']").val('');
+            $("#mainmainentry").val("contains");
+            $("#mainentry").val("contains");
+            $("#marclistheading").val("contains");
+            $("#marclistanywhere").val("contains");
+            $("#orderby").val("HeadingAsc");
+        }, 50);
+        return true;
     });
 });
 

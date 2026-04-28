@@ -19,16 +19,15 @@
 #
 
 use Modern::Perl;
-use Koha::Script;
-use C4::Context;
-use C4::Log;
 use Getopt::Long;
 use Pod::Usage;
 use YAML::XS;
 
-use Koha::Logger;
+use Koha::Database;
 
 our %NOT_SET_PREFS = map { $_, 1 } qw( Version );
+
+my $lazy_loaded;
 
 =head1 NAME
 
@@ -39,6 +38,21 @@ koha-preferences - Get, set, dump and load Koha system preferences
 misc/admin/koha-preferences COMMAND ...
 
 =cut
+
+sub _lazy_load_modules {
+    if (!$lazy_loaded){
+        #NOTE: "use" runs at compile time, so require/import() must be used instead
+        require Koha::Script;
+        Koha::Script->import();
+        require C4::Context;
+        C4::Context->import();
+        require C4::Log;
+        C4::Log->import;
+        require Koha::Logger;
+        Koha::Logger->import;
+        $lazy_loaded = 1;
+    }
+}
 
 sub print_usage {
     my ( $annoyed ) = @_;
@@ -68,7 +82,7 @@ sub _set_preference {
 }
 
 sub GetPreferences {
-    my $dbh = C4::Context->dbh;
+    my $dbh = Koha::Database->dbh;
 
     return {
         map { $_->{variable},  $_->{value} }
@@ -83,7 +97,7 @@ sub GetPreferences {
 sub SetPreferences {
     my ( %preferences ) = @_;
 
-    my $dbh = C4::Context->dbh;
+    my $dbh = Koha::Database->dbh;
 
     # First, a quick check to make sure all of the system preferences exist
     my $current_state = $dbh->selectall_arrayref( "
@@ -109,7 +123,7 @@ sub SetPreferences {
 sub _fetch_preference {
     my ( $preference ) = @_;
 
-    my $dbh = C4::Context->dbh;
+    my $dbh = Koha::Database->dbh;
 
     my $row = $dbh->selectrow_hashref( "
         SELECT
@@ -213,6 +227,7 @@ my %commands = (
     },
     load => sub {
         my ( $infile, $force_version );
+        _lazy_load_modules();
 
         GetOptions(
             'i:s' => \$infile,
@@ -244,6 +259,7 @@ my %commands = (
     },
     set => sub {
         my ( $preference, $value ) = @_;
+        _lazy_load_modules();
 
         print_usage() unless ( $preference && defined($value) );
 
@@ -251,6 +267,7 @@ my %commands = (
     },
     clear => sub {
         my ( $preference ) = @_;
+        _lazy_load_modules();
 
         print_usage() unless ( $preference );
 

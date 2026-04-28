@@ -2,6 +2,8 @@
 
 # Copyright PTFS Europe 2021
 #
+# Copyright PTFS Europe 2021
+#
 # This file is part of Koha.
 #
 # Koha is free software; you can redistribute it and/or modify it
@@ -20,6 +22,10 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
+
+use C4::Output qw( output_html_with_http_headers );
+use C4::Auth qw( get_template_and_user );
+
 
 use C4::Output qw( output_html_with_http_headers );
 use C4::Auth qw( get_template_and_user );

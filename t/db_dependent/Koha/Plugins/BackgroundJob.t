@@ -84,6 +84,6 @@ subtest 'background_tasks() hooks tests' => sub {
 
     is_deeply( $tasks, $bj->core_types_to_classes, 'Only core mapping returned when plugins disabled' );
 
+    Koha::Plugins->RemovePlugins;
     $schema->storage->txn_rollback;
-    Koha::Plugins::Methods->delete;
 };

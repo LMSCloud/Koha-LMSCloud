@@ -1,7 +1,14 @@
+[% USE raw %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-    <title>Patron card printing/exporting &rsaquo; Patron cards &rsaquo; Tools &rsaquo; Koha</title>
+    <title>[% FILTER collapse %]
+        [% t("Patron card printing/exporting") | html %] &rsaquo;
+        [% t("Patron cards") | html %] &rsaquo;
+        [% t("Tools") | html %] &rsaquo;
+        [% t("Koha") | html %]
+    [% END %]</title>
     [% INCLUDE 'doc-head-close.inc' popup => 1%]
 </head>
 
@@ -9,7 +16,7 @@
     <div class="container-fluid">
         <h1>Patron card printing/exporting</h1>
             [% IF ( batches ) %]
-            <form>
+            <form method="get">
                 <h3>Click on the following link(s) to download the exported batch(es).</h3>
                     <fieldset>
                     [% FOREACH batche IN batches %]
@@ -54,7 +61,7 @@
                         [% IF ( multi_batch_count == 1 ) %]<span>1 batch to export</span>[% ELSE %]<span>[% multi_batch_count | html %] batches to export</span>[% END %]
                     [% END %]
             </h3>
-            <form id="exportingf" name="exporting" method="post" action="/cgi-bin/koha/patroncards/print.pl">
+            <form id="exportingf" name="exporting" method="get" action="/cgi-bin/koha/patroncards/print.pl">
                 <input type="hidden" name="op" value="export" />
                 <input type="hidden" name="referer" value="[% referer | html %]" />
                 [% FOREACH batch_id IN batch_ids %]

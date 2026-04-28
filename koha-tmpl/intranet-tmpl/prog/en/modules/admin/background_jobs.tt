@@ -1,7 +1,8 @@
 [% USE raw %]
-[% USE KohaDates %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE KohaDates %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% BLOCK show_job_status %]
     [% SWITCH job.status %]
@@ -32,13 +33,14 @@
     [% END %]
 [% END %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF op == 'view' %]
-        Details of job #[% job.id | html %] &rsaquo;
+        [% tx("Details of job #{job_id}", { job_id = job.id }) | html %] &rsaquo;
     [% END %]
-    Jobs &rsaquo;
-    Administration &rsaquo; Koha
-</title>
+    [% t("Jobs") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
@@ -76,11 +78,12 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% FOR m IN messages %]
-    <div class="dialog message">
+    <div class="alert alert-info">
         [% SWITCH m.code %]
         [% CASE 'cannot_view_job' %]
             <div><i class="fa fa-exclamation error"></i>Insufficient permission to see this job.</div>
@@ -144,7 +147,7 @@
     <h1>Jobs</h1>
 
     <div>
-        <input type="checkbox" id="only_current" checked />
+        <input type="checkbox" id="only_current" />
         <label for="only_current">Current jobs only</label>
     </div>
 
@@ -172,13 +175,13 @@
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -205,56 +208,74 @@
         const job_types = [
             {
                 '_id': 'batch_biblio_record_modification',
-                '_str': _("Batch bibliographic record modification")
+                '_str': _("Batch bibliographic record modification").escapeHtml()
             },
             {
                 '_id': 'batch_biblio_record_deletion',
-                '_str': _("Batch bibliographic record deletion")
+                '_str': _("Batch bibliographic record deletion").escapeHtml()
             },
             {
                 '_id': 'batch_authority_record_modification',
-                '_str': _("Batch authority record modification")
+                '_str': _("Batch authority record modification").escapeHtml()
             },
             {
                 '_id': 'batch_authority_record_deletion',
-                '_str': _("Batch authority record deletion")
+                '_str': _("Batch authority record deletion").escapeHtml()
             },
             {
                 '_id': 'batch_item_record_modification',
-                '_str': _("Batch item record modification")
+                '_str': _("Batch item record modification").escapeHtml()
             },
             {
                 '_id': 'batch_item_record_deletion',
-                '_str': _("Batch item record deletion")
+                '_str': _("Batch item record deletion").escapeHtml()
+            },
+            {
+                '_id': 'erm_sushi_harvester',
+                '_str': _("ERM Usage Statistics SUSHI Harvester").escapeHtml()
             },
             {
                 '_id': 'batch_hold_cancel',
-                '_str': _("Batch hold cancellation")
+                '_str': _("Batch hold cancellation").escapeHtml()
+            },
+            {
+                '_id': 'pseudonymize_statistic',
+                '_str': _("Pseudonymize statistic").escapeHtml()
             },
             {
                 '_id': 'create_eholdings_from_biblios',
-                '_str': _("Create eHolding titles")
+                '_str': _("Create eHolding titles").escapeHtml()
             },
             {
                 '_id': 'update_elastic_index',
-                '_str': _("Update Elasticsearch index")
+                '_str': _("Update Elasticsearch index").escapeHtml()
             },
             {
                 '_id': 'update_holds_queue_for_biblios',
-                '_str': _("Holds queue update")
+                '_str': _("Holds queue update").escapeHtml()
             },
             {
                 '_id': 'stage_marc_for_import',
-                '_str': _("Staged MARC records for import")
+                '_str': _("Staged MARC records for import").escapeHtml()
             },
             {
                 '_id': 'marc_import_commit_batch',
-                '_str': _("Import MARC records")
+                '_str': _("Import MARC records").escapeHtml()
             },
             {
                 '_id': 'marc_import_revert_batch',
-                '_str': _("Revert import MARC records")
+                '_str': _("Revert import MARC records").escapeHtml()
             },
+            {
+                '_id': 'import_from_kbart_file',
+                '_str': _("Import titles from a KBART file").escapeHtml()
+            },
+            [% FOR job_type IN plugin_job_types %]
+            {
+                '_id': '[% job_type.id | html %]',
+                '_str': '[% job_type.str | html_entity %]'
+            },
+            [% END %]
         ];
 
         function get_job_type (job_type) {
@@ -296,7 +317,7 @@
                 "ajax": {
                     "url": "/api/v1/jobs?" + only_current_filter()
                 },
-                "order": [[ 1, "desc" ]],
+                "order": [[ 4, "desc" ]],
                 "columns": [
                     {
                         "data": "job_id",
@@ -324,7 +345,7 @@
                         "searchable": true,
                         "orderable": true,
                         "render": function(data, type, row, meta) {
-                            return get_job_type(row.type).escapeHtml();
+                            return get_job_type(row.type);
                         }
                     },
                     {
@@ -353,9 +374,9 @@
                     },
                     {
                         "data": function( row, type, val, meta ) {
-                            var result = '<a class="btn btn-default btn-xs" role="button" href="/cgi-bin/koha/admin/background_jobs.pl?op=view&amp;id='+ encodeURIComponent(row.job_id) +'"><i class="fa fa-eye" aria-hidden="true"></i> '+_("View")+'</a>'+"\n";
+                            var result = '<a class="btn btn-default btn-xs" role="button" href="/cgi-bin/koha/admin/background_jobs.pl?op=view&amp;id='+ encodeURIComponent(row.job_id) +'"><i class="fa-solid fa-eye aria-hidden="true"></i> '+_("View")+'</a>'+"\n";
                             if ( row.status == 'new' || row.status == 'started' ) {
-                                result += '<a class="btn btn-default btn-xs" role="button" href="/cgi-bin/koha/admin/background_jobs.pl?op=cancel&amp;id='+ encodeURIComponent(row.job_id) +'"><i class="fa fa-trash" aria-hidden="true"></i> '+_("Cancel")+'</a>';
+                                result += '<a class="btn btn-default btn-xs submit-form-link" role="button" href="#" data-action="/cgi-bin/koha/admin/background_jobs.pl" data-method="post" data-op="cud-cancel" data-confirmation-msg="[% t(\'Are you sure you want to cancel this job?\') | html %]" data-id="'+ encodeURIComponent(row.job_id) +'"><i class="fa fa-trash-can" aria-hidden="true"></i> '+_("Cancel")+'</a>';
                             }
                             return result;
                         },
@@ -363,12 +384,7 @@
                         "orderable": false
                     }
                 ]
-            }, null, 1, additional_filters);
-
-            $("#include_last_hour").on("change", function(){
-                jobs_table.DataTable().draw();
-                return false;
-            });
+            }, null, 1);
 
             $("#only_current").on("change", function(){
                 jobs_table.DataTable().ajax.url("/api/v1/jobs?" + only_current_filter()).load();

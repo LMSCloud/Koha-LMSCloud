@@ -25,7 +25,6 @@ use Class::Inspector;
 
 use Koha::Database;
 use Koha::Exceptions::Object;
-use Koha::DateUtils qw( dt_from_string );
 
 =head1 NAME
 
@@ -168,17 +167,19 @@ sub search_related {
 =cut
 
 sub delete {
-    my ($self) = @_;
+    my ( $self, $params ) = @_;
 
     if ( Class::Inspector->function_exists( $self->object_class, 'delete' ) ) {
         my $objects_deleted;
-        $self->_resultset->result_source->schema->txn_do( sub {
-            $self->reset; # If we iterated already over the set
-            while ( my $o = $self->next ) {
-                $o->delete;
-                $objects_deleted++;
+        $self->_resultset->result_source->schema->txn_do(
+            sub {
+                $self->reset;    # If we iterated already over the set
+                while ( my $o = $self->next ) {
+                    $o->delete($params);
+                    $objects_deleted++;
+                }
             }
-        });
+        );
         return $objects_deleted;
     }
 
@@ -232,38 +233,46 @@ sub update {
 
 =head3 filter_by_last_update
 
-my $filtered_objects = $objects->filter_by_last_update
+    my $filtered_objects = $objects->filter_by_last_update({
+        from => $from_datetime, to => $to_datetime,
+        days|older_than => $days, min_days => $days, younger_than => $days,
+    });
 
-days exclusive by default (will be inclusive if days_inclusive is passed and set)
-from inclusive
-to   inclusive
+You should pass at least one of the parameters: from, to, days|older_than,
+min_days or younger_than. Make sure that they do not conflict with each other
+to get meaningful results.
+Note: from, to and min_days are inclusive! And by nature days|older_than
+and younger_than are exclusive.
+
+The from and to parameters must be DateTime objects.
 
 =cut
 
 sub filter_by_last_update {
     my ( $self, $params ) = @_;
     my $timestamp_column_name = $params->{timestamp_column_name} || 'timestamp';
-    my $days_inclusive = $params->{days_inclusive} || 0;
     my $conditions;
-    Koha::Exceptions::MissingParameter->throw(
-        "Missing mandatory parameter: days or from or to")
-      unless exists $params->{days}
-          or exists $params->{from}
-          or exists $params->{to};
+    Koha::Exceptions::MissingParameter->throw("Please pass: days|from|to|older_than|younger_than")
+        unless grep { exists $params->{$_} } qw/days from to older_than younger_than min_days/;
+
+    foreach my $key (qw(from to)) {
+        if (exists $params->{$key} and ref $params->{$key} ne 'DateTime') {
+            Koha::Exceptions::WrongParameter->throw("'$key' parameter must be a DateTime object");
+        }
+    }
 
     my $dtf = Koha::Database->new->schema->storage->datetime_parser;
-    if ( exists $params->{days} ) {
-        my $dt = Koha::DateUtils::dt_from_string();
-        my $operator = $days_inclusive ? '<=' : '<';
-        $conditions->{$operator} = $dtf->format_date( $dt->subtract( days => $params->{days} ) );
+    foreach my $p ( qw/days older_than younger_than min_days/  ) {
+        next if !exists $params->{$p};
+        my $days = $params->{$p};
+        my $operator = { days => '<', older_than => '<', min_days => '<=' }->{$p} // '>';
+        $conditions->{$operator} = \['DATE_SUB(CURDATE(), INTERVAL ? DAY)', $days];
     }
     if ( exists $params->{from} ) {
-        my $from = ref($params->{from}) ? $params->{from} : dt_from_string($params->{from});
-        $conditions->{'>='} = $dtf->format_date( $from );
+        $conditions->{'>='} = $dtf->format_datetime( $params->{from} );
     }
     if ( exists $params->{to} ) {
-        my $to = ref($params->{to}) ? $params->{to} : dt_from_string($params->{to});
-        $conditions->{'<='} = $dtf->format_date( $to );
+        $conditions->{'<='} = $dtf->format_datetime( $params->{to} );
     }
 
     return $self->search(

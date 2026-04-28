@@ -2,7 +2,23 @@
     <div>
         <div v-if="!initialized">{{ $__("Loading") }}</div>
         <div v-else id="titles_list">
-            <Toolbar :options="this.toolbar_options" />
+            <Toolbar>
+                <ToolbarButton
+                    :to="{ name: 'EHoldingsLocalTitlesFormAdd' }"
+                    icon="plus"
+                    :title="$__('New title')"
+                />
+                <ToolbarButton
+                    :to="{ name: 'EHoldingsLocalTitlesFormImport' }"
+                    icon="plus"
+                    :title="$__('Import from list')"
+                />
+                <ToolbarButton
+                    :to="{ name: 'EHoldingsLocalTitlesKBARTImport' }"
+                    icon="plus"
+                    :title="$__('Import from KBART file')"
+                />
+            </Toolbar>
             <div
                 v-if="title_count > 0"
                 id="title_list_result"
@@ -16,7 +32,7 @@
                     @delete="doDelete"
                 ></KohaTable>
             </div>
-            <div v-else class="dialog message">
+            <div v-else class="alert alert-info">
                 {{ $__("There are no titles defined") }}
             </div>
         </div>
@@ -25,6 +41,7 @@
 
 <script>
 import Toolbar from "../Toolbar.vue"
+import ToolbarButton from "../ToolbarButton.vue"
 import { inject, ref, reactive } from "vue"
 import { storeToRefs } from "pinia"
 import { APIClient } from "../../fetch/api-client.js"
@@ -90,18 +107,6 @@ export default {
                 },
             },
             cannot_search: false,
-            toolbar_options: [
-                {
-                    to: "EHoldingsLocalTitlesFormAdd",
-                    icon: "plus",
-                    button_title: this.$__("New title"),
-                },
-                {
-                    to: "EHoldingsLocalTitlesFormImport",
-                    icon: "plus",
-                    button_title: this.$__("Import from list"),
-                },
-            ],
         }
     },
     beforeRouteEnter(to, from, next) {
@@ -218,28 +223,28 @@ export default {
                     render: function (data, type, row, meta) {
                         let print_identifier = row.print_identifier
                         let online_identifier = row.online_identifier
-                        return (
-                            (print_identifier
+                        return [
+                            print_identifier
                                 ? escape_str(
                                       __("ISBN (Print): %s").format(
                                           print_identifier
                                       )
                                   )
-                                : "") +
-                            (online_identifier
+                                : "",
+                            online_identifier
                                 ? escape_str(
                                       __("ISBN (Online): %s").format(
                                           online_identifier
                                       )
                                   )
-                                : "")
-                        )
+                                : "",
+                        ].join("<br/>")
                     },
                 },
             ]
         },
     },
-    components: { Toolbar, KohaTable },
+    components: { Toolbar, ToolbarButton, KohaTable },
     name: "EHoldingsLocalTitlesList",
 }
 </script>

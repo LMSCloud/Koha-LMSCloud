@@ -22,13 +22,17 @@
       - $ref: "../swagger.yaml#/parameters/framework_id_header"
       - $ref: "../swagger.yaml#/parameters/marc_schema_header"
       - $ref: "../swagger.yaml#/parameters/confirm_not_duplicate_header"
+      - $ref: "../swagger.yaml#/parameters/record_source_id_header"
     produces:
       - application/json
     responses:
       "200":
         description: A biblio
       "400":
-        description: Bad request
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `record_creation_failed`: An error occurred during record creation. The cause could not be determined.
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "401":
@@ -73,7 +77,6 @@
       - $ref: "../swagger.yaml#/parameters/order_by"
       - $ref: "../swagger.yaml#/parameters/q_param"
       - $ref: "../swagger.yaml#/parameters/q_body"
-      - $ref: "../swagger.yaml#/parameters/q_header"
       - $ref: "../swagger.yaml#/parameters/request_id_header"
     produces:
       - application/json
@@ -100,7 +103,7 @@
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "404":
-        description: Biblio not found
+        description: Bibliographic record not found
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "406":
@@ -155,7 +158,7 @@
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "404":
-        description: Biblio not found
+        description: Bibliographic record not found
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "406":
@@ -207,7 +210,7 @@
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "404":
-        description: Biblio not found
+        description: Bibliographic record not found
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "409":
@@ -266,7 +269,7 @@
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "404":
-        description: Biblio not found
+        description: Bibliographic record not found
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "406":
@@ -319,6 +322,7 @@
             - extended_attributes
             - extended_attributes+strings
         collectionFormat: csv
+      - $ref: "../swagger.yaml#/parameters/q_header"
     consumes:
       - application/json
     produces:
@@ -330,6 +334,13 @@
           type: array
           items:
             $ref: ../swagger.yaml#/definitions/booking
+      "400":
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `invalid_query`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
       "401":
         description: Authentication required
         schema:
@@ -339,7 +350,7 @@
         schema:
           $ref: ../swagger.yaml#/definitions/error
       "404":
-        description: Biblio not found
+        description: Bibliographic record not found
         schema:
           $ref: ../swagger.yaml#/definitions/error
       "406":
@@ -375,7 +386,6 @@
       - $ref: "../swagger.yaml#/parameters/order_by"
       - $ref: "../swagger.yaml#/parameters/q_param"
       - $ref: "../swagger.yaml#/parameters/q_body"
-      - $ref: "../swagger.yaml#/parameters/q_header"
       - $ref: "../swagger.yaml#/parameters/request_id_header"
       - name: x-koha-embed
         in: header
@@ -415,7 +425,7 @@
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "404":
-        description: Biblio not found
+        description: Bibliographic record not found
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "500":
@@ -451,7 +461,33 @@
           type: string
           enum:
             - +strings
+            - _status
+            - home_library
+            - holding_library
+            - biblio.title
+            - checkout
+            - checkout.patron
+            - transfer
+            - transfer+strings
+            - first_hold
+            - first_hold+strings
+            - first_hold.patron
+            - first_hold.desk
+            - recall
+            - recall+strings
+            - recall.patron
             - item_type
+            - in_bundle
+            - bundle_host
+            - bundle_host.biblio
+            - bundle_items_lost+count
+            - bundle_items_not_lost+count
+            - course_item.course_reserves.course
+            - analytics_count
+            - cover_image_ids
+            - item_group_item.item_group.description
+            - serial_item.serial
+            - return_claims
             - effective_bookable
         collectionFormat: csv
       - $ref: "../swagger.yaml#/parameters/match"
@@ -460,7 +496,6 @@
       - $ref: "../swagger.yaml#/parameters/per_page"
       - $ref: "../swagger.yaml#/parameters/q_param"
       - $ref: "../swagger.yaml#/parameters/q_body"
-      - $ref: "../swagger.yaml#/parameters/q_header"
       - $ref: "../swagger.yaml#/parameters/request_id_header"
       - name: bookable
         in: query
@@ -494,7 +529,7 @@
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "404":
-        description: Biblio not found
+        description: Bibliographic record not found
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "406":
@@ -518,6 +553,118 @@
     x-koha-authorization:
       permissions:
         catalogue: "1"
+  post:
+    x-mojo-to: Biblios#add_item
+    operationId: addBiblioItem
+    tags:
+      - biblios
+    summary: Add an item for a biblio
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+      - name: body
+        in: body
+        description: A JSON object containing information about the new item
+        required: true
+        schema:
+          $ref: "../swagger.yaml#/definitions/item"
+    produces:
+      - application/json
+    responses:
+      "201":
+        description: Item added
+        schema:
+          $ref: "../swagger.yaml#/definitions/item"
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "409":
+        description: Conflict
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        editcatalogue: edit_items
+"/biblios/{biblio_id}/items/{item_id}":
+  put:
+    x-mojo-to: Biblios#update_item
+    operationId: updateBiblioItem
+    tags:
+      - biblios
+    summary: Update an item for a biblio
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/biblio_id_pp"
+      - $ref: "../swagger.yaml#/parameters/item_id_pp"
+      - name: body
+        in: body
+        description: A JSON object containing information about the item
+        required: true
+        schema:
+          $ref: "../swagger.yaml#/definitions/item"
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: Item updated
+        schema:
+          $ref: "../swagger.yaml#/definitions/item"
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "409":
+        description: Conflict
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        editcatalogue: edit_items
 "/biblios/{biblio_id}/pickup_locations":
   get:
     x-mojo-to: Biblios#pickup_locations
@@ -538,7 +685,6 @@
       - $ref: "../swagger.yaml#/parameters/per_page"
       - $ref: "../swagger.yaml#/parameters/q_param"
       - $ref: "../swagger.yaml#/parameters/q_body"
-      - $ref: "../swagger.yaml#/parameters/q_header"
     consumes:
       - application/json
     produces:
@@ -566,7 +712,7 @@
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "404":
-        description: Biblio not found
+        description: Bibliographic record not found
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "500":
@@ -613,7 +759,7 @@
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "404":
-        description: Biblio not found
+        description: Bibliographic record not found
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "406":
@@ -810,12 +956,6 @@
       - $ref: "../swagger.yaml#/parameters/per_page"
       - $ref: "../swagger.yaml#/parameters/q_param"
       - $ref: "../swagger.yaml#/parameters/q_body"
-      - $ref: "../swagger.yaml#/parameters/q_header"
-      - name: bookable
-        in: query
-        description: Limit to items that are bookable
-        required: false
-        type: boolean
       - name: x-koha-embed
         in: header
         required: false
@@ -825,6 +965,7 @@
           type: string
           enum:
             - +strings
+        collectionFormat: csv
     consumes:
       - application/json
     produces:
@@ -852,7 +993,7 @@
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "404":
-        description: Biblio not found
+        description: Bibliographic record not found
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "406":
@@ -990,7 +1131,7 @@
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "404":
-        description: Biblio not found
+        description: Bibliographic record not found
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "500":

@@ -33,7 +33,6 @@ use C4::Languages;
 use Koha::Authority::Types;
 use Koha::SearchEngine::Search;
 use Koha::SearchEngine::QueryBuilder;
-use Koha::Token;
 use Koha::XSLT::Base;
 use Koha::Z3950Servers;
 
@@ -48,7 +47,7 @@ my ( $template, $loggedinuser, $cookie );
 my $authority_types = Koha::Authority::Types->search( {}, { order_by => ['authtypetext'] } );
 my $pending_deletion_authid;
 
-if ( $op eq "delete" ) {
+if ( $op eq "cud-delete" ) {
     ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         {
             template_name   => "authorities/authorities-home.tt",
@@ -57,12 +56,6 @@ if ( $op eq "delete" ) {
             flagsrequired   => { catalogue => 1 },
         }
     );
-
-    output_and_exit( $query, $cookie, $template, 'wrong_csrf_token' )
-        unless Koha::Token->new->check_csrf({
-            session_id => scalar $query->cookie('CGISESSID'),
-            token  => scalar $query->param('csrf_token'),
-        });
 
     DelAuthority({ authid => $authid });
     # FIXME No error handling here, DelAuthority needs adjustments
@@ -113,11 +106,6 @@ if ( $op eq "do_search" ) {
     }
 
     $template->param( search_query => $search_query ) if C4::Context->preference('DumpSearchQueryTemplate');
-    $template->param(
-        csrf_token => Koha::Token->new->generate_csrf({
-            session_id => scalar $query->cookie('CGISESSID'),
-        }),
-    );
 
     # search history
     if (C4::Context->preference('EnableSearchHistory')) {

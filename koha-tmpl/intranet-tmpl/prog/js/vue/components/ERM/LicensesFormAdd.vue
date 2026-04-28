@@ -25,12 +25,9 @@
                             <label for="license_vendor_id"
                                 >{{ $__("Vendor") }}:</label
                             >
-                            <v-select
+                            <FormSelectVendors
                                 id="license_vendor_id"
                                 v-model="license.vendor_id"
-                                label="name"
-                                :reduce="vendor => vendor.id"
-                                :options="vendors"
                             />
                         </li>
                         <li>
@@ -112,6 +109,11 @@
                         </li>
                     </ol>
                 </fieldset>
+                <AdditionalFieldsEntry
+                    resource_type="license"
+                    :additional_field_values="license.extended_attributes"
+                    @additional-fields-changed="additionalFieldsChanged"
+                />
                 <UserRoles
                     :user_type="$__('License user %s')"
                     :user_roles="license.user_roles"
@@ -119,7 +121,11 @@
                 />
                 <Documents :documents="license.documents" />
                 <fieldset class="action">
-                    <input type="submit" :value="$__('Submit')" />
+                    <input
+                        type="submit"
+                        class="btn btn-primary"
+                        :value="$__('Submit')"
+                    />
                     <router-link
                         :to="{ name: 'LicensesList' }"
                         role="button"
@@ -137,21 +143,19 @@ import { inject } from "vue"
 import flatPickr from "vue-flatpickr-component"
 import UserRoles from "./UserRoles.vue"
 import Documents from "./Documents.vue"
+import AdditionalFieldsEntry from "../AdditionalFieldsEntry.vue"
+import FormSelectVendors from "../FormSelectVendors.vue"
 import { setMessage, setWarning } from "../../messages"
 import { APIClient } from "../../fetch/api-client.js"
 import { storeToRefs } from "pinia"
 
 export default {
     setup() {
-        const vendorStore = inject("vendorStore")
-        const { vendors } = storeToRefs(vendorStore)
-
         const AVStore = inject("AVStore")
         const { av_license_types, av_license_statuses, av_user_roles } =
             storeToRefs(AVStore)
 
         return {
-            vendors,
             av_license_types,
             av_license_statuses,
             av_user_roles,
@@ -172,6 +176,7 @@ export default {
                 ended_on: undefined,
                 user_roles: [],
                 documents: [],
+                extended_attributes: [],
             },
             initialized: false,
         }
@@ -232,15 +237,9 @@ export default {
                 return false
             }
 
-            let apiUrl = "/api/v1/erm/licenses"
-
-            let method = "POST"
-            if (license.license_id) {
-                method = "PUT"
-                apiUrl += "/" + license.license_id
-            }
             delete license.license_id
             delete license.vendor
+            delete license._strings
 
             if (license.vendor_id == "") {
                 license.vendor_id = null
@@ -273,11 +272,16 @@ export default {
                 )
             }
         },
+        additionalFieldsChanged(additionalFieldValues) {
+            this.license.extended_attributes = additionalFieldValues
+        },
     },
     components: {
         flatPickr,
         UserRoles,
         Documents,
+        FormSelectVendors,
+        AdditionalFieldsEntry,
     },
     name: "LicensesFormAdd",
 }

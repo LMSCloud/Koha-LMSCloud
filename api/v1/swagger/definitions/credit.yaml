@@ -1,0 +1,87 @@
+---
+type: object
+properties:
+  account_line_id:
+    type:
+      - integer
+      - "null"
+    readOnly: true
+    description: Internal account line identifier
+  amount:
+    type: number
+    description: Credit amount
+  amount_outstanding:
+    type: number
+    readOnly: true
+    description: Outstanding amount
+  cash_register_id:
+    type:
+      - integer
+      - "null"
+    description: Internal identifier for the cash register used for the payment (if any)
+  credit_number:
+    type:
+      - string
+      - "null"
+    readOnly: true
+    description: Internally generated identifier for credits
+  date:
+    type: string
+    format: date-time
+    readOnly: true
+    description: Date the account line was created
+  description:
+    type:
+      - string
+      - "null"
+    readOnly: true
+    description: Account line description
+  interface:
+    type:
+      - string
+      - "null"
+    readOnly: true
+    description: 'Interface in which the account line was generated (values can be: api, cron, commandline, intranet, opac and sip)'
+  internal_note:
+    type:
+      - string
+      - "null"
+    description: Internal note
+  library_id:
+    type:
+      - string
+      - "null"
+    description: Internal identifier for the library in which the transaction took place
+  patron_id:
+    type: integer
+    readOnly: true
+    description: Internal identifier for the patron the account line belongs to
+  payment_type:
+    type:
+      - string
+      - "null"
+    description: Payment type
+  status:
+    type:
+      - string
+      - "null"
+    readOnly: true
+    description: The credit status
+  timestamp:
+    type: string
+    format: date-time
+    readOnly: true
+    description: Timestamp for the latest line update
+  type:
+    type:
+      - string
+      - "null"
+    description: Account credit type
+  user_id:
+    type:
+      - integer
+      - "null"
+    description: Internal patron identifier for the staff member that introduced the account line
+required:
+  - amount
+additionalProperties: false

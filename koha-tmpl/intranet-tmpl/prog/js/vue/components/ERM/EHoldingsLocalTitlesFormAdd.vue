@@ -366,9 +366,39 @@
                         </li>
                     </ol>
                 </fieldset>
+                <fieldset
+                    class="rows"
+                    v-if="
+                        (title.title_id && title.biblio_id) || !title.title_id
+                    "
+                >
+                    <legend>
+                        {{
+                            title.title_id
+                                ? $__("Update linked bibliographic record")
+                                : $__("Create linked bibliographic record")
+                        }}:
+                    </legend>
+                    <label for="create_linked_biblio"
+                        >{{
+                            title.title_id
+                                ? $__("Update bibliographic record")
+                                : $__("Create bibliographic record")
+                        }}:</label
+                    >
+                    <input
+                        type="checkbox"
+                        id="create_linked_biblio"
+                        v-model="title.create_linked_biblio"
+                    />
+                </fieldset>
                 <EHoldingsTitlesFormAddResources :resources="title.resources" />
                 <fieldset class="action">
-                    <input type="submit" value="Submit" />
+                    <input
+                        type="submit"
+                        class="btn btn-primary"
+                        :value="$__('Submit')"
+                    />
                     <router-link
                         :to="{ name: 'EHoldingsLocalTitlesList' }"
                         role="button"
@@ -390,15 +420,11 @@ import { storeToRefs } from "pinia"
 
 export default {
     setup() {
-        const vendorStore = inject("vendorStore")
-        const { vendors } = storeToRefs(vendorStore)
-
         const AVStore = inject("AVStore")
         const { av_title_publication_types } = storeToRefs(AVStore)
         const { get_lib_from_av } = AVStore
 
         return {
-            vendors,
             av_title_publication_types,
             get_lib_from_av,
         }
@@ -433,6 +459,7 @@ export default {
                 preceding_publication_title_id: "",
                 access_type: "",
                 resources: [],
+                create_linked_biblio: false,
             },
             initialized: false,
         }

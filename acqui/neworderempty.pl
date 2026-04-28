@@ -102,21 +102,27 @@ use Koha::Subscriptions;
 use Koha::UI::Form::Builder::Biblio;
 use Koha::AdditionalFields;
 
-our $input           = CGI->new;
-my $booksellerid    = $input->param('booksellerid');	# FIXME: else ERROR!
-my $budget_id       = $input->param('budget_id') || 0;
-my $title           = $input->param('title');
-my $author          = $input->param('author');
-my $publicationyear = $input->param('publicationyear');
-my $ordernumber          = $input->param('ordernumber') || '';
-our $biblionumber    = $input->param('biblionumber');
-our $basketno        = $input->param('basketno');
-my $suggestionid    = $input->param('suggestionid');
-my $uncertainprice  = $input->param('uncertainprice');
-my $import_batch_id = $input->param('import_batch_id'); # if this is filled, we come from a staged file, and we will return here after saving the order !
-my $from_subscriptionid  = $input->param('from_subscriptionid');
+our $input        = CGI->new;
+our $biblionumber = $input->param('biblionumber');
+our $basketno     = $input->param('basketno');
+our $breedingid   = $input->param('breedingid');
+my $booksellerid        = $input->param('booksellerid');           # FIXME: else ERROR!
+my $budget_id           = $input->param('budget_id') || 0;
+my $title               = $input->param('title');
+my $author              = $input->param('author');
+my $publicationyear     = $input->param('publicationyear');
+my $ordernumber         = $input->param('ordernumber') || '';
+my $suggestionid        = $input->param('suggestionid');
+my $uncertainprice      = $input->param('uncertainprice');
+my $from_subscriptionid = $input->param('from_subscriptionid');
+my $frameworkcode       = $input->param('frameworkcode') // q{};
+
+# if this is filled, we come from a staged file, and we will return here after saving the order !
+my $import_batch_id = $input->param('import_batch_id');
+
 my $data;
 my $new = 'no';
+my $op  = $input->param('op') || q{};
 
 our ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
     {
@@ -157,12 +163,10 @@ my $contract = GetContract({
     contractnumber => $basket->{contractnumber}
 });
 
-#simple parameters reading (all in one :-)
-our $params = $input->Vars;
 my $listprice=0; # the price, that can be in MARC record if we have one
-if ( $ordernumber eq '' and defined $params->{'breedingid'}){
+if ( $ordernumber eq '' and defined $breedingid ){
 #we want to import from the breeding reservoir (from a z3950 search)
-    my ($marcrecord, $encoding) = MARCfindbreeding($params->{'breedingid'});
+    my ($marcrecord, $encoding) = MARCfindbreeding($breedingid);
     die("Could not find the selected record in the reservoir, bailing") unless $marcrecord;
 
     # Remove all the items (952) from the imported record
@@ -173,7 +177,7 @@ if ( $ordernumber eq '' and defined $params->{'breedingid'}){
     my $duplicatetitle;
 #look for duplicates
     ($biblionumber,$duplicatetitle) = FindDuplicate($marcrecord);
-    if($biblionumber && !$input->param('use_external_source')) {
+    if($biblionumber && $op ne 'cud-use_external_source') {
         #if duplicate record found and user did not decide yet, first warn user
         #and let them choose between using a new record or an existing record
         Load_Duplicate($duplicatetitle);
@@ -182,13 +186,12 @@ if ( $ordernumber eq '' and defined $params->{'breedingid'}){
     #from this point: add a new record
     C4::Acquisition::FillWithDefaultValues($marcrecord, {only_mandatory => 1});
     my $bibitemnum;
-    $params->{'frameworkcode'} or $params->{'frameworkcode'} = "";
-    ( $biblionumber, $bibitemnum ) = AddBiblio( $marcrecord, $params->{'frameworkcode'} );
+    ( $biblionumber, $bibitemnum ) = AddBiblio( $marcrecord, $frameworkcode );
     # get the price if there is one.
     $listprice = GetMarcPrice($marcrecord, $marcflavour);
-    SetImportRecordStatus($params->{'breedingid'}, 'imported');
+    SetImportRecordStatus( $breedingid, 'imported' );
 
-    SetMatchedBiblionumber( $params->{breedingid}, $biblionumber );
+    SetMatchedBiblionumber( $breedingid, $biblionumber );
 }
 
 
@@ -211,6 +214,8 @@ if ( not $ordernumber ) {    # create order
     # otherwise, retrieve suggestion information.
     elsif ($suggestionid) {
         $data = GetSuggestion($suggestionid);
+        $data->{quantitysugg} = $data->{quantity};
+        undef $data->{quantity};
         $budget_id ||= $data->{'budgetid'} // 0;
     }
 
@@ -354,15 +359,15 @@ foreach my $r (@{$budgets}) {
 $template->param( sort1 => $data->{'sort1'} );
 $template->param( sort2 => $data->{'sort2'} );
 
-if ($basketobj->effective_create_items eq 'ordering' && !$ordernumber) {
+if ( $basketobj->effective_create_items eq 'ordering' ) {
     # Check if ACQ framework exists
-    my $marc = GetMarcStructure(1, 'ACQ', { unsafe => 1 } );
-    unless($marc) {
-        $template->param('NoACQframework' => 1);
+    my $marc = GetMarcStructure( 1, 'ACQ', { unsafe => 1 } );
+    unless ($marc) {
+        $template->param( 'NoACQframework' => 1 );
     }
     $template->param(
         AcqCreateItemOrdering => 1,
-        UniqueItemFields => C4::Context->preference('UniqueItemFields'),
+        UniqueItemFields      => C4::Context->preference('UniqueItemFields'),
     );
 }
 
@@ -424,29 +429,36 @@ $quantity //= 0;
 # Get additional fields
 my $record;
 my @additional_fields = Koha::AdditionalFields->search({ tablename => 'aqorders' })->as_list;
-my %additional_field_values;
+my $additional_field_values;
+my $items;
 if ($ordernumber) {
     my $order = Koha::Acquisition::Orders->find($ordernumber);
-    foreach my $value ($order->additional_field_values->as_list) {
-        $additional_field_values{$value->field_id} = $value->value;
-    }
+    $additional_field_values = $order->get_additional_field_values_for_template;
+    $items = $order->items;
 } elsif ( $biblionumber ) {
+    my %additional_field_values;
     foreach my $af (@additional_fields) {
+        my @marc_field_values;
         if ($af->marcfield) {
             $record //= Koha::Biblios->find($biblionumber)->metadata->record;
             my ($field, $subfield) = split /\$/, $af->marcfield;
-            $additional_field_values{$af->id} = $record->subfield($field, $subfield);
+            push @marc_field_values, $record->subfield( $field, $subfield ) if $record->subfield( $field, $subfield );
+            $additional_field_values{ $af->id } = \@marc_field_values;
         }
     }
+    $additional_field_values = \%additional_field_values
 }
+
 $template->param(
     additional_fields => \@additional_fields,
-    additional_field_values => \%additional_field_values,
+    additional_field_values => $additional_field_values,
+    items => $items,
 );
 
 # fill template
 $template->param(
-    existing         => $biblionumber,
+    existing => $biblionumber,
+
     # basket informations
     basketname           => $basket->{'basketname'},
     basketnote           => $basket->{'note'},
@@ -458,53 +470,57 @@ $template->param(
     authorisedby         => $basket->{'authorisedby'},
     authorisedbyname     => $basket->{'authorisedbyname'},
     closedate            => $basket->{'closedate'},
+
     # order details
     suggestionid         => $suggestion->{suggestionid},
     surnamesuggestedby   => $suggestion->{surnamesuggestedby},
     firstnamesuggestedby => $suggestion->{firstnamesuggestedby},
     biblionumber         => $biblionumber,
     uncertainprice       => $data->{'uncertainprice'},
-    discount_2dp         => sprintf( "%.2f",  $bookseller->discount ) ,   # for display
+    discount_2dp         => sprintf( "%.2f", $bookseller->discount ),      # for display
     discount             => $bookseller->discount,
     orderdiscount_2dp    => sprintf( "%.2f", $data->{'discount'} || 0 ),
     orderdiscount        => $data->{'discount'},
     order_internalnote   => $data->{'order_internalnote'},
     order_vendornote     => $data->{'order_vendornote'},
-    listincgst       => $bookseller->listincgst,
-    invoiceincgst    => $bookseller->invoiceincgst,
-    cur_active_sym   => $active_currency->symbol,
-    cur_active       => $active_currency->currency,
-    currencies       => Koha::Acquisition::Currencies->search,
-    currency         => $data->{currency},
-    vendor_currency  => $bookseller->listprice,
-    orderexists      => ( $new eq 'yes' ) ? 0 : 1,
-    title            => $data->{'title'},
-    author           => $data->{'author'},
-    publicationyear  => $data->{'publicationyear'} ? $data->{'publicationyear'} : $data->{'copyrightdate'},
-    editionstatement => $data->{'editionstatement'},
-    budget_loop      => $budget_loop,
-    isbn             => $data->{'isbn'},
-    ean              => $data->{'ean'},
-    seriestitle      => $data->{'seriestitle'},
-    itemtypeloop     => \@itemtypes,
-    quantity         => $quantity,
-    quantityrec      => $quantity,
-    rrp              => $data->{'rrp'},
-    replacementprice => $data->{'replacementprice'},
-    gst_values       => \@gst_values,
-    tax_rate         => $data->{tax_rate_on_ordering} ? $data->{tax_rate_on_ordering}+0.0 : $bookseller->tax_rate ? $bookseller->tax_rate+0.0 : 0,
-    listprice        => sprintf( "%.2f", $data->{listprice} || $data->{price} || $listprice),
-    total            => sprintf( "%.2f", ($data->{ecost} || 0) * ($data->{'quantity'} || 0) ),
-    ecost            => sprintf( "%.2f", $data->{ecost} || 0),
-    unitprice        => sprintf( "%.2f", $data->{unitprice} || 0),
-    publishercode    => $data->{'publishercode'},
-    barcode_subfield => $barcode_subfield,
-    import_batch_id  => $import_batch_id,
-    acqcreate        => $basketobj->effective_create_items eq "ordering" ? 1 : "",
-    users_ids        => join(':', @order_user_ids),
-    users            => \@order_users,
-    (uc(C4::Context->preference("marcflavour"))) => 1,
-    estimated_delivery_date => $data->{estimated_delivery_date},
+    listincgst           => $bookseller->listincgst,
+    invoiceincgst        => $bookseller->invoiceincgst,
+    cur_active_sym       => $active_currency->symbol,
+    cur_active           => $active_currency->currency,
+    currencies           => Koha::Acquisition::Currencies->search,
+    currency             => $data->{currency},
+    vendor_currency      => $bookseller->listprice,
+    orderexists          => ( $new eq 'yes' ) ? 0 : 1,
+    title                => $data->{'title'},
+    author               => $data->{'author'},
+    publicationyear      => $data->{'publicationyear'} ? $data->{'publicationyear'} : $data->{'copyrightdate'},
+    editionstatement     => $data->{'editionstatement'},
+    budget_loop          => $budget_loop,
+    isbn                 => $data->{'isbn'},
+    ean                  => $data->{'ean'},
+    seriestitle          => $data->{'seriestitle'},
+    itemtypeloop         => \@itemtypes,
+    quantity             => $quantity,
+    quantityrec          => $quantity,
+    quantitysugg         => $data->{quantitysugg},
+    rrp                  => $data->{'rrp'},
+    replacementprice     => $data->{'replacementprice'},
+    gst_values           => \@gst_values,
+    tax_rate             => $data->{tax_rate_on_ordering} ? $data->{tax_rate_on_ordering} + 0.0
+    : $bookseller->tax_rate ? $bookseller->tax_rate + 0.0
+    : 0,
+    listprice => sprintf( "%.2f", $data->{listprice} || $data->{price} || $listprice ),
+    total     => sprintf( "%.2f", ( $data->{ecost} || 0 ) * ( $data->{'quantity'} || 0 ) ),
+    ecost     => sprintf( "%.2f", $data->{ecost}     || 0 ),
+    unitprice => sprintf( "%.2f", $data->{unitprice} || 0 ),
+    publishercode                                    => $data->{'publishercode'},
+    barcode_subfield                                 => $barcode_subfield,
+    import_batch_id                                  => $import_batch_id,
+    acqcreate                                        => $basketobj->effective_create_items eq "ordering" ? 1 : "",
+    users_ids                                        => join( ':', @order_user_ids ),
+    users                                            => \@order_users,
+    ( uc( C4::Context->preference("marcflavour") ) ) => 1,
+    estimated_delivery_date                          => $data->{estimated_delivery_date},
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;
@@ -626,7 +642,7 @@ sub Load_Duplicate {
     biblionumber        => $biblionumber,
     basketno            => $basketno,
     booksellerid        => $basket->{'booksellerid'},
-    breedingid          => $params->{'breedingid'},
+    breedingid          => $breedingid,
     duplicatetitle      => $duplicatetitle,
     (uc(C4::Context->preference("marcflavour"))) => 1
   );

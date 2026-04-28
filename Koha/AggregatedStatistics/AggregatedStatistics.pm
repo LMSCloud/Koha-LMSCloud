@@ -23,7 +23,7 @@ use Carp;
 
 use Koha::Database;
 
-use Koha::AggregatedStatistics::AggregatedStatistics;
+use Koha::AggregatedStatistics::AggregatedStatistic;
 
 use base qw(Koha::Objects);
 

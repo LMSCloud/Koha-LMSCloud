@@ -81,6 +81,20 @@ __PACKAGE__->table("creator_layouts");
   default_value: 10
   is_nullable: 0
 
+=head2 scale_width
+
+  data_type: 'decimal'
+  default_value: 0.800000
+  is_nullable: 0
+  size: [28,6]
+
+=head2 scale_height
+
+  data_type: 'decimal'
+  default_value: 0.010000
+  is_nullable: 0
+  size: [28,6]
+
 =head2 units
 
   data_type: 'char'
@@ -158,6 +172,20 @@ __PACKAGE__->add_columns(
   { data_type => "char", default_value => "TR", is_nullable => 0, size => 10 },
   "font_size",
   { data_type => "integer", default_value => 10, is_nullable => 0 },
+  "scale_width",
+  {
+    data_type => "decimal",
+    default_value => "0.800000",
+    is_nullable => 0,
+    size => [28, 6],
+  },
+  "scale_height",
+  {
+    data_type => "decimal",
+    default_value => "0.010000",
+    is_nullable => 0,
+    size => [28, 6],
+  },
   "units",
   { data_type => "char", default_value => "POINT", is_nullable => 0, size => 20 },
   "callnum_split",
@@ -202,9 +230,9 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("layout_id");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:NrTcm8JX6G6NBMG5WarZAQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:55
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:o5CdU4ddCP5SKH1T0CUMMw
 
 
-# You can replace this text with custom code or comments, and it will be preserved on regeneration
+# You can replace this text with custom content, and it will be preserved on regeneration
 1;

@@ -41,9 +41,15 @@ Print a brief help message and exits.
 
 Prints the manual page and exits.
 
-=item B<--force>
+=item b<--force>
 
-Allows this script to rebuild the entire holds queue even if the RealTimeHoldsQueue system preference is enabled.
+allows this script to rebuild the entire holds queue even if the realtimeholdsqueue system preference is enabled.
+
+=item b<--unallocated>
+
+prevents deletion of current queue and allows the script to only deal with holds not currently in the queue.
+This is useful when using the realtimeholdsqueue and skipping closed libraries, or allowing holds in the future
+This allows the script to catch holds that may have become active without triggering a real time update.
 
 =back
 
@@ -53,16 +59,19 @@ This script builds or rebuilds the entire holds queue.
 
 =cut
 
-my $help  = 0;
-my $man   = 0;
-my $force = 0;
+my $help        = 0;
+my $man         = 0;
+my $force       = 0;
+my $unallocated = 0;
 
 my $command_line_options = join( " ", @ARGV );
+cronlogaction( { info => $command_line_options } );
 
 GetOptions(
-    'h|help'  => \$help,
-    'm|man'   => \$man,
-    'f|force' => \$force,
+    'h|help'        => \$help,
+    'm|man'         => \$man,
+    'f|force'       => \$force,
+    'u|unallocated' => \$unallocated
 );
 pod2usage(1)                              if $help;
 pod2usage( -exitval => 0, -verbose => 2 ) if $man;
@@ -75,8 +84,7 @@ if ( $rthq && !$force ) {
     exit(1);
 }
 
-cronlogaction( { info => $command_line_options } );
-
-CreateQueue();
+my $loops = C4::Context->preference('HoldsQueueParallelLoopsCount');
+CreateQueue( { loops => $loops, unallocated => $unallocated } );
 
 cronlogaction( { action => 'End', info => "COMPLETED" } );

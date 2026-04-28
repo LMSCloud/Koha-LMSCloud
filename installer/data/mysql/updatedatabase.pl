@@ -42,6 +42,7 @@ use Koha::Database;
 use Koha;
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Caches;
+use Koha::Installer::Output qw ( say_failure );
 
 use MARC::Record;
 use MARC::File::XML ( BinaryEncoding => 'utf8' );
@@ -4904,7 +4905,7 @@ $DBversion = "3.07.00.024";
 if ( C4::Context->preference("Version") < TransformToNum($DBversion) ) {
     $dbh->do("INSERT INTO systempreferences (variable,value,options,explanation,type) VALUES ('ExpireReservesMaxPickUpDelayCharge', '0', NULL , 'If ExpireReservesMaxPickUpDelay is enabled, and this field has a non-zero value, than a borrower whose waiting hold has expired will be charged this amount.',  'free')");
     $dbh->do("INSERT INTO systempreferences (variable,value,options,explanation,type) VALUES ('ExpireReservesMaxPickUpDelay', '0', '', 'Enabling this allows holds to expire automatically if they have not been picked by within the time period specified in ReservesMaxPickUpDelay', 'YesNo')");
-    print "Upgrade to $DBversion done (Added system preference ExpireReservesMaxPickUpDelay, system preference ExpireReservesMaxPickUpDelayCharge, add reseves.charge_if_expired)\n";
+    print "Upgrade to $DBversion done (Added system preference ExpireReservesMaxPickUpDelay, system preference ExpireReservesMaxPickUpDelayCharge, add reserves.charge_if_expired)\n";
 }
 
 $DBversion = "3.07.00.025";
@@ -6498,8 +6499,8 @@ if ( CheckVersion($DBversion) ) {
 
 $DBversion = "3.11.00.024";
 if ( CheckVersion($DBversion) ) {
-    $dbh->do("INSERT INTO systempreferences (variable,value,explanation,options,type) VALUES('OpacItemLocation','callnum','Show the shelving location of items in the opac','callnum|ccode|location','Choice');");
-    print "Upgrade to $DBversion done (Bug 5079: Add OpacItemLocation syspref)\n";
+    $dbh->do("INSERT INTO systempreferences (variable,value,explanation,options,type) VALUES('OPACItemLocation','callnum','Show the shelving location of items in the opac','callnum|ccode|location','Choice');");
+    print "Upgrade to $DBversion done (Bug 5079: Add OPACItemLocation syspref)\n";
     SetVersion ($DBversion);
 }
 
@@ -24121,9 +24122,9 @@ $DBversion = '20.06.00.021';
 if( CheckVersion( $DBversion ) ) {
     $dbh->do(q{
         UPDATE systempreferences SET options = "callnum|ccode|location|library"
-        WHERE variable = "OpacItemLocation"
+        WHERE variable = "OPACItemLocation"
     });
-    NewVersion( $DBversion, 25871, "Add library option to OpacItemLocation");
+    NewVersion( $DBversion, 25871, "Add library option to OPACItemLocation");
 }
 
 $DBversion = '20.06.00.022';

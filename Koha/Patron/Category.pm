@@ -36,18 +36,60 @@ Koha::Patron;;Category - Koha Patron;;Category Object class
 
 =cut
 
-=head3 effective_BlockExpiredPatronOpacActions
+=head3 effective_BlockExpiredPatronOpacActions_contains
 
-my $BlockExpiredPatronOpacActions = $category->effective_BlockExpiredPatronOpacActions
+my $actionBlocked = $category->effective_BlockExpiredPatronOpacActions_contains('hold');
 
-Return the effective BlockExpiredPatronOpacActions value.
+Return if the provided action is blocked by BlockExpiredPatronOpacActions, accounting for the syspref.
+
+=over
+
+=item action
+
+Action, can be one of: ['hold', 'renew', 'ill_request']
+
+=back
 
 =cut
 
-sub effective_BlockExpiredPatronOpacActions {
-    my( $self) = @_;
-    return C4::Context->preference('BlockExpiredPatronOpacActions') if $self->BlockExpiredPatronOpacActions == -1;
-    return $self->BlockExpiredPatronOpacActions
+sub effective_BlockExpiredPatronOpacActions_contains {
+    my ( $self, $action ) = @_;
+
+    my $blocked_actions = {
+        map { ( $_, 1 ); } split /\s*\,\s*/,
+        C4::Context->preference('BlockExpiredPatronOpacActions')
+    };
+
+    return $blocked_actions->{$action} if $self->BlockExpiredPatronOpacActions_contains('follow_syspref_BlockExpiredPatronOpacActions');
+    return $self->BlockExpiredPatronOpacActions_contains($action)
+}
+
+=head3 BlockExpiredPatronOpacActions_contains
+
+my $actionBlocked = $self->BlockExpiredPatronOpacActions_contains('hold');
+
+Return if the provided action is blocked by this category's BlockExpiredPatronOpacActions value.
+
+=over
+
+=item action
+
+Action, can be one of: ['hold', 'renew', 'ill_request']
+
+=back
+
+=cut
+
+sub BlockExpiredPatronOpacActions_contains {
+    my ( $self, $action ) = @_;
+
+    my $blocked_actions = {
+        map { ( $_, 1 ); } split /\s*\,\s*/,
+        $self->BlockExpiredPatronOpacActions
+    };
+
+    return unless $blocked_actions->{$action};
+    return 1;
 }
 
 =head3 store
@@ -187,6 +229,22 @@ sub effective_require_strong_password {
     return $self->require_strong_password // C4::Context->preference('RequireStrongPassword');
 }
 
+=head3 effective_force_password_reset_when_set_by_staff
+
+    $category->effective_force_password_reset_when_set_by_staff()
+
+Returns if new staff created patrons in this category are forced to reset their password. If set in $self->force_password_reset_when_set_by_staff
+or, if undef, falls back to the ForcePasswordResetWhenSetByStaff system preference.
+
+=cut
+
+sub effective_force_password_reset_when_set_by_staff {
+    my ($self) = @_;
+
+    return $self->force_password_reset_when_set_by_staff // C4::Context->preference('ForcePasswordResetWhenSetByStaff');
+}
+
+
 =head3 override_hidden_items
 
     if ( $patron->category->override_hidden_items ) {
@@ -227,6 +285,43 @@ sub can_make_suggestions {
     }
 
     return 0;
+}
+
+=head3 to_api_mapping
+
+This method returns the mapping for representing a Koha::Patron:Category
+object on the API.
+
+=cut
+
+sub to_api_mapping {
+    return {
+        categorycode                           => 'patron_category_id',
+        description                            => 'name',
+        enrolmentperiod                        => 'enrolment_period',
+        enrolmentperioddate                    => 'enrolment_period_date',
+        password_expiry_days                   => 'password_expiry_days',
+        upperagelimit                          => 'upper_age_limit',
+        dateofbirthrequired                    => 'lower_age_limit',
+        enrolmentfee                           => 'enrolment_fee',
+        overduenoticerequired                  => 'overdue_notice_required',
+        reservefee                             => 'reserve_fee',
+        hidelostitems                          => 'hide_lost_items',
+        category_type                          => 'category_type',
+        BlockExpiredPatronOpacActions          => 'block_expired_patron_opac_actions',
+        default_privacy                        => 'default_privacy',
+        checkprevcheckout                      => 'check_prev_checkout',
+        can_place_ill_in_opac                  => 'can_place_ill_in_opac',
+        can_be_guarantee                       => 'can_be_guarantee',
+        reset_password                         => 'reset_password',
+        change_password                        => 'change_password',
+        min_password_length                    => 'min_password_length',
+        require_strong_password                => 'require_strong_password',
+        exclude_from_local_holds_priority      => 'exclude_from_local_holds_priority',
+        noissuescharge                         => 'no_issues_charge',
+        noissueschargeguarantees               => 'no_issues_charge_guarantees',
+        noissueschargeguarantorswithguarantees => 'no_issues_charge_guarantors_with_guarantees'
+    };
 }
 
 =head2 Internal methods

@@ -89,13 +89,14 @@ export default {
             $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(
                 search => search.name != "apply_filter"
             )
-            $("#" + table_id).dataTable(
-                $.extend(true, {}, dataTablesDefaults, {
+            $("#" + table_id).dataTable({
+                ...dataTablesDefaults,
+                ...{
                     data: resources,
                     embed: ["package.name"],
                     ordering: false,
                     dom: '<"top pager"<"table_entries"ilp>>tr<"bottom pager"ip>',
-                    aLengthMenu: [
+                    lengthMenu: [
                         [10, 20, 50, 100],
                         [10, 20, 50, 100],
                     ],
@@ -145,7 +146,7 @@ export default {
                                         n,
                                         " ",
                                         createVNode("i", {
-                                            class: "fa fa-check-square-o",
+                                            class: "fa fa-check-square",
                                             style: {
                                                 color: "green",
                                                 float: "right",
@@ -159,26 +160,28 @@ export default {
                         )
                     },
                     initComplete: function () {
-                        $.fn.dataTable.ext.search.push(function apply_filter(
-                            settings,
-                            data,
-                            dataIndex,
-                            row
-                        ) {
-                            return (
-                                row.package.name.match(
-                                    new RegExp(filters.package_name, "i")
-                                ) &&
-                                (filters.selection_type == 0 ||
-                                    (filters.selection_type == 1 &&
-                                        row.is_selected) ||
-                                    (filters.selection_type == 2 &&
-                                        !row.is_selected))
-                            )
-                        })
+                        $.fn.dataTable.ext.search.push(
+                            function apply_filter(
+                                settings,
+                                data,
+                                dataIndex,
+                                row
+                            ) {
+                                return (
+                                    row.package.name.match(
+                                        new RegExp(filters.package_name, "i")
+                                    ) &&
+                                    (filters.selection_type == 0 ||
+                                        (filters.selection_type == 1 &&
+                                            row.is_selected) ||
+                                        (filters.selection_type == 2 &&
+                                            !row.is_selected))
+                                )
+                            }
+                        )
                     },
-                })
-            )
+                },
+            })
         },
     },
     mounted() {

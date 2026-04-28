@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Koha %]
 [% USE AdditionalContents %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
@@ -11,16 +12,11 @@
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-            </li>
-            <li class="breadcrumb-item active">
-                <a href="#" aria-current="page">Discharge</a>
-            </li>
-        </ol>
-    </nav> <!-- /#breadcrumbs -->
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Discharge</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
 
     <div class="container-fluid">
         <div class="row">
@@ -33,7 +29,7 @@
                 <div id="discharge" class="maincontent">
                     <h1>Discharge</h1>
                     [% FOR message IN messages %]
-                        <div class="dialog [% message.type | html %]">
+                        <div class="alert alert-[% message.type | html %]">
                         [% IF message.code == "unable_to_generate_pdf" %]
                             An error occurs when generating the pdf file.
                             Please contact the staff to resolve this problem.
@@ -56,7 +52,11 @@
                         [% IF has_checkouts %]
                             <div class="alert alert-info">You cannot be discharged, you have checked out items. Please return items before asking for a discharge.</div>
                         [% ELSE %]
-                            <a class="btn btn-primary" href="/cgi-bin/koha/opac-discharge.pl?op=request">Ask for a discharge</a>
+                            <form action="/cgi-bin/koha/opac-discharge.pl" method="post">
+                                [% INCLUDE 'csrf-token.inc' %]
+                                <input type="hidden" name="op" value="cud-request" />
+                                <button class="btn btn-primary" type="submit">Ask for a discharge</button>
+                            </form>
                         [% END %]
 
                     [% END %]

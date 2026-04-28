@@ -11,6 +11,7 @@ const util = require('util');
 const stream = require('stream/promises');
 
 const sass = require('gulp-sass')(require('sass'));
+const tildeImporter = require('node-sass-tilde-importer');
 const rtlcss = require('gulp-rtlcss');
 const sourcemaps = require('gulp-sourcemaps');
 const autoprefixer = require('gulp-autoprefixer');
@@ -30,6 +31,7 @@ var CSS_BASE = args.view == "opac"
     : STAFF_CSS_BASE;
 
 var sassOptions = {
+    importer: tildeImporter,
     includePaths: [
         __dirname + '/node_modules',
         __dirname + '/../node_modules'
@@ -39,27 +41,33 @@ var sassOptions = {
 // CSS processing for development
 function css(css_base) {
     css_base = css_base || CSS_BASE
-    var stream = src(css_base + "/src/**/*.scss")
-        .pipe(sourcemaps.init())
-        .pipe(sass(sassOptions).on('error', sass.logError))
-        .pipe(autoprefixer())
-        .pipe(dest(css_base));
+    var stream = src(css_base + "/src/**/*.scss", { sourcemaps: true } );
 
     if (args.view == "opac") {
         stream = stream
-            .pipe(rtlcss())
-            .pipe(rename({
-                suffix: '-rtl'
-            })) // Append "-rtl" to the filename.
-            .pipe(dest(css_base));
+        .pipe(sass(sassOptions).on('error', sass.logError))
+        .pipe(autoprefixer())
+        .pipe(dest(css_base))
+        .pipe(rtlcss())
+        .pipe(rename({
+            suffix: '-rtl'
+        })) // Append "-rtl" to the filename.
+        .pipe(dest(css_base, { sourcemaps: "./maps" } ));
+    } else {
+        stream = stream
+        .pipe(sass(sassOptions).on('error', sass.logError))
+        .pipe(autoprefixer())
+        .pipe(dest(css_base))
+        .pipe(rtlcss())
+        .pipe(rename({
+            suffix: '-rtl'
+        })) // Append "-rtl" to the filename.
+        .pipe(dest(css_base, { sourcemaps: "./maps" } ));
     }
 
-    stream = stream.pipe(sourcemaps.write('./maps'))
-        .pipe(dest(css_base));
-
     return stream;
-
 }
+
 // CSS processing for production
 function build(css_base) {
     css_base = css_base || CSS_BASE;
@@ -67,16 +75,12 @@ function build(css_base) {
     var stream = src(css_base + "/src/**/*.scss")
         .pipe(sass(sassOptions).on('error', sass.logError))
         .pipe(autoprefixer())
-        .pipe(dest(css_base));
-
-    if( args.view == "opac" ){
-        stream = stream.pipe(rtlcss())
+        .pipe(dest(css_base))
+        .pipe(rtlcss())
         .pipe(rename({
             suffix: '-rtl'
         })) // Append "-rtl" to the filename.
         .pipe(dest(css_base));
-    }
-
     return stream;
 }
 
@@ -217,9 +221,7 @@ function po_extract_messages_js () {
     const globs = [
         'koha-tmpl/intranet-tmpl/prog/js/vue/**/*.vue',
         'koha-tmpl/intranet-tmpl/prog/js/**/*.js',
-        'koha-tmpl/intranet-tmpl/prog/js/**/*.mjs',
         'koha-tmpl/opac-tmpl/bootstrap/js/**/*.js',
-        'koha-tmpl/opac-tmpl/bootstrap/js/**/*.mjs',
     ];
 
     return src(globs, { read: false, nocase: true })
@@ -387,6 +389,7 @@ function xgettext (cmd, filename) {
                         file.path = path.join(file.base, filename);
                         file.contents = data;
                         callback(null, file);
+                        fs.rmSync(folder, { recursive: true });
                     });
                 });
             });

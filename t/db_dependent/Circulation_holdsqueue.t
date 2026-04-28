@@ -17,7 +17,8 @@
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::More tests => 2;
+use Test::NoWarnings;
 use Test::MockModule;
 
 use C4::Circulation qw( AddIssue AddReturn );
@@ -58,7 +59,7 @@ subtest 'AddIssue() and AddReturn() real-time holds queue tests' => sub {
     } );
 
     $action = 'AddIssue';
-    AddIssue( $patron->unblessed, $item->barcode, );
+    AddIssue( $patron, $item->barcode, );
 
     $action = 'AddReturn';
     AddReturn( $item->barcode );
@@ -66,7 +67,7 @@ subtest 'AddIssue() and AddReturn() real-time holds queue tests' => sub {
     t::lib::Mocks::mock_preference( 'RealTimeHoldsQueue', 0 );
 
     $action = 'AddIssue';
-    AddIssue( $patron->unblessed, $item->barcode, );
+    AddIssue( $patron, $item->barcode, );
 
     $action = 'AddReturn';
     AddReturn( $item->barcode );

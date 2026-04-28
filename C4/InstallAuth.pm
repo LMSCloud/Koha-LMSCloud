@@ -27,6 +27,8 @@ use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
 use C4::Templates;
 
+use Koha::Session;
+
 our (@ISA, @EXPORT_OK);
 BEGIN {
     @ISA    = qw(Exporter);
@@ -109,7 +111,13 @@ sub get_template_and_user {
     my $filename = "$path/modules/" . $tmplbase;
     my $interface = 'intranet';
     my $template = C4::Templates->new( $interface, $filename, $tmplbase, $query);
-    
+
+    my $request_method = $in->{query}->request_method // q{};
+    unless ( $request_method eq 'POST' && $in->{query}->param('op') eq 'cud-login' ) {
+        $in->{query}->param('login_userid', '');
+        $in->{query}->param('login_password', '')
+    }
+
     my ( $user, $cookie, $sessionID, $flags ) = checkauth(
         $in->{'query'},
         $in->{'authnotrequired'},
@@ -117,7 +125,7 @@ sub get_template_and_user {
         $in->{'type'}
     );
 
-    #     use Data::Dumper;warn "utilisateur $user cookie : ".Dumper($cookie);
+    my $session = Koha::Session->get_session( { sessionID => $sessionID, storage_method => 'file' } );
 
     my $borrowernumber;
     if ($user) {
@@ -233,18 +241,17 @@ sub checkauth {
     my $dbh = C4::Context->dbh();
     my $template_name;
     $template_name = "installer/auth.tt";
-    my $sessdir = File::Spec->catdir( C4::Context::temporary_directory, 'cgisess_' . C4::Context->config('database') ); # same construction as in C4/Auth
 
     # state variables
     my $loggedin = 0;
     my %info;
-    my ( $userid, $cookie, $sessionID, $flags, $envcookie );
+    my ( $userid, $cookie, $flags, $envcookie );
     my $logout = $query->param('logout.x');
-    if ( $sessionID = $query->cookie("CGISESSID") ) {
-        C4::Context->_new_userenv($sessionID);
-        my $session =
-          CGI::Session->new( "driver:File;serializer:yaml", $sessionID,
-            { Directory => $sessdir } );
+
+    my $sessionID = $query->cookie("CGISESSID");
+    my $session = Koha::Session->get_session( { sessionID => $sessionID, storage_method => 'file' } );
+
+    if ( $session ) {
         if ( $session->param('cardnumber') ) {
             C4::Context->set_userenv(
                 $session->param('number'),
@@ -267,29 +274,19 @@ sub checkauth {
             $loggedin = 1;
             $userid   = $session->param('cardnumber');
         }
-
-        if ($logout) {
-
-            # voluntary logout the user
-            C4::Context->_unset_userenv($sessionID);
-            $sessionID = undef;
-            $userid    = undef;
-	   # Commented out due to its lack of usefulness
-           # open L, ">>/tmp/sessionlog";
-           # my $time = localtime( time() );
-           # printf L "%20s from %16s logged out at %30s (manually).\n", $userid,
-           #   $ip, $time;
-           # close L;
-        }
     }
+
+    if ($logout || !$session) {
+        # voluntary logout the user
+        C4::Context->unset_userenv();
+        $session = Koha::Session->get_session( { storage_method => 'file' } );
+    }
+
+    $sessionID = $session->id;
+
     unless ($userid) {
-        my $session =
-          CGI::Session->new( "driver:File;serializer:yaml", undef, { Directory => $sessdir } );
-        $sessionID = $session->id;
-        $userid    = $query->param('userid');
-        C4::Context->_new_userenv($sessionID);
-        my $password = $query->param('password');
-        C4::Context->_new_userenv($sessionID);
+        $userid = $query->param('login_userid');
+        my $password = $query->param('login_password');
         my ( $return, $cardnumber ) = checkpw( $userid, $password );
         if ($return) {
             $loggedin = 1;
@@ -335,7 +332,7 @@ sub checkauth {
         else {
             if ($userid) {
                 $info{'invalid_username_or_password'} = 1;
-                C4::Context->_unset_userenv($sessionID);
+                C4::Context->unset_userenv();
             }
         }
     }
@@ -388,7 +385,14 @@ sub checkauth {
                 $template->param( 'invalid_username_or_password' => $info{'invalid_username_or_password'});
     }
 
-    $template->param( \%info );
+    unless ( $sessionID ) {
+        $session = Koha::Session->get_session( { storage_method => 'file' } );
+        $sessionID = $session->id;
+    }
+    $template->param(
+        %info,
+        sessionID => $sessionID,
+    );
     $cookie = $query->cookie(
         -name    => 'CGISESSID',
         -value   => $sessionID,

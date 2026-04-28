@@ -1,15 +1,16 @@
-[% INCLUDE 'doc-head-open.inc' %]
 [% USE raw %]
-    <title>Print notices for [% today | html %]</title>
+[% PROCESS 'i18n.inc' %]
+[% INCLUDE 'doc-head-open.inc' %]
+    <title>[% FILTER collapse %]
+        [% tx("Print notices for {today}", { today = today }) | html %]
+    [% END %]</title>
+
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <style>
-        <!-- 
+        <!--
         .message { page-break-after: always }
         pre { font-family: monospace }
         pre {white-space: pre-wrap;}
-        pre {white-space: -moz-pre-wrap;}
-        pre {white-space: -o-pre-wrap;}
-        pre {word-wrap: break-work;}
         -->
     </style>
     [% IF ( stylesheet ) %]
@@ -17,14 +18,14 @@
     [% END %]
 </head>
 <body id="batch_print-notices" class="batch">
-[% FOREACH message IN messages %]
-[% IF ( message.is_html ) %]
-[% message.content | $raw %]
-[% ELSE %]
-<div class="dialog message">
-<pre>[% message.content | $raw %]</pre>
-</div>
-[% END %]
-[% END %]
+    [% FOREACH message IN messages %]
+    <div class="message">
+        [% IF ( message.is_html ) %]
+            [% message.content | $raw %]
+        [% ELSE %]
+            <pre>[% message.content | $raw %]</pre>
+        [% END %]
+    </div>
+    [% END %]
 </body>
 </html>

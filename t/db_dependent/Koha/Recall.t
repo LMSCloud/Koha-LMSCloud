@@ -65,7 +65,7 @@ Koha::CirculationRules->set_rule({
 });
 
 my $overdue_date = dt_from_string->subtract( days => 4 );
-C4::Circulation::AddIssue( $patron2->unblessed, $item1->barcode, $overdue_date );
+C4::Circulation::AddIssue( $patron2, $item1->barcode, $overdue_date );
 
 my $recall1 = Koha::Recall->new({
     patron_id => $patron1->borrowernumber,
@@ -126,6 +126,14 @@ $expected_expirationdate = dt_from_string->add({ days => 3 });
 $expirationdate = $recall2->calc_expirationdate;
 is( t::lib::Dates::compare( $expirationdate, $expected_expirationdate ), 0, "Expiration date calculated based on circulation rules" );
 
+C4::Members::Messaging::SetMessagingPreference(
+    {
+        borrowernumber          => $patron1->borrowernumber,
+        message_attribute_id    => 12,                         # Recall_Waiting
+        message_transport_types => [qw( email sms )],
+    }
+);
+
 $recall2->set_waiting({ expirationdate => $expirationdate });
 is( $recall2->waiting, 1, "Recall is waiting" );
 
@@ -160,7 +168,7 @@ is( $recall3->item_id, $item1->itemnumber, "Item persists for item-level recall"
 $recall3->set_fulfilled;
 ok( $recall3->fulfilled, "Recall has been fulfilled" );
 
-C4::Circulation::AddIssue( $patron2->unblessed, $item1->barcode );
+C4::Circulation::AddIssue( $patron2, $item1->barcode );
 my $recall4 = Koha::Recall->new({
     patron_id => $patron1->borrowernumber,
     created_date => dt_from_string,

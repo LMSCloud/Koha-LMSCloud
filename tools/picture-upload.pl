@@ -87,13 +87,7 @@ our @counts = ();
 our %errors = ();
 
 # Case is important in these operational values as the template must use case to be visually pleasing!
-if ( ( $op eq 'Upload' ) && ($uploadfile || $uploadfiletext) ) {
-
-    output_and_exit( $input, $cookie, $template, 'wrong_csrf_token' )
-        unless Koha::Token->new->check_csrf({
-            session_id => scalar $input->cookie('CGISESSID'),
-            token  => scalar $input->param('csrf_token'),
-        });
+if ( ( $op eq 'cud-Upload' ) && ($uploadfile || $uploadfiletext) ) {
 
     my $dirname = File::Temp::tempdir( CLEANUP => 1 );
     my $filesuffix;
@@ -188,18 +182,12 @@ if ( ( $op eq 'Upload' ) && ($uploadfile || $uploadfiletext) ) {
           if $borrowernumber;
     }
 }
-elsif ( ( $op eq 'Upload' ) && !$uploadfile ) {
+elsif ( ( $op eq 'cud-Upload' ) && !$uploadfile ) {
     warn "Problem uploading file or no file uploaded.";
     $template->param( cardnumber => $cardnumber );
     $template->param( filetype   => $filetype );
 }
-elsif ( $op eq 'Delete' ) {
-    output_and_exit( $input, $cookie, $template, 'wrong_csrf_token' )
-        unless Koha::Token->new->check_csrf({
-            session_id => scalar $input->cookie('CGISESSID'),
-            token  => scalar $input->param('csrf_token'),
-        });
-
+elsif ( $op eq 'cud-Delete' ) {
     my $deleted = eval {
         Koha::Patron::Images->find( $borrowernumber )->delete;
     };
@@ -212,11 +200,6 @@ if ( $borrowernumber && !%errors && !$template->param('ERRORS') ) {
         "/cgi-bin/koha/members/moremember.pl?borrowernumber=$borrowernumber");
 }
 else {
-    $template->param(
-        csrf_token => Koha::Token->new->generate_csrf({
-            session_id => scalar $input->cookie('CGISESSID'),
-        }),
-    );
     output_html_with_http_headers $input, $cookie, $template->output;
 }
 

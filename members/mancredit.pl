@@ -37,8 +37,6 @@ use Koha::Patron::Categories;
 use Koha::Account::CreditTypes;
 use Koha::AdditionalFields;
 
-use Koha::Token;
-
 my $input = CGI->new;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
@@ -69,15 +67,8 @@ output_and_exit_if_error(
 my $library_id =
   C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
 
-my $add = $input->param('add');
-if ($add) {
-    output_and_exit( $input, $cookie, $template, 'wrong_csrf_token' )
-      unless Koha::Token->new->check_csrf(
-        {
-            session_id => scalar $input->cookie('CGISESSID'),
-            token      => scalar $input->param('csrf_token'),
-        }
-      );
+my $op = $input->param('op') // q{};
+if ( $op eq 'cud-add' ) {
 
 # Note: If the logged in user is not allowed to see this patron an invoice can be forced
 # Here we are trusting librarians not to hack the system
@@ -109,17 +100,7 @@ if ($add) {
         }
     );
 
-    my @additional_fields;
-    my $accountline_fields = Koha::AdditionalFields->search({ tablename => 'accountlines:credit' });
-    while ( my $field = $accountline_fields->next ) {
-        my $value = $input->param('additional_field_' . $field->id);
-        if (defined $value) {
-            push @additional_fields, {
-                id => $field->id,
-                value => $value,
-            };
-        }
-    }
+    my @additional_fields = $line->prepare_cgi_additional_field_values( $input, 'accountlines:credit' );
     if (@additional_fields) {
         $line->set_additional_fields(\@additional_fields);
     }
@@ -146,9 +127,6 @@ else {
         patron       => $patron,
         credit_types => \@credit_types,
         finesview    => 1,
-        csrf_token   => Koha::Token->new->generate_csrf(
-            { session_id => scalar $input->cookie('CGISESSID') }
-        ),
         available_additional_fields => [ Koha::AdditionalFields->search({ tablename => 'accountlines:credit' })->as_list ],
     );
     output_html_with_http_headers $input, $cookie, $template->output;

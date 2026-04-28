@@ -10,7 +10,6 @@ use C4::Auth qw( get_template_and_user );
 use C4::Output qw( output_and_exit_if_error output_and_exit output_html_with_http_headers );
 use C4::Context;
 use CGI qw ( -utf8 );
-use Koha::Token;
 
 use Koha::Patrons;
 use Koha::Patron::Categories;
@@ -32,6 +31,7 @@ my ( $template, $loggedinuser, $cookie, $staffflags ) = get_template_and_user(
     }
 );
 
+my $op           = $input->param('op') // q{};
 my $patron_id    = $input->param('member');
 my $destination  = $input->param('destination');
 my $newpassword  = $input->param('newpassword');
@@ -55,19 +55,15 @@ if ( ( $patron_id ne $loggedinuser ) && ( $category_type eq 'S' ) ) {
 
 push( @errors, 'NOMATCH' ) if ( ( $newpassword && $newpassword2 ) && ( $newpassword ne $newpassword2 ) );
 
-if ( $newpassword and not @errors) {
-
-    output_and_exit( $input, $cookie, $template,  'wrong_csrf_token' )
-        unless Koha::Token->new->check_csrf({
-            session_id => scalar $input->cookie('CGISESSID'),
-            token  => scalar $input->param('csrf_token'),
-        });
+if ( $op eq 'cud-update' && defined($newpassword) and not @errors ) {
 
     try {
-        $patron->set_password({ password => $newpassword });
+        if ( $newpassword ne '' ) {
+            $patron->set_password({ password => $newpassword });
+            $template->param( newpassword => $newpassword );
+        }
         $patron->userid($new_user_id)->store
             if $new_user_id and $new_user_id ne $patron->userid;
-        $template->param( newpassword => $newpassword );
         if ( $destination eq 'circ' ) {
             print $input->redirect("/cgi-bin/koha/circ/circulation.pl?findborrower=" . $patron->cardnumber);
         }
@@ -97,7 +93,6 @@ if ( $newpassword and not @errors) {
 $template->param(
     patron      => $patron,
     destination => $destination,
-    csrf_token  => Koha::Token->new->generate_csrf({ session_id => scalar $input->cookie('CGISESSID'), }),
 );
 
 if ( scalar(@errors) ) {

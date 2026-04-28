@@ -356,6 +356,13 @@ __END_SRU_PUBLICSERVER__
      <server>__ELASTICSEARCH_SERVER__</server> <!-- may be repeated to include all servers on your cluster -->
      <index_name>koha___KOHASITE__</index_name> <!-- should be unique amongst all the indices on your cluster. _biblios and _authorities will be appended. -->
 
+     <!-- If you are using authentication, you will also need to use HTTPS. Uncomment and tweak the following for your ES setup. -->
+     <!-- NOTE: instead of userinfo, you can alternatively provide the username and password in URL in the server element -->
+     <!--
+     <userinfo>elastic:CHANGEME</userinfo>
+     <use_https>1</use_https>
+     -->
+
      <!-- See https://metacpan.org/pod/Search::Elasticsearch#cxn_pool -->
      <cxn_pool>Static</cxn_pool>
      <!-- See https://metacpan.org/pod/Search::Elasticsearch#trace_to -->
@@ -395,9 +402,6 @@ __END_SRU_PUBLICSERVER__
           - borrower: send it straight to the borrower email
           - branch: send the ILL to the branch email -->
      <digital_recipient>branch</digital_recipient>
-     <!-- What patron category should we use for p2p ILL requests?
-          - By default this is set to 'ILLLIBS' -->
-     <partner_code>ILLLIBS</partner_code>
  </interlibrary_loans>
 
  <!-- The timezone setting can let you force the timezone for this
@@ -417,6 +421,8 @@ __END_SRU_PUBLICSERVER__
       developers use it to catch bugs related to strict SQL modes -->
  <dev_install>0</dev_install>
  <strict_sql_modes>0</strict_sql_modes>
+ <plugins_restricted>1</plugins_restricted>
+ <plugins_restart>1</plugins_restart>
  <plugin_repos>
     <!--
     <repo>
@@ -427,11 +433,16 @@ __END_SRU_PUBLICSERVER__
     <repo>
         <name>Theke Solutions</name>
         <org_name>thekesolutions</org_name>
-        <service>gitlab</service>
+        <service>github</service>
     </repo>
     <repo>
-        <name>PTFS Europe</name>
-        <org_name>ptfs-europe</org_name>
+        <name>Open Fifth</name>
+        <org_name>openfifth</org_name>
+        <service>github</service>
+    </repo>
+    <repo>
+        <name>Solutions inLibro</name>
+        <org_name>inLibro</org_name>
         <service>github</service>
     </repo>
     -->
@@ -479,7 +490,19 @@ __END_SRU_PUBLICSERVER__
      <do_not_remove_cookie>KohaOpacLanguage</do_not_remove_cookie>
  -->
 
+ <message_domain_limits>
+     <!-- Two types are supported: a regular limit and a grouped limit that refers to a regular limit -->
+     <!-- <domain><name>DOMAIN_NAME</name><limit>NUMBER</limit><unit>{NUMBER}{m[inutes]|h[ours]|d[ays]}</unit></domain> -->
+     <!-- <domain><name>OTHER_DOMAIN_NAME</name><belongs_to>DOMAIN_NAME</belongs_to></domain> -->
+     <!-- Like: <domain><name>outlook.com</name><limit>30</limit><unit>1m</unit></domain> -->
+     <!-- Like: <domain><name>hotmail.com</name><belongs_to>outlook.com</belongs_to></domain> -->
+ </message_domain_limits>
+
  <mfa_range>1</mfa_range><!-- Number of 30 second iterations to allow for MFA code checking -->
+
+ <auto_renew_cronjob>
+   <parallel_loops_count>1</parallel_loops_count>
+ </auto_renew_cronjob>
 
 </config>
 </yazgfs>

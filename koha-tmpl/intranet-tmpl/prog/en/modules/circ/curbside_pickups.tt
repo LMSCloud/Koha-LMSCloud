@@ -6,9 +6,14 @@
 [% USE Asset %]
 [% USE raw %]
 [% USE To %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Curbside pickups &rsaquo; Circulation &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Curbside pickups") | html %] &rsaquo;
+    [% t("Circulation") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 <style>
     #pickup-times {
         width: 50%;
@@ -56,7 +61,7 @@
 [% BLOCK waiting_holds %]
     [% SET waiting_holds = cp.patron.holds.search( found => 'W', branchcode => Branches.GetLoggedInBranchcode ) %]
     [% FOREACH h IN waiting_holds %]
-       <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% h.biblionumber | uri %]">[% h.biblio.title | html %]</a> ([% h.biblio.author | html %], <a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% h.itemnumber | html %]&biblionumber=[% h.biblionumber | html %]#item[% h.itemnumber | html %]">[% h.item.barcode | html %]</a>)<br/>
+       <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% h.biblionumber | uri %]">[% h.biblio.title | html %]</a> ([% h.biblio.author | html %], <a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% h.itemnumber | uri %]&biblionumber=[% h.biblionumber | uri %]#item[% h.itemnumber | uri %]">[% h.item.barcode | html %]</a>)<br/>
     [% END %]
 [% END %]
 
@@ -80,9 +85,10 @@
     <div class="row">
         <div class="col-sm-12">
             <main>
+                [% INCLUDE 'messages.inc' %]
                 <div class="row">
                 [% IF Koha.Preference('CircSidebar') %]
-                    <div class="col-sm-10 col-sm-push-2">
+                    <div class="col-md-10 order-md-2 order-sm-1">
                 [% ELSE %]
                     <div class="col-sm-12">
                 [% END %]
@@ -90,7 +96,7 @@
                 <h1>Curbside pickups</h1>
 
                 [% UNLESS policy.enabled %]
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         Curbside pickups are not enabled for your library.
                     </div>
                     [% INCLUDE 'intranet-bottom.inc' %]
@@ -98,7 +104,7 @@
                 [% END %]
 
                 [% FOR m IN messages %]
-                    <div class="dialog [% m.type | html %]">
+                    <div class="alert alert-[% m.type | html %]">
                         [% SWITCH m.code %]
                         [% CASE 'not_enabled' %]
                             <span>The curbside pickup feature is not enabled for this library.</span>
@@ -120,61 +126,71 @@
                     </div>
                 [% END %]
 
+                <form method="get" class="refresh-form">
+                    <p>
+                        <input type="hidden" name="tab" id="current-tab" value="[% tab | html %]" />
+                        <button type="submit" class="btn btn-default"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Refresh</button>
+
+                        <label>
+                            [% IF auto_refresh %]
+                                <input type="checkbox" id="auto_refresh" name="auto_refresh" checked="checked" />
+                            [% ELSE %]
+                                <input type="checkbox" id="auto_refresh" name="auto_refresh" />
+                            [% END %]
+                            Refresh automatically every <input type="text" inputmode="numeric" pattern="[0-9]*" id="refresh_delay" name="refresh_delay" value="[% refresh_delay || 60 | html %]" size="3" /> seconds.
+                        </label>
+
+                        <span id="refresh_info"></span>
+                    </p>
+                </form>
+
                 [% SET to_be_staged = curbside_pickups.filter_by_to_be_staged %]
                 [% SET staged_and_ready = curbside_pickups.filter_by_staged_and_ready %]
                 [% SET patron_outside = curbside_pickups.filter_by_patron_outside %]
                 [% SET delivered_today = curbside_pickups.filter_by_delivered %]
-                <div id="pickup-tabs" class="toptabs">
-                    <ul class="nav nav-tabs" role="tablist">
-                        [% IF !tab OR tab == 'to-be-staged' %]
-                        <li role="presentation" class="active">
-                        [% ELSE %]
-                        <li role="presentation">
-                        [% END %]
-                            <a id="to-be-staged-tab"      href="#to-be-staged" role="tab" data-toggle="tab">To be staged ([% to_be_staged.count | html %])</a>
-                        </li>
-                        [% IF tab == 'staged-and-ready' %]
-                        <li role="presentation" class="active">
-                        [% ELSE %]
-                        <li role="presentation">
-                        [% END %]
-                            <a id="staged-and-ready-tab"  href="#staged-and-ready" role="tab" data-toggle="tab">Staged & ready ([% staged_and_ready.count | html %])</a>
-                        </li>
-                        [% IF tab == 'patron-is-outside' %]
-                        <li role="presentation" class="active">
-                        [% ELSE %]
-                        <li role="presentation">
-                        [% END %]
-                            <a id="patron-is-outside-tab" href="#patron-is-outside" role="tab" data-toggle="tab">Patron is outside ([% patron_outside.count | html %])</a>
-                        </li>
-                        [% IF tab == 'delivered-today' %]
-                        <li role="presentation" class="active">
-                        [% ELSE %]
-                        <li role="presentation">
-                        [% END %]
-                            <a id="delivered-today-tab"   href="#delivered-today" role="tab" data-toggle="tab">Delivered today ([% delivered_today.count | html %])</a>
-                        </li>
-                        [% IF tab == 'schedule-pickup' %]
-                        <li role="presentation" class="active">
-                        [% ELSE %]
-                        <li role="presentation">
-                        [% END %]
-                            <a id="schedule-pickup-tab"   href="#schedule-pickup" role="tab" data-toggle="tab">Schedule pickup</a>
-                        </li>
-                    </ul>
 
-                    <div class="tab-content">
-                        [% IF !tab OR tab == 'to-be-staged' %]
-                        <div id="to-be-staged" role="tabpanel" class="tab-pane active">
-                        [% ELSE %]
-                        <div id="to-be-staged" role="tabpanel" class="tab-pane">
-                        [% END %]
-                            <form method="post" class="form">
-                                <p>
-                                    <button type="submit" class="btn btn-default"><i class="fa fa-refresh" aria-hidden="true"></i> Refresh</button>
-                                </p>
-                            </form>
+                [% SET to_be_staged_active = 0 %]
+                [% SET staged_and_ready_active = 0 %]
+                [% SET patron_is_outside_active = 0 %]
+                [% SET delivered_today_active = 0 %]
+                [% SET schedule_pickup_active = 0 %]
 
+                [% SWITCH tab -%]
+                [%   CASE "to-be-staged_panel" -%]
+                    [% to_be_staged_active = 1 %]
+                [%   CASE "staged-and-ready_panel" -%]
+                    [% staged_and_ready_active = 1 %]
+                [%   CASE "patron-is-outside_panel" -%]
+                    [% patron_is_outside_active = 1 %]
+                [%   CASE "delivered-today_panel" -%]
+                    [% delivered_today_active = 1 %]
+                [%   CASE "schedule-pickup_panel" -%]
+                    [% schedule_pickup_active = 1 %]
+                [%   CASE # default case -%]
+                    [% to_be_staged_active = 1 %]
+                [% END -%]
+
+                [% WRAPPER tabs id= "pickup-tabs" %]
+                    [% WRAPPER tabs_nav %]
+                        [% WRAPPER tab_item tabname= "to-be-staged" bt_active= to_be_staged_active %]
+                            <span>To be staged ([% to_be_staged.count | html %])</span>
+                        [% END %]
+                        [% WRAPPER tab_item tabname= "staged-and-ready" bt_active = staged_and_ready_active %]
+                            <span>Staged & ready ([% staged_and_ready.count | html %])</span>
+                        [% END %]
+                        [% WRAPPER tab_item tabname= "patron-is-outside" bt_active = patron_is_outside_active %]
+                            <span>Patron is outside ([% patron_outside.count | html %])</span>
+                        [% END %]
+                        [% WRAPPER tab_item tabname= "delivered-today" bt_active = delivered_today_active %]
+                            <span>Delivered today ([% delivered_today.count | html %])</span>
+                        [% END %]
+                        [% WRAPPER tab_item tabname= "schedule-pickup" bt_active = schedule_pickup_active %]
+                            <span>Schedule pickup</span>
+                        [% END %]
+                    [% END # /WRAPPER tabs_nav %]
+
+                    [% WRAPPER tab_panels %]
+                        [% WRAPPER tab_panel tabname="to-be-staged" bt_active= to_be_staged_active %]
                             [% IF to_be_staged.count %]
                                 <table class="table table-striped">
                                     <thead>
@@ -198,8 +214,9 @@
                                                     </td>
                                                     <td>
                                                         <form method="post" class="form">
-                                                            <input type="hidden" name="op" value="mark-as-staged"/>
-                                                            <input type="hidden" name="tab" value="to-be-staged"/>
+                                                            [% INCLUDE 'csrf-token.inc' %]
+                                                            <input type="hidden" name="op" value="cud-mark-as-staged"/>
+                                                            <input type="hidden" name="tab" value="to-be-staged_panel"/>
                                                             <input type="hidden" name="id" value="[% cp.id | html %]"/>
                                                             <p>
                                                                 <button type="submit" class="btn btn-default mark-as-staged-and-ready-btn"><i class="fa fa-check" aria-hidden="true"></i> Mark as <i>staged & ready</i></button>
@@ -207,8 +224,9 @@
                                                         </form>
 
                                                         <form method="post" class="form">
-                                                            <input type="hidden" name="op" value="cancel"/>
-                                                            <input type="hidden" name="tab" value="to-be-staged"/>
+                                                            [% INCLUDE 'csrf-token.inc' %]
+                                                            <input type="hidden" name="op" value="cud-cancel"/>
+                                                            <input type="hidden" name="tab" value="to-be-staged_panel"/>
                                                             <input type="hidden" name="id" value="[% cp.id | html %]"/>
                                                             <p>
                                                                 <button type="submit" class="btn btn-default cancel-btn"><i class="fa fa-ban" aria-hidden="true"></i> Cancel</button>
@@ -221,22 +239,10 @@
                                     </tbody>
                                 </table>
                             [% ELSE %]
-                                <span>There are no pickups to be staged.</span>
+                                <div class="alert alert-info">There are no pickups to be staged.</div>
                             [% END %]
-                        </div>
-
-                        [% IF tab == "staged-and-ready" %]
-                        <div id="staged-and-ready" role="tabpanel" class="tab-pane active">
-                        [% ELSE %]
-                        <div id="staged-and-ready" role="tabpanel" class="tab-pane">
-                        [% END %]
-                            <form method="post" class="form">
-                                <input type="hidden" name="tab" value="staged-and-ready"/>
-                                <p>
-                                    <button type="submit" class="btn btn-default"><i class="fa fa-refresh" aria-hidden="true"></i> Refresh</button>
-                                </p>
-                            </form>
-
+                        [% END # /tab_panel %]
+                        [% WRAPPER tab_panel tabname="staged-and-ready" bt_active = staged_and_ready_active %]
                             [% IF staged_and_ready.count %]
                                 <table class="table table-striped">
                                     <thead>
@@ -264,26 +270,29 @@
                                                     </td>
                                                     <td>
                                                         <form method="post" class="form">
-                                                            <input type="hidden" name="op" value="mark-patron-has-arrived"/>
-                                                            <input type="hidden" name="tab" value="staged-and-ready"/>
+                                                            [% INCLUDE 'csrf-token.inc' %]
+                                                            <input type="hidden" name="op" value="cud-mark-patron-has-arrived"/>
+                                                            <input type="hidden" name="tab" value="staged-and-ready_panel"/>
                                                             <input type="hidden" name="id" value="[% cp.id | html %]"/>
                                                             <p>
-                                                                <button type="submit" class="btn btn-default patron-has-arrived-btn"><i class="fa fa-map-marker" aria-hidden="true"></i> Patron has arrived</button>
+                                                                <button type="submit" class="btn btn-default patron-has-arrived-btn"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Patron has arrived</button>
                                                             </p>
                                                         </form>
 
                                                         <form method="post" class="form">
-                                                            <input type="hidden" name="op" value="mark-as-delivered"/>
-                                                            <input type="hidden" name="tab" value="staged-and-ready"/>
+                                                            [% INCLUDE 'csrf-token.inc' %]
+                                                            <input type="hidden" name="op" value="cud-mark-as-delivered"/>
+                                                            <input type="hidden" name="tab" value="staged-and-ready_panel"/>
                                                             <input type="hidden" name="id" value="[% cp.id | html %]"/>
                                                             <p>
-                                                                <button type="submit" class="btn btn-default mark-as-delivered-btn"><i class="fa fa-envelope" aria-hidden="true"></i> Mark as <i>delivered</i></button>
+                                                                <button type="submit" class="btn btn-default mark-as-delivered-btn"><i class="fa-solid fa-envelope" aria-hidden="true"></i> Mark as <i>delivered</i></button>
                                                             </p>
                                                         </form>
 
                                                         <form method="post" class="form">
-                                                            <input type="hidden" name="op" value="mark-as-unstaged"/>
-                                                            <input type="hidden" name="tab" value="staged-and-ready"/>
+                                                            [% INCLUDE 'csrf-token.inc' %]
+                                                            <input type="hidden" name="op" value="cud-mark-as-unstaged"/>
+                                                            <input type="hidden" name="tab" value="staged-and-ready_panel"/>
                                                             <input type="hidden" name="id" value="[% cp.id | html %]"/>
                                                             <p>
                                                                 <button type="submit" class="btn btn-default mark-as-to-be-staged-btn"><i class="fa fa-undo" aria-hidden="true"></i> Mark as <i>to be staged</i></button>
@@ -296,22 +305,10 @@
                                     </tbody>
                                 </table>
                             [% ELSE %]
-                                <span>There are no pickups staged and ready.</span>
+                                <div class="alert alert-info">There are no pickups staged and ready.</div>
                             [% END %]
-                        </div>
-
-                        [% IF tab == "patron-is-outside" %]
-                        <div id="patron-is-outside" role="tabpanel" class="tab-pane active">
-                        [% ELSE %]
-                        <div id="patron-is-outside" role="tabpanel" class="tab-pane">
-                        [% END %]
-                            <form method="post" class="form">
-                                <input type="hidden" name="tab" value="patron-is-outside"/>
-                                <p>
-                                    <button type="submit" class="btn btn-default"><i class="fa fa-refresh" aria-hidden="true"></i> Refresh</button>
-                                </p>
-                            </form>
-
+                        [% END # /tab_panel %]
+                        [% WRAPPER tab_panel tabname="patron-is-outside" bt_active = patron_is_outside_active %]
                             [% IF patron_outside.count %]
                                 <table class="table table-striped">
                                     <thead>
@@ -339,17 +336,19 @@
                                                     </td>
                                                     <td>
                                                         <form method="post" class="form">
-                                                            <input type="hidden" name="op" value="mark-as-delivered"/>
-                                                            <input type="hidden" name="tab" value="patron-is-outside"/>
+                                                            [% INCLUDE 'csrf-token.inc' %]
+                                                            <input type="hidden" name="op" value="cud-mark-as-delivered"/>
+                                                            <input type="hidden" name="tab" value="patron-is-outside_panel"/>
                                                             <input type="hidden" name="id" value="[% cp.id | html %]"/>
                                                             <p>
-                                                                <button type="submit" class="btn btn-default mark-as-delivered-btn"><i class="fa fa-envelope" aria-hidden="true"></i> Mark as delivered</button>
+                                                                <button type="submit" class="btn btn-default mark-as-delivered-btn"><i class="fa-solid fa-envelope" aria-hidden="true"></i> Mark as delivered</button>
                                                             </p>
                                                         </form>
 
                                                         <form method="post" class="form">
-                                                            <input type="hidden" name="op" value="mark-as-staged"/>
-                                                            <input type="hidden" name="tab" value="patron-is-outside"/>
+                                                            [% INCLUDE 'csrf-token.inc' %]
+                                                            <input type="hidden" name="op" value="cud-mark-as-staged"/>
+                                                            <input type="hidden" name="tab" value="patron-is-outside_panel"/>
                                                             <input type="hidden" name="id" value="[% cp.id | html %]"/>
                                                             <p>
                                                                 <button type="submit" class="btn btn-default mark-as-staged-and-ready-btn"><i class="fa fa-undo" aria-hidden="true"></i> Mark as <i>staged & ready</i></button>
@@ -357,8 +356,9 @@
                                                         </form>
 
                                                         <form method="post" class="form">
-                                                            <input type="hidden" name="op" value="mark-as-unstaged"/>
-                                                            <input type="hidden" name="tab" value="patron-is-outside"/>
+                                                            [% INCLUDE 'csrf-token.inc' %]
+                                                            <input type="hidden" name="op" value="cud-mark-as-unstaged"/>
+                                                            <input type="hidden" name="tab" value="patron-is-outside_panel"/>
                                                             <input type="hidden" name="id" value="[% cp.id | html %]"/>
                                                             <p>
                                                                 <button type="submit" class="btn btn-default mark-as-to-be-staged-btn"><i class="fa fa-undo" aria-hidden="true"></i> Mark as <i>to be staged</i></button>
@@ -371,22 +371,10 @@
                                     </tbody>
                                 </table>
                             [% ELSE %]
-                                <span>There are no patrons waiting outside.</span>
+                                <div class="alert alert-info">There are no patrons waiting outside.</div>
                             [% END %]
-                        </div>
-
-                        [% IF tab == "delivered-today" %]
-                        <div id="delivered-today" role="tabpanel" class="tab-pane active">
-                        [% ELSE %]
-                        <div id="delivered-today" role="tabpanel" class="tab-pane">
-                        [% END %]
-                            <form method="post" class="form">
-                                <input type="hidden" name="tab" value="delivered-today"/>
-                                <p>
-                                    <button type="submit" class="btn btn-default"><i class="fa fa-refresh" aria-hidden="true"></i> Refresh</button>
-                                </p>
-                            </form>
-
+                        [% END # /tab_panel %]
+                        [% WRAPPER tab_panel tabname="delivered-today" bt_active = delivered_today_active %]
                             [% IF delivered_today.count %]
                                 <table class="table table-striped">
                                     <thead>
@@ -405,102 +393,102 @@
                                                         [% PROCESS patron_info %]
                                                     </td>
                                                     <td>
-                                                    [% FOREACH c IN cp.checkouts %]
-                                                        [% IF date.format(c.issuedate, format = '%Y-%m-%d') == today_iso %]
-                                                            <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% c.item.biblionumber | uri %]">[% c.item.biblio.title | html %]</a> ([% c.item.biblio.author | html %], <a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% c.itemnumber | html %]&biblionumber=[% c.item.biblionumber | html %]#item[% c.itemnumber | html %]">[% c.item.barcode | html %]</a>)<br/>
+                                                        [% FOREACH c IN cp.checkouts %]
+                                                            [% IF date.format(c.issuedate, format = '%Y-%m-%d') == today_iso %]
+                                                                <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% c.item.biblionumber | uri %]">[% c.item.biblio.title | html %]</a> ([% c.item.biblio.author | html %], <a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% c.itemnumber | uri %]&biblionumber=[% c.item.biblionumber | uri %]#item[% c.itemnumber | uri %]">[% c.item.barcode | html %]</a>)<br/>
+                                                            [% END %]
                                                         [% END %]
-                                                    [% END %]
-                                                </td>
-                                            </tr>
+                                                    </td>
+                                                </tr>
+                                            [% END %]
                                         [% END %]
-                                    [% END %]
-                                </tbody>
-                            </table>
-                        [% ELSE %]
-                            <span>No pickups have been delivered today.</span>
-                        [% END %]
-                    </div>
-
-                    [% IF tab == "schedule-pickup" %]
-                    <div id="schedule-pickup" role="tabpanel" class="tab-pane active">
-                    [% ELSE %]
-                    <div id="schedule-pickup" role="tabpanel" class="tab-pane">
-                    [% END %]
-                        [% IF !patron || ( patron && existing_curbside_pickups.count >= 1 ) %]
-                            [% IF existing_curbside_pickups.count >= 1 %]
-                                <div class="dialog alert">
-                                    [% patron.firstname | html %] [% patron.surname | html %] ([% patron.cardnumber | html %]) already has a scheduled pickup for this library.
-                                </div>
-                            [% END %]
-                            <div class="form-group">
-                                <label class="sr-only" for="input-patron-cardnumber">Cardnumber</label>
-                                <div class="input-group">
-                                    <div class="input-group-addon">Search a patron</div>
-                                    <input autocomplete="off" id="find-patron" class="form-control" type="text" style="width:25%" class="noEnterSubmit" placeholder="Enter patron cardnumber or name"//>
-                                </div>
-                            </div>
-                        [% ELSE %]
-                            [% SET waiting_holds = patron.holds.search( found => 'W', branchcode => Branches.GetLoggedInBranchcode ) %]
-                            [% IF !policy.enable_waiting_holds_only || waiting_holds.count > 0 %]
-                                <form id="create-pickup" method="post">
-                                    <fieldset class="rows" style="float: none;">
-                                        <input type="hidden" name="borrowernumber" value="[% patron.id | html %]"/>
-                                        <input type="hidden" name="op" value="create-pickup"/>
-                                        <input type="hidden" name="tab" value="schedule-pickup"/>
-                                        <ol>
-                                            <li>
-                                                <label>Patron: </label>
-                                                <span>[% INCLUDE 'patron-title.inc' patron=patron %]</span>
-                                                <a title="Search for another patron" href="/cgi-bin/koha/circ/curbside_pickups.pl?tab=schedule-pickup"><i class="fa fa-search"></i></a>
-                                            </li>
-
-                                            <li>
-                                                <label>Items ready for pickup: </label>
-                                                <span>
-                                                    [% IF waiting_holds.count %]
-                                                        [% FOREACH h IN waiting_holds %]
-                                                            <p>
-                                                                <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% h.biblionumber | uri %]">[% h.biblio.title | html %]</a> ([% h.biblio.author | html %], <a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% h.itemnumber | html %]&biblionumber=[% h.biblionumber | html %]#item[% h.itemnumber | html %]">[% h.item.barcode | html %]</a>)
-                                                            </p>
-                                                        [% END %]
-                                                    [% ELSE %]
-                                                        <span>There are no waiting holds for this patron at this library.</span>
-                                                    [% END %]
-                                                </span>
-                                            </li>
-
-                                            <li>
-                                                <label for="pickup_date">Pickup date: </label>
-                                                <input id="pickup_date" name="pickup_date" required="required" class="flatpickr" data-flatpickr-futureinclusive="true" />
-                                            </li>
-
-                                            <li id="pickup-times" class="radio"></li>
-
-                                            <li>
-                                                <label for="notes">Notes: </label>
-                                                <input id="notes" name="notes" type="text" />
-                                            </li>
-                                        </ol>
-                                    </fieldset>
-
-                                    <fieldset class="action">
-                                        <input type="submit" id="schedule-pickup-button" class="btn btn-primary" value="Submit" />
-                                    </fieldset>
-                                </form>
+                                    </tbody>
+                                </table>
                             [% ELSE %]
-                                <div class="dialog alert">The patron does not have waitings holds.</div>
+                                <div class="alert alert-info">There have not been any deliveries today.</div>
+                            [% END # /IF delivered_today.count %]
+                        [% END # /tab_panel %]
+                        [% WRAPPER tab_panel tabname="schedule-pickup" bt_active = schedule_pickup_active %]
+                            [% IF !patron || ( patron && existing_curbside_pickups.count >= 1 ) %]
+                                [% IF existing_curbside_pickups.count >= 1 %]
+                                    <div class="alert alert-warning">
+                                        [% patron.firstname | html %] [% patron.surname | html %] ([% patron.cardnumber | html %]) already has a scheduled pickup for this library.
+                                    </div>
+                                [% END %]
+                                <div class="col-10 col-sm-4 form-group">
+                                    <div class="input-group-addon">
+                                        <label for="find-patron" class="form-label">Search a patron</label>
+                                    </div>
+                                    <div>
+                                        <input autocomplete="off" id="find-patron" class="form-control" type="text" style="" class="noEnterSubmit" placeholder="Enter patron card number or name"/>
+                                    </div>
+                                </div>
+                            [% ELSE %]
+                                [% SET waiting_holds = patron.holds.search( found => 'W', branchcode => Branches.GetLoggedInBranchcode ) %]
+                                [% IF !policy.enable_waiting_holds_only || waiting_holds.count > 0 %]
+                                    <form id="create-pickup" method="post">
+                                        [% INCLUDE 'csrf-token.inc' %]
+                                        <fieldset class="rows" style="float: none;">
+                                            <input type="hidden" name="borrowernumber" value="[% patron.id | html %]"/>
+                                            <input type="hidden" name="op" value="cud-create-pickup"/>
+                                            <input type="hidden" name="tab" value="schedule-pickup_panel"/>
+                                            <ol>
+                                                <li>
+                                                    <label>Patron: </label>
+                                                    <span>[% INCLUDE 'patron-title.inc' patron=patron %]</span>
+                                                    <a title="Search for another patron" href="/cgi-bin/koha/circ/curbside_pickups.pl?tab=schedule-pickup"><i class="fa fa-search"></i></a>
+                                                </li>
+
+                                                <li>
+                                                    <label>Items ready for pickup: </label>
+                                                    <fieldset>
+                                                        <ul>
+                                                            [% IF waiting_holds.count %]
+                                                                [% FOREACH h IN waiting_holds %]
+                                                                    <li>
+                                                                        <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% h.biblionumber | uri %]">[% h.biblio.title | html %]</a> ([% h.biblio.author | html %], <a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% h.itemnumber | uri %]&biblionumber=[% h.biblionumber | uri %]#item[% h.itemnumber | uri %]">[% h.item.barcode | html %]</a>)
+                                                                    </li>
+                                                                [% END %]
+                                                            [% ELSE %]
+                                                                <li>There are no waiting holds for this patron at this library.</li>
+                                                            [% END %]
+                                                        </ul>
+                                                    </fieldset>
+                                                </li>
+
+                                                <li>
+                                                    <label for="pickup_date">Pickup date: </label>
+                                                    <input id="pickup_date" name="pickup_date" required="required" class="flatpickr" data-flatpickr-futureinclusive="true" />
+                                                </li>
+
+                                                <li id="pickup-times" class="radio"></li>
+
+                                                <li>
+                                                    <label for="notes">Notes: </label>
+                                                    <input id="notes" name="notes" type="text" />
+                                                </li>
+                                            </ol>
+                                        </fieldset>
+
+                                        <fieldset class="action">
+                                            <input type="submit" id="schedule-pickup-button" class="btn btn-primary" value="Submit" />
+                                        </fieldset>
+                                    </form>
+                                [% ELSE %]
+                                    <div class="alert alert-warning">The patron does not have waitings holds.</div>
+                                [% END %]
                             [% END %]
-                        [% END %]
-                    </div>
-                </div>
-                </div>
+                        [% END # /tab_panel %]
+                    [% END # /WRAPPER tab_panels %]
+                [% END # /WRAPPER tabs %]
+
                 [% IF Koha.Preference('CircSidebar') %]
-                    </div> <!-- /.col-sm-10.col-sm-push-2 -->
-                        <div class="col-sm-2 col-sm-pull-10">
+                    </div> <!-- /.col-md-10.order-md-2 -->
+                        <div class="col-md-2 order-sm-2 order-md-1">
                             <aside>
                                 [% INCLUDE 'circ-nav.inc' %]
                             </aside>
-                        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+                        </div> <!-- /.col-md-2.order-md-1 -->
                     </div> <!-- /.row -->
                 [% END %]
             </main>
@@ -508,9 +496,7 @@
     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("lib/dayjs/dayjs.min.js") | $raw %]
     [% Asset.js("lib/dayjs/plugin/isSameOrAfter.js") | $raw %]
-    [% Asset.js("lib/dayjs/plugin/customParseFormat.js") | $raw %]
     <script>dayjs.extend(window.dayjs_plugin_isSameOrAfter)</script>
     <script>dayjs.extend(window.dayjs_plugin_customParseFormat)</script>
     [% INCLUDE 'calendar.inc' %]
@@ -535,12 +521,15 @@
             slots_per_day[day].push(slot);
         });
 
-
         $(document).ready(function() {
 
             $('#schedule-pickup-tab').on('click', function() {
                 $('#find-patron').focus();
             });
+
+            [% IF tab == 'schedule-pickup_panel' %]
+                $('#find-patron').focus();
+            [% END %]
 
             const pickup_date = document.querySelector("#pickup_date");
             if ( pickup_date ) {
@@ -663,7 +652,59 @@
                 });
             }
 
+            $("#pickup-tabs a[data-bs-toggle='tab']").on("shown.bs.tab", function (e) {
+                $("#current-tab").val($(this).attr('href').substring(1)); // Remove #
+            });
+            $("#auto_refresh,#refresh_delay").on("change", function(){
+                set_interval_if_needed();
+            });
+
+            set_interval_if_needed();
+
         });
+
+        let refresh_interval_id = 0;
+        let countdown_interval_id = 0;
+        function set_interval(refresh_delay_ms){
+            clear_intervals();
+            let next_refresh = new Date();
+            next_refresh.setSeconds(next_refresh.getSeconds() + refresh_delay_ms / 1000);
+
+            countdown_interval_id = setInterval(function() {
+                const now = new Date().getTime();
+                const seconds = Math.floor(( next_refresh - now + 1 ) / 1000);
+                if ( seconds > 0 ) {
+                    $("#refresh_info").text(_("Refresh in %s seconds").format(seconds));
+                } else {
+                    $("#refresh_info").text(""); // In case something is going wrong
+                }
+            }, 1000);
+
+            setInterval(function() {
+                $(".refresh-form:visible").submit();
+            }, refresh_delay_ms);
+        }
+        function clear_intervals(){
+            if (refresh_interval_id) {
+                clearInterval(refresh_interval_id);
+                refresh_interval_id = 0;
+            }
+            if (countdown_interval_id) {
+                clearInterval(countdown_interval_id);
+                countdown_interval_id = 0;
+            }
+        }
+
+        function set_interval_if_needed(){
+            const refresh_delay = $("#refresh_delay").val();
+            const auto_refresh = $("#auto_refresh").is(":checked");
+
+            if (auto_refresh && refresh_delay){
+                set_interval(refresh_delay * 1000);
+            } else {
+                clear_intervals();
+            }
+        }
     </script>
 [% END %]
 

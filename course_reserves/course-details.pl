@@ -22,41 +22,41 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use C4::Auth qw( get_template_and_user );
+use C4::Auth   qw( get_template_and_user );
 use C4::Output qw( output_html_with_http_headers );
 
 use C4::CourseReserves qw( DelCourse DelCourseReserve GetCourse GetCourseReserve GetCourseReserves );
 
 my $cgi = CGI->new;
 
-my $action = $cgi->param('action') || '';
+my $op        = $cgi->param('op') || '';
 my $course_id = $cgi->param('course_id');
 
 my $flagsrequired;
-$flagsrequired->{coursereserves} = 'delete_reserves' if ( $action eq 'del_reserve' or $action eq 'rm_all' );
+$flagsrequired->{coursereserves} = 'delete_reserves' if ( $op eq 'cud-del_reserve' or $op eq 'cud-rm_all' );
 
 my $tmpl = ($course_id) ? "course-details.tt" : "invalid-course.tt";
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
-    {   template_name   => "course_reserves/$tmpl",
-        query           => $cgi,
-        type            => "intranet",
-        flagsrequired   => $flagsrequired,
+    {
+        template_name => "course_reserves/$tmpl",
+        query         => $cgi,
+        type          => "intranet",
+        flagsrequired => $flagsrequired,
     }
 );
 
-if ( $action eq 'del_reserve' ) {
+if ( $op eq 'cud-del_reserve' ) {
     DelCourseReserve( cr_id => scalar $cgi->param('cr_id') );
-}
-elsif ( $action eq 'rm_all' ) {
-    my $course_res = GetCourseReserves(course_id => $course_id);
+} elsif ( $op eq 'cud-rm_all' ) {
+    my $course_res = GetCourseReserves( course_id => $course_id );
     foreach my $cr (@$course_res) {
-        if(exists $cr->{'cr_id'}) {
-            DelCourseReserve(cr_id => $cr->{cr_id});
+        if ( exists $cr->{'cr_id'} ) {
+            DelCourseReserve( cr_id => $cr->{cr_id} );
         }
     }
 }
 
-my $course          = GetCourse($course_id);
+my $course          = Koha::Courses->find($course_id);
 my $course_reserves = GetCourseReserves(
     course_id       => $course_id,
     include_items   => 1,

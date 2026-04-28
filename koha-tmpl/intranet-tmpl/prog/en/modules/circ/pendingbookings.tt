@@ -17,30 +17,32 @@
 </head>
 
 <body id="circ_pendingbookings" class="circ">
-    [% WRAPPER 'header.inc' %]
-        [% INCLUDE 'circ-search.inc' %]
-    [% END %]
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
 
-    [% WRAPPER 'sub-header.inc' %]
-        [% WRAPPER breadcrumbs %]
-            [% WRAPPER breadcrumb_item %]
-                <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
-            [% END %]
-            [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Bookings to collect</span>
-            [% END %]
-        [% END #/ WRAPPER breadcrumbs %]
-    [% END #/ WRAPPER sub-header.inc %]
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Bookings to collect</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
     <div class="main container-fluid">
         <div class="row">
 
             <!-- Results -->
-            <div class="col-sm-10 col-sm-push-2">
+            <div class="col-md-10 order-md-2 order-sm1">
                 <main>
+                    [% INCLUDE 'messages.inc' %]
                     <h1>Items required for bookings between <span id="from_date">[% from | $KohaDates %]</span> and <span id="to_date">[% to | $KohaDates %]</span></h1>
                     <h2>Reported on [% todaysdate | $KohaDates %]</h2>
-                    <p>The following items have not been collected for bookings.</p>
+                    <p>The following items have not been collected for bookings. Please retrieve them
+                        and check them in.</p>
                     <div id="searchresults">
                         <table id="bookingst"></table>
                     </div>
@@ -48,16 +50,58 @@
             </div>
 
             <!-- Filters & Navigation -->
-            <div class="col-sm-2 col-sm-pull-10">
+            <div class="col-md-2 order-sm-2 order-md-1">
                 <aside>
-                [% INCLUDE 'bookings-filters.inc' 
-                    show_holding_library = 1
-                    show_pickup_library = 1
-                    show_date_filters = 1
-                    from_date = from
-                    to_date = to
-                    branchcode = branchcode
-                %]
+                    <form id="bookingsf">
+                        <fieldset class="brief">
+                            <h4>Refine results</h4>
+                            <ol>
+                                <li>
+                                    <label for="holding_library">Holding library:</label>
+                                    <select name="holding_library" id="holding_library">
+                                        [% SET libraries = Branches.all( only_from_group => 1 ) %]
+                                        [% IF libraries.size != 1 %]
+                                            <option value="">Any</option>
+                                        [% END %]
+                                        [% FOREACH l IN libraries %]
+                                            [% IF (l.branchcode == branchcode) %]
+                                                <option value="[% l.branchcode | html %]" selected="selected">[% l.branchname | html %]</option>
+                                            [% ELSE %]
+                                                <option value="[% l.branchcode | html %]">[% l.branchname | html %]</option>
+                                            [% END %]
+                                        [% END %]
+                                    </select>
+                                </li>
+                                <li>
+                                    <label for="pickup_library">Pickup library:</label>
+                                    <select name="pickup_library" id="pickup_library">
+                                        [% SET libraries = Branches.all( only_from_group => 1 ) %]
+                                        [% IF libraries.size != 1 %]
+                                            <option value="">Any</option>
+                                        [% END %]
+                                        [% FOREACH l IN libraries %]
+                                            [% IF (l.branchcode == branchcode) %]
+                                                <option value="[% l.branchcode | html %]" selected="selected">[% l.branchname | html %]</option>
+                                            [% ELSE %]
+                                                <option value="[% l.branchcode | html %]">[% l.branchname | html %]</option>
+                                            [% END %]
+                                        [% END %]
+                                    </select>
+                                </li>
+                                <li>
+                                    <label for="from">Starts after: </label>
+                                    <input type="text" size="10" id="from" name="from" value="[% from | html %]" class="flatpickr" data-date_to="to"/>
+                                </li>
+                                <li>
+                                    <label for="to">Starts before: </label>
+                                    <input type="text" size="10" id="to" name="to" value="[% to | html %]" class="flatpickr"/>
+                                </li>
+                            </ol>
+                        </fieldset>
+                        <fieldset class="action">
+                            <input type="submit" name="run_report" value="Submit" class="btn btn-primary" />
+                        </fieldset>
+                    </form>
 
                     [% INCLUDE 'circ-nav.inc' %]
                 </aside>
@@ -77,51 +121,46 @@
 
         [%# Process library data for JavaScript %]
         [% SET libraries = Branches.all %]
-    <script>
-    var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
-    </script>
+        <script>
+            var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
+        </script>
 
-    [% Asset.js("js/bookings-common.js", type => "module") | $raw %]
+        [% Asset.js("js/bookings-common.js", type => "module") | $raw %]
 
-    <script>
-        $(document).ready(function() {
-            // Override help link to point to latest manual (bookings not in versioned docs)
-            $("#helper").off("click").on("click", function(e) {
-                e.preventDefault();
-                window.open("https://koha-community.org/manual/latest/en/html/circulation.html#bookings-to-collect", "_blank");
-            });
-
-            // Initialize extended attributes
-            initializeBookingExtendedAttributes().then(({ extended_attribute_types, authorised_values }) => {
-                // Get table settings
-                let table_settings = [% TablesSettings.GetTableSettings( 'circ', 'bookings', 'bookings-to-collect', 'json' ) | $raw %];
-                
-                // Create the table using common function
-                var bookings_table = createPendingBookingsTable("#bookingst", table_settings, {
-                    extended_attribute_types: extended_attribute_types,
-                    authorised_values: authorised_values,
-                    columnOptions: {
-                        showBiblioTitle: true,
-                        showItemData: true,
-                        showCallnumber: true,
-                        showLocation: true,
-                        showHoldingLibrary: true,
-                        showPickupLibrary: true,
-                        showBookingDates: true,
-                        showActions: false,
-                        showStatus: false,
-                        showCreationDate: false,
-                        patronOptions: { display_cardnumber: true, url: true }
-                    }
-                });
-
-                // Handle form submission for filtering
-                $("#bookingsf").on("submit", function(e){
+        <script>
+            $(document).ready(function() {
+                $("#helper").off("click").on("click", function(e) {
                     e.preventDefault();
-                    bookings_table.DataTable().draw();
+                    window.open("https://koha-community.org/manual/latest/en/html/circulation.html#bookings-to-collect", "_blank");
+                });
+
+                initializeBookingExtendedAttributes().then(({ extended_attribute_types, authorised_values }) => {
+                    let table_settings = [% TablesSettings.GetTableSettings( 'circ', 'bookings', 'bookings-to-collect', 'json' ) | $raw %];
+
+                    var bookings_table = createPendingBookingsTable("#bookingst", table_settings, {
+                        extended_attribute_types: extended_attribute_types,
+                        authorised_values: authorised_values,
+                        columnOptions: {
+                            showBiblioTitle: true,
+                            showItemData: true,
+                            showCallnumber: true,
+                            showLocation: true,
+                            showHoldingLibrary: true,
+                            showPickupLibrary: true,
+                            showBookingDates: true,
+                            showActions: false,
+                            showStatus: false,
+                            showCreationDate: false,
+                            patronOptions: { display_cardnumber: true, url: true }
+                        }
+                    });
+
+                    $("#bookingsf").on("submit", function(e){
+                        e.preventDefault();
+                        bookings_table.DataTable().draw();
+                    });
                 });
             });
-        });
         </script>
         [% END %]
         [% INCLUDE 'intranet-bottom.inc' %]

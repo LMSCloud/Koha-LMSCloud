@@ -1,8 +1,32 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Authority MARC subfield structure &rsaquo; Administration &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF ( add_form ) %]
+        [% t("Edit subfields constraints") | html %] &rsaquo;
+    [% END %]
+
+    [% IF ( delete_confirm ) %]
+        [% tx("Confirm deletion of subfield '{subfield}'", {subfield = ass.tagsubfield }) | html %] &rsaquo;
+    [% END %]
+
+    [% IF ( add_form || delete_confirm || else ) %]
+        [% tx("Tag {tag}", { tag = tagfield}) | html %] &rsaquo;
+    [% END %]
+
+    [% IF ( authtypecode ) %]
+        [% tx("'{authtypecode}' framework", { authtypecode = authtypecode }) | html %]
+    [% ELSE %]
+        [% t("Default framework") | html %]
+    [% END %] &rsaquo;
+    [% t("Authority types") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
+
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -14,9 +38,6 @@
 [% WRAPPER 'sub-header.inc' %]
     [% WRAPPER breadcrumbs %]
         [% WRAPPER breadcrumb_item %]
-            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
-        [% END %]
-        [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
         [% END %]
         [% WRAPPER breadcrumb_item %]
@@ -25,7 +46,7 @@
 
         [% IF ( authtypecode ) %]
             [% WRAPPER breadcrumb_item %]
-                <a href="/cgi-bin/koha/admin/auth_tag_structure.pl?authtypecode=[% authtypecode | uri%]">[% authtypecode | html %] framework</a>
+                <a href="/cgi-bin/koha/admin/auth_tag_structure.pl?authtypecode=[% authtypecode | uri%]">[% tx("'{authtypecode}' framework", { authtypecode = authtypecode }) | html %]</a>
             [% END %]
         [% ELSE %]
             [% WRAPPER breadcrumb_item %]
@@ -35,17 +56,17 @@
 
         [% IF ( else ) %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Authority MARC subfield structure for [% tagfield | html %]</span>
+                [% tx("Tag {tag}", { tag = tagfield}) | html %]
             [% END %]
         [% ELSE %]
             [% WRAPPER breadcrumb_item %]
-                <a href="/cgi-bin/koha/admin/auth_subfields_structure.pl?tagfield=[% tagfield | uri %]&amp;tagsubfield=[% tagsubfield | uri %]&amp;authtypecode=[% authtypecode |uri %]">Authority MARC subfield structure for [% tagfield | html %]</a>
+                <a href="/cgi-bin/koha/admin/auth_subfields_structure.pl?tagfield=[% tagfield | uri %]&amp;tagsubfield=[% tagsubfield | uri %]&amp;authtypecode=[% authtypecode |uri %]">[% tx("Tag {tag}", { tag = tagfield}) | html %]</a>
             [% END %]
         [% END %]
 
         [% IF ( delete_confirm ) %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Confirm deletion of subfield [% tagsubfield | html %]?</span>
+                [% tx("Confirm deletion of subfield '{tagsubfield}'", { tagsubfield = ass.tagsubfield }) | html %]
             [% END %]
         [% END %]
 
@@ -53,7 +74,7 @@
             [% IF ( use_heading_flags_p ) %]
                 [% IF ( heading_edit_subfields_p ) %]
                     [% WRAPPER breadcrumb_item bc_active= 1 %]
-                        <span>Edit MARC subfields constraints</span>
+                        <span>Edit subfields constraints</span>
                     [% END %]
                 [% END %]
             [% ELSE %]
@@ -67,16 +88,19 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% IF ( add_form ) %]
 
     <h1>[% IF ( use_heading_flags_p ) %]
     [% IF ( heading_edit_subfields_p ) %]Edit MARC subfields constraints for field [% tagfield | html %] authority [% authtypecode | html %][% END %]
     [% ELSE %][% action | html %][% END %]</h1>
-    <form action="[% script_name | html %]" name="Aform" method="post">
-        <input type="hidden" name="op" value="add_validate" />
+    <div class="hint">You can drag and drop the subfield tabs to change the order.</div>
+    <form action="/cgi-bin/koha/admin/auth_subfields_structure.pl" name="Aform" method="post">
+        [% INCLUDE 'csrf-token.inc' %]
+        <input type="hidden" name="op" value="cud-add_validate" />
         <input type="hidden" name="tagfield" value="[% tagfield | html %]" />
         <input type="hidden" name="authtypecode" value="[% authtypecode | html %]" />
         <fieldset class="action"><input type="submit" class="btn btn-primary" value="Save changes" /> <a class="cancel" href="/cgi-bin/koha/admin/auth_subfields_structure.pl?tagfield=[% tagfield | uri %]&amp;authtypecode=[% authtypecode | uri %]">Cancel</a></fieldset>
@@ -92,21 +116,24 @@
             [% END %]
         [% END %][% END %]
 
-        <div id="subfieldtabs" class="toptabs numbered">
-            <ul class="nav nav-tabs" role="tablist">
+        [% WRAPPER tabs id= "subfieldtabs" %]
+            [% WRAPPER tabs_nav %]
                 [% FOREACH loo IN loop %]
-                    <li role="presentation" id="tab_subfield_[%- PROCESS outputsubfield subfieldanchor = loo.tagsubfield -%]">
+                    [% outputsubfield = PROCESS outputsubfield subfieldanchor = loo.tagsubfield %]
+                    [% WRAPPER tab_item tabname= outputsubfield id= "tab_subfield_${outputsubfield}" %]
                         [% IF ( loo.new_subfield ) %]
-                            <a href="#sub[%- PROCESS outputsubfield subfieldanchor = loo.tagsubfield -%]field"  aria-controls="sub[%- PROCESS outputsubfield subfieldanchor = loo.tagsubfield -%]field" role="tab" data-toggle="tab" title="[% loo.liblibrarian | html %]">New</a>
+                            <span>New</span>
                         [% ELSE %]
-                            <a href="#sub[%- PROCESS outputsubfield subfieldanchor = loo.tagsubfield -%]field"  aria-controls="sub[%- PROCESS outputsubfield subfieldanchor = loo.tagsubfield -%]field" role="tab" data-toggle="tab" title="[% loo.liblibrarian | html %]">[% loo.tagsubfield | html %]</a>
-                        [% END %]
-                    </li>
-                [% END %]
-            </ul>
-            <div class="tab-content">
+                            [% loo.tagsubfield | html %]
+                        [% END # IF loo.new_subfield%]
+                    [% END # WRAPPER tab_item %]
+                [% END # FOREACH loo %]
+            [% END # /WRAPPER tabs_nav %]
+
+            [% WRAPPER tab_panels %]
                 [% FOREACH loo IN loop %]
-                    <div role="tabpanel" class="tab-pane" id="sub[%- PROCESS outputsubfield subfieldanchor = loo.tagsubfield -%]field">
+                    [% outputsubfield = PROCESS outputsubfield subfieldanchor = loo.tagsubfield %]
+                    [% WRAPPER tab_panel tabname=outputsubfield %]
                         <fieldset class="rows"><ol>
 
                             [% IF ( loo.new_subfield ) %]
@@ -135,8 +162,8 @@
                                     <input type="checkbox" id="mandatory[% loo.row | html %]" name="mandatory[% loo.row | html %]" value="1" />
                                 [% END %]
                             </li>
-                            <li><label for="liblibrarian[% loo.row | html %]">Text for librarian: </label><input id="liblibrarian[% loo.row | html %]" type="text" name="liblibrarian" value="[% loo.liblibrarian | html_entity %]" size="40" maxlength="80" /></li>
-                            <li><label for="libopac[% loo.row | html %]">Text for OPAC: </label><input type="text" id="libopac[% loo.row | html %]" name="libopac" value="[% loo.libopac | html_entity %]" size="40" maxlength="80" /></li>
+                            <li><label for="liblibrarian[% loo.row | html %]">Description in staff interface: </label><input id="liblibrarian[% loo.row | html %]" type="text" name="liblibrarian" value="[% loo.liblibrarian | html_entity %]" size="40" maxlength="255" /></li>
+                            <li><label for="libopac[% loo.row | html %]">Description in OPAC: </label><input type="text" id="libopac[% loo.row | html %]" name="libopac" value="[% loo.libopac | html_entity %]" size="40" maxlength="255" /></li>
                             <li><label for="tab[% loo.row | html %]">Managed in tab: </label>
                                 <select name="tab" id="tab[% loo.row | html %]">
                                     [%- IF ( loo.tab ==  -1 ) -%]
@@ -154,7 +181,7 @@
                                     [%- END -%]
                                 [%- END -%]
                                 </select>
-                                <div class="hint"><i class="fa fa-warning"></i> <span>Ignore means that the subfield does not display in the record editor and that its value, if any, is deleted from the record</span></div>
+                                <div class="hint"><i class="fa-solid fa-triangle-exclamation"></i> <span>Ignore means that the subfield does not display in the record editor and that its value, if any, is deleted from the record</span></div>
                             </li>
                             <li>
                                 <fieldset>
@@ -266,19 +293,20 @@
                                 </fieldset>
                             </li>
                         </ol></fieldset><br class="clear" />
-                    </div>
-                [% END %]
-            </div> <!-- /.tab-content -->
-        </div>
+                    [% END # /WRAPPER   tab_panel %]
+                [% END # /FOREACH loo %]
+            [% END # /WRAPPER tab_panels %]
+        [% END # /WRAPPER tabs %]
     </form>
 [% END %]
 
 [% IF ( delete_confirm ) %]
 
-    <div class="dialog alert">
-        <h1>Delete subfield <span class="ex">'[% ass.tagsubfield | html %]'?</span></h1>
+    <div class="alert alert-warning">
+        <h1>Confirm deletion of subfield <span class="ex">'[% ass.tagsubfield | html %]'?</span></h1>
         <form action="[% delete_link | html %]" method="post">
-            <input type="hidden" name="op" value="delete_confirmed" />
+            [% INCLUDE 'csrf-token.inc' %]
+            <input type="hidden" name="op" value="cud-delete_confirmed" />
             <table>
                 <tr><th scope="row">Subfield:</th> <td>[% ass.tagsubfield | html %]</td></tr>
                 <tr><th scope="row">Description:</th> <td>[% ass.liblibrarian | html_entity %]</td></tr>
@@ -286,14 +314,14 @@
             <input type="hidden" name="tagfield" value="[% ass.tagfield | html %]" />
             <input type="hidden" name="tagsubfield" value="[% ass.tagsubfield | html %]" />
             <input type="hidden" name="authtypecode" value="[% ass.authtypecode | html %]" />
-            <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> Yes, delete this subfield</button>
+            <button type="submit" class="btn btn-default approve"><i class="fa fa-fw fa-check"></i> Yes, delete this subfield</button>
         </form>
 
         <form action="[% delete_link | html %]" method="get">
             <input type="hidden" name="tagfield" value="[% ass.tagfield | html %]" />
             <input type="hidden" name="tagsubfield" value="[% ass.tagsubfield | html %]" />
             <input type="hidden" name="authtypecode" value="[% ass.authtypecode | html %]" />
-            <button type="submit" class="deny"><i class="fa fa-fw fa-remove"></i> No, do not delete</button>
+            <button type="submit" class="btn btn-default deny"><i class="fa fa-fw fa-times"></i> No, do not delete</button>
         </form>
     </form></div>
 [% END %]
@@ -308,7 +336,7 @@
     <thead>
         <tr>
             <th>Subfield</th>
-            <th>Text</th>
+            <th>Description</th>
             <th>Constraints</th>
             <th class="NoSort">&nbsp;</th>
         </tr>
@@ -348,8 +376,8 @@
             [% END %]
         </td>
         <td class="actions">
-            <a href="/cgi-bin/koha/admin/auth_subfields_structure.pl?op=add_form&tagfield=[% tagfield | uri %]&tagsubfield=[% loo.tagsubfield | uri %]&authtypecode=[% authtypecode | uri %]#sub[% loo.tagsubfield | uri %]field" class="btn btn-default btn-xs"><i class="fa fa-pencil" aria-hidden="true"></i> Edit</a>
-            <a href="/cgi-bin/koha/admin/auth_subfields_structure.pl?op=delete_confirm&amp;tagfield=[% loo.tagfield | uri %]&amp;tagsubfield=[% loo.tagsubfield | uri %]&amp;authtypecode=[% authtypecode | uri %]" class="btn btn-default btn-xs"><i class="fa fa-trash" aria-hidden="true"></i> Delete</a>
+            <a href="/cgi-bin/koha/admin/auth_subfields_structure.pl?op=add_form&tagfield=[% tagfield | uri %]&tagsubfield=[% loo.tagsubfield | uri %]&authtypecode=[% authtypecode | uri %]#sub[% loo.tagsubfield | uri %]field" class="btn btn-default btn-xs"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+            <a href="/cgi-bin/koha/admin/auth_subfields_structure.pl?op=delete_confirm&amp;tagfield=[% loo.tagfield | uri %]&amp;tagsubfield=[% loo.tagsubfield | uri %]&amp;authtypecode=[% authtypecode | uri %]" class="btn btn-default btn-xs"><i class="fa fa-trash-can" aria-hidden="true"></i> Delete</a>
         </td>
     </tr>
     [% END %]
@@ -357,7 +385,7 @@
 </table>
 </div> <!-- /.page-section -->
 
-    <form action="[% script_name | html %]" method="get">
+    <form action="/cgi-bin/koha/admin/auth_subfields_structure.pl" method="get">
     <fieldset class="action"><input type="hidden" name="op" value="add_form" />
     <input type="hidden" name="tagfield" value="[% edit_tagfield | html %]" />
     <input type="hidden" name="authtypecode" value="[% edit_authtypecode | html %]" />
@@ -368,17 +396,18 @@
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
+    [% Asset.js( "lib/sortable/Sortable.min.js" ) | $raw %]
     [% Asset.js("js/admin-menu.js") | $raw %]
     <script>
         $(document).ready(function() {
@@ -390,33 +419,32 @@
                 paginate: false
             }));
 
-            [% IF ( tagsubfield && tagsubfield == "@") %]
-                $("#subfieldtabs a[href='#subATfield']").tab("show");
-            [% ELSIF ( tagsubfield && tagsubfield != "@") %]
-                $("#subfieldtabs a[href='#sub[% tagsubfield | html %]field']").tab("show");
-            [% ELSE  %]
-                $("#subfieldtabs a:first").tab("show");
-            [% END %]
+            if ($("#subfieldtabs").length > 0) {
+                [% IF ( tagsubfield && tagsubfield == "@") %]
+                    $("#subfieldtabs a[href='#AT_panel']").tab("show");
+                [% ELSIF ( tagsubfield && tagsubfield != "@") %]
+                    $("#subfieldtabs a[href='#[% tagsubfield | html %]_panel']").tab("show");
+                [% ELSE  %]
+                    $("#subfieldtabs a:first").tab("show");
+                [% END %]
 
-            var current_index;
-            $("#subfieldtabs > ul").sortable({
-                axis: "x",
-                start: function (e, ui) {
-                    current_index = $(ui.item[0]).index();
-                },
-                stop: function (e, ui) {
-                    var new_index = $(ui.item[0]).index();
-                    if (current_index < new_index) new_index++;
-                    var subfield_code = $(ui.item[0]).attr('id').replace( /^tab_subfield_/, '');
-                    var content = $('#sub' + subfield_code + 'field');
-                    var panels = $("#subfieldtabs .tab-pane");
-                    if ( new_index < $(panels).size() ){
-                        $(content).insertBefore( panels[new_index]);
-                    } else {
-                        $(content).insertAfter( panels[new_index-1]);
-                    }
-                }
-            });
+                var subfields_list = $("#subfieldtabs > ul");
+                var sortable_subfields = new Sortable(subfields_list[0], {
+                    onEnd: function (e) {
+                        var old_index = e.oldIndex;
+                        var new_index = e.newIndex;
+                        if (old_index < new_index) new_index++;
+                        var subfield_code = e.item.id.replace(/^tab_subfield_/, "");
+                        var content = $("#" + subfield_code + "_panel");
+                        var panels = $("#subfieldtabs .tab-pane");
+                        if (new_index < $(panels).size()) {
+                            $(content).insertBefore(panels[new_index]);
+                        } else {
+                            $(content).insertAfter(panels[new_index - 1]);
+                        }
+                    },
+                });
+            }
 
         });
     </script>

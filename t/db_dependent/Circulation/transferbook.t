@@ -116,9 +116,11 @@ subtest 'transfer already at destination' => sub {
         }
     );
 
+    my $itemtype = $builder->build_object({ class => 'Koha::ItemTypes' })->store->itemtype;
     my $item = $builder->build_sample_item(
         {
             library => $library->branchcode,
+            itype => $itemtype
         }
     );
 
@@ -169,7 +171,8 @@ subtest 'transfer already at destination' => sub {
     is( $dotransfer, 0, 'Do not transfer recalled item, it has already arrived' );
     is( $messages->{RecallPlacedAtHoldingBranch}, 1, "We found the recall");
 
-    my $item2 = $builder->build_object({ class => 'Koha::Items' }); # this item will have a different holding branch to the pickup branch
+    $itemtype = $builder->build_object({ class => 'Koha::ItemTypes' })->store->itemtype;
+    my $item2 = $builder->build_object({ class => 'Koha::Items', value => { itype => $itemtype } }); # this item will have a different holding branch to the pickup branch
     $recall = Koha::Recall->new(
         {   biblio_id         => $item2->biblionumber,
             item_id           => $item2->itemnumber,
@@ -196,14 +199,16 @@ subtest 'transfer an issued item' => sub {
         }
     );
 
+    my $itemtype = $builder->build_object({ class => 'Koha::ItemTypes' })->store->itemtype;
     my $item = $builder->build_sample_item(
         {
             library => $library->branchcode,
+            itype => $itemtype
         }
     );
 
     my $dt_to = dt_from_string();
-    my $issue = AddIssue( $patron->unblessed, $item->barcode, $dt_to );
+    my $issue = AddIssue( $patron, $item->barcode, $dt_to );
 
     # We are making sure there is no regression, feel free to change the behavior if needed.
     # * WasReturned does not seem like a variable that should contain a borrowernumber
@@ -217,7 +222,7 @@ subtest 'transfer an issued item' => sub {
     is( $messages->{WasReturned}, $patron->borrowernumber, 'transferbook should have return a WasReturned flag is the item was issued before the transferbook call');
 
     # Reset issue
-    $issue = AddIssue( $patron->unblessed, $item->barcode, $dt_to );
+    $issue = AddIssue( $patron, $item->barcode, $dt_to );
 
     # We are making sure there is no regression, feel free to change the behavior if needed.
     # * Contrary to the POD, if ignore_reserves is not passed (or is false), any item reserve

@@ -36,12 +36,12 @@ use Koha::Account;
 use Koha::Account::DebitTypes;
 use Koha::Account::Lines;
 use Koha::AdditionalFields;
-use Koha::Token;
 use Koha::DateUtils qw( output_pref );
 
 my $input = CGI->new();
 
 my $payment_id          = $input->param('payment_id');
+my $op = $input->param('op') // q{};
 my $writeoff_individual = $input->param('writeoff_individual');
 my $cancel_individual   = $input->param('cancel_individual');
 my $change_given        = $input->param('change_given');
@@ -147,6 +147,7 @@ if ( $selected_accts ) {
 }
 
 if ( $total_paid and $total_paid ne '0.00' ) {
+    $accountlines_id      = $input->param('accountlines_id');
     $total_paid = $total_due if (abs($total_paid - $total_due) < 0.01) && C4::Context->preference('RoundFinesAtPayment');
     if ( $total_paid < 0 or $total_paid > $total_due ) {
         $template->param(
@@ -159,12 +160,6 @@ if ( $total_paid and $total_paid ne '0.00' ) {
             total_paid => $total_paid
         );
     } else {
-        output_and_exit( $input, $cookie, $template,  'wrong_csrf_token' )
-            unless Koha::Token->new->check_csrf( {
-                session_id => $input->cookie('CGISESSID'),
-                token  => scalar $input->param('csrf_token'),
-            });
-
         my $url;
         my $pay_result;
         if ( ($pay_individual && $checkCashRegisterOk) || $writeoff_individual || $cancel_individual) {
@@ -190,25 +185,33 @@ if ( $total_paid and $total_paid ne '0.00' ) {
             );
             $payment_id = $pay_result->{payment_id};
 
-            my @additional_fields;
-            my $accountline_fields = Koha::AdditionalFields->search({ tablename => 'accountlines:credit' });
-            while ( my $field = $accountline_fields->next ) {
-                my $value = $input->param('additional_field_' . $field->id);
-                if (defined $value) {
-                    push @additional_fields, {
-                        id => $field->id,
-                        value => $value,
-                    };
-                }
-            }
+            my $payment = Koha::Account::Lines->find($payment_id);
+            my @additional_fields = $payment->prepare_cgi_additional_field_values( $input, 'accountlines:credit' );
             if (@additional_fields) {
-                my $payment = Koha::Account::Lines->find($payment_id);
                 $payment->set_additional_fields(\@additional_fields);
             }
 
+            $url = "/cgi-bin/koha/members/pay.pl";
+        } elsif ($op eq 'cud-writeoff_individual') {
+            my $item_id         = $input->param('itemnumber');
+            my $payment_note    = $input->param("payment_note");
+
+            my $accountline = Koha::Account::Lines->find( $accountlines_id );
+            $pay_result = $account->pay(
+                {
+                    type       => 'WRITEOFF',
+                    amount     => $total_paid,
+                    lines      => [ $accountline ],
+                    note       => $payment_note,
+                    interface  => C4::Context->interface,
+                    item_id    => $item_id,
+                    library_id => $library_id,
+                }
+            );
+            $payment_id = $pay_result->{payment_id};
 
             $url = "/cgi-bin/koha/members/pay.pl";
-        } else {
+        } elsif ( $op eq 'cud-pay' || $op eq 'cud-writeoff' ) {
             if ($selected_accts) {
                 if ( $total_paid > $total_due ) {
                     $template->param(
@@ -250,19 +253,9 @@ if ( $total_paid and $total_paid ne '0.00' ) {
             }
             $payment_id = $pay_result->{payment_id};
 
-            my @additional_fields;
-            my $accountline_fields = Koha::AdditionalFields->search({ tablename => 'accountlines:credit' });
-            while ( my $field = $accountline_fields->next ) {
-                my $value = $input->param('additional_field_' . $field->id);
-                if (defined $value) {
-                    push @additional_fields, {
-                        id => $field->id,
-                        value => $value,
-                    };
-                }
-            }
+            my $payment = Koha::Account::Lines->find($payment_id);
+            my @additional_fields = $payment->prepare_cgi_additional_field_values( $input, 'accountlines:credit' );
             if (@additional_fields) {
-                my $payment = Koha::Account::Lines->find($payment_id);
                 $payment->set_additional_fields(\@additional_fields);
             }
 

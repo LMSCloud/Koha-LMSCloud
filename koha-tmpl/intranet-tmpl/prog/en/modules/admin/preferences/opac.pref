@@ -12,7 +12,7 @@ OPAC:
               choices:
                   holdingbranch: "current library"
                   homebranch: "home library"
-            - . Please note that this feature is currently available for MARC21 and UNIMARC.
+            - .
         -
             - pref: OPACSearchAutoComplete
               choices:
@@ -49,6 +49,12 @@ OPAC:
             - "Koha OPAC as public. Private OPAC requires authentication before accessing the OPAC. "
             - 'Note: This does not affect the public API, see the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=RESTPublicAnonymousRequests">RESTPublicAnonymousRequests</a> to control the API.'
         -
+            - pref: OPACShowLibraries
+              choices:
+                  1: "Show"
+                  0: "Don't show"
+            - "a link to a page in the OPAC showing information about each library."
+        -
             - "Show star-ratings on"
             - pref: OpacStarRatings
               choices:
@@ -61,17 +67,21 @@ OPAC:
               choices:
                   1: Show
                   0: "Don't show"
-            - "a warning that the OPAC is under maintenance, instead of the OPAC itself. Note: this shows the same warning as when the database needs to be upgraded, but unconditionally."
-        -
-            - 'Show the following HTML when <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OpacMaintenance">OpacMaintenance</a> is enabled:'
-            - pref: OpacMaintenanceNotice
-              type: textarea
-              syntax: text/html
-              class: code
+            - "a warning that the OPAC is under maintenance, instead of the OPAC itself. Note: this shows the same warning as when the database needs to be upgraded, but unconditionally. A custom message can be shown on OPAC maintenance page by creating an <a href='/cgi-bin/koha/tools/additional-contents.pl?category=html_customizations'>HTML customization</a> in the OpacMaintenanceNotice region."
         -
             - "This description will show in search engine results (160 characters)."
             - pref: OpacMetaDescription
               type: textarea
+        -
+            - "Control how search engines index the OPAC by adding a robots meta tag with"
+            - pref: OpacMetaRobots
+              multiple:
+               noindex: "noindex"
+               nofollow: "nofollow"
+            - "options.<br>"
+            - "<br><strong>nofollow:</strong> This option tells search engines not to follow any links on the OPAC. If you don't specify this rule, search engines may use links on the page to discover those linked pages."
+            - "<br/><strong>noindex:</strong> This option instructs search engines not to index the OPAC at all. This means the OPAC won't appear in search results. This might be useful for internal library catalogs that are not intended for public search."
+            - "<br><strong>both:</strong> Search engines won't follow any links on the OPAC and won't index the OPAC itself."
         -
             - By default, show bibliographic records
             - pref: BiblioDefaultView
@@ -183,6 +193,15 @@ OPAC:
             - "for items on the OPAC record details page."
             - "<br />Note: If 'on a separate column' is selected, you still need to enable the item_shelving_location display on the <a href='/cgi-bin/koha/admin/columns_settings.pl'>configure columns</a> administration page."
         -
+            - Use
+            - pref: OPACLoginLabelTextContent
+              default: card number
+              choices:
+                  cardnumber: card number
+                  username: username
+                  cardnumberorusername: card number or username
+            - "as the label of the userid input field on the OPAC login form."
+        -
             - pref: OPACShowMusicalInscripts
               default: 0
               choices:
@@ -230,6 +249,7 @@ OPAC:
               type: textarea
               syntax: javascript
               class: code
+            - "<br><strong>NOTE:</strong> Library specific JS can be defined in <a href='/cgi-bin/koha/admin/branches.pl'>library administration</a>."
         -
             - Include the additional CSS stylesheet
             - pref: OpacAdditionalStylesheet
@@ -246,6 +266,7 @@ OPAC:
               type: textarea
               syntax: css
               class: code
+            - "<br><strong>NOTE:</strong> Library specific CSS can be defined in <a href='/cgi-bin/koha/admin/branches.pl'>library administration</a>."
         -
             - 'Include a "More Searches" box on the detail pages of items on the OPAC, with the following HTML (leave blank to disable):'
             - '<br />Note: The placeholders {BIBLIONUMBER}, {CONTROLNUMBER}, {OCLC_NO}, {TITLE}, {ISBN}, {ISSN} and {AUTHOR} will be replaced with information from the displayed record.'
@@ -353,7 +374,7 @@ OPAC:
                   0: "Don't show"
             - " linked titles in OPAC detailed view based on the linked records in fields 770$w, 772$w, 773$w, 774$w, 775$w, 776$w, 777$w, 780$w, 785$w, 787$w, 800$w, 810$w, 811$w, 830$w."
         -
-            - "List the following not for loan statuses as available for reference in OPAC search results:"
+            - "List the following <a href='/cgi-bin/koha/admin/authorised_values.pl?searchfield=NOT_LOAN'>not for loan</a> statuses as available for reference in OPAC search results:"
             - pref: Reference_NFL_Statuses
             - "(Use | as delimiter.)"
         -
@@ -379,6 +400,14 @@ OPAC:
 
     Features:
         -
+            - pref: OpacCatalogConcerns
+              default: 0
+              choices:
+                  0: "Don't allow"
+                  1: Allow
+            - "OPAC users to report concerns about bibliographic records."
+            - '<p><strong>NOTE:</strong> Enabling `<a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=CatalogConcerns">CatalogConcerns</a>` will allow concern submissions from the staff interface.</p>'
+        -
             - pref: OPACReportProblem
               choices:
                   1: Allow
@@ -394,7 +423,7 @@ OPAC:
             - patrons to log in to their accounts on the OPAC.
         -
             - Show
-            - pref: OpacItemLocation
+            - pref: OPACItemLocation
               choices:
                   location: "library, location, and call number"
                   ccode: "library, collection code, and call number"
@@ -506,7 +535,8 @@ OPAC:
                 facebook: Facebook
                 linkedin: LinkedIn
                 email: Email
-                twitter: Twitter
+
+
             - "social network links on the OPAC detail pages."
         -
             - pref: OpacBrowseResults
@@ -608,6 +638,58 @@ OPAC:
                   1: Enable
                   0: Disable
             - "interface for browsing all holdings (Elasticsearch only)."
+        -
+            - "Display this information about authors and contributors on OPAC detail pages:"
+            - pref: OPACAuthorIdentifiersAndInformation
+              multiple_sortable:
+                activity: Activity (372$a$s$t)
+                address: Address (371$a$b$d$e)
+                associated_group: Associated group (373$a$s$t$u$v$0)
+                email_address: Electronic mail address (371$m)
+                identifiers: Identifiers (024$2$a)
+                occupation: Occupation (374$a$s$t$u$v$0)
+                place_of_birth: Place of birth (370$a)
+                place_of_death: Place of death (370$b)
+                uri: URI (371$u)
+            - "<strong>NOTE:</strong> Identifiers for authors and contributors - valid codes to use in the source subfield (024$2) are currently: isni (ISNI), orcid (ORCID), scopus (ScopusID), loop (Loop ID), rid (Publons ID), viaf (VIAF ID), and wikidata (WIKIDATA ID)."
+        -
+            - "Calculate the amount a patron has 'saved' by using the library based on replacement prices, and display:"
+            - pref: OPACShowSavings
+              multiple:
+                  checkouthistory: "on patron's checkout history page (the system preference 'opacreadinghistory' must be enabled)"
+                  summary: "in user summary box on OPAC homepage (the system preference 'OPACUserSummary' must be enabled)"
+                  user: "on patron's 'your summary' page"
+            - ". Note that displayed savings may be inaccurate if checkout history is anonymized."
+        -
+            - pref: OPACVirtualCard
+              choices:
+                  1: Allow
+                  0: "Don't allow"
+            - patrons to access the 'My virtual card' tab on their account page on the OPAC.
+            - "If set to allow, show a "
+            - pref: OPACVirtualCardBarcode
+              default: code39
+              choices:
+                  code39: "CODE39"
+                  code128: "CODE128"
+                  ean13: "EAN-13"
+                  upca: "UPC-A"
+                  upce: "UPC-E"
+                  ean8: "EAN-8"
+                  itf14: "ITF-14"
+                  qrcode: "QR Code"
+                  matrix2of5: "Matrix 2 of 5"
+                  industrial2of5: "Industrial 2 of 5"
+                  iata2of5: "IATA 2 of 5"
+                  coop2of5: "COOP 2 of 5"
+            - " barcode in the patron's virtual card."
+        -
+            - pref: OPACDisableSendList
+              default: 0
+              choices:
+                  1: "Don't allow"
+                  0: Allow
+            - "OPAC users to email lists via a 'Send list' button."
         -
             - pref: OPACAuthorIdentifiers
               default: 0
@@ -755,7 +837,7 @@ OPAC:
               choices:
                   1: Allow
                   0: "Don't allow"
-            - patrons to renew their own books on the OPAC.
+            - patrons to renew their own checkouts on the OPAC.
         -
             - Use 
             - pref: OpacRenewalBranch
@@ -767,7 +849,7 @@ OPAC:
                   opacrenew: "'OPACRenew'"
             - as branchcode to store in the statistics table.
         -
-            - Only allow patrons to renew their own books on the OPAC if they have less than
+            - Only allow patrons to renew their own checkouts on the OPAC if they have less than
             - pref: OPACFineNoRenewals
               class: currency
             - '[% local_currency %] in charges (leave blank to disable).'
@@ -810,19 +892,40 @@ OPAC:
                   1: Allow
             - "OPAC users to share private lists with other patrons."
         -
+            - "Expired patrons are blocked from performing the following actions in the OPAC:"
             - pref: BlockExpiredPatronOpacActions
+              multiple:
+                  renew: "Renewing an item"
+                  hold: "Placing a hold on an item"
+                  ill_request: "Placing an ILL request"
+            - "<p><strong>NOTE:</strong> OPAC actions blocked using the patron category setting take priority over this system preference.</p>"
+        -
+            - The cleanup_database.pl cronjob automatically deletes unaccepted private list share invites after
+            - pref: PurgeListShareInvitesOlderThan
+              class: integer
+            - "days."
+            - "<p>Example: [14] Deletes unaccepted private list share invites older than 14 days.</p>"
+            - "<p><strong>WARNING</strong>: Unaccepted private list shares are deleted using these priorities:"
+            - "<ul>"
+            - "<li>First priority: Use the --list-invites parameter when the cleanup_database.pl cronjob is run with a --list-invites parameter defining a number of days.</li>"
+            - "<li>Second priority: Use the PurgeListShareInvitesOlderThan system preference when it contains a value.</li>"
+            - "<li>Third priority: Use a default of 14 days when the cleanup_database.pl cronjob is run with a --list-invites parameter, but no value AND the PurgeListShareInvitesOlderThan system preference is empty.</li>"
+            - "</ul>"
+            - "<strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/cleanup_database.pl</code> cronjob. Ask your system administrator to schedule it."
+        -
+            - pref: OpacTrustedCheckout
+              default: 0
               choices:
-                1: "Block"
-                0: "Don't block"
-            - expired patrons from OPAC actions such as placing a hold or renewing. Note that the setting for a patron category takes priority over this system preference.
-
+                  0: "Don't allow"
+                  1: Allow
+            - "OPAC users to checkout to themselves."
     Privacy:
         -
             - pref: opacreadinghistory
               choices:
                   1: Allow
                   0: "Don't allow"
-            - patrons to see what books they have checked out in the past.
+            - patrons to see what items they have checked out in the past.
         -
             - pref: OPACHoldsHistory
               choices:
@@ -944,29 +1047,32 @@ OPAC:
             - "days after account creation."
             - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/cleanup_database.pl</code> cronjob. Ask your system administrator to schedule it.<br>No patrons will be deleted if you set the pref to zero or make it empty."
         -
-            - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron modification screen:"
+            - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a> must be filled in on the patron modification screen:"
             - pref: PatronSelfModificationMandatoryField
               type: modalselect
               source: borrowers
               exclusions: password|cardnumber|dateexpiry|categorycode|sort1|sort2|opacnote|borrowernotes|gonenoaddress|lost|flags
         -
-            - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
+            - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a> must be filled in on the patron entry screen:"
             - pref: PatronSelfRegistrationBorrowerMandatoryField
               type: modalselect
               source: borrowers
               exclusions: sort1|sort2|opacnote|borrowernotes|gonenoaddress|lost|flags
         -
-            - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-registration screen:"
+            - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a> will not appear on the patron self-registration screen:"
             - pref: PatronSelfRegistrationBorrowerUnwantedField
               type: modalselect
               source: borrowers
               exclusions: branchcode|sort1|sort2|gonenoaddress|lost|flags
+              inclusions: categorycode|dateexpiry
+            - '<br /> NOTE: preferred_name will be set to firstname if not included in the form.'
         -
-            - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron self-modification screen:"
+            - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a> will not appear on the patron self-modification screen:"
             - pref: PatronSelfModificationBorrowerUnwantedField
               type: modalselect
               source: borrowers
               exclusions: sort1|sort2|gonenoaddress|lost|flags
+            - '<br /> NOTE: preferred_name will be set to firstname if not included in the form. It should also be selected in <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=BorrowerUnwantedField">BorrowerUnwantedField</a> if selected here.'
         -
             - "Display the following additional instructions for patrons who self register via the OPAC ( HTML is allowed ):"
             - pref: PatronSelfRegistrationAdditionalInstructions
@@ -1011,7 +1117,7 @@ OPAC:
                   EmailAddressForPatronRegistrations: EmailAddressForPatronRegistrations
                   BranchEmailAddress: email address of library
                   KohaAdminEmailAddress: KohaAdminEmailAddress
-            - '<br>If you chooose <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EmailAddressForPatronRegistrations">EmailAddressForPatronRegistrations</a> you have to enter a valid email address: '
+            - '<br>If you choose <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EmailAddressForPatronRegistrations">EmailAddressForPatronRegistrations</a> you have to enter a valid email address: '
             - pref: EmailAddressForPatronRegistrations
               class: email
         -

@@ -10,7 +10,7 @@
         [% IF Koha.Preference('SMSSendDriver') %]<th>SMS</th>[% END %]
         [% IF Koha.Preference('TalkingTechItivaPhoneNotification') || Koha.Preference('PhoneNotification') %]<th>Phone</th>[% END %]
         <th>Email</th>
-        <th>Digests only <i id="info_digests" data-toggle="tooltip" title="You can ask for a digest to reduce the number of messages. Messages will be saved and sent as a single message." data-placement="right" class="fa fa-info-circle"></i></th>
+        <th>Digests only <i id="info_digests" data-bs-toggle="tooltip" title="You can ask for a digest to reduce the number of messages. Messages will be saved and sent as a single message." data-bs-placement="right" class="fa fa-info-circle"></i></th>
         <!-- <th>RSS</th> -->
     </tr>
     </thead>
@@ -18,6 +18,7 @@
     [% FOREACH messaging_preference IN messaging_preferences %]
     [% NEXT IF (!Koha.Preference( 'ILLModule' ) || ('ILL_messaging_preferences' != 'are_hidden_by_LMSCloud')) && messaging_preference.message_name.match('^Ill_') %]
     [% NEXT IF messaging_preference.Auto_Renewals && Koha.Preference('AutoRenewalNotices') != 'preferences' %]
+    [% NEXT IF !Koha.Preference('UseRecalls') && messaging_preference.message_name.match('^Recall_') %]
     <tr id="[% messaging_preference.message_name _ "_message" | lower | html %]">
       <td>[% IF ( messaging_preference.Item_Due ) %]<span>Item due</span>
           [% ELSIF ( messaging_preference.Advance_Notice ) %]<span>Advance notice</span>
@@ -34,6 +35,8 @@
           [% ELSIF ( messaging_preference.Ill_unavailable ) %]<span>Interlibrary loan unavailable</span>
           [% ELSIF ( messaging_preference.Ill_update ) %]<span>Interlibrary loan updated</span>
           [% ELSIF ( messaging_preference.Auto_Renewals ) %]<span>Auto renewal</span>
+          [% ELSIF ( messaging_preference.Recall_Waiting ) %]<span>Recall awaiting pickup</span>
+          [% ELSIF ( messaging_preference.Recall_Requested ) %]<span>Return recalled item</span>
           [% ELSE %]<span>Unknown</span>
           [% END %]
       </td>
@@ -194,24 +197,24 @@
                 <input type="checkbox"
                      id="digest[% messaging_preference.message_attribute_id | html %]"
                      value="[% messaging_preference.message_attribute_id | html %]"
-                     name="digest" class="pmp_digest" checked="checked" disabled="disabled" data-toggle="tooltip" title="You must select a digestible transport to select digests" />
+                     name="digest" class="pmp_digest" checked="checked" disabled="disabled" data-bs-toggle="tooltip" title="You must select a digestible transport to select digests" />
               [% ELSE %]
                 <input type="checkbox"
                      id="digest[% messaging_preference.message_attribute_id | html %]"
                      value="[% messaging_preference.message_attribute_id | html %]"
-                     name="digest" class="pmp_digest" disabled="disabled" data-toggle="tooltip" title="You must select a digestible transport to select digests" />
+                     name="digest" class="pmp_digest" disabled="disabled" data-bs-toggle="tooltip" title="You must select a digestible transport to select digests" />
               [% END %]
           [% ELSE %]
               [% IF ( messaging_preference.digest ) %]
                 <input type="checkbox"
                      id="digest[% messaging_preference.message_attribute_id | html %]"
                      value="[% messaging_preference.message_attribute_id | html %]"
-                     name="digest" checked="checked" class="pmp_digest active_notify" data-attr-id="[% messaging_preference.message_attribute_id | html %]" data-toggle="tooltip" title="You must select a digestible transport to select digests" />
+                     name="digest" checked="checked" class="pmp_digest active_notify" data-attr-id="[% messaging_preference.message_attribute_id | html %]" data-bs-toggle="tooltip" title="You must select a digestible transport to select digests" />
               [% ELSE %]
                 <input type="checkbox"
                      id="digest[% messaging_preference.message_attribute_id | html %]"
                      value="[% messaging_preference.message_attribute_id | html %]"
-                     name="digest" class="pmp_digest active_notify" data-attr-id="[% messaging_preference.message_attribute_id | html %]" data-toggle="tooltip" title="You must select a digestible transport to select digests" />
+                     name="digest" class="pmp_digest active_notify" data-attr-id="[% messaging_preference.message_attribute_id | html %]" data-bs-toggle="tooltip" title="You must select a digestible transport to select digests" />
               [% END %]
           [% END %]
       </td>

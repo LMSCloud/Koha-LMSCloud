@@ -1,14 +1,20 @@
+[% USE raw %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Framework plugin unimarc_field_146e &rsaquo; Cataloguing &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Framework plugin unimarc_field_146e") | html %] &rsaquo;
+    [% t("Cataloguing") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
-<body id="unimarc_field_146f" class="cat">
+<body id="unimarc_field_146f" class="cat value_builder">
     <div class="container-fluid">
         <h1>Framework plugin for UNIMARC 146$f</h1>
 
-        <div class="page-section">
-            <form class="form-horizontal" id="form">
+        <form method="get" class="form-horizontal" id="form">
+            <div class="page-section">
                 <input type="hidden" id="id" name="id" value="[% id | html %]">
 
                 <div class="form-group">
@@ -21,7 +27,7 @@
                 <div class="form-group">
                     <label for="category" class="col-sm-3 control-label">Category of instrument</label>
                     <div class="col-sm-9">
-                        <select class="form-control" id="category">
+                        <select class="form-select" id="category">
                             <option value=""></option>
                             [% FOREACH optgroup IN category_optgroups %]
                                 <optgroup label="[% optgroup.label | html %]">
@@ -41,7 +47,7 @@
                 <div class="form-group">
                     <label for="tessitura" class="col-sm-3 control-label">Tessitura</label>
                     <div class="col-sm-9">
-                        <select class="form-control" id="tessitura">
+                        <select class="form-select" id="tessitura">
                             <option value=""></option>
                             [% FOREACH option IN tessitura_options %]
                                 [% IF option.value == tessitura %]
@@ -57,7 +63,7 @@
                 <div class="form-group">
                     <label for="number_of_hands_or_keys" class="col-sm-3 control-label">Number of hands / players; keys of pitched instruments</label>
                     <div class="col-sm-9">
-                        <select class="form-control" id="number_of_hands_or_keys">
+                        <select class="form-select" id="number_of_hands_or_keys">
                             <option value=""></option>
                             [% FOREACH option IN number_of_hands_or_keys_options %]
                                 [% IF option.value == number_of_hands_or_keys %]
@@ -73,7 +79,7 @@
                 <div class="form-group">
                     <label for="other" class="col-sm-3 control-label">Other (position 7)</label>
                     <div class="col-sm-9">
-                        <select class="form-control" id="other">
+                        <select class="form-select" id="other">
                             <option value=""></option>
                             [% FOREACH option IN other_options %]
                                 [% IF option.value == other %]
@@ -88,7 +94,7 @@
                 <div class="form-group">
                     <label for="other2" class="col-sm-3 control-label">Other (position 8)</label>
                     <div class="col-sm-9">
-                        <select class="form-control" id="other2">
+                        <select class="form-select" id="other2">
                             <option value=""></option>
                             [% FOREACH option IN other2_options %]
                                 [% IF option.value == other2 %]
@@ -100,15 +106,18 @@
                         </select>
                     </div>
                 </div>
+            </div> <!-- /.page-section -->
 
-                <div class="form-group">
-                    <div class="col-sm-offset-3 col-sm-9">
-                        <button type="submit" class="btn btn-primary">OK</button>
-                        <a href="#" class="cancel close">Cancel</a>
-                    </div>
+            <nav class="navbar navbar-default fixed-bottom">
+                <div class="container-fluid">
+                    <fieldset class="action">
+                        <input type="submit" class="btn btn-primary" value="Save" />
+                        <button class="btn btn-default close_window">Cancel</button>
+                    </fieldset>
                 </div>
-            </form>
-        </div> <!-- /.page-section -->
+            </nav>
+
+        </form>
     </div>
 
     [% INCLUDE 'select2.inc' %]

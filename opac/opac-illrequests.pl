@@ -25,12 +25,15 @@ use CGI qw ( -utf8 );
 use C4::Auth qw( get_template_and_user );
 use C4::Koha;
 use C4::Output qw( output_html_with_http_headers );
+use POSIX qw( strftime );
 
-use Koha::Illrequest::Config;
-use Koha::Illrequests;
+use Koha::ILL::Request::Config;
+use Koha::ILL::Requests;
+use Koha::ILL::Request;
 use Koha::Libraries;
 use Koha::Patrons;
-use Koha::Illrequest::Availability;
+use Koha::ILL::Request::Workflow::Availability;
+use Koha::ILL::Request::Workflow::TypeDisclaimer;
 
 my $query = CGI->new;
 
@@ -45,6 +48,14 @@ if ( ! C4::Context->preference('ILLModule') ) {
     exit;
 }
 
+my $reduced  = C4::Context->preference('ILLOpacbackends');
+my $backends = Koha::ILL::Request::Config->new->available_backends( $reduced );
+$params->{backend} = 'Standard' if $params->{backend} eq 'FreeForm';
+if ( $params->{backend} && !grep { $_ eq $params->{backend} } @$backends ) {
+    print $query->redirect("/cgi-bin/koha/errors/404.pl");
+    exit;
+}
+
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user({
     template_name   => "opac-illrequests.tt",
     query           => $query,
@@ -52,16 +63,15 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user({
 });
 
 # Are we able to actually work?
-my $reduced  = C4::Context->preference('ILLOpacbackends');
-my $backends = Koha::Illrequest::Config->new->available_backends($reduced);
 my $backends_available = ( scalar @{$backends} > 0 );
 $template->param( backends_available => $backends_available );
+my $patron = Koha::Patrons->find($loggedinuser);
 
-my $op = $params->{'method'} || 'list';
+my $op = Koha::ILL::Request->get_op_param_deprecation( 'opac', $params );
 
 my ( $illrequest_id, $request );
 if ( $illrequest_id = $params->{illrequest_id} ) {
-    $request = Koha::Illrequests->find($illrequest_id);
+    $request = Koha::ILL::Requests->find($illrequest_id);
     # Make sure the request belongs to the logged in user
     if( !$request || $request->borrowernumber != $loggedinuser ) {
         print $query->redirect("/cgi-bin/koha/errors/404.pl");
@@ -69,9 +79,15 @@ if ( $illrequest_id = $params->{illrequest_id} ) {
     }
 }
 
+my $can_patron_place_ill_in_opac = Koha::ILL::Request->can_patron_place_ill_in_opac($patron);
+if ( ( $op eq 'cud-create' || $op eq 'cancreq' || $op eq 'cud-update' ) && !$can_patron_place_ill_in_opac ) {
+    print $query->redirect('/cgi-bin/koha/errors/403.pl');
+    exit;
+}
+
 if ( $op eq 'list' ) {
 
-    my $requests = Koha::Illrequests->search(
+    my $requests = Koha::ILL::Requests->search(
         { borrowernumber => $loggedinuser }
     );
     $template->param(
@@ -84,76 +100,68 @@ if ( $op eq 'list' ) {
         request => $request
     );
 
-} elsif ( $op eq 'update') {
+} elsif ( $op eq 'cud-update') {
     $request->notesopac($params->{notesopac})->store;
     # Send a notice to staff alerting them of the update
     $request->send_staff_notice('ILL_REQUEST_MODIFIED');
     print $query->redirect(
-            '/cgi-bin/koha/opac-illrequests.pl?method=view&illrequest_id='
+            '/cgi-bin/koha/opac-illrequests.pl?op=view&illrequest_id='
           . $illrequest_id
           . '&message=1' );
     exit;
 } elsif ( $op eq 'cancreq') {
     $request->status('CANCREQ')->store;
     print $query->redirect(
-            '/cgi-bin/koha/opac-illrequests.pl?method=view&illrequest_id='
+            '/cgi-bin/koha/opac-illrequests.pl?op=view&illrequest_id='
           . $illrequest_id
           . '&message=1' );
     exit;
-} elsif ( $op eq 'create' ) {
+} elsif ( $op eq 'cud-create' ) {
     if (!$params->{backend}) {
-        my $req = Koha::Illrequest->new;
+        my $req = Koha::ILL::Request->new;
         $template->param(
             backends    => $req->available_backends
         );
     } else {
-        my $request = Koha::Illrequest->new
+        my $request = Koha::ILL::Request->new
             ->load_backend($params->{backend});
 
-        # Does this backend enable us to insert an availability stage and should
-        # we? If not, proceed as normal.
-        if (
-            C4::Context->preference("ILLCheckAvailability") &&
-            $request->_backend_capability(
-                'should_display_availability',
-                $params
-            ) &&
-            # If the user has elected to continue with the request despite
-            # having viewed availability info, this flag will be set
-            !$params->{checked_availability}
-        ) {
-            # Establish which of the installed availability providers
-            # can service our metadata, if so, jump in
-            my $availability = Koha::Illrequest::Availability->new($params);
-            my $services = $availability->get_services({
-                ui_context => 'opac'
-            });
-            if (scalar @{$services} > 0) {
-                # Modify our method so we use the correct part of the
-                # template
-                $op = 'availability';
-                # Prepare the metadata we're sending them
-                my $metadata = $availability->prep_metadata($params);
-                $template->param(
-                    metadata        => $metadata,
-                    services_json   => encode_json($services),
-                    services        => $services,
-                    illrequestsview => 1,
-                    message         => $params->{message},
-                    method          => $op,
-                    whole           => $params
-                );
-                output_html_with_http_headers $query, $cookie,
-                    $template->output, undef, { force_no_caching => 1 };
-                exit;
-            }
+        # Before request creation operations - Preparation
+        my $availability =
+          Koha::ILL::Request::Workflow::Availability->new( $params, 'opac' );
+        my $type_disclaimer =
+          Koha::ILL::Request::Workflow::TypeDisclaimer->new( $params, 'opac' );
+
+        # ILLCheckAvailability operation
+        if ($availability->show_availability($request)) {
+            $op = 'availability';
+            $template->param(
+                $availability->availability_template_params($params)
+            );
+            output_html_with_http_headers $query, $cookie,
+                $template->output, undef,
+                { force_no_caching => 1 };
+            exit;
+        # ILLModuleDisclaimerByType operation
+        } elsif ( $type_disclaimer->show_type_disclaimer($request)) {
+            $op = 'typedisclaimer';
+            $template->param(
+                $type_disclaimer->type_disclaimer_template_params($params)
+            );
+            output_html_with_http_headers $query, $cookie,
+                $template->output, undef,
+                { force_no_caching => 1 };
+            exit;
         }
 
-        $params->{cardnumber} = Koha::Patrons->find({
-            borrowernumber => $loggedinuser
-        })->cardnumber;
-        $params->{opac} = 1;
+        my $patron = Koha::Patrons->find( { borrowernumber => $loggedinuser } );
+
+        $params->{cardnumber} = $patron->cardnumber;
+        $params->{branchcode} = $patron->branchcode;
+        $params->{opac}       = 1;
+        $params->{lang}       = C4::Languages::getlanguage($query);
         my $backend_result = $request->backend_create($params);
+
         if ($backend_result->{stage} eq 'copyrightclearance') {
             $template->param(
                 stage       => $backend_result->{stage},
@@ -167,6 +175,10 @@ if ( $op eq 'list' ) {
                 request     => $request
             );
             if ($backend_result->{stage} eq 'commit') {
+                # After creation actions
+                if ( $params->{type_disclaimer_submitted} ) {
+                    $type_disclaimer->after_request_created( $params, $request );
+                }
                 print $query->redirect('/cgi-bin/koha/opac-illrequests.pl?message=2');
                 exit;
             }
@@ -176,9 +188,10 @@ if ( $op eq 'list' ) {
 }
 
 $template->param(
-    message         => $params->{message},
-    illrequestsview => 1,
-    method          => $op
+    can_patron_place_ill_in_opac => $can_patron_place_ill_in_opac,
+    message                      => $params->{message},
+    illrequestsview              => 1,
+    op                           => $op
 );
 
 output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

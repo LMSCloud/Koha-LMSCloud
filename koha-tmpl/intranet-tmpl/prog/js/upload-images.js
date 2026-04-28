@@ -23,7 +23,7 @@ $(document).ready(function(){
 
     $("#filedrag").on("click", ".cancel_image", function(){
         $("#click_to_select").show();
-        $("#messages").html("");
+        $("#messages_2").html("");
         $("#fileToUpload").prop( "disabled", false );
         $("#process_images, #fileuploadstatus").hide();
         return false;
@@ -78,7 +78,7 @@ $(document).ready(function(){
 
 function prepUpLoad( event ){
     $("#click_to_select,#upload_results").hide();
-    $("#messages").html("");
+    $("#messages_2").html("");
     var file;
     if( event ){
         file = event.originalEvent.dataTransfer.files[0];
@@ -124,6 +124,7 @@ function AjaxUpload ( formData, progressbar, xtra, callback ) {
     progressbar.val( 0 );
     progressbar.next('.fileuploadpercent').text( '0' );
     xhr.open('POST', url, true);
+    xhr.setRequestHeader("CSRF-TOKEN", $('meta[name="csrf-token"]').attr("content"));
     xhr.upload.onprogress = function (e) {
         var p = Math.round( (e.loaded/e.total) * 100 );
         progressbar.val( p );
@@ -162,14 +163,14 @@ function ParseFile(file) {
         reader.readAsDataURL(file);
     } else if( file.type.indexOf("zip") > 0) {
         Output(
-            '<p><i class="fa fa-file-archive-o" aria-hidden="true"></i></p>'
+            '<p><i class="fa-solid fa-file-zipper" aria-hidden="true"></i></p>'
         );
         $("#biblionumber_entry").hide();
         $("#image").prop("checked", false );
         $("#zipfile").prop("checked", true );
     } else {
         Output(
-            '<div class="dialog alert"><strong>' + __("Error:") + ' </strong> ' + __("This tool only accepts ZIP files or GIF, JPEG, PNG, or XPM images.") + '</div>'
+            '<div class="alert alert-warning"><strong>' + __("Error:") + ' </strong> ' + __("This tool only accepts ZIP files or GIF, JPEG, PNG, or XPM images.") + '</div>'
         );
         valid = false;
         resetForm();
@@ -185,7 +186,7 @@ function ParseFile(file) {
 
 // output information
 function Output(msg) {
-    var m = document.getElementById("messages");
+    var m = document.getElementById("messages_2");
     m.innerHTML = msg + m.innerHTML;
 }
 
@@ -203,23 +204,22 @@ function removeLocalImage(imagenumber) {
     thumbnail.find("img").css("opacity", ".2");
     thumbnail.find("a.remove").html("<img style='display:inline-block' src='" + interface + "/" + theme + "/img/spinner-small.gif' alt='' />");
 
-    $.ajax({
-        url: "/cgi-bin/koha/svc/cover_images?action=delete&biblionumber=" + biblionumber + "&imagenumber=" + imagenumber,
-        success: function(data) {
-            $(data).each( function() {
-                if ( this.deleted == 1 ) {
-                    location.href="/cgi-bin/koha/tools/upload-cover-image.pl?biblionumber=" + biblionumber;
-                } else {
-                    thumbnail.html( copy );
-                    alert(__("An error occurred on deleting this image"));
-                }
-            });
+    const client = APIClient.cover_image;
+    client.cover_images.delete(imagenumber).then(
+        success => {
+            if ( success.deleted == 1 ) {
+                location.href="/cgi-bin/koha/tools/upload-cover-image.pl?biblionumber=" + biblionumber;
+            } else {
+                thumbnail.html( copy );
+                alert(__("An error occurred on deleting this image"));
+            }
         },
-        error: function() {
+        error => {
             thumbnail.html( copy );
             alert(__("An error occurred on deleting this image"));
+            console.warn("Something wrong happened: %s".format(error));
         }
-    });
+    );
 }
 
 function resetForm(){

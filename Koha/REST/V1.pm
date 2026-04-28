@@ -86,7 +86,10 @@ sub startup {
         $self->secrets([$secret_passphrase]);
     }
 
-    my $spec_file = $self->home->rel_file("api/v1/swagger/swagger.yaml");
+    my $spec_file = $self->home->rel_file("api/v1/swagger/swagger_bundle.json");
+    if (!-f $spec_file) {
+        $spec_file = $self->home->rel_file("api/v1/swagger/swagger.yaml");
+    }
 
     push @{$self->routes->namespaces}, 'Koha::Plugin';
 
@@ -106,10 +109,12 @@ sub startup {
             }
         ) unless C4::Context->needs_install; # load only if Koha is installed
 
+        my $route = $self->config('route') // '/api/v1';
+
         $self->plugin(
             OpenAPI => {
                 spec  => $spec,
-                route => $self->routes->under('/api/v1')->to('Auth#under'),
+                route => $self->routes->under($route)->to('Auth#under'),
             }
         );
 
@@ -161,12 +166,14 @@ sub startup {
         $self->app->log->warn( "Warning: Failed to fetch oauth configuration: " . $_ );
     };
 
-    $self->plugin( 'Koha::REST::Plugin::Pagination' );
-    $self->plugin( 'Koha::REST::Plugin::Query' );
-    $self->plugin( 'Koha::REST::Plugin::Objects' );
-    $self->plugin( 'Koha::REST::Plugin::Exceptions' );
-    $self->plugin( 'Koha::REST::Plugin::Auth::IdP' );
-    $self->plugin( 'Koha::REST::Plugin::Auth::PublicRoutes' );
+    $self->plugin('Koha::App::Plugin::Language');
+    $self->plugin('Koha::REST::Plugin::Pagination');
+    $self->plugin('Koha::REST::Plugin::Query');
+    $self->plugin('Koha::REST::Plugin::Objects');
+    $self->plugin('Koha::REST::Plugin::Exceptions');
+    $self->plugin('Koha::REST::Plugin::Responses');
+    $self->plugin('Koha::REST::Plugin::Auth::IdP');
+    $self->plugin('Koha::REST::Plugin::Auth::PublicRoutes');
     $self->plugin( 'Mojolicious::Plugin::OAuth2' => $oauth_configuration );
 }
 

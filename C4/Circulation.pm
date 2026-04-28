@@ -22,12 +22,12 @@ package C4::Circulation;
 use Modern::Perl;
 use DateTime;
 use POSIX qw( floor );
-use YAML::XS;
 use Encode;
+use Try::Tiny;
 
 use C4::Context;
 use C4::Stats qw( UpdateStats );
-use C4::Reserves qw( CheckReserves CanItemBeReserved MoveReserve ModReserve ModReserveMinusPriority RevertWaitingStatus IsItemOnHoldAndFound IsAvailableForItemLevelRequest ItemsAnyAvailableAndNotRestricted );
+use C4::Reserves qw( CheckReserves CanItemBeReserved MoveReserve ModReserve ModReserveMinusPriority RevertWaitingStatus IsAvailableForItemLevelRequest );
 use C4::Biblio qw( UpdateTotalIssues );
 use C4::Items qw( ModItemTransfer ModDateLastSeen CartToShelf );
 use C4::Accounts;
@@ -46,7 +46,7 @@ use Koha::Biblioitems;
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Calendar;
 use Koha::Checkouts;
-use Koha::Illrequests;
+use Koha::ILL::Requests;
 use Koha::Items;
 use Koha::Patrons;
 use Koha::Patron::Debarments qw( DelUniqueDebarment AddUniqueDebarment );
@@ -66,9 +66,10 @@ use Koha::SearchEngine::Indexer;
 use Koha::Exceptions::Checkout;
 use Koha::Plugins;
 use Koha::Recalls;
+use Koha::Library::Hours;
 use Carp qw( carp );
 use List::MoreUtils qw( any );
-use Scalar::Util qw( looks_like_number );
+use Scalar::Util qw( looks_like_number blessed );
 use Date::Calc qw( Date_to_Days );
 our (@ISA, @EXPORT_OK);
 BEGIN {
@@ -112,7 +113,6 @@ BEGIN {
       TooMany
       GetTransfers
       GetTransfersFromTo
-      updateWrongTransfer
       CalcDateDue
       CheckValidBarcode
       IsBranchTransferAllowed
@@ -332,7 +332,7 @@ sub transferbook {
     my $trigger  = $params->{trigger};
     my $messages;
     my $dotransfer      = 1;
-    my $item = Koha::Items->find( { barcode => $barcode } );
+    my $item = $barcode ? Koha::Items->find( { barcode => $barcode } ) : undef;
 
     Koha::Exceptions::MissingParameter->throw(
         "Missing mandatory parameter: from_branch")
@@ -351,7 +351,7 @@ sub transferbook {
 
     my $itemnumber = $item->itemnumber;
     # get branches of book...
-    # will be assigned with the bookmobile branch if it is a bookmobile station
+    # LMSCloud: will be assigned with the bookmobile branch if it is a bookmobile station
     $fbr = Koha::Libraries->get_effective_branch($params->{from_branch});
 
     # if using Branch Transfer Limits
@@ -375,7 +375,7 @@ sub transferbook {
     }
 
     # check if it is still issued to someone, return it...
-    my $issue = Koha::Checkouts->find({ itemnumber => $itemnumber });
+    my $issue = $item->checkout;
     if ( $issue ) {
         AddReturn( $barcode, $fbr );
         $messages->{'WasReturned'} = $issue->{'borrowernumber'};
@@ -384,7 +384,7 @@ sub transferbook {
     # find reserves.....
     # That'll save a database query.
     my ( $resfound, $resrec, undef ) =
-      CheckReserves( $itemnumber );
+      C4::Reserves::CheckReserves( $item );
     if ( $resfound ) {
         $resrec->{'ResFound'} = $resfound;
         $messages->{'ResFound'} = $resrec;
@@ -420,16 +420,14 @@ sub transferbook {
 
 
 sub TooMany {
-    my $borrower        = shift;
-    my $item_object = shift;
-    my $params = shift;
+    my ($patron, $item, $params) = @_;
     my $onsite_checkout = $params->{onsite_checkout} || 0;
     my $switch_onsite_checkout = $params->{switch_onsite_checkout} || 0;
-    my $cat_borrower    = $borrower->{'categorycode'};
+    my $cat_borrower    = $patron->categorycode;
     my $dbh             = C4::Context->dbh;
     # Get which branchcode we need
-    my $branch = _GetCircControlBranch($item_object->unblessed,$borrower);
-    my $type = $item_object->effective_itemtype;
+    my $branch = _GetCircControlBranch($item, $patron);
+    my $type = $item->effective_itemtype;
 
     my ($type_object, $parent_type, $parent_maxissueqty_rule);
     $type_object = Koha::ItemTypes->find( $type );
@@ -469,8 +467,6 @@ sub TooMany {
         }
     );
 
-
-    my $patron = Koha::Patrons->find($borrower->{borrowernumber});
     # if a rule is found and has a loan limit set, count
     # how many loans the patron already has that meet that
     # rule
@@ -497,7 +493,7 @@ sub TooMany {
         my $rule_itemtype = $maxissueqty_rule->itemtype;
 
         my @types;
-        unless ( $rule_itemtype ) {
+        unless ( $rule_itemtype || $parent_maxissueqty_rule ) {
             # matching rule has the default item type, so count only
             # those existing loans that don't fall under a more
             # specific rule
@@ -529,7 +525,7 @@ sub TooMany {
         while ( my $c = $checkouts->next ) {
             my $itemtype = $c->item->effective_itemtype;
 
-            unless ( $rule_itemtype ) {
+            unless ( $rule_itemtype || $parent_maxissueqty_rule ) {
                 next if grep {$_ eq $itemtype} @types;
             } else {
                 next unless grep {$_ eq $itemtype} @types;
@@ -551,6 +547,8 @@ sub TooMany {
             max_checkouts_allowed        => $maxissueqty_rule ? $maxissueqty_rule->rule_value : undef,
             max_onsite_checkouts_allowed => $maxonsiteissueqty_rule ? $maxonsiteissueqty_rule->rule_value : undef,
             switch_onsite_checkout       => $switch_onsite_checkout,
+            circulation_rule             => $maxissueqty_rule,
+            onsite_circulation_rule      => $maxonsiteissueqty_rule,
         };
         # If parent rules exists
         if ( defined($parent_maxissueqty_rule) and defined($parent_maxissueqty_rule->rule_value) ){
@@ -599,7 +597,8 @@ sub TooMany {
                 onsite_checkout              => $onsite_checkout,
                 max_checkouts_allowed        => $max_checkouts_allowed,
                 max_onsite_checkouts_allowed => $max_onsite_checkouts_allowed,
-                switch_onsite_checkout       => $switch_onsite_checkout
+                switch_onsite_checkout       => $switch_onsite_checkout,
+                circulation_rule             => $branch_borrower_circ_rule,
             }
         );
         return $qty_over if defined $qty_over;
@@ -621,14 +620,17 @@ sub _check_max_qty {
     my $max_checkouts_allowed        = $params->{max_checkouts_allowed};
     my $max_onsite_checkouts_allowed = $params->{max_onsite_checkouts_allowed};
     my $switch_onsite_checkout       = $params->{switch_onsite_checkout};
+    my $circulation_rule             = $params->{circulation_rule};
+    my $onsite_circulation_rule      = $params->{onsite_circulation_rule};
 
     if ( $onsite_checkout and defined $max_onsite_checkouts_allowed ) {
         if ( $max_onsite_checkouts_allowed eq '' ) { return; }
         if ( $onsite_checkout_count >= $max_onsite_checkouts_allowed ) {
             return {
-                reason      => 'TOO_MANY_ONSITE_CHECKOUTS',
-                count       => $onsite_checkout_count,
-                max_allowed => $max_onsite_checkouts_allowed,
+                reason           => 'TOO_MANY_ONSITE_CHECKOUTS',
+                count            => $onsite_checkout_count,
+                max_allowed      => $max_onsite_checkouts_allowed,
+                circulation_rule => $onsite_circulation_rule,
             };
         }
     }
@@ -637,9 +639,10 @@ sub _check_max_qty {
         my $delta = $switch_onsite_checkout ? 1 : 0;
         if ( $checkout_count >= $max_checkouts_allowed + $delta ) {
             return {
-                reason      => 'TOO_MANY_CHECKOUTS',
-                count       => $checkout_count,
-                max_allowed => $max_checkouts_allowed,
+                reason           => 'TOO_MANY_CHECKOUTS',
+                count            => $checkout_count,
+                max_allowed      => $max_checkouts_allowed,
+                circulation_rule => $circulation_rule,
             };
         }
     }
@@ -649,9 +652,10 @@ sub _check_max_qty {
             $checkout_count - $onsite_checkout_count >= $max_checkouts_allowed )
         {
             return {
-                reason      => 'TOO_MANY_CHECKOUTS',
-                count       => $checkout_count - $onsite_checkout_count,
-                max_allowed => $max_checkouts_allowed,
+                reason           => 'TOO_MANY_CHECKOUTS',
+                count            => $checkout_count - $onsite_checkout_count,
+                max_allowed      => $max_checkouts_allowed,
+                circulation_rule => $circulation_rule,
             };
         }
     }
@@ -689,6 +693,7 @@ data is keyed in lower case!
 Available keys:
     override_high_holds - Ignore high holds
     onsite_checkout     - Checkout is an onsite checkout that will not leave the library
+    item                - Optionally pass the object for the item we are checking out to save a lookup
 
 =back
 
@@ -782,7 +787,10 @@ sub CanBookBeIssued {
     my $onsite_checkout     = $params->{onsite_checkout}     || 0;
     my $override_high_holds = $params->{override_high_holds} || 0;
 
-    my $item_object = Koha::Items->find({barcode => $barcode });
+    my $item_object = $params->{item};
+    if ( !$item_object and $barcode ) {
+        $item_object = Koha::Items->find( { barcode => $barcode } );
+    }
 
     # MANDATORY CHECKS - unless item exists, nothing else matters
     unless ( $item_object ) {
@@ -813,10 +821,10 @@ sub CanBookBeIssued {
             }
         };
     }
-    my $circ_library = Koha::Libraries->find( _GetCircControlBranch($item_unblessed, $patron_unblessed) );
+    my $circ_library = Koha::Libraries->find( _GetCircControlBranch($item_object, $patron) );
 
     my $now = dt_from_string();
-    $duedate ||= CalcDateDue( $now, $effective_itemtype, $circ_library->branchcode, $patron_unblessed );
+    $duedate ||= CalcDateDue( $now, $effective_itemtype, $circ_library->branchcode, $patron );
     if (DateTime->compare($duedate,$now) == -1 ) { # duedate cannot be before now
          $needsconfirmation{INVALID_DATE} = $duedate;
     }
@@ -833,8 +841,9 @@ sub CanBookBeIssued {
     #
     # BORROWER STATUS
     #
+    my $patron_borrowing_status = $patron->can_checkout();
     if ( $patron->category->category_type eq 'X' && (  $item_object->barcode  )) {
-    	# stats only borrower -- add entry to statistics table, and return issuingimpossible{STATS} = 1  .
+        # stats only borrower -- add entry to statistics table, and return issuingimpossible{STATS} = 1  .
         C4::Stats::UpdateStats(
             {
                 branch         => C4::Context->userenv->{'branch'},
@@ -847,8 +856,9 @@ sub CanBookBeIssued {
                 location       => $item_object->location,
             }
         );
-        ModDateLastSeen( $item_object->itemnumber ); # FIXME Move to Koha::Item
-        return( { STATS => 1 }, {});
+        my $block_lost_return = C4::Context->preference("BlockReturnOfLostItems") ? 1 : 0;
+        ModDateLastSeen( $item_object->itemnumber, $block_lost_return );    # FIXME Move to Koha::Item
+        return ( { STATS => 1, }, {} );
     }
 
     if ( $patron->gonenoaddress && $patron->gonenoaddress == 1 ) {
@@ -876,62 +886,69 @@ sub CanBookBeIssued {
     my $non_issues_charges = $account->non_issues_charges;
     my $other_charges = $balance - $non_issues_charges;
 
-    my $amountlimit = C4::Context->preference("noissuescharge");
     my $allowfineoverride = C4::Context->preference("AllowFineOverride");
     my $allfinesneedoverride = C4::Context->preference("AllFinesNeedOverride");
 
     # Check the debt of this patrons guarantees
-    my $no_issues_charge_guarantees = C4::Context->preference("NoIssuesChargeGuarantees");
-    $no_issues_charge_guarantees = undef unless looks_like_number( $no_issues_charge_guarantees );
+    my $no_issues_charge_guarantees = $patron_borrowing_status->{NoIssuesChargeGuarantees}->{limit};
     if ( defined $no_issues_charge_guarantees ) {
-        my @guarantees = map { $_->guarantee } $patron->guarantee_relationships->as_list;
-        my $guarantees_non_issues_charges = 0;
-        foreach my $g ( @guarantees ) {
-            $guarantees_non_issues_charges += $g->account->non_issues_charges;
-        }
-
-        if ( $guarantees_non_issues_charges > $no_issues_charge_guarantees && !$inprocess && !$allowfineoverride) {
-            $issuingimpossible{DEBT_GUARANTEES} = $guarantees_non_issues_charges;
-        } elsif ( $guarantees_non_issues_charges > $no_issues_charge_guarantees && !$inprocess && $allowfineoverride) {
-            $needsconfirmation{DEBT_GUARANTEES} = $guarantees_non_issues_charges;
-        } elsif ( $allfinesneedoverride && $guarantees_non_issues_charges > 0 && $guarantees_non_issues_charges <= $no_issues_charge_guarantees && !$inprocess ) {
-            $needsconfirmation{DEBT_GUARANTEES} = $guarantees_non_issues_charges;
+        if ( $patron_borrowing_status->{NoIssuesChargeGuarantees}->{overlimit} && !$inprocess && !$allowfineoverride ) {
+            $issuingimpossible{DEBT_GUARANTEES} = $patron_borrowing_status->{NoIssuesChargeGuarantees}->{charge};
+        } elsif ( $patron_borrowing_status->{NoIssuesChargeGuarantees}->{overlimit}
+            && !$inprocess
+            && $allowfineoverride )
+        {
+            $needsconfirmation{DEBT_GUARANTEES} = $patron_borrowing_status->{NoIssuesChargeGuarantees}->{charge};
+        } elsif ( $allfinesneedoverride
+            && $patron_borrowing_status->{NoIssuesChargeGuarantees}->{charge} > 0
+            && !$inprocess )
+        {
+            $needsconfirmation{DEBT_GUARANTEES} = $patron_borrowing_status->{NoIssuesChargeGuarantees}->{charge};
         }
     }
 
     # Check the debt of this patrons guarantors *and* the guarantees of those guarantors
-    my $no_issues_charge_guarantors = C4::Context->preference("NoIssuesChargeGuarantorsWithGuarantees");
-    $no_issues_charge_guarantors = undef unless looks_like_number( $no_issues_charge_guarantors );
+    my $no_issues_charge_guarantors = $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{limit};
     if ( defined $no_issues_charge_guarantors ) {
-        my $guarantors_non_issues_charges = $patron->relationships_debt({ include_guarantors => 1, only_this_guarantor => 0, include_this_patron => 1 });
-
-        if ( $guarantors_non_issues_charges > $no_issues_charge_guarantors && !$inprocess && !$allowfineoverride) {
-            $issuingimpossible{DEBT_GUARANTORS} = $guarantors_non_issues_charges;
-        } elsif ( $guarantors_non_issues_charges > $no_issues_charge_guarantors && !$inprocess && $allowfineoverride) {
-            $needsconfirmation{DEBT_GUARANTORS} = $guarantors_non_issues_charges;
-        } elsif ( $allfinesneedoverride && $guarantors_non_issues_charges > 0 && $guarantors_non_issues_charges <= $no_issues_charge_guarantors && !$inprocess ) {
-            $needsconfirmation{DEBT_GUARANTORS} = $guarantors_non_issues_charges;
+        if (   $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{overlimit}
+            && !$inprocess
+            && !$allowfineoverride )
+        {
+            $issuingimpossible{DEBT_GUARANTORS} =
+                $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{charge};
+        } elsif ( $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{overlimit}
+            && !$inprocess
+            && $allowfineoverride )
+        {
+            $needsconfirmation{DEBT_GUARANTORS} =
+                $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{charge};
+        } elsif ( $allfinesneedoverride
+            && $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{charge} > 0
+            && !$inprocess )
+        {
+            $needsconfirmation{DEBT_GUARANTORS} =
+                $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{charge};
         }
     }
 
     if ( C4::Context->preference("IssuingInProcess") ) {
-        if ( $non_issues_charges > $amountlimit && !$inprocess && !$allowfineoverride) {
-            $issuingimpossible{DEBT} = $non_issues_charges;
-        } elsif ( $non_issues_charges > $amountlimit && !$inprocess && $allowfineoverride) {
-            $needsconfirmation{DEBT} = $non_issues_charges;
-        } elsif ( $allfinesneedoverride && $non_issues_charges > 0 && $non_issues_charges <= $amountlimit && !$inprocess ) {
-            $needsconfirmation{DEBT} = $non_issues_charges;
+        if ( $patron_borrowing_status->{noissuescharge}->{overlimit} && !$inprocess && !$allowfineoverride ) {
+            $issuingimpossible{DEBT} = $patron_borrowing_status->{noissuescharge}->{charge};
+        } elsif ( $patron_borrowing_status->{noissuescharge}->{overlimit} && !$inprocess && $allowfineoverride ) {
+            $needsconfirmation{DEBT} = $patron_borrowing_status->{noissuescharge}->{charge};
+        } elsif ( $allfinesneedoverride && $patron_borrowing_status->{noissuescharge}->{charge} > 0 && !$inprocess ) {
+            $needsconfirmation{DEBT} = $patron_borrowing_status->{noissuescharge}->{charge};
+        }
+    } else {
+        if ( $patron_borrowing_status->{noissuescharge}->{overlimit} && $allowfineoverride ) {
+            $needsconfirmation{DEBT} = $patron_borrowing_status->{noissuescharge}->{charge};
+        } elsif ( $patron_borrowing_status->{noissuescharge}->{overlimit} && !$allowfineoverride ) {
+            $issuingimpossible{DEBT} = $patron_borrowing_status->{noissuescharge}->{charge};
+        } elsif ( $patron_borrowing_status->{noissuescharge}->{charge} > 0 && $allfinesneedoverride ) {
+            $needsconfirmation{DEBT} = $patron_borrowing_status->{noissuescharge}->{charge};
         }
     }
-    else {
-        if ( $non_issues_charges > $amountlimit && $allowfineoverride ) {
-            $needsconfirmation{DEBT} = $non_issues_charges;
-        } elsif ( $non_issues_charges > $amountlimit && !$allowfineoverride) {
-            $issuingimpossible{DEBT} = $non_issues_charges;
-        } elsif ( $non_issues_charges > 0 && $allfinesneedoverride ) {
-            $needsconfirmation{DEBT} = $non_issues_charges;
-        }
-    }
+
 
     if ($balance > 0 && $other_charges > 0) {
         $alerts{OTHER_CHARGES} = sprintf( "%.2f", $other_charges );
@@ -978,10 +995,7 @@ sub CanBookBeIssued {
                 and C4::Context->preference('SwitchOnSiteCheckouts') ) {
             $messages{ONSITE_CHECKOUT_WILL_BE_SWITCHED} = 1;
         } else {
-            my ($CanBookBeRenewed,$renewerror) = CanBookBeRenewed(
-                $patron->borrowernumber,
-                $item_object->itemnumber,
-            );
+            my ($CanBookBeRenewed,$renewerror) = CanBookBeRenewed($patron, $issue);
             if ( $CanBookBeRenewed == 0 ) {    # no more renewals allowed
                 if ( $renewerror eq 'onsite_checkout' ) {
                     $issuingimpossible{NO_RENEWAL_FOR_ONSITE_CHECKOUTS} = 1;
@@ -1003,18 +1017,19 @@ sub CanBookBeIssued {
 
         my ( $can_be_returned, $message ) = CanBookBeReturned( $item_unblessed, C4::Context->userenv->{branch} );
 
-        unless ( $can_be_returned ) {
+        if ( !$can_be_returned ) {
             $issuingimpossible{RETURN_IMPOSSIBLE} = 1;
             $issuingimpossible{branch_to_return} = $message;
         } else {
             if ( C4::Context->preference('AutoReturnCheckedOutItems') ) {
                 $alerts{RETURNED_FROM_ANOTHER} = { patron => $patron };
-            } else {
-            $needsconfirmation{ISSUED_TO_ANOTHER} = 1;
-            $needsconfirmation{issued_firstname} = $patron->firstname;
-            $needsconfirmation{issued_surname} = $patron->surname;
-            $needsconfirmation{issued_cardnumber} = $patron->cardnumber;
-            $needsconfirmation{issued_borrowernumber} = $patron->borrowernumber;
+            }
+            else {
+                $needsconfirmation{ISSUED_TO_ANOTHER} = 1;
+                $needsconfirmation{issued_firstname} = $patron->firstname;
+                $needsconfirmation{issued_surname} = $patron->surname;
+                $needsconfirmation{issued_cardnumber} = $patron->cardnumber;
+                $needsconfirmation{issued_borrowernumber} = $patron->borrowernumber;
             }
         }
     }
@@ -1026,21 +1041,24 @@ sub CanBookBeIssued {
       and $issue
       and $issue->onsite_checkout
       and $issue->get_column('borrowernumber') == $patron->borrowernumber ? 1 : 0 );
-    my $toomany = TooMany( $patron_unblessed, $item_object, { onsite_checkout => $onsite_checkout, switch_onsite_checkout => $switch_onsite_checkout, } );
+    my $toomany = TooMany( $patron, $item_object, { onsite_checkout => $onsite_checkout, switch_onsite_checkout => $switch_onsite_checkout, } );
 
     # if TooMany max_allowed returns 0 the user doesn't have permission to check out this book
     if ( $toomany && not exists $needsconfirmation{RENEW_ISSUE} ) {
         if ( $toomany->{max_allowed} == 0 ) {
-            $needsconfirmation{PATRON_CANT} = 1;
+            $needsconfirmation{PATRON_CANT}                  = 1;
+            $needsconfirmation{circulation_rule_PATRON_CANT} = $toomany->{circulation_rule};
         }
         if ( C4::Context->preference("AllowTooManyOverride") ) {
-            $needsconfirmation{TOO_MANY} = $toomany->{reason};
-            $needsconfirmation{current_loan_count} = $toomany->{count};
-            $needsconfirmation{max_loans_allowed} = $toomany->{max_allowed};
+            $needsconfirmation{TOO_MANY}                  = $toomany->{reason};
+            $needsconfirmation{current_loan_count}        = $toomany->{count};
+            $needsconfirmation{max_loans_allowed}         = $toomany->{max_allowed};
+            $needsconfirmation{circulation_rule_TOO_MANY} = $toomany->{circulation_rule};
         } else {
-            $issuingimpossible{TOO_MANY} = $toomany->{reason};
-            $issuingimpossible{current_loan_count} = $toomany->{count};
-            $issuingimpossible{max_loans_allowed} = $toomany->{max_allowed};
+            $issuingimpossible{TOO_MANY}                  = $toomany->{reason};
+            $issuingimpossible{current_loan_count}        = $toomany->{count};
+            $issuingimpossible{max_loans_allowed}         = $toomany->{max_allowed};
+            $needsconfirmation{circulation_rule_TOO_MANY} = $toomany->{circulation_rule};
         }
     }
 
@@ -1134,7 +1152,7 @@ sub CanBookBeIssued {
     #
     my $rentalConfirmation = C4::Context->preference("RentalFeesCheckoutConfirmation");
     if ($rentalConfirmation) {
-        # Check whether the patrons category is selected for descarding rental fees
+        # LMSCloud: Check whether the patrons category is selected for discarding rental fees
         my $addIssuingRentalFee = 1;
         if ( C4::Context->preference('IssuingDiscardRentalFeesOfPatronCategory') ) {
             my $checkval = $patron->categorycode;
@@ -1201,9 +1219,9 @@ sub CanBookBeIssued {
         }
     }
 
-    unless ( $ignore_reserves and defined $recall ) {
+    unless ( $ignore_reserves || $recall ) {
         # See if the item is on reserve.
-        my ( $restype, $res ) = C4::Reserves::CheckReserves( $item_object->itemnumber );
+        my ( $restype, $res ) = C4::Reserves::CheckReserves( $item_object );
         if ($restype) {
             my $resbor = $res->{'borrowernumber'};
             if ( $resbor ne $patron->borrowernumber ) {
@@ -1394,13 +1412,13 @@ sub CanBookBeReturned {
   my $fbr = Koha::Libraries->get_effective_branch($item->{'holdingbranch'});
   $branch = Koha::Libraries->get_effective_branch($branch);
 
-  # check whether the item is on transfer 
+  # LMSCloud: check whether the item is on transfer
   # if that's the case, the checkin for the target branch needs to be allowed
   my $transferbranch ='';
   my ( $transferwhen, $transferfrom, $transferto ) = GetTransfers($item->{'itemnumber'});
   $transferbranch = Koha::Libraries->get_effective_branch($transferto) if ( defined $transferwhen && $transferwhen ne '' );
-  
-  # identify all cases where return is forbidden  
+
+  # identify all cases where return is forbidden
   if ($allowreturntobranch eq 'homebranch' && $branch ne $hbr) {
      $allowed = 0;
      $message = $item->{'homebranch'};
@@ -1425,7 +1443,7 @@ sub CanBookBeReturned {
 
 sub checkHighHolds {
     my ( $item, $patron ) = @_;
-    my $branchcode = _GetCircControlBranch( $item->unblessed, $patron->unblessed );
+    my $branchcode = _GetCircControlBranch( $item, $patron );
 
     my $return_data = {
         exceeded    => 0,
@@ -1474,7 +1492,7 @@ sub checkHighHolds {
             # Remove any items that are not holdable for this patron
             # We need to ignore hold counts as the borrower's own hold that will be filled by the checkout
             # could prevent them from placing further holds
-            @items = grep { CanItemBeReserved( $patron, $_, undef, { ignore_hold_counts => 1 } )->{status} eq 'OK' } @items;
+            @items = grep { C4::Reserves::CanItemBeReserved( $patron, $_, undef, { ignore_hold_counts => 1 } )->{status} eq 'OK' } @items;
 
             my $items_count = scalar @items;
 
@@ -1499,7 +1517,7 @@ sub checkHighHolds {
         );
         my $calendar = Koha::Calendar->new( branchcode => $branchcode, days_mode => $daysmode );
 
-        my $orig_due = C4::Circulation::CalcDateDue( $issuedate, $itype, $branchcode, $patron->unblessed );
+        my $orig_due = C4::Circulation::CalcDateDue( $issuedate, $itype, $branchcode, $patron );
 
         my $rule = Koha::CirculationRules->get_effective_rule_value(
             {
@@ -1534,13 +1552,13 @@ sub checkHighHolds {
 
 =head2 AddIssue
 
-  &AddIssue($borrower, $barcode, [$datedue], [$cancelreserve], [$issuedate])
+  &AddIssue($patron, $barcode, [$datedue], [$cancelreserve], [$issuedate])
 
 Issue a book. Does no check, they are done in CanBookBeIssued. If we reach this sub, it means the user confirmed if needed.
 
 =over 4
 
-=item C<$borrower> is a hash with borrower informations (from Koha::Patron->unblessed).
+=item C<$patron> is a patron object.
 
 =item C<$barcode> is the barcode of the item being issued.
 
@@ -1575,7 +1593,7 @@ AddIssue does the following things :
 =cut
 
 sub AddIssue {
-    my ( $borrower, $barcode, $datedue, $cancelreserve, $issuedate, $sipmode, $params ) = @_;
+    my ( $patron, $barcode, $datedue, $cancelreserve, $issuedate, $sipmode, $params ) = @_;
 
     my $onsite_checkout = $params && $params->{onsite_checkout} ? 1 : 0;
     my $switch_onsite_checkout = $params && $params->{switch_onsite_checkout};
@@ -1603,27 +1621,31 @@ sub AddIssue {
     }
 
     # Stop here if the patron or barcode doesn't exist
-    if ( $borrower && $barcode && $barcodecheck ) {
+    if ( $patron && $barcode && $barcodecheck ) {
         # find which item we issue
         my $item_object = Koha::Items->find({ barcode => $barcode })
           or return;    # if we don't get an Item, abort.
         my $item_unblessed = $item_object->unblessed;
 
-        my $branchcode = _GetCircControlBranch( $item_unblessed, $borrower );
+        my $branchcode = _GetCircControlBranch( $item_object, $patron );
 
         # get actual issuing if there is one
         my $actualissue = $item_object->checkout;
 
         # check if we just renew the issue.
-        if ( $actualissue and $actualissue->get_column('borrowernumber') eq $borrower->{'borrowernumber'}
+        if ( $actualissue and $actualissue->get_column('borrowernumber') eq $patron->borrowernumber
                 and not $switch_onsite_checkout ) {
             $datedue = AddRenewal(
-                $borrower->{'borrowernumber'},
-                $item_object->itemnumber,
-                $branchcode,
-                $datedue,
-                $issuedate,    # here interpreted as the renewal date
+                {
+                    borrowernumber => $patron->borrowernumber,
+                    itemnumber     => $item_object->itemnumber,
+                    branch         => $branchcode,
+                    datedue        => $datedue,
+                    lastreneweddate =>
+                      $issuedate,    # here interpreted as the renewal date
+                }
             );
+            $issue = $item_object->checkout->get_from_storage;
         }
         else {
             # LMSCloud: check if it is an ILL item and if an alternative datedue is stored in the Illbackend
@@ -1641,19 +1663,19 @@ sub AddIssue {
                     }
                 };
             }
-            
+
             unless ($datedue) {
                 my $itype = $item_object->effective_itemtype;
-                $datedue = CalcDateDue( $issuedate, $itype, $branchcode, $borrower );
+                $datedue = CalcDateDue( $issuedate, $itype, $branchcode, $patron );
 
             }
 
             # Standard Koha: Check if we need to use an exact due date set by the ILL module
             if ( C4::Context->preference('ILLModule') ) {
                 # Check if there is an ILL connected with the biblio of the item we are issuing
-                my $ill_request = Koha::Illrequests->search({
+                my $ill_request = Koha::ILL::Requests->search({
                     biblio_id => $item_object->biblionumber,
-                    borrowernumber => $borrower->{'borrowernumber'},
+                    borrowernumber => $patron->borrowernumber,
                     completed => undef,
                     due_date => { '!=', undef },
                 })->next;
@@ -1668,7 +1690,6 @@ sub AddIssue {
 
             $datedue->truncate( to => 'minute' );
 
-            my $patron = Koha::Patrons->find( $borrower );
             my $library = Koha::Libraries->find( $branchcode );
             my $fees = Koha::Charges::Fees->new(
                 {
@@ -1696,12 +1717,12 @@ sub AddIssue {
                         action         => $cancel_recall,
                         recall_id      => $recall_id,
                         item           => $item_object,
-                        borrowernumber => $borrower->{borrowernumber},
+                        borrowernumber => $patron->borrowernumber,
                     }
                 );
             }
 
-            C4::Reserves::MoveReserve( $item_object->itemnumber, $borrower->{'borrowernumber'}, $cancelreserve );
+            C4::Reserves::MoveReserve( $item_object->itemnumber, $patron->borrowernumber, $cancelreserve );
 
             # Starting process for transfer job (checking transfert and validate it if we have one)
             if ( my $transfer = $item_object->get_transfer ) {
@@ -1726,7 +1747,7 @@ sub AddIssue {
             unless ($auto_renew) {
                 my $rule = Koha::CirculationRules->get_effective_rule_value(
                     {
-                        categorycode => $borrower->{categorycode},
+                        categorycode => $patron->categorycode,
                         itemtype     => $item_object->effective_itemtype,
                         branchcode   => $branchcode,
                         rule_name    => 'auto_renew'
@@ -1737,7 +1758,7 @@ sub AddIssue {
             }
 
             my $issue_attributes = {
-                borrowernumber  => $borrower->{'borrowernumber'},
+                borrowernumber  => $patron->borrowernumber,
                 issuedate       => $issuedate,
                 date_due        => $datedue,
                 branchcode      => C4::Context->userenv->{'branch'},
@@ -1803,14 +1824,30 @@ sub AddIssue {
                         %$issue_attributes,
                     }
                 )->store;
+
+                # Ensure item is no longer listed in the holds queue
+                $dbh->do(
+                    q{DELETE tmp_holdsqueue, hold_fill_targets FROM tmp_holdsqueue LEFT JOIN hold_fill_targets USING ( itemnumber ) WHERE itemnumber = ?},
+                    undef, $item_object->id
+                );
             }
             $issue->discard_changes;
-            C4::Auth::track_login_daily( $borrower->{userid} );
+            #Update borrowers.lastseen
+            try {
+                $patron->update_lastseen('check_out');
+            }
+            catch {
+                my $exception = $_;
+                warn "Problem updating lastseen date for borrowernumber " . $patron->borrowernumber . ": $exception";
+            };
             if ( $item_object->location && $item_object->location eq 'CART'
                 && ( !$item_object->permanent_location || $item_object->permanent_location ne 'CART' ) ) {
             ## Item was moved to cart via UpdateItemLocationOnCheckin, anything issued should be taken off the cart.
                 CartToShelf( $item_object->itemnumber );
             }
+
+            # Update item location
+            $item_object->location_update_trigger( 'checkout' );
 
             if ( C4::Context->preference('UpdateTotalIssuesOnCirc') ) {
                 UpdateTotalIssues( $item_object->biblionumber, 1, undef, { skip_holds_queue => 1 } );
@@ -1818,8 +1855,8 @@ sub AddIssue {
 
             # Record if item was lost
             my $was_lost = $item_object->itemlost;
-            
-            # if it's configured that an item is always moved to the holding library, 
+
+            # LMSCloud: if it's configured that an item is always moved to the holding library,
             # than the homebranch is changed to the holding branch
             if ( C4::Context->preference("IssuingBranchBecomesHomeBranch") ) {
                 $item_object->homebranch(Koha::Libraries->get_effective_branch(C4::Context->userenv->{'branch'}));
@@ -1830,37 +1867,36 @@ sub AddIssue {
             $item_object->itemlost(0);
             $item_object->onloan($datedue->ymd());
             $item_object->datelastborrowed( dt_from_string()->ymd() );
-            $item_object->datelastseen( dt_from_string()->ymd() );
+            $item_object->datelastseen( dt_from_string() );
             $item_object->store( { log_action => 0, skip_holds_queue => 1 } );
 
             # If the item was lost, it has now been found, charge the overdue if necessary
             if ($was_lost) {
                 if ( $item_object->{_charge} ) {
                     $actualissue //= Koha::Old::Checkouts->search(
-                        { itemnumber => $item_unblessed->{itemnumber} },
+                        { itemnumber => $item_object->itemnumber },
                         {
                             order_by => { '-desc' => 'returndate' },
                             rows     => 1
                         }
                     )->single;
-                    unless ( exists( $borrower->{branchcode} ) ) {
-                        my $patron = $actualissue->patron;
-                        $borrower = $patron->unblessed;
+                    unless ( $patron->branchcode ) {
+                        $patron = $actualissue->patron;
                     }
                     _CalculateAndUpdateFine(
                         {
                             issue       => $actualissue,
                             item        => $item_unblessed,
-                            borrower    => $borrower,
+                            borrower    => $patron->unblessed,
                             return_date => $issuedate
                         }
                     );
-                    _FixOverduesOnReturn( $borrower->{borrowernumber},
+                    _FixOverduesOnReturn( $patron->borrowernumber,
                         $item_object->itemnumber, undef, 'RENEWED' );
                 }
             }
-            
-            # Check whether the patrons category is selected for descarding rental fees
+
+            # LMSCloud: Check whether the patrons category is selected for discarding rental fees
             my $addIssuingRentalFee = 1;
             if ( C4::Context->preference('IssuingDiscardRentalFeesOfPatronCategory') ) {
                 my $checkval = $patron->categorycode;
@@ -1870,7 +1906,7 @@ sub AddIssue {
             }
 
             # If it costs to borrow this book, charge it to the patron's account.
-            my ( $charge, $itemtype ) = GetIssuingCharges( $item_object->itemnumber, $borrower->{'borrowernumber'} );
+            my ( $charge, $itemtype ) = GetIssuingCharges( $item_object->itemnumber, $patron->borrowernumber );
             if ( $charge && $charge > 0 && $addIssuingRentalFee) {
                 AddIssuingCharge( $issue, $charge, 'RENT' );
             }
@@ -1896,6 +1932,16 @@ sub AddIssue {
                 }
             }
 
+            my $nfl_checkout_rules = C4::Context->yaml_preference('UpdateNotForLoanStatusOnCheckout');
+            if ($nfl_checkout_rules) {
+                foreach my $key ( keys %$nfl_checkout_rules ) {
+                    if ( $item_object->notforloan eq $key ) {
+                        $item_object->notforloan($nfl_checkout_rules->{$key})->store({ log_action => 0, skip_record_index => 1 });
+                        last;
+                    }
+                }
+            }
+
             # Record the fact that this book was issued.
             C4::Stats::UpdateStats(
                 {
@@ -1906,24 +1952,25 @@ sub AddIssue {
                     itemnumber     => $item_object->itemnumber,
                     itemtype       => $item_object->effective_itemtype,
                     location       => $item_object->location,
-                    borrowernumber => $borrower->{'borrowernumber'},
+                    borrowernumber => $patron->borrowernumber,
                     ccode          => $item_object->ccode,
-                    categorycode   => $borrower->{'categorycode'}
+                    categorycode   => $patron->categorycode
                 }
             );
-            
+
+            # LMSCloud: update bundle item stats
             if ( $item_object->is_bundle ) {
                 my $bundleLostValue = C4::Context->preference('BundleLostValue');
                 my $currdate = dt_from_string()->ymd();
                 my @bundle_items = $item_object->bundle_items->as_list;
                 foreach my $bundle_item(@bundle_items) {
                     if ( !$bundle_item->itemlost || $bundle_item->itemlost != $bundleLostValue ) {
-                        
+
                         $bundle_item->issues( ( $bundle_item->issues || 0 ) + 1);
                         $bundle_item->datelastborrowed( $currdate );
                         $bundle_item->datelastseen( $currdate );
                         $bundle_item->store( { log_action => 0, skip_holds_queue => 1 } );
-                        
+
                         C4::Stats::UpdateStats(
                             {
                                 branch => C4::Context->userenv->{'branch'},
@@ -1932,9 +1979,9 @@ sub AddIssue {
                                 itemnumber     => $bundle_item->itemnumber,
                                 itemtype       => $bundle_item->effective_itemtype,
                                 location       => $bundle_item->location,
-                                borrowernumber => $borrower->{'borrowernumber'},
+                                borrowernumber => $patron->borrowernumber,
                                 ccode          => $bundle_item->ccode,
-                                categorycode   => $borrower->{'categorycode'}
+                                categorycode   => $patron->categorycode
                             }
                         );
                     }
@@ -1945,7 +1992,7 @@ sub AddIssue {
             my $circulation_alert = 'C4::ItemCirculationAlertPreference';
             my %conditions        = (
                 branchcode   => $branchcode,
-                categorycode => $borrower->{categorycode},
+                categorycode => $patron->categorycode,
                 item_type    => $item_object->effective_itemtype,
                 notification => 'CHECKOUT',
             );
@@ -1954,14 +2001,14 @@ sub AddIssue {
                     {
                         type     => 'CHECKOUT',
                         item     => $item_object->unblessed,
-                        borrower => $borrower,
+                        borrower => $patron->unblessed,
                         branch   => $branchcode,
                     }
                 );
             }
             logaction(
                 "CIRCULATION", "ISSUE",
-                $borrower->{'borrowernumber'},
+                $patron->borrowernumber,
                 $item_object->itemnumber,
             ) if C4::Context->preference("IssueLog");
 
@@ -1978,7 +2025,7 @@ sub AddIssue {
                     biblio_ids => [ $item_object->biblionumber ]
                 }
             ) if C4::Context->preference('RealTimeHoldsQueue');
-            
+
             # The automatic AddReturn() call for certain types of ILL items had to be moved from here to circ/circulation.pl to avoid access to an otherwise already deleted issues record.
 
         }
@@ -2160,7 +2207,7 @@ sub GetBranchItemRule {
 =head2 AddReturn
 
   ($doreturn, $messages, $iteminformation, $borrower) =
-      &AddReturn( $barcode, $branch [,$exemptfine] [,$returndate] );
+      &AddReturn( $barcode, $branch [,$exemptfine] [,$returndate] [,$skip_localuse ] );
 
 Returns a book.
 
@@ -2175,6 +2222,8 @@ removed. Optional.
 
 =item C<$return_date> allows the default return date to be overridden
 by the given return date. Optional.
+
+=item C<$skip_localuse> indicated that localuse should not be recorded. Optional.
 
 =back
 
@@ -2241,7 +2290,7 @@ patron who last borrowed the book.
 =cut
 
 sub AddReturn {
-    my ( $barcode, $branch, $exemptfine, $return_date ) = @_;
+    my ( $barcode, $branch, $exemptfine, $return_date, $skip_localuse ) = @_;
 
     if ($branch and not Koha::Libraries->find($branch)) {
         warn "AddReturn error: branch '$branch' not found.  Reverting to " . C4::Context->userenv->{'branch'};
@@ -2249,10 +2298,10 @@ sub AddReturn {
     }
     $branch = C4::Context->userenv->{'branch'} unless $branch;  # we trust userenv to be a safe fallback/default
 
-    # If the branch is is a bookmobile station, the book need to be returned to the bookmobile branch 
+    # LMSCloud: If the branch is a bookmobile station, the book need to be returned to the bookmobile branch
     # and not the station
     $branch = Koha::Libraries->get_effective_branch($branch);
-    
+
     my $return_date_specified = !!$return_date;
     $return_date //= dt_from_string();
     my $messages;
@@ -2269,6 +2318,7 @@ sub AddReturn {
 
     my $itemnumber = $item->itemnumber;
     my $itemtype = $item->effective_itemtype;
+    my $localuse_count = $item->localuse || 0;
 
     my $issue  = $item->checkout;
     if ( $issue ) {
@@ -2283,9 +2333,11 @@ sub AddReturn {
         $doreturn = 0;
         # No issue, no borrowernumber.  ONLY if $doreturn, *might* you have a $borrower later.
         # Record this as a local use, instead of a return, if the RecordLocalUseOnReturn is on
-        if (C4::Context->preference("RecordLocalUseOnReturn")) {
-           $messages->{'LocalUse'} = 1;
-           $stat_type = 'localuse';
+        if ( C4::Context->preference("RecordLocalUseOnReturn") ) {
+            $localuse_count++;
+            $item->localuse($localuse_count)->store;
+            $messages->{'LocalUse'} = 1;
+            $stat_type = 'localuse';
         }
     }
 
@@ -2299,11 +2351,27 @@ sub AddReturn {
     }
 
 
-        # full item data, but no borrowernumber or checkout info (no issue)
+    # full item data, but no borrowernumber or checkout info (no issue)
     my $hbr = Koha::CirculationRules->get_return_branch_policy($item);
-        # get the proper branch to which to return the item
-    my $returnbranch = $hbr ne 'noreturn' ? $item->$hbr : $branch;
-        # if $hbr was "noreturn" or any other non-item table value, then it should 'float' (i.e. stay at this branch)
+
+    # check if returnbranch and homebranch belong to the same float group
+    my $validate_float =
+        Koha::Libraries->find( $item->homebranch )->validate_float_sibling( { branchcode => $branch } );
+
+    # get the proper branch to which to return the item
+    my $returnbranch;
+    if ( $hbr eq 'noreturn' ) {
+        $returnbranch = $branch;
+    } elsif ( $hbr eq 'returnbylibrarygroup' ) {
+
+        # if library isn't in same the float group, transfer item to homebranch
+        $hbr          = 'homebranch';
+        $returnbranch = $validate_float ? $branch : $item->$hbr;
+    } else {
+        $returnbranch = $item->$hbr;
+    }
+
+    # if $hbr was "noreturn" or any other non-item table value, then it should 'float' (i.e. stay at this branch)
     my $transfer_trigger = $hbr eq 'homebranch' ? 'ReturnToHome' : $hbr eq 'holdingbranch' ? 'ReturnToHolding' : undef;
 
     my $borrowernumber = $patron ? $patron->borrowernumber : undef;    # we don't know if we had a borrower or not
@@ -2374,19 +2442,27 @@ sub AddReturn {
         }
     }
 
-    my $yaml = C4::Context->preference('UpdateNotForLoanStatusOnCheckin');
-    if ($yaml) {
-        $yaml = "$yaml\n\n";  # YAML is anal on ending \n. Surplus does not hurt
-        my $rules;
-        eval { $rules = YAML::XS::Load(Encode::encode_utf8($yaml)); };
-        if ($@) {
-            warn "Unable to parse UpdateNotForLoanStatusOnCheckin syspref : $@";
-        }
-        else {
-            foreach my $key ( keys %$rules ) {
-                if ( $item->notforloan eq $key ) {
-                    $messages->{'NotForLoanStatusUpdated'} = { from => $item->notforloan, to => $rules->{$key} };
-                    $item->notforloan($rules->{$key})->store({ log_action => 0, skip_record_index => 1, skip_holds_queue => 1 }) unless $rules->{$key} eq 'ONLYMESSAGE';
+    my $nfl_rules = C4::Context->yaml_preference('UpdateNotForLoanStatusOnCheckin');
+    if ($nfl_rules) {
+        if ( defined $nfl_rules->{ $item->itype } ) {
+            foreach my $notloan_rule_key ( keys %{ $nfl_rules->{ $item->itype } } ) {
+                if ( $item->notforloan eq $notloan_rule_key ) {
+                    $messages->{'NotForLoanStatusUpdated'} =
+                        { from => $item->notforloan, to => $nfl_rules->{ $item->itype }->{$notloan_rule_key} };
+                    $item->notforloan( $nfl_rules->{ $item->itype }->{$notloan_rule_key} )
+                        ->store( { log_action => 0, skip_record_index => 1, skip_holds_queue => 1 } )
+                        unless $nfl_rules->{ $item->itype }->{$notloan_rule_key} eq 'ONLYMESSAGE';
+                    last;
+                }
+            }
+        } elsif ( defined $nfl_rules->{'_ALL_'} ) {
+            foreach my $notloan_rule_key ( keys %{ $nfl_rules->{'_ALL_'} } ) {
+                if ( $item->notforloan eq $notloan_rule_key ) {
+                    $messages->{'NotForLoanStatusUpdated'} =
+                        { from => $item->notforloan, to => $nfl_rules->{'_ALL_'}->{$notloan_rule_key} };
+                    $item->notforloan( $nfl_rules->{'_ALL_'}->{$notloan_rule_key} )
+                        ->store( { log_action => 0, skip_record_index => 1, skip_holds_queue => 1 } )
+                        unless $nfl_rules->{'_ALL_'}->{$notloan_rule_key} eq 'ONLYMESSAGE';
                     last;
                 }
             }
@@ -2452,8 +2528,8 @@ sub AddReturn {
     if ($item->holdingbranch ne $branch) {
         $item->holdingbranch($branch)->store({ log_action => 0, skip_record_index => 1, skip_holds_queue => 1 });
     }
-    
-    # if it's configured that an item has to remain always at the holding library, 
+
+    # LMSCloud: if it's configured that an item has to remain always at the holding library,
     # the homebranch is changed to the holding branch
     if ( C4::Context->preference("ReturnBranchBecomesHomeBranch") && $item->homebranch ne $branch ) {
         $item->homebranch($branch)->store({ skip_record_index => 1 });
@@ -2471,11 +2547,13 @@ sub AddReturn {
             my @object_messages = @{ $updated_item->object_messages };
             for my $message (@object_messages) {
                 $messages->{'LostItemFeeRefunded'} = 1
-                  if $message->message eq 'lost_refunded';
+                    if $message->message eq 'lost_refunded';
                 $messages->{'ProcessingFeeRefunded'} = 1
-                  if $message->message eq 'processing_refunded';
+                    if $message->message eq 'processing_refunded';
                 $messages->{'LostItemFeeRestored'} = 1
-                  if $message->message eq 'lost_restored';
+                    if $message->message eq 'lost_restored';
+                $messages->{'LostItemPaymentNotRefunded'} = 1
+                    if $message->message eq 'payment_not_refunded';
 
                 if ( $message->message eq 'lost_charge' ) {
                     $issue //= Koha::Old::Checkouts->search(
@@ -2486,6 +2564,10 @@ sub AddReturn {
                         my $patron = $issue->patron;
                         $patron_unblessed = $patron->unblessed;
                     }
+
+                    # Confirm the lost charge came from the most recent patron to return the item
+                    # and only charge the fine if so
+                    if ( $message->payload->{patron_id} == $patron_unblessed->{borrowernumber} ) {
                     _CalculateAndUpdateFine(
                         {
                             issue       => $issue,
@@ -2501,6 +2583,7 @@ sub AddReturn {
             }
         }
     }
+    }
 
     # check if we have a transfer for this document
     my $transfer = $item->get_transfer;
@@ -2513,7 +2596,8 @@ sub AddReturn {
                 $transfer->receive;
                 $messages->{'TransferArrived'} = $transfer->frombranch;
                 # validTransfer=1 allows us returning the item back if the reserve is cancelled
-                $validTransfer = 1 if $transfer->reason eq 'Reserve';
+                $validTransfer = 1
+                  if defined $transfer->reason && $transfer->reason eq 'Reserve';
             }
             else {
                 $messages->{'WrongTransfer'}     = $transfer->tobranch;
@@ -2531,8 +2615,8 @@ sub AddReturn {
             else {
                 $messages->{'TransferTrigger'} = $transfer->reason;
                 if ( $transfer->frombranch eq $branch ) {
-                    $transfer->transit;
-                    $messages->{'WasTransfered'}   = $transfer->tobranch;
+                    $messages->{'TransferTo'}    = $transfer->tobranch;
+                    $messages->{'WasTransfered'} = $transfer->id;
                 }
                 else {
                     $messages->{'WrongTransfer'}     = $transfer->tobranch;
@@ -2549,7 +2633,7 @@ sub AddReturn {
 
         if ( $issue and $issue->is_overdue($return_date) ) {
         # fix fine days
-            my ($debardate,$reminder) = _debar_user_on_return( $patron_unblessed, $item->unblessed, dt_from_string($issue->date_due), $return_date );
+            my ($debardate,$reminder) = _debar_user_on_return( $patron, $item, dt_from_string($issue->date_due), $return_date );
             if ($debardate and $debardate ne "9999-12-31") {
                 if ($reminder){
                     $messages->{'PrevDebarred'} = $debardate;
@@ -2600,7 +2684,7 @@ sub AddReturn {
     # launch the Checkreserves routine to find any holds
     my ($resfound, $resrec);
     my $lookahead= C4::Context->preference('ConfirmFutureHolds'); #number of days to look for future holds
-    ($resfound, $resrec, undef) = C4::Reserves::CheckReserves( $item->itemnumber, undef, $lookahead ) unless ( $item->withdrawn );
+    ($resfound, $resrec, undef) = C4::Reserves::CheckReserves( $item, $lookahead ) unless ( $item->withdrawn );
     # if a hold is found and is waiting at another branch, change the priority back to 1 and trigger the hold (this will trigger a transfer and update the hold status properly)
     if ( $resfound and $resfound eq "Waiting" and $branch ne $resrec->{branchcode} ) {
         my $hold = C4::Reserves::RevertWaitingStatus( { itemnumber => $item->itemnumber } );
@@ -2623,7 +2707,8 @@ sub AddReturn {
         borrowernumber => $borrowernumber,
         ccode          => $item->ccode,
         categorycode   => $categorycode,
-    });
+        interface      => C4::Context->interface,
+    }) unless ( $skip_localuse && !$issue );
 
     # Send a check-in slip. # NOTE: borrower may be undef. Do not try to send messages then.
     if ( $patron ) {
@@ -2646,12 +2731,22 @@ sub AddReturn {
 
         logaction("CIRCULATION", "RETURN", $borrowernumber, $item->itemnumber)
             if C4::Context->preference("ReturnLog");
+
+        #Update borrowers.lastseen
+        try {
+            $patron->update_lastseen('check_in');
         }
+        catch {
+            my $exception = $_;
+            warn "Problem updating lastseen date for borrowernumber " . $patron->borrowernumber . ": $exception";
+            $messages->{UpdateLastSeenError} = "$exception";
+        };
+    }
 
     # Check if this item belongs to a biblio record that is attached to an
     # ILL request, if it is we need to update the ILL request's status
     if ( $doreturn and C4::Context->preference('CirculateILL')) {
-        my $request = Koha::Illrequests->find(
+        my $request = Koha::ILL::Requests->find(
             { biblio_id => $item->biblio->biblionumber }
         );
         $request->status('RET') if $request;
@@ -2663,6 +2758,10 @@ sub AddReturn {
         if ( $transfer_recall and $transfer_recall->pickup_library_id eq $branch ) {
             $messages->{TransferredRecall} = $transfer_recall;
         }
+    }
+
+    if ( $messages->{WasLost} and C4::Context->preference('BlockReturnOfLostItems') ) {
+        $validTransfer = 0;
     }
 
     # Transfer to returnbranch if Automatic transfer set or append message NeedsTransfer
@@ -2680,8 +2779,9 @@ sub AddReturn {
             (C4::Context->preference("UseBranchTransferLimits") and
              ! IsBranchTransferAllowed($branch, $returnbranch, $item->$BranchTransferLimitsType )
            )) {
-            ModItemTransfer($item->itemnumber, $branch, $returnbranch, $transfer_trigger, { skip_record_index => 1 });
-            $messages->{'WasTransfered'} = $returnbranch;
+            my $transfer = ModItemTransfer($item->itemnumber, $branch, $returnbranch, $transfer_trigger, { skip_record_index => 1 });
+            $messages->{'TransferTo'} = $returnbranch;
+            $messages->{'WasTransfered'} = $transfer->id;
             $messages->{'TransferTrigger'} = $transfer_trigger;
         } else {
             $messages->{'NeedsTransfer'} = $returnbranch;
@@ -2690,19 +2790,34 @@ sub AddReturn {
     }
 
     if ( C4::Context->preference('ClaimReturnedLostValue') ) {
-        my $claims = Koha::Checkouts::ReturnClaims->search(
-           {
-               itemnumber => $item->id,
-               resolution => undef,
-           }
-        );
 
-        if ( $claims->count ) {
-            $messages->{ReturnClaims} = $claims;
+        my $claim = Koha::Checkouts::ReturnClaims->find(
+            {
+                itemnumber => $item->id,
+                resolution => undef,
+            }
+        );
+        if ($claim) {
+            my $autoClaimReturnCheckin = C4::Context->preference('AutoClaimReturnStatusOnCheckin');
+            if ($autoClaimReturnCheckin) {
+
+                my $patron_id  = C4::Context->userenv ? C4::Context->userenv->{'number'} : undef;
+                my $resolution = $autoClaimReturnCheckin;
+
+                $claim->resolve(
+                    {
+                        resolution  => $resolution,
+                        resolved_by => $patron_id,
+                    }
+                );
+                $messages->{ClaimAutoResolved} = $claim;
+            } else {
+                $messages->{ReturnClaims} = $claim;
+            }
         }
     }
 
-    # check if it is an ILL item and update also the ILL backend status
+    # LMSCloud: check if it is an ILL item and update also the ILL backend status
     my ( $itisanillitem, $illrequest ) = ( 0, undef );
     if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
         eval {
@@ -2713,7 +2828,7 @@ sub AddReturn {
             }
         };
     }
-    
+
     # Check for bundle status
     if ( $item->in_bundle ) {
         my $host = $item->bundle_host;
@@ -2770,6 +2885,7 @@ sub MarkIssueReturned {
 
     # Retrieve the issue
     my $issue = Koha::Checkouts->find( { itemnumber => $itemnumber } ) or return;
+    my $issue_branchcode = $issue->branchcode;
 
     return unless $issue->borrowernumber == $borrowernumber; # If the item is checked out to another patron we do not return it
 
@@ -2790,8 +2906,13 @@ sub MarkIssueReturned {
             $issue->returndate( \'NOW()' )->store->discard_changes; # update and refetch
         }
 
+        $issue->checkin_library(C4::Context->userenv->{'branch'});
         # Create the old_issues entry
         my $old_checkout = Koha::Old::Checkout->new($issue->unblessed)->store;
+
+        # Update accountlines
+        my $accountlines = Koha::Account::Lines->search( { issue_id => $issue->issue_id } );
+        $accountlines->update( { old_issue_id => $issue->issue_id, issue_id => undef } );
 
         # anonymise patron checkout immediately if $privacy set to 2 and AnonymousPatron is set to a valid borrowernumber
         if ( $privacy && $privacy == 2) {
@@ -2815,12 +2936,14 @@ sub MarkIssueReturned {
 
         # Remove any OVERDUES related debarment if the borrower has no overdues
         my $overdue_restrictions = $patron->restrictions->search({ type => 'OVERDUES' });
-        if ( C4::Context->preference('AutoRemoveOverduesRestrictions')
-          && $patron->debarred
-          && !$patron->has_overdues
-          && $overdue_restrictions->count
-        ) {
-            DelUniqueDebarment({ borrowernumber => $borrowernumber, type => 'OVERDUES' });
+        if ( C4::Context->preference('AutoRemoveOverduesRestrictions') ne 'no' && $patron->is_debarred ) {
+            my $remove_restrictions =
+                C4::Context->preference('AutoRemoveOverduesRestrictions') eq 'when_no_overdue_causing_debarment'
+                ? !$patron->has_restricting_overdues({ issue_branchcode => $issue_branchcode })
+                : !$patron->has_overdues;
+            if ( $remove_restrictions && $overdue_restrictions->count ) {
+                DelUniqueDebarment({ borrowernumber => $borrowernumber, type => 'OVERDUES' });
+            }
         }
 
     });
@@ -2830,11 +2953,11 @@ sub MarkIssueReturned {
 
 =head2 _debar_user_on_return
 
-    _debar_user_on_return($borrower, $item, $datedue, $returndate);
+    _debar_user_on_return($patron, $item, $datedue, $returndate);
 
-C<$borrower> borrower hashref
+C<$patron> patron object
 
-C<$item> item hashref
+C<$item> item object
 
 C<$datedue> date due DateTime object
 
@@ -2851,13 +2974,13 @@ to ease testing.
 =cut
 
 sub _calculate_new_debar_dt {
-    my ( $borrower, $item, $dt_due, $return_date ) = @_;
+    my ( $patron, $item, $dt_due, $return_date ) = @_;
 
-    my $branchcode = _GetCircControlBranch( $item, $borrower );
+    my $branchcode = _GetCircControlBranch( $item, $patron );
     my $circcontrol = C4::Context->preference('CircControl');
     my $issuing_rule = Koha::CirculationRules->get_effective_rules(
-        {   categorycode => $borrower->{categorycode},
-            itemtype     => $item->{itype},
+        {   categorycode => $patron->categorycode,
+            itemtype     => $item->effective_itemtype,
             branchcode   => $branchcode,
             rules => [
                 'finedays',
@@ -2906,8 +3029,8 @@ sub _calculate_new_debar_dt {
         }
 
         my ( $has_been_extended );
-        if ( C4::Context->preference('CumulativeRestrictionPeriods') and $borrower->{debarred} ) {
-            my $patron = Koha::Patrons->find($borrower->{borrowernumber});
+        if ( C4::Context->preference('CumulativeRestrictionPeriods') and $patron->is_debarred ) {
+            # $patron is the first parameter of _calculate_new_debar_dt
             my $debarment = $patron->restrictions->search({type => 'SUSPENSION' },{rows => 1})->single;
             if ( $debarment ) {
                 $return_date = dt_from_string( $debarment->expiration, 'sql' );
@@ -2933,25 +3056,24 @@ sub _calculate_new_debar_dt {
 }
 
 sub _debar_user_on_return {
-    my ( $borrower, $item, $dt_due, $return_date ) = @_;
+    my ( $patron, $item, $dt_due, $return_date ) = @_;
 
     $return_date //= dt_from_string();
 
-    my $new_debar_dt = _calculate_new_debar_dt ($borrower, $item, $dt_due, $return_date);
+    my $new_debar_dt = _calculate_new_debar_dt($patron, $item, $dt_due, $return_date);
 
     return unless $new_debar_dt;
 
     Koha::Patron::Debarments::AddUniqueDebarment({
-        borrowernumber => $borrower->{borrowernumber},
+        borrowernumber => $patron->borrowernumber,
         expiration     => $new_debar_dt->ymd(),
         type           => 'SUSPENSION',
     });
     # if borrower was already debarred but does not get an extra debarment
-    my $patron = Koha::Patrons->find( $borrower->{borrowernumber} );
     my ($new_debarment_str, $is_a_reminder);
-    if ( $borrower->{debarred} && $borrower->{debarred} eq $patron->is_debarred ) {
+    if ( $patron->is_debarred ) {
         $is_a_reminder = 1;
-        $new_debarment_str = $borrower->{debarred};
+        $new_debarment_str = $patron->debarred;
     } else {
         $new_debarment_str = $new_debar_dt->ymd();
     }
@@ -3042,36 +3164,36 @@ sub _FixOverduesOnReturn {
 
 =head2 _GetCircControlBranch
 
-   my $circ_control_branch = _GetCircControlBranch($iteminfos, $borrower);
+   my $circ_control_branch = _GetCircControlBranch($item, $patron);
 
-Internal function : 
+Internal function :
 
 Return the library code to be used to determine which circulation
 policy applies to a transaction.  Looks up the CircControl and
 HomeOrHoldingBranch system preferences.
 
-C<$iteminfos> is a hashref to iteminfo. Only {homebranch or holdingbranch} is used.
+C<$item> is an item object.
 
-C<$borrower> is a hashref to borrower. Only {branchcode} is used.
+C<$patron> is a patron object.
 
 =cut
 
 sub _GetCircControlBranch {
-    my ($item, $borrower) = @_;
+    my ($item, $patron) = @_;
     my $circcontrol = C4::Context->preference('CircControl');
     my $branch;
 
     if ($circcontrol eq 'PickupLibrary' and (C4::Context->userenv and C4::Context->userenv->{'branch'}) ) {
-        $branch= C4::Context->userenv->{'branch'};
+        $branch = C4::Context->userenv->{'branch'};
     } elsif ($circcontrol eq 'PatronLibrary') {
-        $branch=$borrower->{branchcode};
+        $branch = $patron->branchcode;
     } else {
         my $branchfield = C4::Context->preference('HomeOrHoldingBranch') || 'homebranch';
-        $branch = $item->{$branchfield};
+        $branch = $item->get_column($branchfield);
         # default to item home branch if holdingbranch is used
         # and is not defined
         if (!defined($branch) && $branchfield eq 'holdingbranch') {
-            $branch = $item->{homebranch};
+            $branch = $item->homebranch;
         }
     }
     return $branch;
@@ -3103,11 +3225,11 @@ sub GetUpcomingDueIssues {
     $sth->execute( @bind_parameters );
     my $upcoming_dues = $sth->fetchall_arrayref({});
 
-    # add branchemail
+    # LMSCloud: add branchemail
     $sth = $dbh->prepare("SELECT branchcode, branchemail, mobilebranch FROM branches");
     $sth->execute();
     my $branchdata = $sth->fetchall_arrayref({});
-    
+
     my %branchmail;
     # if it is not a mobilebook station add the branchemail
     foreach my $branch( @$branchdata ) {
@@ -3127,14 +3249,16 @@ sub GetUpcomingDueIssues {
 
 =head2 CanBookBeRenewed
 
-  ($ok,$error,$info) = &CanBookBeRenewed($borrowernumber, $itemnumber[, $override_limit]);
+  ($ok,$error,$info) = &CanBookBeRenewed($patron, $issue, $override_limit, $cron);
 
 Find out whether a borrowed item may be renewed.
 
-C<$borrowernumber> is the borrower number of the patron who currently
-has the item on loan.
+C<$patron> is the patron who currently has the issue.
 
-C<$itemnumber> is the number of the item to renew.
+C<$issue> is the checkout to renew.
+
+C<$cron> true or false, specifies if this check is being made
+by the automatic_renewals.pl cronscript
 
 C<$override_limit>, if supplied with a true value, causes
 the limit on the number of times that the loan can be renewed
@@ -3153,25 +3277,45 @@ already renewed the loan.
 =cut
 
 sub CanBookBeRenewed {
-    my ( $borrowernumber, $itemnumber, $override_limit, $cron ) = @_;
+    my ( $patron, $issue, $override_limit, $cron ) = @_;
 
     my $auto_renew = "no";
     my $soonest;
+    my $item = $issue->item;
 
-    my $item      = Koha::Items->find($itemnumber)      or return ( 0, 'no_item' );
-    my $issue = $item->checkout or return ( 0, 'no_checkout' );
+    return ( 0, 'no_item' ) unless $item;
+    return ( 0, 'no_checkout' ) unless $issue;
     return ( 0, 'onsite_checkout' ) if $issue->onsite_checkout;
-    return ( 0, 'item_issued_to_other_patron' ) if $issue->borrowernumber != $borrowernumber;
+    return ( 0, 'item_issued_to_other_patron') if $issue->borrowernumber != $patron->borrowernumber;
     return ( 0, 'item_denied_renewal') if $item->is_denied_renewal;
 
-    my $patron = $issue->patron or return;
-    my $hasToMany = 0;
+    my $final_renewal        = 0;
+    my $final_unseen_renewal = 0;
+
+    # LMSCloud: re-fetch patron from checkout to ensure consistency
+    $patron = $issue->patron or return;
+
+    # LMSCloud: UseIssuingBranchConditionsForRenewals allows using issue branchcode
+    my $branchcode = $issue->branchcode;
+    $branchcode = _GetCircControlBranch( $item, $patron )
+        if (! C4::Context->preference('UseIssuingBranchConditionsForRenewals') );
 
     # override_limit will override anything else except on_reserve
-    my $branchcode = $issue->branchcode;
-    $branchcode = _GetCircControlBranch( $item->unblessed, $patron->unblessed )
-        if (! C4::Context->preference('UseIssuingBranchConditionsForRenewals') );
     unless ( $override_limit ){
+
+        ( $auto_renew, $soonest ) = _CanBookBeAutoRenewed({
+            patron     => $patron,
+            item       => $item,
+            branchcode => $branchcode,
+            issue      => $issue
+        });
+        return ( 0, $auto_renew, { soonest_renew_date => $soonest } ) if $auto_renew =~ 'auto_too_soon' && $cron;
+        # cron wants 'too_soon' over 'on_reserve' for performance and to avoid
+        # extra notices being sent. Cron also implies no override
+        return ( 0, $auto_renew  ) if $auto_renew =~ 'auto_account_expired';
+        return ( 0, $auto_renew  ) if $auto_renew =~ 'auto_too_late';
+        return ( 0, $auto_renew  ) if $auto_renew =~ 'auto_too_much_oweing';
+
         my $issuing_rule = Koha::CirculationRules->get_effective_rules(
             {
                 categorycode => $patron->categorycode,
@@ -3185,7 +3329,7 @@ sub CanBookBeRenewed {
             }
         );
 
-        $hasToMany = 1
+        return ( 0, "too_many" )
           if not $issuing_rule->{renewalsallowed} or $issuing_rule->{renewalsallowed} <= $issue->renewals_count;
 
         return ( 0, "too_unseen" )
@@ -3193,9 +3337,12 @@ sub CanBookBeRenewed {
             looks_like_number($issuing_rule->{unseen_renewals_allowed}) &&
             $issuing_rule->{unseen_renewals_allowed} <= $issue->unseen_renewals;
 
+        $final_renewal        = $issuing_rule->{renewalsallowed} == ( $issue->renewals_count + 1 ) ? 1 : 0;
+        $final_unseen_renewal = ( C4::Context->preference('UnseenRenewals')
+                && $issuing_rule->{unseen_renewals_allowed} == ( $issue->unseen_renewals + 1 ) ) ? 1 : 0;
+
         my $overduesblockrenewing = C4::Context->preference('OverduesBlockRenewing');
         my $restrictionblockrenewing = C4::Context->preference('RestrictionBlockRenewing');
-        $patron         = Koha::Patrons->find($borrowernumber); # FIXME Is this really useful?
         my $restricted  = $patron->is_debarred;
         my $hasoverdues = $patron->has_overdues;
 
@@ -3204,23 +3351,6 @@ sub CanBookBeRenewed {
         } elsif ( ($hasoverdues and $overduesblockrenewing eq 'block') || ($issue->is_overdue and $overduesblockrenewing eq 'blockitem') ) {
             return ( 0, 'overdue');
         }
-
-        ( $auto_renew, $soonest ) = _CanBookBeAutoRenewed({
-            patron     => $patron,
-            item       => $item,
-            branchcode => $branchcode,
-            issue      => $issue
-        });
-        
-        # handle too_many later after on_reserve 
-        # return ( 0, "too_many"   ) if $auto_renew ne "no" && $hasToMany;
-        
-        return ( 0, $auto_renew, { soonest_renew_date => $soonest } ) if $auto_renew =~ 'auto_too_soon' && $cron;
-        # cron wants 'too_soon' over 'on_reserve' for performance and to avoid
-        # extra notices being sent. Cron also implies no override
-        return ( 0, $auto_renew  ) if $auto_renew =~ 'auto_account_expired';
-        return ( 0, $auto_renew  ) if $auto_renew =~ 'auto_too_late';
-        return ( 0, $auto_renew  ) if $auto_renew =~ 'auto_too_much_oweing';
     }
 
     if ( C4::Context->preference('UseRecalls') ) {
@@ -3228,10 +3358,8 @@ sub CanBookBeRenewed {
         $recall = $item->check_recalls if $item->can_be_waiting_recall;
         if ( defined $recall ) {
             if ( $recall->item_level ) {
-                # item-level recall. check if this item is the recalled item, otherwise renewal will be allowed
                 return ( 0, 'recalled' ) if ( $recall->item_id == $item->itemnumber );
             } else {
-                # biblio-level recall, so only disallow renewal if the biblio-level recall has been fulfilled by a different item
                 return ( 0, 'recalled' ) unless ( $recall->waiting );
             }
         }
@@ -3241,8 +3369,8 @@ sub CanBookBeRenewed {
     return ( 0, "on_reserve" )
       if ( $item->current_holds->search( { non_priority => 0 } )->count );
 
-    my ( $status, $matched_reserve, $possible_holds ) = C4::Reserves::CheckReserves($item->itemnumber);
 
+    my ( $status, $matched_reserve, $possible_holds ) = C4::Reserves::CheckReserves($item);
     my @fillable_holds = ();
     foreach my $possible_hold ( @{$possible_holds} ) {
         push @fillable_holds, $possible_hold unless $possible_hold->{non_priority};
@@ -3256,14 +3384,14 @@ sub CanBookBeRenewed {
                 biblionumber => $item->biblionumber,
                 onloan       => undef,
                 notforloan   => 0,
-                -not         => { itemnumber => $itemnumber } })->as_list;
+                -not         => { itemnumber => $item->itemnumber } })->as_list;
 
             return ( 0, "on_reserve" ) if @fillable_holds && (scalar @other_items < scalar @fillable_holds);
 
             my %matched_items;
             foreach my $possible_hold (@fillable_holds) {
                 my $fillable = 0;
-                my $patron_with_reserve = Koha::Patrons->find( $possible_hold->{borrowernumber} );
+                my $patron_with_reserve = Koha::Patrons->find($possible_hold->{borrowernumber});
 
                 foreach my $other_item (@other_items) {
                     next if defined $matched_items{ $other_item->itemnumber };
@@ -3284,14 +3412,11 @@ sub CanBookBeRenewed {
                 }
                 return ( 0, "on_reserve" ) unless $fillable;
             }
-
-        } else {
-            my ($status, $matched_reserve, $possible_reserves) = CheckReserves($itemnumber);
+        }
+        else {
             return ( 0, "on_reserve" ) if $status;
         }
     }
-
-    return ( 0, $auto_renew, { soonest_renew_date => $soonest } ) if $auto_renew =~ 'too_soon';#$auto_renew ne "no" && $auto_renew ne "ok";
 
     # CHECK FOR BOOKINGS
     if ( $item->bookings->count ) {
@@ -3317,30 +3442,29 @@ sub CanBookBeRenewed {
         return ( 0, $auto_renew, { soonest_renew_date => $soonest } ) if $cron;
 
         # Check if it's too soon for a manual renewal
-        my $soonestManual = GetSoonestRenewDate($issue);
+        my $soonestManual = GetSoonestRenewDate( $patron, $issue );
         if ( $soonestManual > dt_from_string() ) {
             return ( 0, "too_soon", { soonest_renew_date => $soonestManual } ) unless $override_limit;
         }
     }
 
-    $soonest = GetSoonestRenewDate($issue);
+    $soonest = GetSoonestRenewDate($patron, $issue);
     if ( $soonest > dt_from_string() ){
         return (0, "too_soon", { soonest_renew_date => $soonest } ) unless $override_limit;
     }
 
-    return ( 0, "too_many" ) if $hasToMany;
-
-    return ( 0, "auto_renew" ) if $auto_renew eq "ok" && !$override_limit; # 0 if auto-renewal should not succeed
+    my $auto_renew_code = $final_renewal ? 'auto_renew_final' : $final_unseen_renewal ? 'auto_unseen_final' : 'auto_renew';
+    return ( 1, $auto_renew_code ) if $auto_renew eq "ok" || $auto_renew eq "auto_too_soon" && !$override_limit;
 
     return ( 1, undef );
 }
 
 =head2 SetDueDateOfItems
 
-  &SetDueDateOfItems({ currentDueDate => $currentdue, newDueDate => $newDueDate, 
+  &SetDueDateOfItems({ currentDueDate => $currentdue, newDueDate => $newDueDate,
                        libraryCategory => $category, branchcode => $branchcode });
-  
-Update the due-date of items. The function is used for bookmobiles to extend the loan 
+
+Update the due-date of items. The function is used for bookmobiles to extend the loan
 period if a bookmobile station cannot not be approached on a specific date. Setting
 the due-date prevents that patrons receive overdue notices if they do not have a chance
 to return a book.
@@ -3359,51 +3483,61 @@ C<branchcode> is used if a group of libraries are to be changed.
 
 sub SetDueDateOfItems {
     my ($params) = @_;
-    
+
     # initialize the variables and return a error code if something is missing
     return (0,'no_params_specified') if (! defined($params) );
     return (0,'current_due_date_not_specified') if (! defined($params->{currentDueDate}) );
     return (0,'new_due_date_not_specified') if (! defined($params->{newDueDate}) );
-    
+
     my $today_iso = dt_from_string(output_pref( { dt => dt_from_string, dateonly => 1, dateformat => 'iso' }),'iso');
     my $currentDateDue = dt_from_string($params->{currentDueDate}, 'iso');
     my $newDueDate = dt_from_string($params->{newDueDate}, 'iso');
-    
+
     return (0,'wrong_date_format_current_due_date') if (! $currentDateDue );
     return (0,'wrong_date_format_new_due_date') if (! $newDueDate );
-    
+
     return (0,'current_due_date_before_today') if ( DateTime->compare( $currentDateDue, $today_iso ) == -1 );
     return (0,'new_due_date_before_today') if ( DateTime->compare( $newDueDate, $today_iso ) == -1);
-    
+
     my $selparams = { datedue => output_pref( { dt => $currentDateDue, dateonly => 1, dateformat => 'iso' }) };
     $selparams->{categorycode} = $params->{libraryCategory} if ( defined($params->{libraryCategory}) && $params->{libraryCategory} ne '*' );
     $selparams->{branchcode} = $params->{branchcode} if ( defined($params->{branchcode}) && $params->{branchcode} ne '*' );
-    
+
     my $changedissues = 0;
-    
+
     # now search the issues
     if ( my $checkoutsearch = Koha::Checkouts->get_issue_due_on_selected_date( $selparams ) ) {
         while ( my $issue = $checkoutsearch->next()) {
             $changedissues++;
-            
+
             my $currDateDue = dt_from_string($issue->date_due, 'iso');
             my $newdate = $newDueDate->strftime('%Y-%m-%d ') . $currDateDue->strftime('%H:%M');
-            
+
             # set the new due date of the issue
             $issue->date_due($newdate)->store();
             # set the new due date of the item
             $issue->item->onloan($newdate)->store;
         }
     }
-    
+
     return ($changedissues,"");
 }
 
 =head2 AddRenewal
 
-  &AddRenewal($borrowernumber, $itemnumber, $branch, [$datedue], [$lastreneweddate], [$seen], [$automatic]);
+  $new_date_due = AddRenewal({
+      borrowernumber   => $borrowernumber,
+      itemnumber       => $itemnumber,
+      branch           => $branch,
+      [datedue         => $datedue],
+      [lastreneweddate => $lastreneweddate],
+      [skipfinecalc    => $skipfinecalc],
+      [seen            => $seen],
+      [automatic       => $automatic],
+      [skip_record_index => $skip_record_index]
+  });
 
-Renews a loan.
+Renews a loan, returns the updated due date upon success.
 
 C<$borrowernumber> is the borrower number of the patron who currently
 has the item.
@@ -3432,17 +3566,25 @@ fallback to a true value
 
 C<$automatic> is a boolean flag indicating the renewal was triggered automatically and not by a person ( librarian or patron )
 
+C<$skip_record_index> is an optional boolean flag to indicate whether queuing the search indexing
+should be skipped for this renewal.
+
 =cut
 
 sub AddRenewal {
-    my $borrowernumber  = shift;
-    my $itemnumber      = shift or return;
-    my $branch          = shift;
-    my $datedue         = shift;
-    my $lastreneweddate = shift || dt_from_string();
-    my $skipfinecalc    = shift;
-    my $seen            = shift;
-    my $automatic       = shift;
+    my $params = shift;
+
+    my $borrowernumber  = $params->{borrowernumber};
+    my $itemnumber      = $params->{itemnumber};
+    return unless $itemnumber;
+
+    my $branch            = $params->{branch};
+    my $datedue           = $params->{datedue};
+    my $lastreneweddate   = $params->{lastreneweddate} // dt_from_string();
+    my $skipfinecalc      = $params->{skipfinecalc};
+    my $seen              = $params->{seen};
+    my $automatic         = $params->{automatic};
+    my $skip_record_index = $params->{skip_record_index};
 
     # Fallback on a 'seen' renewal
     $seen = defined $seen && $seen == 0 ? 0 : 1;
@@ -3469,7 +3611,7 @@ sub AddRenewal {
 
     my $branchcode = $issue->branchcode;
     $branch = $issue->branchcode if (! $branch );
-    $branchcode = _GetCircControlBranch($item_unblessed, $patron_unblessed)
+    $branchcode = _GetCircControlBranch($item_object, $patron)
             if (! C4::Context->preference('UseIssuingBranchConditionsForRenewals') );
     my $circ_library = Koha::Libraries->find( $branchcode );
 
@@ -3490,7 +3632,7 @@ sub AddRenewal {
             $datedue = (C4::Context->preference('RenewalPeriodBase') eq 'date_due') ?
                                             dt_from_string( $issue->date_due, 'sql' ) :
                                             dt_from_string();
-            $datedue =  CalcDateDue($datedue, $itemtype, $circ_library->branchcode, $patron_unblessed, 'is a renewal');
+            $datedue =  CalcDateDue($datedue, $itemtype, $circ_library->branchcode, $patron, 'is a renewal');
         }
 
         my $fees = Koha::Charges::Fees->new(
@@ -3523,7 +3665,7 @@ sub AddRenewal {
             }
         }
 
-        # Delete overdue reminder history
+        # LMSCloud: Delete overdue reminder history
         my $claimhist = Koha::OverdueIssues->search( { 'issue_id' => $issue->issue_id } );
         while ( my $histentry = $claimhist->next() ) {
             $histentry->delete();
@@ -3550,7 +3692,7 @@ sub AddRenewal {
         # Don't index as we are in a transaction
         $item_object->store({ log_action => 0, skip_record_index => 1 });
 
-        # Check whether the patrons category is selected for renew fees
+        # LMSCloud: Check whether the patrons category is selected for renew fees
         my $addRenewRentalFee = 1;
         if ( C4::Context->preference('RenewalDiscardRentalFeesOfPatronCategory') ) {
             my $checkval = $patron->categorycode;
@@ -3629,9 +3771,20 @@ sub AddRenewal {
                 borrowernumber => $borrowernumber,
                 ccode          => $item_object->ccode,
                 categorycode   => $patron->categorycode,
+                interface      => C4::Context->interface,
             }
         );
-        
+
+        #Update borrowers.lastseen
+        try {
+            $patron->update_lastseen('renewal');
+        }
+        catch {
+            my $exception = $_;
+            warn "Problem updating lastseen date for borrowernumber $borrowernumber: $exception";
+        };
+
+        # LMSCloud: update bundle item stats on renewal
         if ( $item_object->is_bundle ) {
             my $bundleLostValue = C4::Context->preference('BundleLostValue');
             my $currdate = dt_from_string()->ymd();
@@ -3640,7 +3793,7 @@ sub AddRenewal {
                 if ( !$bundle_item->itemlost || $bundle_item->itemlost != $bundleLostValue ) {
                     $bundle_item->renewals( ( $bundle_item->renewals || 0 ) + 1);
                     $bundle_item->store( { log_action => 0, skip_record_index => 1 } );
-                    
+
                     C4::Stats::UpdateStats(
                         {
                             branch         => $item_object->renewal_branchcode({branch => $branch}),
@@ -3667,16 +3820,24 @@ sub AddRenewal {
             }
         });
     });
+
     # We index now, after the transaction is committed
     my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
     $indexer->index_records( $item_object->biblionumber, "specialUpdate", "biblioserver" );
+
+    unless( $skip_record_index ){
+        # We index now, after the transaction is committed
+        my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
+        $indexer->index_records( $item_object->biblionumber, "specialUpdate", "biblioserver" );
+    }
 
     return $datedue;
 }
 
 sub GetRenewCount {
     # check renewal status
-    my ( $bornum, $itemno ) = @_;
+    my ( $borrowernumber_or_patron, $itemnumber_or_item ) = @_;
+
     my $dbh           = C4::Context->dbh;
     my $renewcount    = 0;
     my $unseencount    = 0;
@@ -3684,9 +3845,10 @@ sub GetRenewCount {
     my $unseenallowed = 0;
     my $renewsleft    = 0;
     my $unseenleft    = 0;
-
-    my $patron = Koha::Patrons->find( $bornum );
-    my $item   = Koha::Items->find($itemno);
+    my $patron = blessed $borrowernumber_or_patron ?
+        $borrowernumber_or_patron : Koha::Patrons->find($borrowernumber_or_patron);
+    my $item = blessed $itemnumber_or_item ?
+        $itemnumber_or_item : Koha::Items->find($itemnumber_or_item);
 
     return (0, 0, 0, 0, 0, 0) unless $patron or $item; # Wrong call, no renewal allowed
 
@@ -3694,17 +3856,16 @@ sub GetRenewCount {
     # and not yet returned.
 
     # FIXME - I think this function could be redone to use only one SQL call.
-    my $sth = $dbh->prepare(
-        "select * from issues
-                                where (borrowernumber = ?)
-                                and (itemnumber = ?)"
-    );
-    $sth->execute( $bornum, $itemno );
+    my $sth = $dbh->prepare(q{
+        SELECT * FROM issues
+        WHERE  (borrowernumber = ?) AND (itemnumber = ?)
+    });
+    $sth->execute( $patron->borrowernumber, $item->itemnumber );
     my $data = $sth->fetchrow_hashref;
     $renewcount = $data->{'renewals_count'} if $data->{'renewals_count'};
     $unseencount = $data->{'unseen_renewals'} if $data->{'unseen_renewals'};
     # $item and $borrower should be calculated
-    my $branchcode = _GetCircControlBranch($item->unblessed, $patron->unblessed);
+    my $branchcode = _GetCircControlBranch($item, $patron);
 
     my $rules = Koha::CirculationRules->get_effective_rules(
         {
@@ -3734,11 +3895,15 @@ sub GetRenewCount {
 
 =head2 GetSoonestRenewDate
 
-  $NoRenewalBeforeThisDate = &GetSoonestRenewDate($checkout);
+  $NoRenewalBeforeThisDate = &GetSoonestRenewDate($patron, $issue);
 
 Find out the soonest possible renew date of a borrowed item.
 
-C<$checkout> is the checkout object to renew.
+C<$patron> is the patron who currently has the item on loan.
+
+C<$issue> is the the item issue.
+
+C<$is_auto> is this soonest renew date for an auto renewal?
 
 C<$GetSoonestRenewDate> returns the DateTime of the soonest possible
 renew date, based on the value "No renewal before" of the applicable
@@ -3749,18 +3914,24 @@ cannot be found.
 =cut
 
 sub GetSoonestRenewDate {
-    my ( $checkout ) = @_;
+    my ( $patron, $issue, $is_auto ) = @_;
+    return unless $issue;
+    return unless $patron;
 
-    my $item   = $checkout->item or return;
-    my $patron = $checkout->patron or return;
+    my $item = $issue->item;
+    return unless $item;
 
-    my $branchcode = _GetCircControlBranch( $item->unblessed, $patron->unblessed );
+    my $circ_rule = $is_auto ? 'noautorenewalbefore' : 'norenewalbefore';
+
+    my $dbh = C4::Context->dbh;
+
+    my $branchcode = _GetCircControlBranch( $item, $patron );
     my $issuing_rule = Koha::CirculationRules->get_effective_rules(
         {   categorycode => $patron->categorycode,
             itemtype     => $item->effective_itemtype,
             branchcode   => $branchcode,
             rules => [
-                'norenewalbefore',
+                $circ_rule,
                 'lengthunit',
             ]
         }
@@ -3768,12 +3939,12 @@ sub GetSoonestRenewDate {
 
     my $now = dt_from_string;
 
-    if ( defined $issuing_rule->{norenewalbefore}
-        and $issuing_rule->{norenewalbefore} ne "" )
+    if ( defined $issuing_rule->{$circ_rule}
+        and $issuing_rule->{$circ_rule} ne "" )
     {
         my $soonestrenewal =
-          dt_from_string( $checkout->date_due )->subtract(
-            $issuing_rule->{lengthunit} => $issuing_rule->{norenewalbefore} );
+          dt_from_string( $issue->date_due )->subtract(
+            $issuing_rule->{lengthunit} => $issuing_rule->{$circ_rule} );
 
         if ( C4::Context->preference('NoRenewalBeforePrecision') eq 'date'
             and $issuing_rule->{lengthunit} eq 'days' )
@@ -3781,9 +3952,9 @@ sub GetSoonestRenewDate {
             $soonestrenewal->truncate( to => 'day' );
         }
         return $soonestrenewal;
-    } elsif ( $checkout->auto_renew && $patron->autorenew_checkouts ) {
-        # Checkouts with auto-renewing fall back to due date
-        my $soonestrenewal = dt_from_string( $checkout->date_due );
+    } elsif ( $is_auto && $issue->auto_renew && $patron->autorenew_checkouts ) {
+        # Checkouts with auto-renewing fall back to due date if noautorenewalbefore is undef
+        my $soonestrenewal = dt_from_string( $issue->date_due );
         if ( C4::Context->preference('NoRenewalBeforePrecision') eq 'date'
             and $issuing_rule->{lengthunit} eq 'days' )
         {
@@ -3796,14 +3967,13 @@ sub GetSoonestRenewDate {
 
 =head2 GetLatestAutoRenewDate
 
-  $NoAutoRenewalAfterThisDate = &GetLatestAutoRenewDate($borrowernumber, $itemnumber);
+  $NoAutoRenewalAfterThisDate = &GetLatestAutoRenewDate($patron, $issue);
 
 Find out the latest possible auto renew date of a borrowed item.
 
-C<$borrowernumber> is the borrower number of the patron who currently
-has the item on loan.
+C<$patron> is the patron who currently has the item on loan.
 
-C<$itemnumber> is the number of the item to renew.
+C<$issue> is the item issue.
 
 C<$GetLatestAutoRenewDate> returns the DateTime of the latest possible
 auto renew date, based on the value "No auto renewal after" and the "No auto
@@ -3814,18 +3984,16 @@ or item cannot be found.
 =cut
 
 sub GetLatestAutoRenewDate {
-    my ( $borrowernumber, $itemnumber ) = @_;
+    my ( $patron, $issue ) = @_;
+    return unless $issue;
+    return unless $patron;
+
+    my $item = $issue->item;
+    return unless $item;
 
     my $dbh = C4::Context->dbh;
+    my $branchcode = _GetCircControlBranch( $item, $patron );
 
-    my $item      = Koha::Items->find($itemnumber)  or return;
-    my $itemissue = $item->checkout                 or return;
-
-    $borrowernumber ||= $itemissue->get_column('borrowernumber');
-    my $patron = Koha::Patrons->find( $borrowernumber )
-      or return;
-
-    my $branchcode = _GetCircControlBranch( $item->unblessed, $patron->unblessed );
     my $circulation_rules = Koha::CirculationRules->get_effective_rules(
         {
             categorycode => $patron->categorycode,
@@ -3848,7 +4016,7 @@ sub GetLatestAutoRenewDate {
 
     my $maximum_renewal_date;
     if ( $circulation_rules->{no_auto_renewal_after} ) {
-        $maximum_renewal_date = dt_from_string($itemissue->issuedate);
+        $maximum_renewal_date = dt_from_string($issue->issuedate);
         $maximum_renewal_date->add(
             $circulation_rules->{lengthunit} => $circulation_rules->{no_auto_renewal_after}
         );
@@ -3898,20 +4066,21 @@ sub GetIssuingCharges {
 
     my $sth = $dbh->prepare($charge_query);
     $sth->execute($itemnumber);
+    my $patron;
     if ( my $item_data = $sth->fetchrow_hashref ) {
         $item_type = $item_data->{itemtype};
         $charge    = $item_data->{rentalcharge};
         if ($charge) {
             # FIXME This should follow CircControl
             my $branch = C4::Context::mybranch();
-            
-            # If the costs are for an renewal and we are supposed to apply conditions of the
+
+            # LMSCloud: If the costs are for a renewal and we are supposed to apply conditions of the
             # issuing branch then we need to apply the rules of the issuing branch
             if ( $isrenewal && C4::Context->preference('UseIssuingBranchConditionsForRenewals') && $issuebranch ) {
                 $branch = $issuebranch;
             }
             $branch = Koha::Libraries->get_effective_branch($branch);
-            
+
             my $patron = Koha::Patrons->find( $borrowernumber );
             my $discount = Koha::CirculationRules->get_effective_rule({
                 categorycode => $patron->categorycode,
@@ -4108,7 +4277,7 @@ sub SendCirculationAlert {
         unless ( $message ) {
             C4::Context->dbh->do(q|UNLOCK TABLES|) unless $do_not_lock;
             my $patron = Koha::Patrons->find($borrower->{borrowernumber});
-            C4::Message->enqueue($letter, $patron, $mtt, $branch);
+            C4::Message->enqueue($letter, $patron, $mtt);
         } else {
             $message->append($letter);
             $message->update;
@@ -4123,7 +4292,7 @@ sub SendCirculationAlert {
 
   $items = updateWrongTransfer($itemNumber,$borrowernumber,$waitingAtLibrary,$FromLibrary);
 
-This function validate the line of brachtransfer but with the wrong destination (mistake from a librarian ...), and create a new line in branchtransfer from the actual library to the original library of reservation 
+This function validate the line of brachtransfer but with the wrong destination (mistake from a librarian ...), and create a new line in branchtransfer from the actual library to the original library of reservation
 
 =cut
 
@@ -4147,7 +4316,7 @@ sub updateWrongTransfer {
     );
 
     # LMSCloud 2022-12-21:
-    # The user may abort the (non-modal and even the modal (depending on system preference TransfersBlockCirc)) dialog 
+    # The user may abort the (non-modal and even the modal (depending on system preference TransfersBlockCirc)) dialog
     # 'Wrong Transfer detected, please return item to:...'.
     # Then field branchtransfers.datesent would stay NULL, so in case of AutomaticItemReturn we have set it here explicitly.
     # (The request_transfer() function above does nor support setting of datesent.)
@@ -4167,19 +4336,19 @@ checking against the holidays calendar as per the daysmode circulation rule.
 C<$startdate>   = DateTime object representing start date of loan period (assumed to be today)
 C<$itemtype>  = itemtype code of item in question
 C<$branch>  = location whose calendar to use
-C<$borrower> = Borrower object
+C<$patron> = Patron object
 C<$isrenewal> = Boolean: is true if we want to calculate the date due for a renewal. Else is false.
 
 =cut
 
 sub CalcDateDue {
-    my ( $startdate, $itemtype, $branch, $borrower, $isrenewal ) = @_;
+    my ( $startdate, $itemtype, $branch, $patron, $isrenewal ) = @_;
 
     $isrenewal ||= 0;
 
     # loanlength now a href
     my $loanlength =
-            GetLoanLength( $borrower->{'categorycode'}, $itemtype, $branch );
+            GetLoanLength( $patron->categorycode, $itemtype, $branch );
 
     my $length_key = ( $isrenewal and defined $loanlength->{renewalperiod} and $loanlength->{renewalperiod} ne q{} )
             ? qq{renewalperiod}
@@ -4199,17 +4368,73 @@ sub CalcDateDue {
 
     my $daysmode = Koha::CirculationRules->get_effective_daysmode(
         {
-            categorycode => $borrower->{categorycode},
+            categorycode => $patron->categorycode,
             itemtype     => $itemtype,
             branchcode   => $branch,
         }
     );
 
+    my $considerlibraryhours = C4::Context->preference('ConsiderLibraryHoursInCirculation');
+
+    # starter vars so don't do calculations directly to $datedue
+    my $potential_datedue  = $datedue->clone;
+    my $library_close      = $datedue->clone;
+    my $dayofweek          = $datedue->day_of_week;
+
+    # Representation fix
+    # DateTime object dow (1-7) where Monday is 1
+    # Arrays are 0-based where 0 = Sunday, not 7.
+    if ( $dayofweek == 7 ) {
+        $dayofweek = 0;
+    }
+
+    my $tomorrow_dayofweek = $dayofweek + 1;
+    if ( $tomorrow_dayofweek == 7 ) {
+        $tomorrow_dayofweek = 0;
+    }
+
+    my $todayhours    = Koha::Library::Hours->find( { library_id => $branch, day => $dayofweek } );
+    my @close         = undef;
+    my $tomorrowhours = Koha::Library::Hours->find( { library_id => $branch, day => $tomorrow_dayofweek } )
+        ;    # get open hours of next day
+
+    # Defend against missing library hours definitions
+    if ( !$todayhours || !$tomorrowhours ) { $considerlibraryhours = 'ignore' }
+
+    my @open = undef;
+    if ( $considerlibraryhours ne 'ignore' and $todayhours->close_time and $tomorrowhours->open_time ) {
+        @close             = split( ":", $todayhours->close_time );
+        $library_close     = $library_close->set( hour => $close[0], minute => $close[1] );
+        $potential_datedue = $potential_datedue->add( hours => $loanlength->{$length_key} )
+            ;    # datedue without consideration for open hours
+        @open = split( ":", $tomorrowhours->open_time );
+    }
+
     # calculate the datedue as normal
     if ( $daysmode eq 'Days' )
     {    # ignoring calendar
         if ( $loanlength->{lengthunit} eq 'hours' ) {
-            $datedue->add( hours => $loanlength->{$length_key} );
+            if ( $considerlibraryhours ne 'ignore' and $potential_datedue > $library_close and $todayhours->close_time and $tomorrowhours->open_time ) {
+                if ( $considerlibraryhours eq 'close' ) {
+
+                    # datedue will be after the library closes on that day
+                    # shorten loan period to end when library closes
+                    $datedue->set( hour => $close[0], minute => $close[1] );
+                } elsif ( $considerlibraryhours eq 'open' ) {
+
+                    # datedue will be after the library closes on that day
+                    # extend loan period to when library opens following day
+                    $datedue->add( days => 1 )->set( hour => $open[0], minute => $open[1] );
+                } else {
+
+                    # ignore library open hours
+                    $datedue->add( hours => $loanlength->{$length_key} );
+                }
+            } else {
+
+                # due time doesn't conflict with library open hours, don't need to check
+                $datedue->add( hours => $loanlength->{$length_key} );
+            }
         } else {    # days
             $datedue->add( days => $loanlength->{$length_key} );
             $datedue->set_hour(23);
@@ -4218,13 +4443,34 @@ sub CalcDateDue {
     } else {
         my $dur;
         if ($loanlength->{lengthunit} eq 'hours') {
-            $dur = DateTime::Duration->new( hours => $loanlength->{$length_key});
+            if ( $considerlibraryhours ne 'ignore' and $potential_datedue > $library_close and $todayhours->close_time and $tomorrowhours->open_time ) {
+                if ( $considerlibraryhours eq 'close' ) {
+
+                    # datedue will be after the library closes on that day
+                    # shorten loan period to end when library closes by hardcoding due time
+                    $datedue->set( hour => $close[0], minute => $close[1] );
+                } elsif ( $considerlibraryhours eq 'open' ) {
+
+                    # datedue will be after the library closes on that day
+                    # extend loan period to when library opens following day by hardcoding due time for next open day
+                    $dur = DateTime::Duration->new( days => 1 );
+                    $datedue->set( hour => $open[0], minute => $open[1] );
+                } else {
+
+                    # ignore library open hours
+                    $dur = DateTime::Duration->new( hours => $loanlength->{$length_key} );
+                }
+            } else {
+
+                # due time doesn't conflict with library open hours, don't need to check
+                $dur = DateTime::Duration->new( hours => $loanlength->{$length_key} );
+            }
         }
         else { # days
-            $dur = DateTime::Duration->new( days => $loanlength->{$length_key});
+            $dur = DateTime::Duration->new( days => $loanlength->{$length_key} );
         }
         my $calendar = Koha::Calendar->new( branchcode => $branch, days_mode => $daysmode );
-        $datedue = $calendar->addDuration( $datedue, $dur, $loanlength->{lengthunit} );
+        $datedue = $calendar->addDuration( $datedue, $dur, $loanlength->{lengthunit} ) if $dur;
         if ($loanlength->{lengthunit} eq 'days') {
             $datedue->set_hour(23);
             $datedue->set_minute(59);
@@ -4233,7 +4479,7 @@ sub CalcDateDue {
 
     # if Hard Due Dates are used, retrieve them and apply as necessary
     my ( $hardduedate, $hardduedatecompare ) =
-      GetHardDueDate( $borrower->{'categorycode'}, $itemtype, $branch );
+      GetHardDueDate( $patron->categorycode, $itemtype, $branch );
     if ($hardduedate) {    # hardduedates are currently dates
         $hardduedate->truncate( to => 'minute' );
         $hardduedate->set_hour(23);
@@ -4253,7 +4499,7 @@ sub CalcDateDue {
 
     # if ReturnBeforeExpiry ON the datedue can't be after borrower expirydate
     if ( C4::Context->preference('ReturnBeforeExpiry') ) {
-        my $expiry_dt = dt_from_string( $borrower->{dateexpiry}, 'iso', 'floating');
+        my $expiry_dt = dt_from_string( $patron->dateexpiry, 'iso', 'floating');
         if( $expiry_dt ) { #skip empty expiry date..
             $expiry_dt->set( hour => 23, minute => 59);
             my $d1= $datedue->clone->set_time_zone('floating');
@@ -4478,7 +4724,7 @@ sub ProcessOfflineOperation {
     if ( $operation->{action} eq 'return' ) {
         $report = ProcessOfflineReturn( $operation );
     } elsif ( $operation->{action} eq 'issue' ) {
-        $report = ProcessOfflineIssue( $operation );
+        ($report) = ProcessOfflineIssue($operation);
     } elsif ( $operation->{action} eq 'payment' ) {
         $report = ProcessOfflinePayment( $operation );
     }
@@ -4519,6 +4765,7 @@ sub ProcessOfflineIssue {
     my $operation = shift;
 
     my $patron = Koha::Patrons->find( { cardnumber => $operation->{cardnumber} } );
+    $patron ||= Koha::Patrons->find( { userid => $operation->{cardnumber} } );
 
     if ( $patron ) {
         my $item = Koha::Items->find({ barcode => $operation->{barcode} });
@@ -4535,15 +4782,15 @@ sub ProcessOfflineIssue {
                 $operation->{timestamp},
             );
         }
-        AddIssue(
-            $patron->unblessed,
-            $operation->{'barcode'},
-            undef,
+        my $checkout = AddIssue(
+            $patron,
+            $operation->{barcode},
+            $operation->{due_date},
             undef,
             $operation->{timestamp},
             undef,
         );
-        return "Success.";
+        return ( "Success.", $checkout );
     } else {
         return "Borrower not found.";
     }
@@ -4552,7 +4799,8 @@ sub ProcessOfflineIssue {
 sub ProcessOfflinePayment {
     my $operation = shift;
 
-    my $patron = Koha::Patrons->find({ cardnumber => $operation->{cardnumber} });
+    my $patron = Koha::Patrons->find( { cardnumber => $operation->{cardnumber} } );
+    $patron ||= Koha::Patrons->find( { userid => $operation->{cardnumber} } );
 
     $patron->account->pay(
         {
@@ -4640,21 +4888,15 @@ sub IsItemIssued {
 
 =head2 GetAgeRestriction
 
-  my ($ageRestriction, $daysToAgeRestriction) = GetAgeRestriction($record_restrictions, $borrower);
-  my ($ageRestriction, $daysToAgeRestriction) = GetAgeRestriction($record_restrictions);
-
-  if($daysToAgeRestriction <= 0) { #Borrower is allowed to access this material, as they are older or as old as the agerestriction }
-  if($daysToAgeRestriction > 0) { #Borrower is this many days from meeting the agerestriction }
+  my $ageRestriction = GetAgeRestriction($record_restrictions);
 
 @PARAM1 the koha.biblioitems.agerestriction value, like K18, PEGI 13, ...
-@PARAM2 a borrower-object with koha.borrowers.dateofbirth. (OPTIONAL)
-@RETURNS The age restriction age in years and the days to fulfill the age restriction for the given borrower.
-         Negative days mean the borrower has gone past the age restriction age.
+@RETURNS The age restriction age in years.
 
 =cut
 
 sub GetAgeRestriction {
-    my ($record_restrictions, $borrower) = @_;
+    my ($record_restrictions) = @_;
     my $markers = C4::Context->preference('AgeRestrictionMarker');
 
     return unless $record_restrictions;
@@ -4689,26 +4931,7 @@ sub GetAgeRestriction {
         last if ( $restriction_year > 0 );
     }
 
-    #Check if the borrower is age restricted for this material and for how long.
-    if ($restriction_year && $borrower) {
-        if ( $borrower->{'dateofbirth'} ) {
-            my @alloweddate = split /-/, $borrower->{'dateofbirth'};
-            $alloweddate[0] += $restriction_year;
-
-            #Prevent runime eror on leap year (invalid date)
-            if ( ( $alloweddate[1] == 2 ) && ( $alloweddate[2] == 29 ) ) {
-                $alloweddate[2] = 28;
-            }
-
-            #Get how many days the borrower has to reach the age restriction
-            my @Today = split /-/, dt_from_string()->ymd();
-            my $daysToAgeRestriction = Date_to_Days(@alloweddate) - Date_to_Days(@Today);
-            #Negative days means the borrower went past the age restriction age
-            return ($restriction_year, $daysToAgeRestriction);
-        }
-    }
-
-    return ($restriction_year);
+    return $restriction_year;
 }
 
 
@@ -4882,12 +5105,12 @@ sub _CanBookBeAutoRenewed {
                 'no_auto_renewal_after',
                 'no_auto_renewal_after_hard_limit',
                 'lengthunit',
-                'norenewalbefore',
+                'noautorenewalbefore',
             ]
         }
     );
 
-    if ( $patron->category->effective_BlockExpiredPatronOpacActions and $patron->is_expired ) {
+    if ( $patron->is_expired && $patron->category->effective_BlockExpiredPatronOpacActions_contains('renew') ) {
         return 'auto_account_expired';
     }
 
@@ -4915,7 +5138,7 @@ sub _CanBookBeAutoRenewed {
     if ( C4::Context->preference('OPACFineNoRenewalsBlockAutoRenew') ) {
         my $fine_no_renewals = C4::Context->preference("OPACFineNoRenewals");
         my $amountoutstanding =
-          C4::Context->preference("OPACFineNoRenewalsIncludeCredit")
+          C4::Context->preference("OPACFineNoRenewalsIncludeCredits")
           ? $patron->account->balance
           : $patron->account->outstanding_debits->total_outstanding;
         if ( $amountoutstanding and $amountoutstanding > $fine_no_renewals ) {
@@ -4923,7 +5146,7 @@ sub _CanBookBeAutoRenewed {
         }
     }
 
-    my $soonest = GetSoonestRenewDate($issue);
+    my $soonest = GetSoonestRenewDate( $patron, $issue, 1 );
     if ( $soonest > dt_from_string() )
     {
         return ( "auto_too_soon", $soonest );

@@ -54,7 +54,7 @@ my $display_columns = [ {_label_number  => {label => 'Label number', link_field 
                         {_delete        => {label => 'Actions', link_field => 0}},
                         {select         => {label => 'Select', value => '_label_id'}},
                       ];
-my $op = $cgi->param('op') || 'edit';
+my $op = $cgi->param('op') || 'cud-edit';
 my @label_ids;
 my @item_numbers;
 my $number_list;
@@ -67,7 +67,7 @@ $number_list = $cgi->param('number_list') if $cgi->param('number_list');
 
 my $branch_code = C4::Context->userenv->{'branch'};
 
-if ($op eq 'remove') {
+if ($op eq 'cud-delete') {
     $batch = C4::Labels::Batch->retrieve(batch_id => $batch_id);
     foreach my $label_id (@label_ids) {
     $err = $batch->remove_item($label_id);
@@ -77,11 +77,7 @@ if ($op eq 'remove') {
 #    print $cgi->redirect("label-edit-batch.pl?op=edit&batch_id=$batch_id");
 #    exit;
 }
-elsif ($op eq 'delete') {
-    $err = C4::Labels::Batch::delete(batch_id => $batch_id, branch_code => $branch_code);
-    $errtype = 'BATCH_NOT_DELETED' if $err;
-}
-elsif ($op eq 'add') {
+elsif ($op eq 'cud-add') {
     if ($number_list) {
         my @numbers_list = split /\n/, $number_list; # Entries are effectively passed in as a <cr> separated list
         foreach my $number (@numbers_list) {

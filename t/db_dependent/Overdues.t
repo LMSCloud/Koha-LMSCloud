@@ -1,7 +1,8 @@
 #!/usr/bin/perl;
 
 use Modern::Perl;
-use Test::More tests => 17;
+use Test::More tests => 19;
+use Test::NoWarnings;
 use Test::Warn;
 
 use C4::Context;
@@ -84,6 +85,11 @@ is_deeply( $mtts, ['print', 'sms', 'email'], 'GetOverdueMessageTransportTypes: t
 
 # Test GetBranchcodesWithOverdueRules
 $dbh->do(q|DELETE FROM overduerules|);
+
+my @overdue_branches;
+warnings_are { @overdue_branches = C4::Overdues::GetBranchcodesWithOverdueRules(); } [],
+    "No warnings thrown when no overdue rules exist";
+
 $dbh->do(q|
     INSERT INTO overduerules
         ( branchcode,categorycode, delay1,letter1,debarred1, delay2,letter2,debarred2, delay3,letter3,debarred3 )
@@ -93,7 +99,7 @@ $dbh->do(q|
 
 my @branchcodes = map { $_->branchcode } Koha::Libraries->search->as_list;
 
-my @overdue_branches = C4::Overdues::GetBranchcodesWithOverdueRules();
+@overdue_branches = C4::Overdues::GetBranchcodesWithOverdueRules();
 is_deeply( [ sort @overdue_branches ], [ sort @branchcodes ], 'If a default rule exists, all branches should be returned' );
 
 $dbh->do(q|
@@ -502,7 +508,9 @@ subtest 'UpdateFine tests' => sub {
         { order_by       => { '-asc' => 'accountlines_id' } }
     );
     is( $fines->count,        4,    "New amount should be 0 so no fine added" );
-    ok( C4::Circulation::AddReturn( $item_1->barcode, $item_1->homebranch, 1), "Returning the item and forgiving fines succeeds");
+    t::lib::Mocks::mock_userenv( { patron => $patron_1 } );
+    my @r = C4::Circulation::AddReturn( $item_1->barcode, $item_1->homebranch, 1 );
+    is( $r[1]->{WasReturned}, 1, "Returning the item and forgiving fines succeeds" );
 
     t::lib::Mocks::mock_preference( 'MaxFine', 0 );
 

@@ -41,35 +41,35 @@ my ( $template, $librarian, $cookie, $flags ) = get_template_and_user(
 
 my $schema = Koha::Database->new()->schema();
 
-my $barcode        = $cgi->param('barcode') // '';
-my $unseen         = $cgi->param('unseen') || 0;
+my $op      = $cgi->param('op') || q{};
+my $barcode = $cgi->param('barcode') // '';
+my $unseen  = $cgi->param('unseen') || 0;
 $barcode = barcodedecode($barcode) if $barcode;
 my $override_limit = $cgi->param('override_limit');
 my $override_holds = $cgi->param('override_holds');
 my $hard_due_date  = $cgi->param('hard_due_date');
 
-my ( $item, $issue, $borrower );
+my ( $item, $checkout, $patron );
 my $error = q{};
 my ( $soonest_renew_date, $latest_auto_renew_date );
 
-if ($barcode) {
+if ($op eq 'cud-renew' && $barcode) {
     $barcode = barcodedecode($barcode) if $barcode;
-    $item = $schema->resultset("Item")->single( { barcode => $barcode } );
+    $item = Koha::Items->find({ barcode => $barcode });
 
     if ($item) {
 
-        $issue = $item->issue();
+        $checkout = $item->checkout;
 
-        if ($issue) {
+        if ($checkout) {
 
-            $borrower = $issue->patron();
-            
-            if ( ( $borrower->debarred() || q{} ) lt dt_from_string()->ymd() ) {
+            $patron = $checkout->patron;
+
+            if ( ( $patron->is_debarred || q{} ) lt dt_from_string()->ymd() ) {
                 my $can_renew;
                 my $info;
                 ( $can_renew, $error, $info ) =
-                  CanBookBeRenewed( $borrower->borrowernumber(),
-                    $item->itemnumber(), $override_limit );
+                  CanBookBeRenewed( $patron, $checkout, $override_limit );
 
                 if ( $error && ($error eq 'on_reserve') ) {
                     if ($override_holds) {
@@ -85,9 +85,9 @@ if ($barcode) {
                     $soonest_renew_date = $info->{soonest_renew_date};
                 }
                 if ( $error && ( $error eq 'auto_too_late' ) ) {
-                    $latest_auto_renew_date = C4::Circulation::GetLatestAutoRenewDate(
-                        $borrower->borrowernumber(),
-                        $item->itemnumber(),
+                    $latest_auto_renew_date = GetLatestAutoRenewDate(
+                        $patron,
+                        $checkout,
                     );
                 }
                 if ($can_renew) {
@@ -99,13 +99,12 @@ if ($barcode) {
                       : $cgi->param('renewonholdduedate');
 
                     $date_due = AddRenewal(
-                        undef,
-                        $item->itemnumber(),
-                        $branchcode,
-                        $date_due,
-                        undef,
-                        undef,
-                        !$unseen
+                        {
+                            itemnumber => $item->itemnumber(),
+                            branch     => $branchcode,
+                            datedue    => $date_due,
+                            seen       => !$unseen
+                        }
                     );
                     $template->param( date_due => $date_due );
                 }
@@ -124,8 +123,8 @@ if ($barcode) {
 
     $template->param(
         item     => $item,
-        issue    => $issue,
-        borrower => $borrower,
+        issue    => $checkout,
+        borrower => $patron,
         error    => $error,
         soonestrenewdate => $soonest_renew_date,
         latestautorenewdate => $latest_auto_renew_date,

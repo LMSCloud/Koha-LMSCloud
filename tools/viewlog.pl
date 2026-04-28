@@ -44,7 +44,7 @@ plugin that shows stats
 
 my $input = CGI->new;
 
-my $do_it    = $input->param('do_it');
+my $do_it    = $input->param('do_it');    # no op: just viewing, downloading etc
 my @modules  = $input->multi_param("modules");
 my $user     = $input->param("user") // '';
 my @actions  = $input->multi_param("actions");
@@ -130,11 +130,13 @@ if ($do_it) {
 
     if ( @modules == 1 && $object_type eq 'biblio' ) {
         # Handle 'Modification log' from cataloguing
-        my @itemnumbers = Koha::Items->search({ biblionumber => $object })->get_column('itemnumber');
+        my $biblio = Koha::Biblios->find( $object );
+        my @itemnumbers = $biblio->items->get_column('itemnumber');
         $search_params{'-or'} = [
             { -and => { object => $object, info => { -like => 'biblio%' }}},
             { -and => { object => \@itemnumbers, info => { -like => 'item%' }}},
         ];
+        $template->param( biblio => $biblio );
     } else {
         $search_params{info} = { -like => '%' . $info . '%' } if $info;
         $search_params{object} = $object if $object;

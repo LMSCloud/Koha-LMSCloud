@@ -32,6 +32,7 @@ use C4::Creators::Lib qw( html_table );
 use Koha::Logger;
 use Koha::Items;
 use Koha::ItemTypes;
+use Koha::SearchEngine::QueryBuilder;
 use Koha::SearchEngine::Search;
 
 my $query = CGI->new;
@@ -39,7 +40,7 @@ my $query = CGI->new;
 my $type      = $query->param('type');
 my $op        = $query->param('op') || '';
 my $batch_id  = $query->param('batch_id');
-my $ccl_query = $query->param('ccl_query');
+my @limits = split( " AND ", $query->param('limits') || "" );
 my $startfrom = $query->param('startfrom') || 1;
 my ($template, $loggedinuser, $cookie) = (undef, undef, undef);
 my (
@@ -58,31 +59,35 @@ my $display_columns = [ {_add                   => {label => "Add Item", link_fi
 if ( $op eq "do_search" ) {
     $idx         = $query->param('idx');
     $ccl_textbox = $query->param('ccl_textbox');
-    if ( $ccl_textbox && $idx ) {
-        $ccl_query = "$idx:$ccl_textbox";
-    }
 
     $datefrom = $query->param('datefrom');
     $dateto   = $query->param('dateto');
 
-    if ($datefrom) {
-        $ccl_query .= ' AND ' if $ccl_textbox;
-        $ccl_query .= "acqdate,ge,st-date-normalized=" . $datefrom;
+    my $builder  = Koha::SearchEngine::QueryBuilder->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+    my $searcher = Koha::SearchEngine::Search->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+
+    if ( !@limits ) {
+        push( @limits, "acqdate,st-date-normalized=$datefrom - $dateto" );
     }
 
-    if ($dateto) {
-        $ccl_query .= ' AND ' if ( $ccl_textbox || $datefrom );
-        $ccl_query .= "acqdate,le,st-date-normalized=" . $dateto;
-    }
+    my (
+        $build_error, $query, $simple_query, $query_cgi,
+        $query_desc,  $limit, $limit_cgi,    $limit_desc,
+        $query_type
+    ) = $builder->build_query_compat( undef, [$ccl_textbox], [$idx], \@limits );
 
     my $offset = $startfrom > 1 ? $startfrom - 1 : 0;
-    my $searcher = Koha::SearchEngine::Search->new({index => 'biblios'});
-    ( $error, $marcresults, $total_hits ) = $searcher->simple_search_compat($ccl_query, $offset, $resultsperpage);
 
-    if (!defined $error && @{$marcresults} ) {
-        $show_results = @{$marcresults};
-    }
-    else {
+    my ( $error, $results, $facets ) = $searcher->search_compat(
+        $query, $simple_query, [],          ['biblioserver'], $resultsperpage, $offset,
+        undef,  undef,         $query_type, undef
+    );
+
+    if ( !defined $error && defined($results) && @{ $results->{biblioserver}{RECORDS} } > 0 ) {
+        $show_results = grep { defined $_ } @{ $results->{biblioserver}{RECORDS} };
+        $marcresults  = [ grep { defined $_ } @{ $results->{biblioserver}{RECORDS} } ];
+        $total_hits   = $results->{biblioserver}{hits};
+    } else {
         Koha::Logger->get->warn("ERROR label-item-search: no results from simple_search_compat");
 
         # leave $show_results undef
@@ -185,11 +190,13 @@ if ($show_results) {
     );
 
     $template->param(
-        results   => ($show_results ? 1 : 0),
-        result_set=> \@results_set,
-        batch_id  => $batch_id,
-        type      => $type,
-        ccl_query => $ccl_query,
+        results     => ( $show_results ? 1 : 0 ),
+        result_set  => \@results_set,
+        batch_id    => $batch_id,
+        type        => $type,
+        idx         => $idx,
+        ccl_textbox => $ccl_textbox,
+        limits      => join( " AND ", @limits ),
     );
 }
 

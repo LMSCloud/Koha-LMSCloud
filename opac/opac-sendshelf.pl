@@ -26,9 +26,9 @@ use Try::Tiny qw( catch try );
 
 use C4::Auth qw( get_template_and_user );
 use C4::Biblio qw(
-    GetFrameworkCode
-    GetMarcISBN
-    GetMarcSubjects
+  GetFrameworkCode
+  GetMarcISBN
+  GetMarcSubjects
 );
 use C4::Output qw( output_html_with_http_headers );
 use Koha::Biblios;
@@ -39,155 +39,119 @@ use Koha::Virtualshelves;
 my $query = CGI->new;
 
 # if virtualshelves is disabled, leave immediately
-if ( ! C4::Context->preference('virtualshelves') ) {
+if ( !C4::Context->preference('virtualshelves') ) {
     print $query->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
 }
 
-my ( $template, $borrowernumber, $cookie ) = get_template_and_user (
+my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
-        template_name   => "opac-sendshelfform.tt",
-        query           => $query,
-        type            => "opac",
+        template_name => "opac-sendshelfform.tt",
+        query         => $query,
+        type          => "opac",
     }
 );
 
+if ( C4::Context->preference('OPACDisableSendList') ) {
+    output_html_with_http_headers $query, $cookie, $template->output, undef,
+        { force_no_caching => 1 };
+    exit;
+}
+
 my $shelfid = $query->param('shelfid');
 my $email   = $query->param('email');
+my $op      = $query->param('op') // q{};
 
-my $shelf = Koha::Virtualshelves->find( $shelfid );
-if ( $shelf and $shelf->can_be_viewed( $borrowernumber ) ) {
-  if ( $email ) {
-    my $comment    = $query->param('comment');
+my $shelf = Koha::Virtualshelves->find($shelfid);
+if ( $shelf and $shelf->can_be_viewed($borrowernumber) ) {
+    if ( $email && $op eq 'cud-send' ) {
+        my $comment = $query->param('comment');
 
-    my ( $template2, $borrowernumber, $cookie ) = get_template_and_user(
-        {
-            template_name   => "opac-sendshelf.tt",
-            query           => $query,
-            type            => "opac",
-            authnotrequired => 1,
+        my $patron     = Koha::Patrons->find($borrowernumber);
+        my $user_email = $patron->notice_email_address;
+        my $shelf      = Koha::Virtualshelves->find($shelfid);
+        my $contents   = $shelf->get_contents;
+        my $iso2709;
+
+        my @biblionumbers;
+        while ( my $content = $contents->next ) {
+            push @biblionumbers, $content->biblionumber;
+            my $biblio = Koha::Biblios->find( $content->biblionumber );
+            $iso2709 .= $biblio->metadata_record( { interface => 'opac' } )->as_usmarc();
         }
-    );
 
-    my $patron = Koha::Patrons->find( $borrowernumber );
+        if ( !defined $iso2709 ) {
+            carp "Error sending mail: empty list";
+            $template->param( error => 1 );
+        }
+        elsif ( !defined $user_email or $user_email eq '' ) {
+            carp "Error sending mail: sender's email address is invalid";
+            $template->param( error => 1 );
+        }
+        else {
+            my %loops = ( biblio => \@biblionumbers, );
 
-    my $shelf = Koha::Virtualshelves->find( $shelfid );
-    my $contents = $shelf->get_contents;
-    my $marcflavour         = C4::Context->preference('marcflavour');
-    my $iso2709;
-    my @results;
+            my %substitute = (
+                comment  => $comment,
+                listname => $shelf->shelfname,
+            );
 
-    while ( my $content = $contents->next ) {
-        my $biblionumber = $content->biblionumber;
-        my $biblio       = Koha::Biblios->find( $biblionumber ) or next;
-        my $dat          = $biblio->unblessed;
-        my $record = $biblio->metadata->record(
-            {
-                embed_items => 1,
-                opac        => 1,
-                patron      => $patron,
-            }
+            my $letter = C4::Letters::GetPreparedLetter(
+                module      => 'lists',
+                letter_code => 'LIST',
+                lang        => $patron->lang,
+                tables      => {
+                    borrowers => $borrowernumber,
+                },
+                message_transport_type => 'email',
+                loops                  => \%loops,
+                substitute             => \%substitute,
+            );
+
+            my $attachment = {
+                filename => 'list.iso2709',
+                type     => 'application/octet-stream',
+                content  => Encode::encode( "UTF-8", $iso2709 ),
+            };
+
+            my $message_id = C4::Letters::EnqueueLetter(
+                {
+                    letter                 => $letter,
+                    message_transport_type => 'email',
+                    borrowernumber         => $patron->borrowernumber,
+                    to_address             => $email,
+                    reply_address          => $user_email,
+                    attachments            => [$attachment],
+                }
+            );
+
+            C4::Letters::SendQueuedMessages( { message_id => $message_id } ) if $message_id;
+
+            $template->param( SENT => 1 );
+        }
+
+        $template->param(
+            shelfid => $shelfid,
+            email   => $email,
         );
-        next unless $record;
-        my $fw               = GetFrameworkCode($biblionumber);
+        output_html_with_http_headers $query, $cookie, $template->output,
+          undef, { force_no_caching => 1 };
 
-        my $marcauthorsarray = $biblio->get_marc_contributors;
-        my $marcsubjctsarray = GetMarcSubjects( $record, $marcflavour );
-
-        my $items = $biblio->items->search_ordered->filter_by_visible_in_opac({ patron => $patron });
-
-        $dat->{ISBN}           = GetMarcISBN($record, $marcflavour);
-        $dat->{MARCSUBJCTS}    = $marcsubjctsarray;
-        $dat->{MARCAUTHORS}    = $marcauthorsarray;
-        $dat->{'biblionumber'} = $biblionumber;
-        $dat->{ITEM_RESULTS}   = $items;
-        $dat->{HASAUTHORS}     = $dat->{'author'} || @$marcauthorsarray;
-        my ( $host, $relatedparts ) = $biblio->get_marc_host;
-        $dat->{HOSTITEMENTRIES} = $host;
-        $dat->{RELATEDPARTS} = $relatedparts;
-
-        $iso2709 .= $record->as_usmarc();
-
-        push( @results, $dat );
-    }
-
-    $template2->param(
-        BIBLIO_RESULTS => \@results,
-        comment        => $comment,
-        shelfname      => $shelf->shelfname,
-        firstname      => $patron->firstname,
-        surname        => $patron->surname,
-    );
-
-    # Getting template result
-    my $template_res = $template2->output();
-    my $body;
-
-    my $subject;
-    # Analysing information and getting mail properties
-    if ( $template_res =~ /<SUBJECT>(?<subject>.*)<END_SUBJECT>/s ) {
-        $subject = $+{subject};
-        $subject =~ s|\n?(.*)\n?|$1|;
     }
     else {
-        $subject = "no subject";
-    }
-
-    my $email_header = "";
-    if ( $template_res =~ /<HEADER>(.*)<END_HEADER>/s ) {
-        $email_header = $1;
-        $email_header =~ s|\n?(.*)\n?|$1|;
-    }
-
-    if ( $template_res =~ /<MESSAGE>(.*)<END_MESSAGE>/s ) {
-        $body = $1;
-        $body =~ s|\n?(.*)\n?|$1|;
-    }
-
-    my $THE_body = <<END_OF_BODY;
-$email_header
-$body
-END_OF_BODY
-
-    try {
-        my $email = Koha::Email->create(
-            {
-                to      => $email,
-                subject => $subject,
-            }
+        $template->param(
+            shelfid => $shelfid,
+            url     => "/cgi-bin/koha/opac-sendshelf.pl",
         );
-        $email->text_body( $THE_body );
-        $email->attach(
-            Encode::encode( "UTF-8", $iso2709 ),
-            content_type => 'application/octet-stream',
-            name         => 'list.iso2709',
-            disposition  => 'attachment',
-        );
-        my $library = Koha::Patrons->find( $borrowernumber )->library;
-        $email->transport( $library->smtp_server->transport );
-        $email->send_or_die;
-        $template->param( SENT => "1" );
+        output_html_with_http_headers $query, $cookie, $template->output,
+          undef, { force_no_caching => 1 };
     }
-    catch {
-        carp "Error sending mail: $_";
-        $template->param( error => 1 );
-    };
-
+}
+else {
     $template->param(
-        shelfid => $shelfid,
-        email   => $email,
+        invalidlist => 1,
+        url         => "/cgi-bin/koha/opac-sendshelf.pl",
     );
-    output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
-
-  } else {
-    $template->param( shelfid => $shelfid,
-                      url     => "/cgi-bin/koha/opac-sendshelf.pl",
-                    );
-    output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
-  }
-} else {
-    $template->param( invalidlist => 1,
-                      url     => "/cgi-bin/koha/opac-sendshelf.pl",
-    );
-    output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
+    output_html_with_http_headers $query, $cookie, $template->output, undef,
+      { force_no_caching => 1 };
 }

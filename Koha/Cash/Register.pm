@@ -233,6 +233,21 @@ sub add_cashup {
     return Koha::Cash::Register::Cashup->_new_from_dbic($rs);
 }
 
+=head3 to_api_mapping
+
+This method returns the mapping for representing a Koha::Cash::Register object
+on the API.
+
+=cut
+
+sub to_api_mapping {
+    return {
+        branch         => 'library_id',
+        id             => 'cash_register_id',
+        branch_default => 'library_default',
+    };
+}
+
 =head2 Internal methods
 
 =cut

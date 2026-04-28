@@ -296,115 +296,116 @@ production installation.
 =cut
 
 my $target_map = {
-  './about.pl'                  => 'INTRANET_CGI_DIR',
-  './acqui'                     => 'INTRANET_CGI_DIR',
-  './admin'                     => 'INTRANET_CGI_DIR',
-  './api'                       => { target => 'API_CGI_DIR', trimdir => -1 },
-  './app.psgi'                  => 'SCRIPT_DIR',
-  './authorities'               => 'INTRANET_CGI_DIR',
-  './basket'                    => 'INTRANET_CGI_DIR',
-  './bin'                       => { target => 'SCRIPT_DIR', trimdir => -1 },
-  './bookings'                  => 'INTRANET_CGI_DIR',
-  './C4'                        => 'PERL_MODULE_DIR',
-  './C4/SIP/t'                  => 'NONE',
-  './C4/SIP/koha_test'          => 'NONE',
-  './C4/tests'                  => 'NONE',
-  './catalogue'                 => 'INTRANET_CGI_DIR',
-  './cataloguing'               => 'INTRANET_CGI_DIR',
-  './changelanguage.pl'         => 'INTRANET_CGI_DIR',
-  './check_sysprefs.pl'         => 'NONE',
-  './circ'                      => 'INTRANET_CGI_DIR',
-  './clubs'                     => 'INTRANET_CGI_DIR',
-  './course_reserves'           => 'INTRANET_CGI_DIR',
-  './cpanfile'                  => 'PERL_MODULE_DIR',
-  './docs/history.txt'          => { target => 'DOC_DIR', trimdir => -1 },
-  './docs/contributors.yaml'    => { target => 'DOC_DIR', trimdir => -1 },
-  './docs/teams.yaml'           => { target => 'DOC_DIR', trimdir => -1 },
-  './offline_circ'              => 'INTRANET_CGI_DIR',
-  './erm'                       => 'INTRANET_CGI_DIR',
-  './etc'                       => { target => 'KOHA_CONF_DIR', trimdir => -1 },
-  './etc/zebradb'               => { target => 'ZEBRA_CONF_DIR', trimdir => -1 },
-  './etc/z3950'                 => { target => 'Z3950_CONF_DIR', trimdir => -1 },
-  './help.pl'                   => 'INTRANET_CGI_DIR',
-  './ill'                       => 'INTRANET_CGI_DIR',
-  './installer-CPAN.pl'         => 'NONE',
-  './installer'                 => 'INTRANET_CGI_DIR',
-  './errors'                    => {target => 'INTRANET_CGI_DIR'},
-  './external'                  => 'INTRANET_CGI_DIR',
-  './Koha'                      => 'PERL_MODULE_DIR',
-  './Koha.pm'                   => 'PERL_MODULE_DIR',
-  './koha-tmpl/intranet-tmpl'   => {target => 'INTRANET_TMPL_DIR', trimdir => -1},
-  './koha-tmpl/opac-tmpl'       => {target => 'OPAC_TMPL_DIR', trimdir => -1},
-  './kohaversion.pl'            => 'INTRANET_CGI_DIR',
-  './labels'                    => 'INTRANET_CGI_DIR',
-  './lib'                       => {target => 'PERL_MODULE_LIB_DIR', trimdir => -1},
-  './mainpage.pl'               => 'INTRANET_CGI_DIR',
-  './Makefile.PL'               => 'NONE',
-  './MANIFEST.SKIP'             => 'NONE',
-  './members'                   => 'INTRANET_CGI_DIR',
-  './misc'                      => { target => 'SCRIPT_NONDEV_DIR', trimdir => -1 },
-  './misc/bin'                  => { target => 'SCRIPT_DIR', trimdir => -1 },
-  './misc/release_notes'        => { target => 'DOC_DIR', trimdir => 2 },
-  './misc/translator'           => { target => 'MISC_DIR', trimdir => 2 },
-  './misc/koha-install-log'     => { target => 'MISC_DIR', trimdir => -1 },
-  './misc/installer_devel_notes' => 'NONE',
-  './opac'                      => 'OPAC_CGI_DIR',
-  './OpenILS'                   => 'PERL_MODULE_DIR',
-  './README.txt'                => 'NONE',
-  './patroncards'               => 'INTRANET_CGI_DIR',
-  './patron_lists'              => 'INTRANET_CGI_DIR',
-  './perltidyrc'                => 'NONE',
-  './plugins'                   => 'INTRANET_CGI_DIR',
-  './pos'                       => 'INTRANET_CGI_DIR',
-  './recalls'                   => 'INTRANET_CGI_DIR',
-  './reports'                   => 'INTRANET_CGI_DIR',
-  './reserve'                   => 'INTRANET_CGI_DIR',
-  './reviews'                   => 'INTRANET_CGI_DIR',
-  './rewrite-config.PL'         => 'NONE',
-  './reviews'                   => 'INTRANET_CGI_DIR',
-  './rotating_collections'      => 'INTRANET_CGI_DIR',
-  './serials'                   => 'INTRANET_CGI_DIR',
-  './services'                  => 'INTRANET_CGI_DIR',
-  './skel'                      => 'NONE',
-  './skel/var/lock/koha'        => { target => 'LOCK_DIR', trimdir => -1 },
-  './skel/var/log/koha'         => { target => 'LOG_DIR', trimdir => -1 },
-  './skel/var/spool/koha'       => { target => 'BACKUP_DIR', trimdir => -1 },
-  './skel/var/run/koha/zebradb' => { target => 'ZEBRA_RUN_DIR', trimdir => -1 },
-  './skel/var/lock/koha/zebradb/authorities' => { target => 'ZEBRA_LOCK_DIR', trimdir => 6 },
-  './skel/var/lib/koha/zebradb/authorities/key'  => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-  './skel/var/lib/koha/zebradb/authorities/register'  => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-  './skel/var/lib/koha/zebradb/authorities/shadow'  => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-  './skel/var/lib/koha/zebradb/authorities/tmp'  => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-  './skel/var/lock/koha/zebradb/biblios' => { target => 'ZEBRA_LOCK_DIR', trimdir => 6 },
-  './skel/var/lib/koha/zebradb/biblios/key'  => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-  './skel/var/lib/koha/zebradb/biblios/register'  => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-  './skel/var/lib/koha/zebradb/biblios/shadow'  => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-  './skel/var/lib/koha/zebradb/biblios/tmp'  => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-  './skel/var/lock/koha/zebradb/rebuild' => { target => 'ZEBRA_LOCK_DIR', trimdir => 6 },
-  './skel/var/lib/koha/plugins' => { target => 'PLUGINS_DIR', trimdir => 6 },
-  './sms'                       => 'INTRANET_CGI_DIR',
-  './suggestion'                => 'INTRANET_CGI_DIR',
-  './svc'                       => 'INTRANET_CGI_DIR',
-  './t'                         => 'NONE',
-  './xt'                        => 'NONE',
-  './tags'                      => 'INTRANET_CGI_DIR',
-  './tmp'                       => 'NONE', # FIXME need to determine whether
-                                           # Koha generates any persistent temp files
-                                           # that should go in /var/tmp/koha
-  './tools'                     => 'INTRANET_CGI_DIR',
-  './virtualshelves'            => 'INTRANET_CGI_DIR',
-  # ignore files and directories created by the install itself
-  './pm_to_blib'                => 'NONE',
-  './blib'                      => 'NONE',
-  '.sass-lint.yml'              => 'NONE',
-  '.scss-lint.yml'              => 'NONE',
-  '.eslintrc.json'              => 'NONE',
-  'gulpfile.js'                 => 'NONE',
-  'package.json'                => 'NONE',
-  'yarn.lock'                   => 'NONE',
-  'cypress.json'                => 'NONE',
-  'tsconfig.json'               => 'NONE',
-  'webpack.config.js'           => 'NONE',
+    './about.pl'                                       => 'INTRANET_CGI_DIR',
+    './acqui'                                          => 'INTRANET_CGI_DIR',
+    './admin'                                          => 'INTRANET_CGI_DIR',
+    './api'                                            => { target => 'API_CGI_DIR', trimdir => -1 },
+    './app.psgi'                                       => 'SCRIPT_DIR',
+    './authorities'                                    => 'INTRANET_CGI_DIR',
+    './basket'                                         => 'INTRANET_CGI_DIR',
+    './bin'                                            => { target => 'SCRIPT_DIR', trimdir => -1 },
+    './bookings'                                       => 'INTRANET_CGI_DIR',
+    './C4'                                             => 'PERL_MODULE_DIR',
+    './catalogue'                                      => 'INTRANET_CGI_DIR',
+    './cataloguing'                                    => 'INTRANET_CGI_DIR',
+    './changelanguage.pl'                              => 'INTRANET_CGI_DIR',
+    './check_sysprefs.pl'                              => 'NONE',
+    './circ'                                           => 'INTRANET_CGI_DIR',
+    './clubs'                                          => 'INTRANET_CGI_DIR',
+    './course_reserves'                                => 'INTRANET_CGI_DIR',
+    './cpanfile'                                       => 'PERL_MODULE_DIR',
+    './docs/history.txt'                               => { target => 'DOC_DIR', trimdir => -1 },
+    './docs/contributors.yaml'                         => { target => 'DOC_DIR', trimdir => -1 },
+    './docs/teams.yaml'                                => { target => 'DOC_DIR', trimdir => -1 },
+    './offline_circ'                                   => 'INTRANET_CGI_DIR',
+    './erm'                                            => 'INTRANET_CGI_DIR',
+    './etc'                                            => { target => 'KOHA_CONF_DIR',  trimdir => -1 },
+    './etc/zebradb'                                    => { target => 'ZEBRA_CONF_DIR', trimdir => -1 },
+    './etc/z3950'                                      => { target => 'Z3950_CONF_DIR', trimdir => -1 },
+    './help.pl'                                        => 'INTRANET_CGI_DIR',
+    './ill'                                            => 'INTRANET_CGI_DIR',
+    './installer-CPAN.pl'                              => 'NONE',
+    './installer'                                      => 'INTRANET_CGI_DIR',
+    './errors'                                         => { target => 'INTRANET_CGI_DIR' },
+    './Koha'                                           => 'PERL_MODULE_DIR',
+    './Koha.pm'                                        => 'PERL_MODULE_DIR',
+    './koha-tmpl/intranet-tmpl'                        => { target => 'INTRANET_TMPL_DIR', trimdir => -1 },
+    './koha-tmpl/opac-tmpl'                            => { target => 'OPAC_TMPL_DIR',     trimdir => -1 },
+    './kohaversion.pl'                                 => 'INTRANET_CGI_DIR',
+    './labels'                                         => 'INTRANET_CGI_DIR',
+    './lib'                                            => { target => 'PERL_MODULE_LIB_DIR', trimdir => -1 },
+    './mainpage.pl'                                    => 'INTRANET_CGI_DIR',
+    './Makefile.PL'                                    => 'NONE',
+    './MANIFEST.SKIP'                                  => 'NONE',
+    './members'                                        => 'INTRANET_CGI_DIR',
+    './misc'                                           => { target => 'SCRIPT_NONDEV_DIR', trimdir => -1 },
+    './misc/bin'                                       => { target => 'SCRIPT_DIR',        trimdir => -1 },
+    './misc/release_notes'                             => { target => 'DOC_DIR',           trimdir => 2 },
+    './misc/translator'                                => { target => 'MISC_DIR',          trimdir => 2 },
+    './misc/koha-install-log'                          => { target => 'MISC_DIR',          trimdir => -1 },
+    './misc/installer_devel_notes'                     => 'NONE',
+    './opac'                                           => 'OPAC_CGI_DIR',
+    './OpenILS'                                        => 'PERL_MODULE_DIR',
+    './README.txt'                                     => 'NONE',
+    './patroncards'                                    => 'INTRANET_CGI_DIR',
+    './patron_lists'                                   => 'INTRANET_CGI_DIR',
+    './perltidyrc'                                     => 'NONE',
+    './plugins'                                        => 'INTRANET_CGI_DIR',
+    './pos'                                            => 'INTRANET_CGI_DIR',
+    './preservation'                                   => 'INTRANET_CGI_DIR',
+    './recalls'                                        => 'INTRANET_CGI_DIR',
+    './reports'                                        => 'INTRANET_CGI_DIR',
+    './reserve'                                        => 'INTRANET_CGI_DIR',
+    './reviews'                                        => 'INTRANET_CGI_DIR',
+    './rewrite-config.PL'                              => 'NONE',
+    './reviews'                                        => 'INTRANET_CGI_DIR',
+    './rotating_collections'                           => 'INTRANET_CGI_DIR',
+    './serials'                                        => 'INTRANET_CGI_DIR',
+    './services'                                       => 'INTRANET_CGI_DIR',
+    './skel'                                           => 'NONE',
+    './skel/var/lock/koha'                             => { target => 'LOCK_DIR',       trimdir => -1 },
+    './skel/var/log/koha'                              => { target => 'LOG_DIR',        trimdir => -1 },
+    './skel/var/spool/koha'                            => { target => 'BACKUP_DIR',     trimdir => -1 },
+    './skel/var/run/koha/zebradb'                      => { target => 'ZEBRA_RUN_DIR',  trimdir => -1 },
+    './skel/var/lock/koha/zebradb/authorities'         => { target => 'ZEBRA_LOCK_DIR', trimdir => 6 },
+    './skel/var/lib/koha/zebradb/authorities/key'      => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
+    './skel/var/lib/koha/zebradb/authorities/register' => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
+    './skel/var/lib/koha/zebradb/authorities/shadow'   => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
+    './skel/var/lib/koha/zebradb/authorities/tmp'      => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
+    './skel/var/lock/koha/zebradb/biblios'             => { target => 'ZEBRA_LOCK_DIR', trimdir => 6 },
+    './skel/var/lib/koha/zebradb/biblios/key'          => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
+    './skel/var/lib/koha/zebradb/biblios/register'     => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
+    './skel/var/lib/koha/zebradb/biblios/shadow'       => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
+    './skel/var/lib/koha/zebradb/biblios/tmp'          => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
+    './skel/var/lock/koha/zebradb/rebuild'             => { target => 'ZEBRA_LOCK_DIR', trimdir => 6 },
+    './skel/var/lib/koha/plugins'                      => { target => 'PLUGINS_DIR',    trimdir => 6 },
+    './sms'                                            => 'INTRANET_CGI_DIR',
+    './suggestion'                                     => 'INTRANET_CGI_DIR',
+    './svc'                                            => 'INTRANET_CGI_DIR',
+    './t'                                              => 'NONE',
+    './xt'                                             => 'NONE',
+    './tags'                                           => 'INTRANET_CGI_DIR',
+    './tmp'                                            => 'NONE',             # FIXME need to determine whether
+                                                                              # Koha generates any persistent temp files
+                                                                              # that should go in /var/tmp/koha
+    './tools'                                          => 'INTRANET_CGI_DIR',
+    './virtualshelves'                                 => 'INTRANET_CGI_DIR',
+
+    # ignore files and directories created by the install itself
+    './pm_to_blib'      => 'NONE',
+    './blib'            => 'NONE',
+    './.github'         => 'NONE',
+    '.prettierrc.js'    => 'NONE',
+    '.sass-lint.yml'    => 'NONE',
+    '.scss-lint.yml'    => 'NONE',
+    'gulpfile.js'       => 'NONE',
+    'package.json'      => 'NONE',
+    'yarn.lock'         => 'NONE',
+    'cypress.config.ts' => 'NONE',
+    'tsconfig.json'     => 'NONE',
+    'webpack.config.js' => 'NONE',
+    'rspack.config.js'  => 'NONE',
+    'eslint.config.mjs' => 'NONE',
 };
 
 =head1 CONFIGURATION OPTIONS
@@ -673,6 +674,9 @@ $file_map->{'koha-tmpl/intranet-tmpl/prog/css/holds.css'} = 'blib/INTRANET_TMPL_
 $file_map->{'koha-tmpl/intranet-tmpl/prog/css/installer.css'} = 'blib/INTRANET_TMPL_DIR/prog/css/installer.css';
 $file_map->{'koha-tmpl/intranet-tmpl/prog/css/mainpage.css'} = 'blib/INTRANET_TMPL_DIR/prog/css/mainpage.css';
 $file_map->{'koha-tmpl/intranet-tmpl/prog/css/staff-global.css'} = 'blib/INTRANET_TMPL_DIR/prog/css/staff-global.css';
+$file_map->{'koha-tmpl/intranet-tmpl/prog/js/vue/dist/erm.js'} = 'blib/INTRANET_TMPL_DIR/prog/js/vue/dist/erm.js';
+$file_map->{'koha-tmpl/intranet-tmpl/prog/js/vue/dist/preservation.js'} = 'blib/INTRANET_TMPL_DIR/prog/js/vue/dist/preservation.js';
+$file_map->{'koha-tmpl/intranet-tmpl/prog/js/vue/dist/admin/record_sources.js'} = 'blib/INTRANET_TMPL_DIR/prog/js/vue/dist/admin/record_sources.js';
 #OPAC_TMPL_DIR
 $file_map->{'koha-tmpl/opac-tmpl/bootstrap/css/opac.css'} = 'blib/OPAC_TMPL_DIR/bootstrap/css/opac.css';
 $file_map->{'koha-tmpl/opac-tmpl/bootstrap/css/opac-rtl.css'} = 'blib/OPAC_TMPL_DIR/bootstrap/css/opac-rtl.css';
@@ -680,6 +684,8 @@ $file_map->{'koha-tmpl/opac-tmpl/bootstrap/css/print.css'} = 'blib/OPAC_TMPL_DIR
 $file_map->{'koha-tmpl/opac-tmpl/bootstrap/css/print-rtl.css'} = 'blib/OPAC_TMPL_DIR/bootstrap/css/print-rtl.css';
 $file_map->{'koha-tmpl/opac-tmpl/bootstrap/css/sco.css'} = 'blib/OPAC_TMPL_DIR/bootstrap/css/sco.css';
 $file_map->{'koha-tmpl/opac-tmpl/bootstrap/css/sco-rtl.css'} = 'blib/OPAC_TMPL_DIR/bootstrap/css/sco-rtl.css';
+#API_CGI_DIR
+$file_map->{'api/v1/swagger/swagger_bundle.json'} = 'blib/API_CGI_DIR/v1/swagger/swagger_bundle.json';
 
 my $pl_files = {
       'rewrite-config.PL' => [
@@ -706,7 +712,6 @@ push @{ $pl_files->{'rewrite-config.PL'} }, (
 );
 push @{ $pl_files->{'rewrite-config.PL'} }, (
     'blib/SCRIPT_DIR/koha-zebra-ctl.sh',
-    'blib/SCRIPT_DIR/koha-index-daemon-ctl.sh',
 );
 $config{'ZEBRA_AUTH_CFG'} = 'zebra-authorities-dom.cfg';
 $config{'ZEBRA_BIB_CFG'}  = 'zebra-biblios-dom.cfg';
@@ -1817,26 +1822,11 @@ sub postamble {
 sub top_targets {
     my $inherited = shift->SUPER::top_targets(@_);
     my $compile_step;
-
-    #NOTE: Make "all" depend on "compile_css_js" and "move_compiled_js", so that it runs those targets/steps
-    $compile_step .= "all :: compile_css_js move_compiled_js\n";
+    $compile_step .= "all :: compile_css_js\n";
     $compile_step .= "\t" . '$(NOECHO) $(NOOP)' . "\n";
     $compile_step .= "\n";
-
-    #NOTE: Build CSS and Javascript assets
     $compile_step .= "compile_css_js:\n";
     $compile_step .= "\t" . '$(PERLRUN) build-resources.PL' . "\n";
-    $compile_step .= "\n";
-
-    #NOTE: Make move_compiled_js depend on compile_css_js, so we have our generated Javascript assets
-    #NOTE: Make move_compiled_js depend on pm_to_blib, so we have access to the blib directory
-    #NOTE: Copy the generated vue dist files into the relevant blib
-    $compile_step .= "move_compiled_js: compile_css_js pm_to_blib\n";
-    $compile_step .= "\t" . 'cp -r koha-tmpl/intranet-tmpl/prog/js/vue/dist blib/INTRANET_TMPL_DIR/prog/js/vue/dist/' . "\n";
-    $compile_step .= "\t" . 'mkdir -p blib/OPAC_TMPL_DIR/bootstrap/js/vue/dist/' . "\n";
-    $compile_step .= "\t" . 'cp -r koha-tmpl/opac-tmpl/bootstrap/js/vue/dist/* blib/OPAC_TMPL_DIR/bootstrap/js/vue/dist/' . "\n";
-    $compile_step .= "\n";
-
     my $top_targets = $compile_step . "\n" . $inherited;
     return $top_targets;
 }

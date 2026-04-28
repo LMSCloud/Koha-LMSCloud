@@ -29,6 +29,7 @@ use C4::Context;
 use Koha::Authority::Types;
 use Koha::Cities;
 use Koha::Biblios;
+use Koha::Items;
 use Koha::Patron::Category;
 use Koha::Patron::Categories;
 use Koha::Patrons;
@@ -769,8 +770,7 @@ subtest 'Return same values as DBIx::Class' => sub {
                     defined $e_us && defined $e_them,
                     'Delete patrons with one that cannot be deleted should raise an exception'
                 );
-                is( ref($e_us), 'DBIx::Class::Exception' )
-                  ; # FIXME This needs adjustement, we want to throw a Koha::Exception
+                is( ref($e_us), 'Koha::Exceptions::Object::FKConstraintDeletion' );
 
                 ok($not_deleted_us == 3 && $not_deleted_them == 3, 'If one patron cannot be deleted, none should have been deleted');
             };
@@ -1126,7 +1126,7 @@ subtest "filter_by_last_update" => sub {
     is( $count, 3, '3 patrons have been updated before the last 2 days (exclusive)' );
 
     $count = $patrons->filter_by_last_update(
-        { timestamp_column_name => 'updated_on', days => 2, days_inclusive => 1 } )->count;
+        { timestamp_column_name => 'updated_on', min_days => 2 } )->count;
     is( $count, 4, '4 patrons have been updated before the last 2 days (inclusive)' );
 
     $count = $patrons->filter_by_last_update(
@@ -1134,7 +1134,7 @@ subtest "filter_by_last_update" => sub {
     is( $count, 4, '4 patrons have been updated before yesterday (exclusive)' );
 
     $count = $patrons->filter_by_last_update(
-        { timestamp_column_name => 'updated_on', days => 1, days_inclusive => 1 } )->count;
+        { timestamp_column_name => 'updated_on', min_days => 1 } )->count;
     is( $count, 5, '5 patrons have been updated before yesterday (inclusive)' );
 
     $count = $patrons->filter_by_last_update(
@@ -1142,7 +1142,7 @@ subtest "filter_by_last_update" => sub {
     is( $count, 5, '5 patrons have been updated before today (exclusive)' );
 
     $count = $patrons->filter_by_last_update(
-        { timestamp_column_name => 'updated_on', days => 0, days_inclusive => 1 } )->count;
+        { timestamp_column_name => 'updated_on', min_days => 0 } )->count;
     is( $count, 6, '6 patrons have been updated before today (inclusive)' );
 
     $count = $patrons->filter_by_last_update(
@@ -1162,29 +1162,48 @@ subtest "filter_by_last_update" => sub {
     )->count;
     is( $count, 3, '3 patrons have been updated between D-4 and D-2' );
 
-    t::lib::Mocks::mock_preference( 'dateformat', 'metric' );
-    try {
+    throws_ok {
         $count = $patrons->filter_by_last_update(
             { timestamp_column_name => 'updated_on', from => '1970-12-31' } )
           ->count;
-    }
-    catch {
-        ok(
-            $_->isa(
-                'No exception raised, from and to parameters can take an iso formatted date'
-            )
-        );
-    };
-    try {
+    } 'Koha::Exceptions::WrongParameter', 'from parameter must be a DateTime object';
+    throws_ok {
         $count = $patrons->filter_by_last_update(
-            { timestamp_column_name => 'updated_on', from => '31/12/1970' } )
+            { timestamp_column_name => 'updated_on', to => '1970-12-31' } )
           ->count;
-    }
-    catch {
-        ok(
-            $_->isa(
-                'No exception raised, from and to parameters can take an metric formatted date (depending on dateformat syspref)'
-            )
+    } 'Koha::Exceptions::WrongParameter', 'to parameter must be a DateTime object';
+
+    subtest 'Parameters older_than, younger_than' => sub {
+        my $now = dt_from_string();
+        my $rs  = Koha::Patrons->search( { borrowernumber => { -in => \@borrowernumbers } } );
+        $rs->update( { updated_on => $now->clone->subtract( hours => 24 ) } );
+        is(
+            $rs->filter_by_last_update( { timestamp_column_name => 'updated_on', from => $now } )->count, 0,
+            'All updated yesterday'
+        );
+        is(
+            $rs->filter_by_last_update(
+                {
+                    timestamp_column_name => 'updated_on',
+                    from                  => $now->clone->subtract( days => 1 )->truncate( to => 'day' )
+                }
+            )->count,
+            6,
+            'Yesterday, truncated from is inclusive'
+        );
+        is(
+            $rs->filter_by_last_update(
+                { timestamp_column_name => 'updated_on', from => $now->clone->subtract( minutes => 24 * 60 - 1 ), }
+            )->count,
+            0,
+            'Yesterday + 1m, not truncated, no results'
+        );
+        is(
+            $rs->filter_by_last_update(
+                { timestamp_column_name => 'updated_on', from => $now->clone->subtract( hours => 24 ), }
+            )->count,
+            6,
+            'Yesterday, not truncated, results'
         );
     };
 
@@ -1267,13 +1286,13 @@ subtest 'empty() tests' => sub {
 
 subtest 'delete() tests' => sub {
 
-    plan tests => 2;
+    plan tests => 3;
 
     $schema->storage->txn_begin;
 
     # Make sure no cities
     warnings_are { Koha::Cities->delete }[],
-      "No warnings, no Koha::City->delete called as it doesn't exist";
+        "No warnings, no Koha::City->delete called as it doesn't exist";
 
     # Mock Koha::City
     my $mocked_city = Test::MockModule->new('Koha::City');
@@ -1292,7 +1311,26 @@ subtest 'delete() tests' => sub {
     my $cities = Koha::Cities->search;
     $cities->next;
     warnings_are { $cities->delete }
-        [ "delete called!", "delete called!" ],
+    [ "delete called!", "delete called!" ],
+        "No warnings, no Koha::City->delete called as it doesn't exist";
+
+    my $item_id_1 = $builder->build_sample_item()->id;
+    my $item_id_2 = $builder->build_sample_item()->id;
+
+    # Mock Koha::City
+    my $mocked_item = Test::MockModule->new('Koha::Item');
+    $mocked_item->mock(
+        'delete',
+        sub {
+            my ( $self, $params ) = @_;
+            warn ref($self);
+            warn $params->{skip_record_index};
+        }
+    );
+    my $items = Koha::Items->search( { itemnumber => [ $item_id_1, $item_id_2 ] } );
+
+    warning_is { $items->delete( { skip_record_index => 1 } ) }
+    [ "Koha::Item", "1", "Koha::Item", "1" ],
         "No warnings, no Koha::City->delete called as it doesn't exist";
 
     $schema->storage->txn_rollback;

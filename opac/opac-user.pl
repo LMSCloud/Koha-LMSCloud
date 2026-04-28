@@ -49,7 +49,6 @@ use Koha::Patron::Discharge;
 use Koha::Patrons;
 use Koha::Ratings;
 use Koha::Recalls;
-use Koha::Token;
 
 use constant ATTRIBUTE_SHOW_BARCODE => 'SHOW_BCODE';
 
@@ -64,6 +63,8 @@ BEGIN {
         import C4::Divibib::NCIPService;
     }
 }
+
+my $op = $query->param('op') || q{};
 
 # CAS single logout handling
 # Will print header and exit
@@ -99,13 +100,7 @@ if (!$borrowernumber) {
 # get borrower information ....
 my $patron = Koha::Patrons->find( $borrowernumber );
 
-if( $query->param('update_arc') && C4::Context->preference("AllowPatronToControlAutorenewal") ){
-    die "Wrong CSRF token"
-        unless Koha::Token->new->check_csrf({
-            session_id => scalar $query->cookie('CGISESSID'),
-            token  => scalar $query->param('csrf_token'),
-        });
-
+if( $op eq 'cud-update_arc' && C4::Context->preference("AllowPatronToControlAutorenewal") ){
     my $autorenew_checkouts = $query->param('borrower_autorenew_checkouts');
     $patron->autorenew_checkouts( $autorenew_checkouts )->store() if defined $autorenew_checkouts;
 }
@@ -142,7 +137,7 @@ my $amountoutstanding = $patron->account->balance;
 my $no_renewal_amt = C4::Context->preference( 'OPACFineNoRenewals' );
 $no_renewal_amt = undef unless looks_like_number( $no_renewal_amt );
 my $amountoutstandingfornewal =
-  C4::Context->preference("OPACFineNoRenewalsIncludeCredit")
+  C4::Context->preference("OPACFineNoRenewalsIncludeCredits")
   ? $amountoutstanding
   : $patron->account->outstanding_debits->total_outstanding;
 
@@ -187,6 +182,11 @@ if ( $borr->{'dateexpiry'} && C4::Context->preference('NotifyBorrowerDeparture')
     }
 }
 
+my $saving_display = C4::Context->preference('OPACShowSavings');
+if ( $saving_display =~ /user/ ) {
+    $template->param( savings => $patron->get_savings );
+}
+
 # pass on any renew errors to the template for displaying
 my $renew_error = $query->param('renew_error');
 
@@ -194,13 +194,9 @@ $template->param(
                     amountoutstanding => $amountoutstanding,
                     borrowernumber    => $borrowernumber,
                     patron_flagged    => $borr->{flagged},
-                    OPACMySummaryHTML => (C4::Context->preference("OPACMySummaryHTML")) ? 1 : 0,
                     surname           => $borr->{surname},
                     RENEW_ERROR       => $renew_error,
                     borrower          => $borr,
-                    csrf_token             => Koha::Token->new->generate_csrf({
-                        session_id => scalar $query->cookie('CGISESSID'),
-                    }),
                 );
 
 #get issued items ....
@@ -331,7 +327,7 @@ if ( $pending_checkouts->count ) { # Useless test
         }
         
         # check if item is renewable
-        my ($status,$renewerror,$info) = CanBookBeRenewed( $borrowernumber, $issue->{'itemnumber'} );
+        my ($status, $renewerror, $info) = CanBookBeRenewed( $patron, $c );
         (
             $issue->{'renewcount'},
             $issue->{'renewsallowed'},
@@ -339,9 +335,9 @@ if ( $pending_checkouts->count ) { # Useless test
             $issue->{'unseencount'},
             $issue->{'unseenallowed'},
             $issue->{'unseenleft'}
-        ) = GetRenewCount($borrowernumber, $issue->{'itemnumber'});
+        ) = GetRenewCount($patron, $c->item);
         ( $issue->{'renewalfee'}, $issue->{'renewalitemtype'} ) = GetIssuingCharges( $issue->{'itemnumber'}, $borrowernumber );
-        $issue->{itemtype_object} = Koha::ItemTypes->find( Koha::Items->find( $issue->{itemnumber} )->effective_itemtype );
+        $issue->{itemtype_object} = Koha::ItemTypes->find( $c->item->effective_itemtype );
         if($status && C4::Context->preference("OpacRenewalAllowed")){
             $are_renewable_items = 1;
             $issue->{'status'} = $status;
@@ -359,6 +355,7 @@ if ( $pending_checkouts->count ) { # Useless test
             $issue->{'auto_too_late'}  = 1 if $renewerror eq 'auto_too_late';
             $issue->{'auto_too_much_oweing'}  = 1 if $renewerror eq 'auto_too_much_oweing';
             $issue->{'item_denied_renewal'}  = 1 if $renewerror eq 'item_denied_renewal';
+            $issue->{'item_issued_to_other_patron'} = 1 if $renewerror eq 'item_issued_to_other_patron';
 
             if ( $renewerror eq 'too_soon' ) {
                 $issue->{'too_soon'}         = 1;
@@ -514,7 +511,6 @@ if (C4::Context->preference("OPACAmazonCoverImages") or
 }
 
 $template->param(
-    OverDriveCirculation => C4::Context->preference('OverDriveCirculation') || 0,
     overdrive_error      => scalar $query->param('overdrive_error') || undef,
     overdrive_tab        => scalar $query->param('overdrive_tab') || 0,
 );
@@ -557,15 +553,18 @@ if ( C4::Context->preference("ArticleRequests") ) {
 }
 
 $template->param(
-    patron_messages          => $patron_messages,
-    opacnote                 => $borr->{opacnote},
-    patronupdate             => $patronupdate,
-    OpacRenewalAllowed       => C4::Context->preference("OpacRenewalAllowed"),
-    userview                 => 1,
-    SuspendHoldsOpac         => C4::Context->preference('SuspendHoldsOpac'),
-    AutoResumeSuspendedHolds => C4::Context->preference('AutoResumeSuspendedHolds'),
-    OpacHoldNotes            => C4::Context->preference('OpacHoldNotes'),
-    failed_holds             => scalar $query->param('failed_holds'),
+    patron_messages            => $patron_messages,
+    opacnote                   => $borr->{opacnote},
+    patronupdate               => $patronupdate,
+    OpacRenewalAllowed         => C4::Context->preference("OpacRenewalAllowed"),
+    userview                   => 1,
+    tab                        => scalar $query->param('tab') || 0,
+    SuspendHoldsOpac           => C4::Context->preference('SuspendHoldsOpac'),
+    AutoResumeSuspendedHolds   => C4::Context->preference('AutoResumeSuspendedHolds'),
+    OpacHoldNotes              => C4::Context->preference('OpacHoldNotes'),
+    failed_holds               => scalar $query->param('failed_holds'),
+    opac_user_holds            => scalar $query->param('opac-user-holds')            || 0,
+    opac_user_article_requests => scalar $query->param('opac-user-article-requests') || 0,
 );
 
 # if not an empty string this indicates to return

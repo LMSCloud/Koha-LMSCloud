@@ -1,0 +1,58 @@
+---
+type: object
+properties:
+  id:
+    type: integer
+    description: internally assigned EDIFACT file identifier
+    readOnly: true
+  type:
+    type:
+      - string
+    description: EDIFACT file type
+  transfer_date:
+    type:
+      - string
+      - "null"
+    format: date
+    description: EDIFACT file transfer date
+  vendor_id:
+    type:
+      - string
+      - "null"
+    description: Koha vendor ID
+  vendor:
+    type:
+      - object
+      - "null"
+    description: Koha vendor
+  edi_acct:
+    type:
+      - string
+      - "null"
+    description: EDIFACT account
+  status:
+    type:
+      - string
+      - "null"
+    description: EDIFACT file status
+  basket_id:
+    type:
+      - string
+      - "null"
+    description: Koha basket ID
+  basket:
+    type:
+      - object
+      - "null"
+    description: Koha basket
+  raw_msg:
+    type:
+      - string
+      - "null"
+    description: EDIFACT message
+  filename:
+    type:
+      - string
+      - "null"
+    description: EDIFACT file name
+additionalProperties: false

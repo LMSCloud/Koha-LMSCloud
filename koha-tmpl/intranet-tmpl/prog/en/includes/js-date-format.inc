@@ -37,17 +37,25 @@
             return time_pattern;
         };
 
-        /*
-         * A JS equivilent of the KohaDates TT Plugin. Passed an rfc3339 formatted date string,
+        /**
+         * A JS equivalent of the KohaDates TT Plugin. Passed an rfc3339 formatted date string,
          * or JS Date, the function will return a date string formatted as per the koha instance config.
-         * Optionally accepts a dateformat parameter to allow override of the configured output format
-         * as well as a 'withtime' boolean denoting whether to include time or not in the output string.
+         * @param {String|Date} value                   rfc3339 formatted date string or a JS Date object.
+         * @param {Object} [options]                    Optional set of switches for changing date handling
+         * @property {String} [options.tz]              String representing the timezone of the passed date
+         * @property {Boolean} [options.no_tz_adjust]   Enable/Disable timezone adjustment
+         * @property {String} [options.dateformat]
+         * @property {Boolean} [options.withtime]       Enable/Disable appearance of time in returned string
+         * @property {String} [options.timeformat]
+         * @property {Boolean} [options.as_due_date]    Enable/Disable due date output format
+         * @returns {String}                            A date string formatted as per the koha instance configuration.
          */
         window.$date = function(value, options) {
             if(!value) return '';
-            var tz = (options&&options.tz)||def_tz;
+            let tz = (options&&options.tz)||def_tz;
+            let no_tz_adjust = (options&&options.no_tz_adjust)||false;
             var m = dayjs(value);
-            if ( ! value.match(/^\d{4}-\d{2}-\d{2}$/ ) ) {
+            if ( !no_tz_adjust && ! value.match(/^\d{4}-\d{2}-\d{2}$/ ) ) {
                 m = m.tz(tz);
             }
 
@@ -58,6 +66,10 @@
 
             var timeformat = (options&&options.timeformat)||def_time_format;
             var date_pattern = get_date_pattern(dateformat);
+            let as_due_date = (options&&options.as_due_date);
+            if (as_due_date) {
+                withtime = !( m.hour() == 23 && m.minute() == 59 );
+            }
             var time_pattern = !withtime?'':' '+get_time_pattern(timeformat);
 
             return m.format(date_pattern+time_pattern);
@@ -86,6 +98,31 @@
             let m = dayjs(value, get_date_pattern(dateformat), true);
             return m.format("YYYY-MM-DD");
         }
+
+        /**
+        * A JS equivalent of the KohaTimes TT Plugin. Passed a time in HH:MM:SS or HH:MM format
+        * the function will return a time string formatted as per the koha instance config.
+        */
+
+        window.$kohatime = function(value) {
+            if(!value) return 'invalid time';
+            var intime = value.split(':');
+            var hours = intime[0];
+            var minutes = intime[1];
+
+            if ( hours < 0 || hours > 23 || minutes < 0 || minutes > 59 ) { return 'invalid time'; }
+
+            if ( def_time_format == '12hr') {
+                var ampm = ( hours >= 12 ) ? 'pm' : 'am';
+                hours = ( hours == 0 ) ? "12" : hours;
+                hours = ( hours > 12 ) ? ( hours - 12 ) : hours;
+
+                return hours.toString().padStart(2,'0') + ':' + minutes.toString().padStart(2,'0') + " " + ampm;
+            } else {
+                return hours.toString().padStart(2,'0') + ':' + minutes.toString().padStart(2,'0');
+            }
+        }
+
 
     })();
 </script>

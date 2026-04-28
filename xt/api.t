@@ -14,14 +14,19 @@
 
 use Modern::Perl;
 
-use Test::More tests => 4;
+use Test::More tests => 6;
 
 use Test::Mojo;
 use Data::Dumper;
-use List::MoreUtils qw(any);
 
+
+use PPI;
 use FindBin();
-use IPC::Cmd qw(can_run);
+use IPC::Cmd        qw(can_run);
+use List::MoreUtils qw(any);
+use File::Slurp qw(read_file);
+
+use Koha::Database;
 
 my $t    = Test::Mojo->new('Koha::REST::V1');
 my $spec = $t->get_ok( '/api/v1/', 'Correctly fetched the spec' )->tx->res->json;
@@ -40,17 +45,22 @@ foreach my $route ( keys %{$paths} ) {
             if (   exists $parameter->{schema}
                 && exists $parameter->{schema}->{type}
                 && ref( $parameter->{schema}->{type} ) ne 'ARRAY'
-                && $parameter->{schema}->{type} eq 'object' ) {
+                && $parameter->{schema}->{type} eq 'object' )
+            {
 
                 # it is an object type definition
-                if ( $parameter->{name} ne 'query' # our query parameter is under-specified
-                    and not exists $parameter->{schema}->{additionalProperties} ) {
+                if (
+                    $parameter->{name} ne 'query'    # our query parameter is under-specified
+                    and not exists $parameter->{schema}->{additionalProperties}
+                    )
+                {
                     push @missing_additionalProperties,
-                      { type  => 'parameter',
+                        {
+                        type  => 'parameter',
                         route => $route,
                         verb  => $verb,
                         name  => $parameter->{name}
-                      };
+                        };
                 }
             }
         }
@@ -61,16 +71,18 @@ foreach my $route ( keys %{$paths} ) {
             if (   exists $responses->{$response}->{schema}
                 && exists $responses->{$response}->{schema}->{type}
                 && ref( $responses->{$response}->{schema}->{type} ) ne 'ARRAY'
-                && $responses->{$response}->{schema}->{type} eq 'object' ) {
+                && $responses->{$response}->{schema}->{type} eq 'object' )
+            {
 
                 # it is an object type definition
                 if ( not exists $responses->{$response}->{schema}->{additionalProperties} ) {
                     push @missing_additionalProperties,
-                      { type  => 'response',
+                        {
+                        type  => 'response',
                         route => $route,
                         verb  => $verb,
                         name  => $response
-                      };
+                        };
                 }
             }
         }
@@ -78,20 +90,46 @@ foreach my $route ( keys %{$paths} ) {
 }
 
 is( scalar @missing_additionalProperties, 0 )
-  or diag Dumper \@missing_additionalProperties;
+    or diag Dumper \@missing_additionalProperties;
 
 subtest 'The spec passes the swagger-cli validation' => sub {
 
     plan tests => 1;
 
-    SKIP: {
-        skip "Skipping tests, swagger-cli missing", 1
-          unless can_run('swagger-cli');
-
+    if ( can_run('swagger-cli') ) {
         my $spec_dir = "$FindBin::Bin/../api/v1/swagger";
         my $var      = qx{swagger-cli validate $spec_dir/swagger.yaml 2>&1};
         is( $?, 0, 'Validation exit code is 0' )
-          or diag $var;
+            or diag $var;
+    } else {
+        ok( 0, "Test skipped, swagger-cli missing" );
+    }
+};
+
+subtest 'tags tests' => sub {
+
+    plan tests => 1;
+
+    my @top_level_tags = map { $_->{name} } @{ $spec->{tags} };
+
+    my @errors;
+
+    foreach my $route ( keys %{$paths} ) {
+        foreach my $verb ( keys %{ $paths->{$route} } ) {
+            my @tags = @{ $paths->{$route}->{$verb}->{tags} };
+
+            # Check tag has an entry in the top level tags section
+            foreach my $tag (@tags) {
+                push @errors, "$verb $route -> uses tag '$tag' not present in top level list"
+                    unless any { $_ eq $tag } @top_level_tags;
+            }
+        }
+    }
+
+    is_deeply( \@errors, [], 'No tag errors in the spec' );
+
+    foreach my $error (@errors) {
+        print STDERR "$error\n";
     }
 };
 
@@ -117,7 +155,7 @@ subtest '400 response tests' => sub {
 
             my $ref = $response_400->{schema}->{'$ref'};
             push @errors, "$verb $route -> '\$ref' is not '#/definitions/error': ($ref)"
-                unless $ref =~ m/^#\/definitions\/error/;
+                unless $ref eq '#/definitions/error';
 
             # GET routes with q parameter must mention the `invalid_query` error code
             if (   ( any { $_->{in} eq 'body' && $_->{name} eq 'query' } @{ $paths->{$route}->{$verb}->{parameters} } )
@@ -135,5 +173,44 @@ subtest '400 response tests' => sub {
 
     foreach my $error (@errors) {
         print STDERR "$error\n";
+    }
+};
+
+subtest 'POST (201) have location header' => sub {
+    my @files = `git ls-files 'Koha/REST/V1/**/*.pm'`;
+    my $exceptions = {
+        'Koha/REST/V1/Auth/Password.pm'              => [qw(validate)],
+        'Koha/REST/V1/ERM/EHoldings/Titles/Local.pm' => [qw(import_from_list import_from_kbart_file)],
+        'Koha/REST/V1/Preservation/Trains.pm'        => [qw(add_item add_items copy_item)],
+        'Koha/REST/V1/Preservation/WaitingList.pm'   => [qw(add_items)],
+    };
+    foreach my $file (@files) {
+        chomp $file;
+        my $doc  = PPI::Document->new($file);
+        my $subs = $doc->find( sub { $_[1]->isa('PPI::Statement::Sub') } );
+
+        foreach my $sub (@$subs) {
+            my $name = $sub->name;
+            if ( exists $exceptions->{$file} && grep { $name eq $_ } @{ $exceptions->{$file} } ) {
+                pass("$file:$name is skipped - exception");
+                next;
+            }
+
+            my $content = $sub->content;
+
+            if ( $content =~ /\$c->res->headers->location\(.*?\);\s*return\s+\$c->render\s*\(\s*status\s*=>\s*201,/s ) {
+                pass("$file:$name contains the location header");
+            } elsif ( $content =~ /\$c->res->headers->location\(.*?\);/ ) {
+                if ( $content !~ /return\s+\$c->render\s*\(\s*status\s*=>\s*201,/ ) {
+                    fail("$file:$name has the location header without 201");
+        } else {
+                    fail("$file:$name has the location header and 201, but other statements should be between them");
+                }
+            } elsif ( $content !~ /status\s*=>\s*201/s ) {
+                pass("$file:$name does not seem to have a POST endpoint");
+            } else {
+                fail("$file:$name does not contain the location header");
+            }
+        }
     }
 };

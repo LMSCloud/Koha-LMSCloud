@@ -57,6 +57,13 @@ the date the hold was placed
 
 foreign key from the biblio table defining which bib record this hold is on
 
+=head2 deleted_biblionumber
+
+  data_type: 'integer'
+  is_nullable: 1
+
+links the hold to the deleted bibliographic record (deletedbiblio.biblionumber)
+
 =head2 item_group_id
 
   data_type: 'integer'
@@ -243,6 +250,8 @@ __PACKAGE__->add_columns(
     is_foreign_key => 1,
     is_nullable    => 0,
   },
+  "deleted_biblionumber",
+  { data_type => "integer", is_nullable => 1 },
   "item_group_id",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "branchcode",
@@ -456,8 +465,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-11-01 18:21:38
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:6BAjuPSwjtyWJaJN9fcOtg
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-10-30 17:21:09
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:bmt1FkgXdJSOMQFdAHO3cQ
 
 __PACKAGE__->belongs_to(
   "item",
@@ -521,6 +530,13 @@ __PACKAGE__->has_many(
   "Koha::Schema::Result::HoldCancellationRequest",
   { "foreign.hold_id" => "self.reserve_id" },
   { cascade_copy => 0, cascade_delete => 0 },
+);
+
+__PACKAGE__->belongs_to(
+  "pickup_library",
+  "Koha::Schema::Result::Branch",
+  { "foreign.branchcode" => "self.branchcode" },
+  { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
 );
 
 1;

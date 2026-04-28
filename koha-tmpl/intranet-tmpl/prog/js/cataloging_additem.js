@@ -9,7 +9,7 @@ $(document).ready(function(){
     // otherwise the deletion confirmation will not work correctly
     $('a[href*="biblionumber="]').off('click');
 
-    if( popup && op != 'saveitem' ){
+    if( popup && op != 'cud-saveitem' ){
         window.close();
     }
 
@@ -23,11 +23,8 @@ $(document).ready(function(){
             $(".linktools").remove();
             var edit_link = $('<a href="/cgi-bin/koha/cataloguing/additem.pl?op=edititem&frameworkcode=' + frameworkcode + '&biblionumber=' + biblionumber + '&itemnumber=' + num_rowid + '&searchid=' + searchid + '#edititem"></a>');
             $(edit_link).text( LABEL_EDIT_ITEM );
-            var delete_link = $('<a href="/cgi-bin/koha/cataloguing/additem.pl?op=delitem&frameworkcode=' + frameworkcode + '&biblionumber=' + biblionumber + '&itemnumber=' + num_rowid + '&searchid=' + searchid + '"></a>');
+            var delete_link = $('<a class="delete" data-item="'+num_rowid+'" href="#"></a>');
             $(delete_link).text( LABEL_DELETE_ITEM );
-            $(delete_link).on('click', function() {
-                return confirm_deletion();
-            });
             var tools_node = $('<span class="linktools"></span>');
             $(tools_node).append(edit_link);
             $(tools_node).append(delete_link);
@@ -45,9 +42,9 @@ $(document).ready(function(){
     table_settings['columns'].unshift( { cannot_be_toggled: "1" } );
 
     var itemst = KohaTable("itemst", {
-        'bPaginate': false,
-        'bInfo': false,
-        "bAutoWidth": false,
+        "paging":  false,
+        "info":  false,
+        "autoWidth":  false,
         "bKohaColumnsUseNames": true
     }, table_settings);
 
@@ -134,12 +131,25 @@ $(document).ready(function(){
         });
     }
 
-    $('#item-group-add-or-create-form-select').on('change', function() {
-        if ( ! $('input.items-enumchron').val() ) {
-            let item_group_selector = '#item-group-' + $(this).val();
-            let enumchron = $(item_group_selector).val();
-            $('input.items-enumchron').val( enumchron );
+
+    $(document).on('click', '.delete', function(e) {
+        e.preventDefault();
+        if (confirmDelete(MSG_CONFIRM_DELETE_ITEM)) {
+            return $("#" + $(this).data("item") + "-delete-item-form").submit();
         }
+    }) ;
+
+    /* On page load, check for location.hash in the page URL */
+    /* If present the location hash will be used to scroll to the relevant anchor */
+    var hash = location.hash;
+    var hashPieces = hash.split('?');
+    if( hashPieces[0] !== "" ){
+        $( hashPieces[0] )[0].scrollIntoView();
+    }
+
+    $("#newitem_jump").on("click", function(e){
+        e.preventDefault();
+        document.getElementById("f").scrollIntoView();
     });
 });
 
@@ -205,8 +215,4 @@ function CheckMultipleAdd(f) {
 function Dopop(link,i) {
     var defaultvalue=document.forms[0].field_value[i].value;
     var newin=window.open(link+"&result=" + defaultvalue,"valuebuilder",'width=500,height=400,toolbar=false,scrollbars=yes');
-}
-
-function confirm_deletion() {
-    return confirm( MSG_CONFIRM_DELETE_ITEM );
 }

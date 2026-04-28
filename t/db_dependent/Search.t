@@ -31,7 +31,6 @@ use Test::MockModule;
 use Test::Warn;
 use t::lib::Mocks;
 use t::lib::Mocks::Zebra;
-use t::lib::TestBuilder;
 
 use Koha::Caches;
 
@@ -158,6 +157,12 @@ $contextmodule->mock('preference', sub {
     } elsif ($pref eq 'UseRecalls') {
         return '0';
     } elsif ( $pref eq 'ContentWarningField' ) {
+        return q{};
+    } elsif ( $pref eq 'AuthorLinkSortBy' ) {
+        return q{};
+    } elsif ( $pref eq 'AuthorLinkSortOrder' ) {
+        return q{};
+    } elsif ( $pref eq 'COinSinOPACResults' ) {
         return q{};
     } else {
         warn "The syspref $pref was requested but I don't know what to say; this indicates that the test requires updating"
@@ -697,29 +702,6 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
         $results_hashref->{'biblioserver'}->{"RECORDS"});
     is(scalar(@{$newresults[0]->{'ALTERNATEHOLDINGS'}}), 1, 'Alternate holdings filled in correctly');
 
-
-    ## Regression test for Bug 10741
-
-    # make one of the test items appear to be in transit
-    my $circ_module = Test::MockModule->new('C4::Circulation');
-    my $builder = t::lib::TestBuilder->new;
-    my $transfer = $builder->build(
-        {
-            source => 'Branchtransfer',
-            value => {
-                itemnumber => 11,
-                frombranch => 'MPL',
-                tobranch => 'CPL',
-                datesent => \'NOW()'
-            }
-        }
-    );
-
-    ($error, $results_hashref, $facets_loop) = getRecords("TEST12121212","TEST12121212",[ ], [ 'biblioserver' ],20,0,\%branches,\%itemtypes,$query_type,0);
-    @newresults = searchResults({'interface'=>'intranet'}, $query_desc, $results_hashref->{'biblioserver'}->{'hits'}, 17, 0, 0,
-        $results_hashref->{'biblioserver'}->{"RECORDS"});
-    ok(!exists($newresults[0]->{norequests}), 'presence of a transit does not block hold request action (bug 10741)');
-
     ## Regression test for bug 10684
     ( undef, $results_hashref, $facets_loop ) =
         getRecords('ti:punctuation', 'punctuation', [], [ 'biblioserver' ], '19', 0, \%branches, \%itemtypes, 'ccl', undef);
@@ -825,9 +807,9 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
     my $facets_info = C4::Search::_get_facets_info( $facets );
     my $expected_facets_info_marc21 = {
                    'au' => { 'label_value' => "Authors" },
-                'ccode' => { 'label_value' => "CollectionCodes" },
-        'holdingbranch' => { 'label_value' => "HoldingLibrary" },
-                'itype' => { 'label_value' => "ItemTypes" },
+                'ccode' => { 'label_value' => "Collections" },
+        'holdingbranch' => { 'label_value' => "Holding libraries" },
+                'itype' => { 'label_value' => "Item types" },
              'location' => { 'label_value' => "Location" },
                    'se' => { 'label_value' => "Series" },
                'su-geo' => { 'label_value' => "Places" },
@@ -925,8 +907,8 @@ sub run_unimarc_search_tests {
     my $facets_info = C4::Search::_get_facets_info( $facets );
     my $expected_facets_info_unimarc = {
                    'au' => { 'label_value' => "Authors" },
-                'ccode' => { 'label_value' => "CollectionCodes" },
-        'holdingbranch' => { 'label_value' => "HoldingLibrary" },
+                'ccode' => { 'label_value' => "Collections" },
+        'holdingbranch' => { 'label_value' => "Holding libraries" },
              'location' => { 'label_value' => "Location" },
                    'se' => { 'label_value' => "Series" },
                'su-geo' => { 'label_value' => "Places" },
@@ -941,7 +923,7 @@ sub run_unimarc_search_tests {
 }
 
 subtest 'MARC21 + DOM' => sub {
-    plan tests => 94;
+    plan tests => 93;
     run_marc21_search_tests();
 };
 

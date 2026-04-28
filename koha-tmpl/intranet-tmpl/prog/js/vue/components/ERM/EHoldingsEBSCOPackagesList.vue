@@ -73,9 +73,6 @@ import KohaTable from "../KohaTable.vue"
 
 export default {
     setup() {
-        const vendorStore = inject("vendorStore")
-        const { vendors } = storeToRefs(vendorStore)
-
         const AVStore = inject("AVStore")
         const { av_package_types, av_package_content_types } =
             storeToRefs(AVStore)
@@ -92,7 +89,6 @@ export default {
         })
 
         return {
-            vendors,
             av_package_types,
             av_package_content_types,
             get_lib_from_av,
@@ -120,7 +116,7 @@ export default {
                     embed: "resources+count,vendor.name",
                     ordering: false,
                     dom: '<"top pager"<"table_entries"ilp>>tr<"bottom pager"ip>',
-                    aLengthMenu: [
+                    lengthMenu: [
                         [10, 20, 50, 100],
                         [10, 20, 50, 100],
                     ],
@@ -210,7 +206,7 @@ export default {
                         if (row.is_selected) {
                             node +=
                                 " " +
-                                '<i class="fa fa-check-square-o" style="color: green; float: right;" title="' +
+                                '<i class="fa fa-check-square" style="color: green; float: right;" title="' +
                                 __("Is selected") +
                                 '" />'
                         }

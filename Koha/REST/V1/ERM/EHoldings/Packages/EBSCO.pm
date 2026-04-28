@@ -30,13 +30,12 @@ sub list {
 
     return try {
 
-        my $args       = $c->validation->output;
         my $params     = '?orderby=packagename&offset=1&count=1';
         my $ebsco      = Koha::ERM::Providers::EBSCO->new;
         my $result     = $ebsco->request( GET => '/packages' . $params );
         my $base_total = $result->{totalResults};
 
-        my ( $per_page, $page ) = $ebsco->build_query_pagination($args);
+        my ( $per_page, $page ) = $ebsco->build_query_pagination( $c->req->params->to_hash );
         my $additional_params =
           $ebsco->build_additional_params( $c->req->params->to_hash );
 
@@ -61,9 +60,8 @@ sub list {
         $c->add_pagination_headers(
             {
                 base_total   => $base_total,
-                page         => $args->{_page},
-                per_page     => $args->{_per_page},
-                query_params => $args,
+                page         => $page,
+                per_page     => $per_page,
                 total        => $total,
             }
         );
@@ -93,7 +91,7 @@ sub get {
 
     return try {
         my ( $vendor_id, $package_id ) = split '-',
-          $c->validation->param('package_id');
+            $c->param('package_id');
         my $ebsco = Koha::ERM::Providers::EBSCO->new;
         my $p     = $ebsco->request(
             GET => '/vendors/' . $vendor_id . '/packages/' . $package_id );
@@ -124,10 +122,10 @@ sub edit {
     my $c = shift or return;
 
     return try {
-        my $body        = $c->validation->param('body');
+        my $body        = $c->req->json;
         my $is_selected = $body->{is_selected};
         my ( $vendor_id, $package_id ) = split '-',
-          $c->validation->param('package_id');
+            $c->param('package_id');
 
         my $ebsco = Koha::ERM::Providers::EBSCO->new;
         my $t     = try {

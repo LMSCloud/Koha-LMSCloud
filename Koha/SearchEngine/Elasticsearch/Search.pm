@@ -45,6 +45,7 @@ use C4::Context;
 use C4::AuthoritiesMarc;
 use Koha::ItemTypes;
 use Koha::AuthorisedValues;
+use Koha::AuthorisedValueCategories;
 use Koha::SearchEngine::QueryBuilder;
 use Koha::SearchEngine::Search;
 use Koha::Exceptions::Elasticsearch;
@@ -92,6 +93,7 @@ sub search {
         $query->{from} = $page * $query->{size};
     }
     my $elasticsearch = $self->get_elasticsearch();
+
     my $results = eval {
         $elasticsearch->search(
             index => $self->index_name,
@@ -182,7 +184,13 @@ sub search_compat {
     my %result;
     $result{biblioserver}{hits} = $hits->{'total'};
     $result{biblioserver}{RECORDS} = \@records;
-    return (undef, \%result, $self->_convert_facets($results->{aggregations}));
+
+    my $facets = $self->_convert_facets( $results->{aggregations} );
+    if ( C4::Context->interface eq 'opac' ) {
+        my $rules = C4::Context->yaml_preference('OpacHiddenItems');
+        $facets = Koha::SearchEngine::Search->post_filter_opac_facets( { facets => $facets, rules => $rules } );
+    }
+    return (undef, \%result, $facets);
 }
 
 =head2 search_auth_compat
@@ -207,7 +215,8 @@ sub search_auth_compat {
     my $schema   = $database->schema();
     my $res      = $self->search($query, undef, $count, %options);
 
-    my $bib_searcher = Koha::SearchEngine::Elasticsearch::Search->new({index => 'biblios'});
+    # Use state variables to avoid recreating the objects every time.
+    state $bib_searcher = Koha::SearchEngine::Elasticsearch::Search->new( { index => 'biblios' } );
     my @records;
     my $hits = $res->{'hits'};
     foreach my $es_record (@{$hits->{'hits'}}) {
@@ -246,6 +255,20 @@ sub search_auth_compat {
             # Turn the resultset into a hash
             $result{authtype}     = $authtype ? $authtype->authtypetext : $authtypecode;
             $result{reported_tag} = $reported_tag;
+
+            if ( C4::Context->preference('ShowHeadingUse') ) {
+                # checking valid heading use
+                my $f008 = $marc->field('008');
+                if ($f008) {
+                    my $pos14to16 = substr( $f008->data, 14, 3 );
+                    my $main      = substr( $pos14to16,  0,  1 );
+                    $result{main} = 1 if $main eq 'a';
+                    my $subject = substr( $pos14to16, 1, 1 );
+                    $result{subject} = 1 if $subject eq 'a';
+                    my $series = substr( $pos14to16, 2, 1 );
+                    $result{series} = 1 if $series eq 'a';
+                }
+            }
 
             # Reimplementing BuildSummary is out of scope because it'll be hard
             $result{summary} =
@@ -447,30 +470,8 @@ sub _convert_facets {
 
     return if !$es;
 
-    # These should correspond to the ES field names, as opposed to the CCL
-    # things that zebra uses.
-    my %type_to_label;
-    my %label = (
-        author         => 'Authors',
-        itype          => 'ItemTypes',
-        location       => 'Location',
-        'su-geo'       => 'Places',
-        'title-series' => 'Series',
-        subject        => 'Topics',
-        ccode          => 'CollectionCodes',
-        holdingbranch  => 'HoldingLibrary',
-        homebranch     => 'HomeLibrary',
-        ln             => 'Language',
-        'subject-genre-form' => 'Genres',
-        publyear       => 'Years',
-    );
-    my @facetable_fields =
-      Koha::SearchEngine::Elasticsearch->get_facetable_fields;
-    for my $f (@facetable_fields) {
-        next unless defined $f->facet_order;
-        $type_to_label{ $f->name } =
-          { order => $f->facet_order, label => $label{ $f->name } };
-    }
+    my %type_to_label = map { $_->name => { order => $_->facet_order, av_cat => $_->authorised_value_category, label => $_->label } }
+        Koha::SearchEngine::Elasticsearch->get_facet_fields;
 
     # We also have some special cases, e.g. itypes that need to show the
     # value rather than the code.
@@ -478,10 +479,12 @@ sub _convert_facets {
     my @libraries = Koha::Libraries->search->as_list;
     my $library_names = { map { $_->branchcode => $_->branchname } @libraries };
     my @locations = Koha::AuthorisedValues->search( { category => 'LOC' } )->as_list;
+    my @collections = Koha::AuthorisedValues->search( { category => 'CCODE' } )->as_list;
     my $opac = C4::Context->interface eq 'opac' ;
     my %special = (
         itype    => { map { $_->itemtype         => $_->description } @itypes },
         location => { map { $_->authorised_value => ( $opac ? ( $_->lib_opac || $_->lib ) : $_->lib ) } @locations },
+        ccode => { map { $_->authorised_value => ( $opac ? ( $_->lib_opac || $_->lib ) : $_->lib ) } @collections },
         holdingbranch => $library_names,
         homebranch => $library_names
     );
@@ -495,9 +498,15 @@ sub _convert_facets {
         my $facet = {
             type_id    => $type . '_id',
             "type_label_$type_to_label{$type}{label}" => 1,
+            label => $type_to_label{$type}{label},
             type_link_value                    => $type,
             order      => $type_to_label{$type}{order},
+            av_cat     => $type_to_label{$type}{av_cat},
         };
+        my %authorised_values;
+        if ( $type_to_label{$type}{av_cat} ) {
+            %authorised_values = map {$_->{authorised_value} => $_->{lib}} @{C4::Koha::GetAuthorisedValues($type_to_label{$type}{av_cat}, $opac)};
+        }
         $limit = @{ $data->{buckets} } if ( $limit > @{ $data->{buckets} } );
         foreach my $term ( @{ $data->{buckets} }[ 0 .. $limit - 1 ] ) {
             my $t = $term->{key};
@@ -507,14 +516,17 @@ sub _convert_facets {
             if ( exists( $special{$type} ) ) {
                 $label = $special{$type}->{$t} // $t;
             }
+            elsif ( $type_to_label{$type}{av_cat} ) {
+                $label = $authorised_values{$t};
+            }
             else {
                 $label = $t;
             }
             push @{ $facet->{facets} }, {
                 facet_count       => $c,
                 facet_link_value  => $t,
-                facet_title_value => $t . " ($c)",
-                facet_label_value => $label,        # TODO either truncate this,
+                facet_title_value => $t,
+                facet_label_value => $label || q{},    # TODO either truncate this,
                      # or make the template do it like it should anyway
                 type_link_value => $type,
             };

@@ -258,7 +258,7 @@ sub calc_expirationdate {
 
     my $branchcode = $self->patron->branchcode;
     if ( $item ) {
-        $branchcode = C4::Circulation::_GetCircControlBranch( $item->unblessed, $self->patron->unblessed );
+        $branchcode = C4::Circulation::_GetCircControlBranch( $item, $self->patron );
     }
 
     my $rule = Koha::CirculationRules->get_effective_rule({
@@ -358,7 +358,11 @@ sub set_waiting {
         },
     );
 
-    C4::Message->enqueue($letter, $self->patron, 'email', $self->pickup_library_id);
+    my $messaging_preferences = C4::Members::Messaging::GetMessagingPreferences(
+        { borrowernumber => $self->patron_id, message_name => 'Recall_Waiting' } );
+    while ( my ( $transport, $letter_code ) = each %{ $messaging_preferences->{transports} } ) {
+        C4::Message->enqueue( $letter, $self->patron, $transport, $self->pickup_library_id );
+    }
 
     return $self;
 }
@@ -460,6 +464,21 @@ sub set_fulfilled {
     C4::Log::logaction( 'RECALLS', 'FILL', $self->id, "Recall fulfilled", 'INTRANET' ) if ( C4::Context->preference('RecallsLog') );
     return $self;
 }
+
+=head3 strings_map
+
+Returns a map of column name to string representations including the string.
+
+=cut
+
+sub strings_map {
+    my ($self) = @_;
+    return {
+        pickup_library_id => { str => $self->library->branchname, type => 'library' },
+    };
+}
+
+
 
 =head2 Internal methods
 

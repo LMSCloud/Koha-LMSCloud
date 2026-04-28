@@ -27,7 +27,11 @@ var dataTablesDefaults = {
             "copySuccess": {
                 _: __('Copied %d rows to clipboard'),
                 1: __('Copied one row to clipboard'),
-            }
+            },
+            "print": __("Print"),
+            "copy": __("Copy"),
+            "csv": __("CSV"),
+            "excel": __("Excel")
         }
     },
     "dom": '<"dt-info"i><"top pager"<"table_entries"lp><"table_controls"fB>>tr<"bottom pager"ip>',
@@ -36,7 +40,7 @@ var dataTablesDefaults = {
         className: "dt_button_clear_filter",
         titleAttr: __('Clear filter'),
         enabled: false,
-        text: '<i class="fa fa-lg fa-remove"></i> <span class="dt-button-text">' + __('Clear filter') + '</span>',
+        text: '<i class="fa fa-lg fa-times"></i> <span class="dt-button-text">' + __('Clear filter') + '</span>',
         available: function ( dt ) {
             // The "clear filter" button is made available if this test returns true
             if( dt.settings()[0].aanFeatures.f ){ // aanFeatures.f is null if there is no search form
@@ -52,141 +56,31 @@ var dataTablesDefaults = {
     "pageLength": 20,
     "fixedHeader": true,
     initComplete: function( settings ) {
-        var tableId = settings.nTable.id
-        var state =  settings.oLoadedState;
-        state && toggledClearFilter(state.search.search, tableId);
-        // When the DataTables search function is triggered,
-        // enable or disable the "Clear filter" button based on
-        // the presence of a search string
-        $(this).on( 'search.dt', function ( e, settings ) {
-            toggledClearFilter(settings.oPreviousSearch.sSearch, tableId);
-        });
+        var tableId = settings.nTable.id;
+        let table_node = $("#" + tableId);
 
-        if (settings.ajax) {
-            let table_node = $("#" + tableId);
-            if ( typeof this.api === 'function' ) {
-                _dt_add_delay(this.api(), table_node);
-            } else {
-                let dt = $(table_node).DataTable();
-                _dt_add_delay(dt, table_node);
-            }
-        }
-    }
+        state =  settings.oLoadedState;
+        state && state.search && toggledClearFilter(state.search.search, tableId);
+
+        //if (settings.ajax) {
+        //    if ( typeof this.api === 'function' ) {
+        //        _dt_add_delay(this.api(), table_node);
+        //    } else {
+        //        let dt = $(table_node).DataTable();
+        //        _dt_add_delay(dt, table_node);
+        //    }
+        //}
+    },
 };
+DataTable.defaults.column.orderSequence = ['asc', 'desc'];
 
 function toggledClearFilter(searchText, tableId){
+    let clear_filter_button = $("#" + tableId + "_wrapper").find(".dt_button_clear_filter");
     if( searchText == "" ){
-        $("#" + tableId + "_wrapper").find(".dt_button_clear_filter").addClass("disabled");
+        clear_filter_button.addClass("disabled");
     } else {
-        $("#" + tableId + "_wrapper").find(".dt_button_clear_filter").removeClass("disabled");
+        clear_filter_button.removeClass("disabled");
     }
-}
-
-
-// Return an array of string containing the values of a particular column
-$.fn.dataTableExt.oApi.fnGetColumnData = function ( oSettings, iColumn, bUnique, bFiltered, bIgnoreEmpty ) {
-    // check that we have a column id
-    if ( typeof iColumn == "undefined" ) return new Array();
-    // by default we only wany unique data
-    if ( typeof bUnique == "undefined" ) bUnique = true;
-    // by default we do want to only look at filtered data
-    if ( typeof bFiltered == "undefined" ) bFiltered = true;
-    // by default we do not wany to include empty values
-    if ( typeof bIgnoreEmpty == "undefined" ) bIgnoreEmpty = true;
-    // list of rows which we're going to loop through
-    var aiRows;
-    // use only filtered rows
-    if (bFiltered == true) aiRows = oSettings.aiDisplay;
-    // use all rows
-    else aiRows = oSettings.aiDisplayMaster; // all row numbers
-
-    // set up data array
-    var asResultData = new Array();
-    for (var i=0,c=aiRows.length; i<c; i++) {
-        iRow = aiRows[i];
-        var aData = this.fnGetData(iRow);
-        var sValue = aData[iColumn];
-        // ignore empty values?
-        if (bIgnoreEmpty == true && sValue.length == 0) continue;
-        // ignore unique values?
-        else if (bUnique == true && jQuery.inArray(sValue, asResultData) > -1) continue;
-        // else push the value onto the result data array
-        else asResultData.push(sValue);
-    }
-    return asResultData;
-}
-
-// List of unbind keys (Ctrl, Alt, Direction keys, etc.)
-// These keys must not launch filtering
-var blacklist_keys = new Array(0, 16, 17, 18, 37, 38, 39, 40);
-
-// Set a filtering delay for global search field
-jQuery.fn.dataTableExt.oApi.fnSetFilteringDelay = function ( oSettings, iDelay ) {
-    /*
-     * Inputs:      object:oSettings - dataTables settings object - automatically given
-     *              integer:iDelay - delay in milliseconds
-     * Usage:       $('#example').dataTable().fnSetFilteringDelay(250);
-     * Author:      Zygimantas Berziunas (www.zygimantas.com) and Allan Jardine
-     * License:     GPL v2 or BSD 3 point style
-     * Contact:     zygimantas.berziunas /AT\ hotmail.com
-     */
-    var
-        _that = this,
-        iDelay = (typeof iDelay == 'undefined') ? 250 : iDelay;
-
-    this.each( function ( i ) {
-        $.fn.dataTableExt.iApiIndex = i;
-        var
-            $this = this,
-            oTimerId = null,
-            sPreviousSearch = null,
-            anControl = $( 'input', _that.fnSettings().aanFeatures.f );
-
-        anControl.unbind( 'keyup.DT' ).bind( 'keyup.DT', function(event) {
-            var $$this = $this;
-            if (blacklist_keys.indexOf(event.keyCode) != -1) {
-                return this;
-            }else if ( event.keyCode == '13' ) {
-                $.fn.dataTableExt.iApiIndex = i;
-                _that.fnFilter( $(this).val() );
-            } else {
-                if (sPreviousSearch === null || sPreviousSearch != anControl.val()) {
-                    window.clearTimeout(oTimerId);
-                    sPreviousSearch = anControl.val();
-                    oTimerId = window.setTimeout(function() {
-                        $.fn.dataTableExt.iApiIndex = i;
-                        _that.fnFilter( anControl.val() );
-                    }, iDelay);
-                }
-            }
-        });
-
-        return this;
-    } );
-    return this;
-}
-
-// Add a filtering delay on general search and on all input (with a class 'filter')
-jQuery.fn.dataTableExt.oApi.fnAddFilters = function ( oSettings, sClass, iDelay ) {
-    var table = this;
-    this.fnSetFilteringDelay(iDelay);
-    var filterTimerId = null;
-    $(table).find("input."+sClass).keyup(function(event) {
-      if (blacklist_keys.indexOf(event.keyCode) != -1) {
-        return this;
-      }else if ( event.keyCode == '13' ) {
-        table.fnFilter( $(this).val(), $(this).attr('data-column_num') );
-      } else {
-        window.clearTimeout(filterTimerId);
-        var input = this;
-        filterTimerId = window.setTimeout(function() {
-          table.fnFilter($(input).val(), $(input).attr('data-column_num'));
-        }, iDelay);
-      }
-    });
-    $(table).find("select."+sClass).on('change', function() {
-        table.fnFilter($(this).val(), $(this).attr('data-column_num'));
-    });
 }
 
 // Sorting on html contains
@@ -307,8 +201,8 @@ jQuery.extend( jQuery.fn.dataTableExt.oSort, {
  * Ex: <td><span title="[% ISO_date %]">[% formatted_date %]</span></td>
  *
  * In DataTables config:
- *     "aoColumns": [
- *        { "sType": "title-string" },
+ *     "data": [
+ *        { "type": "title-string" },
  *      ]
  * http://datatables.net/plug-ins/sorting#hidden_title_string
  */
@@ -335,8 +229,8 @@ jQuery.extend( jQuery.fn.dataTableExt.oSort, {
     /* Plugin to allow text sorting to ignore articles
      *
      * In DataTables config:
-     *     "aoColumns": [
-     *        { "sType": "anti-the" },
+     *     "data": [
+     *        { "type": "anti-the" },
      *      ]
      * Based on the plugin found here:
      * http://datatables.net/plug-ins/sorting#anti_the
@@ -550,6 +444,9 @@ function _dt_default_ajax (params){
             var length = data.length;
             var start  = data.start;
 
+            let api = new $.fn.dataTable.Api(settings);
+            const global_search = api.search();
+
             var dataSet = {
                 _page: Math.floor(start/length) + 1,
                 _per_page: length
@@ -558,10 +455,8 @@ function _dt_default_ajax (params){
             function build_query(col, value){
 
                 var parts = [];
-                var attributes = col.data.split(':');
-                for (var i=0;i<attributes.length;i++){
-                    var part = {};
-                    var attr = attributes[i];
+                var attributes = col.data.split(":");
+
                     let criteria = options.criteria;
                     if ( value.match(/^\^(.*)\$$/) ) {
                         value = value.replace(/^\^/, '').replace(/\$$/, '');
@@ -571,39 +466,98 @@ function _dt_default_ajax (params){
                         value = value.replace(/(\%|\\)/g, "\\$1");
                     }
 
+                for (var i = 0; i < attributes.length; i++) {
+                    var part = {};
+                    var attr = attributes[i];
+                    let default_build = true;
+
                     let built_value;
-                    if ( col.datatype !== undefined ) {
-                        if ( col.datatype == 'date' ) {
-                            let rfc3339 = $date_to_rfc3339(value);
-                            if ( rfc3339 != 'Invalid Date' ) {
-                                built_value = rfc3339;
-                            }
+                    if ( col.type == 'date' ) {
+                        let rfc3339 = $date_to_rfc3339(value);
+                        if ( rfc3339 != 'Invalid Date' ) {
+                            built_value = rfc3339;
                         }
-                        else if (col.datatype == 'related-object') {
+                    }
+
+                    if ( col.datatype !== undefined ) {
+                        default_build = false;
+                        let coded_datatype =
+                            col.datatype.match(/^coded_value:(.*)/);
+                        if (col.datatype == 'related-object') {
                             let query_term = value;
 
                             if (criteria != 'exact') {
                                 query_term = { like: (['contains', 'ends_with'].indexOf(criteria) !== -1 ? '%' : '') + value + (['contains', 'starts_with'].indexOf(criteria) !== -1 ? '%' : '') };
                             }
 
-                            // LMSCloud: additionally enabled comma separated list of related values
-                            let query_term_related = col.relatedValue;    // this is correct for a single related value only
-                            let relatedValues = col.relatedValue.split(',');    // handling of a optionally comma separated list of related values
+                            // LMSCloud: support comma-separated list of related values
+                            let query_term_related = col.relatedValue;
+                            let relatedValues = col.relatedValue.split(',');
                             if ( relatedValues.length > 1 ) {
                                 query_term_related = relatedValues;
-
                             }
 
                             part = {
                                 [col.related + '.' + col.relatedKey]: query_term_related,
                                 [col.related + '.' + col.relatedSearchOn]: query_term
                             };
+                        } else if (
+                            coded_datatype &&
+                            coded_datatype.length > 1
+                        ) {
+                            if (global_search.length || value.length) {
+                                coded_datatype = coded_datatype[1];
+                                const search_value = value.length
+                                    ? value
+                                    : global_search;
+
+                                // Escape all regex metachars . * + ? ^ $ { } ( ) | [ ] \
+                                const regex = new RegExp(
+                                    "^" +
+                                        search_value.replace(
+                                            /[.*+?^${}()|[\]\\]/g,
+                                            "\\$&"
+                                        ),
+                                    "i"
+                                );
+                                if (
+                                    coded_values &&
+                                    coded_values.hasOwnProperty(coded_datatype)
+                                ) {
+                                    let codes = [
+                                        ...coded_values[
+                                            coded_datatype
+                                        ].entries(),
+                                    ]
+                                        .filter(([label]) => regex.test(label))
+                                        .map(([, code]) => code);
+
+                                    if (codes.length) {
+                                        part[
+                                            !attr.includes(".")
+                                                ? "me." + attr
+                                                : attr
+                                        ] = codes;
+                                    } else {
+                                        // Coded value not found using the description, fallback to code
+                                        default_build = true;
+                                    }
+                                } else {
+                                    console.log(
+                                        "coded datatype %s not supported yet".format(
+                                            coded_datatype
+                                        )
+                                    );
+                                }
+                            } else {
+                                default_build = true;
+                            }
                         } else {
                             console.log("datatype %s not supported yet".format(col.datatype));
                         }
                     }
 
-                    if (col.datatype != 'related-object') {
+                    if (default_build) {
                         let value_part;
                         if ( criteria === 'exact' ) {
                             value_part = built_value ? [value, built_value] : value
@@ -615,7 +569,7 @@ function _dt_default_ajax (params){
                         part[!attr.includes('.')?'me.'+attr:attr] = value_part;
                     }
 
-                    parts.push(part);
+                    if (Object.keys(part).length) parts.push(part);
                 }
                 return parts;
             }
@@ -667,7 +621,13 @@ function _dt_default_ajax (params){
                     } else if ( f == '-and' ) {
                         if (v) and_query_parameters.push(v)
                     } else if ( v ) {
-                        additional_filters[k] = v;
+                        if (typeof v === "string") {
+                            additional_filters[k] = v
+                                .replace(/^\^/, "")
+                                .replace(/\$$/, "");
+                        } else {
+                            additional_filters[k] = v;
+                        }
                     }
                 }
                 if ( Object.keys(additional_filters).length ) {
@@ -682,9 +642,6 @@ function _dt_default_ajax (params){
             if(query_parameters.length) {
                 query_parameters = JSON.stringify(query_parameters.length === 1?query_parameters[0]:{"-and": query_parameters});
                 dataSet.q = query_parameters;
-                delete options.query_parameters;
-            } else {
-                delete options.query_parameters;
             }
 
             dataSet._match = options.criteria;
@@ -711,8 +668,21 @@ function _dt_default_ajax (params){
     }
 }
 
+function build_url_with_state(dt, table_settings){
+    let table_key = 'DataTables_%s_%s_%s'.format(
+        table_settings.module,
+        table_settings.page,
+        table_settings.table);
+
+    let state = JSON.stringify(dt.state());
+    delete state.time;
+    let searchParams = new URLSearchParams(window.location.search);
+    searchParams.set(table_key + '_state', btoa(state));
+
+    return window.location.origin + window.location.pathname + '?' + searchParams.toString() + window.location.hash;
+}
+
 function _dt_buttons(params){
-    let included_ids = params.included_ids || [];
     let settings = params.settings || {};
     let table_settings = params.table_settings;
 
@@ -739,6 +709,26 @@ function _dt_buttons(params){
         }
     }
 
+    const export_format_print = {
+        body: function (data, row, column, node) {
+            const newnode = node.cloneNode(true);
+            const no_export_nodes = newnode.querySelectorAll(".no-export");
+            no_export_nodes.forEach(child => {
+                child.parentNode.removeChild(child);
+            });
+            //Note: innerHTML is the same thing as the data variable,
+            //minus the ".no-export" nodes that we've removed
+            //Note: See dataTables.buttons.js for original function usage
+            const str = DataTable.Buttons.stripData(newnode.innerHTML, {
+                decodeEntities: false,
+                stripHtml: true,
+                stripNewlines: true,
+                trim: true,
+            });
+            return str;
+        },
+    };
+
     var export_format = {
         body: function ( data, row, column, node ) {
             var newnode = $(node);
@@ -755,7 +745,6 @@ function _dt_buttons(params){
     var export_buttons = [
         {
             extend: 'excelHtml5',
-            text: __("Excel"),
             exportOptions: {
                 columns: exportColumns,
                 format:  export_format_spreadsheet
@@ -763,7 +752,6 @@ function _dt_buttons(params){
         },
         {
             extend: 'csvHtml5',
-            text: __("CSV"),
             exportOptions: {
                 columns: exportColumns,
                 format:  export_format_spreadsheet
@@ -771,7 +759,6 @@ function _dt_buttons(params){
         },
         {
             extend: 'copyHtml5',
-            text: __("Copy"),
             exportOptions: {
                 columns: exportColumns,
                 format:  export_format
@@ -779,10 +766,9 @@ function _dt_buttons(params){
         },
         {
             extend: 'print',
-            text: __("Print"),
             exportOptions: {
                 columns: exportColumns,
-                format:  export_format
+                format:  export_format_print,
             },
         }
     ];
@@ -802,12 +788,30 @@ function _dt_buttons(params){
         }
     );
 
-    if( included_ids.length > 0 ){
+    // Retrieving bKohaColumnsUseNames from the options passed to the constructor, not DT's settings
+    // But ideally should be retrieved using table.data()
+    let use_names = settings.bKohaColumnsUseNames;
+    let included_columns = [];
+    if (table_settings) {
+        if (use_names) {
+            // bKohaColumnsUseNames is set, identify columns by their data-colname
+            included_columns = table_settings.columns
+                .filter(c => !c.cannot_be_toggled)
+                .map(c => "[data-colname='%s']".format(c.columnname))
+                .join(",");
+        } else {
+            // Not set, columns are ordered the same than in the columns settings
+            included_columns = table_settings.columns
+                .map((c, i) => (!c.cannot_be_toggled ? i : null))
+                .filter(i => i !== null);
+        }
+    }
+    if( included_columns.length > 0 ){
         buttons.push(
             {
                 extend: 'colvis',
                 fade: 100,
-                columns: included_ids,
+                columns: included_columns,
                 className: "columns_controls",
                 titleAttr: __("Columns settings"),
                 text: '<i class="fa fa-lg fa-gear"></i> <span class="dt-button-text">' + __("Columns") + '</span>',
@@ -830,15 +834,41 @@ function _dt_buttons(params){
         }
     );
 
-    if ( table_settings && CAN_user_parameters_manage_column_config ) {
+    if ( table_settings ) {
+        const writeToClipboard= async (text, node) => {
+            await navigator.clipboard.writeText(text);
+            $(node).tooltip({trigger: 'manual', title: __("Copied!")}).tooltip('show');
+        };
         buttons.push(
             {
+                autoClose: true,
+                fade: 100,
+                className: "copyConditions_controls",
+                titleAttr: __("Copy shareable link"),
+                text: '<i class="fa fa-lg fa-copy"></i> <span class="dt-button-text">' + __("Copy shareable link") + '</span>',
+                action: function (e, dt, node, config) {
+                    const url = build_url_with_state(dt, table_settings);
+
+                    if( navigator.clipboard && navigator.clipboard.writeText){
+                        writeToClipboard(url, node);
+                    }
+                },
+            }
+        );
+    }
+
+    if ( table_settings && CAN_user_parameters_manage_column_config ) {
+        let href = '/cgi-bin/koha/admin/columns_settings.pl?module=%s&page=%s&table=%s'.format(table_settings.module, table_settings.page, table_settings.table);
+        buttons.push(
+            {
+                tag: "a",
+                attr: { href },
                 className: "dt_button_configure_table",
                 fade: 100,
                 titleAttr: __("Configure table"),
                 text: '<i class="fa fa-lg fa-wrench"></i> <span class="dt-button-text">' + __("Configure") + '</span>',
                 action: function() {
-                    window.location = '/cgi-bin/koha/admin/columns_settings.pl?module=' + table_settings['module'] + '&page=' + table_settings['page'] + '&table=' + table_settings['table'];
+                    window.location = href;
                 },
             }
         );
@@ -847,42 +877,31 @@ function _dt_buttons(params){
     return buttons;
 }
 
-function _dt_visibility(table_settings, settings){
-    var counter = 0;
+function _dt_visibility(table_settings, table_dt){
     let hidden_ids = [];
-    let included_ids = [];
     if ( table_settings ) {
-        var columns_settings = table_settings['columns'];
-        $(columns_settings).each( function() {
-            var named_id = $( 'thead th[data-colname="' + this.columnname + '"]', this ).index( 'th' );
-            var used_id = settings.bKohaColumnsUseNames ? named_id : counter;
-            if ( used_id == -1 ) return;
-
-            if ( this['is_hidden'] == "1" ) {
-                hidden_ids.push( used_id );
-            }
-            if ( this['cannot_be_toggled'] == "0" ) {
-                included_ids.push( used_id );
-            }
-            counter++;
-        });
+        var columns_settings = table_settings.columns;
+        let i = 0;
+        let use_names = $(table_dt.table().node()).data('bKohaColumnsUseNames');
+        if ( use_names ) {
+            let hidden_columns = table_settings.columns.filter(c => c.is_hidden);
+            if (!hidden_columns.length) return [];
+            table_dt.columns(hidden_columns.map(c => "[data-colname='%s']".format(c.columnname)).join(',')).every(function(){
+                hidden_ids.push(this.index());
+            });
+        } else {
+            $(columns_settings).each( function(i, c) {
+                if ( c.is_hidden == '1' ) {
+                    hidden_ids.push(i);
+                }
+            });
+        }
     }
-    return [hidden_ids, included_ids];
+    return hidden_ids;
 }
 
 function _dt_on_visibility(add_filters, table_node, table_dt){
-    if ( add_filters ) {
-        let visible_columns = table_dt.columns().visible();
-        $(table_node).find('thead tr:eq(1) th').each( function (i) {
-            let th_id = $(this).data('th-id');
-            if ( visible_columns[th_id] == false ) {
-                $(this).hide();
-            } else {
-                $(this).show();
-            }
-        });
-    }
-
+    // FIXME REPLACE ME
     if( typeof columnsInit == 'function' ){
         // This function can be created separately and used to trigger
         // an event after the DataTable has loaded AND column visibility
@@ -892,124 +911,261 @@ function _dt_on_visibility(add_filters, table_node, table_dt){
 }
 
 function _dt_add_filters(table_node, table_dt, filters_options = {}) {
+
+    if (!$(table_node).length) return;
+
+    $(table_node).find('thead tr:eq(1)').remove(); // Remove if one exists already
     $(table_node).find('thead tr').clone().appendTo( $(table_node).find('thead') );
 
-    let j = -1;
-    $(table_node).find('thead tr:eq(1) th').each( function (i) {
-        j++
-        var is_visible = table_dt.settings()[0].aoColumns[j].bVisible;
-        if ( !is_visible ) { j++ }
-        i = j;
-
+    let visibility = table_dt.columns().visible();
+    let columns = table_dt.settings()[0].aoColumns;
+    table_dt.columns().every( function () {
+        var column = this;
+        let i = column.index();
+        var visible_i = table_dt.column.index('fromData', i);
+        let th = $(table_node).find('thead tr:eq(1) th:eq(%s)'.format(visible_i));
         var is_searchable = table_dt.settings()[0].aoColumns[i].bSearchable;
-        $(this).removeClass('sorting').removeClass("sorting_asc").removeClass("sorting_desc");
-        $(this).data('th-id', i);
-        if ( is_searchable ) {
+        $(th).removeClass('sorting').removeClass("sorting_asc").removeClass("sorting_desc");
+        $(this).data("th-id", i);
+        if (is_searchable || $(this).data("filter") || filters_options[i]) {
             let input_type = 'input';
-            if ( $(this).data('filter') || filters_options.hasOwnProperty(i)) {
+            let existing_search = column.search();
+            if ( $(th).data('filter') || filters_options.hasOwnProperty(i)) {
                 input_type = 'select'
-                let filter_type = $(this).data('filter');
-                let existing_search = table_dt.column(i).search();
-                let select = $('<select><option value=""></option></select');
+                let filter_type = $(th).data('filter');
+                let select = $('<select class="dt-select-filter"><option value=""></option></select');
 
                 // FIXME eval here is bad and dangerous, how do we workaround that?
                 if ( !filters_options.hasOwnProperty(i) ) {
                     filters_options[i] = eval(filter_type)
                 } else if ( typeof filters_options[i] === "function" ) {
-                    filters_options[i] = filters_options[i]()
+                    filters_options[i] = filters_options[i](table_dt)
                 }
-                $(filters_options[i]).each(function(){
-                    let o = $('<option value="%s">%s</option>'.format(this._id, this._str));
-                    if ( existing_search === this._id ) {
-                        o.prop("selected", "selected");
-                    }
-                    o.appendTo(select);
-                });
-                $(this).html( select );
+                $(filters_options[i])
+                    .filter(function () {
+                        return this._id !== "" && this._str !== "";
+                    })
+                    .each(function () {
+                        let optionValue = this._id;
+
+                        if (
+                            table_dt.settings()[0].ajax !== null &&
+                            $(table_node)?.attr("id") !== "item_search"
+                        ) {
+                            optionValue = `^${this._id}$`;
+                        }
+
+                        let o = $(
+                            `<option value="${optionValue}">${this._str}</option>`
+                        );
+
+                        // Compare with lc, or selfreg won't match ^SELFREG$ for instance, see bug 32517
+                        // This is only for category, we might want to apply it only in this case.
+                        existing_search = existing_search.toLowerCase()
+                        if ( existing_search === this._id || (existing_search && this._id.toLowerCase().match(existing_search)) ) {
+                            o.prop("selected", "selected");
+                        }
+                        o.appendTo(select);
+                    });
+                $(th).html( select );
             } else {
-                var title = $(this).text();
-                var existing_search = table_dt.column(i).search();
+                var title = $(th).text();
                 if ( existing_search ) {
-                    $(this).html( '<input type="text" value="%s" style="width: 100%" />'.format(existing_search) );
+                    $(th).html( '<input type="text" value="%s" style="width: 100%" />'.format(existing_search) );
                 } else {
                     var search_title = __("%s search").format(title);
-                    $(this).html( '<input type="text" placeholder="%s" style="width: 100%" />'.format(search_title) );
+                    $(th).html( '<input type="text" placeholder="%s" style="width: 100%" />'.format(search_title) );
                 }
             }
-
-            var search = $.fn.dataTable.util.throttle( function ( i, val ) {
-                table_dt
-                    .column( i )
-                    .search( val )
-                    .draw();
-            }, 500);
-
-            $( input_type, this ).on( 'keyup change', function () {
-                if ( table_dt.column(i).search() !== this.value ) {
-                    if ( input_type == "input" ) {
-                        search(i, this.value)
-                    } else {
-                        table_dt
-                            .column(i)
-                            .search( this.value.length ? '^'+this.value+'$' : '', true, false )
-                            .draw();
-                    }
-                }
-            } );
         } else {
-            $(this).html('');
+            $(th).html('');
         }
     } );
+    _dt_add_delay_filters(table_dt, table_node);
+    table_dt.fixedHeader.adjust();
 }
 
-// List of unbind keys (Ctrl, Alt, Direction keys, etc.)
-// These keys must not launch filtering
-var blacklist_keys = new Array(0, 16, 17, 18, 37, 38, 39, 40);
+function _dt_add_delay(table_dt, table_node) {
 
-function _dt_add_delay(table_dt, table_node, delay_ms) {
+    let delay_ms = 500;
 
-    delay = (typeof delay == 'undefined') ? 500 : delay;
+    let search = DataTable.util.debounce(function (val) {
+        table_dt.search(val);
+        table_dt.draw();
+    }, delay_ms);
 
-    var previousSearch = null;
-    var timerId = null;
-    $("#"+table_node.attr('id')+"_wrapper").find(".dataTables_filter input")
-    .unbind()
-    .bind("keyup", function(event) {
-        var input = $(this);
-        if (blacklist_keys.indexOf(event.keyCode) != -1) {
-            return;
-        } else if ( event.keyCode == '13' ) {
-            table_dt.search($(input).val()).draw();
-        } else {
-            let val = $(input).val();
-            if (previousSearch === null || previousSearch != val){
-                window.clearTimeout(timerId);
-                previousSearch = val;
-                timerId = window.setTimeout(function(){
-                    table_dt.search($(input).val()).draw();
-                }, delay);
-            }
+    $("#"+table_node.attr('id')+"_wrapper").find(".dt-input")
+        .unbind()
+        .bind("keyup", search(this.value));
+}
+
+function _dt_add_delay_filters(table_dt, table_node) {
+
+    let delay_ms = 500;
+
+    let col_input_search = DataTable.util.debounce(function (i, val) {
+        table_dt.column(i).search(val).draw();
+    }, delay_ms);
+    let col_select_search = DataTable.util.debounce(function (i, val, regex_search = true) {
+        table_dt.column(i).search(val, regex_search, false).draw();
+    }, delay_ms);
+
+    $(table_node).find('thead tr:eq(1) th').each( function (visible_i) {
+        var i = table_dt.column.index('fromVisible', visible_i);
+        $(this).find("input")
+            .unbind()
+            .bind("keyup change", function(e){
+                if (e.keyCode === undefined) return;
+                col_input_search(i, this.value)
+            });
+
+        $(this).find("select")
+            .unbind()
+            .bind("keyup change", function(){
+                col_select_search(i, this.value, false)
+            });
+    });
+}
+
+function _dt_save_restore_state(table_settings, external_filter_nodes={}){
+
+    let table_key = 'DataTables_%s_%s_%s'.format(
+        table_settings.module,
+        table_settings.page,
+        table_settings.table);
+
+    let default_save_state        = table_settings.default_save_state;
+    let default_save_state_search = table_settings.default_save_state_search;
+
+    let stateSaveCallback = function( settings, data ) {
+        localStorage.setItem( table_key, JSON.stringify(data) )
+    }
+
+    function set_default(table_settings, table_dt){
+        let columns = new Array(table_dt.columns()[0].length).fill({visible: true});
+        let hidden_ids = _dt_visibility(table_settings, table_dt);
+        hidden_ids.forEach((id, i) => { columns[id] = { visible: false } } );
+        // State is not loaded if time is not passed
+        return { columns, time: new Date() };
+    }
+    let stateLoadCallback = function(settings) {
+        // Load state from URL
+        const url = new URL(window.location.href);
+        let state_from_url = url.searchParams.get( table_key + '_state');
+        if ( state_from_url ) {
+            $("#" + settings.nTable.id).data('loaded_from_state', true);
+            return JSON.parse(atob(state_from_url));
         }
 
-        return;
-    });
+        if (!default_save_state) return set_default(table_settings, this.api());
+
+        let state = localStorage.getItem(table_key);
+        if (!state) return set_default(table_settings, this.api());
+
+        state = JSON.parse(state);
+
+        if (default_save_state_search ) {
+            $("#" + settings.nTable.id).data('loaded_from_state', true);
+        } else {
+            delete state.search;
+            state.columns.forEach(c => delete c.search );
+        }
+        return state;
+    }
+
+    let stateSaveParams = function (settings, data) {
+        // FIXME Selector in on the whole DOM, we don't know where the filters are
+        // If others exist on the same page this will lead to unexpected behaviours
+        // Should be safe so far as: patron search use the same code for the different searches
+        // but only the main one has the table settings (and so the state saved)
+        data.external_filters = Object.keys(external_filter_nodes).reduce(
+            (r, k) => {
+                let node = $(external_filter_nodes[k]);
+                let tag_name = node.prop("tagName");
+                if (tag_name == "INPUT" && node.prop("type") == "checkbox") {
+                    r[k] = $(external_filter_nodes[k]).prop("checked");
+                } else if (tag_name == "INPUT" || tag_name == "SELECT") {
+                    r[k] = $(external_filter_nodes[k]).val();
+                } else {
+                    console.log(
+                        "Tag '%s' not supported yet for DT state".format(
+                            tag_name
+                        )
+                    );
+                }
+                return r;
+            },
+            {}
+        );
+    };
+    let stateLoadParams = function (settings, data) {
+        if (!$("#" + settings.nTable.id).data('loaded_from_state')) return;
+
+        if (data.external_filters) {
+            Object.keys(external_filter_nodes).forEach((k, i) => {
+                if (data.external_filters.hasOwnProperty(k)) {
+                    let node = $(external_filter_nodes[k]);
+                    let tag_name = node.prop("tagName");
+                    let value = data.external_filters[k];
+                    if (
+                        tag_name == "INPUT" &&
+                        node.prop("type") == "checkbox"
+                    ) {
+                        node.prop("checked", value);
+                    } else if (
+                        tag_name == "INPUT" &&
+                        node.hasClass("flatpickr")
+                    ) {
+                        const fp =
+                            document.querySelector(external_filter_nodes[k])._flatpickr;
+                        fp.setDate(value);
+                    } else if (tag_name == "INPUT" || tag_name == "SELECT") {
+                        node.val(value);
+                    } else {
+                        console.log(
+                            "Tag '%s' not supported yet for DT state".format(
+                                tag_name
+                            )
+                        );
+                    }
+                }
+            });
+        }
+    };
+
+    return {
+        stateSave: true,
+        stateDuration: 0,
+        stateSaveCallback,
+        stateLoadCallback,
+        stateSaveParams,
+        stateLoadParams,
+    };
 }
 
 (function($) {
 
     /**
     * Create a new dataTables instance that uses the Koha RESTful API's as a data source
-    * @param  {Object}  options         Please see the dataTables documentation for further details
-    *                                   We extend the options set with the `criteria` key which allows
-    *                                   the developer to select the match type to be applied during searches
-    *                                   Valid keys are: `contains`, `starts_with`, `ends_with` and `exact`
-    * @param  {Object}  table_settings The arrayref as returned by TableSettings.GetTableSettings function available
-    *                                   from the columns_settings template toolkit include
-    * @param  {Boolean} add_filters     Add a filters row as the top row of the table
-    * @param  {Object}  default_filters Add a set of default search filters to apply at table initialisation
-    * @return {Object}                  The dataTables instance
+    * @param  {Object}  options                      Please see the dataTables settings documentation for further
+    *                                                details
+    * @param  {string}  [options.criteria=contains]  A koha specific extension to the dataTables settings block that
+    *                                                allows setting the 'comparison operator' used in searches
+    *                                                Supports `contains`, `starts_with`, `ends_with` and `exact` match
+    * @param  {string}  [options.columns.*.type      Data type the field is stored in so we may impose some additional
+    *                                                manipulation to search strings. Supported types are currenlty 'date'
+    * @param  {string}  [options.columns.*.datatype  Data type the field is stored in so we may impose some additional
+    *                                                manipulation logic to search. Supported types are currently 'related-object',
+    *                                                for implimenting joins in api search queries, and 'coded_value:TABLE' to allow
+    *                                                for clientside translations of description to code to reduce join requirements.
+    *                                                See bug 39011 for an example implimentation.
+    * @param  {Object}  table_settings               The arrayref as returned by TableSettings.GetTableSettings function
+    *                                                available from the columns_settings template toolkit include
+    * @param  {Boolean} add_filters                  Add a filters row as the top row of the table
+    * @param  {Object}  default_filters              Add a set of default search filters to apply at table initialisation
+    * @return {Object}                               The dataTables instance
     */
-    $.fn.kohaTable = function(options, table_settings, add_filters, default_filters) {
+    $.fn.kohaTable = function(options, table_settings, add_filters, default_filters, filters_options, external_filter_nodes) {
         var settings = null;
 
         if(options) {
@@ -1023,7 +1179,6 @@ function _dt_add_delay(table_dt, table_node, delay_ms) {
             }
 
             settings = $.extend(true, {}, dataTablesDefaults, {
-                        'deferRender': true,
                         "paging": true,
                         'serverSide': true,
                         'searching': true,
@@ -1036,18 +1191,16 @@ function _dt_add_delay(table_dt, table_node, delay_ms) {
                     }, options);
         }
 
-        let hidden_ids, included_ids;
-        [hidden_ids, included_ids] = _dt_visibility(table_settings, settings)
-
-        settings["buttons"] = _dt_buttons({included_ids, settings, table_settings});
-
-        $(".dt_button_clear_filter, .columns_controls, .export_controls, .dt_button_configure_table").tooltip();
+        settings["buttons"] = _dt_buttons({settings, table_settings});
 
         if ( add_filters ) {
             settings['orderCellsTop'] = true;
         }
 
         if ( table_settings ) {
+            let state_settings = _dt_save_restore_state(table_settings, external_filter_nodes);
+            settings = {...settings, ...state_settings};
+
             if ( table_settings.hasOwnProperty('default_display_length') && table_settings['default_display_length'] != null ) {
                 settings["pageLength"] = table_settings['default_display_length'];
             }
@@ -1056,15 +1209,26 @@ function _dt_add_delay(table_dt, table_node, delay_ms) {
             }
         }
 
+        $(this).data('bKohaColumnsUseNames', settings.bKohaColumnsUseNames);
         var table = $(this).dataTable(settings);
 
         var table_dt = table.DataTable();
         if ( add_filters ) {
-            _dt_add_filters(this, table_dt);
+            _dt_add_filters(this, table_dt, filters_options);
         }
 
-        table.DataTable().on("column-visibility.dt", function(){_dt_on_visibility(add_filters, table, table_dt);})
-            .columns( hidden_ids ).visible( false );
+        table_dt.on("column-visibility.dt", function(){
+            if ( add_filters ) {
+                _dt_add_filters(this, table_dt, filters_options);
+            }
+        });
+
+        table_dt.on( 'search.dt', function ( e, settings ) {
+            // When the DataTables search function is triggered,
+            // enable or disable the "Clear filter" button based on
+            // the presence of a search string
+            toggledClearFilter(table_dt.search(), settings.nTable.id);
+        });
 
         return table;
     };

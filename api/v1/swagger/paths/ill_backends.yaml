@@ -1,12 +1,22 @@
 ---
 /ill/backends:
   get:
-    x-mojo-to: Illbackends#list
-    operationId: listIllbackends
+    x-mojo-to: ILL::Backends#list
+    operationId: listIllBackends
     tags:
       - ill_backends
     summary: List ILL backends
-    parameters: []
+    parameters:
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - statuses+strings
+        collectionFormat: csv
     produces:
       - application/json
     responses:
@@ -46,8 +56,8 @@
         ill: "1"
 "/ill/backends/{ill_backend_id}":
   get:
-    x-mojo-to: Illbackends#get
-    operationId: getIllbackends
+    x-mojo-to: ILL::Backends#get
+    operationId: getIllBackends
     tags:
       - ill_backends
     summary: Get ILL backend

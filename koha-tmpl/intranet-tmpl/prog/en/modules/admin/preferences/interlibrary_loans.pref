@@ -38,6 +38,11 @@ Interlibrary loans:
             - pref: ILLHiddenRequestStatuses
               class: multi
             - (separated with |). If left empty, all ILL requests will be displayed. The request codes are defined in the backends and additional aliases can be configured via the <a href="/cgi-bin/koha/admin/authorised_values.pl?searchfield=ILL_STATUS_ALIAS">ILL_STATUS_ALIAS</a> authorized value category.
+        -
+            - "Use patrons from category"
+            - pref: ILLPartnerCode
+              choices: patron-categories
+            - "as partners to place ILL requests with."
     Notifications:
         -
             - "Send these ILL notices to staff when appropriate:"
@@ -54,3 +59,33 @@ Interlibrary loans:
             - pref: ILLOpacbackends
               class: multi
             - (separated with |). If left empty, all installed backends will be enabled.
+    Workflow:
+        -
+            - pref: ILLCheckAvailability
+              default: 0
+              choices:
+                  1: Check
+                  0: "Don't check"
+            - external sources for availability during the request process.
+        -
+            - "If the ILL backend supports it, adding YAML will enable the request type disclaimer stage in request creation, prompting the user with a request type specific disclaimer as defined (staff interface and OPAC)."
+            - "For each request type, you can have 3 configuration options: <code>text</code>, <code>av_category_code</code> and <code>bypass</code><ul>"
+            - "<li><code>text</code> is the HTML that will be visible for the specified request type.</li>"
+            - "<li><code>av_category_code</code> is the authorised values category that will be used for the options being presented at the disclaimer stage.</li>"
+            - "<li><code>bypass</code> allows for a specific request type to skip the disclaimer stage.</li></ul>"
+            - "Example (paste the code in the input box): <br>"
+            - "<code>all:<br>"
+            - "&nbsp;text: |<br>"
+            - "&nbsp;&nbsp;&lt;h2&gt;HTML title&lt;/h2&gt;<br>"
+            - "&nbsp;&nbsp;&lt;p&gt;This is an HTML paragraph&lt;/p&gt;<br>"
+            - "&nbsp;&nbsp;&lt;p&gt;This is another HTML paragraph&lt;/p&gt;<br>"
+            - "&nbsp;av_category_code: YES_NO<br>"
+            - "article:<br>"
+            - "&nbsp;text: copyright text for all article type requests<br>"
+            - "&nbsp;av_category_code: YES_NO<br>"
+            - "&nbsp;bypass: 1<br>"
+            - "</code>"
+            - pref: ILLModuleDisclaimerByType
+              type: textarea
+              syntax: text/x-yaml
+              class: code

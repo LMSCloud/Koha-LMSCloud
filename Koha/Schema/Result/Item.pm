@@ -122,7 +122,7 @@ the date the item was last checked out/issued
 
 =head2 datelastseen
 
-  data_type: 'date'
+  data_type: 'datetime'
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
@@ -219,6 +219,13 @@ number of times this item has been checked out/issued
   is_nullable: 1
 
 number of times this item has been renewed
+
+=head2 localuse
+
+  data_type: 'smallint'
+  is_nullable: 1
+
+number of times this item has been recorded as localuse
 
 =head2 reserves
 
@@ -427,7 +434,11 @@ __PACKAGE__->add_columns(
   "datelastborrowed",
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "datelastseen",
-  { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
+  {
+    data_type => "datetime",
+    datetime_undef_if_invalid => 1,
+    is_nullable => 1,
+  },
   "stack",
   { data_type => "tinyint", is_nullable => 1 },
   "notforloan",
@@ -463,6 +474,8 @@ __PACKAGE__->add_columns(
   "issues",
   { data_type => "smallint", default_value => 0, is_nullable => 1 },
   "renewals",
+  { data_type => "smallint", is_nullable => 1 },
+  "localuse",
   { data_type => "smallint", is_nullable => 1 },
   "reserves",
   { data_type => "smallint", is_nullable => 1 },
@@ -887,6 +900,21 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 preservation_trains_items
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::PreservationTrainsItem>
+
+=cut
+
+__PACKAGE__->has_many(
+  "preservation_trains_items",
+  "Koha::Schema::Result::PreservationTrainsItem",
+  { "foreign.item_id" => "self.itemnumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 recalls
 
 Type: has_many
@@ -962,24 +990,24 @@ __PACKAGE__->might_have(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
-=head2 tmp_holdsqueues
+=head2 tmp_holdsqueue
 
-Type: has_many
+Type: might_have
 
 Related object: L<Koha::Schema::Result::TmpHoldsqueue>
 
 =cut
 
-__PACKAGE__->has_many(
-  "tmp_holdsqueues",
+__PACKAGE__->might_have(
+  "tmp_holdsqueue",
   "Koha::Schema::Result::TmpHoldsqueue",
   { "foreign.itemnumber" => "self.itemnumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:NfQHjEezfBrL39sBaiNcjw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:55
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:x61Y/7hpD65W0rDbLQ9HEg
 
 __PACKAGE__->belongs_to( biblioitem => "Koha::Schema::Result::Biblioitem", "biblioitemnumber" );
 
@@ -988,6 +1016,30 @@ __PACKAGE__->belongs_to(
   "Koha::Schema::Result::Biblio",
   { biblionumber => "biblionumber" },
   { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
+);
+
+__PACKAGE__->belongs_to(
+  "holding_library",
+  "Koha::Schema::Result::Branch",
+  { branchcode => "holdingbranch" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "RESTRICT",
+    on_update     => "CASCADE",
+  },
+);
+
+__PACKAGE__->belongs_to(
+  "home_library",
+  "Koha::Schema::Result::Branch",
+  { branchcode => "homebranch" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "RESTRICT",
+    on_update     => "CASCADE",
+  },
 );
 
 __PACKAGE__->add_columns(
@@ -1011,11 +1063,15 @@ __PACKAGE__->many_to_many(
 __PACKAGE__->has_many(
   "current_branchtransfers",
   "Koha::Schema::Result::Branchtransfer",
-  { 'foreign.itemnumber' => 'self.itemnumber' },
-  {
-      where => { datearrived => undef, datecancelled => undef },
-      order_by => [ { -desc => 'datesent' }, { -asc => 'daterequested' } ]
-  }
+    sub {
+        my $args = shift;
+
+        return {
+            "$args->{foreign_alias}.itemnumber"    => { -ident => "$args->{self_alias}.itemnumber" },
+            "$args->{foreign_alias}.datearrived"   => undef,
+            "$args->{foreign_alias}.datecancelled" => undef,
+        };
+    }
 );
 
 # Relationship with bundled items
@@ -1024,6 +1080,13 @@ __PACKAGE__->many_to_many( bundle_items => 'item_bundles_hosts', 'item' );
 __PACKAGE__->might_have(
   "last_returned_by",
   "Koha::Schema::Result::ItemsLastBorrower",
+  { "foreign.itemnumber" => "self.itemnumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+__PACKAGE__->might_have(
+  "serial_item",
+  "Koha::Schema::Result::Serialitem",
   { "foreign.itemnumber" => "self.itemnumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );

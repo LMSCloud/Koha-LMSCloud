@@ -2,7 +2,13 @@
     <div>
         <div v-if="!initialized">{{ $__("Loading") }}</div>
         <div v-else id="packages_list">
-            <Toolbar :options="this.toolbar_options" />
+            <Toolbar>
+                <ToolbarButton
+                    :to="{ name: 'EHoldingsLocalPackagesFormAdd' }"
+                    icon="plus"
+                    :title="$__('New package')"
+                />
+            </Toolbar>
             <div
                 v-if="package_count > 0"
                 id="package_list_result"
@@ -11,12 +17,14 @@
                 <KohaTable
                     ref="table"
                     v-bind="tableOptions"
+                    :searchable_additional_fields="searchable_additional_fields"
+                    :searchable_av_options="searchable_av_options"
                     @show="doShow"
                     @edit="doEdit"
                     @delete="doDelete"
                 ></KohaTable>
             </div>
-            <div v-else class="dialog message">
+            <div v-else class="alert alert-info">
                 {{ $__("There are no packages defined") }}
             </div>
         </div>
@@ -25,6 +33,7 @@
 
 <script>
 import Toolbar from "../Toolbar.vue"
+import ToolbarButton from "../ToolbarButton.vue"
 import { inject, ref, reactive } from "vue"
 import { storeToRefs } from "pinia"
 import { APIClient } from "../../fetch/api-client.js"
@@ -67,11 +76,13 @@ export default {
         return {
             package_count: 0,
             initialized: false,
+            searchable_additional_fields: [],
+            searchable_av_options: [],
             tableOptions: {
                 columns: this.getTableColumns(),
                 url: "/api/v1/erm/eholdings/local/packages",
                 options: {
-                    embed: "resources+count,vendor.name",
+                    embed: "resources+count,vendor.name,extended_attributes,+strings",
                     searchCols: [
                         { search: filters.package_name },
                         null,
@@ -98,18 +109,19 @@ export default {
                     "-1": ["edit", "delete"],
                 },
             },
-            toolbar_options: [
-                {
-                    to: "EHoldingsLocalPackagesFormAdd",
-                    icon: "plus",
-                    button_title: this.$__("New package"),
-                },
-            ],
         }
     },
     beforeRouteEnter(to, from, next) {
         next(vm => {
-            vm.getPackageCount().then(() => (vm.initialized = true))
+            vm.getPackageCount().then(() =>
+                vm
+                    .getSearchableAdditionalFields()
+                    .then(() =>
+                        vm
+                            .getSearchableAVOptions()
+                            .then(() => (vm.initialized = true))
+                    )
+            )
         })
     },
     methods: {
@@ -121,6 +133,41 @@ export default {
                 },
                 error => {}
             )
+        },
+        async getSearchableAdditionalFields() {
+            const client = APIClient.additional_fields
+            await client.additional_fields.getAll("package").then(
+                searchable_additional_fields => {
+                    this.searchable_additional_fields =
+                        searchable_additional_fields.filter(
+                            field => field.searchable
+                        )
+                },
+                error => {}
+            )
+        },
+        async getSearchableAVOptions() {
+            const client_av = APIClient.authorised_values
+            let av_cat_array = this.searchable_additional_fields
+                .filter(field => field.authorised_value_category_name)
+                .map(field => field.authorised_value_category_name)
+
+            await client_av.values
+                .getCategoriesWithValues([
+                    ...new Set(av_cat_array.map(av_cat => '"' + av_cat + '"')),
+                ]) // unique
+                .then(av_categories => {
+                    av_cat_array.forEach(av_cat => {
+                        let av_match = av_categories.find(
+                            element => element.category_name == av_cat
+                        )
+                        this.searchable_av_options[av_cat] =
+                            av_match.authorised_values.map(av => ({
+                                value: av.value,
+                                label: av.description,
+                            }))
+                    })
+                })
         },
         doShow: function ({ package_id }, dt, event) {
             event.preventDefault()
@@ -245,7 +292,7 @@ export default {
             ]
         },
     },
-    components: { Toolbar, KohaTable },
+    components: { Toolbar, ToolbarButton, KohaTable },
     name: "EHoldingsLocalPackagesList",
 }
 </script>

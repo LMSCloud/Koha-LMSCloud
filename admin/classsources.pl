@@ -30,8 +30,6 @@ use Koha::ClassSources;
 use Koha::ClassSortRules;
 use Koha::ClassSplitRules;
 
-my $script_name = "/cgi-bin/koha/admin/classsources.pl";
-
 my $input            = CGI->new;
 my $op               = $input->param('op') || 'list';
 my $cn_source        = $input->param('cn_source');
@@ -53,7 +51,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 );
 
 my @messages;
-$template->param( script_name => $script_name );
 
 if ( $op eq "add_source" ) {
     my $class_source =
@@ -64,7 +61,7 @@ if ( $op eq "add_source" ) {
         split_rules  => Koha::ClassSplitRules->search,
     );
 }
-elsif ( $op eq "add_source_validate" ) {
+elsif ( $op eq "cud-add_source_validate" ) {
     my $class_source = Koha::ClassSources->find($cn_source);
     if ($class_source) {
         $class_source->set(
@@ -109,7 +106,7 @@ elsif ( $op eq "add_source_validate" ) {
 
     $op = 'list';
 }
-elsif ( $op eq "delete_source_confirmed" ) {
+elsif ( $op eq "cud-delete_source_confirmed" ) {
     my $class_source = Koha::ClassSources->find($cn_source);
     my $deleted = eval { $class_source->delete };
     if ( $@ or not $deleted ) {
@@ -130,7 +127,7 @@ elsif ( $op eq "add_sort_rule" ) {
         sort_routines => get_class_sort_routines(),
     );
 }
-elsif ( $op eq "add_sort_rule_validate" ) {
+elsif ( $op eq "cud-add_sort_rule_validate" ) {
     my $sort_rule = Koha::ClassSortRules->find($class_sort_rule);
     if ($sort_rule) {
         $sort_rule->set(
@@ -166,7 +163,7 @@ elsif ( $op eq "add_sort_rule_validate" ) {
     }
     $op = 'list';
 }
-elsif ( $op eq "delete_sort_rule" ) {
+elsif ( $op eq "cud-delete_sort_rule" ) {
     my $sort_rule = Koha::ClassSortRules->find($class_sort_rule);
     my $deleted = eval { $sort_rule->delete };
     if ( $@ or not $deleted ) {
@@ -189,7 +186,7 @@ elsif ( $op eq "add_split_rule" ) {
         split_routines => get_class_split_routines(),
     );
 }
-elsif ( $op eq "add_split_rule_validate" ) {
+elsif ( $op eq "cud-add_split_rule_validate" ) {
     my $split_rule = Koha::ClassSplitRules->find($class_split_rule);
 
     @split_regex =  grep {!/^$/} @split_regex; # Remove empty
@@ -237,7 +234,7 @@ elsif ( $op eq "add_split_rule_validate" ) {
     }
     $op = 'list';
 }
-elsif ( $op eq "delete_split_rule" ) {
+elsif ( $op eq "cud-delete_split_rule" ) {
     my $split_rule = Koha::ClassSplitRules->find($class_split_rule);
     my $deleted = eval { $split_rule->delete };
     if ( $@ or not $deleted ) {

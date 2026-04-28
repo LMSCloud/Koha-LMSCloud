@@ -61,13 +61,7 @@ sub dbh {
     my $driver = db_scheme2dbi($config->get('db_scheme'));
     my $user = $config->get("user"),
     my $pass = $config->get("pass"),
-    my $dsn = sprintf(
-        'dbi:%s:database=%s;host=%s;port=%s',
-        $driver,
-        $config->get("database_test") || $config->get("database"),
-        $config->get("hostname"),
-        $config->get("port") || '',
-    );
+    my $dsn = generate_dsn($config);
 
     my $attr = {
         RaiseError => 1,
@@ -75,16 +69,6 @@ sub dbh {
     };
 
     if ($driver eq 'mysql') {
-        my $tls = $config->get("tls");
-        if ($tls && $tls eq 'yes') {
-            $dsn .= sprintf(
-                ';mysql_ssl=1;mysql_ssl_client_key=%s;mysql_ssl_client_cert=%s;mysql_ssl_ca_file=%s',
-                $config->get('key'),
-                $config->get('cert'),
-                $config->get('ca'),
-            );
-        }
-
         $attr->{mysql_enable_utf8} = 1;
     }
 
@@ -166,8 +150,7 @@ creates one, and connects to the database.
 
 This database handle is cached for future use: if you call
 C<$database-E<gt>schema> twice, you will get the same handle both
-times. If you need a second database handle, use C<&new_schema> and
-possibly C<&set_schema>.
+times.
 
 =cut
 
@@ -180,97 +163,6 @@ sub schema {
 
     $database->{schema} = &_new_schema();
     return $database->{schema};
-}
-
-=head2 new_schema
-
-  $schema = $database->new_schema;
-
-Creates a new connection to the Koha database for the current context,
-and returns the database handle (a C<DBI::db> object).
-
-The handle is not saved anywhere: this method is strictly a
-convenience function; the point is that it knows which database to
-connect to so that the caller doesn't have to know.
-
-=cut
-
-#'
-sub new_schema {
-    my $self = shift;
-
-    return &_new_schema();
-}
-
-=head2 set_schema
-
-  $my_schema = $database->new_schema;
-  $database->set_schema($my_schema);
-  ...
-  $database->restore_schema;
-
-C<&set_schema> and C<&restore_schema> work in a manner analogous to
-C<&set_context> and C<&restore_context>.
-
-C<&set_schema> saves the current database handle on a stack, then sets
-the current database handle to C<$my_schema>.
-
-C<$my_schema> is assumed to be a good database handle.
-
-=cut
-
-sub set_schema {
-    my $self       = shift;
-    my $new_schema = shift;
-
-    # Save the current database handle on the handle stack.
-    # We assume that $new_schema is all good: if the caller wants to
-    # screw himself by passing an invalid handle, that's fine by
-    # us.
-    push @{ $database->{schema_stack} }, $database->{schema};
-    $database->{schema} = $new_schema;
-}
-
-=head2 restore_schema
-
-  $database->restore_schema;
-
-Restores the database handle saved by an earlier call to
-C<$database-E<gt>set_schema>.
-
-=cut
-
-sub restore_schema {
-    my $self = shift;
-
-    if ( $#{ $database->{schema_stack} } < 0 ) {
-
-        # Stack underflow
-        die "SCHEMA stack underflow";
-    }
-
-    # Pop the old database handle and set it.
-    $database->{schema} = pop @{ $database->{schema_stack} };
-
-    # FIXME - If it is determined that restore_context should
-    # return something, then this function should, too.
-}
-
-=head2 get_schema_cached
-
-=cut
-
-sub get_schema_cached {
-    return $database->{schema};
-}
-
-=head2 flush_schema_cache
-
-=cut
-
-sub flush_schema_cache {
-    delete $database->{schema};
-    return 1;
 }
 
 =head2 db_scheme2dbi
@@ -287,6 +179,55 @@ other scheme is supplied it defaults to 'mysql'.
 sub db_scheme2dbi {
     my $scheme = shift // '';
     return $scheme eq 'Pg' ? $scheme : 'mysql';
+}
+
+=head2 generate_dsn
+
+    my $dsn = Koha::Database::generate_dsn($config);
+
+Returns a data source name (DSN) for a database connection
+from the config instance.
+
+=cut
+
+sub generate_dsn {
+    my ($config) = @_;
+    my $driver = db_scheme2dbi( $config->get('db_scheme') );
+
+    my $dsn = sprintf(
+        'dbi:%s:database=%s;host=%s;port=%s',
+        $driver,
+        $config->get("database_test") || $config->get("database"),
+        $config->get("hostname"),
+        $config->get("port") || '',
+    );
+
+    if ( $driver eq 'mysql' ) {
+        my $tls = $config->get("tls");
+        if ( $tls && $tls eq 'yes' ) {
+
+            $dsn .= ';mysql_ssl=1';
+
+            my $mysql_ssl_client_key  = $config->get('key');
+            my $mysql_ssl_client_cert = $config->get('cert');
+            my $mysql_ssl_ca_file     = $config->get('ca');
+
+            if ( $mysql_ssl_client_key && $mysql_ssl_client_key ne '__DB_TLS_CLIENT_KEY__' ) {
+                $dsn .= sprintf( ';mysql_ssl_client_key=%s', $mysql_ssl_client_key );
+            }
+
+            if ( $mysql_ssl_client_cert && $mysql_ssl_client_cert ne '__DB_TLS_CLIENT_CERTIFICATE__' ) {
+                $dsn .= sprintf( ';mysql_ssl_client_cert=%s', $mysql_ssl_client_cert );
+            }
+
+            if ( $mysql_ssl_ca_file && $mysql_ssl_ca_file ne '__DB_TLS_CA_CERTIFICATE__' ) {
+                $dsn .= sprintf( ';mysql_ssl_ca_file=%s', $mysql_ssl_ca_file );
+            }
+        }
+
+    }
+
+    return $dsn;
 }
 
 =head2 EXPORT

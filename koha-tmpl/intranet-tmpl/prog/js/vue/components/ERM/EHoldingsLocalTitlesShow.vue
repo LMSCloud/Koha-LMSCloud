@@ -1,25 +1,24 @@
 <template>
     <div v-if="!initialized">{{ $__("Loading") }}</div>
     <div v-else-if="title" id="eholdings_title_show">
+        <Toolbar>
+            <ToolbarButton
+                :to="{
+                    name: 'EHoldingsLocalTitlesFormAddEdit',
+                    params: { title_id: title.title_id },
+                }"
+                icon="pencil"
+                :title="$__('Edit')"
+            />
+            <a
+                @click="delete_title(title.title_id, title.publication_title)"
+                class="btn btn-default"
+                ><font-awesome-icon icon="trash" /> {{ $__("Delete") }}</a
+            >
+        </Toolbar>
+
         <h2>
             {{ $__("Title #%s").format(title.title_id) }}
-            <span class="action_links">
-                <router-link
-                    :to="{
-                        name: 'EHoldingsLocalTitlesFormAddEdit',
-                        params: { title_id: title.title_id },
-                    }"
-                    :title="$__('Edit')"
-                    ><i class="fa fa-pencil"></i
-                ></router-link>
-
-                <a
-                    @click="
-                        delete_title(title.title_id, title.publication_title)
-                    "
-                    ><i class="fa fa-trash"></i
-                ></a>
-            </span>
         </h2>
         <div>
             <fieldset class="rows">
@@ -119,7 +118,9 @@
                     <li v-if="title.title_url">
                         <label>{{ $__("Title-level URL") }}:</label>
                         <span>
-                            {{ title.title_url }}
+                            <a :href="title.title_url" target="_blank">{{
+                                title.title_url
+                            }}</a>
                         </span>
                     </li>
                     <li v-if="title.first_author">
@@ -238,7 +239,9 @@
                         </span>
                     </li>
                     <li>
-                        <label>Packages ({{ title.resources.length }})</label>
+                        <label>{{
+                            $__("Packages (%s)").format(title.resources.length)
+                        }}</label>
                         <div v-if="title.resources.length">
                             <EHoldingsTitlePackagesList
                                 :resources="title.resources"
@@ -263,6 +266,8 @@
 import { inject } from "vue"
 import EHoldingsTitlePackagesList from "./EHoldingsLocalTitlePackagesList.vue"
 import { APIClient } from "../../fetch/api-client.js"
+import Toolbar from "../Toolbar.vue"
+import ToolbarButton from "../ToolbarButton.vue"
 
 export default {
     setup() {
@@ -361,16 +366,13 @@ export default {
     },
     components: {
         EHoldingsTitlePackagesList,
+        Toolbar,
+        ToolbarButton,
     },
     name: "EHoldingsLocalTitlesShow",
 }
 </script>
 <style scoped>
-.action_links a {
-    padding-left: 0.2em;
-    font-size: 11px;
-    cursor: pointer;
-}
 fieldset.rows label {
     width: 25rem;
 }

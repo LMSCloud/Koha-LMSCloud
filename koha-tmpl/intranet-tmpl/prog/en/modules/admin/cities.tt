@@ -1,8 +1,9 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
-[% SET footerjs = 1 %]
 [% USE TablesSettings %]
 [% PROCESS 'i18n.inc' %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>[% FILTER collapse %]
     [% IF op =='add_form' %]
@@ -16,7 +17,9 @@
             [% tx("Confirm deletion of city '{city}'", { city = city.city_name }) | html %] &rsaquo;
         [% END %]
     [% END %]
-    [% t("Cities") | html %] &rsaquo; [% t("Administration") | html %] &rsaquo; [% t("Koha") | html %]
+    [% t("Cities") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
 [% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
@@ -63,18 +66,19 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% FOR m IN messages %]
-    <div class="dialog [% m.type | html %]">
+    <div class="alert alert-[% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE 'error_on_update' %]
             <span>An error occurred when updating this city. Perhaps it already exists.</span>
         [% CASE 'error_on_insert' %]
             <span>An error occurred when adding this city. The city ID might already exist.</span>
         [% CASE 'error_on_delete' %]
-            <span>An error occurred when deleting this city. Check the logs.</span>
+            <span>An error occurred when deleting this city. Check the logs for details.</span>
         [% CASE 'success_on_update' %]
             <span>City updated successfully.</span>
         [% CASE 'success_on_insert' %]
@@ -99,7 +103,8 @@
     [% END %]
 
     <form action="/cgi-bin/koha/admin/cities.pl" name="Aform" method="post" class="validated">
-        <input type="hidden" name="op" value="add_validate" />
+        [% INCLUDE 'csrf-token.inc' %]
+        <input type="hidden" name="op" value="cud-add_validate" />
         <input type="hidden" name="cityid" value="[% city.cityid | html %]" />
 
         <fieldset class="rows">
@@ -134,7 +139,7 @@
 [% END %]
 
 [% IF op == 'delete_confirm' %]
-    <div class="dialog alert">
+    <div class="alert alert-warning">
         <h1>
             [% tx("Confirm deletion of city '{city}'", { city = city.city_name }) | html %]
         </h1>
@@ -156,12 +161,13 @@
             </tr>
         </table>
         <form action="/cgi-bin/koha/admin/cities.pl" method="post">
-            <input type="hidden" name="op" value="delete_confirmed" />
+            [% INCLUDE 'csrf-token.inc' %]
+            <input type="hidden" name="op" value="cud-delete_confirmed" />
             <input type="hidden" name="cityid" value="[% city.cityid | html %]" />
-            <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> Yes, delete</button>
+            <button type="submit" class="btn btn-default approve"><i class="fa fa-fw fa-check"></i> Yes, delete</button>
         </form>
         <form action="/cgi-bin/koha/admin/cities.pl" method="get">
-            <button type="submit" class="deny"><i class="fa fa-fw fa-remove"></i> No, do not delete</button>
+            <button type="submit" class="btn btn-default deny"><i class="fa fa-fw fa-times"></i> No, do not delete</button>
         </form>
     </div>
 [% END %]
@@ -194,20 +200,20 @@
             </table>
         </div><!-- /.page-section -->
     [% ELSE %]
-        <div class="dialog message">
+        <div class="alert alert-info">
             There are no cities defined. <a href="/cgi-bin/koha/admin/cities.pl?op=add_form">Create a new city</a>.
         </div>
     [% END %]
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -238,7 +244,11 @@
                     "targets": [0,1,2,3,4],
                     "render": function (data, type, row, meta) {
                         if ( type == 'display' ) {
-                            return (data ? data.escapeHtml() : data);
+                            if ( data != null ) {
+                                return data.escapeHtml();
+                            } else {
+                                return "";
+                            }
                         }
                         return data;
                     }
@@ -272,8 +282,8 @@
                     {
                         "data": function( row, type, val, meta ) {
 
-                            var result = '<a class="btn btn-default btn-xs" role="button" href="/cgi-bin/koha/admin/cities.pl?op=add_form&amp;cityid='+ encodeURIComponent(row.city_id) +'"><i class="fa fa-pencil" aria-hidden="true"></i> '+_("Edit")+'</a>'+"\n";
-                            result += '<a class="btn btn-default btn-xs" role="button" href="/cgi-bin/koha/admin/cities.pl?op=delete_confirm&amp;cityid='+ encodeURIComponent(row.city_id) +'"><i class="fa fa-trash" aria-hidden="true"></i> '+_("Delete")+'</a>';
+                            var result = '<a class="btn btn-default btn-xs" role="button" href="/cgi-bin/koha/admin/cities.pl?op=add_form&amp;cityid='+ encodeURIComponent(row.city_id) +'"><i class="fa-solid fa-pencil" aria-hidden="true"></i> '+_("Edit")+'</a>'+"\n";
+                            result += '<a class="btn btn-default btn-xs" role="button" href="/cgi-bin/koha/admin/cities.pl?op=delete_confirm&amp;cityid='+ encodeURIComponent(row.city_id) +'"><i class="fa fa-trash-can" aria-hidden="true"></i> '+_("Delete")+'</a>';
                             return result;
 
                         },

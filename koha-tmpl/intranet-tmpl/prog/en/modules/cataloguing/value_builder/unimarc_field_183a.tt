@@ -1,13 +1,19 @@
+[% USE raw %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Framework plugin example &rsaquo; Cataloguing &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("UNIMARC field 183a builder") | html %] &rsaquo;
+    [% t("Cataloguing") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
-<body id="cat_unimarc_field_183a" class="cat" style="padding:1em;">
+<body id="cat_unimarc_field_183a" class="cat value_builder">
 
     <h3>UNIMARC field 183a builder</h3>
-    <div class="page-section">
-        <form name="f_pop" action="">
+    <form method="get" name="f_pop" action="">
+        <div class="page-section">
             <table>
                 <tr>
                     <td>
@@ -376,9 +382,18 @@
                     </td>
                 </tr>
             </table>
-            <p><input type="button" class="btn btn-primary" value="OK" onclick="submitMyForm();" /> <a href="#" class="cancel close">Cancel</a> </p>
-        </form>
-    </div> <!-- /.page-section -->
+        </div> <!-- /.page-section -->
+
+        <nav class="navbar navbar-default fixed-bottom">
+            <div class="container-fluid">
+                <fieldset class="action">
+                    <input type="button" class="btn btn-primary" onclick="submitMyForm();" value="Save" />
+                    <button class="btn btn-default close_window">Cancel</button>
+                </fieldset>
+            </div>
+        </nav>
+
+    </form>
 
 <script>
 

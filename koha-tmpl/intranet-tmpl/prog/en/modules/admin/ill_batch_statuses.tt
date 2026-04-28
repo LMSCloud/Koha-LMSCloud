@@ -1,0 +1,167 @@
+[% USE raw %]
+[% USE Koha %]
+[% USE Asset %]
+[% USE Branches %]
+[% USE Price %]
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>
+    [% IF op =='add_form' %]
+       [% IF status.id %]
+           Modify batch status
+       [% ELSE %]
+           New batch status
+       [% END %] &rsaquo; [% END %]
+    Interlibrary loan batch statuses &rsaquo; Administration &rsaquo; Koha
+</title>
+[% INCLUDE 'doc-head-close.inc' %]
+</head>
+
+<body id="admin_ill_batch_statuses" class="admin">
+[% INCLUDE 'header.inc' %]
+[% INCLUDE 'prefs-admin-search.inc' %]
+
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
+        [% END %]
+        [% IF op == 'add_form' %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/admin/ill_batch_statuses.pl">Interlibrary loan batch statuses</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% IF status.id %]
+                    <span>Modify batch status</span>
+                [% ELSE %]
+                    <span>New batch status</span>
+                [% END %]
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                Interlibrary loan batch statuses
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
+
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-md-10 order-md-2 order-sm-1">
+            <main>
+
+                [% FOREACH m IN messages %]
+                <div class="alert alert-[% m.type | html %]">
+                    [% SWITCH m.code %]
+                    [% CASE 'success_on_saving' %]
+                        <span>Batch status saved successfully.</span>
+                    [% CASE 'success_on_delete' %]
+                        <span>Batch status deleted successfully.</span>
+                    [% CASE 'error_on_saving' %]
+                        <span>An error occurred when saving this batch status. Check the logs for details.</span>
+                    [% CASE 'error_on_delete' %]
+                        <span>An error occurred when deleting this batch status.</span>
+                    [% CASE %]
+                        <span>[% m.code | html %]</span>
+                    [% END %]
+                </div>
+                [% END %]
+
+                [% IF op == 'add_form' %]
+                    [% IF status %]
+                        <h1>Modify a batch status</h1>
+                    [% ELSE %]
+                        <h1>New batch status</h1>
+                    [% END %]
+
+                    <form action="/cgi-bin/koha/admin/ill_batch_statuses.pl" name="Aform" method="post" class="validated">
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-add_validate" />
+                        <fieldset class="rows">
+                            <ol>
+                                <li>
+                                    <label for="name" class="required">Name: </label>
+                                    <input type="text" name="name" id="name" size="80" maxlength="100" class="required focus" required="required" value="[% status.name | html %]"><span class="required">Required. Maximum length is 100 letters</span>
+                                </li>
+                                <li>
+                                    <label for="code">Code: </label>
+                                    [% IF status %]
+                                        <strong>[% status.code | html %]</strong>
+                                        <input type="hidden" name="code" value="[% status.code | html %]" />
+                                    [% ELSE %]
+                                    <input type="text" name="code" id="code" size="80" maxlength="20" class="required" required="required" value="[% status.code | html %]"><span class="required">Required, specify UPPERCASE LETTERS. Maximum length is 20 letters</span>
+                                    [% END %]
+                                </li>
+                                <li>
+                                    <label for="is_system">Is a system status: </label>
+                                    [% IF status.is_system %]
+                                        <strong>Yes</strong>
+                                    [% ELSE %]
+                                        <strong>No</strong>
+                                    [% END %]
+                                    <input type="hidden" name="is_system" value="[% status.is_system | html %]" />
+                                </li>
+                            </ol>
+                        </fieldset>
+
+                        <fieldset class="action">
+                            <button id="save_batch_status" class="btn btn-primary">Save</button>
+                            <a class="cancel" href="/cgi-bin/koha/admin/ill_batch_statuses.pl">Cancel</a>
+                        </fieldset>
+                    </form>
+                [% END %]
+
+                [% IF op == 'list' %]
+                    <div id="toolbar" class="btn-toolbar">
+                        <a class="btn btn-default" id="newillbatchstatus" href="/cgi-bin/koha/admin/ill_batch_statuses.pl?op=add_form"><i class="fa fa-plus"></i> New batch status</a>
+                    </div>
+
+                    <h1>Interlibrary loan batch statuses</h1>
+                    [% IF statuses.count %]
+                        <div class="page-section">
+                            <table id="table_batch_statuses">
+                                <thead>
+                                    <th>Name</th>
+                                    <th>Code</th>
+                                    <th>Is system</th>
+                                    <th class="noExport">Actions</th>
+                                </thead>
+                                <tbody>
+                                    [% FOREACH status IN statuses %]
+                                    <tr>
+                                        <td>[% status.name | html %]</td>
+                                        <td>[% status.code | html %]</td>
+                                        <td>[% status.is_system ? "Yes" : "No" | html %]</td>
+                                        <td class="actions">
+                                            <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/ill_batch_statuses.pl?op=add_form&amp;code=[% status.code | uri %]"><i class="fa fa-pencil"></i> Edit</a>
+                                            [% IF !status.is_system %]
+                                            <a class="btn btn-default btn-xs submit-form-link" href="#" data-action="/cgi-bin/koha/admin/ill_batch_statuses.pl" data-method="post" data-op="cud-delete" data-code="[% status.code | html %]"><i class="fa fa-delete"></i> Delete</a>
+                                            [% END %]
+                                        </td>
+                                    </tr>
+                                    [% END %]
+                                </tbody>
+                            </table>
+                        </page-section>
+                    [% ELSE %]
+                        <div class="alert alert-info">
+                            There are no batch statuses defined. <a href="/cgi-bin/koha/admin/ill_batch_statuses.pl?op=add_form">Create new batch status</a>
+                        </div>
+                    [% END %]
+                [% END %]
+            </main>
+        </div> <!-- /.col-md-10.order-md-2 -->
+
+        <div class="col-md-2 order-sm-2 order-md-1">
+            <aside>
+                [% INCLUDE 'admin-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-md-2.order-md-1 -->
+    </div> <!-- /.row -->
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") | $raw %]
+    [% INCLUDE 'datatables.inc' %]
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]

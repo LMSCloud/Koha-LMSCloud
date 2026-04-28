@@ -70,6 +70,14 @@
             [% UNLESS loop.last %] | [% END %]
           [% END %]
         </div>
+        [% IF summary.equalterm.size %]
+            [% FOREACH term IN summary.equalterm %]
+                <div class="equivalentheading">
+                    <span class="label">=</span>
+                    <span class="authorizedheading">[% term.heading | html %]</span>
+                </div>
+            [% END %]
+        [% END %]
         [% IF ( marcflavour == 'UNIMARC' ) %]
           [% IF summary.notes %]
            <div class="authres_notes">
@@ -104,6 +112,12 @@
               </div>
             [% END %]
         [% ELSE %]
+            [% IF summary.notes.size %]
+                <div class="authres_notes">
+                    <span><a href="#" data-bs-toggle="modal" data-bs-target="#notesModal_[% authid | html %]">Notes</a></span>
+                </div>
+                [% PROCESS notesmodal notes=summary.notes authid=authid %]
+            [% END %]
             [% IF ( summary.seefrom.size >= 1 ) %]
             <div class="seefrom">
                 <span class="seefrom">used for/see from:</span>
@@ -143,4 +157,28 @@
    [% CASE ['grc'] %]<span>Greek (to 1453)</span>
    [% CASE %]<span>[% lang | html %]</span>
   [% END %]
+[% END %]
+
+[% BLOCK notesmodal %]
+<!-- notes modal -->
+<div class="modal notesModal" id="notesModal_[% authid | html %]" tabindex="-1" role="dialog" aria-labelledby="notesModalLabel_[% authid | html %]">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title" id="notesModalLabel_[% authid | html %]">Notes</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul>
+                    [% FOREACH note IN notes %]
+                        <li>[% note.note | html %]</li>
+                    [% END %]
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 [% END %]

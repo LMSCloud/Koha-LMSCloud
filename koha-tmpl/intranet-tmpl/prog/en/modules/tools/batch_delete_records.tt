@@ -1,9 +1,21 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% PROCESS 'authorities-search-results.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Batch record deletion &rsaquo; Cataloging &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF op == 'list' %]
+        [% t("Confirm selection") | html %] &rsaquo;
+    [% END %]
+    [% IF op == 'enqueued' %]
+        [% t("Job enqueued") | html %] &rsaquo;
+    [% END %]
+    [% t("Batch record deletion") | html %] &rsaquo;
+    [% t("Cataloging") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -17,25 +29,41 @@
         [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/cataloguing/cataloging-home.pl">Cataloging</a>
         [% END %]
-        [% WRAPPER breadcrumb_item bc_active= 1 %]
-            <span>Batch record deletion</span>
+        [% IF op == 'list' || op == 'enqueued' %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/tools/batch_delete_records.pl">Batch record deletion</a>
+            [% END %]
+        [% END %]
+        [% IF op == 'list' %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% t("Confirm selection") | html %]
+            [% END %]
+        [% ELSIF OP == 'enqueued' %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% t("Job enqueued") | html %]
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Batch record deletion</span>
+            [% END %]
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
   <h1>Batch record deletion</h1>
   [% FOREACH message IN messages %]
     [% IF message.type == 'success' %]
-      <div class="dialog message">
+      <div class="alert alert-info">
     [% ELSIF message.type == 'warning' %]
-      <div class="dialog alert">
+      <div class="alert alert-warning">
     [% ELSIF message.type == 'error' %]
-      <div class="dialog alert" style="margin:auto;">
+      <div class="alert alert-warning" style="margin:auto;">
     [% END %]
     [% IF message.code == 'biblio_not_exists' %]
       <span>The biblionumber [% message.biblionumber | html %] does not exist in the database.</span>
@@ -56,13 +84,20 @@
   [% END %]
   [% IF op == 'form' %]
     <form method="post" enctype="multipart/form-data" action="/cgi-bin/koha/tools/batch_delete_records.pl" id="record_ids_selection">
+        [% INCLUDE 'csrf-token.inc' %]
       <fieldset class="rows">
         <legend>Record type</legend>
         <ol>
           <li><label for="biblio_type">Bibliographic: </label><input type="radio" name="recordtype" value="biblio" id="biblio_type" checked="checked" /></li>
           <li><label for="authority_type">Authorities: </label><input type="radio" name="recordtype" value="authority" id="authority_type" /></li>
+          <li class="skip_open_orders">
+              <input type="checkbox" name="skip_open_orders" id="skip_open_orders" checked />
+              <label for="skip_open_orders">Skip bibliographic records with open acquisition orders</label>
+          </li>
         </ol>
       </fieldset>
+
+        <br class="clear" />
 
         [% WRAPPER tabs id= "batch_del_form" %]
             [% WRAPPER tabs_nav %]
@@ -115,7 +150,7 @@
         [% END # /WRAPPER tabs %]
 
       <fieldset class="action">
-        <input type="hidden" name="op" value="list" />
+        <input type="hidden" name="op" value="cud-list" />
         <input type="submit" class="btn btn-primary" value="Continue" />
         <a class="cancel" href="/cgi-bin/koha/cataloguing/cataloging-home.pl">Cancel</a>
       </fieldset>
@@ -125,11 +160,13 @@
       [% IF recordtype == 'biblio' %]
         <div class="btn-toolbar selections-toolbar">
           <a id="selectall" href="#"><i class="fa fa-check"></i> Select all</a>
-          | <a id="clearall" href="#"><i class="fa fa-remove"></i> Clear all</a>
+          | <a id="clearall" href="#"><i class="fa fa-times"></i> Clear all</a>
           | <a id="selectwithoutitems" href="#">Select without items</a>
           | <a id="selectnotreserved" href="#">Select without holds</a>
           | <a id="selectwithoutsubscriptions" href="#">Select without subscriptions</a>
         </div>
+
+        <div class="page-section">
         <form action="/cgi-bin/koha/tools/batch_delete_records.pl" method="post" id="selectrecords">
           <table id="biblios" class="records">
             <thead>
@@ -157,14 +194,15 @@
               [% END %]
             </tbody>
           </table>
-          <div class="note"><i class="fa fa-exclamation"></i> Reminder: this action will delete all selected bibliographic records, attached subscriptions, existing holds, and attached items!</div>
+          <div class="alert alert-info"><i class="fa fa-exclamation"></i> Reminder: this action will delete all selected bibliographic records, attached subscriptions, existing holds, and attached items!</div>
       [% ELSE %]
         <div class="btn-toolbar selections-toolbar">
           <a id="selectall" href="#"><i class="fa fa-check"></i> Select all</a>
-          | <a id="clearall" href="#"><i class="fa fa-remove"></i> Clear all</a>
+          | <a id="clearall" href="#"><i class="fa fa-times"></i> Clear all</a>
           | <a id="clearlinkedtobiblio" href="#">Clear used authorities</a>
         </div>
         <form action="/cgi-bin/koha/tools/batch_delete_records.pl" method="post" id="selectauths">
+            [% INCLUDE 'csrf-token.inc' %]
           <table id="authorities" class="records">
             <thead>
               <tr>
@@ -185,21 +223,24 @@
               [% END %]
             </tbody>
           </table>
-          <div class="note"><i class="fa fa-exclamation"></i> Reminder: this action will delete all selected authorities!</div>
+          <div class="alert alert-info"><i class="fa fa-exclamation"></i> Reminder: this action will delete all selected authorities!</div>
       [% END %]
         <fieldset class="action">
-          <input type="hidden" name="op" value="delete" />
+            [% INCLUDE 'csrf-token.inc' %]
+          <input type="hidden" name="op" value="cud-delete" />
           <input type="hidden" name="recordtype" value="[% recordtype | html %]" />
           <input type="submit" class="btn btn-primary" value="Delete selected records" />
           <a class="cancel" href="/cgi-bin/koha/tools/batch_delete_records.pl">Cancel</a>
         </fieldset>
       </form>
+      </div>
     [% ELSE %]
       There are no record IDs defined.
     [% END %]
   [% ELSIF op == 'enqueued' %]
-    <div class="dialog message">
-      <p>The job has been enqueued! It will be processed as soon as possible.</p>
+    <div class="alert alert-info">
+        <h1>The job has been enqueued!</h1>
+        <p>It will be processed as soon as possible.</p>
       <p><a href="/cgi-bin/koha/admin/background_jobs.pl?op=view&id=[% job_id | uri %]" title="View detail of the enqueued job">View detail of the enqueued job</a>
       | <a href="/cgi-bin/koha/tools/batch_delete_records.pl" title="New batch record deletion">New batch record deletion</a></p>
     </div>
@@ -208,13 +249,13 @@
   [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'cat-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -226,8 +267,10 @@
             $("input[type='radio']").click(function() {
                 if ($(this).attr('id') == 'authority_type') {
                     $("a[href='#shelves_tab_panel']").parent().hide();
+                    $("li.skip_open_orders").hide();
                 } else if ($(this).attr('id') == 'biblio_type') {
                     $("a[href='#shelves_tab_panel']").parent().show();
+                    $("li.skip_open_orders").show();
                 }
             });
 
@@ -291,33 +334,33 @@
 
           $("#selectall").click();
 
+          //Show a red cross if a biblio cannot be deleted
           [% IF recordtype == 'biblio' %]
             $(".records input:checkbox[data-issues!='0']").each(function(){
-              $(this).attr('title', MSG_CANNOT_BE_DELETED)
-              $(this).prop('disabled', true);
-              $(this).prop('checked', false);
-              $(this).parents('tr').find('td').css('background-color', '#ffff99');
+              $(this).parents('tr').find('td').css('background-color', '#ffff99')
+              $(this).replaceWith("<span class='error'><i class='fa fa-times fa-lg'></i></span>")
+              $(".records i").attr('title', MSG_CANNOT_BE_DELETED)
             });
           [% END %]
 
           $("table#biblios").dataTable($.extend(true, {}, dataTablesDefaults, {
-            "aoColumnDefs": [
-              { "aTargets": [ 0 ], "bSortable": false, "bSearchable": false },
-              { "aTargets": [ 3, 4 ], "sType": "num-html" }
+            "columnDefs": [
+              { "targets": [ 0 ], "orderable": false, "searchable":  false },
+              { "targets": [ 3, 4 ], "type": "num-html" }
             ],
-            "sDom": 't',
-            "aaSorting": [],
-            "bPaginate": false
+            "dom": 't',
+            "order": [],
+            "paginate": false
           }));
 
           $("table#authorities").dataTable($.extend(true, {}, dataTablesDefaults, {
-            "aoColumnDefs": [
-              { "aTargets": [ 0 ], "bSortable": false, "bSearchable": false },
-              { "aTargets": [ 3 ], "sType": "num-html" }
+            "columnDefs": [
+              { "targets": [ 0 ], "orderable": false, "searchable":  false },
+              { "targets": [ 3 ], "type": "num-html" }
             ],
-            "sDom": 't',
-            "aaSorting": [],
-            "bPaginate": false
+            "dom": 't',
+            "order": [],
+            "paginate": false
           }));
 
           $("#selectrecords").on("submit",function(){
@@ -337,11 +380,11 @@
           });
 
           $("#record_ids_selection").on("submit", function(e){
-            var tab = $(this).find('#batch_del_form:active:first a').attr('href');
-            if ( tab == '#uploadfile_tab' ) {
+            var tab = $(this).find('#batch_del_form li a.active:first').attr('href');
+            if ( tab == '#uploadfile_tab_panel' ) {
                 $("#shelf_number").empty('');
                 $("#recordnumber_list").val('');
-            } else if ( tab == '#shelves_tab' ) {
+            } else if ( tab == '#shelves_tab_panel' ) {
                 $("#uploadfile").val('')
                 $("#recordnumber_list").val('');
             } else { // enterlist

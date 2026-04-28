@@ -47,12 +47,13 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 my $field_id = $input->param('field_id');
 my @messages;
 
-if ( $op eq 'add' ) {
+if ( $op eq 'cud-add' ) {
     my $name = $input->param('name') // q{};
     my $authorised_value_category = $input->param('authorised_value_category');
     my $marcfield = $input->param('marcfield') // q{};
     my $marcfield_mode = $input->param('marcfield_mode') // 'get';
     my $searchable = $input->param('searchable') ? 1 : 0;
+    my $repeatable = $input->param('repeatable') ? 1 : 0;
     if ( $field_id and $name ) {
         my $updated    = 0;
         my $set_fields = {
@@ -60,6 +61,7 @@ if ( $op eq 'add' ) {
             marcfield      => $marcfield,
             marcfield_mode => $marcfield_mode,
             searchable     => $searchable,
+            repeatable     => $repeatable,
         };
         $set_fields->{authorised_value_category} = $authorised_value_category if $authorised_value_category;
 
@@ -69,7 +71,7 @@ if ( $op eq 'add' ) {
             $updated = $af->store ? 1 : 0;
         };
         push @messages, {
-            code => 'update',
+            code => 'cud-update',
             number => $updated,
         };
     } elsif ( $name ) {
@@ -80,6 +82,7 @@ if ( $op eq 'add' ) {
             marcfield      => $marcfield,
             marcfield_mode => $marcfield_mode,
             searchable     => $searchable,
+            repeatable     => $repeatable,
         };
         $set_fields->{authorised_value_category} = $authorised_value_category if $authorised_value_category;
 
@@ -88,26 +91,26 @@ if ( $op eq 'add' ) {
             $inserted = $af->store ? 1 : 0;
         };
         push @messages, {
-            code => 'insert',
+            code => 'cud-insert',
             number => $inserted,
         };
     } else {
         push @messages, {
-            code => 'insert',
+            code => 'cud-insert',
             number => 0,
         };
     }
     $op = 'list';
 }
 
-if ( $op eq 'delete' ) {
+if ( $op eq 'cud-delete' ) {
     my $deleted = 0;
     eval {
         my $af = Koha::AdditionalFields->find($field_id);
         $deleted = $af->delete;
     };
     push @messages, {
-        code => 'delete',
+        code => 'cud-delete',
         number => $deleted,
     };
     $op = 'list';

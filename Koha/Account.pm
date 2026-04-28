@@ -23,14 +23,16 @@ use Carp;
 use Data::Dumper qw( Dumper );
 use Try::Tiny qw( catch try );
 
-use C4::Circulation qw( ReturnLostItem CanBookBeRenewed AddRenewal );
 use C4::Letters;
 use C4::Log qw( logaction );
 use C4::Stats qw( UpdateStats );
 use C4::Overdues qw(GetFine);
 use C4::CashRegisterManagement;
+use C4::Context;
 
 use Koha::Patrons;
+use Koha::Account::Credits;
+use Koha::Account::Debits;
 use Koha::Account::Lines;
 use Koha::Account::Offsets;
 use Koha::Account::DebitTypes;
@@ -85,7 +87,14 @@ sub pay {
     my $onlinePaymentCashRegisterManagerId = $params->{onlinePaymentCashRegisterManagerId} || 0;
 
     my $userenv = C4::Context->userenv;
-    $library_id = $userenv->{branch} if (!$library_id && $userenv && $userenv->{branch});
+    # LMSCloud: only populate library_id from userenv for CashRegister-relevant
+    # payment types. Plain pay() calls without explicit library_id must keep
+    # library_id undef to match upstream behavior.
+    if ( !$library_id && $userenv && $userenv->{branch}
+        && $payment_type && $payment_type =~ /^(CASH|SEPA|ONLINE|SIP)/
+        && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+        $library_id = $userenv->{branch};
+    }
 
     unless ( $type eq 'WRITEOFF' || $type eq 'CANCELLATION' ) {
         Koha::Exceptions::Account::PaymentTypeRequired->throw()
@@ -176,13 +185,14 @@ my $credit_line = Koha::Account->new({ patron_id => $patron_id })->add_credit(
     {
         amount       => $amount,
         description  => $description,
-        note         => $note,
-        user_id      => $user_id,
         interface    => $interface,
+        issue_id     => $checkout->id,
+        item_id      => $item_id,
         library_id   => $library_id,
+        note         => $note,
         payment_type => $payment_type,
         type         => $credit_type,
-        item_id      => $item_id
+        user_id      => $user_id,
     }
 );
 
@@ -227,6 +237,17 @@ sub add_credit {
     my $payment_type  = $params->{payment_type};
     my $credit_type   = $params->{type} || 'PAYMENT';
     my $item_id       = $params->{item_id};
+    my $issue_id      = $params->{issue_id};
+
+    my $old_issue_id;
+    if ( $issue_id ) {
+        my $issue = Koha::Checkouts->find($issue_id);
+        unless ( $issue ) {
+            my $old_issue = Koha::Old::Checkouts->find($issue_id);
+            $issue_id = undef;
+            $old_issue_id = $old_issue->id;
+        }
+    }
 
     Koha::Exceptions::Account::RegisterRequired->throw()
       if ( C4::Context->preference("UseCashRegisters")
@@ -256,6 +277,16 @@ sub add_credit {
                         branchcode        => $library_id,
                         register_id       => $cash_register,
                         itemnumber        => $item_id,
+                        (
+                            $issue_id
+                            ? ( issue_id => $issue_id )
+                            : ()
+                        ),
+                        (
+                            $old_issue_id
+                            ? ( old_issue_id => $old_issue_id )
+                            : ()
+                        ),
                     }
                 )->store();
 
@@ -274,6 +305,7 @@ sub add_credit {
                         type           => lc($credit_type),
                         amount         => $amount,
                         borrowernumber => $self->{patron_id},
+                        interface      => $interface,
                     }
                 ) if grep { $credit_type eq $_ } ( 'PAYMENT', 'WRITEOFF' );
 
@@ -383,7 +415,7 @@ sub payin_amount {
     # Check whether cash registers are activated and mandatory for payment actions.
     # If thats the case than we need to check whether the manager has opened a cash
     # register to use for payments.
-    if ( !$params->{noCashReg} && $params->{payment_type} =~ /^(CASH|SEPA|ONLINE|SIP)/ && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {
+    if ( !$params->{noCashReg} && $params->{payment_type} && $params->{payment_type} =~ /^(CASH|SEPA|ONLINE|SIP)/ && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {
         $cash_register_mngmt = C4::CashRegisterManagement->new($params->{library_id}, $params->{user_id});
         
         # if there is no open cash register of the manager we return without a doing the payment
@@ -420,7 +452,7 @@ sub payin_amount {
             
             # If it is not SIP it is a cash payment and if cash registers are activated as too,
             # the cash payment need to registered for the opened cash register as cash receipt
-            if ( !$params->{noCashReg} && $params->{payment_type} =~  /^(CASH|SEPA|ONLINE|SIP)/ && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {    
+            if ( !$params->{noCashReg} && $params->{payment_type} && $params->{payment_type} =~  /^(CASH|SEPA|ONLINE|SIP)/ && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {
                 $cash_register_mngmt->registerPayment($params->{library_id}, $params->{user_id}, $params->{amount}, $credit->id());
             }
         }
@@ -504,6 +536,17 @@ sub add_debit {
     my $item_id          = $params->{item_id};
     my $issue_id         = $params->{issue_id};
 
+    my $old_issue_id;
+    if ( $issue_id ) {
+        my $issue = Koha::Checkouts->find($issue_id);
+        unless ( $issue ) {
+            my $old_issue = Koha::Old::Checkouts->find($issue_id);
+            $issue_id = undef;
+            $old_issue_id = $old_issue->id;
+        }
+    }
+
+
     my $line;
     my $schema = Koha::Database->new->schema;
     try {
@@ -524,9 +567,18 @@ sub add_debit {
                         manager_id        => $user_id,
                         interface         => $interface,
                         itemnumber        => $item_id,
-                        issue_id          => $issue_id,
-                        branchcode        => $library_id,
-                        register_id       => $cash_register,
+                        (
+                            $issue_id
+                            ? ( issue_id => $issue_id )
+                            : ()
+                        ),
+                        (
+                            $old_issue_id
+                            ? ( old_issue_id => $old_issue_id )
+                            : ()
+                        ),
+                        branchcode  => $library_id,
+                        register_id => $cash_register,
                         (
                             $debit_type eq 'OVERDUE'
                             ? ( status => 'UNRETURNED' )
@@ -750,31 +802,18 @@ my $non_issues_charges = $self->non_issues_charges
 
 Calculates amount immediately owing by the patron - non-issue charges.
 
-Charges exempt from non-issue are:
-* Res (holds) if HoldsInNoissuesCharge syspref is set to false
-* Rent (rental) if RentalsInNoissuesCharge syspref is set to false
-* Manual invoices if ManInvInNoissuesCharge syspref is set to false
+Charges can be set as exempt from non-issue by editing the debit type in the Debit Types area of System Preferences.
 
 =cut
 
 sub non_issues_charges {
     my ($self) = @_;
 
-    #NOTE: With bug 23049 these preferences could be moved to being attached
-    #to individual debit types to give more flexability and specificity.
-    my @not_fines;
-    push @not_fines, 'RESERVE'
-      unless C4::Context->preference('HoldsInNoissuesCharge');
-    push @not_fines, ( 'RENT', 'RENT_DAILY', 'RENT_RENEW', 'RENT_DAILY_RENEW' )
-      unless C4::Context->preference('RentalsInNoissuesCharge');
-    unless ( C4::Context->preference('ManInvInNoissuesCharge') ) {
-        my @man_inv = Koha::Account::DebitTypes->search({ is_system => 0 })->get_column('code');
-        push @not_fines, @man_inv;
-    }
+    my @blocking_debit_types = Koha::Account::DebitTypes->search({ restricts_checkouts => 1 }, { columns => 'code' })->get_column('code');
 
     return $self->lines->search(
         {
-            debit_type_code => { -not_in => \@not_fines }
+            debit_type_code => { -in => \@blocking_debit_types }
         },
     )->total_outstanding;
 }
@@ -792,6 +831,43 @@ sub lines {
     return Koha::Account::Lines->search(
         {
             borrowernumber => $self->{patron_id},
+        }
+    );
+}
+
+
+=head3 credits
+
+  my $credits = $self->credits;
+
+Return all credits for the user
+
+=cut
+
+sub credits {
+    my ($self) = @_;
+
+    return Koha::Account::Credits->search(
+        {
+            borrowernumber => $self->{patron_id}
+        }
+    );
+}
+
+=head3 debits
+
+  my $debits = $self->debits;
+
+Return all debits for the user
+
+=cut
+
+sub debits {
+    my ($self) = @_;
+
+    return Koha::Account::Debits->search(
+        {
+            borrowernumber   => $self->{patron_id},
         }
     );
 }

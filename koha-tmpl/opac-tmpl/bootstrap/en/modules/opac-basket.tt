@@ -4,11 +4,16 @@
 [% USE Branches %]
 [% USE KohaDates %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% SET is_popup = 1 %]
 [% SET TagsInputEnabled = ( ( Koha.Preference( 'opacuserlogin' ) == 1 ) && TagsEnabled && TagsInputOnList ) %]
 
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Your cart &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+<title>[% FILTER collapse %]
+    [% t("Your cart") | html %] &rsaquo;
+    [% PROCESS 'library_name_title' %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %]<style>.item-status, .dt-buttons { display: inline; } @media print { body { height: 99%; } }</style>[% END %]
 </head>
@@ -19,7 +24,7 @@
                 <div class="col">
                     <div id="userbasket" class="maincontent">
                         <h1>Your cart</h1>
-                        <div id="floating">
+                        <div id="floating" class="sticky">
                             <div id="toolbar" class="toolbar noprint">
                                 [% IF ( verbose ) %]
                                     <a href="opac-basket.pl" class="btn btn-link btn-sm brief"><i class="fa fa-fw fa-search-minus" aria-hidden="true"></i> Brief display</a>
@@ -31,7 +36,7 @@
                                 [% END %]
 
                                 <div id="download-cart" class="btn-group dropdown">
-                                    <a id="format" class="btn btn-link dropdown-toggle" aria-haspopup="menu" aria-label="Select format and download cart" data-toggle="dropdown" role="button" href="#"><i class="fa fa-fw fa-download" aria-hidden="true"></i> Download <b class="caret"></b></a>
+                                    <a id="format" class="btn btn-link dropdown-toggle" aria-haspopup="menu" aria-label="Select format and download cart" data-bs-toggle="dropdown" role="button" href="#"><i class="fa fa-fw fa-download" aria-hidden="true"></i> Download <b class="caret"></b></a>
                                     <div class="dropdown-menu" role="menu" aria-labelledby="format">
                                         <a role="menuitem" class="dropdown-item download-cart" data-format="bibtex" href="#">BibTeX</a>
                                         <a role="menuitem" class="dropdown-item download-cart" data-format="isbd" href="#">ISBD</a>
@@ -43,7 +48,7 @@
                                     </div>
                                 </div>
 
-                                <a class="btn btn-link remove empty" href="opac-basket.pl"><i class="fa fa-fw fa-trash" aria-hidden="true"></i> Empty and close</a>
+                                <a class="btn btn-link remove empty" href="opac-basket.pl"><i class="fa fa-fw fa-trash-can" aria-hidden="true"></i> Empty and close</a>
                                 <a class="btn btn-link close" href="opac-basket.pl"><i class="fa fa-fw fa-times-circle" aria-hidden="true"></i> Hide window</a>
                                 [% IF ( verbose ) %]
                                     <a class="btn btn-link btn-sm print-large" href="#"><i class="fa fa-fw fa-print" aria-hidden="true"></i> Print</a>
@@ -57,7 +62,7 @@
                                 </div>
                                 <span class="links" id="tag_hides">
                                     <span class="selections">Select titles to: </span>
-                                    <a href="#" class="btn btn-link btn-sm remove deleteshelf disabled" aria-disabled="true"><i class="fa fa-remove" aria-hidden="true"></i> Remove</a>
+                                    <a href="#" class="btn btn-link btn-sm remove deleteshelf disabled" aria-disabled="true"><i class="fa fa-times" aria-hidden="true"></i> Remove</a>
                                     [% IF ( Koha.Preference( 'opacuserlogin' ) == 1 ) %]
                                         [% IF ( ( Koha.Preference( 'virtualshelves' ) == 1 ) && loggedinusername ) %]
                                             <a href="#" class="btn btn-link btn-sm newshelf disabled" aria-disabled="true"><i class="fa fa-fw fa-list" aria-hidden="true"></i> Add to a list</a>
@@ -332,6 +337,7 @@
                                                 <li>
                                                     [% Branches.GetName(ITEM_RESULT.holdingbranch) | html %]
                                                     <span class="shelvingloc">[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => ITEM_RESULT.location, opac => 1 ) | html %]</span>
+                                                    <span class="ccode">[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => ITEM_RESULT.ccode, opac => 1 ) | html %]</span>
                                                     [% IF ( ITEM_RESULT.itemcallnumber ) %]
                                                         ([% ITEM_RESULT.itemcallnumber | html %])
                                                     [% END %]
@@ -349,7 +355,7 @@
                             <form name="myform" action="opac-basket.pl" method="get">
                                 <input type="hidden" name="records" id="records" />
                             </form>
-                            <form method="post" id="download_cart" action="/cgi-bin/koha/opac-downloadcart.pl">
+                            <form method="get" id="download_cart" action="/cgi-bin/koha/opac-downloadcart.pl">
                                 <input type="hidden" name="format" id="download_format" value="" />
                                 <input type="hidden" name="bib_list" value="[% bib_list | html %]" />
                             </form>
@@ -363,7 +369,6 @@
 [% INCLUDE 'opac-bottom.inc' %]
 
 [% BLOCK jsinclude %]
-    [% Asset.js("lib/hc-sticky.js") | $raw %]
         [% INCLUDE 'datatables.inc' %]
         <script>
             [% IF ( TagsInputEnabled && loggedinusername ) %]
@@ -395,7 +400,7 @@
 
                     var tag = $("#tagsel_new").val();
                     if (!tag || (tag == "")) {
-                        alert(MSG_NO_TAG_SPECIFIED);
+                        alert( _("No tag was specified.") );
                         return false;
                     }
 
@@ -521,11 +526,6 @@
                 });
                 enableCheckboxActions();
 
-                Sticky = $("#floating");
-                Sticky.hcSticky({
-                    stickTo: "#userbasket",
-                    stickyClass: "floating"
-                });
             });
 
             function enableCheckboxActions(){

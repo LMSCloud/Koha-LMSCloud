@@ -19,16 +19,20 @@
 
 use Modern::Perl;
 
-use Test::More tests => 22;
+use Test::More tests => 38;
 use Test::Exception;
 use Test::Warn;
+use Time::Fake;
 
 use Koha::CirculationRules;
 use Koha::Database;
 use Koha::DateUtils qw(dt_from_string);
 use Koha::ArticleRequests;
 use Koha::Patrons;
+use Koha::List::Patron qw(AddPatronList AddPatronsToList);
+use Koha::Notice::Templates;
 use Koha::Patron::Relationships;
+use C4::Circulation qw( AddIssue AddReturn );
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -317,6 +321,48 @@ subtest 'Accessor tests' => sub {
         is( $patron->smsalertnumber,      '0683027347',                       'smsalertnumber field set ok' );
         is( $patron->privacy,             '667789',                           'privacy field set ok' );
     };
+};
+
+subtest 'is_active' => sub {
+    plan tests => 12;
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    throws_ok { $patron->is_active } 'Koha::Exceptions::MissingParameter', 'Called without params';
+
+    # Check expiry
+    $patron->dateexpiry( dt_from_string->subtract( days => 1 ) )->lastseen(undef)->store;
+    is( $patron->is_active( { days => 1 } ), 0, 'Expired patron is not active' );
+    $patron->dateexpiry(undef)->store;
+    is( $patron->is_active( { days => 1 } ), 1, 'Expiry date removed' );
+
+    # Check anonymized
+    $patron->anonymized(1)->store;
+    is( $patron->is_active( { days => 1 } ), 0, 'Anonymized patron is not active' );
+    $patron->anonymized(0)->store;
+
+    # Change enrolled date now
+    $patron->dateenrolled('2020-01-01')->store;
+    is( $patron->is_active( { days => 1 } ), 0, 'No recent enrollment and lastseen still empty: not active' );
+    $patron->dateenrolled( dt_from_string() )->store;
+    is( $patron->is_active( { days => 1 } ), 1, 'Enrolled today: active' );
+
+    # Check lastseen, test days parameter
+    t::lib::Mocks::mock_preference( 'TrackLastPatronActivityTriggers', 'login' );
+    $patron->dateenrolled('2020-01-01')->store;
+    $patron->update_lastseen('login');
+    is( $patron->is_active( { days => 1 } ), 1, 'Just logged in' );
+    my $ago = dt_from_string->subtract( days => 2 );
+    $patron->lastseen($ago)->store;
+    is( $patron->is_active( { days => 1 } ), 0, 'Not active since yesterday' );
+    is( $patron->is_active( { days => 3 } ), 1, 'Active within last 3 days' );
+    # test since parameter
+    my $dt = $ago->clone->add( hours => 1 );
+    is( $patron->is_active( { since => $dt } ), 0, 'Inactive since ago + 1 hour' );
+    $dt = $ago->clone->subtract( hours => 1 );
+    is( $patron->is_active( { since => $dt } ), 1, 'Active since ago - 1 hour' );
+    # test weeks parameter
+    is( $patron->is_active( { weeks => 1 } ), 1, 'Active within last week' );
 
     $schema->storage->txn_rollback;
 };
@@ -361,6 +407,55 @@ subtest 'add_guarantor() tests' => sub {
             'Exception is thrown for duplicated relationship';
         close STDERR;
     }
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'guarantor checks on patron creation / update tests' => sub {
+
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'borrowerRelationship', 'guarantor' );
+    my $category = $builder->build_object(
+        { class => 'Koha::Patron::Categories', value => { can_be_guarantee => 1, category_type => 'A' } } );
+
+    my $guarantor =
+        $builder->build_object( { class => 'Koha::Patrons', value => { categorycode => $category->categorycode } } );
+    my $guarantee =
+        $builder->build_object( { class => 'Koha::Patrons', value => { categorycode => $category->categorycode } } );
+
+    subtest 'patron update tests' => sub {
+        plan tests => 7;
+        ok(
+            $guarantee->add_guarantor( { guarantor_id => $guarantor->borrowernumber, relationship => 'guarantor' } ),
+            "Relationship is added, no problem"
+        );
+        is( $guarantor->is_guarantor, 1, 'Is a guarantor' );
+        is( $guarantor->is_guarantee, 0, 'Is no guarantee' );
+        is( $guarantee->is_guarantor, 0, 'Is no guarantor' );
+        is( $guarantee->is_guarantee, 1, 'Is a guarantee' );
+
+        ok( $guarantor->surname("Duck")->store(), "Updating guarantor is okay" );
+        ok( $guarantee->surname("Duck")->store(), "Updating guarantee is okay" );
+    };
+
+    subtest 'patron creation tests' => sub {
+        plan tests => 1;
+
+        my $new_guarantee = $builder->build_object(
+            { class => 'Koha::Patrons', value => { categorycode => $category->categorycode } } );
+        my $new_guarantee_hash = $new_guarantee->unblessed;
+        $new_guarantee->delete();
+
+        delete $new_guarantee_hash->{borrowernumber};
+
+        ok(
+            Koha::Patron->new($new_guarantee_hash)->store( { guarantors => [$guarantor] } ),
+            "We can add the new patron and indicate guarantor"
+        );
+    };
 
     $schema->storage->txn_rollback;
 };
@@ -572,6 +667,57 @@ subtest 'add_enrolment_fee_if_needed() tests' => sub {
     };
 };
 
+subtest 'messaging_preferences() tests' => sub {
+    plan tests => 5;
+
+    $schema->storage->txn_begin;
+
+    my $mtt = $builder->build_object({
+        class => 'Koha::Patron::MessagePreference::Transport::Types'
+    });
+    my $attribute = $builder->build_object({
+        class => 'Koha::Patron::MessagePreference::Attributes'
+    });
+    my $branchcode     = $builder->build({
+        source => 'Branch' })->{branchcode};
+    my $letter = $builder->build_object({
+        class => 'Koha::Notice::Templates',
+        value => {
+            branchcode => '',
+            is_html => 0,
+            message_transport_type => $mtt->message_transport_type
+        }
+    });
+
+    Koha::Patron::MessagePreference::Transport->new({
+        message_attribute_id   => $attribute->message_attribute_id,
+        message_transport_type => $mtt->message_transport_type,
+        is_digest              => 0,
+        letter_module          => $letter->module,
+        letter_code            => $letter->code,
+    })->store;
+
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+
+    my $preference = Koha::Patron::MessagePreference->new({
+        borrowernumber => $patron->borrowernumber,
+        message_attribute_id => $attribute->message_attribute_id,
+        wants_digest => 0,
+        days_in_advance => undef,
+    })->store;
+
+    my $messaging_preferences = $patron->messaging_preferences();
+    is($messaging_preferences->count, 1, 'Found one preference');
+
+    my $messaging_preference = $messaging_preferences->next;
+    is($messaging_preference->borrowernumber, $patron->borrowernumber);
+    is($messaging_preference->message_attribute_id, $attribute->message_attribute_id);
+    is($messaging_preference->wants_digest, 0);
+    is($messaging_preference->days_in_advance, undef);
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'to_api() tests' => sub {
 
     plan tests => 6;
@@ -587,22 +733,28 @@ subtest 'to_api() tests' => sub {
     my $patron = $builder->build_object(
         {
             class => 'Koha::Patrons',
-            value => {
-                debarred => undef
-            }
+            value => { debarred => undef }
         }
     );
 
-    my $restricted = $patron->to_api->{restricted};
+    my $consumer = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+        }
+    );
+
+    t::lib::Mocks::mock_userenv( { patron => $consumer } );
+
+    my $restricted = $patron->to_api( { user => $consumer } )->{restricted};
     ok( defined $restricted, 'restricted is defined' );
-    ok( !$restricted, 'debarred is undef, restricted evaluates to false' );
+    ok( !$restricted,        'debarred is undef, restricted evaluates to false' );
 
     $patron->debarred( dt_from_string->add( days => 1 ) )->store->discard_changes;
-    $restricted = $patron->to_api->{restricted};
+    $restricted = $patron->to_api( { user => $consumer } )->{restricted};
     ok( defined $restricted, 'restricted is defined' );
-    ok( $restricted, 'debarred is defined, restricted evaluates to true' );
+    ok( $restricted,         'debarred is defined, restricted evaluates to true' );
 
-    my $patron_json = $patron->to_api({ embed => { algo => {} } });
+    my $patron_json = $patron->to_api( { embed => { algo => {} }, user => $consumer } );
     ok( exists $patron_json->{algo} );
     is( $patron_json->{algo}, 'algo' );
 
@@ -924,12 +1076,14 @@ subtest 'extended_attributes' => sub {
 
     subtest 'globally mandatory attributes tests' => sub {
 
-        plan tests => 5;
+        plan tests => 8;
 
         $schema->storage->txn_begin;
         Koha::Patron::Attribute::Types->search->delete;
 
-        my $patron = $builder->build_object({ class => 'Koha::Patrons' });
+        my $context = Test::MockModule->new('C4::Context');
+
+        my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
 
         my $attribute_type_1 = $builder->build_object(
             {
@@ -945,17 +1099,33 @@ subtest 'extended_attributes' => sub {
             }
         );
 
+        my $attribute_type_3 = $builder->build_object(
+            {
+                class => 'Koha::Patron::Attribute::Types',
+                value => { mandatory => 1, class => 'a', category_code => undef, opac_editable => 1 }
+            }
+        );
+
+        my $attribute_type_4 = $builder->build_object(
+            {
+                class => 'Koha::Patron::Attribute::Types',
+                value => { mandatory => 0, class => 'a', category_code => undef, opac_editable => 1 }
+            }
+        );
+
+        #Staff interface tests
+        $context->mock( 'interface', sub { return "intranet" } );
         is( $patron->extended_attributes->count, 0, 'Patron has no extended attributes' );
 
-        throws_ok
-            {
-                $patron->extended_attributes(
-                    [
-                        { code => $attribute_type_2->code, attribute => 'b' }
-                    ]
-                );
-            }
-            'Koha::Exceptions::Patron::MissingMandatoryExtendedAttribute',
+        throws_ok {
+            $patron->extended_attributes(
+                [
+                    { code => $attribute_type_2->code, attribute => 'b' },
+                    { code => $attribute_type_3->code, attribute => 'b' },
+                ]
+            );
+        }
+        'Koha::Exceptions::Patron::MissingMandatoryExtendedAttribute',
             'Exception thrown on missing mandatory attribute type';
 
         is( $@->type, $attribute_type_1->code, 'Exception parameters are correct' );
@@ -964,11 +1134,30 @@ subtest 'extended_attributes' => sub {
 
         $patron->extended_attributes(
             [
-                { code => $attribute_type_1->code, attribute => 'b' }
+                { code => $attribute_type_1->code, attribute => 'b' },
+                { code => $attribute_type_3->code, attribute => 'b' },
             ]
         );
 
-        is( $patron->extended_attributes->count, 1, 'Extended attributes succeeded' );
+        is( $patron->extended_attributes->count, 2, 'Extended attributes succeeded' );
+
+        # OPAC interface tests
+        $context->mock( 'interface', sub { return "opac" } );
+
+        is( $patron->extended_attributes->count, 2, 'Patron still has 2 extended attributes in OPAC' );
+
+        throws_ok {
+            $patron->extended_attributes(
+                [
+                    { code => $attribute_type_1->code, attribute => 'b' },
+                    { code => $attribute_type_2->code, attribute => 'b' },
+                ]
+            );
+        }
+        'Koha::Exceptions::Patron::MissingMandatoryExtendedAttribute',
+            'Exception thrown on missing mandatory OPAC-editable attribute';
+
+        is( $@->type, $attribute_type_3->code, 'Exception parameters are correct for OPAC-editable attribute' );
 
         $schema->storage->txn_rollback;
 
@@ -1212,43 +1401,105 @@ subtest 'can_patron_change_staff_only_lists() tests' => sub {
     $schema->storage->txn_rollback;
 };
 
+subtest 'can_patron_change_permitted_staff_lists() tests' => sub {
+
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    # make a user with no special permissions
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                flags => undef
+            }
+        }
+    );
+    is( $patron->can_patron_change_permitted_staff_lists(), 0, 'Patron without permissions cannot change permitted staff lists');
+
+    # make it a 'Catalogue' permission
+    $patron->set({ flags => 4 })->store->discard_changes;
+    is( $patron->can_patron_change_permitted_staff_lists(), 0, 'Catalogue patron cannot change permitted staff lists');
+
+    # make it a 'Catalogue' permission and 'edit_public_list_contents' sub-permission
+    $patron->set({ flags => 4 })->store->discard_changes;
+    $builder->build(
+        {
+            source => 'UserPermission',
+            value  => {
+                borrowernumber => $patron->borrowernumber,
+                module_bit     => 20,                            # lists
+                code           => 'edit_public_list_contents',
+            },
+        }
+    );
+    is( $patron->can_patron_change_permitted_staff_lists(), 1, 'Catalogue and "edit_public_list_contents" patron can change permitted staff lists');
+
+    # make it a superlibrarian
+    $patron->set({ flags => 1 })->store->discard_changes;
+    is( $patron->can_patron_change_permitted_staff_lists(), 1, 'Superlibrarian patron can change permitted staff lists');
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'password expiration tests' => sub {
 
     plan tests => 5;
 
     $schema->storage->txn_begin;
-    my $date = dt_from_string();
-    my $category = $builder->build_object({ class => 'Koha::Patron::Categories', value => {
-            password_expiry_days => 10,
-            require_strong_password => 0,
+    my $date     = dt_from_string();
+    my $category = $builder->build_object(
+        {
+            class => 'Koha::Patron::Categories',
+            value => {
+                password_expiry_days                   => 10,
+                require_strong_password                => 0,
+                force_password_reset_when_set_by_staff => 0,
+            }
         }
-    });
-    my $patron = $builder->build_object({ class=> 'Koha::Patrons', value => {
-            categorycode => $category->categorycode,
-            password => 'hats'
+    );
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $category->categorycode,
+                password     => 'hats'
+            }
         }
-    });
+    );
 
-    $patron->delete()->store()->discard_changes(); # Make sure we are storing a 'new' patron
+    $patron->delete()->store()->discard_changes();    # Make sure we are storing a 'new' patron
 
-    is( $patron->password_expiration_date(), $date->add( days => 10 )->ymd() , "Password expiration date set correctly on patron creation");
+    is(
+        $patron->password_expiration_date(), $date->add( days => 10 )->ymd(),
+        "Password expiration date set correctly on patron creation"
+    );
 
-    $patron = $builder->build_object({ class => 'Koha::Patrons', value => {
-            categorycode => $category->categorycode,
-            password => undef
+    $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $category->categorycode,
+                password     => undef
+            }
         }
-    });
+    );
     $patron->delete()->store()->discard_changes();
 
-    is( $patron->password_expiration_date(), undef, "Password expiration date is not set if patron does not have a password");
+    is(
+        $patron->password_expiration_date(), undef,
+        "Password expiration date is not set if patron does not have a password"
+    );
 
     $category->password_expiry_days(undef)->store();
-    $patron = $builder->build_object({ class => 'Koha::Patrons', value => {
-            categorycode => $category->categorycode
-        }
-    });
+    $patron =
+        $builder->build_object( { class => 'Koha::Patrons', value => { categorycode => $category->categorycode } } );
     $patron->delete()->store()->discard_changes();
-    is( $patron->password_expiration_date(), undef, "Password expiration date is not set if category does not have expiry days set");
+    is(
+        $patron->password_expiration_date(), undef,
+        "Password expiration date is not set if category does not have expiry days set"
+    );
 
     $schema->storage->txn_rollback;
 
@@ -1258,58 +1509,293 @@ subtest 'password expiration tests' => sub {
 
         $schema->storage->txn_begin;
         my $date = dt_from_string();
-        $patron = $builder->build_object({ class => 'Koha::Patrons', value => {
-                password_expiration_date => undef
-            }
-        });
-        is( $patron->password_expired, 0, "Patron with no password expiration date, password not expired");
-        $patron->password_expiration_date( $date )->store;
+        $patron =
+            $builder->build_object( { class => 'Koha::Patrons', value => { password_expiration_date => undef } } );
+        is( $patron->password_expired, 0, "Patron with no password expiration date, password not expired" );
+        $patron->password_expiration_date($date)->store;
         $patron->discard_changes();
-        is( $patron->password_expired, 1, "Patron with password expiration date of today, password expired");
+        is( $patron->password_expired, 1, "Patron with password expiration date of today, password expired" );
         $date->subtract( days => 1 );
-        $patron->password_expiration_date( $date )->store;
+        $patron->password_expiration_date($date)->store;
         $patron->discard_changes();
-        is( $patron->password_expired, 1, "Patron with password expiration date in past, password expired");
+        is( $patron->password_expired, 1, "Patron with password expiration date in past, password expired" );
 
         $schema->storage->txn_rollback;
     };
 
-    subtest 'set_password' => sub {
+    subtest 'set_password() tests' => sub {
 
-        plan tests => 4;
+        plan tests => 7;
 
         $schema->storage->txn_begin;
 
         my $date = dt_from_string();
-        my $category = $builder->build_object({ class => 'Koha::Patron::Categories', value => {
-                password_expiry_days => 10
+        my $category =
+            $builder->build_object( { class => 'Koha::Patron::Categories', value => { password_expiry_days => 10 } } );
+        Koha::Notice::Templates->search( { code => 'PASSWORD_CHANGE', module => 'members' } )->delete;
+        my $patron = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => {
+                    categorycode             => $category->categorycode,
+                    password_expiration_date => $date->subtract( days => 1 )
+                }
             }
-        });
-        my $patron = $builder->build_object({ class => 'Koha::Patrons', value => {
-                categorycode => $category->categorycode,
-                password_expiration_date =>  $date->subtract( days => 1 )
+        );
+
+        # Create a PASSWORD_CHANGE letter template
+        $builder->build_object(
+            {
+                class => 'Koha::Notice::Templates',
+                value => {
+                    module                 => 'members',
+                    code                   => 'PASSWORD_CHANGE',
+                    branchcode             => '',
+                    name                   => 'Password Change Notification',
+                    is_html                => 0,
+                    title                  => 'Your password has been changed',
+                    content                => 'Dear [% borrower.firstname %], your password has been changed.',
+                    message_transport_type => 'email',
+                    lang                   => 'default'
+                }
             }
-        });
-        is( $patron->password_expired, 1, "Patron password is expired");
+        );
+        is( $patron->password_expired, 1, "Patron password is expired" );
 
         $date = dt_from_string();
-        $patron->set_password({ password => "kitten", skip_validation => 1 })->discard_changes();
-        is( $patron->password_expired, 0, "Patron password no longer expired when new password set");
-        is( $patron->password_expiration_date(), $date->add( days => 10 )->ymd(), "Password expiration date set correctly on patron creation");
+        $patron->set_password( { password => "kitten", skip_validation => 1 } )->discard_changes();
+        is( $patron->password_expired, 0, "Patron password no longer expired when new password set" );
+        is(
+            $patron->password_expiration_date(), $date->add( days => 10 )->ymd(),
+            "Password expiration date set correctly on patron creation"
+        );
 
+        $category->password_expiry_days(undef)->store();
+        $patron->set_password( { password => "puppies", skip_validation => 1 } )->discard_changes();
+        is(
+            $patron->password_expiration_date(), undef,
+            "Password expiration date is unset if category does not have expiry days"
+        );
 
-        $category->password_expiry_days( undef )->store();
-        $patron->set_password({ password => "puppies", skip_validation => 1 })->discard_changes();
-        is( $patron->password_expiration_date(), undef, "Password expiration date is unset if category does not have expiry days");
+        # Test password change notification - missing letter template should not prevent password change
+        subtest 'Password change works even when PASSWORD_CHANGE letter is missing' => sub {
+
+            plan tests => 4;
+
+            # Enable NotifyPasswordChange preference
+            t::lib::Mocks::mock_preference( 'NotifyPasswordChange', 1 );
+
+            # Create a patron with a valid email address
+            my $patron = $builder->build_object(
+                {
+                    class => 'Koha::Patrons',
+                    value => {
+                        email    => 'patron@example.com',
+                        password => Koha::AuthUtils::hash_password('OldPassword123!')
+                    }
+                }
+            );
+
+            # Store the original password hash for comparison
+            my $original_password_hash = $patron->password;
+
+            # Ensure there is NO PASSWORD_CHANGE letter template
+            # (This was the bug condition - should not prevent password change)
+            Koha::Notice::Templates->search(
+                {
+                    code   => 'PASSWORD_CHANGE',
+                    module => 'members'
+                }
+            )->delete;
+
+            # Attempt to set a new password
+            my $result;
+
+            warning_like { $result = $patron->set_password( { password => 'NewPassword123!', skip_validation => 1 } ); }
+            qr/No members PASSWORD_CHANGE letter transported by email/,
+                'No letter warning correctly printed';
+
+            # FIXED: The method should return the patron object even when letter is missing
+            isa_ok(
+                $result, 'Koha::Patron',
+                'set_password returns patron object even when PASSWORD_CHANGE letter is missing'
+            );
+
+            # Reload patron from database to check if password was actually changed
+            $patron->discard_changes;
+
+            # FIXED: Password should be changed even when letter template is missing
+            isnt(
+                $patron->password, $original_password_hash,
+                'Password was changed even though letter template is missing'
+            );
+
+            # Verify the new password works
+            my $new_auth_result = C4::Auth::checkpw_hash( 'NewPassword123!', $patron->password );
+            is( $new_auth_result, 1, 'New password authenticates correctly' );
+        };
+
+        subtest 'Password change works when NotifyPasswordChange is disabled' => sub {
+
+            plan tests => 3;
+
+            # Disable NotifyPasswordChange preference
+            t::lib::Mocks::mock_preference( 'NotifyPasswordChange', 0 );
+
+            # Create a patron with a valid email address
+            my $patron = $builder->build_object(
+                {
+                    class => 'Koha::Patrons',
+                    value => {
+                        email    => 'patron@example.com',
+                        password => Koha::AuthUtils::hash_password('OldPassword123!')
+                    }
+                }
+            );
+
+            # Store the original password hash for comparison
+            my $original_password_hash = $patron->password;
+
+            # Ensure there is NO PASSWORD_CHANGE letter template
+            Koha::Notice::Templates->search(
+                {
+                    code   => 'PASSWORD_CHANGE',
+                    module => 'members'
+                }
+            )->delete;
+
+            # Attempt to set a new password
+            my $result = $patron->set_password( { password => 'NewPassword123!', skip_validation => 1 } );
+
+            # Should work fine when NotifyPasswordChange is disabled
+            isa_ok( $result, 'Koha::Patron', 'set_password returns patron object when notification disabled' );
+
+            # Reload patron from database to check if password was actually changed
+            $patron->discard_changes;
+
+            # Password should be changed
+            isnt( $patron->password, $original_password_hash, 'Password was changed when notification disabled' );
+
+            # Verify the new password works
+            my $auth_result = C4::Auth::checkpw_hash( 'NewPassword123!', $patron->password );
+            is( $auth_result, 1, 'New password authenticates correctly' );
+        };
+
+        subtest 'Password change works when PASSWORD_CHANGE letter exists' => sub {
+
+            plan tests => 3;
+
+            # Enable NotifyPasswordChange preference
+            t::lib::Mocks::mock_preference( 'NotifyPasswordChange', 1 );
+
+            # Create a patron with a valid email address
+            my $patron = $builder->build_object(
+                {
+                    class => 'Koha::Patrons',
+                    value => {
+                        email    => 'patron@example.com',
+                        password => Koha::AuthUtils::hash_password('OldPassword123!')
+                    }
+                }
+            );
+
+            # Store the original password hash for comparison
+            my $original_password_hash = $patron->password;
+
+            # Delete any existing PASSWORD_CHANGE letters to avoid constraint violations
+            Koha::Notice::Templates->search(
+                {
+                    code   => 'PASSWORD_CHANGE',
+                    module => 'members'
+                }
+            )->delete;
+
+            # Create a PASSWORD_CHANGE letter template
+            $builder->build_object(
+                {
+                    class => 'Koha::Notice::Templates',
+                    value => {
+                        module                 => 'members',
+                        code                   => 'PASSWORD_CHANGE',
+                        branchcode             => '',
+                        name                   => 'Password Change Notification',
+                        is_html                => 0,
+                        title                  => 'Your password has been changed',
+                        content                => 'Dear [% borrower.firstname %], your password has been changed.',
+                        message_transport_type => 'email',
+                        lang                   => 'default'
+                    }
+                }
+            );
+
+            # Attempt to set a new password
+            my $result = $patron->set_password( { password => 'NewPassword123!', skip_validation => 1 } );
+
+            # Should work fine when PASSWORD_CHANGE letter exists
+            isa_ok( $result, 'Koha::Patron', 'set_password returns patron object when letter template exists' );
+
+            # Reload patron from database to check if password was actually changed
+            $patron->discard_changes;
+
+            # Password should be changed
+            isnt( $patron->password, $original_password_hash, 'Password was changed when letter template exists' );
+
+            # Verify the new password works
+            my $auth_result = C4::Auth::checkpw_hash( 'NewPassword123!', $patron->password );
+            is( $auth_result, 1, 'New password authenticates correctly' );
+        };
 
         $schema->storage->txn_rollback;
     };
 
 };
 
+subtest 'force_password_reset_when_set_by_staff tests' => sub {
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    my $category = $builder->build_object(
+        {
+            class => 'Koha::Patron::Categories',
+            value => {
+                force_password_reset_when_set_by_staff => 1,
+                require_strong_password                => 0,
+            }
+        }
+    );
+
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $category->categorycode,
+                password     => 'hats'
+            }
+        }
+    );
+
+    $patron->delete()->store()->discard_changes();
+    is( $patron->password_expired, 1, "Patron forced into changing password, password expired." );
+
+    $patron->category->force_password_reset_when_set_by_staff(0)->store();
+    $patron->delete()->store()->discard_changes();
+    is( $patron->password_expired, 0, "Patron not forced into changing password, password not expired." );
+
+    $patron->category->force_password_reset_when_set_by_staff(1)->store();
+    t::lib::Mocks::mock_preference( 'PatronSelfRegistrationDefaultCategory', $patron->categorycode );
+    $patron->delete()->store()->discard_changes();
+    is(
+        $patron->password_expired, 0,
+        "Patron forced into changing password but patron is self registered, password not expired."
+    );
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'safe_to_delete() tests' => sub {
 
-    plan tests => 14;
+    plan tests => 17;
 
     $schema->storage->txn_begin;
 
@@ -1364,6 +1850,14 @@ subtest 'safe_to_delete() tests' => sub {
     my $manager = $builder->build_object( { class => 'Koha::Patrons' } );
     t::lib::Mocks::mock_userenv( { borrowernumber => $manager->id } );
     $patron->account->pay({ amount => 10, debits => [ $debit ] });
+
+    ## Make it protected
+    $patron->protected(1);
+    ok( !$patron->safe_to_delete, 'Cannot delete, is protected' );
+    $message = $patron->safe_to_delete->messages->[0];
+    is( $message->type,    'error',        'Type is error' );
+    is( $message->message, 'is_protected', 'Cannot delete, is protected' );
+    $patron->protected(0);
 
     ## Happy case :-D
     ok( $patron->safe_to_delete, 'Can delete, all conditions met' );
@@ -1643,11 +2137,119 @@ subtest 'notify_library_of_registration()' => sub {
     $schema->storage->txn_rollback;
 };
 
+subtest 'notice_email_address() tests' => sub {
+
+    plan tests => 5;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    t::lib::Mocks::mock_preference( 'EmailFieldPrecedence', 'email|emailpro' );
+    t::lib::Mocks::mock_preference( 'EmailFieldPrimary',    undef );
+    is(
+        $patron->notice_email_address, $patron->email,
+        "Koha::Patron->notice_email_address returns correct value when EmailFieldPrimary is not defined"
+    );
+
+    t::lib::Mocks::mock_preference( 'EmailFieldPrimary', 'emailpro' );
+    is(
+        $patron->notice_email_address, $patron->emailpro,
+        "Koha::Patron->notice_email_address returns correct value when EmailFieldPrimary is emailpro"
+    );
+
+    t::lib::Mocks::mock_preference( 'EmailFieldPrimary',   'MULTI' );
+    t::lib::Mocks::mock_preference( 'EmailFieldSelection', 'email,emailpro' );
+    is(
+        $patron->notice_email_address, $patron->email . "," . $patron->emailpro,
+        "Koha::Patron->notice_email_address returns correct value when EmailFieldPrimary is 'MULTI' and EmailFieldSelection is 'email,emailpro'"
+    );
+
+    my $invalid = 'potato';
+
+    t::lib::Mocks::mock_preference( 'EmailFieldPrecedence', 'email|emailpro' );
+    t::lib::Mocks::mock_preference( 'EmailFieldPrimary',    $invalid );
+
+    my $email;
+    warning_is { $email = $patron->notice_email_address(); }
+    qq{Invalid value for EmailFieldPrimary ($invalid)},
+        'Warning correctly generated on invalid system preference';
+
+    is(
+        $email, $patron->email,
+        "Koha::Patron->notice_email_address falls back to correct value when EmailFieldPrimary is invalid"
+    );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'first_valid_email_address' => sub {
+    plan tests => 1;
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object({ class => 'Koha::Patrons', value => { emailpro => ''}});
+
+    t::lib::Mocks::mock_preference( 'EmailFieldPrecedence', 'emailpro|email' );
+    is ($patron->first_valid_email_address, $patron->email, "Koha::Patron->first_valid_email_address returns correct value when EmailFieldPrecedence is 'emailpro|email' and emailpro is empty");
+
+    $patron->delete;
+    $schema->storage->txn_rollback;
+};
+
+subtest 'get_savings tests' => sub {
+
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build_object({ class => 'Koha::Libraries' });
+    my $patron = $builder->build_object({ class => 'Koha::Patrons' }, { value => { branchcode => $library->branchcode } });
+
+    t::lib::Mocks::mock_userenv({ patron => $patron, branchcode => $library->branchcode });
+
+    my $biblio = $builder->build_sample_biblio;
+    my $item1 = $builder->build_sample_item(
+        {
+            biblionumber     => $biblio->biblionumber,
+            library          => $library->branchcode,
+            replacementprice => rand(20),
+        }
+    );
+    my $item2 = $builder->build_sample_item(
+        {
+            biblionumber     => $biblio->biblionumber,
+            library          => $library->branchcode,
+            replacementprice => rand(20),
+        }
+    );
+
+    is( $patron->get_savings, 0, 'No checkouts, no savings' );
+
+    # Add an old checkout with deleted itemnumber
+    $builder->build_object({ class => 'Koha::Old::Checkouts', value => { itemnumber => undef, borrowernumber => $patron->id } });
+
+    is( $patron->get_savings, 0, 'No checkouts with itemnumber, no savings' );
+
+    AddIssue( $patron, $item1->barcode );
+    AddIssue( $patron, $item2->barcode );
+
+    my $savings = $patron->get_savings;
+    is( $savings + 0, $item1->replacementprice + $item2->replacementprice, "Savings correctly calculated from current issues" );
+
+    AddReturn( $item2->barcode, $item2->homebranch );
+
+    $savings = $patron->get_savings;
+    is( $savings + 0, $item1->replacementprice + $item2->replacementprice, "Savings correctly calculated from current and old issues" );
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'update privacy tests' => sub {
     $schema->storage->txn_begin;
 
     plan tests => 5;
 
+    $schema->storage->txn_begin;
     my $patron = $builder->build_object({ class => 'Koha::Patrons', value => { privacy => 1 } });
 
     my $old_checkout = $builder->build_object({ class => 'Koha::Old::Checkouts', value => { borrowernumber => $patron->id } });
@@ -1674,6 +2276,599 @@ subtest 'update privacy tests' => sub {
 
     is( $old_checkout->borrowernumber, $anon_patron->id, "Checkout is successfully anonymized");
     is( $patron->privacy(), 2, "Patron privacy is successfully updated");
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'alert_subscriptions tests' => sub {
+
+    plan tests => 3;
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    my $subscription1 = $builder->build_object( { class => 'Koha::Subscriptions' } );
+    $subscription1->add_subscriber($patron);
+
+    my $subscription2 = $builder->build_object( { class => 'Koha::Subscriptions' } );
+    $subscription2->add_subscriber($patron);
+
+    my @subscriptions = $patron->alert_subscriptions->as_list;
+
+    is( @subscriptions, 2, "Number of patron's subscribed alerts successfully fetched" );
+    is( $subscriptions[0]->subscriptionid, $subscription1->subscriptionid, "First subscribed alert is correct" );
+    is( $subscriptions[1]->subscriptionid, $subscription2->subscriptionid, "Second subscribed alert is correct" );
+
+    $patron->discard_changes;
+    $schema->storage->txn_rollback;
+};
+
+subtest 'test patron_consent' => sub {
+    plan tests => 4;
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    throws_ok { $patron->consent } 'Koha::Exceptions::MissingParameter', 'missing type';
+
+    my $consent = $patron->consent('GDPR_PROCESSING');
+    is( ref $consent, 'Koha::Patron::Consent', 'return type check' );
+    $consent->given_on('2021-02-03')->store;
+    undef $consent;
+    is( $patron->consent('GDPR_PROCESSING')->given_on, '2021-02-03 00:00:00', 'check date' );
+
+    is( $patron->consent('NOT_EXIST')->refused_on, undef, 'New empty object for new type' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'update_lastseen tests' => sub {
+
+    plan tests => 26;
+    $schema->storage->txn_begin;
+
+    my $cache = Koha::Caches->get_instance();
+
+    t::lib::Mocks::mock_preference(
+        'TrackLastPatronActivityTriggers',
+        'creation,login,connection,check_in,check_out,renewal,hold,article'
+    );
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $userid = $patron->userid;
+    $patron->lastseen(undef);
+    my $patron_info = $patron->unblessed;
+    delete $patron_info->{borrowernumber};
+    $patron->delete();
+    $patron = Koha::Patron->new($patron_info)->store();
+
+    my $now   = dt_from_string();
+    my $today = $now->ymd();
+
+    is(
+        dt_from_string( $patron->lastseen )->ymd(), $today,
+        'Patron should have last seen when newly created if requested'
+    );
+
+    my $cache_key   = "track_activity_" . $patron->borrowernumber;
+    my $cache_value = $cache->get_from_cache($cache_key);
+    is( $cache_value, $today, "Cache was updated as expected" );
+
+    $patron->delete();
+
+    t::lib::Mocks::mock_preference(
+        'TrackLastPatronActivityTriggers',
+        'login,connection,check_in,check_out,renewal,hold,article'
+    );
+
+    $patron    = Koha::Patron->new($patron_info)->store();
+    $cache_key = "track_activity_" . $patron->borrowernumber;
+
+    is( $patron->lastseen, undef, 'Patron should have not last seen when newly created if trigger not set' );
+
+    $now = dt_from_string();
+    Time::Fake->offset( $now->epoch );
+
+    $patron->update_lastseen('login');
+    $patron->_result()->discard_changes();
+    isnt( $patron->lastseen, undef, 'Patron should have last seen set when TrackLastPatronActivityTriggers contains values' );
+    my $last_seen = $patron->lastseen;
+
+    Time::Fake->offset( $now->epoch + 5 );
+
+    # Test that lastseen isn't updated more than once in a day (regardless of activity passed)
+    $patron->update_lastseen('login');
+    $patron->_result()->discard_changes();
+    is( $patron->lastseen, $last_seen, 'Patron last seen should still be unchanged after a login' );
+    $patron->update_lastseen('connection');
+    $patron->_result()->discard_changes();
+    is( $patron->lastseen, $last_seen, 'Patron last seen should still be unchanged after a SIP/ILSDI connection' );
+    $patron->update_lastseen('check_out');
+    $patron->_result()->discard_changes();
+    is( $patron->lastseen, $last_seen, 'Patron last seen should still be unchanged after a check out' );
+    $patron->update_lastseen('check_in');
+    $patron->_result()->discard_changes();
+    is( $patron->lastseen, $last_seen, 'Patron last seen should still be unchanged after a check in' );
+    $patron->update_lastseen('renewal');
+    $patron->_result()->discard_changes();
+    is( $patron->lastseen, $last_seen, 'Patron last seen should still be unchanged after a renewal' );
+    $patron->update_lastseen('hold');
+    $patron->_result()->discard_changes();
+    is( $patron->lastseen, $last_seen, 'Patron last seen should still be unchanged after a hold' );
+    $patron->update_lastseen('article');
+    $patron->_result()->discard_changes();
+    is( $patron->lastseen, $last_seen, 'Patron last seen should still be unchanged after a article' );
+
+    # Check that tracking is disabled when the activity isn't listed
+    t::lib::Mocks::mock_preference( 'TrackLastPatronActivityTriggers', '' );
+    $cache->clear_from_cache($cache_key);    # Rule out the more than once day prevention above
+
+    $patron->update_lastseen('login');
+    $patron->_result()->discard_changes();
+    is(
+        $patron->lastseen, $last_seen,
+        'Patron last seen should be unchanged after a login if login is not selected as an option and the cache has been cleared'
+    );
+
+    $patron->update_lastseen('connection');
+    $patron->_result()->discard_changes();
+    is(
+        $patron->lastseen, $last_seen,
+        'Patron last seen should be unchanged after a connection if connection is not selected as an option and the cache has been cleared'
+    );
+
+    $patron->update_lastseen('check_in');
+    $patron->_result()->discard_changes();
+    is(
+        $patron->lastseen, $last_seen,
+        'Patron last seen should be unchanged after a check_in if check_in is not selected as an option and the cache has been cleared'
+    );
+
+    $patron->update_lastseen('check_out');
+    $patron->_result()->discard_changes();
+    is(
+        $patron->lastseen, $last_seen,
+        'Patron last seen should be unchanged after a check_out if check_out is not selected as an option and the cache has been cleared'
+    );
+
+    $patron->update_lastseen('renewal');
+    $patron->_result()->discard_changes();
+    is(
+        $patron->lastseen, $last_seen,
+        'Patron last seen should be unchanged after a renewal if renewal is not selected as an option and the cache has been cleared'
+    );
+    $patron->update_lastseen('hold');
+    $patron->_result()->discard_changes();
+    is(
+        $patron->lastseen, $last_seen,
+        'Patron last seen should be unchanged after a hold if hold is not selected as an option and the cache has been cleared'
+    );
+    $patron->update_lastseen('article');
+    $patron->_result()->discard_changes();
+    is(
+        $patron->lastseen, $last_seen,
+        'Patron last seen should be unchanged after an article request if article is not selected as an option and the cache has been cleared'
+    );
+
+    # Check tracking for each activity
+    t::lib::Mocks::mock_preference(
+        'TrackLastPatronActivityTriggers',
+        'login,connection,check_in,check_out,renewal,hold,article'
+    );
+
+    $cache->clear_from_cache($cache_key);
+    $patron->update_lastseen('login');
+    $patron->_result()->discard_changes();
+    isnt( $patron->lastseen, $last_seen, 'Patron last seen should be changed after a login if we cleared the cache' );
+
+    $cache->clear_from_cache($cache_key);
+    $patron->update_lastseen('connection');
+    $patron->_result()->discard_changes();
+    isnt(
+        $patron->lastseen, $last_seen,
+        'Patron last seen should be changed after a connection if we cleared the cache'
+    );
+
+    $cache->clear_from_cache($cache_key);
+    $patron->update_lastseen('check_out');
+    $patron->_result()->discard_changes();
+    isnt(
+        $patron->lastseen, $last_seen,
+        'Patron last seen should be changed after a check_out if we cleared the cache'
+    );
+
+    $cache->clear_from_cache($cache_key);
+    $patron->update_lastseen('check_in');
+    $patron->_result()->discard_changes();
+    isnt(
+        $patron->lastseen, $last_seen,
+        'Patron last seen should be changed after a check_in if we cleared the cache'
+    );
+
+    $cache->clear_from_cache($cache_key);
+    $patron->update_lastseen('hold');
+    $patron->_result()->discard_changes();
+    isnt(
+        $patron->lastseen, $last_seen,
+        'Patron last seen should be changed after a hold if we cleared the cache'
+    );
+    $patron->update_lastseen('article');
+    $patron->_result()->discard_changes();
+    isnt(
+        $patron->lastseen, $last_seen,
+        'Patron last seen should be changed after a article if we cleared the cache'
+    );
+
+    $cache->clear_from_cache($cache_key);
+    $patron->update_lastseen('renewal');
+    $patron->_result()->discard_changes();
+    isnt( $patron->lastseen, $last_seen, 'Patron last seen should be changed after a renewal if we cleared the cache' );
+
+    # Check that the preference takes effect
+    t::lib::Mocks::mock_preference( 'TrackLastPatronActivityTriggers', '' );
+    $patron->lastseen(undef)->store;
+    $cache->clear_from_cache($cache_key);
+    $patron->update_lastseen('login');
+    $patron->_result()->discard_changes();
+    is( $patron->lastseen, undef, 'Patron should still have last seen unchanged when TrackLastPatronActivityTriggers is unset' );
+
+    Time::Fake->reset;
+    $schema->storage->txn_rollback;
+};
+
+subtest 'get_lists_with_patron() tests' => sub {
+
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    my $owner = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    my $list_1 = AddPatronList( { name => ' Ya',  owner => $owner->id } );
+    my $list_2 = AddPatronList( { name => 'Hey!', owner => $owner->id } );
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    my @lists = $patron->get_lists_with_patron();
+
+    is( scalar @lists, 0, 'Patron not included in any list' );
+
+    AddPatronsToList( { list => $list_1, cardnumbers => [ $patron->cardnumber ] } );
+    AddPatronsToList( { list => $list_2, cardnumbers => [ $patron->cardnumber ] } );
+
+    @lists = $patron->get_lists_with_patron();
+    foreach my $list (@lists) {
+        is( ref($list), 'Koha::Schema::Result::PatronList', 'Type is correct' );
+    }
+
+    is( join( ' ', map { $_->name } @lists ), ' Ya Hey!', 'Lists are the correct ones, and sorted alphabetically' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'guarantor requirements tests' => sub {
+
+    plan tests => 6;
+
+    $schema->storage->txn_begin;
+
+    my $branchcode = $builder->build( { source => 'Branch' } )->{branchcode};
+    my $child_category =
+        $builder->build( { source => 'Category', value => { category_type => 'C', can_be_guarantee => 1 } } )
+        ->{categorycode};
+    my $patron_category =
+        $builder->build( { source => 'Category', value => { category_type => 'A', can_be_guarantee => 0 } } )
+        ->{categorycode};
+
+    t::lib::Mocks::mock_preference( 'ChildNeedsGuarantor', 0 );
+
+    my $child = Koha::Patron->new(
+        {
+            branchcode   => $branchcode,
+            categorycode => $child_category,
+            contactname  => ''
+        }
+    );
+    $child->store();
+
+    ok(
+        Koha::Patrons->find( $child->id ),
+        'Child patron can be stored without guarantor when ChildNeedsGuarantor is off.'
+    );
+
+    t::lib::Mocks::mock_preference( 'ChildNeedsGuarantor', 1 );
+
+    my $child2 = Koha::Patron->new(
+        {
+            branchcode   => $branchcode,
+            categorycode => $child_category,
+            contactname  => ''
+        }
+    );
+    my $child3 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { categorycode => $child_category }
+        }
+    );
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { categorycode => $patron_category }
+        }
+    );
+
+    throws_ok { $child2->store(); }
+    'Koha::Exceptions::Patron::Relationship::NoGuarantor',
+        'Exception thrown when guarantor is required but not provided.';
+
+    my @guarantors = ( $patron, $child3 );
+    throws_ok { $child2->store( { guarantors => \@guarantors } ); }
+    'Koha::Exceptions::Patron::Relationship::InvalidRelationship',
+        'Exception thrown when child patron is added as guarantor.';
+
+    #test ModMember
+    @guarantors = ($patron);
+    $child2->store( { guarantors => \@guarantors } )->discard_changes();
+
+    t::lib::Mocks::mock_preference( 'borrowerRelationship', '' );
+
+    my $relationship = Koha::Patron::Relationship->new(
+        {
+            guarantor_id => $patron->borrowernumber,
+            guarantee_id => $child2->borrowernumber,
+            relationship => ''
+        }
+    );
+    $relationship->store();
+
+    ok( $child2->store(), 'Child patron can be modified and stored when guarantor is stored' );
+
+    @guarantors = ($child3);
+    throws_ok { $child2->store( { guarantors => \@guarantors } ); }
+    'Koha::Exceptions::Patron::Relationship::InvalidRelationship',
+        'Exception thrown when child patron is modified and child patron is added as guarantor.';
+
+    $relationship->delete;
+    throws_ok { $child2->store(); }
+    'Koha::Exceptions::Patron::Relationship::NoGuarantor',
+        'Exception thrown when guarantor is deleted.';
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'can_checkout() tests' => sub {
+    plan tests => 11;
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'borrowerRelationship', 'parent' );
+
+    my $patron_category = $builder->build(
+        {
+            source => 'Category',
+            value  => {
+                categorycode   => 'NOT_X', category_type => 'P', enrolmentfee => 0, noissueschargeguarantees => 0,
+                noissuescharge => 10,      noissueschargeguarantorswithguarantees => 0
+            }
+        }
+    );
+
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $patron_category->{categorycode},
+            }
+        }
+    );
+    my $patron_borrowing_status;
+
+    $patron->debarred(1);
+    $patron_borrowing_status = $patron->can_checkout( { patron => $patron } );
+    is( $patron_borrowing_status->{can_checkout}, 0, 'Debarred patron blocked from borrowing' );
+    is( $patron_borrowing_status->{debarred},     1, 'Blocker correctly identified and returned' );
+    $patron->debarred(0);
+
+    $patron->dateexpiry( dt_from_string->subtract( days => 1 ) );
+    $patron_borrowing_status = $patron->can_checkout( { patron => $patron } );
+    is( $patron_borrowing_status->{can_checkout}, 0, 'Expired patron blocked from borrowing' );
+    is( $patron_borrowing_status->{expired},      1, 'Blocker correctly identified and returned' );
+    $patron->dateexpiry(undef);
+
+    my $child   = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $sibling = $builder->build_object( { class => 'Koha::Patrons' } );
+    $child->add_guarantor( { guarantor_id => $patron->borrowernumber, relationship => 'parent' } );
+    $sibling->add_guarantor( { guarantor_id => $patron->borrowernumber, relationship => 'parent' } );
+
+    t::lib::Mocks::mock_preference( 'noissuescharge', 50 );
+
+    my $fee1 = $builder->build_object(
+        {
+            class => 'Koha::Account::Lines',
+            value => {
+                borrowernumber    => $patron->borrowernumber,
+                amountoutstanding => 11,
+                debit_type_code   => 'OVERDUE',
+            }
+        }
+    )->store;
+
+    my $fee2 = $builder->build_object(
+        {
+            class => 'Koha::Account::Lines',
+            value => {
+                borrowernumber    => $child->borrowernumber,
+                amountoutstanding => 0.11,
+                debit_type_code   => 'OVERDUE',
+            }
+        }
+    )->store;
+
+    my $fee3 = $builder->build_object(
+        {
+            class => 'Koha::Account::Lines',
+            value => {
+                borrowernumber    => $sibling->borrowernumber,
+                amountoutstanding => 11.11,
+                debit_type_code   => 'OVERDUE',
+            }
+        }
+    )->store;
+
+    $patron_borrowing_status = $patron->can_checkout( { patron => $patron } );
+
+    is( $patron_borrowing_status->{noissuescharge}->{charge},    11, "Only patron's fines are reported in total" );
+    is( $patron_borrowing_status->{noissuescharge}->{limit},     10, "Limit correctly identified at category level" );
+    is( $patron_borrowing_status->{noissuescharge}->{overlimit}, 1,  "Patron is over the charge limit" );
+    is( $patron_borrowing_status->{can_checkout}, 0, "Patron is over the charge limit and is blocked from borrowing" );
+    $patron->category->noissuescharge(undef);
+
+    $patron_borrowing_status = $patron->can_checkout( { patron => $patron } );
+    is( $patron_borrowing_status->{noissuescharge}->{limit}, 50, "Limit correctly identified at global syspref level" );
+    is( $patron_borrowing_status->{noissuescharge}->{overlimit}, 0, "Patron is within the charge limit" );
+    is( $patron_borrowing_status->{can_checkout}, 1, "Patron is within the charge limit and can borrow" );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'is_patron_inside_charge_limits() tests' => sub {
+    plan tests => 21;
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'borrowerRelationship', 'parent' );
+
+    my $patron_category = $builder->build(
+        {
+            source => 'Category',
+            value  => {
+                categorycode   => 'NOT_X', category_type => 'P', enrolmentfee => 0, noissueschargeguarantees => 0,
+                noissuescharge => 10,      noissueschargeguarantorswithguarantees => 0
+            }
+        }
+    );
+
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $patron_category->{categorycode},
+            }
+        }
+    );
+
+    my $child   = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $sibling = $builder->build_object( { class => 'Koha::Patrons' } );
+    $child->add_guarantor( { guarantor_id => $patron->borrowernumber, relationship => 'parent' } );
+    $sibling->add_guarantor( { guarantor_id => $patron->borrowernumber, relationship => 'parent' } );
+
+    t::lib::Mocks::mock_preference( 'noissuescharge',                         50 );
+    t::lib::Mocks::mock_preference( 'NoIssuesChargeGuarantees',               11.01 );
+    t::lib::Mocks::mock_preference( 'NoIssuesChargeGuarantorsWithGuarantees', undef );
+
+    my $fee1 = $builder->build_object(
+        {
+            class => 'Koha::Account::Lines',
+            value => {
+                borrowernumber    => $patron->borrowernumber,
+                amountoutstanding => 11,
+                debit_type_code   => 'OVERDUE',
+            }
+        }
+    )->store;
+
+    my $fee2 = $builder->build_object(
+        {
+            class => 'Koha::Account::Lines',
+            value => {
+                borrowernumber    => $child->borrowernumber,
+                amountoutstanding => 0.11,
+                debit_type_code   => 'OVERDUE',
+            }
+        }
+    )->store;
+
+    my $fee3 = $builder->build_object(
+        {
+            class => 'Koha::Account::Lines',
+            value => {
+                borrowernumber    => $sibling->borrowernumber,
+                amountoutstanding => 11.11,
+                debit_type_code   => 'OVERDUE',
+            }
+        }
+    )->store;
+
+    my $patron_borrowing_status;
+    $patron_borrowing_status = $patron->is_patron_inside_charge_limits();
+
+    is( $patron_borrowing_status->{noissuescharge}->{charge},    11, "Only patron's fines are reported in total" );
+    is( $patron_borrowing_status->{noissuescharge}->{limit},     10, "Limit correctly identified at category level" );
+    is( $patron_borrowing_status->{noissuescharge}->{overlimit}, 1,  "Patron is over the charge limit" );
+
+    $patron->category->noissuescharge(undef);
+    $patron_borrowing_status = $patron->is_patron_inside_charge_limits();
+    is( $patron_borrowing_status->{noissuescharge}->{limit}, 50, "Limit correctly identified at global syspref level" );
+    is( $patron_borrowing_status->{noissuescharge}->{charge},    11, "Charges correctly identified" );
+    is( $patron_borrowing_status->{noissuescharge}->{overlimit}, 0,  "Patron is within the charge limit" );
+
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantees}->{limit}, 11.01,
+        "Limit correctly identified at global syspref level"
+    );
+    is( $patron_borrowing_status->{NoIssuesChargeGuarantees}->{charge},    11.22, "Charges correctly identified" );
+    is( $patron_borrowing_status->{NoIssuesChargeGuarantees}->{overlimit}, 1,     "Patron is over the charge limit" );
+
+    $patron->category->noissueschargeguarantees(12);
+    $patron_borrowing_status = $patron->is_patron_inside_charge_limits();
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantees}->{limit}, 12,
+        "Limit correctly identified at patron category level"
+    );
+    is( $patron_borrowing_status->{NoIssuesChargeGuarantees}->{charge},    11.22, "Charges correctly identified" );
+    is( $patron_borrowing_status->{NoIssuesChargeGuarantees}->{overlimit}, 0,     "Patron is inside the charge limit" );
+
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{limit}, undef,
+        "Limit correctly identified as not set at either patron category or global syspref level"
+    );
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{charge}, 0,
+        "Charges ignored as there is no limit set at either patron category or global syspref level"
+    );
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{overlimit}, 0,
+        "Patron is inside the charge limit as no limit has been set"
+    );
+
+    $patron->category->noissueschargeguarantorswithguarantees(23);
+    t::lib::Mocks::mock_preference( 'NoIssuesChargeGuarantorsWithGuarantees', 20 );
+    $patron_borrowing_status = $patron->is_patron_inside_charge_limits();
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{limit}, 23,
+        "Limit correctly identified at patron category level"
+    );
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{charge}, 22.22,
+        "Charges correctly identified"
+    );
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{overlimit}, 0,
+        "Patron is inside the charge limit"
+    );
+
+    $patron->category->noissueschargeguarantorswithguarantees(undef);
+    $patron_borrowing_status = $patron->is_patron_inside_charge_limits();
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{limit}, 20,
+        "Limit correctly defaults to global syspref"
+    );
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{charge}, 22.22,
+        "Charges correctly identified"
+    );
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{overlimit}, 1,
+        "Patron is over the charge limit"
+    );
 
     $schema->storage->txn_rollback;
 };
@@ -1710,3 +2905,60 @@ subtest 'Scrub the note fields' => sub {
     $schema->storage->txn_rollback;
 };
 
+subtest 'preferred_name' => sub {
+    plan tests => 6;
+
+    $schema->storage->txn_begin;
+
+    my $tmp_patron  = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $patron_data = $tmp_patron->unblessed;
+    $tmp_patron->delete;
+    delete $patron_data->{borrowernumber};
+    delete $patron_data->{preferred_name};
+
+    my $patron = Koha::Patron->new(
+
+        {
+            %$patron_data,
+        }
+    )->store;
+
+    is( $patron->preferred_name, $patron->firstname, "Preferred name set to first name on creation when not defined" );
+
+    $patron->delete;
+
+    $patron_data->{preferred_name} = "";
+
+    $patron = Koha::Patron->new(
+
+        {
+            %$patron_data,
+        }
+    )->store;
+
+    is( $patron->preferred_name, $patron->firstname, "Preferred name set to first name on creation when empty string" );
+
+    $patron->delete;
+
+    $patron_data->{preferred_name} = "Preferred";
+    $patron_data->{firstname}      = "Not Preferred";
+
+    $patron = Koha::Patron->new(
+
+        {
+            %$patron_data,
+        }
+    )->store;
+
+    is( $patron->preferred_name, "Preferred", "Preferred name set when passed on creation" );
+
+    $patron->preferred_name("")->store;
+    is( $patron->preferred_name, $patron->firstname, "Preferred name set to first name on update when empty string" );
+
+    $patron->preferred_name(undef)->store();
+    is( $patron->preferred_name, $patron->firstname, "Preferred name set to first name on update when undef" );
+
+    $patron->preferred_name("Preferred again")->store();
+    is( $patron->preferred_name, "Preferred again", "Preferred name set on update when passed" );
+
+};

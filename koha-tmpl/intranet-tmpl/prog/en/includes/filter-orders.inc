@@ -1,6 +1,10 @@
 [% USE Koha %]
 [% USE Branches %]
 [% PROCESS 'html_helpers.inc' %]
+[% IF context == "main" %]
+    <div class="row">
+    <div class="col-sm-6">
+[% END %]
 <ol>
     <li><label for="title">Title: </label> <input type="text" name="title" id="title" value="[% filters.title | html %]" /></li>
     <li><label for="author">Author: </label> <input type="text" name="author" id="author" value="[% filters.author | html %]" /></li>
@@ -26,16 +30,24 @@
             [% PROCESS options_for_libraries libraries => Branches.all(selected => '') %]
         </select>
     </li>
+[% IF context == "main" %]
+        </ol>
+    </div>
+    <div class="col-sm-6">
+        <ol>
+[% END %]
     <li><label for="booksellerinvoicenumber ">Vendor invoice number: </label> <input type="text" name="booksellerinvoicenumber" id="booksellerinvoicenumber" value="[% filters.booksellerinvoicenumber | html %]" /></li>
     <li>
         <label for="basketgroupname">Basket group:</label>
         <input type="text" name="basketgroupname" id="basketgroupname" value="[% filters.basketgroupname | html %]" />
     </li>
-        [% INCLUDE 'additional-fields-entry.inc' available=available_additional_fields values=additional_field_filters wrap_fieldset=0 %]
+        [% INCLUDE 'additional-fields-entry.inc' available=available_additional_fields values=additional_field_filters wrap_fieldset=0 search_form=1 %]
     <li>
       <label for="ordernumber">Order line:</label>
       <input type="text" name="ordernumber" id="ordernumber" value="[% filters.ordernumber | html %]" />
-        <label class="yesno" for="search_children_too">
+    </li>
+    <li class="radio">
+        <label for="search_children_too">
             [% IF filters.search_children_too %]
                 <input type="checkbox" name="search_children_too" id="search_children_too" value="1" checked="checked" />
             [% ELSE %]
@@ -51,7 +63,12 @@
             [% IF filters.orderstatus == "" %]
               <option value="">Any status except cancelled</option>
             [% ELSE %]
-              <option value="" selected="selected"></option>
+              <option value="" selected="selected">Any status except cancelled</option>
+            [% END %]
+            [% IF filters.orderstatus == "any" %]
+              <option value="any" selected="selected">Any status</option>
+            [% ELSE %]
+              <option value="any">Any status</option>
             [% END %]
             [% IF filters.orderstatus == "new" %]
               <option value="new" selected="selected">New</option>
@@ -79,7 +96,9 @@
               <option value="cancelled">Cancelled</option>
             [% END %]
         </select>
-        <label class="yesno" for="search_children_too">
+    </li>
+    <li class="radio">
+        <label class="yesno" for="is_standing">
             [% IF filters.is_standing %]
                 <input type="checkbox" name="is_standing" id="is_standing" value="1" checked="checked" />
             [% ELSE %]
@@ -117,3 +136,7 @@
         <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
     </li>
 </ol>
+[% IF context == "main" %]
+    </div>
+    </div>
+[% END %]

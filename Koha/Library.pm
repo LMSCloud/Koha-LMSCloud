@@ -24,8 +24,10 @@ use C4::Context;
 
 use Koha::Caches;
 use Koha::Database;
+use Koha::Desks;
 use Koha::StockRotationStages;
 use Koha::SMTP::Servers;
+use Koha::Library::Hours;
 
 use base qw(Koha::Object);
 
@@ -269,6 +271,19 @@ sub cash_registers {
     return Koha::Cash::Registers->_new_from_dbic( $rs );
 }
 
+=head3 desks
+
+    my $desks = $library->desks;
+
+Returns Koha::Desks associated with this library.
+
+=cut
+
+sub desks {
+    my ($self) = @_;
+    return Koha::Desks->_new_from_dbic( scalar $self->_result->desks );
+}
+
 =head3 get_hold_libraries
 
 Return all libraries (including self) that belong to the same hold groups
@@ -320,7 +335,8 @@ sub public_read_list {
         'branchcode',     'branchname',     'branchaddress1',
         'branchaddress2', 'branchaddress3', 'branchzip',
         'branchcity',     'branchstate',    'branchcountry',
-        'branchfax',      'branchemail',    'branchurl'
+        'branchfax',      'branchemail',    'branchurl',
+        'branchillemail'
     ];
 }
 
@@ -345,7 +361,7 @@ sub to_api_mapping {
         branchphone      => 'phone',
         branchfax        => 'fax',
         branchemail      => 'email',
-        branchillemail   => 'illemail',
+        branchillemail   => 'ill_email',
         branchreplyto    => 'reply_to_email',
         branchreturnpath => 'return_path_email',
         branchurl        => 'url',
@@ -353,6 +369,8 @@ sub to_api_mapping {
         branchip         => 'ip',
         branchnotes      => 'notes',
         marcorgcode      => 'marc_org_code',
+        opacusercss      => undef,
+        opacuserjs       => undef
     };
 }
 
@@ -374,6 +392,60 @@ sub opac_info {
         lang => $params->{lang},
         library_id => $self->branchcode,
     });
+}
+
+
+=head3 get_float_libraries
+
+Return all libraries belonging to the same float group
+
+=cut
+
+sub get_float_libraries {
+    my ($self) = @_;
+
+    my $library_groups = $self->library_groups;
+    my @float_libraries;
+
+    while ( my $library_group = $library_groups->next ) {
+        my $root = Koha::Library::Groups->get_root_ancestor( { id => $library_group->id } );
+        if ( $root->ft_local_float_group ) {
+            push @float_libraries, $root->all_libraries;
+        }
+    }
+
+    my %seen;
+    @float_libraries =
+        grep { !$seen{ $_->id }++ } @float_libraries;
+
+    return Koha::Libraries->search( { branchcode => { '-in' => [ keys %seen ] } } );
+}
+
+=head3 validate_float_sibling
+
+Return if given library is a valid float group member
+
+=cut
+
+sub validate_float_sibling {
+    my ( $self, $params ) = @_;
+
+    return 1 if $params->{branchcode} eq $self->id;
+
+    my $branchcode = $params->{branchcode};
+    return $self->get_float_libraries->search( { branchcode => $branchcode } )->count > 0;
+}
+
+=head3 library_hours
+
+Returns the open and close times for a library.
+
+=cut
+
+sub library_hours {
+    my $self             = shift;
+    my $library_hours_rs = $self->_result->library_hours;
+    return Koha::Library::Hours->_new_from_dbic($library_hours_rs);
 }
 
 =head2 Internal methods

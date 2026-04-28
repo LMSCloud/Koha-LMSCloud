@@ -20,9 +20,7 @@ package C4::Serials;
 
 use Modern::Perl;
 
-use C4::Auth qw( haspermission );
-use C4::Context;
-use DateTime;
+use Carp qw( croak );
 use Date::Calc qw(
     Add_Delta_Days
     Add_Delta_YM
@@ -31,18 +29,27 @@ use Date::Calc qw(
     N_Delta_YMD
     Today
 );
+use DateTime;
 use POSIX qw( strftime );
+use Scalar::Util qw( looks_like_number );
+use Try::Tiny;
+
+use C4::Auth qw( haspermission );
 use C4::Biblio qw( GetMarcFromKohaField ModBiblio );
+use C4::Context;
 use C4::Log qw( logaction );    # logaction
 use C4::Serials::Frequency qw( GetSubscriptionFrequency );
 use C4::Serials::Numberpattern;
 use Koha::AdditionalFieldValues;
 use Koha::Biblios;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Serial;
-use Koha::Subscriptions;
-use Koha::Subscription::Histories;
 use Koha::SharedContent;
-use Scalar::Util qw( looks_like_number );
+use Koha::Subscription::Histories;
+use Koha::Subscription::Routinglists;
+use Koha::Subscriptions;
+use Koha::Suggestions;
+use Koha::TemplateUtils qw( process_tt );
 
 # Define statuses
 use constant {
@@ -505,6 +512,7 @@ The valid search fields are:
   branch
   expiration_date
   closed
+  routinglist
 
 The expiration_date search field is special; it specifies the maximum
 subscription expiration date.
@@ -512,7 +520,9 @@ subscription expiration date.
 =cut
 
 sub SearchSubscriptions {
-    my ( $args ) = @_;
+    my ( $args, $params ) = @_;
+
+    $params //= {};
 
     my $additional_fields = $args->{additional_fields} // [];
     my $matching_record_ids_for_additional_fields = [];
@@ -534,6 +544,8 @@ sub SearchSubscriptions {
             biblio.notes AS biblionotes,
             biblio.title,
             biblio.subtitle,
+            biblio.part_number,
+            biblio.part_name,
             biblio.author,
             biblio.biblionumber,
             aqbooksellers.name AS vendorname,
@@ -544,6 +556,10 @@ sub SearchSubscriptions {
             LEFT JOIN biblioitems ON biblioitems.biblionumber = subscription.biblionumber
             LEFT JOIN aqbooksellers ON subscription.aqbooksellerid = aqbooksellers.id
     |;
+    if ( $args->{routinglist} ) {
+        $query .=
+            q| INNER JOIN (SELECT DISTINCT subscriptionid FROM subscriptionroutinglist) srl ON srl.subscriptionid = subscription.subscriptionid|;
+    }
     $query .= q| WHERE 1|;
     my @where_strs;
     my @where_args;
@@ -600,7 +616,6 @@ sub SearchSubscriptions {
         push @where_strs, "subscription.closed = ?";
         push @where_args, "$args->{closed}";
     }
-
     if(@where_strs){
         $query .= ' AND ' . join(' AND ', @where_strs);
     }
@@ -617,17 +632,21 @@ sub SearchSubscriptions {
     $sth->execute(@where_args);
     my $results =  $sth->fetchall_arrayref( {} );
 
+    my $total_results = @{$results};
+
+    if ( $params->{results_limit} && $total_results > $params->{results_limit} ) {
+        $results = [ splice( @{$results}, 0, $params->{results_limit} ) ];
+    }
+
     for my $subscription ( @$results ) {
         $subscription->{cannotedit} = not can_edit_subscription( $subscription );
         $subscription->{cannotdisplay} = not can_show_subscription( $subscription );
 
         my $subscription_object = Koha::Subscriptions->find($subscription->{subscriptionid});
-        $subscription->{additional_fields} = { map { $_->field->name => $_->value }
-            $subscription_object->additional_field_values->as_list };
-
+        $subscription->{additional_field_values} = $subscription_object->get_additional_field_values_for_template;
     }
 
-    return @$results;
+    return wantarray ? @{$results} : { results => $results, total => $total_results };
 }
 
 
@@ -799,7 +818,7 @@ sub GetPreviousSerialid {
     my (
         $nextseq,       $newlastvalue1, $newlastvalue2, $newlastvalue3,
         $newinnerloop1, $newinnerloop2, $newinnerloop3
-    ) = GetNextSeq( $subscription, $pattern, $frequency, $planneddate );
+    ) = GetNextSeq( $subscription, $pattern, $frequency, $planneddate, $count_forward );
 
 $subscription is a hashref containing all the attributes of the table
 'subscription'.
@@ -807,18 +826,19 @@ $pattern is a hashref containing all the attributes of the table
 'subscription_numberpatterns'.
 $frequency is a hashref containing all the attributes of the table 'subscription_frequencies'
 $planneddate is a date string in iso format.
+$count_forward is the number of issues to count forward, defaults to 1 if omitted
 This function get the next issue for the subscription given on input arg
 
 =cut
 
 sub GetNextSeq {
-    my ($subscription, $pattern, $frequency, $planneddate) = @_;
+    my ($subscription, $pattern, $frequency, $planneddate, $count_forward) = @_;
 
     return unless ($subscription and $pattern);
 
     my ( $newlastvalue1, $newlastvalue2, $newlastvalue3,
     $newinnerloop1, $newinnerloop2, $newinnerloop3 );
-    my $count = 1;
+    my $count = $count_forward || 1;
 
     if ($subscription->{'skip_serialseq'}) {
         my @irreg = split /;/, $subscription->{'irregularity'};
@@ -893,6 +913,14 @@ sub GetNextSeq {
             my $newlastvalue3string = _numeration( $newlastvalue3, $pattern->{numbering3}, $locale );
             $calculated =~ s/\{Z\}/$newlastvalue3string/g;
         }
+
+        my $dt = dt_from_string($planneddate);
+        $calculated =~ s/\{Month\}/$dt->month/eg;
+        $calculated =~ s/\{MonthName\}/$dt->month_name/eg;
+        $calculated =~ s/\{Year\}/$dt->year/eg;
+        $calculated =~ s/\{Day\}/$dt->day/eg;
+        $calculated =~ s/\{DayName\}/$dt->day_name/eg;
+
     }
 
     return ($calculated,
@@ -931,6 +959,14 @@ sub GetSeq {
     my $newlastvalue3 = $subscription->{'lastvalue3'} || 0;
     $newlastvalue3 = _numeration($newlastvalue3, $pattern->{numbering3}, $locale) if ($pattern->{numbering3}); # reset counter if needed.
     $calculated =~ s/\{Z\}/$newlastvalue3/g;
+
+    my $dt = dt_from_string( $subscription->{firstacquidate} );
+    $calculated =~ s/\{Month\}/$dt->month/eg;
+    $calculated =~ s/\{MonthName\}/$dt->month_name/eg;
+    $calculated =~ s/\{Year\}/$dt->year/eg;
+    $calculated =~ s/\{Day\}/$dt->day/eg;
+    $calculated =~ s/\{DayName\}/$dt->day_name/eg;
+
     return $calculated;
 }
 
@@ -1042,7 +1078,7 @@ sub ModSubscriptionHistory {
 =head2 ModSerialStatus
 
     ModSerialStatus($serialid, $serialseq, $planneddate, $publisheddate,
-        $publisheddatetext, $status, $notes);
+        $publisheddatetext, $status, $notes, $count_forward);
 
 This function modify the serial status. Serial status is a number.(eg 2 is "arrived")
 Note : if we change from "waited" to something else,then we will have to create a new "waited" entry
@@ -1051,9 +1087,11 @@ Note : if we change from "waited" to something else,then we will have to create 
 
 sub ModSerialStatus {
     my ($serialid, $serialseq, $planneddate, $publisheddate, $publisheddatetext,
-        $status, $notes) = @_;
+        $status, $notes, $count_forward) = @_;
 
     return unless ($serialid);
+
+    my $count = $count_forward || 1;
 
     #It is a usual serial
     # 1st, get previous status :
@@ -1123,7 +1161,7 @@ sub ModSerialStatus {
             $newserialseq,  $newlastvalue1, $newlastvalue2, $newlastvalue3,
             $newinnerloop1, $newinnerloop2, $newinnerloop3
           )
-          = GetNextSeq( $subscription, $pattern, $frequency, $publisheddate );
+          = GetNextSeq( $subscription, $pattern, $frequency, $publisheddate, $count );
 
         # next date (calculated from actual date & frequency parameters)
         my $nextpublisheddate = GetNextDate($subscription, $publisheddate, $frequency, 1);
@@ -1286,7 +1324,7 @@ sub ModSubscription {
     $biblionumber, $callnumber, $notes, $letter, $manualhistory,
     $internalnotes, $serialsadditems, $staffdisplaycount, $opacdisplaycount,
     $graceperiod, $location, $enddate, $subscriptionid, $skip_serialseq,
-    $itemtype, $previousitemtype, $mana_id, $ccode
+    $itemtype, $previousitemtype, $mana_id, $ccode, $published_on_template
     ) = @_;
 
     my $subscription = Koha::Subscriptions->find($subscriptionid);
@@ -1330,6 +1368,7 @@ sub ModSubscription {
             previousitemtype  => $previousitemtype,
             mana_id           => $mana_id,
             ccode             => $ccode,
+            published_on_template => $published_on_template,
         }
     )->store;
     # FIXME Must be $subscription->serials
@@ -1370,7 +1409,8 @@ sub NewSubscription {
     $innerloop3, $status, $notes, $letter, $firstacquidate, $irregularity,
     $numberpattern, $locale, $callnumber, $manualhistory, $internalnotes,
     $serialsadditems, $staffdisplaycount, $opacdisplaycount, $graceperiod,
-    $location, $enddate, $skip_serialseq, $itemtype, $previousitemtype, $mana_id, $ccode
+    $location, $enddate, $skip_serialseq, $itemtype, $previousitemtype, $mana_id, $ccode,
+    $published_on_template,
     ) = @_;
     my $dbh = C4::Context->dbh;
 
@@ -1413,7 +1453,8 @@ sub NewSubscription {
             itemtype          => $itemtype,
             previousitemtype  => $previousitemtype,
             mana_id           => $mana_id,
-            ccode             => $ccode
+            ccode             => $ccode,
+            published_on_template => $published_on_template,
         }
     )->store;
     $subscription->discard_changes;
@@ -1531,9 +1572,9 @@ sub ReNewSubscription {
     my $biblio = $sth->fetchrow_hashref;
 
     if ( C4::Context->preference("RenewSerialAddsSuggestion") ) {
-        require C4::Suggestions;
-        C4::Suggestions::NewSuggestion(
-            {   'suggestedby'   => $user,
+        Koha::Suggestion->new(
+            {
+                'suggestedby'   => $user,
                 'title'         => $subscription->{bibliotitle},
                 'author'        => $biblio->{author},
                 'publishercode' => $biblio->{publishercode},
@@ -1541,7 +1582,7 @@ sub ReNewSubscription {
                 'biblionumber'  => $subscription->{biblionumber},
                 'branchcode'    => $branchcode,
             }
-        );
+        )->store;
     }
 
     $numberlength ||= 0; # Should not we raise an exception instead?
@@ -1589,6 +1630,27 @@ sub NewIssue {
 
     my $subscription = Koha::Subscriptions->find( $subscriptionid );
 
+    if ( my $template = $subscription->published_on_template ) {
+        $publisheddatetext = process_tt(
+            $template,
+            {
+                subscription      => $subscription,
+                serialseq         => $serialseq,
+                serialseq_x       => $subscription->lastvalue1(),
+                serialseq_y       => $subscription->lastvalue2(),
+                serialseq_z       => $subscription->lastvalue3(),
+                subscriptionid    => $subscriptionid,
+                biblionumber      => $biblionumber,
+                status            => $status,
+                planneddate       => $planneddate,
+                publisheddate     => $publisheddate,
+                publisheddatetext => $publisheddatetext,
+                notes             => $notes,
+                routingnotes      => $routingnotes,
+            }
+        );
+    }
+
     my $serial = Koha::Serial->new(
         {
             serialseq         => $serialseq,
@@ -1602,7 +1664,7 @@ sub NewIssue {
             publisheddate     => $publisheddate,
             publisheddatetext => $publisheddatetext,
             notes             => $notes,
-            routingnotes      => $routingnotes
+            routingnotes      => $routingnotes,
         }
     )->store();
 
@@ -1961,21 +2023,18 @@ of either 1 or highest current rank + 1
 sub addroutingmember {
     my ( $borrowernumber, $subscriptionid ) = @_;
 
-    return unless ($borrowernumber and $subscriptionid);
+    return unless ( $borrowernumber and $subscriptionid );
 
-    my $rank;
-    my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare( "SELECT max(ranking) AS `rank` FROM subscriptionroutinglist WHERE subscriptionid = ?" );
-    $sth->execute($subscriptionid);
-    while ( my $line = $sth->fetchrow_hashref ) {
-        if ( $line->{'rank'} > 0 ) {
-            $rank = $line->{'rank'} + 1;
-        } else {
-            $rank = 1;
+    my $max_ranking = Koha::Subscription::Routinglists->search( { subscriptionid => $subscriptionid } )
+        ->_resultset->get_column('ranking')->max;
+
+    return Koha::Subscription::Routinglist->new(
+        {
+            subscriptionid => $subscriptionid,
+            borrowernumber => $borrowernumber,
+            ranking        => defined $max_ranking ? $max_ranking + 1 : 1,
         }
-    }
-    $sth = $dbh->prepare( "INSERT INTO subscriptionroutinglist (subscriptionid,borrowernumber,ranking) VALUES (?,?,?)" );
-    $sth->execute( $subscriptionid, $borrowernumber, $rank );
+    )->store();
 }
 
 =head2 reorder_members

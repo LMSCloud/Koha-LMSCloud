@@ -30,7 +30,9 @@ use Koha::Patrons;
 
 my $input       = CGI->new;
 my $op          = $input->param('op') || 'list';
-my $tab         = $input->param('tab'),
+my $tab         = $input->param('tab');
+my $auto_refresh  = $input->param('auto_refresh');
+my $refresh_delay = $input->param('refresh_delay');
 my @messages;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -57,13 +59,13 @@ if ( $op eq 'find-patron' ) {
         }
     )->filter_by_scheduled_today;
 
-    $tab = 'schedule-pickup';
+    $tab = 'schedule-pickup_panel';
     $template->param(
         patron      => $patron,
         existing_curbside_pickups => $existing_curbside_pickups,
     );
 }
-elsif ( $op eq 'create-pickup' ) {
+elsif ( $op eq 'cud-create-pickup' ) {
     my $borrowernumber            = $input->param('borrowernumber');
     my $scheduled_pickup_datetime = $input->param('pickup_time');
     my $notes                     = $input->param('notes');
@@ -120,27 +122,27 @@ elsif ( $op eq 'create-pickup' ) {
         }
     }
 }
-elsif ( $op eq 'cancel' ) {
+elsif ( $op eq 'cud-cancel' ) {
     my $id              = $input->param('id');
     my $curbside_pickup = Koha::CurbsidePickups->find($id);
     $curbside_pickup->delete() if $curbside_pickup;
 }
-elsif ( $op eq 'mark-as-staged' ) {
+elsif ( $op eq 'cud-mark-as-staged' ) {
     my $id              = $input->param('id');
     my $curbside_pickup = Koha::CurbsidePickups->find($id);
     $curbside_pickup->mark_as_staged if $curbside_pickup;
 }
-elsif ( $op eq 'mark-as-unstaged' ) {
+elsif ( $op eq 'cud-mark-as-unstaged' ) {
     my $id              = $input->param('id');
     my $curbside_pickup = Koha::CurbsidePickups->find($id);
     $curbside_pickup->mark_as_unstaged if $curbside_pickup;
 }
-elsif ( $op eq 'mark-patron-has-arrived' ) {
+elsif ( $op eq 'cud-mark-patron-has-arrived' ) {
     my $id              = $input->param('id');
     my $curbside_pickup = Koha::CurbsidePickups->find($id);
     $curbside_pickup->mark_patron_has_arrived if $curbside_pickup;
 }
-elsif ( $op eq 'mark-as-delivered' ) {
+elsif ( $op eq 'cud-mark-as-delivered' ) {
     my $id = $input->param('id');
     my $curbside_pickup = Koha::CurbsidePickups->find($id);
     # FIXME Add a try-catch here
@@ -151,6 +153,8 @@ $template->param(
     messages => \@messages,
     op       => $op,
     tab      => $tab,
+    auto_refresh  => $auto_refresh,
+    refresh_delay => $refresh_delay,
     policy => Koha::CurbsidePickupPolicies->find({ branchcode => $branchcode }),
     curbside_pickups => Koha::CurbsidePickups->search(
         {

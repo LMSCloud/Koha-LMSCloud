@@ -35,6 +35,7 @@ use Koha::Authority::MergeRequests;
 use Koha::Authority::Types;
 use Koha::Authority;
 use Koha::Libraries;
+use Koha::RecordProcessor;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Indexer;
 use Koha::SearchEngine::Search;
@@ -296,12 +297,13 @@ sub SearchAuthorities {
         my %newline;
         $newline{authid} = $authid;
         if ( !$skipmetadata ) {
-            my $auth_tag_to_report;
-            $auth_tag_to_report = Koha::Authority::Types->find($authtypecode)->auth_tag_to_report
-                if $authtypecode;
-            my $reported_tag;
-            my $mainentry = $authrecord->field($auth_tag_to_report);
+            my ( $auth_tag_to_report, $reported_tag, $mainentry );
+            if ( $authtypecode ) {
+                $auth_tag_to_report = Koha::Authority::Types->find($authtypecode)->auth_tag_to_report;
+                $mainentry          = $authrecord->field($auth_tag_to_report) if $auth_tag_to_report;
+            }
             if ($mainentry) {
+                $reported_tag = q{};
                 foreach ( $mainentry->subfields() ) {
                     $reported_tag .= '$' . $_->[0] . $_->[1];
                 }
@@ -321,17 +323,17 @@ sub SearchAuthorities {
             if ( C4::Context->preference('ShowHeadingUse') ) {
                 # checking valid heading use
                 my $f008 = $authrecord->field('008');
-                my $pos14to16 = substr( $f008->data, 14, 3 );
-                my $main = substr( $pos14to16, 0, 1 );
-                $newline{main} = 1 if $main eq 'a';
-                my $subject = substr( $pos14to16, 1, 1);
-                $newline{subject} = 1 if $subject eq 'a';
-                my $series = substr( $pos14to16, 2, 1 );
-                $newline{series} = 1 if $series eq 'a';
+                if ($f008) {
+                    my $pos14to16 = substr( $f008->data, 14, 3 );
+                    my $main      = substr( $pos14to16,  0,  1 );
+                    $newline{main} = 1 if $main eq 'a';
+                    my $subject = substr( $pos14to16, 1, 1 );
+                    $newline{subject} = 1 if $subject eq 'a';
+                    my $series = substr( $pos14to16, 2, 1 );
+                    $newline{series} = 1 if $series eq 'a';
+                }
             }
-
-            $newline{authtype}     = defined($thisauthtype) ?
-                                        $thisauthtype->authtypetext : '';
+            $newline{authtype}     = defined($thisauthtype) ? $thisauthtype->authtypetext : '';
             $newline{summary}      = $summary;
             $newline{even}         = $counter % 2;
             $newline{reported_tag} = $reported_tag;
@@ -562,131 +564,157 @@ returns authid of the newly created authority
 =cut
 
 sub AddAuthority {
-# pass the MARC::Record to this function, and it will create the records in the authority table
+
+    # pass the MARC::Record to this function, and it will create the records in the authority table
     my ( $record, $authid, $authtypecode, $params ) = @_;
 
     my $skip_record_index = $params->{skip_record_index} || 0;
 
-  my $dbh=C4::Context->dbh;
-	my $leader='     nz  a22     o  4500';#Leader for incomplete MARC21 record
+    my $dbh    = C4::Context->dbh;
+    my $leader = '     nz  a22     o  4500';    #Leader for incomplete MARC21 record
 
-# if authid empty => true add, find a new authid number
+    # if authid empty => true add, find a new authid number
     my $format;
-    if (uc(C4::Context->preference('marcflavour')) eq 'UNIMARC') {
-        $format= 'UNIMARCAUTH';
-    }
-    else {
-        $format= 'MARC21';
+    if ( uc( C4::Context->preference('marcflavour') ) eq 'UNIMARC' ) {
+        $format = 'UNIMARCAUTH';
+    } else {
+        $format = 'MARC21';
     }
 
     #update date/time to 005 for marc and unimarc
-    my $time=POSIX::strftime("%Y%m%d%H%M%S",localtime);
-    my $f5=$record->field('005');
-    if (!$f5) {
-      $record->insert_fields_ordered( MARC::Field->new('005',$time.".0") );
-    }
-    else {
-      $f5->update($time.".0");
+    my $time = POSIX::strftime( "%Y%m%d%H%M%S", localtime );
+    my $f5   = $record->field('005');
+    if ( !$f5 ) {
+        $record->insert_fields_ordered( MARC::Field->new( '005', $time . ".0" ) );
+    } else {
+        $f5->update( $time . ".0" );
     }
 
     SetUTF8Flag($record);
-	if ($format eq "MARC21") {
+    if ( $format eq "MARC21" ) {
         my $userenv = C4::Context->userenv;
         my $library;
         my $marcorgcode = C4::Context->preference('MARCOrgCode');
         if ( $userenv && $userenv->{'branch'} ) {
             $library = Koha::Libraries->find( $userenv->{'branch'} );
+
             # userenv's library could not exist because of a trick in misc/commit_file.pl (see FIXME and set_userenv statement)
             $marcorgcode = $library ? $library->get_effective_marcorgcode : $marcorgcode;
         }
-		if (!$record->leader) {
-			$record->leader($leader);
-		}
-		if (!$record->field('003')) {
-			$record->insert_fields_ordered(
-                MARC::Field->new('003', $marcorgcode),
-			);
-		}
-		my $date=POSIX::strftime("%y%m%d",localtime);
-		if (!$record->field('008')) {
+        if ( !$record->leader ) {
+            $record->leader($leader);
+        }
+        if ( !$record->field('003') ) {
+            $record->insert_fields_ordered(
+                MARC::Field->new( '003', $marcorgcode ),
+            );
+        }
+        my $date = POSIX::strftime( "%y%m%d", localtime );
+        if ( !$record->field('008') ) {
+
             # Get a valid default value for field 008
             my $default_008 = C4::Context->preference('MARCAuthorityControlField008');
-            if(!$default_008 or length($default_008)<34) {
+            if ( !$default_008 or length($default_008) < 34 ) {
                 $default_008 = '|| aca||aabn           | a|a     d';
-            }
-            else {
-                $default_008 = substr($default_008,0,34);
+            } else {
+                $default_008 = substr( $default_008, 0, 34 );
             }
 
-            $record->insert_fields_ordered( MARC::Field->new('008',$date.$default_008) );
-		}
-		if (!$record->field('040')) {
-		 $record->insert_fields_ordered(
-        MARC::Field->new('040','','',
-            'a' => $marcorgcode,
-            'c' => $marcorgcode,
-				) 
-			);
+            $record->insert_fields_ordered( MARC::Field->new( '008', $date . $default_008 ) );
+        }
+        if ( !$record->field('040') ) {
+            $record->insert_fields_ordered(
+                MARC::Field->new(
+                    '040', '', '',
+                    'a' => $marcorgcode,
+                    'c' => $marcorgcode,
+                )
+            );
+        }
     }
-	}
 
-  if ($format eq "UNIMARCAUTH") {
-        $record->leader("     nx  j22             ") unless ($record->leader());
-        my $date=POSIX::strftime("%Y%m%d",localtime);
-	my $defaultfield100 = C4::Context->preference('UNIMARCAuthorityField100');
-    if (my $string=$record->subfield('100',"a")){
-      	$string=~s/fre50/frey50/;
-      	$record->field('100')->update('a'=>$string);
+    if ( $format eq "UNIMARCAUTH" ) {
+        $record->leader("     nx  j22             ") unless ( $record->leader() );
+        my $date            = POSIX::strftime( "%Y%m%d", localtime );
+        my $defaultfield100 = C4::Context->preference('UNIMARCAuthorityField100');
+        if ( my $string = $record->subfield( '100', "a" ) ) {
+            $string =~ s/fre50/frey50/;
+            $record->field('100')->update( 'a' => $string );
+        } elsif ( $record->field('100') ) {
+            $record->field('100')->update( 'a' => $date . $defaultfield100 );
+        } else {
+            $record->append_fields(
+                MARC::Field->new(
+                    '100', ' ', ' '
+                    , 'a' => $date . $defaultfield100
+                )
+            );
+        }
     }
-    elsif ($record->field('100')){
-          $record->field('100')->update('a'=>$date.$defaultfield100);
-    } else {      
-        $record->append_fields(
-        MARC::Field->new('100',' ',' '
-            ,'a'=>$date.$defaultfield100)
-        );
-    }      
-  }
-  my ($auth_type_tag, $auth_type_subfield) = get_auth_type_location($authtypecode);
-  if (!$authid and $format eq "MARC21") {
-    # only need to do this fix when modifying an existing authority
-    C4::AuthoritiesMarc::MARC21::fix_marc21_auth_type_location($record, $auth_type_tag, $auth_type_subfield);
-  } 
-  if (my $field=$record->field($auth_type_tag)){
-    $field->update($auth_type_subfield=>$authtypecode);
-  }
-  else {
-    $record->add_fields($auth_type_tag,'','', $auth_type_subfield=>$authtypecode); 
-  }
+    my ( $auth_type_tag, $auth_type_subfield ) = get_auth_type_location($authtypecode);
+    if ( !$authid and $format eq "MARC21" ) {
+
+        # only need to do this fix when modifying an existing authority
+        C4::AuthoritiesMarc::MARC21::fix_marc21_auth_type_location( $record, $auth_type_tag, $auth_type_subfield );
+    }
+    if ( my $field = $record->field($auth_type_tag) ) {
+        $field->update( $auth_type_subfield => $authtypecode );
+    } else {
+        $record->add_fields( $auth_type_tag, '', '', $auth_type_subfield => $authtypecode );
+    }
+
+    if ( C4::Context->preference('StripWhitespaceChars') ) {
+        my $p = Koha::RecordProcessor->new( { filters => qw(TrimFields) } );
+        $p->process($record);
+    }
 
     # Save record into auth_header, update 001
     my $action;
     my $authority;
-    if (!$authid ) {
+    if ( !$authid ) {
         $action = 'create';
+
         # Save a blank record, get authid
-        $authority = Koha::Authority->new({ datecreated => \'NOW()', marcxml => '' })->store();
+        $authority = Koha::Authority->new(
+            {
+                datecreated  => \'NOW()',
+                marcxml      => '',
+                authtypecode => $authtypecode
+            }
+        )->store();
         $authority->discard_changes();
         $authid = $authority->authid;
         logaction( "AUTHORITIES", "ADD", $authid, "authority" ) if C4::Context->preference("AuthoritiesLog");
     } else {
-        $action = 'modify';
+        $action    = 'modify';
         $authority = Koha::Authorities->find($authid);
+        $authority->authtypecode($authtypecode);
+        # In the case we are changing type we need to set this to ensure heading field is correctly chosen
     }
 
     # Insert/update the recordID in MARC record
     $record->delete_field( $record->field('001') );
     $record->insert_fields_ordered( MARC::Field->new( '001', $authid ) );
-    # Update
-    $authority->update({ authtypecode => $authtypecode, marc => $record->as_usmarc, marcxml => $record->as_xml_record($format) });
 
-    unless ( $skip_record_index ) {
-        my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::AUTHORITIES_INDEX });
+    my $heading = $authority->heading_object( { record => $record } );
+
+    # Update
+    $authority->update(
+        {
+            authtypecode => $authtypecode,
+            marc         => $record->as_usmarc,
+            marcxml      => $record->as_xml_record($format),
+            heading      => $heading ? $heading->display_form : '',
+        }
+    );
+
+    unless ($skip_record_index) {
+        my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::AUTHORITIES_INDEX } );
         $indexer->index_records( $authid, "specialUpdate", "authorityserver", $record );
     }
 
-    _after_authority_action_hooks({ action => $action, authority_id => $authid });
-    return ( $authid );
+    _after_authority_action_hooks( { action => $action, authority_id => $authid } );
+    return ($authid);
 }
 
 =head2 DelAuthority
@@ -933,6 +961,8 @@ sub BuildSummary {
     my @seefrom;
     my @seealso;
     my @otherscript;
+    my @equalterm;
+
     if (C4::Context->preference('marcflavour') eq 'UNIMARC') {
 # construct UNIMARC summary, that is quite different from MARC21 one
 # accepted form
@@ -980,12 +1010,14 @@ sub BuildSummary {
         } } $record->field('7..');
 
     } else {
-# construct MARC21 summary
-# FIXME - looping over 1XX is questionable
-# since MARC21 authority should have only one 1XX
+        # construct MARC21 summary
+        # FIXME - looping over 1XX is questionable
+        # since MARC21 authority should have only one 1XX
         use C4::Heading::MARC21;
         my $handler = C4::Heading::MARC21->new();
         my $subfields_to_report;
+        my $delimiter = C4::Context->preference('AuthoritySeparator');
+
         foreach my $field ($record->field('1..')) {
             my $tag = $field->tag();
             next if "152" eq $tag;
@@ -1064,6 +1096,73 @@ sub BuildSummary {
         foreach my $field ($record->field('6..')) {
             push @notes, { note => $field->as_string(), field => $field->tag() };
         }
+
+    foreach my $field ( $record->field('7..') ) {
+        my $subfields_to_subdivision;
+        my $tag = $field->tag();
+
+        if ( $tag eq '700' ) {
+            $subfields_to_report      = 'abcdefghjklmnopqrst';
+            $subfields_to_subdivision = 'vxyz';
+        } elsif ( $tag eq '710' ) {
+            $subfields_to_report      = 'abcdefghklmnoprst';
+            $subfields_to_subdivision = 'vxyz';
+        } elsif ( $tag eq '711' ) {
+            $subfields_to_report      = 'acdefghklnpqst';
+            $subfields_to_subdivision = 'vxyz';
+        } elsif ( $tag eq '730' ) {
+            $subfields_to_report      = 'adfghklmnoprst';
+            $subfields_to_subdivision = 'vxyz';
+        } elsif ( $tag eq '748' ) {
+            $subfields_to_report      = 'ab';
+            $subfields_to_subdivision = 'vxyz';
+        } elsif ( $tag eq '750' ) {
+            $subfields_to_report      = 'ab';
+            $subfields_to_subdivision = 'vxyz';
+        } elsif ( $tag eq '751' ) {
+            $subfields_to_report      = 'a';
+            $subfields_to_subdivision = 'vxyz';
+        } elsif ( $tag eq '755' ) {
+            $subfields_to_report      = 'abvxyz';
+            $subfields_to_subdivision = 'vxyz';
+        } elsif ( $tag eq '780' ) {
+            $subfields_to_report = 'vxyz';
+            $delimiter           = " ";
+        } elsif ( $tag eq '781' ) {
+            $subfields_to_report = 'vxyz';
+            $delimiter           = " ";
+        } elsif ( $tag eq '782' ) {
+            $subfields_to_report = 'vxyz';
+            $delimiter           = " ";
+        } elsif ( $tag eq '785' ) {
+            $subfields_to_report = 'vxyz';
+            $delimiter           = " ";
+        }
+
+        my $heading = $field->as_string($subfields_to_report);
+
+        if ($subfields_to_subdivision) {
+            my $subheading = $field->as_string( $subfields_to_subdivision, $delimiter );
+            if ( length $subheading > 0 ) {
+                $heading .= $delimiter . $subheading;
+            }
+        }
+
+        if ($subfields_to_report) {
+            push @equalterm, {
+                heading => $heading,
+                hemain  => ( $field->subfield( substr( $subfields_to_report, 0, 1 ) ) // undef ),
+                field   => $tag,
+            };
+        } else {
+            push @equalterm, {
+                heading => $field->as_string(),
+                hemain  => ( $field->subfield('a') // undef ),
+                field   => $tag,
+            };
+        }
+    }
+
         foreach my $field ($record->field('880')) {
             my $linkage = $field->subfield('6');
             my $category = substr $linkage, 0, 1;
@@ -1084,13 +1183,14 @@ sub BuildSummary {
             push @otherscript, { term => $field->as_string($subfields_to_report), category => $category, type => $type, direction => $direction, linkage => $linkage };
         }
     }
-    $summary{mainentry} = $authorized[0]->{heading};
+    $summary{mainentry}     = $authorized[0]->{heading};
     $summary{mainmainentry} = $authorized[0]->{hemain};
-    $summary{authorized} = \@authorized;
-    $summary{notes} = \@notes;
-    $summary{seefrom} = \@seefrom;
-    $summary{seealso} = \@seealso;
-    $summary{otherscript} = \@otherscript;
+    $summary{authorized}    = \@authorized;
+    $summary{notes}         = \@notes;
+    $summary{seefrom}       = \@seefrom;
+    $summary{seealso}       = \@seealso;
+    $summary{otherscript}   = \@otherscript;
+    $summary{equalterm}     = \@equalterm;
     return \%summary;
 }
 
@@ -1548,8 +1648,11 @@ sub merge {
                 }
                 if( exists $controlled_ind->{sub2} ) { # thesaurus info
                     if( defined $controlled_ind->{sub2} ) {
-                        # Add or replace
-                        $field_to->update( 2 => $controlled_ind->{sub2} );
+                        # Add or replace when not empty. If empty, an existing
+                        # $2 value is retained (see also bug 40119).
+                        if ( $controlled_ind->{sub2} ne q{} ) {
+                            $field_to->update( 2 => $controlled_ind->{sub2} );
+                        }
                     } else {
                         # Key alerts us here to remove $2
                         $field_to->delete_subfield( code => '2' );
@@ -1569,7 +1672,7 @@ sub merge {
             }
         }
         next if !$update;
-        ModBiblio($marcrecord, $biblio->biblionumber, $biblio->frameworkcode);
+        ModBiblio( $marcrecord, $biblio->biblionumber, $biblio->frameworkcode, { disable_autolink => 1 } );
         $counteditedbiblio++;
     }
     return $counteditedbiblio;

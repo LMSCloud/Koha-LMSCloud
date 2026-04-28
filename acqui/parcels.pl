@@ -87,6 +87,7 @@ my $code           = $input->param('filter');
 my $datefrom       = $input->param('datefrom');
 my $dateto         = $input->param('dateto');
 my $resultsperpage = $input->param('resultsperpage');
+my $include_closed = $input->param('filter_include_closed');
 my $op             = $input->param('op');
 $resultsperpage ||= 20;
 
@@ -103,7 +104,7 @@ my $shipmentcost = $input->param('shipmentcost');
 my $shipmentcost_budgetid = $input->param('shipmentcost_budgetid');
 my $shipmentdate = $input->param('shipmentdate');
 
-if ( $op and $op eq 'new' ) {
+if ( $op and $op eq 'cud-new' ) {
     if ( C4::Context->preference('AcqWarnOnDuplicateInvoice') ) {
         my @invoices = GetInvoices(
             supplierid    => $booksellerid,
@@ -118,10 +119,10 @@ if ( $op and $op eq 'new' ) {
               $shipmentcost_budgetid;
         }
     }
-    $op = 'confirm' unless $template->{'VARS'}->{'duplicate_invoices'};
+    $op = 'cud-confirm' unless $template->{'VARS'}->{'duplicate_invoices'};
 }
 
-if ($op and $op eq 'confirm') {
+if ($op and $op eq 'cud-confirm') {
     my $invoiceid = AddInvoice(
         invoicenumber => $invoicenumber,
         booksellerid => $booksellerid,
@@ -131,17 +132,8 @@ if ($op and $op eq 'confirm') {
     );
     if (defined $invoiceid) {
 
-        my @additional_fields;
-        my $invoice_fields = Koha::AdditionalFields->search({ tablename => 'aqinvoices' });
-        while ( my $field = $invoice_fields->next ) {
-            my $value = $input->param('additional_field_' . $field->id);
-            if (defined $value) {
-                push @additional_fields, {
-                    id    => $field->id,
-                    value => $value,
-                };
-            }
-        }
+        my @additional_fields =
+            Koha::Acquisition::Invoices->find($invoiceid)->prepare_cgi_additional_field_values( $input, 'aqinvoices' );
         if (@additional_fields) {
             my $invoice = Koha::Acquisition::Invoices->find( $invoiceid );
             $invoice->set_additional_fields(\@additional_fields);
@@ -159,14 +151,29 @@ $template->param(
 );
 
 my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
-my @parcels = GetInvoices(
-    supplierid => $booksellerid,
+my @parcels    = GetInvoices(
+    supplierid    => $booksellerid,
     invoicenumber => $code,
     ( $datefrom ? ( shipmentdatefrom => $datefrom ) : () ),
     ( $dateto   ? ( shipmentdateto   => $dateto   ) : () ),
-    order_by => $order
+    order_by => $order,
+    ( $include_closed ? () : ( closedate => undef ) ),
 );
 my $count_parcels = @parcels;
+
+unless ($include_closed) {
+
+    # FIXME Implement and use Koha::Acquisition::Bookseller->invoices;
+    my $closed_invoices = Koha::Acquisition::Invoices->search(
+        {
+            booksellerid => $booksellerid,
+            ( $datefrom ? ( shipmentdatefrom => $datefrom ) : () ),
+            ( $dateto   ? ( shipmentdateto   => $dateto )   : () ),
+            closedate => { '!=' => undef },
+        }
+    );
+    $template->param( closed_invoices => $closed_invoices->count );
+}
 
 # multi page display gestion
 $startfrom ||= 0;
@@ -219,6 +226,7 @@ $template->param(
     datefrom                 => $datefrom,
     dateto                   => $dateto,
     resultsperpage           => $resultsperpage,
+    filter_include_closed    => $include_closed,
     name                     => $bookseller->name,
     shipmentdate_today       => dt_from_string,
     booksellerid             => $booksellerid,

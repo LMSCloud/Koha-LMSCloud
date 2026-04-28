@@ -36,19 +36,17 @@ my $query = CGI->new;
 my $subscriptionid = $query->param('subscriptionid');
 my $issue = $query->param('issue');
 my $routingid;
-my $ok = $query->param('ok');
-my $edit = $query->param('edit');
-my $delete = $query->param('delete');
+my $op = $query->param('op') || q{};
 my $dbh = C4::Context->dbh;
 
-if($delete){
+if($op eq 'cud-delete'){
     delroutingmember($routingid,$subscriptionid);
     my $sth = $dbh->prepare("UPDATE serial SET routingnotes = NULL WHERE subscriptionid = ?");
     $sth->execute($subscriptionid);
     print $query->redirect("routing.pl?subscriptionid=$subscriptionid&op=new");
 }
 
-if($edit){
+if($op eq 'cud-edit'){
     print $query->redirect("routing.pl?subscriptionid=$subscriptionid");
 }
 
@@ -58,7 +56,7 @@ my ($tmp ,@serials) = GetSerials($subscriptionid);
 my ($template, $loggedinuser, $cookie);
 
 my $library;
-if($ok){
+if($op eq 'cud-save_and_preview'){
     # get biblio information....
     my $biblionumber = $subs->{'bibnum'};
 
@@ -71,13 +69,7 @@ if($ok){
     $library = Koha::Libraries->find($branch);
 
 	if (C4::Context->preference('RoutingListAddReserves')){
-		# get existing reserves .....
 
-        my $holds = $biblio->current_holds;
-        my $count = $holds->count;
-        while ( my $hold = $holds->next ) {
-            $count-- if $hold->is_waiting;
-        }
 		my $notes;
 		my $title = $subs->{'bibliotitle'};
         for my $routing ( @routinglist ) {
@@ -106,20 +98,26 @@ if($ok){
         }
     }
 	}
-
-    ($template, $loggedinuser, $cookie)
-= get_template_and_user({template_name => "serials/routing-preview-slip.tt",
-				query => $query,
-				type => "intranet",
-				flagsrequired => {serials => '*'},
-				});
+    print $query->redirect("/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=$subscriptionid&print_routing_list_issue=" . $query->param('issue_escaped'));
+    exit;
+} elsif ( $op eq 'print' ) {
+    ( $template, $loggedinuser, $cookie ) = get_template_and_user(
+        {
+            template_name => "serials/routing-preview-slip.tt",
+            query         => $query,
+            type          => "intranet",
+            flagsrequired => { serials => '*' },
+        }
+    );
 } else {
-    ($template, $loggedinuser, $cookie)
-= get_template_and_user({template_name => "serials/routing-preview.tt",
-				query => $query,
-				type => "intranet",
-				flagsrequired => {serials => '*'},
-				});
+    ( $template, $loggedinuser, $cookie ) = get_template_and_user(
+        {
+            template_name => "serials/routing-preview.tt",
+            query         => $query,
+            type          => "intranet",
+            flagsrequired => { serials => '*' },
+        }
+    );
 }
 
 $template->param( libraryname => $library->branchname ) if $library;

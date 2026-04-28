@@ -32,7 +32,6 @@ use CGI qw ( -utf8 );
 use C4::Members;
 use C4::Accounts;
 use C4::CashRegisterManagement qw(passCashRegisterCheck);
-use Koha::Token;
 
 use Koha::Patrons;
 use Koha::Items;
@@ -78,11 +77,16 @@ output_and_exit_if_error(
 
 my $library_id = C4::Context->userenv->{'branch'};
 my $checkCashRegisterOk = passCashRegisterCheck($library_id,$loggedinuser);
+
+my $op = $input->param('op') // q{};
+
+my $add        = $input->param('add');
 my $desc       = $input->param('desc');
 my $amount     = $input->param('amount');
 my $note       = $input->param('note');
 my $debit_type = $input->param('type');
 my $barcode    = $input->param('barcode');
+
 $template->param(
     desc    => $desc,
     amount  => $amount,
@@ -92,16 +96,7 @@ $template->param(
     checkCashRegisterFailed   => (! $checkCashRegisterOk),
 );
 
-my $add = $input->param('add');
-if ($add) {
-    output_and_exit( $input, $cookie, $template, 'wrong_csrf_token' )
-      unless Koha::Token->new->check_csrf(
-        {
-            session_id => scalar $input->cookie('CGISESSID'),
-            token      => scalar $input->param('csrf_token'),
-        }
-      );
-
+if ( $op eq 'cud-add' ) {
     # Note: If the logged in user is not allowed to see this patron an invoice can be forced
     # Here we are trusting librarians not to hack the system
     my $desc       = $input->param('desc');
@@ -169,17 +164,7 @@ if ($add) {
                 }
             );
 
-            my @additional_fields;
-            my $accountline_fields = Koha::AdditionalFields->search({ tablename => 'accountlines:debit' });
-            while ( my $field = $accountline_fields->next ) {
-                my $value = $input->param('additional_field_' . $field->id);
-                if (defined $value) {
-                    push @additional_fields, {
-                        id => $field->id,
-                        value => $value,
-                    };
-                }
-            }
+            my @additional_fields = $line->prepare_cgi_additional_field_values( $input, 'accountlines:debit' );
             if (@additional_fields) {
                 $line->set_additional_fields(\@additional_fields);
             }
@@ -225,14 +210,12 @@ if ($add) {
 }
 
 my $debit_types = Koha::Account::DebitTypes->search_with_library_limits(
-  { can_be_invoiced => 1, archived => 0 },
-  {}, $library_id );
+    { can_be_invoiced => 1, archived => 0 },
+    { order_by => { -asc => 'description' } }, $library_id
+);
 
 $template->param(
   debit_types => $debit_types,
-  csrf_token  => Koha::Token->new->generate_csrf(
-      { session_id => scalar $input->cookie('CGISESSID') }
-  ),
   patron    => $patron,
   finesview => 1,
   available_additional_fields => [ Koha::AdditionalFields->search({ tablename => 'accountlines:debit' })->as_list ],

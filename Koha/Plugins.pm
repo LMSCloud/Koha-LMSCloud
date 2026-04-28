@@ -26,12 +26,14 @@ use Module::Load::Conditional qw( can_load );
 use Module::Load;
 use Module::Pluggable search_path => ['Koha::Plugin'], except => qr/::Edifact(|::Line|::Message|::Order|::Segment|::Transport)$/;
 use Try::Tiny;
+use POSIX qw(getpid);
 
 use C4::Context;
 use C4::Output;
 
 use Koha::Cache::Memory::Lite;
 use Koha::Exceptions::Plugin;
+use Koha::Plugins::Datas;
 use Koha::Plugins::Methods;
 
 use constant ENABLED_PLUGINS_CACHE_KEY => 'enabled_plugins';
@@ -80,7 +82,7 @@ sub call {
     return unless C4::Context->config('enable_plugins');
 
     my @responses;
-    my @plugins = $class->get_enabled_plugins();
+    my @plugins = $class->get_enabled_plugins( { verbose => 0 } );
     @plugins = grep { $_->can($method) } @plugins;
 
     # TODO: Remove warn when after_hold_create is removed from the codebase
@@ -104,26 +106,30 @@ sub call {
 
 Returns a list of enabled plugins.
 
-    @plugins = Koha::Plugins->get_enabled_plugins();
+    @plugins = Koha::Plugins->get_enabled_plugins( [ verbose => 1 ] );
 
 =cut
 
 sub get_enabled_plugins {
-    my ($class) = @_;
+    my ( $class, $params ) = @_;
 
     return unless C4::Context->config('enable_plugins');
 
     my $enabled_plugins = Koha::Cache::Memory::Lite->get_from_cache(ENABLED_PLUGINS_CACHE_KEY);
     unless ($enabled_plugins) {
+        my $verbose = $params->{verbose} // $class->_verbose;
         $enabled_plugins = [];
-        my $rs = Koha::Database->schema->resultset('PluginData');
-        $rs = $rs->search({ plugin_key => '__ENABLED__', plugin_value => 1 });
-        my @plugin_classes = $rs->get_column('plugin_class')->all();
+
+        my @plugin_classes;
+        try {
+            my $rs = Koha::Plugins::Datas->search({ plugin_key => '__ENABLED__', plugin_value => 1 });
+            @plugin_classes = $rs->get_column('plugin_class');
+        } catch {
+            warn "$_";
+        };
+
         foreach my $plugin_class (@plugin_classes) {
-            unless (can_load(modules => { $plugin_class => undef }, nocache => 1)) {
-                warn "Failed to load $plugin_class: $Module::Load::Conditional::ERROR";
-                next;
-            }
+            next unless can_load( modules => { $plugin_class => undef }, verbose => $verbose, nocache => 1 );
 
             my $plugin = eval { $plugin_class->new() };
             if ($@ || !$plugin) {
@@ -139,6 +145,35 @@ sub get_enabled_plugins {
     return @$enabled_plugins;
 }
 
+sub _verbose {
+    my $class = shift;
+    # Return false when running unit tests
+    return exists $ENV{_} && $ENV{_} =~ /\/prove(\s|$)|\/koha-qa\.pl$|\.t$/ ? 0 : 1;
+}
+
+=head2 feature_enabled
+
+Returns a boolean denoting whether a plugin based feature is enabled or not.
+
+    $enabled = Koha::Plugins->feature_enabled('method_name');
+
+=cut
+
+sub feature_enabled {
+    my ( $class, $method ) = @_;
+
+    return 0 unless C4::Context->config('enable_plugins');
+
+    my $key     = "ENABLED_PLUGIN_FEATURE_" . $method;
+    my $feature = Koha::Cache::Memory::Lite->get_from_cache($key);
+    unless ( defined($feature) ) {
+        my @plugins = $class->get_enabled_plugins( { verbose => 0 } );
+        my $enabled = any { $_->can($method) } @plugins;
+        Koha::Cache::Memory::Lite->set_in_cache( $key, $enabled );
+    }
+    return $feature;
+}
+
 =head2 GetPlugins
 
 This will return a list of all available plugins, optionally limited by
@@ -147,10 +182,19 @@ method or metadata value.
     my @plugins = Koha::Plugins::GetPlugins({
         method => 'some_method',
         metadata => { some_key => 'some_value' },
+        [ all => 1, errors => 1, verbose => 1 ],
     });
 
 The method and metadata parameters are optional.
 If you pass multiple keys in the metadata hash, all keys must match.
+
+If you pass errors (only used in plugins-home), we return two arrayrefs:
+
+    ( $good, $bad ) = Koha::Plugins::GetPlugins( { errors => 1 } );
+
+If you pass verbose, you can enable or disable explicitly warnings
+from Module::Load::Conditional. Disabled by default to not flood
+the logs.
 
 =cut
 
@@ -159,6 +203,10 @@ sub GetPlugins {
 
     my $method       = $params->{method};
     my $req_metadata = $params->{metadata} // {};
+    my $errors       = $params->{errors};
+
+    # By default dont warn here unless asked to do so.
+    my $verbose      = $params->{verbose} // 0;
 
     my $filter = ( $method ) ? { plugin_method => $method } : undef;
 
@@ -169,12 +217,11 @@ sub GetPlugins {
         }
     )->_resultset->get_column('plugin_class');
 
-    my @plugins;
 
     # Loop through all plugins that implement at least a method
+    my ( @plugins, @failing );
     while ( my $plugin_class = $plugin_classes->next ) {
-
-        if ( can_load( modules => { $plugin_class => undef }, nocache => 1 ) ) {
+        if ( can_load( modules => { $plugin_class => undef }, verbose => $verbose, nocache => 1 ) ) {
 
             my $plugin;
             my $failed_instantiation;
@@ -204,18 +251,17 @@ sub GetPlugins {
                 and any { !$plugin_metadata->{$_} || $plugin_metadata->{$_} ne $req_metadata->{$_} } keys %$req_metadata;
 
             push @plugins, $plugin;
-        } elsif ( defined($params->{errors}) && $params->{errors} ){
-            push @plugins, { error => 'cannot_load', name => $plugin_class };
+        } elsif( $errors ) {
+            push @failing, { error => 1, name => $plugin_class };
         }
-
     }
 
-    return @plugins;
+    return $errors ? ( \@plugins, \@failing ) : @plugins;
 }
 
 =head2 InstallPlugins
 
-Koha::Plugins::InstallPlugins()
+Koha::Plugins::InstallPlugins( [ verbose => 1 ] )
 
 This method iterates through all plugins physically present on a system.
 For each plugin module found, it will test that the plugin can be loaded,
@@ -228,12 +274,13 @@ has removed a plugin directly from the system without using the UI
 
 sub InstallPlugins {
     my ( $self, $params ) = @_;
+    my $verbose = $params->{verbose} // $self->_verbose;
 
     my @plugin_classes = $self->plugins();
     my @plugins;
 
     foreach my $plugin_class (@plugin_classes) {
-        if ( can_load( modules => { $plugin_class => undef }, nocache => 1 ) ) {
+        if ( can_load( modules => { $plugin_class => undef }, verbose => $verbose, nocache => 1 ) ) {
             next unless $plugin_class->isa('Koha::Plugins::Base');
 
             my $plugin;
@@ -261,16 +308,68 @@ sub InstallPlugins {
             }
 
             push @plugins, $plugin;
-        } else {
-            my $error = $Module::Load::Conditional::ERROR;
-            # Do not warn the error if the plugin has been uninstalled
-            warn $error unless $error =~ m|^Could not find or check module '$plugin_class'|;
         }
     }
 
     Koha::Cache::Memory::Lite->clear_from_cache(ENABLED_PLUGINS_CACHE_KEY);
 
+    $self->_restart_after_change();
+
     return @plugins;
+}
+
+=head2 RemovePlugins
+
+    Koha::Plugins->RemovePlugins( {
+        [ plugin_class => MODULE_NAME, destructive => 1, disable => 1 ],
+    } );
+
+    This is primarily for unit testing. Take care when you pass the
+    destructive flag (know what you are doing)!
+
+    The method removes records from plugin_methods for one or all plugins.
+
+    If you pass the destructive flag, it will remove records too from
+    plugin_data for one or all plugins. Destructive overrules disable.
+
+    If you pass disable, it will disable one or all plugins (in plugin_data).
+
+    If you do not pass destructive or disable, this method does not touch
+    records in plugin_data. The cache key for enabled plugins will be cleared
+    only if you pass disabled or destructive.
+
+=cut
+
+sub RemovePlugins {
+    my ( $class, $params ) = @_;
+
+    my $cond = {
+        $params->{plugin_class}
+        ? ( plugin_class => $params->{plugin_class} )
+        : ()
+    };
+    Koha::Plugins::Methods->search($cond)->delete;
+    if ( $params->{destructive} ) {
+        Koha::Plugins::Datas->search($cond)->delete;
+        Koha::Cache::Memory::Lite->clear_from_cache( Koha::Plugins->ENABLED_PLUGINS_CACHE_KEY );
+    } elsif ( $params->{disable} ) {
+        $cond->{plugin_key} = '__ENABLED__';
+        Koha::Plugins::Datas->search($cond)->update( { plugin_value => 0 } );
+        Koha::Cache::Memory::Lite->clear_from_cache( Koha::Plugins->ENABLED_PLUGINS_CACHE_KEY );
+    }
+
+    $class->_restart_after_change();
+}
+
+sub _restart_after_change {
+    my ( $class, $params ) = @_;
+
+    return unless ( C4::Context->config('plugins_restart') && C4::Context->psgi_env );
+
+    my $parent_pid = getppid();
+
+    # Send HUP signal to Plack parent process for graceful restart
+    kill 'HUP', $parent_pid;
 }
 
 1;

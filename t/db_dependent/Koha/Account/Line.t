@@ -25,7 +25,7 @@ use Test::MockModule;
 
 use DateTime;
 
-use C4::Circulation qw( AddRenewal CanBookBeRenewed LostItem AddIssue AddReturn );
+use C4::Circulation qw( AddRenewal CanBookBeRenewed LostItem AddIssue AddReturn MarkIssueReturned );
 use Koha::Account;
 use Koha::Account::Lines;
 use Koha::Account::Offsets;
@@ -394,6 +394,7 @@ subtest 'apply() tests' => sub {
     is( $messages[0]->payload->{success}, 1, "'success' key in payload" );
 
     t::lib::Mocks::mock_preference( 'MarkLostItemsAsReturned', 'onpayment');
+    t::lib::Mocks::mock_userenv( { branchcode => $library->id } );
     my $loser  = $builder->build_object( { class => 'Koha::Patrons' } );
     my $loser_account = $loser->account;
 
@@ -443,14 +444,12 @@ subtest 'apply() tests' => sub {
 
     is( $loser->checkouts->next, undef, "Item has been returned");
 
-
-
     $schema->storage->txn_rollback;
 };
 
-subtest 'Keep account info when related patron, staff, item or cash_register is deleted' => sub {
+subtest 'Keep account info when related patron, staff, item, issue or cash_register is deleted' => sub {
 
-    plan tests => 4;
+    plan tests => 7;
 
     $schema->storage->txn_begin;
 
@@ -460,24 +459,36 @@ subtest 'Keep account info when related patron, staff, item or cash_register is 
     my $issue = $builder->build_object(
         {
             class => 'Koha::Checkouts',
-            value => { itemnumber => $item->itemnumber }
+            value => { itemnumber => $item->itemnumber, borrowernumber => $patron->borrowernumber }
         }
     );
     my $register = $builder->build_object({ class => 'Koha::Cash::Registers' });
 
     my $line = Koha::Account::Line->new(
-    {
-        borrowernumber => $patron->borrowernumber,
-        manager_id     => $staff->borrowernumber,
-        itemnumber     => $item->itemnumber,
-        debit_type_code    => "OVERDUE",
-        status         => "RETURNED",
-        amount         => 10,
-        interface      => 'commandline',
-        register_id    => $register->id
-    })->store;
+        {
+            borrowernumber  => $patron->borrowernumber,
+            manager_id      => $staff->borrowernumber,
+            itemnumber      => $item->itemnumber,
+            debit_type_code => "OVERDUE",
+            issue_id        => $issue->id,
+            old_issue_id    => undef,
+            status          => "RETURNED",
+            amount          => 10,
+            interface       => 'commandline',
+            register_id     => $register->id
+        }
+    )->store;
 
-    $issue->delete;
+    MarkIssueReturned($patron->borrowernumber, $item->itemnumber, undef, 0 );
+    $line = $line->get_from_storage;
+    is( $line->issue_id, undef, "The account line should not be deleted when the related issue is archived");
+    is( $line->old_issue_id, $issue->id, "The account line link to the archived issue");
+
+    my $old_issue = Koha::Old::Checkouts->find($issue->id);
+    $old_issue->delete;
+    $line = $line->get_from_storage;
+    is( $line->old_issue_id, undef, "The account line should not be deleted when the related old_issue is delete");
+
     $item->delete;
     $line = $line->get_from_storage;
     is( $line->itemnumber, undef, "The account line should not be deleted when the related item is delete");
@@ -511,12 +522,14 @@ subtest 'Renewal related tests' => sub {
             class => 'Koha::Checkouts',
             value => {
                 itemnumber      => $item->itemnumber,
+                borrowernumber  => $patron->borrowernumber,
                 onsite_checkout => 0,
                 renewals_count  => 99,
                 auto_renew      => 0
             }
         }
     );
+
     my $line = Koha::Account::Line->new(
     {
         borrowernumber    => $patron->borrowernumber,
@@ -692,7 +705,7 @@ subtest 'adjust() tests' => sub {
 };
 
 subtest 'checkout() tests' => sub {
-    plan tests => 6;
+    plan tests => 7;
 
     $schema->storage->txn_begin;
 
@@ -702,16 +715,19 @@ subtest 'checkout() tests' => sub {
     my $account = $patron->account;
 
     t::lib::Mocks::mock_userenv({ branchcode => $library->branchcode });
-    my $checkout = AddIssue( $patron->unblessed, $item->barcode );
+    my $checkout = AddIssue( $patron, $item->barcode );
 
-    my $line = $account->add_debit({
-        amount    => 10,
-        interface => 'commandline',
-        item_id   => $item->itemnumber,
-        issue_id  => $checkout->issue_id,
-        type      => 'OVERDUE',
-        status    => 'UNRETURNED'
-    });
+    my $line = $account->add_debit(
+        {
+            amount       => 10,
+            interface    => 'commandline',
+            item_id      => $item->itemnumber,
+            issue_id     => $checkout->issue_id,
+            old_issue_id => undef,
+            type         => 'OVERDUE',
+            status       => 'UNRETURNED'
+        }
+    );
 
     my $line_checkout = $line->checkout;
     is( ref($line_checkout), 'Koha::Checkout', 'Result type is correct' );
@@ -729,8 +745,14 @@ subtest 'checkout() tests' => sub {
     is( ref($old_line_checkout), 'Koha::Old::Checkout', 'Result type is correct' );
     is( $old_line_checkout->issue_id, $old_checkout->issue_id, 'Koha::Account::Line->checkout should return the correct old_checkout' );
 
-    $line->issue_id(undef)->store;
+    $old_line_checkout->delete;
+    $line->discard_changes; #NOTE: discard_changes refreshes the whole resultset, get_from_storage only refreshes the unjoined row
     is( $line->checkout, undef, 'Koha::Account::Line->checkout should return undef if no checkout linked' );
+
+    $line->old_issue_id(undef)->store;
+    $line->discard_changes; #NOTE: discard_changes refreshes the whole resultset, get_from_storage only refreshes the unjoined row
+    is( $line->checkout, undef, 'Koha::Account::Line->checkout should return undef if no checkout linked' );
+
 
     $schema->storage->txn_rollback;
 };
@@ -815,14 +837,21 @@ subtest "void() tests" => sub {
     my $categorycode = $builder->build({ source => 'Category' })->{ categorycode };
     my $branchcode   = $builder->build({ source => 'Branch' })->{ branchcode };
 
-    my $borrower = Koha::Patron->new( {
-        cardnumber => 'dariahall',
-        surname => 'Hall',
-        firstname => 'Daria',
-    } );
-    $borrower->categorycode( $categorycode );
-    $borrower->branchcode( $branchcode );
-    $borrower->store;
+    my $staff = $builder->build_object({ class => 'Koha::Patrons' });
+    t::lib::Mocks::mock_userenv({ patron => $staff });
+
+    my $borrower = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                cardnumber => 'dariahall',
+                surname => 'Hall',
+                firstname => 'Daria',
+                categorycode => $categorycode,
+                branchcode => $branchcode,
+            }
+        }
+    );
 
     my $account = Koha::Account->new({ patron_id => $borrower->id });
 
@@ -1062,7 +1091,7 @@ subtest "payout() tests" => sub {
 
 subtest "reduce() tests" => sub {
 
-    plan tests => 34;
+    plan tests => 35;
 
     $schema->storage->txn_begin;
 
@@ -1244,6 +1273,29 @@ subtest "reduce() tests" => sub {
     }
     'Koha::Exceptions::Account::IsNotDebit',
       '->reduce() cannot be used on a payout debit';
+
+    # Throw exception if attempting to reduce a voided debt
+    my $payment = Koha::Account::Line->new(
+        {
+            borrowernumber    => $borrower->borrowernumber,
+            amount            => -20,
+            amountoutstanding => -20,
+            interface         => 'commandline',
+            credit_type_code  => 'CREDIT'
+        }
+    )->store();
+    my $void = $payment->void(
+        {
+            interface   => 'intranet',
+            staff_id    => $staff->borrowernumber,
+            branch      => $branchcode,
+        }
+    );
+    throws_ok {
+        $void->reduce($reduce_params);
+    }
+    'Koha::Exceptions::Account::IsNotDebit',
+      '->reduce() cannot be used on a void debit';
 
     $schema->storage->txn_rollback;
 };

@@ -55,7 +55,7 @@ $template->param(
 
 if ( $op eq 'new' ) {
     $template->param(
-        mode             => 'new',
+        op => 'new',
     );
     output_html_with_http_headers $input, $cookie, $template->output;
 
@@ -69,7 +69,7 @@ if ( $op eq 'new' ) {
     }
 
     $template->param(
-        mode           => 'report',
+        op             => 'report',
         msg            => $msg,
         uploads        => $uploads,
         browsecategory => $browsecategory,
@@ -94,13 +94,13 @@ if ( $op eq 'new' ) {
     }
 
     $template->param(
-        mode    => 'report',
+        op      => 'report',
         msg     => $msg,
         uploads => $uploads,
     );
     output_html_with_http_headers $input, $cookie, $template->output;
 
-} elsif ( $op eq 'delete' ) {
+} elsif ( $op eq 'cud-delete' ) {
     # delete only takes the id parameter
     my $rec = Koha::UploadedFiles->find($id);
     undef $rec if $rec && $plugin && !$rec->public;
@@ -113,7 +113,7 @@ if ( $op eq 'new' ) {
         ? JSON::to_json({ $fn || $id, { code => ERR_NOT_DELETED }})
         : '';
     $template->param(
-        mode             => 'deleted',
+        op               => 'new',
         msg              => $msg,
     );
     output_html_with_http_headers $input, $cookie, $template->output;
@@ -124,7 +124,7 @@ if ( $op eq 'new' ) {
     my $fh  = $rec? $rec->file_handle:  undef;
     if ( !$rec || !$fh ) {
         $template->param(
-            mode             => 'new',
+            op               => 'new',
             msg              => JSON::to_json({ $id => { code => ERR_READING }}),
         );
         output_html_with_http_headers $input, $cookie, $template->output;

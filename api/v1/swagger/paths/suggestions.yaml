@@ -14,7 +14,6 @@
       - $ref: "../swagger.yaml#/parameters/per_page"
       - $ref: "../swagger.yaml#/parameters/q_param"
       - $ref: "../swagger.yaml#/parameters/q_body"
-      - $ref: "../swagger.yaml#/parameters/q_header"
       - $ref: "../swagger.yaml#/parameters/request_id_header"
     produces:
       - application/json
@@ -49,7 +48,10 @@
           $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
-        suggestions: suggestions_manage
+        suggestions:
+          - suggestions_manage
+          - suggestions_delete
+          - suggestions_create
   post:
     x-mojo-to: Suggestions#add
     operationId: addSuggestions
@@ -108,7 +110,7 @@
           $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
-        suggestions: suggestions_manage
+        suggestions: suggestions_create
 "/suggestions/{suggestion_id}":
   get:
     x-mojo-to: Suggestions#get
@@ -151,7 +153,10 @@
           $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
-        suggestions: suggestions_manage
+        suggestions:
+          - suggestions_manage
+          - suggestions_delete
+          - suggestions_create
   put:
     x-mojo-to: Suggestions#update
     operationId: updateSuggestion
@@ -245,7 +250,7 @@
           $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
-        suggestions: suggestions_manage
+        suggestions: suggestions_delete
 /suggestions/managers:
   get:
     x-mojo-to: Suggestions#list_managers
@@ -261,7 +266,6 @@
       - $ref: "../swagger.yaml#/parameters/per_page"
       - $ref: "../swagger.yaml#/parameters/q_param"
       - $ref: "../swagger.yaml#/parameters/q_body"
-      - $ref: "../swagger.yaml#/parameters/q_header"
       - name: x-koha-embed
         in: header
         required: false
@@ -271,6 +275,7 @@
           type: string
           enum:
             - extended_attributes
+            - library
         collectionFormat: csv
     produces:
       - application/json
@@ -305,4 +310,7 @@
           $ref: "../swagger.yaml#/definitions/error"
     x-koha-authorization:
       permissions:
-        suggestions: suggestions_manage
+        suggestions:
+          - suggestions_manage
+          - suggestions_delete
+          - suggestions_create

@@ -1,0 +1,170 @@
+---
+/erm/default_usage_reports:
+  get:
+    x-mojo-to: ERM::EUsage::DefaultUsageReports#list
+    operationId: listErmDefaultUsageReports
+    tags:
+      - erm_default_usage_reports
+    summary: List default_usage_reports
+    produces:
+      - application/json
+    parameters:
+      - description: Case insensitive search on erm_default_usage_report_id
+        in: query
+        name: erm_default_usage_report_id
+        required: false
+        type: integer
+      - description: Case insensitive search on default_usage_report report_name
+        in: query
+        name: report_name
+        required: false
+        type: integer
+      - description: Case insensitive search on default_usage_report report_url_params
+        in: query
+        name: report_url_params
+        required: false
+        type: integer
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+    responses:
+      200:
+        description: A list of default_usage_reports
+        schema:
+          items:
+            $ref: "../swagger.yaml#/definitions/erm_default_usage_report"
+          type: array
+      "400":
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `invalid_query`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      403:
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      500:
+        description: |-
+          Internal server error. Possible `error_code` attribute values:
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      503:
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        erm: 1
+  post:
+    x-mojo-to: ERM::EUsage::DefaultUsageReports#add
+    operationId: addErmDefaultUsageReports
+    tags:
+      - erm_default_usage_reports
+    summary: Add default_usage_report
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    parameters:
+      - description: A JSON object containing information about the new default_usage_report
+        in: body
+        name: body
+        required: true
+        schema:
+            $ref: "../swagger.yaml#/definitions/erm_default_usage_report"
+    responses:
+      201:
+        description: A successfully created default_usage_report
+        schema:
+          items:
+            $ref: "../swagger.yaml#/definitions/erm_default_usage_report"
+      400:
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      401:
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      403:
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      404:
+        description: Ressource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      409:
+        description: Conflict in creating resource
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      413:
+        description: Payload too large
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      500:
+        description: |-
+          Internal server error. Possible `error_code` attribute values:
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      503:
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        erm: 1
+"/erm/default_usage_reports/{erm_default_usage_report_id}":
+  delete:
+    x-mojo-to: ERM::EUsage::DefaultUsageReports#delete
+    operationId: deleteERMDefaultUsageReports
+    tags:
+      - erm_default_usage_reports
+    summary: Delete default_usage_report
+    produces:
+      - application/json
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/erm_default_usage_report_id_pp"
+    responses:
+      204:
+        description: default_usage_report deleted
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      401:
+        description: authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      403:
+        description: access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      404:
+        description: ressource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      409:
+        description: conflict in deleting resource
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      500:
+        description: |-
+          internal server error. possible `error_code` attribute values:
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      503:
+        description: under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        erm: 1

@@ -46,17 +46,26 @@ sub list {
 
     # FIXME: Maybe not the best place for this mapping
     my $resource_to_table = {
-        basket  => 'aqbasket',
-        invoice => 'aqinvoices',
-        booking => 'bookings',
-        order   => 'aqorders',
+        basket    => 'aqbasket',
+        credit    => 'accountlines:credit',
+        debit     => 'accountlines:debit',
+        invoice   => 'aqinvoices',
+        booking   => 'bookings',
+        license   => 'erm_licenses',
+        agreement => 'erm_agreements',
+        package   => 'erm_packages',
+        order     => 'aqorders',
     };
 
     return try {
         my $additional_fields_set = Koha::AdditionalFields->new;
-        if ($resource_type) {
+        if ( $resource_type && $resource_to_table->{$resource_type} ) {
             $additional_fields_set =
                 $additional_fields_set->search( { tablename => $resource_to_table->{$resource_type} } );
+        } elsif ($resource_type) {
+            $additional_fields_set = $additional_fields_set->search( { tablename => $resource_type } );
+        } else {
+            $additional_fields_set = $additional_fields_set->search();
         }
 
         return $c->render(

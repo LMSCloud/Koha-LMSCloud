@@ -1,27 +1,28 @@
+[% USE raw %]
 [% USE Koha %]
 [% USE Asset %]
-[% USE raw %]
 [% USE AdditionalContents %]
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Browse our catalog &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+<title>[% FILTER collapse %]
+    [% t("Browse search") | html %] &rsaquo;
+    [% PROCESS 'library_name_title' %]
+[% END %]</title>
+<meta name="robots" content="noindex">
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 [% INCLUDE 'bodytag.inc' bodyid='opac-browser' %]
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-            </li>
-            <li class="breadcrumb-item active">
-                <a href="#" aria-current="page">Browse search</a>
-            </li>
-        </ol>
-    </nav> <!-- /#breadcrumbs -->
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Browse search</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
 
     <div class="container-fluid">
         <div class="row">
@@ -43,7 +44,7 @@
                 <div id="browse-search" class="maincontent">
                     <h1>Browse search</h1>
 
-                    <form>
+                    <form method="get">
                         <legend class="sr-only">Browse search</legend>
                         <div class="form-row">
                             <div class="col">
@@ -52,7 +53,7 @@
                             </div> <!-- /.col-12.col-sm-9 -->
                             <div class="col-auto">
                                 <label for="browse-searchfield">Search type:</label>
-                                <select id="browse-searchfield" name="searchfield" class="form-control">
+                                <select id="browse-searchfield" name="searchfield" class="form-select">
                                     <option value="author">Author</option>
                                     <option value="subject">Subject</option>
                                     <option value="title">Title</option>
@@ -100,10 +101,10 @@
                         <div class="accordion" id="browse-searchresults">
                             <div id="card_template" class="card">
                                 <div class="card-header" id="heading">
-                                    <a class="expand-result" href="#" data-toggle="collapse" aria-expanded="false" aria-controls="collapse">
+                                    <a class="expand-result" href="#" data-bs-toggle="collapse" aria-expanded="false" aria-controls="collapse">
                                     </a>
                                 </div> <!-- /#heading.card-header -->
-                                <div id="collapse" class="collapse" aria-labelledby="heading" data-parent="#browse-searchresults">
+                                <div id="collapse" class="collapse" aria-labelledby="heading" data-bs-parent="#browse-searchresults">
                                     <div class="card-body">
                                     </div>
                                 </div> <!-- /#collapse.collapse -->

@@ -58,9 +58,9 @@ my $borrower_count = scalar(@borrower_numbers);
 
 if ($op eq 'export') {
     if (@label_ids) {
-        my $label_id_param = '&amp;label_id=';
-        $label_id_param .= join ('&amp;label_id=',@label_ids);
-        push (@batches, {create_script   => ($output_format eq 'pdf' ? 'create-pdf.pl' : 'create-csv.pl'),
+        my $label_id_param = '&label_id=';
+        $label_id_param .= join ('&label_id=',@label_ids);
+        push (@batches, {create_script   => ($output_format eq 'pdf' ? 'create-pdf.pl' : 'create-csv.pl'),    #FIXME csv not supported, no script?
                          batch_id        => $batch_ids[0],
                          template_id     => $template_id,
                          layout_id       => $layout_id,
@@ -75,9 +75,9 @@ if ($op eq 'export') {
                         );
     }
     elsif (@borrower_numbers) {
-        my $borrower_number_param = '&amp;borrower_number=';
-        $borrower_number_param .= join ('&amp;borrower_number=',@borrower_numbers);
-        push (@batches, {create_script   => ($output_format eq 'pdf' ? 'create-pdf.pl' : 'create-csv.pl'),
+        my $borrower_number_param = '&borrower_number=';
+        $borrower_number_param .= join ('&borrower_number=',@borrower_numbers);
+        push (@batches, {create_script   => ($output_format eq 'pdf' ? 'create-pdf.pl' : 'create-csv.pl'),    #FIXME csv not supported, no script?
                          template_id     => $template_id,
                          layout_id       => $layout_id,
                          layout_back_id  => $layout_back_id,
@@ -92,7 +92,7 @@ if ($op eq 'export') {
     }
     elsif (@batch_ids) {
         foreach my $batch_id (@batch_ids) {
-           push (@batches, {create_script   => ($output_format eq 'pdf' ? 'create-pdf.pl' : 'create-csv.pl'),
+           push (@batches, {create_script   => ($output_format eq 'pdf' ? 'create-pdf.pl' : 'create-csv.pl'),    #FIXME csv not supported, no script?
                             batch_id        => $batch_id,
                             template_id     => $template_id,
                             layout_id       => $layout_id,

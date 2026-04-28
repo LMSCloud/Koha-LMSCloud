@@ -29,7 +29,7 @@ use Koha::Account::Offsets;
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Exceptions::Account;
-use Koha::Items;
+use Koha::Patron::Debarments;
 
 use base qw(Koha::Object Koha::Object::Mixin::AdditionalFields);
 
@@ -53,7 +53,7 @@ Return the patron linked to this account line
 
 sub patron {
     my ( $self ) = @_;
-    my $rs = $self->_result->borrowernumber;
+    my $rs = $self->_result->patron;
     return unless $rs;
     return Koha::Patron->_new_from_dbic( $rs );
 }
@@ -81,6 +81,7 @@ sub item {
     my ( $self ) = @_;
     my $rs = $self->_result->itemnumber;
     return unless $rs;
+    require Koha::Item;
     return Koha::Item->_new_from_dbic( $rs );
 }
 
@@ -92,10 +93,17 @@ Return the checkout linked to this account line if exists
 
 sub checkout {
     my ($self) = @_;
-    return unless $self->issue_id;
 
-    return Koha::Checkouts->find( $self->issue_id )
-      || Koha::Old::Checkouts->find( $self->issue_id );
+    my $result;
+    if ( $self->issue_id ) {
+        my $issue_rs = $self->_result->issue;
+        $result = Koha::Checkout->_new_from_dbic($issue_rs) if $issue_rs;
+    } elsif ( $self->old_issue_id ) {
+        my $old_issue_rs = $self->_result->old_issue;
+        $result = Koha::Old::Checkout->_new_from_dbic($old_issue_rs) if $old_issue_rs;
+    }
+
+    return $result;
 }
 
 =head3 library
@@ -498,6 +506,10 @@ sub reduce {
         Koha::Exceptions::Account::IsNotDebit->throw(
             error => 'Account line ' . $self->id . 'is a payout' );
     }
+    if ( $self->debit_type_code eq 'VOID' ) {
+        Koha::Exceptions::Account::IsNotDebit->throw(
+            error => 'Account line ' . $self->id . 'is void' );
+    }
 
     # Check for mandatory parameters
     my @mandatory = ( 'interface', 'reduction_type', 'amount' );
@@ -633,73 +645,84 @@ sub apply {
 
     my $schema = Koha::Database->new->schema;
 
-    $schema->txn_do( sub {
-        for my $debit ( @{$debits} ) {
+    $schema->txn_do(
+        sub {
+            for my $debit ( @{$debits} ) {
 
-            unless ( $debit->is_debit ) {
-                Koha::Exceptions::Account::IsNotDebit->throw(
-                    error => 'Account line ' . $debit->id . 'is not a debit'
-                );
-            }
-            my $amount_to_cancel;
-            my $owed = $debit->amountoutstanding;
-
-            if ( $available_credit >= $owed ) {
-                $amount_to_cancel = $owed;
-            }
-            else {    # $available_credit < $debit->amountoutstanding
-                $amount_to_cancel = $available_credit;
-            }
-
-            # record the account offset
-            Koha::Account::Offset->new(
-                {   credit_id => $self->id,
-                    debit_id  => $debit->id,
-                    amount    => $amount_to_cancel * -1,
-                    type      => 'APPLY'
+                unless ( $debit->is_debit ) {
+                    Koha::Exceptions::Account::IsNotDebit->throw(
+                        error => 'Account line ' . $debit->id . 'is not a debit' );
                 }
-            )->store();
+                my $amount_to_cancel;
+                my $owed = $debit->amountoutstanding;
 
-            $available_credit -= $amount_to_cancel;
+                if ( $available_credit >= $owed ) {
+                    $amount_to_cancel = $owed;
+                } else {    # $available_credit < $debit->amountoutstanding
+                    $amount_to_cancel = $available_credit;
+                }
 
-            $self->amountoutstanding( $available_credit * -1 )->store;
-            $debit->amountoutstanding( $owed - $amount_to_cancel )->store;
-
-            # Attempt to renew the item associated with this debit if
-            # appropriate
-            if ( $self->credit_type_code ne 'FORGIVEN' && $debit->is_renewable ) {
-                my $outcome = $debit->renew_item( { interface => $params->{interface} } );
-                $self->add_message(
+                # record the account offset
+                Koha::Account::Offset->new(
                     {
-                        type    => 'info',
-                        message => 'renewal',
-                        payload => $outcome
+                        credit_id => $self->id,
+                        debit_id  => $debit->id,
+                        amount    => $amount_to_cancel * -1,
+                        type      => 'APPLY'
                     }
-                ) if $outcome;
-            }
-            $debit->discard_changes; # Refresh values from DB to clear floating point remainders
+                )->store();
 
-            # Same logic exists in Koha::Account::pay
-            if (
-                C4::Context->preference('MarkLostItemsAsReturned') =~
-                m|onpayment|
-                && $debit->debit_type_code
-                && $debit->debit_type_code eq 'LOST'
-                && $debit->amountoutstanding == 0
-                && $debit->itemnumber
-                && !(
-                       $self->credit_type_code eq 'LOST_FOUND'
-                    && $self->itemnumber == $debit->itemnumber
-                )
-              )
-            {
-                C4::Circulation::ReturnLostItem( $self->borrowernumber,
-                    $debit->itemnumber );
-            }
+                $available_credit -= $amount_to_cancel;
 
-            last if $available_credit == 0;
+                $self->amountoutstanding( $available_credit * -1 )->store;
+                $debit->amountoutstanding( $owed - $amount_to_cancel )->store;
+
+                # Attempt to renew the item associated with this debit if
+                # appropriate
+                if ( $self->credit_type_code ne 'FORGIVEN' && $debit->is_renewable ) {
+                    my $outcome = $debit->renew_item( { interface => $params->{interface} } );
+                    $self->add_message(
+                        {
+                            type    => 'info',
+                            message => 'renewal',
+                            payload => $outcome
+                        }
+                    ) if $outcome;
+                }
+                $debit->discard_changes;    # Refresh values from DB to clear floating point remainders
+
+                if (   $debit->debit_type_code
+                    && $debit->debit_type_code eq 'LOST'
+                    && $debit->amountoutstanding == 0
+                    && $debit->itemnumber
+                    && !( $self->credit_type_code eq 'LOST_FOUND' && $self->itemnumber == $debit->itemnumber ) )
+                {
+
+                    if ( C4::Context->preference('UpdateItemLostStatusWhenPaid')
+                        && !( $self->credit_type_code eq 'WRITEOFF' || $self->credit_type_code eq 'VOID' ) )
+                    {
+                        $debit->item->itemlost( C4::Context->preference('UpdateItemLostStatusWhenPaid') )->store();
+                    }
+
+                    if ( C4::Context->preference('UpdateItemLostStatusWhenWriteOff')
+                        && ( $self->credit_type_code eq 'WRITEOFF' || $self->credit_type_code eq 'VOID' ) )
+                    {
+                        $debit->item->itemlost( C4::Context->preference('UpdateItemLostStatusWhenWriteOff') )->store();
+                    }
+
+                    if ( C4::Context->preference('MarkLostItemsAsReturned') =~ m|onpayment| ) {
+                        C4::Circulation::ReturnLostItem(
+                            $self->borrowernumber,
+                            $debit->itemnumber
+                        );
+                    }
+                }
+                last if $available_credit == 0;
+            }
         }
-    });
+    );
+
+    Koha::Patron::Debarments::del_restrictions_after_payment( { borrowernumber => $self->borrowernumber } );
 
     return $self;
 }
@@ -972,13 +995,13 @@ on the API.
 sub to_api_mapping {
     return {
         accountlines_id   => 'account_line_id',
-        credit_number     => undef,
         credit_type_code  => 'credit_type',
         debit_type_code   => 'debit_type',
         amountoutstanding => 'amount_outstanding',
         borrowernumber    => 'patron_id',
         branchcode        => 'library_id',
         issue_id          => 'checkout_id',
+        old_issue_id      => 'old_checkout_id',
         itemnumber        => 'item_id',
         manager_id        => 'user_id',
         note              => 'internal_note',
@@ -1040,20 +1063,19 @@ sub renew_item {
     }
 
     my $itemnumber = $self->item->itemnumber;
-    my $borrowernumber = $self->patron->borrowernumber;
     my ( $can_renew, $error ) = C4::Circulation::CanBookBeRenewed(
-        $borrowernumber,
-        $itemnumber
+        $self->patron,
+        $self->item->checkout
     );
     if ( $can_renew ) {
+        my $borrowernumber = $self->patron->borrowernumber;
         my $due_date = C4::Circulation::AddRenewal(
-            $borrowernumber,
-            $itemnumber,
-            $self->{branchcode},
-            undef,
-            undef,
-            undef,
-            0
+            {
+                borrowernumber => $borrowernumber,
+                itemnumber     => $itemnumber,
+                branch         => $self->{branchcode},
+                seen           => 0
+            }
         );
         return {
             itemnumber => $itemnumber,

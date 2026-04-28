@@ -70,25 +70,26 @@ if($op && ($op eq 'new' || $op eq 'modify')) {
     exit;
 }
 
-if($op && ($op eq 'savenew' || $op eq 'savemod')) {
+if($op && ($op eq 'cud-savenew' || $op eq 'cud-savemod')) {
     my $frequency;
     foreach (qw/ description unit issuesperunit unitsperissue displayorder /) {
         $frequency->{$_} = $input->param($_);
     }
-    $frequency->{unit} = undef if $frequency->{unit} eq '';
+    $frequency->{unit}         = undef if $frequency->{unit} eq '';
+    $frequency->{displayorder} = undef if $frequency->{displayorder} eq '';
     foreach (qw/issuesperunit unitsperissue/) {
         $frequency->{$_} = 1 if $frequency->{$_} !~ /\d+/;
     }
     $frequency->{issuesperunit} = 1 if $frequency->{issuesperunit} < 1;
     $frequency->{unitsperissue} = 1 if $frequency->{issuesperunit} != 1;
 
-    if($op eq 'savemod') {
+    if($op eq 'cud-savemod') {
         $frequency->{id} = $input->param('id');
         ModSubscriptionFrequency($frequency);
     } else {
         AddSubscriptionFrequency($frequency);
     }
-} elsif($op && $op eq 'del') {
+} elsif($op && $op eq 'cud-del') {
     my $frequencyid = $input->param('frequencyid');
 
     if ($frequencyid) {

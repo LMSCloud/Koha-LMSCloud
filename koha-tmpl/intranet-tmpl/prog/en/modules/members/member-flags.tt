@@ -1,12 +1,16 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE Branches %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% PROCESS 'permissions.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
-    Set permissions for [% INCLUDE 'patron-title.inc' no_html = 1 %] &rsaquo; Patrons &rsaquo; Koha
-</title>
+<title>[% FILTER collapse %]
+    [% t("Set permissions for") | html %] [% INCLUDE 'patron-title.inc' no_html = 1 %] &rsaquo;
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -31,35 +35,47 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% INCLUDE 'members-toolbar.inc' %]
 
+
 <form id="flag_form" method="post" action="/cgi-bin/koha/members/member-flags.pl">
-    <input type="hidden" name="csrf_token" value="[% csrf_token | html %]" />
+    [% INCLUDE 'csrf-token.inc' %]
     <input type="hidden" name="member" id="borrowernumber" value="[% patron.borrowernumber | html %]" />
-    <input type="hidden" name="newflags" value="1" />
+    <input type="hidden" name="op" value="cud-newflags" />
     <h1>Set permissions for [% INCLUDE 'patron-title.inc' no_html = 1 %]</h1>
 
     <div id="permissionstree">
-        <div id="permissions_toolbar" class="btn-toolbar">
+        <div id="permissions_toolbar" class="btn-toolbar sticky">
             <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save</button>
-            <a class="btn btn-default" href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | html %]"><i class="fa fa-remove"></i> Cancel</a>
-            <a class="toggleall toggleall_on btn btn-link" href="#"><i class="fa fa-plus-square-o"></i> Show all</a>
-            <a class="toggleall toggleall_off btn btn-link" href="#"><i class="fa fa-minus-square-o"></i> Hide all</a>
+            <a class="btn btn-default" href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | html %]"><i class="fa fa-times"></i> Cancel</a>
+            <a class="toggleall toggleall_on btn btn-link" href="#"><i class="fa-solid fa-square-plus"></i> Show all</a>
+            <a class="toggleall toggleall_off btn btn-link" href="#"><i class="fa-solid fa-square-minus"></i> Hide all</a>
             <a id="CheckAllFlags" class="btn btn-link" href="#">
                 <i class="fa fa-check"></i> Select all
             </a>
             <a id="UncheckAllFlags" class="btn btn-link" href="#">
-                <i class="fa fa-remove"></i> Clear all
+                <i class="fa fa-times"></i> Clear all
             </a>
-            <div class="btn-group pull-right">
-                Filter: <input type="text" name="permissions_filter" id="permissions_filter" size="20" />
-                <a href="#" id="clear_filter" style="display:none"><i class="fa fa-remove"></i></a>
+
+            <div class="btn-group">
+                <button id="copyPermissions" class="btn btn-link"><i class="fa fa-copy"></i> Copy permissions</button>
+                <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown"><span class="caret"></span></button>
+                <ul class="dropdown-menu">
+                    <li><a id="clearCopied" href="#">Forget copied permissions</a></li>
+                </ul>
+            </div>
+
+            <a href="#" id="pastePermissions" class="btn btn-link disabled"><i class="fa fa-paste"></i> Paste permissions</a>
+            <div class="toolbar-filter-form">
+                <label for="permissions_filter">Filter:</label> <input type="text" name="permissions_filter" id="permissions_filter" size="20" />
+                <a href="#" id="clear_filter" style="display:none"><i class="fa fa-times"></i></a>
             </div>
         </div>
-        <div class="permissions">
+        <div class="permissions page-section">
             [% FOREACH loo IN loop %]
                 [% IF ( loo.expand ) %]
                     <div id="parent-flag-[% loo.flag | html %]" class="open parent">
@@ -85,8 +101,8 @@
                     </label>
                     [% IF ( loo.flag == "superlibrarian" ) %]<div class="hint superlibrarian-hint">This permission grants access to all areas. If selected, specific sub-permissions cannot be selected.</div>[% END %]
                 [% IF ( loo.sub_perm_loop ) %]
-                    <a class="toggle-[% loo.bit | html %] togglechildren_off" href="#" data-bit="[% loo.bit | html %]"><i class="fa fa-minus-square-o"></i> Hide details</a>
-                    <a class="toggle-[% loo.bit | html %] togglechildren_on" href="#" data-bit="[% loo.bit | html %]"><i class="fa fa-plus-square-o"></i> Show details</a>
+                    <a class="toggle-[% loo.bit | html %] togglechildren_off" href="#" data-bit="[% loo.bit | html %]"><i class="fa-solid fa-square-minus"></i> Hide details</a>
+                    <a class="toggle-[% loo.bit | html %] togglechildren_on" href="#" data-bit="[% loo.bit | html %]"><i class="fa-solid fa-square-plus"></i> Show details</a>
                     <div class="children" id="flag-[% loo.bit | html %]-children">
                         [% FOREACH sub_perm_loo IN loo.sub_perm_loop %]
                             <div class="child-flags">
@@ -109,21 +125,19 @@
 </form>
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'circ-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'str/members-menu.inc' %]
     [% Asset.js("js/members-menu.js") | $raw %]
-    [% Asset.js("lib/hc-sticky.js") | $raw %]
     <script>
-        var Sticky;
         $(document).ready(function() {
 
             [% IF disable_superlibrarian_privs && patron.is_superlibrarian %]
@@ -155,12 +169,6 @@
                     }
                 });
             [% END %]
-
-            Sticky = $("#permissions_toolbar");
-            Sticky.hcSticky({
-                stickTo: "#permissionstree",
-                stickyClass: "floating"
-            });
 
             $(".open div").show();
 
@@ -268,7 +276,56 @@
                     }
                 }
             });
+
+            if( copied = getCopiedPermissions() ){
+                $("#pastePermissions").removeClass("disabled");
+            }
+
+            /* write to the clipboard now */
+            $("#copyPermissions").on("click", function(e){
+                e.preventDefault();
+                let flags = new Object();
+                $("#flag_form input:checkbox").each(function(){
+                    flags[ $(this).attr('id') ] = $(this).prop("checked");
+                });
+                formText = JSON.stringify( flags );
+                localStorage.setItem("copiedPermissions", formText );
+                toggleBtnIcon( $(this), "fa-copy", "fa-check" );
+                $("#pastePermissions").removeClass("disabled");
+            });
+
+            $("#pastePermissions").on("click", function(e){
+                e.preventDefault();
+                $(".toggleall_on").click();
+                let copiedPermissions = getCopiedPermissions();
+
+                let checkBox;
+                let checked;
+                for( const permission in copiedPermissions ){
+                    checkBox = `${permission}`;
+                    checked = `${copiedPermissions[permission]}` == "true" ? true : false;
+                    $("#" + checkBox).prop("checked", checked );
+                }
+            });
+
+            $("#clearCopied").on("click", function(e){
+                e.preventDefault();
+                localStorage.removeItem("copiedPermissions");
+                $("#pastePermissions").addClass("disabled");
+            });
         });
+
+        function getCopiedPermissions(){
+            const copied = localStorage.getItem("copiedPermissions");
+            let copiedPermissions;
+            try {
+                copiedPermissions = JSON.parse( copied );
+                return copiedPermissions;
+            } catch ( ex ){
+                console.error("Bad parse: ", ex.message );
+                return false;
+            }
+        }
 
         function setLibrarian(){
             $('input[name="flag"]').each(function() {

@@ -1,17 +1,23 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF op == 'add_form' %]
         [% IF csv_profile %]
-            Modify a CSV profile &rsaquo;
+            [% tx("Modify CSV profile '{csv_profile_name}'", {csv_profile_name = csv_profile.profile }) | html %] &rsaquo;
         [% ELSE %]
-            New CSV profile &rsaquo;
+            [% t("New CSV profile") | html %] &rsaquo;
         [% END %]
+    [% ELSIF ( op == 'delete_confirm' ) %]
+        [% tx("Confirm deletion of CSV profile '{csv_profile_name}'", {csv_profile_name = csv_profile.profile }) | html %] &rsaquo;
     [% END %]
-    CSV export profiles &rsaquo; Tools &rsaquo; Koha
-</title>
+    [% t("CSV profiles") | html %] &rsaquo;
+    [% t("Tools") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -25,49 +31,56 @@
         [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
         [% END %]
-        [% IF op == 'add_form' %]
+        [% IF op == 'add_form' || op == 'delete_confirm' %]
             [% WRAPPER breadcrumb_item %]
                 <a href="/cgi-bin/koha/tools/csv-profiles.pl">CSV profiles</a>
             [% END %]
+        [% END %]
+        [% IF op == 'add_form' %]
             [% IF csv_profile %]
                 [% WRAPPER breadcrumb_item bc_active= 1 %]
-                    <span>Modify a CSV profile</span>
+                    [% tx("Modify CSV profile '{csv_profile_name}'", {csv_profile_name = csv_profile.profile }) | html %]
                 [% END %]
             [% ELSE %]
                 [% WRAPPER breadcrumb_item bc_active= 1 %]
                     <span>New CSV profile</span>
                 [% END %]
             [% END %]
+        [% ELSIF ( op == 'delete_confirm') %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% tx("Confirm deletion of CSV profile '{csv_profile_name}'", {csv_profile_name = csv_profile.profile }) | html %]
+            [% END %]
         [% ELSE %]
-        [% WRAPPER breadcrumb_item bc_active= 1 %]
-            <span>CSV profiles</span>
-        [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>CSV profiles</span>
+            [% END %]
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% FOR m IN messages %]
-    <div class="dialog [% m.type | html %]">
+    <div class="alert alert-[% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE 'error_on_update' %]
-            <span>An error occurred when updating this CSV profile. Perhaps it already exists</span>
+            <span>An error occurred when updating this CSV profile. Perhaps it already exists.</span>
         [% CASE 'error_on_insert' %]
-            <span>An error occurred when adding this CSV profile</span>
+            <span>An error occurred when adding this CSV profile.</span>
         [% CASE 'error_on_delete' %]
-            <span>An error occurred when deleting this CSV profile. Check the logs</span>
+            <span>An error occurred when deleting this CSV profile. Check the logs for details.</span>
         [% CASE 'success_on_update' %]
-            <span>CSV profile updated successfully</span>
+            <span>CSV profile updated successfully.</span>
         [% CASE 'success_on_insert' %]
-            <span>CSV profile added successfully</span>
+            <span>CSV profile added successfully.</span>
         [% CASE 'success_on_delete' %]
-            <span>CSV profile deleted successfully</span>
+            <span>CSV profile deleted successfully.</span>
         [% CASE 'already_exists' %]
-            <span>This CSV profile already exists</span>
+            <span>This CSV profile already exists.</span>
         [% CASE %]
             <span>[% m.code | html %]</span>
         [% END %]
@@ -133,13 +146,14 @@
 
 [% IF op == 'add_form' %]
     [% IF csv_profile %]
-        <h1>Modify a CSV profile</h1>
+        <h1>[% tx("Modify CSV profile '{csv_profile_name}'", {csv_profile_name = csv_profile.profile }) | html %]</h1>
     [% ELSE %]
         <h1>New CSV profile</h1>
     [% END %]
 
     <form action="/cgi-bin/koha/tools/csv-profiles.pl" class="validated" method="post">
-        <input type="hidden" name="op" value="add_validate" />
+        [% INCLUDE 'csrf-token.inc' %]
+        <input type="hidden" name="op" value="cud-add_validate" />
         <input type="hidden" name="export_format_id" value="[% csv_profile.export_format_id | html %]" />
         <fieldset class="rows">
             <ol>
@@ -263,16 +277,17 @@
 [% END %]
 
 [% IF op == 'delete_confirm' %]
-    <div class="dialog alert">
+    <div class="alert alert-warning">
         [% IF csv_profile %]
-            <h1>Delete CSV Profile "[% csv_profile.profile | html %]?"</h1>
+            <h1>[% tx("Delete CSV profile '{csv_profile_name}'?", {csv_profile_name = csv_profile.profile }) | html %]</h1>
             <form action="/cgi-bin/koha/tools/csv-profiles.pl" method="post">
-                <input type="hidden" name="op" value="delete_confirmed" />
+                [% INCLUDE 'csrf-token.inc' %]
+                <input type="hidden" name="op" value="cud-delete_confirmed" />
                 <input type="hidden" name="export_format_id" value="[% csv_profile.export_format_id | html %]" />
-                <input type="submit" class="approve" value="Yes, delete" />
+                <button type="submit" class="btn btn-default approve"><i class="fa fa-check" aria-hidden="true"></i> Yes, delete</button>
             </form>
             <form action="/cgi-bin/koha/tools/csv-profiles.pl" method="get">
-                <input type="submit" class="deny" value="No, do not Delete" />
+                <button type="submit" class="btn btn-default deny"><i class="fa fa-remove" aria-hidden="true"></i> No, do not delete</button>
             </form>
         [% ELSE %]
             This CSV Profile does not exist.
@@ -312,8 +327,8 @@
                     <td>[% PROCESS type_description type_code = csv_profile.type %]</td>
                     <td>[% PROCESS used_for_description used_for_code = csv_profile.used_for %]</td>
                     <td class="actions">
-                        <a href="/cgi-bin/koha/tools/csv-profiles.pl?op=add_form&amp;export_format_id=[% csv_profile.export_format_id | uri %]" class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
-                        <a href="/cgi-bin/koha/tools/csv-profiles.pl?op=delete_confirm&amp;export_format_id=[% csv_profile.export_format_id | uri %]" class="btn btn-default btn-xs"><i class="fa fa-trash"></i> Delete</a>
+                        <a href="/cgi-bin/koha/tools/csv-profiles.pl?op=add_form&amp;export_format_id=[% csv_profile.export_format_id | uri %]" class="btn btn-default btn-xs"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+                        <a href="/cgi-bin/koha/tools/csv-profiles.pl?op=delete_confirm&amp;export_format_id=[% csv_profile.export_format_id | uri %]" class="btn btn-default btn-xs"><i class="fa fa-trash-can"></i> Delete</a>
                     </td>
                 </tr>
                 [% END %]
@@ -326,13 +341,13 @@
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'tools-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

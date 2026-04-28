@@ -25,12 +25,9 @@
                             <label for="package_vendor_id"
                                 >{{ $__("Vendor") }}:</label
                             >
-                            <v-select
+                            <FormSelectVendors
                                 id="package_vendor_id"
                                 v-model="erm_package.vendor_id"
-                                label="name"
-                                :reduce="vendor => vendor.id"
-                                :options="vendors"
                             />
                         </li>
                         <li>
@@ -66,11 +63,20 @@
                         </li>
                     </ol>
                 </fieldset>
+                <AdditionalFieldsEntry
+                    resource_type="package"
+                    :additional_field_values="erm_package.extended_attributes"
+                    @additional-fields-changed="additionalFieldsChanged"
+                />
                 <EHoldingsPackageAgreements
                     :package_agreements="erm_package.package_agreements"
                 />
                 <fieldset class="action">
-                    <input type="submit" value="Submit" />
+                    <input
+                        type="submit"
+                        class="btn btn-primary"
+                        :value="$__('Submit')"
+                    />
                     <router-link
                         :to="{ name: 'EHoldingsLocalPackagesList' }"
                         role="button"
@@ -86,20 +92,19 @@
 <script>
 import { inject } from "vue"
 import EHoldingsPackageAgreements from "./EHoldingsLocalPackageAgreements.vue"
+import AdditionalFieldsEntry from "../AdditionalFieldsEntry.vue"
+import FormSelectVendors from "../FormSelectVendors.vue"
 import { setMessage, setError, setWarning } from "../../messages"
 import { APIClient } from "../../fetch/api-client.js"
 import { storeToRefs } from "pinia"
 
 export default {
     setup() {
-        const vendorStore = inject("vendorStore")
-        const { vendors } = storeToRefs(vendorStore)
         const AVStore = inject("AVStore")
         const { av_package_types, av_package_content_types } =
             storeToRefs(AVStore)
 
         return {
-            vendors,
             av_package_types,
             av_package_content_types,
         }
@@ -117,6 +122,7 @@ export default {
                 created_on: null,
                 resources: null,
                 package_agreements: [],
+                extended_attributes: [],
             },
             initialized: false,
         }
@@ -173,6 +179,7 @@ export default {
             delete erm_package.vendor
             delete erm_package.resources_count
             delete erm_package.is_selected
+            delete erm_package._strings
 
             erm_package.package_agreements = erm_package.package_agreements.map(
                 ({ package_id, agreement, ...keepAttrs }) => keepAttrs
@@ -201,9 +208,14 @@ export default {
                 )
             }
         },
+        additionalFieldsChanged(additionalFieldValues) {
+            this.erm_package.extended_attributes = additionalFieldValues
+        },
     },
     components: {
         EHoldingsPackageAgreements,
+        FormSelectVendors,
+        AdditionalFieldsEntry,
     },
     name: "EHoldingsEBSCOPackagesFormAdd",
 }

@@ -1,9 +1,14 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>MARC check
-[% IF ( total ) %] :[% total | html %] errors found[% ELSE %] : Configuration OK![% END %] &rsaquo; Administration &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("MARC bibliographic framework test") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="admin_checkmarc" class="admin">
@@ -17,21 +22,29 @@
             <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
         [% END %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
-            [% IF ( total ) %]
-                <span>MARC check: [% total | html %] errors found</span>
-            [% ELSE %]
-                <span>MARC check: Configuration OK!</span>
-            [% END %]
+            <span>MARC bibliographic framework test</span>
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 <h1>MARC bibliographic framework test</h1>
+
+[% IF ( total ) %]
+    <div class="alert alert-warning">
+        <h2>Configuration errors found</h2>
+        You have [% total | html %] error(s) in your MARC configuration. Please fix them before using Koha
+    </div>
+[% ELSE %]
+    <div class="alert alert-info">
+        <h2>Configuration okay</h2> You don't have errors in your MARC configuration
+    </div>
+[% END %]
 
 <div class="page-section">
 <table>
@@ -42,14 +55,14 @@
 <!-- -->
 [% IF ( itemnum ) %]
     <tr>
-        <td>itemnum</td>
-        <td><ul><li>The field itemnum MUST be mapped </li>
+        <td>itemnumber</td>
+        <td><ul><li>The field itemnumber MUST be mapped </li>
             <li>The corresponding subfield MUST be in with -1 (ignore) tab</li></ul></td>
     </tr>
 [% ELSE %]
     <tr>
         <td>OK</td>
-        <td>itemnum : the field itemnumber is mapped to a field in tab -1</td>
+        <td>itemnumber : the field itemnumber is mapped to a field in tab -1</td>
     </tr>
 [% END %]
 <!-- -->
@@ -282,18 +295,17 @@
 </table>
 [% ELSE %]
     </table>
-        <p><strong>Configuration OK, you don't have errors in your MARC parameters table</strong></p>
     </div> <!-- /.page-section -->
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

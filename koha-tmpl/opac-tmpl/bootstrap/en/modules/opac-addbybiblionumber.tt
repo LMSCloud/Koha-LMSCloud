@@ -1,5 +1,11 @@
+[% USE raw %]
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Add to your list &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+<title>[% FILTER collapse %]
+    [% t("Add to your list") | html %] &rsaquo;
+    [% PROCESS 'library_name_title' %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
@@ -25,6 +31,7 @@
                                 </ul>
                                 [% IF private_shelves.count or public_shelves.count or private_shelves_shared_with_me.count %]
                                     <form name="f1" action="/cgi-bin/koha/opac-addbybiblionumber.pl" method="post">
+                                        [% INCLUDE 'csrf-token.inc' %]
                                         <fieldset>
                                             <legend>Select a list</legend>
                                             <label for="shelfnumber">Add to list:</label> <select name="shelfnumber" id="shelfnumber">
@@ -47,7 +54,7 @@
                                             [% FOREACH biblio IN biblios %]
                                                 <input type="hidden" name="biblionumber" value="[% biblio.biblionumber | html %]" />
                                             [% END %]
-                                            <input type="hidden" name="modifyshelfcontents" value="1" />
+                                            <input type="hidden" name="op" value="cud-modifyshelfcontents" />
                                         </fieldset>
                                         <fieldset class="action">
                                             <input type="submit" value="Save" class="btn btn-primary" />
@@ -58,11 +65,12 @@
                                 [% ELSE %]
                                     [% IF ( singleshelf ) %]
                                         <form name="f1" action="/cgi-bin/koha/opac-addbybiblionumber.pl" method="post">
+                                            [% INCLUDE 'csrf-token.inc' %]
                                             [% FOREACH biblio IN biblios %]
                                                 <input type="hidden" name="biblionumber" value="[% biblio.biblionumber | html %]">
                                             [% END %]
                                             <input type="hidden" name="shelfnumber" value="[% shelfnumber | html %]" />
-                                            <input type="hidden" name="modifyshelfcontents" value="1" /></fieldset>
+                                            <input type="hidden" name="op" value="cud-modifyshelfcontents" /></fieldset>
                                             <fieldset class="action">
                                                 <input type="submit" value="Save" class="btn btn-primary" />
                                                 <a class="close cancel" href="#">Cancel</a>
@@ -74,6 +82,7 @@
 
                             [% UNLESS ( singleshelf ) %]
                                 <form name="f2" method="post" action="/cgi-bin/koha/opac-addbybiblionumber.pl">
+                                    [% INCLUDE 'csrf-token.inc' %]
                                     <fieldset>
                                         <legend>Add to a new list:</legend>
                                             <label for="newvirtualshelf">List name:</label>
@@ -90,6 +99,7 @@
                                         <input type="hidden" name="biblionumber" value="[% biblio.biblionumber | html %]" />
                                     [% END %]
                                     <fieldset class="action">
+                                        <input type="hidden" name="op" value="cud-add" />
                                         <input type="hidden" name="sortfield" value="title" />
                                         <input type="submit" value="Save" class="btn btn-primary" />
                                         <a class="close cancel" href="#">Cancel</a>
@@ -113,4 +123,15 @@
     </div> <!-- / .main -->
 
 [% INCLUDE 'opac-bottom.inc' is_popup=1 %]
-[% BLOCK jsinclude %][% END %]
+[% BLOCK jsinclude %]
+<script>
+         $(document).ready(function() {
+            [% IF WINDOW_PARENT_RELOAD %]
+                opener.location.reload();
+            [% END %]
+            [% IF WINDOW_CLOSE %]
+                window.close();
+            [% END %]
+        });
+</script>
+[% END %]

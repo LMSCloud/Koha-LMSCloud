@@ -22,10 +22,12 @@ use Mojo::JSON;
 
 use C4::Auth qw( haspermission );
 use C4::Context;
-use C4::Circulation qw( AddRenewal );
+use C4::Circulation qw( AddIssue AddRenewal CanBookBeRenewed );
 use Koha::Checkouts;
 use Koha::Old::Checkouts;
+use Koha::Token;
 
+use Scalar::Util qw( blessed );
 use Try::Tiny qw( catch try );
 
 =head1 NAME
@@ -45,7 +47,8 @@ List Koha::Checkout objects
 sub list {
     my $c = shift->openapi->valid_input or return;
 
-    my $checked_in = delete $c->validation->output->{checked_in};
+    my $checked_in = $c->param('checked_in');
+    $c->req->params->remove('checked_in');
 
     try {
         my $checkouts_set;
@@ -76,23 +79,245 @@ get one checkout
 sub get {
     my $c = shift->openapi->valid_input or return;
 
-    my $checkout_id = $c->validation->param('checkout_id');
-    my $checkout = Koha::Checkouts->find( $checkout_id );
-    $checkout = Koha::Old::Checkouts->find( $checkout_id )
-        unless ($checkout);
+    my $checkout_id = $c->param('checkout_id');
 
-    unless ($checkout) {
-        return $c->render(
-            status => 404,
-            openapi => { error => "Checkout doesn't exist" }
-        );
-    }
+    my $checkout = Koha::Checkouts->find($checkout_id);
+    $checkout = Koha::Old::Checkouts->find($checkout_id)
+        unless $checkout;
+
+    return $c->render_resource_not_found("Checkout")
+        unless $checkout;
 
     return try {
         return $c->render(
             status  => 200,
-            openapi => $checkout->to_api
+            openapi => $c->objects->to_api($checkout),
         );
+    }
+    catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 _check_availability
+
+Internal function to call CanBookBeIssued and return an appropriately filtered
+set return
+
+=cut
+
+sub _check_availability {
+    my ( $c, $patron, $item ) = @_;
+
+    my $inprocess       = 0;                   # What does this do?
+    my $ignore_reserves = 0;                   # Don't ignore reserves
+    my $params          = { item => $item };
+
+    my ( $impossible, $confirmation, $alerts, $messages ) =
+      C4::Circulation::CanBookBeIssued( $patron, undef, undef, $inprocess,
+        $ignore_reserves, $params );
+
+    if ( $c->stash('is_public') ) {
+
+        # Upgrade some confirmations to blockers
+        my @should_block =
+          qw/TOO_MANY ISSUED_TO_ANOTHER RESERVED RESERVE_WAITING TRANSFERRED PROCESSING AGE_RESTRICTION/;
+        for my $block (@should_block) {
+            if ( exists( $confirmation->{$block} ) ) {
+                $impossible->{$block} = $confirmation->{$block};
+                delete $confirmation->{$block};
+            }
+        }
+
+        # Remove any non-public info that's returned by CanBookBeIssued
+        my @restricted_keys =
+          qw/issued_borrowernumber issued_cardnumber issued_firstname issued_surname resborrowernumber resbranchcode rescardnumber reserve_id resfirstname resreservedate ressurname item_notforloan/;
+        for my $key (@restricted_keys) {
+            delete $confirmation->{$key};
+            delete $impossible->{$key};
+            delete $alerts->{$key};
+            delete $messages->{$key};
+        }
+    }
+
+    return ( $impossible, $confirmation, { %{$alerts}, %{$messages} } );
+}
+
+=head3 get_availability
+
+Controller function that handles retrieval of Checkout availability
+
+=cut
+
+sub get_availability {
+    my $c = shift->openapi->valid_input or return;
+    my $user = $c->stash('koha.user');
+
+    my $patron_id = $c->param('patron_id');
+
+    return if try {
+        $c->auth->public($patron_id) if $c->stash('is_public');
+        return 0;    # authorization successful, do not "return" after try-catch
+    } catch {
+        return $c->unhandled_exception($_);
+    };
+
+    my $patron = Koha::Patrons->find($patron_id);
+    my $item   = Koha::Items->find( $c->param('item_id') );
+
+    my ( $impossible, $confirmation, $warnings ) =
+      $c->_check_availability( $patron, $item );
+
+    my @confirm_keys = sort keys %{$confirmation};
+    unshift @confirm_keys, $item->id;
+    unshift @confirm_keys, $user->id
+      if $user;
+
+    my $token = Koha::Token->new->generate_jwt( { id => join( ':', @confirm_keys ) } );
+
+    my $response = {
+        blockers           => $impossible,
+        confirms           => $confirmation,
+        warnings           => $warnings,
+        confirmation_token => $token
+    };
+
+    return $c->render( status => 200, openapi => $response );
+}
+
+=head3 add
+
+Add a new checkout
+
+=cut
+
+sub add {
+    my $c = shift->openapi->valid_input or return;
+    my $user = $c->stash('koha.user');
+
+    my $body      = $c->req->json;
+    my $item_id   = $body->{item_id};
+    my $patron_id = $body->{patron_id};
+    my $onsite    = $body->{onsite_checkout};
+    my $barcode   = $body->{external_id};
+
+    return try {
+
+        unless ( $item_id or $barcode ) {
+            return $c->render(
+                status  => 400,
+                openapi => {
+                    error      => 'Missing or wrong parameters',
+                    error_code => 'MISSING_OR_WRONG_PARAMETERS',
+                }
+            );
+        }
+
+        if ( $c->stash('is_public') ) {
+            $c->auth->public($patron_id);
+
+            return $c->render(
+                status  => 405,
+                openapi => {
+                    error      => 'Feature disabled',
+                    error_code => 'FEATURE_DISABLED'
+                }
+            ) if !C4::Context->preference('OpacTrustedCheckout');
+        }
+
+        my $item;
+        if ($item_id) {
+            $item = Koha::Items->find($item_id);
+        } else {
+            $item = Koha::Items->find( { barcode => $barcode } );
+        }
+
+        unless ($item) {
+            return $c->render(
+                status  => 409,
+                openapi => {
+                    error      => 'Item not found',
+                    error_code => 'ITEM_NOT_FOUND',
+                }
+            );
+        }
+
+        # check that item matches when barcode and item_id were given
+        if (    $item_id
+            and $barcode
+            and ( $item->barcode ne $barcode or $item->id != $item_id ) )
+        {
+            return $c->render(
+                status  => 409,
+                openapi => {
+                    error      => 'Item id and external id belong to different items',
+                    error_code => 'ITEM_ID_NOT_MATCHING_EXTERNAL_ID',
+                }
+            );
+        }
+
+
+        my $patron = Koha::Patrons->find($patron_id);
+        unless ($patron) {
+            return $c->render(
+                status  => 409,
+                openapi => {
+                    error      => 'Patron not found',
+                    error_code => 'PATRON_NOT_FOUND',
+                }
+            );
+        }
+
+        my ( $impossible, $confirmation, $warnings ) =
+          $c->_check_availability( $patron, $item );
+
+        # * Fail for blockers - render 403
+        if ( keys %{$impossible} ) {
+            my @errors = keys %{$impossible};
+            return $c->render(
+                status  => 403,
+                openapi => { error => "Checkout not authorized (@errors)" }
+            );
+        }
+
+        # * If confirmation required, check variable set above
+        #   and render 412 if variable is false
+        if ( keys %{$confirmation} ) {
+            my $confirmed = 0;
+
+            # Check for existence of confirmation token
+            # and if exists check validity
+            if ( my $token = $c->param('confirmation') ) {
+                my $confirm_keys = join( ":", sort keys %{$confirmation} );
+                $confirm_keys = $user->id . ":" . $item->id . ":" . $confirm_keys;
+                $confirmed = Koha::Token->new->check_jwt(
+                    { id => $confirm_keys, token => $token } );
+            }
+
+            unless ($confirmed) {
+                return $c->render(
+                    status  => 412,
+                    openapi => { error => "Confirmation error" }
+                );
+            }
+        }
+
+        # Call 'AddIssue'
+        my $checkout = AddIssue( $patron, $item->barcode );
+        if ($checkout) {
+            $c->res->headers->location(
+                $c->req->url->to_string . '/' . $checkout->id );
+            return $c->render(
+                status  => 201,
+                openapi => $c->objects->to_api($checkout),
+            );
+        }
+        else {
+            return $c->render(
+                status  => 500,
+                openapi => { error => 'Unknown error during checkout' }
+            );
+        }
     }
     catch {
         $c->unhandled_exception($_);
@@ -109,17 +334,14 @@ sub get_renewals {
     my $c = shift->openapi->valid_input or return;
 
     try {
-        my $checkout_id = $c->validation->param('checkout_id');
-        my $checkout    = Koha::Checkouts->find($checkout_id);
-        $checkout = Koha::Old::Checkouts->find($checkout_id)
-          unless ($checkout);
+        my $checkout_id = $c->param('checkout_id');
 
-        unless ($checkout) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => "Checkout doesn't exist" }
-            );
-        }
+        my $checkout = Koha::Checkouts->find($checkout_id);
+        $checkout = Koha::Old::Checkouts->find($checkout_id)
+            unless $checkout;
+
+        return $c->render_resource_not_found("Checkout")
+            unless $checkout;
 
         my $renewals_rs = $checkout->renewals;
         my $renewals = $c->objects->search( $renewals_rs );
@@ -144,23 +366,15 @@ Renew a checkout
 sub renew {
     my $c = shift->openapi->valid_input or return;
 
-    my $checkout_id = $c->validation->param('checkout_id');
-    my $seen = $c->validation->param('seen') || 1;
+    my $checkout_id = $c->param('checkout_id');
+    my $seen = $c->param('seen') || 1;
     my $checkout = Koha::Checkouts->find( $checkout_id );
 
-    unless ($checkout) {
-        return $c->render(
-            status => 404,
-            openapi => { error => "Checkout doesn't exist" }
-        );
-    }
+    return $c->render_resource_not_found("Checkout")
+        unless $checkout;
 
     return try {
-        my $borrowernumber = $checkout->borrowernumber;
-        my $itemnumber = $checkout->itemnumber;
-
-        my ($can_renew, $error) = C4::Circulation::CanBookBeRenewed(
-            $borrowernumber, $itemnumber);
+        my ($can_renew, $error) = CanBookBeRenewed($checkout->patron, $checkout);
 
         if (!$can_renew) {
             return $c->render(
@@ -170,19 +384,19 @@ sub renew {
         }
 
         AddRenewal(
-            $borrowernumber,
-            $itemnumber,
-            $checkout->branchcode,
-            undef,
-            undef,
-            $seen
+            {
+                borrowernumber => $checkout->borrowernumber,
+                itemnumber     => $checkout->itemnumber,
+                branch         => $checkout->branchcode,
+                seen           => $seen
+            }
         );
         $checkout = Koha::Checkouts->find($checkout_id);
 
         $c->res->headers->location( $c->req->url->to_string );
         return $c->render(
             status  => 201,
-            openapi => $checkout->to_api
+            openapi => $c->objects->to_api($checkout),
         );
     }
     catch {
@@ -199,19 +413,14 @@ Checks if the checkout could be renewed and return the related information.
 sub allows_renewal {
     my $c = shift->openapi->valid_input or return;
 
-    my $checkout_id = $c->validation->param('checkout_id');
+    my $checkout_id = $c->param('checkout_id');
     my $checkout = Koha::Checkouts->find( $checkout_id );
 
-    unless ($checkout) {
-        return $c->render(
-            status => 404,
-            openapi => { error => "Checkout doesn't exist" }
-        );
-    }
+    return $c->render_resource_not_found("Checkout")
+        unless $checkout;
 
     return try {
-        my ($can_renew, $error) = C4::Circulation::CanBookBeRenewed(
-            $checkout->borrowernumber, $checkout->itemnumber);
+        my ($can_renew, $error) = CanBookBeRenewed($checkout->patron, $checkout);
 
         my $renewable = Mojo::JSON->false;
         $renewable = Mojo::JSON->true if $can_renew;

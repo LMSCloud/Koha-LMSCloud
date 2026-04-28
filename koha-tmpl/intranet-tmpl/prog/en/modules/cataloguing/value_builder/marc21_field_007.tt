@@ -1,15 +1,21 @@
+[% USE raw %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>007 builder &rsaquo; Cataloging &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("007 builder") | html %] &rsaquo;
+    [% t("Cataloging") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
-<body id="cat_marc21_field_007" class="cat" style="padding:1em;" onload="RedrawChoices('[% f0 | html %]');">
+<body id="cat_marc21_field_007" class="cat value_builder" onload="RedrawChoices('[% f0 | html %]');">
 
 <h1>007 Physical description fixed field--General information</h1>
 
 <div class="page-section">
-    <form id="f_pop" onsubmit="report()" action="">
+    <form method="get" id="f_pop" onsubmit="report()" action="">
         <input type="hidden" name="plugin_name" value="marc21_field_007.pl" />
         <p><label for="MatTypeList">Material type: </label>
             <select name="MatTypeList" id="MatTypeList" onchange="RedrawChoices(this.options[selectedIndex].value);">
@@ -93,7 +99,14 @@
         <div id="choices">
         </div>
 
-        <fieldset class="action"><input type="submit" class="btn btn-primary" value="OK" /> <a href="#" class="cancel close">Cancel</a></fieldset>
+        <nav class="navbar navbar-default fixed-bottom">
+            <div class="container-fluid">
+                <fieldset class="action">
+                    <input type="submit" class="btn btn-primary" value="Save" />
+                    <button class="btn btn-default close_window">Cancel</button>
+                </fieldset>
+            </div>
+        </nav>
     </form>
 </div> <!-- /.page-section -->
 
@@ -8700,53 +8713,53 @@
                               </tr> \
                           <tr> \
                                <td><label for="f13">' +
-                    _("13 Capture and storage technique") +
+                    _("13 Original capture and storage technique") +
                     '</label></td> \
                                <td> \
                                 <select name="f13" id="f13"> \
                                  [% IF ( f13a ) %] \
                                         <option value="a" selected="selected">' +
-                    _("a- Acoustical capture, direct storage") +
+                    _("a- Acoustical capture, analog direct storage") +
                     '</option> \
                                  [% ELSE %] \
                                         <option value="a">' +
-                    _("a- Acoustical capture, direct storage") +
+                    _("a- Acoustical capture, analog direct storage") +
                     '</option> \
                                  [% END %] \
                      [% IF ( f13b ) %] \
                                         <option value="b" selected="selected">' +
-                    _("b- Direct storage, not acoustical") +
+                    _("b- Electrical capture, analog direct storage") +
                     '</option> \
                                  [% ELSE %] \
                                         <option value="b">' +
-                    _("b- Direct storage, not acoustical") +
+                    _("b- Electrical capture, analog direct storage") +
                     '</option> \
                                  [% END %] \
                      [% IF ( f13d ) %] \
                                         <option value="d" selected="selected">' +
-                    _("d- Digital storage") +
+                    _("d- Electrical capture, digital storage") +
                     '</option> \
                                  [% ELSE %] \
                                         <option value="d">' +
-                    _("d- Digital storage") +
+                    _("d- Electrical capture, digital storage") +
                     '</option> \
                                  [% END %] \
                      [% IF ( f13e ) %] \
                                         <option value="e" selected="selected">' +
-                    _("e- Analog electrical storage") +
+                    _("e- Electrical capture, analog electrical storage") +
                     '</option> \
                                  [% ELSE %] \
                                         <option value="e">' +
-                    _("e- Analog electrical storage") +
+                    _("e- Electrical capture, analog electrical storage") +
                     '</option> \
                                  [% END %] \
                      [% IF ( f13u ) %] \
                                         <option value="u" selected="selected">' +
-                    _("u- Unknown") +
+                    _("u- Unknown capture and storage") +
                     '</option> \
                                  [% ELSE %] \
                                         <option value="u">' +
-                    _("u- Unknown") +
+                    _("u- Unknown capture and storage") +
                     '</option> \
                                  [% END %] \
                      [% IF ( f3z ) %] \
@@ -9099,7 +9112,7 @@
                                  [% END %] \
                      [% IF ( f4g ) %] \
                                         <option value="g" selected="selected">' +
-                    _("g- Laserdisc)") +
+                    _("g- Laserdisc") +
                     '</option> \
                                  [% ELSE %] \
                                         <option value="g">' +

@@ -96,11 +96,8 @@ if ( $op eq 'add_form' ) {
             }
         }
         $template->param( is_an_edit => 1);
-        $template->param(
-            additional_field_values => { map {
-                $_->field->id => $_->value
-            } Koha::Acquisition::Baskets->find($basketno)->additional_field_values->as_list },
-        );
+        $template->param( additional_field_values =>
+                Koha::Acquisition::Baskets->find($basketno)->get_additional_field_values_for_template );
     } else {
     #new basket
         my $basket;
@@ -135,7 +132,7 @@ if ( $op eq 'add_form' ) {
     $template->param( deliveryplace => $deliveryplace );
 
 #End Edit
-} elsif ( $op eq 'add_validate' ) {
+} elsif ( $op eq 'cud-add_validate' ) {
 #we are confirming the changes, save the basket
     if ( $is_an_edit ) {
         ModBasketHeader(
@@ -165,15 +162,8 @@ if ( $op eq 'add_form' ) {
         );
     }
 
-    my @additional_fields;
-    my $basket_fields = Koha::AdditionalFields->search({ tablename => 'aqbasket' });
-    while ( my $field = $basket_fields->next ) {
-        my $value = $input->param('additional_field_' . $field->id);
-        push @additional_fields, {
-            id => $field->id,
-            value => $value,
-        };
-    }
+    my @additional_fields =
+        Koha::Acquisition::Baskets->find($basketno)->prepare_cgi_additional_field_values( $input, 'aqbasket' );
     Koha::Acquisition::Baskets->find($basketno)->set_additional_fields(\@additional_fields);
 
     print $input->redirect('basket.pl?basketno='.$basketno);

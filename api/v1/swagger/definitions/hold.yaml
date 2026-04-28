@@ -14,8 +14,15 @@ properties:
     format: date
     description: The date the hold was placed
   biblio_id:
-    type: integer
+    type:
+      - integer
+      - "null"
     description: Internal biblio identifier
+  deleted_biblio_id:
+    type:
+      - integer
+      - "null"
+    description: Internal deleted biblio identifier
   item_group_id:
     type:
       - string
@@ -64,7 +71,7 @@ properties:
     description: Timestamp for the latest hold update
   item_id:
     type:
-      - string
+      - integer
       - "null"
     description: Internal item identifier
   waiting_date:
@@ -108,5 +115,30 @@ properties:
       - boolean
       - "null"
     description: Cancellation requests count for the hold (x-koha-embed)
+  biblio:
+    type:
+      - object
+      - "null"
+    description: Bibliographic record
+  deleted_biblio:
+    type:
+      - object
+      - "null"
+    description: Deleted bibliographic record
+  item:
+    type:
+      - object
+      - "null"
+    description: The item
+  pickup_library:
+    type:
+      - object
+      - "null"
+    description: Pickup library
+  _strings:
+    type:
+      - object
+      - "null"
+    description: A list of stringified coded values
 
 additionalProperties: false

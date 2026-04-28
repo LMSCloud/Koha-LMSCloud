@@ -1,0 +1,267 @@
+"/erm/eUsage/monthly_report/{data_type}":
+  get:
+    x-mojo-to: ERM::EUsage::CustomReports#monthly_report
+    operationId: getERMUsageMonthlyReport
+    tags:
+      - erm_usage_reports
+    summary: get usage monthly report
+    produces:
+      - application/json
+    parameters:
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - erm_usage_muses
+        collectionFormat: csv
+      - $ref: "../swagger.yaml#/parameters/data_type_pp"
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
+    responses:
+      200:
+        description: custom_report
+        schema:
+          items:
+            $ref: "../swagger.yaml#/definitions/erm_custom_report"
+      "400":
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `invalid_query`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      401:
+        description: authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      403:
+        description: access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      404:
+        description: ressource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      500:
+        description: |-
+          internal server error. possible `error_code` attribute values:
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      503:
+        description: under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        erm: 1
+"/erm/eUsage/yearly_report/{data_type}":
+  get:
+    x-mojo-to: ERM::EUsage::CustomReports#yearly_report
+    operationId: getERMUsageYearlyReport
+    tags:
+      - erm_usage_reports
+    summary: get usage yearly report
+    produces:
+      - application/json
+    parameters:
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - erm_usage_yuses
+        collectionFormat: csv
+      - $ref: "../swagger.yaml#/parameters/data_type_pp"
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
+    responses:
+      200:
+        description: custom_report
+        schema:
+          items:
+            $ref: "../swagger.yaml#/definitions/erm_custom_report"
+      "400":
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `invalid_query`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      401:
+        description: authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      403:
+        description: access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      404:
+        description: ressource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      500:
+        description: |-
+          internal server error. possible `error_code` attribute values:
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      503:
+        description: under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        erm: 1
+"/erm/eUsage/metric_types_report/{data_type}":
+  get:
+    x-mojo-to: ERM::EUsage::CustomReports#metric_types_report
+    operationId: getERMUsageMetricTypesReport
+    tags:
+      - erm_usage_reports
+    summary: get usage metric_types report
+    produces:
+      - application/json
+    parameters:
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - erm_usage_muses
+        collectionFormat: csv
+      - $ref: "../swagger.yaml#/parameters/data_type_pp"
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
+    responses:
+      200:
+        description: custom_report
+        schema:
+          items:
+            $ref: "../swagger.yaml#/definitions/erm_custom_report"
+      "400":
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `invalid_query`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      401:
+        description: authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      403:
+        description: access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      404:
+        description: ressource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      500:
+        description: |-
+          internal server error. possible `error_code` attribute values:
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      503:
+        description: under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        erm: 1
+"/erm/eUsage/provider_rollup_report/{data_type}":
+  get:
+    x-mojo-to: ERM::EUsage::CustomReports#provider_rollup_report
+    operationId: getERMUsageProviderRollupReport
+    tags:
+      - erm_usage_reports
+    summary: get usage provider rollup report
+    produces:
+      - application/json
+    parameters:
+      - name: x-koha-embed
+        in: header
+        required: false
+        description: Embed list sent as a request header
+        type: array
+        items:
+          type: string
+          enum:
+            - erm_usage_titles.erm_usage_muses
+            - erm_usage_platforms.erm_usage_muses
+            - erm_usage_databases.erm_usage_muses
+            - erm_usage_items.erm_usage_muses
+        collectionFormat: csv
+      - $ref: "../swagger.yaml#/parameters/data_type_pp"
+      - $ref: "../swagger.yaml#/parameters/match"
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/q_param"
+      - $ref: "../swagger.yaml#/parameters/q_body"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
+    responses:
+      200:
+        description: custom_report
+        schema:
+          items:
+            $ref: "../swagger.yaml#/definitions/erm_custom_report"
+      "400":
+        description: |
+          Bad request. Possible `error_code` attribute values:
+
+            * `invalid_query`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      401:
+        description: authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      403:
+        description: access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      404:
+        description: ressource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      500:
+        description: |-
+          internal server error. possible `error_code` attribute values:
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      503:
+        description: under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        erm: 1

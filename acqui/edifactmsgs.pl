@@ -37,7 +37,7 @@ my ( $template, $loggedinuser, $cookie, $userflags ) = get_template_and_user(
 
 my $schema = Koha::Database->new()->schema();
 my $cmd    = $q->param('op');
-if ( $cmd && $cmd eq 'delete' ) {
+if ( $cmd && $cmd eq 'cud-delete' ) {
     my $id  = $q->param('message_id');
     my $msg = $schema->resultset('EdifactMessage')->find($id);
     $msg->deleted(1);
@@ -49,18 +49,5 @@ if ( $cmd && $cmd eq 'import' ) {
     my $invoice = $schema->resultset('EdifactMessage')->find($id);
     process_invoice($invoice);
 }
-
-my @msgs = $schema->resultset('EdifactMessage')->search(
-    {
-        deleted => 0,
-    },
-    {
-        join     => 'vendor',
-        order_by => { -desc => 'transfer_date' },
-    }
-
-)->all;
-
-$template->param( messages => \@msgs );
 
 output_html_with_http_headers( $q, $cookie, $template->output );

@@ -69,7 +69,7 @@ else {
 
     my %errors;
 
-    if ( $op eq 'upload' ) {
+    if ( $op eq 'cud-upload' ) {
         my $uploaded_file = $cgi->upload('uploadfile');
 
         if ($uploaded_file) {
@@ -87,25 +87,24 @@ else {
                     $file_content .= $_;
                 }
 
-                $bf->AddFile(
+                my $rv = $bf->AddFile(
                     name    => $filename,
                     type    => $mimetype,
                     content => $file_content,
                     description => scalar $cgi->param('description'),
                 );
+                $errors{upload_failed} = 1 unless $rv;
             }
         }
         else {
             $errors{'no_file'} = 1;
         }
-    } elsif ( $op eq 'delete' ) {
+    } elsif ( $op eq 'cud-delete' ) {
         $bf->DelFile( id => scalar $cgi->param('file_id') );
     }
 
     $template->param(
-        files => Koha::Patron::Files->new( borrowernumber => $borrowernumber )
-          ->GetFilesInfo(),
-
+        files => Koha::Patron::Files->new( borrowernumber => $borrowernumber )->GetFilesInfo(),
         errors => \%errors,
     );
     output_html_with_http_headers $cgi, $cookie, $template->output;

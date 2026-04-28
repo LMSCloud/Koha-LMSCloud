@@ -1,16 +1,16 @@
 [%- BLOCK account_type_description -%]
     <span>
     [%- IF account.credit_type_code -%]
-        [%- PROCESS credit_type_description credit_type_code = account.credit_type_code -%]
+        [%- PROCESS credit_type_description account=account -%]
     [%- ELSIF account.debit_type_code -%]
-        [%- PROCESS debit_type_description debit_type_code = account.debit_type_code -%]
+        [%- PROCESS debit_type_description account=account -%]
     [%- END -%]
     [%- PROCESS account_status_description account=account -%]
     </span>
 [%- END -%]
 
 [%- BLOCK debit_type_description -%]
-    [%- SWITCH debit_type_code -%]
+    [%- SWITCH account.debit_type_code -%]
         [%- CASE 'ACCOUNT'          -%]<span>Account creation fee</span>
         [%- CASE 'ACCOUNT_RENEW'    -%]<span>Account renewal fee</span>
         [%- CASE 'CLAIM_LEVEL1'     -%]<span>Overdue fine (level 1)</span>
@@ -34,12 +34,19 @@
         [%- CASE 'Payout'           -%]<span>Payment from library to patron</span>
         [%- CASE 'PAYOUT'           -%]<span>Payment from library to patron</span>
         [%- CASE 'VOID'             -%]<span>Credit has been voided</span>
-        [%- CASE                    -%]<span>[% debit_type.description | html %]</span>
+        [%- CASE -%]
+            <span
+                >[%- IF account && account.debit_type && account.debit_type.description -%]
+                    [% account.debit_type.description | html %]
+                [%- ELSE -%]
+                    [% account.debit_type_code | html %]
+                [%- END -%]
+            </span>
     [%- END -%]
 [%- END -%]
 
 [%- BLOCK credit_type_description -%]
-    [%- SWITCH credit_type_code -%]
+    [%- SWITCH account.credit_type_code -%]
         [%- CASE 'CANCELLATION' -%]<span>Cancelled charge</span>
         [%- CASE 'CREDIT'       -%]<span>Credit</span>
         [%- CASE 'DISCOUNT'     -%]<span>Discount</span>
@@ -51,7 +58,14 @@
         [%- CASE 'PURCHASE'     -%]<span>Purchase</span>
         [%- CASE 'REFUND'       -%]<span>Refund</span>
         [%- CASE 'WRITEOFF'     -%]<span>Writeoff</span>
-        [%- CASE                -%]<span>[% credit_type.description | html %]</span>
+        [%- CASE -%]
+            <span
+                >[%- IF account && account.credit_type && account.credit_type.description -%]
+                    [% account.credit_type.description | html %]
+                [%- ELSE -%]
+                    [% account.credit_type_code | html %]
+                [%- END -%]
+            </span>
     [%- END -%]
 [%- END -%]
 

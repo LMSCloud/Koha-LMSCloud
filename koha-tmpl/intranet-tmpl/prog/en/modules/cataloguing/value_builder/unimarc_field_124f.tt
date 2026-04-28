@@ -1,13 +1,19 @@
+[% USE raw %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>UNIMARC field 124f builder</title>
+<title>[% FILTER collapse %]
+    [% t("UNIMARC field 124f builder") | html %] &rsaquo;
+    [% t("Cataloguing") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
-<body id="cat_unimarc_field_124f" class="cat" style="padding:1em;">
+<body id="cat_unimarc_field_124f" class="cat value_builder">
     <h1>UNIMARC field 124f builder</h1>
-    <div class="page-section">
-        <form name="f_pop" action="">
+    <form method="get" name="f_pop" action="">
+        <div class="page-section">
             <table>
                 <tr>
                     <td><label for="f1">Name of satellite for remote sensing image:</label></td>
@@ -106,9 +112,18 @@
                         </select>
                     </td></tr>
             </table>
-            <fieldset class="action"><input type="button" class="btn btn-primary" value="OK" onclick="report();" /> <a href="#" class="cancel close">Cancel</a></fieldset>
-        </form>
-    </div> <!-- /.page-section -->
+        </div> <!-- /.page-section -->
+
+        <nav class="navbar navbar-default fixed-bottom">
+            <div class="container-fluid">
+                <fieldset class="action">
+                    <input type="button" class="btn btn-primary" onclick="report();" value="Save" />
+                    <button class="btn btn-default close_window">Cancel</button>
+                </fieldset>
+            </div>
+        </nav>
+
+    </form>
 
 [% MACRO jsinclude BLOCK %]
     <script>

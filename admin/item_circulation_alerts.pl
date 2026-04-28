@@ -102,23 +102,25 @@ sub toggle {
     print encode_json($response);
 }
 
-# dispatch to various actions based on CGI parameter 'action'
+# dispatch to various actions based on CGI parameter 'op'
 sub dispatch {
     my %handler = (
-        show   => \&show,
-        toggle => \&toggle,
+        show         => \&show,
+        'cud-toggle' => \&toggle,
     );
     my $input  = CGI->new;
-    my $action = $input->param('action') || 'show';
-    if (not exists $handler{$action}) {
+    my $op = $input->param('op') || 'show';
+
+    if (not exists $handler{$op}) {
         my $status = 400;
         print $input->header(-status => $status);
         print $input->div(
             $input->h1($status),
-            $input->p("$action is not supported.")
+            # FIXME This is not translatable
+            $input->p("op parameter is not supported (must be 'show' or 'toggle').")
         );
     } else {
-        $handler{$action}->($input);
+        $handler{$op}->($input);
     }
 }
 
@@ -144,7 +146,7 @@ patron category, and item type, this is where that policy would be set.
 =head2 URLs
 
 
-=head3 ?action=show
+=head3 ?op=show
 
 Display a branches item circulation alert preferences.
 
@@ -161,7 +163,7 @@ branch '*' is used.
 
 
 
-=head3 ?action=toggle
+=head3 ?op=cud-toggle
 
 Toggle a preference via AJAX
 

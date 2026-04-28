@@ -58,19 +58,11 @@ if ( $op eq 'download' ) {
 
     my $fname = $file->{'file_name'};
     my $ftype = $file->{'file_type'};
-    if ($input->param('view') && ($ftype =~ m|^image/|i || $fname =~ /\.pdf/i)) {
-        $fname =~ /\.pdf/i && do { $ftype='application/pdf'; };
-        print $input->header(
-            -type       => $ftype,
-            -charset    => 'utf-8'
-        );
-    } else {
         print $input->header(
             -type       => $file->{'file_type'},
             -charset    => 'utf-8',
             -attachment => $file->{'file_name'}
         );
-    }
     print $file->{'file_content'};
 }
 else {
@@ -83,7 +75,7 @@ else {
         datereceived     => $details->{'datereceived'},
     );
 
-    if ( $op eq 'upload' ) {
+    if ( $op eq 'cud-upload' ) {
         my $uploaded_file = $input->upload('uploadfile');
 
         if ($uploaded_file) {
@@ -107,7 +99,7 @@ else {
         else {
             $errors{'no_file'} = 1;
         }
-    } elsif ( $op eq 'delete' ) {
+    } elsif ( $op eq 'cud-delete' ) {
         $mf->DelFile( id => scalar $input->param('file_id') );
     }
 

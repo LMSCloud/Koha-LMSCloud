@@ -6,10 +6,14 @@
 [% USE Branches %]
 [% USE AuthorisedValues %]
 [% USE TablesSettings %]
-[% USE Koha %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Holds queue &rsaquo; Circulation &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Holds queue") | html %] &rsaquo;
+    [% t("Circulation") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style> p { margin-top: 0; }</style>
 </head>
@@ -47,10 +51,11 @@
                 <div class="row">
 
                 [% IF ( total || Koha.Preference('CircSidebar') ) %]
-                    <div class="col-sm-10 col-sm-push-2">
+                    <div class="col-md-10 order-md-2 order-sm-1">
                 [% ELSE %]
-                    <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+                    <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
                 [% END %]
+                [% INCLUDE 'messages.inc' %]
 
 <h1>Holds queue</h1>
 
@@ -63,7 +68,7 @@
             [% IF ( locationslimit ) %] <span>and shelving location: [% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location' authorised_value = locationslimit ) | html %]</span>[% END %]
         </div>
     [% ELSE %]
-        <div class="dialog message">No items found.</div>
+        <div class="alert alert-info">No items found.</div>
     [% END %]
     [% IF ( itemsloop ) %]
         <div class="page-section">
@@ -71,8 +76,12 @@
                 <thead>
                 <tr>
                     <th class="hq-title anti-the">Title</th>
+                    <th class="hq-author">Author</th>
+                    <th class="hq-pubdetails">Publication details</th>
                     <th class="hq-holdingbranch">Current library</th>
+                    <th class="hq-homebranch">Home library</th>
                     <th class="hq-collection">Collection</th>
+                    <th class="hq-location">Shelving location</th>
                     <th class="hq-itemtype">Item type</th>
                     <th class="hq-callnumber">Call number</th>
                     <th class="hq-copynumber">Copy number</th>
@@ -90,14 +99,34 @@
                             <input class="text_filter" type="text" placeholder="Title">
                         </span>
                     </td>
+                    <td class="hq-author">
+                        <span class="filter_column filter_text">
+                            <input class="text_filter" type="text" placeholder="Author">
+                        </span>
+                    </td>
+                    <td class="hq-pubdetails">
+                        <span class="filter_column filter_text">
+                            <input class="text_filter" type="text" placeholder="Publication details">
+                        </span>
+                    </td>
                     <td class="hq-holdingbranch">
                         <span class="filter_column filter_text">
                             <input class="text_filter" type="text" placeholder="Current library">
                         </span>
                     </td>
+                    <td class="hq-homebranch">
+                        <span class="filter_column filter_text">
+                            <input class="text_filter" type="text" placeholder="Home library">
+                        </span>
+                    </td>
                     <td class="hq-collection">
                         <span class="filter_column filter_text">
                             <input type="text" placeholder="Collection">
+                        </span>
+                    </td>
+                    <td class="hq-location">
+                        <span class="filter_column filter_text">
+                            <input type="text" placeholder="Location">
                         </span>
                     </td>
                     <td class="hq-itemtype">
@@ -156,42 +185,44 @@
                     <tr>
                         <td class="hq-title">
                             <p>
-                                [% INCLUDE 'biblio-title.inc' biblio=itemsloo link = 1 %]
+                                [% INCLUDE 'biblio-title.inc' biblio=itemsloo.biblio link = 1 %]
                             </p>
-                            <p>
-                                <div class="hq-biblionumber content_hidden">[% itemsloo.biblionumber | html %]</div>
-                                <div class="hq-author">[% itemsloo.author | html %]</div>
-                                [% IF ( itemsloo.editionstatement ) %]<div class="hq-editionstatement">[% itemsloo.editionstatement | html %]</div>[% END %]
-                                <div class="hq-pubdata">
-                                    [% IF ( itemsloo.publishercode ) %][% itemsloo.publishercode | html %][% END %]
+                            <div class="hq-biblionumber content_hidden">[% itemsloo.biblionumber | html %]</div>
+                        </td>
+                        <td class="hq-author">[% itemsloo.biblio.author | html %]</td>
+                        <td class="hq-pubdetails">
+                            <div class="hq-pubdata">
+                                [% IF ( itemsloo.biblio.biblioitem.editionstatement ) %]<div class="hq-editionstatement">[% itemsloo.biblio.biblioitem.editionstatement | html %]</div>[% END %]
+                                [% IF ( itemsloo.biblio.biblioitem.publishercode ) %][% itemsloo.biblio.biblioitem.publishercode | html %][% END %]
 
-                                    [% IF ( itemsloo.publicationyear ) %]
-                                        , [% itemsloo.publicationyear | html %]
-                                    [% ELSIF ( itemsloo.copyrightdate ) %]
-                                        , [% itemsloo.copyrightdate | html %]
-                                    [% END %]
+                                [% IF ( itemsloo.biblio.biblioitem.publicationyear ) %]
+                                    , [% itemsloo.biblio.biblioitem.publicationyear | html %]
+                                [% ELSIF ( itemsloo.biblio.copyrightdate ) %]
+                                    , [% itemsloo.biblio.copyrightdate | html %]
+                                [% END %]
 
-                                    [% IF ( itemsloo.pages ) %]: [% itemsloo.pages | html %] [% END %]
+                                [% IF ( itemsloo.biblio.biblioitem.pages ) %]: [% itemsloo.biblio.biblioitem.pages | html %] [% END %]
 
-                                    [% IF ( itemsloo.item('size') ) %][% itemsloo.item('size') | html %][% END %]
+                                [% IF ( itemsloo.biblio.biblioitem.size ) %][% itemsloo.biblio.biblioitem.size | html %][% END %]
 
-                                    [% IF ( itemsloo.isbn ) %]<span>ISBN: [% itemsloo.isbn | html %]</span>[% END %]
-                                </div>
-                            </p>
+                                [% IF ( itemsloo.biblio.biblioitem.isbn ) %]<span>ISBN: [% itemsloo.biblio.biblioitem.isbn | html %]</span>[% END %]
+                            </div>
                         </td>
                         <td class="hq-holdingbranch">[% Branches.GetName( itemsloo.holdingbranch ) | html %]</td>
-                        <td class="hq-collection">[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => itemsloo.ccode ) | html %]</td>
-                        <td class="hq-itemtype">[% ItemTypes.GetDescription( itemsloo.itype ) | html %]</td>
-                        <td class="hq-callnumber">[% IF ( itemsloo.location ) %]<em>[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => itemsloo.location ) | html %]</em> [% END %][% itemsloo.itemcallnumber | html %]</td>
-                        <td class="hq-copynumber">[% itemsloo.copynumber | html %]</td>
-                        <td class="hq-enumchron">[% itemsloo.enumchron | html %]</td>
+                        <td class="hq-homebranch">[% Branches.GetName( itemsloo.item.homebranch ) | html %]</td>
+                        <td class="hq-collection">[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => itemsloo.item.ccode ) | html %]</td>
+                        <td class="hq-location">[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => itemsloo.item.location ) | html %]</td>
+                        <td class="hq-itemtype">[% ItemTypes.GetDescription( itemsloo.item.effective_itemtype ) | html %]</td>
+                        <td class="hq-callnumber"><span class="itemcallnumber">[% itemsloo.item.itemcallnumber | html %]</span></td>
+                        <td class="hq-copynumber">[% itemsloo.item.copynumber | html %]</td>
+                        <td class="hq-enumchron">[% itemsloo.item.enumchron | html %]</td>
                         <td class="hq-barcode">
                             [% IF ( itemsloo.item_level_request ) %]
-                                <em>Only item:</em> <strong>[% itemsloo.barcode | html %]</strong>
-                            [% ELSIF itemsloo.item_group_id %]
-                                <strong>[% itemsloo.barcode | html %]</strong> <em>or any item from item group <strong>[% itemsloo.item_group_description | html %]</strong></em>
+                                <em>Only item:</em> <strong><a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% itemsloo.itemnumber | uri %]&biblionumber=[% itemsloo.biblionumber | uri %]#item[% itemsloo.itemnumber | uri %]">[% itemsloo.barcode | html %]</a></strong>
+                            [% ELSIF itemsloo.item.item_group %]
+                                <strong><a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% itemsloo.itemnumber | uri %]&biblionumber=[% itemsloo.biblionumber | uri %]#item[% itemsloo.itemnumber | uri %]">[% itemsloo.barcode | html %]</a></strong> <em>or any item from item group <strong>[% itemsloo.item.item_group.description | html %]</strong></em>
                             [% ELSE %]
-                                <strong>[% itemsloo.barcode | html %]</strong> <em>or any available</em>
+                                <strong><a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% itemsloo.itemnumber | uri %]&biblionumber=[% itemsloo.biblionumber | uri %]#item[% itemsloo.itemnumber | uri %]">[% itemsloo.barcode | html %]</a></strong> <em>or any available</em>
                             [% END %]
                         </td>
                         <td class="hq-patron">
@@ -200,6 +231,12 @@
                           </p>
                           [% UNLESS Koha.Preference('HidePatronName') %]
                              <p>[% itemsloo.patron.phone | html %]</p>
+                             [% IF itemsloo.patron.notice_email_address %]
+                             <p class="patron-email">
+                             <a href="mailto:[% itemsloo.patron.notice_email_address | uri %]?subject=[% itemsloo.title | uri %]">
+                             [% itemsloo.patron.notice_email_address | html %]</a>
+                             </p>
+                             [% END %]
                           [% END %]
                         </td>
                         <td class="hq-patroncategory">[% itemsloo.patron.category.description | html %] ([% itemsloo.patron.categorycode | html %])</td>
@@ -211,7 +248,7 @@
                 </tbody>
             </table>
         </div> <!-- /.page-section -->
-	[% END %] 
+	[% END %]
 	[% END %]
 
                         [% UNLESS ( total ) %]
@@ -219,9 +256,9 @@
                             [% PROCESS filter_form %]
                         [% END %]
 
-                    </div> <!-- /.col-sm-10.col-sm-push-2 -->
+                    </div> <!-- /.col-md-10.order-md-2 -->
                     [% IF ( total || Koha.Preference('CircSidebar') ) %]
-                        <div class="col-sm-2 col-sm-pull-10">
+                        <div class="col-md-2 order-sm-2 order-md-1">
                             <aside>
                                 [% IF ( total ) %]
                                     [% PROCESS filter_form %]
@@ -230,7 +267,7 @@
                                     [% INCLUDE 'circ-nav.inc' %]
                                 [% END %]
                             </aside>
-                        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+                        </div> <!-- /.col-md-2.order-md-1 -->
                     [% END %]
                 </div> <!-- /.row -->
 
@@ -239,7 +276,7 @@
     </div> <!-- /.row -->
 
 [% BLOCK filter_form %]
-    <form name="f" action="/cgi-bin/koha/circ/view_holdsqueue.pl">
+    <form method="get" name="f" action="/cgi-bin/koha/circ/view_holdsqueue.pl">
         [% IF ( total ) %]
             <fieldset class="brief">
         [% ELSE -%]
@@ -270,7 +307,7 @@
                     </select>
                 </li>
                 <li>
-                    <label for="locationsslimit">Shelving location: </label>
+                    <label for="locationslimit">Shelving location: </label>
                     <select name="locationslimit" id="locationslimit">
                         <option value="">All</option>
                         [% PROCESS options_for_authorised_values authorised_values => AuthorisedValues.GetAuthValueDropbox( 'LOC' ), selected_av => locationslimit %]
@@ -307,9 +344,9 @@
 
             var table_settings = [% TablesSettings.GetTableSettings('circ', 'view_holdsqueue', 'holds-table', 'json') | $raw %];
             var holdst = KohaTable("holdst", {
-                "sDom": 'B<"clearfix">t',
-                "bSortCellsTop": true,
-                "bPaginate": false
+                "dom": 'B<"clearfix">t',
+                "orderCellsTop":  true,
+                "paginate": false
             }, table_settings);
 
         });

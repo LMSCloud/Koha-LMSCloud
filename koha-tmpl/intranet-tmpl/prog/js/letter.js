@@ -48,17 +48,15 @@ function confirmOverwrite( new_lettercode, new_branchcode ){
     }
 }
 
-var Sticky;
+function confirmFormatOverwrite( event ) {
+    if ( confirm(__("Existing format settings for all notices of the same language will be overwritten by these format settings.")) ) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 $(document).ready(function() {
-    if( add_form || copy_form ){
-        Sticky = $("#toolbar");
-        Sticky.hcSticky({
-            stickTo: ".main",
-            stickyClass: "floating"
-        });
-    }
-
     var ntable = KohaTable("lettert", {
         "autoWidth": false,
         "paging": false,
@@ -85,8 +83,16 @@ $(document).ready(function() {
         window.location.href = "/cgi-bin/koha/tools/letter.pl?op=add_form&module=" + $(this).val() + "&branchcode=" + branchcode;
     });
 
-    $("#submit_form").on("click",function(){
-        $("#add_notice").submit();
+    $("#submit_form").on("click",function(e){
+        if ( $(".format_all").is(":checked") ){
+            if ( confirmFormatOverwrite(e) ) {
+                $("#add_notice").submit();
+            } else {
+                e.preventDefault();
+            }
+        } else {
+            $("#add_notice").submit();
+        }
     });
 
     $("#add_notice").validate({
@@ -168,7 +174,7 @@ $(document).ready(function() {
 
     if( $("#tabs").length > 0 ){
         let langtab = $("#langtab").val();
-        $("#tabs a[data-toggle='tab']").on("shown.bs.tab", function (e) {
+        $("#tabs a[data-bs-toggle='tab']").on("shown.bs.tab", function (e) {
             var link = e.target.hash.replace("#","");
             $("#langtab").val( link );
         });
@@ -219,7 +225,7 @@ $(document).ready(function() {
     });
 
     function insertValueQuery(containerid) {
-        var fieldset = $("#" + containerid);
+        var fieldset = $("#" + containerid + "_panel");
         var myQuery = $(fieldset).find('textarea[name="content"]');
         var myListBox = $(fieldset).find('select[name="SQLfieldname"]');
 

@@ -25,6 +25,11 @@ tables:
       translatable: [ lib ]
       multiline: []
       rows:
+
+        - category: "RELTERMS"
+          authorised_value: "abr"
+          lib: "Abridger"
+
         - category: "RELTERMS"
           authorised_value: "acp"
           lib: "Art copyist"
@@ -34,12 +39,20 @@ tables:
           lib: "Actor"
 
         - category: "RELTERMS"
+          authorised_value: "adi"
+          lib: "Art director"
+
+        - category: "RELTERMS"
           authorised_value: "adp"
           lib: "Adapter"
 
         - category: "RELTERMS"
           authorised_value: "aft"
           lib: "Author of afterword, colophon, etc."
+
+        - category: "RELTERMS"
+          authorised_value: "anc"
+          lib: "Announcer"
 
         - category: "RELTERMS"
           authorised_value: "anl"
@@ -56,6 +69,14 @@ tables:
         - category: "RELTERMS"
           authorised_value: "ant"
           lib: "Bibliographic antecedent"
+
+        - category: "RELTERMS"
+          authorised_value: "ape"
+          lib: "Appellee"
+
+        - category: "RELTERMS"
+          authorised_value: "apl"
+          lib: "Appellant"
 
         - category: "RELTERMS"
           authorised_value: "app"
@@ -90,6 +111,10 @@ tables:
           lib: "Associated name"
 
         - category: "RELTERMS"
+          authorised_value: "ato"
+          lib: "Autographer"
+
+        - category: "RELTERMS"
           authorised_value: "att"
           lib: "Attributed name"
 
@@ -102,12 +127,16 @@ tables:
           lib: "Author of dialog"
 
         - category: "RELTERMS"
-          authorised_value: "aui"
-          lib: "Author of introduction"
+          authorised_value: "aue"
+          lib: "Audio engineer"
+
+        - category: "RELTERMS"
+          authorised_value: "aup"
+          lib: "Audio producer"
 
         - category: "RELTERMS"
           authorised_value: "aus"
-          lib: "Author of screenplay"
+          lib: "Screenwriter"
 
         - category: "RELTERMS"
           authorised_value: "aut"
@@ -120,6 +149,10 @@ tables:
         - category: "RELTERMS"
           authorised_value: "bjd"
           lib: "Bookjacket designer"
+
+        - category: "RELTERMS"
+          authorised_value: "bka"
+          lib: "Book artist"
 
         - category: "RELTERMS"
           authorised_value: "bkd"
@@ -142,8 +175,24 @@ tables:
           lib: "Bookplate designer"
 
         - category: "RELTERMS"
+          authorised_value: "brd"
+          lib: "Broadcaster"
+
+        - category: "RELTERMS"
+          authorised_value: "brl"
+          lib: "Braille embosser"
+
+        - category: "RELTERMS"
           authorised_value: "bsl"
           lib: "Bookseller"
+
+        - category: "RELTERMS"
+          authorised_value: "cad"
+          lib: "Casting director"
+
+        - category: "RELTERMS"
+          authorised_value: "cas"
+          lib: "Caster"
 
         - category: "RELTERMS"
           authorised_value: "ccp"
@@ -152,10 +201,6 @@ tables:
         - category: "RELTERMS"
           authorised_value: "chr"
           lib: "Choreographer"
-
-        - category: "RELTERMS"
-          authorised_value: "clb"
-          lib: "Collaborator"
 
         - category: "RELTERMS"
           authorised_value: "cli"
@@ -199,7 +244,7 @@ tables:
 
         - category: "RELTERMS"
           authorised_value: "coe"
-          lib: "Contestant -appellee"
+          lib: "Contestant-appellee"
 
         - category: "RELTERMS"
           authorised_value: "col"
@@ -214,12 +259,24 @@ tables:
           lib: "Conservator"
 
         - category: "RELTERMS"
+          authorised_value: "cop"
+          lib: "Camera operator"
+
+        - category: "RELTERMS"
+          authorised_value: "cor"
+          lib: "Collection registrar"
+
+        - category: "RELTERMS"
           authorised_value: "cos"
           lib: "Contestant"
 
         - category: "RELTERMS"
           authorised_value: "cot"
-          lib: "Contestant -appellant"
+          lib: "Contestant-appellant"
+
+        - category: "RELTERMS"
+          authorised_value: "cou"
+          lib: "Court governed"
 
         - category: "RELTERMS"
           authorised_value: "cov"
@@ -256,6 +313,10 @@ tables:
         - category: "RELTERMS"
           authorised_value: "crr"
           lib: "Corrector"
+
+        - category: "RELTERMS"
+          authorised_value: "crt"
+          lib: "Court reporter"
 
         - category: "RELTERMS"
           authorised_value: "csl"
@@ -302,6 +363,14 @@ tables:
           lib: "Commentator for written text"
 
         - category: "RELTERMS"
+          authorised_value: "dbd"
+          lib: "Dubbing director"
+
+        - category: "RELTERMS"
+          authorised_value: "dbp"
+          lib: "Distribution place"
+
+        - category: "RELTERMS"
           authorised_value: "dfd"
           lib: "Defendant"
 
@@ -314,12 +383,24 @@ tables:
           lib: "Defendant-appellant"
 
         - category: "RELTERMS"
+          authorised_value: "dgc"
+          lib: "Degree committee member"
+
+        - category: "RELTERMS"
           authorised_value: "dgg"
-          lib: "Degree grantor"
+          lib: "Degree granting institution"
+
+        - category: "RELTERMS"
+          authorised_value: "dgs"
+          lib: "Degree supervisor"
 
         - category: "RELTERMS"
           authorised_value: "dis"
           lib: "Dissertant"
+
+        - category: "RELTERMS"
+          authorised_value: "djo"
+          lib: "DJ"
 
         - category: "RELTERMS"
           authorised_value: "dln"
@@ -332,10 +413,6 @@ tables:
         - category: "RELTERMS"
           authorised_value: "dnr"
           lib: "Donor"
-
-        - category: "RELTERMS"
-          authorised_value: "dpb"
-          lib: "Distribution place"
 
         - category: "RELTERMS"
           authorised_value: "dpc"
@@ -382,6 +459,18 @@ tables:
           lib: "Dubious author"
 
         - category: "RELTERMS"
+          authorised_value: "edc"
+          lib: "Editor of compilation"
+
+        - category: "RELTERMS"
+          authorised_value: "edd"
+          lib: "Editorial director"
+
+        - category: "RELTERMS"
+          authorised_value: "edm"
+          lib: "Editor of moving image work"
+
+        - category: "RELTERMS"
           authorised_value: "edt"
           lib: "Editor"
 
@@ -402,6 +491,10 @@ tables:
           lib: "Engineer"
 
         - category: "RELTERMS"
+          authorised_value: "enj"
+          lib: "Enacting jurisdiction"
+
+        - category: "RELTERMS"
           authorised_value: "etr"
           lib: "Etcher"
 
@@ -418,6 +511,10 @@ tables:
           lib: "Facsimilist"
 
         - category: "RELTERMS"
+          authorised_value: "fds"
+          lib: "Film distributor"
+
+        - category: "RELTERMS"
           authorised_value: "fld"
           lib: "Field director"
 
@@ -426,8 +523,24 @@ tables:
           lib: "Film editor"
 
         - category: "RELTERMS"
+          authorised_value: "fmd"
+          lib: "Film director"
+
+        - category: "RELTERMS"
+          authorised_value: "fmk"
+          lib: "Filmmaker"
+
+        - category: "RELTERMS"
           authorised_value: "fmo"
           lib: "Former owner"
+
+        - category: "RELTERMS"
+          authorised_value: "fmp"
+          lib: "Film producer"
+
+        - category: "RELTERMS"
+          authorised_value: "fon"
+          lib: "Founder"
 
         - category: "RELTERMS"
           authorised_value: "fpy"
@@ -442,12 +555,16 @@ tables:
           lib: "Forger"
 
         - category: "RELTERMS"
+          authorised_value: "gdv"
+          lib: "Game developer"
+
+        - category: "RELTERMS"
           authorised_value: "gis"
           lib: "Geographic information specialist"
 
         - category: "RELTERMS"
-          authorised_value: "-grt"
-          lib: "Graphic technician"
+          authorised_value: "his"
+          lib: "Host institution"
 
         - category: "RELTERMS"
           authorised_value: "hnr"
@@ -466,12 +583,20 @@ tables:
           lib: "Illuminator"
 
         - category: "RELTERMS"
+          authorised_value: "ink"
+          lib: "Inker"
+
+        - category: "RELTERMS"
           authorised_value: "ins"
           lib: "Inscriber"
 
         - category: "RELTERMS"
           authorised_value: "inv"
           lib: "Inventor"
+
+        - category: "RELTERMS"
+          authorised_value: "isb"
+          lib: "Issuing body"
 
         - category: "RELTERMS"
           authorised_value: "itr"
@@ -484,6 +609,14 @@ tables:
         - category: "RELTERMS"
           authorised_value: "ivr"
           lib: "Interviewer"
+
+        - category: "RELTERMS"
+          authorised_value: "jud"
+          lib: "Judge"
+
+        - category: "RELTERMS"
+          authorised_value: "jug"
+          lib: "Jurisdiction governed"
 
         - category: "RELTERMS"
           authorised_value: "lbr"
@@ -558,6 +691,10 @@ tables:
           lib: "Music copyist"
 
         - category: "RELTERMS"
+          authorised_value: "med"
+          lib: "Medium"
+
+        - category: "RELTERMS"
           authorised_value: "mfp"
           lib: "Manufacture place"
 
@@ -568,6 +705,10 @@ tables:
         - category: "RELTERMS"
           authorised_value: "mdc"
           lib: "Metadata contact"
+
+        - category: "RELTERMS"
+          authorised_value: "mka"
+          lib: "Makeup artist"
 
         - category: "RELTERMS"
           authorised_value: "mod"
@@ -594,12 +735,32 @@ tables:
           lib: "Metal-engraver"
 
         - category: "RELTERMS"
+          authorised_value: "mtk"
+          lib: "Minute taker"
+
+        - category: "RELTERMS"
+          authorised_value: "mup"
+          lib: "Music programmer"
+
+        - category: "RELTERMS"
           authorised_value: "mus"
           lib: "Musician"
 
         - category: "RELTERMS"
+          authorised_value: "mxe"
+          lib: "Mixing engineer"
+
+        - category: "RELTERMS"
+          authorised_value: "nan"
+          lib: "News anchor"
+
+        - category: "RELTERMS"
           authorised_value: "nrt"
           lib: "Narrator"
+
+        - category: "RELTERMS"
+          authorised_value: "onp"
+          lib: "Onscreen participant"
 
         - category: "RELTERMS"
           authorised_value: "opn"
@@ -611,7 +772,11 @@ tables:
 
         - category: "RELTERMS"
           authorised_value: "orm"
-          lib: "Organizer of meeting"
+          lib: "Organizer"
+
+        - category: "RELTERMS"
+          authorised_value: "osp"
+          lib: "Onscreen presenter"
 
         - category: "RELTERMS"
           authorised_value: "oth"
@@ -620,6 +785,14 @@ tables:
         - category: "RELTERMS"
           authorised_value: "own"
           lib: "Owner"
+
+        - category: "RELTERMS"
+          authorised_value: "pad"
+          lib: "Place of address"
+
+        - category: "RELTERMS"
+          authorised_value: "pan"
+          lib: "Panelist"
 
         - category: "RELTERMS"
           authorised_value: "pat"
@@ -658,6 +831,10 @@ tables:
           lib: "Production manager"
 
         - category: "RELTERMS"
+          authorised_value: "pnc"
+          lib: "Penciller"
+
+        - category: "RELTERMS"
           authorised_value: "pop"
           lib: "Printer of plates"
 
@@ -670,12 +847,20 @@ tables:
           lib: "Puppeteer"
 
         - category: "RELTERMS"
+          authorised_value: "pra"
+          lib: "Praeses"
+
+        - category: "RELTERMS"
           authorised_value: "prc"
           lib: "Process contact"
 
         - category: "RELTERMS"
           authorised_value: "prd"
           lib: "Production personnel"
+
+        - category: "RELTERMS"
+          authorised_value: "pre"
+          lib: "Presenter"
 
         - category: "RELTERMS"
           authorised_value: "prf"
@@ -690,6 +875,10 @@ tables:
           lib: "Printmaker"
 
         - category: "RELTERMS"
+          authorised_value: "prn"
+          lib: "Production company"
+
+        - category: "RELTERMS"
           authorised_value: "pro"
           lib: "Producer"
 
@@ -698,8 +887,16 @@ tables:
           lib: "Production place"
 
         - category: "RELTERMS"
+          authorised_value: "prs"
+          lib: "Production designer"
+
+        - category: "RELTERMS"
           authorised_value: "prt"
           lib: "Printer"
+
+        - category: "RELTERMS"
+          authorised_value: "prv"
+          lib: "Provider"
 
         - category: "RELTERMS"
           authorised_value: "pta"
@@ -707,7 +904,7 @@ tables:
 
         - category: "RELTERMS"
           authorised_value: "pte"
-          lib: "Plaintiff -appellee"
+          lib: "Plaintiff-appellee"
 
         - category: "RELTERMS"
           authorised_value: "ptf"
@@ -726,8 +923,16 @@ tables:
           lib: "Publication place"
 
         - category: "RELTERMS"
+          authorised_value: "rap"
+          lib: "Rapporteur"
+
+        - category: "RELTERMS"
           authorised_value: "rbr"
           lib: "Rubricator"
+
+        - category: "RELTERMS"
+          authorised_value: "rcd"
+          lib: "Recordist"
 
         - category: "RELTERMS"
           authorised_value: "rce"
@@ -735,11 +940,15 @@ tables:
 
         - category: "RELTERMS"
           authorised_value: "rcp"
-          lib: "Recipient"
+          lib: "Addressee"
+
+        - category: "RELTERMS"
+          authorised_value: "rdd"
+          lib: "Radio director"
 
         - category: "RELTERMS"
           authorised_value: "red"
-          lib: "Redactor"
+          lib: "Redaktor"
 
         - category: "RELTERMS"
           authorised_value: "ren"
@@ -752,6 +961,10 @@ tables:
         - category: "RELTERMS"
           authorised_value: "rev"
           lib: "Reviewer"
+
+        - category: "RELTERMS"
+          authorised_value: "rpc"
+          lib: "Radio producer"
 
         - category: "RELTERMS"
           authorised_value: "rps"
@@ -778,6 +991,10 @@ tables:
           lib: "Respondent"
 
         - category: "RELTERMS"
+          authorised_value: "rsr"
+          lib: "Restorationist"
+
+        - category: "RELTERMS"
           authorised_value: "rst"
           lib: "Respondent-appellant"
 
@@ -788,6 +1005,10 @@ tables:
         - category: "RELTERMS"
           authorised_value: "rtm"
           lib: "Research team member"
+
+        - category: "RELTERMS"
+          authorised_value: "rxa"
+          lib: "Remix artist"
 
         - category: "RELTERMS"
           authorised_value: "sad"
@@ -806,6 +1027,14 @@ tables:
           lib: "Scribe"
 
         - category: "RELTERMS"
+          authorised_value: "sde"
+          lib: "Sound engineer"
+
+        - category: "RELTERMS"
+          authorised_value: "sgd"
+          lib: "Stage director"
+
+        - category: "RELTERMS"
           authorised_value: "sds"
           lib: "Sound designer"
 
@@ -814,12 +1043,20 @@ tables:
           lib: "Secretary"
 
         - category: "RELTERMS"
+          authorised_value: "sfx"
+          lib: "Special effects provider"
+
+        - category: "RELTERMS"
           authorised_value: "sgn"
           lib: "Signer"
 
         - category: "RELTERMS"
           authorised_value: "sht"
           lib: "Supporting host"
+
+        - category: "RELTERMS"
+          authorised_value: "sll"
+          lib: "Seller"
 
         - category: "RELTERMS"
           authorised_value: "sng"
@@ -846,6 +1083,10 @@ tables:
           lib: "Set designer"
 
         - category: "RELTERMS"
+          authorised_value: "stg"
+          lib: "Setting"
+
+        - category: "RELTERMS"
           authorised_value: "stl"
           lib: "Storyteller"
 
@@ -862,6 +1103,14 @@ tables:
           lib: "Stereotyper"
 
         - category: "RELTERMS"
+          authorised_value: "swd"
+          lib: "Software developer"
+
+        - category: "RELTERMS"
+          authorised_value: "tau"
+          lib: "Television writer"
+
+        - category: "RELTERMS"
           authorised_value: "tcd"
           lib: "Technical director"
 
@@ -872,6 +1121,22 @@ tables:
         - category: "RELTERMS"
           authorised_value: "ths"
           lib: "Thesis advisor"
+
+        - category: "RELTERMS"
+          authorised_value: "tld"
+          lib: "Television director"
+
+        - category: "RELTERMS"
+          authorised_value: "tlg"
+          lib: "Television guest"
+
+        - category: "RELTERMS"
+          authorised_value: "tlh"
+          lib: "Television host"
+
+        - category: "RELTERMS"
+          authorised_value: "tlp"
+          lib: "Television producer"
 
         - category: "RELTERMS"
           authorised_value: "trc"
@@ -894,16 +1159,36 @@ tables:
           lib: "University place"
 
         - category: "RELTERMS"
+          authorised_value: "vac"
+          lib: "Voice actor"
+
+        - category: "RELTERMS"
           authorised_value: "vdg"
           lib: "Videographer"
 
         - category: "RELTERMS"
-          authorised_value: "voc"
-          lib: "Vocalist"
+          authorised_value: "vfx"
+          lib: "Visual effects provider"
+
+        - category: "RELTERMS"
+          authorised_value: "wac"
+          lib: "Writer of added commentary"
+
+        - category: "RELTERMS"
+          authorised_value: "wal"
+          lib: "Writer of added lyrics"
 
         - category: "RELTERMS"
           authorised_value: "wam"
           lib: "Writer of accompanying material"
+
+        - category: "RELTERMS"
+          authorised_value: "wat"
+          lib: "Writer of added text"
+
+        - category: "RELTERMS"
+          authorised_value: "waw"
+          lib: "Writer of afterword"
 
         - category: "RELTERMS"
           authorised_value: "wdc"
@@ -911,8 +1196,36 @@ tables:
 
         - category: "RELTERMS"
           authorised_value: "wde"
-          lib: "Wood-engraver"
+          lib: "Wood engraver"
+
+        - category: "RELTERMS"
+          authorised_value: "wfs"
+          lib: "Writer of film story"
+
+        - category: "RELTERMS"
+          authorised_value: "wft"
+          lib: "Writer of intertitles"
+
+        - category: "RELTERMS"
+          authorised_value: "wfw"
+          lib: "Writer of foreword"
+
+        - category: "RELTERMS"
+          authorised_value: "win"
+          lib: "Writer of introduction"
 
         - category: "RELTERMS"
           authorised_value: "wit"
           lib: "Witness"
+
+        - category: "RELTERMS"
+          authorised_value: "wpr"
+          lib: "Writer of preface"
+
+        - category: "RELTERMS"
+          authorised_value: "wst"
+          lib: "Writer of supplementary textual content"
+
+        - category: "RELTERMS"
+          authorised_value: "wts"
+          lib: "Writer of television story"

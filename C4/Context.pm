@@ -19,7 +19,7 @@ package C4::Context;
 
 use Modern::Perl;
 
-use vars qw($AUTOLOAD $context @context_stack);
+use vars qw($AUTOLOAD $context);
 BEGIN {
     if ( $ENV{'HTTP_USER_AGENT'} ) { # Only hit when plack is not enabled
 
@@ -79,18 +79,6 @@ This module takes care of setting up the context for a script:
 figuring out which configuration file to load, and loading it, opening
 a connection to the right database, and so forth.
 
-Most scripts will only use one context. They can simply have
-
-  use C4::Context;
-
-at the top.
-
-Other scripts may need to use several contexts. For instance, if a
-library has two databases, one for a certain collection, and the other
-for everything else, it might be necessary for a script to use two
-different contexts to search both databases. Such scripts should use
-the C<&set_context> and C<&restore_context> functions, below.
-
 By default, C4::Context reads the configuration from
 F</etc/koha/koha-conf.xml>. This may be overridden by setting the C<$KOHA_CONF>
 environment variable to the pathname of a configuration file to use.
@@ -109,14 +97,10 @@ environment variable to the pathname of a configuration file to use.
 #    file (/etc/koha/koha-conf.xml).
 # dbh
 #    A handle to the appropriate database for this context.
-# dbh_stack
-#    Used by &set_dbh and &restore_dbh to hold other database
-#    handles for this context.
 # Zconn
 #     A connection object for the Zebra server
 
 $context = undef;        # Initially, no context is set
-@context_stack = ();        # Initially, no saved contexts
 
 sub import {
     # Create the default context ($C4::Context::Context)
@@ -182,7 +166,6 @@ sub new {
 
     $self->{"Zconn"} = undef;    # Zebra Connections
     $self->{"userenv"} = undef;        # User env
-    $self->{"activeuser"} = undef;        # current active user
     $self->{"shelves"} = undef;
     $self->{tz} = undef; # local timezone object
 
@@ -196,14 +179,6 @@ sub new {
   $context->set_context();
 or
   set_context C4::Context $context;
-
-  ...
-  restore_context C4::Context;
-
-In some cases, it might be necessary for a script to use multiple
-contexts. C<&set_context> saves the current context on a stack, then
-sets the context to C<$context>, which will be used in future
-operations. To restore the previous context, use C<&restore_context>.
 
 =cut
 
@@ -231,37 +206,8 @@ sub set_context
         $new_context = $self;
     }
 
-    # Save the old context, if any, on the stack
-    push @context_stack, $context if defined($context);
-
     # Set the new context
     $context = $new_context;
-}
-
-=head2 restore_context
-
-  &restore_context;
-
-Restores the context set by C<&set_context>.
-
-=cut
-
-#'
-sub restore_context
-{
-    my $self = shift;
-
-    if ($#context_stack < 0)
-    {
-        # Stack underflow.
-        die "Context stack underflow";
-    }
-
-    # Pop the old context and set it.
-    $context = pop @context_stack;
-
-    # FIXME - Should this return something, like maybe the context
-    # that was current when this was called?
 }
 
 =head2 config
@@ -342,7 +288,7 @@ the value cannot be properly decoded as YAML.
 sub yaml_preference {
     my ( $self, $preference ) = @_;
 
-    my $yaml = eval { YAML::XS::Load( Encode::encode_utf8( $self->preference( $preference ) ) ); };
+    my $yaml = eval { YAML::XS::Load( Encode::encode_utf8( $self->preference( $preference ) // '' ) ); };
     if ($@) {
         warn "Unable to parse $preference syspref : $@";
         return;
@@ -488,6 +434,7 @@ was no syspref of the name.
 sub delete_preference {
     my ( $self, $var ) = @_;
 
+    $var = lc $var;
     if ( Koha::Config::SysPrefs->find( $var )->delete ) {
         if ( $use_syspref_cache ) {
             my $syspref_cache = Koha::Caches->get_instance('syspref');
@@ -654,14 +601,8 @@ Returns a database handle connected to the Koha database for the
 current context. If no connection has yet been made, this method
 creates one, and connects to the database.
 
-This database handle is cached for future use: if you call
-C<C4::Context-E<gt>dbh> twice, you will get the same handle both
-times. If you need a second database handle, use C<&new_dbh> and
-possibly C<&set_dbh>.
-
 =cut
 
-#'
 sub dbh
 {
     my $self = shift;
@@ -695,83 +636,16 @@ sub new_dbh
     return &dbh({ new => 1 });
 }
 
-=head2 set_dbh
-
-  $my_dbh = C4::Connect->new_dbh;
-  C4::Connect->set_dbh($my_dbh);
-  ...
-  C4::Connect->restore_dbh;
-
-C<&set_dbh> and C<&restore_dbh> work in a manner analogous to
-C<&set_context> and C<&restore_context>.
-
-C<&set_dbh> saves the current database handle on a stack, then sets
-the current database handle to C<$my_dbh>.
-
-C<$my_dbh> is assumed to be a good database handle.
-
-=cut
-
-#'
-sub set_dbh
-{
-    my $self = shift;
-    my $new_dbh = shift;
-
-    # Save the current database handle on the handle stack.
-    # We assume that $new_dbh is all good: if the caller wants to
-    # screw himself by passing an invalid handle, that's fine by
-    # us.
-    push @{$context->{"dbh_stack"}}, $context->{"dbh"};
-    $context->{"dbh"} = $new_dbh;
-}
-
-=head2 restore_dbh
-
-  C4::Context->restore_dbh;
-
-Restores the database handle saved by an earlier call to
-C<C4::Context-E<gt>set_dbh>.
-
-=cut
-
-#'
-sub restore_dbh
-{
-    my $self = shift;
-
-    if ($#{$context->{"dbh_stack"}} < 0)
-    {
-        # Stack underflow
-        die "DBH stack underflow";
-    }
-
-    # Pop the old database handle and set it.
-    $context->{"dbh"} = pop @{$context->{"dbh_stack"}};
-
-    # FIXME - If it is determined that restore_context should
-    # return something, then this function should, too.
-}
-
 =head2 userenv
 
   C4::Context->userenv;
 
 Retrieves a hash for user environment variables.
 
-This hash shall be cached for future use: if you call
-C<C4::Context-E<gt>userenv> twice, you will get the same hash without real DB access
-
 =cut
 
-#'
 sub userenv {
-    my $var = $context->{"activeuser"};
-    if (defined $var and defined $context->{"userenv"}->{$var}) {
-        return $context->{"userenv"}->{$var};
-    } else {
-        return;
-    }
+    return $context->{userenv};
 }
 
 =head2 set_userenv
@@ -799,7 +673,6 @@ sub set_userenv {
         $register_id,  $register_name, $branchcategory
     ) = @_;
 
-    my $var=$context->{"activeuser"} || '';
     my $cell = {
         "number"     => $usernum,
         "id"         => $userid,
@@ -817,46 +690,23 @@ sub set_userenv {
         "desk_name"     => $desk_name,
         "register_id"   => $register_id,
         "register_name" => $register_name,
-        "branchcategory" => $branchcategory
     };
-    $context->{userenv}->{$var} = $cell;
+    $cell->{branchcategory} = $branchcategory if defined $branchcategory;
+    $context->{userenv} = $cell;
     return $cell;
 }
 
-=head2 _new_userenv
+=head2 unset_userenv
 
-  C4::Context->_new_userenv($session);  # FIXME: This calling style is wrong for what looks like an _internal function
+  C4::Context->unset_userenv;
 
-Builds a hash for user environment variables.
-
-This hash shall be cached for future use: if you call
-C<C4::Context-E<gt>userenv> twice, you will get the same hash without real DB access
-
-_new_userenv is called in Auth.pm
+Destroys user environment variables.
 
 =cut
 
-#'
-sub _new_userenv
+sub unset_userenv
 {
-    shift;  # Useless except it compensates for bad calling style
-    my ($sessionID)= @_;
-     $context->{"activeuser"}=$sessionID;
-}
-
-=head2 _unset_userenv
-
-  C4::Context->_unset_userenv;
-
-Destroys the hash for activeuser user environment variables.
-
-=cut
-
-#'
-
-sub _unset_userenv
-{
-    delete $context->{activeuser};
+    $context->{userenv} = undef;
 }
 
 

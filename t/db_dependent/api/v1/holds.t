@@ -17,7 +17,8 @@
 
 use Modern::Perl;
 
-use Test::More tests => 14;
+use Test::More tests => 15;
+use Test::NoWarnings;
 use Test::MockModule;
 use Test::Mojo;
 use t::lib::TestBuilder;
@@ -200,7 +201,11 @@ subtest "Test endpoints without permission" => sub {
 
 subtest "Test endpoints with permission" => sub {
 
-    plan tests => 44;
+    plan tests => 45;
+
+    # Prevent warning 'No reserves HOLD_CANCELLATION letter transported by email'
+    my $mock_letters = Test::MockModule->new('C4::Letters');
+    $mock_letters->mock( 'GetPreparedLetter', sub { return } );
 
     $t->get_ok( "//$userid_1:$password@/api/v1/holds" )
       ->status_is(200)
@@ -214,8 +219,8 @@ subtest "Test endpoints with permission" => sub {
       ->json_hasnt('/1');
 
     $t->delete_ok( "//$userid_3:$password@/api/v1/holds/$reserve_id" )
-      ->status_is(204, 'SWAGGER3.2.4')
-      ->content_is('', 'SWAGGER3.3.4');
+      ->status_is(204, 'REST3.2.4')
+      ->content_is('', 'REST3.3.4');
 
     $t->patch_ok( "//$userid_3:$password@/api/v1/holds/$reserve_id" => json => $patch_data )
       ->status_is(404)
@@ -234,9 +239,9 @@ subtest "Test endpoints with permission" => sub {
       ->status_is(200)
       ->json_is([]);
 
-    $t->delete_ok( "//$userid_3:$password@/api/v1/holds/$reserve_id2" )
-      ->status_is(204, 'SWAGGER3.2.4')
-      ->content_is('', 'SWAGGER3.3.4');
+    $t->delete_ok( "//$userid_3:$password@/api/v1/holds/$reserve_id2" => json => "Cancellation reason" )
+      ->status_is(204, 'REST3.2.4')
+      ->content_is('', 'REST3.3.4');
 
     # Make sure pickup location checks doesn't get in the middle
     my $mock_biblio = Test::MockModule->new('Koha::Biblio');
@@ -245,8 +250,9 @@ subtest "Test endpoints with permission" => sub {
     $mock_item->mock( 'pickup_locations', sub { return Koha::Libraries->search });
 
     $t->post_ok( "//$userid_3:$password@/api/v1/holds" => json => $post_data )
-      ->status_is(201)
-      ->json_has('/hold_id');
+        ->status_is(201)
+        ->json_has('/hold_id')
+        ->header_is( 'Location' => '/api/v1/holds/' . $t->tx->res->json->{hold_id}, "REST3.4.1" );
 
     # Get id from response
     $reserve_id = $t->tx->res->json->{hold_id};
@@ -294,8 +300,8 @@ subtest 'Reserves with itemtype' => sub {
     };
 
     $t->delete_ok( "//$userid_3:$password@/api/v1/holds/$reserve_id" )
-      ->status_is(204, 'SWAGGER3.2.4')
-      ->content_is('', 'SWAGGER3.3.4');
+      ->status_is(204, 'REST3.2.4')
+      ->content_is('', 'REST3.3.4');
 
     # Make sure pickup location checks doesn't get in the middle
     my $mock_biblio = Test::MockModule->new('Koha::Biblio');
@@ -517,8 +523,8 @@ subtest 'suspend and resume tests' => sub {
     );
 
     $t->delete_ok( "//$userid:$password@/api/v1/holds/" . $hold->id . "/suspension" )
-      ->status_is(204, 'SWAGGER3.2.4')
-      ->content_is('', 'SWAGGER3.3.4');
+      ->status_is(204, 'REST3.2.4')
+      ->content_is('', 'REST3.3.4');
 
     # Pass a an expiration date for the suspension
     my $date = dt_from_string()->add( days => 5 );
@@ -535,8 +541,8 @@ subtest 'suspend and resume tests' => sub {
         ->header_is( Location => "/api/v1/holds/" . $hold->id . "/suspension", 'The Location header is set' );
 
     $t->delete_ok( "//$userid:$password@/api/v1/holds/" . $hold->id . "/suspension" )
-      ->status_is(204, 'SWAGGER3.2.4')
-      ->content_is('', 'SWAGGER3.3.4');
+      ->status_is(204, 'REST3.2.4')
+      ->content_is('', 'REST3.3.4');
 
     $hold->set_waiting->discard_changes;
 
@@ -767,26 +773,28 @@ subtest 'add() tests (maxreserves behaviour)' => sub {
 
 subtest 'pickup_locations() tests' => sub {
 
-    plan tests => 12;
+    plan tests => 15;
 
     $schema->storage->txn_begin;
 
     t::lib::Mocks::mock_preference( 'AllowHoldPolicyOverride', 0 );
 
     # Small trick to ease testing
-    Koha::Libraries->search->update({ pickup_location => 0 });
+    Koha::Libraries->search->update( { pickup_location => 0 } );
 
-    my $library_1 = $builder->build_object({ class => 'Koha::Libraries', value => { marcorgcode => 'A', pickup_location => 1 } });
-    my $library_2 = $builder->build_object({ class => 'Koha::Libraries', value => { marcorgcode => 'B', pickup_location => 1 } });
-    my $library_3 = $builder->build_object({ class => 'Koha::Libraries', value => { marcorgcode => 'C', pickup_location => 1 } });
-
-    my $library_1_api = $library_1->to_api();
-    my $library_2_api = $library_2->to_api();
-    my $library_3_api = $library_3->to_api();
-
-    $library_1_api->{needs_override} = Mojo::JSON->false;
-    $library_2_api->{needs_override} = Mojo::JSON->false;
-    $library_3_api->{needs_override} = Mojo::JSON->false;
+    my @libraries;
+    for my $marcorgcode ( 'A' .. 'Z' ) {
+        my $is_pickup_location = $marcorgcode ne 'Z' ? 1 : 0;
+        my $library            = $builder->build_object(
+            {
+                class => 'Koha::Libraries',
+                value => { marcorgcode => $marcorgcode, pickup_location => $is_pickup_location }
+            }
+        );
+        my $library_api = $library->to_api;
+        $library_api->{needs_override} = Mojo::JSON->false;
+        push @libraries, $library_api;
+    }
 
     my $patron = $builder->build_object(
         {
@@ -813,18 +821,20 @@ subtest 'pickup_locations() tests' => sub {
         sub {
             my ( $self, $params ) = @_;
             my $mock_patron = $params->{patron};
-            is( $mock_patron->borrowernumber,
-                $patron->borrowernumber, 'Patron passed correctly' );
+            is(
+                $mock_patron->borrowernumber,
+                $patron->borrowernumber, 'Patron passed correctly'
+            );
             return Koha::Libraries->search(
                 {
                     branchcode => {
                         '-in' => [
-                            $library_1->branchcode,
-                            $library_2->branchcode
+                            $libraries[0]->{library_id},
+                            $libraries[1]->{library_id},
                         ]
                     }
                 },
-                {   # we make sure no surprises in the order of the result
+                {    # we make sure no surprises in the order of the result
                     order_by => { '-asc' => 'marcorgcode' }
                 }
             );
@@ -837,18 +847,20 @@ subtest 'pickup_locations() tests' => sub {
         sub {
             my ( $self, $params ) = @_;
             my $mock_patron = $params->{patron};
-            is( $mock_patron->borrowernumber,
-                $patron->borrowernumber, 'Patron passed correctly' );
+            is(
+                $mock_patron->borrowernumber,
+                $patron->borrowernumber, 'Patron passed correctly'
+            );
             return Koha::Libraries->search(
                 {
                     branchcode => {
                         '-in' => [
-                            $library_2->branchcode,
-                            $library_3->branchcode
+                            $libraries[1]->{library_id},
+                            $libraries[2]->{library_id},
                         ]
                     }
                 },
-                {   # we make sure no surprises in the order of the result
+                {    # we make sure no surprises in the order of the result
                     order_by => { '-asc' => 'marcorgcode' }
                 }
             );
@@ -868,6 +880,7 @@ subtest 'pickup_locations() tests' => sub {
             }
         }
     );
+
     # item-level hold
     my $hold_2 = $builder->build_object(
         {
@@ -880,44 +893,39 @@ subtest 'pickup_locations() tests' => sub {
         }
     );
 
-    $t->get_ok( "//$userid:$password@/api/v1/holds/"
-          . $hold_1->id
-          . "/pickup_locations" )
-      ->json_is( [ $library_2_api, $library_3_api ] );
+    $t->get_ok( "//$userid:$password@/api/v1/holds/" . $hold_1->id . "/pickup_locations" )
+        ->json_is( [ $libraries[1], $libraries[2] ] );
 
-    $t->get_ok( "//$userid:$password@/api/v1/holds/"
-          . $hold_2->id
-          . "/pickup_locations" )
-      ->json_is( [ $library_1_api, $library_2_api ] );
+    $t->get_ok( "//$userid:$password@/api/v1/holds/" . $hold_2->id . "/pickup_locations" )
+        ->json_is( [ $libraries[0], $libraries[1] ] );
 
     # filtering works!
     $t->get_ok( "//$userid:$password@/api/v1/holds/"
-          . $hold_2->id
-          . '/pickup_locations?q={"marc_org_code": { "-like": "A%" }}' )
-      ->json_is( [ $library_1_api ] );
+            . $hold_2->id
+            . '/pickup_locations?q={"marc_org_code": { "-like": "A%" }}' )->json_is( [ $libraries[0] ] );
 
     t::lib::Mocks::mock_preference( 'AllowHoldPolicyOverride', 1 );
+    t::lib::Mocks::mock_preference( 'RESTdefaultPageSize',     20 );
 
-    my $library_4 = $builder->build_object({ class => 'Koha::Libraries', value => { pickup_location => 0, marcorgcode => 'X' } });
-    my $library_5 = $builder->build_object({ class => 'Koha::Libraries', value => { pickup_location => 1, marcorgcode => 'Y' } });
+    # biblio-level mock doesn't include libraries[1] and $libraries[2] as valid pickup location
+    $_->{needs_override}            = Mojo::JSON->true for @libraries;
+    $libraries[1]->{needs_override} = Mojo::JSON->false;
+    $libraries[2]->{needs_override} = Mojo::JSON->false;
 
-    my $library_5_api = $library_5->to_api();
-    $library_5_api->{needs_override} = Mojo::JSON->true;
+    $t->get_ok( "//$userid:$password@/api/v1/holds/" . $hold_1->id . "/pickup_locations?_order_by=marc_org_code" )
+        ->json_is( [ @libraries[ 0 .. 19 ] ] );
 
-    # bibli-level mock doesn't include library_1 as valid pickup location
-    $library_1_api->{needs_override} = Mojo::JSON->true;
-
-    $t->get_ok( "//$userid:$password@/api/v1/holds/"
-          . $hold_1->id
-          . "/pickup_locations?_order_by=marc_org_code" )
-      ->json_is( [ $library_1_api, $library_2_api, $library_3_api, $library_5_api ] );
+    # Library "Z" is not listed
+    $t->get_ok(
+        "//$userid:$password@/api/v1/holds/" . $hold_1->id . "/pickup_locations?_order_by=marc_org_code&_page=2" )
+        ->json_is( [ @libraries[ 20 .. 24 ] ] );
 
     $schema->storage->txn_rollback;
 };
 
 subtest 'edit() tests' => sub {
 
-    plan tests => 39;
+    plan tests => 47;
 
     $schema->storage->txn_begin;
 
@@ -968,10 +976,12 @@ subtest 'edit() tests' => sub {
         {
             class => "Koha::Holds",
             value => {
-                biblionumber => $biblio->biblionumber,
-                branchcode   => $library_3->branchcode,
-                itemnumber   => undef,
-                priority     => 1,
+                biblionumber   => $biblio->biblionumber,
+                branchcode     => $library_3->branchcode,
+                itemnumber     => undef,
+                priority       => 1,
+                reservedate    => '2022-01-01',
+                expirationdate => '2022-03-01'
             }
         }
     );
@@ -1026,17 +1036,32 @@ subtest 'edit() tests' => sub {
     $biblio_hold->discard_changes;
     is( $biblio_hold->branchcode, $library_2->id, 'Pickup location changed correctly' );
 
+    $biblio_hold_data = {
+        hold_date       => '2022-01-02',
+        expiration_date => '2022-03-02'
+    };
+
+    $t->patch_ok( "//$userid:$password@/api/v1/holds/" . $biblio_hold->id => json => $biblio_hold_data )
+        ->status_is(200);
+
+    $biblio_hold->discard_changes;
+    is( $biblio_hold->reservedate,    '2022-01-02', 'Hold date changed correctly' );
+    is( $biblio_hold->expirationdate, '2022-03-02', 'Expiration date changed correctly' );
+
+
     # Test item-level holds
     my $item_hold = $builder->build_object(
         {
             class => "Koha::Holds",
             value => {
-                biblionumber => $biblio->biblionumber,
-                branchcode   => $library_3->branchcode,
-                itemnumber   => $item->itemnumber,
-                priority     => 1,
-                suspend       => 0,
-                suspend_until => undef,
+                biblionumber   => $biblio->biblionumber,
+                branchcode     => $library_3->branchcode,
+                itemnumber     => $item->itemnumber,
+                priority       => 1,
+                suspend        => 0,
+                suspend_until  => undef,
+                reservedate    => '2022-01-01',
+                expirationdate => '2022-03-01'
             }
         }
     );
@@ -1090,6 +1115,17 @@ subtest 'edit() tests' => sub {
 
     is( $item_hold->suspend, 0, 'Location change should not activate suspended status' );
     is( $item_hold->suspend_until, undef, 'Location change should keep suspended_until be undef' );
+
+    $item_hold_data = {
+        hold_date       => '2022-01-02',
+        expiration_date => '2022-03-02'
+    };
+
+    $t->patch_ok( "//$userid:$password@/api/v1/holds/" . $item_hold->id => json => $item_hold_data )->status_is(200);
+
+    $item_hold->discard_changes;
+    is( $item_hold->reservedate,    '2022-01-02', 'Hold date changed correctly' );
+    is( $item_hold->expirationdate, '2022-03-02', 'Expiration date changed correctly' );
 
     $schema->storage->txn_rollback;
 
@@ -1346,7 +1382,7 @@ subtest 'PUT /holds/{hold_id}/pickup_location tests' => sub {
       ->status_is(200)
       ->json_is({ pickup_library_id => $library_2->branchcode });
 
-    is( $hold->discard_changes->branchcode->branchcode, $library_2->branchcode, 'pickup library adjusted correctly' );
+    is( $hold->discard_changes->branchcode, $library_2->branchcode, 'pickup library adjusted correctly' );
 
     $t->put_ok( "//$userid:$password@/api/v1/holds/"
           . $hold->id
@@ -1354,7 +1390,7 @@ subtest 'PUT /holds/{hold_id}/pickup_location tests' => sub {
       ->status_is(400)
       ->json_is({ error => '[The supplied pickup location is not valid]' });
 
-    is( $hold->discard_changes->branchcode->branchcode, $library_2->branchcode, 'pickup library unchanged' );
+    is( $hold->discard_changes->branchcode, $library_2->branchcode, 'pickup library unchanged' );
 
     # item-level hold
     $hold = Koha::Holds->find(
@@ -1376,7 +1412,7 @@ subtest 'PUT /holds/{hold_id}/pickup_location tests' => sub {
       ->status_is(400)
       ->json_is({ error => '[The supplied pickup location is not valid]' });
 
-    is( $hold->discard_changes->branchcode->branchcode, $library_1->branchcode, 'pickup library unchanged' );
+    is( $hold->discard_changes->branchcode, $library_1->branchcode, 'pickup library unchanged' );
 
     t::lib::Mocks::mock_preference( 'AllowHoldPolicyOverride', 1 );
 
@@ -1389,7 +1425,7 @@ subtest 'PUT /holds/{hold_id}/pickup_location tests' => sub {
       ->status_is(200)
       ->json_is({ pickup_library_id => $library_2->branchcode });
 
-    is( $hold->discard_changes->branchcode->branchcode, $library_2->branchcode, 'pickup library changed' );
+    is( $hold->discard_changes->branchcode, $library_2->branchcode, 'pickup library changed' );
 
     t::lib::Mocks::mock_preference( 'AllowHoldPolicyOverride', 0 );
 
@@ -1399,7 +1435,7 @@ subtest 'PUT /holds/{hold_id}/pickup_location tests' => sub {
       ->status_is(200)
       ->json_is({ pickup_library_id => $library_2->branchcode });
 
-    is( $hold->discard_changes->branchcode->branchcode, $library_2->branchcode, 'pickup library adjusted correctly' );
+    is( $hold->discard_changes->branchcode, $library_2->branchcode, 'pickup library adjusted correctly' );
 
     $t->put_ok( "//$userid:$password@/api/v1/holds/"
           . $hold->id
@@ -1407,7 +1443,7 @@ subtest 'PUT /holds/{hold_id}/pickup_location tests' => sub {
       ->status_is(400)
       ->json_is({ error => '[The supplied pickup location is not valid]' });
 
-    is( $hold->discard_changes->branchcode->branchcode, $library_2->branchcode, 'invalid pickup library not used' );
+    is( $hold->discard_changes->branchcode, $library_2->branchcode, 'invalid pickup library not used' );
 
     $t->put_ok( "//$userid:$password@/api/v1/holds/"
           . $hold->id
@@ -1417,7 +1453,7 @@ subtest 'PUT /holds/{hold_id}/pickup_location tests' => sub {
       ->status_is(400)
       ->json_is({ error => '[The supplied pickup location is not valid]' });
 
-    is( $hold->discard_changes->branchcode->branchcode, $library_2->branchcode, 'invalid pickup library not used, even if x-koha-override is passed' );
+    is( $hold->discard_changes->branchcode, $library_2->branchcode, 'invalid pickup library not used, even if x-koha-override is passed' );
 
     my $waiting_hold       = $builder->build_object( { class => 'Koha::Holds', value => { found => 'W' } } );
     my $in_processing_hold = $builder->build_object( { class => 'Koha::Holds', value => { found => 'P' } } );
@@ -1489,8 +1525,8 @@ subtest 'delete() tests' => sub {
         )
     );
 
-    $t->delete_ok( "//$userid:$password@/api/v1/holds/" . $hold->id )->status_is( 204, 'SWAGGER3.2.4' )
-        ->content_is( '', 'SWAGGER3.3.4' );
+    $t->delete_ok( "//$userid:$password@/api/v1/holds/" . $hold->id )->status_is( 204, 'REST3.2.4' )
+        ->content_is( '', 'REST3.3.4' );
 
     $hold = Koha::Holds->find(
         AddReserve(
@@ -1530,7 +1566,7 @@ subtest 'delete() tests' => sub {
                 borrowernumber => $patron->borrowernumber,
                 biblionumber   => $biblio->biblionumber,
                 priority       => 1,
-                itemnumber     => undef,
+                itemnumber     => $item->id,
             }
         )
     );

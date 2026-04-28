@@ -8,7 +8,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 61;
+use Test::More tests => 64;
 use Data::Dumper;
 
 use C4::Calendar qw( new insert_single_holiday );
@@ -163,13 +163,13 @@ $dbh->do("DELETE FROM items WHERE holdingbranch = '$borrower_branchcode'");
 # Frst branch from StaticHoldsQueueWeight
 test_queue ('take from lowest cost branch', 0, $borrower_branchcode, $other_branches[0]);
 test_queue ('take from lowest cost branch', 1, $borrower_branchcode, $least_cost_branch_code);
-my $queue = C4::HoldsQueue::GetHoldsQueueItems({ branchlmit => $least_cost_branch_code}) || [];
-my $queue_item = $queue->[0];
+my $queue = C4::HoldsQueue::GetHoldsQueueItems({ branchlimit => $least_cost_branch_code}) || [];
+my $queue_item = $queue->next;
 ok( $queue_item
- && $queue_item->{pickbranch} eq $borrower_branchcode
- && $queue_item->{holdingbranch} eq $least_cost_branch_code, "GetHoldsQueueItems" )
-  or diag( "Expected item for pick $borrower_branchcode, hold $least_cost_branch_code, got ".Dumper($queue_item) );
-ok( exists($queue_item->{itype}), 'item type included in queued items list (bug 5825)' );
+ && $queue_item->pickbranch eq $borrower_branchcode
+ && $queue_item->item->holdingbranch eq $least_cost_branch_code, "GetHoldsQueueItems" )
+  or diag( "Expected item for pick $borrower_branchcode, hold $least_cost_branch_code, got ".Dumper($queue_item->unblessed) );
+ok( $queue_item->item->effective_itemtype, 'item type included in queued items list (bug 5825)' );
 
 ok(
     C4::HoldsQueue::least_cost_branch( 'B', [ 'A', 'B', 'C' ] ) eq 'B',
@@ -1710,7 +1710,7 @@ subtest "Test _checkHoldPolicy" => sub {
         }
     );
     ok( $reserve_id, "Hold was created");
-    my $requests = C4::HoldsQueue::GetPendingHoldRequestsForBib($biblio->biblionumber);
+    my $requests = C4::HoldsQueue::GetPendingHoldRequestsForBib({ biblionumber => $biblio->biblionumber});
     is( @$requests, 1, "Got correct number of holds");
 
     my $request = $requests->[0];
@@ -1840,7 +1840,7 @@ subtest 'Remove holds on check-in match' => sub {
 
     t::lib::Mocks::mock_userenv( { branchcode => $lib->branchcode } );
 
-    AddIssue( $patron1->unblessed, $item->barcode, dt_from_string );
+    AddIssue( $patron1, $item->barcode, dt_from_string );
 
     my $hold_id = AddReserve(
         {
@@ -1944,26 +1944,119 @@ subtest "GetHoldsQueueItems" => sub {
      " );
 
     my $queue_items = GetHoldsQueueItems();
-    is( scalar @$queue_items, $count + 3, 'Three items added to queue' );
+    is( $queue_items->count, $count + 3, 'Three items added to queue' );
 
     $queue_items = GetHoldsQueueItems( { itemtypeslimit => $item_1->itype } );
-    is( scalar @$queue_items,
+    is( $queue_items->count,
         3, 'Three items of same itemtype found when itemtypeslimit passed' );
 
     $queue_items = GetHoldsQueueItems(
         { itemtypeslimit => $item_1->itype, ccodeslimit => $item_2->ccode } );
-    is( scalar @$queue_items,
+    is( $queue_items->count,
         2, 'Two items of same collection found when ccodeslimit passed' );
 
-    @$queue_items = GetHoldsQueueItems(
+    $queue_items = GetHoldsQueueItems(
         {
             itemtypeslimit => $item_1->itype,
             ccodeslimit    => $item_2->ccode,
             locationslimit => $item_3->location
         }
     );
-    is( scalar @$queue_items,
+    is( scalar $queue_items->count,
         1, 'One item of shleving location found when locationslimit passed' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest "Test HoldsQueuePrioritizeBranch" => sub {
+
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'LocalHoldsPriority', 0 );
+    t::lib::Mocks::mock_preference( 'UseTransportCostMatrix', 0 );
+
+    my $branch1 = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $branch2 = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $category = $builder->build_object( { class => 'Koha::Patron::Categories' });
+    my $patron = $builder->build_object(
+        {
+            class => "Koha::Patrons",
+            value => {
+                branchcode => $branch1->branchcode,
+                categorycode => $category->categorycode
+            }
+        }
+    );
+
+    my $biblio = $builder->build_sample_biblio();
+    my $item1   = $builder->build_sample_item(
+        {
+            biblionumber  => $biblio->biblionumber,
+            library    => $branch1->branchcode,
+        }
+    )->holdingbranch( $branch2->id )->store();
+
+    my $item2   = $builder->build_sample_item(
+        {
+            biblionumber  => $biblio->biblionumber,
+            library    => $branch1->branchcode,
+        }
+    )->homebranch( $branch2->id )->store();
+
+    my $reserve_id = AddReserve(
+        {
+            branchcode     => $branch1->branchcode,
+            borrowernumber => $patron->borrowernumber,
+            biblionumber   => $biblio->biblionumber,
+            priority       => 1,
+        }
+    );
+
+    t::lib::Mocks::mock_preference( 'HoldsQueuePrioritizeBranch', 'homebranch' );
+
+    C4::HoldsQueue::CreateQueue();
+
+    my $queue_rs = $schema->resultset('TmpHoldsqueue')->search({ biblionumber => $biblio->biblionumber });
+    is(
+        $queue_rs->next->itemnumber->itemnumber,
+        $item1->itemnumber,
+        "Picked the item whose homebranch matches the pickup branch"
+    );
+
+    t::lib::Mocks::mock_preference( 'HoldsQueuePrioritizeBranch', 'holdingbranch' );
+
+    C4::HoldsQueue::CreateQueue();
+
+    $queue_rs = $schema->resultset('TmpHoldsqueue')->search({ biblionumber => $biblio->biblionumber });
+    is(
+        $queue_rs->next->itemnumber->itemnumber,
+        $item2->itemnumber,
+        "Picked the item whose holdingbranch matches the pickup branch"
+    );
+
+    t::lib::Mocks::mock_preference( 'HoldsQueuePrioritizeBranch', 'homebranch' );
+
+    C4::HoldsQueue::CreateQueue();
+
+    $queue_rs = $schema->resultset('TmpHoldsqueue')->search({ biblionumber => $biblio->biblionumber });
+    is(
+        $queue_rs->next->itemnumber->itemnumber,
+        $item1->itemnumber,
+        "Picked the item whose homebranch matches the pickup branch"
+    );
+
+    t::lib::Mocks::mock_preference( 'HoldsQueuePrioritizeBranch', 'holdingbranch' );
+
+    C4::HoldsQueue::CreateQueue();
+
+    $queue_rs = $schema->resultset('TmpHoldsqueue')->search({ biblionumber => $biblio->biblionumber });
+    is(
+        $queue_rs->next->itemnumber->itemnumber,
+        $item2->itemnumber,
+        "Picked the item whose holdingbranch matches the pickup branch"
+    );
 
     $schema->storage->txn_rollback;
 };
@@ -1997,6 +2090,73 @@ subtest "GetItemsAvailableToFillHoldsRequestsForBib" => sub {
     is( scalar @$items, 2, "Two items without active transfers correctly retrieved");
     is_deeply( [$items->[0]->{itemnumber},$items->[1]->{itemnumber}],[$item_2->itemnumber,$item_3->itemnumber],"Correct two items retrieved");
 
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Remove item from holds queue on checkout' => sub {
+
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    my $lib = $builder->build_object( { class => 'Koha::Libraries' } );
+
+    my $patron1 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { branchcode => $lib->branchcode }
+        }
+    );
+    my $patron2 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { branchcode => $lib->branchcode }
+        }
+    );
+
+    my $item  = $builder->build_sample_item( { homebranch => $lib->branchcode, holdingbranch => $lib->branchcode } );
+    my $item2 = $builder->build_sample_item(
+        { homebranch => $lib->branchcode, holdingbranch => $lib->branchcode, biblionumber => $item->biblionumber } );
+
+    t::lib::Mocks::mock_userenv( { branchcode => $lib->branchcode } );
+
+    my $hold_id = AddReserve(
+        {
+            branchcode     => $item->homebranch,
+            borrowernumber => $patron2->borrowernumber,
+            biblionumber   => $item->biblionumber,
+            itemnumber     => undef,
+            priority       => 1
+        }
+    );
+
+    C4::HoldsQueue::CreateQueue();
+
+    is(
+        Koha::Hold::HoldsQueueItems->search( { itemnumber => $item->id } )->count(), 1,
+        "One item is found in the holds queue"
+    );
+
+    my $hq_item = Koha::Hold::HoldsQueueItems->search( { itemnumber => $item->id } )->next->item;
+
+    AddIssue( $patron1, $hq_item->barcode, dt_from_string );
+
+    is(
+        Koha::Hold::HoldsQueueItems->search( { itemnumber => $item->id } )->count(), 0,
+        "Item is no longer found in the holds queue"
+    );
+
+    C4::HoldsQueue::CreateQueue();
+
+    is(
+        Koha::Hold::HoldsQueueItems->search( { itemnumber => $item2->id } )->count(), 1,
+        "One item is found in the holds queue"
+    );
+
+    my $hq_item2 = Koha::Hold::HoldsQueueItems->search( { itemnumber => $item2->id } )->next->item;
+    isnt( $hq_item->id, $hq_item2->id, "Item now targeted by the holds queue is not the same item." );
+
+    $schema->storage->txn_rollback;
 };
 
 subtest "Canceled holds should be removed from the holds queue" => sub {
@@ -2050,4 +2210,83 @@ subtest "Canceled holds should be removed from the holds queue" => sub {
     );
 
     $schema->storage->txn_rollback;
+};
+
+subtest "Test unallocated option" => sub {
+
+    plan tests => 6;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object(
+        {
+            class => "Koha::Patrons",
+        }
+    );
+    my $patron_2 = $builder->build_object(
+        {
+            class => "Koha::Patrons",
+        }
+    );
+
+    my $item1 = $builder->build_sample_item( {} )->store();
+
+    my $item2 = $builder->build_sample_item( {} )->store();
+
+    my $reserve_id = AddReserve(
+        {
+            branchcode     => $patron->branchcode,
+            borrowernumber => $patron->borrowernumber,
+            biblionumber   => $item1->biblionumber,
+            priority       => 1,
+        }
+    );
+
+    C4::HoldsQueue::CreateQueue();
+
+    my $queue_rs = $schema->resultset('TmpHoldsqueue')->search( { biblionumber => $item1->biblionumber } );
+    my $hold     = $queue_rs->next;
+    is(
+        $hold->itemnumber->itemnumber,
+        $item1->itemnumber,
+        "Picked the item"
+    );
+
+    my $original_timestamp = $hold->timestamp;
+
+    sleep 2;    # Allow time to pass after first hold was placed
+    C4::HoldsQueue::CreateQueue();
+    $queue_rs = $schema->resultset('TmpHoldsqueue')->search( { biblionumber => $item1->biblionumber } );
+    $hold     = $queue_rs->next;
+    isnt( $hold->timestamp, $original_timestamp, "Hold was reallocated when queue fully rebuilt" );
+    my $after_rebuild_timestamp = $hold->timestamp;
+
+    sleep 2;    # Allow time to pass after first full rebuild
+    C4::HoldsQueue::CreateQueue( { unallocated => 1 } );
+    $queue_rs = $schema->resultset('TmpHoldsqueue')->search( { biblionumber => $item1->biblionumber } );
+    $hold     = $queue_rs->next;
+    is( $hold->timestamp, $after_rebuild_timestamp, "Previously allocated hold not updated when unallocated passed" );
+
+    my $reserve_id_2 = AddReserve(
+        {
+            branchcode     => $patron_2->branchcode,
+            borrowernumber => $patron_2->borrowernumber,
+            biblionumber   => $item2->biblionumber,
+            priority       => 1,
+        }
+    );
+    $queue_rs = $schema->resultset('TmpHoldsqueue')->search( { biblionumber => $item2->biblionumber } );
+    $hold     = $queue_rs->next;
+    ok( !$hold, "New hold is not allocated to queue before run" );
+    C4::HoldsQueue::CreateQueue( { unallocated => 1 } );
+    $queue_rs = $schema->resultset('TmpHoldsqueue')->search( { biblionumber => $item2->biblionumber } );
+    $hold     = $queue_rs->next;
+    ok( $hold, "New hold is allocated to queue when run for unallocated holds" );
+
+    $queue_rs = $schema->resultset('TmpHoldsqueue')->search( { biblionumber => $item1->biblionumber } );
+    $hold     = $queue_rs->next;
+    is(
+        $hold->timestamp, $after_rebuild_timestamp,
+        "Previously allocated hold not updated when unallocated passed and others are allocated"
+    );
 };

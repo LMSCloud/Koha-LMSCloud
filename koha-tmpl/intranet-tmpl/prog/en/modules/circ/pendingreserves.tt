@@ -6,9 +6,14 @@
 [% USE AuthorisedValues %]
 [%- USE Branches -%]
 [%- USE ItemTypes -%]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Holds to pull &rsaquo; Circulation &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Holds to pull") | html %] &rsaquo;
+    [% t("Circulation") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -30,11 +35,12 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
         [% FOR m IN messages %]
-            <div class="dialog [% m.type | html %]">
+            <div class="alert alert-[% m.type | html %]">
                 [% SWITCH m.code %]
                 [% CASE 'letter_enqueued' %]
                     <span>The notice has been correctly enqueued.</span>
@@ -76,7 +82,7 @@
         <th>Earliest hold date</th>
         <th>Hold notes</th>
         <th class="string-sort">Pickup location</th>
-        <th>Action</th>
+        <th class="NoSort">Action</th>
         </tr>
     </thead>
     <tbody>
@@ -90,7 +96,7 @@
             <td><p><strong>[% hold_info.pull_count | html %]</strong></p></td>
             <td>[% hold_info.items_count | html %]</td>
             <td>[% hold_info.patrons_count | html %]</td>
-            <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | uri %]">[% patron.firstname | html %] [% patron.surname | html %]</a></td>
+                                            <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' patron=patron invert_name=1 no_title=1 %]</a></td>
             <td>
                 <p>
                     [% INCLUDE 'biblio-title.inc' biblio=biblio link = 1 %]
@@ -200,7 +206,8 @@
         </td>
         <td>
             <form name="cancelReserve" action="/cgi-bin/koha/circ/pendingreserves.pl" method="post">
-                <input type="hidden" name="op" value="cancel_reserve" />
+                [% INCLUDE 'csrf-token.inc' %]
+                <input type="hidden" name="op" value="cud-cancel_reserve" />
                 <input type="hidden" name="reserve_id" value="[% hold.reserve_id | html %]" />
 
                 [% SET hold_cancellation = AuthorisedValues.GetAuthValueDropbox('HOLD_CANCELLATION') %]
@@ -226,12 +233,13 @@
         [% IF Koha.Preference('CanMarkHoldsToPullAsLost') != 'do_not_allow' %]
             [% IF hold.itemnumber %]
                 <form name="cancelReserve" action="/cgi-bin/koha/circ/pendingreserves.pl" method="post">
+                    [% INCLUDE 'csrf-token.inc' %]
                     <input type="hidden" name="reserve_id" value="[% hold.reserve_id | html %]" />
                     [% IF Koha.Preference('CanMarkHoldsToPullAsLost') == 'allow' %]
-                        <input type="hidden" name="op" value="mark_as_lost" />
+                        <input type="hidden" name="op" value="cud-mark_as_lost" />
                         <input type="submit" class="btn btn-primary" value="Mark item as lost" />
                     [% ELSIF Koha.Preference('CanMarkHoldsToPullAsLost') == 'allow_and_notify' %]
-                        <input type="hidden" name="op" value="mark_as_lost_and_notify" />
+                        <input type="hidden" name="op" value="cud-mark_as_lost_and_notify" />
                         <input type="submit" class="btn btn-primary" value="Mark lost and notify patron" />
                     [% END %]
                 </form>
@@ -243,27 +251,6 @@
         </tr>
         [% END %]
     </tbody>
-    <tfoot>
-        <tr>
-        <td><input type="text" class="filter" data-column_num="0" placeholder="Pull this many items" style="width:95%"/></td>
-        <td><input type="text" class="filter" data-column_num="1" placeholder="Items available" style="width:95%"/></td>
-        <td><input type="text" class="filter" data-column_num="2" placeholder="Patron holds" style="width:95%"/></td>
-        <td><input type="text" class="filter" data-column_num="3" placeholder="Patron name" style="width:95%"/></td>
-        <td><input type="text" class="filter" data-column_num="4" placeholder="Title" style="width:95%"/></td>
-        <td id="homebranchfilter"></td>
-        <td></td>
-        <td><input type="text" class="filter" data-column_num="7" placeholder="Call number" style="width:95%"/></td>
-        <td><input type="text" class="filter" data-column_num="8" placeholder="Available copy" style="width:95%"/></td>
-        <td><input type="text" class="filter" data-column_num="9" placeholder="Available enumeration" style="width:95%"/></td>
-        <td id="itemtype-filter"></td>
-        <td id="locationfilter"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td id="pickup-location"></td>
-        <td></td>
-        </tr>
-    </tfoot>
     </table>
     [% ELSE %]
         <strong>No items found.</strong>
@@ -272,14 +259,14 @@
 
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
 
 <div id="filters">
 
-<form action="/cgi-bin/koha/circ/pendingreserves.pl" method="post" >
+<form action="/cgi-bin/koha/circ/pendingreserves.pl" method="get" >
 <fieldset class="brief">
 <h4>Refine results</h4>
 <ol>
@@ -310,7 +297,7 @@
 
 </div>
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -318,64 +305,37 @@
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
     <script>
+        function get_options(column){
+            let regex = /(<([^>]+)>)/ig; // Remove html tags
+            let options = [... new Set(column
+                .data()
+                .toArray()
+                .map(d => d.replace(regex, '').trim().split(/\n/gi).map(s => s.trim()).flat())
+                .flat()
+                .sort())];
+
+            return options
+                .map(e => {
+                    return {_id: e, _str: e}
+                });
+        }
+
         $(document).ready(function() {
-          var table_settings = [% TablesSettings.GetTableSettings('circ', 'holds', 'holds-to-pull', 'json') | $raw %];
-          var holdst = KohaTable("holdst", {
-            "sPaginationType": "full_numbers"
-          }, table_settings);
-          holdst.fnAddFilters("filter");
-          [%# add separateData function to cleanse jQuery select lists by breaking apart strings glued with BR tags and then de-duplicating any repeated library codes %]
-          function separateData ( ColumnData ){
-            var cD = ColumnData;
-            var new_array = new Array();
-            for ( j=0 ; j<cD.length ; j++ ) {
-                var split_array = cD[j].split(/\n/gi);
-                for ( k=0 ; k<split_array.length ; k++ ){
-                    var str = $.trim(split_array[k].replace(/[\n\r]/g, ''));
-                    if ($.inArray(str, new_array) == -1 && str.length > 0 ) {
-                        new_array.push(str);
-                    }
-                }
-            }
-            new_array.sort();
-            return new_array;
-          }
-          [%# add SeparateData function into createSelect function, so that it does the createSelect on clean data %]
-          function createSelect( data ) {
-              data = separateData(data);
-              var r='<select style="width:99%"><option value="">' + _("None") + '</option>', i, len=data.length;
-              var regex = /(<([^>]+)>)/ig; // Remove html tags
-              for ( i=0 ; i<len ; i++ ) {
-                  var cell_val = data[i].replace(regex, '');
-                  if ( cell_val.length < 1 ) continue;
-                  r += '<option value="'+cell_val+'">'+cell_val+'</option>';
-              }
-              return r+'</select>';
-          }
-          $("#homebranchfilter").each( function () {
-              $(this).html( createSelect( holdst.fnGetColumnData(5) ) );
-              $('select', this).change( function () {
-                  holdst.fnFilter( $(this).val(), 5 );
-              });
-          });
-          $("#itemtype-filter").each( function () {
-              $(this).html( createSelect( holdst.fnGetColumnData(10) ) );
-              $('select', this).change( function () {
-                  holdst.fnFilter( $(this).val(), 10 );
-              });
-          });
-          $("#locationfilter").each( function () {
-              $(this).html( createSelect( holdst.fnGetColumnData(11) ) );
-              $('select', this).change( function () {
-                  holdst.fnFilter( $(this).val(), 11 );
-              });
-          });
-          $("#pickup-location").each( function () {
-              $(this).html( createSelect( holdst.fnGetColumnData(14) ) );
-              $('select', this).change( function () {
-                  holdst.fnFilter( $(this).val(), 14 );
-              });
-          });
+            let filters_options = {
+                [5] : (table_dt) => get_options(table_dt.column(5)),
+                [10] : (table_dt) => get_options(table_dt.column(10)),
+                [11] : (table_dt) => get_options(table_dt.column(11)),
+                [15] : (table_dt) => get_options(table_dt.column(15)),
+            };
+
+
+            var table_settings = [% TablesSettings.GetTableSettings('circ', 'holds', 'holds-to-pull', 'json') | $raw %];
+            var holdst = KohaTable("holdst", {
+                "pagingType": "full_numbers",
+                "columnDefs": [
+                    { "orderable": false, "searchable":  false, "targets": [ 'NoSort' ] },
+                ],
+            }, table_settings, true, null, filters_options);
         });
     </script>
 [% END %]

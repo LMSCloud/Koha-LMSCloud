@@ -224,8 +224,10 @@ sub ftp_download {
 
     my $msg_hash = $self->message_hash();
     my @downloaded_files;
-    my $ftp = Net::FTP->new(
+    my $port = $self->{account}->download_port ? $self->{account}->download_port : '21';
+    my $ftp  = Net::FTP->new(
         $self->{account}->host,
+        Port    => $port,
         Timeout => 10,
         Passive => 1
       )
@@ -235,7 +237,7 @@ sub ftp_download {
       or return $self->_abort_download( $ftp, "Cannot login: $ftp->message()" );
     $ftp->cwd( $self->{account}->download_directory )
       or return $self->_abort_download( $ftp,
-        "Cannot change remote dir : $ftp->message()" );
+        "Cannot change remote dir : " . $ftp->message() );
     my $file_list = $ftp->ls()
       or
       return $self->_abort_download( $ftp, 'cannot get file list from server' );
@@ -246,7 +248,7 @@ sub ftp_download {
 
             if ( !$ftp->get( $filename, "$self->{working_dir}/$filename" ) ) {
                 $self->_abort_download( $ftp,
-                    "Error retrieving $filename: $ftp->message" );
+                    "Error retrieving $filename: " . $ftp->message );
                 last;
             }
 
@@ -265,8 +267,10 @@ sub ftp_download {
 
 sub ftp_upload {
     my ( $self, @messages ) = @_;
-    my $ftp = Net::FTP->new(
+    my $port = $self->{account}->upload_port ? $self->{account}->upload_port : '21';
+    my $ftp  = Net::FTP->new(
         $self->{account}->host,
+        Port    => $port,
         Timeout => 10,
         Passive => 1
       )
@@ -276,7 +280,7 @@ sub ftp_upload {
       or return $self->_abort_download( $ftp, "Cannot login: $ftp->message()" );
     $ftp->cwd( $self->{account}->upload_directory )
       or return $self->_abort_download( $ftp,
-        "Cannot change remote dir : $ftp->message()" );
+        "Cannot change remote dir : " . $ftp->message() );
     foreach my $m (@messages) {
         my $content = $m->raw_msg;
         if ($content) {
@@ -313,7 +317,7 @@ sub sftp_upload {
         password => Koha::Encryption->new->decrypt_hex($self->{account}->password),
         timeout  => 10,
     );
-    $sftp->die_on_error("Cannot ssh to $self->{account}->host");
+    $sftp->die_on_error( "Cannot ssh to " . $self->{account}->host );
     $sftp->setcwd( $self->{account}->upload_directory )
       or return $self->_abort_download( $sftp,
         "Cannot change remote dir : " . $sftp->error );
@@ -355,7 +359,7 @@ sub file_upload {
                     $m->update;
                 }
                 else {
-                    carp "Could not transfer $m->filename : $ERRNO";
+                    carp "Could not transfer " . $m->filename . " : $ERRNO";
                     next;
                 }
             }

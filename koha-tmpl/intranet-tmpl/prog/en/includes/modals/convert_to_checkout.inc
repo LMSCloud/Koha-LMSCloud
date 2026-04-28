@@ -4,8 +4,8 @@
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title" id="convertToCheckoutLabel">Convert to checkout</h4>
+                    <h1 class="modal-title" id="convertToCheckoutLabel">Convert to checkout</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div id="convert_to_checkout_result"></div>
@@ -26,7 +26,7 @@
                 </div> <!-- /.modal-body -->
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-primary">Confirm checkout</button>
-                    <button type="button" class="btn btn-default" data-dismiss="modal" aria-hidden="true">Cancel</button>
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
                 </div> <!-- /.modal-footer -->
             </div> <!-- /.modal-content -->
         </div> <!-- /.modal-dialog -->

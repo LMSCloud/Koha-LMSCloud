@@ -28,7 +28,6 @@ use C4::Members::Messaging;
 use C4::Form::MessagingPreferences;
 use Koha::Patrons;
 use Koha::SMS::Providers;
-use Koha::Token;
 
 my $query = CGI->new();
 my $opac_messaging = C4::Context->preference('EnhancedMessagingPreferencesOPAC');
@@ -52,12 +51,9 @@ my $patron = Koha::Patrons->find( $borrowernumber ); # FIXME and if borrowernumb
 my $messaging_options;
 $messaging_options = C4::Members::Messaging::GetMessagingOptions() if $opac_messaging;
 
-if ( defined $query->param('modify') && $query->param('modify') eq 'yes' ) {
-    die "Wrong CSRF token" unless Koha::Token->new->check_csrf({
-        session_id => scalar $query->cookie('CGISESSID'),
-        token  => scalar $query->param('csrf_token'),
-    });
+my $op = $query->param('op') || q{};
 
+if ( $op eq 'cud-modify' ) {
     if( $opac_messaging ) {
         my $sms = $query->param('SMSnumber');
         my $sms_provider_id = $query->param('sms_provider_id');
@@ -92,14 +88,9 @@ if( $opac_messaging && C4::Context->preference("SMSSendDriver") eq 'Email' ) {
 }
 
 my $new_session_id = $query->cookie('CGISESSID');
-$template->param(
-    csrf_token => Koha::Token->new->generate_csrf({
-            session_id => $new_session_id,
-        }),
-);
 
 if ( C4::Context->preference('TranslateNotices') ) {
-    my $translated_languages = C4::Languages::getTranslatedLanguages( 'opac', C4::Context->preference('template') );
+    my $translated_languages = C4::Languages::getTranslatedLanguages( 'opac', C4::Context->preference('opacthemes') );
     $template->param(
         languages => $translated_languages,
         patron_lang => $patron->lang,

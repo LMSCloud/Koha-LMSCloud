@@ -4,7 +4,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 2;
+use Test::More tests => 3;
 use Test::Warn;
 
 use MARC::Field;
@@ -17,7 +17,7 @@ use t::lib::Mocks;
 #use C4::Biblio qw//;
 use C4::AuthoritiesMarc qw( AddAuthority DelAuthority merge );
 use C4::Biblio qw( ModZebra ModBiblio ModBiblioMarc DelBiblio );
-use C4::Circulation qw( MarkIssueReturned AddReturn LostItem );
+use C4::Circulation qw( MarkIssueReturned AddReturn LostItem AddRenewal );
 use C4::Items qw( ModDateLastSeen ModItemTransfer );
 use Koha::Database;
 use Koha::SearchEngine::Elasticsearch;
@@ -69,6 +69,7 @@ subtest 'Test indexer calls' => sub {
     skip 'Elasticsearch configuration not available', 20
             if scalar @engines == 1;
     }
+    t::lib::Mocks::mock_userenv();
 
     t::lib::Mocks::mock_preference( 'AutoLinkBiblios', 0 );
 
@@ -244,6 +245,68 @@ subtest 'Test indexer calls' => sub {
 
     }
 
+};
+
+subtest 'Test AddRenewal indexer call' => sub {
+    plan tests => 4;
+
+    my @engines = ('Zebra');
+    eval { Koha::SearchEngine::Elasticsearch->get_elasticsearch_params; };
+    push @engines, 'Elasticsearch' unless $@;
+    SKIP: {
+    skip 'Elasticsearch configuration not available', 20
+            if scalar @engines == 1;
+    }
+
+    for my $engine ( @engines ){
+        t::lib::Mocks::mock_preference( 'SearchEngine', $engine );
+        my $mock_index = Test::MockModule->new("Koha::SearchEngine::".$engine."::Indexer");
+
+        my $biblio = $builder->build_sample_biblio();
+        my $patron  = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $item = $builder->build_sample_item({
+            biblionumber => $biblio->biblionumber,
+            onloan => '2020-02-02',
+            datelastseen => '2020-01-01',
+            replacementprice => 0
+        });
+        my $issue = $builder->build({
+            source => 'Issue',
+            value  => {
+                itemnumber => $item->itemnumber
+            }
+        });
+
+        $mock_index->mock( index_records => sub {
+            warn $engine;
+            my ($package, undef, undef) = caller;
+            warn $package;
+        });
+
+
+        warnings_are{
+            AddRenewal(
+                {
+                    borrowernumber => $patron->borrowernumber,
+                    itemnumber     => $item->itemnumber,
+                    branch         => $item->homebranch,
+                    seen           => 0
+                }
+            );
+        } [$engine,"C4::Circulation"], "index_records is called for $engine when adding a renewal (AddRenewal())";
+        warnings_are{
+            AddRenewal(
+                {
+                    borrowernumber    => $patron->borrowernumber,
+                    itemnumber        => $item->itemnumber,
+                    seen              => 0,
+                    automatic         => 1,
+                    skip_record_index => 1
+                }
+            );
+        } undef, "index_records is not called for $engine when adding a renewal (AddRenewal()) with skip_record_index";
+
+    }
 };
 
 $schema->storage->txn_rollback;

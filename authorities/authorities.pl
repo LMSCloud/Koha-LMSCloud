@@ -21,6 +21,7 @@
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
+use POSIX    qw( strftime );
 use C4::Auth qw( get_template_and_user );
 use C4::Output qw( output_html_with_http_headers );
 use C4::AuthoritiesMarc qw( AddAuthority ModAuthority GetAuthority GetTagsLabels GetAuthMARCFromKohaField FindDuplicateAuthority );
@@ -536,21 +537,30 @@ sub build_hidden_data {
 my $input = CGI->new;
 my $z3950 = $input->param('z3950');
 my $error = $input->param('error');
-my $authid=$input->param('authid'); # if authid exists, it's a modif, not a new authority.
+my $authid = $input->param('authid') =~ s/\D//gr
+    ; # if authid exists, it's a modif, not a new authority. We remove from authid all non-digit characters just in case the CGI parameter contains weird characters like spaces
 my $op = $input->param('op');
-my $nonav = $input->param('nonav');
 my $myindex = $input->param('index');
 my $linkid=$input->param('linkid');
 my $authtypecode = $input->param('authtypecode');
 my $breedingid    = $input->param('breedingid');
 
-
-my $dbh = C4::Context->dbh;
-if(!$authtypecode) {
-    $authtypecode = $authid ? Koha::Authorities->find($authid)->authtypecode : '';
+my $changed_authtype;
+if ( $op eq 'cud-change-framework' ) {
+    $op = $input->param('original_op');
+    $changed_authtype = 1;
 }
 
+my $dbh = C4::Context->dbh;
 my $authobj = Koha::Authorities->find($authid);
+if ( $authid && !$authobj ) {
+    print $input->redirect("/cgi-bin/koha/errors/404.pl");    # escape early
+    exit;
+}
+if(!$authtypecode) {
+    $authtypecode = $authid ? $authobj->authtypecode : '';
+}
+
 my $count = $authobj ? $authobj->get_usage_count : 0;
 
 my ($template, $loggedinuser, $cookie)
@@ -559,7 +569,7 @@ my ($template, $loggedinuser, $cookie)
                             type => "intranet",
                             flagsrequired => {editauthorities => 1},
                             });
-$template->param(nonav   => $nonav,index=>$myindex,authtypecode=>$authtypecode,breedingid=>$breedingid, count=>$count);
+$template->param( index => $myindex, authtypecode => $authtypecode, breedingid => $breedingid, count => $count );
 
 $tagslib = GetTagsLabels(1,$authtypecode);
 $mandatory_z3950 = GetMandatoryFieldZ3950($authtypecode);
@@ -584,7 +594,7 @@ if ($authid) {
 }
 $op ||= q{};
 #------------------------------------------------------------------------------------------------------------------------------
-if ($op eq "add") {
+if ($op eq "cud-add") {
 #------------------------------------------------------------------------------------------------------------------------------
     # rebuild
     my @tags = $input->multi_param('tag');
@@ -596,7 +606,8 @@ if ($op eq "add") {
     my $record = TransformHtmlToMarc($input, 0);
 
     my ($duplicateauthid,$duplicateauthvalue);
-     ($duplicateauthid,$duplicateauthvalue) = FindDuplicateAuthority($record,$authtypecode) if ($op eq "add") && (!$is_a_modif);
+    ( $duplicateauthid, $duplicateauthvalue ) = FindDuplicateAuthority( $record, $authtypecode ) unless $is_a_modif;
+
     my $confirm_not_duplicate = $input->param('confirm_not_duplicate');
     # it is not a duplicate (determined either by Koha itself or by user checking it's not a duplicate)
     if (!$duplicateauthid or $confirm_not_duplicate) {
@@ -620,25 +631,36 @@ if ($op eq "add") {
                         duplicateauthvalue  => $duplicateauthvalue->{'authorized'}->[0]->{'heading'},
                         );
     }
-} elsif ($op eq "delete") {
-#------------------------------------------------------------------------------------------------------------------------------
-        DelAuthority({ authid => $authid });
-        if ($nonav){
-            print $input->redirect("auth_finder.pl");
-        }else{
-            print $input->redirect("authorities-home.pl?authid=0");
-        }
-                exit;
 } else {
-if ($op eq "duplicate")
-        {
-                $authid = "";
+    if ( $op eq "duplicate" ) {
+        $authid = "";
+        if ( C4::Context->preference('marcflavour') eq 'MARC21' && $record && $record->field('008') ) {
+            my $s008 = $record->field('008')->data;
+            my $date = POSIX::strftime( "%y%m%d", localtime );
+            substr( $s008, 0, 6, $date );
+            $record->field('008')->update($s008);
+        } elsif ( C4::Context->preference('marcflavour') eq 'UNIMARC' && $record && $record->subfield( '100', 'a' ) ) {
+            my $s100a = $record->subfield( '100', 'a' );
+            my $date  = POSIX::strftime( "%Y%m%d", localtime );
+            substr( $s100a, 0, 8, $date );
+            $record->field('100')->update( a => $s100a );
         }
-        build_tabs ($template, $record, $dbh, $input);
-        build_hidden_data;
-        $template->param(oldauthtypetagfield=>$oldauthtypetagfield, oldauthtypetagsubfield=>$oldauthtypetagsubfield,
-                        oldauthnumtagfield=>$oldauthnumtagfield, oldauthnumtagsubfield=>$oldauthnumtagsubfield,
-                        authid                      => $authid , authtypecode=>$authtypecode,	);
+    }
+
+    if ( $changed_authtype ) {
+        $record = TransformHtmlToMarc( $input, 0 );
+    }
+
+    build_tabs( $template, $record, $dbh, $input );
+    build_hidden_data;
+    $template->param(
+        oldauthtypetagfield    => $oldauthtypetagfield,
+        oldauthtypetagsubfield => $oldauthtypetagsubfield,
+        oldauthnumtagfield     => $oldauthnumtagfield,
+        oldauthnumtagsubfield  => $oldauthnumtagsubfield,
+        authid                 => $authid,
+        authtypecode           => $authtypecode,
+    );
 }
 
 my $authority_types = Koha::Authority::Types->search( {}, { order_by => ['authtypetext'] } );

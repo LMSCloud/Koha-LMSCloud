@@ -48,7 +48,7 @@ the human readable name of the field, for display
 =head2 type
 
   data_type: 'enum'
-  extra: {list => ["","string","date","number","boolean","sum","isbn","stdno","year","callnumber","string_plus","availability"]}
+  extra: {list => ["","string","date","number","boolean","sum","isbn","stdno","year","callnumber","string_plus","availability","geo_point"]}
   is_nullable: 0
 
 what type of data this holds, relevant when storing it in the search engine
@@ -85,6 +85,14 @@ the order place of the field in facet list if faceted
 
 if marked this field is not editable or removable
 
+=head2 authorised_value_category
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 32
+
+link to authorised value category
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -111,6 +119,7 @@ __PACKAGE__->add_columns(
         "callnumber",
         "string_plus",
         "availability",
+        "geo_point",
       ],
     },
     is_nullable => 0,
@@ -125,6 +134,8 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", default_value => 1, is_nullable => 0 },
   "mandatory",
   { data_type => "tinyint", is_nullable => 1 },
+  "authorised_value_category",
+  { data_type => "varchar", is_nullable => 1, size => 32 },
 );
 
 =head1 PRIMARY KEY
@@ -171,8 +182,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:40
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:rPJiMqrYgKjRhsx8mF4//Q
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:55
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:6dmccPSQ0KHsXhgbyETGFg
 
 __PACKAGE__->add_columns(
     '+mandatory' => { is_boolean => 1 },

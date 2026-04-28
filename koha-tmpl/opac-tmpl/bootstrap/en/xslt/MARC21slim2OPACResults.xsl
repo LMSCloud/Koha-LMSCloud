@@ -28,6 +28,8 @@
     <xsl:variable name="OPACResultsUnavailableGroupingBy" select="marc:sysprefs/marc:syspref[@name='OPACResultsUnavailableGroupingBy']"/>
     <xsl:variable name="UseControlNumber" select="marc:sysprefs/marc:syspref[@name='UseControlNumber']"/>
     <xsl:variable name="UseAuthoritiesForTracings" select="marc:sysprefs/marc:syspref[@name='UseAuthoritiesForTracings']"/>
+    <xsl:variable name="AuthorLinkSortBy" select="marc:sysprefs/marc:syspref[@name='AuthorLinkSortBy']"/>
+    <xsl:variable name="AuthorLinkSortOrder" select="marc:sysprefs/marc:syspref[@name='AuthorLinkSortOrder']"/>
     <xsl:variable name="OPACResultsLibrary" select="marc:sysprefs/marc:syspref[@name='OPACResultsLibrary']"/>
     <xsl:variable name="hidelostitems" select="marc:sysprefs/marc:syspref[@name='hidelostitems']"/>
     <xsl:variable name="DisplayOPACiconsXSLT" select="marc:sysprefs/marc:syspref[@name='DisplayOPACiconsXSLT']"/>
@@ -559,7 +561,7 @@
                             <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=an:<xsl:value-of select="str:encode-uri(marc:subfield[@code=9], true())"/></xsl:attribute>
                         </xsl:when>
                         <xsl:otherwise>
-                            <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=name:"<xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/>"</xsl:attribute>
+                            <xsl:attribute name="href">/cgi-bin/koha/opac-search.pl?q=au:"<xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/>"</xsl:attribute>
                         </xsl:otherwise>
                     </xsl:choose>
                     <xsl:call-template name="chopPunctuation">
@@ -703,12 +705,12 @@
         <span class="results_material_type">
             <xsl:copy-of select="$AntolinAdd"></xsl:copy-of>
             <xsl:choose>
-                <xsl:when test="$leader19='a'"><img src="/opac-tmpl/lib/famfamfam/ST.png" alt="Set" class="materialtype mt_icon_ST"/> Set</xsl:when>
+                <xsl:when test="$leader19='a'"><img src="/opac-tmpl/lib/famfamfam/ST.png" alt="" class="materialtype mt_icon_ST"/> Set</xsl:when>
                 <xsl:when test="$leader6='a'">
                     <xsl:choose>
-                        <xsl:when test="$leader7='c' or $leader7='d' or $leader7='m'"><img src="/opac-tmpl/lib/famfamfam/BK.png" alt="Text" class="materialtype mt_icon_BK"/> Text</xsl:when>
-                        <xsl:when test="$leader7='i' or $leader7='s'"><img src="/opac-tmpl/lib/famfamfam/SE.png" alt="Continuing resource" class="materialtype mt_icon_SE"/> Continuing resource</xsl:when>
-                        <xsl:when test="$leader7='a' or $leader7='b'"><img src="/opac-tmpl/lib/famfamfam/AR.png" alt="Article" class="materialtype mt_icon_AR"/> Article</xsl:when>
+                        <xsl:when test="$leader7='c' or $leader7='d' or $leader7='m'"><img src="/opac-tmpl/lib/famfamfam/BK.png" alt="" class="materialtype mt_icon_BK"/> Text</xsl:when>
+                        <xsl:when test="$leader7='i' or $leader7='s'"><img src="/opac-tmpl/lib/famfamfam/SE.png" alt="" class="materialtype mt_icon_SE"/> Continuing resource</xsl:when>
+                        <xsl:when test="$leader7='a' or $leader7='b'"><img src="/opac-tmpl/lib/famfamfam/AR.png" alt="" class="materialtype mt_icon_AR"/> Article</xsl:when>
                     </xsl:choose>
                 </xsl:when>
                 <xsl:when test="$leader6='t'"><img src="/opac-tmpl/lib/famfamfam/BK.png" alt="Text" class="materialtype mt_icon_BK"/> Text</xsl:when>
@@ -780,7 +782,7 @@
                 </xsl:when>
                 <xsl:when test="contains($controlField008-24,'b')">
 			bibliography
-                     <img src="/opac-tmpl/lib/famfamfam/text_list_bullets.png" alt="bibliography" class="natureofcontents"/>
+                     <img src="/opac-tmpl/lib/famfamfam/text_list_bullets.png" alt="" class="natureofcontents"/>
                 </xsl:when>
                 <xsl:when test="contains($controlField008-24,'c')">
                     catalog
@@ -1344,17 +1346,21 @@
         </xsl:call-template>
     </xsl:if>
 
-    <!--
-
     <xsl:call-template name="host-item-entries">
         <xsl:with-param name="UseControlNumber" select="$UseControlNumber"/>
     </xsl:call-template>
 
+    <!-- Content Warning -->
+    <xsl:variable name="ContentWarningField" select="marc:sysprefs/marc:syspref[@name='ContentWarningField']"/>
+    <xsl:call-template name="content-warning">
+        <xsl:with-param name="tag" select="$ContentWarningField" />
+    </xsl:call-template>
+
     <xsl:if test="marc:datafield[@tag=856 and not(marc:subfield[@code='n' and text()='Wikipedia']) and not(marc:subfield[@code='3' and text()='Titelbild']) and not(marc:subfield[@code='z' and text()='content sample']) and not(marc:subfield[@code='n' and text()='Antolin']) and not(marc:subfield[@code='q' and (text()='cover/jpg' or text()='cover/jpeg') ])]">
          <div class="results_summary online_resources">
-			   <span class="label">Online access: </span>
+               <span class="label">Online resources: </span>
                     <ul class="resource_list">
-                            <xsl:for-each select="marc:datafield[@tag=856]">
+                            <xsl:for-each select="marc:datafield[@tag=856 and marc:subfield[@code='u']]">
                             <xsl:variable name="SubqText"><xsl:value-of select="marc:subfield[@code='q']"/></xsl:variable>
                             <xsl:if test="$OPACURLOpenInNewWindow='0'">
 			      <li><a>
@@ -1408,7 +1414,15 @@
                       <xsl:attribute name="href">/cgi-bin/koha/tracklinks.pl?uri=<xsl:value-of select="str:encode-uri(marc:subfield[@code='u'], true())"/>&amp;biblionumber=<xsl:value-of select="$biblionumber"/></xsl:attribute>
 				     </xsl:when>
 				     <xsl:otherwise>
-		                       <xsl:attribute name="href"><xsl:value-of select="marc:subfield[@code='u']"/></xsl:attribute>
+                                        <xsl:attribute name="href">
+                                            <xsl:call-template name="AddMissingProtocol">
+                                                <xsl:with-param name="resourceLocation" select="marc:subfield[@code='u']"/>
+                                                <xsl:with-param name="indicator1" select="@ind1"/>
+                                                <xsl:with-param name="accessMethod" select="marc:subfield[@code='2']"/>
+                                            </xsl:call-template>
+                                            <xsl:value-of select="marc:subfield[@code='u']"/>
+                                        </xsl:attribute>
+
 				     </xsl:otherwise>
 				   </xsl:choose>
                                     <xsl:choose>
@@ -1437,8 +1451,7 @@
                             </ul>
                             </div>
                         </xsl:if>
-        -->
-                        
+
         <!-- Availability line -->
         <div class="results_summary availability">
 

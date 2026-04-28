@@ -149,7 +149,11 @@ sub filter_by_lates {
 
     my $new_rs = $orders->filter_by_active;
 
-Returns a new resultset filtering orders that are not active.
+Returns a new resultset containing active orders only.
+
+Note: An active order (line) has status ordered or partial, or it has status new
+and the basket is marked as standing order. Additionally, we still expect items
+on this order (checking quantity and quantityreceived).
 
 =cut
 
@@ -161,21 +165,22 @@ sub filter_by_active {
                 { 'basket.is_standing' => 1,
                   'orderstatus' => [ 'new', 'ordered', 'partial' ] },
                 { 'orderstatus' => [ 'ordered', 'partial' ] }
-            ]
+            ],
+            quantityreceived => { '<', \['COALESCE(me.quantity,0)'] },
         },
         { join => 'basket' }
     );
 }
 
-=head3 filter_by_current
+=head3 filter_out_cancelled
 
-    $orders->filter_by_current
+    $orders->filter_out_cancelled
 
 Return the orders of the set that have not been cancelled.
 
 =cut
 
-sub filter_by_current {
+sub filter_out_cancelled {
     my ($self) = @_;
     return $self->search(
         {
@@ -229,6 +234,84 @@ sub filter_by_id_including_transfers {
         },
         { join => 'aqorders_transfers_ordernumber_to' }
     );
+}
+
+=head3 filter_by_obsolete
+
+    $orders->filter_by_obsolete( $age );
+
+    What are obsolete orders here?
+    [1] Order lines that have no biblio anymore but are still considered open
+        (received < ordered, not cancelled).
+    [2] Order lines with status 'cancelled' but no cancellation date.
+    [3] Order lines with cancellation date and no status 'cancelled'.
+
+    An optional parameter age may limit the selection by entrydate older than $age days.
+
+=cut
+
+sub filter_by_obsolete {
+    my ( $self, $params ) = @_;
+    my $rs = $self->search(
+        {
+            -or => [
+                { datecancellationprinted => undef,           orderstatus => 'cancelled' },
+                { datecancellationprinted => { '!=', undef }, orderstatus => { '!=', 'cancelled' } },
+                -and => [
+                    orderstatus             => [ 'ordered', 'partial', 'new' ],
+                    biblionumber            => undef,
+                    datecancellationprinted => undef,
+                    -or                     => [
+                        { quantity         => [ undef, 0 ] },
+                        { quantityreceived => { '<', \['quantity'] } },
+                    ],
+                ],
+            ],
+        }
+    );
+    if ( $params->{age} ) {
+        my $dtf = Koha::Database->new->schema->storage->datetime_parser;
+        my $dt  = Koha::DateUtils::dt_from_string->subtract( days => $params->{age} )->truncate( to => 'day' );
+        $rs = $rs->search( { entrydate => { '<', $dtf->format_datetime($dt) } } );
+    }
+    return $rs;
+}
+
+
+=head3 cancel
+
+    $orders_rs->cancel( { delete_biblio => 0|1 } );
+
+    Returns a count and diagnostic object messages.
+
+=cut
+
+sub cancel {
+    my ( $self, $params ) = @_;
+    my $delete_biblio = $params->{delete_biblio} || 0;    # keep by default :)
+    my $count         = 0;
+    my @messages;
+    while ( my $order = $self->next ) {
+        next if $order->orderstatus =~ /complete|cancelled/;
+        _correct_quantity($order);                        # historical ballast
+        $order->cancel( { delete_biblio => $delete_biblio } );
+        if ( @{ $order->object_messages } ) {
+            push @messages, @{ $order->object_messages };
+        } else {
+            $count++;
+        }
+    }
+    return ( $count, [@messages] );
+}
+
+sub _correct_quantity {
+    my ($order) = @_;
+    if ( !$order->quantity ) {
+
+        # This may be the case in old data .. But ->store needs a quantity even when cancelling
+        # Note also that the quantity column def still has NULL -- 2024-02-14
+        $order->quantity(1);
+    }
 }
 
 =head2 Internal methods

@@ -9,7 +9,7 @@ $(document).ready(function () {
         loadBookingsTable();
     }
     // Load bookings table on tab selection
-    $('a[data-tabname="bookings"]').on("click", function () {
+    $("#bookings-tab").on("click", function () {
         loadBookingsTable();
     });
 
@@ -147,7 +147,7 @@ $(document).ready(function () {
                                 let result = "";
                                 if (CAN_user_circulate_manage_bookings) {
                                     result +=
-                                        '<button type="button" class="btn btn-default btn-xs cancel-action" data-toggle="modal" data-target="#cancelBookingModal" data-booking="' +
+                                        '<button type="button" class="btn btn-default btn-xs cancel-action" data-bs-toggle="modal" data-bs-target="#cancelBookingModal" data-booking="' +
                                         row.booking_id +
                                         '"><i class="fa fa-trash" aria-hidden="true"></i> ' +
                                         __("Cancel") +

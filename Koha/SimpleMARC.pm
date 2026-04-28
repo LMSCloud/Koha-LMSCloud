@@ -18,21 +18,24 @@ package Koha::SimpleMARC;
 
 use Modern::Perl;
 
+use constant LAST_TRANSACTION_FIELD => q/005/;    # MARC21/UNIMARC
+
 our (@ISA, @EXPORT_OK);
 BEGIN {
     require Exporter;
     our @ISA = qw(Exporter);
 
     @EXPORT_OK = qw(
-      read_field
-      add_field
-      update_field
-      copy_field
-      copy_and_replace_field
-      move_field
-      delete_field
-      field_exists
-      field_equals
+        read_field
+        add_field
+        update_field
+        copy_field
+        copy_and_replace_field
+        move_field
+        delete_field
+        field_exists
+        field_equals
+        update_last_transaction_time
     );
 }
 
@@ -132,12 +135,12 @@ sub copy_and_replace_field {
 
     if ( ! ( $record && $fromFieldName && $toFieldName ) ) { return; }
 
-
-    if ( !defined $fromSubfieldName or $fromSubfieldName eq ''
-      or !defined $toSubfieldName or $toSubfieldName eq ''
-    ) {
+    if (    ( !defined $fromSubfieldName or $fromSubfieldName eq '' )
+        and ( !defined $toSubfieldName or $toSubfieldName eq '' ) )
+    {
         _copy_move_field(
-            {   record        => $record,
+            {
+                record        => $record,
                 from_field    => $fromFieldName,
                 to_field      => $toFieldName,
                 regex         => $regex,
@@ -147,7 +150,8 @@ sub copy_and_replace_field {
         );
     } else {
         _copy_move_subfield(
-            {   record        => $record,
+            {
+                record        => $record,
                 from_field    => $fromFieldName,
                 from_subfield => $fromSubfieldName,
                 to_field      => $toFieldName,
@@ -208,12 +212,12 @@ sub add_field {
     if ( $fieldName > 10 ) {
         foreach my $value ( @values ) {
             my $field = MARC::Field->new( $fieldName, '', '', "$subfieldName" => $value );
-            $record->append_fields( $field );
+            $record->insert_fields_ordered( $field );
         }
     } else {
         foreach my $value ( @values ) {
             my $field = MARC::Field->new( $fieldName, $value );
-            $record->append_fields( $field );
+            $record->insert_fields_ordered( $field );
         }
     }
 }
@@ -236,7 +240,7 @@ sub _update_field {
         if ( $fieldName < 10 ) {
             foreach my $value ( @values ) {
                 my $field = MARC::Field->new( $fieldName, $value );
-                $record->append_fields( $field );
+                $record->insert_fields_ordered( $field );
             }
         } else {
             warn "Invalid operation, trying to add a new field without subfield";
@@ -279,7 +283,7 @@ sub _update_subfield {
         ## Field does not exist, create it.
         foreach my $value ( @values ) {
             my $field = MARC::Field->new( $fieldName, '', '', "$subfieldName" => $values[$i++] );
-            $record->append_fields( $field );
+            $record->insert_fields_ordered( $field );
         }
     }
 }
@@ -525,6 +529,33 @@ sub delete_field {
     }
 }
 
+=head3 update_last_transaction_time
+
+  update_last_transaction_time( { record => $record } );
+
+  Inserts or updates field for last transaction (005)
+
+=cut
+
+sub update_last_transaction_time {
+    my ($params) = @_;
+    my $record = $params->{record};
+
+    my @localtime = (localtime)[ 5, 4, 3, 2, 1, 0 ];
+    $localtime[0] += 1900;    # add century
+    $localtime[1]++;          # month 1-based
+
+    my $value = sprintf( "%4d%02d%02d%02d%02d%04.1f", @localtime );
+    my $field;
+    if ( $field = $record->field(LAST_TRANSACTION_FIELD) ) {
+        $field->update($value);
+    } else {
+        $record->insert_fields_ordered(
+            MARC::Field->new( LAST_TRANSACTION_FIELD, $value ),
+        );
+    }
+}
+
 sub _delete_field {
     my ( $params ) = @_;
     my $record = $params->{record};
@@ -591,13 +622,13 @@ sub _copy_move_field {
         }
         elsif ( $action eq 'replace' ) {
             my @to_fields = $record->field( $toFieldName );
-            if ( @to_fields ) {
+            if( @to_fields ) {
                 $record->delete_field( $to_fields[0] );
             }
         }
-        push @new_fields, $new_field;
+        unshift @new_fields, $new_field;
     }
-    $record->append_fields( @new_fields );
+    $record->insert_fields_ordered( @new_fields );
 }
 
 sub _copy_move_subfield {
@@ -617,7 +648,35 @@ sub _copy_move_subfield {
     }
     _modify_values({ values => \@values, regex => $regex });
     my $dont_erase = $action eq 'copy' ? 1 : 0;
-    _update_subfield({ record => $record, field => $toFieldName, subfield => $toSubfieldName, values => \@values, dont_erase => $dont_erase });
+
+    # Find which source fields actually have the subfield to determine target field numbers
+    my @target_field_numbers;
+    if ( $fromFieldName eq $toFieldName && $fromSubfieldName ne $toSubfieldName && @values ) {
+
+        # For same-field operations where subfields differ, find fields that have the source subfield
+        # This prevents overwriting target subfields in fields that don't have the source subfield
+        @target_field_numbers =
+            @{ field_exists( { record => $record, field => $fromFieldName, subfield => $fromSubfieldName } ) };
+        if (@$field_numbers) {
+
+            # If specific field numbers were requested, intersect them with fields that have the subfield
+            my %requested = map { $_ => 1 } @$field_numbers;
+            @target_field_numbers = grep { $requested{$_} } @target_field_numbers;
+        }
+    }
+
+    _update_subfield(
+        {
+            record        => $record,
+            field         => $toFieldName,
+            subfield      => $toSubfieldName,
+            values        => \@values,
+            dont_erase    => $dont_erase,
+            field_numbers => @target_field_numbers
+            ? \@target_field_numbers
+            : ( $fromFieldName eq $toFieldName ? $field_numbers : [] )
+        }
+    );
 
     # And delete if it's a move
     if ( $action eq 'move' ) {
@@ -663,5 +722,6 @@ sub _modify_values {
     }
     return @$values;
 }
+
 1;
 __END__

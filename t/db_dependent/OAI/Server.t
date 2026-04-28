@@ -21,7 +21,7 @@ use Modern::Perl;
 use Test::Deep qw( cmp_deeply re );
 use Test::MockTime qw/set_fixed_time set_relative_time restore_time/;
 
-use Test::More tests => 34;
+use Test::More tests => 35;
 use DateTime;
 use File::Basename;
 use File::Spec;
@@ -106,7 +106,7 @@ foreach my $index ( 0 .. NUMBER_OF_MARC_RECORDS - 1 ) {
     $timestamp .= 'Z';
     $timestamp =~ s/ /T/;
     my $biblio = Koha::Biblios->find($biblionumber);
-    $record = $biblio->metadata->record;
+    $record = $biblio->metadata_record;
     my $record_transformed = $record->clone;
     $record_transformed->delete_fields( $record_transformed->field('952'));
     $record_transformed = XMLin($record_transformed->as_xml_record);
@@ -394,7 +394,7 @@ subtest 'Bug 19725: OAI-PMH ListRecords and ListIdentifiers should use biblio_me
     # Modify record to trigger auto update of timestamp
     (my $biblionumber = $marcxml[0]->{header}->{identifier}) =~ s/^.*:(.*)/$1/;
     my $biblio = Koha::Biblios->find($biblionumber);
-    my $record = $biblio->metadata->record;
+    my $record = $biblio->metadata_record;
     $record->append_fields(MARC::Field->new(999, '', '', z => '_'));
     ModBiblio( $record, $biblionumber );
     my $from_dt = dt_from_string(
@@ -515,6 +515,81 @@ subtest 'ListSets tests' => sub {
     $schema->storage->txn_rollback;
 };
 
+subtest 'Tests for OpacHiddenItems' => sub {
+
+    plan tests => 4;
+
+    t::lib::Mocks::mock_preference( 'OAI::PMH'         => 1 );
+    t::lib::Mocks::mock_preference( 'OAI-PMH:MaxCount' => 3 );
+    t::lib::Mocks::mock_preference(
+        'OAI-PMH:ConfFile' => File::Spec->rel2abs( dirname(__FILE__) ) . '/oaiconf_items.yaml' );
+    $schema->storage->txn_begin;
+    my $builder       = t::lib::TestBuilder->new;
+    my $item          = $builder->build_sample_item();
+    my $biblio        = $item->biblio;
+    my $utc_datetime  = dt_from_string( undef, undef, 'UTC' );
+    my $utc_timestamp = $utc_datetime->ymd . 'T' . $utc_datetime->hms . 'Z';
+
+    my $get_items = {
+        verb           => 'GetRecord',
+        metadataPrefix => 'marc21',
+        identifier     => 'TEST:' . $item->biblionumber
+    };
+    my $list_items = {
+        verb           => 'ListRecords',
+        metadataPrefix => 'marc21',
+        from           => $utc_timestamp
+    };
+    my $expected = {
+        record => {
+            header => {
+                datestamp  => $utc_timestamp,
+                identifier => 'TEST:' . $item->biblionumber
+            },
+            metadata => {
+                record =>
+                    XMLin( $biblio->metadata_record( { embed_items => 1, interface => 'opac' } )->as_xml_record() )
+            }
+        }
+    };
+    my $expected_hidden = {
+        record => {
+            header => {
+                datestamp  => $utc_timestamp,
+                identifier => 'TEST:' . $item->biblionumber,
+                status     => 'deleted'
+            },
+        }
+    };
+    test_query(
+        'GetRecord - biblio with a single item',
+        $get_items,
+        { GetRecord => $expected }
+    );
+    test_query(
+        'ListRecords - biblio with a single item',
+        $list_items,
+        { ListRecords => $expected }
+    );
+
+    my $opachiddenitems = "
+        itemnumber: ['" . $item->itemnumber . "']";
+    t::lib::Mocks::mock_preference( 'OpacHiddenItems' => $opachiddenitems );
+
+    test_query(
+        'GetRecord - biblio with a single item hidden by OpacHiddenItems returns as deleted',
+        $get_items,
+        { GetRecord => $expected_hidden }
+    );
+    test_query(
+        'ListRecords - biblio with a single item hidden by OpacHiddenItems returns as deleted',
+        $list_items,
+        { ListRecords => $expected_hidden }
+    );
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'Tests for timestamp handling' => sub {
 
     plan tests => 28;
@@ -536,7 +611,7 @@ subtest 'Tests for timestamp handling' => sub {
 
     my $utc_datetime = dt_from_string(undef, undef, 'UTC');
     my $utc_timestamp = $utc_datetime->ymd . 'T' . $utc_datetime->hms . 'Z';
-    my $timestamp = dt_from_string(undef, 'sql');
+    my $timestamp     = $utc_datetime;
 
     # Test a bib with one item
     my $biblio1 = $builder->build_sample_biblio;
@@ -575,27 +650,22 @@ subtest 'Tests for timestamp handling' => sub {
     my $expected = {
         record => {
             header => {
-                datestamp => $utc_timestamp,
+                datestamp  => $utc_timestamp,
                 identifier => 'TEST:' . $biblio1->biblionumber
             },
             metadata => {
-                record => XMLin(
-                    $biblio1->metadata->record({ embed_items => 1, opac => 1})->as_xml_record()
-                )
+                record =>
+                    XMLin( $biblio1->metadata_record( { embed_items => 1, interface => 'opac' } )->as_xml_record() )
             }
         }
     };
     my $expected_no_items = {
         record => {
             header => {
-                datestamp => $utc_timestamp,
+                datestamp  => $utc_timestamp,
                 identifier => 'TEST:' . $biblio1->biblionumber
             },
-            metadata => {
-                record => XMLin(
-                    $biblio1->metadata->record({opac => 1})->as_xml_record()
-                )
-            }
+            metadata => { record => XMLin( $biblio1->metadata_record( { interface => 'opac' } )->as_xml_record() ) }
         }
     };
 
@@ -641,7 +711,7 @@ subtest 'Tests for timestamp handling' => sub {
 
     $utc_datetime = dt_from_string(undef, undef, 'UTC');
     $utc_timestamp = $utc_datetime->ymd . 'T' . $utc_datetime->hms . 'Z';
-    $timestamp = dt_from_string(undef, 'sql');
+    $timestamp     = $utc_datetime;
 
     my $item2 = $builder->build_sample_item(
         {
@@ -651,9 +721,8 @@ subtest 'Tests for timestamp handling' => sub {
     $sth_item->execute($timestamp, $item2->itemnumber);
 
     $expected->{record}{header}{datestamp} = $utc_timestamp;
-    $expected->{record}{metadata}{record} = XMLin(
-        $biblio1->metadata->record({ embed_items => 1, opac => 1})->as_xml_record()
-    );
+    $expected->{record}{metadata}{record} =
+        XMLin( $biblio1->metadata_record( { embed_items => 1, interface => 'opac' } )->as_xml_record() );
 
     test_query(
         'ListRecords - biblio with two items',
@@ -680,7 +749,7 @@ subtest 'Tests for timestamp handling' => sub {
     set_relative_time(10);
     $utc_datetime = dt_from_string(undef, undef, 'UTC');
     $utc_timestamp= $utc_datetime->ymd . 'T' . $utc_datetime->hms . 'Z';
-    $timestamp = dt_from_string(undef, 'sql');
+    $timestamp     = $utc_datetime;
 
     $sth_metadata->execute($timestamp, $biblio1->biblionumber);
 
@@ -717,9 +786,8 @@ subtest 'Tests for timestamp handling' => sub {
     $sth_del_item->execute($timestamp, $item1->itemnumber);
 
     $expected->{record}{header}{datestamp} = $utc_timestamp;
-    $expected->{record}{metadata}{record} = XMLin(
-        $biblio1->metadata->record({ embed_items => 1, opac => 1})->as_xml_record()
-    );
+    $expected->{record}{metadata}{record} =
+        XMLin( $biblio1->metadata_record( { embed_items => 1, interface => 'opac' } )->as_xml_record() );
 
     test_query(
         'ListRecords - biblio with existing and deleted item',
@@ -746,9 +814,8 @@ subtest 'Tests for timestamp handling' => sub {
     $item2->safe_delete({ skip_record_index =>1 });
     $sth_del_item->execute($timestamp, $item2->itemnumber);
 
-    $expected->{record}{metadata}{record} = XMLin(
-        $biblio1->metadata->record({ embed_items => 1, opac => 1})->as_xml_record()
-    );
+    $expected->{record}{metadata}{record} =
+        XMLin( $biblio1->metadata_record( { embed_items => 1, interface => 'opac' } )->as_xml_record() );
 
     test_query(
         'ListRecords - biblio with two deleted items',
@@ -825,12 +892,12 @@ subtest 'Tests for timestamp handling' => sub {
             $expected_header->{record},
             {
                 header => {
-                    datestamp => $utc_timestamp,
+                    datestamp  => $utc_timestamp,
                     identifier => 'TEST:' . $biblio2->biblionumber
                 },
                 metadata => {
                     record => XMLin(
-                        $biblio2->metadata->record({ embed_items => 1, opac => 1})->as_xml_record()
+                        $biblio2->metadata_record( { embed_items => 1, interface => 'opac' } )->as_xml_record()
                     )
                 }
             }
@@ -841,14 +908,10 @@ subtest 'Tests for timestamp handling' => sub {
             $expected_header->{record},
             {
                 header => {
-                    datestamp => $utc_timestamp,
+                    datestamp  => $utc_timestamp,
                     identifier => 'TEST:' . $biblio2->biblionumber
                 },
-                metadata => {
-                    record => XMLin(
-                        $biblio2->metadata->record->as_xml_record()
-                    )
-                }
+                metadata => { record => XMLin( $biblio2->metadata_record( { interface => 'opac' } )->as_xml_record() ) }
             }
         ]
     };

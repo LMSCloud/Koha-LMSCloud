@@ -6,10 +6,15 @@
 [% USE Price %]
 [% USE TablesSettings %]
 [% USE KohaDates %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% PROCESS 'accounts.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Make a payment for [% INCLUDE 'patron-title.inc' no_html = 1 %] &rsaquo; Patrons &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Make a payment for") | html %] [% INCLUDE 'patron-title.inc' no_html = 1 %] &rsaquo;
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -36,30 +41,31 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% INCLUDE 'members-toolbar.inc' borrowernumber=patron.borrowernumber %]
 
 <h1>Make a payment</h1>
 
 <!-- The manual invoice and credit buttons -->
-<div class="toptabs">
+<div>
     <ul class="nav nav-tabs" role="tablist">
-        <li role="presentation" class="transactions">
-            <a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Transactions</a>
+        <li role="presentation" class="nav-item transactions">
+            <a class="nav-link" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Transactions</a>
         </li>
-        <li role="presentation" class="makepayment active">
-            <a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Make a payment</a>
+        <li role="presentation" class="nav-item makepayment">
+            <a class="nav-link active" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Make a payment</a>
         </li>
         [% IF CAN_user_updatecharges_manual_invoice %]
-            <li role="presentation" class="manualinvoice">
-                <a href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual invoice</a>
+            <li role="presentation" class="nav-item manualinvoice">
+                <a class="nav-link" href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual invoice</a>
             </li>
         [% END %]
         [% IF CAN_user_updatecharges_manual_credit %]
-            <li role="presentation" class="manualcredit">
-                <a href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual credit</a>
+            <li role="presentation" class="nav-item manualcredit">
+                <a class="nav-link" href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual credit</a>
             </li>
         [% END %]
     </ul> <!-- /.nav.nav-tabs -->
@@ -109,7 +115,7 @@
             <button type="submit" class="btn btn-default btn-xs" name="pay_indiv_[% line.accountlines_id | html %]" value="Pay">Pay</button>
         [% END %]
         [% IF CAN_user_updatecharges_writeoff %]
-            <button type="submit" class="btn btn-default btn-xs" name="wo_indiv_[% line.accountlines_id | html %]" value="Write off">Write off</button>
+            <button type="submit" class="btn btn-default btn-xs" name="op" value="cud-wo_indiv_[% line.accountlines_id | html %]">Write off</button>
         [% END %]
         [% IF CAN_user_updatecharges_cancel_fee %]
             <button type="submit" class="btn btn-default btn-xs" name="cancel_indiv_[% line.accountlines_id | html %]" value="Cancel fee">Cancel fee</button>
@@ -149,17 +155,17 @@
         [% END %]
     </td>
     <td>
-        [% IF line.issue_id %]
+        [% IF line.issue_id || line.old_issue_id %]
             [% line.checkout.returndate | $KohaDates with_hours => 1 %]
         [% END %]
     </td>
     <td>
-        [% IF line.issue_id %]
+        [% IF line.issue_id || line.old_issue_id %]
             [% line.checkout.issuedate | $KohaDates %]
         [% END %]
     </td>
     <td class="checked_out_from">
-        [% IF line.issue_id && line.checkout.library %]
+        [% IF (line.issue_id || line.old_issue_id) && line.checkout.library %]
             [% line.checkout.library.branchname | html %]
         [% END %]
     </td>
@@ -170,7 +176,7 @@
     </td>
     <td class="actions">
         <a href="#" class="add-note" data-accountlines_id="[% line.accountlines_id | html %]"><i class="fa fa-plus"></i> Add note</a>
-        <span class="payment_note" id="payment_note_[% line.accountlines_id | html %]" style="display:none"><input type="text" size="10" name="payment_note_[% line.accountlines_id | html %]" value="" /> <a href="#" class="cancel-note"><i class="fa fa-remove"></i></a></span>
+        <span class="payment_note" id="payment_note_[% line.accountlines_id | html %]" style="display:none"><input type="text" size="10" name="payment_note_[% line.accountlines_id | html %]" value="" /> <a href="#" class="cancel-note"><i class="fa fa-times"></i></a></span>
     </td>
     <td class="debit" style="text-align: right;">[% line.amount | $Price %]</td>
     <td class="debit" style="text-align: right;">[% line.amountoutstanding | $Price %]</td>
@@ -180,16 +186,20 @@
 
 <tfoot>
     <tr>
-        <td class="total" colspan="12">Total due:</td>
+        <th scope="row" class="total" colspan="14">Total due:</th>
         <td style="text-align: right;">[% total | $Price %]</td>
     </tr>
     [% IF outstanding_credits.total_outstanding < 0 %]
         <tr>
-            <td class="total" colspan="12">Outstanding credits could be applied: </td>
-            <td class="credit" style="text-align: right;"><button type="submit" id="apply_credits" name="apply_credits" value="apply_credits" class="btn btn-default btn-sm">Apply <strong class="credit">[% outstanding_credits.total_outstanding | $Price %]</strong></button></td>
+            <th scope="row" class="total" colspan="14">Outstanding credits could be applied: </th>
+            <td class="credit" style="text-align: right;"
+                ><button type="submit" id="apply_credits" name="op" value="cud-apply_credits" class="btn btn-default btn-sm"
+                    >Apply <strong class="credit">[% outstanding_credits.total_outstanding | $Price %]</strong></button
+                ></td
+            >
         </tr>
         <tr>
-            <td class="total" colspan="12">Total due if credit applied:</td>
+            <th scope="row" class="total" colspan="14">Total due if credit applied:</th>
             <td style="text-align: right;">[% total + outstanding_credits.total_outstanding | $Price %]</td>
         </tr>
     [% END %]
@@ -224,13 +234,13 @@ Please open a cash register to enable cash payments.
 </div> <!-- /.toptabs -->
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'circ-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

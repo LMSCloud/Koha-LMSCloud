@@ -35,7 +35,7 @@ my ($template, $loggedinuser, $cookie, $flags)
     = get_template_and_user({template_name => "members/member.tt",
                  query => $query,
                  type => "intranet",
-                 flagsrequired => {borrowers => 'edit_borrowers'},
+                 flagsrequired => { borrowers => ['edit_borrowers', 'list_borrowers'] },
                  });
 
 my $no_add = 0;
@@ -73,9 +73,7 @@ $template->param(
     PatronAutoComplete => C4::Context->preference('PatronAutoComplete'),
     patron_lists => [ GetPatronLists() ],
     PatronsPerPage => C4::Context->preference("PatronsPerPage") || 20,
-    attribute_type_codes => ( C4::Context->preference('ExtendedPatronAttributes')
-        ? [ Koha::Patron::Attribute::Types->search( { staff_searchable => 1 } )->get_column('code') ]
-        : [] ),
+    defer_loading => 1,
 );
 
 output_html_with_http_headers $query, $cookie, $template->output;

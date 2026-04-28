@@ -6,14 +6,14 @@
         </div>
         <div class="main container-fluid">
             <div class="row">
-                <div class="col-sm-10 col-sm-push-2">
+                <div class="col-md-10 order-md-2 order-sm-1">
                     <main>
                         <Dialog />
                         <router-view />
                     </main>
                 </div>
 
-                <div class="col-sm-2 col-sm-pull-10">
+                <div class="col-md-2 order-sm-2 order-md-1">
                     <LeftMenu
                         :title="$__('E-resource management')"
                         :condition="filterProviders"
@@ -74,13 +74,11 @@ export default {
             let promises = []
 
             const acq_client = APIClient.acquisition
-            promises.push(
-                acq_client.vendors.getAll().then(
-                    vendors => {
-                        this.vendorStore.vendors = vendors
-                    },
-                    error => {}
-                )
+            acq_client.vendors.getAll().then(
+                vendors => {
+                    this.vendorStore.vendors = vendors
+                },
+                error => {}
             )
 
             const av_client = APIClient.authorised_values
@@ -97,13 +95,18 @@ export default {
                 av_package_types: "ERM_PACKAGE_TYPE",
                 av_package_content_types: "ERM_PACKAGE_CONTENT_TYPE",
                 av_title_publication_types: "ERM_TITLE_PUBLICATION_TYPE",
+                av_report_types: "ERM_REPORT_TYPES",
+                av_platform_reports_metrics: "ERM_PLATFORM_REPORTS_METRICS",
+                av_database_reports_metrics: "ERM_DATABASE_REPORTS_METRICS",
+                av_title_reports_metrics: "ERM_TITLE_REPORTS_METRICS",
+                av_item_reports_metrics: "ERM_ITEM_REPORTS_METRICS",
             }
 
-            let av_cat_array = Object.keys(authorised_values).map(function (
-                av_cat
-            ) {
-                return '"' + authorised_values[av_cat] + '"'
-            })
+            let av_cat_array = Object.keys(authorised_values).map(
+                function (av_cat) {
+                    return '"' + authorised_values[av_cat] + '"'
+                }
+            )
 
             promises.push(
                 av_client.values
@@ -132,7 +135,7 @@ export default {
                 if (this.config.settings.ERMModule != 1) {
                     return this.setError(
                         this.$__(
-                            'The e-resource management module is disabled, turn on <a href="/cgi-bin/koha/admin/preferences.pl?tab=&op=search&searchfield=ERMModule">ERMModule</a> to use it'
+                            "The e-resource management module is disabled, turn on <a href='/cgi-bin/koha/admin/preferences.pl?tab=&op=search&searchfield=ERMModule'>ERMModule</a> to use it"
                         ),
                         false
                     )
@@ -181,7 +184,9 @@ form .v-select {
 }
 
 .v-select,
-input:not([type="submit"]):not([type="search"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+input:not([type="submit"]):not([type="search"]):not([type="button"]):not(
+        [type="checkbox"]
+    ):not([type="radio"]),
 textarea {
     border-color: rgba(60, 60, 60, 0.26);
     border-width: 1px;

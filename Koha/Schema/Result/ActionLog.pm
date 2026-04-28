@@ -92,6 +92,20 @@ the context this action was taken in
 
 the name of the cron script that caused this change
 
+=head2 trace
+
+  data_type: 'text'
+  is_nullable: 1
+
+An optional stack trace enabled by ActionLogsTraceDepth
+
+=head2 diff
+
+  data_type: 'longtext'
+  is_nullable: 1
+
+Stores a diff of the changed object
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -118,6 +132,10 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 30 },
   "script",
   { data_type => "varchar", is_nullable => 1, size => 255 },
+  "trace",
+  { data_type => "text", is_nullable => 1 },
+  "diff",
+  { data_type => "longtext", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -133,8 +151,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("action_id");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-08-01 12:59:53
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Hqt9IBtfv2ZFiXWx10b8xQ
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-05-02 14:28:43
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:8ZJaG4iJAbay93LAg5xPsQ
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

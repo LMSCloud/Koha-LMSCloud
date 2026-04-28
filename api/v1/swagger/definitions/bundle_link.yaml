@@ -15,4 +15,11 @@ properties:
     type:
       - boolean
       - "null"
+  ignore_holds:
+    type:
+      - boolean
+      - "null"
+  marc_link:
+    type: boolean
+    description: Is there a MARC link for this item
 additionalProperties: false

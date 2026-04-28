@@ -108,7 +108,7 @@ sub GetPrefParams {
     if ( not defined( $data->{'type'} ) ) {
         $params->{'type_free'} = 1;
         $params->{'fieldlength'} = ( defined( $data->{'options'} ) and $data->{'options'} and $data->{'options'} > 0 );
-    } elsif ( $data->{'type'} eq 'Upload' ) {
+    } elsif ( $data->{'type'} eq 'cud-Upload' ) {
         $params->{'type_upload'} = 1;
     } elsif ( $data->{'type'} eq 'Choice' ) {
         $params->{'type_choice'} = 1;
@@ -186,7 +186,7 @@ sub GetPrefParams {
             $interface = 'intranet';
             $theme     = C4::Context->preference('template');
         }
-        my $languages_loop = getTranslatedLanguages( $interface, $theme, $lang, $currently_selected_languages );
+        my $languages_loop = getTranslatedLanguages( $interface, $theme, $lang );
 
         $params->{'languages_loop'}    = $languages_loop;
         $params->{'type_langselector'} = 1;
@@ -223,15 +223,9 @@ my $op = $input->param('op') || '';
 $searchfield =~ s/\,//g;
 
 if ($op) {
-    $template->param(
-        script_name => $script_name,
-        $op         => 1
-    );    # we show only the TMPL_VAR names $op
+    $template->param( $op => 1 );    # we show only the TMPL_VAR names $op
 } else {
-    $template->param(
-        script_name => $script_name,
-        else        => 1
-    );    # we show only the TMPL_VAR names $op
+    $template->param( else => 1 );    # we show only the TMPL_VAR names $op
 }
 
 if ( $op eq 'update_and_reedit' ) {
@@ -260,17 +254,11 @@ if ( $op eq 'update_and_reedit' ) {
         $value = join ' ', @currentorder;
         if ($orderchanged) {
             $op = 'add_form';
-            $template->param(
-                script_name => $script_name,
-                $op         => 1
-            );    # we show only the TMPL_VAR names $op
+            $template->param( $op => 1 );    # we show only the TMPL_VAR names $op
         } else {
             $op          = '';
             $searchfield = '';
-            $template->param(
-                script_name => $script_name,
-                else        => 1
-            );    # we show only the TMPL_VAR names $op
+            $template->param( else => 1 );    # we show only the TMPL_VAR names $op
         }
     }
     my $variable = $input->param('variable');
@@ -302,7 +290,7 @@ if ( $op eq 'add_form' ) {
 
 ################## ADD_VALIDATE ##################################
     # called by add_form, used to insert/modify data in DB
-} elsif ( $op eq 'add_validate' ) {
+} elsif ( $op eq 'cud-add_validate' ) {
     output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
     # to handle multiple values
     my $value;
@@ -328,7 +316,7 @@ if ( $op eq 'add_form' ) {
         }
     }
 
-    if ( $type eq 'Upload' ) {
+    if ( $type eq 'cud-Upload' ) {
         my $lgtfh = $input->upload('value');
         $value = join '', <$lgtfh>;
         $value = encode_base64($value);
@@ -349,9 +337,10 @@ if ( $op eq 'add_form' ) {
     # END $OP eq DELETE_CONFIRM
 ################## DELETE_CONFIRMED ##################################
     # called by delete_confirm, used to effectively confirm deletion of data in DB
-} elsif ( $op eq 'delete_confirmed' ) {
+} elsif ( $op eq 'cud-delete_confirmed' ) {
     output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
     C4::Context->delete_preference($searchfield);
+    $template->param( delete_confirmed => 1 );
     # END $OP eq DELETE_CONFIRMED
 ################## DEFAULT ##################################
 } else {    # DEFAULT

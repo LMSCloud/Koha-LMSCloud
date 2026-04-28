@@ -160,7 +160,6 @@
       - $ref: "../swagger.yaml#/parameters/per_page"
       - $ref: "../swagger.yaml#/parameters/q_param"
       - $ref: "../swagger.yaml#/parameters/q_body"
-      - $ref: "../swagger.yaml#/parameters/q_header"
     responses:
       200:
         description: A list of eHoldings titles
@@ -467,6 +466,82 @@
           properties:
             job_id:
               type: string
+          additionalProperties: false
+      400:
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      401:
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      403:
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      404:
+        description: Ressource not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      409:
+        description: Conflict in creating resource
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      500:
+        description: |-
+          Internal server error. Possible `error_code` attribute values:
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      503:
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        erm: 1
+/erm/eholdings/local/titles/import_kbart:
+  post:
+    x-mojo-to: ERM::EHoldings::Titles#import_from_kbart_file
+    operationId: importErmEHoldingsTitlesFromKbart
+    tags:
+      - erm_eholdings_titles
+    summary: Import local titles from a KBART file
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    parameters:
+      - description: The file to import
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            file:
+              type: object
+            package_id:
+              type: string
+            create_linked_biblio:
+              type: boolean
+          additionalProperties: false
+    responses:
+      201:
+        description: Successfully enqueued the import job
+        schema:
+          type: object
+          properties:
+            job_ids:
+              type: array
+            invalid_columns:
+              type: array
+            valid_columns:
+              type: array
+            invalid_filetype:
+              type: integer
+            warnings:
+              type: object
           additionalProperties: false
       400:
         description: Bad request

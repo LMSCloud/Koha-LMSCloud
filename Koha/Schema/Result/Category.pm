@@ -75,19 +75,6 @@ age limit for the patron
 
 the minimum age required for the patron category
 
-=head2 finetype
-
-  data_type: 'varchar'
-  is_nullable: 1
-  size: 30
-
-unused in Koha
-
-=head2 bulk
-
-  data_type: 'tinyint'
-  is_nullable: 1
-
 =head2 enrolmentfee
 
   data_type: 'decimal'
@@ -102,13 +89,6 @@ enrollment fee for the patron
   is_nullable: 1
 
 are overdue notices sent to this patron category (1 for yes, 0 for no)
-
-=head2 issuelimit
-
-  data_type: 'smallint'
-  is_nullable: 1
-
-unused in Koha
 
 =head2 reservefee
 
@@ -138,11 +118,12 @@ type of Koha patron (Adult, Child, Professional, Organizational, Statistical, St
 =head2 BlockExpiredPatronOpacActions
 
   accessor: 'block_expired_patron_opac_actions'
-  data_type: 'tinyint'
-  default_value: -1
+  data_type: 'varchar'
+  default_value: 'follow_syspref_BlockExpiredPatronOpacActions'
   is_nullable: 0
+  size: 128
 
-wheither or not a patron of this category can renew books or place holds once their card has expired. 0 means they can, 1 means they cannot, -1 means use syspref BlockExpiredPatronOpacActions
+specific actions expired patrons of this category are blocked from performing or if the BlockExpiredPatronOpacActions system preference is to be followed
 
 =head2 default_privacy
 
@@ -169,6 +150,14 @@ mark a category as family card (linked borrowers via the guarantor relationship 
   size: 7
 
 produce a warning for this patron category if this item has previously been checked out to this patron if 'yes', not if 'no', defer to syspref setting if 'inherit'.
+
+=head2 can_place_ill_in_opac
+
+  data_type: 'tinyint'
+  default_value: 1
+  is_nullable: 0
+
+can this patron category place interlibrary loan requests
 
 =head2 can_be_guarantee
 
@@ -206,12 +195,40 @@ set minimum password length for patrons in this category
 
 set required password strength for patrons in this category
 
+=head2 force_password_reset_when_set_by_staff
+
+  data_type: 'tinyint'
+  is_nullable: 1
+
+if patrons of this category are required to reset password after being created by a staff member
+
 =head2 exclude_from_local_holds_priority
 
   data_type: 'tinyint'
   is_nullable: 1
 
 Exclude patrons of this category from local holds priority
+
+=head2 noissuescharge
+
+  data_type: 'integer'
+  is_nullable: 1
+
+define maximum amount outstanding before checkouts are blocked
+
+=head2 noissueschargeguarantees
+
+  data_type: 'integer'
+  is_nullable: 1
+
+define maximum amount that the guarantees of a patron in this category can have outstanding before checkouts are blocked
+
+=head2 noissueschargeguarantorswithguarantees
+
+  data_type: 'integer'
+  is_nullable: 1
+
+define maximum amount that the guarantors with guarantees of a patron in this category can have outstanding before checkouts are blocked
 
 =cut
 
@@ -230,16 +247,10 @@ __PACKAGE__->add_columns(
   { data_type => "smallint", is_nullable => 1 },
   "dateofbirthrequired",
   { data_type => "tinyint", is_nullable => 1 },
-  "finetype",
-  { data_type => "varchar", is_nullable => 1, size => 30 },
-  "bulk",
-  { data_type => "tinyint", is_nullable => 1 },
   "enrolmentfee",
   { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "overduenoticerequired",
   { data_type => "tinyint", is_nullable => 1 },
-  "issuelimit",
-  { data_type => "smallint", is_nullable => 1 },
   "reservefee",
   { data_type => "decimal", is_nullable => 1, size => [28, 6] },
   "hidelostitems",
@@ -248,10 +259,11 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", default_value => "A", is_nullable => 0, size => 1 },
   "BlockExpiredPatronOpacActions",
   {
-    accessor      => "block_expired_patron_opac_actions",
-    data_type     => "tinyint",
-    default_value => -1,
-    is_nullable   => 0,
+    accessor => "block_expired_patron_opac_actions",
+    data_type => "varchar",
+    default_value => "follow_syspref_BlockExpiredPatronOpacActions",
+    is_nullable => 0,
+    size => 128,
   },
   "default_privacy",
   {
@@ -269,6 +281,8 @@ __PACKAGE__->add_columns(
     is_nullable => 0,
     size => 7,
   },
+  "can_place_ill_in_opac",
+  { data_type => "tinyint", default_value => 1, is_nullable => 0 },
   "can_be_guarantee",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "reset_password",
@@ -279,8 +293,16 @@ __PACKAGE__->add_columns(
   { data_type => "smallint", is_nullable => 1 },
   "require_strong_password",
   { data_type => "tinyint", is_nullable => 1 },
+  "force_password_reset_when_set_by_staff",
+  { data_type => "tinyint", is_nullable => 1 },
   "exclude_from_local_holds_priority",
   { data_type => "tinyint", is_nullable => 1 },
+  "noissuescharge",
+  { data_type => "integer", is_nullable => 1 },
+  "noissueschargeguarantees",
+  { data_type => "integer", is_nullable => 1 },
+  "noissueschargeguarantorswithguarantees",
+  { data_type => "integer", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -388,20 +410,25 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Ta7U4bvgRgHCb4RC8/5TVw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:54
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Vyz1L0WCxytQdu3xGE2XGQ
+
+# You can replace this text with custom code or comments, and it will be preserved on regeneration
 
 sub koha_object_class {
     'Koha::Patron::Category';
 }
+
 sub koha_objects_class {
     'Koha::Patron::Categories';
 }
 
 __PACKAGE__->add_columns(
-    '+can_be_guarantee'                  => { is_boolean => 1 },
-    '+exclude_from_local_holds_priority' => { is_boolean => 1 },
-    '+require_strong_password'           => { is_boolean => 1 },
+    '+can_be_guarantee'                       => { is_boolean => 1 },
+    '+can_place_ill_in_opac'                  => { is_boolean => 1 },
+    '+exclude_from_local_holds_priority'      => { is_boolean => 1 },
+    '+require_strong_password'                => { is_boolean => 1 },
+    '+force_password_reset_when_set_by_staff' => { is_boolean => 1 },
 );
 
 1;

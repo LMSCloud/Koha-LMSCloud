@@ -1,9 +1,14 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE KohaDates %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Access files</title>
+<title>[% FILTER collapse %]
+    [% t("Access files") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="tools_access_files" class="tools">
@@ -24,13 +29,14 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
     <h1>Access files</h1>
 
 [% IF ( error_no_dir ) %]
-    <div class="dialog alert"><strong>Error: </strong>Files could not be found because the "access_dir" option was not set in "koha-conf.xml". Contact your system administrator to add this option.</div>
+    <div class="alert alert-warning"><strong>Error: </strong>Files could not be found because the "access_dir" option was not set in "koha-conf.xml". Contact your system administrator to add this option.</div>
 [% ELSE %]
     [% IF ( files_loop ) %]
         <div class="page-section">
@@ -54,18 +60,18 @@
             </table>
         </div>
     [% ELSE %]
-        <div class="dialog message">No files found.</div>
+        <div class="alert alert-info">No files found.</div>
     [% END %]
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'tools-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
     </div> <!-- /.row -->
 
 
@@ -75,10 +81,10 @@
     <script>
         $(document).ready(function() {
             $("#files").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [ -1 ], "asSorting" : [ "desc", "asc" ], "bSearchable": false }
+                "columnDefs": [
+                    { "targets": [ -1 ], "orderSequence": [ "desc", "asc" ], "searchable":  false }
                 ],
-                "bPaginate": false
+                "paginate": false
             }));
     });
 </script>

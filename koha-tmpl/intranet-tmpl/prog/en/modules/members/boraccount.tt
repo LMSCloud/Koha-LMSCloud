@@ -6,15 +6,19 @@
 [% USE TablesSettings %]
 [% USE AuthorisedValues %]
 [% USE Price %]
-[% USE Branches %]
 [% USE Registers %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% SET registers = Registers.all( filters => { current_branch => 1 } ) %]
 
 [% PROCESS 'accounts.inc' %]
 
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Account for [% INCLUDE 'patron-title.inc' no_html = 1 %] &rsaquo; Patrons &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Account for") | html %] [% INCLUDE 'patron-title.inc' no_html = 1 %] &rsaquo;
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -39,8 +43,20 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
+
+            [% IF receipt_sent == '1' %]
+            <div id="receipt_sent_dialog" class="alert alert-info">
+              Receipt sent.
+            </div>
+            [% END %]
+            [% IF receipt_sent == '-1' %]
+            <div id="receipt_sent_dialog" class="alert alert-warning">
+              Receipt not sent, failed to find template.
+            </div>
+            [% END %]
 
 [% INCLUDE 'members-toolbar.inc' %]
 <h1>Account for [% INCLUDE 'patron-title.inc' %]</h1>
@@ -49,20 +65,20 @@
 <!-- The manual invoice and credit buttons -->
 <div class="toptabs">
     <ul class="nav nav-tabs" role="tablist">
-        <li role="presentation" class="transactions active">
-            <a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Transactions</a>
+        <li role="presentation" class="nav-item transactions">
+            <a class="nav-link active" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Transactions</a>
         </li>
-        <li role="presentation" class="makepayment">
-            <a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Make a payment</a>
+        <li role="presentation" class="nav-item makepayment">
+            <a class="nav-link" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Make a payment</a>
         </li>
         [% IF CAN_user_updatecharges_manual_invoice %]
-            <li role="presentation" class="manualinvoice">
-                <a href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual invoice</a>
+            <li role="presentation" class="nav-item manualinvoice">
+                <a class="nav-link" href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual invoice</a>
             </li>
         [% END %]
         [% IF CAN_user_updatecharges_manual_credit %]
-            <li role="presentation" class="manualcredit">
-                <a href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual credit</a>
+            <li role="presentation" class="nav-item manualcredit">
+                <a class="nav-link" href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual credit</a>
             </li>
         [% END %]
     </ul> <!-- /.nav.nav-tabs -->
@@ -79,6 +95,7 @@
           <th>Account type</th>
           <th>Description of charges</th>
           <th>Barcode</th>
+          <th>Call number</th>
           <th>Due date</th>
           <th>Checkin date</th>
           <th>Checkout date</th>
@@ -104,11 +121,12 @@
         [%- IF account.description %][% account.description.replace('^(Writeoff|Fine cancelled)[:]?','') | html %][% END %]
         &nbsp;[% IF ( account.itemnumber ) %]<a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% account.item.biblionumber | uri %]&amp;itemnumber=[% account.itemnumber | uri %]">[% account.item.biblio.title | html %]</a>[% END %]</td>
       <td>[% IF ( account.itemnumber ) %]<a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% account.itemnumber | uri %]&amp;biblionumber=[% account.item.biblionumber | uri %]#item[% account.itemnumber | uri %]">[% account.item.barcode | html %]</a>[% END %]</td>
-      <td>[% IF ( account.issue_id ) %][% account.checkout.date_due | $KohaDates as_due_date => 1 %][% END %]</td>
-      <td>[% IF ( account.issue_id ) %][% account.checkout.returndate | $KohaDates with_hours => 1 %][% END %]</td>
-      <td>[% IF ( account.issue_id ) %][% account.checkout.issuedate | $KohaDates %][% END %]</td>
+      <td>[% IF ( account.itemnumber ) %][% account.item.itemcallnumber | html %][% END %]</td>
+      <td>[% IF ( account.issue_id ) || (account.old_issue_id) %][% account.checkout.date_due | $KohaDates as_due_date => 1 %][% END %]</td>
+      <td>[% IF ( account.issue_id ) || (account.old_issue_id) %][% account.checkout.returndate | $KohaDates with_hours => 1 %][% END %]</td>
+      <td>[% IF ( account.issue_id ) || (account.old_issue_id) %][% account.checkout.issuedate | $KohaDates %][% END %]</td>
       <td class="checked_out_from">
-          [% IF account.issue_id && account.checkout.library %]
+          [% IF ( account.issue_id ) || (account.old_issue_id) && account.checkout.library %]
               [% account.checkout.library.branchname | html %]
           [% END %]
       </td>
@@ -118,7 +136,25 @@
       [% IF account.amountoutstanding <= 0 %]<td class="credit" style="text-align: right;">[% ELSE %]<td class="debit" style="text-align: right;">[% END %][% account.amountoutstanding | $Price %]</td>
       <td class="actions">
         [% IF ( account.is_credit ) %]
+          [% IF Koha.Preference('UseEmailReceipts') %]
+                                        <div class="btn-group dropup">
+          <button class="btn btn-xs btn-default dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa fa-receipt"></i> Receipt</button>
+          <ul class="dropdown-menu dropdown-menu-end">
+              <li><a target="_blank" href="printfeercpt.pl?accountlines_id=[% account.accountlines_id | uri %]" class="receipt-print-action dropdown-item"><i class="fa fa-print"></i> Print</a></li>
+              <li>
+                  <form method="post" action="/cgi-bin/koha/members/boraccount.pl">
+                      [% INCLUDE 'csrf-token.inc' %]
+                      <input type="hidden" name="op" value="cud-send_receipt" />
+                      <input type="hidden" name="accountlines_id" value="[% account.accountlines_id | html %]" />
+                      <input type="hidden" name="borrowernumber" value="[% account.borrowernumber | html %]" />
+                                                        <button type="submit" class="dropdown-item receipt-email-action"> <i class="fa fa-envelope"></i> Email </button>
+                  </form>
+              </li>
+          </ul>
+          </div>
+          [% ELSE %]
           <a target="_blank" href="printfeercpt.pl?action=print&amp;accountlines_id=[% account.accountlines_id | uri %]" class="btn btn-default btn-xs receipt-print-action"><i class="fa fa-print"></i> Print</a>
+          [% END %]
         [% ELSE %]
           <a target="_blank" href="printinvoice.pl?action=print&amp;accountlines_id=[% account.accountlines_id | uri %]" class="btn btn-default btn-xs invoice-print-action"><i class="fa fa-print"></i> Print</a>
         [% END %]
@@ -181,7 +217,7 @@
   [% END %]
 <tfoot>
   <tr>
-    <td colspan="13">Total due</td>
+    <td colspan="14">Total due</td>
     [% IF ( totalcredit ) %]
         <td class="credit" style="text-align: right;">[% total | $Price %]</td>
         <td>
@@ -207,13 +243,13 @@ Please open a cash register to reverse payments.
 </div> <!-- /.toptabs -->
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'circ-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
     <!-- Issue payout modal -->
@@ -221,17 +257,17 @@ Please open a cash register to reverse payments.
         <form  id="payout_form" action="/cgi-bin/koha/members/boraccount.pl" method="get" enctype="multipart/form-data" class="validated">
             [% INCLUDE 'csrf-token.inc' %]
             <input type="hidden" name="accountlines_id" value="" id="payoutline">
-            <input type="hidden" name="action" value="payout">
+            <input type="hidden" name="op" value="cud-payout">
             <input type="hidden" name="borrowernumber" value="[% account.borrowernumber | html %]">
-            <div class="modal-dialog" role="document">
+            <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                        <h4 class="modal-title" id="issuePayoutLabel">Issue payout</h4>
+                        <h1 class="modal-title" id="issuePayoutLabel">Issue payout</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         [% IF Koha.Preference('UseCashRegisters') && ( registers.size == 0 ) %]
-                        <div id="payout_error" class="dialog alert">
+                        <div id="payout_error" class="alert alert-warning">
                             You must have at least one cash register associated with this branch before you can record cash payouts.
                         </div>
                         [% END %]
@@ -262,9 +298,8 @@ Please open a cash register to reverse payments.
                         </fieldset> <!-- /.rows -->
                     </div> <!-- /.modal-body -->
                     <div class="modal-footer">
-                        <input type="hidden" name="op" value="payout">
-                        <button type="submit" class="btn btn-default" id="borr_payout_confirm">Confirm</button>
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="borr_payout_confirm">Confirm</button>
+                        <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
                     </div> <!-- /.modal-footer -->
                 </div> <!-- /.modal-content -->
             </div> <!-- /.modal-dialog -->
@@ -276,17 +311,17 @@ Please open a cash register to reverse payments.
         <form  id="refund_form" action="/cgi-bin/koha/members/boraccount.pl" method="get" enctype="multipart/form-data" class="validated">
             [% INCLUDE 'csrf-token.inc' %]
             <input type="hidden" name="accountlines_id" value="" id="refundline">
-            <input type="hidden" name="action" value="refund">
+            <input type="hidden" name="op" value="cud-refund">
             <input type="hidden" name="borrowernumber" value="[% account.borrowernumber | html %]">
-            <div class="modal-dialog" role="document">
+            <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                        <h4 class="modal-title" id="issueRefundLabel">Issue refund</h4>
+                        <h1 class="modal-title" id="issueRefundLabel">Issue refund</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         [% IF Koha.Preference('UseCashRegisters') && ( registers.size == 0 ) %]
-                        <div id="refund_error" class="dialog alert">
+                        <div id="refund_error" class="alert alert-warning">
                             You must have at least one cash register associated with this branch before you can record cash refunds.
                         </div>
                         [% END %]
@@ -320,9 +355,8 @@ Please open a cash register to reverse payments.
                         </fieldset> <!-- /.rows -->
                     </div> <!-- /.modal-body -->
                     <div class="modal-footer">
-                        <input type="hidden" name="op" value="refund">
-                        <button type="submit" class="btn btn-default" id="borr_refund_confirm">Confirm</button>
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="borr_refund_confirm">Confirm</button>
+                        <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
                     </div> <!-- /.modal-footer -->
                 </div> <!-- /.modal-content -->
             </div> <!-- /.modal-dialog -->
@@ -334,13 +368,13 @@ Please open a cash register to reverse payments.
         <form  id="discount_form" action="/cgi-bin/koha/members/boraccount.pl" method="get" enctype="multipart/form-data" class="validated">
             [% INCLUDE 'csrf-token.inc' %]
             <input type="hidden" name="accountlines_id" value="" id="discountline">
-            <input type="hidden" name="action" value="discount">
+            <input type="hidden" name="op" value="cud-discount">
             <input type="hidden" name="borrowernumber" value="[% account.borrowernumber | html %]">
-            <div class="modal-dialog" role="document">
+            <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                        <h4 class="modal-title" id="applyDiscountLabel">Apply discount</h4>
+                        <h1 class="modal-title" id="applyDiscountLabel">Apply discount</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <fieldset class="rows">
@@ -360,9 +394,8 @@ Please open a cash register to reverse payments.
                         </fieldset> <!-- /.rows -->
                     </div> <!-- /.modal-body -->
                     <div class="modal-footer">
-                        <input type="hidden" name="op" value="discount">
-                        <button type="submit" class="btn btn-default">Confirm</button>
-                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Confirm</button>
+                        <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
                     </div> <!-- /.modal-footer -->
                 </div> <!-- /.modal-content -->
             </div> <!-- /.modal-dialog -->
@@ -385,9 +418,9 @@ Please open a cash register to reverse payments.
             var txtInactivefilter = _("Show all transactions");
             var table_settings = [% TablesSettings.GetTableSettings('members', 'fines', 'account-fines', 'json') | $raw %];
             var table_account_fines = KohaTable("table_account_fines", {
-                "sPaginationType": "full",
-                'aaSorting': [[0, 'desc']],
-                "sDom": 'C<"top pager"ilpfB><"#filter_c">tr<"bottom pager"ip>',
+                "pagingType": "full",
+                "order": [[0, 'desc']],
+                "dom": 'C<"top pager"ilpfB><"#filter_c">tr<"bottom pager"ip>',
             }, table_settings);
             $("#filter_c").html('<p><a href="#" id="filter_transacs"><i class="fa fa-filter"></i> '+txtActivefilter+'</a>');
             $('#filter_transacs').click(function(e) {
@@ -399,7 +432,7 @@ Please open a cash register to reverse payments.
                     var filteredValue = '^((?!0.00).*)$'; //Filter not matching 0.00 http://stackoverflow.com/a/406408
                     $(this).html('<i class="fa fa-filter"></i> '+txtInactivefilter);
                 }
-                table_account_fines.DataTable().columns( 13 ).search( filteredValue, true, false ).draw();
+                table_account_fines.DataTable().columns( 14 ).search( filteredValue, true, false ).draw();
                 $(this).toggleClass('filtered');
             });
 
@@ -431,8 +464,8 @@ Please open a cash register to reverse payments.
                 var amount = button.data('amount');
                 var amountoutstanding = button.data('amountoutstanding') || 0;
                 var paid = amount - amountoutstanding;
-                $("#paid + span").replaceWith(paid.format_price());
-                $("#returned").attr({ "value": paid, "max": paid, "min": 0 });
+                $("#paid + span").text(paid.format_price());
+                $("#returned").attr({ "value": paid.format_price(), "max": paid.format_price(), "min": 0 });
                 var member = button.data('member');
                 if ( member === '' ) {
                     $("#refund_type option[value='AC']").remove();

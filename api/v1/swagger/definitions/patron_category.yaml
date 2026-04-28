@@ -1,0 +1,128 @@
+---
+type: object
+properties:
+  patron_category_id:
+    type: string
+    description: Internal patron category identifier
+  name:
+    type:
+      - string
+      - "null"
+    description: Name of the patron category
+  enrolment_period:
+    type:
+      - number
+      - "null"
+    description: Number of months the patron is enrolled for
+  enrolment_period_date:
+    type:
+      - string
+      - "null"
+    format: date
+    description: Date the patron is enrolled until
+  password_expiry_days:
+    type:
+      - number
+      - "null"
+    description: Number of days after which the patron must reset their password
+  upper_age_limit:
+    type:
+      - number
+      - "null"
+    description: Age limit for the patron
+  lower_age_limit:
+    type:
+      - number
+      - "null"
+    description: The minimum age required for the patron category
+  enrolment_fee:
+    type:
+      - number
+      - "null"
+    description: Enrollment fee for the patron
+  overdue_notice_required:
+    type:
+      - boolean
+      - "null"
+    description: Are overdue notices sent to this patron category (1 for yes, 0 for no)
+  reserve_fee:
+    type:
+      - number
+      - "null"
+    description: Cost to place holds
+  hide_lost_items:
+    type: boolean
+    description: Are lost items shown to this category (1 for yes, 0 for no)
+  category_type:
+    type: string
+    description: Type of Koha patron (Adult, Child, Professional, Organizational, Statistical, Staff)
+  block_expired_patron_opac_actions:
+    type: string
+    description: Specific actions expired patrons of this category are blocked from performing. OPAC actions blocked based on the patron category take priority over this preference
+  default_privacy:
+    type: string
+    enum:
+      - default
+      - never
+      - forever
+    description: Default privacy setting for this patron category
+  check_prev_checkout:
+    type: string
+    description: Produce a warning for this patron category if this item has previously been checked out to this patron if ''yes'', not if ''no'', defer to syspref setting if ''inherit''.'
+  can_place_ill_in_opac:
+    type: boolean
+    description: Can this patron category place interlibrary loan requests
+  can_be_guarantee:
+    type: boolean
+    description: If patrons of this category can be guarantees
+  reset_password:
+    type:
+      - boolean
+      - "null"
+    description: If patrons of this category can do the password reset flow
+  change_password:
+    type:
+      - boolean
+      - "null"
+    description: If patrons of this category can change their passwords in the OPAC
+  min_password_length:
+    type:
+      - number
+      - "null"
+    description: Set minimum password length for patrons in this category
+  require_strong_password:
+    type:
+      - boolean
+      - "null"
+    description: Set required password strength for patrons in this category
+  exclude_from_local_holds_priority:
+    type:
+      - boolean
+      - "null"
+    description: Exclude patrons of this category from local holds priority
+  no_issues_charge:
+    type:
+      - number
+      - "null"
+    description: Set threshold of debt allowed before issues are blocked
+  no_issues_charge_guarantees:
+    type:
+      - number
+      - "null"
+    description: Set threshold of debt allowed, inclusive of guarantees debts, before issues are blocked
+  no_issues_charge_guarantors_with_guarantees:
+    type:
+      - number
+      - "null"
+    description: Set threshold of debt allowed, inclused of relations debts, before issues are blocked
+  force_password_reset_when_set_by_staff:
+    type: boolean
+    description: If patrons of this category are required to reset password after being created by a staff member
+  family_card:
+    type:
+      - boolean
+      - "null"
+    description: If this patron category is a family card category
+additionalProperties: false
+required:
+  - patron_category_id

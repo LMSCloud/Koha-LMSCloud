@@ -28,6 +28,7 @@ use Koha::Filter::MARC::EmbedSeeFromHeadings;
 use Koha::SearchFields;
 use Koha::SearchMarcMaps;
 use Koha::Caches;
+use Koha::AuthorisedValueCategories;
 use C4::Heading;
 use C4::AuthoritiesMarc qw( GuessAuthTypeCode );
 use C4::Biblio;
@@ -194,7 +195,7 @@ sub get_elasticsearch_mappings {
         my $marcflavour = lc C4::Context->preference('marcflavour');
         $self->_foreach_mapping(
             sub {
-                my ( $name, $type, $facet, $suggestible, $sort, $search, $marc_type ) = @_;
+                my ( $name, $type, $facet, $suggestible, $sort, $search, $filter, $marc_type ) = @_;
                 return if $marc_type ne $marcflavour;
                 # TODO if this gets any sort of complexity to it, it should
                 # be broken out into its own function.
@@ -218,6 +219,12 @@ sub get_elasticsearch_mappings {
                     $es_type = 'string_plus';
                 } elsif ($type eq 'callnumber') {
                     $es_type = 'cn_sort';
+                } elsif ($type eq 'geo_point') {
+                    $es_type = 'geo_point';
+                }
+
+                if ($type eq 'geo_point') {
+                    $name =~ s/_(lat|lon)$//;
                 }
 
                 if ($search) {
@@ -230,9 +237,10 @@ sub get_elasticsearch_mappings {
                 if ($suggestible) {
                     $mappings->{properties}{ $name . '__suggestion' } = _get_elasticsearch_field_config('suggestible', $es_type);
                 }
-                # Sort is a bit special as it can be true, false, undef.
-                # We care about "true" or "undef",
+                # Sort should be defined in mappings as 1 (Yes) or 0 (No)
+                # Previously, we also supported ~ (Undef) in the file
                 # "undef" means to do the default thing, which is make it sortable.
+                # This is preserved in order to not cause breakages for existing installs
                 if (!defined $sort || $sort) {
                     $mappings->{properties}{ $name . '__sort' } = _get_elasticsearch_field_config('sort', $es_type);
                     $sort_fields{$self->index}{$name} = 1;
@@ -286,6 +294,9 @@ sub raw_elasticsearch_mappings {
             $mappings->{ $marc_map->index_name }{ $search_field->name }{type} = $search_field->type;
             $mappings->{ $marc_map->index_name }{ $search_field->name }{mandatory} = $search_field->mandatory;
             $mappings->{ $marc_map->index_name }{ $search_field->name }{facet_order} = $search_field->facet_order if defined $search_field->facet_order;
+            $mappings->{ $marc_map->index_name }{ $search_field->name }{authorised_value_category} =
+                $search_field->authorised_value_category
+                if defined $search_field->authorised_value_category;
             $mappings->{ $marc_map->index_name }{ $search_field->name }{weight} = $search_field->weight if defined $search_field->weight;
             $mappings->{ $marc_map->index_name }{ $search_field->name }{opac} = $search_field->opac if defined $search_field->opac;
             $mappings->{ $marc_map->index_name }{ $search_field->name }{staff_client} = $search_field->staff_client if defined $search_field->staff_client;
@@ -296,7 +307,8 @@ sub raw_elasticsearch_mappings {
                     marc_type => $marc_map->marc_type,
                     marc_field => $marc_map->marc_field,
                     sort        => $marc_to_field->sort,
-                    suggestible => $marc_to_field->suggestible || ''
+                    suggestible => $marc_to_field->suggestible || '',
+                    filter => $marc_to_field->filter || ''
                 });
 
         }
@@ -365,7 +377,7 @@ sub reset_elasticsearch_mappings {
     while ( my ( $index_name, $fields ) = each %$indexes ) {
         while ( my ( $field_name, $data ) = each %$fields ) {
 
-            my %sf_params = map { $_ => $data->{$_} } grep { exists $data->{$_} } qw/ type label weight staff_client opac facet_order mandatory/;
+            my %sf_params = map { $_ => $data->{$_} } grep { exists $data->{$_} } qw/ type label weight staff_client opac facet_order authorised_value_category mandatory/;
 
             # Set default values
             $sf_params{staff_client} //= 1;
@@ -386,7 +398,8 @@ sub reset_elasticsearch_mappings {
                     facet => $mapping->{facet} || 0,
                     suggestible => $mapping->{suggestible} || 0,
                     sort => $mapping->{sort} // 1,
-                    search => $mapping->{search} // 1
+                    search => $mapping->{search} // 1,
+                    filter => $mapping->{filter} // ''
                 });
             }
         }
@@ -523,7 +536,13 @@ sub _process_mappings {
             $nonfiling_chars = looks_like_number($nonfiling_chars) ? int($nonfiling_chars) : 0;
             # Nonfiling chars does not make sense for multiple values
             # Only apply on first element
-            $values->[0] = substr $values->[0], $nonfiling_chars;
+            if ( $nonfiling_chars > 0 ) {
+                if ($sort) {
+                    $values->[0] = substr $values->[0], $nonfiling_chars;
+                } else {
+                    push @{$values}, substr $values->[0], $nonfiling_chars;
+                }
+            }
         }
         
         # Remove text between MARC non-sorting characters \x{0098} and \x{009c} in sort values
@@ -548,8 +567,32 @@ sub _process_mappings {
 
         $values = [ grep(!/^$/, @{$values}) ];
 
+        # 4 bytes is the max size of a UTF-8 char.
+        # 32766 bytes is the max size of the data ES can add to an index
+        # 32766 / 4 =~ 8191
+        my $MAX_SIZE = 8191;
+
+        my @chunks;
+
+        foreach my $value ( @{$values} ) {
+            while ( length($value) > $MAX_SIZE ) {
+                $value =~ s/^\s*//;
+                # Match up to MAX_SIZE characters, stopping at the last full word before MAX_SIZE
+                if ( $value =~ /\G(.{1,$MAX_SIZE})(?:\s|$)/g ) {
+                    push @chunks, $1;
+                    $value = substr( $value, length($1) );
+                } else {
+
+                    # Catch-all for very long words
+                    push @chunks, substr( $value, 0, $MAX_SIZE );
+                    $value = substr( $value, $MAX_SIZE );
+                }
+            }
+            push @chunks, $value if length($value);
+        }
+
         $record_document->{$target} //= [];
-        push @{$record_document->{$target}}, @{$values};
+        push @{ $record_document->{$target} }, @chunks;
     }
 }
 
@@ -632,7 +675,7 @@ sub marc_records_to_documents {
                 my $altscript = 0;
                 if ($marcflavour eq 'marc21' && $tag eq '880') {
                     my $sub6 = $field->subfield('6');
-                    if ($sub6 =~ /^(...)-\d+/) {
+                    if ($sub6 && $sub6 =~ /^(...)-\d+/) {
                         $tag = $1;
                         $altscript = 1;
                     }
@@ -690,24 +733,43 @@ sub marc_records_to_documents {
             }
         }
 
-        if (C4::Context->preference('IncludeSeeFromInSearches') and $self->index eq 'biblios') {
-            foreach my $field (Koha::Filter::MARC::EmbedSeeFromHeadings->new->fields($record)) {
-                my $data_field_rules = $data_fields_rules->{$field->tag()};
+        if (
+            $self->index eq $BIBLIOS_INDEX
+            and (  C4::Context->preference('IncludeSeeFromInSearches')
+                || C4::Context->preference('IncludeSeeAlsoFromInSearches') )
+            )
+        {
+            my $marc_filter = Koha::Filter::MARC::EmbedSeeFromHeadings->new;
+            my @other_headings;
+            if ( C4::Context->preference('IncludeSeeFromInSearches') ) {
+                push @other_headings, 'see_from';
+            }
+            if ( C4::Context->preference('IncludeSeeAlsoFromInSearches') ) {
+                push @other_headings, 'see_also_from';
+            }
+            $marc_filter->initialize( { options => { other_headings => \@other_headings } } );
+            foreach my $field ( $marc_filter->fields($record) ) {
+                my $data_field_rules = $data_fields_rules->{ $field->tag() };
                 if ($data_field_rules) {
                     my $subfields_mappings = $data_field_rules->{subfields};
-                    my $wildcard_mappings = $subfields_mappings->{'*'};
-                    foreach my $subfield ($field->subfields()) {
-                        my ($code, $data) = @{$subfield};
+                    my $wildcard_mappings  = $subfields_mappings->{'*'};
+                    foreach my $subfield ( $field->subfields() ) {
+                        my ( $code, $data ) = @{$subfield};
                         my @mappings;
                         push @mappings, @{ $subfields_mappings->{$code} } if $subfields_mappings->{$code};
-                        push @mappings, @$wildcard_mappings if $wildcard_mappings;
+                        push @mappings, @$wildcard_mappings               if $wildcard_mappings;
+
                         # Do not include "see from" into these kind of fields
                         @mappings = grep { $_->[0] !~ /__(sort|facet|suggestion)$/ } @mappings;
                         if (@mappings) {
-                            $self->_process_mappings(\@mappings, $data, $record_document, {
+                            $self->_process_mappings(
+                                \@mappings,
+                                $data,
+                                $record_document,
+                                {
                                     data_source => 'subfield',
-                                    code => $code,
-                                    field => $field
+                                    code        => $code,
+                                    field       => $field
                                 }
                             );
                         }
@@ -715,19 +777,25 @@ sub marc_records_to_documents {
 
                     my $subfields_join_mappings = $data_field_rules->{subfields_join};
                     if ($subfields_join_mappings) {
-                        foreach my $subfields_group (keys %{$subfields_join_mappings}) {
+                        foreach my $subfields_group ( keys %{$subfields_join_mappings} ) {
                             my $data_field = $field->clone;
+
                             # remove empty subfields, otherwise they are printed as a space
-                            $data_field->delete_subfield(match => qr/^$/);
-                            my $data = $data_field->as_string( $subfields_group );
+                            $data_field->delete_subfield( match => qr/^$/ );
+                            my $data = $data_field->as_string($subfields_group);
                             if ($data) {
                                 my @mappings = @{ $subfields_join_mappings->{$subfields_group} };
+
                                 # Do not include "see from" into these kind of fields
                                 @mappings = grep { $_->[0] !~ /__(sort|facet|suggestion)$/ } @mappings;
-                                $self->_process_mappings(\@mappings, $data, $record_document, {
+                                $self->_process_mappings(
+                                    \@mappings,
+                                    $data,
+                                    $record_document,
+                                    {
                                         data_source => 'subfields_group',
-                                        codes => $subfields_group,
-                                        field => $field
+                                        codes       => $subfields_group,
+                                        field       => $field
                                     }
                                 );
                             }
@@ -777,6 +845,19 @@ sub marc_records_to_documents {
             }
         }
 
+        foreach my $field ( @{ $rules->{geo_point} } ) {
+            next unless $record_document->{$field};
+            my $geofield = $field;
+            $geofield =~ s/_(lat|lon)$//;
+            my $axis = $1;
+            my $vals = $record_document->{$field};
+            for my $i ( 0 .. @$vals - 1 ) {
+                my $val = $record_document->{$field}[$i];
+                $record_document->{$geofield}[$i]{$axis} = $val;
+            }
+            delete $record_document->{$field};
+        }
+
         # Remove duplicate values and collapse sort fields
         foreach my $field (keys %{$record_document}) {
             if (ref($record_document->{$field}) eq 'ARRAY') {
@@ -803,7 +884,21 @@ sub marc_records_to_documents {
                 local $SIG{__WARN__} = sub {
                     push @warnings, $_[0];
                 };
-                $record_document->{'marc_data'} = encode_base64(encode('UTF-8', $record->as_usmarc()));
+                my $usmarc_record = $record->as_usmarc();
+
+                #NOTE: Try to round-trip the record to prove it will work for retrieval after searching
+                my $decoded_usmarc_record;
+                eval { $decoded_usmarc_record = MARC::Record->new_from_usmarc($usmarc_record); };
+                if ( $@ || $decoded_usmarc_record->warnings() ) {
+
+                    #NOTE: We override the warnings since they're many and misleading
+                    @warnings = (
+                        "Warnings encountered while roundtripping a MARC record to/from USMARC. Failing over to MARCXML.",
+                    );
+                }
+
+                my $marc_data = encode_base64( encode( 'UTF-8', $usmarc_record ) );
+                $record_document->{'marc_data'} = $marc_data;
             }
             if (@warnings) {
                 # Suppress warnings if record length exceeded
@@ -835,6 +930,15 @@ sub marc_records_to_documents {
                 $record_document->{available} = $avail_items ? \1 : \0;
             }
         }
+
+        Koha::Plugins->call(
+            'elasticsearch_to_document',
+            {
+                index    => $self->index,
+                record   => $record,
+                document => $record_document,
+            }
+        );
 
         push @record_documents, $record_document;
     }
@@ -931,9 +1035,9 @@ sub _array_to_marc {
     return $record;
 }
 
-=head2 _field_mappings($facet, $suggestible, $sort, $search, $target_name, $target_type, $range, $indicator1, $indicator2)
+=head2 _field_mappings($facet, $suggestible, $sort, $search, $filter, $target_name, $target_type, $range, $indicator1, $indicator2)
 
-    my @mappings = _field_mappings($facet, $suggestible, $sort, $search, $target_name, $target_type, $range, $indicator1, $indicator2)
+    my @mappings = _field_mappings($facet, $suggestible, $sort, $search, $filter, $target_name, $target_type, $range, $indicator1, $indicator2)
 
 Get mappings, an internal data structure later used by
 L<_process_mappings($mappings, $data, $record_document, $meta)> to process MARC target
@@ -1001,7 +1105,7 @@ value need to be equally to the specified indicator 2.
 =cut
 
 sub _field_mappings {
-    my ($_self, $facet, $suggestible, $sort, $search, $target_name, $target_type, $range, $indicator1, $indicator2) = @_;
+    my ($_self, $facet, $suggestible, $sort, $search, $filter, $target_name, $target_type, $range, $indicator1, $indicator2) = @_;
     my %mapping_defaults = ();
     my @mappings;
 
@@ -1050,6 +1154,18 @@ sub _field_mappings {
         push @{$default_options->{value_callbacks}}, sub {
             my ($value) = @_;
             return ( $value =~ /[12][0-9][0-9][0-9]-[01][0-9]-[0123][0-9]/g );
+        };
+    }
+
+    if ( defined $filter && $filter eq 'punctuation' ) {
+        $default_options->{value_callbacks} //= [];
+        push @{ $default_options->{value_callbacks} }, sub {
+            my ($value) = @_;
+
+            # Trim punctuation marks from field
+            $value =~
+                s/[\x00-\x1F,\x21-\x2F,\x3A-\x40,\x5B-\x60,\x7B-\x89,\x8B,\x8D,\x8F,\x90-\x99,\x9B,\x9D,\xA0-\xBF,\xD7,\xF7]//g;
+            return $value;
         };
     }
 
@@ -1115,7 +1231,7 @@ sub _get_marc_mapping_rules {
     };
 
     $self->_foreach_mapping(sub {
-        my ($name, $type, $facet, $suggestible, $sort, $search, $marc_type, $marc_field) = @_;
+        my ($name, $type, $facet, $suggestible, $sort, $search, $filter, $marc_type, $marc_field) = @_;
         return if $marc_type ne $marcflavour;
 
         if ($type eq 'sum') {
@@ -1124,6 +1240,9 @@ sub _get_marc_mapping_rules {
         }
         elsif ($type eq 'isbn') {
             push @{$rules->{isbn}}, $name;
+        }
+        elsif ($type eq 'geo_point') {
+            push @{$rules->{geo_point}}, $name;
         }
         elsif ($type eq 'boolean') {
             # boolean gets special handling, if value doesn't exist for a field,
@@ -1191,7 +1310,7 @@ sub _get_marc_mapping_rules {
             }
 
             my $range = defined $4 ? $4 : undef;
-            my @mappings = $self->_field_mappings($facet, $suggestible, $sort, $search, $name, $type, $range, $indicator1, $indicator2);
+            my @mappings = $self->_field_mappings($facet, $suggestible, $sort, $search, $filter, $name, $type, $range, $indicator1, $indicator2);
             if ($field_tag < 10) {
                 $rules->{control_fields}->{$field_tag} //= [];
                 push @{$rules->{control_fields}->{$field_tag}}, @{clone(\@mappings)};
@@ -1210,7 +1329,7 @@ sub _get_marc_mapping_rules {
         }
         elsif ($marc_field =~ $leader_regexp) {
             my $range = defined $1 ? $1 : undef;
-            my @mappings = $self->_field_mappings($facet, $suggestible, $sort, $search, $name, $type, $range);
+            my @mappings = $self->_field_mappings($facet, $suggestible, $sort, $search, $filter, $name, $type, $range);
             push @{$rules->{leader}}, @{clone(\@mappings)};
         }
         else {
@@ -1240,12 +1359,10 @@ sub _get_marc_mapping_rules {
         foreach my $indicator (keys %title_fields) {
             foreach my $field_tag (@{$title_fields{$indicator}}) {
                 my $mappings = $rules->{data_fields}->{$field_tag}->{subfields}->{a} // [];
-                foreach my $mapping (@{$mappings}) {
-                    if ($mapping->[0] =~ /__sort$/) {
-                        # Mark this as to be processed for nonfiling characters indicator
-                        # later on in _process_mappings
-                        $mapping->[1]->{nonfiling_characters_indicator} = $indicator;
-                    }
+                foreach my $mapping ( @{$mappings} ) {
+                    # Mark this as to be processed for nonfiling characters indicator
+                    # later on in _process_mappings
+                    $mapping->[1]->{nonfiling_characters_indicator} = $indicator;
                 }
             }
         }
@@ -1263,7 +1380,7 @@ sub _get_marc_mapping_rules {
 
     $self->_foreach_mapping(
         sub {
-            my ( $name, $type, $facet, $suggestible, $sort, $marc_type,
+            my ( $name, $type, $facet, $suggestible, $sort, $search, $filter, $marc_type,
                 $marc_field )
               = @_;
             return unless $marc_type eq 'marc21';
@@ -1299,6 +1416,15 @@ should be sorted on. False if a) but not b). Undef if not a). This allows,
 for example, author to be sorted on but not everything marked with "author"
 to be included in that sort.
 
+=item C<$search>
+
+True if this value should be searchable.
+
+=item C<$filter>
+
+Contains a string that represents a filter defined in the indexing code. Currently supports
+the option 'punctuation'
+
 =item C<$marc_type>
 
 A string that indicates the MARC type that this mapping is for, e.g. 'marc21',
@@ -1326,6 +1452,7 @@ sub _foreach_mapping {
                 'search_marc_to_fields.suggestible',
                 'search_marc_to_fields.sort',
                 'search_marc_to_fields.search',
+                'search_marc_to_fields.filter',
                 'search_marc_map.marc_type',
                 'search_marc_map.marc_field',
             ],
@@ -1334,6 +1461,7 @@ sub _foreach_mapping {
                 'suggestible',
                 'sort',
                 'search',
+                'filter',
                 'marc_type',
                 'marc_field',
             ],
@@ -1350,6 +1478,7 @@ sub _foreach_mapping {
             $search_field->get_column('suggestible'),
             $search_field->get_column('sort'),
             $search_field->get_column('search'),
+            $search_field->get_column('filter'),
             $search_field->get_column('marc_type'),
             $search_field->get_column('marc_field'),
         );
@@ -1446,15 +1575,15 @@ sub _read_configuration {
     return $configuration;
 }
 
-=head2 get_facetable_fields
+=head2 get_facet_fields
 
-my @facetable_fields = Koha::SearchEngine::Elasticsearch->get_facetable_fields();
+my @facet_fields = Koha::SearchEngine::Elasticsearch->get_facet_fields();
 
-Returns the list of Koha::SearchFields marked to be faceted in the ES configuration
+Returns the list of Koha::SearchFields marked to be faceted.
 
 =cut
 
-sub get_facetable_fields {
+sub get_facet_fields {
     my ($self) = @_;
 
     # These should correspond to the ES field names, as opposed to the CCL

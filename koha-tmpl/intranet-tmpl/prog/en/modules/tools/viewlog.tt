@@ -5,14 +5,17 @@
 [% USE Branches %]
 [% USE KohaDates %]
 [% USE TablesSettings %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF ( do_it ) %]
-        Results &rsaquo; [% END %]
-
-    Logs &rsaquo; Tools &rsaquo; Koha
-</title>
+        [% t("Results") | html %] &rsaquo;
+    [% END %]
+    [% t("Log viewer") | html %] &rsaquo;
+    [% t("Tools") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("css/humanmsg.css") | $raw %]
 [% FILTER collapse %]
@@ -64,110 +67,7 @@
     [% INCLUDE 'cat-search.inc' %]
 [% END %]
 
-[% BLOCK translate_log_module %]
-[%    SWITCH module %]
-[%        CASE 'AUTH'         %]<span>Authentication</span>[% UNLESS Koha.Preference('AuthFailureLog') || Koha.Preference('AuthScuccessLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-[%        CASE 'CATALOGUING'  %]<span>Catalog</span>[% UNLESS Koha.Preference('CataloguingLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-
-[%        CASE 'AUTHORITIES'  %]<span>Authorities</span>[% UNLESS Koha.Preference('AuthoritiesLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-
-[%        CASE 'MEMBERS'      %]<span>Patrons</span>[% UNLESS Koha.Preference('BorrowersLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-
-[%        CASE 'ACQUISITIONS' %]<span>Acquisitions</span>[% UNLESS Koha.Preference('AcquisitionLog') %]<i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-
-[%        CASE 'SERIAL'       %]<span>Serials</span>[% UNLESS Koha.Preference('SubscriptionLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-
-[%        CASE 'HOLDS'        %]<span>Holds</span>[% UNLESS Koha.Preference('HoldsLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-
-[%        CASE 'ILL'          %]<span>Interlibrary loans</span>[% UNLESS Koha.Preference('IllLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-
-[%        CASE 'CIRCULATION'  %]<span>Circulation</span>[% UNLESS Koha.Preference('IssueLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-
-[%        CASE 'CLAIMS'       %]<span>Claims</span>[% UNLESS Koha.Preference('ClaimsLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-
-[%        CASE 'FINES'        %]<span>Fines</span>[% UNLESS Koha.Preference('FinesLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-
-[%        CASE 'SYSTEMPREFERENCE' %]<span>System preferences</span>
-
-[%        CASE 'CRONJOBS' %]<span>Cron jobs</span>[% UNLESS Koha.Preference('CronjobLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-
-[%        CASE 'REPORTS'      %]<span>Reports</span>[% UNLESS Koha.Preference('ReportsLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-
-[%        CASE 'SEARCHENGINE' %]<span>Search engine</span>
-
-[%        CASE 'DIVIBIB'      %]<span>Divibib</span>[% UNLESS Koha.Preference('DivibibLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-
-[%        CASE 'NOTICES'      %]<span>Notices</span>[% UNLESS Koha.Preference('NoticesLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-[%        CASE 'NEWS'      %]<span>News</span>[% UNLESS Koha.Preference('NewsLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-[%        CASE 'RECALLS'      %]<span>Recalls</span>[% UNLESS Koha.Preference('RecallsLog') %] <i class="fa fa-warning" title="Log not enabled"></i>[% END %]
-
-[%        CASE %][% module | html %]
-[%    END %]
-[% END %]
-
-[% BLOCK translate_log_action %]
-[%    SWITCH action %]
-[%        CASE 'ADD'    %]<span>Add</span>
-[%        CASE 'DELETE' %]<span>Delete</span>
-[%        CASE 'MODIFY' %]<span>Modify</span>
-[%        CASE 'ISSUE'  %]<span>Checkout</span>
-[%        CASE 'RETURN' %]<span>Return</span>
-[%        CASE 'CREATE' %]<span>Create</span>
-[%        CASE 'CANCEL' %]<span>Cancel</span>
-[%        CASE 'FILL'   %]<span>Fill</span>
-[%        CASE 'RESUME' %]<span>Resume</span>
-[%        CASE 'SUSPEND' %]<span>Suspend</span>
-[%        CASE 'RENEW'  %]<span>Renew</span>
-[%        CASE 'RENEWAL' %]<span>Renew</span>
-[%        CASE 'CHANGE PASS' %]<span>Change password</span>
-[%        CASE 'ADDCIRCMESSAGE' %]<span>Add circulation message</span>
-[%        CASE 'DELCIRCMESSAGE' %]<span>Delete circulation message</span>
-[%        CASE 'STATUS_CHANGE'  %]<span>Change ILL request status</span>
-[%        CASE 'PATRON_NOTICE'  %]<span>ILL notice sent to patron</span>
-[%        CASE 'ADD_BASKET' %]<span>Create an acquisitions basket</span>
-[%        CASE 'MODIFY_BASKET' %]<span>Modify an acquisitions basket</span>
-[%        CASE 'MODIFY_BASKET_HEADER' %]<span>Modify an acquisitions basket header</span>
-[%        CASE 'MODIFY_BASKET_USERS' %]<span>Modify an acquisitions basket's users</span>
-[%        CASE 'CLOSE_BASKET' %]<span>Close an acquisitions basket</span>
-[%        CASE 'APPROVE_BASKET' %]<span>Approve an acquisitions basket</span>
-[%        CASE 'REOPEN_BASKET' %]<span>Reopen an acquisitions basket</span>
-[%        CASE 'CANCEL_ORDER' %]<span>Cancel an order</span>
-[%        CASE 'CREATE_ORDER' %]<span>Create an order</span>
-[%        CASE 'MODIFY_ORDER' %]<span>Modify an order</span>
-[%        CASE 'CREATE_INVOICE_ADJUSTMENT' %]<span>Create an invoice adjustment</span>
-[%        CASE 'UPDATE_INVOICE_ADJUSTMENT' %]<span>Modify an invoice adjustment</span>
-[%        CASE 'DELETE_INVOICE_ADJUSTMENT' %]<span>Delete an invoice adjustment</span>
-[%        CASE 'RECEIVE_ORDER' %]<span>Receive an order</span>
-[%        CASE 'MODIFY_BUDGET' %]<span>Modify a budget</span>
-[%        CASE 'CREATE_FUND' %]<span>Create a fund</span>
-[%        CASE 'MODIFY_FUND' %]<span>Modify a fund</span>
-[%        CASE 'DELETE_FUND' %]<span>Delete a fund</span>
-[%        CASE 'Run'    %]<span>Run</span>
-[%        CASE 'End'    %]<span>End</span>
-[%        CASE 'EDIT_MAPPINGS' %]<span>Edit mappings</span>
-[%        CASE 'RESET_MAPPINGS' %]<span>Reset mappings</span>
-[%        CASE 'SERIAL CLAIM' %]<span>Serial claim</span>
-[%        CASE 'ACQUISITION CLAIM' %]<span>Acquisition claim</span>
-[%        CASE 'ACQUISITION ORDER' %]<span>Acquisition order</span>
-[%        CASE 'OVERDUE' %]<span>Overdue</span>
-[%        CASE 'EXPIRE'  %]<span>Expire</span>
-[%        CASE 'AUTHENTICATION'  %]<span>Anmeldung</span>
-[%        CASE %][% action | html %]
-[%    END %]
-[% END %]
-
-[% BLOCK translate_log_interface %]
-[%    SWITCH log_interface.upper %]
-[%        CASE 'INTRANET'    %]<span>Staff interface</span>
-[%        CASE 'OPAC'        %]<span>OPAC</span>
-[%        CASE 'SIP'         %]<span>SIP</span>
-[%        CASE 'COMMANDLINE' %]<span>Command-line</span>
-[%        CASE 'API'         %]<span>REST API</span>
-[%        CASE 'CRON'        %]<span>Cron job</span>
-[%        CASE 'UPGRADE'     %]<span>Upgrade</span>
-[%        CASE %]<span>[% log_interface | html %]</span>
-[%    END %]
-[% END %]
+[% PROCESS 'action-logs.inc' %]
 
 [% WRAPPER 'sub-header.inc' %]
     [% WRAPPER breadcrumbs %]
@@ -176,14 +76,14 @@
         [% END %]
         [% IF ( do_it ) %]
             [% WRAPPER breadcrumb_item %]
-                <a href="/cgi-bin/koha/tools/viewlog.pl">Logs</a>
+                <a href="/cgi-bin/koha/tools/viewlog.pl">Log viewer</a>
             [% END %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
                 <span>Results</span>
             [% END %]
         [% ELSE %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Logs</span>
+                <span>Log viewer</span>
             [% END %]
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
@@ -191,11 +91,12 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
-				<h1>Browse system logs</h1>
-				<form method="post" action="/cgi-bin/koha/tools/viewlog.pl">
+                <h1>Log viewer</h1>
+                    <form method="get" action="/cgi-bin/koha/tools/viewlog.pl">
 					[% IF ( do_it ) %]
 						<input type="hidden" name="do_it" value="[% do_it | html %]" />
 					[% END %]
@@ -206,7 +107,7 @@
 								<label for="user">Librarian:</label>
                                 <input type="text" name="user" id="user" value="[% user | html %]" />
 							</li>
-                            [% UNLESS ( src == "circ" && src != "circ" ) %]    <!-- Contrary to standard Koha, LMSCloud prefers to display Modules section also if src == "circ". -->
+                            [% UNLESS src == "circ" %]
                                 <li>
                                     <label>Modules:</label>
                                     <div class="log_modules">
@@ -215,7 +116,7 @@
                                         [% ELSE %]
                                             <label for="moduleALL" class="viewlog"><input type="checkbox" id="moduleALL" name="modules" value=""> All</label>
                                         [% END %]
-                                        [% FOREACH modx IN [ 'AUTH' 'CATALOGUING' 'AUTHORITIES' 'MEMBERS' 'ACQUISITIONS' 'SERIAL' 'HOLDS' 'ILL' 'CIRCULATION' 'CLAIMS' 'FINES' 'SYSTEMPREFERENCE' 'CRONJOBS', 'REPORTS', 'DIVIBIB', 'SEARCHENGINE', 'NOTICES', 'NEWS', 'RECALLS' ] %]
+                                        [% FOREACH modx IN [ 'AUTH' 'CATALOGUING' 'AUTHORITIES' 'MEMBERS' 'ACQUISITIONS' 'SERIAL' 'HOLDS' 'ILL' 'CIRCULATION' 'CLAIMS' 'FINES' 'SYSTEMPREFERENCE' 'CRONJOBS', 'REPORTS', 'DIVIBIB', 'SEARCHENGINE', 'NOTICES', 'NEWS', 'RECALLS', 'SUGGESTION' ] %]
                                             [% IF modules.grep(modx).size %]
                                                 <label for="module[% modx | html %]" class="viewlog"><input type="checkbox" id="module[% modx | html %]" name="modules" value="[% modx | html %]" checked="checked"> [% PROCESS translate_log_module module=modx %]</label>
                                             [% ELSE %]
@@ -237,7 +138,7 @@
                                         <label for="actionALL" class="viewlog"><input type="checkbox" id="actionALL" name="actions" value=""> All</label>
                                     [% END %]
 
-                                    [% FOREACH actx IN [ 'ADD' 'DELETE' 'MODIFY' 'ISSUE' 'RETURN' 'RENEW' 'CREATE' 'CANCEL' 'FILL' 'SUSPEND' 'RESUME' 'ADDCIRCMESSAGE' 'MODCIRCMESSAGE' 'DELCIRCMESSAGE' 'STATUS_CHANGE' 'PATRON_NOTICE' 'CHANGE PASS' 'Run' 'End' 'EDIT_MAPPINGS' 'RESET_MAPPINGS' 'ADD_BASKET' 'MODIFY_BASKET' 'MODIFY_BASKET_HEADER' 'MODIFY_BASKET_USERS' 'CLOSE_BASKET' 'APPROVE_BASKET' 'REOPEN_BASKET' 'CANCEL_ORDER' 'CREATE_ORDER' 'MODIFY_ORDER' 'CREATE_INVOICE_ADJUSTMENT' 'UPDATE_INVOICE_ADJUSTMENT' 'DELETE_INVOICE_ADJUSTMENT' 'RECEIVE_ORDER' 'MODIFY_BUDGET' 'MODIFY_FUND' 'CREATE_FUND' 'DELETE_FUND' 'ACQUISITION CLAIM' 'ACQUISITION ORDER' 'OVERDUE' 'EXPIRE' 'AUTHENTICATION'] %]
+                                    [% FOREACH actx IN [ 'ADD' 'DELETE' 'MODIFY' 'ISSUE' 'RETURN' 'RENEW' 'CREATE' 'CANCEL' 'FILL' 'SUSPEND' 'RESUME' 'ADDCIRCMESSAGE' 'MODCIRCMESSAGE' 'DELCIRCMESSAGE' 'STATUS_CHANGE' 'PATRON_NOTICE' 'CHANGE PASS' 'RESET PASS' 'Run' 'End' 'EDIT_MAPPINGS' 'RESET_MAPPINGS' 'ADD_BASKET' 'MODIFY_BASKET' 'MODIFY_BASKET_HEADER' 'MODIFY_BASKET_USERS' 'CLOSE_BASKET' 'APPROVE_BASKET' 'REOPEN_BASKET' 'CANCEL_ORDER' 'CREATE_ORDER' 'MODIFY_ORDER' 'CREATE_INVOICE_ADJUSTMENT' 'UPDATE_INVOICE_ADJUSTMENT' 'DELETE_INVOICE_ADJUSTMENT' 'RECEIVE_ORDER' 'MODIFY_BUDGET' 'MODIFY_FUND' 'CREATE_FUND' 'DELETE_FUND' 'ACQUISITION CLAIM' 'ACQUISITION ORDER' 'OVERDUE' 'EXPIRE' 'CREATE_RESTRICTION' 'MODIFY_RESTRICTION' 'DELETE_RESTRICTION' ] %]
                                         [% IF actions.grep(actx).size %]
                                             <label for="action[% actx| replace('\s+', '_') | html %]" class="viewlog"><input type="checkbox" id="action[% actx | replace('\s+', '_') | html %]" name="actions" value="[% actx | html %]" checked="checked"> [% PROCESS translate_log_action action=actx %]</label>
                                         [% ELSE %]
@@ -313,8 +214,8 @@
                 [% IF ( do_it ) %]
                     [% IF ( total ) %]
                         <h3>Log entries</h3>
-                        <div id="toolbar" class="btn-toolbar">
-                            <a href="#" id="select_none" class="btn btn-link disabled"><i class="fa fa-remove"></i> Check none</a>
+                        <div id="toolbar" class="btn-toolbar sticky">
+                            <a href="#" id="select_none" class="btn btn-link disabled"><i class="fa fa-times"></i> Check none</a>
                             <button class="btn btn-link disabled compare_link"><i class="fa fa-columns"></i> Compare selected</button>
                         </div>
                         <div class="page-section">
@@ -381,6 +282,8 @@
                                                 [% ELSE %]
                                                     Basket [% loopro.object | html %]
                                                 [% END %]
+                                            [% ELSIF ( loopro.module == "SUGGESTION" ) %]
+                                                <a href="/cgi-bin/koha/suggestion/suggestion.pl?suggestionid=[% loopro.object | uri %]&op=show">[% loopro.object | html %]</a>
                                             [% ELSE %]
                                                 [% loopro.object | html %]
                                             [% END %]
@@ -411,7 +314,7 @@
                             </table>
                         </div> <!-- /.page-section -->
                     [% ELSE %]
-                        <div class="dialog alert">
+                        <div class="alert alert-warning">
                             [% IF ( CATALOGUING ) %]
                                 No log found for <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% object | url %]">Bibliographic record [% object | html %]</a>.
                             [% ELSIF ( MEMBERS ) %]
@@ -425,9 +328,9 @@
 
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% IF ( circulation ) %]
                     [% INCLUDE 'circ-menu.inc' %]
@@ -439,15 +342,15 @@
                     [% END %]
                 [% END %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 <div class="modal" id="compareInfo" tabindex="-1" role="dialog" aria-labelledby="compareInfoLabel">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="compareInfoLabel">Compare preference values</h4>
+                <h1 class="modal-title" id="compareInfoLabel">Compare preference values</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="row">
@@ -462,7 +365,7 @@
                 </div>
             </div> <!-- /.modal-body -->
             <div class="modal-footer">
-                <button type="button" class="btn btn-default deny" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-default deny" data-bs-dismiss="modal">Close</button>
             </div>
         </div> <!-- /.modal-content -->
     </div> <!-- /.modal-dialog -->
@@ -474,7 +377,6 @@
     [% INCLUDE 'columns_settings.inc' %]
     [% Asset.js("lib/jquery/plugins/humanmsg.js") | $raw %]
     [% Asset.js("js/tools-menu.js") | $raw %]
-    [% Asset.js("lib/hc-sticky.js") | $raw %]
     [% IF ( circulation ) %]
         [% INCLUDE 'str/members-menu.inc' %]
         [% Asset.js("js/members-menu.js") | $raw %]
@@ -482,6 +384,7 @@
     [% Asset.js("lib/jsdiff/jsdiff.min.js") | $raw %]
     <script>
         var table_settings = [% TablesSettings.GetTableSettings('tools', 'logviewer', 'logst', 'json') | $raw %];
+        var CAN_user_parameters_manage_sysprefs = "[% CAN_user_parameters_manage_sysprefs | html %]";
     </script>
     [% Asset.js("js/viewlog.js") | $raw %]
 [% END %]

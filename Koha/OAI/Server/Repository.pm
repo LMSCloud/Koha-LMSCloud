@@ -185,7 +185,15 @@ sub get_biblio_marcxml {
 
     # Koha::Biblio::Metadata->record throws an exception on bad encoding,
     # we don't want OAI harvests to die, so we catch and warn, and try to clean the record
-    eval { $record = $biblio->metadata->record( { embed_items => $with_items, opac => 1 } ); };
+    eval {
+        $record = $biblio->metadata_record(
+            {
+                embed_items         => $with_items,
+                expand_coded_fields => $expanded_avs,
+                interface           => 'opac'
+            }
+        );
+    };
     my $decoding_error;
     if ($@) {
         my $exception = $@;
@@ -193,19 +201,16 @@ sub get_biblio_marcxml {
         $decoding_error = "INVALID_METADATA";
         $record         = $biblio->metadata->record_strip_nonxml( { embed_items => $with_items, opac => 1 } );
     }
-    if ( $record && $expanded_avs ) {
-        my $frameworkcode = GetFrameworkCode($biblionumber) || '';
-        my $record_processor = Koha::RecordProcessor->new(
-            {
-                filters => [ 'ExpandCodedFields' ],
-                options => {
-                    interface     => 'opac',
-                    frameworkcode => $frameworkcode
-                }
-            }
-        );
-        $record_processor->process($record);
+    if ($record) {
+
+        my $rules = C4::Context->yaml_preference('OpacHiddenItems') // {};
+        if ( $biblio->hidden_in_opac( { rules => $rules } ) ) {
+            return;
+        }
+
+        #TODO: Also hide record if OpacSuppression is in use
     }
+
     return ( $record ? $record->as_xml_record( C4::Context->preference('marcflavour') ) : undef, $decoding_error );
 }
 

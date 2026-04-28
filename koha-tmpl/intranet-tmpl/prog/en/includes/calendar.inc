@@ -7,18 +7,28 @@
     var debug    = "[% debug | html %]";
     var dateformat_pref = "[% Koha.Preference('dateformat') | html %]";
     var flatpickr_dateformat_string = "";
+    var delimiter = "";
+    var altinput_dateformat = "";
     switch ( dateformat_pref ){
         case "us":
             flatpickr_dateformat_string = "m/d/Y";
+            altinput_dateformat = 'mm/dd/yyyy';
+            delimiter = "/";
             break;
         case "metric":
             flatpickr_dateformat_string = "d/m/Y";
+             altinput_dateformat = 'dd/mm/yyyy';
+             delimiter = "/";
             break;
         case "dmydot":
             flatpickr_dateformat_string = "d.m.Y";
+            altinput_dateformat = 'dd/mm/yyyy';
+            delimiter = ".";
             break;
         default:
             flatpickr_dateformat_string = "Y-m-d";
+            altinput_dateformat = 'yyyy/mm/dd';
+            delimiter = "-";
     }
     var sentmsg = 0;
     var bidi = [% IF(bidi) %] true[% ELSE %] false[% END %];
@@ -30,9 +40,12 @@
 [% Asset.js("js/calendar.js") | $raw %]
 [% Asset.js("lib/flatpickr/flatpickr.min.js") | $raw %]
 [% Asset.js("lib/flatpickr/shortcut-buttons-flatpickr.min.js") | $raw %]
+[% Asset.js("lib/maskito/maskito.core.js") | $raw %]
+[% Asset.js("lib/maskito/maskito.kit.js") | $raw %]
 <script>
-    flatpickr.l10ns.default.weekdays = flatpickr_weekdays;
-    flatpickr.l10ns.default.months   = flatpickr_months;
+    flatpickr.l10ns.default.weekdays       = flatpickr_weekdays;
+    flatpickr.l10ns.default.months         = flatpickr_months;
+    flatpickr.l10ns.default.rangeSeparator = flatpickr_rangeSeparator;
     let flatpickr_defaults = {
         allowInput: true,
         dateFormat: "Y-m-d",
@@ -48,10 +61,14 @@
             "firstDayOfWeek": calendarFirstDayOfWeek
         },
         onReady: function( selectedDates, dateStr, instance ){
+
+            /* When onReady is triggered, remove any existing "clear date" link */
+            $(instance.input).parent().find('.flatpickr_wrapper_' + instance.input.id).remove();
+
             /* When flatpickr instance is created, automatically append a "clear date" link */
             $(instance.input).find('~input.flatpickr:first')
                 /* Add a wrapper element so that we can prevent the clear button from wrapping */
-                .wrap("<span class='flatpickr_wrapper'></span>")
+                .wrap("<span class='flatpickr_wrapper flatpickr_wrapper_"+instance.input.id+"'></span>")
                 .attr("autocomplete", "off")
                 .after( $("<a/>")
                     .attr("href","#")
@@ -60,7 +77,7 @@
                         e.preventDefault();
                         instance.clear();
                     })
-                    .addClass("fa fa-fw fa-remove")
+                    .addClass("fa fa-fw fa-times")
                     .attr("aria-hidden", true)
                     .attr("aria-label", _("Clear date") )
                 ).keydown(function(e) {
@@ -69,6 +86,62 @@
                         instance.set('allowInput',false);
                     }
                 });
+            /* When flatpickr instance is ready, add maskito input mask */
+            var thisInput = instance.input;
+            let accepts_time = $(thisInput).data('flatpickr-enable-time');
+            let accepts_period = $(thisInput).data('flatpickr-period');
+            let accepts_time_only = $(thisInput).data('flatpickr-time-only');
+            let maskitoOptions = {};
+            if ( !accepts_period ) {
+                if ( accepts_time ) {
+                    maskitoOptions = maskitoDateTimeOptionsGenerator({
+                        dateMode: altinput_dateformat,
+                        timeMode: 'HH:MM',
+                        dateSeparator: delimiter,
+                        overwiteMode: 'replace',
+                    });
+               } else if ( accepts_time_only ) {
+                    maskitoOptions = {
+                        [% IF Koha.Preference('TimeFormat') == '12hr' -%] mask: [/\d/, /\d/, ':', /\d/, /\d/, ' ', /(a|A|p|P)/, /(m|M)/]
+                        [%- ELSE -%]mask: [/\d/, /\d/, ':', /\d/, /\d/]
+                        [%- END %],
+                    };
+                } else {
+                    maskitoOptions = maskitoDateOptionsGenerator({
+                        mode: altinput_dateformat,
+                        separator: delimiter,
+                        overwiteMode: 'replace',
+                    });
+                }
+            }
+            new Maskito( instance.altInput, maskitoOptions );
+        },
+        onChange: function( selectedDates, dateText, instance) {
+            if (selectedDates.length === 0) {
+                return;
+            }
+
+            var thisInput = instance.input;
+            let accepts_time = $(thisInput).data('flatpickr-enable-time');
+            let accepts_time_only = $(thisInput).data('flatpickr-time-only');
+            let accepts_period = $(thisInput).data('flatpickr-period');
+            if ( !accepts_period ) {
+                if ( accepts_time ) {
+                    let parsedDate = flatpickr.parseDate(dateText, instance.config.dateFormat);
+                    if ( Number.isNaN(parsedDate.getHours()) ) {
+                        instance.setDate(selectedDates[0].setHours(23, 59, 0, 0));
+                    }
+                }
+            }
+        },
+        onOpen: function( selectedDates, dateText, instance) {
+            var thisInput = instance.input;
+            let set_to_today = $(thisInput).data('flatpickr-set-to-today');
+            if ( set_to_today ) {
+                if ( thisInput.value === '' ) {
+                    instance.setDate( new Date() );
+                }
+            }
         },
         onChange: function( selectedDates, dateText, instance) {
             var thisInput = instance.input;
@@ -143,7 +216,7 @@
          || $(input).data("flatpickr-futuredate") === true ) {
             let original_date = $(input).val();
             if ( original_date ) {
-                original_date = Date_from_syspref( original_date ).getTime();
+                original_date = flatpickr.parseDate(original_date, 'Y-m-d').getTime();
                 let tomorrow = new Date().fp_incr(1).getTime();
 
                 options['enable'] = [function(date){
@@ -179,9 +252,22 @@
         if ( $(input).data('flatpickr-enable-time') === true ) {
             options['enableTime'] = true;
             options['dateFormat'] = "Y-m-d H:i";
-            options['altFormat'] = flatpickr_dateformat_string + " " + flatpickr_timeformat_string;
+            options['altFormat'] = flatpickr_dateformat_string + ", " + flatpickr_timeformat_string;
         }
         if ( $(input).data('flatpickr-disable-shortcuts') === true ) {
+            options['plugins'] = [];
+        }
+        let maxDate = $(input).data("flatpickr-maxdate");
+        if( typeof maxDate !== 'undefined' ) {
+            options['maxDate'] = new Date(maxDate);
+        }
+        if( $(input).data("flatpickr-time-only") === true ) {
+            options['enableTime'] = true;
+            options['noCalendar'] = true;
+            options['dateFormat'] = "H:i";
+            options['defaultHour'] = "0";
+            options['defaultMinute'] = "0";
+            options['altFormat'] = flatpickr_timeformat_string;
             options['plugins'] = [];
         }
 

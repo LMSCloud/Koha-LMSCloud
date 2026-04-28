@@ -79,26 +79,21 @@ my $samplecat = {
     enrolmentperiod       => undef,
     enrolmentperioddate   => undef,
     dateofbirthrequired   => undef,
-    finetype              => undef,
-    bulk                  => undef,
     enrolmentfee          => undef,
     overduenoticerequired => undef,
-    issuelimit            => undef,
     reservefee            => undef,
     hidelostitems         => 0,
     category_type         => 'A',
 };
 my $query =
-"INSERT INTO categories (categorycode,description,enrolmentperiod,enrolmentperioddate,dateofbirthrequired ,finetype,bulk,enrolmentfee,overduenoticerequired,issuelimit ,reservefee ,hidelostitems ,category_type) VALUES( ?,?,?,?,?,?,?,?,?,?,?,?,?)";
+"INSERT INTO categories (categorycode,description,enrolmentperiod,enrolmentperioddate,dateofbirthrequired,enrolmentfee,overduenoticerequired ,reservefee ,hidelostitems ,category_type) VALUES( ?,?,?,?,?,?,?,?,?,?)";
 $dbh->do(
     $query, {},
     $samplecat->{categorycode},          $samplecat->{description},
     $samplecat->{enrolmentperiod},       $samplecat->{enrolmentperioddate},
-    $samplecat->{dateofbirthrequired},   $samplecat->{finetype},
-    $samplecat->{bulk},                  $samplecat->{enrolmentfee},
-    $samplecat->{overduenoticerequired}, $samplecat->{issuelimit},
-    $samplecat->{reservefee},            $samplecat->{hidelostitems},
-    $samplecat->{category_type}
+    $samplecat->{dateofbirthrequired},   $samplecat->{enrolmentfee},
+    $samplecat->{overduenoticerequired}, $samplecat->{reservefee},
+    $samplecat->{hidelostitems},         $samplecat->{category_type}
 );
 
 my $builder = t::lib::TestBuilder->new;

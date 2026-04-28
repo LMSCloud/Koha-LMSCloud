@@ -5,25 +5,31 @@
 [% USE AuthorisedValues %]
 [% USE Price %]
 [% USE TablesSettings %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
-[% IF op == 'add_form' %]
-    [% IF ( itemtype ) %]
-        Modify item type '[% itemtype.itemtype | html %]'
-    [% ELSE %]
-        Add item type
-    [% END %] &rsaquo; [% END %]
-[% IF op == 'delete_confirm' %]
-    [% IF ( total ) %]
-        Cannot delete item type '[% itemtype.itemtype | html %]'
-    [% ELSE %]
-        Delete item type '[% itemtype.itemtype | html %]'?
-    [% END %] &rsaquo; [% END %]
-[% IF op == 'delete_confirmed' %]
-    Data deleted &rsaquo; [% END %]
-Item types &rsaquo; Administration &rsaquo; Koha
-</title>
+<title>[% FILTER collapse %]
+    [% IF op == 'add_form' %]
+        [% IF ( itemtype ) %]
+            [% tx("Modify item type '{item_type}'", { item_type = itemtype.itemtype }) | html %]
+        [% ELSE %]
+            [% t("New item type") | html %]
+        [% END %] &rsaquo;
+    [% END %]
+    [% IF op == 'delete_confirm' %]
+        [% IF ( total ) %]
+            [% tx("Cannot delete item type '{item_type}'", { item_type = itemtype.itemtype }) | html %]
+        [% ELSE %]
+            [% tx("Confirm deletion of item type '{item_type}'?", { item_type = itemtype.itemtype }) | html %]
+        [% END %] &rsaquo;
+    [% END %]
+    [% IF op == 'cud-delete_confirmed' %]
+        [% t("Data deleted") | html %] &rsaquo;
+    [% END %]
+    [% t("Item types") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% FILTER collapse %]
     <style>
@@ -66,11 +72,11 @@ Item types &rsaquo; Administration &rsaquo; Koha
         [% IF op == 'add_form' %]
             [% IF itemtype %]
                [% WRAPPER breadcrumb_item bc_active= 1 %]
-                    <span>Modify item type '[% itemtype.itemtype | html %]'</span>
+                    [% tx("Modify item type '{item_type}'", { item_type = itemtype.itemtype }) | html %]
                 [% END %]
             [% ELSE %]
                [% WRAPPER breadcrumb_item bc_active= 1 %]
-                    <span>Add item type</span>
+                    <span>New item type</span>
                 [% END %]
             [% END %]
         [% END %]
@@ -78,11 +84,11 @@ Item types &rsaquo; Administration &rsaquo; Koha
         [% IF op == 'delete_confirm' %]
             [% IF total %]
                [% WRAPPER breadcrumb_item bc_active= 1 %]
-                    <span>Cannot delete item type '[% itemtype.itemtype | html %]'</span>
+                    [% tx("Cannot delete item type '{item_type}'", { item_type = itemtype.itemtype }) | html %]
                 [% END %]
             [% ELSE %]
                [% WRAPPER breadcrumb_item bc_active= 1 %]
-                    <span>Delete item type '[% itemtype.itemtype | html %]'?</span>
+                    [% tx("Confirm deletion of item type '{item_type}'?", { item_type = itemtype.itemtype }) | html %]
                 [% END %]
             [% END %]
         [% END %]
@@ -95,7 +101,7 @@ Item types &rsaquo; Administration &rsaquo; Koha
 
         [% IF op == 'list' %]
            [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Item types administration</span>
+                <span>Item types</span>
             [% END %]
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
@@ -103,30 +109,31 @@ Item types &rsaquo; Administration &rsaquo; Koha
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% IF op == 'list' %]<div id="toolbar" class="btn-toolbar">
     <a class="btn btn-default" id="newitemtype" href="/cgi-bin/koha/admin/itemtypes.pl?op=add_form"><i class="fa fa-plus"></i> New item type</a>
 </div>[% END %]
 
 [% FOREACH m IN messages %]
-    <div class="dialog [% m.type | html %]">
+    <div class="alert alert-[% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE 'error_on_update' %]
-            <span>An error occurred when updating this item type. Perhaps the value already exists</span>
+            <span>An error occurred when updating this item type. Perhaps the value already exists.</span>
         [% CASE 'error_on_insert' %]
-            <span>An error occurred when inserting this item type. Perhaps the value already exists</span>
+            <span>An error occurred when inserting this item type. Perhaps the value already exists.</span>
         [% CASE 'error_on_delete' %]
-            <span>An error occurred when deleting this item type. Check the logs</span>
+            <span>An error occurred when deleting this item type. Check the logs for details.</span>
         [% CASE 'success_on_update' %]
-            <span>Item type updated successfully</span>
+            <span>Item type updated successfully.</span>
         [% CASE 'success_on_insert' %]
-            <span>Item type inserted successfully</span>
+            <span>Item type inserted successfully.</span>
         [% CASE 'success_on_delete' %]
-            <span>Item type deleted successfully</span>
+            <span>Item type deleted successfully.</span>
         [% CASE 'already_exists' %]
-            <span>This item type already exists</span>
+            <span>This item type already exists.</span>
         [% CASE 'cannot_be_deleted' %]
             <span>Cannot delete this item type. <p><strong>This record is in use</strong>. Deletion is not possible.</p></span>
         [% CASE %]
@@ -138,12 +145,13 @@ Item types &rsaquo; Administration &rsaquo; Koha
 
 [% IF op == 'add_form' %]
     [% IF itemtype %]
-        <h1>Modify item type</h1>
+        <h1>[% tx("Modify item type '{item_type}'", { item_type = itemtype.itemtype }) | html %]</h1>
     [% ELSE %]
-        <h1>Add item type</h1>
+        <h1>New item type</h1>
     [% END %]
     <form action="/cgi-bin/koha/admin/itemtypes.pl" name="Aform" method="post" id="itemtypeentry">
-        <input type="hidden" name="op" value="add_validate" />
+        [% INCLUDE 'csrf-token.inc' %]
+        <input type="hidden" name="op" value="cud-add_validate" />
         <fieldset class="rows">
             <ol>
                 [% IF itemtype %]
@@ -184,7 +192,7 @@ Item types &rsaquo; Administration &rsaquo; Koha
                     <label for="description" class="required">Description: </label>
                     <input type="text" id="description" name="description" size="48" value="[% itemtype.description | html %]" required="required" /> <span class="required">Required</span>
                     [% IF can_be_translated %]
-                        <a href="/cgi-bin/koha/admin/localization.pl?entity=itemtypes&code=[% itemtype.itemtype | uri %]" title="Translate item type [% itemtype.itemtype | html %]" rel="gb_page_center[600,500]"><i class="fa fa-pencil"></i> Translate into other languages</a>
+                        <a href="/cgi-bin/koha/admin/localization.pl?entity=itemtypes&code=[% itemtype.itemtype | uri %]" title="Translate item type [% itemtype.itemtype | html %]" rel="gb_page_center[600,500]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Translate into other languages</a>
                     [% END %]
                 </li>
                 <li>
@@ -356,8 +364,8 @@ Item types &rsaquo; Administration &rsaquo; Koha
 [% END %]
 
 [% IF op == 'delete_confirm' %]
-    <div class="dialog alert">
-        <h1>Delete item type '[% itemtype.itemtype | html %]'?</h1>
+    <div class="alert alert-warning">
+        <h1>[% tx("Are you sure you want to delete item type '{item_type}'?", { item_type = itemtype.itemtype }) | html %]</h1>
         <table>
             <tr>
                 <th scope="row">Item type</th>
@@ -369,24 +377,25 @@ Item types &rsaquo; Administration &rsaquo; Koha
                     <th scope="row">Image</th>
                     <td>
                         [% SET image_location = itemtype.image_location('intranet') %]
-                        [% IF image_location %]<img src="[% image_location | html %]" alt="" />[% END %]
+                        [% IF image_location %]<img class="itemtype-image" src="[% image_location | html %]" alt="" />[% END %]
                     </td>
                 </tr>
             [% END %]
             <tr><th scope="row">Rental charge</th><td>[% itemtype.rentalcharge | $Price %]</td></tr>
         </table>
         <form action="/cgi-bin/koha/admin/itemtypes.pl" method="post">
-            <input type="hidden" name="op" value="delete_confirmed" /><input type="hidden" name="itemtype" value="[% itemtype.itemtype | html %]" />
-            <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> Yes, delete this item type</button>
+            [% INCLUDE 'csrf-token.inc' %]
+            <input type="hidden" name="op" value="cud-delete_confirmed" /><input type="hidden" name="itemtype" value="[% itemtype.itemtype | html %]" />
+            <button type="submit" class="btn btn-default approve"><i class="fa fa-fw fa-check"></i> Yes, delete this item type</button>
         </form>
-        <form action="/cgi-bin/koha/admin/itemtypes.pl" method="post">
-            <button type="submit" class="deny"><i class="fa fa-fw fa-remove"></i> No, do not delete</button>
+        <form action="/cgi-bin/koha/admin/itemtypes.pl" method="get">
+            <button type="submit" class="btn btn-default deny"><i class="fa fa-fw fa-times"></i> No, do not delete</button>
         </form>
     </div>
 [% END %]
 
 [% IF op == 'list' %]
-    <h1>Item types administration</h1>
+    <h1>Item types</h1>
     [% IF itemtypes %]
     <div class="page-section">
         <table id="table_item_type">
@@ -414,7 +423,7 @@ Item types &rsaquo; Administration &rsaquo; Koha
                 [% UNLESS Koha.Preference('noItemTypeImages') && Koha.Preference('OpacNoItemTypeImages') %]
                     <td>
                         [% SET image_location = itemtype.image_location('intranet') %]
-                        [% IF image_location %]<img src="[% image_location | html %]" alt="" />[% ELSE %]&nbsp;[% END %]
+                        [% IF image_location %]<img class="itemtype-image" src="[% image_location | html %]" alt="" />[% ELSE %]&nbsp;[% END %]
                     </td>
                 [% END %]
             <td>
@@ -495,12 +504,13 @@ Item types &rsaquo; Administration &rsaquo; Koha
                             [% library_str = library_str _ "\n" _ library.branchname _ " (" _ library.branchcode _ ")" %]
                         [% END %]
                     [% END %]
-                    <span class="library_limitation" title="[% library_str | html %]">
+                    <span class="library_limitation" data-bs-toggle="tooltip" title="[% library_str | html %]">
                         [% IF library_limits.count > 1 %]
                             <span>[% library_limits.count | html %] library limitations</span>
                         [% ELSE %]
                             <span>[% library_limits.count | html %] library limitation</span>
                         [% END %]
+                    </span>
                 [% ELSE %]
                     <span>No limitation</span>
                 [% END %]
@@ -508,26 +518,26 @@ Item types &rsaquo; Administration &rsaquo; Koha
             <td>[% IF ( itemtype.automatic_checkin ) %]Yes[% ELSE %]&nbsp;[% END %]</td>
             <td>[% IF ( itemtype.bookable ) %]Yes[% ELSE %]&nbsp;[% END %]</td>
             <td class="actions">
-              <a href="/cgi-bin/koha/admin/itemtypes.pl?op=add_form&amp;itemtype=[% itemtype.itemtype | uri %]" class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
-              <a href="/cgi-bin/koha/admin/itemtypes.pl?op=delete_confirm&amp;itemtype=[% itemtype.itemtype | uri %]" class="btn btn-default btn-xs"><i class="fa fa-trash"></i> Delete</a>
+              <a href="/cgi-bin/koha/admin/itemtypes.pl?op=add_form&amp;itemtype=[% itemtype.itemtype | uri %]" class="btn btn-default btn-xs"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+              <a href="/cgi-bin/koha/admin/itemtypes.pl?op=delete_confirm&amp;itemtype=[% itemtype.itemtype | uri %]" class="btn btn-default btn-xs"><i class="fa fa-trash-can"></i> Delete</a>
             </td>
           </tr>
           [% END %]
         </table>
     </div>
     [% ELSE %]
-        <div class="dialog message">There are no itemtypes defined</div>
+        <div class="alert alert-info">There are no itemtypes defined</div>
     [% END %]
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -544,7 +554,7 @@ Item types &rsaquo; Administration &rsaquo; Koha
 
             $(document).ready(function() {
                 KohaTable("table_item_type", {
-                "sPaginationType": "full"
+                "pagingType": "full"
                 }, table_settings);
             });
 
@@ -561,7 +571,6 @@ Item types &rsaquo; Administration &rsaquo; Koha
             $("#itemtype").on("blur",function(){
                 toUC(this);
             });
-            $(".library_limitation").tooltip();
             if( $("#icons .tab-pane.active").length < 1 ){
                 $("#icons a:first").tab("show");
             }

@@ -28,6 +28,10 @@ body {
     width: 15em;
 }
 
+.hidden {
+    display: none;
+}
+
 #alerts-container {
     font-size: 12px;
 }
@@ -63,6 +67,10 @@ body {
 
 #shortcuts-container {
     font-size: 12px;
+}
+
+#clipboard {
+    height: auto;
 }
 
 /*> MARC editor */

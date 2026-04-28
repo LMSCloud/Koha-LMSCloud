@@ -114,12 +114,18 @@ sub opac_auth {
 sub fill_form {
     my ( $self, $values ) = @_;
     while ( my ( $id, $value ) = each %$values ) {
-        my $element = $self->driver->find_element('//*[@id="'.$id.'"]');
-        my $tag = $element->get_tag_name();
+        my $attr       = 'id';
+        my $attr_value = $id;
+        if ( $id =~ m{=} ) {
+            ( $attr, $attr_value ) = split '=', $id;
+        }
+        my $element = $self->driver->find_element( sprintf '//*[@%s="%s"]', $attr, $attr_value );
+        my $tag     = $element->get_tag_name();
         if ( $tag eq 'input' ) {
-            $self->driver->find_element('//input[@id="'.$id.'"]')->send_keys($value);
+            $self->driver->find_element( sprintf '//input[@%s="%s"]', $attr, $attr_value )->send_keys($value);
         } elsif ( $tag eq 'select' ) {
-            $self->driver->find_element('//select[@id="'.$id.'"]//option[@value="'.$value.'"]')->click;
+            $self->driver->find_element( sprintf '//select[@%s="%s"]//option[@value="%s"]', $attr, $attr_value, $value )
+                ->click;
         }
     }
 }
@@ -187,7 +193,29 @@ sub wait_for_element_visible {
         $self->driver->pause(1000) unless $visible;
 
         die "Cannot wait more for element '$xpath_selector' to be visible"
-            if $max_retries <= ++$i
+            if $max_retries <= ++$i;
+    }
+    $self->add_error_handler;
+    return $elt;
+}
+
+sub wait_for_element_hidden {
+    my ( $self, $xpath_selector ) = @_;
+
+    my ( $hidden, $elt );
+    $self->remove_error_handler;
+    my $max_retries = $self->max_retries;
+    my $i;
+    while ( not $hidden ) {
+        $elt    = eval { $self->driver->find_element($xpath_selector) };
+        $hidden = $elt || !$elt->is_displayed;
+        $self->driver->pause(1000) unless $hidden;
+
+        $i++;
+        $self->driver->capture_screenshot('selenium_hidden.png')
+            if $max_retries <= $i;
+        die "Cannot wait more for element '$xpath_selector' to be hidden"
+            if $max_retries <= $i;
     }
     $self->add_error_handler;
     return $elt;
@@ -230,13 +258,13 @@ sub show_all_entries {
     my ( $self, $xpath_selector ) = @_;
 
     $self->driver->find_element( $xpath_selector
-          . '//div[@class="dataTables_length"]/label/select/option[@value="-1"]'
+          . '//div[@class="dt-length"]/label/select/option[@value="-1"]'
     )->click;
     my ($all_displayed, $i);
     my $max_retries = $self->max_retries;
     while ( not $all_displayed ) {
         my $dt_infos = $self->driver->get_text(
-            $xpath_selector . '//div[@class="dataTables_info"]' );
+            $xpath_selector . '//div[@class="dt-info"]' );
 
         if ( $dt_infos =~ m|Showing 1 to (\d+) of (\d+) entries| ) {
             $all_displayed = 1 if $1 == $2;
@@ -324,12 +352,42 @@ when we use automation test using Selenium
 
 =head2 click
 
-    $s->click
+    $s->click($xpath_selector);
 
     This is a bit dirty for now but will evolve depending on the needs
     3 parameters possible but only the following 2 forms are used:
     $s->click({ href => '/module/script.pl?foo=bar', main => 'doc3' }); # Sometimes we have doc or doc3. To make sure we are not going to hit a link in the header
     $s->click({ id => 'element_id });
+
+=head2 wait_for_element_visible
+
+    $s->wait_for_element_visible($xpath_selector)
+
+    Wait 10s for an element to be visible
+
+=head2 wait_for_element_hidden
+
+    $s->wait_for_element_hidden($xpath_selector)
+
+    Wait 10s for an element to be hidden
+
+=head2 wait_for_ajax
+
+    $s->wait_for_ajax;
+
+    Wait 10s for all the current AJAX requests to be received.
+
+=head2 get_next_alert_text
+
+    $s->get_next_alert_text;
+
+    Retrieve the next alert text.
+
+=head2 show_all_entries
+
+    $s->show_all_entries($xpath_selector);
+
+    Select the "All" entries of the DataTables present in the selector.
 
 =head2 click_when_visible
 

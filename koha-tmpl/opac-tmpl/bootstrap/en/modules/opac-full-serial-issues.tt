@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Branches %]
@@ -59,26 +60,21 @@
 [% INCLUDE 'masthead.inc' %]
 
     <div class="main">
-        <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-                </li>
-                <li class="breadcrumb-item">
-                    <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblionumber | uri %]">Details for [% bibliotitle | html %]</a>
-                </li>
-                <li class="breadcrumb-item active">
-                    <a href="#" aria-current="page">Full subscription history</a>
-                </li>
-            </ol>
-        </nav> <!-- /#breadcrumbs -->
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblionumber | uri %]">Details for [% bibliotitle | html %]</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Full subscription history</span>
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
 
         <div class="container-fluid">
             <div class="row">
                 <div class="col-lg-2">
                     <div id="searchfacetscontainer">
                         <div id="search-facets">
-                            <form action="/cgi-bin/koha/opac-serial-issues.pl" id="filterform">
+                            <form method="get" action="/cgi-bin/koha/opac-serial-issues.pl" id="filterform">
                                 <legend><h2><a href="#" class="menu-collapse-toggle">Refine your search</a></h2></legend>
                             <ul class="menu-collapse">
                                 <li>
@@ -165,18 +161,7 @@
                                                 </td>
                                                 <td>[% serial.serialseq | html %]</td>
                                                 <td>
-                                                    [% IF ( serial.status1 ) %]<span>Expected</span>[% END %]
-                                                    [% IF ( serial.status2 ) %]<span>Arrived</span>[% END %]
-                                                    [% IF ( serial.status3 ) %]<span>Late</span>[% END %]
-                                                    [% IF ( serial.status4 ) %]<span>Missing</span>[% END %]
-                                                        [% IF ( serial.status41 ) %]<span>Missing (never received)</span>[% END %]
-                                                        [% IF ( serial.status42 ) %]<span>Missing (sold out)</span>[% END %]
-                                                        [% IF ( serial.status43 ) %]<span>Missing (damaged)</span>[% END %]
-                                                        [% IF ( serial.status44 ) %]<span>Missing (lost)</span>[% END %]
-                                                    [% IF ( serial.status5 ) %]<span>Not available</span>[% END %]
-                                                    [% IF ( serial.status6 ) %]<span>Delete</span>[% END %]
-                                                    [% IF ( serial.status7 ) %]<span>Claimed</span>[% END %]
-                                                    [% IF ( serial.status8 ) %]<span>Stopped</span>[% END %]
+                                                    [% INCLUDE 'serial-status.inc' serial = serial %]
                                                 </td>
                                                 <td class="subscriptionidfilterclass">[% serial.subscriptionid | html %]</td>
                                             </tr>

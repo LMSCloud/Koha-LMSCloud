@@ -36,7 +36,7 @@ use C4::Calendar qw();    # don't need any exports from Calendar
 use C4::Log qw( cronlogaction );
 use Getopt::Long qw( GetOptions );
 use List::MoreUtils qw( none );
-use Koha::DateUtils qw( dt_from_string );
+use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Patrons;
 
 my $help    = 0;
@@ -53,6 +53,7 @@ my $debug = 0;
 my $bigdebug = 0;
 
 my $command_line_options = join(" ",@ARGV);
+cronlogaction({ info => $command_line_options });
 
 GetOptions(
     'h|help'      => \$help,
@@ -83,8 +84,6 @@ This script has the following parameters :
 ENDUSAGE
 die $usage if $help;
 
-cronlogaction({ info => $command_line_options });
-
 my $dbh = C4::Context->dbh;
 
 # Processing categories
@@ -107,7 +106,7 @@ CHECK {
     $branch_type     = C4::Context->preference('HomeOrHoldingBranch') || 'homebranch';
     $mode            = C4::Context->preference('finesMode');
     $dbname          = C4::Context->config('database');
-    $delim           = "\t";                                                                          # ?  C4::Context->preference('delimiter') || "\t";
+    $delim           = "\t"; # TODO use system preference CSVDelimiter ?
 
 }
 

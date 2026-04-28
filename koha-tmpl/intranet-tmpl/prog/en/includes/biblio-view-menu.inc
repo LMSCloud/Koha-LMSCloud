@@ -1,6 +1,6 @@
 [% USE Koha %]
 [% USE Biblio %]
-[% SET biblio_object_id = object || biblionumber || biblio.biblionumber %]
+[% SET biblio_object_id = biblio.biblionumber %]
 
 <div id="menu">
     <ul>
@@ -66,7 +66,7 @@
         [%- ELSE -%]
         <li>
         [%- END -%]
-            <a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblio_object_id | url  %]">Holds ([% Biblio.HoldsCount( biblio_object_id ) | html %])</a>
+            <a href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblio_object_id | url  %]">Holds ([% biblio.holds.count | html %])</a>
         </li>
         [%- END -%]
 
@@ -86,7 +86,7 @@
         [%- ELSE -%]
         <li>
         [%- END -%]
-            <a href="/cgi-bin/koha/circ/request-article.pl?biblionumber=[% IF ( object ) %][% object | uri %][% ELSE %][% biblionumber | uri %][% END %]">Article requests ([% Biblio.ArticleRequestsActiveCount( biblio_object_id ) | html %])</a>
+            <a href="/cgi-bin/koha/circ/request-article.pl?biblionumber=[% IF ( object ) %][% object | uri %][% ELSE %][% biblionumber | uri %][% END %]">Article requests ([% biblio.article_requests.filter_by_current.count | html %])</a>
         </li>
         [%- END -%]
 
@@ -130,7 +130,7 @@
         [%- ELSE -%]
         <li>
         [%- END -%]
-            <a href="/cgi-bin/koha/recalls/request.pl?biblionumber=[% biblio_object_id | url %]">Recalls ([% Biblio.RecallsCount( biblio_object_id ) | html %])</a>
+            <a href="/cgi-bin/koha/recalls/request.pl?biblionumber=[% biblio_object_id | url %]">Recalls ([% biblio.recalls.search( completed => 0 ).count | html %])</a>
         </li>
         [%- END -%]
     </ul>

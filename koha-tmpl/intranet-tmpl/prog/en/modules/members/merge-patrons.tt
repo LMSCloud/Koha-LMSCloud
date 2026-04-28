@@ -1,11 +1,17 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE Branches %]
 [% USE Categories %]
 [% USE KohaDates %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Merge patron records &rsaquo; Patrons &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Merge patron records") | html %] &rsaquo;
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% FILTER collapse %]
     <style>
@@ -93,10 +99,11 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+        <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
+            [% INCLUDE 'messages.inc' %]
             <h1>Merge patron records</h1>
 
-            [% IF action == 'show' %]
+            [% IF op == 'show' %]
                 [% IF patrons.count > 1 %]
                     [% IF ( patrons.count == 2 ) %]
                         <div id="toolbar" class="btn-toolbar">
@@ -110,7 +117,8 @@
 
                     <p>Select patron to keep. Data from the other patrons will be transferred to this patron record and the remaining patron records will be deleted.</p>
 
-                    <form type="post" action="merge-patrons.pl" id="patron-merge-form">
+                    <form method="post" action="merge-patrons.pl" id="patron-merge-form">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <table id="patron-merge-table" class="datatable">
                             <thead>
                                 <tr>
@@ -136,7 +144,7 @@
                                         <td>
                                             <a target="_blank" href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% p.borrowernumber | uri %]">
                                                 [% INCLUDE 'patron-title.inc' patron = p %]
-                                                <i class="fa fa-window-restore"></i>
+                                                <i class="fa-solid fa-window-restore"></i>
                                             </a>
                                         </td>
                                         <td>[% p.dateofbirth | $KohaDates %]</td>
@@ -151,24 +159,25 @@
                             [% FOREACH p IN patrons %]
                                 <input type="hidden" name="id" value="[% p.id | html %]" />
                             [% END %]
-                            <input type="hidden" name="action" value="merge" />
+                            <input type="hidden" name="op" value="cud-merge" />
                             <input type="submit" id="merge-patrons" class="btn btn-primary" value="Merge patrons" />
+                            [% PROCESS 'members-patron-selections.inc' id="patron-merge-form" %]
                         </fieldset>
 
                     [% ELSE %]
-                        <div class="dialog alert">Error: Two or more patrons need to be selected for merging</div>
+                        <div class="alert alert-warning">Error: Two or more patrons need to be selected for merging</div>
                     [% END %]
                 </form>
-            [% ELSIF action == 'merge' %]
+            [% ELSIF op == 'cud-merge' %]
                 <h4>Results</h4>
                 [% IF error %]
                     [% IF error == 'INVALID_KEEPER' %]
-                        <div class="dialog alert">Merge failed! The patron to keep was invalid.</div>
+                        <div class="alert alert-warning">Merge failed! The patron to keep was invalid.</div>
                     [% ELSE %]
-                        <div class="dialog alert">Merge failed! The following error was reported: [% error | html %].</div>
+                        <div class="alert alert-warning">Merge failed! The following error was reported: [% error | html %].</div>
                     [% END %]
                 [% ELSIF !results.merged.keys.size %]
-                    <div class="dialog alert">No valid patrons to merge were found.</div>
+                    <div class="alert alert-warning">No valid patrons to merge were found.</div>
                 [% ELSE %]
                     <p>
                         Patron records merged into <a href="moremember.pl?borrowernumber=[% keeper.id | uri %]">[% INCLUDE 'patron-title.inc' patron = keeper %]</a>
@@ -203,11 +212,11 @@
 
     <!-- Modal -->
     <div class="modal" id="compareModal" tabindex="-1" role="dialog" aria-labelledby="compareModalLabel">
-        <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title" id="compareModalLabel">Compare patrons for merging</h4>
+                    <h1 class="modal-title" id="compareModalLabel">Compare patrons for merging</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="compare">
@@ -282,7 +291,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" id="submit-merge-form"><i class="fa fa-compress" aria-hidden="true"></i> Merge patrons</button>
-                    <button type="button" class="btn btn-default" data-dismiss="modal"><i class="fa fa-remove" aria-hidden="true"></i> Close</button>
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal"><i class="fa fa-times" aria-hidden="true"></i> Close</button>
                 </div>
             </div> <!-- /.modal-content -->
         </div> <!-- /.modal-dialog -->
@@ -291,6 +300,7 @@
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'str/members-menu.inc' %]
     [% Asset.js("js/members-menu.js") | $raw %]
+    [% Asset.js("js/members-patron-selections.js") | $raw %]
     [% Asset.js("lib/jsdiff/jsdiff.min.js") | $raw %]
     <script>
     $(document).ready(function() {

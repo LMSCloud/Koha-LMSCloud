@@ -148,7 +148,6 @@ use C4::Languages qw( getlanguage getLanguages );
 use C4::Koha qw( getitemtypeimagelocation GetAuthorisedValues );
 use URI::Escape;
 use POSIX qw(ceil floor);
-use C4::Search qw( searchResults enabled_staff_search_views z3950_search_args new_record_from_zebra );
 
 use Koha::ItemTypes;
 use Koha::Library::Groups;
@@ -243,7 +242,7 @@ my @search_groups =
 
 my $branch_limit = '';
 my $limit_param = $cgi->param('limit');
-if ( $limit_param and $limit_param =~ /branch:([\w-]+)/ ) {
+if ( $limit_param and $limit_param =~ /^branch:([\w-]+)/ ) {
     $branch_limit = $1;
 }
 
@@ -273,7 +272,7 @@ if ( $template_type eq 'advsearch' ) {
         @operators = $cgi->multi_param('op');
         @indexes   = $cgi->multi_param('idx');
         $template->param(
-           sort      => $cgi->param('sort_by'),
+            sort => scalar $cgi->param('sort_by'),
         );
         # determine what to display next to the search boxes
     } elsif ( $cgi->param('edit_filter') ){
@@ -330,9 +329,12 @@ if ( $template_type eq 'advsearch' ) {
 
     $template->param(uc(C4::Context->preference("marcflavour")) =>1 );
 
-    # load the language limits (for search)
-    my $languages_limit_loop = getLanguages($lang, 1);
-    $template->param(search_languages_loop => $languages_limit_loop,);
+    if ( $template_type && $template_type eq 'advsearch' ) {
+
+        # load the language limits (for search)
+        my $languages_limit_loop = getLanguages( $lang, 1 );
+        $template->param( search_languages_loop => $languages_limit_loop, );
+    }
 
     # Expanded search options in advanced search:
     # use the global setting by default, but let the user override it
@@ -350,10 +352,10 @@ if ( $template_type eq 'advsearch' ) {
 
 ### OK, if we're this far, we're performing a search, not just loading the advanced search page
 
-# Fetch the paramater list as a hash in scalar context:
-#  * returns paramater list as tied hash ref
+# Fetch the parameter list as a hash in scalar context:
+#  * returns parameter list as tied hash ref
 #  * we can edit the values by changing the key
-#  * multivalued CGI paramaters are returned as a packaged string separated by "\0" (null)
+#  * multivalued CGI parameters are returned as a packaged string separated by "\0" (null)
 my $params = $cgi->Vars;
 # Params that can have more than one value
 # sort by is used to sort the query
@@ -437,9 +439,9 @@ if ($params->{'limit-copydate'}) {
 # $ %z3950p will be a hash ref if the indexes are present (advacned search), otherwise undef
 my $z3950par;
 my $indexes2z3950 = {
-    kw=>'title', au=>'author', 'au,phr'=>'author', nb=>'isbn', ns=>'issn',
-    'lcn,phr'=>'dewey', su=>'subject', 'su,phr'=>'subject',
-    ti=>'title', 'ti,phr'=>'title', se=>'title'
+    kw      => 'title', au       => 'author',  'au,phr' => 'author', nb => 'isbn', ns => 'issn',
+    callnum => 'dewey', su       => 'subject', 'su,phr' => 'subject',
+    ti      => 'title', 'ti,phr' => 'title',   se       => 'title'
 };
 for (my $ii = 0; $ii < @operands; ++$ii)
 {
@@ -623,19 +625,20 @@ for (my $i=0;$i<@servers;$i++) {
         }
 
         ## If there's just one result, redirect to the detail page unless doing an index scan
-        if ($total == 1 && !$scan) {
+        if ( $total == 1 && !$scan && C4::Context->preference('RedirectToSoleResult') ) {
             my $biblionumber = $newresults[0]->{biblionumber};
-            my $defaultview = C4::Context->preference('IntranetBiblioDefaultView');
-            my $views = { C4::Search::enabled_staff_search_views };
-            if ($defaultview eq 'isbd' && $views->{can_view_ISBD}) {
+            my $defaultview  = C4::Context->preference('IntranetBiblioDefaultView');
+            my $views        = {C4::Search::enabled_staff_search_views};
+            if ( $defaultview eq 'isbd' && $views->{can_view_ISBD} ) {
                 print $cgi->redirect("/cgi-bin/koha/catalogue/ISBDdetail.pl?biblionumber=$biblionumber&found1=1");
-            } elsif  ($defaultview eq 'marc' && $views->{can_view_MARC}) {
+            } elsif ( $defaultview eq 'marc' && $views->{can_view_MARC} ) {
                 print $cgi->redirect("/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=$biblionumber&found1=1");
-            } elsif  ($defaultview eq 'labeled_marc' && $views->{can_view_labeledMARC}) {
-                print $cgi->redirect("/cgi-bin/koha/catalogue/labeledMARCdetail.pl?biblionumber=$biblionumber&found1=1");
+            } elsif ( $defaultview eq 'labeled_marc' && $views->{can_view_labeledMARC} ) {
+                print $cgi->redirect(
+                    "/cgi-bin/koha/catalogue/labeledMARCdetail.pl?biblionumber=$biblionumber&found1=1");
             } else {
                 print $cgi->redirect("/cgi-bin/koha/catalogue/detail.pl?biblionumber=$biblionumber&found1=1");
-            } 
+            }
             exit;
         }
 
@@ -677,6 +680,11 @@ for (my $i=0;$i<@servers;$i++) {
                 # while we're checking each line, see if item is in the cart
                 if ( grep {$_ eq $line->{'biblionumber'}} @cart_list) {
                     $line->{'incart'} = 1;
+                }
+
+                if ( C4::Context->preference('LocalCoverImages') ) {
+                    $line->{has_local_cover_image} =
+                        $line->{biblio_object} ? $line->{biblio_object}->cover_images->count : 0;
                 }
             }
             my( $page_numbers, $hits_to_paginate, $pages, $current_page_number, $previous_page_offset, $next_page_offset, $last_page_offset ) =

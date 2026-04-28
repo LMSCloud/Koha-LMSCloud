@@ -1,7 +1,14 @@
 [% USE raw %]
+[% USE Koha %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Dictionary &rsaquo; Guided reports &rsaquo; Reports &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Dictionary") | html %] &rsaquo;
+    [% t("Guided reports wizard") | html %] &rsaquo;
+    [% t("Reports") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>fieldset.rows table { clear: none; margin: 0;}</style>
 </head>
@@ -65,12 +72,13 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% IF ( start_dictionary ) %]
     <div id="toolbar">
-        <a id="newdictionary" class="btn btn-default" href="/cgi-bin/koha/reports/dictionary.pl?phase=Add%20New%20Definition"><i class="fa fa-plus"></i> New definition</a>
+        <a id="newdictionary" class="btn btn-default" href="/cgi-bin/koha/reports/dictionary.pl?op=add_form"><i class="fa fa-plus"></i> New definition</a>
     </div>
 [% END %]
 <h1>Dictionary</h1>
@@ -80,8 +88,8 @@
 		[% IF ( definitions ) %]
             <div class="page-section">
                 <h2>Current terms</h2>
-                <form action="/cgi-bin/koha/reports/dictionary.pl" method="post">
-                    <input type="hidden" name="phase" value="View Dictionary" />
+                <form action="/cgi-bin/koha/reports/dictionary.pl" method="get">
+                    <input type="hidden" name="op" value="list" />
                     [% IF ( areas ) %]
                         Filter by area
                         <select name="area">
@@ -112,23 +120,27 @@
                         <td>[% definition.description | html %]</td>
                         <td>[% definition.areaname | html %]</td>
                         <td>[% definition.saved_sql | html %]</td>
-                        <td class="actions"><form method="post" action="/cgi-bin/koha/reports/dictionary.pl">
-                            <input type="hidden" name="id" value="[% definition.id | html %]" />
-                            <input type="hidden" name="phase" value="Delete Definition" />
-                            <button type="submit" name="submit" class="btn btn-default btn-xs" id="delete"><i class="fa fa-trash"></i> Delete</button>
-                        </form></td>
+                        <td class="actions">
+                            <form method="post" action="/cgi-bin/koha/reports/dictionary.pl">
+                                [% INCLUDE 'csrf-token.inc' %]
+                                <input type="hidden" name="op" value="cud-delete" />
+                                <input type="hidden" name="id" value="[% definition.id | html %]" />
+                                <button type="submit" name="submit" class="btn btn-default btn-xs" id="delete"><i class="fa fa-trash-can"></i> Delete</button>
+                            </form>
+                        </td>
                     </tr>
                     [% END %]
                 </table>
             </div> <!-- /.page-section -->
         [% ELSE %]
-            <div class="dialog message">There are no saved definitions. <a id="newdictionary" href="/cgi-bin/koha/reports/dictionary.pl?phase=Add%20New%20Definition">Add a definition to the dictionary.</a></div>
+            <div class="alert alert-info">There are no saved definitions. <a id="newdictionary" href="/cgi-bin/koha/reports/dictionary.pl?op=add_form">Add a definition to the dictionary.</a></div>
 		[% END %]
 [% END %]
 
 [% IF ( new_dictionary ) %]
 <h3>Add new definition</h3>
 <form action="/cgi-bin/koha/reports/dictionary.pl" method="post">
+    [% INCLUDE 'csrf-token.inc' %]
 
     [% IF ( passworderr ) %]
         <div class="alert alert-warning">
@@ -150,7 +162,8 @@
 </li>
 </ol></fieldset>
 
-<fieldset class="action"><input type="hidden" name="phase" value="New Term step 2" />
+<fieldset class="action">
+<input type="hidden" name="op" value="cud-add_form_2" />
 <input type="submit" name="submit" class="btn btn-primary" value="Next" /></fieldset>
 </form>
 [% END %]
@@ -158,11 +171,12 @@
 [%- IF ( step_2 ) -%]
 <h3>Add new definition</h3>
 <form action="/cgi-bin/koha/reports/dictionary.pl" method="post">
+    [% INCLUDE 'csrf-token.inc' %]
   <fieldset class="rows">
     <legend>Step 2 of 5: Choose the area</legend>
     <ol>
       <li>
-        <input type="hidden" name="phase" value="New Term step 3" />
+        <input type="hidden" name="op" value="cud-add_form_3" />
         <input type="hidden" name="definition_name" value="[% definition_name | html %]" />
         <input type="hidden" name="definition_description" value="[% definition_description | html %]" />
         <label for="area">Select table:</label><select name="area" id="area">
@@ -180,34 +194,30 @@
 [% IF ( step_3 ) %]
 <h3>Add new definition</h3>
 <form action="/cgi-bin/koha/reports/dictionary.pl" method="post">      
+    [% INCLUDE 'csrf-token.inc' %]
 <fieldset class="rows">
 <legend>Step 3 of 5: Choose a column</legend>
 <input type="hidden" name="area" value="[% area | html %]" />
 <input type="hidden" name="definition_name" value="[% definition_name | html %]" />
 <input type="hidden" name="definition_description" value="[% definition_description | html %]" />
 
-<select id="availableColumns" name="columns" size="25" style="width:200px;height:300px;margin:1em;">
-[% FOREACH column IN columns %]
-[% IF ( column.table ) %]
-[% IF ( loop.first ) %]                              
-[% ELSE %]               
-</optgroup>        
-[% END %]                                                         
-
-<optgroup label="[% column.table | html %]">              
-[% ELSE %]               
-<option value="[% column.name | html %]">
-[% IF ( column.description ) %][% column.description | html %]    
-[% ELSE %]               
-[% column.name | html %]                          
-[% END %]              
-</option>      
-[% END %]              
-[% END %]                
-</optgroup>
+<select id="availableColumns" name="columns" size="25" style="min-width:200px; height:300px; margin:1em;">
+    [% FOREACH table IN columns.keys.sort %]
+        <optgroup label="[% table | html %]">
+            [% FOREACH column IN columns.item(table) %]
+                <option value="[% column.name | html %]">
+                    [% IF ( column.description ) %]
+                        [% column.description | html %] &nbsp; / &nbsp; [% column.name | html %]
+                    [% ELSE %]
+                        [% column.name | html %]
+                    [% END %]
+                </option>
+            [% END %]
+        </optgroup>
+    [% END %]
 </select>
 
-<input type="hidden" name="phase" value="New Term step 4" />
+<input type="hidden" name="op" value="cud-add_form_4" />
 </fieldset>
 <fieldset class="action"><input type="submit" name="submit" class="btn btn-primary" value="Next" /></fieldset>
 </form>
@@ -216,6 +226,7 @@
 [% IF ( step_4 ) %]
 <h3>Add new definition</h3>
 <form action="/cgi-bin/koha/reports/dictionary.pl" method="post">
+    [% INCLUDE 'csrf-token.inc' %]
 <fieldset class="rows">
 <legend>Step 4 of 5: Specify a value</legend>
 <input type="hidden" name="area" value="[% area | html %]" />
@@ -255,7 +266,7 @@
 
 [% END %]
 </ol>
-<input type="hidden" name="phase" value="New Term step 5" />
+<input type="hidden" name="op" value="cud-add_form_5" />
 </fieldset>
 <fieldset class="action">
 <input type="submit" name="submit" class="btn btn-primary" value="Next" />
@@ -265,6 +276,7 @@
 
 [% IF ( step_5 ) %]
 <form action="/cgi-bin/koha/reports/dictionary.pl" method="post">
+    [% INCLUDE 'csrf-token.inc' %]
 <input type="hidden" name="area" value="[% area | html %]" />
 <input type="hidden" name="definition_name" value="[% definition_name | html %]" />
 <input type="hidden" name="definition_description" value="[% definition_description | html %]" />
@@ -303,20 +315,20 @@
 </fieldset>
 
 <fieldset class="action"><input type="hidden" name="sql" value="[% query | html %]" />
-<input type="hidden" name="phase" value="New Term step 6" />
+<input type="hidden" name="op" value="cud-add_form_6" />
 <input type="submit" name="submit" class="btn btn-primary" value="Save" />         </fieldset>
 
 </form>
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'guided-reports-view.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

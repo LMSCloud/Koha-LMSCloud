@@ -49,7 +49,7 @@ my $logged_in_patron = Koha::Patrons->find($borrowernumber);
 my $branchcode = $input->param('pickup_branch');
 my @messages;
 
-if ( $op eq 'create-pickup' ) {
+if ( $op eq 'cud-create-pickup' ) {
     my $scheduled_pickup_datetime = $input->param('pickup_time');
     my $notes                     = $input->param('notes');
 
@@ -105,7 +105,7 @@ if ( $op eq 'create-pickup' ) {
         }
     }
 }
-elsif ( $op eq 'cancel-pickup' ) {
+elsif ( $op eq 'cud-cancel-pickup' ) {
     my $id              = $input->param('pickup_id');
     my $curbside_pickup = Koha::CurbsidePickups->search(
         { borrowernumber => $borrowernumber } )->find($id);
@@ -113,7 +113,7 @@ elsif ( $op eq 'cancel-pickup' ) {
       if $curbside_pickup
       && !$curbside_pickup->delivered_datetime;
 }
-elsif ( $op eq 'arrival-alert' ) {
+elsif ( $op eq 'cud-arrival-alert' ) {
     my $id              = $input->param('pickup_id');
     my $curbside_pickup = Koha::CurbsidePickups->search(
         { borrowernumber => $borrowernumber } )->find($id);
@@ -134,18 +134,15 @@ $template->param(
     ),
     patron_curbside_pickups => Koha::CurbsidePickups->search(
         {
-            borrowernumber            => $logged_in_patron->borrowernumber,
+            borrowernumber => $logged_in_patron->borrowernumber,
         },
-        {
-            order_by => { -asc => 'scheduled_pickup_datetime' }
-        }
+        { order_by => { -asc => 'scheduled_pickup_datetime' } }
     )->filter_by_scheduled_today,
     curbside_pickups => Koha::CurbsidePickups->search(
         {},
-        {
-            order_by => { -asc => 'scheduled_pickup_datetime' }
-        }
+        { order_by => { -asc => 'scheduled_pickup_datetime' } }
     )->filter_by_scheduled_today,
+    curbside_pickups_view => 1,
 );
 
 output_html_with_http_headers $input, $cookie, $template->output, undef,

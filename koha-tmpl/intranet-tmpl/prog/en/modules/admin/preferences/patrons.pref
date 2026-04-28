@@ -26,7 +26,13 @@ Patrons:
            choices:
                1: "Allow"
                0: "Don't allow"
-         - "staff to access a patron's checkout and hold history (checkout history is still stored, regardless of staff being allowed access or not)."
+         - "staff to access a patron's checkout history (checkout history is still stored, regardless of staff being allowed access or not)."
+     -
+         - pref: IntranetReadingHistoryHolds
+           choices:
+               1: "Allow"
+               0: "Don't allow"
+         - "staff to access a patron's hold history (hold history is still stored, regardless of staff being allowed access or not)."
      -
          - "When deleting a patron who owns public or shared lists,"
          - pref: ListOwnershipUponPatronDeletion
@@ -56,15 +62,23 @@ Patrons:
            class: integer
          - results per page in the staff interface.
      -
-         - Set 
+         - Set
          - pref: DefaultPatronLanguage
          - 'as default language for new created patrons. The setting enables the language initialization independent of the setting of parameter <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=TranslateNotices">TranslateNotices</a>.'
-         - If a library wants to maintain default notices only the setting helps to get embedded contents in the predefined patron language. 
+         - If a library wants to maintain default notices only the setting helps to get embedded contents in the predefined patron language.
      -
-         - "Comma separated list defining the default fields to be used during a patron search using the \"standard\" option in the patrons or circulation module:"
+         - "Pipe separated list defining the default fields to be used during a patron search using the \"standard\" option in the patrons or circulation module:"
          - pref: DefaultPatronSearchFields
-           class: multi
-         - "If empty Koha will default to \"firstname,middle_name,surname,othernames,cardnumber,userid\". Additional fields added to this preference will be added as search options in the dropdown menu on the patron search page."
+           type: modalselect
+           source: borrowers
+           exclusions: anonymized|auth_method|autorenew_checkouts|date_renewed|dateenrolled|dateexpiry|lang|lastseen|login_attempts|overdrive_auth_token|password|password_expiration_date|primary_contact_method|gonenoaddress|lost|debarred|debarredcomment|branchcode|categorycode|flags|guarantorid|relationship|privacy|privacy_guarantor_checkouts|privacy_guarantor_fines|pronouns|secret|sms_provider_id|updated_on|checkprevcheckout
+         - "If empty Koha will default to \"firstname|preferred_name|middle_name|surname|othernames|cardnumber|userid\". Additional fields added to this preference will be added as search options in the dropdown menu on the patron search page."
+     -
+         - pref: DefaultPatronSearchMethod
+           choices:
+               starts_with: "Starts with"
+               contains: "Contains"
+         - Enable this search method to determine whether to use 'starts with' or 'contains' for all patron searches, including auto-complete.
      -
          - pref: DefaultPatronSearchMethod
            choices:
@@ -96,12 +110,17 @@ Patrons:
                0: "Don't"
          - charge a fee when a patron changes to a category with an enrollment fee.
      -
-         - pref: TrackLastPatronActivity
-           choices:
-               1: Do
-               0: "Don't"
-         - track last patron activity.
-         - The first time each day that a patron logs into the OPAC, connects to Koha via SIP or ILS-DI, or checks an item out the borrowers.lastseen will update with the current date and time.
+         - Select which patron activities should be tracked to signify patron activity. Each time that one of these activities occurs, borrowers.lastseen will update with the current date and time.
+         - pref: TrackLastPatronActivityTriggers
+           multiple:
+               creation: "Creating a patron"
+               login: "Logging in"
+               connection: "Connecting to Koha via SIP or ILSDI"
+               check_out: "Checking out an item"
+               renewal: "Renewing an item"
+               check_in: "Checking in an item"
+               hold: "Placing a hold on an item"
+               article: "Placing an article request"
      -
          - pref: AutoApprovePatronProfileSettings
            choices:
@@ -184,16 +203,34 @@ Patrons:
                0: "Don't send"
          - email receipts to patrons for payments and writeoffs.
      -
-         - "Use"
-         - pref: AutoEmailPrimaryAddress
-           default: "OFF"
+         - "Use the patron's"
+         - pref: EmailFieldPrimary
+           default: ""
            choices:
-               email: home
-               emailpro: work
-               B_email: alternate
-               cardnumber: cardnumber as
-               "OFF": first valid
-         - "patron email address for sending out emails."
+               email: primary email
+               emailpro: secondary email
+               B_email: alternate email
+               cardnumber: card number
+               "": first valid email address
+               "MULTI": selected addresses
+         - 'for sending out email notices.'
+         - '<br><strong>NOTE:</strong> If set to "first valid", the order in which the email addresses are checked is set in <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EmailFieldPrecedence">EmailFieldPrecedence</a>.'
+         - '<br><strong>NOTE:</strong> If set to "selected addresses", the selection refers to the email address fields set in <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EmailFieldSelection">EmailFieldSelection</a>.'
+     -
+         - "When <a href='/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EmailFieldPrimary'>EmailFieldPrimary</a> is set to '<strong>first valid</strong>', check the patron email address fields in the following order and use the first valid email address found:"
+         - pref: EmailFieldPrecedence
+           class: multi
+         - '<br><strong>NOTE:</strong> All patron fields can be used, but to work correctly they must contain a valid email address or an empty string.'
+         - "Valid options are the <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a> of the borrowers table, separated by | (pipe)."
+         - "Example: email|emailpro|B_email"
+     -
+         - "When <a href='/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EmailFieldPrimary'>EmailFieldPrimary</a> is set to '<strong>selected addresses</strong>', send email to all valid email addresses in the selected fields:"
+         - pref: EmailFieldSelection
+           default: "email"
+           multiple:
+               email: primary email
+               emailpro: secondary email
+               B_email: alternate email
      -
          - pref: TalkingTechItivaPhoneNotification
            choices:
@@ -214,6 +251,10 @@ Patrons:
          - driver to send SMS messages.
          - "<br>If you would prefer to send SMS via E-mail, set SMSSendDriver to: Email"
          - "<br><strong>NOTE:</strong> Many mobile providers have deprecated support for this feature and it is not recommended for use unless you have a dedicated SMS to Email gateway."
+         - "<br>Limit messages to"
+         - pref: SMSSendMaxChar
+           class: integer
+         - "characters (no limitation if empty)."
      -
          - "Define a username/login"
          - pref: SMSSendUsername
@@ -223,6 +264,10 @@ Patrons:
          - pref: EmailSMSSendDriverFromAddress
            class: email
          - "for emails sent using \"Email\" send driver."
+         - "If the SMS::Send driver requires more options than just username/login and password, enter them here as YAML key/value pairs:"
+         - pref: SMSSendAdditionalOptions
+           type: textarea
+           syntax: text/x-yaml
      -
          - pref: FallbackToSMSIfNoEmail
            choices:
@@ -243,18 +288,19 @@ Patrons:
          - "<br />An asterix can be used as wildcard character to match multiple letter codes."
     Patron forms:
      -
-         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> must be filled in on the patron entry screen:"
+         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a> must be filled in on the patron entry screen:"
          - pref: BorrowerMandatoryField
            type: modalselect
            source: borrowers
            exclusions: flags
          - '<strong>NOTE:</strong> If <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=autoMemberNum">autoMemberNum</a> is enabled, the system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=BorrowerMandatoryField">BorrowerMandatoryField</a> must not contain the field <code>cardnumber</code>.'
      -
-         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a> will not appear on the patron entry screen:"
+         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a> will not appear on the patron entry screen:"
          - pref: BorrowerUnwantedField
            type: modalselect
            source: borrowers
            exclusions: branchcode|categorycode|flags
+         - '<br /> NOTE: preferred_name will be set to firstname if not included in the form. It should also be selected in <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PatronSelfModificationBorrowerUnwantedField">PatronSelfModificationBorrowerUnwantedField</a> if selected here.'
      -
          - "Borrowers can have the following titles:"
          - pref: BorrowersTitles
@@ -279,7 +325,7 @@ Patrons:
                0: "Don't"
          - store and display surnames in upper case.
      -
-         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a>:"
+         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a>:"
          - pref: PatronQuickAddFields
            type: modalselect
            source: borrowers
@@ -289,7 +335,8 @@ Patrons:
          - pref: CollapseFieldsPatronAddForm
            multiple:
                identity: "Patron identity"
-               guarantor: "Guarantor information"
+               guarantor: "Patron guarantor"
+               nonpatron_guarantor: "Non-patron guarantor"
                primary_address: "Main address"
                primary_contact: "Contact information"
                alt_address: "Alternate address"
@@ -303,7 +350,7 @@ Patrons:
                additional: "Additional attributes and identifiers"
                messaging: "Patron messaging preferences"
      -
-         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='blank'>database columns</a>:"
+         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a>:"
          - pref: PatronDuplicateMatchingAddFields
            type: modalselect
            source: borrowers
@@ -313,9 +360,9 @@ Patrons:
          - "Guarantors can be the following of those they guarantee:"
          - pref: borrowerRelationship
            class: multi
-         - (input multiple choices separated by |). Leave empty to deactivate.
+         - (input multiple choices separated by |, leave a | at the end to allow for librarians to leave it blank).
      -
-         - "When adding a guarantee to a guarantor patron fill the following fields in the guarantee's member entry form from the guarantors record:"
+         - "When adding a guarantee to a guarantor, whether it's from the guarantor's form or the guarantee's form, fill the following fields in the guarantee's member entry form from the guarantors record:"
          - pref: PrefillGuaranteeField
            multiple:
                surname: "Surname"
@@ -360,11 +407,32 @@ Patrons:
                0: "Don't allow"
          - staff to set the ability for a patron's checkouts to be viewed by linked patrons in the OPAC.
      -
+         - pref: RedirectGuaranteeEmail
+           choices:
+               1: Enable
+               0: Disable
+         - sending emails to both guarantees and their guarantor. This does not affect patrons without guarantors.
+     -
          - pref: AllowStaffToSetFinesVisibilityForGuarantor
            choices:
                1: Allow
                0: "Don't allow"
          - staff to set the ability for a patron's charges to be viewed by linked patrons in the OPAC.
+     -
+         - "Any patron of a patron type than can have a guarantor"
+         - pref: "ChildNeedsGuarantor"
+           choices:
+               1: "requires"
+               0: "does not require"
+         - a guarantor be set when adding the patron.
+         - <p><strong>WARNING:</strong> Setting this preference to <em>requires</em> will cause errors for any pre-existing patrons that would now require a guarantor and do not have one.
+     -
+         - pref: RestrictPatronsWithFailedNotices
+           choices:
+               1: Apply
+               0: "Don't apply"
+         - "a restriction to a patron when their email and SMS messages fail to send at the Koha level."
+         - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/restrict_patrons_with_failed_notices.pl</code> cronjob. Ask your system administrator to schedule it."
 
     Privacy:
      -
@@ -390,6 +458,20 @@ Patrons:
          - days and remove anonymized patron accounts after
          - pref: PatronRemovalDelay
          - "days.<br>IMPORTANT: No action is performed when these delays are empty (no text). But a zero value ('0') is interpreted as no delay (do it now)! The actions are performed by the cleanup database cron job."
+     -
+         - pref: CookieConsent
+           choices:
+               1: Require
+               0: "Don't require"
+         - cookie consent to be displayed in the OPAC and staff interface.
+         - '<br><strong>NOTE:</strong> The cookie banner can be customised using the <a href="/cgi-bin/koha/tools/additional-contents.pl?category=html_customizations" target="_blank">CookieConsentBar</a> html customisation.'
+     -
+         - Run the following JavaScript if cookie consent is provided (e.g. tracking code).
+         - pref: CookieConsentedJS
+           type: modaljs
+           initiator: populateCookieConsentedJS
+           processor: prepareCookieConsentedJS
+         - '<br><strong>NOTE:</strong> The cookie consent modal can be customised using the <a href="/cgi-bin/koha/tools/additional-contents.pl?category=html_customizations" target="_blank">CookieConsentPopup</a> html customisation.'
     Security:
      -
          - Login passwords for staff and patrons must be at least
@@ -416,6 +498,12 @@ Patrons:
          - pref: FailedLoginAttempts
            class: integer
          - failed login attempts.
+     -
+         - pref: ForcePasswordResetWhenSetByStaff
+           choices:
+               1: "Force"
+               0: "Don't force"
+         - a staff created patron account to reset its password after its first OPAC login.
      -
          - pref: Pseudonymization
            choices:

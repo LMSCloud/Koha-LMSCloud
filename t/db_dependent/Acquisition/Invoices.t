@@ -8,7 +8,7 @@ use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Orders;
 use Koha::Database;
 
-use Test::More tests => 24;
+use Test::More tests => 29;
 
 BEGIN {
     use_ok('C4::Acquisition', qw( NewBasket GetBasket AddInvoice GetInvoice ModReceiveOrder GetInvoiceDetails GetInvoices ModInvoice CloseInvoice ReopenInvoice MergeInvoices DelInvoice ));
@@ -34,10 +34,20 @@ my $booksellerinfo = Koha::Acquisition::Booksellers->find( $booksellerid );
 my $basketno = NewBasket($booksellerid, 1);
 my $basket   = GetBasket($basketno);
 
+my $budget_period_id = C4::Budgets::AddBudgetPeriod(
+    {
+        budget_period_startdate   => '2024-01-01',
+        budget_period_enddate     => '2049-01-01',
+        budget_period_active      => 1,
+        budget_period_description => "TEST PERIOD"
+    }
+);
+
 my $budgetid = C4::Budgets::AddBudget(
     {
-        budget_code => "budget_code_test",
-        budget_name => "budget_name_test",
+        budget_code      => "budget_code_test",
+        budget_name      => "budget_name_test",
+        budget_period_id => $budget_period_id,
     }
 );
 my $budget = C4::Budgets::GetBudget( $budgetid );
@@ -89,6 +99,13 @@ my $invoiceid1 = AddInvoice(invoicenumber => 'invoice1', booksellerid => $bookse
 my $invoiceid2 = AddInvoice(invoicenumber => 'invoice2', booksellerid => $booksellerid, unknown => "unknown",
                             shipmentdate => '2012-12-24',
                            );
+my $invoiceid_closed = AddInvoice(
+    invoicenumber => 'invoice_close',
+    booksellerid  => $booksellerid,
+    unknown       => "unknown",
+    shipmentdate  => '2012-12-24',
+    closedate     => '2024-12-13',
+);
 
 my $invoice1 = GetInvoice( $invoiceid1 );
 my $invoice2 = GetInvoice( $invoiceid2 );
@@ -151,6 +168,15 @@ is($invoices[0]->{invoicenumber}, 'invoice1', 'GetInvoices() to search by public
 is($invoices[0]->{invoicenumber}, 'invoice1', 'GetInvoices() to search by ISBN works (bug 8854)');
 @invoices = GetInvoices(isbneanissn => '123456789');
 is($invoices[0]->{invoicenumber}, 'invoice1', 'GetInvoices() to search by partial ISBN works (bug 8854)');
+
+@invoices = GetInvoices( booksellerid => $booksellerid, closedate => undef );
+is( scalar @invoices,              2,          'GetInvoices() to search by only open invoices' );
+is( $invoices[0]->{invoicenumber}, 'invoice1', 'GetInvoices() to search by only open invoices' );
+is( $invoices[1]->{invoicenumber}, 'invoice2', 'GetInvoices() to search by only open invoices' );
+
+@invoices = GetInvoices( booksellerid => $booksellerid, closedate => '2024-12-13' );
+is( scalar @invoices,              1,               'GetInvoices() to filter by closedate' );
+is( $invoices[0]->{invoicenumber}, 'invoice_close', 'GetInvoices() to filter by closedate' );
 
 my $invoicesummary1 = GetInvoice($invoiceid1);
 is($invoicesummary1->{'invoicenumber'}, 'invoice1', 'GetInvoice retrieves correct invoice');

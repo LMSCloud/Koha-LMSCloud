@@ -35,8 +35,10 @@ sub startup {
     $self->plugin('CGIBinKoha', opac => 1);
 
     # Create routes for API
-    # FIXME This generates routes like this: /api/api/v1/...
     $self->plugin('RESTV1');
+
+    $self->plugin('CSRF');
+    $self->plugin('Language');
 
     $self->hook(before_dispatch => \&_before_dispatch);
     $self->hook(around_action => \&_around_action);
@@ -53,11 +55,6 @@ sub _before_dispatch {
 
     # Remove Koha version from URL
     $path =~ s/_\d{2}\.\d{7}\.(js|css)/.$1/;
-
-    # See FIXME above
-    if ($path =~ m|^/api/v|) {
-        $path = '/api' . $path;
-    }
 
     $c->req->url->path->parse($path);
 }

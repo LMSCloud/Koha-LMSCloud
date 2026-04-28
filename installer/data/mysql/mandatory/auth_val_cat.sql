@@ -20,7 +20,9 @@ INSERT IGNORE INTO authorised_value_categories( category_name, is_system )
     ('HOLD_CANCELLATION', 0),
     ('ROADTYPE', 0),
     ('AR_CANCELLATION', 0),
-    ('VENDOR_TYPE', 1);
+    ('VENDOR_TYPE', 1),
+    ('VENDOR_INTERFACE_TYPE', 1),
+    ('VENDOR_ISSUE_TYPE', 1);
 
 INSERT IGNORE INTO authorised_value_categories( category_name, is_system )
     VALUES
@@ -87,7 +89,18 @@ VALUES
     ('ERM_AGREEMENT_LICENSE_LOCATION', 1),
     ('ERM_PACKAGE_TYPE', 1),
     ('ERM_PACKAGE_CONTENT_TYPE', 1),
-    ('ERM_TITLE_PUBLICATION_TYPE', 1);
+    ('ERM_TITLE_PUBLICATION_TYPE', 1),
+    ('ERM_REPORT_TYPES', 1),
+    ('ERM_PLATFORM_REPORTS_METRICS', 1),
+    ('ERM_DATABASE_REPORTS_METRICS', 1),
+    ('ERM_TITLE_REPORTS_METRICS', 1),
+    ('ERM_ITEM_REPORTS_METRICS', 1);
+
+-- For ticket statuses
+INSERT IGNORE INTO authorised_value_categories (category_name, is_system)
+VALUES
+    ('TICKET_STATUS', 1),
+    ('TICKET_RESOLUTION', 1);
 
 -- For bookings
 INSERT IGNORE INTO authorised_value_categories (category_name, is_system)

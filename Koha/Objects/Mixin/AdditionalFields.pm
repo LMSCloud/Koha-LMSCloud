@@ -2,6 +2,8 @@ package Koha::Objects::Mixin::AdditionalFields;
 
 use Modern::Perl;
 
+use base qw(Koha::Objects::Mixin::ExtendedAttributes);
+
 =head1 NAME
 
 Koha::Objects::Mixin::AdditionalFields
@@ -54,6 +56,34 @@ sub filter_by_additional_fields {
     }
 
     return $class->search(\%conditions, { join => [ ('additional_field_values') x $idx ] });
+}
+
+=head3 extended_attributes_config
+
+    Returns a hash containing the configuration for extended attributes
+
+=cut
+
+sub extended_attributes_config {
+    my ($self) = @_;
+
+    return {
+        'id_field'     => { 'foreign' => 'record_id', 'self' => $self->_resultset->result_source->primary_columns },
+        'key_field'    => 'field_id',
+        'schema_class' => 'Koha::Schema::Result::AdditionalFieldValue',
+    };
+}
+
+=head3 extended_attributes_tablename_query
+
+    Returns a hash containing the tablename and operator for extended attributes.
+
+=cut
+
+sub extended_attributes_tablename_query {
+    my ($self) = @_;
+
+    return { 'tablename' => $self->_resultset->result_source->name, 'operator' => '=' };
 }
 
 =head1 AUTHOR

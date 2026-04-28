@@ -25,7 +25,6 @@ package C4::RotatingCollections;
 use Modern::Perl;
 
 use C4::Context;
-use C4::Reserves qw(CheckReserves);
 use Koha::Database;
 
 use Try::Tiny qw( catch try );
@@ -488,11 +487,14 @@ sub TransferCollection {
                             to            => $to_library,
                             reason        => "RotatingCollection",
                             ignore_limits => 0,
-                            replace       => 1
+                            replace       => "RotatingCollection"
                         }
                     );    # Replace transfer
-                    # NOTE: If we just replaced a StockRotationAdvance,
-                    # it will get enqueued afresh on the next cron run
+                          # FIXME: If we just replaced a StockRotationAdvance,
+                          # it will get enqueued afresh on the next cron run.. but
+                          # that will also push the stage on too.. and what about if
+                          # we were at the first stage.. then there won't be a datearrived
+                          # to calculate against. See bug 35100
                 }
             }
             elsif ( $_->isa('Koha::Exceptions::Item::Transfer::Limit') ) {

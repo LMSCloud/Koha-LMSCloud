@@ -1,19 +1,26 @@
 [% USE raw %]
+[% USE AdditionalContents %]
 [% USE Asset %]
 [% USE Koha %]
 [% USE TablesSettings %]
 [% USE Branches %]
-[% USE Letters %]
 [% USE Categories %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% PROCESS 'patronfields.inc' %]
 [% SET libraries = Branches.all %]
 [% SET categories = Categories.all.unblessed %]
-[% SET columns = ['cardnumber', 'name-address', 'dateofbirth', 'branch', 'category', 'restriction', 'dateexpiry', 'checkouts', 'account_balance', 'borrowernotes', 'action'] %]
+[% SET columns = ['cardnumber', 'name-address', 'phone', 'dateofbirth', 'branch', 'category', 'restriction', 'dateexpiry', 'checkouts', 'account_balance', 'borrowernotes', 'sort1', 'sort2', 'action'] %]
 [% SET searchtype = searchtype || Koha.Preference('DefaultPatronSearchMethod') %]
 [% PROCESS 'patron-search.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Patrons[% IF ( searching ) %] &rsaquo; Search results[% END %] &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF ( searching ) %]
+        [% t("Search results") | html %] &rsaquo;
+    [% END %]
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -32,19 +39,13 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
           [% IF CAN_user_tools_manage_patron_lists %]
-            <div id="patron_list_dialog" class="dialog message">
+            <div id="patron_list_dialog" class="alert alert-info">
               Added <span class="patrons-length"></span> patrons to <a></a>.
-            </div>
-          [% END %]
-          [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
-            <div id="notice_sent_dialog" class="dialog alert">
-              Letter "<span class="letter-name"></span>" successfully created as notice to <span class="patrons-length"></span> patron(s).
-              <span class="letter-email"><br /><span class="letter-email-count"></span> patron(s) notified by email.</span>
-              <span class="letter-print"><br />Print notices created for <span class="letter-print-count"></span> patron(s). <a href="/cgi-bin/koha/tools/download-files.pl" target="_blank">Click here to download the notices for printing.</a></span>
             </div>
           [% END %]
 
@@ -54,47 +55,53 @@
           [% IF CAN_user_borrowers_edit_borrowers && pending_borrower_modifications %]
             <div class="pending-info" id="patron_updates_pending">
               <a href="/cgi-bin/koha/members/members-update.pl">Patrons requesting modifications</a>:
-              <span class="number_box"><a href="/cgi-bin/koha/members/members-update.pl">[% pending_borrower_modifications | html %]</a></span>
+              <span class="badge bg-info-subtle"><a href="/cgi-bin/koha/members/members-update.pl">[% pending_borrower_modifications | html %]</a></span>
             </div>
           [% END %]
 
           <div id="searchresults">
-            [% IF CAN_user_tools_manage_patron_lists || CAN_user_borrowers_edit_borrowers || (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
+            [% IF CAN_user_tools_manage_patron_lists || CAN_user_borrowers_edit_borrowers %]
               <div class="searchheader fh-fixedHeader" id="searchheader" style="display:none;">
                   <div>
                       <a href="#" class="btn btn-link" id="select_all"><i class="fa fa-check"></i> Select all</a>
                       |
-                      <a href="#" class="btn btn-link" id="clear_all"><i class="fa fa-remove"></i> Clear all</a>
+                      <a href="#" class="btn btn-link" id="clear_all"><i class="fa fa-times"></i> Clear all</a>
                     [% IF CAN_user_tools_manage_patron_lists %]
 
-                    [% END %]
-                    [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
-                         <button id="send_notice_letter_select" class="btn btn-sm btn-default disabled" disabled="disabled" type="submit"><i class="fa fa-compress" aria-hidden="true"></i> Send notice</button>
                     [% END %]
 
                     [% IF CAN_user_tools_manage_patron_lists %]
                         <div id="patronlist-dropdown" class="btn-group">
-                            <button id="patronlist-menu" type="button" class="btn btn-sm btn-default dropdown-toggle patron-edits disabled" disabled="disabled" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                Add to patron list <span class="caret"></span>
+                            <button id="patronlist-menu" type="button" class="btn btn-default btn-sm dropdown-toggle patron-edits disabled" disabled="disabled" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Add to patron list
                             </button>
                             <ul class="dropdown-menu">
                                 [% IF patron_lists %]
                                     [% FOREACH pl IN patron_lists %]
-                                        <li><a href="#" class="patron-list-add" data-listid="[% pl.patron_list_id | html %]">[% pl.name | html %]</a></li>
+                                        <li><a href="#" class="patron-list-add dropdown-item" data-listid="[% pl.patron_list_id | html %]">[% pl.name | html %]</a></li>
                                     [% END %]
                                 [% END %]
-                                <li role="separator" class="divider"></li>
-                                <li><a href="#" class="patron-list-add" data-listid="new">New list</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a href="#" class="patron-list-add dropdown-item" data-listid="new">New list</a></li>
                             </ul>
                         </div>
                     [% END %]
 
-                    [% IF CAN_user_borrowers_edit_borrowers %]
-                          <button id="merge-patrons" class="btn btn-sm btn-default disabled" disabled="disabled" type="submit"><i class="fa fa-compress" aria-hidden="true"></i> Merge selected patrons</button>
+                    [% IF CAN_user_borrowers_merge_borrowers %]
+                        <div class="btn-group">
+                            <button id="merge-patrons" class="btn btn-default btn-sm disabled" disabled="disabled" type="submit"><i class="fa fa-compress" aria-hidden="true"></i> Merge selected patrons</button>
+                        </div>
                     [% END %]
-                    <div id="patron_search_selected" class="btn-group" style="display:none;">
+
+                    [% IF CAN_user_tools_edit_patrons %]
+                        <div class="btn-group">
+                            <button id="batch-mod-patrons" class="btn btn-default btn-sm disabled" disabled="disabled" type="button"><i class="fa fa-pencil" aria-hidden="true"></i> Batch patron modification</button>
+                        </div>
+                    [% END %]
+
+                    <div id="table_search_selections" class="btn-group" style="display:none;">
                         <span></span>
-                        <a href="#" id="clear-patron-selection"><i class="fa fa-remove"></i> Clear</a>
+                        <a href="#" id="clear-row-selection"><i class="fa fa-times"></i> Clear</a>
                     </div>
                   </div>
                 </div>
@@ -105,73 +112,38 @@
             [% END %]
             [% PROCESS patron_search_table table_id => 'memberresultst' columns => columns %]
           </div>
+        [% IF CAN_user_tools_edit_patrons %]
+            <form id="patron_batchmod_form" method="post" action="/cgi-bin/koha/tools/modborrowers.pl">
+                [% INCLUDE 'csrf-token.inc' %]
+                <input type="hidden" name="op" value="cud-show" />
+                <textarea style="display:none" id="borrowernumberlist" name="borrowernumberlist"></textarea>
+            </form>
+        [% END %]
+
+                [%- SET StaffPatronsHome = AdditionalContents.get( location => "StaffPatronsHome", lang => lang, library => Branches.GetLoggedInBranchcode ) -%]
+                [%- FOREACH block IN StaffPatronsHome.content -%]
+                <div class="page-section">
+                    [%- block.content | $raw -%]
+                </div>
+                [%- END -%]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
-            <aside>
-                [% PROCESS patron_search_filters categories => categories, libraries => libraries, filters => ['search_field', 'search_type', 'category', 'branch', 'age_range', 'issue_count_range', 'charges_range', 'open_charges_since', 'expires_period', 'debarred_period', 'inactive_period', 'last_letter', 'overdue_level', 'valid_email', 'patron_list'], search_filter => searchmember %]
-            </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        <div class="col-md-2 order-sm-2 order-md-1">
+            [% PROCESS patron_search_filters categories => categories, libraries => libraries, filters => ['search_field', 'search_type', 'category', 'branch', 'age_range', 'issue_count_range', 'charges_range', 'open_charges_since', 'expires_period', 'debarred_period', 'inactive_period', 'last_letter', 'overdue_level', 'valid_email', 'patron_list'], search_filter => searchmember %]
+        </div> <!-- /.col-md-2 order-sm-2 order-md-1 -->
     </div> <!-- /.row -->
-
-	<!-- Modal to send adhoc notices -->
-	<div class="modal fade" id="selectAdhocNoticeLetter" tabindex="-1" role="dialog" aria-labelledby="selectAdhocNoticeLetter_label" aria-hidden="true">
-		<div class="modal-dialog" role="document">
-			<div class="modal-content">
-				<form id="noticeform">
-				<div class="modal-header">
-					<button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">&times;</button>
-					<h3 id="selectAdhocNoticeLetter_label">Send Notice</h3>
-				</div>
-				<div class="modal-body">
-				
-					<p>
-						Please select the letter that will be used to create notices to the selected patrons. Please be aware that patrons might be charged for notices depending on the defined notice fee rules.
-					</p>
-					<p>
-						Number of selected patrons: <span id="selectAdhocNoticeLetterPatronCount"></span>
-					</p>
-					<p id="adhocNoticeLetterSelection">
-						<label for="adhocNoticeLetterSelection_letter">Select letter: </label>
-						<select name="adhocNoticeLetterSelection_letter" id="adhocNoticeLetterSelection_letter">
-						</select>
-					</p>
-					<p>
-						<label>
-							Prefer Email notification if an email address is available: <input type="checkbox" id="preferEmail" name="preferEmail" value="yes" checked>
-						</label>
-					</p>
-					<p>
-						<label>
-							Do not charge patrons despite of possible configured notice fee rules: <input type="checkbox" id="dontCharge" name="dontCharge" value="yes">
-						</label>
-					</p>
-					<p style="display:[% IF ( Koha.Preference('NoticeBcc') ) %]unset[% ELSE %]none[% END %]">
-						<label>
-							Send copies of the message(s) to the configured email address of the library: <input type="checkbox" id="noBccEmail" name="noBccEmail" value="yes">
-						</label>
-					</p>
-				</div>
-				<div class="modal-footer">
-					<input id="send_notice_submit" type="submit" class="submit" value="Create notices">
-				</div>
-				</form>
-			</div>
-		</div>
-	</div>
-
 
     <!-- New Patron List Modal -->
     <div class="modal" id="new-patron-list" tabindex="-1" role="dialog" aria-labelledby="new-patron-listLabel">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title" id="new-patron-listLabel">Add patrons to a new patron list</h4>
+                    <h1 class="modal-title" id="new-patron-listLabel">Add patrons to a new patron list</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="new-patron-list_form">
+                <form method="get" id="new-patron-list_form">
                     <div class="modal-body">
                         <div class="form-group">
                             <label for="new_patron_list" class="required">Patron list name: </label>
@@ -182,7 +154,8 @@
                     </div> <!-- /.modal-body -->
                     <div class="modal-footer">
                         <button type="submit" id="add_to_patron_list_submit" class="btn btn-default approve">Submit</button>
-                        <button type="button" class="btn btn-default deny" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-default deny" data-bs-dismiss="modal">Cancel</button>
+                        [% PROCESS 'members-patron-selections.inc' id="new-patron-list_form" %]
                     </div> <!-- /.modal-footer -->
                 </form> <!-- /#new-patron-list_form -->
             </div> <!-- /.modal-content -->
@@ -195,15 +168,11 @@
     [% INCLUDE 'columns_settings.inc' %]
     [% INCLUDE 'str/members-menu.inc' %]
     [% Asset.js("js/members-menu.js") | $raw %]
+    [% Asset.js("js/members-patron-selections.js") | $raw %]
     [% INCLUDE 'select2.inc' %]
     <script>
-        function showPatronSelections( number ){
-            $("#patron_search_selected").show().find("span").text( _("Patrons selected: ") + number );
-        }
-
         $(document).ready(function() {
-            $('#merge-patrons').prop('disabled', true);
-            $('#send_notice_letter_select').prop('disabled', true);
+            $('#merge-patrons, #batch-mod-patrons').prop('disabled', true);
             $('#memberresultst').on('change', 'input.selection', function() {
                 var patron_search_selections = JSON.parse( localStorage.getItem("patron_search_selections") ) || [];
                 var borrowernumber = $(this).val();
@@ -222,24 +191,20 @@
                     } else {
                         patron_search_selections = [];
                         localStorage.removeItem('patron_search_selections');
-                        $("#patron_search_selected").hide();
+                        $("#table_search_selections").hide();
                     }
                 }
                 if ( patron_search_selections.length > 1 ) {
-                    /* More than one checkbox has been checked */
-                    $('#merge-patrons').prop('disabled', false).removeClass("disabled");
-                    $("#patronlist-menu").removeClass("disabled").prop("disabled", false);
-                    $('#send_notice_letter_select').removeClass("disabled").prop("disabled", false);
+                    /* More than one checkbox has been checked. All batch options enabled */
+                    $("#batch-mod-patrons, #merge-patrons, #patronlist-menu").removeClass("disabled").prop("disabled", false);
                 } else if ( patron_search_selections.length == 1 ) {
-                    /* At least one checkbox has been checked */
+                    /* Only one checkbox has been checked */
+                    $("#batch-mod-patrons, #patronlist-menu").removeClass("disabled").prop("disabled", false);
+                    /* Merge requires more than one selection */
                     $('#merge-patrons').prop('disabled', true).addClass("disabled");
-                    $("#patronlist-menu").removeClass("disabled").prop("disabled", false);
-                    $('#send_notice_letter_select').removeClass("disabled").prop("disabled", false);
                 } else {
-                    /* No checkbox has been checked */
-                    $('#merge-patrons').prop('disabled', true).addClass("disabled");
-                    $("#patronlist-menu").addClass("disabled").prop("disabled", true);
-                    $('#send_notice_letter_select').addClass("disabled").prop("disabled", true);
+                    /* No checkbox has been checked. No batch options enabled */
+                    $("#batch-mod-patrons, #merge-patrons, #patronlist-menu").addClass("disabled").prop("disabled", true);
                 }
             });
 
@@ -249,14 +214,13 @@
                 window.location.href = merge_patrons_url;
             });
 
-            $("#clear-patron-selection").on("click", function(e){
+            $("#clear-row-selection").on("click", function(e){
                 e.preventDefault();
-                $(".selection").prop("checked", false).change();
+                $("input.selection").prop("checked", false).change();
                 localStorage.removeItem("patron_search_selections");
-                $("#patron_search_selected").hide();
-                $('#merge-patrons').prop('disabled', true).addClass("disabled");
-                $("#patronlist-menu").addClass("disabled").prop("disabled", true);
-                $('#send_notice_letter_select').addClass("disabled").prop("disabled", true);
+                $("#table_search_selections").hide();
+                $('#merge-patrons, #patronlist-menu, #batch-mod-patrons').prop('disabled', true).addClass("disabled");
+                $("#borrowernumberlist").val("");
             });
 
             $("#patronlist-dropdown").on("click", ".patron-list-add", function(e){
@@ -278,7 +242,16 @@
 
                     patronListAdd();
                 }
-            })
+            });
+
+            $("#batch-mod-patrons").on("click", function(e) {
+                e.preventDefault();
+                var patron_search_selections = JSON.parse( localStorage.getItem("patron_search_selections") ) || [];
+                if( patron_search_selections.length > 0 ){
+                    $("#borrowernumberlist").val( patron_search_selections.join('\n') );
+                    $("#patron_batchmod_form").submit();
+                }
+            });
 
             /* Submit selected patrons to a list via AJAX */
             $("#new-patron-list_form").on('submit', function(e){
@@ -303,7 +276,7 @@
 
             $("#select_all").on("click",function(e){
                 e.preventDefault();
-                $(".selection").each(function(){
+                $("input.selection").each(function(){
                     if( $(this).prop("checked") == false ){
                         $(this).prop( "checked", true ).change();
                     }
@@ -311,182 +284,41 @@
             });
             $("#clear_all").on("click",function(e){
                 e.preventDefault();
-                $(".selection").each(function(){
+                $("input.selection").each(function(){
                     if( $(this).prop("checked") ){
                         $(this).prop("checked", false ).change();
                     }
                 });
             });
-
-            [% IF searchmember %]
-                $("#searchmember_filter").val("[% searchmember | html %]");
-            [% END %]
-            [% IF searchfieldstype %]
-                $("searchfieldstype_filter").val("[% searchfieldstype | html %]");
-            [% END %]
-            [% IF searchtype %]
-                $("#searchtype_filter option[value='[% searchtype | html %]']").prop("selected", true);
-            [% END %]
-            [% IF categorycode_filter %]
-                $("#categorycode_filter").val("[% categorycode_filter | html %]");
-            [% END %]
-            [% IF branchcode_filter %]
-                $("#branchcode_filter").val("[% branchcode_filter | html %]");
-            [% END %]
-
-            $("#searchheader").hide();
-            $("#patron_search_form").on('submit', function(){$("#searchheader").show();});
-            $("#clear_search").on("click",function(e){$("#searchheader").hide();});
-
-            [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
-            $("#send_notice_letter_select").on('click', function(e){
-                var patronCount = $("#memberresultst input:checkbox:checked").length;
-                if ( patronCount == 0 ) {
-                    alert( _("You do not have selected any patrons to send a notice!") );
-                    return false;
-                }
-                if ( patronCount > 100 ) {
-                    alert( _("Sending an adhoc notice is limited to a maximum of 100 patrons!") );
-                    return false;
-                }
-
-                $('#selectAdhocNoticeLetterPatronCount').text(patronCount);
-                
-                $.ajax({
-                    data: {},
-                    type: 'POST',
-                    url: '/cgi-bin/koha/svc/members/adhocletters',
-                    success: function(data) {           
-                        var letterSelect =  $("#adhocNoticeLetterSelection_letter");
-                        letterSelect.find('option').remove();
-                        for (var i=0; i < data.letters.length; i++ ) {
-                           letterSelect.append($('<option></option>').val(data.letters[i].code).html(data.letters[i].name));
-                        }
-                        $("#selectAdhocNoticeLetter").modal("show");
-                    },
-                    error: function() {
-                        alert( _("An error occured while retrieving available letters for adhoc-notices.") );
-                    }
-                });
-
-                return true;
-            });
-            $("#send_notice_submit").on('click', function(e){
-                e.preventDefault();
-                var patronCount = $("#memberresultst input:checkbox:checked").length;
-                if ( patronCount == 0 ) {
-                    alert( _("You have not selected any patrons to send a notice!") );
-                    return false;
-                }
-                if ( patronCount > 100 ) {
-                    alert( _("Sending an adhoc notice is limited to a maximum of 100 patrons!") );
-                    return false;
-                }
-
-                var borrowernumbers = [];
-                $("#memberresultst").find("input:checkbox:checked").each(function(){
-                    borrowernumbers.push($(this).val());
-                });
-                
-                var data = {
-                    use_letter: $("#adhocNoticeLetterSelection_letter").val(),
-                    use_email: ($('#preferEmail').is(":checked") ? $("#preferEmail").val() : ''),
-                    no_notice_fees: ($('#dontCharge').is(":checked") ? $("#dontCharge").val() : ''),
-                    no_email_bcc: ($('#noBccEmail').is(":checked") ? '' : $("#noBccEmail").val() ),
-                    borrowernumbers: borrowernumbers
-                };
-
-                $.ajax({
-                    data: data,
-                    type: 'POST',
-                    url: '/cgi-bin/koha/svc/members/sendnotice',
-                    success: function(data) {
-                        var patronExportModal = $("#selectAdhocNoticeLetter");
-                        $("#notice_sent_dialog").show();
-                        $("#notice_sent_dialog").find(".patrons-length").text(patronCount);
-                        $("#notice_sent_dialog").find(".letter-name").text($("#adhocNoticeLetterSelection_letter").find("option:selected").text());
-                        if ( data.letter_mailed > 0 ) {
-                            $("#notice_sent_dialog").find(".letter-email-count").text(data.letter_mailed);
-                            $("#notice_sent_dialog").find(".letter-email").show();
-                        }
-                        else {
-                            $("#notice_sent_dialog").find(".letter-email").hide();
-                        }
-                        if ( data.letter_printed > 0 ) {
-                            $("#notice_sent_dialog").find(".letter-print-count").text(data.letter_printed);
-                            $("#notice_sent_dialog").find("a").attr("href","/cgi-bin/koha/tools/download-files.pl?filename=" + data.printedfile + "&op=download");
-                            $("#notice_sent_dialog").find(".letter-print").show();
-                        }
-                        else {
-                            $("#notice_sent_dialog").find(".letter-print").hide();
-                        }
-                        
-                        //console.log(data);
-                        patronExportModal.modal("hide");
-                        $("#memberresultst").DataTable().ajax.reload();
-                    },
-                    error: function() {
-                        alert( _("A server error occured processing the adhoc notice request.") );
-                    }
-                });
-
-                return true;
-            });
-            [% END %]
         });
 
         function patronListAdd(){
             var borrowernumbers = JSON.parse( localStorage.getItem("patron_search_selections") ) || [];
             if ( borrowernumbers.length > 0 ){
-                var data = {
-                    add_to_patron_list: $("#add_to_patron_list").val(),
-                    new_patron_list: $("#new_patron_list").val(),
-                    borrowernumbers: borrowernumbers
-                };
-                $.ajax({
-                    data: data,
-                    type: 'POST',
-                    url: '/cgi-bin/koha/svc/members/add_to_list',
-                    success: function(data) {
+                const client = APIClient.patron;
+                client.lists.add_patrons({patron_ids: borrowernumbers, new_list_name: $("#new_patron_list").val(), list_id: $("#add_to_patron_list").val()}).then(
+                    success => {
                         $("#patron_list_dialog").show();
-                        $("#patron_list_dialog > span.patrons-length").html(data.patrons_added_to_list);
-                        $("#patron_list_dialog > a").attr("href", "/cgi-bin/koha/patron_lists/list.pl?patron_list_id=" + data.patron_list.patron_list_id);
-                        $("#patron_list_dialog > a").html(data.patron_list.name);
+                        $("#patron_list_dialog > span.patrons-length").html(success.patrons_added_to_list);
+                        $("#patron_list_dialog > a").attr("href", "/cgi-bin/koha/patron_lists/list.pl?patron_list_id=" + success.patron_list.patron_list_id);
+                        $("#patron_list_dialog > a").html(success.patron_list.name);
 
                         if ( $('#add_to_patron_list').val() == 'new' ) {
                             /* Add a new entry to the menu */
-                            $("#patronlist-dropdown .divider").before('<li><a class="patron-list-add" href="#" data-listid="' + data.patron_list.patron_list_id + '">' + data.patron_list.name + '</li>');
+                            $("#patronlist-dropdown .divider").before('<li><a class="patron-list-add" href="#" data-listid="' + success.patron_list.patron_list_id + '">' + success.patron_list.name + '</li>');
                         }
+                        persistPatronSelections('new-patron-list_form');
+                        prepSelections();
                     },
-                    error: function() {
+                    error => {
                         alert( _("An error occurred. Patron list could not be updated.") );
+                        console.warn("Something wrong happened: %s".format(error));
                     }
-                });
+                );
                 return true;
             } else {
                 alert( _("You have not selected any patrons to add to a list!") );
                 return false;
-            }
-        }
-
-        function prepSelections(){
-            var selected_patrons = JSON.parse( localStorage.getItem("patron_search_selections") );
-            if( selected_patrons && selected_patrons.length > 0 ){
-                showPatronSelections( selected_patrons.length );
-
-                $('#merge-patrons').prop('disabled', true);
-                $('#send_notice_letter_select').removeClass("disabled").prop("disabled", false);
-                $("input.selection").each(function(){
-                    var cardnumber = $(this).val();
-                    if( selected_patrons.indexOf( cardnumber ) >= 0 ){
-                        $(this).prop("checked", true );
-                    }
-                });
-
-                if( selected_patrons.length > 1 ){
-                    $('#merge-patrons').removeClass("disabled").prop('disabled', false);
-                    $('#patronlist-menu').removeClass("disabled").prop('disabled', false);
-                }
             }
         }
 
@@ -514,8 +346,7 @@
     [% ELSE %]
         [% SET redirect_url = '/cgi-bin/koha/members/moremember.pl' %]
     [% END %]
-    [% PROCESS patron_search_js table_id => 'memberresultst', categories => categories, libraries => libraries, extended_attribute_types => attribute_type_codes, columns => columns,actions => ['edit', 'checkout'], redirect_if_one_result => 1, redirect_url => redirect_url, sticky_header => "searchheader", sticky_to => "searchresults", default_sort_column => 'name-address', display_search_description => 1, remember_selections => 1 %]
+    [% PROCESS patron_search_js defer_loading => defer_loading, table_id => 'memberresultst', categories => categories, libraries => libraries, columns => columns,actions => ['edit', 'checkout'], redirect_if_one_result => 1, redirect_url => redirect_url, sticky_header => "searchheader", sticky_to => "searchresults", default_sort_column => 'name-address', display_search_description => 1, remember_selections => 1, adjust_history => 1 %]
 
 [% END %]
-
 [% INCLUDE 'intranet-bottom.inc' %]

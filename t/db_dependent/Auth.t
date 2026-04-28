@@ -7,14 +7,15 @@ use CGI qw ( -utf8 );
 use Test::MockObject;
 use Test::MockModule;
 use List::MoreUtils qw/all any none/;
-use Test::More tests => 22;
+use Test::More tests => 23;
 use Test::Warn;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 use C4::Auth;
 use C4::Members;
-use Koha::AuthUtils qw/hash_password/;
+use Koha::AuthUtils qw( hash_password );
+use Koha::DateUtils qw( dt_from_string );
 use Koha::Database;
 use Koha::Patrons;
 use Koha::Auth::TwoFactorAuth;
@@ -22,7 +23,7 @@ use Koha::Auth::TwoFactorAuth;
 BEGIN {
     use_ok(
         'C4::Auth',
-        qw( checkauth haspermission track_login_daily checkpw get_template_and_user checkpw_hash get_cataloguing_page_permissions )
+        qw( checkauth haspermission checkpw get_template_and_user checkpw_hash get_cataloguing_page_permissions )
     );
 }
 
@@ -41,7 +42,7 @@ $schema->storage->txn_begin;
 
 subtest 'checkauth() tests' => sub {
 
-    plan tests => 9;
+    plan tests => 11;
 
     my $patron = $builder->build_object({ class => 'Koha::Patrons', value => { flags => undef } });
 
@@ -68,8 +69,8 @@ subtest 'checkauth() tests' => sub {
     $cgi->mock( 'cookie', sub { return; } );
     $cgi->mock( 'param', sub {
             my ( $self, $param ) = @_;
-            if ( $param eq 'userid' ) { return $db_user_id; }
-            elsif ( $param eq 'password' ) { return $db_user_pass; }
+            if ( $param eq 'login_userid' ) { return $db_user_id; }
+            elsif ( $param eq 'login_password' ) { return $db_user_pass; }
             else { return; }
         });
     $cgi->mock( 'request_method', sub { return 'POST' } );
@@ -87,17 +88,15 @@ subtest 'checkauth() tests' => sub {
 
         my $patron = $builder->build_object(
             { class => 'Koha::Patrons', value => { flags => 1 } } );
-        my $password = 'password';
-        t::lib::Mocks::mock_preference( 'RequireStrongPassword', 0 );
-        $patron->set_password( { password => $password } );
+        my $password = set_weak_password($patron);
         $cgi = Test::MockObject->new();
         $cgi->mock( 'cookie', sub { return; } );
         $cgi->mock(
             'param',
             sub {
                 my ( $self, $param ) = @_;
-                if    ( $param eq 'userid' )   { return $patron->userid; }
-                elsif ( $param eq 'password' ) { return $password; }
+                if    ( $param eq 'login_userid' )   { return $patron->userid; }
+                elsif ( $param eq 'login_password' ) { return $password; }
                 else                           { return; }
             }
         );
@@ -115,8 +114,7 @@ subtest 'checkauth() tests' => sub {
 
         plan tests => 2;
 
-        my $patron = $builder->build_object(
-            { class => 'Koha::Patrons', value => { flags => 1 } } );
+        my $patron   = $builder->build_object( { class => 'Koha::Patrons', value => { flags => 1 } } );
         my $password = 'password';
         t::lib::Mocks::mock_preference( 'RequireStrongPassword', 0 );
         $patron->set_password( { password => $password } );
@@ -126,8 +124,8 @@ subtest 'checkauth() tests' => sub {
             'param',
             sub {
                 my ( $self, $param ) = @_;
-                if    ( $param eq 'userid' )   { return $patron->userid; }
-                elsif ( $param eq 'password' ) { return $password; }
+                if    ( $param eq 'login_userid' )   { return $patron->userid; }
+                elsif ( $param eq 'login_password' ) { return $password; }
                 else                           { return; }
             }
         );
@@ -140,46 +138,50 @@ subtest 'checkauth() tests' => sub {
 
     };
 
+    subtest 'sessionID should be passed to the template for auth' => sub {
+
+        plan tests => 1;
+
+        subtest 'hit auth.tt' => sub {
+
+            plan tests => 1;
+
+            my $patron = $builder->build_object( { class => 'Koha::Patrons', value => { flags => 0 } } );
+
+            my $password = set_weak_password($patron);
+
+            my $cgi_mock = Test::MockModule->new('CGI');
+            $cgi_mock->mock( 'request_method', sub { return 'POST' } );
+            my $cgi = CGI->new;
+
+            # Simulating the login form submission
+            $cgi->param( 'login_userid',   $patron->userid );
+            $cgi->param( 'login_password', $password );
+
+            my ( $userid, $cookie, $sessionID, $flags, $template ) =
+                C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet', undef, undef, { do_not_print => 1 } );
+            ok( $template->{VARS}->{sessionID} );
+        };
+    };
 
     subtest 'Template params tests (password_expired)' => sub {
 
         plan tests => 1;
 
-        my $password_expired;
+        my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
 
-        my $patron_class = Test::MockModule->new('Koha::Patron');
-        $patron_class->mock( 'password_expired', sub { return $password_expired; } );
+        my $password = set_weak_password($patron);
+        $patron->password_expiration_date( dt_from_string->subtract(days => 1) )->store;
 
-        my $patron = $builder->build_object({ class => 'Koha::Patrons', value => { flags => 1 } });
-        my $password = 'password';
-        t::lib::Mocks::mock_preference( 'RequireStrongPassword', 0 );
-        $patron->set_password( { password => $password } );
+        my $cgi_mock = Test::MockModule->new('CGI');
+        $cgi_mock->mock( 'request_method', sub { return 'POST' } );
+        my $cgi  = CGI->new;
+        # Simulating the login form submission
+        $cgi->param( 'login_userid',   $patron->userid );
+        $cgi->param( 'login_password', $password );
 
-        my $cgi_mock = Test::MockModule->new('CGI')->mock( 'request_method', 'POST' );
-        my $cgi = CGI->new;
-        $cgi->param( -name => 'userid',   -value => $patron->userid );
-        $cgi->param( -name => 'password', -value => $password );
-
-        my $auth = Test::MockModule->new( 'C4::Auth' );
-        # Tests will fail if we hit safe_exit
-        $auth->mock( 'safe_exit', sub { return } );
-
-        my ( $userid, $cookie, $sessionID, $flags );
-
-        {
-            t::lib::Mocks::mock_preference( 'DumpTemplateVarsOpac', 1 );
-            # checkauth will redirect and safe_exit if not authenticated and not authorized
-            local *STDOUT;
-            my $stdout;
-            open STDOUT, '>', \$stdout;
-
-            # Password has expired
-            $password_expired = 1;
-            C4::Auth::checkauth( $cgi, 0, { catalogue => 1 } );
-            like( $stdout, qr{'password_has_expired' => 1}, 'password_has_expired is set to 1' );
-
-            close STDOUT;
-        };
+        my ( $userid, $cookie, $sessionID, $flags, $template ) = C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet', undef, undef, { do_not_print => 1 } );
+        is( $template->{VARS}->{password_has_expired}, 1 );
     };
 
     subtest 'Reset auth state when changing users' => sub {
@@ -197,37 +199,27 @@ subtest 'checkauth() tests' => sub {
         $session->param( 'interface', 'intranet' );
         $session->flush;
         my $sessionID = $session->id;
-        C4::Context->_new_userenv($sessionID);
 
         my ($return) =
             C4::Auth::check_cookie_auth( $sessionID, undef, { skip_version_check => 1, remote_addr => '1.2.3.4' } );
         is( $return, 'ok', 'Patron authenticated' );
 
-        my $mock1 = Test::MockModule->new('C4::Auth');
-        $mock1->mock( 'safe_exit', sub { return 'safe_exit_redirect' } );
         my $mock2 = Test::MockModule->new('CGI');
         $mock2->mock( 'request_method', 'POST' );
         $mock2->mock( 'cookie',         sub { return $sessionID; } );    # oversimplified..
         my $cgi = CGI->new;
 
-        $cgi->param( -name => 'userid',             -value => 'Bond' );
-        $cgi->param( -name => 'password',           -value => 'James Bond' );
+        $cgi->param( -name => 'login_userid',             -value => 'Bond' );
+        $cgi->param( -name => 'login_password',           -value => 'James Bond' );
         $cgi->param( -name => 'koha_login_context', -value => 1 );
-        my ( @return, $stdout );
-        {
-            local *STDOUT;
-            local %ENV;
-            $ENV{REMOTE_ADDR} = '1.2.3.4';
-            open STDOUT, '>', \$stdout;
-            @return = C4::Auth::checkauth( $cgi, 0, {} );
-            close STDOUT;
-        }
-        is( $return[0], 'safe_exit_redirect', 'Changing to non-existent user causes a redirect to login' );
+        my ( $userid, $cookie, $flags, $template );
+        ( $userid, $cookie, $sessionID, $flags, $template ) =
+            C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet', undef, undef, { do_not_print => 1 } );
+        is( $template->{VARS}->{loginprompt}, 1, 'Changing to non-existent user causes a redirect to login' );
     };
 
-
     subtest 'While still logged in, relogin with another user' => sub {
-        plan tests => 6;
+        plan tests => 5;
 
         my $patron = $builder->build_object({ class => 'Koha::Patrons', value => {} });
         my $patron2 = $builder->build_object({ class => 'Koha::Patrons', value => {} });
@@ -239,36 +231,27 @@ subtest 'checkauth() tests' => sub {
         $session->param( 'lasttime',     time() );
         $session->param( 'interface',    'opac' );
         $session->flush;
-        my $sessionID = $session->id;
-        C4::Context->_new_userenv($sessionID);
+        my $previous_sessionID = $session->id;
 
-        my ( $return ) = C4::Auth::check_cookie_auth( $sessionID, undef, { skip_version_check => 1, remote_addr => '1.2.3.4' } );
+        my ( $return ) = C4::Auth::check_cookie_auth( $previous_sessionID, undef, { skip_version_check => 1, remote_addr => '1.2.3.4' } );
         is( $return, 'ok', 'Former session in shape now' );
 
         my $mock1 = Test::MockModule->new('C4::Auth');
         $mock1->mock( 'safe_exit', sub {} );
         my $mock2 = Test::MockModule->new('CGI');
         $mock2->mock( 'request_method', 'POST' );
-        $mock2->mock( 'cookie', sub { return $sessionID; } ); # oversimplified..
+        $mock2->mock( 'cookie', sub { return $previous_sessionID; } ); # oversimplified..
         my $cgi = CGI->new;
         my $password = 'Incr3d1blyZtr@ng93$';
         $patron2->set_password({ password => $password });
-        $cgi->param( -name => 'userid',             -value => $patron2->userid );
-        $cgi->param( -name => 'password',           -value => $password );
+        $cgi->param( -name => 'login_userid',             -value => $patron2->userid );
+        $cgi->param( -name => 'login_password',           -value => $password );
         $cgi->param( -name => 'koha_login_context', -value => 1 );
-        my ( @return, $stdout );
-        {
-            local *STDOUT;
-            local %ENV;
-            $ENV{REMOTE_ADDR} = '1.2.3.4';
-            open STDOUT, '>', \$stdout;
-            @return = C4::Auth::checkauth( $cgi, 0, {} );
-            close STDOUT;
-        }
-        # Note: We can test return values from checkauth here since we mocked the safe_exit after the Redirect 303
-        is( $return[0], $patron2->userid, 'Login of patron2 approved' );
-        isnt( $return[2], $sessionID, 'Did not return previous session ID' );
-        ok( $return[2], 'New session ID not empty' );
+        my ( $userid, $cookie, $sessionID, $flags, $template ) =
+            C4::Auth::checkauth( $cgi, 0, {}, 'opac', undef, undef, { do_not_print => 1 } );
+        is( $userid, $patron2->userid, 'Login of patron2 approved' );
+        isnt( $sessionID, $previous_sessionID, 'Did not return previous session ID' );
+        ok( $sessionID, 'New session ID not empty' );
 
         # Similar situation: Relogin with former session of $patron, new user $patron2 has no permissions
         $patron2->flags(undef)->store;
@@ -276,26 +259,19 @@ subtest 'checkauth() tests' => sub {
         $session->param( 'id',           $patron->userid );
         $session->param( 'interface',    'intranet' );
         $session->flush;
-        $sessionID = $session->id;
-        C4::Context->_new_userenv($sessionID);
-        $cgi->param( -name => 'userid',             -value => $patron2->userid );
-        $cgi->param( -name => 'password',           -value => $password );
+        $previous_sessionID = $session->id;
+        $cgi->param( -name => 'login_userid',             -value => $patron2->userid );
+        $cgi->param( -name => 'login_password',           -value => $password );
         $cgi->param( -name => 'koha_login_context', -value => 1 );
-        {
-            local *STDOUT;
-            local %ENV;
-            $ENV{REMOTE_ADDR} = '1.2.3.4';
-            $stdout = q{};
-            open STDOUT, '>', \$stdout;
-            @return = C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet' ); # patron2 has no catalogue perm
-            close STDOUT;
-        }
-        like( $stdout, qr/You do not have permission to access this page/, 'No permission response' );
-        is( @return, 0, 'checkauth returned failure' );
+        ( $userid, $cookie, $sessionID, $flags, $template ) =
+            C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet', undef, undef, { do_not_print => 1 } );
+        is( $template->{VARS}->{nopermission}, 1, 'No permission response' );
     };
 
     subtest 'Two-factor authentication' => sub {
         plan tests => 18;
+
+        t::lib::Mocks::mock_preference( 'StaffLoginRestrictLibraryByIP', 0 );
 
         my $patron = $builder->build_object(
             { class => 'Koha::Patrons', value => { flags => 1 } } );
@@ -309,8 +285,8 @@ subtest 'checkauth() tests' => sub {
             'param',
             sub {
                 my ( $self, $param ) = @_;
-                if    ( $param eq 'userid' )    { return $patron->userid; }
-                elsif ( $param eq 'password' )  { return $password; }
+                if    ( $param eq 'login_userid' )    { return $patron->userid; }
+                elsif ( $param eq 'login_password' )  { return $password; }
                 elsif ( $param eq 'otp_token' ) { return $otp_token; }
                 elsif ( $param eq 'logout.x' )  { return $logout; }
                 else                            { return; }
@@ -402,50 +378,44 @@ subtest 'checkauth() tests' => sub {
         is( $auth_status, 'ok', 'User waiting for 2FA setup, pref was disabled, access OK' );
     };
 
-    C4::Context->_new_userenv; # For next tests
+    subtest 'loggedinlibrary permission tests' => sub {
 
-};
+        plan tests => 3;
+        my $staff_user = $builder->build_object(
+            { class => 'Koha::Patrons', value => { flags => 536870916 } } );
 
-subtest 'track_login_daily tests' => sub {
+        my $branch = $builder->build_object({ class => 'Koha::Libraries' });
 
-    plan tests => 5;
+        my $password = set_weak_password($staff_user);
+        my $cgi = Test::MockObject->new();
+        $cgi->mock( 'cookie', sub { return; } );
+        $cgi->mock(
+            'param',
+            sub {
+                my ( $self, $param ) = @_;
+                if    ( $param eq 'login_userid' )   { return $staff_user->userid; }
+                elsif ( $param eq 'login_password' ) { return $password; }
+                elsif ( $param eq 'branch' )   { return $branch->branchcode; }
+                else                           { return; }
+            }
+        );
 
-    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
-    my $userid = $patron->userid;
+        $cgi->mock( 'request_method', sub { return 'POST' } );
+        my ( $userid, $cookie, $sessionID, $flags ) = C4::Auth::checkauth( $cgi, 'authrequired' );
+        my $sesh = C4::Auth::get_session($sessionID);
+        is( $sesh->param('branch'), $branch->branchcode, "If user has permission, they should be able to choose a branch" );
 
-    $patron->lastseen( undef );
-    $patron->store();
+        $staff_user->flags(4)->store->discard_changes;
+        ( $userid, $cookie, $sessionID, $flags ) = C4::Auth::checkauth( $cgi, 'authrequired' );
+        $sesh = C4::Auth::get_session($sessionID);
+        is( $sesh->param('branch'), $staff_user->branchcode, "If user has not permission, they should not be able to choose a branch" );
 
-    my $cache     = Koha::Caches->get_instance();
-    my $cache_key = "track_login_" . $patron->userid;
-    $cache->clear_from_cache($cache_key);
+        $staff_user->flags(1)->store->discard_changes;
+        ( $userid, $cookie, $sessionID, $flags ) = C4::Auth::checkauth( $cgi, 'authrequired' );
+        $sesh = C4::Auth::get_session($sessionID);
+        is( $sesh->param('branch'), $branch->branchcode, "If user is superlibrarian, they should be able to choose a branch" );
 
-    t::lib::Mocks::mock_preference( 'TrackLastPatronActivity', '1' );
-
-    is( $patron->lastseen, undef, 'Patron should have not last seen when newly created' );
-
-    C4::Auth::track_login_daily( $userid );
-    $patron->_result()->discard_changes();
-    isnt( $patron->lastseen, undef, 'Patron should have last seen set when TrackLastPatronActivity = 1' );
-
-    sleep(1); # We need to wait a tiny bit to make sure the timestamp will be different
-    my $last_seen = $patron->lastseen;
-    C4::Auth::track_login_daily( $userid );
-    $patron->_result()->discard_changes();
-    is( $patron->lastseen, $last_seen, 'Patron last seen should still be unchanged' );
-
-    $cache->clear_from_cache($cache_key);
-    C4::Auth::track_login_daily( $userid );
-    $patron->_result()->discard_changes();
-    isnt( $patron->lastseen, $last_seen, 'Patron last seen should be changed if we cleared the cache' );
-
-    t::lib::Mocks::mock_preference( 'TrackLastPatronActivity', '0' );
-    $patron->lastseen( undef )->store;
-    $cache->clear_from_cache($cache_key);
-    C4::Auth::track_login_daily( $userid );
-    $patron->_result()->discard_changes();
-    is( $patron->lastseen, undef, 'Patron should still have last seen unchanged when TrackLastPatronActivity = 0' );
-
+    };
 };
 
 subtest 'no_set_userenv parameter tests' => sub {
@@ -454,14 +424,12 @@ subtest 'no_set_userenv parameter tests' => sub {
 
     my $library = $builder->build_object( { class => 'Koha::Libraries' } );
     my $patron  = $builder->build_object( { class => 'Koha::Patrons' } );
-    my $password = 'password';
 
-    t::lib::Mocks::mock_preference( 'RequireStrongPassword', 0 );
-    $patron->set_password({ password => $password });
+    my $password = set_weak_password($patron);
 
     ok( checkpw( $patron->userid, $password, undef, undef, 1 ), 'checkpw returns true' );
+    C4::Context->unset_userenv;
     is( C4::Context->userenv, undef, 'Userenv should be undef as required' );
-    C4::Context->_new_userenv('DUMMY SESSION');
     C4::Context->set_userenv(0,0,0,'firstname','surname', $library->branchcode, 'Library 1', 0, '', '');
     is( C4::Context->userenv->{branch}, $library->branchcode, 'Userenv gives correct branch' );
     ok( checkpw( $patron->userid, $password, undef, undef, 1 ), 'checkpw returns true' );
@@ -476,10 +444,8 @@ subtest 'checkpw lockout tests' => sub {
 
     my $library = $builder->build_object( { class => 'Koha::Libraries' } );
     my $patron  = $builder->build_object( { class => 'Koha::Patrons' } );
-    my $password = 'password';
-    t::lib::Mocks::mock_preference( 'RequireStrongPassword', 0 );
+    my $password = set_weak_password($patron);
     t::lib::Mocks::mock_preference( 'FailedLoginAttempts', 1 );
-    $patron->set_password({ password => $password });
 
     my ( $checkpw, undef, undef ) = checkpw( $patron->cardnumber, $password, undef, undef, 1 );
     ok( $checkpw, 'checkpw returns true with right password when logging in via cardnumber' );
@@ -720,7 +686,7 @@ subtest 'Check value of login_attempts in checkpw' => sub {
 };
 
 subtest 'Check value of login_attempts in checkpw' => sub {
-    plan tests => 2;
+    plan tests => 3;
 
     t::lib::Mocks::mock_preference('FailedLoginAttempts', 3);
     my $patron = $builder->build_object({ class => 'Koha::Patrons' });
@@ -733,6 +699,10 @@ subtest 'Check value of login_attempts in checkpw' => sub {
     @test = checkpw( $patron->userid, '123', undef, 'opac', 1 );
     is( $test[0], -2, 'Patron returned as expired correctly' );
 
+    ## Make our patron the anonymous patron
+    t::lib::Mocks::mock_preference( 'AnonymousPatron', $patron->id );
+    @test = checkpw( $patron->userid, '123', undef, 'opac', 1 );
+    is( $test[0], -3, 'Patron returned as anonymous patron correctly' );
 };
 
 subtest '_timeout_syspref' => sub {
@@ -797,13 +767,11 @@ subtest 'check_cookie_auth' => sub {
 };
 
 subtest 'checkauth & check_cookie_auth' => sub {
-    plan tests => 35;
+    plan tests => 33;
 
     # flags = 4 => { catalogue => 1 }
     my $patron = $builder->build_object({ class => 'Koha::Patrons', value => { flags => 4 } });
-    my $password = 'password';
-    t::lib::Mocks::mock_preference( 'RequireStrongPassword', 0 );
-    $patron->set_password( { password => $password } );
+    my $password = set_weak_password($patron);
 
     my $cgi_mock = Test::MockModule->new('CGI');
     $cgi_mock->mock( 'request_method', sub { return 'POST' } );
@@ -830,16 +798,10 @@ subtest 'checkauth & check_cookie_auth' => sub {
     my $first_sessionID = $sessionID;
 
     $ENV{"HTTP_COOKIE"} = "CGISESSID=$sessionID";
-    # Not authenticated yet, checkauth didn't return the session
-    {
-        local *STDOUT;
-        my $stdout;
-        open STDOUT, '>', \$stdout;
-        ( $userid, $cookie, $sessionID, $flags ) = C4::Auth::checkauth($cgi, 0, {catalogue => 1} );
-        close STDOUT;
-    }
-    is( $sessionID, undef);
-    is( $userid, undef);
+    # Not authenticated yet, the login form is displayed
+    my $template;
+    ( $userid, $cookie, $sessionID, $flags, $template ) = C4::Auth::checkauth($cgi, 0, {catalogue => 1}, 'intranet', undef, undef, { do_not_print => 1 } );
+    is( $template->{VARS}->{loginprompt}, 1, );
 
     # Sending undefined fails obviously
     my ( $auth_status, $session ) = C4::Auth::check_cookie_auth($sessionID, {catalogue => 1} );
@@ -847,8 +809,8 @@ subtest 'checkauth & check_cookie_auth' => sub {
     is( $session, undef );
 
     # Simulating the login form submission
-    $cgi->param('userid', $patron->userid);
-    $cgi->param('password', $password);
+    $cgi->param('login_userid', $patron->userid);
+    $cgi->param('login_password', $password);
 
     # Logged in!
     ( $userid, $cookie, $sessionID, $flags ) = C4::Auth::checkauth($cgi, 0, {catalogue => 1});
@@ -878,14 +840,10 @@ subtest 'checkauth & check_cookie_auth' => sub {
 
     # Logging out!
     $cgi->param('logout.x', 1);
-    $cgi->delete( 'userid', 'password' );
-    {
-        local *STDOUT;
-        my $stdout;
-        open STDOUT, '>', \$stdout;
-        ( $userid, $cookie, $sessionID, $flags ) = C4::Auth::checkauth($cgi, 0, {catalogue => 1});
-        close STDOUT;
-    }
+    $cgi->delete( 'login_userid', 'login_password' );
+    ( $userid, $cookie, $sessionID, $flags, $template ) =
+        C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet', undef, undef, { do_not_print => 1 } );
+
     is( $sessionID, undef );
     is( $ENV{"HTTP_COOKIE"}, "CGISESSID=$first_sessionID", 'HTTP_COOKIE not unset' );
     ( $auth_status, $session) = C4::Auth::check_cookie_auth( $first_sessionID, {catalogue => 1} );
@@ -915,8 +873,8 @@ subtest 'checkauth & check_cookie_auth' => sub {
     {
         # First logging in
         $cgi = CGI->new;
-        $cgi->param('userid', $patron->userid);
-        $cgi->param('password', $password);
+        $cgi->param('login_userid', $patron->userid);
+        $cgi->param('login_password', $password);
         ( $userid, $cookie, $sessionID, $flags ) = C4::Auth::checkauth($cgi, 0, {catalogue => 1});
         is( $userid, $patron->userid );
         $first_sessionID = $sessionID;
@@ -955,14 +913,13 @@ subtest 'checkauth & check_cookie_auth' => sub {
         is( $auth_status, "ok" );
         is( $session->id, $sessionID, 'Same session' );
         # Two additional tests on userenv
-        is( $C4::Context::context->{activeuser}, $session->id, 'Check if environment has been setup for session' );
         is( C4::Context->userenv->{id}, $userid, 'Check userid in userenv' );
     }
 };
 
 subtest 'Userenv clearing in check_cookie_auth' => sub {
     # Note: We did already test userenv for a logged-in user in previous subtest
-    plan tests => 9;
+    plan tests => 8;
 
     t::lib::Mocks::mock_preference( 'timeout', 600 );
     my $cgi = CGI->new;
@@ -972,7 +929,6 @@ subtest 'Userenv clearing in check_cookie_auth' => sub {
     my ($userid, $cookie, $sessionID, $flags ) = C4::Auth::checkauth($cgi, 1);
     my ( $auth_status, $session) = C4::Auth::check_cookie_auth( $sessionID );
     is( $auth_status, 'anon', 'Should be anonymous' );
-    is( $C4::Context::context->{activeuser}, $session->id, 'Check activeuser' );
     is( defined C4::Context->userenv, 1, 'There should be a userenv' );
     is(  C4::Context->userenv->{id}, q{}, 'userid should be empty string' );
 
@@ -984,7 +940,6 @@ subtest 'Userenv clearing in check_cookie_auth' => sub {
     is( C4::Context->userenv, undef, 'Environment should be cleared too' );
 
     # Show that we clear the userenv again: set up env and check deleted session
-    C4::Context->_new_userenv( $sessionID );
     C4::Context->set_userenv; # empty
     is( defined C4::Context->userenv, 1, 'There should be an empty userenv again' );
     ( $auth_status, $session) = C4::Auth::check_cookie_auth( $sessionID );
@@ -1126,7 +1081,7 @@ subtest 'checkpw() return values tests' => sub {
 
     subtest 'Internal check tests' => sub {
 
-        plan tests => 25;
+        plan tests => 29;
 
         $schema->storage->txn_begin;
 
@@ -1143,8 +1098,7 @@ subtest 'checkpw() return values tests' => sub {
         $C4::Auth::ldap = 0;
 
         my $patron   = $builder->build_object( { class => 'Koha::Patrons' } );
-        my $password = 'thePassword123';
-        $patron->set_password( { password => $password, skip_validation => 1 } );
+        my $password = set_weak_password($patron);
 
         my $patron_to_delete  = $builder->build_object( { class => 'Koha::Patrons' } );
         my $unused_userid     = $patron_to_delete->userid;
@@ -1184,6 +1138,14 @@ subtest 'checkpw() return values tests' => sub {
         is( ref( $return[1] ), 'Koha::Patron' );
         is( $return[1]->id,    $patron->id, 'Patron matched correctly' );
 
+        t::lib::Mocks::mock_preference( 'AnonymousPatron', $patron->id );
+        @return = checkpw( $patron->userid, $password, undef, );
+
+        is( scalar @return,    2,  "Two results on expired password scenario" );
+        is( $return[0],        -3, '-3 returned' );
+        is( ref( $return[1] ), 'Koha::Patron' );
+        is( $return[1]->id,    $patron->id, 'Patron matched correctly' );
+
         @return = checkpw( $unused_userid, $password, undef, );
 
         is( scalar @return, 2,     "Two results on non-existing userid scenario" );
@@ -1201,7 +1163,7 @@ subtest 'checkpw() return values tests' => sub {
 
     subtest 'CAS check (mocked) tests' => sub {
 
-        plan tests => 25;
+        plan tests => 29;
 
         $schema->storage->txn_begin;
 
@@ -1265,6 +1227,13 @@ subtest 'checkpw() return values tests' => sub {
 
         is( scalar @return,    2,  "Two results on expired password scenario" );
         is( $return[0],        -2, '-2 returned' );
+        is( ref( $return[1] ), 'Koha::Patron' );
+        is( $return[1]->id,    $patron->id, 'Patron matched correctly' );
+
+        t::lib::Mocks::mock_preference( 'AnonymousPatron', $patron->id );
+        @return = checkpw( $patron->userid, $password, undef, );
+        is( scalar @return,    2,  "Two results on expired password scenario" );
+        is( $return[0],        -3, '-3 returned' );
         is( ref( $return[1] ), 'Koha::Patron' );
         is( $return[1]->id,    $patron->id, 'Patron matched correctly' );
 
@@ -1337,13 +1306,78 @@ subtest 'checkpw() return values tests' => sub {
     };
 };
 
-subtest 'AutoLocation' => sub {
+subtest 'StaffLoginLibraryBasedOnIP' => sub {
 
-    plan tests => 6;
+    plan tests => 7;
 
     $schema->storage->txn_begin;
 
-    t::lib::Mocks::mock_preference( 'AutoLocation', 0 );
+    t::lib::Mocks::mock_preference( 'StaffLoginRestrictLibraryByIP', 0 );
+    t::lib::Mocks::mock_preference( 'StaffLoginLibraryBasedOnIP',    0 );
+
+    my $patron   = $builder->build_object( { class => 'Koha::Patrons',   value => { flags    => 1 } } );
+    my $branch   = $builder->build_object( { class => 'Koha::Libraries', value => { branchip => "127.0.0.1" } } );
+    my $password = 'password';
+    t::lib::Mocks::mock_preference( 'RequireStrongPassword', 0 );
+    $patron->set_password( { password => $password } );
+
+    my $cgi_mock = Test::MockModule->new('CGI');
+    $cgi_mock->mock( 'request_method', sub { return 'POST' } );
+    my $cgi  = CGI->new;
+    my $auth = Test::MockModule->new('C4::Auth');
+
+    # Simulating the login form submission
+    $cgi->param( 'login_userid',   $patron->userid );
+    $cgi->param( 'login_password', $password );
+
+    $ENV{REMOTE_ADDR} = '127.0.0.1';
+    my ( $userid, $cookie, $sessionID, $flags ) =
+        C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet' );
+    is( $userid, $patron->userid, "User successfully logged in" );
+    my $session = C4::Auth::get_session($sessionID);
+    is( $session->param('branch'), $patron->branchcode, "Logged in branch is set to the patron's branchcode" );
+
+    my $template;
+    t::lib::Mocks::mock_preference( 'StaffLoginLibraryBasedOnIP', 1 );
+
+    ( $userid, $cookie, $sessionID, $flags ) = C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet' );
+    is( $userid, $patron->userid, "User successfully logged in" );
+    $session = C4::Auth::get_session($sessionID);
+    is( $session->param('branch'), $branch->branchcode, "Logged in branch is set based on the IP from REMOTE_ADDR " );
+
+    # StaffLoginRestrictLibraryByIP overrides StaffLoginLibraryBasedOnIP
+    t::lib::Mocks::mock_preference( 'StaffLoginRestrictLibraryByIP', 1 );
+    ( $userid, $cookie, $sessionID, $flags, $template ) =
+        C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet', undef, undef, { do_not_print => 1 } );
+    is(
+        $template->{VARS}->{wrongip}, 1,
+        "StaffLoginRestrictLibraryByIP prevents StaffLoginLibraryBasedOnIP from logging user in to another branch"
+    );
+
+    t::lib::Mocks::mock_preference( 'StaffLoginRestrictLibraryByIP', 0 );
+    my $other_branch = $builder->build_object(
+        {
+            class => 'Koha::Libraries',
+            value => { branchip => "127.0.0.1", branchcode => substr( "z" . $branch->branchcode, 0, 10 ) }
+        }
+    );
+    ( $userid, $cookie, $sessionID, $flags ) = C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet' );
+    is( $userid, $patron->userid, "User successfully logged in" );
+    $session = C4::Auth::get_session($sessionID);
+    is(
+        $session->param('branch'), $branch->branchcode,
+        "Logged in branch is set based which branch when two libraries have same IP?"
+    );
+
+};
+
+subtest 'StaffLoginRestrictLibraryByIP' => sub {
+
+    plan tests => 12;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'StaffLoginRestrictLibraryByIP', 0 );
 
     my $patron   = $builder->build_object( { class => 'Koha::Patrons', value => { flags => 1 } } );
     my $password = 'password';
@@ -1354,47 +1388,197 @@ subtest 'AutoLocation' => sub {
     $cgi_mock->mock( 'request_method', sub { return 'POST' } );
     my $cgi  = CGI->new;
     my $auth = Test::MockModule->new('C4::Auth');
-    # Tests will fail if we hit safe_exit
-    $auth->mock( 'safe_exit', sub { return } );
 
     # Simulating the login form submission
-    $cgi->param( 'userid',   $patron->userid );
-    $cgi->param( 'password', $password );
+    $cgi->param( 'login_userid',   $patron->userid );
+    $cgi->param( 'login_password', $password );
 
     $ENV{REMOTE_ADDR} = '127.0.0.1';
     my ( $userid, $cookie, $sessionID, $flags ) = C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet' );
-    is( $userid, $patron->userid );
+    is( $userid, $patron->userid, "Standard login without StaffLoginRestrictLibraryByIP" );
 
     my $template;
-    t::lib::Mocks::mock_preference( 'AutoLocation', 1 );
+    t::lib::Mocks::mock_preference( 'StaffLoginRestrictLibraryByIP', 1 );
 
-    # AutoLocation: "Require staff to log in from a computer in the IP address range specified by their library (if any)"
+    # StaffLoginRestrictLibraryByIP: "Require staff to log in from a computer in the IP address range specified by their library (if any)"
     $patron->library->branchip('')->store;    # There is none, allow access from anywhere
     ( $userid, $cookie, $sessionID, $flags, $template ) =
         C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet' );
-    is( $userid,   $patron->userid );
-    is( $template, undef );
+    is( $userid,   $patron->userid, "Login is successful when patron's branch does not have an IP" );
+    is( $template, undef,           "Template is undef as none passed and not sent to error page" );
 
     $patron->library->branchip('1.2.3.4')->store;
     ( $userid, $cookie, $sessionID, $flags, $template ) =
         C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet', undef, undef, { do_not_print => 1 } );
-    #is( $template->{VARS}->{wrongip}, 1 );
+    is(
+        $template->{VARS}->{wrongip}, 1,
+        "Login denied when no branch specified and IP does not match patron's branch IP"
+    );
 
     $patron->library->branchip('127.0.0.1')->store;
     ( $userid, $cookie, $sessionID, $flags, $template ) =
         C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet' );
-    is( $userid,   $patron->userid );
-    is( $template, undef );
+    is( $userid,   $patron->userid, "Login is successful when patron IP and branch IP match" );
+    is( $template, undef,           "Template is undef as none passed and not sent to error page" );
 
     my $other_library = $builder->build_object( { class => 'Koha::Libraries', value => { branchip => '127.0.0.1' } } );
     $patron->library->branchip('127.0.0.1')->store;
     ( $userid, $cookie, $sessionID, $flags, $template ) =
         C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet' );
     my $session = C4::Auth::get_session($sessionID);
-    is( $session->param('branch'), $patron->branchcode );
+    is(
+        $session->param('branch'), $patron->branchcode,
+        "If no branch specified, and IP matches patron branch, login is successful at patron branch even if another branch IP matches"
+    );
+
+    $cgi->param( 'branch', $other_library->branchcode );
+    ( $userid, $cookie, $sessionID, $flags, $template ) =
+        C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet', undef, undef, { do_not_print => 1 } );
+    $session = C4::Auth::get_session($sessionID);
+    is(
+        $session->param('branch'), $other_library->branchcode,
+        "StaffLoginRestrictLibraryByIP allows specifying a branch as long as the IP matches"
+    );
+
+    $other_library->branchip('129.0.0.1')->store;
+    ( $userid, $cookie, $sessionID, $flags, $template ) =
+        C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet', undef, undef, { do_not_print => 1 } );
+    is( $template->{VARS}->{wrongip}, 1, "Login denied when branch specified and IP does not match branch IP" );
+
+    my $noip_library = $builder->build_object( { class => 'Koha::Libraries', value => { branchip => '' } } );
+    $cgi->param( 'branch', $noip_library->branchcode );
+    ( $userid, $cookie, $sessionID, $flags, $template ) =
+        C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet' );
+    $session = C4::Auth::get_session($sessionID);
+    is(
+        $session->param('branch'), $noip_library->branchcode,
+        "When a branch with no IP set is chosen, we respect the choice regardless of current IP"
+    );
+
+    $ENV{REMOTE_ADDR} = '129.0.0.1';          # Set current IP to match other_branch
+    $cgi->param( 'branch', '' );              # Do not pass a branch
+    $patron->library->branchip('')->store;    # Unset user branch IP, to allow IP matching on any branch
+                                              # Add a second branch with same IP
+    my $another_library = $builder->build_object(
+        {
+            class => 'Koha::Libraries',
+            value => { branchip => "129.0.0.1", branchcode => substr( "z" . $other_library->branchcode, 0, 10 ) }
+        }
+    );
+    ( $userid, $cookie, $sessionID, $flags, $template ) =
+        C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet', undef, undef, { do_not_print => 1 } );
+    $session = C4::Auth::get_session($sessionID);
+    is(
+        $session->param('branch'), $patron->library->branchcode,
+        "When user branch has no IP, and no branch chosen, user is logged in to their homebranch"
+    );
+
+    $cgi->param( 'branch', $another_library->branchcode )
+        ;    # Choose branch with duplicate IP and alphabetically later branchcode
+    ( $userid, $cookie, $sessionID, $flags, $template ) =
+        C4::Auth::checkauth( $cgi, 0, { catalogue => 1 }, 'intranet', undef, undef, { do_not_print => 1 } );
+    $session = C4::Auth::get_session($sessionID);
+    is(
+        $session->param('branch'), $another_library->branchcode,
+        "When there is an IP conflict, we use the chosen branch if it matches"
+    );
 
     $schema->storage->txn_rollback;
 
+};
+
+subtest 'AutoSelfCheckAllowed' => sub {
+    plan tests => 5;
+
+    my $query = CGI->new;
+    my $auth  = Test::MockModule->new('C4::Auth');
+    $auth->mock( 'safe_exit', sub { return } );
+
+    t::lib::Mocks::mock_preference( 'AutoSelfCheckAllowed', 0 );
+    C4::Context->unset_userenv();
+
+    # Pref is off, cannot access sco
+    {
+        # checkauth will redirect and safe_exit if not authenticated and not authorized
+        local *STDOUT;
+        my $stdout;
+        open STDOUT, '>', \$stdout;
+        my ( $template, $loggedinuser, $cookies ) = get_template_and_user(
+            {
+                template_name => "sco/sco-main.tt",
+                query         => $query,
+                type          => "opac",
+                flagsrequired => { self_check => "self_checkout_module" },
+            }
+        );
+        like( $stdout, qr{<title>\s*Log in to your account} );
+        close STDOUT;
+    };
+
+    # Pref is on from here
+    t::lib::Mocks::mock_preference( 'AutoSelfCheckAllowed', 1 );
+
+    t::lib::Mocks::mock_preference( 'AutoSelfCheckID',   '' );
+    t::lib::Mocks::mock_preference( 'AutoSelfCheckPass', '' );
+
+
+    # Credential prefs are empty, cannot access sco
+    {
+        # checkauth will redirect and safe_exit if not authenticated and not authorized
+        local *STDOUT;
+        my $stdout;
+        open STDOUT, '>', \$stdout;
+        my ( $template, $loggedinuser, $cookies ) = get_template_and_user(
+            {
+                template_name => "sco/sco-main.tt",
+                query         => $query,
+                type          => "opac",
+                flagsrequired => { self_check => "self_checkout_module" },
+            }
+        );
+        like( $stdout, qr{<title>\s*Log in to your account} );
+        close STDOUT;
+    };
+
+    my $sco_patron = $builder->build_object( { class => 'Koha::Patrons', value => { flags => 0 } } );
+    my $password   = set_weak_password($sco_patron);
+    t::lib::Mocks::mock_preference( 'AutoSelfCheckID',   $sco_patron->userid );
+    t::lib::Mocks::mock_preference( 'AutoSelfCheckPass', $password );
+
+    # Credential pref are good but patron does not have the self_checkout_module subpermission
+    {
+        # checkauth will redirect and safe_exit if not authenticated and not authorized
+        local *STDOUT;
+        my $stdout;
+        open STDOUT, '>', \$stdout;
+        my ( $template, $loggedinuser, $cookies ) = get_template_and_user(
+            {
+                template_name => "sco/sco-main.tt",
+                query         => $query,
+                type          => "opac",
+                flagsrequired => { self_check => "self_checkout_module" },
+            }
+        );
+        like( $stdout, qr{<title>\s*Log in to your account} );
+        close STDOUT;
+    };
+
+    # All good from now
+    C4::Context->dbh->do(
+        q|
+            INSERT INTO user_permissions (borrowernumber, module_bit, code) VALUES (?, ?, ?)
+        |, undef, $sco_patron->borrowernumber, 23, 'self_checkout_module'
+    );
+    my ( $template, $loggedinuser, $cookies ) = get_template_and_user(
+        {
+            template_name => "sco/sco-main.tt",
+            query         => $query,
+            type          => "opac",
+            flagsrequired => { self_check => "self_checkout_module" },
+        }
+    );
+    is( $template->{VARS}->{logged_in_user}->id, $sco_patron->id );
+    is( $loggedinuser,                           $sco_patron->id );
 };
 
 subtest 'checkpw for users with shared cardnumber / userid ' => sub {

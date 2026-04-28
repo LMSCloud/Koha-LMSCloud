@@ -1,4 +1,4 @@
-/* global borrowernumber advsearch dateformat __ CAN_user_borrowers_delete_borrowers CAN_user_borrowers_edit_borrowers number_of_adult_categories destination Sticky Cookies*/
+/* global borrowernumber advsearch dateformat __ CAN_user_borrowers_delete_borrowers CAN_user_borrowers_edit_borrowers number_of_adult_categories destination Cookies*/
 
 $(document).ready(function(){
     searchfield_date_tooltip("");
@@ -12,7 +12,11 @@ $(document).ready(function(){
 
     if( CAN_user_borrowers_delete_borrowers ){
         $("#deletepatron").click(function(){
-            window.location='/cgi-bin/koha/members/deletemem.pl?member=' + borrowernumber;
+            if( $(this).data("toggle") == "tooltip"){ // Disabled menu option has tooltip attribute
+                e.preventDefault();
+            } else {
+                window.location='/cgi-bin/koha/members/deletemem.pl?member=' + borrowernumber;
+            }
         });
     }
     if( CAN_user_borrowers_edit_borrowers ){
@@ -113,24 +117,8 @@ $(document).ready(function(){
         return window.confirm( __("Are you sure you want to delete this message? This cannot be undone.") );
     });
 
-    $("#updatechild, #patronflags, #renewpatron, #deletepatron, #exportbarcodes").tooltip();
     $("#exportcheckins").click(function(){
         export_barcodes();
-        $(".btn-group").removeClass("open");
-        return false;
-    });
-    $("#printsummary").click(function(){
-        printx_window("page");
-        $(".btn-group").removeClass("open");
-        return false;
-    });
-    $("#printslip").click(function(){
-        printx_window("slip");
-        $(".btn-group").removeClass("open");
-        return false;
-    });
-    $("#printquickslip").click(function(){
-        printx_window("qslip");
         $(".btn-group").removeClass("open");
         return false;
     });
@@ -139,18 +127,20 @@ $(document).ready(function(){
         $(".btn-group").removeClass("open");
         return false;
     });
-    $("#printcheckinslip").click(function(){
-        printx_window("checkinslip");
-        $(".btn-group").removeClass("open");
-        return false;
-    });
-    $("#printclearscreen").click(function(){
-        printx_window("slip");
-        window.location.replace("/cgi-bin/koha/circ/circulation.pl");
-    });
-    $("#printclearscreenq").click(function(){
-        printx_window("qslip");
-        window.location.replace("/cgi-bin/koha/circ/circulation.pl");
+    $(".printslip").click(function(){
+	let slip_code = $(this).data('code');
+	let clear_screen = $(this).data('clear');
+	if( slip_code == 'printsummary' ){
+            window.open("/cgi-bin/koha/members/summary-print.pl?borrowernumber=" + borrowernumber, "printwindow");
+	} else {
+            window.open("/cgi-bin/koha/members/printslip.pl?borrowernumber=" + borrowernumber + "&amp;print=" + slip_code, "printwindow");
+	}
+	if( clear_screen ){
+            window.location.replace("/cgi-bin/koha/circ/circulation.pl");
+	} else {
+            $(".btn-group").removeClass("open");
+            return false;
+	}
     });
     $("#searchtohold").click(function(){
         searchToHold();
@@ -164,6 +154,39 @@ $(document).ready(function(){
         startup();
     });
 
+    $("#message_type").on("change",function(){
+        if ($(this).val() == 'E') {
+            $("label[for='borrower_message']").show();
+            $('#subject_form').show();
+            $("label[for='select_patron_notice']").show();
+            $('#select_patron_notice').show();
+            $("label[for='select_patron_messages']").hide();
+            $('#select_patron_messages').hide();
+            $('#borrower_message').val('');
+            $('#select_patron_notice').val('');
+        } else {
+            $('#subject_form').hide();
+            $("label[for='borrower_message']").hide();
+            $("label[for='select_patron_notice']").hide();
+            $('#select_patron_notice').hide();
+            $("label[for='select_patron_messages']").show();
+            $('#select_patron_messages').show();
+            $('#borrower_subject').prop( "disabled", false );
+            $('#borrower_message').prop( "disabled", false );
+            $('#select_patron_messages').val('');
+        }
+    });
+
+    $("#select_patron_notice").on("change",function(){
+        if ($(this).val()) {
+            $('#borrower_subject').prop( "disabled", true );
+            $('#borrower_message').prop( "disabled", true );
+        } else {
+            $('#borrower_subject').prop( "disabled", false );
+            $('#borrower_message').prop( "disabled", false );
+        }
+    });
+
     $(".edit-patronimage").on("click", function(e){
         e.preventDefault();
         var borrowernumber = $(this).data("borrowernumber");
@@ -174,7 +197,7 @@ $(document).ready(function(){
         $("#patronImageEdit").on("hidden.bs.modal", function(){
             /* Stop using the user's camera when modal is closed */
             let viewfinder = document.getElementById("viewfinder");
-            if( viewfinder.srcObject ){
+            if( viewfinder && viewfinder.srcObject ){
                 viewfinder.srcObject.getTracks().forEach( track => {
                     if( track.readyState == 'live' && track.kind === 'video'){
                         track.stop();
@@ -201,7 +224,7 @@ function searchfield_date_tooltip(filter) {
         }
         $(field).attr("title", MSG_DATE_FORMAT).tooltip('show');
     } else {
-        $(field).tooltip('destroy');
+        $(field).tooltip('dispose');
     }
 }
 
@@ -214,7 +237,7 @@ function confirm_updatechild() {
 
 function update_child() {
     if( number_of_adult_categories > 1 ){
-        window.open('/cgi-bin/koha/members/update-child.pl?op=multi&borrowernumber=' + borrowernumber,'UpdateChild','width=400,height=300,toolbar=no,scrollbars=yes,resizable=yes');
+        openWindow('/cgi-bin/koha/members/update-child.pl?op=multi&borrowernumber=' + borrowernumber,'UpdateChild');
     } else {
         confirm_updatechild();
     }
@@ -235,6 +258,7 @@ function printx_window(print_type) {
     window.open("/cgi-bin/koha/members/" + handler + ".pl?borrowernumber=" + borrowernumber + "&print=" + print_type, "printwindow");
     return false;
 }
+
 function searchToHold(){
     var date = new Date();
     date.setTime(date.getTime() + (10 * 60 * 1000));

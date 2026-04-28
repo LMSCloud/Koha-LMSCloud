@@ -22,6 +22,7 @@ use Modern::Perl;
 use Test::More tests => 5;
 use Test::Warn;
 
+use Koha::RecordProcessor;
 use MARC::Record;
 
 BEGIN {
@@ -142,4 +143,3 @@ subtest "new() tests" => sub {
 
     is( $metadata_record, undef, 'record object mandatory')
 };
-

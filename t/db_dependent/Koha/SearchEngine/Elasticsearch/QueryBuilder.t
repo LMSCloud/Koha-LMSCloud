@@ -105,7 +105,7 @@ $se->mock( 'get_elasticsearch_mappings', sub {
 
 subtest 'build_authorities_query_compat() tests' => sub {
 
-    plan tests => 72;
+    plan tests => 81;
 
     my $qb;
 
@@ -114,8 +114,32 @@ subtest 'build_authorities_query_compat() tests' => sub {
         'Creating new query builder object for authorities'
     );
 
-    my $koha_to_index_name = $Koha::SearchEngine::Elasticsearch::QueryBuilder::koha_to_index_name;
+    my $koha_name   = 'any';
     my $search_term = 'a';
+    my $query       = $qb->build_authorities_query_compat(
+        [$koha_name], undef, undef, ['contains'], [$search_term], 'AUTH_TYPE',
+        'asc'
+    );
+    ok( !defined $query->{query}->{bool}->{should}, "Should query not used if 'and_or' not passed" );
+    ok( defined $query->{query}->{bool}->{must},    "Must query used if 'and_or' not passed" );
+    is( $query->{query}->{bool}->{must}[0]->{query_string}->{query}, "a*" );
+    $query = $qb->build_authorities_query_compat(
+        [$koha_name], ['and'], undef, ['contains'], [$search_term], 'AUTH_TYPE',
+        'asc'
+    );
+    ok( !defined $query->{query}->{bool}->{should}, "Should query not used when 'and_or' passed 'and'" );
+    ok( defined $query->{query}->{bool}->{must},    "Must query used when 'and_or' passed 'and'" );
+    is( $query->{query}->{bool}->{must}[0]->{query_string}->{query}, "a*" );
+    $query = $qb->build_authorities_query_compat(
+        [$koha_name], ['or'], undef, ['contains'], [$search_term], 'AUTH_TYPE',
+        'asc'
+    );
+    ok( defined $query->{query}->{bool}->{should}, "Should query used if 'and_or' passed 'or'" );
+    ok( defined $query->{query}->{bool}->{should}, "Must query not used if 'and_or' passed 'or'" );
+    is( $query->{query}->{bool}->{should}[0]->{query_string}->{query}, "a*" );
+
+    my $koha_to_index_name = $Koha::SearchEngine::Elasticsearch::QueryBuilder::koha_to_index_name;
+    $search_term = 'a';
     foreach my $koha_name ( keys %{ $koha_to_index_name } ) {
         my $query = $qb->build_authorities_query_compat( [ $koha_name ],  undef, undef, ['contains'], [$search_term], 'AUTH_TYPE', 'asc' );
         if ( $koha_name eq 'all' || $koha_name eq 'any' ) {
@@ -170,7 +194,7 @@ subtest 'build_authorities_query_compat() tests' => sub {
     }
 
     # Sorting
-    my $query = $qb->build_authorities_query_compat( [ 'mainentry' ],  undef, undef, ['start'], [$search_term], 'AUTH_TYPE', 'HeadingAsc' );
+    $query = $qb->build_authorities_query_compat( [ 'mainentry' ],  undef, undef, ['start'], [$search_term], 'AUTH_TYPE', 'HeadingAsc' );
     is_deeply(
         $query->{sort},
         [
@@ -219,7 +243,7 @@ subtest 'build_authorities_query_compat() tests' => sub {
 };
 
 subtest 'build_query tests' => sub {
-    plan tests => 60;
+    plan tests => 68;
 
     my $qb;
 
@@ -254,24 +278,9 @@ subtest 'build_query tests' => sub {
     is( $query->{aggregations}{homebranch}{terms}{size}, 37,'we ask for the size as defined by the syspref FacetMaxCount for homebranch');
     is( $query->{aggregations}{holdingbranch}{terms}{size}, 37,'we ask for the size as defined by the syspref FacetMaxCount for holdingbranch');
 
-    t::lib::Mocks::mock_preference('DisplayLibraryFacets','both');
-    $query = $qb->build_query();
-    ok( defined $query->{aggregations}{homebranch},
-        'homebranch added to facets if DisplayLibraryFacets=both' );
-    ok( defined $query->{aggregations}{holdingbranch},
-        'holdingbranch added to facets if DisplayLibraryFacets=both' );
-    t::lib::Mocks::mock_preference('DisplayLibraryFacets','holding');
-    $query = $qb->build_query();
-    ok( !defined $query->{aggregations}{homebranch},
-        'homebranch not added to facets if DisplayLibraryFacets=holding' );
-    ok( defined $query->{aggregations}{holdingbranch},
-        'holdingbranch added to facets if DisplayLibraryFacets=holding' );
-    t::lib::Mocks::mock_preference('DisplayLibraryFacets','home');
-    $query = $qb->build_query();
-    ok( defined $query->{aggregations}{homebranch},
-        'homebranch added to facets if DisplayLibraryFacets=home' );
-    ok( !defined $query->{aggregations}{holdingbranch},
-        'holdingbranch not added to facets if DisplayLibraryFacets=home' );
+    $options{skip_facets} = 1;
+    $query = $qb->build_query( 'test', %options );
+    ok( !defined $query->{aggregations}, 'Skipping facets means we do not have aggregations in the the query' );
 
     t::lib::Mocks::mock_preference( 'QueryAutoTruncate', '' );
 
@@ -281,6 +290,10 @@ subtest 'build_query tests' => sub {
         "(donald duck)",
         "query not altered if QueryAutoTruncate disabled"
     );
+    ok( defined $query->{aggregations}, 'Aggregations generated normally' );
+    ( undef, $query ) =
+        $qb->build_query_compat( undef, ['donald duck'], undef, undef, undef, undef, undef, { skip_facets => 1 } );
+    ok( !defined $query->{aggregations}, 'Aggregations generated normally' );
 
     ( undef, $query ) = $qb->build_query_compat( undef, ['donald duck'], ['kw,phr'] );
     is(
@@ -406,6 +419,9 @@ subtest 'build_query tests' => sub {
         "all quoted strings are unaltered if more than one in query"
     );
 
+    # Reset ESPreventAutoTruncate syspref
+    t::lib::Mocks::mock_preference( 'ESPreventAutoTruncate', '' );
+
     ( undef, $query ) = $qb->build_query_compat( undef, ['barcode:123456'] );
     is(
         $query->{query}{query_string}{query},
@@ -413,32 +429,156 @@ subtest 'build_query tests' => sub {
         "query of specific field is truncated"
     );
 
-    ( undef, $query ) = $qb->build_query_compat( undef, ['Local-number:"123456"'] );
+    ( undef, $query ) = $qb->build_query_compat( undef, ['Personal-name:"donald"'] );
     is(
         $query->{query}{query_string}{query},
-        '(local-number:"123456")',
+        '(personal-name:"donald")',
         "query of specific field including hyphen and quoted is not truncated, field name is converted to lower case"
+    );
+
+    ( undef, $query ) = $qb->build_query_compat( undef, ['Personal-name:donald'] );
+    is(
+        $query->{query}{query_string}{query},
+        '(personal-name:donald*)',
+        "query of specific field including hyphen and not quoted is truncated, field name is converted to lower case"
+    );
+
+    ( undef, $query ) = $qb->build_query_compat( undef, ['Personal-name.raw:donald'] );
+    is(
+        $query->{query}{query_string}{query},
+        '(personal-name.raw:donald*)',
+        "query of specific field including period and not quoted is truncated, field name is converted to lower case"
+    );
+
+    ( undef, $query ) = $qb->build_query_compat( undef, ['Personal-name.raw:"donald"'] );
+    is(
+        $query->{query}{query_string}{query},
+        '(personal-name.raw:"donald")',
+        "query of specific field including period and quoted is not truncated, field name is converted to lower case"
+    );
+
+    # Set ESPreventAutoTruncate syspref
+    t::lib::Mocks::mock_preference( 'ESPreventAutoTruncate', 'barcode' );
+
+    ( undef, $query ) = $qb->build_query_compat( undef, ['barcode:123456'] );
+    is(
+        $query->{query}{query_string}{query},
+        '(barcode:123456)',
+        "query of specific field excluded by ESPreventAutoTruncate is not truncated"
     );
 
     ( undef, $query ) = $qb->build_query_compat( undef, ['Local-number:123456'] );
     is(
         $query->{query}{query_string}{query},
-        '(local-number:123456*)',
-        "query of specific field including hyphen and not quoted is truncated, field name is converted to lower case"
+        '(local-number:123456)',
+        "query of identifier is not truncated even if QueryAutoTruncate is set"
     );
 
-    ( undef, $query ) = $qb->build_query_compat( undef, ['Local-number.raw:123456'] );
+    ( undef, $query ) = $qb->build_query_compat( undef, ['onloan:true'] );
     is(
         $query->{query}{query_string}{query},
-        '(local-number.raw:123456*)',
-        "query of specific field including period and not quoted is truncated, field name is converted to lower case"
+        '(onloan:true)',
+        "query of boolean type field is not truncated even if QueryAutoTruncate is set"
     );
 
-    ( undef, $query ) = $qb->build_query_compat( undef, ['Local-number.raw:"123456"'] );
+    subtest 'removal of punctuation surrounded by spaces when autotruncate enabled' => sub {
+        plan tests => 7;
+        t::lib::Mocks::mock_preference( 'QueryAutoTruncate',       '1' );
+        t::lib::Mocks::mock_preference( 'QueryRegexEscapeOptions', 'escape' );
+        ( undef, $query ) = $qb->build_query_compat(
+            undef,
+            ['First title ; subtitle : some & subtitle / Authors Name. Second title ; Third title / Second Author']
+        );
+        is(
+            $query->{query}{query_string}{query},
+            '(First* title* subtitle* some* subtitle* Authors* Name. Second* title* Third* title* Second* Author*)',
+            "ISBD punctuation and problematic characters surrounded by spaces properly removed"
+        );
+
+        t::lib::Mocks::mock_preference( 'QueryRegexEscapeOptions', 'dont_escape' );
+        ( undef, $query ) = $qb->build_query_compat(
+            undef,
+            ['First title ; subtitle : some & subtitle / Authors Name. Second title ; Third title / Second Author']
+        );
+        is(
+            $query->{query}{query_string}{query},
+            '(First* title* subtitle* some* subtitle* / Authors* Name. Second* title* ; Third* title* / Second* Author*)',
+            "ISBD punctuation and problematic characters surrounded by spaces properly removed, RE saved"
+        );
+        ( undef, $query ) =
+            $qb->build_query_compat( undef, ['Lorem / ipsum dolor / sit ; / amet'] );
+        is(
+            $query->{query}{query_string}{query},
+            '(Lorem* / ipsum* dolor* / sit* amet*)',
+            "RE saved, last odd unescaped slash preceded by a semicolon removed"
+        );
+
+        t::lib::Mocks::mock_preference( 'QueryRegexEscapeOptions', 'escape' );
+        ( undef, $query ) =
+            $qb->build_query_compat( undef, ['Lorem \/ ipsum dolor \/ sit ; \/ amet'] );
+        is(
+            $query->{query}{query_string}{query},
+            '(Lorem* ipsum* dolor* sit* amet*)',
+            "Escaped slashes (also preceded by another punctuation followed by a space) removed"
+        );
+        ( undef, $query ) =
+            $qb->build_query_compat( undef, ['comma , period . equal = hyphen - slash / escaped_slash \/'] );
+        is(
+            $query->{query}{query_string}{query},
+            '(comma* period* equal* hyphen* slash* escaped_slash* \/)',
+            "Other problematic characters surrounded by spaces properly removed"
+        );
+
+        ( undef, $query ) =
+            $qb->build_query_compat( undef, [' &;,:=-/ // \/\/ /&&&==&&  ::-:: '] );
+        is(
+            $query->{query}{query_string}{query},
+            '()',
+            "Repeated problematic characters surrounded by spaces removed"
+        );
+
+        ( undef, $query ) = $qb->build_query_compat(
+            undef,
+            [
+                '&amp amp& semicolon; ;colonsemi full: :full comma, ,comma dot. .dot =equal equal= hyphen- -hypen slash\/ \/slash'
+            ]
+        );
+        is(
+            $query->{query}{query_string}{query},
+            '(&amp* amp& semicolon; ;colonsemi* full* full* comma, ,comma* dot. .dot* equal* equal* hyphen- -hypen* slash\/ \/slash*)',
+            "ISBD punctuation and problematic characters not removed when not surrounded by spaces."
+        );
+
+        # Note above: semicolons and equals removed asthose are search field indicators - terms ending in punctuation
+        # are not truncated.
+        # Note that (colons/equal signs)/spaces glued to words are not removed by the feature under test but before.
+    };
+
+    # Reset SearchCancelledAndInvalidISBNandISSN syspref
+    t::lib::Mocks::mock_preference( 'SearchCancelledAndInvalidISBNandISSN', '0' );
+
+    ( undef, $query ) = $qb->build_query_compat( undef, ['nb:"9780141930848"'] );
     is(
         $query->{query}{query_string}{query},
-        '(local-number.raw:"123456")',
-        "query of specific field including period and quoted is not truncated, field name is converted to lower case"
+        '(isbn:"9780141930848")',
+        "nb query transformed into isbn search field"
+    );
+
+    # Set SearchCancelledAndInvalidISBNandISSN syspref
+    t::lib::Mocks::mock_preference( 'SearchCancelledAndInvalidISBNandISSN', '1' );
+
+    ( undef, $query ) = $qb->build_query_compat( undef, ['nb:"9780141930848"'] );
+    is(
+        $query->{query}{query_string}{query},
+        '(isbn-all:"9780141930848")',
+        "nb query transformed into isbn-all search field"
+    );
+
+    ( undef, $query ) = $qb->build_query_compat( undef, ['nb:"9780141930848" ns:"1089-6891"'] );
+    is(
+        $query->{query}{query_string}{query},
+        '(isbn-all:"9780141930848" issn-all:"1089-6891")',
+        "nb and ns query transformed into isbn-all and issn-all search field"
     );
 
     ( undef, $query ) = $qb->build_query_compat( undef, ['J.R.R'] );
@@ -562,6 +702,46 @@ subtest 'build_query tests' => sub {
     is( $limit, '(author:("Dillinger Escaplan")) AND itype:(("BOOK") OR ("CD"))', "Limit formed correctly when no search terms");
     is( $limit_cgi,'&limit=author%3ADillinger%20Escaplan&limit=mc-itype%2Cphr%3ABOOK&limit=mc-itype%2Cphr%3ACD', "Limit CGI formed correctly when no search terms");
     is( $limit_desc,'(author:("Dillinger Escaplan")) AND itype:(("BOOK") OR ("CD"))',"Limit desc formed correctly when no search terms");
+
+    ( undef, $query ) = $qb->build_query_compat(
+        undef, ['barcode123123'], ['bc'],
+        ['acqdate,st-date-normalized= - ']
+    );
+    is(
+        $query->{query}{query_string}{query},
+        '(barcode:barcode123123) AND date-of-acquisition.raw:[* TO *]',
+        'If no date all date-of-acquisition are selected'
+    );
+
+    ( undef, $query ) = $qb->build_query_compat(
+        undef, ['barcode123123'], ['bc'],
+        ['acqdate,st-date-normalized=2024-08-01 - ']
+    );
+    is(
+        $query->{query}{query_string}{query},
+        '(barcode:barcode123123) AND date-of-acquisition.raw:[2024-08-01 TO *]',
+        'Open start date in date range of an st-date-normalized search is handled properly'
+    );
+
+    ( undef, $query ) = $qb->build_query_compat(
+        undef, ['barcode123123'], ['bc'],
+        ['acqdate,st-date-normalized= - 2024-08-30']
+    );
+    is(
+        $query->{query}{query_string}{query},
+        '(barcode:barcode123123) AND date-of-acquisition.raw:[* TO 2024-08-30]',
+        'Open end date in date range of an st-date-normalized search is handled properly'
+    );
+
+    ( undef, $query ) = $qb->build_query_compat(
+        undef, ['barcode123123'], ['bc'],
+        ['acqdate,st-date-normalized=2024-08-01 - 2024-08-30']
+    );
+    is(
+        $query->{query}{query_string}{query},
+        '(barcode:barcode123123) AND date-of-acquisition.raw:[2024-08-01 TO 2024-08-30]',
+        'Date range in an st-date-normalized search is handled properly'
+    );
 };
 
 
@@ -803,9 +983,9 @@ subtest "Handle search filters" => sub {
 
     my ( undef, undef, undef, undef, undef, $limit, $limit_cgi, $limit_desc ) = $qb->build_query_compat( undef, undef, undef, ["search_filter:$filter_id"] );
 
-    is( $limit,q{(available:true) AND ((cat) AND title:(bat) OR author:(rat)) AND itype:(("BK") OR ("MU"))},"Limit correctly formed");
+    is( $limit,q{(available:true) AND (((cat) AND title:(bat) OR author:(rat))) AND itype:(("BK") OR ("MU"))},"Limit correctly formed");
     is( $limit_cgi,"&limit=search_filter%3A$filter_id","CGI limit is not expanded");
-    is( $limit_desc,q{(available:true) AND ((cat) AND title:(bat) OR author:(rat)) AND itype:(("BK") OR ("MU"))},"Limit description is correctly expanded");
+    is( $limit_desc,q{(available:true) AND (((cat) AND title:(bat) OR author:(rat))) AND itype:(("BK") OR ("MU"))},"Limit description is correctly expanded");
 
     $filter = Koha::SearchFilter->new({
         name => "test",
@@ -816,9 +996,9 @@ subtest "Handle search filters" => sub {
 
     ( undef, undef, undef, undef, undef, $limit, $limit_cgi, $limit_desc ) = $qb->build_query_compat( undef, undef, undef, ["search_filter:$filter_id"] );
 
-    is( $limit,q{(subject:biography)},"Limit correctly formed for ccl type query");
+    is( $limit,q{((subject:biography))},"Limit correctly formed for ccl type query");
     is( $limit_cgi,"&limit=search_filter%3A$filter_id","CGI limit is not expanded");
-    is( $limit_desc,q{(subject:biography)},"Limit description is correctly handled for ccl type query");
+    is( $limit_desc,q{((subject:biography))},"Limit description is correctly handled for ccl type query");
 
 };
 

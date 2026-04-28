@@ -32,6 +32,7 @@ use Koha::AuthorisedValues;
 use Koha::Acquisition::Currencies;
 use Koha::Libraries;
 use Koha::Patrons;
+use Koha::Suggestions;
 use Koha::Token;
 
 use URI::Escape qw( uri_escape );
@@ -94,12 +95,25 @@ my $tabcode         = $input->param('tabcode');
 my $save_confirmed  = $input->param('save_confirmed') || 0;
 my $notify          = $input->param('notify');
 my $filter_archived = $input->param('filter_archived') || 0;
+my $new_itemtype    = $input->param('suggestion_itemtype');
+my $sugg_managedby  = $input->param('suggestion_managedby');
+
+#NOTE: Validate displayby as it gets passed to sensitive functions
+my %valid_displayby = (
+    STATUS     => 1,
+    branchcode => 1,
+    itemtype   => 1,
+    managedby  => 1,
+    acceptedby => 1,
+);
+if ( !$valid_displayby{$displayby} ) {
+    $displayby = '';
+}
 
 my $reasonsloop     = GetAuthorisedValues("SUGGEST");
 
-# filter informations which are not suggestion related.
-my $suggestion_ref  = { %{$input->Vars} }; # Copying, otherwise $input will be modified
-delete $suggestion_ref->{csrf_token};
+my $suggestion_ref  = { $input->Vars };
+delete $suggestion_ref->{$_} for qw(csrf_token suggestion_itemtype suggestion_managedby table_1_length);
 
 # get only the columns of Suggestion
 my $schema = Koha::Database->new()->schema;
@@ -110,23 +124,30 @@ $suggestion_only->{STATUS} = $suggestion_ref->{STATUS};
 delete $$suggestion_ref{$_}
     foreach
     qw( suggestedbyme op displayby tabcode notify filter_archived koha_login_context auth_forwarded_hash password userid );
-foreach (keys %$suggestion_ref){
-    delete $$suggestion_ref{$_} if (!$$suggestion_ref{$_} && ($op eq 'else' ));
+
+foreach my $key ( keys %$suggestion_ref ) {
+    delete $suggestion_ref->{$key} if ( !$suggestion_ref->{$key} && ( $op eq 'else' ) );
+    delete $suggestion_ref->{$key} if $key =~ m{^DataTables_acqui_suggestions_suggestions};
 }
 delete $suggestion_only->{branchcode} if $suggestion_only->{branchcode} eq '__ANY__';
 delete $suggestion_only->{budgetid}   if $suggestion_only->{budgetid}   eq '__ANY__';
-while ( my ( $k, $v ) = each %$suggestion_only ) {
-    delete $suggestion_only->{$k} if $v eq '';
+
+unless ( $op eq 'cud-save' ) {
+    while ( my ( $k, $v ) = each %$suggestion_only ) {
+        delete $suggestion_only->{$k} if $v eq '';
+    }
 }
 
 my ( $template, $borrowernumber, $cookie, $userflags ) = get_template_and_user(
-        {
-            template_name   => "suggestion/suggestion.tt",
-            query           => $input,
-            type            => "intranet",
-            flagsrequired   => { suggestions => 'suggestions_manage' },
-        }
-    );
+    {
+        template_name => "suggestion/suggestion.tt",
+        query         => $input,
+        type          => "intranet",
+        flagsrequired => { suggestions => '*' },
+    }
+);
+
+my $librarian = Koha::Patrons->find($borrowernumber);
 
 $borrowernumber = $input->param('borrowernumber') if ( $input->param('borrowernumber') );
 $template->param('borrowernumber' => $borrowernumber);
@@ -136,9 +157,12 @@ my $branchfilter = $input->param('branchcode') || C4::Context->userenv->{'branch
 ##  Operations
 ##
 
-if ( $op =~ /save/i ) {
+my @messages;
+if ( $op =~ /cud-save/ ) {
     output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
+
     my @messages;
+
     my $biblio = MarcRecordFromNewSuggestion({
             title => $suggestion_only->{title},
             author => $suggestion_only->{author},
@@ -166,6 +190,7 @@ if ( $op =~ /save/i ) {
         delete $suggestion_ref->{suggesteddate};
         delete $suggestion_ref->{manageddate};
         Init($suggestion_ref);
+        $op = 'save';
     }
     else {
 
@@ -197,7 +222,12 @@ if ( $op =~ /save/i ) {
               if exists $suggestion_only->{branchcode}
               && $suggestion_only->{branchcode} eq "";
 
-            &ModSuggestion($suggestion_only);
+            if ( $librarian->has_permission( { 'suggestions' => 'suggestions_manage' } ) ) {
+                &ModSuggestion($suggestion_only);
+            } else {
+                push @messages, { type => 'error', code => 'no_manage_permission' };
+                $template->param( messages => \@messages, );
+            }
 
             if ( $notify ) {
                 my $patron = Koha::Patrons->find( $suggestion_only->{managedby} );
@@ -238,7 +268,12 @@ if ( $op =~ /save/i ) {
             }
             else {
                 ## Adding some informations related to suggestion
-                &NewSuggestion($suggestion_only);
+                if ( $librarian->has_permission( { 'suggestions' => 'suggestions_create' } ) ) {
+                    Koha::Suggestion->new($suggestion_only)->store();
+                } else {
+                    push @messages, { type => 'error', code => 'no_delete_permission' };
+                    $template->param( messages => \@messages );
+                }
             }
             # empty fields, to avoid filter in "SearchSuggestion"
         }
@@ -250,14 +285,13 @@ if ( $op =~ /save/i ) {
         }
     }
 }
-elsif ($op=~/add/) {
+elsif ( $op eq 'add_form' ) {
     #Adds suggestion
     Init($suggestion_ref);
     $op ='save';
 }
-elsif ($op=~/edit/) {
+elsif ( $op eq 'edit_form' ) {
     #Edit suggestion
-    output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
     $suggestion_ref=&GetSuggestion($$suggestion_ref{'suggestionid'});
     $suggestion_ref->{reasonsloop} = $reasonsloop;
     my $other_reason = 1;
@@ -271,8 +305,7 @@ elsif ($op=~/edit/) {
     Init($suggestion_ref);
     $op ='save';
 }  
-elsif ($op eq "update_status" ) {
-    output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
+elsif ($op eq "cud-update_status" ) {
     my $suggestion;
     # set accepted/rejected/managed informations if applicable
     # ie= if the librarian has chosen some action on the suggestions
@@ -302,44 +335,60 @@ elsif ($op eq "update_status" ) {
         $suggestion->{reason} = $reason;
     }
 
-    foreach my $suggestionid (@editsuggestions) {
-        next unless $suggestionid;
-        $suggestion->{suggestionid} = $suggestionid;
-        &ModSuggestion($suggestion);
+    if ( $librarian->has_permission( { 'suggestions' => 'suggestions_manage' } ) ) {
+        foreach my $suggestionid (@editsuggestions) {
+            next unless $suggestionid;
+            $suggestion->{suggestionid} = $suggestionid;
+            &ModSuggestion($suggestion);
+        }
+        redirect_with_params($input);
+    } else {
+        push @messages, { type => 'error', code => 'no_manage_permission' };
+        $template->param( messages => \@messages, );
     }
     redirect_with_params($input);
-}elsif ($op eq "delete" ) {
-    output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
-    foreach my $delete_field (@editsuggestions) {
-        &DelSuggestion( $borrowernumber, $delete_field,'intranet' );
+} elsif ($op eq "cud-delete" ) {
+    if ( $librarian->has_permission( { 'suggestions' => 'suggestions_delete' } ) ) {
+        foreach my $delete_field (@editsuggestions) {
+            &DelSuggestion( $borrowernumber, $delete_field, 'intranet' );
+        }
+        redirect_with_params($input);
+    } else {
+        push @messages, { type => 'error', code => 'no_delete_permission' };
+        $template->param( messages => \@messages, );
     }
-    redirect_with_params($input);
 }
-elsif ($op eq "archive" ) {
+elsif ($op eq "cud-archive" ) {
     Koha::Suggestions->find($_)->update({ archived => 1 }) for @editsuggestions;
-
     redirect_with_params($input);
 }
-elsif ($op eq "unarchive" ) {
+elsif ($op eq "cud-unarchive" ) {
     Koha::Suggestions->find($_)->update({ archived => 0 }) for @editsuggestions;
-
     redirect_with_params($input);
 }
-elsif ( $op eq 'update_itemtype' ) {
-    my $new_itemtype = $input->param('suggestion_itemtype');
-    foreach my $suggestionid (@editsuggestions) {
-        next unless $suggestionid;
-        &ModSuggestion({ suggestionid => $suggestionid, itemtype => $new_itemtype });
+elsif ( $op eq 'cud-update_itemtype' ) {
+    if ( $librarian->has_permission( { 'suggestions' => 'suggestions_manage' } ) ) {
+        foreach my $suggestionid (@editsuggestions) {
+            next unless $suggestionid;
+            &ModSuggestion({ suggestionid => $suggestionid, itemtype => $new_itemtype });
+        }
+        redirect_with_params($input);
+    } else {
+        push @messages, { type => 'error', code => 'no_manage_permission' };
+        $template->param( messages => \@messages, );
     }
-    redirect_with_params($input);
 }
-elsif ( $op eq 'update_manager' ) {
-    my $managedby = $input->param('suggestion_managedby');
-    foreach my $suggestionid (@editsuggestions) {
-        next unless $suggestionid;
-        &ModSuggestion({ suggestionid => $suggestionid, managedby => $managedby });
+elsif ( $op eq 'cud-update_manager' ) {
+    if ( $librarian->has_permission( { 'suggestions' => 'suggestions_manage' } ) ) {
+        foreach my $suggestionid (@editsuggestions) {
+            next unless $suggestionid;
+            &ModSuggestion({ suggestionid => $suggestionid, managedby => $sugg_managedby });
+        }
+        redirect_with_params($input);
+    } else {
+        push @messages, { type => 'error', code => 'no_manage_permission' };
+        $template->param( messages => \@messages, );
     }
-    redirect_with_params($input);
 }
 elsif ( $op eq 'show' ) {
     $suggestion_ref=&GetSuggestion($$suggestion_ref{'suggestionid'});
@@ -347,8 +396,8 @@ elsif ( $op eq 'show' ) {
     $$suggestion_ref{budgetname} = $$budget{budget_name};
     Init($suggestion_ref);
 }
-if ($op=~/else/) {
-    $op='else';
+
+if ( $op eq 'else' ) {
 
     $displayby||="STATUS";
     # distinct values of display by
@@ -424,6 +473,9 @@ if ($op=~/else/) {
               if $search_params->{$f} eq '__ANY__'
               || $search_params->{$f} eq '';
         }
+        for my $bi (qw (title author isbn publishercode copyrightdate collectiontitle)) {
+            $search_params->{$bi} = { 'LIKE' => "%" . $search_params->{$bi} . "%" } if $search_params->{$bi};
+        }
 
         $search_params->{archived} = 0 if !$filter_archived;
         my @suggestions = Koha::Suggestions->search_limited($search_params)->as_list;
@@ -471,32 +523,11 @@ $template->param( returnsuggestedby => $returnsuggestedby );
 my $patron_reason_loop = GetAuthorisedValues("OPAC_SUG");
 $template->param(patron_reason_loop=>$patron_reason_loop);
 
-# Budgets for filtering
-my $budgets = GetBudgets;
-my @budgets_loop;
-foreach my $budget ( @{$budgets} ) {
-    next unless (CanUserUseBudget($borrowernumber, $budget, $userflags));
-
-    ## Please see file perltidy.ERR
-    $budget->{'selected'} = 1
-        if ($$suggestion_ref{'budgetid'}
-        && $budget->{'budget_id'} eq $$suggestion_ref{'budgetid'});
-
-    push @budgets_loop, $budget;
-}
-
-my $active_budgets = {};
-foreach my $budgper( @{C4::Budgets::GetBudgetPeriods( { budget_period_active => 1 } ) } ) {
-    $active_budgets->{$budgper->{budget_period_id}}=1;
-}
-
-$template->param( budgetsloop => \@budgets_loop, activebudgets => $active_budgets);
-
 # Budgets for suggestion add or edition
 my $sugg_budget_loop = [];
 my $sugg_budgets     = GetBudgetHierarchy();
 foreach my $r ( @{$sugg_budgets} ) {
-    next unless ( CanUserUseBudget( $borrowernumber, $r, $userflags ) );
+    next unless ( CanUserUseBudget( $librarian->unblessed, $r, $userflags ) );
     my $selected = ( $$suggestion_ref{budgetid} && $r->{budget_id} eq $$suggestion_ref{budgetid} ) ? 1 : 0;
     push @{$sugg_budget_loop},
       {
@@ -547,10 +578,10 @@ my $csrf_token = Koha::Token->new->generate_csrf({
 
 $template->param(
     %hashlists,
-    borrowernumber           => ($input->param('borrowernumber') // undef),
-    SuggestionStatuses       => GetAuthorisedValues('SUGGEST_STATUS'),
-    csrf_token               => $csrf_token,
+    borrowernumber     => ( $input->param('borrowernumber') // undef ),
+    SuggestionStatuses => GetAuthorisedValues('SUGGEST_STATUS'),
 );
+
 output_html_with_http_headers $input, $cookie, $template->output;
 
 sub redirect_with_params {

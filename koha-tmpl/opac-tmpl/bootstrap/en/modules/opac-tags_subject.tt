@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Koha %]
 [% USE AdditionalContents %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
@@ -11,16 +12,11 @@
 [% INCLUDE 'masthead.inc' %]
 
     <div class="main">
-        <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-                </li>
-                <li class="breadcrumb-item active">
-                    <a href="#" aria-current="page">Subject cloud</a>
-                </li>
-            </ol>
-        </nav> <!-- /#breadcrumbs -->
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Subject cloud</span>
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
 
         <div class="container-fluid">
             <div class="row">
@@ -42,7 +38,7 @@
                                     <p>This &quot;cloud&quot; shows the most used topics in our catalog. Click on any subject below to see the items in our collection.</p>
                                     <fieldset>
                                         <legend>Show</legend>
-                                        <form class="form-inline" action="/cgi-bin/koha/opac-tags_subject.pl" method="post">
+                                        <form class="form-inline" action="/cgi-bin/koha/opac-tags_subject.pl" method="get">
                                             <p>up to <input type="text" name="number" value="[% number | html %]" size="4" maxlength="4" /> subjects <input type="submit" class="btn btn-primary" value="OK" /></p>
                                         </form>
                                     </fieldset>

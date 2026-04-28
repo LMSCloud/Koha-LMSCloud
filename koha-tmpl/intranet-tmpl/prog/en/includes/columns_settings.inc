@@ -4,28 +4,65 @@
 <!-- columns_settings.inc -->
 
 <script>
-function KohaTable(id_selector, dt_parameters, table_settings, add_filters) {
-    var counter = 0;
-    var hidden_ids = [];
-    var included_ids = [];
+// default_filters is not used but keeping the same constructor as kohaTable for consistency
+function KohaTable(id_selector, dt_parameters, table_settings, add_filters, default_filters, filters_options) {
     var selector = '#' + id_selector;
 
     if ( table_settings ) {
-        var columns_settings = table_settings['columns'];
 
-        $(columns_settings).each( function() {
-            var named_id = $( 'thead th[data-colname="' + this.columnname + '"]', selector ).index( selector + ' th' );
-            var used_id = dt_parameters.bKohaColumnsUseNames ? named_id : counter;
-            if ( used_id == -1 ) return;
+        let columns_settings = table_settings["columns"];
 
-            if ( this['is_hidden'] == "1" ) {
-                hidden_ids.push( used_id );
+        let table_key = 'DataTables_%s_%s_%s_%s'.format(
+            table_settings.module,
+            table_settings.page,
+            table_settings.table,
+            id_selector,
+        );
+
+        let default_save_state        = table_settings.default_save_state;
+        let default_save_state_search = table_settings.default_save_state_search;
+
+        dt_parameters.stateSave = true;
+        dt_parameters.stateSaveCallback = function( settings, data ) {
+            localStorage.setItem( table_key, JSON.stringify(data) )
+        }
+
+        function set_default(table_settings, table_dt){
+            let columns = new Array(table_dt.columns()[0].length).fill({visible: true});
+            let hidden_ids = _dt_visibility(table_settings, table_dt);
+            hidden_ids.forEach((id, i) => { columns[id] = { visible: false } } );
+            // State is not loaded if time is not passed
+            return { columns, time: new Date() };
+        }
+        dt_parameters.stateLoadCallback = function(settings) {
+
+            // Load state from URL
+            const url = new URL(window.location.href);
+            let state_from_url = url.searchParams.get( table_key + '_state');
+            if ( state_from_url ) {
+                settings.loaded_from_state = true;
+                return JSON.parse(atob(state_from_url));
             }
-            if ( this['cannot_be_toggled'] == "0" ) {
-                included_ids.push( used_id );
+
+            if (!default_save_state) return set_default(table_settings, this.api());
+
+            let state = localStorage.getItem(table_key);
+            if (!state) return set_default(table_settings, this.api());
+
+            state = JSON.parse(state);
+
+            if (default_save_state_search ) {
+                settings.loaded_from_state = true;
+            } else {
+                delete state.search;
+                state.columns.forEach(c => delete c.search );
             }
-            counter++;
-        });
+            return state;
+        }
+
+        if ( table_settings.hasOwnProperty('default_save_state') && table_settings['default_save_state'] === 0 ) {
+            localStorage.removeItem(table_key);
+        }
     }
 
     var exportColumns = ":visible:not(.noExport)";
@@ -135,26 +172,46 @@ function KohaTable(id_selector, dt_parameters, table_settings, add_filters) {
         );
     [% END %]
 
-    dt_parameters[ "buttons" ] = [
+    $.fn.dataTable.ext.buttons.clear_filter =
         {
             fade: 100,
             className: "dt_button_clear_filter",
             titleAttr: _("Clear filter"),
             enabled: false,
-            text: '<i class="fa fa-lg fa-remove"></i> <span class="dt-button-text">' + _("Clear filter") + '</span>',
+            text: '<i class="fa fa-lg fa-times"></i> <span class="dt-button-text">' + _("Clear filter") + '</span>',
             action: function ( e, dt, node, config ) {
                 dt.search( "" ).draw("page");
                 node.addClass("disabled");
             }
-        }
-    ];
+        };
 
-    if( included_ids.length > 0 ){
+    dt_parameters[ "buttons" ] = ['clear_filter'];
+
+    // Retrieving bKohaColumnsUseNames from the options passed to the constructor, not DT settings
+    // But ideally should be retrieved using table.data()
+    let use_names = dt_parameters.bKohaColumnsUseNames;
+    let included_columns = [];
+    if (table_settings) {
+        if (use_names) {
+            // bKohaColumnsUseNames is set, identify columns by their data-colname
+            included_columns = table_settings.columns
+                .filter(c => !c.cannot_be_toggled)
+                .map(c => "[data-colname='%s']".format(c.columnname))
+                .join(",");
+        } else {
+            // Not set, columns are ordered the same than in the columns settings
+            included_columns = table_settings.columns
+                .map((c, i) => (!c.cannot_be_toggled ? i : null))
+                .filter(i => i !== null);
+        }
+    }
+
+    if( included_columns.length > 0 ){
         dt_parameters[ "buttons" ].push(
             {
                 extend: 'colvis',
                 fade: 100,
-                columns: included_ids,
+                columns: included_columns,
                 className: "columns_controls",
                 titleAttr: _("Columns settings"),
                 text: '<i class="fa fa-lg fa-gear"></i> <span class="dt-button-text">' + _("Columns") + '</span>',
@@ -178,6 +235,37 @@ function KohaTable(id_selector, dt_parameters, table_settings, add_filters) {
         }
     );
 
+    /* No other exceptions should be added here! */
+    if ( table_settings && table_settings.page != 'itemsearch' ) {
+        dt_parameters["buttons"].push(
+            {
+                autoClose: true,
+                fade: 100,
+                className: "copyConditions_controls",
+                titleAttr: __("Copy shareable link"),
+                text: '<i class="fa fa-lg fa-copy"></i> <span class="dt-button-text">' + __("Copy shareable link") + '</span>',
+                action: function (e, dt, node, config) {
+                    let table_key = 'DataTables_%s_%s_%s_%s'.format(
+                        table_settings.module,
+                        table_settings.page,
+                        table_settings.table,
+                        dt.settings()[0].nTable.id,
+                    );
+
+                    let state = JSON.stringify(dt.state());
+                    delete state.time;
+                    let searchParams = new URLSearchParams(window.location.search);
+                    searchParams.set(table_key + '_state', btoa(state));
+                    let url = window.location.origin + window.location.pathname + '?' + searchParams.toString() + window.location.hash;
+                    if( navigator.clipboard && navigator.clipboard.writeText){
+                        navigator.clipboard.writeText( url );
+                        $(node).tooltip({trigger: 'manual', title: _("Copied!")}).tooltip('show');
+                    }
+                },
+            }
+        );
+    }
+
     if ( table_settings && CAN_user_parameters_manage_column_config ) {
         dt_parameters[ "buttons" ].push(
             {
@@ -192,14 +280,11 @@ function KohaTable(id_selector, dt_parameters, table_settings, add_filters) {
         );
     }
 
-    var table = $(selector);
     if ( add_filters ) {
-        // Duplicate the table header row for columnFilter
-        thead_row = table.find('thead tr');
-        clone = thead_row.clone().addClass('filters_row');
-        clone.find("th.NoSort").html('');
-        thead_row.before(clone);
+        dt_parameters['orderCellsTop'] = true;
     }
+
+    var table = $(selector);
 
     var new_parameters = {}
     $.extend(true, new_parameters, dataTablesDefaults, dt_parameters);
@@ -218,6 +303,8 @@ function KohaTable(id_selector, dt_parameters, table_settings, add_filters) {
         });
     }
 
+    new_parameters["loaded_from_state"] = false;
+
     if ( table_settings ) {
         if ( table_settings.hasOwnProperty('default_display_length') && table_settings['default_display_length'] != null ) {
             // pageLength needs to be a number, not a string, or it can cause issues with DataTable's next button.
@@ -228,68 +315,37 @@ function KohaTable(id_selector, dt_parameters, table_settings, add_filters) {
         }
     }
 
+    $(table).data('bKohaColumnsUseNames', dt_parameters.bKohaColumnsUseNames);
+
     table.dataTable(new_parameters);
-    table.DataTable().on("column-visibility.dt", function(){
+    var table_dt = table.DataTable();
+    table_dt.on("column-visibility.dt", function(){
         if( typeof columnsInit == 'function' ){
             // This function can be created separately and used to trigger
             // an event after the DataTable has loaded AND column visibility
             // has been updated according to the table's configuration
             columnsInit(this);
         }
-    }).columns( hidden_ids ).visible( false );
+    });
 
     if ( add_filters ) {
-        // show a link to activate filtering
-        link = $('<a>')
-            .attr('href', '#')
-            .attr('id', id_selector + '_activate_filters');
-        $("." + id_selector  + "_table_controls").prepend(link);
-        deactivate_filters(id_selector);
+        _dt_add_filters(table, table_dt, filters_options);
     }
 
-    $(".dt_button_clear_filter, .columns_controls, .export_controls, .dt_button_configure_table").tooltip();
+    table_dt.on("column-visibility.dt", function(){
+        if ( add_filters ) {
+            _dt_add_filters(table, table_dt, filters_options);
+        }
+    });
+
+    table_dt.on( 'search.dt', function ( e, settings ) {
+        // When the DataTables search function is triggered,
+        // enable or disable the "Clear filter" button based on
+        // the presence of a search string
+        toggledClearFilter(table_dt.search(), settings.nTable.id);
+    });
 
     return table;
 }
-
-
-/* get_columns_saved_state checks for a DataTables configuration saved
-* in the browser's local storage. If it is present, the columns
-* configuration supplied by Koha is overwritten
-*
-* It takes two parameters:
-*  - localstorage_config, the DataTables saved state object from local storage
-*  - columns_settings, the columns settings object supplied by the template
-*
-* An example:
-*
-*    var columns_settings = [% ColumnsSettings.GetColumns( 'module', 'page', 'table', 'json' ) | $raw %];
-*    var saved_table = localStorage.getItem("DataTables_TABLE_ID_/cgi-bin/koha/PATH/TO/SCRIPT.pl");
-*    var updated_settings = get_columns_saved_state( saved_table, columns_settings );
-*
-*    KohaTable("TABLE_ID", {
-*        "stateSave": true
-*    }, updated_settings);
-*/
-
-function get_columns_saved_state( localstorage_config, columns_settings ){
-    var tables = JSON.parse( localstorage_config );
-    // if a table configuration was found in local storage, parse it
-    if( tables ){
-        var stateSave_column_visibility = [];
-        $(tables.columns).each(function(){
-            stateSave_column_visibility.push( this.visible === true ? 0 : 1 );
-        });
-        $.each( columns_settings, function( index, key ){
-            if( stateSave_column_visibility[ index ] !== columns_settings[key] ){
-                columns_settings[ index ].is_hidden = stateSave_column_visibility[ index ];
-            }
-        });
-        return columns_settings;
-    } else {
-        return columns_settings;
-    }
-}
-
 </script>
 <!-- / columns_settings.inc -->

@@ -1,10 +1,15 @@
 [% USE raw %]
 [% USE Asset %]
-[% SET footerjs = 1 %]
-[% INCLUDE 'doc-head-open.inc' %]
 [% USE Koha %]
 [% USE KohaDates %]
-<title>Search history &rsaquo; Catalog &rsaquo; Koha</title>
+[% PROCESS 'i18n.inc' %]
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>[% FILTER collapse %]
+    [% t("Search history") | html %] &rsaquo;
+    [% t("Catalog") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -27,7 +32,8 @@
 
 <div class="container-fluid">
     <div class="row">
-        <div class="col-sm-12 col-md-8 col-md-offset-2">
+        <div class="col-md-12 col-lg-8 offset-lg-2">
+            [% INCLUDE 'messages.inc' %]
 
       <h1>Search history</h1>
 
@@ -42,17 +48,18 @@
                         [% IF ( current_biblio_searches ) %]
                             <h2>Current session</h2>
                             <form id="current_cat" action="/cgi-bin/koha/catalogue/search-history.pl" method="post">
+                                [% INCLUDE 'csrf-token.inc' %]
                                 <p class="selections-toolbar">
                                     <a class="CheckAll" data-form="current_cat" href="#"><i class="fa fa-check"></i> Select all visible rows</a>
                                     <span class="sep">|</span>
-                                    <a class="CheckNone" data-form="current_cat" href="#"><i class="fa fa-remove"></i> Clear selection on visible rows</a>
+                                    <a class="CheckNone" data-form="current_cat" href="#"><i class="fa fa-times"></i> Clear selection on visible rows</a>
                                     <span class="sep">|</span>
                                     <span class="links">
                                     <span class="selections">Select searches to: </span>
-                                    <a href="#" class="btn btn-default btn-xs action_delete disabled"><i class="fa fa-trash" aria-hidden="true"></i> Delete</a>
+                                    <a href="#" class="btn btn-default btn-xs action_delete disabled"><i class="fa fa-trash-can" aria-hidden="true"></i> Delete</a>
                                     </span>
                                 </p>
-                                <input type="hidden" name="action" value="delete" />
+                                <input type="hidden" name="op" value="cud-delete" />
                                 <table class="historyt">
                                     <thead>
                                         <tr>
@@ -83,17 +90,18 @@
                         [% IF ( previous_biblio_searches ) %]
                             <h2>Previous sessions</h2>
                             <form id="previous_cat" action="/cgi-bin/koha/catalogue/search-history.pl" method="post">
+                                [% INCLUDE 'csrf-token.inc' %]
                                 <p class="selections-toolbar">
                                     <a class="CheckAll" data-form="previous_cat" href="#"><i class="fa fa-check"></i> Select all visible rows</a>
                                     <span class="sep">|</span>
-                                    <a class="CheckNone" data-form="previous_cat" href="#"><i class="fa fa-remove"></i> Clear selection on visible rows</a>
+                                    <a class="CheckNone" data-form="previous_cat" href="#"><i class="fa fa-times"></i> Clear selection on visible rows</a>
                                     <span class="sep">|</span>
                                     <span class="links">
                                     <span class="selections">Select searches to: </span>
-                                    <a href="#" class="btn btn-default btn-xs action_delete disabled"><i class="fa fa-trash" aria-hidden="true"></i> Delete</a>
+                                    <a href="#" class="btn btn-default btn-xs action_delete disabled"><i class="fa fa-trash-can" aria-hidden="true"></i> Delete</a>
                                     </span>
                                 </p>
-                                <input type="hidden" name="action" value="delete" />
+                                <input type="hidden" name="op" value="cud-delete" />
                                 <table class="historyt">
                                     <thead>
                                         <tr>
@@ -126,17 +134,18 @@
                         [% IF ( current_authority_searches ) %]
                             <h2>Current session</h2>
                             <form id="current_auth" action="/cgi-bin/koha/catalogue/search-history.pl" method="post">
+                                [% INCLUDE 'csrf-token.inc' %]
                                 <p class="selections-toolbar">
                                     <a class="CheckAll" data-form="current_auth" href="#"><i class="fa fa-check"></i> Select all visible rows</a>
                                     <span class="sep">|</span>
-                                    <a class="CheckNone" data-form="current_auth" href="#"><i class="fa fa-remove"></i> Clear selection on visible rows</a>
+                                    <a class="CheckNone" data-form="current_auth" href="#"><i class="fa fa-times"></i> Clear selection on visible rows</a>
                                     <span class="sep">|</span>
                                     <span class="links">
                                     <span class="selections">Select searches to: </span>
-                                    <a href="#" class="btn btn-default btn-xs action_delete disabled"><i class="fa fa-trash" aria-hidden="true"></i> Delete</a>
+                                    <a href="#" class="btn btn-default btn-xs action_delete disabled"><i class="fa fa-trash-can" aria-hidden="true"></i> Delete</a>
                                     </span>
                                 </p>
-                                <input type="hidden" name="action" value="delete" />
+                                <input type="hidden" name="op" value="cud-delete" />
                                 <table class="historyt">
                                     <thead>
                                         <tr>
@@ -167,17 +176,18 @@
                         [% IF ( previous_authority_searches ) %]
                             <h2>Previous sessions</h2>
                             <form id="previous_auth" action="/cgi-bin/koha/catalogue/search-history.pl" method="post">
+                                [% INCLUDE 'csrf-token.inc' %]
                                 <p class="selections-toolbar">
                                     <a class="CheckAll" data-form="previous_auth" href="#"><i class="fa fa-check"></i> Select all visible rows</a>
                                     <span class="sep">|</span>
-                                    <a class="CheckNone" data-form="previous_auth" href="#"><i class="fa fa-remove"></i> Clear selection on visible rows</a>
+                                    <a class="CheckNone" data-form="previous_auth" href="#"><i class="fa fa-times"></i> Clear selection on visible rows</a>
                                     <span class="sep">|</span>
                                     <span class="links">
                                     <span class="selections">Select searches to: </span>
-                                    <a href="#" class="btn btn-default btn-xs action_delete disabled"><i class="fa fa-trash" aria-hidden="true"></i> Delete</a>
+                                    <a href="#" class="btn btn-default btn-xs action_delete disabled"><i class="fa fa-trash-can" aria-hidden="true"></i> Delete</a>
                                     </span>
                                 </p>
-                                <input type="hidden" name="action" value="delete" />
+                                <input type="hidden" name="op" value="cud-delete" />
                                 <table class="historyt">
                                     <thead>
                                         <tr>
@@ -218,11 +228,11 @@
         // We show table ordered by descending dates by default
         // (so that the more recent query is shown first)
         $(".historyt").dataTable($.extend(true, {}, dataTablesDefaults, {
-            "aaSorting": [[ 1, "desc" ]],
-            "aoColumnDefs": [
-                { "aTargets": [ 0 ], "bSortable": false, "bSearchable": false }
+            "order": [[ 1, "desc" ]],
+            "columnDefs": [
+                { "targets": [ 0 ], "orderable": false, "searchable":  false }
             ],
-            "sPaginationType": "full_numbers"
+            "pagingType": "full_numbers"
         }));
 
         // DataTables removes hidden rows from the DOM, so we can't expect a
@@ -238,7 +248,7 @@
                 .attr('action', form.attr('action'))
                 .attr('method', form.attr('method'));
             form.find('input[type="hidden"]')
-                .add(table.$('input:checkbox:checked'))
+                .add( $('input:checkbox:checked', table) )
                 .each(function() {
                     var input = $('<input type="hidden">')
                         .attr('name', $(this).attr('name'))
@@ -271,7 +281,7 @@
             e.preventDefault();
             var form = $(this).parents("form").first();
             var table = form.find('table').dataTable();
-            var ids = table.$("input:checkbox:checked");
+            var ids = $("input:checkbox:checked", table);
             if ( $(ids).length < 1 ) {
                 return false;
             }
@@ -296,8 +306,8 @@
 
     function enableCheckboxActions(form){
         // Enable/disable controls if checkboxes are checked
-        var table = form.find('table').dataTable();
-        var checked_count = table.$("input:checkbox:checked").length;
+        var table = form.find('table');
+        var checked_count = $("input:checkbox:checked", table).length;
         if (checked_count) {
           if (checked_count == 1) {
             form.find(".selections").html(_("With selected search: "));

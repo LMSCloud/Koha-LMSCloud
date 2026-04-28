@@ -1,3 +1,4 @@
+[% USE raw %]
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE AdditionalContents %]
@@ -13,19 +14,14 @@
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-            </li>
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-user.pl">[% patron.firstname | html %] [% patron.surname | html %]</a>
-            </li>
-            <li class="breadcrumb-item active">
-                <a href="#" aria-current="page">Your consents</a>
-            </li>
-        </ol>
-    </nav> <!-- /#breadcrumbs -->
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/opac-user.pl">[% patron.firstname | html %] [% patron.surname | html %]</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Your consents</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
 
     <div class="container-fluid">
         <div class="row">
@@ -36,41 +32,53 @@
             </div>
             <div class="col-lg-10 order-first order-md-first order-lg-2">
                 <div id="patronconsents" class="maincontent">
-
-                    [% IF Koha.Preference('PrivacyPolicyConsent') %]
-                    <div class="alert alert-warning">
-                            <p>In order to keep you logged in, we need your consent to process personal data as specified in the privacy policy linked below.</p>
-                            <p>Please save your consent below or log out. Thank you!</p>
-                    </div>
-                    [% END %]
-
-                    <h1>Your consents</h1>
-
                     <form action="/cgi-bin/koha/opac-patron-consent.pl" method="post">
-                        [% IF Koha.Preference('PrivacyPolicyConsent') %]
-                        <legend><h2 id="GDPR_consents">Privacy policy consents</h2></legend>
-                            <input type="hidden" name="op" value="gdpr_proc_save"/>
-                            <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber | html %]"/>
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-save"/>
+                        <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber | html %]"/>
+                        <h1>Your consents</h1>
+                        [% FOREACH consent IN consents %]
+                            [% SET consent_type = consent.type %]
+                            [% IF consent_type == 'GDPR_PROCESSING' %]
+                                <legend><h2>Privacy policy consent</h2></legend>
+                                <div class="alert alert-warning">
+                                    <p>In order to keep you logged in, we need your consent to process personal data as specified in the privacy policy linked below.</p>
+                                    <p>If you choose to withdraw your consent we will <strong>remove your account</strong> within a reasonable time and you should log out now.</p>
+                                </div>
+                                <p>I agree with your processing of my personal data as outlined in the <a target="_blank" href="[% Koha.Preference('PrivacyPolicyURL') | url %]">privacy policy</a>.</p>
+                            [% ELSIF consent_types.$consent_type %]
+                                [% SET consent_title = ( consent_types.$consent_type.title.$lang || consent_types.$consent_type.title.en ) %]
+                                [% SET consent_desc  = ( consent_types.$consent_type.description.$lang || consent_types.$consent_type.description.en )  %]
+                                <legend><h2>[% consent_title | html %]</h2></legend>
+                                <p>[% consent_desc | html %]</p>
+                                <p>Do you agree?</p>
+                            [% ELSE %]
+                                <legend><h2>Consent for [% consent_type | html %]</h2></legend>
+                                <p>Do you agree?</p>
+                            [% END %]
                             <fieldset>
-                                <ul><li>
-                                    <p>I have read the <a target="_blank" href="[% Koha.Preference('PrivacyPolicyURL') | url %]">privacy policy</a> and agree with your processing of my personal data as outlined therein.</p>
-                                    <p><input type="radio" name="gdpr_processing" value="agreed"> Yes, I agree.<br>
-                                    <input type="radio" name="gdpr_processing" value="disagreed"> No, I do not agree. Please remove my account within a reasonable time.</p>
-                                    [% IF gdpr_proc_consent %]
-                                        <p>Your consent was registered on [% gdpr_proc_consent | $KohaDates with_hours => 1 %].</p>
-                                    [% ELSIF gdpr_proc_refusal %]
-                                        <p>You indicated recently that you do not consent, and we will process your request soon.</p>
-                                    [% END %]
-                                </li></ul>
-                            </fieldset>
-                            <fieldset class="action">
-                                <input id="saveconsent" type="submit" value="Save" class="btn btn-primary" />
+                                [% IF consent.given_on %]
+                                    <input type="radio" name="check_[% consent_type | html %]" value="1" checked="checked"> Yes<br>
+                                    <input type="radio" name="check_[% consent_type | html %]" value="0"> No
+                                [% ELSIF consent.refused_on %]
+                                    <input type="radio" name="check_[% consent_type | html %]" value="1"> Yes<br>
+                                    <input type="radio" name="check_[% consent_type | html %]" value="0" checked="checked"> No
+                                [% ELSE %]
+                                    <input type="radio" name="check_[% consent_type | html %]" value="1"> Yes<br>
+                                    <input type="radio" name="check_[% consent_type | html %]" value="0"> No
+                                [% END %]
+                                [% IF consent.given_on %]
+                                    <p class="consent_info"><strong>Your consent was registered on [% consent.given_on | html %].</strong></p>
+                                [% ELSIF consent.refused_on %]
+                                    <p class="dissent_info"><strong>We registered that you did not consent on [% consent.refused_on | html %].</strong></p>
+                                [% END %]
                             </fieldset>
                         [% END %]
-
+                        <fieldset class="action">
+                            <input id="saveconsent" type="submit" value="Save" class="btn btn-primary" />
+                        </fieldset>
                     </form>
-
-                </div> <!-- / #userpasswd -->
+                </div> <!-- / #patronconsents -->
             </div> <!-- / .col-lg-10 -->
         </div> <!-- / .row -->
     </div> <!-- / .container-fluid -->
@@ -79,27 +87,22 @@
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
     <script>
-        var consent = null;
         $(document).ready(function() {
-            [% IF gdpr_proc_consent %]
-                consent=1;
-                $("input[type='radio'][value='agreed']").prop('checked',true);
-                $(".alert").hide();
-            [% ELSIF gdpr_proc_refusal %]
-                consent=0;
-                $("input[type='radio'][value='disagreed']").prop('checked',true);
-            [% ELSE %]
-            [% END %]
+            // Initially no choice is made or no change, so disable button
             $("#saveconsent").prop('disabled', true);
 
             $("input[type='radio']").click(function() {
-                var radio = $(this).val();
-                if(radio=='agreed' && (consent==null || consent==0)) $("#saveconsent").prop('disabled', false);
-                if(radio=='disagreed' && (consent==null || consent==1)) $("#saveconsent").prop('disabled', false);
-                if(radio=='agreed') $(".alert").hide();
-                if(radio=='disagreed') $(".alert").show();
+                $("#saveconsent").prop('disabled', false);
+                var v = $(this).val();
+                // If former registration info present, toggle
+                if( v == 1 ) {
+                    $(this).siblings('.consent_info').show();
+                    $(this).siblings('.dissent_info').hide();
+                } else {
+                    $(this).siblings('.consent_info').hide();
+                    $(this).siblings('.dissent_info').show();
+                }
             });
-
         });
     </script>
 [% END %]

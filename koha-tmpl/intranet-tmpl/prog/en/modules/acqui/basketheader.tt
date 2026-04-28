@@ -3,14 +3,19 @@
 [% USE Branches %]
 [% USE Koha %]
 [% SET footerjs = 1 %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF ( add_form ) %]
-        [% IF ( basketno ) %]Edit basket '[% basketname | html %]'
-        [% ELSE %]Add a basket to [% booksellername | html %]
+        [% IF ( basketno ) %]
+            [% tx("Edit basket '{basketname}'", { basketname = basketname }) | html %]
+        [% ELSE %]
+            [% tx("Add basket to {vendor}", { vendor = booksellername }) | html %]
         [% END %]
-    [% END %] &rsaquo; Acquisitions &rsaquo; Koha
-</title>
+    [% END %] &rsaquo;
+    [% t("Acquisitions") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -43,14 +48,16 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+        <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
+            [% INCLUDE 'messages.inc' %]
 
     [% IF ( add_form ) %]
         [% IF ( basketno ) %]
             <h1>Edit basket [% basketname | html %]</h1>
         [% ELSE %]<h1>Add a basket to [% booksellername | html %]</h1>
         [% END %]
-    <form name="Aform" action="[% script_name | html %]" method="post" class="validated">
+    <form name="Aform" action="/cgi-bin/koha/acqui/basketheader.pl" method="post" class="validated">
+        [% INCLUDE 'csrf-token.inc' %]
         <input type="hidden" name="booksellerid" value="[% booksellerid | html %]" />
         <fieldset class="rows">
             <ol>
@@ -141,7 +148,7 @@
         [% END %]
 
         <fieldset class="action">
-            <input type="hidden" name="op" value="add_validate" />
+            <input type="hidden" name="op" value="cud-add_validate" />
             <input type="submit" class="btn btn-primary" value="Save" />
             [% IF ( basketno ) %]
                 <a class="cancel" href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basketno | html %]">Cancel</a>
@@ -151,12 +158,13 @@
         </fieldset>
     </form>
     [% END %]
-</div>
-</div>
+</div> <!-- /.col-md-10 offset-md-1 col-lg-8 offset-lg-2 -->
+</div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/acquisitions-menu.js") | $raw %]
     [% Asset.js("js/acq.js") | $raw %]
+    [% Asset.js("js/additional-fields-entry.js") | $raw %]
     [% INCLUDE 'select2.inc' %]
 <script>
 

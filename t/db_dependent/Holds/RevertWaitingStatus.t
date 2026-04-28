@@ -38,8 +38,7 @@ $dbh->do("DELETE FROM reserves");
 $dbh->do("DELETE FROM old_reserves");
 
 my $branchcode = $builder->build( { source => 'Branch' } )->{branchcode};
-my $itemtype = $builder->build(
-    { source => 'Itemtype', value => { notforloan => undef } } )->{itemtype};
+my $itemtype = $builder->build( { source => 'Itemtype', value => { notforloan => 0 } } )->{itemtype};
 
 t::lib::Mocks::mock_userenv({ flags => 1, userid => '1', branchcode => $branchcode });
 
@@ -82,9 +81,8 @@ foreach my $borrowernumber (@borrowernumbers) {
 }
 
 ModReserveAffect( $itemnumber, $borrowernumbers[0] );
-my $patron = Koha::Patrons->find( $borrowernumbers[1] )->unblessed;
-C4::Circulation::AddIssue( $patron,
-    $item_barcode, my $datedue, my $cancelreserve = 'revert' );
+my $patron = Koha::Patrons->find( $borrowernumbers[1] );
+C4::Circulation::AddIssue( $patron, $item_barcode, undef, 'revert' );
 
 my $priorities = $dbh->selectall_arrayref(
     "SELECT priority FROM reserves ORDER BY priority ASC");

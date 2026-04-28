@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 4;
+use Test::More tests => 5;
 use Test::Exception;
 
 use t::lib::Mocks;
@@ -63,7 +63,7 @@ subtest 'Failure tests' => sub {
     is( $issue_id, undef, 'No issue_id returned' );
 
     # In the next call we return the item and try it another time
-    $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+    $issue = C4::Circulation::AddIssue( $patron, $item->barcode );
     eval { $issue_id = C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, undef, 0 ) };
     is( $issue_id, $issue->issue_id, "Item has been returned (issue $issue_id)" );
     eval { $issue_id = C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, undef, 0 ) };
@@ -98,7 +98,7 @@ subtest 'Anonymous patron tests' => sub {
     # Anonymous patron not set
     t::lib::Mocks::mock_preference( 'AnonymousPatron', '' );
 
-    my $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+    my $issue = C4::Circulation::AddIssue( $patron, $item->barcode );
 
     throws_ok
         { C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, undef, 2 ); }
@@ -117,7 +117,7 @@ subtest 'Anonymous patron tests' => sub {
         }
     });
     t::lib::Mocks::mock_preference('AnonymousPatron', $anonymous->borrowernumber);
-    $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+    $issue = C4::Circulation::AddIssue( $patron, $item->barcode );
 
     eval { C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, undef, 2 ) };
     is ( $@, q||, 'AnonymousPatron is set correctly - no error expected');
@@ -148,14 +148,14 @@ subtest 'Manually pass a return date' => sub {
 
     my ( $issue, $issue_id );
 
-    $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+    $issue = C4::Circulation::AddIssue( $patron, $item->barcode );
     $issue_id = C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item->itemnumber, '2018-12-25', 0 );
 
     is( $issue_id, $issue->issue_id, "Item has been returned" );
     my $old_checkout = Koha::Old::Checkouts->find( $issue_id );
     is( $old_checkout->returndate, '2018-12-25 00:00:00', 'Manually passed date stored correctly' );
 
-    $issue = C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+    $issue = C4::Circulation::AddIssue( $patron, $item->barcode );
 
     {
         # Hiding the expected warning displayed by DBI
@@ -173,33 +173,55 @@ subtest 'Manually pass a return date' => sub {
 };
 
 subtest 'AutoRemoveOverduesRestrictions' => sub {
-    plan tests => 2;
+    plan tests => 5;
 
     $schema->storage->txn_begin;
 
-    t::lib::Mocks::mock_preference('AutoRemoveOverduesRestrictions', 1);
+    my $dbh          = C4::Context->dbh;
+    my $patron       = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $categorycode = $patron->categorycode;
+    my $branchcode   = $patron->branchcode;
 
-    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
-    t::lib::Mocks::mock_userenv( { branchcode => $patron->branchcode } );
-    my $item_1 = $builder->build_sample_item;
-    my $item_2 = $builder->build_sample_item;
-    my $item_3 = $builder->build_sample_item;
-    my $five_days_ago = dt_from_string->subtract( days => 5 );
-    my $checkout_1 = AddIssue( $patron->unblessed, $item_1->barcode, $five_days_ago ); # overdue
-    my $checkout_2 = AddIssue( $patron->unblessed, $item_2->barcode, $five_days_ago ); # overdue
-    my $checkout_3 = AddIssue( $patron->unblessed, $item_3->barcode ); # not overdue
+    $dbh->do(
+        qq{
+        INSERT INTO `overduerules` (
+            `categorycode`,
+            `delay1`,
+            `letter1`,
+            `debarred1`,
+            `delay2`,
+            `letter2`,
+            `debarred2`
+        )
+        VALUES ('$categorycode', 6, 'ODUE', 0, 10, 'ODUE2', 1)
+    }
+    );
+
+    t::lib::Mocks::mock_preference( 'AutoRemoveOverduesRestrictions', 'when_no_overdue' );
+
+    t::lib::Mocks::mock_userenv( { branchcode => $branchcode } );
+    my $item_1        = $builder->build_sample_item;
+    my $item_2        = $builder->build_sample_item;
+    my $item_3        = $builder->build_sample_item;
+    my $nine_days_ago = dt_from_string->subtract( days => 9 );
+    my $checkout_1 =
+        AddIssue( $patron, $item_1->barcode, $nine_days_ago );    # overdue, but would not trigger debarment
+    my $checkout_2 =
+        AddIssue( $patron, $item_2->barcode, $nine_days_ago );    # overdue, but would not trigger debarment
+    my $checkout_3 = AddIssue( $patron, $item_3->barcode );       # not overdue
+
 
     Koha::Patron::Debarments::AddUniqueDebarment(
         {
             borrowernumber => $patron->borrowernumber,
             type           => 'OVERDUES',
-            comment => "OVERDUES_PROCESS simulation",
+            comment        => "OVERDUES_PROCESS simulation",
         }
     );
 
     C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item_1->itemnumber );
 
-    my $restrictions = $patron->restrictions;
+    my $restrictions    = $patron->restrictions;
     my $THE_restriction = $restrictions->next;
     is( $THE_restriction->type->code, 'OVERDUES', 'OVERDUES debarment is not removed if patron still has overdues' );
 
@@ -208,5 +230,107 @@ subtest 'AutoRemoveOverduesRestrictions' => sub {
     $restrictions = $patron->restrictions;
     is( $restrictions->count, 0, 'OVERDUES debarment is removed if patron does not have overdues' );
 
+    t::lib::Mocks::mock_preference( 'AutoRemoveOverduesRestrictions', 'when_no_overdue_causing_debarment' );
+
+    my $ten_days_ago = dt_from_string->subtract( days => 10 );
+
+    $checkout_1 = AddIssue( $patron, $item_1->barcode, $ten_days_ago ); # overdue and would trigger debarment
+    $checkout_2 =
+        AddIssue( $patron, $item_2->barcode, $nine_days_ago );    # overdue, but would not trigger debarment
+
+    Koha::Patron::Debarments::AddUniqueDebarment(
+        {
+            borrowernumber => $patron->borrowernumber,
+            type           => 'OVERDUES',
+            comment        => "OVERDUES_PROCESS simulation",
+        }
+    );
+
+    C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item_1->itemnumber );
+
+    $restrictions = $patron->restrictions;
+    is(
+        $restrictions->count, 0,
+        'OVERDUES debarment is removed if remaining items would not result in patron debarment'
+    );
+
+    $checkout_1 = AddIssue( $patron, $item_1->barcode, $ten_days_ago ); # overdue and would trigger debarment
+
+    Koha::Patron::Debarments::AddUniqueDebarment(
+        {
+            borrowernumber => $patron->borrowernumber,
+            type           => 'OVERDUES',
+            comment        => "OVERDUES_PROCESS simulation",
+        }
+    );
+
+    C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item_2->itemnumber );
+
+    $restrictions = $patron->restrictions->search( { type => 'OVERDUES' } );
+    is(
+        $restrictions->count, 1,
+        'OVERDUES debarment is not removed if patron still has overdues that would trigger debarment'
+    );
+
+    my $eleven_days_ago = dt_from_string->subtract( days => 11 );
+
+    # overdue and would trigger debarment
+    $checkout_2 = AddIssue( $patron, $item_2->barcode, $eleven_days_ago );
+
+    # $checkout_1 should now not trigger debarment with this new rule for specific branchcode
+    $dbh->do(
+        qq{
+        INSERT INTO `overduerules` (
+            `branchcode`,
+            `categorycode`,
+            `delay1`,
+            `letter1`,
+            `debarred1`,
+            `delay2`,
+            `letter2`,
+            `debarred2`
+        )
+        VALUES ('$branchcode', '$categorycode', 6, 'ODUE', 0, 11, 'ODUE2', 1)
+    }
+    );
+
+    C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item_2->itemnumber );
+
+    $restrictions = $patron->restrictions;
+    is(
+        $restrictions->count, 0,
+        'OVERDUES debarment is removed if remaining items would not result in patron debarment'
+    );
+
     $schema->storage->txn_rollback;
+};
+
+subtest 'Pass checkin_library to old_issues' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $category = $builder->build_object( { class => 'Koha::Patron::Categories', value => { category_type => 'P', enrolmentfee => 0 } } );
+    my $library  = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron   = $builder->build_object(
+        {   class => 'Koha::Patrons',
+            value => { branchcode => $library->branchcode, categorycode => $category->categorycode }
+        }
+    );
+    my $item = $builder->build_sample_item(
+        {
+            library => $library->branchcode,
+        }
+    );
+
+    t::lib::Mocks::mock_userenv( { branchcode => $library->branchcode } );
+
+    my $issue = C4::Circulation::AddIssue( $patron, $item->barcode );
+    my $issue_id = C4::Circulation::MarkIssueReturned( $patron->borrowernumber, $item->itemnumber );
+
+    is( $issue_id, $issue->issue_id, 'Item has been returned' );
+    my $old_issue = Koha::Old::Checkouts->find( $issue_id );
+    is( $old_issue->checkin_library, $library->branchcode, 'Return branch is passed correctly' );
+
+    $schema->storage->txn_rollback
 };

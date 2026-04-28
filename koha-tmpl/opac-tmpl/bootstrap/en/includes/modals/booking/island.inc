@@ -1,3 +1,5 @@
+[% USE raw %]
+[% USE Asset %]
 [% USE Koha %]
 [% USE To %]
 [% USE AdditionalFields %]

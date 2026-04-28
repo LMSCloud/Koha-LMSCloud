@@ -45,17 +45,17 @@ my ($template, $loggedinuser, $cookie, $flags) = get_template_and_user( {
     flagsrequired   => { 'acquisition' => 'order_manage' },
 } );
 
-my $action = $input->param('action');
-my $ordernumber = $input->param('ordernumber');
-my $biblionumber = $input->param('biblionumber');
-my $basketno = $input->param('basketno');
-my $basket = Koha::Acquisition::Baskets->find({ basketno => $basketno }, { prefetch => 'booksellerid' });
-my $referrer = $input->param('referrer') || $input->referer;
+my $op            = $input->param('op') || q{};
+my $ordernumber   = $input->param('ordernumber');
+my $biblionumber  = $input->param('biblionumber');
+my $order         = Koha::Acquisition::Orders->find($ordernumber);
+my $basketno      = $order->basketno;
+my $basket        = Koha::Acquisition::Baskets->find( { basketno => $basketno }, { prefetch => 'booksellerid' } );
+my $referrer      = $input->param('referrer') || $input->referer;
 my $delete_biblio = $input->param('del_biblio') ? 1 : 0;
 
-if( $action and $action eq "confirmcancel" ) {
+if( $op eq "cud-confirmcancel" ) {
     my $reason = $input->param('reason');
-    my $order  = Koha::Acquisition::Orders->find($ordernumber);
     my @messages;
     if( !$order ) {
         push @messages, Koha::Object::Message->new({ message => 'error_order_not_found', type => 'error' });

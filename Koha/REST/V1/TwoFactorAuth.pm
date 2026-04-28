@@ -63,7 +63,7 @@ sub send_otp_token {
                 branchcode             => $patron->branchcode,
             }
         );
-        C4::Letters::SendQueuedMessages({message_id => $message_id});
+        C4::Letters::SendQueuedMessages( { message_id => $message_id } ) if $message_id;
 
         my $message = C4::Letters::GetMessage($message_id);
 
@@ -132,8 +132,8 @@ sub verification {
 
     return try {
 
-        my $pin_code = $c->validation->param('pin_code');
-        my $secret32 = $c->validation->param('secret32');
+        my $pin_code = $c->param('pin_code');
+        my $secret32 = $c->param('secret32');
 
         my $auth     = Koha::Auth::TwoFactorAuth->new(
             { patron => $patron, secret32 => $secret32 } );
@@ -174,7 +174,7 @@ sub verification {
             );
         }
 
-        return $c->render(status => 204, openapi => {});
+        return $c->render_resource_deleted;
     }
     catch {
         $c->unhandled_exception($_);

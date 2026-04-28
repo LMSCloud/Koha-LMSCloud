@@ -18,14 +18,15 @@
 
 [% Asset.js("lib/jquery/jquery-3.6.0.min.js") | $raw %]
 [% Asset.js("lib/jquery/jquery-migrate-3.3.2.min.js") | $raw %]
-[% Asset.js("lib/jquery/jquery-ui-1.13.1.min.js") | $raw %]
+[% Asset.js("lib/jquery/jquery-ui-1.13.2.min.js") | $raw %]
 [% Asset.js("lib/shortcut/shortcut.js") | $raw %]
 [% Asset.js("lib/js-cookie/js.cookie-2.2.1.min.js") | $raw %]
 [% Asset.js("lib/jquery/plugins/jquery.highlight-5.js") | $raw %]
-[% Asset.js("lib/bootstrap/bootstrap.min.js") | $raw %]
+[% Asset.js("lib/bootstrap/bootstrap.bundle.min.js") | $raw %]
 [% Asset.js("lib/jquery/plugins/jquery.validate.min.js") | $raw %]
 <!-- koha core js -->
 [% Asset.js("js/staff-global.js") | $raw %]
+[% Asset.js("js/form-submit.js",{'type' => 'module'}) | $raw %]
 [% INCLUDE 'js-date-format.inc' %]
 [% INCLUDE 'js-patron-get-age.inc' %]
 [% INCLUDE 'js-patron-format-address.inc' %]
@@ -126,7 +127,7 @@
             delay: 300,
             select: function( event, ui ) {
                 $('#catalog_search #search-form').val(ui.item.value);
-                $("#cat-search-block").submit();    
+                $("#cat-search-block").submit();
             }
         });
     });
@@ -134,7 +135,7 @@
 [% END %]
 
 <script>
-    var defaultPatronSearchFields = "[% Koha.Preference('DefaultPatronSearchFields') || 'firstname,middle_name,surname,othernames,cardnumber,userid' | html %]";
+    var defaultPatronSearchFields = "[% Koha.Preference('DefaultPatronSearchFields') || 'firstname|preferred_name|middle_name|surname|othernames|cardnumber|userid' | html %]";
     var defaultPatronSearchMethod = "[% Koha.Preference('DefaultPatronSearchMethod') || 'contains' | html %]";
     var extendedPatronAttributes = "[% Koha.Preference('ExtendedPatronAttributes') | html %]";
     var loggedInLibrary = '[% Branches.GetLoggedInBranchcode | html %]';
@@ -155,5 +156,9 @@
         }
     });
     </script>
+[% END %]
+
+[% IF Koha.Preference( 'CookieConsent' ) %]
+    [% Asset.js("js/cookieconsent.js") | $raw %]
 [% END %]
 <!-- / js_includes.inc -->

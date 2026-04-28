@@ -40,11 +40,12 @@ Claim that a checked out item was returned.
 
 sub claim_returned {
     my $c    = shift->openapi->valid_input or return;
-    my $body = $c->validation->param('body');
+    my $body = $c->req->json;
 
     return try {
         my $itemnumber      = $body->{item_id};
         my $charge_lost_fee = $body->{charge_lost_fee} ? 1 : 0;
+        my $refund_lost_fee = $body->{refund_lost_fee} ? 1 : 0;
         my $created_by      = $body->{created_by};
         my $notes           = $body->{notes};
 
@@ -53,14 +54,13 @@ sub claim_returned {
 
         my $checkout = Koha::Checkouts->find( { itemnumber => $itemnumber } );
 
-        return $c->render(
-            openapi => { error => "Checkout not found" },
-            status  => 404
-        ) unless $checkout;
+        return $c->render_resource_not_found("Checkout")
+            unless $checkout;
 
         my $claim = $checkout->claim_returned(
             {
                 charge_lost_fee => $charge_lost_fee,
+                refund_lost_fee => $refund_lost_fee,
                 created_by      => $created_by,
                 notes           => $notes,
             }
@@ -69,7 +69,7 @@ sub claim_returned {
         $c->res->headers->location($c->req->url->to_string . '/' . $claim->id );
         return $c->render(
             status  => 201,
-            openapi => $claim->to_api
+            openapi => $c->objects->to_api($claim),
         );
     }
     catch {
@@ -99,17 +99,13 @@ Update the notes of an existing claim
 sub update_notes {
     my $c = shift->openapi->valid_input or return;
 
-    my $claim_id = $c->validation->param('claim_id');
-    my $body     = $c->validation->param('body');
+    my $claim_id = $c->param('claim_id');
+    my $body     = $c->req->json;
 
     my $claim = Koha::Checkouts::ReturnClaims->find( $claim_id );
 
-    return $c->render(
-        status  => 404,
-        openapi => {
-            error => "Claim not found"
-        }
-    ) unless $claim;
+    return $c->render_resource_not_found("Claim")
+        unless $claim;
 
     return try {
         my $updated_by = $body->{updated_by};
@@ -128,7 +124,7 @@ sub update_notes {
 
         return $c->render(
             status  => 200,
-            openapi => $claim->to_api
+            openapi => $c->objects->to_api($claim),
         );
     }
     catch {
@@ -143,17 +139,15 @@ Marks a claim as resolved
 =cut
 
 sub resolve_claim {
-    my $c     = shift->openapi->valid_input or return;
+    my $c = shift->openapi->valid_input or return;
 
-    my $claim_id = $c->validation->param('claim_id');
-    my $body     = $c->validation->param('body');
+    my $claim_id = $c->param('claim_id');
+    my $body     = $c->req->json;
 
     my $claim = Koha::Checkouts::ReturnClaims->find($claim_id);
 
-    return $c->render(
-        status  => 404,
-        openapi => { error => "Claim not found" }
-    ) unless $claim;
+    return $c->render_resource_not_found("Claim")
+        unless $claim;
 
     return try {
 
@@ -174,7 +168,7 @@ sub resolve_claim {
 
         return $c->render(
             status  => 200,
-            openapi => $claim->to_api
+            openapi => $c->objects->to_api($claim),
         );
     }
     catch {
@@ -193,21 +187,15 @@ sub delete_claim {
 
     return try {
 
-        my $claim = Koha::Checkouts::ReturnClaims->find( $c->validation->param('claim_id') );
+        my $claim = Koha::Checkouts::ReturnClaims->find( $c->param('claim_id') );
 
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Claim not found" }
-        ) unless $claim;
+        return $c->render_resource_not_found("Claim")
+            unless $claim;
 
         $claim->delete();
 
-        return $c->render(
-            status  => 204,
-            openapi => {}
-        );
-    }
-    catch {
+        return $c->render_resource_deleted;
+    } catch {
         $c->unhandled_exception($_);
     };
 }

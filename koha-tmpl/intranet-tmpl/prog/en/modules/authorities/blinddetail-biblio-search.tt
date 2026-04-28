@@ -1,7 +1,11 @@
 [% USE To %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Authority details &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Authority details") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -9,7 +13,8 @@
 
     <div class="main container-fluid">
         <div class="row">
-            <div class="col-md-8 col-md-offset-2">
+            <div class="col-md-8 offset-md-2">
+                [% INCLUDE 'messages.inc' %]
 
         <div id="loading"> <img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" alt="" /> Loading </div>
 

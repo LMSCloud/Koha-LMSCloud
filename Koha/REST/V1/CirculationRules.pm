@@ -2,18 +2,18 @@ package Koha::REST::V1::CirculationRules;
 
 # This file is part of Koha.
 #
-# Koha is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
 #
-# Koha is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -22,6 +22,8 @@ use Mojo::Base 'Mojolicious::Controller';
 use Koha::Calendar;
 use Koha::CirculationRules;
 use Koha::DateUtils qw( dt_from_string );
+use Koha::Items;
+use Koha::Patrons;
 
 use C4::Circulation qw( GetLoanLength CalcDateDue _GetCircControlBranch );
 
@@ -94,16 +96,16 @@ sub _calculate_circulation_dates {
         return {};
     }
 
-    my $test_item = {
+    my $test_item = Koha::Item->new({
         itype         => $item_type,
         homebranch    => $branchcode,
         holdingbranch => $branchcode,
-    };
+    });
 
-    my $test_patron = {
+    my $test_patron = Koha::Patron->new({
         categorycode => $patron_category,
         branchcode   => $branchcode,
-    };
+    });
 
     my $circ_branch      = _GetCircControlBranch( $test_item, $test_patron );
     my $effective_branch = $circ_branch || $branchcode;

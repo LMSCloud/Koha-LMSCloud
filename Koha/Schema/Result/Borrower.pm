@@ -53,6 +53,13 @@ patron/borrower's last name (surname)
 
 patron/borrower's first name
 
+=head2 preferred_name
+
+  data_type: 'longtext'
+  is_nullable: 1
+
+patron/borrower's preferred name
+
 =head2 middle_name
 
   data_type: 'longtext'
@@ -655,6 +662,14 @@ flag for allowing auto-renewal
 
 useful for reporting purposes
 
+=head2 protected
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+boolean flag to mark selected patrons as protected from deletion
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -666,6 +681,8 @@ __PACKAGE__->add_columns(
   { data_type => "longtext", is_nullable => 1 },
   "firstname",
   { data_type => "mediumtext", is_nullable => 1 },
+  "preferred_name",
+  { data_type => "longtext", is_nullable => 1 },
   "middle_name",
   { data_type => "longtext", is_nullable => 1 },
   "title",
@@ -860,6 +877,8 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", default_value => 1, is_nullable => 0 },
   "primary_contact_method",
   { data_type => "varchar", is_nullable => 1, size => 45 },
+  "protected",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
 );
 
 =head1 PRIMARY KEY
@@ -1367,6 +1386,21 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 erm_counter_logs
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::ErmCounterLog>
+
+=cut
+
+__PACKAGE__->has_many(
+  "erm_counter_logs",
+  "Koha::Schema::Result::ErmCounterLog",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 erm_user_roles
 
 Type: has_many
@@ -1454,6 +1488,21 @@ __PACKAGE__->has_many(
   "housebound_visit_deliverer_brwnumbers",
   "Koha::Schema::Result::HouseboundVisit",
   { "foreign.deliverer_brwnumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 illbatches
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Illbatch>
+
+=cut
+
+__PACKAGE__->has_many(
+  "illbatches",
+  "Koha::Schema::Result::Illbatch",
+  { "foreign.patron_id" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
@@ -2017,6 +2066,81 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 ticket_updates
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::TicketUpdate>
+
+=cut
+
+__PACKAGE__->has_many(
+  "ticket_updates",
+  "Koha::Schema::Result::TicketUpdate",
+  { "foreign.user_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 ticket_updates_assignees
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::TicketUpdate>
+
+=cut
+
+__PACKAGE__->has_many(
+  "ticket_updates_assignees",
+  "Koha::Schema::Result::TicketUpdate",
+  { "foreign.assignee_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 tickets_assignees
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Ticket>
+
+=cut
+
+__PACKAGE__->has_many(
+  "tickets_assignees",
+  "Koha::Schema::Result::Ticket",
+  { "foreign.assignee_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 tickets_reporters
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Ticket>
+
+=cut
+
+__PACKAGE__->has_many(
+  "tickets_reporters",
+  "Koha::Schema::Result::Ticket",
+  { "foreign.reporter_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 tickets_resolvers
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::Ticket>
+
+=cut
+
+__PACKAGE__->has_many(
+  "tickets_resolvers",
+  "Koha::Schema::Result::Ticket",
+  { "foreign.resolver_id" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
 =head2 tmp_holdsqueues
 
 Type: has_many
@@ -2143,8 +2267,15 @@ Composing rels: L</user_permissions> -> permission
 __PACKAGE__->many_to_many("permissions", "user_permissions", "permission");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:60d2Fh6kcwfq8n13W9IX1Q
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:54
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:No+/ov+CEjvGIponp9YbMg
+
+__PACKAGE__->belongs_to(
+  "library",
+  "Koha::Schema::Result::Branch",
+  { branchcode => "branchcode" },
+  { is_deferrable => 1, on_delete => "RESTRICT", on_update => "RESTRICT" },
+);
 
 __PACKAGE__->has_many(
   "restrictions",
@@ -2161,11 +2292,12 @@ __PACKAGE__->has_many(
 );
 
 __PACKAGE__->add_columns(
-    '+anonymized'    => { is_boolean => 1 },
-    '+lost'          => { is_boolean => 1 },
-    '+gonenoaddress' => { is_boolean => 1 },
+    '+anonymized'              => { is_boolean => 1 },
+    '+autorenew_checkouts'     => { is_boolean => 1 },
+    '+gonenoaddress'           => { is_boolean => 1 },
+    '+lost'                    => { is_boolean => 1 },
     '+privacy_guarantor_fines' => { is_boolean => 1 },
-    '+autorenew_checkouts' => { is_boolean => 1 }
+    '+protected'               => { is_boolean => 1 },
 );
 
 sub koha_objects_class {
@@ -2175,5 +2307,4 @@ sub koha_object_class {
     'Koha::Patron';
 }
 
-# You can replace this text with custom code or comments, and it will be preserved on regeneration
 1;

@@ -69,6 +69,8 @@ search:
       reverse:
         type: text
         analyzer: reverse
+  geo_point:
+     type: geo_point
   default:
     type: text
     analyzer: analyzer_standard

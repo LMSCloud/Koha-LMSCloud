@@ -24,6 +24,7 @@ use Koha::DateUtils qw( dt_from_string );
 use Koha::Items;
 use Koha::Patrons;
 use Koha::Libraries;
+
 use Koha::CirculationRules;
 use Koha::Calendar;
 
@@ -122,7 +123,6 @@ sub old_checkout {
     return unless $old_checkout_rs;
     return Koha::Old::Checkout->_new_from_dbic($old_checkout_rs);
 }
-
 =head3 store
 
 Booking specific store method to catch booking clashes and ensure we have an item assigned
@@ -188,7 +188,6 @@ sub store {
                     }
                     );
             }
-
             # FIXME: We should be able to combine the above two functions into one
 
             # Assign item at booking time
@@ -201,7 +200,6 @@ sub store {
             if ( $self->_should_validate_date_range() ) {
                 $self->_check_date_range_constraints();
             }
-
             if ( !$self->in_storage ) {
                 $self->SUPER::store;
                 $self->discard_changes;
@@ -502,7 +500,6 @@ sub _check_date_range_constraints {
 
     return;
 }
-
 =head3 _send_notice
 
     $self->_send_notice();
@@ -518,7 +515,8 @@ sub _send_notice {
     my $objects = $params->{objects} // {};
     $objects->{booking} = $self;
 
-    my $branch = C4::Context->userenv->{'branch'};
+    my $branch = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
+    $branch //= $self->pickup_library_id;
     my $patron = $self->patron;
 
     my $letter = C4::Letters::GetPreparedLetter(

@@ -79,7 +79,7 @@ sub ajax_auth_cgi {     # returns CGI object
 	return $input;
 }
 
-# The trick here is to support multiple tags added to multiple bilbios in one POST.
+# The trick here is to support multiple tags added to multiple biblios in one POST.
 # The HTML might not use this, but it makes it more web-servicey from the start.
 # So the name of param has to have biblionumber built in.
 # For lack of anything more compelling, we just use "newtag[biblionumber]"
@@ -122,55 +122,59 @@ unless ( C4::Context->preference('TagsEnabled') ) {
 
 if ($add_op) {
 	unless ($loggedinuser) {
-		push @errors, {+'login' => 1 };
+		push @errors, {+'cud-login' => 1 };
         push @globalErrorIndexes, $#errors;
 		%newtags=();	# zero out any attempted additions
 		@deltags=();	# zero out any attempted deletions
 	}
 }
 
-my $scrubber;
-my @newtags_keys = (keys %newtags);
-if (scalar @newtags_keys) {
-	$scrubber = C4::Scrubber->new();
-	foreach my $biblionumber (@newtags_keys) {
-        my $bibResults = {adds=>0, errors=>[]};
-		my @values = split /[;,]/, $newtags{$biblionumber};
-		foreach (@values) {
-			s/^\s*(.+)\s*$/$1/;
-			my $clean_tag = $scrubber->scrub($_);
-			unless ($clean_tag eq $_) {
-				if ($clean_tag =~ /\S/) {
-					push @errors, {scrubbed=>$clean_tag};
-					push @{$bibResults->{errors}}, {scrubbed=>$clean_tag};
-				} else {
-					push @errors, {scrubbed_all_bad=>1};
-					push @{$bibResults->{errors}}, {scrubbed_all_bad=>1};
-					next;	# we don't add it if there's nothing left!
-				}
-			}
-			my $result = ($openadds) ?
-				add_tag($biblionumber,$clean_tag,$loggedinuser,$loggedinuser) : # pre-approved
-				add_tag($biblionumber,$clean_tag,$loggedinuser)   ;
-			if ($result) {
-				$counts{$biblionumber}++;
-                $bibResults->{adds}++;
-			} else {
-				push @errors, {failed_add_tag=>$clean_tag};
-				push @{$bibResults->{errors}}, {failed_add_tag=>$clean_tag};
-                Koha::Logger->get->warn("add_tag($biblionumber,$clean_tag,$loggedinuser...) returned bad result (" . (defined $result ? $result : 'UNDEF') .")");
-			}
-		}
-        $perBibResults->{$biblionumber} = $bibResults;
-	}
-}
+my $op = $query->param('op') || q{};
 my $dels = 0;
-foreach (@deltags) {
-	if (remove_tag($_,$loggedinuser)) {
-		$dels++;
-	} else {
-		push @errors, {failed_delete=>$_};
-	}
+if ( $op eq 'cud-add' ) {
+    my $scrubber;
+    my @newtags_keys = (keys %newtags);
+    if (scalar @newtags_keys) {
+        $scrubber = C4::Scrubber->new();
+        foreach my $biblionumber (@newtags_keys) {
+            my $bibResults = {adds=>0, errors=>[]};
+            my @values = split /[;,]/, $newtags{$biblionumber};
+            foreach (@values) {
+                s/^\s*(.+)\s*$/$1/;
+                my $clean_tag = $scrubber->scrub($_);
+                unless ($clean_tag eq $_) {
+                    if ($clean_tag =~ /\S/) {
+                        push @errors, {scrubbed=>$clean_tag};
+                        push @{$bibResults->{errors}}, {scrubbed=>$clean_tag};
+                    } else {
+                        push @errors, {scrubbed_all_bad=>1};
+                        push @{$bibResults->{errors}}, {scrubbed_all_bad=>1};
+                        next;	# we don't add it if there's nothing left!
+                    }
+                }
+                my $result = ($openadds) ?
+                    add_tag($biblionumber,$clean_tag,$loggedinuser,$loggedinuser) : # pre-approved
+                    add_tag($biblionumber,$clean_tag,$loggedinuser)   ;
+                if ($result) {
+                    $counts{$biblionumber}++;
+                    $bibResults->{adds}++;
+                } else {
+                    push @errors, {failed_add_tag=>$clean_tag};
+                    push @{$bibResults->{errors}}, {failed_add_tag=>$clean_tag};
+                    Koha::Logger->get->warn("add_tag($biblionumber,$clean_tag,$loggedinuser...) returned bad result (" . (defined $result ? $result : 'UNDEF') .")");
+                }
+            }
+            $perBibResults->{$biblionumber} = $bibResults;
+        }
+    }
+} elsif ( $op eq 'cud-del' ) {
+    foreach (@deltags) {
+        if (remove_tag($_,$loggedinuser)) {
+            $dels++;
+        } else {
+            push @errors, {failed_delete=>$_};
+        }
+    }
 }
 
 if ($is_ajax) {
@@ -189,20 +193,20 @@ if ($is_ajax) {
         }
         $js_reply .= "\n\t]";
     }
-    
-	my $err_string = '';
-	if (scalar @errors) {
-		$err_string = ",\n\talerts: [";	# open response_function
-		my $i = 1;
-		foreach (@errors) {
-			my $key = (keys %$_)[0];
+
+    my $err_string = '';
+    if ( scalar @errors ) {
+        $err_string = ",\n\talerts: [";    # open response_function
+        my $i = 1;
+        foreach (@errors) {
+            my $key = ( keys %$_ )[0];
             ( my $quote_escaped = $_->{$key} ) =~ s|"|\\"|g;
             $err_string .= sprintf qq{\n\t\t KOHA.Tags.tag_message.%s("%s")}, $key, $quote_escaped;
-			if($i < scalar @errors){ $err_string .= ","; }
-			$i++;
-		}
-		$err_string .= "\n\t]\n";	# close response_function
-	}
+            if ( $i < scalar @errors ) { $err_string .= ","; }
+            $i++;
+        }
+        $err_string .= "\n\t]\n";          # close response_function
+    }
 
     # Add per-biblionumber results for use on results page
     my $js_perbib = "";
@@ -213,7 +217,7 @@ if ($is_ajax) {
         my $i = 0;
         foreach (@{$bibResult->{errors}}) {
             $js_bibres .= "," if ($i);
-			my $key = (keys %$_)[0];
+            my $key = ( keys %$_ )[0];
             ( my $quote_escaped = $_->{$key} ) =~ s|"|\\"|g;
             $js_bibres .= sprintf qq{\n\t\t\t KOHA.Tags.tag_message.%s("%s")}, $key, $quote_escaped;
             $i++;
@@ -252,10 +256,10 @@ if ($loggedinuser) {
     foreach my $tag (@$my_tags) {
         $tag->{visible} = 0;
         my $biblio = Koha::Biblios->find( $tag->{biblionumber} );
-        my $record = $biblio->metadata->record(
+        my $record = $biblio->metadata_record(
             {
                 embed_items => 1,
-                opac        => 1,
+                interface   => 'opac',
                 patron      => $patron,
             }
         );
@@ -330,11 +334,10 @@ if ($add_op) {
 	my $arghash = {approved=>1, limit=>$limit, 'sort'=>'-weight_total'};
     $arghash->{'borrowernumber'} = $loggedinuser if $mine;
 	# ($openadds) or $arghash->{approved} = 1;
-	if ($arg = $query->param('tag')) {
-		$arghash->{term} = $arg;
-	} elsif ($arg = $query->param('biblionumber')) {
-		$arghash->{biblionumber} = $arg;
-	}
+    if ( $arg = $query->param('tag') ) {
+        $arghash->{term} = $arg;
+    }
+    # Bug 36785: Do not pass biblionumber: get_approval_rows does not 'recognize' biblionumber
 	$results = get_approval_rows($arghash);
     stratify_tags(10, $results); # work out the differents sizes for things
 	my $count = scalar @$results;

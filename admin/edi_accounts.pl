@@ -68,7 +68,7 @@ elsif ( $op eq 'delete_confirm' ) {
     $template->param( delete_confirm => 1 );
 }
 else {
-    if ( $op eq 'save' ) {
+    if ( $op eq 'cud-save' ) {
 
         # validate & display
         my $id     = $input->param('id');
@@ -79,6 +79,12 @@ else {
             host               => scalar $input->param('host'),
             username           => scalar $input->param('username'),
             password           => $password,
+            upload_port   => scalar $input->param('upload_port') ? scalar $input->param('upload_port')
+            : $input->param('transport') eq 'FTP' ? 21
+            : 22,
+            download_port => scalar $input->param('download_port') ? scalar $input->param('download_port')
+            : $input->param('transport') eq 'FTP' ? 21
+            : 22,
             vendor_id          => scalar $input->param('vendor_id'),
             upload_directory   => scalar $input->param('upload_directory'),
             download_directory => scalar $input->param('download_directory'),
@@ -105,7 +111,7 @@ else {
             $schema->resultset('VendorEdiAccount')->create($fields);
         }
     }
-    elsif ( $op eq 'delete_confirmed' ) {
+    elsif ( $op eq 'cud-delete_confirmed' ) {
 
         $schema->resultset('VendorEdiAccount')
           ->search( { id => scalar $input->param('id'), } )->delete_all;

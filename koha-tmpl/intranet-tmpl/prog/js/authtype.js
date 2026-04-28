@@ -4,12 +4,12 @@ var importing = false;
 
 $(document).ready(function() {
     $("#authtypes").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "aoColumnDefs": [
-            { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-            { "aTargets": [ 0, 1 ], "sType": "natural" },
+        "columnDefs":  [
+            { "targets":  [ -1 ], "orderable":  false, "searchable":  false },
+            { "targets":  [ 0, 1 ], "type":  "natural" },
         ],
-        "bSort": true,
-        "sPaginationType": "full"
+        "ordering": true,
+        "pagingType":  "full"
     }));
 
     $("body").css("cursor", "auto");
@@ -66,7 +66,7 @@ $(document).ready(function() {
                 $('#importing_' + authtypecode).css('display', 'block');
                 if (navigator.userAgent.toLowerCase().indexOf('firefox') == -1) $("body").css("cursor", "progress");
                 importing = true;
-                $(".modal-footer,.closebtn").hide();
+                $(".modal-footer,.btn-close").hide();
                 return true;
             } else {
                 return false;

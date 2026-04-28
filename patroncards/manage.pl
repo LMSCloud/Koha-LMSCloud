@@ -34,6 +34,7 @@ use C4::Creators qw(
 );
 use C4::Labels;
 use Koha::List::Patron qw( GetPatronLists );
+use C4::Patroncards;
 
 my $cgi = CGI->new;
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -88,7 +89,7 @@ my $display_columns = { layout =>   [  # db column       => {col label          
 my $errstr = ($cgi->param('error') ? $cgi->param('error') : '');
 my $branch_code = ($card_element eq 'batch' ? C4::Context->userenv->{'branch'} : '');
 
-if ($op eq 'delete') {
+if ($op eq 'cud-delete') {
     my $err = 0;
     my @element_ids = split(/,/, $element_id);
     foreach my $element_id (@element_ids) {

@@ -4,7 +4,11 @@
 [% USE KohaDates %]
 [% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Overdues at [% Branches.GetLoggedInBranchname | html %] &rsaquo; Circulation &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% tx("Overdues with fines at {library}", { library = Branches.GetLoggedInBranchname }) | html %] &rsaquo;
+    [% t("Circulation") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="circ_branchoverdues" class="circ">
@@ -19,7 +23,7 @@
             <a href="/cgi-bin/koha/circ/circulation-home.pl">Circulation</a>
         [% END %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
-            [% tx('Overdues at {library}', { library = Branches.GetLoggedInBranchname }) %]
+            [% tx('Overdues with fines at {library}', { library = Branches.GetLoggedInBranchname }) %]
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
@@ -27,16 +31,17 @@
 <div class="main container-fluid">
     <div class="row">
         [% IF Koha.Preference('CircSidebar') %]
-            <div class="col-sm-10 col-sm-push-2">
+            <div class="col-md-10 order-md-2 order-sm-1">
         [% ELSE %]
-            <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+            <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
         [% END %]
             <main>
+                [% INCLUDE 'messages.inc' %]
 
-<h1>Circulation: Overdues at [% Branches.GetLoggedInBranchname | html %]</h1>
+<h1>Overdues with fines at [% Branches.GetLoggedInBranchname | html %]</h1>
 
-<form name="selectlocation" action="branchoverdues.pl" method="post">
-    <label for="location">Shelving location selected: </label><select id="location" name="location">
+<form name="selectlocation" action="branchoverdues.pl" method="get">
+    <label for="location">Shelving location: </label><select id="location" name="location">
         <option value="">All shelving locations</option>
         [% FOREACH locationsloo IN locationsloop %]
             [% IF ( locationsloo.selected ) %]<option value="[% locationsloo.authorised_value | html %]" selected="selected">[% locationsloo.lib | html %]</option>[% ELSE %]<option value="[% locationsloo.authorised_value | html %]">[% locationsloo.lib | html %]</option>[% END %]
@@ -78,7 +83,7 @@
             </table>
         </div> <!-- /.page-section -->
     [% ELSE %]
-        <div class="dialog message">There are no overdues for today[% IF ( location ) %] at the selected location[% END %].</div>
+        <div class="alert alert-info">There are no overdues for today[% IF ( location ) %] at the selected location[% END %].</div>
     [% END %]
     [% IF ( todayoverduesloop ) %]
         <div id="branch_odues_today_odues" class="page-section">
@@ -125,14 +130,14 @@
     [% END %]
 
                 </main>
-            </div> <!-- /.col-sm-10.col-sm-push-2 -->
+            </div> <!-- /.col-md-10.order-md-2 -->
 
             [% IF Koha.Preference('CircSidebar') %]
-                <div class="col-sm-2 col-sm-pull-10">
+                <div class="col-md-2 order-sm-2 order-md-1">
                     <aside>
                         [% INCLUDE 'circ-nav.inc' %]
                     </aside>
-                </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+                </div> <!-- /.col-md-2.order-md-1 -->
             [% END %]
         </div> <!-- /.row -->
 

@@ -52,17 +52,17 @@
                                 <td class="actions">
                                     <button class="btn btn-default btn-xs mana-use" data-subscription_id="[% subscription.id | html %]" id="mana-use-[% subscription.id | html %]"><i class="fa fa-download"></i> Import</button>
                                     <div class="dropup">
-                                        <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            Report <span class="caret"></span>
+                                        <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            Report
                                         </button>
-                                        <ul class="dropdown-menu pull-right mana-actions" id="mana-actions-[% subscription.id | html %]">
+                                        <ul class="dropdown-menu dropdown-menu-end mana-actions" id="mana-actions-[% subscription.id | html %]">
                                             [% IF ( subscription.comments.size ) %]
                                                 [% FOREACH comment IN subscription.comments %]
-                                                    <li><a data-commentid="[% comment.id | html %]" data-resourceid="[% subscription.id | html %]" href="#">[% comment.message | html %] ([% comment.nb | html %])</a></li>
+                                                    <li><a class="dropdown-item" data-commentid="[% comment.id | html %]" data-resourceid="[% subscription.id | html %]" href="#">[% comment.message | html %] ([% comment.nb | html %])</a></li>
                                                 [% END %]
-                                                <li role="separator" class="divider"></li>
+                                                <li><hr class="dropdown-divider"></li>
                                             [% END %]
-                                            <li><a data-commentid="other" data-resourceid="[% subscription.id | html %]" href="#">New comment</a></li>
+                                            <li><a class="dropdown-item" data-commentid="other" data-resourceid="[% subscription.id | html %]" href="#">New comment</a></li>
                                         </ul>
                                     </div>
                                 </td>
@@ -89,21 +89,3 @@
 [% ELSE %]
     <h4>Mana search fails with the code: [% statuscode | html %] </h4>
 [% END %]
-
-<div id="comment_box" class="modal" tabindex="-1" role="dialog" aria-labelledby="mana_search_result_label" style="display: none;">
-    <div class="modal-dialog modal-lg" style="width: 30%">
-        <div class="modal-content" style="">
-            <div class="modal-header">
-                <button type="button" id="commentCloseButton" class="closebtn" aria-hidden="true">×</button>
-                <h3 id="mana_submit_comment"> Please enter a new comment (max 35 characters)</h3>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <input hidden id="selected_id" value="">
-                    <input type="text" id="manamsg"> Comment:
-                </form>
-                <button id="CommentButton"> Comment </button>
-            </div>
-        </div>
-    </div>
-</div>

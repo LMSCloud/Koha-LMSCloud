@@ -38,8 +38,7 @@ Controller function that handles listing Koha::SearchFilter objects
 sub list {
     my $c = shift->openapi->valid_input or return;
     return try {
-        my $filters_set = Koha::SearchFilters->search({});
-        my $filters = $c->objects->search( $filters_set );
+        my $filters = $c->objects->search( Koha::SearchFilters->new );
         return $c->render(
             status  => 200,
             openapi => $filters
@@ -59,13 +58,12 @@ Controller function that handles retrieving a single Koha::AdvancedEditorMacro
 
 sub get {
     my $c = shift->openapi->valid_input or return;
-    my $filter = Koha::SearchFilters->find( $c->validation->param('search_filter_id') );
-    unless ($filter) {
-        return $c->render( status  => 404,
-                           openapi => { error => "Search filter not found" } );
-    }
+    my $filter = Koha::SearchFilters->find( $c->param('search_filter_id') );
 
-    return $c->render( status => 200, openapi => $filter->to_api );
+    return $c->render_resource_not_found("Search filter")
+        unless $filter;
+
+    return $c->render( status => 200, openapi => $c->objects->to_api($filter), );
 }
 
 =head3 add
@@ -78,12 +76,12 @@ sub add {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $filter = Koha::SearchFilter->new_from_api( $c->validation->param('body') );
+        my $filter = Koha::SearchFilter->new_from_api( $c->req->json );
         $filter->store->discard_changes;
         $c->res->headers->location( $c->req->url->to_string . '/' . $filter->id );
         return $c->render(
             status  => 201,
-            openapi => $filter->to_api
+            openapi => $c->objects->to_api($filter),
         );
     }
     catch {
@@ -106,18 +104,15 @@ Controller function that handles updating a Koha::SearchFilter object
 sub update {
     my $c = shift->openapi->valid_input or return;
 
-    my $filter = Koha::SearchFilters->find( $c->validation->param('search_filter_id') );
+    my $filter = Koha::SearchFilters->find( $c->param('search_filter_id') );
 
-    if ( not defined $filter ) {
-        return $c->render( status  => 404,
-                           openapi => { error => "Object not found" } );
-    }
+    return $c->render_resource_not_found("Search filter")
+        unless $filter;
 
     return try {
-        my $params = $c->req->json;
-        $filter->set_from_api( $params );
+        $filter->set_from_api( $c->req->json );
         $filter->store->discard_changes;
-        return $c->render( status => 200, openapi => $filter->to_api );
+        return $c->render( status => 200, openapi => $c->objects->to_api($filter), );
     }
     catch {
         $c->unhandled_exception($_);
@@ -133,17 +128,15 @@ Controller function that handles deleting a Koha::SearchFilter object
 sub delete {
     my $c = shift->openapi->valid_input or return;
 
-    my $filter = Koha::SearchFilters->find( $c->validation->param('search_filter_id') );
-    if ( not defined $filter ) {
-        return $c->render( status  => 404,
-                           openapi => { error => "Object not found" } );
-    }
+    my $filter = Koha::SearchFilters->find( $c->param('search_filter_id') );
+
+    return $c->render_resource_not_found("Search filter")
+        unless $filter;
 
     return try {
         $filter->delete;
-        return $c->render( status => 204, openapi => q{} );
-    }
-    catch {
+        return $c->render_resource_deleted;
+    } catch {
         $c->unhandled_exception($_);
     };
 }

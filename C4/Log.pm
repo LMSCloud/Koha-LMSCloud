@@ -2,7 +2,6 @@ package C4::Log;
 
 #package to deal with Logging Actions in DB
 
-
 # Copyright 2000-2002 Katipo Communications
 # Copyright 2011 MJ Ray and software.coop
 #
@@ -24,20 +23,22 @@ package C4::Log;
 use strict;
 use warnings;
 
-use Data::Dumper qw( Dumper );
-use JSON qw( to_json );
-use Scalar::Util qw( blessed );
+use Data::Dumper   qw( Dumper );
 use File::Basename qw( basename );
+use JSON           qw( to_json encode_json );
+use Scalar::Util   qw( blessed );
+use Struct::Diff   qw( diff );
 
 use C4::Context;
 use Koha::Logger;
+use Koha::ActionLogs;
 
 use vars qw(@ISA @EXPORT);
 
 BEGIN {
-        require Exporter;
-        @ISA = qw(Exporter);
-        @EXPORT = qw(logaction cronlogaction);
+    require Exporter;
+    @ISA    = qw(Exporter);
+    @EXPORT = qw(logaction cronlogaction);
 }
 
 =head1 NAME
@@ -58,7 +59,7 @@ The functions in this module perform various functions in order to log all the o
 
 =item logaction
 
-  &logaction($modulename, $actionname, $objectnumber, $infos, $interface);
+  &logaction($modulename, $actionname, $objectnumber, $infos, $interface, $original_as_hashref_or_object);
 
 Adds a record into action_logs table to report the different changes upon the database.
 Each log entry includes the number of the user currently logged in.  For batch
@@ -69,35 +70,90 @@ number is set to 0, which is the same as the superlibrarian's number.
 
 #'
 sub logaction {
-    my ($modulename, $actionname, $objectnumber, $infos, $interface)=@_;
+    my ( $modulename, $actionname, $objectnumber, $infos, $interface, $original ) = @_;
+
+    my $updated;
 
     # Get ID of logged in user.  if called from a batch job,
     # no user session exists and C4::Context->userenv() returns
     # the scalar '0'.
-    my $userenv = C4::Context->userenv();
-    my $usernumber = (ref($userenv) eq 'HASH') ? $userenv->{'number'} : 0;
+    my $userenv    = C4::Context->userenv();
+    my $usernumber = ( ref($userenv) eq 'HASH' ) ? $userenv->{'number'} : 0;
     $usernumber ||= 0;
     $interface //= C4::Context->interface;
 
-    if( blessed($infos) && $infos->isa('Koha::Object') ) {
-        $infos = $infos->get_from_storage if $infos->in_storage;
+    if ( blessed($infos) && $infos->isa('Koha::Object') ) {
+        $infos   = $infos->get_from_storage if $infos->in_storage;
+        $updated = $infos->unblessed;
         local $Data::Dumper::Sortkeys = 1;
 
         if ( $infos->isa('Koha::Item') && $modulename eq 'CATALOGUING' && $actionname eq 'MODIFY' ) {
-            $infos = "item " . Dumper( $infos->unblessed );
+            $infos = "item " . Dumper( $original->unblessed );
         } else {
-            $infos = Dumper( $infos->unblessed );
+            $infos = Dumper($updated);
         }
+    } else {
+        $updated = $infos;
     }
 
-    my $script = ( $interface eq 'cron' or $interface eq 'commandline' )
+    my $script =
+        ( $interface eq 'cron' or $interface eq 'commandline' )
         ? basename($0)
         : undef;
 
-    my $dbh = C4::Context->dbh;
-    my $sth=$dbh->prepare("Insert into action_logs (timestamp,user,module,action,object,info,interface,script) values (now(),?,?,?,?,?,?,?)");
-    $sth->execute($usernumber,$modulename,$actionname,$objectnumber,$infos,$interface,$script);
-    $sth->finish;
+    my @trace;
+    my $depth = C4::Context->preference('ActionLogsTraceDepth') || 0;
+    for ( my $i = 0 ; $i < $depth ; $i++ ) {
+        my ( $package, $filename, $line, $subroutine ) = caller($i);
+        last unless defined $line;
+        push(
+            @trace,
+            {
+                package    => $package,
+                filename   => $filename,
+                line       => $line,
+                subroutine => $subroutine,
+            }
+        );
+    }
+    my $trace = @trace ? to_json( \@trace, { utf8 => 1, pretty => 0 } ) : undef;
+
+    my $is_object = blessed($original) && $original->isa('Koha::Object');
+
+    if ( $actionname =~ /^(ADD|CREATE)$/ ) {
+
+        # Log diff against empty hashref for newly created objects
+        $updated  = $is_object ? $original->unblessed : $original;
+        $original = {};
+    } elsif ( $actionname eq 'DELETE' ) {
+
+        # Log diff for deleted objects against empty hashref
+        $original = $is_object ? $original->unblessed : $original;
+        $updated  = {};
+    } else {
+
+        # Log diff against hashref of pre-modified object if passed in
+        $original = $is_object ? $original->unblessed : $original;
+    }
+
+    my $diff = undef;
+    $diff //= encode_json( diff( $original, $updated, noU => 1 ) )
+        if $original && ref $updated eq 'HASH';
+
+    Koha::ActionLog->new(
+        {
+            timestamp => \'NOW()',
+            user      => $usernumber,
+            module    => $modulename,
+            action    => $actionname,
+            object    => $objectnumber,
+            info      => $infos,
+            interface => $interface,
+            script    => $script,
+            trace     => $trace,
+            diff      => $diff,
+        }
+    )->store();
 
     my $logger = Koha::Logger->get(
         {
@@ -107,7 +163,7 @@ sub logaction {
     );
     $logger->debug(
         sub {
-            "ACTION LOG: " . to_json(
+            "ACTION LOG: " . encode_json(
                 {
                     user   => $usernumber,
                     module => $modulename,
@@ -132,11 +188,11 @@ Logs the path and name of the calling script plus the information privided by pa
 #'
 sub cronlogaction {
     my $params = shift;
-    my $info = $params->{info};
+    my $info   = $params->{info};
     my $action = $params->{action};
     $action ||= "Run";
-    my $loginfo = (caller(0))[1];
-    $loginfo .= ' ' . $info if $info;
+    my $loginfo = ( caller(0) )[1];
+    $loginfo .= ' ' . $info                        if $info;
     logaction( 'CRONJOBS', $action, $$, $loginfo ) if C4::Context->preference('CronjobLog');
 }
 

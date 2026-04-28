@@ -20,6 +20,7 @@ package Koha::ClaimingRules;
 
 use Modern::Perl;
 use Koha::Database;
+use Koha::ClaimingRule;
 use base qw(Koha::Objects);
 
 =head1 NAME

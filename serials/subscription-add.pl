@@ -46,7 +46,7 @@ my $sub_length;
 # Permission needed if it is a modification : edit_subscription
 # Permission needed otherwise (nothing or dup) : create_subscription
 my $permission =
-  ( $op eq 'modify' || $op eq 'modsubscription' ) ? "edit_subscription" : "create_subscription";
+  ( $op eq 'modify' || $op eq 'cud-modsubscription' ) ? "edit_subscription" : "create_subscription";
 
 our ($template, $loggedinuser, $cookie)
 = get_template_and_user({template_name => "serials/subscription-add.tt",
@@ -66,7 +66,7 @@ my $mana_url = C4::Context->config('mana_config');
 $template->param( 'mana_url' => $mana_url );
 my $subscriptionid = $query->param('subscriptionid');
 
-if ($op eq 'modify' || $op eq 'dup' || $op eq 'modsubscription') {
+if ($op eq 'modify' || $op eq 'dup' || $op eq 'cud-modsubscription') {
 
     $subs = GetSubscription($subscriptionid);
 
@@ -85,7 +85,7 @@ if ($op eq 'modify' || $op eq 'dup' || $op eq 'modsubscription') {
     my $nextexpected = GetNextExpected($subscriptionid);
     $nextexpected->{'isfirstissue'} = $nextexpected->{planneddate} eq $firstissuedate ;
     $subs->{nextacquidate} = $nextexpected->{planneddate}  if($op eq 'modify');
-    unless($op eq 'modsubscription') {
+    unless($op eq 'cud-modsubscription') {
         foreach my $length_unit (qw(numberlength weeklength monthlength)) {
             if ($subs->{$length_unit}) {
                 $sub_length=$subs->{$length_unit};
@@ -132,17 +132,12 @@ $template->param(
 );
 
 my @additional_fields = Koha::AdditionalFields->search({ tablename => 'subscription' })->as_list;
-my %additional_field_values;
-if ($subscriptionid) {
-    my $subscription = Koha::Subscriptions->find($subscriptionid);
-    foreach my $value ($subscription->additional_field_values->as_list) {
-        $additional_field_values{$value->field_id} = $value->value;
-    }
-}
+my @additional_field_values;
+@additional_field_values = Koha::Subscriptions->find($subscriptionid)->get_additional_field_values_for_template if $subscriptionid;
 
 $template->param(
-    additional_fields => \@additional_fields,
-    additional_field_values => \%additional_field_values,
+    additional_fields       => \@additional_fields,
+    additional_field_values => @additional_field_values,
 );
 
 my $typeloop = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
@@ -167,9 +162,9 @@ if ($op!~/^mod/) {
     $template->param( letterloop => $letters );
 }
 
-if ($op eq 'addsubscription') {
+if ($op eq 'cud-addsubscription') {
     redirect_add_subscription();
-} elsif ($op eq 'modsubscription') {
+} elsif ($op eq 'cud-modsubscription') {
     redirect_mod_subscription();
 } else {
 
@@ -178,7 +173,7 @@ if ($op eq 'addsubscription') {
         subtype => $sub_on,
     );
 
-    if ( $op ne 'modsubscription' && $op ne 'dup' && $op ne 'modify' ) {
+    if ( $op ne 'cud-modsubscription' && $op ne 'dup' && $op ne 'modify' ) {
         my $letters = get_letter_loop();
         $template->param( letterloop => $letters );
     }
@@ -330,6 +325,7 @@ sub redirect_add_subscription {
     my $previousitemtype  = $query->param('previousitemtype');
     my $skip_serialseq    = $query->param('skip_serialseq');
     my $ccode             = $query->param('ccode');
+    my $published_on_template = $query->param('published_on_template');
 
     my $mana_id;
     if ( $query->param('mana_id') ne "" ) {
@@ -356,23 +352,15 @@ sub redirect_add_subscription {
         join(";",@irregularity), $numberpattern, $locale, $callnumber,
         $manualhistory, $internalnotes, $serialsadditems,
         $staffdisplaycount, $opacdisplaycount, $graceperiod, $location, $enddate,
-        $skip_serialseq, $itemtype, $previousitemtype, $mana_id, $ccode
+        $skip_serialseq, $itemtype, $previousitemtype, $mana_id, $ccode, $published_on_template
     );
     if ( (C4::Context->preference('Mana') == 1) and ( grep { $_ eq "subscription" } split(/,/, C4::Context->preference('AutoShareWithMana'))) ){
         my $result = Koha::SharedContent::send_entity( $query->param('mana_language') || '', $loggedinuser, $subscriptionid, 'subscription');
         $template->param( mana_msg => $result->{msg} );
     }
 
-    my @additional_fields;
-    my $biblio = Koha::Biblios->find($biblionumber);
-    my $subscription_fields = Koha::AdditionalFields->search({ tablename => 'subscription' });
-    while ( my $field = $subscription_fields->next ) {
-        my $value = $query->param('additional_field_' . $field->id);
-        push @additional_fields, {
-            id => $field->id,
-            value => $value,
-        };
-    }
+    my @additional_fields = Koha::Subscriptions->find($subscriptionid)
+        ->prepare_cgi_additional_field_values( $query, 'subscription' );
     Koha::Subscriptions->find($subscriptionid)->set_additional_fields(\@additional_fields);
 
     print $query->redirect("/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=$subscriptionid");
@@ -438,6 +426,7 @@ sub redirect_mod_subscription {
     my $previousitemtype  = $query->param('previousitemtype');
     my $skip_serialseq    = $query->param('skip_serialseq');
     my $ccode             = $query->param('ccode');
+    my $published_on_template = $query->param('published_on_template');
 
     my $mana_id;
     if ( $query->param('mana_id') ne "" ) {
@@ -473,19 +462,11 @@ sub redirect_mod_subscription {
         $status, $biblionumber, $callnumber, $notes, $letter,
         $manualhistory, $internalnotes, $serialsadditems, $staffdisplaycount,
         $opacdisplaycount, $graceperiod, $location, $enddate, $subscriptionid,
-        $skip_serialseq, $itemtype, $previousitemtype, $mana_id, $ccode
+        $skip_serialseq, $itemtype, $previousitemtype, $mana_id, $ccode, $published_on_template
     );
 
-    my @additional_fields;
-    my $biblio = Koha::Biblios->find($biblionumber);
-    my $subscription_fields = Koha::AdditionalFields->search({ tablename => 'subscription' });
-    while ( my $field = $subscription_fields->next ) {
-        my $value = $query->param('additional_field_' . $field->id);
-        push @additional_fields, {
-            id => $field->id,
-            value => $value,
-        };
-    }
+    my @additional_fields =
+        Koha::Subscriptions->find($subscriptionid)->prepare_cgi_additional_field_values( $query, 'subscription' );
     Koha::Subscriptions->find($subscriptionid)->set_additional_fields(\@additional_fields);
 
     print $query->redirect("/cgi-bin/koha/serials/subscription-detail.pl?subscriptionid=$subscriptionid");

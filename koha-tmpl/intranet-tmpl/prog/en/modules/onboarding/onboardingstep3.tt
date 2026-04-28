@@ -1,15 +1,20 @@
-[% USE Koha %]
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Create Koha administrator patron &rsaquo; Web installer &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Create Koha administrator patron") | html %] &rsaquo;
+    [% t("Web installer") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'installer-doc-head-close.inc' %]
 </head>
 
 <body id="installer" class="installer">
     <div class="container-fluid">
         <div class="row">
-            <div id="onboarding-step3" class="installer-main col-sm-8 col-sm-offset-2 col-md-8 col-md-offset-2">
+            <div id="onboarding-step3" class="installer-main col-sm-10 col-md-8 offset-sm-1 offset-md-2">
                 <div id="logo"><a href="#">Koha</a></div>
                 <h1>Web installer &rsaquo; Create Koha administrator patron</h1>
 
@@ -17,14 +22,14 @@
 
                 <div id="steps">
                     <ol>
-                        <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Installation</li>
-                        <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Onboarding
+                        <li class="complete"><i class="fa fa-check-square" aria-hidden="true"></i> Installation</li>
+                        <li class="current open"><i class="fa-svg-icon checkbox-square" aria-hidden="true"></i> Onboarding
                             <ol>
-                                <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Create a library</li>
-                                <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Create a patron category</li>
-                                <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Create Koha administrator patron</li>
-                                <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Create a new item type</li>
-                                <li class="open"><i class="fa fa-square-o" aria-hidden="true"></i> Create a new circulation rule</li>
+                                <li class="complete"><i class="fa fa-check-square" aria-hidden="true"></i> Create a library</li>
+                                <li class="complete"><i class="fa fa-check-square" aria-hidden="true"></i> Create a patron category</li>
+                                <li class="current open"><i class="fa-svg-icon checkbox-square" aria-hidden="true"></i> Create Koha administrator patron</li>
+                                <li class="open"><i class="fa-svg-icon checkbox-square" aria-hidden="true"></i> Create a new item type</li>
+                                <li class="open"><i class="fa-svg-icon checkbox-square" aria-hidden="true"></i> Create a new circulation rule</li>
                             </ol>
                         </li>
                     </ol>
@@ -34,9 +39,10 @@
                 Now we will create a patron with superlibrarian permissions. Log in with this to access Koha as a staff member with all permissions.
                 </p>
                 <form name="createpatron" id="createpatron" method="post" action="onboarding.pl">
+                    [% INCLUDE 'csrf-token.inc' %]
                     <fieldset class="rows">
                         <input type="hidden" name="step" value="3" />
-                        <input type="hidden" name="op" value="add_validate_patron" />
+                        <input type="hidden" name="op" value="cud-add_validate_patron" />
                         <h3>Administrator identity</h3>
                         <ol>
                             <li>
@@ -55,7 +61,7 @@
                             <li>
                                 <label for="cardnumber" class="required">Card number: </label>
                                 [% IF patrons && patrons > 1 %]
-                                    <input type="text" id="cardnumber" class="noEnterSubmit valid" name="cardnumber" value="[% newcardnumber | html %]" class="required" required="required">
+                                    <input type="text" id="cardnumber" class="noEnterSubmit valid required" name="cardnumber" value="[% newcardnumber | html %]" required="required">
                                 [% ELSE %]
                                     <input type="text" id="cardnumber" name="cardnumber" value="[% cardnumber | html %]" class="required" required="required">
                                 [% END %]

@@ -99,10 +99,6 @@
         margin-bottom: .5em;
     }
 
-    .table:not(.collapsed) .tdlabel {
-        display: inline;
-    }
-
     .table td.bibliocol {
         padding-left: 1.3em;
     }
@@ -110,17 +106,11 @@
     .actions {
         display: block;
 
-        &:first-child {
-            .btn-link {
-                padding: .375rem .75rem;
-            }
+        .btn-link {
+            padding-left: 0;
         }
 
         a {
-            @include border-radius-all( 4px );
-
-            background-color: #F2F2EF;
-            border: 1px solid #DDD;
             display: block;
             font-size: 120%;
             font-weight: bold;
@@ -210,9 +200,9 @@
     .cart-actions {
         display: flex;
 
-        .btn {
-            flex-grow: 1;
-            padding: .375rem .75rem;
+        .btn + .btn {
+            line-height: 2;
+            margin-left: .5em;
         }
     }
 
@@ -276,6 +266,12 @@
                 margin: 5px 0;
             }
         }
+
+    }
+
+    .consentButtons {
+        text-align: right;
+        white-space: nowrap;
     }
 
     #views {
@@ -295,6 +291,12 @@
         border: 0;
         box-shadow: none;
     }
+
+    .cover-image {
+        img {
+            margin: .7rem;
+        }
+    }
 }
 
 @media only screen and ( min-width: 608px ) and ( max-width: 767px ) {
@@ -302,10 +304,6 @@
 
     .breadcrumb {
         margin: 10px 0;
-    }
-
-    .row-fluid input.span6 {
-        width: 48.9362%;
     }
 
     #wrapper {
@@ -325,7 +323,6 @@
         margin: 0 -20px;
     }
 
-    .breadcrumb,
     .menu-collapse {
         display: none;
     }
@@ -343,18 +340,26 @@
     }
 }
 
-@media only screen and ( max-width: 800px ) {
+@media only screen and ( min-width: 969px ) {
+    .cookieconsentlabel,
+    #header-region .langlabel,
+    .userlabel,
+    .search_history_label {
+        display: inline;
+    }
+}
+
+@media only screen and ( min-width: 851px ) {
     /* Screens below 800 pixels wide */
     .cartlabel,
-    .listslabel,
-    .langlabel,
-    .userlabel {
-        display: none;
+    .checkout-label,
+    .listslabel {
+        display: inline;
     }
 
     .navbar {
         .divider-vertical {
-            margin: 0 2px;
+            margin: 5px 2px;
         }
     }
 }
@@ -376,7 +381,7 @@
                 &::before {
                     content: "\f0da";
                     display: inline-block;
-                    font-family: FontAwesome;
+                    font-family: "Font Awesome 6 Free";
                     width: 1em;
                 }
             }
@@ -402,7 +407,7 @@
         &::before {
             content: "\f0d7";
             display: inline-block;
-            font-family: FontAwesome;
+            font-family: "Font Awesome 6 Free";
             width: 1em;
         }
     }
@@ -529,11 +534,12 @@
     }
 }
 
-@media only screen and ( max-width: 1100px ) {
-    .cartlabel,
-    .listslabel,
-    .langlabel,
-    .userlabel {
-        display: none;
+@media only screen and ( min-width: 769px ) {
+    footer .cookieconsentlabel,
+    .cookieConsentFooter_text,
+    footer .langlabel,
+    .report_a_problem_text,
+    .koha_url_text {
+        display: inline;
     }
 }

@@ -54,9 +54,9 @@
                 </td>
                 <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% reserveloo.borrower.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' patron=reserveloo.borrower invert_name=1 no_title=1 %]</a>
                     [% IF ( reserveloo.borrower.phone ) %]<br /><span class="patron_phone">[% reserveloo.borrower.phone | html %]</span>[% END %]
-                    [% IF ( reserveloo.borrower.first_valid_email_address ) %]
-                        <span class="patron_email"><br /><a href="mailto:[% reserveloo.borrower.first_valid_email_address | uri %]?subject=[% "Hold waiting: " | uri %][% reserveloo.biblio.title | uri %]">
-                        [% reserveloo.borrower.first_valid_email_address | html %]</a></span>
+                    [% IF ( reserveloo.borrower.notice_email_address ) %]
+                        <span class="patron_email"><br /><a href="mailto:[% reserveloo.borrower.notice_email_address | uri %]?subject=[% "Hold waiting: " | uri %][% reserveloo.biblio.title | uri %]">
+                        [% reserveloo.borrower.notice_email_address | html %]</a></span>
                     [% END %]
                 </td>
                 <td>[% Branches.GetName( reserveloo.item.homebranch ) | html %]</td>
@@ -67,15 +67,17 @@
                 <td>[% reserveloo.item.enumchron | html %]</td>
                 <td>
                     <form name="cancelReserve" action="waitingreserves.pl" method="post">
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-cancel">
                         <input type="hidden" name="borrowernumber" value="[% reserveloo.borrower.borrowernumber | html %]" />
                         <input type="hidden" name="itemnumber" value="[% reserveloo.item.itemnumber | html %]" />
                         <input type="hidden" name="fbr" value="[% reserveloo.item.holdingbranch | html %]" />
                         <input type="hidden" name="tbr" value="[% reserveloo.item.homebranch | html %]" />
                         <input type="hidden" name="tab" value="[% tab | html %]">
                         [% IF ( reserveloo.item.homebranch != reserveloo.item.holdingbranch ) %]
-                            <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-remove"></i> Cancel hold and return to: [% Branches.GetName( reserveloo.item.homebranch ) | html %]</button>
+                            <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-times"></i> Cancel hold and return to: [% Branches.GetName( reserveloo.item.homebranch ) | html %]</button>
                         [% ELSE %]
-                            <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-remove"></i> Cancel hold</button>
+                            <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-times"></i> Cancel hold</button>
                         [% END %]
                    </form>
                 </td>

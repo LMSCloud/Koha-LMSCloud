@@ -19,7 +19,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 31;
+use Test::More tests => 32;
 use Test::MockModule;
 use Test::Warn;
 
@@ -49,6 +49,8 @@ use Koha::Notice::Messages;
 use Koha::Notice::Templates;
 use Koha::Patron::Modification;
 
+t::lib::Mocks::mock_preference( 'EmailFieldPrimary', '' );
+
 my $schema = Koha::Database->schema;
 $schema->storage->txn_begin();
 
@@ -63,7 +65,8 @@ my $mocked_datetime = Test::MockModule->new('DateTime');
 $mocked_datetime->mock( 'now', sub { return $now_value->clone; } );
 
 my $library = $builder->build( { source => 'Branch' } );
-my $patron  = $builder->build( { source => 'Borrower' } );
+my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
 my $patron2 = $builder->build( { source => 'Borrower' } );
 
 my $item = $builder->build_sample_item();
@@ -71,7 +74,7 @@ my $hold = $builder->build_object(
     {
         class => 'Koha::Holds',
         value => {
-            borrowernumber => $patron->{borrowernumber},
+            borrowernumber => $patron->borrowernumber,
             biblionumber   => $item->biblionumber
         }
     }
@@ -79,8 +82,8 @@ my $hold = $builder->build_object(
 
 my $news = $builder->build_object(
     {
-        class => 'Koha::AdditionalContents',
-        value => { title => 'a news title', content => 'a news content' }
+        class => 'Koha::AdditionalContentsLocalizations',
+        value => { title => 'a news title', content => 'a news content', lang => 'default' }
     }
 );
 my $serial       = $builder->build_object( { class => 'Koha::Serials' } );
@@ -109,47 +112,47 @@ $prepared_letter = GetPreparedLetter(
         module      => 'test',
         letter_code => 'TEST_PATRON',
         tables      => {
-            borrowers => $patron->{borrowernumber},
+            borrowers => $patron->borrowernumber,
         },
     )
 );
-is( $prepared_letter->{content}, $patron->{borrowernumber}, 'Patron object used correctly with scalar for content' );
-is( $prepared_letter->{title}, $patron->{firstname}, 'Patron object used correctly with scalar for title' );
+is( $prepared_letter->{content}, $patron->borrowernumber, 'Patron object used correctly with scalar for content' );
+is( $prepared_letter->{title}, $patron->firstname, 'Patron object used correctly with scalar for title' );
 
 $prepared_letter = GetPreparedLetter(
     (
         module      => 'test',
         letter_code => 'TEST_PATRON',
         tables      => {
-            borrowers => $patron,
+            borrowers => $patron->unblessed,
         },
     )
 );
-is( $prepared_letter->{content}, $patron->{borrowernumber}, 'Patron object used correctly with hashref for content' );
-is( $prepared_letter->{title}, $patron->{firstname}, 'Patron object used correctly with hashref for title' );
+is( $prepared_letter->{content}, $patron->borrowernumber, 'Patron object used correctly with hashref for content' );
+is( $prepared_letter->{title}, $patron->firstname, 'Patron object used correctly with hashref for title' );
 
 $prepared_letter = GetPreparedLetter(
     (
         module      => 'test',
         letter_code => 'TEST_PATRON',
         tables      => {
-            borrowers => [ $patron->{borrowernumber} ],
+            borrowers => [ $patron->borrowernumber ],
         },
     )
 );
-is( $prepared_letter->{content}, $patron->{borrowernumber}, 'Patron object used correctly with arrayref for content' );
-is( $prepared_letter->{title}, $patron->{firstname}, 'Patron object used correctly with arrayref for title' );
+is( $prepared_letter->{content}, $patron->borrowernumber, 'Patron object used correctly with arrayref for content' );
+is( $prepared_letter->{title}, $patron->firstname, 'Patron object used correctly with arrayref for title' );
 
 $prepared_letter = GetPreparedLetter(
     (
         module      => 'test',
         letter_code => 'TEST_PATRON',
         objects      => {
-            borrower => scalar Koha::Patrons->find( $patron->{borrowernumber} ),
+            borrower => scalar Koha::Patrons->find( $patron->borrowernumber ),
         },
     )
 );
-is( $prepared_letter->{content}, $patron->{borrowernumber}, 'Patron object used correctly as object' );
+is( $prepared_letter->{content}, $patron->borrowernumber, 'Patron object used correctly as object' );
 
 $sth->execute( "TEST_BIBLIO", "[% biblio.title %]", "[% biblio.id %]" );
 $prepared_letter = GetPreparedLetter(
@@ -209,7 +212,7 @@ $prepared_letter = GetPreparedLetter(
         module      => 'test',
         letter_code => 'TEST_HOLD',
         tables      => {
-            reserves => { borrowernumber => $patron->{borrowernumber}, biblionumber => $item->biblionumber },
+            reserves => { borrowernumber => $patron->borrowernumber, biblionumber => $item->biblionumber },
         },
     )
 );
@@ -222,7 +225,7 @@ eval {
             module      => 'test',
             letter_code => 'TEST_HOLD',
             tables      => {
-                reserves => [ $patron->{borrowernumber}, $item->biblionumber ],
+                reserves => [ $patron->borrowernumber, $item->biblionumber ],
             },
         )
     )
@@ -237,7 +240,7 @@ $prepared_letter = GetPreparedLetter(
         letter_code => 'TEST_HOLD',
         tables      => {
             'branches'    => $library,
-            'borrowers'   => $patron,
+            'borrowers'   => $patron->unblessed,
             'biblio'      => $item->biblionumber,
             'biblioitems' => $item->biblioitemnumber,
             'reserves'    => $hold->unblessed,
@@ -311,12 +314,13 @@ subtest 'regression tests' => sub {
     plan tests => 8;
 
     my $library = $builder->build( { source => 'Branch' } );
-    my $patron  = $builder->build( { source => 'Borrower' } );
+    my $itemtype = $builder->build_object({ class => 'Koha::ItemTypes' })->store->itemtype;
+
     my $item1 = $builder->build_sample_item(
         {
             barcode        => 'a_t_barcode',
             library        => $library->{branchcode},
-            itype          => 'BK',
+            itype          => $itemtype,
             itemcallnumber => 'itemcallnumber1',
         }
     );
@@ -326,7 +330,7 @@ subtest 'regression tests' => sub {
         {
             barcode        => 'another_t_barcode',
             library        => $library->{branchcode},
-            itype          => 'BK',
+            itype          => $itemtype,
             itemcallnumber => 'itemcallnumber2',
         }
     );
@@ -336,7 +340,7 @@ subtest 'regression tests' => sub {
         {
             barcode        => 'another_t_barcode_3',
             library        => $library->{branchcode},
-            itype          => 'BK',
+            itype          => $itemtype,
             itemcallnumber => 'itemcallnumber3',
         }
     );
@@ -356,7 +360,7 @@ Dear <<borrowers.firstname>> <<borrowers.surname>>,
 The order <<aqorders.ordernumber>> (<<biblio.title>>) has been received.
 Your library.
         |;
-        my $params = { code => $code, branchcode => $branchcode, tables => { branches => $library, borrowers => $patron, biblio => $biblio1, aqorders => $order } };
+        my $params = { code => $code, branchcode => $branchcode, tables => { branches => $library, borrowers => $patron->unblessed, biblio => $biblio1, aqorders => $order } };
         my $letter = process_letter( { template => $template, %$params });
         my $tt_template = q|
 Dear [% borrower.firstname %] [% borrower.surname %],
@@ -432,13 +436,17 @@ Notes: [% article_request.patron_notes %]
 
         my $dbh = C4::Context->dbh;
         # Enable notification for CHECKOUT - Things are hardcoded here but should work with default data
-        $dbh->do(q|INSERT INTO borrower_message_preferences( borrowernumber, message_attribute_id ) VALUES ( ?, ? )|, undef, $patron->{borrowernumber}, 6 );
+        $dbh->do(q|INSERT INTO borrower_message_preferences( borrowernumber, message_attribute_id ) VALUES ( ?, ? )|,
+            undef, $patron->borrowernumber, 6 );
         my $borrower_message_preference_id = $dbh->last_insert_id(undef, undef, "borrower_message_preferences", undef);
         $dbh->do(q|INSERT INTO borrower_message_transport_preferences( borrower_message_preference_id, message_transport_type) VALUES ( ?, ? )|, undef, $borrower_message_preference_id, 'email' );
+
         # Enable notification for CHECKIN - Things are hardcoded here but should work with default data
-        $dbh->do(q|INSERT INTO borrower_message_preferences( borrowernumber, message_attribute_id ) VALUES ( ?, ? )|, undef, $patron->{borrowernumber}, 5 );
+        $dbh->do(q|INSERT INTO borrower_message_preferences( borrowernumber, message_attribute_id ) VALUES ( ?, ? )|,
+            undef, $patron->borrowernumber, 5);
         $borrower_message_preference_id = $dbh->last_insert_id(undef, undef, "borrower_message_preferences", undef);
         $dbh->do(q|INSERT INTO borrower_message_transport_preferences( borrower_message_preference_id, message_transport_type) VALUES ( ?, ? )|, undef, $borrower_message_preference_id, 'email' );
+
 
         # historic syntax
         my $checkout_template = q|
@@ -460,11 +468,13 @@ Thank you for visiting <<branches.branchname>>.
 
         C4::Circulation::AddIssue( $patron, $item1->{barcode} );
         my $first_checkout_letter = Koha::Notice::Messages->search( {}, { order_by => { -desc => 'message_id' } } )->next;
+
         C4::Circulation::AddIssue( $patron, $item2->{barcode} );
         my $second_checkout_letter = Koha::Notice::Messages->search( {}, { order_by => { -desc => 'message_id' } } )->next;
 
         AddReturn( $item1->{barcode} );
         my $first_checkin_letter = Koha::Notice::Messages->search( {}, { order_by => { -desc => 'message_id' } } )->next;
+
         AddReturn( $item2->{barcode} );
         my $second_checkin_letter = Koha::Notice::Messages->search( {}, { order_by => { -desc => 'message_id' } } )->next;
 
@@ -490,11 +500,13 @@ Thank you for visiting [% branch.branchname %].
 
         C4::Circulation::AddIssue( $patron, $item1->{barcode} );
         my $first_checkout_tt_letter = Koha::Notice::Messages->search( {}, { order_by => { -desc => 'message_id' } } )->next;
+
         C4::Circulation::AddIssue( $patron, $item2->{barcode} );
         my $second_checkout_tt_letter = Koha::Notice::Messages->search( {}, { order_by => { -desc => 'message_id' } } )->next;
 
         AddReturn( $item1->{barcode} );
         my $first_checkin_tt_letter = Koha::Notice::Messages->search( {}, { order_by => { -desc => 'message_id' } } )->next;
+
         AddReturn( $item2->{barcode} );
         my $second_checkin_tt_letter = Koha::Notice::Messages->search( {}, { order_by => { -desc => 'message_id' } } )->next;
 
@@ -512,7 +524,7 @@ Thank you for visiting [% branch.branchname %].
 
         my $dbh = C4::Context->dbh;
         # Enable notification for DUEDGST - Things are hardcoded here but should work with default data
-        $dbh->do(q|INSERT INTO borrower_message_preferences( borrowernumber, message_attribute_id ) VALUES ( ?, ? )|, undef, $patron->{borrowernumber}, 1 );
+        $dbh->do(q|INSERT INTO borrower_message_preferences( borrowernumber, message_attribute_id ) VALUES ( ?, ? )|, undef, $patron->borrowernumber, 1 );
         my $borrower_message_preference_id = $dbh->last_insert_id(undef, undef, "borrower_message_preferences", undef);
         $dbh->do(q|INSERT INTO borrower_message_transport_preferences( borrower_message_preference_id, message_transport_type) VALUES ( ?, ? )|, undef, $borrower_message_preference_id, 'email' );
 
@@ -541,7 +553,7 @@ You have [% count %] items due
         my $reserve_id1 = C4::Reserves::AddReserve(
             {
                 branchcode     => $library->{branchcode},
-                borrowernumber => $patron->{borrowernumber},
+                borrowernumber => $patron->borrowernumber,
                 biblionumber   => $biblio1->{biblionumber},
                 notes          => "a note",
                 itemnumber     => $item1->{itemnumber},
@@ -550,7 +562,7 @@ You have [% count %] items due
         my $reserve_id2 = C4::Reserves::AddReserve(
             {
                 branchcode     => $library->{branchcode},
-                borrowernumber => $patron->{borrowernumber},
+                borrowernumber => $patron->borrowernumber,
                 biblionumber   => $biblio1->{biblionumber},
                 notes          => "a note",
                 itemnumber     => $item1->{itemnumber},
@@ -559,7 +571,7 @@ You have [% count %] items due
         my $reserve_id3 = C4::Reserves::AddReserve(
             {
                 branchcode     => $library->{branchcode},
-                borrowernumber => $patron->{borrowernumber},
+                borrowernumber => $patron->borrowernumber,
                 biblionumber   => $biblio2->{biblionumber},
                 notes          => "another note",
                 itemnumber     => $item2->{itemnumber},
@@ -652,14 +664,22 @@ EOF
             {
                 class => 'Koha::AdditionalContents',
                 value => {
-                    category        => 'news',
-                    location        => "slip",
-                    branchcode      => $branchcode,
-                    lang            => 'default',
-                    title           => "A wonderful news",
-                    content         => "This is the wonderful news.",
-                    expirationdate  => undef,
-                    published_on    => $one_minute_ago
+                    category       => 'news',
+                    location       => "slip",
+                    branchcode     => $branchcode,
+                    expirationdate => undef,
+                    published_on   => $one_minute_ago
+                }
+            }
+        );
+        my $content = $builder->build_object(
+            {
+                class => 'Koha::AdditionalContentsLocalizations',
+                value => {
+                    additional_content_id => $news_item->id,
+                    lang                  => 'default',
+                    title                 => "A wonderful news",
+                    content               => "This is the wonderful news.",
                 }
             }
         );
@@ -692,28 +712,30 @@ Date due: <<issues.date_due | dateonly>><br />
 
 <hr>
 
+[% IF additional_contents.count %]
 <h4 style="text-align: center; font-style:italic;">News</h4>
-<news>
+[% FOR content IN additional_contents %]
 <div class="newsitem">
-<h5 style="margin-bottom: 1px; margin-top: 1px"><b><<additional_contents.title>></b></h5>
-<p style="margin-bottom: 1px; margin-top: 1px"><<additional_contents.content>></p>
-<p class="newsfooter" style="font-size: 8pt; font-style:italic; margin-bottom: 1px; margin-top: 1px">Posted on <<additional_contents.published_on>></p>
+<h5 style="margin-bottom: 1px; margin-top: 1px"><b>[% content.title %]</b></h5>
+<p style="margin-bottom: 1px; margin-top: 1px">[% content.content %]</p>
+<p class="newsfooter" style="font-size: 8pt; font-style:italic; margin-bottom: 1px; margin-top: 1px">Posted on [% content.published_on | \$KohaDates %]</p>
 <hr />
 </div>
-</news>
+[% END %]
+[% END %]
 EOF
 
         reset_template( { template => $template, code => $code, module => 'circulation' } );
 
         my $checkout = C4::Circulation::AddIssue( $patron, $item1->{barcode} ); # Add a first checkout
         $checkout->set( { timestamp => $now, issuedate => $one_minute_ago } )->store;
-        my $first_slip = C4::Members::IssueSlip( $branchcode, $patron->{borrowernumber} );
+        my $first_slip = C4::Members::IssueSlip( $branchcode, $patron->borrowernumber );
 
         $checkout = C4::Circulation::AddIssue( $patron, $item2->{barcode} ); # Add a second checkout
         $checkout->set( { timestamp => $now, issuedate => $now } )->store;
         my $yesterday = dt_from_string->subtract( days => 1 );
         C4::Circulation::AddIssue( $patron, $item3->{barcode}, $yesterday ); # Add an overdue
-        my $second_slip = C4::Members::IssueSlip( $branchcode, $patron->{borrowernumber} );
+        my $second_slip = C4::Members::IssueSlip( $branchcode, $patron->borrowernumber );
 
         # Cleanup
         AddReturn( $item1->{barcode} );
@@ -752,6 +774,7 @@ Date due: [% overdue.date_due | \$KohaDates %]<br />
 
 <hr>
 
+[% IF additional_contents.count %]
 <h4 style="text-align: center; font-style:italic;">News</h4>
 [% FOREACH n IN additional_contents %]
 <div class="newsitem">
@@ -761,23 +784,24 @@ Date due: [% overdue.date_due | \$KohaDates %]<br />
 <hr />
 </div>
 [% END %]
+[% END %]
 EOF
 
         reset_template( { template => $tt_template, code => $code, module => 'circulation' } );
 
         $checkout = C4::Circulation::AddIssue( $patron, $item1->{barcode} ); # Add a first checkout
         $checkout->set( { timestamp => $now, issuedate => $one_minute_ago } )->store;
-        my $first_tt_slip = C4::Members::IssueSlip( $branchcode, $patron->{borrowernumber} );
+        my $first_tt_slip = C4::Members::IssueSlip( $branchcode, $patron->borrowernumber );
 
         $checkout = C4::Circulation::AddIssue( $patron, $item2->{barcode} ); # Add a second checkout
         $checkout->set( { timestamp => $now, issuedate => $now } )->store;
         C4::Circulation::AddIssue( $patron, $item3->{barcode}, $yesterday ); # Add an overdue
-        my $second_tt_slip = C4::Members::IssueSlip( $branchcode, $patron->{borrowernumber} );
+        my $second_tt_slip = C4::Members::IssueSlip( $branchcode, $patron->borrowernumber );
 
         # There is too many line breaks generated by the historic syntax
         $second_slip->{content} =~ s|</p>\n\n\n<p>|</p>\n\n<p>|s;
 
-        my $news_item_title = $news_item->title;
+        my $news_item_title = $content->title;
         like( $first_slip->{content}, qr{$news_item_title} );
         is( $first_tt_slip->{content}, $first_slip->{content}, );
         is( $second_tt_slip->{content}, $second_slip->{content}, );
@@ -815,7 +839,7 @@ If you have registered a password with the library, and you have a renewal avail
 
 The following item(s) is/are currently overdue:
 
-<item>"<<biblio.title>>" by <<biblio.author>>, <<items.itemcallnumber>>, Barcode: <<items.barcode>></item>
+<item>"<<biblio.title>>" by <<biblio.author>>, <<items.itemcallnumber>>, Barcode: <<items.barcode>>, Fine: <<items.fine>></item>
 
 <<items.content>>
 
@@ -845,7 +869,7 @@ EOF
         my $letter = C4::Overdues::parse_overdues_letter(
             {
                 letter_code => $code,
-                borrowernumber => $patron->{borrowernumber},
+                borrowernumber => $patron->borrowernumber,
                 branchcode  => $library->{branchcode},
                 items       => \@items,
                 substitute  => {
@@ -865,6 +889,7 @@ EOF
 
         # historic syntax
         my $tt_template = <<EOF;
+[%- USE Price -%]
 Dear [% borrower.firstname %] [% borrower.surname %],
 
 According to our current records, you have items that are overdue.Your library does not charge late fines, but please return or renew them at the branch below as soon as possible.
@@ -882,7 +907,7 @@ The following item(s) is/are currently overdue:
 
 [% FOREACH overdue IN overdues %]
 [%~ SET item = overdue.item ~%]
-"[% item.biblio.title %]" by [% item.biblio.author %], [% item.itemcallnumber %], Barcode: [% item.barcode %]
+"[% item.biblio.title %]" by [% item.biblio.author %], [% item.itemcallnumber %], Barcode: [% item.barcode %], Fine: [% overdue.overdue_fines.total_outstanding | \$Price %]
 [% END %]
 [% FOREACH overdue IN overdues %]
 [%~ SET item = overdue.item ~%]
@@ -903,7 +928,7 @@ EOF
         my $tt_letter = C4::Overdues::parse_overdues_letter(
             {
                 letter_code => $code,
-                borrowernumber => $patron->{borrowernumber},
+                borrowernumber => $patron->borrowernumber,
                 branchcode  => $library->{branchcode},
                 items       => \@items,
                 substitute  => {
@@ -930,11 +955,11 @@ EOF
         $dbh->do("DELETE FROM message_queue");
 
         # Enable notification for CHECKOUT - Things are hardcoded here but should work with default data
-        $dbh->do(q|INSERT INTO borrower_message_preferences( borrowernumber, message_attribute_id ) VALUES ( ?, ? )|, undef, $patron->{borrowernumber}, 6 );
+        $dbh->do(q|INSERT INTO borrower_message_preferences( borrowernumber, message_attribute_id ) VALUES ( ?, ? )|, undef, $patron->borrowernumber, 6 );
         my $borrower_message_preference_id = $dbh->last_insert_id(undef, undef, "borrower_message_preferences", undef);
         $dbh->do(q|INSERT INTO borrower_message_transport_preferences( borrower_message_preference_id, message_transport_type) VALUES ( ?, ? )|, undef, $borrower_message_preference_id, 'email' );
         # Enable notification for CHECKIN - Things are hardcoded here but should work with default data
-        $dbh->do(q|INSERT INTO borrower_message_preferences( borrowernumber, message_attribute_id ) VALUES ( ?, ? )|, undef, $patron->{borrowernumber}, 5 );
+        $dbh->do(q|INSERT INTO borrower_message_preferences( borrowernumber, message_attribute_id ) VALUES ( ?, ? )|, undef, $patron->borrowernumber, 5 );
         $borrower_message_preference_id = $dbh->last_insert_id(undef, undef, "borrower_message_preferences", undef);
         $dbh->do(q|INSERT INTO borrower_message_transport_preferences( borrower_message_preference_id, message_transport_type) VALUES ( ?, ? )|, undef, $borrower_message_preference_id, 'email' );
 
@@ -1159,6 +1184,8 @@ subtest 'Dates formatting' => sub {
 [% biblio.datecreated %]
 [% biblio.datecreated | \$KohaDates %]
 [% biblio.datecreated | \$KohaDates with_hours => 1 %]
+[% biblio.datecreated | \$KohaDates with_hours => 1, add_years => 2 %]
+[% biblio.datecreated | \$KohaDates with_hours => 1, subtract_months => 3 %]
 
 [% biblio.timestamp | \$KohaDates dateformat => 'iso' %]
 [% KohaDates.output_preference( str => biblio.timestamp, dateformat => 'iso' ) %]
@@ -1172,7 +1199,7 @@ EOF
             biblio => $biblio->biblionumber,
         }
     );
-    my $expected_content = sprintf("%s\n%s\n%s\n\n%s\n%s\n%s\n\n%s\n%s\n%s\n",
+    my $expected_content = sprintf("%s\n%s\n%s\n\n%s\n%s\n%s\n%s\n%s\n\n%s\n%s\n%s\n",
         '2018-12-13 20:21:22',
         '13/12/2018',
         '13/12/2018 20:21',
@@ -1180,12 +1207,40 @@ EOF
         '2018-12-13',
         '13/12/2018',
         '13/12/2018 00:00',
+        '13/12/2020 00:00',
+        '13/09/2018 00:00',
 
         '2018-12-13',
         '2018-12-13 20:21',
         '2018-12-13',
     );
     is( $letter->{content}, $expected_content );
+};
+
+subtest 'KohaDates::dt_from_string' => sub {
+    plan tests => 1;
+    my $code = 'TEST_DATE';
+    t::lib::Mocks::mock_preference('dateformat', 'metric'); # MM/DD/YYYY
+    my $biblio = $builder->build_object(
+        {
+            class => 'Koha::Biblios',
+            value => {
+                timestamp   => '2018-12-13 20:21:22',
+                datecreated => '2018-12-13'
+            }
+        }
+    );
+    my $template = q{[% USE KohaDates %][% KohaDates.datetime_from_string('2000-12-01').dmy %]};
+
+    reset_template({ template => $template, code => $code, module => 'test' });
+    my $letter = GetPreparedLetter(
+        module => 'test',
+        letter_code => $code,
+        tables => {
+            biblio => $biblio->biblionumber,
+        }
+    );
+    is( $letter->{content}, '01-12-2000' );
 };
 
 subtest 'Execute TT process in a DB transaction' => sub {

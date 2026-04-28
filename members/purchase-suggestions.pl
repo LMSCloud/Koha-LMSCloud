@@ -32,7 +32,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {   template_name   => "members/purchase-suggestions.tt",
         query           => $input,
         type            => "intranet",
-        flagsrequired   => { suggestions => 'suggestions_manage' },
+        flagsrequired   => { suggestions => '*' },
     }
 );
 
@@ -49,7 +49,7 @@ $template->param(
 );
 
 my $suggestions = [
-    Koha::Suggestions->search_limited( { suggestedby => $borrowernumber },
+    Koha::Suggestions->search_limited( { suggestedby => $borrowernumber, archived => 0 },
         { prefetch => 'managedby' } )->as_list
 ];
 

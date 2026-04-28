@@ -86,12 +86,12 @@ my $dbh = DBI->connect(
     $info{'user'}, $info{'password'}
 );
 
+my $op = $query->param('op') || q{};
 if ( $step && $step == 1 ) {
 
     #First Step (for both fresh installations and upgrades)
     #Checking ALL perl Modules and services needed are installed.
     #Whenever there is an error, adding a report to the page
-    my $op = $query->param('op') || 'noop';
     $template->param( language      => 1 );
     my $checkmodule = 1;
     $template->param( 'checkmodule' => 1 )
@@ -142,7 +142,6 @@ if ( $step && $step == 1 ) {
             missing_modules => \@missing,
             upgrade_modules => \@upgrade,
             checkmodule     => $checkmodule,
-            op              => $op
         );
     }
 }
@@ -229,16 +228,29 @@ elsif ( $step && $step == 3 ) {
 
     # STEP 3 : database setup
 
-    my $op = $query->param('op');
-    if ( $op && $op eq 'finished' ) {
+    if ( $op eq 'finished' ) {
         # Remove the HandleError set at the beginning of the installer process
         C4::Context->dbh->disconnect;
 
+        my $cookie_mgr = Koha::CookieManager->new;
+        # Remove cookie of the installer session
+        my $cookies = [];
+        if ( !ref $cookie ) {
+            push( @$cookies, $cookie );
+        }
+        $cookies = $cookie_mgr->replace_in_list( $cookies, $query->cookie(
+            -name     => 'CGISESSID',
+            -value    => '',
+            -HttpOnly => 1,
+            -secure => ( C4::Context->https_enabled() ? 1 : 0 ),
+            -sameSite => 'Lax',
+        ));
+
         # we have finished, just redirect to mainpage.
-        print $query->redirect("/cgi-bin/koha/mainpage.pl");
+        print $query->redirect( -uri => "/cgi-bin/koha/mainpage.pl", -cookie => $cookies );
         exit;
     }
-    elsif ( $op && $op eq 'finish' ) {
+    elsif ( $op eq 'cud-finish' ) {
         $installer->set_version_syspref();
 
         my $langchoice = $query->param('fwklanguage');
@@ -250,10 +262,9 @@ elsif ( $step && $step == 3 ) {
 # We just deny anybody access to install
 # And we redirect people to mainpage.
 # The installer will have to relogin since we do not pass cookie to redirection.
-        $template->param( "$op" => 1 );
     }
 
-    elsif ( $op && $op eq 'addframeworks' ) {
+    elsif ( $op eq 'cud-addframeworks' ) {
 
         # 1ST install, 3rd sub-step : insert the SQL files the user has selected
         my $langchoice = $query->param('fwklanguage');
@@ -269,9 +280,8 @@ elsif ( $step && $step == 3 ) {
         );
         use Koha::SearchEngine::Elasticsearch;
         Koha::SearchEngine::Elasticsearch->reset_elasticsearch_mappings;
-        $template->param( "$op" => 1 );
     }
-    elsif ( $op && $op eq 'selectframeworks' ) {
+    elsif ( $op eq 'cud-selectframeworks' ) {
 #
 #
 # 1ST install, 2nd sub-step : show the user the sql datas they can insert in the database.
@@ -311,10 +321,9 @@ elsif ( $step && $step == 3 ) {
           $installer->sample_data_sql_list($langchoice);
         $template->param( "en_sample_data" => $sample_defaulted_to_en );
         $template->param( "levelloop"      => $levellist );
-        $template->param( "$op"            => 1 );
 
     }
-    elsif ( $op && $op eq 'choosemarc' ) {
+    elsif ( $op eq 'cud-choosemarc' ) {
         #
         #
         # 1ST install, 2nd sub-step : show the user the marcflavour available.
@@ -366,9 +375,8 @@ elsif ( $step && $step == 3 ) {
              push @flavourlist, \%cell;
         }
         $template->param( "flavourloop" => \@flavourlist );
-        $template->param( "$op"         => 1 );
     }
-    elsif ( $op && $op eq 'importdatastructure' ) {
+    elsif ( $op eq 'cud-importdatastructure' ) {
         #
         #
         # 1st install, 1st "sub-step" : import kohastructure
@@ -377,10 +385,9 @@ elsif ( $step && $step == 3 ) {
         my $error = $installer->load_db_schema();
         $template->param(
             "error" => $error,
-            "$op"   => 1,
         );
     }
-    elsif ( $op && $op eq 'updatestructure' ) {
+    elsif ( $op eq 'cud-updatestructure' ) {
         #
         # Not 1st install, the only sub-step : update database
         #
@@ -462,8 +469,6 @@ elsif ( $step && $step == 3 ) {
                 }
             );
         }
-
-        $template->param( $op => 1 );
     }
     else {
 #
@@ -539,6 +544,12 @@ else {
         }
     }
 }
+
+if ($op) {
+    $op =~ s/cud-//;
+    $template->param( op => $op, $op => 1 );
+}
+
 output_html_with_http_headers $query, $cookie, $template->output;
 
 sub chk_log {    #returns a logfile in $dir or - if that failed - in temp dir

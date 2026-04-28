@@ -31,13 +31,37 @@ Koha::SMTP::Server - Koha SMTP Server Object class
 
 =head2 Class methods
 
+=head3 store
+
+    $server->store;
+
+Overloaded store method.
+
+=cut
+
+sub store {
+    my ($self) = @_;
+
+    $self->_result->result_source->schema->txn_do(
+        sub {
+            Koha::SMTP::Servers->search( { id => { '!=' => $self->id } } )
+                ->update( { is_default => 0 }, { no_triggers => 1 } )
+                if $self->is_default;
+
+            $self = $self->SUPER::store;
+        }
+    );
+
+    return $self;
+}
+
 =head3 transport
 
     my $transport = $smtp_server->transport;
     $email->transport($transport);
     $email->send_or_die;
 
-Returns an I<Email::Sender::Transport::SMTP> object that can be used directly
+Returns an I<Email::Sender::Transport::SMTP::Persistent> object that can be used directly
 with Email::Sender.
 
 =cut
@@ -64,8 +88,8 @@ sub transport {
 
     $params->{debug} = $self->debug;
 
-    require Email::Sender::Transport::SMTP;
-    my $transport = Email::Sender::Transport::SMTP->new( $params );
+    require Email::Sender::Transport::SMTP::Persistent;
+    my $transport = Email::Sender::Transport::SMTP::Persistent->new( $params );
 
     return $transport;
 }
@@ -111,10 +135,11 @@ suitable for API output.
 sub to_api {
     my ( $self, $params ) = @_;
 
-    my $json = $self->SUPER::to_api( $params );
-    delete $json->{password};
+    my $json_smtp = $self->SUPER::to_api( $params );
+    return unless $json_smtp;
+    delete $json_smtp->{password};
 
-    return $json;
+    return $json_smtp;
 }
 
 =head3 to_api_mapping

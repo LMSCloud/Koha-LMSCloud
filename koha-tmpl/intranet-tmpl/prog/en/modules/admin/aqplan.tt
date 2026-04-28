@@ -1,10 +1,18 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE Price %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 [% PROCESS 'budget_planning.inc' %]
-<title>Planning for [% budget_period_description | html %] [% PROCESS planning plan=authcat %] &rsaquo; Funds &rsaquo; Budgets &rsaquo; Administration &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% PROCESS planning plan=authcat %] &rsaquo;
+    [% t("Funds") | html %] &rsaquo;
+    [% t("Budgets") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>td.locked { background-image: url('[% interface | html %]/[% theme | html %]/img/locked.png'); padding-left : 20px; background-repeat: no-repeat; background-position: 5px 5px; } a.control { font-size:85%;text-decoration:none; } .plan_entry { text-align: right; width:90%; }</style>
 </head>
@@ -26,20 +34,22 @@
             <a href="/cgi-bin/koha/admin/aqbudgets.pl?budget_period_id=[% budget_period_id | uri %]">Funds</a>
         [% END %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
-            <span>Planning</span>
+            [% PROCESS planning plan=authcat %]
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% INCLUDE 'budgets-admin-toolbar.inc' %]
 
 <form method="post" id="Aform" name="Aform"  action="/cgi-bin/koha/admin/aqplan.pl">
-<h1>Planning for [% budget_period_description | html %] [% PROCESS planning plan=authcat %]</h1>
+    [% INCLUDE 'csrf-token.inc' %]
+<h1>[% PROCESS planning plan=authcat %]</h1>
 <input type="hidden" name="authcat" value="[% authcat | html %]" />
 <!-- Budget Lines -->
 
@@ -82,11 +92,14 @@
                 [% FOREACH budget_line IN budget_lines %]
                     <tr id="[% budget_line.budget_id | html %]">
                         [% IF ( budget_line.budget_lock ) %]
-                            <td class="locked" title="Fund locked">
+                            <td class="locked">
+                                <a data-bs-toggle="tooltip" title="Budget locked" href="/cgi-bin/koha/admin/aqbudgets.pl?op=add_form&amp;budget_id=[% budget_line.budget_id | uri %]&amp;budget_period_id=[% budget_period_id | uri %]">[% budget_line.budget_name | html %]</a>
+                            </td>
                         [% ELSE %]
                             <td>
+                                <a href="/cgi-bin/koha/admin/aqbudgets.pl?op=add_form&amp;budget_id=[% budget_line.budget_id | uri %]&amp;budget_period_id=[% budget_period_id | uri %]">[% budget_line.budget_name | html %]</a>
+                            </td>
                         [% END %]
-                            <a href="/cgi-bin/koha/admin/aqbudgets.pl?op=add_form&amp;budget_id=[% budget_line.budget_id | uri %]&amp;budget_period_id=[% budget_period_id | uri %]">[% budget_line.budget_name | html %]</a></td>
                         <td><span id="[% budget_line.budget_amount | html %]">[% budget_line.budget_amount | $Price %]&nbsp;</span>
                         <!-- NEXT DIV ELEMENT IS USED BY JS FOR CALC-ING AUTO-FILL AND ESTIMATED AMOUNTS -->
                         <div style="display:none;" id="budget_tot_[% budget_line.budget_id | html %]">[% budget_line.budget_amount | html %]</div></td>
@@ -161,7 +174,7 @@
         [% IF ( budget_period_locked ) %]
             <!-- <input STYLE="background: gray;"   type="submit" value="Save" disabled="disabled"/> -->
         [% ELSE %]
-            <input type="hidden" name="op" value="save" />
+            <input type="hidden" name="op" value="cud-save" />
             <fieldset class="action"><input type="submit" class="btn btn-primary" value="Save" /></fieldset>
         [% END %]
 
@@ -181,29 +194,29 @@
 </form>
 
         [% ELSIF not budget_period_id %]
-<div class="dialog alert">That budget does not exist! Please select a budget to continue.</div>
+<div class="alert alert-warning">That budget does not exist! Please select a budget to continue.</div>
         [% ELSE %]
-<div class="dialog message">No funds to display for this search criteria</div>
+<div class="alert alert-info">No funds to display for this search criteria</div>
         [% END %]
 
 
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
 
-<form method="post" action="/cgi-bin/koha/admin/aqplan.pl">
+<form method="get" action="/cgi-bin/koha/admin/aqplan.pl">
     <input type="hidden" name="budget_period_id" value="[% budget_period_id | html %]" />
 <fieldset class="brief">
 <h4>Filter</h4>
 [% BLOCK planning_types %]
 [%   SWITCH type %]
-[%     CASE 'MONTHS'    %]<span>by months</span>
-[%     CASE 'ITEMTYPES' %]<span>by item types</span>
-[%     CASE 'BRANCHES'  %]<span>by libraries</span>
-[%     CASE             %]<span>by [% type | html %]</span>
+[%     CASE 'MONTHS'    %][% tp("Budget planning", "by months") | html %]
+[%     CASE 'ITEMTYPES' %][% tp("Budget planning", "by item types") | html %]
+[%     CASE 'BRANCHES'  %][% tp("Budget planning", "by libraries") | html %]
+[%     CASE             %][% tpx("Budget planning", "by {type}", {type = type}) | html %]
 [%   END %]
 [% END %]
 <ol>
@@ -250,11 +263,10 @@
 </fieldset>
 <fieldset class="action">
     <input type="submit" name="option_submit" class="btn btn-primary" value="Submit" />
-    <input type="hidden" name="budget_period_id" value="[% budget_period_id | html %]" />
 </fieldset>
 </form>
 [% IF ( budget_lines ) %]
-<form method="post" action="/cgi-bin/koha/admin/aqplan.pl">
+<form method="get" action="/cgi-bin/koha/admin/aqplan.pl">
 <fieldset class="brief">
 <h4>Export</h4>
     <ol>
@@ -284,7 +296,7 @@
 
                 [% INCLUDE 'acquisitions-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

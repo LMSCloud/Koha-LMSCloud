@@ -287,36 +287,42 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:59:16
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:mLHJlNiBzwVfEORFPpvmBw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:54
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:6O/vdCa1YXtBL/magHYx8g
+
 
 __PACKAGE__->has_many(
-    "additional_field_values",
-    "Koha::Schema::Result::AdditionalFieldValue",
-    sub {
-        my ($args) = @_;
-        return {
-            "$args->{foreign_alias}.record_id" => { -ident => "$args->{self_alias}.booking_id" },
-            "$args->{foreign_alias}.field_id"  =>
-                { -in => \'(SELECT id FROM additional_fields WHERE tablename="bookings")' },
-        };
-    },
-    { cascade_copy => 0, cascade_delete => 0 },
+  "extended_attributes",
+  "Koha::Schema::Result::AdditionalFieldValue",
+  sub {
+    my ($args) = @_;
+
+    return {
+        "$args->{foreign_alias}.record_id" => { -ident => "$args->{self_alias}.booking_id" },
+
+        "$args->{foreign_alias}.field_id" =>
+            { -in => \'(SELECT id FROM additional_fields WHERE tablename = "bookings")' },
+    };
+  },
+  { cascade_copy => 0, cascade_delete => 0 },
 );
 
 __PACKAGE__->has_many(
-    "extended_attributes",
-    "Koha::Schema::Result::AdditionalFieldValue",
-    sub {
-        my ($args) = @_;
-        return {
-            "$args->{foreign_alias}.record_id" => { -ident => "$args->{self_alias}.booking_id" },
-            "$args->{foreign_alias}.field_id"  =>
-                { -in => \'(SELECT id FROM additional_fields WHERE tablename="bookings")' },
-        };
-    },
-    { cascade_copy => 0, cascade_delete => 0 },
+  "additional_field_values",
+  "Koha::Schema::Result::AdditionalFieldValue",
+  sub {
+    my ($args) = @_;
+
+    return {
+        "$args->{foreign_alias}.record_id" => { -ident => "$args->{self_alias}.booking_id" },
+
+        "$args->{foreign_alias}.field_id" =>
+            { -in => \'(SELECT id FROM additional_fields WHERE tablename = "bookings")' },
+    };
+  },
+  { cascade_copy => 0, cascade_delete => 0 },
 );
 
-# You can replace this text with custom code or comments, and it will be preserved on regeneration
+sub _type { return 'Booking' }
+
 1;

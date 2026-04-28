@@ -1,11 +1,19 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE KohaDates %]
 [% USE AuthorisedValues %]
 [% USE Branches %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% UNLESS blocking_error  %]Discharge for [% patron.firstname | html %] [% patron.surname | html %] ([% patron.cardnumber | html %])[% END %] &rsaquo; Patrons &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% UNLESS blocking_error  %]
+        [% t("Discharge for") | html %] [% INCLUDE 'patron-title.inc' no_html = 1 %] &rsaquo;
+    [% END %]
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="discharge" class="discharge">
@@ -29,14 +37,15 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% INCLUDE 'members-toolbar.inc' %]
 
 <h1>Discharge</h1>
 [% FOR message IN messages %]
-    <div class="dialog [% message.type | html %]">
+    <div class="alert alert-[% message.type | html %]">
     [% IF message.code == "unable_to_generate_pdf" %]
         An error occurs when generating the PDF file.
         Please contact the administrator to resolve this problem.
@@ -51,6 +60,8 @@
     [% END %]
     <div class="btn-toolbar">
         <form method="post">
+            [% INCLUDE 'csrf-token.inc' %]
+            <input type="hidden" name="op" value="cud-discharge" />
             <input type="submit" name="discharge" class="btn btn-primary" value="Generate discharge" />
             <input type="hidden" value="[% patron.borrowernumber | html %]" name="borrowernumber" />
         </form>
@@ -80,13 +91,13 @@
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'circ-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

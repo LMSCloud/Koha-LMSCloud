@@ -1,10 +1,19 @@
 [% USE raw %]
 [% USE Asset %]
 [% USE Koha %]
+[% USE Price %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( booksellername ) %]Orders with uncertain prices for vendor [% booksellername | html %][% ELSE %]Orders with uncertain prices[% END %] &rsaquo; Acquisitions &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF ( booksellername ) %]
+        [% tx("Orders with uncertain prices for vendor {vendor}", { vendor = booksellername }) | html %]
+    [% ELSE %]
+        [% t("Orders with uncertain prices") | html %]
+    [% END %] &rsaquo;
+    [% t("Acquisitions") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -35,8 +44,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-2">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% INCLUDE 'acquisitions-toolbar.inc' %]
         [% IF ( validate ) %]
@@ -78,7 +88,7 @@
 
         <div class="page-section">
             <h2>Order lines with uncertain prices</h2>
-            <form action="[% scriptname | html %]" method="post">
+            <form action="[% scriptname | html %]" method="get">
                 <input type="hidden" name="booksellerid" value="[% booksellerid | html %]" />
                 <label for="owner">Orders from:</label>
                 <select id="owner" name="owner">
@@ -94,9 +104,10 @@
             </form>
         </div> <!-- /.page-section -->
         <form action="[% scriptname | html %]" method="post" id="uncertainprices">
+            [% INCLUDE 'csrf-token.inc' %]
             <fieldset class="rows">
                 <input type="hidden" name="booksellerid" value="[% booksellerid | html %]" />
-                <input type="hidden" name="op" value="validate" />
+                <input type="hidden" name="op" value="cud-validate" />
                 <table id="uncertainpricet">
                     <thead>
                         <tr>
@@ -134,7 +145,7 @@
                                     <input type="checkbox" name="uncertainprice[% uncertainpriceorder.ordernumber | html %]" value="1" checked="checked" />
                                 </td>
                                 <td>
-                                    <input class="check_uncertain" data-ordernumber="[% uncertainpriceorder.ordernumber | html %]" type="text" size="10" name="price[% uncertainpriceorder.ordernumber | html %]" value="[% uncertainpriceorder.listprice | html %]" />
+                                    <input class="check_uncertain decimal" data-ordernumber="[% uncertainpriceorder.ordernumber | html %]" type="text" size="10" name="price[% uncertainpriceorder.ordernumber | html %]" value="[% uncertainpriceorder.listprice | $Price on_editing => 1 %]" />
                                 </td>
                                 <td>
                                 [% IF basket.effective_create_items == 'ordering' %]
@@ -145,7 +156,7 @@
                                 [% END %]
                                 </td>
                                 <td class="actions">
-                                    <a href="/cgi-bin/koha/acqui/neworderempty.pl?ordernumber=[% uncertainpriceorder.ordernumber | uri %]&amp;booksellerid=[% booksellerid | uri %]&amp;basketno=[% uncertainpriceorder.basketno | uri %]" class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
+                                    <a href="/cgi-bin/koha/acqui/neworderempty.pl?ordernumber=[% uncertainpriceorder.ordernumber | uri %]&amp;booksellerid=[% booksellerid | uri %]&amp;basketno=[% uncertainpriceorder.basketno | uri %]" class="btn btn-default btn-xs"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
                                 </td>
                             </tr>
                         [% END %]
@@ -154,16 +165,16 @@
             </fieldset>
             <fieldset class="action"><input type="submit" class="btn btn-primary" value="Save" /></fieldset>
         </form>
-	[% END %]
+    [% END %]
 
 </main>
-</div> <!-- /.col-sm-10.col-sm-push-2 -->
+</div> <!-- /.col-md-10.order-md-2 -->
 
-<div class="col-sm-2 col-sm-pull-10">
+<div class="col-md-2 order-sm-2 order-md-1">
     <aside>
         [% INCLUDE 'vendor-menu.inc' %]
     </aside>
-</div> <!-- /.col-sm-2.col-sm-pull-10 -->
+</div> <!-- /.col-md-2.order-md-1 -->
 </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -173,10 +184,10 @@
     <script>
         $(document).ready(function() {
             var uncertainpricet = $("#uncertainpricet").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { 'bSortable': false, "bSearchable": false, 'aTargets': [ 'NoSort' ] },
+                "columnDefs": [
+                    { "orderable": false, "searchable":  false, "targets": [ 'NoSort' ] },
                 ],
-                "sPaginationType": "full"
+                "pagingType": "full"
             }));
             $(".check_uncertain").on("change",function(){
                 var form = document.getElementById("uncertainprices");

@@ -4,9 +4,14 @@
 [% USE KohaDates %]
 [% USE AuthorisedValues %]
 [% USE Branches %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Details for [% INCLUDE 'patron-title.inc' no_html = 1 %] &rsaquo; Housebound &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Details for") | html %] [% INCLUDE 'patron-title.inc' no_html = 1 %] &rsaquo;
+    [% t("Housebound") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -19,7 +24,7 @@
     <div class="rows">
         <ol>
           <li>
-            <span class="label" class="required"> Delivery day:</span>
+            <span class="label required"> Delivery day:</span>
             [% hpd = housebound_profile.day %]
             [% IF hpd == 'any' %]<span>Any</span>
             [% ELSIF hpd == 'monday' %]<span>Monday</span>
@@ -32,7 +37,7 @@
             [% END %]
           </li>
           <li>
-            <span class="label" class="required">Frequency:</span>
+            <span class="label required">Frequency:</span>
             [% AuthorisedValues.GetByCode( 'HSBND_FREQ', housebound_profile.frequency, 0 ) || housebound_profile.frequency | html %]
           </li>
           <li>
@@ -75,15 +80,16 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
                 [% INCLUDE 'members-toolbar.inc' %]
 
                 <h1>Housebound details for [% INCLUDE 'patron-title.inc' %]</h1>
 
             [% FOR m IN messages %]
-                <div class="dialog [% m.type | html %]">
+                <div class="alert alert-[% m.type | html %]">
                     [% SWITCH m.code %]
                     [% CASE 'error_on_profile_store' %]
                         <span>An error occurred whilst updating this housebound profile</span>
@@ -105,14 +111,14 @@
             [% END %]
 
             <!-- Create or edit housebound_profile -->
-            [% IF ( method == 'update_or_create' ) %]
-              <form id="editform" method="post" name="editform"
-                    action="/cgi-bin/koha/members/housebound.pl">
+            [% IF ( op == 'update_or_create' ) %]
+              <form id="editform" method="post" name="editform" action="/cgi-bin/koha/members/housebound.pl">
+                [% INCLUDE 'csrf-token.inc' %]
                 <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber | html %]" />
                 [% IF ( housebound_profile ) %]
-                  <input type="hidden" name="method" value="updateconfirm" />
+                  <input type="hidden" name="op" value="cud-updateconfirm" />
                 [% ELSE %]
-                  <input type="hidden" name="method" value="createconfirm" />
+                  <input type="hidden" name="op" value="cud-createconfirm" />
                 [% END %]
                 <fieldset id="houseboundentry" class="rows">
                   <legend>Manage housebound profile</legend>
@@ -241,15 +247,15 @@
               </form>
 
             <!-- Create or edit housebound_visit -->
-            [% ELSIF ( method == 'visit_update_or_create' ) %]
+            [% ELSIF ( op == 'visit_update_or_create' ) %]
               <h4>Manage housebound deliveries</h4>
-              <form name="form" id="instance_form" method="post"
-                    action="/cgi-bin/koha/members/housebound.pl">
+              <form name="form" id="instance_form" method="post" action="/cgi-bin/koha/members/housebound.pl">
+                  [% INCLUDE 'csrf-token.inc' %]
                 [% IF ( visit ) %]
-                  <input type="hidden" name="method" value="editvisitconfirm" />
+                  <input type="hidden" name="op" value="cud-editvisitconfirm" />
                   <input type="hidden" name="visit_id" value="[% visit.id | html %]" />
                 [% ELSE %]
-                  <input type="hidden" name="method" value="addvisitconfirm" />
+                  <input type="hidden" name="op" value="cud-addvisitconfirm" />
                 [% END %]
                 <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber | html %]" />
                 <fieldset class="rows" id="instance">
@@ -374,7 +380,7 @@
                 <div class="page-section">
                     [% PROCESS 'homebound-details' %]
                     <div class="action">
-                        <a class="btn btn-default btn-xs" href="/cgi-bin/koha/members/housebound.pl?borrowernumber=[% patron.borrowernumber | html %]&method=update_or_create"><i class="fa fa-pencil"></i> Edit</a>
+                        <a class="btn btn-default btn-xs" href="/cgi-bin/koha/members/housebound.pl?borrowernumber=[% patron.borrowernumber | html %]&op=update_or_create"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
                     </div>
                 </div> <!-- /.page-section -->
 
@@ -382,34 +388,48 @@
                     <h3>Deliveries</h3>
                     [% housebound_visits = housebound_profile.housebound_visits %]
                     [% IF  housebound_visits.count > 0 %]
-                        <table border="0" width="100%" cellpadding="3" cellspacing="0">
-                            <tr>
-                                <th>ID</th><th>Date</th><th>Chooser</th><th>Deliverer</th><th class="noExport">Actions</th>
-                            </tr>
-                            [% FOREACH entry IN housebound_visits %]
+                        <table id="deliveries">
+                            <thead>
                                 <tr>
-                                    <td>[% entry.id | html %]</td>
-                                    <td>[% entry.appointment_date | $KohaDates %] ([% entry.day_segment | html %])</td>
-                                    <td>
-                                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% entry.chooser.borrowernumber | uri %]">
-                                        [% INCLUDE 'patron-title.inc' patron = entry.chooser invert_name = 0 %]
-                                        </a>
-                                    </td>
-                                    <td>
-                                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% entry.deliverer.borrowernumber | uri %]">
-                                        [% INCLUDE 'patron-title.inc' patron = entry.deliverer invert_name = 0 %]
-                                        </a>
-                                    </td>
-                                    <td class="actions">
-                                        <a class="btn btn-default btn-xs" href="/cgi-bin/koha/members/housebound.pl?method=visit_update_or_create&visit_id=[% entry.id | html %]&borrowernumber=[% patron.borrowernumber | html %]"><i class="fa fa-pencil"></i> Edit</a>
-                                        <a class="delete btn btn-default btn-xs" href="/cgi-bin/koha/members/housebound.pl?method=visit_delete&visit_id=[% entry.id | html %]&borrowernumber=[% patron.borrowernumber | html %]"><i class="fa fa-trash"></i> Delete</a>
-                                    </td>
+                                    <th>ID</th>
+                                    <th>Date</th>
+                                    <th>Chooser</th>
+                                    <th>Deliverer</th>
+                                    <th class="noExport">Actions</th>
                                 </tr>
-                            [% END %]
+                            </thead>
+                            <tbody>
+                                [% FOREACH entry IN housebound_visits %]
+                                    <tr>
+                                        <td>[% entry.id | html %]</td>
+                                        <td data-order="[% entry.appointment_date | html %]">[% entry.appointment_date | $KohaDates %] ([% entry.day_segment | html %])</td>
+                                        <td>
+                                            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% entry.chooser.borrowernumber | uri %]">
+                                            [% INCLUDE 'patron-title.inc' patron = entry.chooser invert_name = 0 %]
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% entry.deliverer.borrowernumber | uri %]">
+                                            [% INCLUDE 'patron-title.inc' patron = entry.deliverer invert_name = 0 %]
+                                            </a>
+                                        </td>
+                                        <td class="actions">
+                                            <a class="btn btn-default btn-xs" href="/cgi-bin/koha/members/housebound.pl?op=visit_update_or_create&visit_id=[% entry.id | html %]&borrowernumber=[% patron.borrowernumber | html %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+                                            <form action="/cgi-bin/koha/members/housebound.pl" method="post">
+                                                [% INCLUDE 'csrf-token.inc' %]
+                                                <input type="hidden" name="op" value="cud-visit_delete" />
+                                                <input type="hidden" name="visit_id" value="[% entry.id | html %]" />
+                                                <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber | html %]" />
+                                                <button class="delete btn btn-default btn-xs"><i class="fa fa-trash-can"></i> Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                [% END %]
+                            </tbody>
                         </table>
                     [% END %]
                     <div class="action">
-                    <a href="/cgi-bin/koha/members/housebound.pl?method=visit_update_or_create&borrowernumber=[% patron.borrowernumber | uri %]"
+                    <a href="/cgi-bin/koha/members/housebound.pl?op=visit_update_or_create&borrowernumber=[% patron.borrowernumber | uri %]"
                         class="btn btn-default btn-sm">
                         <i class="fa fa-plus"></i> Add a new delivery
                     </a>
@@ -419,22 +439,28 @@
             [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'circ-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'columns_settings.inc' %]
     <script>
         $(document).ready(function() {
-            $("a.delete").click(function(){
+            $(".delete").click(function(){
                 return confirm(_("Are you sure you want to delete this delivery?"));
             });
+        });
+        KohaTable("deliveries", {
+            "pagingType": "full",
+            "autoWidth": false,
         });
     </script>
     [% INCLUDE 'str/members-menu.inc' %]

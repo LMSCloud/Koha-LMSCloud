@@ -90,9 +90,9 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 );
 
 my $biblio_object = Koha::Biblios->find( $biblionumber ); # FIXME Should replace $biblio
-my $record = $biblio_object->metadata->record({ embed_items => 1 });
+my $record = $biblio_object ? $biblio_object->metadata_record( { embed_items => 1 } ) : undef;
 
-if ( not defined $record ) {
+if ( !$record ) {
     # biblionumber invalid -> report and exit
     $template->param( unknownbiblionumber => 1,
                 biblionumber => $biblionumber
@@ -200,9 +200,8 @@ for ( my $tabloop = 0 ; $tabloop <= 10 ; $tabloop++ ) {
                 {
                     $subfield_data{marc_value} = $subf[$i][1];
 					$subfield_data{is_url} = 1;
-                }
-                elsif ( $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }
-                    ->{kohafield} eq "biblioitems.isbn" )
+                } elsif ( $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }->{kohafield}
+                    && $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }->{kohafield} eq "biblioitems.isbn" )
                 {
 
 #                    warn " tag : ".$tagslib->{$fields[$x_i]->tag()}." subfield :".$tagslib->{$fields[$x_i]->tag()}->{$subf[$i][0]}. "ISBN : ".$subf[$i][1]."PosttraitementISBN :".DisplayISBN($subf[$i][1]);

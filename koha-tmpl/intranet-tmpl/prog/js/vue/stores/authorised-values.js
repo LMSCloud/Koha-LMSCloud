@@ -36,6 +36,12 @@ export const useAVStore = defineStore("authorised_values", {
         av_package_types: [],
         av_package_content_types: [],
         av_title_publication_types: [],
+        av_notforloan: [],
+        av_report_types: [],
+        av_platform_reports_metrics: [],
+        av_database_reports_metrics: [],
+        av_title_reports_metrics: [],
+        av_item_reports_metrics: [],
     }),
     actions: {
         get_lib_from_av(arr_name, av) {
@@ -47,11 +53,11 @@ export const useAVStore = defineStore("authorised_values", {
                 );
                 return;
             }
-            let o = this[arr_name].find((e) => e.value == av);
+            let o = this[arr_name].find(e => e.value == av);
             return o ? o.description : av;
         },
         map_av_dt_filter(arr_name) {
-            return this[arr_name].map((e) => {
+            return this[arr_name].map(e => {
                 e["_id"] = e["value"];
                 e["_str"] = e["description"];
                 return e;

@@ -1438,6 +1438,8 @@ team:
       - name: Kelly McElligott
       - name: Rasa Šatinskienė
       - name: Heather Hernandez
+    translation:
+      name: Jonathan Druart
     meeting_facilitator:
       - name: Paul Derscheid
     packaging:

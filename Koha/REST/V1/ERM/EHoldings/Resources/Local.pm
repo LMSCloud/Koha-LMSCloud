@@ -36,7 +36,7 @@ sub list {
     my $c = shift or return;
 
     return try {
-        my $package_id = $c->validation->param('package_id');
+        my $package_id = $c->param('package_id');
         my $resources_set =
           $package_id
           ? Koha::ERM::EHoldings::Resources->search( { package_id => $package_id } )
@@ -60,15 +60,11 @@ sub get {
     my $c = shift or return;
 
     return try {
-        my $resource_id = $c->validation->param('resource_id');
+        my $resource_id = $c->param('resource_id');
         my $resource = $c->objects->find( Koha::ERM::EHoldings::Resources->search, $resource_id );
 
-        unless ($resource ) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => "eHolding resource not found" }
-            );
-        }
+        return $c->render_resource_not_found("eHolding resource")
+            unless $resource;
 
         return $c->render(
             status  => 200,

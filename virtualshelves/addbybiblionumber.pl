@@ -66,6 +66,7 @@ use Koha::Biblios;
 use Koha::Virtualshelves;
 
 my $query           = CGI->new;
+my $op              = $query->param('op') // q{};
 my $shelfnumber     = $query->param('shelfnumber');
 my $newvirtualshelf = $query->param('newvirtualshelf');
 my $newshelf        = $query->param('newshelf');
@@ -90,7 +91,9 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
-if ($newvirtualshelf) {
+if ( $op && $op !~ /^cud-/ ) {
+    $authorized = 0;
+} elsif ($newvirtualshelf) {
     my $shelf = eval {
         Koha::Virtualshelf->new(
             {
@@ -170,6 +173,7 @@ if ($newvirtualshelf) {
                     owner     => $loggedinuser,
                 },
                 allow_change_from_others => 1,
+                allow_change_from_staff  => 1,
             ],
         },
         { order_by => 'shelfname' }
@@ -185,8 +189,7 @@ if ($newvirtualshelf) {
 my @biblios;
 my $bibliofound = {};
 for my $biblionumber (@biblionumbers) {
-	
-    my $biblio = Koha::Biblios->find( $biblionumber );
+    my $biblio = Koha::Biblios->find($biblionumber) or next;
     push(
         @biblios,
         {   biblionumber => $biblionumber,
@@ -196,14 +199,17 @@ for my $biblionumber (@biblionumbers) {
     ) if ($biblio && !exists($bibliofound->{$biblionumber}));
     $bibliofound->{$biblionumber} = 1 if ($biblio);
 }
-$template->param(
-    multiple => ( scalar(@biblios) > 1 ),
-    total    => scalar @biblios,
-    biblios  => \@biblios,
-);
+
+if ( scalar(@biblios) < 1 ) {
+    $errcode    = 3;
+    $authorized = 0;    # trigger error screen
+}
 
 $template->param(
-    newshelf => $newshelf || 0,
+    multiple   => ( scalar(@biblios) > 1 ),
+    total      => scalar @biblios,
+    biblios    => \@biblios,
+    newshelf   => $newshelf || 0,
     authorized => $authorized,
     errcode    => $errcode,
 );

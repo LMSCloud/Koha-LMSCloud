@@ -55,6 +55,8 @@ use JSON qw( decode_json );
 use Try::Tiny;
 use Pod::Usage;
 use Getopt::Long;
+use List::MoreUtils qw( natatime );
+use Time::HiRes;
 
 use C4::Context;
 use Koha::Logger;
@@ -62,8 +64,11 @@ use Koha::BackgroundJobs;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Indexer;
 
+my $help;
+my $batch_size = 10;
+my $not_found_retries = {};
+my $max_retries = $ENV{MAX_RETRIES} || 10;
 
-my ( $help, $batch_size );
 GetOptions(
     'h|help' => \$help,
     'b|batch_size=s' => \$batch_size
@@ -71,18 +76,22 @@ GetOptions(
 
 pod2usage(0) if $help;
 
-$batch_size //= 10;
-
 warn "Not using Elasticsearch" unless C4::Context->preference('SearchEngine') eq 'Elasticsearch';
 
 my $logger = Koha::Logger->get({ interface =>  'worker' });
 
-my $conn;
+my $notification_method = C4::Context->preference('JobsNotificationMethod') // 'STOMP';
+
+my ( $conn, $error );
+if ( $notification_method eq 'STOMP' ) {
 try {
     $conn = Koha::BackgroundJob->connect;
 } catch {
-    warn sprintf "Cannot connect to the message broker, the jobs will be processed anyway (%s)", $_;
+        $error = sprintf "Cannot connect to the message broker, the jobs will be processed anyway (%s)", $_;
 };
+    $error ||= "Cannot connect to the message broker, the jobs will be processed anyway" unless $conn;
+    warn $error if $error;
+}
 
 if ( $conn ) {
     # FIXME cf note in Koha::BackgroundJob about $namespace
@@ -95,8 +104,11 @@ if ( $conn ) {
         }
     );
 }
-my $biblio_indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
-my $auth_indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::AUTHORITIES_INDEX });
+my $biblio_indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+my $auth_indexer   = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::AUTHORITIES_INDEX } );
+my $config         = $biblio_indexer->get_elasticsearch_params;
+my $at_a_time      = $config->{chunk_size} // 5000;
+
 my @jobs = ();
 
 while (1) {
@@ -109,25 +121,69 @@ while (1) {
         }
 
         my $args = try {
+            my $command      = $frame->command;
             my $body = $frame->body;
+            my $content_type = $frame->content_type;
+            if ( $command && $command eq 'MESSAGE' ) {
+                if ( $content_type && $content_type eq 'application/json' ) {
             decode_json($body); # TODO Should this be from_json? Check utf8 flag.
+                } else {
+
+                    #TODO: This is a fallback for older enqueued messages which are missing the content-type header
+                    #TODO: Please replace this decode with a die in the future once content-type is well established
+                    decode_json($body);    # TODO Should this be from_json? Check utf8 flag.
+                }
+            } elsif ( $command && $command eq 'ERROR' ) {
+
+                #Known errors:
+                #You must log in using CONNECT first
+                #"NACK" must include a valid "message-id" header
+                Koha::Logger->get( { interface => 'worker' } )
+                    ->warn( sprintf "Shutting down after receiving ERROR frame:\n%s\n", $frame->as_string );
+                exit 1;
+            }
         } catch {
-            $logger->warn(sprintf "Frame not processed - %s", $_);
+            Koha::Logger->get({ interface => 'worker' })->warn(sprintf "Frame not processed - %s", $_);
             return;
-        } finally {
-            $conn->ack( { frame => $frame } );
         };
 
-        next unless $args;
-
-        # FIXME This means we need to have create the DB entry before
-        # It could work in a first step, but then we will want to handle job that will be created from the message received
-        my $job = Koha::BackgroundJobs->search( { id => $args->{job_id}, status => 'new' } )->next;
-
-        unless ($job) {
-            $logger->warn( sprintf "Job %s not found, or has wrong status", $args->{job_id} );
+        unless ( $args ) {
+            Koha::Logger->get({ interface => 'worker' })->warn(sprintf "Frame does not have correct args, ignoring it");
+            $conn->nack( { frame => $frame, requeue => 'false' } );
             next;
         }
+
+        my $job = Koha::BackgroundJobs->find( $args->{job_id} );
+
+        if ( $job && $job->status ne 'new' ) {
+            Koha::Logger->get( { interface => 'worker' } )
+                ->warn( sprintf "Job %s has wrong status %s", $args->{job_id}, $job->status );
+
+            # nack without requeue, we do not want to process this frame again
+            $conn->nack( { frame => $frame, requeue => 'false' } );
+            next;
+        }
+
+        unless ($job) {
+            $not_found_retries->{ $args->{job_id} } //= 0;
+            if ( ++$not_found_retries->{ $args->{job_id} } >= $max_retries ) {
+                Koha::Logger->get( { interface => 'worker' } )
+                    ->warn( sprintf "Job %s not found, no more retry", $args->{job_id} );
+
+                # nack without requeue, we do not want to process this frame again
+                $conn->nack( { frame => $frame, requeue => 'false' } );
+                next;
+            }
+
+            Koha::Logger->get( { interface => 'worker' } )
+                ->debug( sprintf "Job %s not found, will retry later", $args->{job_id} );
+
+            # nack to force requeue
+            $conn->nack( { frame => $frame, requeue => 'true' } );
+            Time::HiRes::sleep(0.5);
+            next;
+        }
+        $conn->ack( { frame => $frame } );
 
         push @jobs, $job;
         if ( @jobs >= $batch_size || !$conn->can_read( { timeout => '0.1' } ) ) {
@@ -137,7 +193,9 @@ while (1) {
 
     } else {
         @jobs = Koha::BackgroundJobs->search(
-            { status => 'new', queue => 'elastic_index' } )->as_list;
+            { status => 'new', queue => 'elastic_index' },
+            { rows   => $batch_size }
+        )->as_list;
         commit(@jobs);
         @jobs = ();
         sleep 10;
@@ -177,18 +235,24 @@ sub commit {
     }
 
     if (@auth_records) {
-        try {
-            $auth_indexer->update_index( \@auth_records );
-        } catch {
-            $logger->warn( sprintf "Update of elastic index failed with: %s", $_ );
-        };
+        my $auth_chunks = natatime $at_a_time, @auth_records;
+        while ( ( my @auth_chunk = $auth_chunks->() ) ) {
+            try {
+                $auth_indexer->update_index( \@auth_chunk );
+            } catch {
+                $logger->warn( sprintf "Update of elastic index failed with: %s", $_ );
+            };
+        }
     }
     if (@bib_records) {
-        try {
-            $biblio_indexer->update_index( \@bib_records );
-        } catch {
-            $logger->warn( sprintf "Update of elastic index failed with: %s", $_ );
-        };
+        my $biblio_chunks = natatime $at_a_time, @bib_records;
+        while ( ( my @bib_chunk = $biblio_chunks->() ) ) {
+            try {
+                $biblio_indexer->update_index( \@bib_chunk );
+            } catch {
+                $logger->warn( sprintf "Update of elastic index failed with: %s", $_ );
+            };
+        }
     }
 
     # Finish

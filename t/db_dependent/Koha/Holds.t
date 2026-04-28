@@ -19,7 +19,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 11;
+use Test::More tests => 12;
 use Test::Warn;
 
 use C4::Circulation qw( AddIssue );
@@ -29,6 +29,7 @@ use Koha::Biblio::ItemGroups;
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Holds;
+use Koha::Old::Holds;
 
 use t::lib::Mocks;
 use t::lib::TestBuilder;
@@ -371,6 +372,124 @@ subtest 'cancel all with reason' => sub {
     $message->delete;
 };
 
+subtest 'cancel specific hold with ModReserveCancelAll' => sub {
+    plan tests => 9;
+
+    my $library  = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $library2 = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $item     = $builder->build_sample_item( { library => $library->branchcode } );
+    t::lib::Mocks::mock_userenv( { branchcode => $library->branchcode } );
+
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { branchcode => $library->branchcode, }
+        }
+    );
+
+    my $patron2 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { branchcode => $library2->branchcode, }
+        }
+    );
+
+    my $reserve = C4::Reserves::AddReserve(
+        {
+            branchcode     => $library->branchcode,
+            borrowernumber => $patron->borrowernumber,
+            biblionumber   => $item->biblionumber,
+            itemnumber     => $item->itemnumber,
+            priority       => 0,
+            found          => 'W',
+        }
+    );
+
+    my $reserve2 = C4::Reserves::AddReserve(
+        {
+            branchcode     => $library->branchcode,
+            borrowernumber => $patron2->borrowernumber,
+            biblionumber   => $item->biblionumber,
+        }
+    );
+
+    my $hold  = Koha::Holds->find($reserve);
+    my $hold2 = Koha::Holds->find($reserve2);
+
+    my $messages;
+    my $nextreservinfo;
+
+    # Test case where there is another hold for the same branch
+    ( $messages, $nextreservinfo ) = ModReserveCancelAll( $item->itemnumber, $hold->borrowernumber );
+    my $old_hold = Koha::Old::Holds->find( $hold->reserve_id );
+    $hold = Koha::Holds->find( $hold->reserve_id );
+
+    is( $hold, undef, 'First hold should be removed from reserves table' );
+    isnt( $old_hold, undef, 'First hold should be moved to old_reserves table' );
+    is( $hold2->priority, 1, 'Next reserve in line should be priority 1' );
+    is(
+        $nextreservinfo, $hold2->borrowernumber,
+        'ModReserveCancelAll should return the borrowernumber for the next hold in line'
+    );
+    is(
+        $messages->{'waiting'}, 1,
+        'ModReserveCancelAll should return a waiting message if next hold is for current branch'
+    );
+
+    # Test case where there is another hold for a different branch
+    $hold2->cancel;
+    my $reserve3 = C4::Reserves::AddReserve(
+        {
+            branchcode     => $library->branchcode,
+            borrowernumber => $patron->borrowernumber,
+            biblionumber   => $item->biblionumber,
+            itemnumber     => $item->itemnumber,
+            priority       => 0,
+            found          => 'W',
+        }
+    );
+
+    my $reserve4 = C4::Reserves::AddReserve(
+        {
+            branchcode     => $library2->branchcode,
+            borrowernumber => $patron2->borrowernumber,
+            biblionumber   => $item->biblionumber,
+        }
+    );
+
+    my $hold3 = Koha::Holds->find($reserve3);
+    my $hold4 = Koha::Holds->find($reserve4);
+
+    ( $messages, $nextreservinfo ) = ModReserveCancelAll( $item->itemnumber, $hold3->borrowernumber );
+    is(
+        $nextreservinfo, $hold4->borrowernumber,
+        'ModReserveCancelAll should return the borrowernumber for the next hold in line'
+    );
+    is(
+        $messages->{'transfert'}, $hold4->branchcode,
+        'Next hold is for a different branch - ModReserveCancelAll should return its pickup branch in transfer message'
+    );
+
+    # Test case where there are no other holds
+    $hold4->cancel;
+    my $reserve5 = C4::Reserves::AddReserve(
+        {
+            branchcode     => $library->branchcode,
+            borrowernumber => $patron->borrowernumber,
+            biblionumber   => $item->biblionumber,
+            itemnumber     => $item->itemnumber,
+            priority       => 0,
+            found          => 'W',
+        }
+    );
+
+    my $hold5 = Koha::Holds->find($reserve5);
+
+    ( $messages, $nextreservinfo ) = ModReserveCancelAll( $item->itemnumber, $hold5->borrowernumber );
+    is( $nextreservinfo, undef, 'No more holds, nextreservinfo should not be defined' );
+    is( $messages,       undef, 'No more holds, messages should not be defined' );
+};
+
 subtest 'Desks' => sub {
     plan tests => 5;
     my $library = $builder->build_object( { class => 'Koha::Libraries' } );
@@ -413,6 +532,13 @@ subtest 'Desks' => sub {
 
 subtest 'get_items_that_can_fill' => sub {
     plan tests => 6;
+
+    Koha::CirculationRules->search(
+        {
+            rule_name  => 'holdallowed',
+            rule_value => 'not_allowed',
+        }
+    )->delete;
 
     my $biblio = $builder->build_sample_biblio;
     my $itype_1 = $builder->build_object({ class => 'Koha::ItemTypes' }); # For 1, 2, 3, 4
@@ -483,7 +609,7 @@ subtest 'get_items_that_can_fill' => sub {
     );
 
     # item 3 is on loan
-    AddIssue( $patron_3->unblessed, $item_3->barcode );
+    AddIssue( $patron_3, $item_3->barcode );
 
     # item 4 is in transfer
     my $from = $builder->build_object( { class => 'Koha::Libraries' } );

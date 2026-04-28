@@ -1,9 +1,15 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Branches %]
 [% USE KohaDates %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Check expiration &rsaquo; Serials &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Check expiration") | html %] &rsaquo;
+    [% t("Serials") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -25,8 +31,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 <h1>Check expiration</h1>
 
@@ -70,24 +77,18 @@
 </form>
 
 [% IF ( subscriptions_loop ) %]
-<p>
-    <strong>[% numsubscription | html %]</strong> subscription(s)
-        [% IF ( title ) %]
-        with title matching <span class="title">[% title | html %]</class>
-        [% IF ( issn ) %]and [% END %]
-    [% END %]
-    [% IF ( issn ) %]
-        with ISSN matching <strong>[% issn | html %]</strong>
-    [% END %]
-        will expire before <strong>[% date | $KohaDates %]</strong>
-</p>
+<h2>
+    [% expirydate = date | $KohaDates %]
+    [% tnx("Your search returned 1 subscription expiring before {date}", "Your search returned {count} subscriptions expiring before {date}", numsubscription, { date = expirydate, count = numsubscription }) %]
+</h2>
 
+<div class="page-section">
 <div class="checkexpiration-table_table_controls">
     <a href="#" class="SelectAll"><i class="fa fa-check"></i> Select all</a> |
-    <a href="#" class="ClearAll"><i class="fa fa-remove"></i> Clear all</a>
+    <a href="#" class="ClearAll"><i class="fa fa-times"></i> Clear all</a>
     <span class="itemselection_actions">
       | Actions:
-          <a class="itemselection_action_renew" title="Renew selected subscriptions"><i class="fa fa-refresh"></i> Renew selected subscriptions</a>
+          <a class="itemselection_action_renew" title="Renew selected subscriptions"><i class="fa-solid fa-rotate"></i> Renew selected subscriptions</a>
     </span>
 </div>
 
@@ -131,24 +132,25 @@
                 [% subscriptions_loo.expirationdate | $KohaDates %]
             </td>
             <td class="actions">
-                <a href="/cgi-bin/koha/serials/subscription-add.pl?op=modify&amp;subscriptionid=[% subscriptions_loo.subscriptionid | uri %]" class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
-                <a href="/cgi-bin/koha/serials/subscription-renew.pl?subscriptionid=[% subscriptions_loo.subscriptionid | uri %]" data-subscriptionid="[% subscriptions_loo.subscriptionid | html %]" class="btn btn-default btn-xs renew_subscription"><i class="fa fa-refresh"></i> Renew</a>
+                <a href="/cgi-bin/koha/serials/subscription-add.pl?op=modify&amp;subscriptionid=[% subscriptions_loo.subscriptionid | uri %]" class="btn btn-default btn-xs"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+                <a href="#" data-subscriptionid="[% subscriptions_loo.subscriptionid | html %]" class="btn btn-default btn-xs renew_subscription"><i class="fa-solid fa-rotate"></i> Renew</a>
             </td>
         </tr>
     [% END %]
     </table>
+    </div> <!-- .page-section -->
 [% ELSIF searched %]
     <p>No results for your query</p>
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'serials-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -158,7 +160,7 @@
             $(".renew_subscription").on("click",function(e){
                 e.preventDefault();
                 var subscriptionid = $(this).data("subscriptionid");
-                newin=window.open("/cgi-bin/koha/serials/subscription-renew.pl?mode=popup&subscriptionid="+subscriptionid,'popup','width=590,height=440,toolbar=false,scrollbars=yes,resize=yes');
+                newin=window.open("/cgi-bin/koha/serials/subscription-renew.pl?op=renew&subscriptionid="+subscriptionid,'popup','width=590,height=440,toolbar=false,scrollbars=yes,resize=yes');
             });
             $('a.itemselection_action_renew').on("click", function(e){
                 e.preventDefault();

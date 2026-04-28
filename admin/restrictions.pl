@@ -51,10 +51,12 @@ if ( $op eq 'add_form') {
             restriction => scalar Koha::Patron::Restriction::Types->find($code)
         );
     }
-} elsif ( $op eq 'add_validate' ) {
+} elsif ( $op eq 'cud-add_validate' ) {
 
-    my $display_text = $input->param('display_text');
-    my $is_a_modif = $input->param("is_a_modif");
+    my $display_text       = $input->param('display_text');
+    my $lift_after_payment = $input->param('lift_after_payment');
+    my $fee_limit          = $input->param('fee_limit');
+    my $is_a_modif         = $input->param("is_a_modif");
 
     if ($is_a_modif) {
         # Check whether another restriction already has this display text
@@ -64,13 +66,15 @@ if ( $op eq 'add_form') {
                 display_text => $display_text,
             }
         );
-        if ($dupe->count) {
+        if ( $dupe->count ) {
             push @messages, {
                 type => 'error', code => 'duplicate_display_text'
             };
         } else {
             my $restriction = Koha::Patron::Restriction::Types->find($code);
             $restriction->display_text($display_text);
+            $restriction->lift_after_payment($lift_after_payment);
+            $restriction->fee_limit($fee_limit);
             $restriction->store;
             push @messages, { type => 'message', code => 'update_success' };
         }
@@ -82,16 +86,20 @@ if ( $op eq 'add_form') {
                 type => 'error', code => 'duplicate_code'
             };
         } else {
-            my $restriction = Koha::Patron::Restriction::Type->new({
-                code => $code,
-                display_text => $display_text
-            });
+            my $restriction = Koha::Patron::Restriction::Type->new(
+                {
+                    code               => $code,
+                    display_text       => $display_text,
+                    lift_after_payment => $lift_after_payment,
+                    fee_limit          => $fee_limit
+                }
+            );
             $restriction->store;
             push @messages, { type => 'message', code => 'add_success' };
         }
     }
     $op = 'list';
-} elsif ( $op eq 'make_default' ) {
+} elsif ( $op eq 'cud-make_default' ) {
     my $restriction = Koha::Patron::Restriction::Types->find($code);
     $restriction->make_default;
     $op = 'list';
@@ -99,7 +107,7 @@ if ( $op eq 'add_form') {
     $template->param(
         restriction => scalar Koha::Patron::Restriction::Types->find($code)
     );
-} elsif ( $op eq 'delete_confirmed' ) {
+} elsif ( $op eq 'cud-delete_confirmed' ) {
     try {
         Koha::Patron::Restriction::Types->find($code)->delete;
         push @messages, { type => 'message', code => 'delete_success' };

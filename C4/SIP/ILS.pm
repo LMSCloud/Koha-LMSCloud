@@ -6,19 +6,26 @@ package C4::SIP::ILS;
 
 use warnings;
 use strict;
-use C4::SIP::Sip qw( siplog );
-use Data::Dumper;
 
+use C4::Context;
 use C4::SIP::ILS::Item;
 use C4::SIP::ILS::Patron;
-use C4::SIP::ILS::Transaction;
-use C4::SIP::ILS::Transaction::Checkout;
 use C4::SIP::ILS::Transaction::Checkin;
+use C4::SIP::ILS::Transaction::Checkout;
 use C4::SIP::ILS::Transaction::FeePayment;
 use C4::SIP::ILS::Transaction::Hold;
 use C4::SIP::ILS::Transaction::Renew;
 use C4::SIP::ILS::Transaction::RenewAll;
 use C4::SIP::ILS::Transaction::FeeDebit;
+use C4::SIP::ILS::Transaction;
+use C4::SIP::Sip qw( siplog );
+
+use Koha::Account;
+use Koha::Account::Lines;
+use Koha::DateUtils qw( dt_from_string output_pref );
+use Koha::Items;
+use Koha::Libraries;
+use Koha::Number::Price;
 
 my %supports = (
     'magnetic media'        => 1,
@@ -124,40 +131,78 @@ sub offline_ok {
 sub checkout {
     my ( $self, $patron_id, $item_id, $sc_renew, $fee_ack, $account, $no_block_due_date ) = @_;
     my ( $patron, $item, $circ );
+    my @blocked_item_types;
+    if (defined $account->{blocked_item_types}) {
+        @blocked_item_types = split /\|/, $account->{blocked_item_types};
+    }
     $circ = C4::SIP::ILS::Transaction::Checkout->new();
     # BEGIN TRANSACTION
-    $patron = C4::SIP::ILS::Patron->new($patron_id);
-    $circ->patron( $patron ) if ($patron);
-    $item   = C4::SIP::ILS::Item->new($item_id);
-    $circ->item( $item ) if ($item);
+    $circ->patron( $patron = C4::SIP::ILS::Patron->new($patron_id) );
+    $circ->item( $item     = C4::SIP::ILS::Item->new($item_id) );
 
     if ($fee_ack) {
         $circ->fee_ack($fee_ack);
     }
+
     if ( !$patron ) {
         $circ->screen_msg("Invalid Patron");
+    }
+    elsif ( !$item ) {
+        $circ->screen_msg("Invalid Item");
+    }
+    elsif ( $no_block_due_date ) {
+        # A no block due date means we need check this item out to the patron
+        # regardless if fines, restrictions or any other things that would
+        # typically prevent a patron from checking out.
+        # A no block transaction is used for send offline ( store and forward )
+        # transaction to Koha. The patron already has possession of the item
+        # so it should be checked out to the patron no matter what.
+        $circ->do_checkout( $account, $no_block_due_date );
+
+        $item->{borrowernumber} = $patron_id;
+        $item->{due_date}       = $circ->{due};
+        push( @{ $patron->{items} }, { barcode => $item_id } );
+        $circ->desensitize( !$item->magnetic_media );
+
+        siplog(
+            "LOG_DEBUG", "ILS::Checkout: patron %s has checked out %s via a no block checkout",
+            $patron_id,  join( ', ', map { $_->{barcode} } @{ $patron->{items} } )
+        );
     }
     elsif ( !$patron->charge_ok ) {
         if ($patron->debarred) {
             $circ->screen_msg("Patron debarred");
         } elsif ($patron->expired) {
-            $circ->screen_msg("Patron expired");
+            $circ->screen_msg("Patron expired on " . output_pref({ dt => dt_from_string( $patron->dateexpiry_iso, 'iso' ), dateonly => 1 }));
         } elsif ($patron->fine_blocked) {
-            $circ->screen_msg("Patron has fines");
+            my $message = "Patron has fines";
+            if ($account->{show_outstanding_amount}) {
+                my $patron_account = Koha::Account->new( { patron_id => $patron->{borrowernumber} });
+                my $balance = $patron_account->balance;
+                if ($balance) {
+                    $message .= (" - You owe " . Koha::Number::Price->new( $balance )->format({ with_symbol => 1}) . ".");
+                }
+            }
+            $circ->screen_msg($message);
         } else {
             $circ->screen_msg("Patron blocked");
         }
     }
-    elsif ( !$item ) {
-        $circ->screen_msg("Invalid Item");
-    }
-    elsif ( $item->{borrowernumber}
-        && !_ci_cardnumber_cmp( $item->{borrowernumber}, $patron->borrowernumber ) )
+    elsif (
+        $item->{borrowernumber}
+            && !C4::Context->preference('AllowItemsOnLoanCheckoutSIP')
+            && !_ci_cardnumber_cmp( $item->{borrowernumber}, $patron->borrowernumber )
+        )
     {
         $circ->screen_msg("Item checked out to another patron");
     }
+    elsif (grep { $_ eq $item->{itemtype} } @blocked_item_types) {
+        $circ->screen_msg("Item type cannot be checked out at this checkout location");
+    }
     else {
-        $circ->do_checkout($account, $no_block_due_date);
+        # No block checkouts were handled earlier so there is no need
+        # to bass the no block due date here.
+        $circ->do_checkout($account);
         if ( $circ->ok ) {
 
             # If the item is already associated with this patron, then
@@ -308,6 +353,38 @@ sub checkin {
         delete $item->{borrowernumber};
         delete $item->{due_date};
         $patron->{items} = [ grep { $_ ne $item_id } @{ $patron->{items} } ];
+
+        my $message = '';
+        if ( $account->{show_checkin_message} ) {
+            my $permanent_location;
+            if ( C4::Context->preference("UseLocationAsAQInSIP") ) {
+                $permanent_location = $item->{'permanent_location'};
+            } else {
+                $permanent_location = Koha::Libraries->find( $item->{permanent_location} )->branchname;
+            }
+            $message .= "Item checked-in: $permanent_location - $item->{location}.";
+        }
+
+        # Check for overdue fines to display
+        if ($account->{show_outstanding_amount}) {
+            my $kohaitem = Koha::Items->find( { barcode => $item_id } );
+            if ($kohaitem) {
+                my $charges = Koha::Account::Lines->search(
+                    {
+                        borrowernumber    => $patron->{borrowernumber},
+                        amountoutstanding => { '>' => 0 },
+                        debit_type_code   => [ 'OVERDUE' ],
+                        itemnumber        => $kohaitem->itemnumber
+                    },
+                );
+                if ($charges) {
+                    $message .= "You owe " . Koha::Number::Price->new( $charges->total_outstanding )->format({ with_symbol => 1}) . " for this item.";
+                }
+            }
+        }
+        if ($message) {
+            $circ->screen_msg($message);
+        }
     } else {
         # Checkin failed: Wrongbranch or withdrawn?
         # Bug 10748 with pref BlockReturnOfLostItems adds another case to come
@@ -325,7 +402,7 @@ sub end_patron_session {
     my ($self, $patron_id) = @_;
 
     # success?, screen_msg, print_line
-    return (1, 'Thank you !', '');
+    return (1, 'Thank you!', '');
 }
 
 sub pay_fee {
@@ -338,7 +415,9 @@ sub pay_fee {
     $trans->patron($patron = C4::SIP::ILS::Patron->new($patron_id));
     if (!$patron) {
         $trans->screen_msg('Invalid patron barcode.');
-        return $trans;
+        return {
+            status => $trans
+        };
     }
     my $trans_result = $trans->pay( $patron->{borrowernumber}, $fee_amt, $pay_type, $fee_id, $is_writeoff, $disallow_overpayment, $register_id );
     my $ok = $trans_result->{ok};

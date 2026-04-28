@@ -3,7 +3,8 @@
 .preference-multi,
 .preference-long,
 .preference-file,
-.preference-modalselect {
+.preference-modalselect,
+.preference-modaljs {
     width: 20em;
 }
 
@@ -15,11 +16,13 @@
     width: 5em;
 }
 
-input[type="text"].modalselect {
+input[type="text"].modalselect,
+input[type="text"].modaljs {
     cursor: pointer;
 }
 
-input[type="text"].modalselect:hover {
+input[type="text"].modalselect:hover,
+input[type="text"].modaljs:hover {
     background-color: #FFC;
 }
 
@@ -129,32 +132,30 @@ span.overridden {
 }
 
 .sortable li {
-    background: #FCFCFC url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAMAQMAAABoTh6ZAAAABlBMVEVMaXHExMQ/ZYtiAAAAAXRSTlMAQObYZgAAABNJREFUeNpjYGBgMDYAIQjAxgYAKfECU0ml038AAAAASUVORK5CYII=") repeat-y;
-    border:  1px solid #EEE;
+    background-color: #FCFCFC;
+    border: 1px solid #EEE;
     cursor: move;
     font-weight: bold;
     list-style-type: none;
     margin: .5em 0;
-    padding: .1em .5em;
-    padding-left:  20px;
+    padding: .2em;
 }
 
 .sortable li:hover {
-    background-color: #FFC;
+    background-color: #FFF;
 }
 
 .sortable li li {
     background: transparent none;
     border: 0;
     font-weight: normal;
-    padding-left: 0;
 }
 
 .sortable li li label {
     font-weight: normal;
 }
 
-.sortable li.ui-sortable-helper {
+.sortable .sortable-chosen {
     background-color: #FFC;
 }
 
@@ -182,4 +183,17 @@ span.overridden {
 
 #menu ul ul {
     padding-left: 0;
+}
+
+#admin_preferences .ms-drop ul {
+    padding: 5px 0;
+}
+
+#admin_preferences .ms-drop label span {
+    margin-left: 5px;
+}
+
+.category-heading {
+    display: flex;
+    justify-content: space-between;
 }

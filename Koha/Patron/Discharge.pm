@@ -3,6 +3,7 @@ package Koha::Patron::Discharge;
 use Modern::Perl;
 use CGI;
 use File::Temp qw( tmpnam );
+use IPC::Cmd;
 use Carp qw( carp );
 
 use C4::Templates qw ( gettemplate );
@@ -12,6 +13,24 @@ use Koha::Database;
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Patrons;
 use Koha::Patron::Debarments qw( AddDebarment );
+
+=head1 NAME
+
+Koha::Patron::Discharge - Koha Discharge object class
+
+=head1 API
+
+=head2 Class Methods
+
+=cut
+
+=head3 count
+
+    Koha::Patron:Discharge->count;
+
+Return the number of discharges corresponding to the asked criteria
+
+=cut
 
 sub count {
     my ($params) = @_;
@@ -31,6 +50,14 @@ sub count {
     return search_limited( $values )->count;
 }
 
+=head3 can_be_discharged
+
+    my $can_be_discharged = Koha::Patron:Discharge->can_be_discharged({borrowernumber => $borrowernumber});
+
+Return true if the borrower can be discharged
+
+=cut
+
 sub can_be_discharged {
     my ($params) = @_;
     return unless $params->{borrowernumber};
@@ -41,6 +68,14 @@ sub can_be_discharged {
     my $has_pending_checkouts = $patron->checkouts->count;
     return $has_pending_checkouts ? 0 : 1;
 }
+
+=head3 is_discharged
+
+    my $is_discharged = Koha::Patron:Discharge->is_discharged({borrowernumber => $borrowernumber});
+
+Return true if the borrower is discharged
+
+=cut
 
 sub is_discharged {
     my ($params) = @_;
@@ -57,6 +92,14 @@ sub is_discharged {
     }
 }
 
+=head3 request
+
+    my $request = Koha::Patron:Discharge->request({borrowernumber => $borrowernumber});
+
+Place a discharge request on a given borrower after checking the borrower has the right to be discharged.
+
+=cut
+
 sub request {
     my ($params) = @_;
     my $borrowernumber = $params->{borrowernumber};
@@ -69,6 +112,14 @@ sub request {
         needed   => dt_from_string,
     });
 }
+
+=head3 discharge
+
+    my $request = Koha::Patron:Discharge->discharge({borrowernumber => $borrowernumber});
+
+Place a discharge request on a given borrower, if a discharge was requested, update the status to discharged and place a suspension on the user.
+
+=cut
 
 sub discharge {
     my ($params) = @_;
@@ -102,6 +153,14 @@ sub discharge {
     }
 }
 
+=head3 generate_as_pdf
+
+    my $request = Koha::Patron:Discharge->generate_as_pdf({borrowernumber => $borrowernumber});
+
+Create a pdf from an existing discharge associated to the borrowernumber.
+
+=cut
+
 sub generate_as_pdf {
     my ($params) = @_;
     return unless $params->{borrowernumber};
@@ -128,44 +187,42 @@ sub generate_as_pdf {
     my $html_path = tmpnam() . '.html';
     my $pdf_path = tmpnam() . '.pdf';
     my $html_content = $tmpl->output;
+
+    # export to HTML
     open my $html_fh, '>:encoding(utf8)', $html_path;
     say $html_fh $html_content;
     close $html_fh;
-    my $output = eval { require PDF::FromHTML; return; } || $@;
-    if ($output && $params->{testing}) {
-        carp $output;
-        $pdf_path = undef;
-    }
-    elsif ($output) {
-        die $output;
+
+    if ( IPC::Cmd::can_run('weasyprint') ) {
+        my( $success, $error_message, $full_buf, $stdout_buf, $stderr_buf ) =
+            IPC::Cmd::run( command => "weasyprint $html_path $pdf_path", verbose => 0 );
+
+        map {warn $_} @$stderr_buf
+          if $stderr_buf and scalar @$stderr_buf;
+
+        unless ( $success ) {
+            warn $error_message;
+            $pdf_path = undef;
+        }
     }
     else {
-        my $pdf = PDF::FromHTML->new( encoding => 'utf-8' );
-        $pdf->load_file( $html_path );
-
-        my $ttf = C4::Context->config('ttf');
-        if ( $ttf  && exists $ttf->{font} ) {
-
-            my $type2path;
-            foreach my $font ( @{ $ttf->{font} } ) {
-                    $type2path->{ $font->{type} } = $font->{content};
-            }
-
-            $pdf->convert(
-                FontBold          => $type2path->{'HB'} || 'HelveticaBold',
-                FontOblique       => $type2path->{'HO'} || 'HelveticaOblique',
-                FontBoldOblique   => $type2path->{'HBO'}|| 'HelveticaBoldOblique',
-                FontUnicode       => $type2path->{'H'}  || 'Helvetica',
-                Font              => $type2path->{'H'}  || 'Helvetica',
-            );
-        } else {
-            $pdf->convert();
-        }
-        $pdf->write_file( $pdf_path );
+        warn "weasyprint not found!";
+        $pdf_path = undef;
     }
 
     return $pdf_path;
 }
+
+=head3 get_pendings
+
+    my $rs = Koha::Patron:Discharge->get_pendings({
+        borrowernumber => $borrowernumber
+        branchcode => $branchcode
+    });
+
+Get all pending discharges associated to a borrowernumber and/or a given branch
+
+=cut
 
 sub get_pendings {
     my ($params)       = @_;
@@ -182,6 +239,17 @@ sub get_pendings {
     return search_limited( $cond );
 }
 
+=head3 get_validated
+
+    my $rs = Koha::Patron:Discharge->get_validated({
+        borrowernumber => $borrowernumber
+        branchcode => $branchcode
+    });
+
+Get all validated discharges associated to a borrowernumber and/or a given branch
+
+=cut
+
 sub get_validated {
     my ($params)       = @_;
     my $branchcode     = $params->{branchcode};
@@ -197,6 +265,18 @@ sub get_validated {
 }
 
 # TODO This module should be based on Koha::Object[s]
+
+=head3 search_limited
+
+    my $rs = Koha::Patron:Discharge->search_limited({
+        borrower.branchcode => $branchcode
+    },
+    $attributes);
+
+Search all discharges that can be seen by the user and fitting the given conditions
+
+=cut
+
 sub search_limited {
     my ( $params, $attributes ) = @_;
     my $userenv = C4::Context->userenv;

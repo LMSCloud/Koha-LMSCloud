@@ -1,6 +1,7 @@
 [% USE KohaDates %]
-<p>
-[% log.timestamp | $KohaDates with_hours => 1 %] : <b>Patron notice sent: </b>
-[% notice_code = log.info.notice_code %]
-&quot;[% log.notice_types.$notice_code.name | html %]&quot;
-</p>
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'ill-request-log.inc' %]
+[% WRAPPER ill_request_log action_label = t("Patron notice sent") %]
+    [% SET notice_code = log.info.notice_code %]
+    &quot;[% log.notice_types.$notice_code.name | html %]&quot;
+[% END %]

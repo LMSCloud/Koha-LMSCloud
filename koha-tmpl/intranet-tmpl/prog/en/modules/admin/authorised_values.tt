@@ -1,18 +1,32 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF op == 'add_form' %]
-        [% IF ( action_modify ) %]Modify authorized value &rsaquo; [% END %]
-        [% IF ( action_add_value ) %]New authorized value &rsaquo; [% END %]
-        [% IF ( action_add_category ) %]New category &rsaquo; [% END %]
         [% IF ( action_modify || action_add_value ) %]
-            Authorized values for category [% category_name | html %] &rsaquo;
+            [% IF ( action_modify ) %]
+                [% t("Modify authorized value") | html %] &rsaquo;
+            [% END %]
+            [% IF ( action_add_value ) %]
+                [% t("New authorized value") | html %] &rsaquo;
+            [% END %]
+            [% tx("Authorized values for category {category_name}", { category_name = category_name }) | html %] &rsaquo;
         [% END %]
-    [% END %]
-    Authorized values &rsaquo; Administration &rsaquo; Koha
-</title>
+        [% IF ( action_add_category ) %]
+            [% t("New category") | html %] &rsaquo;
+        [% END %]
+
+    [% ELSIF ( loop || searchfield ) %]
+        [% tx("Authorized values for category {category_name}", { category_name = category.category_name }) | html %] &rsaquo;
+    [% END # /IF op == 'add_form' %]
+
+    [% t("Authorized values") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 
 [% FILTER collapse %]
@@ -35,6 +49,9 @@
         .authval-icons label {
             float: none;
             width: auto;
+        }
+        #authorised_value:invalid {
+            color:red;
         }
     </style>
 [% END %]
@@ -93,23 +110,26 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
-                [% IF op == 'add_form' %]
+                [% IF op == 'add_form' OR op == 'edit_form' %]
                     <h1>
                         [% IF ( action_modify ) %]<span>Modify authorized value</span>[% END %]
                         [% IF ( action_add_value ) %]<span>New authorized value</span>[% END %]
                         [% IF ( action_add_category ) %]<span>New category</span>[% END %]
+                        [% IF ( op == 'edit_form' ) %]<span>Edit category</span>[% END %]
                     </h1>
 
                     [% IF ( action_modify ) %]
-                        <div class="note">
+                        <div class="alert alert-info">
                             <i class="fa fa-exclamation"></i> <strong>NOTE:</strong> If you change an authorized value code, existing records using it won't be updated. Changes to value descriptions will show immediately.
                         </div>
                     [% END %]
 
-                    <form action="/cgi-bin/koha/admin/authorised_values.pl" name="Aform" method="post" class="validated">
+                    <form action="/cgi-bin/koha/admin/authorised_values.pl" name="Aform" id="Aform" method="post" class="validated">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <fieldset class="rows">
                             [% IF action_add_category %]
                                 <ol>
@@ -117,14 +137,34 @@
                                         <label for="category" class="required">Category: </label>
                                         <input type="text" name="category"  id="category" size="32" maxlength="32" class="focus required" />
                                         <span class="required">Required</span>
-                                        <input type="hidden" name="op" value="add_category" />
+                                        <input type="hidden" name="op" value="cud-add_category" />
+                                    </li>
+                                    <li>
+                                        <input type="checkbox" name="is_integer_only" id="is_integer_only"/><label for="is_integer_only">Restrict value to numbers only</label></input>
                                     </li>
                                 </ol>
+                            [% ELSIF op == 'edit_form' %]
+                                <ol>
+                                    <li>
+                                        <label for="category" class="required">Category: </label>
+                                        <input type="text" disabled value="[% category_name | html %]"/>
+                                    </li>
+                                    <li>
+                                        [% IF category.is_integer_only %]
+                                            <input type="checkbox" checked name="is_integer_only" id="is_integer_only"/><label for="is_integer_only">Restrict value to numbers only</label></input>
+                                        [% ELSE %]
+                                            <input type="checkbox" name="is_integer_only" id="is_integer_only"/><label for="is_integer_only">Restrict value to numbers only</label></input>
+                                        [% END %]
+                                    </li>
+                                </ol>
+                                <input type="hidden" name="op" value="cud-edit_category" />
+                                <input type="hidden" name="category" value="[% category_name | html %]" />
+                                <input type="hidden" name="searchfield" value="[% category_name | html %]" />
                             [% ELSE %]
                                 <ol>
                                     <li>
                                         <span class="label">Category</span>
-                                        <input type="hidden" name="op" value="add" />
+                                        <input type="hidden" name="op" value="cud-add" />
                                         <input type="hidden" name="category" value="[% category_name | html %]" /> [% category_name | html %]
                                     </li>
                                     <li>
@@ -132,7 +172,11 @@
                                         [% IF ( action_modify ) %]
                                             <input type="hidden" id="id" name="id" value="[% av.id | html %]" />
                                         [% END %]
-                                        <input type="text" id="authorised_value" name="authorised_value" value="[% av.authorised_value | html %]" maxlength="80" class="focus" />
+                                        [% IF ( av && av.is_integer_only ) || category.is_integer_only %]
+                                            <input type="text" inputmode="numeric" pattern="[% num_pattern | $raw %]" min="-128" max="127" id="authorised_value" name="authorised_value" value="[% av.authorised_value | html %]" class="focus" title="Should be numeric (-128..127)" required/>
+                                        [% ELSE %]
+                                            <input type="text" id="authorised_value" name="authorised_value" value="[% av.authorised_value | html %]" maxlength="80" class="focus"/>
+                                        [% END %]
                                     </li>
                                     <li>
                                         <label for="lib">Description: </label>
@@ -174,6 +218,7 @@
                     <div id="toolbar" class="btn-toolbar">
                         <a id="addcat" class="btn btn-default" href= "/cgi-bin/koha/admin/authorised_values.pl?op=add_form"><i class="fa fa-plus"> </i> New category</a>
                         [% IF ( searchfield ) %]
+                            <a id="editcat" class="btn btn-default" href= "/cgi-bin/koha/admin/authorised_values.pl?op=edit_form&amp;category=[% category.category_name | url %]"><i class="fa fa-plus"> </i> Edit category</a>
                             <a id="addauth" class="btn btn-default" href= "/cgi-bin/koha/admin/authorised_values.pl?op=add_form&amp;category=[% category.category_name | url %]"><i class="fa fa-plus"> </i> New authorized value for [% category.category_name | html %]</a>
                         [% END %]
                     </div>
@@ -186,24 +231,26 @@
                     [% END %]
 
                     [% IF ( searchfield ) %]
-                        <div class="note">
+                        <div class="alert alert-info">
                             <i class="fa fa-exclamation"></i> <strong>NOTE:</strong> If you change an authorized value code, existing records using it won't be updated. Changes to value descriptions will show immediately.
                         </div>
                     [% END %]
 
                     [% FOR m IN messages %]
-                        <div class="dialog [% m.type | html %]">
+                        <div class="alert alert-[% m.type | html %]">
                             [% SWITCH m.code %]
                             [% CASE 'error_on_update' %]
                                 <span>An error occurred when updating this authorized value. Perhaps the value already exists.</span>
                             [% CASE 'error_on_insert' %]
                                 <span>An error occurred when inserting this authorized value. Perhaps the value or the category already exists.</span>
+                            [% CASE 'error_on_edit_cat' %]
+                                <span>An error occurred when updating this authorized value category.</span>
                             [% CASE 'error_on_insert_cat' %]
                                 <span>An error occurred when inserting this authorized value category. Perhaps the category name already exists.</span>
                             [% CASE 'error_on_delete' %]
-                                <span>An error occurred when deleting this authorized value. Check the logs.</span>
+                                <span>An error occurred when deleting this authorized value. Check the logs for details.</span>
                             [% CASE 'error_on_delete_category' %]
-                                <span>An error occurred when deleting this authorized value category. Check the logs.</span>
+                                <span>An error occurred when deleting this authorized value category. Check the logs for details.</span>
                             [% CASE 'success_on_update' %]
                                 <span>Authorized value updated successfully.</span>
                             [% CASE 'success_on_insert' %]
@@ -261,7 +308,7 @@
                                             <td>[% loo.lib | html %]</td>
                                             <td>[% loo.lib_opac | html %]</td>
                                             <td>
-                                                [% IF ( loo.image ) %]<img src="[% loo.image | url %]" alt=""/>[% ELSE %]&nbsp;[% END %]</td>
+                                                [% IF ( loo.image ) %]<img class="itemtype-image" src="[% loo.image | url %]" alt=""/>[% ELSE %]&nbsp;[% END %]</td>
                                             <td>
                                                 [% IF loo.branches.size > 0 %]
                                                     [% branches_str = "" %]
@@ -272,7 +319,7 @@
                                                             [% branches_str = branches_str _ "\n" _ branch.branchname _ " (" _ branch.branchcode _ ")" %]
                                                         [% END %]
                                                     [% END %]
-                                                    <span class="library_limitation" title="[% branches_str | html %]">
+                                                    <span class="library_limitation" data-bs-toggle="tooltip" title="[% branches_str | html %]">
                                                         [% IF loo.branches.size > 1 %]
                                                             <span>[% loo.branches.size | html %] library limitations</span>
                                                         [% ELSE %]
@@ -282,14 +329,22 @@
                                                     <span>No limitation</span>
                                                 [% END # /IF loo.branches.size > 0 %]
                                             </td>
-                                            <td class="actions"><a href="/cgi-bin/koha/admin/authorised_values.pl?op=add_form&amp;id=[% loo.id | uri %]" class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
-                                            <a class="delete btn btn-default btn-xs" href="/cgi-bin/koha/admin/authorised_values.pl?op=delete&amp;searchfield=[% searchfield | uri %]&amp;id=[% loo.id | uri %]"><i class="fa fa-trash"></i> Delete</a></td>
+                                            <td class="actions">
+                                                <a href="/cgi-bin/koha/admin/authorised_values.pl?op=add_form&amp;id=[% loo.id | uri %]" class="btn btn-default btn-xs"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+                                                <form action="/cgi-bin/koha/admin/authorised_values.pl" method="post">
+                                                    [% INCLUDE 'csrf-token.inc' %]
+                                                    <input type="hidden" name="op" value="cud-delete" />
+                                                    <input type="hidden" name="searchfield" value="[% searchfield | html %]" />
+                                                    <input type="hidden" name="id" value="[% loo.id | html %]" />
+                                                    <button type="submit" class="delete btn btn-default btn-xs"><i class="fa fa-trash-can"></i> Delete</button>
+                                                </form>
+                                            </td>
                                         </tr>
                                     [% END # /FOREACH loop %]
                                 </tbody>
                             </table> <!-- /#categoriest -->
                         [% ELSE %]
-                            <div class="dialog message">
+                            <div class="alert alert-info">
                                 <p>There are no authorized values defined for [% category.category_name | html %]</p>
                                 <form action="/cgi-bin/koha/admin/authorised_values.pl" method="get">
                                     <input type="hidden" name="op" value="add_form" />
@@ -298,7 +353,8 @@
                                 </form>
                                 [% UNLESS category.is_system %]
                                     <form id="delete_category" action="/cgi-bin/koha/admin/authorised_values.pl" method="post">
-                                        <input type="hidden" name="op" value="delete_category" />
+                                        [% INCLUDE 'csrf-token.inc' %]
+                                        <input type="hidden" name="op" value="cud-delete_category" />
                                         <input type="hidden" name="category_name" value="[% category.category_name | html %]" />
                                         <button type="submit"><i class="fa fa-plus"></i> Delete category '[% category.category_name | html %]' </button>
                                     </form>
@@ -335,13 +391,13 @@
                 [% END # /IF op == 'list' %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -352,21 +408,20 @@
         $(document).ready(function() {
 
             KohaTable("categoriest", {
-                "aaSorting": [[ 0, "asc" ]],
-                "sPaginationType": "full"
+                "order": [[ 0, "asc" ]],
+                "pagingType": "full"
             });
 
             if ( $("#branches option:selected").length < 1 ) {
                 $("#branches option:first").attr("selected", "selected");
             }
 
-            $("a.delete").click(function(){
+            $(".delete").click(function(){
                 return confirm(_("Are you sure you want to delete this authorized value?"));
             });
             $('#category_search').change(function() {
                 $('#category').submit();
             });
-            $(".library_limitation").tooltip();
 
             $("#delete_category").on('submit', function(){
                 return confirm(_("Are you sure you want to delete this authorized value category?"));
@@ -375,6 +430,17 @@
             if( $("#icons .tab-pane.active").length < 1 ){
                 $("#icons a:first").tab("show");
             }
+
+            $("#Aform").submit(function() {
+                if ( $('#authorised_value').length ) {
+                    if ( ! $('#authorised_value').get(0).checkValidity() ) {
+                        alert( _("Authorised value should be numeric.") );
+                        $('#authorised_value').focus();
+                        return false;
+                    }
+                }
+                return true;
+            });
         });
     </script>
 [% END %]
@@ -470,7 +536,7 @@
         [% CASE 'qualif' %]
             <p>Function codes (author, editor, collaborator, etc.) used in UNIMARC 7XX $4 (French)</p>
         [% CASE 'RELTERMS' %]
-            <p>List of relator codes and terms</p>
+            <p>List of relator codes and terms according to <a target="_blank" href="https://www.loc.gov/marc/relators/">MARC code list for relators</a></p>
         [% CASE 'REPORT_GROUP' %]
             <p>A way to sort and filter your reports, the default values in this category include the Koha modules (Accounts, Acquitisions, Catalog, Circulation, Patrons)</p>
         [% CASE 'REPORT_SUBGROUP' %]
@@ -491,10 +557,18 @@
             <p>A list of additional custom status values for suggestions that can be used in addition to the default values.</p>
         [% CASE 'TERM' %]
             <p>Terms to be used in Course Reserves module. Enter terms that will show in the drop down menu when setting up a Course reserve. (For example: Spring, Summer, Winter, Fall).</p>
+        [% CASE 'TICKET_STATUS' %]
+            <p>A list of custom status values for tickets that can be used in addition to the default values of "New" and "Resolved".</p>
+        [% CASE 'TICKET_RESOLUTION' %]
+            <p>A list of custom resolution values for tickets that can be used in addition to the standard "Resolved".</p>
         [% CASE 'UPLOAD' %]
             <p>Categories to be assigned to file uploads. Without a category an upload is considered temporary and may be removed during automated cleanup.</p>
         [% CASE 'VENDOR_TYPE' %]
             <p>Values that can be entered to fill in the 'Vendor type' field in the acquisitions module, that can be used for statistical purposes</p>
+        [% CASE 'VENDOR_INTERFACE_TYPE' %]
+            <p>Values that can be entered to fill in the 'Vendor interface type' field in the acquisitions module</p>
+        [% CASE 'VENDOR_ISSUE_TYPE' %]
+            <p>Values that can be entered to fill in the 'Vendor issue type' field in the acquisitions module</p>
         [% CASE 'WITHDRAWN' %]
             <p>Description of a withdrawn item (appears when adding or editing an item)</p>
         [% CASE 'YES_NO' %]

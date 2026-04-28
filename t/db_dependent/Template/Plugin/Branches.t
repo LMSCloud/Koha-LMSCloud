@@ -16,7 +16,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use Test::More tests => 4;
 use Test::MockModule;
 
 use C4::Context;
@@ -214,6 +214,48 @@ subtest 'pickup_locations() tests' => sub {
             is( $pickup_location->{branchcode}, $library_3->branchcode, 'The right library is marked as selected' );
         }
     };
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'branch specific js and css' => sub {
+
+    plan tests => 6;
+
+    $schema->storage->txn_begin;
+
+    my $newbranch_with = $builder->build({
+        source => 'Branch',
+        value => {
+            opacuserjs => 'console.log(\'Hello World\');',
+            opacusercss => 'body { background-color: blue; }'
+        }
+    });
+    my $newbranch_none = $builder->build({
+        source => 'Branch',
+        value => {
+            opacuserjs => '',
+            opacusercss => ''
+        }
+    });
+
+    my $plugin = Koha::Template::Plugin::Branches->new();
+
+    my $opacuserjs = $plugin->GetBranchSpecificJS($newbranch_with->{branchcode});
+    is($opacuserjs, $newbranch_with->{opacuserjs},'received correct JS string from function');
+
+    my $opacusercss = $plugin->GetBranchSpecificCSS($newbranch_with->{branchcode});
+    is($opacusercss, $newbranch_with->{opacusercss},'received correct CSS string from function');
+
+    $opacuserjs = $plugin->GetBranchSpecificJS($newbranch_none->{branchcode});
+    $opacusercss = $plugin->GetBranchSpecificCSS($newbranch_none->{branchcode});
+    is($opacuserjs, q{},'received correct blank string from function when branch has none');
+    is($opacusercss, q{},'received correct blank string from function when branch has none');
+
+    $opacuserjs = $plugin->GetBranchSpecificJS();
+    $opacusercss = $plugin->GetBranchSpecificCSS();
+    is($opacuserjs, q{},'received correct blank string from function when no branch set');
+    is($opacusercss, q{},'received correct blank string from function when no branch set');
 
     $schema->storage->txn_rollback;
 };

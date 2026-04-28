@@ -1,44 +1,19 @@
 [% USE raw %]
 [% USE Koha %]
 [% USE AdditionalContents %]
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% PROCESS 'opac-authorities.inc' %]
 [% PROCESS 'authorities-search-results.inc' %]
 [% PROCESS 'i18n.inc' %]
-[% BLOCK pagination %]
-    <nav class="pagination pagination-sm noprint" aria-label="Search results pagination">
-        <ul class="pagination">
-            [% IF ( displayprev ) %]
-                <li class="page-item">
-                    <a class="page-link" href="opac-authorities-home.pl?startfrom=[% startfromprev | uri %]&amp;[% FOREACH searchdat IN searchdata %][% searchdat.term | uri %]=[% searchdat.val |url %]&amp;[% END %]resultsperpage=[% resultsperpage | uri %]&amp;type=opac&amp;op=do_search&amp;authtypecode=[% authtypecode | uri %]&amp;orderby=[% orderby | uri %]" aria-label="Go to the previous page">
-                        <i class="fa fa-fw fa-angle-left" aria-hidden="true"></i>  Previous
-                    </a>
-                </li>
-            [% END %]
-            [% FOREACH number IN numbers %]
-                [% IF ( number.highlight ) %]
-                    <li class="page-item disabled">
-                        <a class="page-link" href="#" aria-disabled="true" aria-label="Current page: Page [% number.number | html %]">[% number.number | html %]</a>
-                    </li>
-                [% ELSE %]
-                    <li class="page-item">
-                        <a class="page-link" href="opac-authorities-home.pl?startfrom=[% number.startfrom | uri %]&amp;[% FOREACH searchdat IN number.searchdata %][% searchdat.term | uri %]=[% searchdat.val |url %]&amp;[% END %]resultsperpage=[% resultsperpage | uri %]&amp;type=opac&amp;op=do_search&amp;authtypecode=[% authtypecode | uri %]&amp;orderby=[% orderby | uri %]" aria-label="Go to page [% number.number | html %]">[% number.number | html %]</a>
-                    </li>
-                [% END %]
-            [% END %]
-            [% IF ( displaynext ) %]
-                <li class="page-item">
-                    <a class="page-link" href="opac-authorities-home.pl?startfrom=[% startfromnext | uri %]&amp;[% FOREACH searchdat IN searchdata %][% searchdat.term | uri %]=[% searchdat.val |url %]&amp;[% END %]&amp;resultsperpage=[% resultsperpage | uri %]&amp;type=opac&amp;op=do_search&amp;authtypecode=[% authtypecode | uri %]&amp;orderby=[% orderby | uri %]" aria-label="Go to the next page">
-                        Next <i class="fa fa-fw fa-angle-double-right" aria-hidden="true"></i>
-                    </a>
-                </li>
-            [% END %]
-        </ul>
-    </nav> <!-- / #pages -->
-[% END %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( total ) %]Authority search result[% ELSE %]No results found[% END %] &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+<title>[% FILTER collapse %]
+    [% t("Results") | html %] &rsaquo;
+    [% t("Authority search") | html %] &rsaquo;
+    [% PROCESS 'library_name_title' %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
@@ -46,19 +21,14 @@
 [% INCLUDE 'masthead.inc' %]
 
     <div class="main">
-        <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-                </li>
-                <li class="breadcrumb-item">
-                    <a href="/cgi-bin/koha/opac-authorities-home.pl">Authority search</a>
-                </li>
-                <li class="breadcrumb-item active">
-                    <a href="#" aria-current="page">Results</a>
-                </li>
-            </ol>
-        </nav> <!-- /#breadcrumbs -->
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/opac-authorities-home.pl">Authority search</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Results</span>
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
 
         <div class="container-fluid">
             <div class="row">
@@ -151,7 +121,6 @@
                 "searching": false,
                 "paging": false,
                 "info": false,
-                "autoWidth": false,
                 "responsive": {
                     "details": { "type": 'column',"target": -1 }
                 },

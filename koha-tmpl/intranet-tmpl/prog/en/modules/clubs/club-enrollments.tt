@@ -3,9 +3,16 @@
 [% USE KohaDates %]
 [% USE Branches %]
 [% USE Koha %]
+[% USE HtmlTags %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Club enrollments &rsaquo; Patron clubs &rsaquo; Tools &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% tx("Club enrollments for {club_name}", { club_name = club.name }) | html %] &rsaquo;
+    [% t("Patron clubs") | html %] &rsaquo;
+    [% t("Tools") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -23,19 +30,20 @@
             <a href="clubs.pl">Patron clubs</a>
         [% END %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
-            <span>Club enrollments</span>
+            <span>Club enrollments for [% club.name | html | $HtmlTags tag="em" %]</span>
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
                 [% IF !club %]
-                <div class="dialog message">The club you requested does not exist.</div>
+                <div class="alert alert-info">The club you requested does not exist.</div>
                 [% ELSE %]
-                <h1>Club enrollments for <em>[% club.name | html %]</em></h1>
+                <h1>Club enrollments for [% club.name | html | $HtmlTags tag="em" %]</h1>
 
                 <div class="page-section">
                     <table id="enrollments-table">
@@ -43,6 +51,9 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Card number</th>
+                                [% FOREACH club_template_enrollment_field IN club.club_template.club_template_enrollment_fields %]
+                                    <th>[% club_template_enrollment_field.name | html %] </th>
+                                [% END %]
                             </tr>
                         </thead>
 
@@ -56,6 +67,24 @@
                                     <td>
                                         [% p.cardnumber | html %]
                                     </td>
+                                    [% IF club_enrollment_fields %]
+                                        [% FOREACH club_enrollment_field IN club_enrollment_fields %]
+                                            [% IF e.id == club_enrollment_field.club_enrollment_id %]
+                                                [% FOREACH club_template_enrollment_field IN club.club_template.club_template_enrollment_fields %]
+                                                    [% IF club_enrollment_field.club_template_enrollment_field_id == club_template_enrollment_field.id %]
+                                                        [% IF club_template_enrollment_field.authorised_value_category %]
+                                                            [% FOREACH a IN AuthorisedValues.Get( club_template_enrollment_field.authorised_value_category ) %]
+                                                                [% IF a.authorised_value == club_enrollment_field.value %]
+                                                                    [% SET club_enrollment_field.value = a.lib %]
+                                                                [% END %]
+                                                            [% END %]
+                                                        [% END %]
+                                                        <td>[% club_enrollment_field.value | html %]</td>
+                                                    [% END %]
+                                                [% END %]
+                                            [% END %]
+                                        [% END %]
+                                    [% END %]
                                 </tr>
                             [% END %]
                         </tbody>
@@ -64,13 +93,13 @@
                 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'tools-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -79,10 +108,10 @@
     <script>
         $(document).ready(function() {
             eTable = $('#enrollments-table').dataTable($.extend(true, {}, dataTablesDefaults, {
-                "sPaginationType": "full",
-                "sDom": 'C<"top pager"ilpf><"#filter_c">tr<"bottom pager"ip>',
-                "aoColumnDefs": [
-                        { "aTargets": [ -1, -2 ], "bSortable": false, "bSearchable": false },
+                "pagingType": "full",
+                "dom": 'C<"top pager"ilpf><"#filter_c">tr<"bottom pager"ip>',
+                "columnDefs": [
+                        { "targets": [ -1, -2 ], "orderable": false, "searchable":  false },
                 ]
             } ));
         });

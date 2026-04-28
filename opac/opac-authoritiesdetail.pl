@@ -167,6 +167,8 @@ if ($show_marc) {
         }
     }
     $template->param( "Tab0XX" => \@loop_data );
+    my $summary = BuildSummary( $record, $authid, $authtypecode );
+    $template->param( summary => $summary );
 } else {
     my $AuthorityXSLTOpacDetailsDisplay = C4::Context->preference('AuthorityXSLTOpacDetailsDisplay');
     if ($AuthorityXSLTOpacDetailsDisplay) {
@@ -188,10 +190,10 @@ if ($show_marc) {
         $template->param(summary => $summary);
     }
 
-    if ( C4::Context->preference('OPACAuthorIdentifiers') ) {
+    if ( C4::Context->preference('OPACAuthorIdentifiersAndInformation') ) {
         my $authority = Koha::Authorities->find($authid);
-        my $identifiers = $authority->get_identifiers;
-        $template->param( author_identifiers => $identifiers );
+        my $information = $authority->get_identifiers_and_information;
+        $template->param( author_information => $information );
     }
 }
 

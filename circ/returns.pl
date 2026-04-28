@@ -35,13 +35,12 @@ use CGI qw ( -utf8 );
 use DateTime;
 
 use C4::Auth qw( get_template_and_user get_session haspermission );
-use C4::Circulation qw( barcodedecode GetBranchItemRule AddReturn updateWrongTransfer LostItem );
+use C4::Circulation qw( barcodedecode GetBranchItemRule AddReturn LostItem );
 use C4::Context;
-use C4::Items qw( ModItemTransfer );
 use C4::Members::Messaging;
 use C4::Members;
 use C4::Output qw( output_html_with_http_headers );
-use C4::Reserves qw( ModReserve ModReserveAffect GetOtherReserves );
+use C4::Reserves qw( ModReserve ModReserveAffect CheckReserves );
 use C4::RotatingCollections;
 use C4::Stats qw( UpdateStats );
 use Koha::AuthorisedValues;
@@ -105,6 +104,7 @@ my $returned_counter = C4::Context->preference('numReturnedItemsToShow') || 8;
 my %returneditems;
 my %riduedate;
 my %riborrowernumber;
+my %rinot_returned;
 my @inputloop;
 foreach ( $query->param ) {
     my $counter;
@@ -122,6 +122,7 @@ foreach ( $query->param ) {
     my $barcode        = $query->param("ri-$counter");
     my $duedate        = $query->param("dd-$counter");
     my $borrowernumber = $query->param("bn-$counter");
+    my $not_returned   = $query->param("nr-$counter");
     $counter++;
 
     # decode barcode    ## Didn't we already decode them before passing them back last time??
@@ -132,43 +133,40 @@ foreach ( $query->param ) {
     $returneditems{$counter}    = $barcode;
     $riduedate{$counter}        = $duedate;
     $riborrowernumber{$counter} = $borrowernumber;
+    $rinot_returned{$counter}   = $not_returned;
 
     #######################
     $input{counter}        = $counter;
     $input{barcode}        = $barcode;
     $input{duedate}        = $duedate;
     $input{borrowernumber} = $borrowernumber;
+    $input{not_returned}   = $not_returned;
     push( @inputloop, \%input );
 }
+
+my $op          = $query->param('op') // '';
 
 ############
 # Deal with the requests....
 my $itemnumber = $query->param('itemnumber');
-if ( $query->param('reserve_id') ) {
+if ( $query->param('reserve_id') && $op eq 'cud-affect_reserve') {
     my $borrowernumber = $query->param('borrowernumber');
     my $reserve_id     = $query->param('reserve_id');
     my $diffBranchReturned = $query->param('diffBranch');
     my $cancel_reserve = $query->param('cancel_reserve');
+    my $cancel_reason = $query->param('cancel_reason');
+
     # fix up item type for display
     my $item = Koha::Items->find( $itemnumber );
     my $biblio = $item->biblio;
+    my $hold   = Koha::Holds->find($reserve_id) or die "Hold for item $itemnumber not found\n";   #TODO Not very elegant
 
     if ( $cancel_reserve ) {
-        my $hold = Koha::Holds->find( $reserve_id );
-        if ( $hold ) {
-            $hold->cancel( { charge_cancel_fee => !$forgivemanualholdsexpire } );
-        } # FIXME else?
-    } else {
-        my $diffBranchSend = ($userenv_branch ne $diffBranchReturned) ? $diffBranchReturned : undef;
-        # diffBranchSend tells ModReserveAffect whether document is expected in this library or not,
-        # i.e., whether to apply waiting status
-        ModReserveAffect( $itemnumber, $borrowernumber, $diffBranchSend, $reserve_id, $desk_id );
-    }
-#   check if we have other reserves for this document, if we have a return send the message of transfer
-    my ( $messages, $nextreservinfo ) = GetOtherReserves($itemnumber);
-
-    my $patron = Koha::Patrons->find( $nextreservinfo );
-    if ( $messages->{'transfert'} ) {
+            $hold->cancel( { charge_cancel_fee => !$forgivemanualholdsexpire, cancellation_reason => $cancel_reason} );
+    # check if we have other reserves for this document, if we have a result send the message of transfer
+    my ( undef, $nextreservinfo, undef ) = CheckReserves( $item, C4::Context->preference('ConfirmFutureHolds') );
+    if ( $userenv_branch ne $nextreservinfo->{'branchcode'} ) {
+        my $patron = Koha::Patrons->find( $nextreservinfo->{'borrowernumber'} );
         $template->param(
             itemtitle      => $biblio->title,
             itembiblionumber => $biblio->biblionumber,
@@ -177,9 +175,24 @@ if ( $query->param('reserve_id') ) {
             diffbranch     => 1,
         );
     }
+    } else {
+        my $diffBranchSend = ( $userenv_branch ne $diffBranchReturned ) ? $diffBranchReturned : undef;
+
+        # diffBranchSend tells ModReserveAffect whether document is expected in this library or not,
+        # i.e., whether to apply waiting status
+        ModReserveAffect( $itemnumber, $borrowernumber, $diffBranchSend, $reserve_id, $desk_id );
+
+        if ($diffBranchSend) {
+            my $tobranch = $hold->pickup_library();
+
+            # Add transfer, enqueue if one is already in the queue, and immediately set to in transit
+            my $transfer = $item->request_transfer( { to => $tobranch, reason => 'Reserve', enqueue => 1 } );
+            $transfer->transit;
+        }
+    }
 }
 
-if ( $query->param('recall_id') ) {
+if ( $query->param('recall_id') && $op eq 'cud-affect_recall' ) {
     my $recall = Koha::Recalls->find( scalar $query->param('recall_id') );
     my $itemnumber = $query->param('itemnumber');
     my $return_branch = $query->param('returnbranch');
@@ -214,7 +227,6 @@ if (
     undef $exemptfine;
 }
 my $dropboxmode = $query->param('dropboxmode');
-my $dotransfer  = $query->param('dotransfer');
 my $canceltransfer = $query->param('canceltransfer');
 my $transit = $query->param('transit');
 my $dest = $query->param('dest');
@@ -239,15 +251,18 @@ if ($return_date_override) {
     }
 }
 
-if ($dotransfer){
-# An item has been returned to a branch other than the homebranch, and the librarian has chosen to initiate a transfer
+# If 'needstransfer' was set and the librarian has chosen to initiate the transfer
+if ( $op eq 'cud-dotransfer'){
     my $transferitem = $query->param('transferitem');
-    my $tobranch     = $query->param('tobranch');
+    my $item = Koha::Items->find( $transferitem );
+    my $tobranchcode = $query->param('tobranch');
+    my $tobranch     = Koha::Libraries->find($tobranchcode);
     my $trigger      = $query->param('trigger');
-    ModItemTransfer($transferitem, $userenv_branch, $tobranch, $trigger);
+    my $transfer = $item->request_transfer({ to => $tobranch, reason => $trigger });
+    $transfer->transit;
 }
 
-if ($transit) {
+if ($transit && $op eq 'cud-transfer') {
     my $transfer = Koha::Item::Transfers->find($transit);
     if ( $canceltransfer ) {
         $transfer->cancel({ reason => 'Manual', force => 1});
@@ -282,7 +297,7 @@ if ($transit) {
 
 # actually return book and prepare item table.....
 my $returnbranch;
-if ($barcode) {
+if ($barcode && ( $op eq 'cud-checkin' || $op eq 'cud-affect_reserve' ) ) {
     $barcode = barcodedecode($barcode) if $barcode;
     my $item = Koha::Items->find({ barcode => $barcode });
 
@@ -300,8 +315,18 @@ if ($barcode) {
 
         # make sure return branch respects home branch circulation rules, default to homebranch
         my $hbr = Koha::CirculationRules->get_return_branch_policy($item);
-        $returnbranch = $hbr ne 'noreturn' ? $item->$hbr : $userenv_branch; # can be noreturn, homebranch or holdingbranch
+        my $validate_float =
+            Koha::Libraries->find( $item->homebranch )->validate_float_sibling( { branchcode => $userenv_branch } );
 
+        # get the proper branch to which to return the item
+        # if library isn't in same the float group, transfer item to homelibrary
+        $returnbranch =
+              $hbr eq 'noreturn'
+            ? $userenv_branch
+            : $hbr eq 'returnbylibrarygroup' ? $validate_float
+                ? $userenv_branch
+                : $item->homebranch
+            : $item->$hbr;
         my $materials = $item->materials;
         my $descriptions = Koha::AuthorisedValues->get_description_by_koha_field({frameworkcode => '', kohafield =>'items.materials', authorised_value => $materials });
         $materials = $descriptions->{lib} // $materials;
@@ -369,6 +394,7 @@ if ($barcode) {
         $returneditems{0}      = $barcode;
         $riborrowernumber{0}   = $borrower->{'borrowernumber'};
         $riduedate{0}          = $duedate;
+        $rinot_returned{0}     = 0;
         $input{borrowernumber} = $borrower->{'borrowernumber'};
         $input{duedate}        = $duedate;
         unless ( $dropboxmode ) {
@@ -408,9 +434,18 @@ if ($barcode) {
         }
 
     } elsif ( C4::Context->preference('ShowAllCheckins') and !$messages->{'BadBarcode'} and !$needs_confirm and !$bundle_confirm ) {
-        $input{duedate}   = 0;
-        $returneditems{0} = $barcode;
-        $riduedate{0}     = 0;
+        my $duedate = 0;
+        if ($issue) {
+            my $date_due_dt = dt_from_string( $issue->date_due, 'sql' );
+            $duedate               = $date_due_dt->strftime('%Y-%m-%d %H:%M');
+            $input{borrowernumber} = $issue->borrowernumber;
+            $riborrowernumber{0}   = $borrower->{'borrowernumber'};
+        }
+        $input{duedate}      = $duedate;
+        $input{not_returned} = 1;
+        $rinot_returned{0}   = 1;
+        $returneditems{0}    = $barcode;
+        $riduedate{0}        = $duedate;
         push( @inputloop, \%input );
     }
     $template->param( privacy => $borrower->{privacy} );
@@ -426,7 +461,7 @@ if ($barcode) {
     }
 
     # Mark missing bundle items as lost and report unexpected items
-    if ( $item && $item->is_bundle && $query->param('confirm_items_bundle_return') ) {
+    if ( $item && $item->is_bundle && $query->param('confirm_items_bundle_return') && !$query->param('do_not_verify_items_bundle_contents') ) {
         my $BundleLostValue = C4::Context->preference('BundleLostValue');
         my $barcodes = $query->param('verify-items-bundle-contents-barcodes');
         my @barcodes = map { s/^\s+|\s+$//gr } ( split /\n/, $barcodes );
@@ -440,7 +475,7 @@ if ($barcode) {
             $verify_item->itemlost(0);
 
             # Update last_seen
-            $verify_item->datelastseen( dt_from_string()->ymd() );
+            $verify_item->datelastseen( dt_from_string() );
 
             # Update last_borrowed if actual checkin
             $verify_item->datelastborrowed( dt_from_string()->ymd() ) if $issue;
@@ -527,10 +562,11 @@ my $recalled = 0;
 
 if ( $messages->{'WasTransfered'} ) {
     $template->param(
-        found          => 1,
-        transfer       => $messages->{'WasTransfered'},
-        trigger        => $messages->{'TransferTrigger'},
-        itemnumber     => $itemnumber,
+        found      => 1,
+        transfer   => $messages->{'WasTransfered'},
+        transferto => $messages->{'TransferTo'},
+        trigger    => $messages->{'TransferTrigger'},
+        itemnumber => $itemnumber,
     );
 }
 
@@ -562,10 +598,20 @@ if ( $messages->{'WrongTransfer'} and not $messages->{'WasTransfered'}) {
     );
 
     # Update the transfer to reflect the new item holdingbranch
-    my $new_transfer = updateWrongTransfer($messages->{'WrongTransferItem'},$messages->{'WrongTransfer'}, $userenv_branch);
-    $template->param(
-        NewTransfer => $new_transfer->id
+    my $item = Koha::Items->find($messages->{'WrongTransferItem'});
+    my $old_transfer = $item->get_transfer;
+
+    # We need to ignore limits here. While we can't transfer from this branch, it is, wrongly, here right now
+    # and that fact must be recorded
+    my $new_transfer = $item->request_transfer(
+        {
+            to            => $old_transfer->to_library,
+            reason        => $old_transfer->reason,
+            replace       => 'WrongTransfer',
+            ignore_limits => 1
+        }
     );
+    $template->param( NewTransfer => $new_transfer->id );
 
     my $reserve    = $messages->{'ResFound'};
     if ( $reserve ) {
@@ -594,15 +640,21 @@ if ( $messages->{'ResFound'} ) {
 
         my $diffBranchSend = !$branchCheck ? $reserve->{branchcode} : undef;
         ModReserveAffect( $itemnumber, $reserve->{borrowernumber}, $diffBranchSend, $reserve->{reserve_id}, $desk_id );
-        my ( $messages, $nextreservinfo ) = GetOtherReserves($reserve->{itemnumber});
+
+        if ($diffBranchSend) {
+            my $tobranch = Koha::Libraries->find( $reserve->{branchcode} );
+            # Add transfer, enqueue if one is already in the queue, and immediately set to in transit
+            my $transfer = $item->request_transfer( { to => $tobranch, reason => 'Reserve', enqueue => 1 } );
+            $transfer->transit;
+        }
 
         $template->param(
             hold_auto_filled => 1,
             print_slip       => C4::Context->preference('HoldsAutoFillPrintSlip'),
-            reserve_id       => $nextreservinfo->{reserve_id},
+            reserve_id       => $reserve->{reserve_id},
         );
 
-        if ( $messages->{'transfert'} ) {
+        if ($diffBranchSend) {
             $template->param(
                 itemtitle        => $biblio->title,
                 itembiblionumber => $biblio->biblionumber,
@@ -672,82 +724,64 @@ foreach my $code ( keys %$messages ) {
     if ( $code eq 'BadBarcode' ) {
         $err{badbarcode} = 1;
         $err{msg}        = $messages->{'BadBarcode'};
-    }
-    elsif ( $code eq 'NotIssued' ) {
+    } elsif ( $code eq 'NotIssued' ) {
         $err{notissued} = 1;
-        $err{msg} = '';
-    }
-    elsif ( $code eq 'LocalUse' ) {
+        $err{msg}       = '';
+    } elsif ( $code eq 'LocalUse' ) {
         $err{localuse} = 1;
-    }
-    elsif ( $code eq 'WasLost' ) {
+    } elsif ( $code eq 'WasLost' ) {
         $err{waslost} = 1;
-    }
-    elsif ( $code eq 'LostItemFeeRefunded' ) {
+    } elsif ( $code eq 'LostItemFeeRefunded' ) {
         $template->param( LostItemFeeRefunded => 1 );
-    }
-    elsif ( $code eq 'LostItemFeeCharged' ) {
+    } elsif ( $code eq 'LostItemPaymentNotRefunded' ) {
+        $template->param( LostItemPaymentNotRefunded => 1 );
+    } elsif ( $code eq 'LostItemFeeCharged' ) {
         $template->param( LostItemFeeCharged => 1 );
-    }
-    elsif ( $code eq 'LostItemFeeRestored' ) {
+    } elsif ( $code eq 'LostItemFeeRestored' ) {
         $template->param( LostItemFeeRestored => 1 );
-    }
-    elsif ( $code eq 'ProcessingFeeRefunded' ) {
+    } elsif ( $code eq 'ProcessingFeeRefunded' ) {
         $template->param( ProcessingFeeRefunded => 1 );
-    }
-    elsif ( $code eq 'ResFound' ) {
+    } elsif ( $code eq 'ResFound' ) {
         ;    # FIXME... anything to do here?
-    }
-    elsif ( $code eq 'WasReturned' ) {
+    } elsif ( $code eq 'WasReturned' ) {
         ;    # FIXME... anything to do here?
-    }
-    elsif ( $code eq 'WasTransfered' ) {
+    } elsif ( $code eq 'WasTransfered' ) {
         ;    # FIXME... anything to do here?
-    }
-    elsif ( $code eq 'withdrawn' ) {
+    } elsif ( $code eq 'TransferTo' ) {
+        ;    # Handled above, along with WasTransfered
+    } elsif ( $code eq 'withdrawn' ) {
         $err{withdrawn} = 1;
-    }
-    elsif ( $code eq 'WrongTransfer' ) {
+    } elsif ( $code eq 'WrongTransfer' ) {
         ;    # FIXME... anything to do here?
-    }
-    elsif ( $code eq 'WrongTransferItem' ) {
+    } elsif ( $code eq 'WrongTransferItem' ) {
         ;    # FIXME... anything to do here?
-    }
-    elsif ( $code eq 'NeedsTransfer' ) {
-    }
-    elsif ( $code eq 'TransferTrigger' ) {
+    } elsif ( $code eq 'NeedsTransfer' ) {
+    } elsif ( $code eq 'TransferTrigger' ) {
         ;    # Handled alongside NeedsTransfer
-    }
-    elsif ( $code eq 'TransferArrived' ) {
+    } elsif ( $code eq 'TransferArrived' ) {
         $err{transferred} = $messages->{'TransferArrived'};
-    }
-    elsif ( $code eq 'Wrongbranch' ) {
-    }
-    elsif ( $code eq 'Debarred' ) {
+    } elsif ( $code eq 'Wrongbranch' ) {
+    } elsif ( $code eq 'Debarred' ) {
         $err{debarred}            = $messages->{'Debarred'};
         $err{debarcardnumber}     = $borrower->{cardnumber};
         $err{debarborrowernumber} = $borrower->{borrowernumber};
         $err{debarname}           = "$borrower->{firstname} $borrower->{surname}";
-    }
-    elsif ( $code eq 'PrevDebarred' ) {
-        $err{prevdebarred}        = $messages->{'PrevDebarred'};
-    }
-    elsif ( $code eq 'ForeverDebarred' ) {
-        $err{foreverdebarred}        = $messages->{'ForeverDebarred'};
-    }
-    elsif ( $code eq 'ItemLocationUpdated' ) {
+    } elsif ( $code eq 'PrevDebarred' ) {
+        $err{prevdebarred} = $messages->{'PrevDebarred'};
+    } elsif ( $code eq 'ForeverDebarred' ) {
+        $err{foreverdebarred} = $messages->{'ForeverDebarred'};
+    } elsif ( $code eq 'ItemLocationUpdated' ) {
         # LMSCloud: the location update should not be considered as an error
-        # The location update ist an normal configured update.
+        # The location update is a normal configured update.
         # $err{ItemLocationUpdated} = $messages->{ItemLocationUpdated};
-    }
-    elsif ( $code eq 'NotForLoanStatusUpdated' ) {
+    } elsif ( $code eq 'NotForLoanStatusUpdated' ) {
         $err{NotForLoanStatusUpdated} = $messages->{NotForLoanStatusUpdated};
-    }
-    elsif ( $code eq 'DataCorrupted' ) {
+    } elsif ( $code eq 'DataCorrupted' ) {
         $err{data_corrupted} = 1;
-    }
-    elsif ( $code eq 'ReturnClaims' ) {
+    } elsif ( $code eq 'ReturnClaims' ) {
         $template->param( ReturnClaims => $messages->{ReturnClaims} );
+    } elsif ( $code eq 'ClaimAutoResolved' ) {
+        $template->param( ClaimAutoResolved => $messages->{ClaimAutoResolved} );
     } elsif ( $code eq 'RecallFound' ) {
         ;
     } elsif ( $code eq 'RecallNeedsTransfer' ) {
@@ -756,9 +790,11 @@ foreach my $code ( keys %$messages ) {
         ;
     } elsif ( $code eq 'InBundle' ) {
         $template->param( InBundle => $messages->{InBundle} );
+    } elsif ( $code eq 'UpdateLastSeenError' ) {
+        $err{UpdateLastSeenError}           = $messages->{UpdateLastSeenError};
     } else {
         die "Unknown error code $code";    # note we need all the (empty) elsif's above, or we die.
-        # This forces the issue of staying in sync w/ Circulation.pm
+                                           # This forces the issue of staying in sync w/ Circulation.pm
     }
     if (%err) {
         push( @errmsgloop, \%err );
@@ -798,6 +834,9 @@ foreach ( sort { $a <=> $b } keys %returneditems ) {
         my $item = Koha::Items->find({ barcode => $bar_code });
         next unless $item; # FIXME The item has been deleted in the meantime,
                            # we could handle that better displaying a message in the template
+
+
+        $ri{not_returned} = $rinot_returned{$_};
         my $biblio = $item->biblio;
         # FIXME pass $item to the template and we are done here...
         $ri{itembiblionumber}    = $biblio->biblionumber;
@@ -819,6 +858,8 @@ foreach ( sort { $a <=> $b } keys %returneditems ) {
         $ri{homebranch}          = $item->homebranch;
         $ri{transferbranch}      = $item->get_transfer ? $item->get_transfer->tobranch : '';
         $ri{damaged}             = $item->damaged;
+        $ri{withdrawn}           = $item->withdrawn;
+        $ri{transferreason}      = $item->get_transfer ? $item->get_transfer->reason : '';
 
         $ri{location} = $item->location;
         my $shelfcode = $ri{'location'};

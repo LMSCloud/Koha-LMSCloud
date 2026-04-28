@@ -1,14 +1,19 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF op == 'add_form' %]
-        New SMTP server &rsaquo; [% ELSIF op == 'edit_form' %]
-        Edit SMTP server &rsaquo; [% END %]
-
-    SMTP servers &rsaquo; Administration &rsaquo; Koha
-</title>
+        [% t("New SMTP server") | html %] &rsaquo;
+    [% ELSIF op == 'edit_form' %]
+        [% tx("Modify SMTP server '{smtp_server}'", { smtp_server = smtp_server.name }) | html %] &rsaquo;
+    [% END %]
+    [% t("SMTP servers") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -31,12 +36,12 @@
 
         [% IF op == 'add_form' %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>New</span>
+                <span>New SMTP server</span>
             [% END %]
 
         [% ELSIF op == 'edit_form' %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Edit</span>
+                [% tx("Modify SMTP server '{smtp_server}'", { smtp_server = smtp_server.name }) | html %]
             [% END %]
 
         [% ELSE %]
@@ -49,11 +54,12 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% FOREACH m IN messages %]
-    <div class="dialog [% m.type | html %]" id="smtp_action_result_dialog">
+    <div class="alert alert-[% m.type | html %]" id="smtp_action_result_dialog">
         [% SWITCH m.code %]
         [% CASE 'error_on_update' %]
             <span>An error occurred trying to open the server for editing. The passed ID is invalid.</span>
@@ -69,13 +75,14 @@
     </div>
 [% END %]
 
-    <div class="dialog message" id="smtp_delete_success" style="display: none;"></div>
-    <div class="dialog alert"   id="smtp_delete_error"   style="display: none;"></div>
+    <div class="alert alert-info" id="smtp_delete_success" style="display: none;"></div>
+    <div class="alert alert-warning"   id="smtp_delete_error"   style="display: none;"></div>
 
 [% IF op == 'add_form' %]
     <h1>New SMTP server</h1>
     <form action="/cgi-bin/koha/admin/smtp_servers.pl" id="add" name="add" class="validated" method="post">
-        <input type="hidden" name="op" value="add" />
+        [% INCLUDE 'csrf-token.inc' %]
+        <input type="hidden" name="op" value="cud-add" />
         <fieldset class="rows">
             <ol>
                 <li>
@@ -112,11 +119,11 @@
                 </li>
                 <li>
                     <label for="smtp_user_name">User name: </label>
-                    <input type="text" name="smtp_user_name" id="smtp_user_name" size="60" />
+                    <input type="text" name="smtp_user_name" id="smtp_user_name" size="60" autocomplete="off" />
                 </li>
                 <li>
                     <label for="smtp_password">Password: </label>
-                    <input type="password" name="smtp_password" id="smtp_password" size="60" />
+                    <input type="password" name="smtp_password" id="smtp_password" size="60" autocomplete="off" />
                 </li>
                 <li>
                     <label for="smtp_debug_mode">Debug mode: </label>
@@ -124,7 +131,12 @@
                         <option value="1">Enabled</option>
                         <option value="0" selected="selected">Disabled</option>
                     </select>
-                    <span>Enables additional debug output in the logs</span>
+                    <span class="hint">Enables additional debug output in the logs</span>
+                </li>
+                <li>
+                    <label for="smtp_default">Default server: </label>
+                    <input type="checkbox" name="smtp_default" id="smtp_default" />
+                    <span class="hint">Sets this SMTP server as the default SMTP server.</span>
                 </li>
             </ol>
         </fieldset>
@@ -136,9 +148,15 @@
 [% END %]
 
 [% IF op == 'edit_form' %]
-    <h1>Edit SMTP server</h1>
+    <h1>[% tx("Modify SMTP server '{smtp_server}'", { smtp_server = smtp_server.name }) | html %]</h1>
+
+    [% UNLESS smtp_server.is_default %]
+        [% PROCESS default_server_info %]
+    [% END %]
+
     <form action="/cgi-bin/koha/admin/smtp_servers.pl" id="edit_save" name="edit_save" class="validated" method="post">
-        <input type="hidden" name="op" value="edit_save" />
+        [% INCLUDE 'csrf-token.inc' %]
+        <input type="hidden" name="op" value="cud-edit_save" />
         <input type="hidden" name="smtp_server_id" value="[%- smtp_server.id | html -%]" />
         <fieldset class="rows">
             <ol>
@@ -186,14 +204,14 @@
                 </li>
                 <li>
                     <label for="smtp_user_name">User name: </label>
-                    <input type="text" name="smtp_user_name" id="smtp_user_name" size="60"  value="[%- smtp_server.user_name | html -%]"/>
+                    <input type="text" name="smtp_user_name" id="smtp_user_name" size="60"  value="[%- smtp_server.user_name | html -%]" autocomplete="off" />
                 </li>
                 <li>
                     <label for="smtp_password">Password: </label>
                     [% IF smtp_server.password %]
-                        <input type="password" name="smtp_password" id="smtp_password" size="60"  value="****"/>
+                        <input type="password" name="smtp_password" id="smtp_password" size="60" value="****" autocomplete="off"/>
                     [% ELSE %]
-                        <input type="password" name="smtp_password" id="smtp_password" size="60"  value=""/>
+                        <input type="password" name="smtp_password" id="smtp_password" size="60" value="" autocomplete="off"/>
                     [% END %]
                 </li>
                 <li>
@@ -207,6 +225,15 @@
                         <option value="0" selected="selected">Disabled</option>
                     [%- END -%]
                     </select>
+                </li>
+                <li>
+                    <label for="smtp_default">Default server: </label>
+                    [% IF smtp_server.is_default %]
+                        <input type="checkbox" name="smtp_default" id="smtp_default" checked="checked"/>
+                    [% ELSE %]
+                        <input type="checkbox" name="smtp_default" id="smtp_default" />
+                    [% END %]
+                    <span class="hint">Sets this SMTP server as the default SMTP server.</span>
                 </li>
             </ol>
         </fieldset>
@@ -225,20 +252,11 @@
 
     <h1>SMTP servers</h1>
 
-        <div class="dialog message" id="default_server_message">
-        <p>Default configuration:</p>
-
-        <ul>
-            <li><strong>Host</strong>: [%- default_config.host | html -%]</li>
-            <li><strong>Port</strong>: [%- default_config.port | html -%]</li>
-            <li><strong>Timeout (secs)</strong>: [%- default_config.timeout | html -%]</li>
-            <li><strong>SSL</strong>: [%- IF default_config.ssl_mode == 'disabled' -%]<span>Disabled</span>[%- ELSIF default_config.ssl_mode == 'ssl' -%]<span>SSL</span>[%- ELSE -%]<span>STARTTLS</span>[%- END -%]</li>
-            <li><strong>Debug mode</strong>: [%- IF default_config.debug -%]Yes[%- ELSE -%]No[%- END -%]</li>
-        </ul>
-    </div>
+    [% PROCESS default_server_info %]
 
     [% IF servers_count > 0 %]
         <div class="page-section">
+            <h3>All SMTP servers</h3>
             <table id="smtp_servers">
                 <thead>
                     <tr>
@@ -248,6 +266,8 @@
                         <th>Timeout (secs)</th>
                         <th>SSL</th>
                         <th>Authenticated</th>
+                        <th>Debug mode</th>
+                        <th>Is default</th>
                         <th data-class-name="actions noExport">Actions</th>
                     </tr>
                 </thead>
@@ -260,28 +280,46 @@
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
-                            <h3 id="delete_confirm_modal_label">Delete server</h3>
+                            <h1 class="modal-title" id="delete_confirm_modal_label">Delete server</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                             <div id="delete_confirm_dialog"></div>
                         </div>
                         <div class="modal-footer">
-                            <a href="#" class="btn btn-default" id="delete_confirm_modal_button" role="button" data-toggle="modal">Delete</a>
-                            <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+                            <button type="button" class="btn btn-danger" id="delete_confirm_modal_button" data-bs-toggle="modal">Delete</button>
+                            <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
                         </div>
                     </div> <!-- /.modal-content -->
                 </div> <!-- /.modal-dialog -->
             </div> <!-- #delete_confirm_modal -->
 
-            </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+            <div id="default_confirm_modal" class="modal" tabindex="-1" role="dialog" aria-labelledby="default_confirm_modal_label" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title" id="default_confirm_modal_label">Set default server</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="default_confirm_dialog">Are you sure you want to change the default SMTP server?</div>
+                        </div>
+                        <div class="modal-footer">
+                            <a id="default_confirm_dialog" href="#" class="btn btn-primary default_confirm_modal_yes" id="default_confirm_modal_button" role="button" data-bs-toggle="modal">Yes</a>
+                            <button class="btn btn-default default_confirm_modal_no" data-bs-dismiss="modal">No</button>
+                        </div>
+                    </div> <!-- /.modal-content -->
+                </div> <!-- /.modal-dialog -->
+            </div> <!-- #default_confirm_modal -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+            </main>
+        </div> <!-- /.col-md-10.order-md-2 -->
+
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 
@@ -297,7 +335,7 @@
                     "url": smtp_servers_url
                 },
                 'language': {
-                    'emptyTable': '<div class="dialog message">'+_("There are no SMTP servers defined.")+'</div>'
+                    'emptyTable': '<div class="alert alert-info">'+_("There are no SMTP servers defined.")+'</div>'
                 },
                 "columnDefs": [ {
                     "targets": [0,1],
@@ -364,19 +402,39 @@
                     },
                     {
                         "data": function( row, type, val, meta ) {
-                            var result = '<a class="btn btn-default btn-xs" role="button" href="/cgi-bin/koha/admin/smtp_servers.pl?op=edit_form&amp;smtp_server_id='+ encodeURIComponent(row.smtp_server_id) +'"><i class="fa fa-pencil" aria-hidden="true"></i> '+_("Edit")+'</a>'+"\n";
-                            result += '<a class="btn btn-default btn-xs delete_server" role="button" href="#" data-toggle="modal" data-target="#delete_confirm_modal" data-smtp-server-id="'+ encodeURIComponent(row.smtp_server_id) +'" data-smtp-server-name="'+ encodeURIComponent(row.name.escapeHtml()) +'"><i class="fa fa-trash" aria-hidden="true"></i>'+_("Delete")+'</a>';
+                            if ( row.debug ) {
+                                let result = '<span class="badge text-bg-warning">' + "[% tp("Active", "On") | html %]" + '</span>';
+                                return result;
+                            }
+                            else {
+                                return _("");
+                            }
+                        },
+                        "searchable": false,
+                        "orderable": false
+                    },
+                    {
+                        "data": function( row, type, val, meta ) {
+                            if ( row.is_default ) {
+                                let result = '<span class="badge text-bg-success">' + _("Default") + '</span>';
+                                return result;
+                            } else {
+                                return "";
+                            }
+                        },
+                        "searchable": false,
+                        "orderable": false
+                    },
+                    {
+                        "data": function( row, type, val, meta ) {
+                            var result = '<a class="btn btn-default btn-xs" role="button" href="/cgi-bin/koha/admin/smtp_servers.pl?op=edit_form&amp;smtp_server_id='+ encodeURIComponent(row.smtp_server_id) +'"><i class="fa-solid fa-pencil" aria-hidden="true"></i> '+_("Edit")+'</a>'+"\n";
+                            result += '<a class="btn btn-default btn-xs delete_server" role="button" href="#" data-bs-toggle="modal" data-bs-target="#delete_confirm_modal" data-smtp-server-id="'+ encodeURIComponent(row.smtp_server_id) +'" data-smtp-server-name="'+ encodeURIComponent(row.name.escapeHtml()) +'"><i class="fa fa-trash-can" aria-hidden="true"></i> '+_("Delete")+'</a>';
                             return result;
                         },
                         "searchable": false,
                         "orderable": false
                     }
                 ],
-                createdRow: function (row, data, dataIndex) {
-                    if ( data.debug ) {
-                        $(row).addClass('debug');
-                    }
-                },
             });
 
             $('#smtp_servers').on( "click", '.delete_server', function () {
@@ -388,6 +446,17 @@
                 );
                 $("#delete_confirm_modal_button").data('smtp-server-id', smtp_server_id);
                 $("#delete_confirm_modal_button").data('smtp-server-name', smtp_server_name);
+            });
+
+            $('#smtp_default').on( "click", function () {
+                $("#default_confirm_modal").modal('show');
+            });
+            $('.default_confirm_modal_yes').on( "click", function () {
+                $("#default_confirm_modal").modal('hide');
+            });
+            $('.default_confirm_modal_no').on( "click", function () {
+                $("#smtp_default").prop('checked', !$("#smtp_default").prop('checked') );
+                $("#default_confirm_modal").modal('hide');
             });
 
             $("#delete_confirm_modal_button").on( "click", function () {
@@ -404,13 +473,31 @@
                         $("#smtp_delete_success").html(_("Server '%s' deleted successfully.").format(smtp_server_name)).show();
                     });
                 }).fail(function () {
-                    $("#smtp_delete_error").html(_("Error deleting server '%s'. Check the logs.").format(smtp_server_name)).show();
+                    $("#smtp_delete_error").html(_("Error deleting server '%s'. Check the logs for details.").format(smtp_server_name)).show();
                 }).done(function () {
                     $("#delete_confirm_modal").modal('hide');
                 });
             });
         });
     </script>
+[% END %]
+
+[% BLOCK default_server_info %]
+    <div class="page-section">
+        <div class="rows" id="default_server_message">
+            <h2>Current default configuration</h2>
+            <ul>
+                <li><span class="label">Host: </span> [%- default_config.host | html -%]</li>
+                <li><span class="label">Port: </span> [%- default_config.port | html -%]</li>
+                <li><span class="label">Timeout (secs): </span> [%- default_config.timeout | html -%]</li>
+                <li><span class="label">SSL: </span> [%- IF default_config.ssl_mode == 'disabled' -%]<span>Disabled</span>[%- ELSIF default_config.ssl_mode == 'ssl' -%]<span>SSL</span>[%- ELSE -%]<span>STARTTLS</span>[%- END -%]</li>
+                <li><span class="label">Debug mode: </span> [%- IF default_config.debug -%]Yes[%- ELSE -%]No[%- END -%]</li>
+                [% IF op == 'list' && default_config.id %]
+                    <li><a href="/cgi-bin/koha/admin/smtp_servers.pl?op=edit_form&smtp_server_id=[% default_config.id | uri %]"><i class="fa fa-pencil"></i> Edit</a></li>
+                [% END %]
+            </ul>
+        </div>
+    </div>
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

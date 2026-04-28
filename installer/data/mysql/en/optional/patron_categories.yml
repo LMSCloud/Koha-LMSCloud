@@ -52,11 +52,8 @@ tables:
           enrolmentperiod: 99
           upperagelimit: 999
           dateofbirthrequired: 18
-          finetype: ~
-          bulk: ~
           enrolmentfee: '0.000000'
           overduenoticerequired: 1
-          issuelimit: ~
           reservefee: '0.000000'
           category_type: 'A'
           can_be_guarantee: 0
@@ -66,11 +63,8 @@ tables:
           enrolmentperiod: 99
           upperagelimit: 999
           dateofbirthrequired: 18
-          finetype: ~
-          bulk: ~
           enrolmentfee: '0.000000'
           overduenoticerequired: 1
-          issuelimit: ~
           reservefee: '0.000000'
           category_type: 'A'
           can_be_guarantee: 0
@@ -80,11 +74,8 @@ tables:
           enrolmentperiod: 99
           upperagelimit: 999
           dateofbirthrequired: 18
-          finetype: ~
-          bulk: ~
           enrolmentfee: '0.000000'
           overduenoticerequired: 1
-          issuelimit: ~
           reservefee: '0.000000'
           category_type: 'A'
           can_be_guarantee: 0
@@ -95,11 +86,8 @@ tables:
           enrolmentperiod: 99
           upperagelimit: 17
           dateofbirthrequired: 5
-          finetype: ~
-          bulk: ~
           enrolmentfee: '0.000000'
           overduenoticerequired: 1
-          issuelimit: ~
           reservefee: '0.000000'
           category_type: 'C'
           can_be_guarantee: 1
@@ -109,11 +97,8 @@ tables:
           enrolmentperiod: 99
           upperagelimit: 17
           dateofbirthrequired: 5
-          finetype: ~
-          bulk: ~
           enrolmentfee: '0.000000'
           overduenoticerequired: 1
-          issuelimit: ~
           reservefee: '0.000000'
           category_type: 'C'
           can_be_guarantee: 1
@@ -123,11 +108,8 @@ tables:
           enrolmentperiod: 99
           upperagelimit: 17
           dateofbirthrequired: 5
-          finetype: ~
-          bulk: ~
           enrolmentfee: '0.000000'
           overduenoticerequired: 1
-          issuelimit: ~
           reservefee: '0.000000'
           category_type: 'C'
           can_be_guarantee: 1
@@ -138,11 +120,8 @@ tables:
           enrolmentperiod: 99
           upperagelimit: 999
           dateofbirthrequired: 18
-          finetype: ~
-          bulk: ~
           enrolmentfee: '0.000000'
           overduenoticerequired: 0
-          issuelimit: ~
           reservefee: '0.000000'
           category_type: 'P'
           can_be_guarantee: 1
@@ -152,11 +131,8 @@ tables:
           enrolmentperiod: 99
           upperagelimit: 17
           dateofbirthrequired: 5
-          finetype: ~
-          bulk: ~
           enrolmentfee: '0.000000'
           overduenoticerequired: 1
-          issuelimit: ~
           reservefee: '0.000000'
           category_type: 'P'
           can_be_guarantee: 1
@@ -167,11 +143,8 @@ tables:
           enrolmentperiod: 99
           upperagelimit: 999
           dateofbirthrequired: 18
-          finetype: ~
-          bulk: ~
           enrolmentfee: '0.000000'
           overduenoticerequired: 1
-          issuelimit: ~
           reservefee: '0.000000'
           category_type: 'I'
           can_be_guarantee: 0
@@ -181,11 +154,8 @@ tables:
           enrolmentperiod: 99
           upperagelimit: 999
           dateofbirthrequired: 18
-          finetype: ~
-          bulk: ~
           enrolmentfee: '0.000000'
           overduenoticerequired: 1
-          issuelimit: ~
           reservefee: '0.000000'
           category_type: 'I'
           can_be_guarantee: 0
@@ -195,11 +165,8 @@ tables:
           enrolmentperiod: 99
           upperagelimit: 999
           dateofbirthrequired: 18
-          finetype: ~
-          bulk: ~
           enrolmentfee: '0.000000'
           overduenoticerequired: 1
-          issuelimit: ~
           reservefee: '0.000000'
           category_type: 'I'
           can_be_guarantee: 0
@@ -210,11 +177,8 @@ tables:
           enrolmentperiod: 99
           upperagelimit: 999
           dateofbirthrequired: 18
-          finetype: ~
-          bulk: ~
           enrolmentfee: '0.000000'
           overduenoticerequired: 0
-          issuelimit: ~
           reservefee: '0.000000'
           category_type: 'S'
           can_be_guarantee: 0

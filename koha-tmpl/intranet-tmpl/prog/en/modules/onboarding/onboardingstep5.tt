@@ -1,18 +1,22 @@
+[% USE raw %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF all_done %]
-        Complete
+        [% t("Onboarding complete") | html %]
     [% ELSE %]
-        Create circulation rule
-    [% END %] &rsaquo; Web installer &rsaquo; Koha
-</title>
+        [% t("Create circulation rule") | html %]
+    [% END %] &rsaquo;
+    [% t("Web installer") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'installer-doc-head-close.inc' %]
 </head>
 
 <body id="installer" class="installer">
     <div class="container-fluid">
         <div class="row">
-            <div id="onboarding-step5" class="installer-main col-sm-8 col-sm-offset-2 col-md-8 col-md-offset-2">
+            <div id="onboarding-step5" class="installer-main col-sm-10 col-md-8 offset-sm-1 offset-md-2">
                 <div id="logo"><a href="#">Koha</a></div>
 
                 [% IF all_done %]
@@ -22,8 +26,8 @@
 
                     <div id="steps">
                         <ol>
-                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Installation</li>
-                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Onboarding</li>
+                            <li class="complete"><i class="fa fa-check-square" aria-hidden="true"></i> Installation</li>
+                            <li class="complete"><i class="fa fa-check-square" aria-hidden="true"></i> Onboarding</li>
                         </ol>
                     </div>
 
@@ -38,23 +42,24 @@
 
                     <div id="steps">
                         <ol>
-                            <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Installation</li>
-                            <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Onboarding
+                            <li class="complete"><i class="fa fa-check-square" aria-hidden="true"></i> Installation</li>
+                            <li class="current open"><i class="fa-svg-icon checkbox-square" aria-hidden="true"></i> Onboarding
                                 <ol>
-                                    <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Create a library</li>
-                                    <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Create a patron category</li>
-                                    <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Create Koha administrator patron</li>
-                                    <li class="complete"><i class="fa fa-check-square-o" aria-hidden="true"></i> Create a new item type</li>
-                                    <li class="current open"><i class="fa fa-square-o" aria-hidden="true"></i> Create a new circulation rule</li>
+                                    <li class="complete"><i class="fa fa-check-square" aria-hidden="true"></i> Create a library</li>
+                                    <li class="complete"><i class="fa fa-check-square" aria-hidden="true"></i> Create a patron category</li>
+                                    <li class="complete"><i class="fa fa-check-square" aria-hidden="true"></i> Create Koha administrator patron</li>
+                                    <li class="complete"><i class="fa fa-check-square" aria-hidden="true"></i> Create a new item type</li>
+                                    <li class="current open"><i class="fa-svg-icon checkbox-square" aria-hidden="true"></i> Create a new circulation rule</li>
                                 </ol>
                             </li>
                         </ol>
                     </div>
 
                     <form name="createcirculationrule" method="post" action="onboarding.pl">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <fieldset class="rows">
                             <input type="hidden" name="step" value="5"/>
-                            <input type="hidden" name="op" value="add_validate_circ_rule" />
+                            <input type="hidden" name="op" value="cud-add_validate_circ_rule" />
                             <ol>
                                 <li>
                                     <label for="branchname" class="required"> Library branch</label>

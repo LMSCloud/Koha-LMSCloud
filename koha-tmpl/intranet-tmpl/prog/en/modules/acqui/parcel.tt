@@ -2,18 +2,24 @@
 [% USE Asset %]
 [% USE Koha %]
 [% USE KohaDates %]
+[% USE TablesSettings %]
 [% USE Price %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF ( invoiceclosedate ) %]
-        Receipt summary for [% name | html %] [% IF ( invoice ) %]invoice [
-        % invoice | html %][% END %]
+        [% IF ( invoice ) %]
+            [% tx("Receipt summary for {vendor}, invoice {invoice_number}", { vendor = name, invoice_number = invoice }) | html %]
+        [% ELSE %]
+            [% tx("Receipt summary for {vendor}", { vendor = name }) | html %]
+        [% END %]
     [% ELSE %]
-        Receive orders from [% name | html %]
-    [% END %] &rsaquo; Acquisitions &rsaquo; Koha
-</title>
+        [% tx("Receive orders from {vendor}", { vendor = name }) | html %]
+    [% END %] &rsaquo;
+    [% t("Acquisitions") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -48,11 +54,12 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-2">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
     [% IF ( receive_error ) %]
-    <div class="dialog alert">
+    <div class="alert alert-warning">
     <h3>Error adding items:</h3>
     <ul>
     [% FOREACH error_loo IN error_loop %]
@@ -70,18 +77,18 @@
     </h1>
 
     [% IF ( success_delorder ) %]
-    <div class="dialog message">The order has been successfully canceled.</div>
+    <div class="alert alert-info">The order has been successfully canceled.</div>
     [% ELSE %]
     [% IF ( error_delitem ) %]
-        <div class="dialog alert">The order has been canceled, although one or more items could not have been deleted.</div>
+        <div class="alert alert-warning">The order has been canceled, although one or more items could not have been deleted.</div>
     [% END %]
     [% IF ( error_delbiblio ) %]
-        <div class="dialog alert">The order has been canceled, although the record has not been deleted.</div>
+        <div class="alert alert-warning">The order has been canceled, although the record has not been deleted.</div>
     [% END %]
     [% END %]
 
     [% IF (error_cancelling_receipt) %]
-      <div class="dialog alert">
+      <div class="alert alert-warning">
       <span>Cannot cancel receipt. Possible reasons:</span>
       <ul>
         <li>
@@ -99,14 +106,14 @@
     [% END %]
 
     [% IF error_invoice_not_known %]
-        <div class="dialog alert">
+        <div class="alert alert-warning">
             The invoice referenced by this invoiceid does not exist.
         </div>
     [% END %]
 
 [% UNLESS no_orders_to_display %]
 <div id="acqui_receive_summary">
-<p><strong>Invoice number:</strong> [% invoice | html %] <strong>Shipment date:</strong> [% shipmentdate | $KohaDates %]</p>
+<p><strong>Invoice number:</strong> <a href="/cgi-bin/koha/acqui/invoice.pl?invoiceid=[% invoiceid | uri %]">[% invoice | html %]</a> <strong>Shipment date:</strong> [% shipmentdate | $KohaDates %]</p>
 </div>
 [% UNLESS (invoiceclosedate) %]
     <div id="acqui_receive_search" class="page-section">
@@ -114,6 +121,7 @@
         <table id="pending_orders" class="table table-bordered table-striped">
             <thead>
                 <tr>
+                    <th></th>
                     <th>Basket</th>
                     <th>Basket group</th>
                     <th>Order line</th>
@@ -129,6 +137,9 @@
                 </tr>
             </thead>
         </table>
+      <fieldset class="action">
+        <button id="select_multiple" class="btn btn-primary"></button>
+      </fieldset>
     </div>
 [% ELSE %]
     <p>
@@ -285,7 +296,7 @@
                           Can't cancel receipt
                       </span>
                     [% ELSE %]
-                        <a href="/cgi-bin/koha/acqui/parcel.pl?invoiceid=[% invoiceid | uri %]&op=cancelreceipt&ordernumber=[% order.ordernumber | uri %]">Cancel receipt</a>
+                        <a href="#" class="cancel_receipt" data-ordernumber="[% order.ordernumber | html %]">Cancel receipt</a>
                     [% END %]
                 </td>
             </tr>
@@ -293,22 +304,28 @@
     </tbody>
     </table>
     </form>
+    <form id="cancel_receipt" method="post" action="/cgi-bin/koha/acqui/parcel.pl">
+        [% INCLUDE 'csrf-token.inc' %]
+        <input type="hidden" name="op" value="cud-cancelreceipt" />
+        <input type="hidden" name="ordernumber" id="cancel_ordernumber" value="" />
+        <input type="hidden" name="invoiceid" value="[% invoiceid | html %]" />
+    </form>
 
     [% ELSE %]There are no received orders.[% END %]
 </div>
 
 <div class="modal" id="dataPreview" tabindex="-1" role="dialog" aria-labelledby="dataPreviewLabel">
-    <div class="modal-dialog modal-wide" role="document">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h3 id="dataPreviewLabel">MARC previews</h3>
+                <h1 class="modal-title" id="dataPreviewLabel">MARC previews</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div id="loading"> <img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" alt="" /> Loading </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+                <button class="btn btn-default" data-bs-dismiss="modal">Close</button>
             </div>
         </div> <!-- /.modal-content -->
     </div> <!-- /.modal-dialog -->
@@ -328,40 +345,47 @@
 [% END %]
 
 </main>
-</div> <!-- /.col-sm-10.col-sm-push-2 -->
+</div> <!-- /.col-md-10.order-md-2 -->
 
-<div class="col-sm-2 col-sm-pull-10">
+<div class="col-md-2 order-sm-2 order-md-1">
 <aside>
 
 [% INCLUDE 'acquisitions-menu.inc' %]
     </aside>
-</div> <!-- /.col-sm-2.col-sm-pull-10 -->
+</div> <!-- /.col-md-2.order-md-1 -->
 </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/acquisitions-menu.js") | $raw %]
     [% INCLUDE 'datatables.inc' %]
-    [% Asset.js("lib/jquery/plugins/jquery.dataTables.columnFilter.js") | $raw %]
+    <style>fieldset.action { margin-bottom: 20px }</style>
     <script>
         dt_overwrite_html_sorting_localeCompare();
+        var PENDING_MULTI_SELECTION = _("Receive selected (%s)");
         var columns_filter = {};
 
         $(document).ready(function(){
 
+            $(".cancel_receipt").on( 'click', function(e){
+                e.preventDefault();
+                $('#cancel_ordernumber').val( $(this).data('ordernumber') );
+                $('#cancel_receipt').submit();
+            });
+
             if ( $("#receivedt").length ) {
                 var receivedt = $("#receivedt").dataTable($.extend(true, {}, dataTablesDefaults, {
-                    "bStateSave": true,
-                    "iDisplayLength": 10,
-                    "aLengthMenu": [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, _("All")]],
-                    "aoColumnDefs": [
-                        { "aTargets": [ 5, -1 ], "bSortable": false, "bSearchable": false },
+                    "stateSave": true, // We do not have table settings on this table
+                    "pageLength": 10,
+                    "lengthMenu": [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, _("All")]],
+                    "columnDefs": [
+                        { "targets": [ 5, -1 ], "orderable": false, "searchable":  false },
                     ],
-                    "aoColumns": [
-                        { "sType": "html" },
-                        { "sType": "html" },
-                        { "sType": "html" },
-                        { "sType": "num-html" },
-                        { "sType": "anti-the" },
+                    "columns": [
+                        { "type": "html" },
+                        { "type": "html" },
+                        { "type": "html" },
+                        { "type": "num-html" },
+                        { "type": "anti-the" },
                         null,
                         null,
                         null,
@@ -371,17 +395,17 @@
                         null,
                         null
                     ],
-                    "sPaginationType": "full"
+                    "pagingType": "full"
                 }));
             }
 
-            var pending_orders_table = $("#pending_orders").kohaTable({
+            var options = {
                 "ajax": {
                     "url": '/api/v1/acquisitions/orders?only_active=1'
                 },
                 "embed": [
                     "basket.basket_group",
-                    "biblio.active_orders+count",
+                    "biblio.uncancelled_orders+count",
                     "biblio.holds+count",
                     "biblio.items+count",
                     "biblio.suggestions.suggester",
@@ -389,20 +413,9 @@
                     "current_item_level_holds+count",
                     "items"
                 ],
-                "stateSave": true, // remember state on page reload
-                "drawCallback": function (settings) {
-                    $(".previewData").on("click", function(e){
-                        e.preventDefault();
-                        var ltitle = $(this).text();
-                        var page = $(this).attr("href");
-                        $("#dataPreviewLabel").text(ltitle);
-                        $("#dataPreview .modal-body").load(page + " div");
-                        $('#dataPreview').modal({show:true});
-                    });
-                },
                 "columns": [
                     { "data": "basket.name",
-                    "searchable": true,
+                      "searchable": true,
                       "orderable": true,
                       "render": function(data, type, row, meta) {
                         if (type != 'display') return escape_str(data);
@@ -515,14 +528,14 @@
                         "data": "",
                         "render": function(data, type, row, meta) {
                             var result = '<div class="btn-group dropup">';
-                            result += '<button id="view' + row.order_id + '" type="button" class="btn btn-default btn-xs" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">';
-                                result += ' <i class="fa fa-eye" aria-hidden="true"></i> ' + _("View");
-                                result += ' <span class="caret"></span> ';
-                            result += '</button>';
+
+                            result += '<button id="view' + row.order_id + '" type="button" class="btn btn-default btn-xs">' + _("View") + '</button>';
+                            result += '<button type="button" class="btn btn-default btn-xs dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false"><span class="visually-hidden">Toggle dropdown</span></button>';
+
                             result += '<ul class="dropdown-menu" aria-labelledby="view' + row.order_id + '">';
-                                result += '<li><a href="/cgi-bin/koha/acqui/showorder.pl?ordernumber=' + encodeURIComponent(row.order_id) + '" class="previewData">' + _("Order") + '</a></li>';
-                                result += '<li><a href="/cgi-bin/koha/catalogue/showmarc.pl?id=' + encodeURIComponent(row.biblio_id) + '" class="previewData">' + _("MARC") + '</a></li>';
-                                result += '<li><a href="/cgi-bin/koha/catalogue/showmarc.pl?viewas=card&amp;id=' + encodeURIComponent(row.biblio_id) + '" class="previewData">' + _("Card") + '</a></li>';
+                                result += '<li><a class="dropdown-item previewData" href="/cgi-bin/koha/acqui/showorder.pl?ordernumber=' + encodeURIComponent(row.order_id) + '">[% tp("noun", "Order") | html %]</a></li>';
+                                result += '<li><a class="dropdown-item previewData" href="/cgi-bin/koha/catalogue/showmarc.pl?id=' + encodeURIComponent(row.biblio_id) + '">' + _("MARC") + '</a></li>';
+                                result += '<li><a class="dropdown-item previewData" href="/cgi-bin/koha/catalogue/showmarc.pl?viewas=card&amp;id=' + encodeURIComponent(row.biblio_id) + '">' + _("Card") + '</a></li>';
                             result += '</ul>';
                             result += '</div>';
                             return result;
@@ -564,7 +577,7 @@
                     {
                         "data": "",
                         "render": function(data, type, row, meta) {
-                            return '<a href="orderreceive.pl?ordernumber='
+                            return '<a href="orderreceive.pl?multiple_orders='
                                     + encodeURIComponent(row.order_id) + '&amp;invoiceid=[% invoiceid | uri %]' + '">'
                                     + _("Receive") + '</a><br/>'
                                     + '<a href="#" onclick="transfer_order_popup(' + escape_str(row.order_id) + '); return false;">'
@@ -593,7 +606,7 @@
 
                             if ( row.biblio != null ) {
                                 if ( row.biblio.items_count - row.items.length > 0 ||
-                                    row.biblio.active_orders_count > 1 ||
+                                    row.biblio.uncancelled_orders_count > 1 ||
                                     row.biblio.subscriptions_count > 0 ||
                                     row.biblio.holds_count > 0 ) { // biblio can be deleted
                                     result += '<span class="button" title="'
@@ -613,10 +626,10 @@
                                             +'">' + (row.biblio.items_count - row.items.length) + _(" item(s) left") + '</strong><br/>';
                                 }
 
-                                if ( row.biblio.active_orders_count > 1 ) {
+                                if ( row.biblio.uncancelled_orders_count > 1 ) {
                                     result += '<strong title="'
                                             + _("Can't delete catalog record, delete other orders linked to it first") + '">'
-                                            + (row.biblio.active_orders_count - 1) + _(" order(s) left") + '</strong><br/>';
+                                            + (row.biblio.uncancelled_orders_count - 1) + _(" order(s) left") + '</strong><br/>';
                                 }
 
                                 if ( row.biblio.subscriptions_count > 0 ) {
@@ -637,9 +650,52 @@
                         "searchable": false
                     }
                 ]
-            }, null, 1, {"basket.vendor_id": [% booksellerid | html %]});
+            };
 
-            $(".previewData").on("click", function(e){
+            var selected_rows = {};
+            $('#select_multiple').click(function () {
+                var ids = Object.keys(selected_rows);
+                if (!ids.length) return;
+                location.href = 'orderreceive.pl?multiple_orders=' + ids.join(',') + '&invoiceid=[% invoiceid | uri %]';
+            }).html(PENDING_MULTI_SELECTION.format('0'))
+            options.order = [[1, 'asc']];
+            options.columns.unshift({
+                "data": function (row, type, val, meta) {
+                    return '<input type="checkbox" class="selOrder" />';
+                },
+                "searchable": false,
+                "orderable": false
+            });
+
+            let table_settings = [% TablesSettings.GetTableSettings( 'acqui', 'parcel', 'pending_orders', 'json' ) | $raw %];
+
+            var pending_orders_table = $("#pending_orders").kohaTable(options, table_settings, 1, { "basket.vendor_id": [% booksellerid | html %] });
+
+            var api = pending_orders_table.api();
+            api.on('draw', function () {
+                api.rows().every(function () {
+                    var row = this;
+                    var data = row.data();
+                    $('.selOrder', row.node()).on('click', function (event) {
+                        if ($(this).prop('checked')) {
+                            selected_rows[data.order_id] = data;
+                        } else {
+                            delete selected_rows[data.order_id];
+                        }
+                        $('#select_multiple').html(PENDING_MULTI_SELECTION.format(Object.keys(selected_rows).length));
+                    });
+                    if (selected_rows[data.order_id]) {
+                        $('.selOrder', row.node()).prop('checked', true);
+                    }
+                });
+            });
+
+            $("#dataPreview").on("hidden.bs.modal", function(){
+                $("#dataPreviewLabel").html("");
+                $("#dataPreview .modal-body").html("<div id=\"loading\"><img src=\"[% interface | html %]/[% theme | html %]/img/spinner-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
+            });
+
+            $("body").on("click", ".previewData", function(e){
                 e.preventDefault();
                 var ltitle = $(this).text();
                 var page = $(this).attr("href");

@@ -1,24 +1,21 @@
 /* global dataTablesDefaults tagsubfield selectBsTabByHash */
 $(document).ready(function() {
     if( tagsubfield && tagsubfield == "@"){
-        $("#subfieldtabs a[href='#subATfield']").tab("show");
+        $("#subfieldtabs a[href='#AT_panel']").tab("show");
     } else if ( tagsubfield && tagsubfield != "@"){
-        $("#subfieldtabs a[href='#sub" + tagsubfield + "field'").tab("show");
+        $("#subfieldtabs a[href='#" + tagsubfield + "_panel'").tab("show");
     } else {
         $("#subfieldtabs a:first").tab("show");
     }
 
-    var current_index;
-    $("#subfieldtabs > ul").sortable({
-        axis: "x",
-        start: function (e, ui) {
-            current_index = $(ui.item[0]).index();
-        },
-        stop: function (e, ui) {
-            var new_index = $(ui.item[0]).index();
-            if (current_index < new_index) new_index++;
-            var subfield_code = $(ui.item[0]).attr('id').replace( /^tab_subfield_/, '');
-            var content = $('#sub' + subfield_code + 'field');
+    var subfields_list = $("#subfieldtabs > ul");
+    var sortable_subfields = new Sortable( subfields_list[0], {
+        onEnd: function( e ){
+            var old_index = e.oldIndex;
+            var new_index = e.newIndex;
+            if (old_index < new_index) new_index++;
+            var subfield_code = e.item.id.replace( /^tab_subfield_/, '');
+            var content = $("#" + subfield_code + "_panel");
             var panels = $("#subfieldtabs .tab-pane");
             if ( new_index < $(panels).size() ){
                 $(content).insertBefore( panels[new_index]);
@@ -36,8 +33,8 @@ $(document).ready(function() {
         "columnDefs": [
             { 'sortable': false, 'targets': [ 'NoSort' ] }
         ],
-        aaSorting: [],
-        paginate: false
+        "order": [],
+        "paginate": false
     }));
 
     selectBsTabByHash("subfieldtabs");

@@ -1,39 +1,34 @@
 [% USE raw %]
+[% USE AdditionalContents %]
+[% SET OpacSuppressionMessage = AdditionalContents.get( location => "OpacSuppressionMessage", lang => lang, library => branchcode || default_branch ) %]
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
-    Record blocked &rsaquo;
-    [% IF ( LibraryNameTitle ) %]
-        [% LibraryNameTitle | html %]
-    [% ELSE %]
-        Koha online
-    [% END %] catalog
-</title>
+<title>[% FILTER collapse %]
+    [% t("Record blocked") | html %] &rsaquo;
+    [% PROCESS 'library_name_title' %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='opac-blocked' %]
 [% INCLUDE 'masthead.inc' %]
 <div class="main">
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-            </li>
-            <li class="breadcrumb-item active">
-                <a href="#" aria-current="page">Blocked record</a>
-            </li>
-        </ol>
-    </nav> <!-- /#breadcrumbs -->
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Record blocked</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
 
     <div class="container-fluid">
         <div class="row justify-content-center">
             <div class="col-md-10 col-lg-6">
                 <div id="opac-blocked-message" class="maincontent">
-                    <h1>Blocked</h1>
+                    <h1>Record blocked</h1>
                     <p>You are not authorized to view this record.</p>
                     [% IF ( OpacSuppressionMessage ) %]
                         <div id="opacsuppressionmessage">
-                            [% OpacSuppressionMessage | $raw %]
+                            [% PROCESS koha_news_block news => OpacSuppressionMessage %]
                         </div>
                     [% END %]
                 </div>

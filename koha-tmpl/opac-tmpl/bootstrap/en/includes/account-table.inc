@@ -1,5 +1,7 @@
 [% PROCESS 'accounts.inc' %]
 <form method="post" action="opac-account-pay.pl" class="form-horizontal">
+    [% INCLUDE 'csrf-token.inc' %]
+    <input type="hidden" name="op" value="cud-pay"/>
     [% IF ( ACCOUNT_LINES ) %]
 
         [% IF ENABLE_OPAC_PAYMENTS %]
@@ -12,8 +14,8 @@
                 <tr>
                     [% IF ENABLE_OPAC_PAYMENTS %]<th>&nbsp;</th>[% END %]
                     <th>Created</th>
-                    <th>Updated</th>
-                    <th>Type</th>
+                    <th class="psort">Updated</th>
+                    <th class="all">Type</th>
                     <th>Description</th>
                     <th>Amount</th>
                     <th>Amount outstanding</th>
@@ -101,7 +103,6 @@
         <table class="table table-bordered table-striped finestable" id="finestable-[% r.patron.id | html %]">
             <thead>
                 <tr>
-                    [% IF ENABLE_OPAC_PAYMENTS %]<th>&nbsp;</th>[% END %]
                     <th>Created</th>
                     <th>Updated</th>
                     <th>Type</th>
@@ -117,15 +118,6 @@
                 [% FOREACH a IN r.accountlines %]
                     [% SET account_sum = account_sum + a.amountoutstanding %]
                     <tr>
-                        [% IF ENABLE_OPAC_PAYMENTS %]
-                            <td>
-                                [% IF a.amountoutstanding > 0 %]
-                                    [% SET DISPLAY_PAYMENT_BLOCK = 1 %]
-                                    <input class="checkbox-pay pay-online hidden" name="accountline" type="checkbox" id="checkbox-pay-[% a.accountlines_id | html %]" value="[% a.accountlines_id | html %]">
-                                    <input type="hidden" id="amount-[% a.accountlines_id | html %]" value="[% a.amountoutstanding | html %]" />
-                                [% END %]
-                            </td>
-                        [% END %]
                         <td data-order="[% a.date | html %]">[% a.date | $KohaDates %]</td>
                         <td data-order="[% a.timestamp | html %]">[% a.timestamp | $KohaDates with_hours = 1 %]</td>
                         <td>

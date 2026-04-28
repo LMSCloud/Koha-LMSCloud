@@ -7,7 +7,6 @@ properties:
   biblio_id:
     type: integer
     description: Internal identifier for the parent bibliographic record
-  biblio: {}
   external_id:
     type:
       - string
@@ -63,7 +62,7 @@ properties:
     type:
       - string
       - "null"
-    format: date
+    format: date-time
     description: The date the item barcode was last scanned
   not_for_loan_status:
     type: integer
@@ -119,6 +118,11 @@ properties:
       - integer
       - "null"
     description: Number of times this item has been renewed
+  localuse:
+    type:
+      - integer
+      - "null"
+    description: Number of times this item has been recorded for localuse
   holds_count:
     type:
       - integer
@@ -188,6 +192,11 @@ properties:
       - string
       - "null"
     description: Materials specified
+  shelving_control_number:
+    type:
+      - number
+      - "null"
+    description: Shelving control number
   uri:
     type:
       - string
@@ -238,20 +247,84 @@ properties:
     type:
       - object
       - "null"
+  home_library:
+    type:
+      - object
+      - "null"
+  holding_library:
+    type:
+      - object
+      - "null"
+  cover_image_ids:
+    type:
+      - array
+      - "null"
+  item_group_item:
+    type:
+      - object
+      - "null"
+  serial_item:
+    type:
+      - object
+      - "null"
+  biblio:
+    type:
+      - object
+      - "null"
+  checkout:
+    type:
+      - object
+      - "null"
+  transfer:
+    type:
+      - object
+      - "null"
+  first_hold:
+    type:
+      - object
+      - "null"
+  recall:
+    type:
+      - object
+      - "null"
   item_type:
     type:
       - object
+      - "null"
+  in_bundle:
+    type:
+      - boolean
+      - "null"
+  bundle_host:
+    type:
+      - object
+      - "null"
+  bundle_items_lost_count:
+    type:
+      - integer
+      - "null"
+    description: Number of lost items in the bundle
+  bundle_items_not_lost_count:
+    type:
+      - integer
+      - "null"
+    description: Number of items not lost in the bundle
+  course_item:
+    type:
+      - object
+      - "null"
+  analytics_count:
+    type:
+      - integer
       - "null"
   _strings:
     type:
       - object
       - "null"
     description: A return claims object if one exists that's unresolved
+  _status:
+    type:
+      - array
+      - "null"
+    description: The status of the item
 additionalProperties: false
-required:
-  - item_id
-  - biblio_id
-  - not_for_loan_status
-  - damaged_status
-  - lost_status
-  - withdrawn

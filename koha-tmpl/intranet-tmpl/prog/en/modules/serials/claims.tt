@@ -1,11 +1,20 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE AuthorisedValues %]
 [% USE Branches %]
 [% USE KohaDates %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-    <title>[% IF ( supplierid ) -%] Claims for [% suppliername | html %] &rsaquo; [% END %] Claims &rsaquo; Serials &rsaquo; Koha</title>
+    <title>[% FILTER collapse %]
+        [% IF( supplierid ) %]
+            [% tx("Claims for {vendor}", { vendor = suppliername }) | html %] &rsaquo;
+        [% END %]
+        [% t("Claims") | html %] &rsaquo;
+        [% t("Serials") | html %] &rsaquo;
+        [% t("Koha") | html %]
+    [% END %]</title>
     [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -38,45 +47,46 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
                 <h1>Claims [% IF ( suppliername ) %] for [% suppliername | html %] [% END %]</h1>
 
                 [% IF error_claim %]
                     [% IF error_claim == 'no_vendor_email' %]
-                        <div class="dialog alert">This vendor has no email defined for late issues.</div>
+                        <div class="alert alert-warning">This vendor has no email defined for late issues.</div>
                     [% ELSIF error_claim == 'bad_or_missing_sender' %]
-                        <div class="dialog alert">Bad or missing sender address; check your branch email address or preference KohaAdminEmailAddress.</div>
+                        <div class="alert alert-warning">Bad or missing sender address; check your branch email address or preference KohaAdminEmailAddress.</div>
                     [% ELSE %]
-                        <div class="dialog alert">[% error_claim | html %]</div>
+                        <div class="alert alert-warning">[% error_claim | html %]</div>
                     [% END %]
                 [% END %]
                 [% IF info_claim %]
-                    <div class="dialog message">Email has been sent.</div>
+                    <div class="alert alert-info">Email has been sent.</div>
                 [% END %]
 
                 [% IF letters %]
                     [% UNLESS ( missingissues ) %]
                         [% IF ( supplierid ) %]
-                            <div class="dialog alert">No missing issues found.</div>
+                            <div class="alert alert-warning">No missing issues found.</div>
                         [% ELSE %]
-                            <div class="dialog message">Please choose a vendor.</div>
+                            <div class="alert alert-info">Please choose a vendor.</div>
                         [% END %]
                     [% END %]
                 [% END %]
 
                 [% IF ( SHOWCONFIRMATION ) %]
-                    <div class="dialog alert">Your notification has been sent.</div>
+                    <div class="alert alert-warning">Your notification has been sent.</div>
                 [% END %]
 
                 [% UNLESS letters %]
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         No claims notice defined. <a href="/cgi-bin/koha/tools/letter.pl">Please define one</a>.
                     </div>
                 [% END %]
 
-                <form id="claims" name="claims" action="claims.pl" method="post">
+                <form id="claims" name="claims" action="claims.pl" method="get">
                     <fieldset>
                         <label for="supplierid">Vendor: </label>
                         <select id="supplierid" name="supplierid">
@@ -97,7 +107,7 @@
 
                 [% IF ( missingissues ) %]
                     <h3>Missing issues</h3>
-                    <form action="claims.pl" id="filter_claims_form">
+                    <form method="get" action="claims.pl" id="filter_claims_form">
                         <fieldset class="rows">
                             <legend>Filters:</legend>
                             <ol>
@@ -108,7 +118,7 @@
                                     <input type="text" name="enddate" id="to" value="[% enddate | html %]" size="10" maxlength="10" class="flatpickr" />
                                     <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
                                     <input id="filterByDate" type="button" value="OK" />
-                                    <a href="#" id="clearfilter"><i class="fa fa-remove"></i> Clear filter</a>
+                                    <a href="#" id="clearfilter"><i class="fa fa-times"></i> Clear filter</a>
                                 </li>
                             </ol>
                         </fieldset>
@@ -116,10 +126,11 @@
 
                     <fieldset>
                         <form action="claims.pl" method="post" id="claims_form">
+                            [% INCLUDE 'csrf-token.inc' %]
                             <table id="claimst">
                                 <thead>
                                     <tr>
-                                        <th><input type="checkbox" id="CheckAll"></th>
+                                        <th class="NoSort noExport"><input type="checkbox" id="CheckAll"></th>
                                         <th>Vendor</th>
                                         <th>Library</th>
                                         <th class="anti-the">Title</th>
@@ -153,14 +164,7 @@
                                             <td>[% missingissue.issn | html %]</td>
                                             <td>[% missingissue.serialseq | html %]</td>
                                             <td>
-                                                [% IF ( missingissue.status1 ) %]<span class="status-expected">Expected</span>[% END %]
-                                                [% IF ( missingissue.status3 ) %]<span class="status-late">Late</span>[% END %]
-                                                [% IF ( missingissue.status4 ) %]<span class="status-missing">Missing</span>[% END %]
-                                                [% IF ( missingissue.status41 ) %]<span class="status-missing_never_received">Missing (never received)</span>[% END %]
-                                                [% IF ( missingissue.status42 ) %]<span class="status-missing_sold_out">Missing (sold out)</span>[% END %]
-                                                [% IF ( missingissue.status43 ) %]<span class="status-missing_damaged">Missing (damaged)</span>[% END %]
-                                                [% IF ( missingissue.status44 ) %]<span class="status-missing_lost">Missing (lost)</span>[% END %]
-                                                [% IF ( missingissue.status7 ) %]<span class="status-claimed">Claimed</span>[% END %]
+                                                [% INCLUDE 'serial-status.inc' serial = missingissue %]
                                             </td>
                                             <td class="planneddate" data-order="[% missingissue.planneddate | html %]">
                                                 [% missingissue.planneddate | $KohaDates %]
@@ -172,34 +176,10 @@
                                             <td data-order="[% missingissue.claimdate | html %]">
                                                 [% missingissue.claimdate | $KohaDates %]
                                             </td>
-                                            [% FOR field IN additional_fields_for_subscription %]
-                                                [% IF field.authorised_value_category %]
-                                                    <td>[% AuthorisedValues.GetByCode( field.authorised_value_category, missingissue.additional_fields.${field.name} ) | html %]</td>
-                                                [% ELSE %]
-                                                    <td>[% missingissue.additional_fields.${field.name} | html %]</td>
-                                                [% END %]
-                                            [% END %]
+                                            [% INCLUDE 'additional-fields-display.inc' available=additional_fields_for_subscription values=missingissue.additional_field_values value_only=1 is_table_cell=1 %]
                                         </tr>
                                     [% END # /FOREACH missingissue %]
                                 </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td></td>
-                                        <td><input type="text" class="filter" data-column_num="1" placeholder="Search vendor" /></td>
-                                        <td><input type="text" class="filter" data-column_num="2" placeholder="Search library" /></td>
-                                        <td><input type="text" class="filter" data-column_num="3" placeholder="Search title" /></td>
-                                        <td><input type="text" class="filter" data-column_num="4" placeholder="Search ISSN" /></td>
-                                        <td><input type="text" class="filter" data-column_num="5" placeholder="Search issue number" /></td>
-                                        <td><input type="text" class="filter" data-column_num="6" placeholder="Search status" /></td>
-                                        <td><input type="text" class="filter" data-column_num="7" placeholder="Search since" /></td>
-                                        <td><input type="text" class="filter" data-column_num="8" placeholder="Search publication date" /></td>
-                                        <td><input type="text" class="filter" data-column_num="9" placeholder="Search claim count" /></td>
-                                        <td><input type="text" class="filter" data-column_num="10" placeholder="Search claim date" /></td>
-                                        [% FOR field IN additional_fields_for_subscription %]
-                                            <td><input type="text" class="filter" data-column_num="[% loop.count + 10 | html %]" placeholder="Search [% field.name | html %]" /></td>
-                                        [% END %]
-                                    </tr>
-                                </tfoot>
                             </table> <!-- /#claimst -->
 
                             [% IF csv_profiles.count %]
@@ -222,7 +202,7 @@
                                             <option value="[% letter.code | html %]">[% letter.name | html %]</option>
                                         [% END %]
                                     </select>
-                                    <input type="hidden" name="op" value="send_alert" />
+                                    <input type="hidden" name="op" value="cud-send_alert" />
                                     <input type="hidden" name="supplierid" value="[% supplierid | html %]" />
                                     <input type="submit" name="submit" class="btn btn-primary" value="Send notification" />
                                 </fieldset>
@@ -232,30 +212,27 @@
                 [% END # /missingissues %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'serials-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'columns_settings.inc' %]
     <script>
         var sTable;
         $(document).ready(function() {
-            sTable = $("#claimst").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "sDom": 't',
-                "aoColumnDefs": [
-                    { "aTargets": [ 0 ], "bSortable": false, "bSearchable": false },
-                    { 'sType': "anti-the", 'aTargets' : [ 'anti-the'] }
-                ],
-                "bPaginate": false
-            }));
-            sTable.fnAddFilters("filter", "200");
+            stable = KohaTable("claimst", {
+                pagingType: "full",
+                order: [[2, "asc"]],
+            }, null, true);
+
             $('#supplierid').change(function() {
                 $('#claims').submit();
             });
@@ -271,6 +248,7 @@
             $("#ExportSelected").click(function() {
                 // We need to use "input[name=serialid]:checked" instead of "input:checked". Otherwise, the "check all" box will pass the value of "on" as a serialid, which produces a SQL error.
                 var selected = $("input[name=serialid]:checked");
+                var supplierid = [% supplierid | html %]
 
                 if (selected.length == 0) {
                     alert(_("Please select at least one item to export."));
@@ -278,7 +256,7 @@
                 }
 
                 // Building the url from currently checked boxes
-                var url = '/cgi-bin/koha/serials/lateissues-export.pl?supplierid=&amp;op=claims';
+                var url = "/cgi-bin/koha/serials/lateissues-export.pl?supplierid=" + supplierid + "&amp;op=claims";
                 for (var i = 0; i < selected.length; i++) {
                     url += '&amp;serialid=' + selected[i].value;
                 }
@@ -293,7 +271,8 @@
             });
             $("#clearfilter").on("click",function(e){
                 e.preventDefault();
-                $("#from,#to").val("");
+                $("#from").flatpickr().clear();
+                $("#to").flatpickr().clear();
                 $("table#claimst tbody tr").show();
             });
             $("#claims_form").on("submit",function(){

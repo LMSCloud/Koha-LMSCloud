@@ -1,8 +1,17 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Branches %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Circulation statistics[% IF ( do_it ) %] &rsaquo; Results[% END %] &rsaquo; Reports &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF ( do_it ) %]
+        [% t("Results") | html %] &rsaquo;
+    [% END %]
+    [% t("Circulation statistics") | html %] &rsaquo;
+    [% t("Reports") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
 	.sql {display:none;}
@@ -36,8 +45,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 <h1>Circulation statistics</h1>
 [% IF ( do_it ) %]
@@ -76,6 +86,7 @@
             </ul>
         [% END %]
         
+            <div class="page-section">
         <table> 
             <tr>
                 <th>[% mainloo.line | html %] / [% mainloo.column | html %]</th>
@@ -101,10 +112,12 @@
                 <th>[% mainloo.total | html %]</th>
             </tr>
         </table>
+            </div>
+            <!-- /.page-section -->
     [% END %]
 [% ELSE %]
 
-    <form method="post" action="/cgi-bin/koha/reports/issues_stats.pl">
+    <form method="get" action="/cgi-bin/koha/reports/issues_stats.pl">
     <fieldset class="rows">
 	<legend>Circulation statistics</legend><table>
         <thead>
@@ -266,7 +279,7 @@
             <td><input type="radio" name="Column" value="items.homebranch" /></td>
             <td><select name="Filter" id="homebranch">
                     <option value=""> </option>
-                    [% PROCESS options_for_libraries libraries => Branches.all() %]
+                    [% PROCESS options_for_libraries libraries => Branches.all({ selected => "" }) %]
                 </select>
             </td>
         </tr>
@@ -276,7 +289,7 @@
             <td><input type="radio" name="Column" value="items.holdingbranch" /></td>
             <td><select name="Filter" id="holdingbranch">
                     <option value=""> </option>
-                    [% PROCESS options_for_libraries libraries => Branches.all() %]
+                    [% PROCESS options_for_libraries libraries => Branches.all({ selected => "" }) %]
                 </select>
             </td>
         </tr>
@@ -388,13 +401,13 @@
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'reports-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

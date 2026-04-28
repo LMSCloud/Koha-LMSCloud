@@ -96,6 +96,11 @@ Foreign key to the letters table
   data_type: 'longtext'
   is_nullable: 1
 
+=head2 cc_address
+
+  data_type: 'longtext'
+  is_nullable: 1
+
 =head2 from_address
 
   data_type: 'longtext'
@@ -164,6 +169,8 @@ __PACKAGE__->add_columns(
   },
   "to_address",
   { data_type => "longtext", is_nullable => 1 },
+  "cc_address",
+  { data_type => "longtext", is_nullable => 1 },
   "from_address",
   { data_type => "longtext", is_nullable => 1 },
   "reply_address",
@@ -173,7 +180,7 @@ __PACKAGE__->add_columns(
   "failure_code",
   { data_type => "mediumtext", is_nullable => 1 },
   "branchcode",
-  { data_type => "varchar", is_foreign_key => 1, is_nullable => 0, size => 10 },
+  { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
 );
 
 =head1 PRIMARY KEY
@@ -261,8 +268,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:vwgWaIYLPB3pLedkL/J45A
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:55
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:/TSXsh7x4fg86Hn47uMKSg
 
 sub koha_object_class {
     'Koha::Notice::Message';

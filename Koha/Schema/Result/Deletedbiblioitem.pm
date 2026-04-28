@@ -314,8 +314,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("biblioitemnumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-07-19 08:58:58
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum://St+Sqs2eNxnSuMIijGeQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-06-29 12:50:28
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:q5ULiqLlmYdZQy4qr0wBtg
 
 sub koha_objects_class {
     'Koha::Old::Biblioitems';

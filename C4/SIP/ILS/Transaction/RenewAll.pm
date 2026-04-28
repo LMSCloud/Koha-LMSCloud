@@ -34,12 +34,11 @@ sub new {
 sub do_renew_all {
     my $self     = shift;
     siplog('LOG_DEBUG', "ILS::Transaction::RenewAll performing renewals...");
-    my $patron   = $self->{patron};                           # SIP's  patron
-    my $borrower = Koha::Patrons->find( { cardnumber => $patron->id } )->unblessed;    # Koha's patron
+    my $patron = Koha::Patrons->find( $self->{patron}->{borrowernumber} );
     my $all_ok   = 1;
     $self->{renewed}   = [];
     $self->{unrenewed} = [];
-    foreach my $itemx ( @{ $patron->{items} } ) {
+    foreach my $itemx ( @{ $self->{patron}->{items} } ) {
         my $item_id = $itemx->{barcode};
         my $item    = C4::SIP::ILS::Item->new($item_id);
         if ( !defined($item) ) {
@@ -55,7 +54,7 @@ sub do_renew_all {
             next;
         }
         $self->{item} = $item;
-        $self->do_renew_for($borrower);
+        $self->do_renew_for($patron);
         if ( $self->renewal_ok ) {
             $item->{due_date} = $self->{due};
             push @{ $self->{renewed} }, $item_id;

@@ -27,7 +27,7 @@ __PACKAGE__->table("borrower_attribute_types");
 
   data_type: 'varchar'
   is_nullable: 0
-  size: 10
+  size: 64
 
 unique key used to identify each custom field
 
@@ -55,6 +55,14 @@ defines whether one patron/borrower can have multiple values for this custom fie
 
 defines if this value needs to be unique (1 for yes, 0 for no)
 
+=head2 is_date
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+defines if this field is displayed as a date
+
 =head2 opac_display
 
   data_type: 'tinyint'
@@ -78,6 +86,14 @@ defines if this field is editable by patrons on their account in the OPAC (1 for
   is_nullable: 0
 
 defines if this field is searchable via the patron search in the staff interface (1 for yes, 0 for no)
+
+=head2 searched_by_default
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+defines if this field is included in "Standard" patron searches in the staff interface (1 for yes, 0 for no)
 
 =head2 authorised_value_category
 
@@ -133,18 +149,22 @@ defines if the attribute is mandatory or not
 
 __PACKAGE__->add_columns(
   "code",
-  { data_type => "varchar", is_nullable => 0, size => 10 },
+  { data_type => "varchar", is_nullable => 0, size => 64 },
   "description",
   { data_type => "varchar", is_nullable => 0, size => 255 },
   "repeatable",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "unique_id",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  "is_date",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "opac_display",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "opac_editable",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "staff_searchable",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  "searched_by_default",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "authorised_value_category",
   { data_type => "varchar", is_nullable => 1, size => 32 },
@@ -240,15 +260,18 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-04-25 12:50:55
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:VgJP4Ugfz0sN3YoJk/tshA
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-05-10 14:00:56
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ZmiiXHqRGV2SDb4IgSPvJQ
 
 __PACKAGE__->add_columns(
     '+keep_for_pseudonymization' => { is_boolean => 1 },
+    '+mandatory'                 => { is_boolean => 1 },
+    '+searched_by_default'       => { is_boolean => 1 },
+    '+staff_searchable'          => { is_boolean => 1 },
 );
 
 __PACKAGE__->add_columns(
-    '+mandatory' => { is_boolean => 1 },
+    '+is_date' => { is_boolean => 1 },
 );
 
 sub koha_object_class {

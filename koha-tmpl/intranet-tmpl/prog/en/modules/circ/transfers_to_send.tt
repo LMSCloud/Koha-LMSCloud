@@ -4,10 +4,15 @@
 [% USE KohaDates %]
 [% USE Branches %]
 [% USE ItemTypes %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% PROCESS 'transfer_reasons.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Transfers to send &rsaquo; Circulation &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Transfers to send") | html %] &rsaquo;
+    [% t("Circulation") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -31,12 +36,13 @@
     <div class="row">
         <div class="col-sm-12">
             <main>
+                [% INCLUDE 'messages.inc' %]
                 <div class="row">
 
                     [% IF Koha.Preference('CircSidebar') %]
-                    <div class="col-sm-10 col-sm-push-2">
+                    <div class="col-md-10 order-md-2 order-sm-1">
                     [% ELSE %]
-                    <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+                    <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
                     [% END %]
 
                         <h1>Transfers requested of your library as of [% show_date | $KohaDates %]</h1>
@@ -94,14 +100,14 @@
                         <p>No transfers to send</p>
                         [% END %]
 
-                    </div> <!-- /.col-sm-10.col-sm-push-2 OR /.col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2-->
+                    </div> <!-- /.col-sm-10.col-sm-push-2 OR /.col-md-10 offset-md-1 col-lg-8 offset-lg-2-->
 
                     [% IF Koha.Preference('CircSidebar') %]
-                    <div class="col-sm-2 col-sm-pull-10">
+                    <div class="col-md-2 order-sm-2 order-md-1">
                         <aside>
                             [% INCLUDE 'circ-nav.inc' %]
                         </aside>
-                    </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+                    </div> <!-- /.col-md-2.order-md-1 -->
                     [% END %]
 
                 </div> <!-- /.row -->
@@ -115,12 +121,12 @@
         $(document).ready(function() {
             [% FOREACH library IN libraries %]
             $("#transferst[% library.branchcode | html %]").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
-                    { "sType": "anti-the", "aTargets" : [ "anti-the" ] }
+                "columnDefs": [
+                    { "targets": [ -1 ], "orderable": false, "searchable":  false },
+                    { "type": "anti-the", "targets":  [ "anti-the" ] }
                 ],
-                "sDom": 't',
-                "bPaginate": false
+                "dom": 't',
+                "paginate": false
             }));
             [% END %]
         });

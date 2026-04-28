@@ -215,9 +215,6 @@
           - borrower: send it straight to the borrower email
           - branch: send the ILL to the branch email -->
      <digital_recipient>branch</digital_recipient>
-     <!-- What patron category should we use for p2p ILL requests?
-          - By default this is set to 'ILLLIBS' -->
-     <partner_code>ILLLIBS</partner_code>
  </interlibrary_loans>
 
  <!-- The timezone setting can let you force the timezone for this
@@ -247,11 +244,11 @@
     <repo>
         <name>Theke Solutions</name>
         <org_name>thekesolutions</org_name>
-        <service>gitlab</service>
+        <service>github</service>
     </repo>
     <repo>
-        <name>PTFS Europe</name>
-        <org_name>ptfs-europe</org_name>
+        <name>Open Fifth</name>
+        <org_name>openfifth</org_name>
         <service>github</service>
     </repo>
     -->

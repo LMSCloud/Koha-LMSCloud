@@ -1,37 +1,39 @@
+[% USE raw %]
 [% USE Koha %]
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF ( GetAvailability ) %]
-        ILS-DI &rsaquo; GetAvailability
+        [% t("GetAvailability") | html %] &rsaquo;
     [% ELSIF ( GetRecords ) %]
-        ILS-DI &rsaquo; GetRecords
+        [% t("GetRecords") | html %] &rsaquo;
     [% ELSIF ( GetAuthorityRecords ) %]
-        ILS-DI &rsaquo; GetAuthorityRecords
+        [% t("GetAuthorityRecords") | html %] &rsaquo;
     [% ELSIF ( LookupPatron ) %]
-        ILS-DI &rsaquo; LookupPatron
+        [% t("LookupPatron") | html %] &rsaquo;
     [% ELSIF ( AuthenticatePatron ) %]
-        ILS-DI &rsaquo; AuthenticatePatron
+        [% t("AuthenticatePatron") | html %] &rsaquo;
     [% ELSIF ( GetPatronInfo ) %]
-        ILS-DI &rsaquo; GetPatronInfo
+        [% t("GetPatronInfo") | html %] &rsaquo;
     [% ELSIF ( GetPatronStatus ) %]
-        ILS-DI &rsaquo; GetPatronStatus
+        [% t("GetPatronStatus") | html %] &rsaquo;
     [% ELSIF ( GetServices ) %]
-        ILS-DI &rsaquo; GetServices
+        [% t("GetServices") | html %] &rsaquo;
     [% ELSIF ( RenewLoan ) %]
-        ILS-DI &rsaquo; RenewLoan
+        [% t("RenewLoan") | html %] &rsaquo;
     [% ELSIF ( HoldTitle ) %]
-        ILS-DI &rsaquo; HoldTitle
+        [% t("HoldTitle") | html %] &rsaquo;
     [% ELSIF ( HoldItem ) %]
-        ILS-DI &rsaquo; HoldItem
+        [% t("HoldItem") | html %] &rsaquo;
     [% ELSIF ( CancelHold ) %]
-        ILS-DI &rsaquo; CancelHold
-    [% ELSE %]
-        ILS-DI
+        [% t("CancelHold") | html %] &rsaquo;
     [% END %]
- &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog
-</title>
+    [% t("ILS-DI") | html %] &rsaquo;
+    [% PROCESS 'library_name_title' %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
@@ -39,50 +41,97 @@
 [% INCLUDE 'masthead.inc' %]
 
     <div class="main">
-        <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/cgi-bin/koha/opac-main.pl">Home</a></li>
-                [% IF ( GetAvailability ) %]
-                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                    <li class="breadcrumb-item active"><a href="#" aria-current="page">GetAvailability</a></li>
-                [% ELSIF ( GetRecords ) %]
-                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                    <li class="breadcrumb-item active"><a href="#" aria-current="page">GetRecords</a></li>
-                [% ELSIF ( GetAuthorityRecords ) %]
-                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                    <li class="breadcrumb-item active"><a href="#" aria-current="page">GetAuthorityRecords</a></li>
-                [% ELSIF ( LookupPatron ) %]
-                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                    <li class="breadcrumb-item active"><a href="#" aria-current="page">LookupPatron</a></li>
-                [% ELSIF ( AuthenticatePatron ) %]
-                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                    <li class="breadcrumb-item active"><a href="#" aria-current="page">AuthenticatePatron</a></li>
-                [% ELSIF ( GetPatronInfo ) %]
-                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                    <li class="breadcrumb-item active"><a href="#" aria-current="page">GetPatronInfo</a></li>
-                [% ELSIF ( GetPatronStatus ) %]
-                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                    <li class="breadcrumb-item active"><a href="#" aria-current="page">GetPatronStatus</a></li>
-                [% ELSIF ( GetServices ) %]
-                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                    <li class="breadcrumb-item active"><a href="#" aria-current="page">GetServices</a></li>
-                [% ELSIF ( RenewLoan ) %]
-                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                    <li class="breadcrumb-item active"><a href="#" aria-current="page">RenewLoan</a></li>
-                [% ELSIF ( HoldTitle ) %]
-                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                    <li class="breadcrumb-item active"><a href="#" aria-current="page">HoldTitle</a></li>
-                [% ELSIF ( HoldItem ) %]
-                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                    <li class="breadcrumb-item active"><a href="#" aria-current="page">HoldItem</a></li>
-                [% ELSIF ( CancelHold ) %]
-                    <li class="breadcrumb-item"><a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a></li>
-                    <li class="breadcrumb-item active"><a href="#" aria-current="page">CancelHold</a></li>
-                [% ELSE %]
-                    <li class="breadcrumb-item active"><a href="#" aria-current="page">ILS-DI</a></li>
+        [% WRAPPER breadcrumbs %]
+            [% IF ( GetAvailability ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a>
                 [% END %]
-            </ol>
-        </nav> <!-- /#breadcrumbs -->
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>GetAvailability</span>
+                [% END %]
+            [% ELSIF ( GetRecords ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>GetRecords</span>
+                [% END %]
+            [% ELSIF ( GetAuthorityRecords ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>GetAuthorityRecords</span>
+                [% END %]
+            [% ELSIF ( LookupPatron ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>LookupPatron</span>
+                [% END %]
+            [% ELSIF ( AuthenticatePatron ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>AuthenticatePatron</span>
+                [% END %]
+            [% ELSIF ( GetPatronInfo ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>GetPatronInfo</span>
+                [% END %]
+            [% ELSIF ( GetPatronStatus ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>GetPatronStatus</span>
+                [% END %]
+            [% ELSIF ( GetServices ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>GetServices</span>
+                [% END %]
+            [% ELSIF ( RenewLoan ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>RenewLoan</span>
+                [% END %]
+            [% ELSIF ( HoldTitle ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>HoldTitle</span>
+                [% END %]
+            [% ELSIF ( HoldItem ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>HoldItem</span>
+                [% END %]
+            [% ELSIF ( CancelHold ) %]
+                [% WRAPPER breadcrumb_item %]
+                    <a href="/cgi-bin/koha/ilsdi.pl">ILS-DI</a>
+                [% END %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>CancelHold</span>
+                [% END %]
+            [% ELSE %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    <span>ILS-DI</span>
+                [% END %]
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
 
         <div class="container-fluid">
             <div class="row">
@@ -125,7 +174,7 @@
                                 <dt><strong>return_fmt</strong> (Optional)</dt>
                                 <dd>requests a particular format or set of formats in reporting availability</dd>
                                 <dt><strong>language (Optional)</strong></dt>
-                                <dd>requests a particular language for the output, default is the opac cookie language if set, the first language in opac language list or english</dd>
+                                <dd>requests a particular language for the output, default is the OPAC cookie language if set, the first language in OPAC language list or English</dd>
                             </dl>
 
                             <h3>Example call</h3>
@@ -301,7 +350,7 @@
         &lt;timestamp&gt;2019-07-18 17:03:03&lt;/timestamp&gt;
         &lt;cn_sort&gt;R_ABE&lt;/cn_sort&gt;
         &lt;itemlost&gt;0&lt;/itemlost&gt;
-        &lt;renewals&gt;28&lt;/renewals&gt;
+        &lt;renewals_count&gt;28&lt;/renewals_count&gt;
         &lt;barcode&gt;040444587X&lt;/barcode&gt;
         &lt;damaged&gt;0&lt;/damaged&gt;
         &lt;replacementpricedate&gt;2018-02-01&lt;/replacementpricedate&gt;
@@ -602,11 +651,13 @@
       &lt;location&gt;Salle de lecture&lt;/location&gt;
       &lt;itemlost&gt;0&lt;/itemlost&gt;
       &lt;publicationyear&gt;1985&lt;/publicationyear&gt;
+      &lt;holds_on_record&gt;0&lt;/holds_on_record&gt;
+      &lt;holds_on_item&gt;0&lt;/holds_on_item&gt;
       &lt;issues&gt;1&lt;/issues&gt;
       &lt;homebranch&gt;BIB&lt;/homebranch&gt;
       &lt;holdingbranch&gt;BIB&lt;/holdingbranch&gt;
       &lt;biblionumber&gt;4483&lt;/biblionumber&gt;
-      &lt;renewals&gt;3&lt;/renewals&gt;
+      &lt;renewals_count&gt;3&lt;/renewals_count&gt;
       &lt;damaged&gt;0&lt;/damaged&gt;
       &lt;cn_sort&gt;RO_STE&lt;/cn_sort&gt;
       &lt;frameworkcode&gt;&lt;/frameworkcode&gt;
@@ -640,11 +691,13 @@
       &lt;location&gt;Salle de lecture&lt;/location&gt;
       &lt;itemlost&gt;0&lt;/itemlost&gt;
       &lt;publicationyear&gt;2007&lt;/publicationyear&gt;
+      &lt;holds_on_record&gt;1&lt;/holds_on_record&gt;
+      &lt;holds_on_item&gt;1&lt;/holds_on_item&gt;
       &lt;issues&gt;1&lt;/issues&gt;
       &lt;homebranch&gt;BIB&lt;/homebranch&gt;
       &lt;holdingbranch&gt;BIB&lt;/holdingbranch&gt;
       &lt;biblionumber&gt;4486&lt;/biblionumber&gt;
-      &lt;renewals&gt;3&lt;/renewals&gt;
+      &lt;renewals_count&gt;3&lt;/renewals_count&gt;
       &lt;damaged&gt;0&lt;/damaged&gt;
       &lt;cn_sort&gt;78787_BUC&lt;/cn_sort&gt;
       &lt;volume&gt;une méthode simple et facile pour apprendre la guitare&lt;/volume&gt;

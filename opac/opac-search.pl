@@ -71,7 +71,6 @@ use URI::Escape;
 use JSON qw/decode_json encode_json/;
 use Business::ISBN;
 
-my $DisplayMultiPlaceHold = C4::Context->preference("DisplayMultiPlaceHold");
 # create a new CGI object
 # FIXME: no_undef_params needs to be tested
 use CGI qw('-no_undef_params' -utf8);
@@ -177,13 +176,6 @@ if (C4::Context->preference('BakerTaylorEnabled')) {
     );
 }
 
-if (C4::Context->preference('TagsEnabled')) {
-    $template->param(TagsEnabled => 1);
-    foreach (qw(TagsShowOnList TagsInputOnList)) {
-        C4::Context->preference($_) and $template->param($_ => 1);
-    }
-}
-
 ## URI Re-Writing
 # Deprecated, but preserved because it's interesting :-)
 # The same thing can be accomplished with mod_rewrite in
@@ -229,9 +221,12 @@ if ($cgi->cookie("search_path_code")) {
 my @search_groups = Koha::Library::Groups->get_search_groups( { interface => 'opac' } )->as_list;
 $template->param( search_groups => \@search_groups );
 
-# load the language limits (for search)
-my $languages_limit_loop = getLanguages($lang, 1);
-$template->param(search_languages_loop => $languages_limit_loop,);
+if ( $template_type && $template_type eq 'advsearch' ) {
+
+    # load the language limits (for search)
+    my $languages_limit_loop = getLanguages( $lang, 1 );
+    $template->param( search_languages_loop => $languages_limit_loop, );
+}
 
 # load the Type stuff
 my $itemtypes = GetItemTypesCategorized;
@@ -351,10 +346,10 @@ if ( $template_type && $template_type eq 'advsearch' ) {
 
 ### OK, if we're this far, we're performing an actual search
 
-# Fetch the paramater list as a hash in scalar context:
-#  * returns paramater list as tied hash ref
+# Fetch the parameter list as a hash in scalar context:
+#  * returns parameter list as tied hash ref
 #  * we can edit the values by changing the key
-#  * multivalued CGI paramaters are returned as a packaged string separated by "\0" (null)
+#  * multivalued CGI parameters are returned as a packaged string separated by "\0" (null)
 my $params = $cgi->Vars;
 my $tag;
 if ( $params->{tag} ) {
@@ -557,7 +552,6 @@ if (C4::Context->preference('OPACShowOpenURL')) {
 }
 
 $template->param ( LIMIT_INPUTS => \@limit_inputs );
-$template->param ( OPACResultsSidebar => C4::Context->preference('OPACResultsSidebar'));
 
 ## II. DO THE SEARCH AND GET THE RESULTS
 my $total = 0; # the total results for the whole set
@@ -621,7 +615,7 @@ for my $plugin_variables ( @plugin_responses ) {
 for (my $i=0;$i<@servers;$i++) {
     my $server = $servers[$i];
     if ($server && $server =~/biblioserver/) { # this is the local bibliographic server
-        $hits = $results_hashref->{$server}->{"hits"};
+        $hits = $results_hashref->{$server}->{"hits"} // 0;
         if ( $hits == 0 && $basic_search ){
             $operands[0] = '"'.$operands[0].'"'; #quote it
             ## I. BUILD THE QUERY
@@ -735,6 +729,10 @@ for (my $i=0;$i<@servers;$i++) {
 
             # BZ17530: 'Intelligent' guess if result can be article requested
             $res->{artreqpossible} = ( $art_req_itypes->{ $res->{itemtype} // q{} } || $art_req_itypes->{ '*' } ) ? 1 : q{};
+
+            if ( C4::Context->preference('OPACLocalCoverImages') ) {
+                $res->{has_local_cover_image} = $res->{biblio_object} ? $res->{biblio_object}->cover_images->count : 0;
+            }
         }
         
         $template->param(divibibIDs => \@divibibIDs);
@@ -781,16 +779,20 @@ for (my $i=0;$i<@servers;$i++) {
         }
 
         ## If there's just one result, redirect to the detail page
-        if ($total == 1 && $format ne 'rss'
-        && $format ne 'opensearchdescription' && $format ne 'atom' && !C4::Context->preference('OpacSingleHitResultList') ) {
-            my $biblionumber=$newresults[0]->{biblionumber};
-            if (C4::Context->preference('BiblioDefaultView') eq 'isbd') {
+        if (   $total == 1
+            && $format ne 'rss'
+            && $format ne 'opensearchdescription'
+            && $format ne 'atom'
+            && C4::Context->preference('RedirectToSoleResult') )
+        {
+            my $biblionumber = $newresults[0]->{biblionumber};
+            if ( C4::Context->preference('BiblioDefaultView') eq 'isbd' ) {
                 print $cgi->redirect("/cgi-bin/koha/opac-ISBDdetail.pl?biblionumber=$biblionumber");
-            } elsif  (C4::Context->preference('BiblioDefaultView') eq 'marc') {
+            } elsif ( C4::Context->preference('BiblioDefaultView') eq 'marc' ) {
                 print $cgi->redirect("/cgi-bin/koha/opac-MARCdetail.pl?biblionumber=$biblionumber");
             } else {
                 print $cgi->redirect("/cgi-bin/koha/opac-detail.pl?biblionumber=$biblionumber");
-            } 
+            }
             exit;
         }
         if ($hits) {
@@ -819,7 +821,6 @@ for (my $i=0;$i<@servers;$i++) {
             $template->param(query_desc => $query_desc);
             $template->param(limit_desc => $limit_desc);
             $template->param(offset     => $offset);
-            $template->param(DisplayMultiPlaceHold => $DisplayMultiPlaceHold);
             if ($query_desc || $limit_desc) {
                 $template->param(searchdesc => 1);
             }
@@ -830,9 +831,8 @@ for (my $i=0;$i<@servers;$i++) {
                 SEARCH_RESULTS => \@newresults,
                 suppress_result_number => $hide,
                             );
-            if (C4::Context->preference("OPACLocalCoverImages")){
-            $template->param(OPACLocalCoverImages => 1);
-            $template->param(OPACLocalCoverImagesPriority => C4::Context->preference("OPACLocalCoverImagesPriority"));
+            if ( C4::Context->preference("OPACLocalCoverImages") ) {
+                $template->param( OPACLocalCoverImages => 1 );
             }
             ## Build the page numbers on the bottom of the page
             my ( $page_numbers, $hits_to_paginate, $pages, $current_page_number, $previous_page_offset, $next_page_offset, $last_page_offset ) =

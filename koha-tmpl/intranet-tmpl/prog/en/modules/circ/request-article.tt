@@ -7,6 +7,7 @@
 [% USE ItemTypes %]
 [% USE AuthorisedValues %]
 [% USE Price %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% SET article_requests_view = 1 %]
 [% SET biblionumber = biblio.biblionumber %]
@@ -15,43 +16,51 @@
 [% SET categories = Categories.all.unblessed %]
 [% SET columns = ['name', 'address', 'cardnumber', 'dateofbirth', 'category', 'branch', 'phone'] %]
 [% PROCESS "patron-search.inc" %]
-<title>Request article &rsaquo; Circulation &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Request article") | html %] &rsaquo;
+    [% t("Circulation") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
 [% BLOCK cancel_modal %]
     <div id="cancelModal" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
-                    <h3>Confirm deletion</h3>
+                    <h1 class="modal-title">Confirm deletion</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
                 <div class="modal-body">
                     <p>Are you sure you want to cancel this article request?</p>
 
-                    <fieldset class="action">
+                    <fieldset class="brief">
                         [% SET ar_cancellation = AuthorisedValues.GetAuthValueDropbox('AR_CANCELLATION') %]
                         [% IF ar_cancellation.count %]
-                            <label for="cancellation-reason" class="col-sm-4">Cancellation reason: </label>
-                            <select class="cancellation-reason col-sm-8" name="cancellation-reason" id="modal-cancellation-reason">
-                                <option value="" selected>Other reasons</option>
-                                [% FOREACH reason IN ar_cancellation %]
-                                    <option value="[% reason.authorised_value | html %]">[% reason.lib | html %]</option>
-                                [% END %]
-                            </select>
+                            <ol>
+                                <li>
+                                    <label for="cancellation-reason">Cancellation reason: </label>
+                                    <select class="cancellation-reason" name="cancellation-reason" id="modal-cancellation-reason">
+                                        <option value="" selected>Other reasons</option>
+                                        [% FOREACH reason IN ar_cancellation %]
+                                            <option value="[% reason.authorised_value | html %]">[% reason.lib | html %]</option>
+                                        [% END %]
+                                    </select>
+                                </li>
+                                <li>
+                                    <label for="modal-notes">Enter reason</label>
+                                    <input type="text" class="notes" name="notes" id="modal-notes" />
+                                </li>
+                            </ol>
                         [% END %]
-                    </fieldset>
-                    <fieldset class="action">
-                        <div class="hint col-sm-offset-4">Enter reason</div>
-                        <input type="text" class="notes col-sm-offset-4 col-sm-8" name="notes" id="modal-notes"/>
                     </fieldset>
                 </div>
 
                 <div class="modal-footer">
-                    <button id="cancelModalConfirmBtn" type="button" class="btn btn-danger" data-dismiss="modal">Confirm cancellation</button>
-                    <a href="#" data-dismiss="modal">Cancel</a>
+                    <button id="cancelModalConfirmBtn" type="button" class="btn btn-danger" data-bs-dismiss="modal">Confirm cancellation</button>
+                    <a class="btn btn-default" href="#" data-bs-dismiss="modal">Cancel</a>
                 </div>
             </div>
         </div>
@@ -83,23 +92,23 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-[% INCLUDE 'blocking_errors.inc' %]
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
                     <h1>Request article from [% INCLUDE 'biblio-title.inc' link = 1 %]</h1>
                     [% IF error_message %]
-                        <div class="dialog alert">
+                        <div class="alert alert-warning">
                         [% SWITCH error_message %]
                             [% CASE 'article_request_limit_reached'       %]<p>Patron reached daily limit.</p>
-                            [% CASE 'article_request_unhandled_exception' %]<p>An error has occurred. Check the logs.</p>
+                            [% CASE 'article_request_unhandled_exception' %]<p>An error has occurred. Check the logs for details.</p>
                         [% END %]
                         </div>
                     [% END %]
                     [% UNLESS patron %]
-                        <fieldset class="brief">
+                        <fieldset id="searchresults" class="brief">
                             <label>Search patrons</label>
                             [% PROCESS patron_search_filters_simple %]
                             [% PROCESS patron_search_table table_id => 'table_borrowers', open_on_row_click => 1 %]
@@ -107,12 +116,13 @@
                     [% ELSE %]
                         [% IF biblio.can_article_request( patron ) %]
                             [% IF article_request_fee > 0 %]
-                                <div class="dialog alert">
+                                <div class="alert alert-warning">
                                     Patron will be charged with <strong>[% article_request_fee | $Price %]</strong> for every request
                                 </div>
                             [% END %]
                             <form id="place-article-request" method="post" action="/cgi-bin/koha/circ/request-article.pl">
-                                <input type="hidden" name="action" value="create" />
+                                [% INCLUDE 'csrf-token.inc' %]
+                                <input type="hidden" name="op" value="cud-create" />
                                 <input type="hidden" name="biblionumber" id="biblionumber" value="[% biblio.biblionumber | html %]" />
                                 <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.id | html %]" />
 
@@ -317,7 +327,7 @@
                                             [% END %]
                                         </td>
                                         <td>
-                                            <i id="update-processing-[% ar.id | html %]" class="fa fa-cog fa-spin hidden"></i>
+                                            <i id="update-processing-[% ar.id | html %]" class="fa fa-cog fa-spin" style="visibility: hidden"></i>
                                             <select name="branchcode" id="branchcode-[% ar.id | html %]" class="ar-update-branchcode">
                                                 [% FOREACH b IN Branches.all %]
                                                     [% IF b.branchcode == ar.branchcode %]
@@ -342,13 +352,13 @@
                     [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'biblio-view-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -364,32 +374,7 @@
 
             $( ".ar-update-branchcode" ).on('focus', function(){
                 previous_branchcode = this.value;
-            }).on('change', function(){
-                var branchcode = this.value;
-                var c = confirm(_("Are you sure you want to change the pickup library from %s to %s for this request?").format( previous_branchcode, branchcode ));
-
-                if ( c ) {
-                    var id = this.id.split("branchcode-")[1];
-                    $("#update-processing-" + id ).css({opacity: 0, visibility: "visible"}).animate({opacity: 1.0}, 200);
-
-                    $.ajax({
-                        type: "POST",
-                        url: '/cgi-bin/koha/svc/article_request',
-                        data: {
-                            action: 'update_branchcode',
-                            id: id,
-                            branchcode: branchcode,
-                        },
-                        success: function( data ) {
-                            $("#update-processing-" + id ).css({opacity: 1.0, visibility: "visible"}).animate({opacity: 0}, 200);
-                        },
-                        dataType: 'json'
-                    });
-
-                } else {
-                    this.value = previous_branchcode;
-                }
-            });
+            })
 
             $('#modal-cancellation-reason').on('change', function(e) {
                 let reason = $(this).val();
@@ -418,7 +403,7 @@
 
             $(".ar-cancel-request").on("click", function(){
                 cancel_a = $(this);
-                $('#cancelModal').modal();
+                $('#cancelModal').modal('show');
             });
 
             // Initialize format(s)
@@ -434,9 +419,33 @@
                 $('#format option[value="'+first_format+'"]').attr('selected', true);
             }
         });
+
+        $(".ar-update-branchcode").on('change', async function(e){
+            var branchcode = this.value;
+            var c = confirm(_("Are you sure you want to change the pickup library from %s to %s for this request?").format( previous_branchcode, branchcode ));
+
+            if ( c ) {
+                var id = this.id.split("branchcode-")[1];
+                $("#update-processing-" + id ).css({opacity: 0, visibility: "visible"}).animate({opacity: 1.0}, 200);
+
+                const client = APIClient.article_request;
+                await client.articleRequests.update_library_id(id, branchcode).then(
+                    success => {
+                        $("#update-processing-" + id ).css({opacity: 1.0, visibility: "visible"}).animate({opacity: 0}, 200);
+                    },
+                    error => {
+                        console.warn("Something wrong happened: %s", error);
+                    }
+                );
+
+
+            } else {
+                this.value = previous_branchcode;
+            }
+        });
     </script>
 
-    [% PROCESS patron_search_js table_id => 'table_borrowers', categories => categories, libraries => libraries, extended_attribute_types => attribute_type_codes, columns => columns, open_on_row_click => 1, on_click_url => '/cgi-bin/koha/circ/request-article.pl?biblionumber=' _ biblio.biblionumber, redirect_if_one_result => 1, redirect_url => '/cgi-bin/koha/circ/request-article.pl?biblionumber=' _ biblio.biblionumber %]
+    [% PROCESS patron_search_js table_id => 'table_borrowers', categories => categories, libraries => libraries, columns => columns, open_on_row_click => 1, on_click_url => '/cgi-bin/koha/circ/request-article.pl?biblionumber=' _ biblio.biblionumber, redirect_if_one_result => 1, redirect_url => '/cgi-bin/koha/circ/request-article.pl?biblionumber=' _ biblio.biblionumber %]
 
 [% END %]
 

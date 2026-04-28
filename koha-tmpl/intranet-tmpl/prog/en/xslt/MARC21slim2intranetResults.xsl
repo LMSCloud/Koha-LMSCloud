@@ -24,6 +24,8 @@
         <xsl:variable name="AlternateHoldingsSubfields" select="substring(marc:sysprefs/marc:syspref[@name='AlternateHoldingsField'], 4)"/>
         <xsl:variable name="AlternateHoldingsSeparator" select="marc:sysprefs/marc:syspref[@name='AlternateHoldingsSeparator']"/>
         <xsl:variable name="UseAuthoritiesForTracings" select="marc:sysprefs/marc:syspref[@name='UseAuthoritiesForTracings']"/>
+        <xsl:variable name="AuthorLinkSortBy" select="marc:sysprefs/marc:syspref[@name='AuthorLinkSortBy']"/>
+        <xsl:variable name="AuthorLinkSortOrder" select="marc:sysprefs/marc:syspref[@name='AuthorLinkSortOrder']"/>
         <xsl:variable name="DisplayIconsXSLT" select="marc:sysprefs/marc:syspref[@name='DisplayIconsXSLT']"/>
         <xsl:variable name="IntranetBiblioDefaultView" select="marc:sysprefs/marc:syspref[@name='IntranetBiblioDefaultView']"/>
         <xsl:variable name="OpacSuppression" select="marc:sysprefs/marc:syspref[@name='OpacSuppression']"/>
@@ -359,10 +361,29 @@
             <a>
                 <xsl:choose>
                     <xsl:when test="marc:subfield[@code=9] and $UseAuthoritiesForTracings='1'">
-                        <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=an:<xsl:value-of select="str:encode-uri(marc:subfield[@code=9], true())"/></xsl:attribute>
+                        <xsl:attribute name="href">
+                            <xsl:text>/cgi-bin/koha/catalogue/search.pl?q=an:</xsl:text>
+                            <xsl:value-of select="str:encode-uri(marc:subfield[@code=9], true())"/>
+                            <xsl:if test="$AuthorLinkSortBy!='default'">
+                                <xsl:text>&amp;sort_by=</xsl:text>
+                                <xsl:value-of select="$AuthorLinkSortBy"/>
+                                <xsl:text>_</xsl:text>
+                                <xsl:value-of select="$AuthorLinkSortOrder" />
+                            </xsl:if>
+                        </xsl:attribute>
                     </xsl:when>
                     <xsl:otherwise>
-                        <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=name:"<xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/>"</xsl:attribute>
+                        <xsl:attribute name="href">
+                            <xsl:text>/cgi-bin/koha/catalogue/search.pl?q=au:"</xsl:text>
+                            <xsl:value-of select="str:encode-uri(marc:subfield[@code='a'], true())"/>
+                            <xsl:text>"</xsl:text>
+                            <xsl:if test="$AuthorLinkSortBy!='default'">
+                                <xsl:text>&amp;sort_by=</xsl:text>
+                                <xsl:value-of select="$AuthorLinkSortBy"/>
+                                <xsl:text>_</xsl:text>
+                                <xsl:value-of select="$AuthorLinkSortOrder" />
+                            </xsl:if>
+                        </xsl:attribute>
                     </xsl:otherwise>
                 </xsl:choose>
                 <xsl:call-template name="chopPunctuation">
@@ -500,20 +521,20 @@
                     <xsl:choose>
                         <xsl:when test="$leader7='c' or $leader7='d' or $leader7='m'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/book.png" alt="book" title="book" class="materialtype mt_icon_BK"/> Text</xsl:when>
                         <xsl:when test="$leader7='i' or $leader7='s'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/newspaper.png" alt="serial" title="serial" class="materialtype mt_icon_CR"/> Continuing resource</xsl:when>
-                        <xsl:when test="$leader7='a' or $leader7='b'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/book_open.png" alt="article" title="article" class="materialtype mt_icon_AR"/> Article</xsl:when>
+                        <xsl:when test="$leader7='a' or $leader7='b'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/book_open.png" alt="" class="materialtype mt_icon_AR"/> Article</xsl:when>
                     </xsl:choose>
                 </xsl:when>
-                <xsl:when test="$leader6='t'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/book.png" alt="book" title="book" class="materialtype mt_icon_BK"/> Text</xsl:when>
-                <xsl:when test="$leader6='o'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/report_disk.png" alt="kit" title="kit" class="materialtype mt_icon_MX"/> Kit</xsl:when>
-                <xsl:when test="$leader6='p'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/report_disk.png" alt="mixed materials" title="mixed materials" class="materialtype mt_icon_MX"/>Mixed materials</xsl:when>
-                <xsl:when test="$leader6='m'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/computer_link.png" alt="computer file" title="computer file" class="materialtype mt_icon_CF"/> Computer file</xsl:when>
-                <xsl:when test="$leader6='e' or $leader6='f'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/map.png" alt="map" title="map" class="materialtype mt_icon_MP"/> Map</xsl:when>
-                <xsl:when test="$leader6='g'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/film.png" alt="Film" class="materialtype mt_icon_VM"/> Film</xsl:when>
-                <xsl:when test="$leader6='k'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/picture.png" alt="Picture" class="materialtype mt_icon_GR"/> Picture</xsl:when>
-                <xsl:when test="$leader6='r'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/object.png" alt="Object" title="Object" class="materialtype mt_icon_OB"/> Object</xsl:when>
-                <xsl:when test="$leader6='c' or $leader6='d'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/music.png" alt="score" title="score" class="materialtype mt_icon_PR"/> Score</xsl:when>
-                <xsl:when test="$leader6='i'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/sound.png" alt="sound" title="sound" class="materialtype mt_icon_MU"/> Sound</xsl:when>
-                <xsl:when test="$leader6='j'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/sound.png" alt="music" title="music" class="materialtype mt_icon_MU"/> Music</xsl:when>
+                <xsl:when test="$leader6='t'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/book.png" alt="" class="materialtype mt_icon_BK"/> Text</xsl:when>
+                <xsl:when test="$leader6='o'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/report_disk.png" alt="" class="materialtype mt_icon_MX"/> Kit</xsl:when>
+                <xsl:when test="$leader6='p'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/report_disk.png" alt="" class="materialtype mt_icon_MX"/>Mixed materials</xsl:when>
+                <xsl:when test="$leader6='m'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/computer_link.png" alt="" class="materialtype mt_icon_CF"/> Computer file</xsl:when>
+                <xsl:when test="$leader6='e' or $leader6='f'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/map.png" alt="" class="materialtype mt_icon_MP"/> Map</xsl:when>
+                <xsl:when test="$leader6='g'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/film.png" alt="" class="materialtype mt_icon_VM"/> Film</xsl:when>
+                <xsl:when test="$leader6='k'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/picture.png" alt="" class="materialtype mt_icon_GR"/> Picture</xsl:when>
+                <xsl:when test="$leader6='r'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/object.png" alt="" class="materialtype mt_icon_OB"/> Object</xsl:when>
+                <xsl:when test="$leader6='c' or $leader6='d'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/music.png" alt="" class="materialtype mt_icon_PR"/> Score</xsl:when>
+                <xsl:when test="$leader6='i'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/sound.png" alt="" class="materialtype mt_icon_MU"/> Sound</xsl:when>
+                <xsl:when test="$leader6='j'"><img src="/intranet-tmpl/prog/img/famfamfam/silk/sound.png" alt="" class="materialtype mt_icon_MU"/> Music</xsl:when>
             </xsl:choose>
         </span>
     </xsl:if>
@@ -1000,9 +1021,10 @@
     </xsl:call-template>
 
     <xsl:if test="marc:datafield[@tag=856]">
-        <span class="results_summary online_access">
-            <span class="label">Online access: </span>
-            <xsl:for-each select="marc:datafield[@tag=856]">
+        <xsl:if test="marc:datafield[@tag=856]/marc:subfield[@code='u']">
+        <span class="results_summary online_resources">
+            <span class="label">Online resources: </span>
+            <xsl:for-each select="marc:datafield[@tag=856 and marc:subfield[@code='u']]">
                 <xsl:variable name="SubqText"><xsl:value-of select="marc:subfield[@code='q']"/></xsl:variable>
                 <a>
                     <xsl:attribute name="href">
@@ -1040,7 +1062,14 @@
                 </xsl:choose>
             </xsl:for-each>
         </span>
+        </xsl:if>
     </xsl:if>
+
+    <!-- Content Warning -->
+    <xsl:variable name="ContentWarningField" select="marc:sysprefs/marc:syspref[@name='ContentWarningField']"/>
+    <xsl:call-template name="content-warning">
+        <xsl:with-param name="tag" select="$ContentWarningField" />
+    </xsl:call-template>
 
     <!-- Indicate if record is suppressed in OPAC -->
     <xsl:if test="$OpacSuppression = 1">

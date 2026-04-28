@@ -20,6 +20,12 @@ package Koha::Patron::Debarments;
 use Modern::Perl;
 
 use C4::Context;
+use C4::Log qw( logaction );
+
+use Koha::Database;
+use Koha::Patrons;
+use Koha::Patron::Restriction::Types;
+use Koha::Patron::Restrictions;
 
 our ( @ISA, @EXPORT_OK );
 
@@ -71,16 +77,22 @@ sub AddDebarment {
     my $manager_id;
     $manager_id = C4::Context->userenv->{'number'} if C4::Context->userenv;
 
-    my $sql = "
-        INSERT INTO borrower_debarments ( borrowernumber, expiration, type, comment, manager_id, created )
-        VALUES ( ?, ?, ?, ?, ?, NOW() )
-    ";
-
-    my $r = C4::Context->dbh->do( $sql, {}, ( $borrowernumber, $expiration, $type, $comment, $manager_id ) );
+    my $restriction = Koha::Patron::Restriction->new(
+        {
+            borrowernumber => $borrowernumber,
+            expiration     => $expiration,
+            type           => $type,
+            comment        => $comment,
+            manager_id     => $manager_id,
+        }
+    )->store();
 
     UpdateBorrowerDebarmentFlags($borrowernumber);
 
-    return $r;
+    logaction( "MEMBERS", "CREATE_RESTRICTION", $borrowernumber, $restriction )
+        if C4::Context->preference("BorrowersLog");
+
+    return $restriction ? 1 : 0;
 }
 
 =head2 DelDebarment
@@ -92,17 +104,24 @@ Deletes a debarment.
 =cut
 
 sub DelDebarment {
-    my ($id) = @_;
+    my ($borrower_debarment_id) = @_;
 
-    my $borrowernumber = _GetBorrowernumberByDebarmentId($id);
+    my $restriction = Koha::Patron::Restrictions->find($borrower_debarment_id);
 
-    my $sql = "DELETE FROM borrower_debarments WHERE borrower_debarment_id = ?";
+    return unless $restriction;
 
-    my $r = C4::Context->dbh->do( $sql, {}, ($id) );
+    Koha::Database->new->schema->txn_do(
+        sub {
+            my $borrowernumber = $restriction->borrowernumber;
+            logaction( "MEMBERS", "DELETE_RESTRICTION", $borrowernumber, $restriction )
+                if C4::Context->preference("BorrowersLog");
 
-    UpdateBorrowerDebarmentFlags($borrowernumber);
+            $restriction->delete;
+            UpdateBorrowerDebarmentFlags($borrowernumber);
+        }
+    );
 
-    return $r;
+    return 1;
 }
 
 =head2 ModDebarment
@@ -143,7 +162,13 @@ sub ModDebarment {
 
     my $r = C4::Context->dbh->do( $sql, {}, ( @values, $borrower_debarment_id ) );
 
-    UpdateBorrowerDebarmentFlags( _GetBorrowernumberByDebarmentId($borrower_debarment_id) );
+    my $borrowernumber = _GetBorrowernumberByDebarmentId($borrower_debarment_id);
+    UpdateBorrowerDebarmentFlags($borrowernumber);
+
+    logaction(
+        "MEMBERS", "MODIFY_RESTRICTION", $borrowernumber,
+        Koha::Patron::Restrictions->find($borrower_debarment_id)
+    ) if C4::Context->preference("BorrowersLog");
 
     return $r;
 }
@@ -268,6 +293,41 @@ sub UpdateBorrowerDebarmentFlags {
     }
 
     return $dbh->do( "UPDATE borrowers SET debarred = ?, debarredcomment = ? WHERE borrowernumber = ?", {}, ( $expiration, $comment, $borrowernumber ) );
+}
+
+=head2 del_restrictions_after_payment
+
+    my $success = del_restrictions_after_payment({
+        borrowernumber => $borrowernumber,
+    });
+
+Deletes any restrictions from patron by following the rules
+defined in "Patron restrictions".
+
+=cut
+
+sub del_restrictions_after_payment {
+    my ($params) = @_;
+
+    my $borrowernumber = $params->{'borrowernumber'};
+    return unless ($borrowernumber);
+
+    my $patron = Koha::Patrons->find($borrowernumber);
+    return unless ($patron);
+
+    my $restrictions = $patron->restrictions;
+    return unless ( $restrictions->count );
+
+    my $lines     = Koha::Account::Lines->search( { borrowernumber => $borrowernumber } );
+    my $total_due = $lines->total_outstanding;
+
+    while ( my $restriction = $restrictions->next ) {
+        if (   $restriction->type->lift_after_payment
+            && $total_due <= $restriction->type->fee_limit )
+        {
+            DelDebarment( $restriction->borrower_debarment_id );
+        }
+    }
 }
 
 =head2 _GetBorrowernumberByDebarmentId

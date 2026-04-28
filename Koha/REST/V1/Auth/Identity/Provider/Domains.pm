@@ -44,18 +44,10 @@ sub list {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $identity_provider_id = $c->validation->param('identity_provider_id');
-        my $provider         = Koha::Auth::Identity::Providers->find($identity_provider_id);
+        my $provider = Koha::Auth::Identity::Providers->find( $c->param('identity_provider_id') );
 
-        unless ($provider) {
-            return $c->render(
-                status  => 404,
-                openapi => {
-                    error      => 'Object not found',
-                    error_code => 'not_found',
-                }
-            );
-        }
+        return $c->render_resource_not_found("Identity provider")
+            unless $provider;
 
         my $domains_rs = $provider->domains;
         return $c->render(
@@ -78,33 +70,17 @@ sub get {
 
     return try {
 
-        my $identity_provider_id = $c->validation->param('identity_provider_id');
-        my $provider         = Koha::Auth::Identity::Providers->find($identity_provider_id);
+        my $provider = Koha::Auth::Identity::Providers->find( $c->param('identity_provider_id') );
 
-        unless ($provider) {
-            return $c->render(
-                status  => 404,
-                openapi => {
-                    error      => 'Object not found',
-                    error_code => 'not_found',
-                }
-            );
-        }
+        return $c->render_resource_not_found("Identity provider")
+            unless $provider;
 
         my $domains_rs = $provider->domains;
 
-        my $identity_provider_domain_id = $c->validation->param('identity_provider_domain_id');
-        my $domain                  = $c->objects->find( $domains_rs, $identity_provider_domain_id );
+        my $domain = $c->objects->find( $domains_rs, $c->param('identity_provider_domain_id') );
 
-        unless ($domain) {
-            return $c->render(
-                status  => 404,
-                openapi => {
-                    error      => 'Object not found',
-                    error_code => 'not_found',
-                }
-            );
-        }
+        return $c->render_resource_not_found("Identity provider domain")
+            unless $domain;
 
         return $c->render( status => 200, openapi => $domain );
     } catch {
@@ -122,8 +98,8 @@ sub add {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $params = $c->validation->param('body');
-        $params->{identity_provider_id} = $c->validation->param('identity_provider_id');
+        my $params = $c->req->json;
+        $params->{identity_provider_id} = $c->param('identity_provider_id');
         Koha::Database->new->schema->txn_do(
             sub {
                 my $domain = Koha::Auth::Identity::Provider::Domain->new_from_api( $params );
@@ -132,7 +108,7 @@ sub add {
                 $c->res->headers->location( $c->req->url->to_string . '/' . $domain->id );
                 return $c->render(
                     status  => 201,
-                    openapi => $domain->to_api
+                    openapi => $c->objects->to_api($domain),
                 );
             }
         );
@@ -160,33 +136,27 @@ Controller method for updating an identity provider domain.
 sub update {
     my $c = shift->openapi->valid_input or return;
 
-    my $identity_provider_id        = $c->validation->param('identity_provider_id');
-    my $identity_provider_domain_id = $c->validation->param('identity_provider_domain_id');
-
     my $domain = Koha::Auth::Identity::Provider::Domains->find(
-        { identity_provider_id => $identity_provider_id, identity_provider_domain_id => $identity_provider_domain_id } );
+        {
+            identity_provider_id        => $c->param('identity_provider_id'),
+            identity_provider_domain_id => $c->param('identity_provider_domain_id')
+        }
+    );
 
-    unless ($domain) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error      => 'Object not found',
-                error_code => 'not_found',
-            }
-        );
-    }
+    return $c->render_resource_not_found("Identity provider domain")
+        unless $domain;
 
     return try {
 
         Koha::Database->new->schema->txn_do(
             sub {
 
-                $domain->set_from_api( $c->validation->param('body') );
+                $domain->set_from_api( $c->req->json );
                 $domain->store->discard_changes;
 
                 return $c->render(
                     status  => 200,
-                    openapi => $domain->to_api
+                    openapi => $c->objects->to_api($domain),
                 );
             }
         );
@@ -204,28 +174,19 @@ Controller method for deleting an identity provider.
 sub delete {
     my $c = shift->openapi->valid_input or return;
 
-    my $identity_provider_id        = $c->validation->param('identity_provider_id');
-    my $identity_provider_domain_id = $c->validation->param('identity_provider_domain_id');
-
     my $domain = Koha::Auth::Identity::Provider::Domains->find(
-        { identity_provider_id => $identity_provider_id, identity_provider_domain_id => $identity_provider_domain_id } );
+        {
+            identity_provider_id        => $c->param('identity_provider_id'),
+            identity_provider_domain_id => $c->param('identity_provider_domain_id')
+        }
+    );
 
-    unless ($domain) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error      => 'Object not found',
-                error_code => 'not_found',
-            }
-        );
-    }
+    return $c->render_resource_not_found("Identity provider domain")
+        unless $domain;
 
     return try {
         $domain->delete;
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
+        return $c->render_resource_deleted;
     } catch {
         $c->unhandled_exception($_);
     };

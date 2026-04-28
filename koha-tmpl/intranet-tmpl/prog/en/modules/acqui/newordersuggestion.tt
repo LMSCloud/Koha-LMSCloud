@@ -1,11 +1,17 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Branches %]
 [% USE Price %]
 [% USE Asset %]
+[% USE AuthorisedValues %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Add order from a suggestion &rsaquo; Acquisitions &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Add order from a suggestion") | html %] &rsaquo;
+    [% t("Acquisitions") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 
 <body id="acq_newordersuggestion" class="acq">
@@ -32,8 +38,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-2">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 <h1>Suggestions</h1>
 
@@ -45,6 +52,7 @@
                 <tr>
                     <th>Mine</th>
                     <th>Suggestion</th>
+                    <th>Document type</th>
                     <th>Suggested by</th>
                     <th>Accepted by</th>
                     <th>Library</th>
@@ -71,6 +79,7 @@
                                     [% IF ( suggestion.note ) %]<p><em>([% suggestion.note | html %])</em></p> [% END %]
                                 </p>
                             </td>
+                            <td>[% AuthorisedValues.GetByCode( 'SUGGEST_FORMAT', suggestion.itemtype ) | html %]</td>
                             <td>[% INCLUDE 'patron-title.inc' patron => suggestion.suggester %]</td>
                             <td>[% INCLUDE 'patron-title.inc' patron => suggestion.manager %]</td>
                             <td>
@@ -106,13 +115,13 @@
         [% END %]
     </div> <!-- /.page-section -->
 </main>
-</div> <!-- /.col-sm-10.col-sm-push-2 -->
+</div> <!-- /.col-md-10.order-md-2 -->
 
-<div class="col-sm-2 col-sm-pull-10">
+<div class="col-md-2 order-sm-2 order-md-1">
     <aside>
         [% INCLUDE 'acquisitions-menu.inc' %]
     </aside>
-</div> <!-- /.col-sm-2.col-sm-pull-10 -->
+</div> <!-- /.col-md-2.order-md-1 -->
 </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -122,19 +131,20 @@
     <script>
     $(document).ready(function() {
         var suggestionst = $("#suggestionst").dataTable($.extend(true, {}, dataTablesDefaults, {
-            "aoColumnDefs": [
-                { "aTargets": [ 0 ],  "bVisible": false, "bSearchable": true }, // must be searchable for fnFilter
-                { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
+            "columnDefs": [
+                { "targets": [ 0 ],  "visible": false, "searchable":  true }, // must be searchable for filtering
+                { "targets": [ -1 ], "orderable": false, "searchable":  false },
             ],
-            "sPaginationType": "full"
+            "pagingType": "full"
         }));
+        let table_dt = suggestionst.DataTable();
         $("#show_only_mine").on('click', function(e){
             e.preventDefault();
-            suggestionst.fnFilter('^[% logged_in_user.borrowernumber | html %]$', 0, true);
+            table_dt.columns(0).search('^[% logged_in_user.borrowernumber | html %]$', true).draw();
         });
         $("#show_all").on('click', function(e){
             e.preventDefault();
-            suggestionst.fnFilter('', 0 );
+            table_dt.columns(0).search("").draw();
         });
      });
     </script>

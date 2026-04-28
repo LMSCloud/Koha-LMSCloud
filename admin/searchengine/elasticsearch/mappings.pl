@@ -28,6 +28,7 @@ use Koha::SearchEngine::Elasticsearch::QueryBuilder;
 use Koha::SearchMarcMaps;
 use Koha::SearchFields;
 use Koha::Caches;
+use Koha::AuthorisedValues;
 
 use Try::Tiny qw( catch try );
 use Module::Load::Conditional qw( can_load );
@@ -86,16 +87,16 @@ while ( my ( $key, $value ) = each(%{Koha::SearchEngine::Elasticsearch::QueryBui
     $search_fields_aliases->{$value} = $field_aliases;
 }
 
-if ( $op eq 'edit' ) {
+if ( $op eq 'cud-edit' ) {
 
     $schema->storage->txn_begin;
 
-    my @field_name = $input->multi_param('search_field_name');
-    my @field_label = $input->multi_param('search_field_label');
-    my @field_type = $input->multi_param('search_field_type');
-    my @field_weight = $input->multi_param('search_field_weight');
+    my @field_name         = $input->multi_param('search_field_name');
+    my @field_label        = $input->multi_param('search_field_label');
+    my @field_type         = $input->multi_param('search_field_type');
+    my @field_weight       = $input->multi_param('search_field_weight');
     my @field_staff_client = $input->multi_param('search_field_staff_client');
-    my @field_opac = $input->multi_param('search_field_opac');
+    my @field_opac         = $input->multi_param('search_field_opac');
 
     my @index_name          = $input->multi_param('mapping_index_name');
     my @search_field_name   = $input->multi_param('mapping_search_field_name');
@@ -103,80 +104,95 @@ if ( $op eq 'edit' ) {
     my @mapping_facet       = $input->multi_param('mapping_facet');
     my @mapping_suggestible = $input->multi_param('mapping_suggestible');
     my @mapping_search      = $input->multi_param('mapping_search');
+    my @mapping_filter      = $input->multi_param('mapping_filter');
     my @mapping_marc_field  = $input->multi_param('mapping_marc_field');
-    my @faceted_field_names = $input->multi_param('display_facet');
+    my @faceted_field_names = $input->multi_param('facet_name');
 
     eval {
 
+        Koha::SearchFields->search()->delete;
+
         for my $i ( 0 .. scalar(@field_name) - 1 ) {
-            my $field_name = $field_name[$i];
-            my $field_label = $field_label[$i];
-            my $field_type = $field_type[$i];
-            my $field_weight = $field_weight[$i];
+            my $field_name         = $field_name[$i];
+            my $field_label        = $field_label[$i];
+            my $field_type         = $field_type[$i];
+            my $field_weight       = $field_weight[$i];
             my $field_staff_client = $field_staff_client[$i];
-            my $field_opac = $field_opac[$i];
+            my $field_opac         = $field_opac[$i];
+            my $av_category        = $input->param( 'facet_av_cat_' . $field_name );
 
-            my $search_field = Koha::SearchFields->find( { name => $field_name }, { key => 'name' } );
-            $search_field->label($field_label);
-            $search_field->type($field_type);
+            my $search_field = Koha::SearchFields->find_or_create(
+                {
+                    name  => $field_name,
+                    label => $field_label,
+                    type  => $field_type,
+                }
+            );
 
-            if (!length($field_weight)) {
+            if ( !length($field_weight) ) {
                 $search_field->weight(undef);
-            }
-            elsif ($field_weight <= 0 || !looks_like_number($field_weight)) {
+            } elsif ( $field_weight <= 0 || !looks_like_number($field_weight) ) {
                 push @errors, { type => 'error', code => 'invalid_field_weight', 'weight' => $field_weight };
-            }
-            else {
+            } else {
                 $search_field->weight($field_weight);
             }
-            $search_field->staff_client($field_staff_client ? 1 : 0);
-            $search_field->opac($field_opac ? 1 : 0);
+            $search_field->staff_client( $field_staff_client ? 1 : 0 );
+            $search_field->opac( $field_opac                 ? 1 : 0 );
 
             my $facet_order = first { $faceted_field_names[$_] eq $field_name } 0 .. $#faceted_field_names;
-            $search_field->facet_order(defined $facet_order ? $facet_order + 1 : undef);
+            $search_field->facet_order( defined $facet_order ? $facet_order + 1 : undef );
+            $search_field->authorised_value_category($av_category);
             $search_field->store;
         }
 
         Koha::SearchMarcMaps->search( { marc_type => $marc_type, } )->delete;
-        my @facetable_fields = Koha::SearchEngine::Elasticsearch->get_facetable_fields();
+        my @facetable_fields      = Koha::SearchEngine::Elasticsearch->get_facet_fields();
         my @facetable_field_names = map { $_->name } @facetable_fields;
 
-        my $mandatory_before = Koha::SearchFields->search({mandatory=>1})->count;
+        my $mandatory_before = Koha::SearchFields->search( { mandatory => 1 } )->count;
         my $mandatory_after  = 0;
         my %seen_fields;
         for my $i ( 0 .. scalar(@index_name) - 1 ) {
-            my $index_name          = $index_name[$i];
-            my $search_field_name   = $search_field_name[$i];
-            my $mapping_marc_field  = $mapping_marc_field[$i];
-            my $mapping_facet       = $mapping_facet[$i];
+            my $index_name         = $index_name[$i];
+            my $search_field_name  = $search_field_name[$i];
+            my $mapping_marc_field = $mapping_marc_field[$i];
+            my $mapping_facet      = $mapping_facet[$i];
             $mapping_facet = ( grep { $_ eq $search_field_name } @facetable_field_names ) ? $mapping_facet : 0;
             my $mapping_suggestible = $mapping_suggestible[$i];
             my $mapping_sort        = $mapping_sort[$i];
             my $mapping_search      = $mapping_search[$i];
+            my $mapping_filter      = $mapping_filter[$i];
 
-            my $search_field = Koha::SearchFields->find({ name => $search_field_name }, { key => 'name' });
+            my $search_field = Koha::SearchFields->find( { name => $search_field_name }, { key => 'name' } );
             $mandatory_after++ if $search_field->mandatory && !defined $seen_fields{$search_field_name};
             $seen_fields{$search_field_name} = 1;
 
             # TODO Check mapping format
             $mapping_marc_field =~ s/(^\s+|\s+$)//;
 
-            my $marc_field = Koha::SearchMarcMaps->find_or_create({
-                index_name => $index_name,
-                marc_type => $marc_type,
-                marc_field => $mapping_marc_field
-            });
-            $search_field->add_to_search_marc_maps($marc_field, {
-                facet => $mapping_facet,
-                suggestible => $mapping_suggestible,
-                sort => $mapping_sort,
-                search => $mapping_search
-            });
+            my $marc_field = Koha::SearchMarcMaps->find_or_create(
+                {
+                    index_name => $index_name,
+                    marc_type  => $marc_type,
+                    marc_field => $mapping_marc_field
+                }
+            );
+            $search_field->add_to_search_marc_maps(
+                $marc_field,
+                {
+                    facet       => $mapping_facet,
+                    suggestible => $mapping_suggestible,
+                    sort        => $mapping_sort,
+                    search      => $mapping_search,
+                    filter      => $mapping_filter
+                }
+            );
         }
         push @errors, { type => 'error', code => 'missing_mandatory_fields' } if $mandatory_after < $mandatory_before;
     };
-    if ($@ || @errors) {
-        push @errors, { type => 'error', code => 'error_on_update', message => $@, }; # FIXME $@ can be empty but @errors
+    if ( $@ || @errors ) {
+        push @errors,
+            { type => 'error', code => 'error_on_update', message => $@, };    # FIXME $@ can be empty but @errors
         $schema->storage->txn_rollback;
     } else {
         push @messages, { type => 'message', code => 'success_on_update' };
@@ -190,7 +206,7 @@ if ( $op eq 'edit' ) {
         $update_mappings->();
     }
 }
-elsif( $op eq 'reset_confirmed' ) {
+elsif( $op eq 'cud-reset_confirmed' ) {
     Koha::SearchEngine::Elasticsearch->reset_elasticsearch_mappings;
     push @messages, { type => 'message', code => 'success_on_reset' };
     C4::Log::logaction( 'SEARCHENGINE', 'RESET_MAPPINGS', undef, q{} );
@@ -222,20 +238,21 @@ for my $index_name (@index_names) {
     }
 }
 
-my @facetable_fields = Koha::SearchEngine::Elasticsearch->get_facetable_fields();
+my @facetable_fields = Koha::SearchEngine::Elasticsearch->get_facet_fields();
 for my $index_name (@index_names) {
     my $search_fields = Koha::SearchFields->search(
         {
             'search_marc_map.index_name' => $index_name,
-            'search_marc_map.marc_type' => $marc_type,
+            'search_marc_map.marc_type'  => $marc_type,
         },
         {
-            join => { search_marc_to_fields => 'search_marc_map' },
+            join      => { search_marc_to_fields => 'search_marc_map' },
             '+select' => [
                 'search_marc_to_fields.facet',
                 'search_marc_to_fields.suggestible',
                 'search_marc_to_fields.sort',
                 'search_marc_to_fields.search',
+                'search_marc_to_fields.filter',
                 'search_marc_map.marc_field'
             ],
             '+as' => [
@@ -243,11 +260,12 @@ for my $index_name (@index_names) {
                 'suggestible',
                 'sort',
                 'search',
+                'filter',
                 'marc_field'
             ],
             order_by => { -asc => [qw/name marc_field/] }
-         }
-     );
+        }
+    );
 
     my @mappings;
     my @facetable_field_names = map { $_->name } @facetable_fields;
@@ -263,6 +281,7 @@ for my $index_name (@index_names) {
             sort               => $s->get_column('sort') // 'undef', # To avoid warnings "Use of uninitialized value in lc"
             suggestible        => $s->get_column('suggestible'),
             search             => $s->get_column('search'),
+            filter             => $s->get_column('filter'),
             facet              => $s->get_column('facet'),
             is_facetable       => ( grep { $_ eq $name } @facetable_field_names ) ? 1 : 0,
         };
@@ -276,16 +295,19 @@ my @all_search_fields;
 while ( my $search_field = $search_fields->next ) {
     my $search_field_unblessed = $search_field->unblessed;
     $search_field_unblessed->{mapped_biblios} = 1 if $search_field->is_mapped_biblios;
+    $search_field_unblessed->{is_mapped} = $search_field->is_mapped;
     $search_field_unblessed->{aliases} = $search_fields_aliases->{$search_field_unblessed->{name}};
     push @all_search_fields, $search_field_unblessed;
 }
 
+my @authorised_value_categories = Koha::AuthorisedValues->new->categories;
 push @messages, @errors;
 $template->param(
-    indexes           => \@indexes,
-    all_search_fields => \@all_search_fields,
-    facetable_fields  => \@facetable_fields,
-    messages          => \@messages,
+    indexes                     => \@indexes,
+    all_search_fields           => \@all_search_fields,
+    facetable_fields            => \@facetable_fields,
+    messages                    => \@messages,
+    authorised_value_categories => \@authorised_value_categories,
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

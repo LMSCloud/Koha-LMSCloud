@@ -42,7 +42,9 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 
 my @messages;
 
-if ( $op eq 'add' ) {
+my $smtp_servers = Koha::SMTP::Servers->search;
+
+if ( $op eq 'cud-add' ) {
 
     my $name       = $input->param('smtp_name');
     my $host       = $input->param('smtp_host');
@@ -52,8 +54,10 @@ if ( $op eq 'add' ) {
     my $user_name  = $input->param('smtp_user_name') || undef;
     my $password   = $input->param('smtp_password') || undef;
     my $debug      = ( scalar $input->param('smtp_debug_mode') ) ? 1 : 0;
+    my $is_default = ( scalar $input->param('smtp_default') ) ? 1 : 0;
 
     try {
+
         Koha::SMTP::Server->new(
             {
                 name       => $name,
@@ -64,6 +68,7 @@ if ( $op eq 'add' ) {
                 user_name  => $user_name,
                 password   => $password,
                 debug      => $debug,
+                is_default => $is_default,
             }
         )->store;
 
@@ -92,7 +97,8 @@ elsif ( $op eq 'edit_form' ) {
 
     if ( $smtp_server ) {
         $template->param(
-            smtp_server => $smtp_server
+            smtp_server => $smtp_server,
+            default_config => $smtp_servers->get_default,
         );
     }
     else {
@@ -104,7 +110,7 @@ elsif ( $op eq 'edit_form' ) {
             };
     }
 }
-elsif ( $op eq 'edit_save' ) {
+elsif ( $op eq 'cud-edit_save' ) {
 
     my $smtp_server_id = $input->param('smtp_server_id');
     my $smtp_server;
@@ -122,21 +128,24 @@ elsif ( $op eq 'edit_save' ) {
         my $user_name  = $input->param('smtp_user_name') || undef;
         my $password   = $input->param('smtp_password') || undef;
         my $debug      = ( scalar $input->param('smtp_debug_mode') ) ? 1 : 0;
+        my $is_default = ( scalar $input->param('smtp_default') ) ? 1 : 0;
 
         try {
+
             $smtp_server->password( $password )
                 if defined $password and $password ne '****'
                     or not defined $password;
 
             $smtp_server->set(
                 {
-                    name      => $name,
-                    host      => $host,
-                    port      => $port,
-                    timeout   => $timeout,
-                    ssl_mode  => $ssl_mode,
-                    user_name => $user_name,
-                    debug     => $debug
+                    name       => $name,
+                    host       => $host,
+                    port       => $port,
+                    timeout    => $timeout,
+                    ssl_mode   => $ssl_mode,
+                    user_name  => $user_name,
+                    debug      => $debug,
+                    is_default => $is_default,
                 }
             )->store;
 
@@ -168,7 +177,6 @@ elsif ( $op eq 'edit_save' ) {
 }
 
 if ( $op eq 'list' ) {
-    my $smtp_servers = Koha::SMTP::Servers->search;
     $template->param(
         servers_count  => $smtp_servers->count,
         default_config => $smtp_servers->get_default,

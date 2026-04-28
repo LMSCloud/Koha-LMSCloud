@@ -2,11 +2,20 @@
 [% USE Asset %]
 [% USE Koha %]
 [% USE AdditionalContents %]
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% PROCESS 'opac-authorities.inc' %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% summary.mainentry | html %][% IF authtypetext %] ([% authtypetext | html %])[% END %] &rsaquo; Authority search &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+<title>[% FILTER collapse %]
+    [% summary.mainentry | html %]
+    [% IF authtypetext %]
+        ([% authtypetext | html %])
+    [% END %] &rsaquo;
+    [% t("Authority search") | html %] &rsaquo;
+    [% PROCESS 'library_name_title' %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %]
     [% IF ( displayhierarchy ) %]
@@ -21,19 +30,14 @@
 [% INCLUDE 'masthead.inc' %]
 
     <div class="main">
-        <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item">
-                    <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-                </li>
-                <li class="breadcrumb-item">
-                    <a href="/cgi-bin/koha/opac-authorities-home.pl">Authority search</a>
-                </li>
-                <li class="breadcrumb-item active">
-                    <a href="#" aria-current="page">[% summary.mainentry | html %][% IF authtypetext %] ([% authtypetext | html %])[% END %]</a>
-                </li>
-            </ol>
-        </nav> <!-- /#breadcrumbs -->
+        [% WRAPPER breadcrumbs %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/opac-authorities-home.pl">Authority search</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                [% summary.mainentry | html %][% IF authtypetext %] ([% authtypetext | html %])[% END %]
+            [% END %]
+        [% END #/ WRAPPER breadcrumbs %]
 
         <div class="container-fluid">
             <div class="row">
@@ -43,12 +47,12 @@
                             [% INCLUDE 'navigation.inc' %]
                         </div>
                     </div>
-                    [% IF Koha.Preference( 'OPACAuthorIdentifiers' ) && author_identifiers.size %]
+                    [% IF Koha.Preference( 'OPACAuthorIdentifiersAndInformation' ) && author_information.size %]
                         <div class="col-lg-5 order-first order-md-first order-lg-2">
                     [% ELSE %]
                         <div class="col-lg-10 order-first order-md-first order-lg-2">
                     [% END %]
-                [% ELSIF Koha.Preference( 'OPACAuthorIdentifiers' ) && author_identifiers.size %]
+                [% ELSIF Koha.Preference( 'OPACAuthorIdentifiersAndInformation' ) && author_information.size %]
                     <div class="col-lg-6 order-first order-md-first order-lg-2">
                 [% ELSE %]
                     <div class="col order-first order-md-first order-lg-2">
@@ -181,17 +185,18 @@
 
                     </div> <!-- / .#userauthdetails -->
                 </div> <!-- / .col-lg-10/12 -->
-                [% IF Koha.Preference( 'OPACAuthorIdentifiers' ) && author_identifiers.size %]
+                [% IF Koha.Preference( 'OPACAuthorIdentifiersAndInformation' ) && author_information.size %]
                     [% IF ( OpacNav || OpacNavBottom ) %]
                         <div class="col-lg-5 order-lg-3">
                     [% ELSE %]
                         <div class="col-lg-6 order-lg-3">
                     [% END %]
-                        <div class="author_identifier">
-                            <span>Identifiers</span>
+                        <div class="author_identifier_info">
+                            <span>Author information</span>
                             <ul>
-                            [% FOR identifier IN author_identifiers %]
-                                [% PROCESS "authority-identifiers.inc" identifier => identifier %]
+                            [% FOR info IN Koha.Preference( 'OPACAuthorIdentifiersAndInformation' ).split(',') %]
+                                [% NEXT IF author_information.keys.grep(info).size <= 0 %]
+                                [% PROCESS "authority-information.inc" information => author_information.$info, info_type => info %]
                             [% END %]
                             </ul>
                         </div>
@@ -212,7 +217,7 @@
             $('#hierarchies').jstree({
                 "types" : {
                     "default" : {
-                        "icon" : "fa fa-file-o"
+                        "icon" : "fa-solid fa-file"
                     }
                 },
                 "plugins" : [ "types" ]

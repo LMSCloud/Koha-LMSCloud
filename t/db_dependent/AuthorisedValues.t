@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Test::More tests => 16;
+use Test::More tests => 17;
+use Test::Exception;
 use Try::Tiny;
 
 use t::lib::TestBuilder;
@@ -11,6 +12,7 @@ use C4::Context;
 use Koha::AuthorisedValue;
 use Koha::AuthorisedValues;
 use Koha::AuthorisedValueCategories;
+use Koha::Exceptions;
 use Koha::MarcSubfieldStructures;
 
 my $schema  = Koha::Database->new->schema;
@@ -144,7 +146,7 @@ is_deeply(
 );
 
 subtest 'search_by_*_field + find_by_koha_field + get_description + authorised_values' => sub {
-    plan tests => 6;
+    plan tests => 7;
 
     my $test_cat = Koha::AuthorisedValueCategories->find('TEST');
     $test_cat->delete if $test_cat;
@@ -156,17 +158,26 @@ subtest 'search_by_*_field + find_by_koha_field + get_description + authorised_v
     $mss->delete if $mss;
     $mss = Koha::MarcSubfieldStructures->search( { tagfield => 952, tagsubfield => '5', frameworkcode => '' } );
     $mss->delete if $mss;
+    $mss = Koha::MarcSubfieldStructures->search( { tagfield => '003', frameworkcode => '' } );
+    $mss->delete if $mss;
     Koha::AuthorisedValueCategory->new( { category_name => 'TEST' } )->store;
+    Koha::AuthorisedValueCategory->new( { category_name => 'CONTROL_TEST' } )->store;
     Koha::AuthorisedValueCategory->new( { category_name => 'ANOTHER_4_TESTS' } )->store;
     Koha::MarcSubfieldStructure->new( { tagfield => 952, tagsubfield => 'c', frameworkcode => '', authorised_value => 'TEST', kohafield => 'items.location' } )->store;
     Koha::MarcSubfieldStructure->new( { tagfield => 952, tagsubfield => 'c', frameworkcode => 'ACQ', authorised_value => 'TEST', kohafield => 'items.location' } )->store;
     Koha::MarcSubfieldStructure->new( { tagfield => 952, tagsubfield => 'd', frameworkcode => '', authorised_value => 'ANOTHER_4_TESTS', kohafield => 'items.another_field' } )->store;
     Koha::MarcSubfieldStructure->new( { tagfield => 952, tagsubfield => '5', frameworkcode => '', authorised_value => 'restricted_for_testing', kohafield => 'items.restricted' } )->store;
+    Koha::MarcSubfieldStructure->new( { tagfield => '003', tagsubfield => '@', frameworkcode => '', authorised_value => 'CONTROL_TEST', } )
+        ->store;
     Koha::AuthorisedValue->new( { category => 'TEST', authorised_value => 'location_1', lib => 'location_1' } )->store;
     Koha::AuthorisedValue->new( { category => 'TEST', authorised_value => 'location_2', lib => 'location_2' } )->store;
     Koha::AuthorisedValue->new( { category => 'TEST', authorised_value => 'location_3', lib => 'location_3' } )->store;
     Koha::AuthorisedValue->new( { category => 'ANOTHER_4_TESTS', authorised_value => 'an_av' } )->store;
     Koha::AuthorisedValue->new( { category => 'ANOTHER_4_TESTS', authorised_value => 'another_av' } )->store;
+
+    Koha::AuthorisedValue->new( { category => 'CONTROL_TEST', authorised_value => 'lib1', lib => 'lib1' } )->store;
+    Koha::AuthorisedValue->new( { category => 'CONTROL_TEST', authorised_value => 'lib2', lib => 'lib2' } )->store;
+
     subtest 'search_by_marc_field' => sub {
         plan tests => 4;
         my $avs;
@@ -252,6 +263,44 @@ subtest 'search_by_*_field + find_by_koha_field + get_description + authorised_v
             ],
         );
     };
+
+    subtest 'get_descriptions_by_marc_field' => sub {
+        plan tests => 4;
+
+        my $control_descriptions =
+            Koha::AuthorisedValues->get_descriptions_by_marc_field( { frameworkcode => '', tagfield => '003', } );
+        is_deeply(
+            $control_descriptions,
+            {
+                'lib1' => 'lib1',
+                'lib2' => 'lib2',
+            },
+        );
+
+        my $control_descriptions_cached =
+            Koha::AuthorisedValues->get_descriptions_by_marc_field( { frameworkcode => '', tagfield => '003', } );
+
+        is(
+            "$control_descriptions", "$control_descriptions_cached",
+            "Same memory address used proves cached control desc data"
+        );
+
+        my $descriptions = Koha::AuthorisedValues->get_descriptions_by_marc_field(
+            { frameworkcode => '', tagfield => '952', tagsubfield => 'c' } );
+        is_deeply(
+            $descriptions,
+            {
+                'location_1' => 'location_1',
+                'location_2' => 'location_2',
+                'location_3' => 'location_3',
+            },
+        );
+
+        my $descriptions_cached = Koha::AuthorisedValues->get_descriptions_by_marc_field(
+            { frameworkcode => '', tagfield => '952', tagsubfield => 'c' } );
+        is( "$descriptions", "$descriptions_cached", "Same memory address used proves cached desc data" );
+    };
+
     subtest 'authorised_values' => sub {
 
         plan tests => 2;
@@ -283,6 +332,52 @@ subtest 'search_by_*_field + find_by_koha_field + get_description + authorised_v
 
         $schema->storage->txn_rollback;
     };
+};
+
+subtest 'is_integer_only' => sub {
+    plan tests => 13;
+    $schema->storage->txn_begin;
+
+    my $avcat1 = $builder->build_object( { class => 'Koha::AuthorisedValueCategories' } );
+    my $avcat2 = $builder->build_object( { class => 'Koha::AuthorisedValueCategories' } );
+    $avcat2->is_integer_only(1)->store;
+    is( $avcat1->is_integer_only, 0, 'No numeric requirement expected' );
+    is( $avcat2->is_integer_only, 1, 'Numeric requirement expected' );
+
+    my $avval1 = $builder->build_object(
+        {
+            class => 'Koha::AuthorisedValues',
+            value => { category => $avcat1->category_name, authorised_value => 'abc' }
+        }
+    );
+    my $avval2 = $builder->build_object(
+        {
+            class => 'Koha::AuthorisedValues',
+            value => { category => $avcat2->category_name, authorised_value => '123' }
+        }
+    );
+
+    # Test helper method on child (authval)
+    is( $avval1->is_integer_only, 0, 'No numeric requirement expected' );
+    is( $avval2->is_integer_only, 1, 'Numeric requirement expected' );
+
+    lives_ok { $avval2->authorised_value(-1)->store } 'No exception expected';
+    lives_ok { $avval2->authorised_value(0)->store } 'No exception expected';
+    lives_ok { $avval2->authorised_value(22)->store } 'No exception expected';
+
+    # Test ->store with bad data
+    throws_ok { $avval2->authorised_value(undef)->store } 'Koha::Exceptions::NoInteger',
+        'Exception expected (undefined)';
+    throws_ok { $avval2->authorised_value('')->store } 'Koha::Exceptions::NoInteger',    'Exception expected (empty)';
+    throws_ok { $avval2->authorised_value('abc')->store } 'Koha::Exceptions::NoInteger', 'Exception expected for abc';
+    throws_ok { $avval2->authorised_value('+12')->store } 'Koha::Exceptions::NoInteger',
+        'Exception expected for + sign';
+    throws_ok { $avval2->authorised_value(' 12')->store } 'Koha::Exceptions::NoInteger',
+        'Exception expected for preceding space';
+    throws_ok { $avval2->authorised_value('12 ')->store } 'Koha::Exceptions::NoInteger',
+        'Exception expected for trailing space';
+
+    $schema->storage->txn_rollback;
 };
 
 $schema->storage->txn_rollback;

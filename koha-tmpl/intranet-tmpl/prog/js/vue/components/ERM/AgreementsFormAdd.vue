@@ -25,12 +25,9 @@
                             <label for="agreement_vendor_id"
                                 >{{ $__("Vendor") }}:</label
                             >
-                            <v-select
+                            <FormSelectVendors
                                 id="agreement_vendor_id"
                                 v-model="agreement.vendor_id"
-                                label="name"
-                                :reduce="vendor => vendor.id"
-                                :options="vendors"
                             />
                         </li>
                         <li>
@@ -135,6 +132,11 @@
                         </li>
                     </ol>
                 </fieldset>
+                <AdditionalFieldsEntry
+                    resource_type="agreement"
+                    :additional_field_values="agreement.extended_attributes"
+                    @additional-fields-changed="additionalFieldsChanged"
+                />
                 <AgreementPeriods :periods="agreement.periods" />
                 <UserRoles
                     :user_type="$__('Agreement user %s')"
@@ -177,16 +179,15 @@ import UserRoles from "./UserRoles.vue"
 import AgreementLicenses from "./AgreementLicenses.vue"
 import AgreementRelationships from "./AgreementRelationships.vue"
 import Documents from "./Documents.vue"
+import AdditionalFieldsEntry from "../AdditionalFieldsEntry.vue"
 import ButtonSubmit from "../ButtonSubmit.vue"
+import FormSelectVendors from "../FormSelectVendors.vue"
 import { setMessage, setError, setWarning } from "../../messages"
 import { APIClient } from "../../fetch/api-client.js"
 import { storeToRefs } from "pinia"
 
 export default {
     setup() {
-        const vendorStore = inject("vendorStore")
-        const { vendors } = storeToRefs(vendorStore)
-
         const AVStore = inject("AVStore")
         const {
             av_agreement_statuses,
@@ -199,7 +200,6 @@ export default {
         } = storeToRefs(AVStore)
 
         return {
-            vendors,
             av_agreement_statuses,
             av_agreement_closure_reasons,
             av_agreement_renewal_priorities,
@@ -227,6 +227,7 @@ export default {
                 agreement_licenses: [],
                 agreement_relationships: [],
                 documents: [],
+                extended_attributes: [],
             },
             initialized: false,
         }
@@ -289,13 +290,6 @@ export default {
                 errors.push(this.$__("Only one controlling license is allowed"))
             }
 
-            if (
-                agreement_licenses.filter(al => al.status == "controlling")
-                    .length > 1
-            ) {
-                errors.push(this.$__("Only one controlling license is allowed"))
-            }
-
             let documents_with_uploaded_files = agreement.documents.filter(
                 doc => typeof doc.file_content !== "undefined"
             )
@@ -335,6 +329,7 @@ export default {
 
             delete agreement.agreement_id
             delete agreement.vendor
+            delete agreement._strings
             agreement.is_perpetual = agreement.is_perpetual ? true : false
 
             if (agreement.vendor_id == "") {
@@ -394,6 +389,9 @@ export default {
                 this.agreement.closure_reason = ""
             }
         },
+        additionalFieldsChanged(additionalFieldValues) {
+            this.agreement.extended_attributes = additionalFieldValues
+        },
     },
     components: {
         AgreementPeriods,
@@ -402,6 +400,8 @@ export default {
         AgreementRelationships,
         Documents,
         ButtonSubmit,
+        FormSelectVendors,
+        AdditionalFieldsEntry,
     },
     name: "AgreementsFormAdd",
 }

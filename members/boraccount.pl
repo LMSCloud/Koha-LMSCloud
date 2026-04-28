@@ -56,6 +56,7 @@ my $borrowernumber = $input->param('borrowernumber');
 my $payment_id     = $input->param('payment_id');
 my $change_given   = $input->param('change_given');
 my $action         = $input->param('action') || '';
+my $op             = $input->param('op') || '';
 my @renew_results  = $input->multi_param('renew_result');
 
 my $logged_in_user = Koha::Patrons->find( $loggedinuser );
@@ -223,6 +224,44 @@ if ( $action eq 'discount' ) {
     );
 }
 
+my $receipt_sent = 0;
+if ( $op eq 'cud-send_receipt' ) {
+    my $credit_id = scalar $input->param('accountlines_id');
+    my $credit    = Koha::Account::Lines->find($credit_id);
+    my @credit_offsets =
+      $credit->credit_offsets( { type => 'APPLY' } )->as_list;
+    if (
+        my $letter = C4::Letters::GetPreparedLetter(
+            module      => 'circulation',
+            letter_code => uc( "ACCOUNT_" . $credit->credit_type_code ),
+            message_transport_type => 'email',
+            lang                   => $patron->lang,
+            tables                 => {
+                borrowers => $patron->borrowernumber,
+                branches  => C4::Context::mybranch,
+            },
+            substitute => {
+                credit  => $credit,
+                offsets => \@credit_offsets,
+            },
+        )
+      )
+    {
+        my $message_id = C4::Letters::EnqueueLetter(
+            {
+                letter                 => $letter,
+                borrowernumber         => $patron->borrowernumber,
+                message_transport_type => 'email',
+            }
+        );
+        C4::Letters::SendQueuedMessages( { message_id => $message_id } ) if $message_id;
+        $receipt_sent = $message_id ? 1 : -1;
+    }
+    else {
+        $receipt_sent = -1;
+    }
+}
+
 #get account details
 my $total = $patron->account->balance;
 
@@ -252,10 +291,6 @@ foreach my $renew_result(@renew_results) {
     };
 }
 
-my $csrf_token = Koha::Token->new->generate_csrf({
-    session_id => scalar $input->cookie('CGISESSID'),
-});
-
 $template->param(
     patron              => $patron,
     finesview           => 1,
@@ -266,7 +301,7 @@ $template->param(
     payment_id          => $payment_id,
     change_given        => $change_given,
     renew_results       => $renew_results_display,
-    csrf_token          => $csrf_token,
+    receipt_sent        => $receipt_sent,
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

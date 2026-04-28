@@ -14,7 +14,7 @@
 
                             [% IF ( SENT ) %]
                                 <h1>Message sent</h1>
-                                <div class="dialog dialog-success">
+                                <div class="alert alert-info">
                                     <p>The cart was sent to: [% email_add | html %]</p>
                                 </div>
                                 <p><a class="focus close" href="#">Close window</a></p>
@@ -22,7 +22,13 @@
 
                             [% IF ( error ) %]
                                 <div class="alert alert-warning">
-                                    <p>There was an error sending the cart.</p>
+                                    [% IF error == 'NO_BODY' %]
+                                        <p>There was an error sending the cart: No valid records were found.</p>
+                                    [% ELSIF error == 'NO_REPLY_ADDRESS' %]
+                                        <p>There was an error sending the cart: We cannot send an email as there is no email address recorded for your account (your email address is used for the reply to address).</p>
+                                    [% ELSE %]
+                                        <p>There was an error sending the cart.</p>
+                                    [% END %]
                                 </div>
                             [% END %]
 
@@ -35,10 +41,11 @@
                                     <label for="comment">Comment:</label>
                                     <textarea id="comment" name="comment" rows="4" cols="40" class="form-control"></textarea>
                                     <input type="hidden" name="bib_list" value="[% bib_list | html %]" />
-                                    <input type="hidden" name="csrf_token" value="[% csrf_token | html %]" />
+                                    [% INCLUDE 'csrf-token.inc' %]
                                 </fieldset>
                                 [% IF Koha.Preference('OPACHoldRequests') || Koha.Preference('OpacRenewalAllowed') %]<p id="donotrequestbymail">Please do not use this mail to request or renew books.</p>[% END %]
                                 <fieldset class="action">
+                                    <input type="hidden" name="op" value="cud-send" />
                                     <input type="submit" class="btn btn-primary" value="Send" />
                                     <a class="cancel close" href="#">Cancel</a>
                                 </fieldset>

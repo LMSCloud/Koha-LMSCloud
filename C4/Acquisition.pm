@@ -73,8 +73,6 @@ BEGIN {
       TransferOrder
       ModItemOrder
 
-      GetParcels
-
       GetInvoices
       GetInvoice
       GetInvoiceDetails
@@ -1559,6 +1557,9 @@ sub ModReceiveOrder {
     $datereceived = $datereceived ? dt_from_string( $datereceived ) : dt_from_string;
     $datereceived = $datereceived->ymd;
 
+    $order->{invoice_unitprice} ||= $order->{unitprice};
+    $order->{invoice_currency}  ||= Koha::Acquisition::Currencies->get_active->currency;
+
     my $suggestionid = GetSuggestionFromBiblionumber( $biblionumber );
     if ($suggestionid) {
         ModSuggestion( {suggestionid=>$suggestionid,
@@ -1591,23 +1592,29 @@ sub ModReceiveOrder {
             $order->{ordernumber}
         );
 
-        if ( not $order->{subscriptionid} && defined $order->{order_internalnote} ) {
-            $dbh->do(
-                q|UPDATE aqorders
-                SET order_internalnote = ?
-                WHERE ordernumber = ?|, {},
-                $order->{order_internalnote}, $order->{ordernumber}
-            );
-        }
-
         # Recalculate tax_value
-        $dbh->do(q|
+        $query = q|
             UPDATE aqorders
             SET
                 tax_value_on_ordering = quantity * | . get_rounding_sql(q|ecost_tax_excluded|) . q| * tax_rate_on_ordering,
                 tax_value_on_receiving = quantity * | . get_rounding_sql(q|unitprice_tax_excluded|) . q| * tax_rate_on_receiving
+        |;
+
+        my @params;
+        if ( not $order->{subscriptionid} && defined $order->{order_internalnote} )
+        {
+            $query .= q|, order_internalnote = ?|;
+            push @params, $order->{order_internalnote};
+        }
+
+        $query .= q|, invoice_unitprice = ?, invoice_currency = ?|;
+        push @params, $order->{invoice_unitprice}, $order->{invoice_currency};
+
+        $query .= q|
             WHERE ordernumber = ?
-        |, undef, $order->{ordernumber});
+        |;
+
+        $dbh->do($query, undef, @params, $order->{ordernumber});
 
         delete $order->{ordernumber};
         $order->{timestamp} = DateTime->now( time_zone => C4::Context->tz() );    # otherwise aqorders.timestamp is not updated
@@ -1672,6 +1679,10 @@ sub ModReceiveOrder {
             , order_vendornote = ?
         | if defined $order->{order_vendornote};
 
+        $query .= q|
+            , invoice_unitprice = ?, invoice_currency = ?
+        |;
+
         $query .= q| where biblionumber=? and ordernumber=?|;
 
         my $sth = $dbh->prepare( $query );
@@ -1708,6 +1719,8 @@ sub ModReceiveOrder {
         if ( defined $order->{order_vendornote} ) {
             push @params, $order->{order_vendornote};
         }
+
+        push @params, $order->{invoice_unitprice}, $order->{invoice_currency};
 
         push @params, ( $biblionumber, $order->{ordernumber} );
 
@@ -2240,97 +2253,6 @@ sub get_rounded_price {
     return $price;
 }
 
-
-=head2 FUNCTIONS ABOUT PARCELS
-
-=head3 GetParcels
-
-  $results = &GetParcels($bookseller, $order, $code, $datefrom, $dateto);
-
-get a lists of parcels.
-
-* Input arg :
-
-=over
-
-=item $bookseller
-is the bookseller this function has to get parcels.
-
-=item $order
-To know on what criteria the results list has to be ordered.
-
-=item $code
-is the booksellerinvoicenumber.
-
-=item $datefrom & $dateto
-to know on what date this function has to filter its search.
-
-=back
-
-* return:
-a pointer on a hash list containing parcel informations as such :
-
-=over
-
-=item Creation date
-
-=item Last operation
-
-=item Number of biblio
-
-=item Number of items
-
-=back
-
-=cut
-
-sub GetParcels {
-    my ($bookseller,$order, $code, $datefrom, $dateto) = @_;
-    my $dbh    = C4::Context->dbh;
-    my @query_params = ();
-    my $strsth ="
-        SELECT  aqinvoices.invoicenumber,
-                datereceived,purchaseordernumber,
-                count(DISTINCT biblionumber) AS biblio,
-                sum(quantity) AS itemsexpected,
-                sum(quantityreceived) AS itemsreceived
-        FROM   aqorders LEFT JOIN aqbasket ON aqbasket.basketno = aqorders.basketno
-        LEFT JOIN aqinvoices ON aqorders.invoiceid = aqinvoices.invoiceid
-        WHERE aqbasket.booksellerid = ? and datereceived IS NOT NULL
-    ";
-    push @query_params, $bookseller;
-
-    if ( defined $code ) {
-        $strsth .= ' and aqinvoices.invoicenumber like ? ';
-        # add a % to the end of the code to allow stemming.
-        push @query_params, "$code%";
-    }
-
-    if ( defined $datefrom ) {
-        $strsth .= ' and datereceived >= ? ';
-        push @query_params, $datefrom;
-    }
-
-    if ( defined $dateto ) {
-        $strsth .=  'and datereceived <= ? ';
-        push @query_params, $dateto;
-    }
-
-    $strsth .= "group by aqinvoices.invoicenumber,datereceived ";
-
-    # can't use a placeholder to place this column name.
-    # but, we could probably be checking to make sure it is a column that will be fetched.
-    $strsth .= "order by $order " if ($order);
-
-    my $sth = $dbh->prepare($strsth);
-
-    $sth->execute( @query_params );
-    my $results = $sth->fetchall_arrayref({});
-    return @{$results};
-}
-
-#------------------------------------------------------------#
-
 =head3 GetHistory
 
   \@order_loop = GetHistory( %params );
@@ -2552,7 +2474,7 @@ sub GetHistory {
         push @query_params, $to_placed_on;
     }
 
-    if ( defined $orderstatus and $orderstatus ne '') {
+    if ( defined $orderstatus and $orderstatus ne '' and $orderstatus ne 'any') {
         $query .= " AND aqorders.orderstatus = ? ";
         push @query_params, "$orderstatus";
     }
@@ -2819,6 +2741,14 @@ sub GetInvoices {
     if($args{message_id}) {
         push @bind_strs, " aqinvoices.message_id = ? ";
         push @bind_args, $args{message_id};
+    }
+    if ( exists $args{closedate} ) {
+        if ( $args{closedate} ) {
+            push @bind_strs, " aqinvoices.closedate = ? ";
+            push @bind_args, $args{closedate};
+        } else {
+            push @bind_strs, " aqinvoices.closedate IS NULL ";
+        }
     }
 
     $query .= " WHERE " . join(" AND ", @bind_strs) if @bind_strs;

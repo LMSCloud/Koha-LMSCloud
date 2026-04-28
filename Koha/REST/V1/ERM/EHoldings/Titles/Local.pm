@@ -21,9 +21,12 @@ use Mojo::Base 'Mojolicious::Controller';
 
 use Koha::ERM::EHoldings::Titles;
 use Koha::BackgroundJob::CreateEHoldingsFromBiblios;
+use Koha::BackgroundJob::ImportKBARTFile;
 
 use Scalar::Util qw( blessed );
-use Try::Tiny qw( catch try );
+use Try::Tiny    qw( catch try );
+use MIME::Base64 qw( decode_base64 encode_base64 );
+use POSIX        qw( floor );
 
 =head1 API
 
@@ -57,15 +60,10 @@ sub get {
     my $c = shift or return;
 
     return try {
-        my $title_id = $c->validation->param('title_id');
-        my $title = $c->objects->find( Koha::ERM::EHoldings::Titles->search, $title_id );
+        my $title = $c->objects->find( Koha::ERM::EHoldings::Titles->search, $c->param('title_id') );
 
-        unless ($title ) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => "eHolding title not found" }
-            );
-        }
+        return $c->render_resource_not_found("eHolding title")
+            unless $title;
 
         return $c->render(
             status  => 200,
@@ -90,18 +88,20 @@ sub add {
         Koha::Database->new->schema->txn_do(
             sub {
 
-                my $body = $c->validation->param('body');
+                my $body = $c->req->json;
 
-                my $resources = delete $body->{resources} // [];
+                my $resources            = delete $body->{resources}            // [];
+                my $create_linked_biblio = delete $body->{create_linked_biblio} // 0;
 
-                my $title = Koha::ERM::EHoldings::Title->new_from_api($body)->store;
+                my $title = Koha::ERM::EHoldings::Title->new_from_api($body)
+                    ->store( { create_linked_biblio => $create_linked_biblio } );
 
                 $title->resources($resources);
 
                 $c->res->headers->location($c->req->url->to_string . '/' . $title->title_id);
                 return $c->render(
                     status  => 201,
-                    openapi => $title->to_api
+                    openapi => $c->objects->to_api($title),
                 );
             }
         );
@@ -152,32 +152,27 @@ Controller function that handles updating a Koha::ERM::EHoldings::Title object
 sub update {
     my $c = shift or return;
 
-    my $title_id = $c->validation->param('title_id');
-    my $title = Koha::ERM::EHoldings::Titles->find( $title_id );
+    my $title = Koha::ERM::EHoldings::Titles->find( $c->param('title_id') );
 
-    unless ($title) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "eHolding title not found" }
-        );
-    }
+    return $c->render_resource_not_found("eHolding title")
+        unless $title;
 
     return try {
         Koha::Database->new->schema->txn_do(
             sub {
 
-                my $body = $c->validation->param('body');
+                my $body = $c->req->json;
 
-                my $resources = delete $body->{resources} // [];
+                my $resources            = delete $body->{resources}            // [];
+                my $create_linked_biblio = delete $body->{create_linked_biblio} // 0;
 
-                $title->set_from_api($body)->store;
+                $title->set_from_api($body)->store( { create_linked_biblio => $create_linked_biblio } );
 
                 $title->resources($resources);
 
-                $c->res->headers->location($c->req->url->to_string . '/' . $title->title_id);
                 return $c->render(
                     status  => 200,
-                    openapi => $title->to_api
+                    openapi => $c->objects->to_api($title),
                 );
             }
         );
@@ -219,22 +214,15 @@ sub update {
 sub delete {
     my $c = shift or return;
 
-    my $title = Koha::ERM::EHoldings::Titles->find( $c->validation->param('title_id') );
-    unless ($title) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "eHolding title not found" }
-        );
-    }
+    my $title = Koha::ERM::EHoldings::Titles->find( $c->param('title_id') );
+
+    return $c->render_resource_not_found("eHolding title")
+        unless $title;
 
     return try {
         $title->delete;
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
-    }
-    catch {
+        return $c->render_resource_deleted;
+    } catch {
         $c->unhandled_exception($_);
     };
 }
@@ -246,7 +234,7 @@ sub delete {
 sub import_from_list {
     my $c = shift or return;
 
-    my $body       = $c->validation->param('body');
+    my $body       = $c->req->json;
     my $list_id    = $body->{list_id};
     my $package_id = $body->{package_id};
 
@@ -254,10 +242,7 @@ sub import_from_list {
     my $patron = $c->stash('koha.user');
 
     unless ( $list && $list->owner == $c->stash('koha.user')->borrowernumber ) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "List not found" }
-        );
+        return $c->render_resource_not_found("List");
     }
 
 
@@ -273,6 +258,84 @@ sub import_from_list {
         );
     }
     catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+
+=head3 import_from_kbart_file
+
+=cut
+
+sub import_from_kbart_file {
+    my $c = shift or return;
+
+    my $import_data          = $c->req->json;
+    my $file                 = $import_data->{file};
+    my $package_id           = $import_data->{package_id};
+    my $create_linked_biblio = $import_data->{create_linked_biblio};
+
+    return try {
+        my @job_ids;
+        my @invalid_columns;
+        my $max_allowed_packet = C4::Context->dbh->selectrow_array(q{SELECT @@max_allowed_packet});
+
+        # Check if file is in TSV or CSV format and send an error back if not
+        if ( $file->{filename} !~ /\.csv$/ && $file->{filename} !~ /\.tsv$/ ) {
+            return $c->render(
+                status  => 201,
+                openapi => { warnings => { invalid_filetype => 1 } }
+            );
+        }
+
+        my ( $column_headers, $rows ) = Koha::BackgroundJob::ImportKBARTFile::read_file($file);
+
+        # Check that the column headers in the file match the standardised KBART phase II columns
+        # If not, return a warning
+        my $warnings      = {};
+        my @valid_headers = Koha::BackgroundJob::ImportKBARTFile::get_valid_headers();
+        foreach my $header (@$column_headers) {
+            if ( !grep { $_ eq $header } @valid_headers ) {
+                $header = 'Empty column' if $header eq '';
+                push @invalid_columns, $header;
+            }
+        }
+        $warnings->{invalid_columns} = \@invalid_columns if scalar(@invalid_columns) > 0;
+
+        my $params = {
+            column_headers       => $column_headers,
+            invalid_columns      => \@invalid_columns,
+            rows                 => $rows,
+            package_id           => $package_id,
+            file_name            => $file->{filename},
+            create_linked_biblio => $create_linked_biblio
+        };
+        my $outcome = Koha::BackgroundJob::ImportKBARTFile::is_file_too_large( $params, $max_allowed_packet );
+
+        # If the file is too large, we can break the file into smaller chunks and enqueue one job per chunk
+        if ( $outcome->{file_too_large} ) {
+            my $max_number_of_rows = Koha::BackgroundJob::ImportKBARTFile::calculate_chunked_params_size(
+                $outcome->{params_size}, $max_allowed_packet,
+                scalar(@$rows)
+            );
+
+            my @chunked_files;
+            push @chunked_files, [ splice @$rows, 0, $max_number_of_rows ] while @$rows;
+            foreach my $chunk (@chunked_files) {
+                $params->{rows} = $chunk;
+                my $chunked_job_id = Koha::BackgroundJob::ImportKBARTFile->new->enqueue($params);
+                push @job_ids, $chunked_job_id;
+            }
+        } else {
+            my $job_id = Koha::BackgroundJob::ImportKBARTFile->new->enqueue($params);
+            push @job_ids, $job_id;
+        }
+
+        return $c->render(
+            status  => 201,
+            openapi => { job_ids => \@job_ids, warnings => $warnings }
+        );
+    } catch {
         $c->unhandled_exception($_);
     };
 }

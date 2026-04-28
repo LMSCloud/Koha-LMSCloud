@@ -56,7 +56,7 @@ function openAuth(tagsubfieldid,authtype,source) {
         }
     }
     mainstring = mainstring.join(' ');
-    window.open("../authorities/auth_finder.pl?source="+source+"&authtypecode="+authtype+"&index="+tagsubfieldid+"&value_mainstr="+encodeURIComponent(mainmainstring)+"&value_main="+encodeURIComponent(mainstring), "_blank",'width=700,height=550,toolbar=false,scrollbars=yes');
+    window.open("../authorities/auth_finder.pl?source="+source+"&authtypecode="+authtype+"&index="+tagsubfieldid+"&value_mainstr="+encodeURIComponent(mainmainstring)+"&value_main="+encodeURIComponent(mainstring), "_blank",'width=800,height=550,toolbar=false,scrollbars=yes');
 }
 
 function ExpandField() {
@@ -135,7 +135,7 @@ var Select2Utils = {
                                 $("#avCreate input[name='description']").val(e.params.data.text);
 
                                 $(this).val($(this).find("option:first").val()).trigger('change');
-                                $('#avCreate').modal({show:true});
+                                $('#avCreate').modal("show");
                             }
                         }).on("select2:clear", function () {
                             $(this).on("select2:opening.cancelOpen", function (evt) {
@@ -218,6 +218,7 @@ function CloneField(index, hideMarc, advancedMARCEditor) {
                         id_input = selects[0].getAttribute('id')+new_key;
                         selects[0].setAttribute('id',id_input);
                         selects[0].setAttribute('name',selects[0].getAttribute('name')+new_key);
+                        selects[0].selectedIndex = -1;
                     }catch(e2){ // it is a textarea if it s not a select or an input
                         var textareas = divs[i].getElementsByTagName('textarea');
                         if( textareas.length > 0 ){
@@ -324,7 +325,13 @@ function CloneField(index, hideMarc, advancedMARCEditor) {
     // insert this line on the page
     original.parentNode.insertBefore(clone,original.nextSibling);
 
-    $("ul.sortable_subfield", clone).sortable();
+    $(clone).find("ul.sortable_subfield").each((i, e) => {
+        Sortable.create(e, {
+            handle: '.handle',
+            direction: 'vertical',
+            animation: 150,
+        });
+    });
 
     Select2Utils.initSelect2($(original).find('select'));
     Select2Utils.initSelect2($(clone).find('select'));
@@ -371,6 +378,7 @@ function CloneSubfield(index, advancedMARCEditor){
         id_input = selects[i].getAttribute('id')+new_key;
         selects[i].setAttribute('id',selects[i].getAttribute('id')+new_key);
         selects[i].setAttribute('name',selects[i].getAttribute('name')+new_key);
+        selects[i].selectedIndex = -1;
         linkid = id_input;
     }
 
@@ -595,6 +603,16 @@ function CheckImportantSubfields(p){
     return total;
 }
 
+function initializeSortable(selector) {
+    $(selector).each((i, e) => {
+        Sortable.create(e, {
+            handle: '.handle',
+            direction: 'vertical',
+            animation: 150,
+        });
+    });
+}
+
 $(document).ready(function() {
     $("input.input_marceditor, input.indicator").addClass('noEnterSubmit');
     $(document).ajaxSuccess(function() {
@@ -619,24 +637,18 @@ $(document).ready(function() {
             var description      = form.description.value;
             var opac_description = form.opac_description.value;
 
-            var data = "category="+encodeURIComponent(category)
-                +"&value="+encodeURIComponent(value)
-                +"&description="+encodeURIComponent(description)
-                +"&opac_description="+encodeURIComponent(opac_description);
-            $.ajax({
-                type: "POST",
-                url: "/cgi-bin/koha/svc/authorised_values",
-                data: data,
-                success: function(response) {
+            const client = APIClient.authorised_value;
+            client.values.create({category, value, description, opac_description}).then(
+                success => {
                     $('#avCreate').modal('hide');
 
-                    $(current_select2).append('<option selected value="'+response.value+'">'+response.description+'</option>');
+                    $(current_select2).append('<option selected value="'+success.value+'">'+success.description+'</option>');
                     $("#avCreate").modal("hide");
                 },
-                error: function() {
+                error => {
                     $(".avCreate_error").html(__("Something went wrong. Maybe the value already exists?")).show();
                 }
-            });
+            );
             return false;
         }
     });

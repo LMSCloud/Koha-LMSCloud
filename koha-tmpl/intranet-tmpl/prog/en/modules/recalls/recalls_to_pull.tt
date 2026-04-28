@@ -5,9 +5,14 @@
 [% USE Branches %]
 [% USE ItemTypes %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Recalls to pull &rsaquo; Circulation &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Recalls to pull") | html %] &rsaquo;
+    [% t("Circulation") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="circ_recalls_to_pull" class="circ">
@@ -29,11 +34,12 @@
 <div class="main container-fluid">
     <div class="row">
         [% IF Koha.Preference('CircSidebar') %]
-            <div class="col-sm-10 col-sm-push-2">
+            <div class="col-md-10 order-md-2 order-sm-1">
         [% ELSE %]
-            <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+            <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
         [% END %]
         <main>
+            [% INCLUDE 'messages.inc' %]
 
         <h1>Recalls to pull</h1>
         The following recalls could be fulfilled by available items.
@@ -119,8 +125,9 @@
                                 </td>
                                 <td class="recall-action">
                                     <form action="/cgi-bin/koha/recalls/recalls_to_pull.pl" method="post">
+                                        [% INCLUDE 'csrf-token.inc' %]
                                         <input type="hidden" name="recall_id" value="[% recall.first_recall.id | html %]">
-                                        <input type="hidden" name="op" value="cancel">
+                                        <input type="hidden" name="op" value="cud-cancel">
                                         [% IF recall.first_recall.in_transit %]
                                             <button type="submit" class="btn btn-default btn-sm cancelreturn"><i class="fa fa-times"></i> Cancel recall and return to: [% Branches.GetName(recall.first_recall.item.homebranch) | html %]</button>
                                         [% ELSE %]
@@ -134,21 +141,21 @@
                     </table>
                 </div> <!-- /#recalls.page-section -->
             [% ELSE %]
-                <div class="dialog message">There are no recalls to pull.</div>
+                <div class="alert alert-info">There are no recalls to pull.</div>
             [% END %]
         [% ELSE %]
-            <div class="dialog message">Recalls have not been enabled. Enable the <a href="/cgi-bin/koha/admin/preferences.pl?tab=circulation">UseRecalls</a> system preference to use recalls.</div>
+            <div class="alert alert-info">Recalls have not been enabled. Enable the <a href="/cgi-bin/koha/admin/preferences.pl?tab=circulation">UseRecalls</a> system preference to use recalls.</div>
         [% END %]
 
         </main>
         </div> <!-- /.col-etc -->
 
         [% IF Koha.Preference('CircSidebar') %]
-            <div class="col-sm-2 col-sm-pull-10">
+            <div class="col-md-2 order-sm-2 order-md-1">
                 <aside>
                     [% INCLUDE 'circ-nav.inc' %]
                 </aside>
-            </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+            </div> <!-- /.col-md-2.order-md-1 -->
         [% END %]
 
     </div> <!-- /.row -->
@@ -160,12 +167,12 @@
     <script>
         $(document).ready(function(){
             $("#recalls-table").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { 'bSortable': false, 'aTargets': [ 'nosort' ] },
-                    { "sType": "title-string", "aTargets" : [ "title-string" ] },
-                    { "sType": "anti-the", "aTargets": [ "anti-the" ] }
+                "columnDefs": [
+                    { "orderable": false, "targets": [ 'nosort' ] },
+                    { "type": "title-string", "targets":  [ "title-string" ] },
+                    { "type": "anti-the", "targets": [ "anti-the" ] }
                 ],
-                "sPaginationType": "full_numbers"
+                "pagingType": "full_numbers"
             }));
 
             $(".cancelreturn").click(function(){

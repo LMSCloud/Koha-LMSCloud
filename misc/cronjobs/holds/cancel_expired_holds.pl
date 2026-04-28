@@ -34,7 +34,7 @@ or, in crontab:
 
 =head1 DESCRIPTION
 
-This script calls C4::Reserves::CancelExpiredReserves which will find and cancel all expired reseves in the system.
+This script calls C4::Reserves::CancelExpiredReserves which will find and cancel all expired reserves in the system.
 
 =cut
 
@@ -72,14 +72,13 @@ my $help = 0;
 my $reason;
 
 my $command_line_options = join(" ",@ARGV);
+cronlogaction({ info => $command_line_options });
 
 GetOptions(
     'help|?'   => \$help,
     'reason=s' => \$reason
 ) or pod2usage(1);
 pod2usage(1) if $help;
-
-cronlogaction({ info => $command_line_options });
 
 C4::Reserves::CancelExpiredReserves($reason);
 

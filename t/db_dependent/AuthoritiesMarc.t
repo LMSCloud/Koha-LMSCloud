@@ -5,7 +5,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 12;
+use Test::More tests => 13;
 use Test::MockModule;
 use Test::Warn;
 use MARC::Field;
@@ -29,42 +29,48 @@ $module->mock('GetHeaderAuthority', sub {
 $module->mock('AddAuthorityTrees', sub {
     return;
 });
-$module->mock('GetAuthority', sub {
-    my ($authid) = @_;
-    my $record = MARC::Record->new();
-    if ($authid eq '1') {
-        $record->add_fields(
-            [ '001', '1' ],
-            [ '151', ' ', ' ', a => 'United States' ]
+$module->mock(
+    'GetAuthority',
+    sub {
+        my ($authid) = @_;
+        my $record = MARC::Record->new();
+        if ( $authid eq '1' ) {
+            $record->add_fields(
+                [ '001', '1' ],
+                [ '151', ' ', ' ', a => 'United States' ]
             );
-    } elsif ($authid eq '2') {
-        $record->add_fields(
-            [ '001', '2' ],
-            [ '151', ' ', ' ', a => 'New York (State)' ],
-            [ '551', ' ', ' ', a => 'United States', w => 'g', 9 => '1' ]
+        } elsif ( $authid eq '2' ) {
+            $record->add_fields(
+                [ '001', '2' ],
+                [ '151', ' ', ' ', a => 'New York (State)' ],
+                [ '551', ' ', ' ', a => 'United States', w => 'g',                   9 => '1' ],
+                [ '751', ' ', ' ', a => 'United States', w => 'g',                   9 => '1' ],
+                [ '781', ' ', ' ', a => 'New York',      x => 'General subdivision', 9 => '1' ]
             );
-    } elsif ($authid eq '3') {
-        $record->add_fields(
-            [ '001', '3' ],
-            [ '151', ' ', ' ', a => 'New York (City)' ],
-            [ '551', ' ', ' ', a => 'New York (State)', w => 'g', 9 => '2' ]
+        } elsif ( $authid eq '3' ) {
+            $record->add_fields(
+                [ '001', '3' ],
+                [ '151', ' ', ' ', a => 'New York (City)' ],
+                [ '551', ' ', ' ', a => 'New York (State)', w => 'g', 9 => '2' ]
             );
-    } elsif ($authid eq '4') {
-        $record->add_fields(
-            [ '001', '4' ],
-            [ '151', ' ', ' ', a => 'New York (City)' ],
-            [ '551', ' ', ' ', a => 'New York (State)', w => 'g' ]
+        } elsif ( $authid eq '4' ) {
+            $record->add_fields(
+                [ '001', '4' ],
+                [ '151', ' ', ' ', a => 'New York (City)' ],
+                [ '551', ' ', ' ', a => 'New York (State)', w => 'g' ]
             );
-    } elsif ($authid eq '5') {
-        $record->add_fields(
-            [ '001', '5' ],
-            [ '100', ' ', ' ', a => 'Lastname, Firstname', b => 'b', c => 'c', i => 'i' ]
+        } elsif ( $authid eq '5' ) {
+            $record->add_fields(
+                [ '001', '5' ],
+                [ '100', ' ', ' ', a => 'Lastname, Firstname', b => 'b', c => 'c', i => 'i' ]
             );
-    } else {
-        undef $record;
+        } else {
+            undef $record;
+        }
+        return $record;
     }
-    return $record;
-});
+);
+
 
 my $schema  = Koha::Database->new->schema;
 $schema->storage->txn_begin;
@@ -130,33 +136,46 @@ $dbh->do(q{
 t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
 my $expected_marc21_summary = {
     'authorized' => [
-                      {
-                        'field' => '151',
-                        'heading' => 'New York (State)',
-                        'hemain' => 'New York (State)'
-                      }
-                    ],
-    'authtypecode' => 'GEOGR_NAME',
-    'mainentry' => 'New York (State)',
+        {
+            'field'   => '151',
+            'heading' => 'New York (State)',
+            'hemain'  => 'New York (State)'
+        }
+    ],
+    'authtypecode'  => 'GEOGR_NAME',
+    'mainentry'     => 'New York (State)',
     'mainmainentry' => 'New York (State)',
-    'notes' => [],
-    'otherscript' => [],
-    'seealso' => [
-                   {
-                     'authid' => '1',
-                     'field' => '551',
-                     'heading' => 'United States',
-                     'hemain' => 'United States',
-                     'search' => 'United States',
-                     'type' => 'broader'
-                   }
-                 ],
+    'notes'         => [],
+    'otherscript'   => [],
+    'seealso'       => [
+        {
+            'authid'  => '1',
+            'field'   => '551',
+            'heading' => 'United States',
+            'hemain'  => 'United States',
+            'search'  => 'United States',
+            'type'    => 'broader'
+        }
+    ],
+    'equalterm' => [
+        {
+            'field'   => '751',
+            'hemain'  => 'United States',
+            'heading' => 'United States'
+        },
+        {
+            'hemain'  => undef,
+            'field'   => '781',
+            'heading' => 'General subdivision'
+        }
+    ],
     'seefrom' => [],
-    'label' => 'Geographic Name',
-    'type' => 'Geographic Name'
+    'label'   => 'Geographic Name',
+    'type'    => 'Geographic Name',
 };
+
 is_deeply(
-    BuildSummary(C4::AuthoritiesMarc::GetAuthority(2), 2, 'GEOGR_NAME'),
+    BuildSummary( C4::AuthoritiesMarc::GetAuthority(2), 2, 'GEOGR_NAME' ),
     $expected_marc21_summary,
     'test BuildSummary for MARC21'
 );
@@ -173,6 +192,12 @@ $dbh->do(q{
     INSERT INTO auth_types (authtypecode, authtypetext, auth_tag_to_report, summary)
     VALUES ('NP', 'Auteur', '200', '[200a][, 200b][ 200d][ ; 200c][ (200f)]')
 });
+$dbh->do(
+    q{
+    INSERT INTO marc_subfield_structure (frameworkcode,authtypecode,tagfield)
+    VALUES ('','NP','200')
+}
+);
 
 my $unimarc_name_auth = MARC::Record->new();
 $unimarc_name_auth->add_fields(
@@ -182,21 +207,22 @@ $unimarc_name_auth->add_fields(
 );
 my $expected_unimarc_name_summary = {
     'authorized' => [
-                      {
-                        'field' => '200',
-                        'heading' => 'Fossey Brigitte',
-                        'hemain' => 'Fossey'
-                      }
-                    ],
-    'authtypecode' => 'NP',
-    'mainentry' => 'Fossey Brigitte',
+        {
+            'field'   => '200',
+            'heading' => 'Fossey Brigitte',
+            'hemain'  => 'Fossey'
+        }
+    ],
+    'authtypecode'  => 'NP',
+    'mainentry'     => 'Fossey Brigitte',
     'mainmainentry' => 'Fossey',
-    'notes' => [],
-    'otherscript' => [],
-    'seealso' => [],
-    'seefrom' => [],
-    'summary' => 'Fossey, Brigitte',
-    'type' => 'Auteur'
+    'notes'         => [],
+    'otherscript'   => [],
+    'seealso'       => [],
+    'seefrom'       => [],
+    'summary'       => 'Fossey, Brigitte',
+    'type'          => 'Auteur',
+    'equalterm'     => []
 };
 
 is_deeply(
@@ -209,15 +235,48 @@ subtest 'AddAuthority should respect AUTO_INCREMENT (BZ 18104)' => sub {
     plan tests => 3;
 
     t::lib::Mocks::mock_preference( 'marcflavour', 'MARC21' );
-    my $record = C4::AuthoritiesMarc::GetAuthority(1);
+    my $record = MARC::Record->new();
+    my $field  = MARC::Field->new( '151', ' ', ' ', a => 'Amsterdam (Netherlands)', 'x' => 'Economic conditions' );
+    $record->append_fields($field);
     my $id1 = AddAuthority( $record, undef, 'GEOGR_NAME' );
-    DelAuthority({ authid => $id1 });
+    DelAuthority( { authid => $id1 } );
+    $record = MARC::Record->new();
+    $record->append_fields($field);
     my $id2 = AddAuthority( $record, undef, 'GEOGR_NAME' );
     isnt( $id1, $id2, 'Do not return the same id again' );
     t::lib::Mocks::mock_preference( 'marcflavour', 'UNIMARC' );
-    my $id3 = AddAuthority( $record, undef, 'GEOGR_NAME' );
+    $record = MARC::Record->new();
+    $field  = MARC::Field->new( '200', ' ', ' ', a => 'Fossey', 'b' => 'Brigitte' );
+    $record->append_fields($field);
+    my $id3 = AddAuthority( $record, undef, 'NP' );
     ok( $id3 > 0, 'Tested AddAuthority with UNIMARC' );
     is( $record->field('001')->data, $id3, 'Check updated 001' );
+};
+
+subtest 'AddAuthority should create heading field with display form' => sub {
+    plan tests => 2;
+
+    t::lib::Mocks::mock_preference( 'marcflavour',    'MARC21' );
+    t::lib::Mocks::mock_preference( 'AuthoritiesLog', 0 );
+    my $record = MARC::Record->new();
+    my $field  = MARC::Field->new( '151', ' ', ' ', a => 'White River Junction (Vt.)' );
+    $record->append_fields($field);
+    my $id        = AddAuthority( $record, undef, 'GEOGR_NAME' );
+    my $authority = Koha::Authorities->find($id);
+    is(
+        $authority->heading, 'White River Junction (Vt.)',
+        'Heading field is formed as expected when adding authority'
+    );
+    $record = MARC::Record->new();
+    $field  = MARC::Field->new( '151', ' ', ' ', a => 'Lyon (France)', 'x' => 'Antiquities' );
+    $record->append_fields($field);
+    $id        = ModAuthority( $id, $record, 'GEOGR_NAME' );
+    $authority = Koha::Authorities->find($id);
+    is(
+        $authority->heading, 'Lyon (France)--Antiquities',
+        'Heading field is formed as expected when modding authority'
+    );
+
 };
 
 subtest 'CompareFieldWithAuthority tests' => sub {

@@ -72,6 +72,12 @@ __PACKAGE__->table("currency");
   default_value: 0
   is_nullable: 1
 
+=head2 p_cs_precedes
+
+  data_type: 'tinyint'
+  default_value: 1
+  is_nullable: 1
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -96,6 +102,8 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", default_value => 0, is_nullable => 1 },
   "p_sep_by_space",
   { data_type => "tinyint", default_value => 0, is_nullable => 1 },
+  "p_cs_precedes",
+  { data_type => "tinyint", default_value => 1, is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -157,10 +165,28 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 aqorders_invoice_currencies
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-01 14:23:58
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:PnJEcCgrM1Edf99phWFdyQ
+Type: has_many
 
+Related object: L<Koha::Schema::Result::Aqorder>
+
+=cut
+
+__PACKAGE__->has_many(
+  "aqorders_invoice_currencies",
+  "Koha::Schema::Result::Aqorder",
+  { "foreign.invoice_currency" => "self.currency" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-10-30 17:21:09
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:FhViwrd64xn2bqz7D054Mw
+
+__PACKAGE__->add_columns(
+    "+p_cs_precedes" => { is_boolean => 1 },
+);
 
 sub koha_object_class {
     'Koha::Acquisition::Currency';

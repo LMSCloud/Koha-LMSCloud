@@ -77,7 +77,7 @@ sub set_additional_fields {
             }
         }
 
-        if (defined $value) {
+        if (defined $value && $value ne '') {
             my $field_value = Koha::AdditionalFieldValue->new({
                 field_id => $additional_field->{id},
                 record_id => $self->id,
@@ -89,6 +89,125 @@ sub set_additional_fields {
     if ($record_updated) {
         C4::Biblio::ModBiblio($record, $biblionumber);
     }
+}
+
+=head3 prepare_cgi_additional_field_values
+
+Prepares additional field values from CGI input for use in set_additional_fields
+
+    Usage example for aqorders:
+    my @additional_fields = $order->prepare_cgi_additional_field_values( $input, 'aqorders' );
+
+=cut
+
+sub prepare_cgi_additional_field_values {
+    my ( $self, $cgi, $tablename ) = @_;
+
+    my @additional_fields;
+    my $table_fields =
+        Koha::AdditionalFields->search( { tablename => $tablename }, { order_by => { -asc => 'id' } } );
+
+    while ( my $field = $table_fields->next ) {
+        my @field_values = $cgi->multi_param( 'additional_field_' . $field->id );
+        foreach my $value (@field_values) {
+            push @additional_fields, {
+                id    => $field->id,
+                value => $value,
+            } if defined $value;
+        }
+    }
+
+    return @additional_fields;
+}
+
+=head3 add_additional_fields
+
+Similar to set_additional_fields, but instead of overwriting existing fields, only adds new ones
+
+    $foo->add_additional_fields(
+        {
+            '2' => [
+                'first value for field 2',
+                'second value for field 2'
+            ],
+            '1' => ['first value for field 1']
+        },
+        'subscription'
+    );
+
+=cut
+
+sub add_additional_fields {
+    my ( $self, $new_additional_fields, $tablename ) = @_;
+
+    my @additional_fields;
+
+    my $table_fields = Koha::AdditionalFields->search( { tablename => $tablename } );
+    while ( my $field = $table_fields->next ) {
+        my $new_additional_field_values = $new_additional_fields->{ $field->id };
+
+        if ( $new_additional_field_values && scalar @{$new_additional_field_values} ) {
+            foreach my $value ( @{$new_additional_field_values} ) {
+                push @additional_fields, {
+                    id    => $field->id,
+                    value => $value,
+                } if defined $value && $value ne '';
+            }
+        } else {
+            my $existing_additional_field_values = $self->additional_field_values->search( { field_id => $field->id } );
+            while ( my $existing = $existing_additional_field_values->next ) {
+                push @additional_fields, {
+                    id    => $field->id,
+                    value => $existing->value,
+                } if $existing && defined $existing->value && $existing->value ne '';
+            }
+        }
+    }
+
+    $self->set_additional_fields( \@additional_fields );
+}
+
+=head3 get_additional_field_values_for_template
+
+Returns additional field values in the format expected by the .tt file
+
+    my $fields =  Koha::Acquisition::Baskets->find($basketno)->get_additional_field_values_for_template;
+
+Expected format is a hash of arrays, where the hash key is the field id and its respective array contains
+the field values 'value' for that field. Example where field_id = 2 is the only repeatable field:
+
+{
+    '3' => ['first value for field 3'],
+    '1' => ['first value for field 1'],
+    '4' => ['first value for field 4'],
+    '2' => [
+        'first value for field 2',
+        'second value for field 2',
+        'third value for field 2'
+    ]
+};
+
+=cut
+
+sub get_additional_field_values_for_template {
+    my ($self) = @_;
+
+    my $additional_field_ids = $self->additional_field_values->search(
+        {},
+        {
+            columns  => ['field_id'],
+            distinct => 1,
+        }
+    );
+
+    my %fields;
+    while ( my $additional_field_value = $additional_field_ids->next ) {
+        my @values = map ( $_->value,
+            $self->additional_field_values->search( { field_id => $additional_field_value->field_id } )->as_list );
+        $fields{ $additional_field_value->field_id } = \@values;
+    }
+
+    return \%fields;
 }
 
 =head3 additional_field_values
@@ -113,7 +232,7 @@ REST API embed of additional_field_values
 =cut
 
 sub extended_attributes {
-    my ($self, $extended_attributes) = @_;
+    my ( $self, $extended_attributes ) = @_;
 
     if ($extended_attributes) {
         $self->set_additional_fields($extended_attributes);
@@ -130,7 +249,7 @@ the mapping type and the mapping category where appropriate.
 Currently handles additional fields values mappings.
 
 Accepts a param hashref where the 'public' key denotes whether we want the public
-or staff client strings.
+or staff interface strings.
 
 =cut
 
@@ -178,7 +297,7 @@ sub strings_map {
         );
     }
 
-    my @sorted = sort { $a->{field_id} <=> $b->{field_id} } @{ $strings->{additional_field_values} };
+    my @sorted    = sort { $a->{field_id} <=> $b->{field_id} } @{ $strings->{additional_field_values} };
     my @non_empty = grep { $_->{value_str} ne "" } @sorted;
     $strings->{additional_field_values} = \@non_empty;
 

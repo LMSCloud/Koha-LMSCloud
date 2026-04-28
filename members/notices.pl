@@ -51,7 +51,7 @@ output_and_exit_if_error( $input, $cookie, $template, { module => 'members', log
 
 # Allow resending of messages in Notices tab
 my $op = $input->param('op') || q{};
-if ( $op eq 'resend_notice' ) {
+if ( $op eq 'cud-resend_notice' ) {
     my $message_id = $input->param('message_id');
     my $message = C4::Letters::GetMessage( $message_id );
     if ( $message->{borrowernumber} = $borrowernumber ) {
@@ -89,6 +89,29 @@ if ( $op eq 'send_welcome' ) {
                 }
             );
         };
+    } else {
+        eval {
+            my $print = GetPreparedLetter(
+                module      => 'members',
+                letter_code => 'WELCOME',
+                branchcode  => $patron->branchcode,,
+                lang        => $patron->lang || 'default',
+                tables      => {
+                    'branches'  => $patron->branchcode,
+                    'borrowers' => $patron->borrowernumber,
+                },
+                want_librarian         => 1,
+                message_transport_type => 'print'
+            ) or return;
+
+            my $message_id = EnqueueLetter(
+                {
+                    letter                 => $print,
+                    borrowernumber         => $patron->id,
+                    message_transport_type => 'print'
+                }
+            );
+        };
     }
 
     # redirect to self to avoid form submission on refresh
@@ -111,7 +134,7 @@ if ( $op eq 'send_password_reset' ) {
 }
 
 # Getting the messages
-my $queued_messages = C4::Letters::GetQueuedMessages({borrowernumber => $borrowernumber});
+my $queued_messages = Koha::Notice::Messages->search({borrowernumber => $borrowernumber});
 
 $template->param(
     patron             => $patron,

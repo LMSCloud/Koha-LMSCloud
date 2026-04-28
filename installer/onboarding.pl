@@ -22,12 +22,12 @@ use C4::Context;
 use C4::InstallAuth qw( checkauth get_template_and_user );
 use CGI qw ( -utf8 );
 use C4::Output qw( output_html_with_http_headers );
-use C4::Members qw( checkcardnumber );
 use Koha::Patrons;
 use Koha::Libraries;
 use Koha::Database;
 use Koha::Patrons;
 use Koha::Patron::Categories;
+use Koha::Policy::Patrons::Cardnumber;
 use Koha::ItemTypes;
 use Koha::CirculationRules;
 
@@ -57,7 +57,7 @@ my @messages;
 
 if ( $step == 1 ) {
 
-    if ( $op eq 'add_validate_library' ) {
+    if ( $op eq 'cud-add_validate_library' ) {
 
         my $branchcode = $input->param('branchcode');
         $branchcode = uc($branchcode);
@@ -84,7 +84,7 @@ if ( $step == 1 ) {
     $step++ if Koha::Libraries->count;
 }
 if ( $step == 2 ) {
-    if ( $op eq "add_validate_category" ) {
+    if ( $op eq "cud-add_validate_category" ) {
 
         my $searchfield = $input->param('description') // q||;
         my $categorycode = $input->param('categorycode');
@@ -125,7 +125,7 @@ if ( $step == 2 ) {
     $step++ if Koha::Patron::Categories->count;
 }
 if ( $step == 3 ) {
-    if ( $op eq 'add_validate_patron' ) {
+    if ( $op eq 'cud-add_validate_patron' ) {
 
         #Create a patron
         my $firstpassword  = $input->param('password')  || '';
@@ -141,12 +141,16 @@ if ( $step == 3 ) {
             $patron_category );
 
 
-        if ( my $error_code = checkcardnumber($cardnumber) ) {
-            if ( $error_code == 1 ) {
-                push @messages, { code => 'ERROR_cardnumber_already_exists' };
-            }
-            elsif ( $error_code == 2 ) {
-                push @messages, { code => 'ERROR_cardnumber_length' };
+        my $is_cardnumber_valid = Koha::Policy::Patrons::Cardnumber->is_valid($cardnumber);
+        unless ( $is_cardnumber_valid ) {
+            for my $m ( @{ $is_cardnumber_valid->messages } ) {
+                my $message = $m->message;
+                if ( $message eq 'already_exists' ) {
+                    push @messages, { code => 'ERROR_cardnumber_already_exists' };
+                }
+                elsif ( $message eq 'invalid_length' ) {
+                    push @messages, { code => 'ERROR_cardnumber_length' };
+                }
             }
         }
         elsif ( $firstpassword ne $secondpassword ) {
@@ -195,7 +199,7 @@ if ( $step == 3 ) {
     $step++ if Koha::Patrons->search( { flags => 1 } )->count;
 }
 if ( $step == 4 ) {
-    if ( $op eq 'add_validate_itemtype' ) {
+    if ( $op eq 'cud-add_validate_itemtype' ) {
         my $description   = $input->param('description');
         my $itemtype_code = $input->param('itemtype');
         $itemtype_code = uc($itemtype_code);
@@ -220,7 +224,7 @@ if ( $step == 4 ) {
 }
 if ( $step == 5 ) {
 
-    if ( $op eq 'add_validate_circ_rule' ) {
+    if ( $op eq 'cud-add_validate_circ_rule' ) {
 
         #If no libraries exist then set the $branch value to *
         my $branch = $input->param('branch') || '*';
@@ -269,6 +273,7 @@ if ( $step == 5 ) {
                 no_auto_renewal_after            => "",
                 no_auto_renewal_after_hard_limit => "",
                 norenewalbefore                  => "",
+                noautorenewalbefore              => "",
                 opacitemholds                    => "N",
                 overduefinescap                  => "",
                 rentaldiscount                   => 0,
@@ -282,6 +287,7 @@ if ( $step == 5 ) {
                 recall_due_date_interval         => undef,
                 recall_overdue_fine              => undef,
                 recall_shelf_time                => undef,
+                holds_pickup_period              => undef,
               }
         };
 

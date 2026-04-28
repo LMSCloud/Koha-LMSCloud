@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::More tests => 2;
 
 use Test::MockModule;
 use Test::MockObject;
@@ -29,7 +29,7 @@ use t::lib::TestBuilder;
 use t::lib::Mocks;
 
 use Koha::AuthorisedValueCategories;
-use Koha::Illrequests;
+use Koha::ILL::Requests;
 use Koha::DateUtils qw( format_sqldatetime );
 
 my $schema  = Koha::Database->new->schema;
@@ -62,15 +62,15 @@ subtest 'list() tests' => sub {
         'status_graph', sub {},
     );
 
-    # Mock Koha::Illrequest::load_backend (to load Mocked Backend)
-    my $illreqmodule = Test::MockModule->new('Koha::Illrequest');
+    # Mock Koha::ILL::Request::load_backend (to load Mocked Backend)
+    my $illreqmodule = Test::MockModule->new('Koha::ILL::Request');
     $illreqmodule->mock( 'load_backend',
         sub { my $self = shift; $self->{_my_backend} = $backend; return $self }
     );
 
     $schema->storage->txn_begin;
 
-    Koha::Illrequests->search->delete;
+    Koha::ILL::Requests->search->delete;
 
     # create an authorized user
     my $librarian = $builder->build_object(
@@ -141,9 +141,10 @@ subtest 'list() tests' => sub {
     # Create some ILL requests
     my $req_1 = $builder->build_object(
         {
-            class => 'Koha::Illrequests',
+            class => 'Koha::ILL::Requests',
             value => {
                 borrowernumber => $patron->borrowernumber,
+                batch_id       => undef,
                 status         => $request_status->{code},
                 backend        => $backend->name,
                 notesstaff     => '1'
@@ -152,8 +153,9 @@ subtest 'list() tests' => sub {
     );
     my $req_2 = $builder->build_object(
         {
-            class => 'Koha::Illrequests',
+            class => 'Koha::ILL::Requests',
             value => {
+                batch_id     => undef,
                 status       => $request_status->{code},
                 backend      => $backend->name,
                 status_alias => $av->authorised_value,
@@ -162,12 +164,12 @@ subtest 'list() tests' => sub {
 
         }
     );
-    my $ret = $builder->build_object({ class => 'Koha::Illrequests', value => { status => 'RET' } });
+    my $ret = $builder->build_object({ class => 'Koha::ILL::Requests', value => { status => 'RET' } });
 
     # Three requests exist, expect all three to be returned
     $t->get_ok("//$userid:$password@/api/v1/ill/requests")
       ->status_is(200)
-      ->json_is( [ $req_1->to_api, $req_2->to_api, $ret->to_api ]);
+      ->json_is( [ $req_1->to_api({user=> $librarian}), $req_2->to_api({user=> $librarian}), $ret->to_api({user=> $librarian}) ]);
 
     my $status_query = encode_json({ status => 'REQ' });
     my $status_alias_query = encode_json({ status_av => $av_code });
@@ -175,34 +177,39 @@ subtest 'list() tests' => sub {
     # x-koha-embed: +strings
     # Two requests exist with status 'REQ', expect them to be returned
     # One of which also has a status_alias, expect that to be in that request's body
-    $t->get_ok("//$userid:$password@/api/v1/ill/requests?q=$status_query" => {"x-koha-embed" => "+strings"} )
-      ->status_is(200)
-      ->json_is( [
-                { _strings => { status => $response_status }, %{$req_1->to_api} },
-                { _strings => { status => $response_status, status_av => $response_status_av }, %{$req_2->to_api} }
-            ]
+    $t->get_ok( "//$userid:$password@/api/v1/ill/requests?q=$status_query" => { "x-koha-embed" => "+strings" } )
+        ->status_is(200)->json_is(
+        [
+            { _strings => { status => $response_status }, %{ $req_1->to_api( { user => $librarian } ) } },
+            {
+                _strings => { status => $response_status, status_av => $response_status_av },
+                %{ $req_2->to_api( { user => $librarian } ) }
+            }
+        ]
         );
 
     # One request with status_alias 'print_copy' exists, expect that to be returned
-    $t->get_ok("//$userid:$password@/api/v1/ill/requests?q=$status_alias_query" => {"x-koha-embed" => "+strings"} )
-      ->status_is(200)
-      ->json_is( [
-                { _strings => { status => $response_status, status_av => $response_status_av }, %{$req_2->to_api} }
-            ]
+    $t->get_ok( "//$userid:$password@/api/v1/ill/requests?q=$status_alias_query" => { "x-koha-embed" => "+strings" } )
+        ->status_is(200)->json_is(
+        [
+            {
+                _strings => { status => $response_status, status_av => $response_status_av },
+                %{ $req_2->to_api( { user => $librarian } ) }
+            }
+        ]
         );
 
     # x-koha-embed: patron
     my $patron_query = encode_json({ borrowernumber => $patron->borrowernumber });
 
     # One request related to $patron, make sure it comes back
-    $t->get_ok("//$userid:$password@/api/v1/ill/requests" => {"x-koha-embed" => "patron"} )
-      ->status_is(200)
-      ->json_has('/0/patron', $patron->to_api);
+    $t->get_ok( "//$userid:$password@/api/v1/ill/requests" => { "x-koha-embed" => "patron" } )->status_is(200)
+        ->json_has( '/0/patron', $patron->to_api( { user => $librarian } ) );
 
     # x-koha-embed: comments
     # Create comment
     my $comment_text = "This is the comment";
-    my $comment = $builder->build_object({ class => 'Koha::Illcomments', value => { illrequest_id => $req_1->illrequest_id, comment => $comment_text , borrowernumber => $patron->borrowernumber } } );
+    my $comment = $builder->build_object({ class => 'Koha::ILL::Comments', value => { illrequest_id => $req_1->illrequest_id, comment => $comment_text , borrowernumber => $patron->borrowernumber } } );
 
     # Make sure comments come back
     $t->get_ok("//$userid:$password@/api/v1/ill/requests" => {"x-koha-embed" => "comments"} )
@@ -210,10 +217,10 @@ subtest 'list() tests' => sub {
       ->json_has('/0/comments', $comment_text);
 
     # x-koha-embed: id_prefix
-    # Mock Illrequest::Config to return a static prefix
+    # Mock ILL::Request::Config to return a static prefix
     my $id_prefix = 'ILL';
     my $config = Test::MockObject->new;
-    $config->set_isa('Koha::Illrequest::Config::Mock');
+    $config->set_isa('Koha::ILL::Request::Config::Mock');
     $config->set_always('getPrefixes', $id_prefix);
 
     # Make sure id_prefix comes back
@@ -224,15 +231,13 @@ subtest 'list() tests' => sub {
     # ILLHiddenRequestStatuses syspref
     # Hide 'REQ', expect to return just 1 'RET'
     t::lib::Mocks::mock_preference( 'ILLHiddenRequestStatuses', 'REQ' );
-    $t->get_ok( "//$userid:$password@/api/v1/ill/requests" )
-      ->status_is(200)
-      ->json_is( [ $ret->to_api ] );
+    $t->get_ok("//$userid:$password@/api/v1/ill/requests")->status_is(200)
+        ->json_is( [ $ret->to_api( { user => $librarian } ) ] );
 
     # Hide 'RET', expect to return 2 'REQ'
     t::lib::Mocks::mock_preference( 'ILLHiddenRequestStatuses', 'RET' );
-    $t->get_ok( "//$userid:$password@/api/v1/ill/requests?_order_by=staff_notes" )
-      ->status_is(200)
-      ->json_is( [ $req_1->to_api, $req_2->to_api ]);
+    $t->get_ok("//$userid:$password@/api/v1/ill/requests?_order_by=staff_notes")->status_is(200)
+        ->json_is( [ $req_1->to_api( { user => $librarian } ), $req_2->to_api( { user => $librarian } ) ] );
 
     # Status code
     # Warn on unsupported query parameter
@@ -253,6 +258,119 @@ subtest 'list() tests' => sub {
       ->status_is(404);
 
     #TODO; test complex query on extended_attributes
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'add() tests' => sub {
+
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    # create an authorized user
+    my $patron = $builder->build_object({
+        class => 'Koha::Patrons',
+        value => { flags => 2 ** 22 } # 22 => ill
+    });
+    my $password = 'thePassword123';
+    $patron->set_password({ password => $password, skip_validation => 1 });
+    my $userid = $patron->userid;
+
+    my $library  = $builder->build_object( { class => 'Koha::Libraries' } );
+
+    # Create an ILL request
+    my $illrequest = $builder->build_object(
+        {
+            class => 'Koha::ILL::Requests',
+            value => {
+                backend        => 'Mock',
+                branchcode     => $library->branchcode,
+                borrowernumber => $patron->borrowernumber,
+                status         => 'STATUS1',
+            }
+        }
+    );
+
+    # Mock ILLBackend (as object)
+    my $backend = Test::MockObject->new;
+    $backend->set_isa('Koha::Illbackends::Mock');
+    $backend->set_always('name', 'Mock');
+
+    $backend->mock(
+        'metadata',
+        sub {
+            my ( $self, $rq ) = @_;
+            return {
+                ID => $rq->illrequest_id,
+                Title => $rq->patron->borrowernumber
+            }
+        }
+    );
+    $backend->mock(
+        'status_graph', sub {},
+    );
+
+    # Mock Koha::ILL::Request::load_backend (to load Mocked Backend)
+    my $illreqmodule = Test::MockModule->new('Koha::ILL::Request');
+    $illreqmodule->mock(
+        'load_backend',
+        sub { my $self = shift; $self->{_my_backend} = $backend; return $self }
+    );
+
+    $illreqmodule->mock(
+        '_backend',
+        sub {
+            my $self = shift;
+            $self->{_my_backend} = $backend if ($backend);
+
+            return $self;
+            }
+    );
+
+    $illreqmodule->mock(
+        'capabilities',
+        sub {
+            my ( $self, $name ) = @_;
+
+            my $capabilities = {
+
+                create_api => sub {
+                    my ($body, $request ) = @_;
+
+                    my $api_req = $builder->build_object(
+                        {
+                            class => 'Koha::ILL::Requests',
+                            value => {
+                                borrowernumber => $patron->borrowernumber,
+                                batch_id       => undef,
+                                status         => 'NEW',
+                                backend        => $backend->name,
+                            }
+                        }
+                    );
+
+                    return $api_req;
+                }
+            };
+
+            return $capabilities->{$name};
+        }
+    );
+
+    $schema->storage->txn_begin;
+
+    Koha::ILL::Requests->search->delete;
+
+    my $body = {
+        ill_backend_id => 'Mock',
+        patron_id => $patron->borrowernumber,
+        library_id => $library->branchcode
+    };
+
+    ## Authorized user test
+    $t->post_ok( "//$userid:$password@/api/v1/ill/requests" => json => $body)
+      ->status_is(201);
 
     $schema->storage->txn_rollback;
 };

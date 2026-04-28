@@ -1,0 +1,19 @@
+---
+type: object
+properties:
+  record_source_id:
+    type: integer
+    description: Internally assigned record source identifier
+    readOnly: true
+  name:
+    description: Record source name
+    type: string
+  can_be_edited:
+    description: If records from this source can be edited
+    type: boolean
+  usage_count:
+    description: Record source usage count (x-koha-embed)
+    type: integer
+additionalProperties: false
+required:
+  - name

@@ -13,19 +13,23 @@
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-            </li>
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
-            </li>
-            <li class="breadcrumb-item active">
-                <a href="#" aria-current="page">Change your password</a>
-            </li>
-        </ol>
-    </nav> <!-- /#breadcrumbs -->
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
+        [% END %]
+        [% IF ( password_updated ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/opac-passwd.pl">Change your password</a>
+            [% END %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Password updated</span>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Change your password</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
 
     <div class="container-fluid">
         <div class="row">
@@ -64,7 +68,8 @@
 
                     [% IF logged_in_user.category.effective_change_password %]
                         [% IF ( Ask_data ) %]
-                            <form action="/cgi-bin/koha/opac-passwd.pl" name="mainform" id="mainform" method="post" autocomplete="off">
+                            <form action="/cgi-bin/koha/opac-passwd.pl" name="mainform" id="mainform" method="post">
+                                [% INCLUDE 'csrf-token.inc' %]
                                 <legend class="sr-only">Change your password</legend>
                                 <fieldset>
                                     [% IF ( logged_in_user.category.effective_require_strong_password ) %]
@@ -74,18 +79,19 @@
                                     [% END %]
                                     <div class="form-group">
                                         <label for="Oldkey">Current password:</label>
-                                        <input class="form-control focus" type="password" id="Oldkey" size="25"  name="Oldkey" />
+                                        <input class="form-control focus" type="password" id="Oldkey" size="25"  name="Oldkey" autocomplete="current-password" />
                                     </div>
                                     <div class="form-group">
                                         <label for="Newkey">New password:</label>
-                                        <input class="form-control" type="password" id="Newkey"  size="25"  name="Newkey" />
+                                        <input class="form-control" type="password" id="Newkey"  size="25"  name="Newkey" autocomplete="new-password" />
                                     </div>
                                     <div class="form-group">
                                         <label for="Confirm">Re-type new password:</label>
-                                        <input class="form-control" type="password"  id="Confirm" size="25" name="Confirm" />
+                                        <input class="form-control" type="password"  id="Confirm" size="25" name="Confirm" autocomplete="new-password" />
                                     </div>
                                 </fieldset>
                                 <fieldset class="action">
+                                    <input type="hidden" name="op" value="cud-change_password" />
                                     <input type="submit" value="Change password" class="btn btn-primary" />
                                     <a href="/cgi-bin/koha/opac-user.pl" class="cancel">Cancel</a>
                                 </fieldset>
@@ -101,10 +107,7 @@
                             <br />
                             Your password has been changed
                         </div>
-                        <form action="/cgi-bin/koha/opac-user.pl" method="post" autocomplete="off">
-                            <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]" />
-                            <p><input type="submit" class="btn btn-primary" value="Return to my account" /></p>
-                        </form>
+                        <a class="btn btn-primary" href="/cgi-bin/koha/opac-user.pl">Return to my account</a>
                     [% END # /IF password_updated %]
                 </div> <!-- / #userpasswd -->
             </div> <!-- / .col-10 -->

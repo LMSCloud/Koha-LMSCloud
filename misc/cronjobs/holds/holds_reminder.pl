@@ -120,7 +120,6 @@ If omitted the patron's messaging preferences for Hold notices will be used.
 If supplied the notice types will be force sent even if patron has not selected hold notices
 Email and SMS will fall back to print if there is no valid info in the patron's account
 
-
 =back
 
 =head1 DESCRIPTION
@@ -177,6 +176,7 @@ my $opt_out = 0;
 my @mtts;
 
 my $command_line_options = join(" ",@ARGV);
+cronlogaction({ info => $command_line_options });
 
 GetOptions(
     'help|?'       => \$help,
@@ -195,8 +195,6 @@ pod2usage(1) if $help;
 pod2usage( -verbose => 2 ) if $man;
 
 $lettercode ||= 'HOLD_REMINDER';
-
-cronlogaction({ info => $command_line_options });
 
 # Unless a delay is specified by the user we target all waiting holds
 unless (defined $days) {
@@ -249,8 +247,13 @@ foreach my $branchcode (@branchcodes) { #BEGIN BRANCH LOOP
     my $waiting_date;
     if( $use_calendar ){
         my $calendar = Koha::Calendar->new( branchcode => $branchcode, days_mode => 'Calendar' );
-        my $duration = DateTime::Duration->new( days => -$days );
-        $waiting_date = $calendar->addDays($date_to_run,$duration); #Add negative of days
+
+        #if today is a holiday skip sending the message
+        next if $calendar->is_holiday($date_to_run);
+        {
+            my $duration = DateTime::Duration->new( days => -$days );
+            $waiting_date = $calendar->addDays( $date_to_run, $duration );    #Add negative of days
+        }
     } else {
         $waiting_date = $waiting_date_static;
     }

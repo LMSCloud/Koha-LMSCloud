@@ -71,10 +71,10 @@ if ( C4::Context->preference('AcqEnableFiles') ) {
         tabletag => 'aqinvoices', recordid => $invoiceid );
 }
 
-if ( $op && $op eq 'close' ) {
+if ( $op && $op eq 'cud-close' ) {
     output_and_exit( $input, $cookie, $template, 'insufficient_permission' )
         unless $logged_in_patron->has_permission( { acquisition => 'edit_invoices' } );
-    my @invoiceid = $input->multi_param('invoiceid');
+    my @invoiceid = split( ',', scalar $input->param('invoiceid') );
     foreach my $invoiceid ( @invoiceid ) {
         CloseInvoice($invoiceid);
     }
@@ -84,10 +84,10 @@ if ( $op && $op eq 'close' ) {
         exit 0;
     }
 }
-elsif ( $op && $op eq 'reopen' ) {
+elsif ( $op && $op eq 'cud-reopen' ) {
     output_and_exit( $input, $cookie, $template, 'insufficient_permission' )
         unless $logged_in_patron->has_permission( { acquisition => 'reopen_closed_invoices' } );
-    my @invoiceid = $input->multi_param('invoiceid');
+    my @invoiceid = split( ',', scalar $input->param('invoiceid') );
     foreach my $invoiceid ( @invoiceid ) {
         ReopenInvoice($invoiceid);
     }
@@ -97,7 +97,7 @@ elsif ( $op && $op eq 'reopen' ) {
         exit 0;
     }
 }
-elsif ( $op && $op eq 'mod' ) {
+elsif ( $op && $op eq 'cud-mod' ) {
     my $shipmentcost       = $input->param('shipmentcost');
     my $shipment_budget_id = $input->param('shipment_budget_id');
     my $invoicenumber      = $input->param('invoicenumber');
@@ -128,20 +128,13 @@ elsif ( $op && $op eq 'mod' ) {
         defined($invoice_files) && $invoice_files->MergeFileRecIds(@sources);
     }
 
-    my @additional_fields;
-    my $invoice_fields = Koha::AdditionalFields->search({ tablename => 'aqinvoices' });
-    while ( my $field = $invoice_fields->next ) {
-        my $value = $input->param('additional_field_' . $field->id);
-        push @additional_fields, {
-            id => $field->id,
-            value => $value,
-        };
-    }
+    my @additional_fields =
+        Koha::Acquisition::Invoices->find($invoiceid)->prepare_cgi_additional_field_values( $input, 'aqinvoices' );
     Koha::Acquisition::Invoices->find($invoiceid)->set_additional_fields(\@additional_fields);
 
     $template->param( modified => 1 );
 }
-elsif ( $op && $op eq 'delete' ) {
+elsif ( $op && $op eq 'cud-delete' ) {
 
     output_and_exit( $input, $cookie, $template, 'insufficient_permission' )
         unless $logged_in_patron->has_permission( { acquisition => 'delete_invoices' } );
@@ -154,7 +147,7 @@ elsif ( $op && $op eq 'delete' ) {
         exit 0;
     }
 }
-elsif ( $op && $op eq 'del_adj' ) {
+elsif ( $op && $op eq 'cud-del_adj' ) {
 
     output_and_exit( $input, $cookie, $template, 'insufficient_permission' )
         unless $logged_in_patron->has_permission( { acquisition => 'edit_invoices' } );
@@ -180,7 +173,7 @@ elsif ( $op && $op eq 'del_adj' ) {
         $del_adj->delete();
     }
 }
-elsif ( $op && $op eq 'mod_adj' ) {
+elsif ( $op && $op eq 'cud-mod_adj' ) {
 
     output_and_exit( $input, $cookie, $template, 'insufficient_permission' )
         unless $logged_in_patron->has_permission( { acquisition => 'edit_invoices' } );
@@ -251,6 +244,7 @@ elsif ( $op && $op eq 'mod_adj' ) {
     }
 }
 
+my $active_currency = Koha::Acquisition::Currencies->get_active,
 my $details = GetInvoiceDetails($invoiceid);
 my $bookseller = Koha::Acquisition::Booksellers->find( $details->{booksellerid} );
 my @orders_loop = ();
@@ -262,6 +256,7 @@ my $total_quantity = 0;
 my $total_tax_excluded = 0;
 my $total_tax_included = 0;
 my $total_tax_value = 0;
+my $has_invoice_unitprice;
 foreach my $order (@$orders) {
     my $line = get_infos( $order, $bookseller);
 
@@ -282,6 +277,7 @@ foreach my $order (@$orders) {
     $total_tax_included += get_rounded_price($$line{total_tax_included});
 
     $line->{orderline} = $line->{parent_ordernumber};
+    $has_invoice_unitprice = 1 if $line->{invoice_currency} ne $active_currency->currency;
     push @orders_loop, $line;
 }
 
@@ -317,9 +313,7 @@ if ( $adjustments ) { $template->param( adjustments => $adjustments ); }
 my $invoice = Koha::Acquisition::Invoices->find($invoiceid);
 $template->param(
     available_additional_fields => Koha::AdditionalFields->search( { tablename => 'aqinvoices' } ),
-    additional_field_values => { map {
-                $_->field->id => $_->value
-            } $invoice->additional_field_values->as_list },
+    additional_field_values => $invoice->get_additional_field_values_for_template,
 );
 
 $template->param(
@@ -341,9 +335,10 @@ $template->param(
     total_tax_excluded_shipment => $total_tax_excluded + $shipmentcost,
     total_tax_included_shipment => $total_tax_included + $shipmentcost,
     invoiceincgst               => $bookseller->invoiceincgst,
-    currency                    => Koha::Acquisition::Currencies->get_active,
+    currency                    => $active_currency,
     budgets                     => $budget_loop,
     budget                      => GetBudget( $shipmentcost_budgetid ),
+    has_invoice_unitprice       => $has_invoice_unitprice,
 );
 
 defined( $invoice_files ) && $template->param( files => $invoice_files->GetFilesInfo() );

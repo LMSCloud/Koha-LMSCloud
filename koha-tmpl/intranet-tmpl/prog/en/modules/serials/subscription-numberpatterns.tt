@@ -1,8 +1,19 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Numbering patterns &rsaquo; Serials &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF ( new ) %]
+        [% t("New numbering pattern") | html %] &rsaquo;
+    [% ELSIF ( modify ) %]
+        [% tx("Modify numbering pattern '{pattern}'", { pattern = label }) | html %] &rsaquo;
+    [% END %]
+    [% t("Numbering patterns") | html %] &rsaquo;
+    [% t("Serials") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -27,7 +38,7 @@
             [% END %]
         [% ELSIF ( modify ) %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Modifying numbering pattern '[% label | html %]'</span>
+                [% tx("Modify numbering pattern '{pattern}'", { pattern = label }) | html %]
             [% END %]
         [% ELSE %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
@@ -39,50 +50,54 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
       [% IF (new or modify) %]
           [% IF (new) %]
             <h1>New numbering pattern</h1>
             [% IF (error_existing_numberpattern) %]
-              <div class="dialog alert">
+              <div class="alert alert-warning">
                 <p>A pattern with this name already exists.</p>
               </div>
             [% END %]
           [% ELSE %]
-            <h1>Modify pattern: [% label | html %]</h1>
+            <h1>[% tx("Modify numbering pattern '{pattern}'", { pattern = label }) | html %]</h1>
             [% IF (error_existing_numberpattern) %]
-              <div class="dialog alert">
+              <div class="alert alert-warning">
                 <p>Another pattern with this name already exists.</p>
               </div>
             [% END %]
           [% END %]
 
-          <form action="/cgi-bin/koha/serials/subscription-numberpatterns.pl" method="post">
+          <form action="/cgi-bin/koha/serials/subscription-numberpatterns.pl" method="post" class="validated">
+              [% INCLUDE 'csrf-token.inc' %]
             [% IF (new) %]
-              <input type="hidden" name="op" value="savenew" />
+              <input type="hidden" name="op" value="cud-savenew" />
             [% ELSE %]
-              <input type="hidden" name="op" value="savemod" />
+              <input type="hidden" name="op" value="cud-savemod" />
               <input type="hidden" name="id" value="[% id | html %]" />
             [% END %]
             <fieldset class="rows">
               <ol>
                 <li>
-                  <label for="label">Name:</label>
-                  <input type="text" id="label" name="label" value="[% label | html %]" />
+                  <label class="required" for="label">Name:</label>
+                  <input type="text" id="label" name="label" value="[% label | html %]" class="required" required="required" />
+                  <span class="required">Required</span>
                 </li>
                 <li>
                   <label for="description">Description:</label>
                   <input type="text" id="description" name="description" value="[% description | html %]" size="50" />
                 </li>
                 <li>
-                  <label for="numberingmethod">Numbering formula:</label>
-                  <input type="text" id="numberingmethod" name="numberingmethod" value="[% numberingmethod | html %]" />
+                  <label class="required" for="numberingmethod">Numbering formula:</label>
+                  <input type="text" id="numberingmethod" name="numberingmethod" value="[% numberingmethod | html %]" class="required" required="required" />
+                  <span class="required">Required</span>
                 </li>
                 <li>
                   <label for="displayorder">Display order:</label>
-                  <input type="text" id="displayorder" name="displayorder" value="[% displayorder | html %]" />
+                  <input type="text" inputmode="numeric" class="digits" id="displayorder" name="displayorder" value="[% displayorder | html %]" />
                 </li>
               </ol>
               <table>
@@ -176,7 +191,7 @@
             </fieldset>
           </form>
 
-          <form>
+          <form method="get">
             <fieldset class="rows">
               <legend>Test prediction pattern</legend>
               <ol>
@@ -246,7 +261,7 @@
       [% ELSE %]
         <h1>Numbering patterns</h1>
         [% IF still_used %]
-            <div class="dialog alert">
+            <div class="alert alert-warning">
                 <p>
                     This pattern is still used by [% subscriptions.size | html %]
                     subscription(s). Do you still want to delete it?
@@ -260,14 +275,15 @@
                     [% END %]
                 </ul>
 
-                <form action="/cgi-bin/koha/serials/subscription-numberpatterns.pl" method="get">
-                    <input type="hidden" name="op" value="del" />
+                <form action="/cgi-bin/koha/serials/subscription-numberpatterns.pl" method="post">
+                    [% INCLUDE 'csrf-token.inc' %]
+                    <input type="hidden" name="op" value="cud-del" />
                     <input type="hidden" name="confirm" value="1" />
                     <input type="hidden" name="id" value="[% id | html %]" />
-                    <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> Yes, delete</button>
+                    <button type="submit" class="btn btn-default approve"><i class="fa fa-fw fa-check"></i> Yes, delete</button>
                 </form>
                 <form action="/cgi-bin/koha/serials/subscription-numberpatterns.pl" method="get">
-                    <button type="submit" class="deny"><i class="fa fa-fw fa-remove"></i> No, do not delete</button>
+                    <button type="submit" class="btn btn-default deny"><i class="fa fa-fw fa-times"></i> No, do not delete</button>
                 </form>
             </div>
         [% END %]
@@ -295,8 +311,13 @@
                   <td>[% numberpattern.numberingmethod | html %]</td>
                   <td>[% numberpattern.displayorder | html %]</td>
                   <td class="actions">
-                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/serials/subscription-numberpatterns.pl?op=modify&id=[% numberpattern.id | html %]"><i class="fa fa-pencil"></i> Edit</a>
-                    <a class="delete_pattern btn btn-default btn-xs" href="/cgi-bin/koha/serials/subscription-numberpatterns.pl?op=del&id=[% numberpattern.id | html %]"><i class="fa fa-trash"></i> Delete</a>
+                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/serials/subscription-numberpatterns.pl?op=modify&id=[% numberpattern.id | html %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+                    <form action="/cgi-bin/koha/serials/subscription-numberpatterns.pl" method="post">
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-del" />
+                        <input type="hidden" name="id" value="[% numberpattern.id | html %]" />
+                        <button class="delete_pattern btn btn-default btn-xs"><i class="fa fa-trash-can"></i> Delete</button>
+                    </form>
                   </td>
                 </tr>
               [% END %]
@@ -308,13 +329,13 @@
       [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'serials-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -384,10 +405,10 @@
         $(document).ready(function(){
 
             $("#numberpatternst").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "aoColumnDefs": [
-                    { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
+                "columnDefs": [
+                    { "targets": [ -1 ], "orderable": false, "searchable":  false },
                 ],
-                "sPaginationType": "full"
+                "pagingType": "full"
             }));
 
             $(".delete_pattern").on("click",function(){

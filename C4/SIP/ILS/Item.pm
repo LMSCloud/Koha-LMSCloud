@@ -11,7 +11,6 @@ use warnings;
 
 use C4::SIP::Sip qw(siplog);
 use Carp;
-use Template;
 
 use C4::SIP::ILS::Transaction;
 use C4::SIP::Sip qw(add_field maybe_add);
@@ -29,6 +28,7 @@ use Koha::DateUtils qw( dt_from_string );
 use Koha::Holds;
 use Koha::Items;
 use Koha::Patrons;
+use Koha::TemplateUtils qw( process_tt );
 
 =encoding UTF-8
 
@@ -196,13 +196,8 @@ sub hold_patron_name {
     my $borrowernumber = $self->hold_patron_id() or return q{};
 
     if ($template) {
-        my $tt = Template->new();
-
         my $patron = Koha::Patrons->find($borrowernumber);
-
-        my $output;
-        $tt->process( \$template, { patron => $patron }, \$output );
-        return $output;
+        return process_tt( $template, { patron => $patron } );
     }
 
     my $holder = Koha::Patrons->find( $borrowernumber );
@@ -279,32 +274,33 @@ sub title_id {
 }
 
 sub sip_circulation_status {
-    my $self = shift;
+    my $self   = shift;
+    my $server = shift;
+
+    # Defines what lost status means "missing" for this SIP account
+    my $missing_status = $server->{account}->{lost_status_for_missing};
+
     if ( $self->{_object}->get_transfer ) {
-        return '10'; # in transit between libraries
-    }
-    elsif ( Koha::Checkouts::ReturnClaims->search({ itemnumber => $self->{_object}->id, resolution => undef })->count ) {
+        return '10';    # in transit between libraries
+    } elsif (
+        Koha::Checkouts::ReturnClaims->search( { itemnumber => $self->{_object}->id, resolution => undef } )->count )
+    {
         return '11';    # claimed returned
-    }
-    elsif ( $self->{itemlost} ) {
+    } elsif ( $missing_status && $self->{itemlost} && $missing_status eq $self->{itemlost} ) {
+        return '13';    # missing
+    } elsif ( $self->{itemlost} ) {
         return '12';    # lost
-    }
-    elsif ( $self->{borrowernumber} ) {
+    } elsif ( $self->{borrowernumber} ) {
         return '04';    # charged
-    }
-    elsif ( grep { $_->{itemnumber} == $self->{itemnumber}  } @{ $self->{hold_attached} } ) {
+    } elsif ( grep { $_->{itemnumber} == $self->{itemnumber} } @{ $self->{hold_attached} } ) {
         return '08';    # waiting on hold shelf
-    }
-    elsif ( $self->{location} and $self->{location} eq 'CART' ) {
+    } elsif ( $self->{location} and $self->{location} eq 'CART' ) {
         return '09';    # waiting to be re-shelved
-    }
-    elsif ( $self->{damaged} ) {
+    } elsif ( $self->{damaged} ) {
         return '01';    # damaged
-    }
-    elsif ( $self->{notforloan} < 0 ) {
+    } elsif ( $self->{notforloan} < 0 ) {
         return '02';    # on order
-    }
-    else {
+    } else {
         return '03';    # available
     }    # FIXME: 01-13 enumerated in spec.
 }
@@ -509,21 +505,8 @@ sub format {
     my ( $self, $template ) = @_;
 
     if ($template) {
-        require Template;
-
-        my $tt = Template->new();
-
         my $item = $self->{_object};
-
-        my $output;
-        eval {
-            $tt->process( \$template, { item => $item }, \$output );
-        };
-        if ( $@ ){
-            siplog("LOG_DEBUG", "Error processing template: $template");
-            return "";
-        }
-        return $output;
+        return process_tt( $template, { item => $item } );
     }
 }
 

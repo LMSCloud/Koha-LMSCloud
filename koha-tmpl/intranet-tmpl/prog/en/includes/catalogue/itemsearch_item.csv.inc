@@ -17,6 +17,8 @@
 [%- delimiter | $raw -%]
 "[% item.barcode | replace('"', '""') | $raw %]"
 [%- delimiter | $raw -%]
+"[% item.itemnumber | replace('"', '""') | $raw %]"
+[%- delimiter | $raw -%]
 "[% item.enumchron | replace('"', '""') | $raw %]"
 [%- delimiter | $raw -%]
 "[% item.itemcallnumber | replace('"', '""') | $raw %]"
@@ -37,6 +39,10 @@
 [%- delimiter | $raw -%]
 "[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.withdrawn', authorised_value => item.withdrawn ) || "" | replace('"', '""') | $raw %]"
 [%- delimiter | $raw -%]
+"[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.damaged', authorised_value => item.damaged ) || "" | replace('"', '""') | $raw %]"
+[%- delimiter | $raw -%]
 "[% (item.issues || 0) | $raw %]"
+[%- delimiter | $raw -%]
+"[% item.datelastborrowed | $KohaDates | $raw %]"
 [%- delimiter | $raw -%]
 "[% IF item.checkout %][% item.checkout.date_due | $KohaDates | $raw %][% END %]"

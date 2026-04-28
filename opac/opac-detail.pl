@@ -39,7 +39,6 @@ use C4::Output qw( parametrized_url output_html_with_http_headers );
 use C4::Biblio qw(
     CountItemsIssued
     GetBiblioData
-    GetMarcControlnumber
     GetMarcISBN
     GetMarcISSN
     GetMarcAuthors
@@ -47,6 +46,7 @@ use C4::Biblio qw(
     GetMarcSubjects
     GetMarcUrls
 );
+use C4::Record qw( marc2cites );
 use C4::Tags qw( get_tags );
 use C4::XISBN qw( get_xisbns );
 use C4::External::Amazon qw( get_amazon_tld );
@@ -115,6 +115,35 @@ unless ( $biblio && $record ) {
     print $query->redirect("/cgi-bin/koha/errors/404.pl"); # escape early
     exit;
 }
+
+# If record should be suppressed, handle it early
+if ( C4::Context->preference('OpacSuppression') ) {
+
+    # redirect to opac-blocked info page or 404?
+    my $redirect_url;
+    if ( C4::Context->preference("OpacSuppressionRedirect") ) {
+        $redirect_url = "/cgi-bin/koha/opac-blocked.pl";
+    } else {
+        $redirect_url = "/cgi-bin/koha/errors/404.pl";
+    }
+    if ( $biblio->opac_suppressed() ) {
+
+        # if OPAC suppression by IP address
+        if ( C4::Context->preference('OpacSuppressionByIPRange') ) {
+            my $IPAddress = $ENV{'REMOTE_ADDR'};
+            my $IPRange   = C4::Context->preference('OpacSuppressionByIPRange');
+            if ( $IPAddress !~ /^$IPRange/ ) {
+                print $query->redirect($redirect_url);
+                exit;
+            }
+        } else {
+            print $query->redirect($redirect_url);
+            exit;
+        }
+    }
+}
+
+my $metadata_extractor = $biblio->metadata_extractor;
 
 my $items = $biblio->items->search_ordered;
 if ($specific_item) {
@@ -625,6 +654,9 @@ if ( $showcomp eq 'both' || $showcomp eq 'opac' ) {
     $show_analytics = 1 if @{$biblio->get_marc_components(1)}; # count matters here, results does not
 }
 
+# Display volumes link
+my $show_volumes = @{ $biblio->get_marc_volumes(1) } ? 1 : 0;
+
 # XSLT processing of some stuff
 my $variables = {};
 my $lang = C4::Languages::getlanguage();
@@ -639,7 +671,7 @@ my @plugin_responses = Koha::Plugins->call(
 for my $plugin_variables ( @plugin_responses ) {
     $variables = { %$variables, %$plugin_variables };
 }
-$variables->{anonymous_session} = $borrowernumber ? 0 : 1;
+$variables->{anonymous_session}   = $borrowernumber ? 0 : 1;
 $variables->{show_analytics_link} = $show_analytics;
 $variables->{subscription_count} = scalar(@subs);
 $template->param(
@@ -749,6 +781,8 @@ if ( $leader && substr( $leader, 7, 1 ) eq 'c' && C4::Context->preference('Bundl
 
 
 my ( $itemloop_has_images, $otheritemloop_has_images );
+my $item_level_holds;
+my $item_checkouts;
 if ( not $viewallitems and $items->count > $max_items_to_display ) {
     $template->param(
         too_many_items => 1,
@@ -773,6 +807,7 @@ else {
         }
         
         $item_info->{holds_count} = $item_reserves{ $item->itemnumber };
+        if ( $item_info->{holds_count} && $item_info->{holds_count} > 0 ) { $item_level_holds = 1; }
         $item_info->{priority}    = $priority{ $item->itemnumber };
         
         my $notforloan = $item_info->{'itemnotforloan'} || $item_info->{'notforloan'} || '';
@@ -816,9 +851,11 @@ else {
               $itemtypes->{ $itemtype }->{translated_description};
         }
 
+        $item_info->{checkout} = $item->checkout;
+        if ( $item_info->{checkout} && $item_info->{checkout} > 0 ) { $item_checkouts = 1; }
+
         foreach my $field (
-            qw(ccode materials enumchron copynumber itemnotes location_description uri)
-          )
+            qw(ccode materials enumchron copynumber itemnotes location_description uri barcode itemcallnumber))
         {
             $itemfields{$field} = 1 if $item_info->{$field};
         }
@@ -914,19 +951,19 @@ if( C4::Context->preference('ArticleRequests') ) {
     $template->param( artreqpossible => $artreqpossible );
 }
 
-my $norequests = ! $biblio->items->filter_by_for_hold->count;
-    $template->param(
-                     MARCNOTES               => $marcnotesarray,
-                     norequests              => $norequests,
-                     itemdata_ccode          => $itemfields{ccode},
-                     itemdata_materials      => $itemfields{materials},
-                     itemdata_enumchron      => $itemfields{enumchron},
-                     itemdata_uri            => $itemfields{uri},
-                     itemdata_copynumber     => $itemfields{copynumber},
-                     itemdata_itemnotes      => $itemfields{itemnotes},
-                     itemdata_location       => $itemfields{location_description},
-                     OpacStarRatings         => C4::Context->preference("OpacStarRatings"),
-    );
+$template->param(
+    MARCNOTES               => $marcnotesarray,
+    itemdata_ccode          => $itemfields{ccode},
+    itemdata_materials      => $itemfields{materials},
+    itemdata_enumchron      => $itemfields{enumchron},
+    itemdata_uri            => $itemfields{uri},
+    itemdata_copynumber     => $itemfields{copynumber},
+    itemdata_itemnotes      => $itemfields{itemnotes},
+    itemdata_location       => $itemfields{location_description},
+    itemdata_barcode        => $itemfields{barcode},
+    itemdata_itemcallnumber => $itemfields{itemcallnumber},
+    OpacStarRatings         => C4::Context->preference("OpacStarRatings"),
+);
 
 if (C4::Context->preference("AlternateHoldingsField") && $items->count == 0) {
     my $fieldspec = C4::Context->preference("AlternateHoldingsField");
@@ -1308,9 +1345,10 @@ if ( C4::Context->preference('OpacStarRatings') !~ /disable/ ) {
 }
 
 #Search for title in links
-my $marccontrolnumber   = GetMarcControlnumber ($record, $marcflavour);
-my $marcissns = GetMarcISSN ( $record, $marcflavour );
-my $issn = $marcissns->[0] || '';
+my $control_number      = $metadata_extractor->get_control_number();
+my $marccontrolnumber   = $control_number;
+my $marcissns           = GetMarcISSN( $record, $marcflavour );
+my $issn                = $marcissns->[0] || '';
 
 if (my $search_for_title = C4::Context->preference('OPACSearchForTitleIn')){
     $dat->{title} =~ s/\/+$//; # remove trailing slash
@@ -1324,7 +1362,7 @@ if (my $search_for_title = C4::Context->preference('OPACSearchForTitleIn')){
             ISBN          => $isbn,
             ISBN13        => $isbn13,
             ISSN          => $issn,
-            CONTROLNUMBER => $marccontrolnumber,
+            CONTROLNUMBER => $control_number,
             BIBLIONUMBER  => $biblionumber,
             OCLC_NO       => $oclc_no,
         }
@@ -1406,6 +1444,8 @@ my $defaulttab =
         ? 'holdings' :
     $opac_serial_default eq 'subscriptions' && $subscriptionsnumber
         ? 'subscriptions' :
+    $opac_serial_default eq 'titlenotes' && $subscriptionsnumber
+        ? 'descriptions' :
     $opac_serial_default eq 'serialcollection' && @serialcollections > 0
         ? 'serialcollection' :
     $opac_serial_default eq 'holdings' && scalar (@itemloop) > 0
@@ -1464,21 +1504,24 @@ if (C4::Context->preference('OpacDetailVolumeDisplay')) {
 }
 
 if ( C4::Context->preference('OPACAuthorIdentifiers') ) {
-    my @author_identifiers;
+    my @author_information;
     for my $author ( @{ $biblio->get_marc_authors } ) {
         my $authid    = $author->{authoritylink};
         my $authority = Koha::Authorities->find($authid);
         next unless $authority;
-        my $identifiers = $authority->get_identifiers;
-        next unless $identifiers && @$identifiers;
+        my $information = $authority->get_identifiers_and_information;
+        next unless $information;
         my ($name) =
           map  { $_->{value} }
           grep { $_->{code} eq 'a' ? $_ : () }
           @{ $author->{MARCAUTHOR_SUBFIELDS_LOOP} };
-        push @author_identifiers,
-          { authid => $authid, name => $name, identifiers => $identifiers };
+        push @author_information,
+          { authid => $authid, name => $name, information => $information};
     }
-    $template->param( author_identifiers => \@author_identifiers );
+    $template->param( author_information => \@author_information );
 }
+
+# Cites
+$template->param( cites => C4::Record::marc2cites($record) );
 
 output_html_with_http_headers $query, $cookie, $template->output;

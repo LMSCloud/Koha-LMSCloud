@@ -54,6 +54,9 @@ $scriptname -h|--help
                           (useful for calling from another scripts).
     --help|-h             Display this help message
 
+Note: There used to be a queue called elastic_index, but since the introduction
+of koha-es-indexer this queue should not be active.
+
 EOF
 }
 

@@ -187,6 +187,7 @@ my $help    = 0;
 my $man     = 0;
 
 my $command_line_options = join(" ",@ARGV);
+cronlogaction({ info => $command_line_options });
 
 GetOptions(
             'help|?'         => \$help,
@@ -218,7 +219,6 @@ END_WARN
 unless ($confirm) {
      pod2usage(1);
 }
-cronlogaction({ info => $command_line_options });
 
 my %branches = ();
 if (@branchcodes) {
@@ -294,13 +294,8 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
             my $item = Koha::Items->find( $upcoming->{itemnumber} );
             my $letter_type = 'DUE';
             $sth->execute($upcoming->{'borrowernumber'},$upcoming->{'itemnumber'},'0');
-            my $titles = "";
-            my @items = ();
-            my $item_info;
-            while ($item_info = $sth->fetchrow_hashref()) {
-                $titles .= C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
-                push @items, $item_info;
-            }
+            my $item_info = $sth->fetchrow_hashref();
+            my $title = C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
 
             ## Get branch info for borrowers home library.
             foreach my $transport ( keys %{$borrower_preferences->{'transports'}} ) {
@@ -310,9 +305,8 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
                                       branchcode     =>  Koha::Libraries->get_effective_branch($branchcode),
                                       biblionumber   => $item->biblionumber,
                                       itemnumber     => $upcoming->{'itemnumber'},
-                                      items          => \@items,
                                       substitute     => {
-                                          'items.content' => $titles,
+                                          'items.content' => $title,
                                           checkout        => $item_info,
                                       },
                                       message_transport_type => $transport,
@@ -349,13 +343,8 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
             my $item = Koha::Items->find( $upcoming->{itemnumber} );
             my $letter_type = 'PREDUE';
             $sth->execute($upcoming->{'borrowernumber'},$upcoming->{'itemnumber'},$borrower_preferences->{'days_in_advance'});
-            my $titles = "";
-            my @items = ();
-            my $item_info;
-            while ($item_info = $sth->fetchrow_hashref()) {
-                $titles .= C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
-                push @items, $item_info;
-            }
+            my $item_info = $sth->fetchrow_hashref();
+            my $title = C4::Letters::get_item_content( { item => $item_info, item_content_fields => \@item_content_fields } );
 
             ## Get branch info for borrowers home library.
             foreach my $transport ( keys %{$borrower_preferences->{'transports'}} ) {
@@ -365,9 +354,8 @@ UPCOMINGITEM: foreach my $upcoming ( @$upcoming_dues ) {
                                       branchcode     => Koha::Libraries->get_effective_branch($branchcode),
                                       biblionumber   => $item->biblionumber,
                                       itemnumber     => $upcoming->{'itemnumber'},
-                                      items          => \@items,
                                       substitute     => {
-                                          'items.content' => $titles,
+                                          'items.content' => $title,
                                           checkout        => $item_info,
                                       },
                                       message_transport_type => $transport,
@@ -646,7 +634,6 @@ sub send_digests {
                 {
                     letter_code    => $params->{letter_code},
                     borrowernumber => $borrowernumber,
-                    items          => \@checkouts,
                     checkouts      => \@checkouts,
                     substitute     => {
                         count           => $count,

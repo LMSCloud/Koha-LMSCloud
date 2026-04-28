@@ -38,7 +38,7 @@
             background: #e6e6e6 linear-gradient(180deg,#F7F7F7,#F0F0F0);
         }
         fieldset.rows .pickup_time label::before {
-            font-family: FontAwesome;
+            font-family: "Font Awesome 6 Free";
             color: #AAA;
             content: "\f1db";
             display: inline-block;
@@ -50,7 +50,7 @@
             color: #FFF;
         }
         fieldset.rows .pickup_time input:checked + label::before {
-            font-family: FontAwesome;
+            font-family: "Font Awesome 6 Free";
             color: #FFF;
             content: "\f05d";
             display: inline-block;
@@ -89,20 +89,14 @@
 [% INCLUDE 'bodytag.inc' bodyid='opac-curside-pickups' bodyclass='scrollto' %]
 [% INCLUDE 'masthead.inc' %]
 <div class="main">
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-            </li>
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
-            </li>
-
-            <li class="breadcrumb-item active">
-                <a href="#" aria-current="page">Curbside pickups</a>
-            </li>
-        </ol> <!-- / .breadcrumb -->
-    </nav> <!-- /#breadcrumbs -->
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Curbside pickups</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
 
     <div class="container-fluid">
         <div class="row">
@@ -144,33 +138,31 @@
                         </div>
                     [% END %]
 
-                    <div id="opac-pickups-views" class="toptabs">
-                        <ul class="nav nav-tabs" role="tablist">
-                            <li class="nav-item" role="presentation" id="tab-user-pickups">
-                            [% IF patron_curbside_pickups.count %]
-                                <a href="#user-pickups" class="nav-link active" aria-controls="user-pickups" aria-selected="true" role="tab" data-toggle="tab">Your pickups</a>
-                            [% ELSE %]
-                                <a href="#user-pickups" class="nav-link" aria-controls="user-pickups" role="tab" data-toggle="tab">Your pickups</a>
+                    [% WRAPPER tabs id= "opac-pickups-views" %]
+                        [% WRAPPER tabs_nav %]
+                            [% IF patron_curbside_pickups.count || !policies.count %]
+                                [% SET pickups_active = 1 %]
                             [% END %]
-                            </li>
-
+                            [% WRAPPER tab_item tabname= "user-pickups" bt_active= pickups_active %]
+                                <span>Your pickups</span>
+                            [% END %]
                             [% IF policies.count %]
-                                <li class="nav-item" role="presentation" id="tab-user-schedule-pickup">
                                 [% IF patron_curbside_pickups.count %]
-                                    <a href="#user-schedule-pickup" class="nav-link" aria-controls="user-schedule-pickup" role="tab" data-toggle="tab">Schedule a pickup</a>
+                                    [% SET scheduled_active = "" %]
                                 [% ELSE %]
-                                    <a href="#user-schedule-pickup" class="nav-link active" aria-controls="user-schedule-pickup" aria-selected="true" role="tab" data-toggle="tab">Schedule a pickup</a>
+                                    [% SET scheduled_active = 1 %]
                                 [% END %]
-                                </li>
+                                [% WRAPPER tab_item tabname= "user-schedule-pickup" bt_active= scheduled_active %]
+                                    <span>Schedule a pickup</span>
+                                [% END %]
                             [% END %]
-                        </ul>
+                        [% END # /WRAPPER tabs_nav %]
 
-                        <div class="tab-content">
+                        [% WRAPPER tab_panels %]
                             [% IF patron_curbside_pickups.count %]
-                            <div role="tabpanel" class="tab-pane active" id="user-pickups" aria-labelledby="tab-user-pickups">
-                            [% ELSE %]
-                            <div role="tabpanel" class="tab-pane" id="user-pickups" aria-labelledby="tab-user-pickups">
+                                [% SET pickups_active = 1 %]
                             [% END %]
+                            [% WRAPPER tab_panel tabname="user-pickups" bt_active= pickups_active %]
                                 [% IF patron_curbside_pickups.count %]
                                     <table id="pickups-table" class="table table-striped">
                                         <thead>
@@ -190,7 +182,8 @@
                                                     <td>[% p.notes | html %]</td>
                                                     <td>
                                                         <form method="post">
-                                                            <input type="hidden" name="op" value="arrival-alert" />
+                                                            [% INCLUDE 'csrf-token.inc' %]
+                                                            <input type="hidden" name="op" value="cud-arrival-alert" />
                                                             <input type="hidden" name="pickup_id" value="[% p.id | html %]" />
                                                             [% IF ! p.staged_datetime || p.arrival_datetime %]
                                                             <button class="btn disabled" disabled href="#" >
@@ -202,7 +195,8 @@
                                                         </form>
                                                         <p>
                                                         <form method="post">
-                                                            <input type="hidden" name="op" value="cancel-pickup" />
+                                                            [% INCLUDE 'csrf-token.inc' %]
+                                                            <input type="hidden" name="op" value="cud-cancel-pickup" />
                                                             <input type="hidden" name="pickup_id" value="[% p.id | html %]" />
                                                             [% IF p.delivered_datetime %]
                                                                 <button class="btn disabled" disabled href="#" >
@@ -220,15 +214,15 @@
                                 [% ELSE %]
                                     <div>No curbside pickups.</div>
                                 [% END %]
-                            </div>
+                            [% END # /tab_panel %]
 
                             [% IF policies.count %]
                                 [% IF patron_curbside_pickups.count %]
-                                <div role="tabpanel" class="tab-pane" id="user-schedule-pickup" aria-labelledby="tab-user-schedule-pickup">
-                                [% ELSE %]
-                                <div role="tabpanel" class="tab-pane active" id="user-schedule-pickup" aria-labelledby="tab-user-schedule-pickup">
+                                    [% SET scheduled_active = "" %]
                                 [% END %]
+                                [% WRAPPER tab_panel tabname="user-schedule-pickup" bt_active= scheduled_active %]
                                     <form id="create-pickup" method="post">
+                                        [% INCLUDE 'csrf-token.inc' %]
                                         <fieldset class="rows">
                                             <ol>
                                                 <li>
@@ -259,15 +253,15 @@
                                         </fieldset>
 
                                         <fieldset class="action">
-                                            <input type="hidden" name="op" value="create-pickup" />
+                                            <input type="hidden" name="op" value="cud-create-pickup" />
                                             <input type="submit" id="schedule-pickup-button" class="btn btn-default" disabled value="Schedule pickup" />
                                         </fieldset>
                                     </form>
-                                </div>
-                            [% END %]
-                        </div>
-                    </div>
-                </div>
+                                [% END # /tab_panel %]
+                            [% END # /IF policies.count %]
+                        [% END # /WRAPPER tab_panels %]
+                    [% END # /WRAPPER tabs %]
+                </div> <!-- /#pickupdetails -->
             </div> <!-- / .col-lg-10 -->
         </div> <!-- / .row -->
     </div> <!-- / .container-fluid -->
@@ -331,7 +325,6 @@
                 "searching": false,
                 "paging": false,
                 "info": false,
-                "autoWidth": false,
                 "responsive": {
                     "details": { "type": 'column',"target": -1 }
                 },
@@ -471,7 +464,7 @@
                     let pickups_scheduled = pickupSlot.pickups_scheduled;
                     let pickups_available = policy.patrons_per_interval - pickups_scheduled;
                     let disabled = pickupSlot.available ? "" : "disabled";
-                    $("#pickup-time-slots").append(`<span class="pickup_time"><input type="radio" id="slot_${i}" name="pickup_time" value="${optValue}" ${disabled} /> <label class="pickup_select" for="slot_${i}" data-toggle="tooltip" title="` + _("Appointments available: ") + `${pickups_available}">${optText} <span class="pickups_available">${pickups_available}</span></label></span>`);
+                    $("#pickup-time-slots").append(`<span class="pickup_time"><input type="radio" id="slot_${i}" name="pickup_time" value="${optValue}" ${disabled} /> <label class="pickup_select" for="slot_${i}" data-bs-toggle="tooltip" title="` + _("Appointments available: ") + `${pickups_available}">${optText} <span class="pickups_available">${pickups_available}</span></label></span>`);
                 }
 
                 $("#pickup_notes_item,#pickup-times").show();

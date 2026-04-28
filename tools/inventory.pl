@@ -35,6 +35,7 @@ use C4::Circulation qw( barcodedecode AddReturn );
 use C4::Reports::Guided qw( );
 use C4::Charset qw( NormalizeString );
 
+use Koha::I18N qw(__);
 use Koha::Biblios;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Database::Columns;
@@ -55,7 +56,7 @@ my $ignore_waiting_holds = $input->param('ignore_waiting_holds');
 my $datelastseen = $input->param('datelastseen'); # last inventory date
 my $branchcode = $input->param('branchcode') || '';
 my $branch     = $input->param('branch');
-my $op         = $input->param('op');
+my $op         = $input->param('op') // q{};
 my $compareinv2barcd = $input->param('compareinv2barcd');
 my $dont_checkin = $input->param('dont_checkin');
 my $out_of_order = $input->param('out_of_order');
@@ -162,15 +163,12 @@ my $results = {};
 my @scanned_items;
 my @errorloop;
 my $moddatecount = 0;
-if ( ($uploadbarcodes && length($uploadbarcodes) > 0) || ($barcodelist && length($barcodelist) > 0) ) {
+if ( $op eq 'cud-inventory'
+    && ( ( $uploadbarcodes && length($uploadbarcodes) > 0 ) || ( $barcodelist && length($barcodelist) > 0 ) ) )
+{
     my $dbh = C4::Context->dbh;
     my $date = $input->param('setdate');
     my $date_dt = dt_from_string($date);
-
-    my $strsth  = "select * from issues, items where items.itemnumber=issues.itemnumber and items.barcode =?";
-    my $qonloan = $dbh->prepare($strsth);
-    $strsth="select * from items where items.barcode =? and items.withdrawn = 1";
-    my $qwithdrawn = $dbh->prepare($strsth);
 
     my @barcodes;
     my @uploadedbarcodes;
@@ -218,33 +216,34 @@ if ( ($uploadbarcodes && length($uploadbarcodes) > 0) || ($barcodelist && length
         $template->param( err_length => $err_length,
                           err_data   => $err_data );
     }
+    my @items = Koha::Items->search( { barcode => { -in => \@barcodes } } )->as_list;
+    my %items = map { lc($_->barcode) => $_ } @items;
     foreach my $barcode (@barcodes) {
-        if ( $qwithdrawn->execute($barcode) && $qwithdrawn->rows ) {
-            push @errorloop, { 'barcode' => $barcode, 'ERR_WTHDRAWN' => 1 };
-        } else {
-            my $item = Koha::Items->find({barcode => $barcode});
-            if ( $item ) {
-                # Modify date last seen for scanned items, remove lost status
-                $item->set({ itemlost => 0, datelastseen => $date_dt })->store;
-                my $item_unblessed = $item->unblessed;
-                $moddatecount++;
-                unless ( $dont_checkin ) {
-                    $qonloan->execute($barcode);
-                    if ($qonloan->rows){
-                        my $data = $qonloan->fetchrow_hashref;
-                        my ($doreturn, $messages, $iteminformation, $borrower) =AddReturn($barcode, $data->{homebranch});
-                        if( $doreturn ) {
-                            $item_unblessed->{onloan} = undef;
-                            $item_unblessed->{datelastseen} = dt_from_string;
-                        } else {
-                            push @errorloop, { barcode => $barcode, ERR_ONLOAN_NOT_RET => 1 };
-                        }
+        my $item = $items{ lc($barcode) };
+        if ( $item ) {
+            if ( $item->withdrawn ) {
+                push @errorloop, { 'barcode' => $barcode, 'ERR_WTHDRAWN' => 1 };
+                next;
+            }
+            # Modify date last seen for scanned items, remove lost status
+            $item->set({ itemlost => 0, datelastseen => $date_dt })->store;
+            my $item_unblessed = $item->unblessed;
+            $moddatecount++;
+            unless ( $dont_checkin ) {
+                if ( $item->onloan ){
+                    #TODO Assuming item homebranch for return here. Might allow current branch too?
+                    my ($doreturn, $messages, $iteminformation, $borrower) = AddReturn($barcode, $item->homebranch);
+                    if( $doreturn ) {
+                        $item_unblessed->{onloan} = undef;
+                        $item_unblessed->{datelastseen} = dt_from_string;
+                    } else {
+                        push @errorloop, { barcode => $barcode, ERR_ONLOAN_NOT_RET => 1 };
                     }
                 }
-                push @scanned_items, $item_unblessed;
-            } else {
-                push @errorloop, { barcode => $barcode, ERR_BARCODE => 1 };
             }
+            push @scanned_items, $item_unblessed;
+        } else {
+            push @errorloop, { barcode => $barcode, ERR_BARCODE => 1 };
         }
     }
     $template->param( date => $date );
@@ -254,7 +253,7 @@ if ( ($uploadbarcodes && length($uploadbarcodes) > 0) || ($barcodelist && length
 # Build inventorylist: used as result list when you do not pass barcodes
 # This list is also used when you want to compare with barcodes
 my ( $inventorylist, $rightplacelist );
-if ( $op && ( !$uploadbarcodes || $compareinv2barcd )) {
+if ( $op eq 'cud-inventory' && ( !$uploadbarcodes || $compareinv2barcd )) {
     ( $inventorylist ) = GetItemsForInventory({
       minlocation  => $minlocation,
       maxlocation  => $maxlocation,
@@ -385,7 +384,7 @@ if (defined $input->param('CSVexport') && $input->param('CSVexport') eq 'on'){
 
     my $columns = Koha::Database::Columns->columns;
     my @translated_keys;
-    for my $key (qw / biblioitems.title    biblio.author
+    for my $key (qw / biblio.title         biblio.author
                       items.barcode        items.itemnumber
                       items.homebranch     items.location   items.ccode
                       items.itemcallnumber items.notforloan
@@ -395,7 +394,7 @@ if (defined $input->param('CSVexport') && $input->param('CSVexport') eq 'on'){
         my ( $table, $column ) = split '\.', $key;
         push @translated_keys, NormalizeString($columns->{$table}->{$column} // '');
     }
-    push @translated_keys, 'Problem' if $uploadbarcodes;
+    push @translated_keys, __('Problem') if $uploadbarcodes;
 
     $csv->combine(@translated_keys);
     print $csv->string, "\n";
@@ -409,17 +408,17 @@ if (defined $input->param('CSVexport') && $input->param('CSVexport') eq 'on'){
         my $errstr = '';
         foreach my $key ( keys %{$item->{problems}} ) {
             if( $key eq 'wrongplace' ) {
-                $errstr .= "wrong place,";
+                $errstr .= __("wrong place") . ",";
             } elsif( $key eq 'changestatus' ) {
-                $errstr .= "unknown notforloan status,";
+                $errstr .= __("unselected notforloan status") . "  $item->{notforloan},";
             } elsif( $key eq 'not_scanned' ) {
-                $errstr .= "missing,";
+                $errstr .= __("missing") . ",";
             } elsif( $key eq 'no_barcode' ) {
-                $errstr .= "no barcode,";
+                $errstr .= __("no barcode") . ",";
             } elsif( $key eq 'checkedout' ) {
-                $errstr .= "checked out,";
+                $errstr .= __("checked out") . ",";
             } elsif( $key eq 'out_of_order' ) {
-                $errstr .= "shelved out of order,";
+                $errstr .= __("shelved out of order") . ",";
             }
         }
         $errstr =~ s/,$//;
@@ -432,7 +431,7 @@ if (defined $input->param('CSVexport') && $input->param('CSVexport') eq 'on'){
         my @line;
         if ($error->{'ERR_BARCODE'}) {
             push @line, map { $_ eq 'barcode' ? $error->{'barcode'} : ''} @keys;
-            push @line, "barcode not found";
+            push @line, __("barcode not found");
             $csv->combine(@line);
             print $csv->string, "\n";
         }
@@ -449,7 +448,7 @@ sub additemtoresults {
     my $fc = $item->{'frameworkcode'} || '';
 
     # Populating with authorised values description
-    foreach my $field (qw/ location notforloan itemlost damaged withdrawn /) {
+    foreach my $field (qw/ location notforloan itemlost damaged withdrawn ccode /) {
         my $av = Koha::AuthorisedValues->get_description_by_koha_field(
             { frameworkcode => $fc, kohafield => "items.$field", authorised_value => $item->{$field} } );
         if ( $av and defined $item->{$field} and defined $av->{lib} ) {

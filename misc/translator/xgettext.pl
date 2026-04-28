@@ -120,6 +120,10 @@ sub text_extract {
         my $s = TmplTokenizer::next_token($h);
         last unless defined $s;
         my($kind, $t, $attr) = ($s->type, $s->string, $s->attributes);
+
+        die sprintf( "Incorrect structure found at %s:%s: '%s'", $s->pathname, $s->line_number, $s->string )
+            if $kind eq C4::TmplTokenType::TAG && !$attr;
+
         if ($kind eq C4::TmplTokenType::TEXT) {
 	    if ($t =~ /\S/s && $t !~ /<!/){
 		remember( $s, $t );
@@ -132,16 +136,16 @@ sub text_extract {
             # value [tag=input], meta
             my $tag;
             $tag = lc($1) if $t =~ /^<(\S+)/s;
-            for my $a ('alt', 'content', 'title', 'value', 'label', 'placeholder', 'aria-label') {
+            for my $a ('alt', 'title', 'value', 'label', 'placeholder', 'aria-label') {
                 if ($attr->{$a}) {
                     next if $a eq 'label' && $tag ne 'optgroup';
-                    next if $a eq 'content' && $tag ne 'meta';
                     next if $a eq 'value' && ($tag ne 'input'
                         || (ref $attr->{'type'} && $attr->{'type'}->[1] =~ /^(?:hidden|radio|checkbox)$/)); # FIXME
+                    next if $tag eq 'meta';
                     my($key, $val, $val_orig, $order) = @{$attr->{$a}}; #FIXME
                     $val = TmplTokenizer::trim($val);
                     # for selected attributes replace '[%..%]' with '%s' globally
-                    if ( $a =~ /title|value|alt|content|placeholder|aria-label/ ) {
+                    if ( $a =~ /title|value|alt|placeholder|aria-label/ ) {
                         $val =~ s/\[\%.*?\%\]/\%s/g;
                     }
                     # save attribute text for translation

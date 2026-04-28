@@ -7,6 +7,7 @@
 [% USE KohaDates %]
 [% USE Math %]
 [% USE AdditionalContents %]
+[% PROCESS 'i18n.inc' %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET userupdateview = 1 %]
@@ -32,12 +33,12 @@
 [% END %]
 
 [% INCLUDE 'doc-head-open.inc' %]
-    <title>[% IF action == 'edit' %]Update your personal details[% ELSE %]Register a new account[% END %] &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+    <title>[% IF op == 'edit' %]Update your personal details[% ELSE %]Register a new account[% END %] &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
 
-[% IF action == 'edit' %]
+[% IF op == 'edit' %]
 [% INCLUDE 'bodytag.inc' bodyid='opac-patron-update' %]
 [% ELSE %]
 <body id="opac-patron-registration" class="opac">
@@ -45,25 +46,21 @@
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-            </li>
-            [% IF action == 'edit' %]
-                <li class="breadcrumb-item">
-                    <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
-                </li>
-                <li class="breadcrumb-item active">
-                    <a href="#">Your personal details</a>
-                </li>
-            [% ELSE %]
-                <li class="breadcrumb-item active">
-                    <a href="#" aria-current="page">Register a new account</a>
-                </li>
+
+    [% WRAPPER breadcrumbs %]
+        [% IF op == 'edit' %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
             [% END %]
-        </ol>
-    </nav> <!-- /#breadcrumbs -->
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Your personal details</span>
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Register a new account</span>
+            [% END %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
 
     <div class="container-fluid">
         <div class="row">
@@ -76,13 +73,13 @@
 
                 <h1>Your personal details</h1>
 
-                [% IF action == 'edit' %]
+                [% IF op == 'edit' %]
                     <div id="update-account" class="maincontent">
                 [% ELSE %]
                     <div id="add-account" class="maincontent">
                 [% END %]
 
-                [% IF action == 'edit' %]
+                [% IF op == 'edit' %]
                     [% UNLESS OPACPatronDetails %]
                         <div class="alert alert-info">To make changes to your record please contact the library.</div>
                     [% END %]
@@ -119,7 +116,7 @@
                                     <li>Emails do not match! <a href="#borrower_repeat_email">confirm email address</a></li>
                                 [% END %]
                                 [% IF field == "ERROR_age_limitations" %]
-                                    <li> Patron's age exceeds the maximum age allowed.</li>
+                                    <li>Patron's age is incorrect for their category.</li>
                                 [% END %]
                                 [% IF field == "ERROR_age_limitations_self_registration" %]
                                     <li>Patron's age exceeds the maximum age allowed.</li>
@@ -139,6 +136,17 @@
                         [% END %]
                         <span>Please correct and resubmit.</span>
                     </div>
+                [% END %]
+
+                [% IF error_type OR error_info %]
+                    <div class="alert alert-error"><li>
+                        <p>There were problems processing your registration. Please contact your library for help.</p>
+                        [% IF error_type == 'Koha::Exceptions::Patron::InvalidUserid' %]
+                            <p>Error: Userid is not valid</p>
+                        [% ELSE %]
+                            <p>Error [% error_type | html %]: [% error_info | html %]</p>
+                        [% END %]
+                    </li></div>
                 [% END %]
 
                 [% IF failed_captcha %]
@@ -192,7 +200,7 @@
                                             Guaranteed by
                                             [% FOREACH gr IN patron.guarantor_relationships %]
                                                 [% SET g = gr.guarantor %]
-                                                [% g.firstname | html %] [% g.middle_name | html %] [% g.surname | html %]
+                                                [% g.preferred_name | html %] [% g.middle_name | html %] [% g.surname | html %]
                                                 [%- IF ! loop.last %], [% END %]
                                             [% END %]
                                         </span>
@@ -208,8 +216,9 @@
                 [% END %]
 
                 <form method="post" action="/cgi-bin/koha/opac-memberentry.pl" id="memberentry-form" autocomplete="off">
+                    [% INCLUDE 'csrf-token.inc' %]
 
-                [% FOREACH field = ['streetnumber' 'streettype'  'cardnumber' 'branchcode' 'categorycode' 'title' 'surname' 'firstname' 'middle_name' 'dateofbirth' 'initials' 'pronouns' 'othernames' 'address' 'address2' 'city' 'state' 'zipcode' 'country' 'phone' 'phonepro' 'mobile' 'email' 'emailpro' 'fax' 'B_streettype' 'B_streetnumber' 'B_address' 'B_address2' 'B_city' 'B_state' 'B_zipcode' 'B_country' 'B_phone' 'B_email' 'contactnote' 'altcontacttitle' 'altcontactsurname' 'altcontactfirstname' 'altcontactaddress1' 'altcontactaddress2' 'altcontactaddress3' 'altcontactstate' 'altcontactzipcode' 'altcontactcountry' 'altcontactphone' 'password' ] %]
+                [% FOREACH field = ['streetnumber' 'streettype'  'cardnumber' 'branchcode' 'categorycode' 'title' 'surname' 'firstname' 'preferred_name' 'middle_name' 'dateofbirth' 'initials' 'pronouns' 'othernames' 'address' 'address2' 'city' 'state' 'zipcode' 'country' 'phone' 'phonepro' 'mobile' 'email' 'emailpro' 'fax' 'B_streettype' 'B_streetnumber' 'B_address' 'B_address2' 'B_city' 'B_state' 'B_zipcode' 'B_country' 'B_phone' 'B_email' 'contactnote' 'altcontactsurname' 'altcontactfirstname' 'altcontactaddress1' 'altcontactaddress2' 'altcontactaddress3' 'altcontactstate' 'altcontactzipcode' 'altcontactcountry' 'altcontactphone' 'password' 'lang' ] %]
                     [% IF mandatory.defined( field ) %]
                         [% SET required.$field = 'required' %]
                     [% END %]
@@ -228,7 +237,7 @@
 
                                                 <label for="borrower_cardnumber" class="[% required.cardnumber | html %]">Library card number:</label>
 
-                                                [% IF borrower && !(cardnumber_wrong_length || cardnumber_already_exists) && action == 'edit' %]
+                                                [% IF borrower && !(cardnumber_wrong_length || cardnumber_already_exists) && op == 'edit' %]
                                                     [% borrower.cardnumber | html %]
                                                 [% ELSE %]
                                                     [% IF minlength_cardnumber == maxlength_cardnumber %]
@@ -250,6 +259,15 @@
                                                     [% END %]
                                                 [% END %]
                                             </li>
+                                            [% END %]
+
+                                            [% IF op != 'new' %]
+                                                [% UNLESS hidden.defined('userid') %]
+                                                <li>
+                                                    <label>Username:</label>
+                                                    [% borrower.userid | html  %]
+                                                </li>
+                                                [% END %]
                                             [% END %]
 
                                             [% UNLESS hidden.defined('dateexpiry') %]
@@ -316,7 +334,7 @@
                     [% END # / defined 'branchcode' %]
 
                     [%# Following on one line for translatability %]
-                    [% UNLESS hidden.defined('title') && hidden.defined('surname') && hidden.defined('firstname') && hidden.defined('middle_name') && hidden.defined('dateofbirth') && hidden.defined('initials') && hidden.defined('pronouns') && hidden.defined('othernames') && hidden.defined('sex') %]
+                    [% UNLESS hidden.defined('title') && hidden.defined('surname') && hidden.defined('firstname') && hidden.defined('preferred_name') && hidden.defined('middle_name') && hidden.defined('dateofbirth') && hidden.defined('initials') && hidden.defined('pronouns') && hidden.defined('othernames') && hidden.defined('sex') %]
                         <div class="row">
                             <div class="col">
                                 <fieldset class="rows" id="memberentry_identity">
@@ -365,6 +383,15 @@
 
                                                 <input type="text" id="borrower_middle_name" name="borrower_middle_name" value="[% borrower.middle_name | html %]" class="[% required.middle_name | html %]" />
                                                 <div class="required_label [% required.middle_name | html %]">Required</div>
+                                            </li>
+                                        [% END %]
+
+                                        [% UNLESS hidden.defined('preferred_name') %]
+                                            <li>
+                                                <label for="borrower_preferred_name" class="[% required.preferred_name | html %]">Preferred name:</label>
+
+                                                <input type="text" id="borrower_preferred_name" name="borrower_preferred_name" value="[% borrower.preferred_name | html %]" class="[% required.preferred_name | html %]" />
+                                                <div class="required_label [% required.preferred_name | html %]">Required</div>
                                             </li>
                                         [% END %]
 
@@ -422,7 +449,7 @@
                                                     <input type="radio" name="borrower_sex" id="sex-male" value="M" />
                                                 [% END %]
 
-                                                <label for="sex-other" class="radio inline"><span class="patronsex-other">Other:</span></label>
+                                                <label for="sex-other" class="radio inline"><span class="patronsex-other">[% tp('gender','Other:') | html %]</span></label>
                                                 [% IF borrower.sex == 'O' %]
                                                     <input type="radio" name="borrower_sex" id="sex-other" value="O" checked="checked" />
                                                 [% ELSE %]
@@ -586,7 +613,7 @@
                                                 <div class="required_label [% required.email | html %]">Required</div>
                                             </li>
 
-                                            [% IF action != 'edit' and Koha.Preference('PatronSelfRegistrationConfirmEmail') %]
+                                            [% IF op != 'edit' and Koha.Preference('PatronSelfRegistrationConfirmEmail') %]
                                                 <li>
                                                     <label for="borrower_repeat_email" class="[% required.email | html %]">Confirm primary email:</label>
 
@@ -669,6 +696,36 @@
                                                 </select>
                                                 [% IF ( mandatory.defined('primary_contact_method') ) %]<span class="required">Required</span>[% END %]
                                             </li>
+                                            [% UNLESS hidden.defined('lang')  %]
+                                                <li>
+                                                    [% IF ( mandatory.defined('lang') ) %]
+                                                        <label for="borrower_lang" class="required">Preferred language for notices: </label>
+                                                    [% ELSE %]
+                                                        <label for="borrower_lang">Preferred language for notices: </label>
+                                                    [% END %]
+                                                    <select id="borrower_lang" name="borrower_lang">
+                                                        <option value="default">Default</option>
+                                                        [% FOR language IN languages %]
+                                                            [% FOR sublanguage IN language.sublanguages_loop %]
+                                                                [% IF language.plural %]
+                                                                    [% IF sublanguage.rfc4646_subtag == borrower.lang %]
+                                                                        <option value="[% sublanguage.rfc4646_subtag | html %]" selected="selected">[% sublanguage.native_description | html %] [% sublanguage.region_description | html %] ([% sublanguage.rfc4646_subtag | html %])</option>
+                                                                    [% ELSE %]
+                                                                        <option value="[% sublanguage.rfc4646_subtag | html %]">[% sublanguage.native_description | html %] [% sublanguage.region_description | html %] ([% sublanguage.rfc4646_subtag | html %])</option>
+                                                                    [% END %]
+                                                                [% ELSE %]
+                                                                    [% IF sublanguage.rfc4646_subtag == borrower.lang %]
+                                                                        <option value="[% sublanguage.rfc4646_subtag | html %]" selected="selected">[% sublanguage.native_description | html %] ([% sublanguage.rfc4646_subtag | html %])</option>
+                                                                    [% ELSE %]
+                                                                        <option value="[% sublanguage.rfc4646_subtag | html %]">[% sublanguage.native_description | html %] ([% sublanguage.rfc4646_subtag | html %])</option>
+                                                                    [% END %]
+                                                                [% END # /IF language.plural %]
+                                                            [% END # /FOR sublanguage %]
+                                                        [% END #/FOR language %]
+                                                    </select> <!-- /#lang -->
+                                                    [% IF ( mandatory.defined('lang') ) %]<div class="required_label required">Required</div>[% END %]
+                                                </li>
+                                            [% END %]
                                         [% END %]
                                     </ol>
                                 </fieldset>
@@ -721,7 +778,7 @@
                                             <li>
                                                 <label for="borrower_B_address2" class="[% required.B_address | html %]">Address 2:</label>
 
-                                                <input type="text" id="borrower_B_address2" name="borrower_B_address2" value="[% borrower.B_address2 | html %]" class="[% required.B_address | html %]" />
+                                                <input type="text" id="borrower_B_address2" name="borrower_B_address2" value="[% borrower.B_address2 | html %]" class="[% required.B_address2 | html %]" />
                                                 <div class="required_label [% required.B_address2 | html %]">Required</div>
                                             </li>
                                         [% END %]
@@ -908,7 +965,7 @@
                         </div> <!-- /.row -->
                     [% END %]
 
-                    [% UNLESS action == 'edit' || hidden.defined('password') %]
+                    [% UNLESS op == 'edit' || hidden.defined('password') %]
                         <div class="row">
                             <div class="col">
                                 <fieldset class="rows" id="memberentry_password">
@@ -930,11 +987,11 @@
 
                                     <ol>
                                         <li><label for="password" class="[% required.password | html %]">Password:</label>
-                                            <input type="password" name="borrower_password" id="password" class="[% required.password | html %]" />
+                                            <input type="password" name="borrower_password" id="password" class="[% required.password | html %]" autocomplete="new-password" />
                                             <div class="required_label [% required.password | html %]">Required</div>
                                         </li>
                                         <li><label for="password2" class="[% required.password | html %]">Confirm password:</label>
-                                            <input type="password" name="borrower_password2" id="password2" />
+                                            <input type="password" name="borrower_password2" id="password2" autocomplete="new-password" />
                                             <div class="required_label [% required.password | html %]">Required</div>
                                         </li>
                                     </ol>
@@ -957,7 +1014,7 @@
                                         <ol class="attributes_table">
                                             [% FOREACH pa IN pa_class.items %]
                                                 [% FOREACH pa_value IN pa.values %]
-                                                    [% IF loop.first %]<a name="patron-attr-start-[% pa.type.code | html %]"></a>[% END %]
+                                                    [% IF loop.first %]<a id="patron-attr-start-[% pa.type.code | html %]"></a>[% END %]
                                                     [% form_id = 'patron-attr-' _ Math.int( Math.rand(1000000) ) %]
                                                     <li data-category_code="[% pa.type.category_code | html %]">
                                                         [% IF pa.type.mandatory && pa.type.opac_editable %]
@@ -983,10 +1040,18 @@
                                                                     [% END %]
                                                                 </select>
                                                             [% ELSE %]
-                                                                <textarea rows="2" cols="30" id="[% form_id | html %]" name="patron_attribute_value">[% pa_value | html %]</textarea>
+                                                                [% IF ( pa.type.is_date && pa.type.mandatory ) %]
+                                                                    <input type="text" id="[% form_id | html %]" name="patron_attribute_value" value="[% pa_value | html %]" size="10" required="required" class="flatpickr" />
+                                                                [% ELSIF ( pa.type.is_date && !pa.type.mandatory ) %]
+                                                                    <input type="text" id="[% form_id | html %]" name="patron_attribute_value" value="[% pa_value | html %]" size="10" class="flatpickr" />
+                                                                [% ELSE %]
+                                                                    <textarea rows="2" cols="30" id="[% form_id | html %]" name="patron_attribute_value">[% pa_value | html %]</textarea>
+                                                                [% END %]
                                                             [% END %]
                                                             <div class="attr-control">
-                                                                <a href="#" class="btn btn-sm btn-link clear-attribute"><i class="fa fa-remove" aria-hidden="true"></i> Clear</a>
+                                                                [% IF ( !pa.type.is_date ) %]
+                                                                    <a href="#" class="btn btn-sm btn-link clear-attribute"><i class="fa fa-remove" aria-hidden="true"></i> Clear</a>
+                                                                [% END %]
                                                                 [% IF ( pa.type.repeatable ) %]
                                                                     <a href="#" class="btn btn-sm btn-link clone-attribute"><i class="fa fa-plus" aria-hidden="true"></i> New</a>
                                                                 [% END %]
@@ -997,6 +1062,8 @@
                                                         [% ELSE %]
                                                             [% IF ( pa.type.authorised_value_category ) %]
                                                                 [% AuthorisedValues.GetByCode( pa.type.authorised_value_category, pa_value, 1 ) | html_line_break %]
+                                                            [% ELSIF ( pa.type.is_date ) %]
+                                                                [% pa_value | $KohaDates %]
                                                             [% ELSE %]
                                                                 [% pa_value | html_line_break %]
                                                             [% END %]
@@ -1011,7 +1078,7 @@
                         </div> <!-- /.row -->
                     [% END %]
 
-                    [% IF Koha.Preference('PrivacyPolicyConsent') && action != 'edit' %]
+                    [% IF Koha.Preference('PrivacyPolicyConsent') && op != 'edit' %]
                         <div class="row">
                             <div class="col">
                                 <fieldset class="rows" id="memberentry_gdpr_consent">
@@ -1032,7 +1099,7 @@
                         </div> <!-- /.row -->
                    [% END %]
 
-                   [% UNLESS action == 'edit' %]
+                   [% UNLESS op == 'edit' %]
                         <div class="row">
                             <div class="col">
                                 <fieldset class="rows" id="memberentry_captcha">
@@ -1056,17 +1123,16 @@
 
                     <div class="row">
                         <div class="col">
-                            [% IF action == 'edit' %]
+                            [% IF op == 'edit' %]
                                 [% IF OPACPatronDetails %]
                                     <fieldset class="action">
-                                        <input type="hidden" name="action" value="update" />
-                                        <input type="hidden" name="csrf_token" value="[% csrf_token | html %]" />
+                                        <input type="hidden" name="op" value="cud-update" />
                                         <input type="submit" class="btn btn-primary" value="Submit update request" />
                                     </fieldset>
                                 [% END %]
                             [% ELSE %]
                                 <fieldset class="action">
-                                    <input type="hidden" name="action" value="create" />
+                                    <input type="hidden" name="op" value="cud-create" />
                                     <input type="submit" class="btn btn-primary" value="Submit" />
                                 </fieldset>
                             [% END %]
@@ -1090,7 +1156,7 @@
     <script>
 
         $(document).ready(function() {
-            [% IF action == 'edit' && !OPACPatronDetails %]
+            [% IF op == 'edit' && !OPACPatronDetails %]
                 $("#memberentry-form :input").attr('readonly', true);
                 $("#borrower_branchcode").attr('disabled',true);
                 $("#borrower_title").attr('disabled',true);
@@ -1229,7 +1295,7 @@
             } );
         });
 
-    [% IF action != 'edit' and Koha.Preference('PatronSelfRegistrationConfirmEmail') %]
+    [% IF op != 'edit' and Koha.Preference('PatronSelfRegistrationConfirmEmail') %]
         $("#borrower_email").bind("cut copy paste", function(e){
             e.preventDefault();
             $("#borrower_email").bind("contextmenu", function(e){

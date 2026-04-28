@@ -10,7 +10,7 @@
                 <a style="font-size: 75%;" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblionumber | html %]" class="close_shelf" >Close shelf browser <span class="sr-only">(Hides shelf browser)</span></a>
             </h5>
 
-            <table class="table">
+            <table class="table" role="presentation ">
                 <tr>
                     <td class="nav-cell" rowspan="2">
                       [% IF shelfbrowser_prev_item %]
@@ -29,7 +29,7 @@
                             [% END %]
 
                             [% IF ( OPACLocalCoverImages || OPACAmazonCoverImages || ( SyndeticsEnabled && SyndeticsCoverImages ) || GoogleJackets || BakerTaylorEnabled || ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) || ( Koha.Preference('OPACCustomCoverImages') AND Koha.Preference('CustomCoverImagesURL') ) ) %]
-                                <a class="shelfbrowser_cover" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% item.biblionumber | uri %]&amp;shelfbrowse_itemnumber=[% item.itemnumber | uri %]#shelfbrowser">
+                                <a class="shelfbrowser_cover" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% item.biblionumber | uri %]&amp;shelfbrowse_itemnumber=[% item.itemnumber | uri %]#shelfbrowser" data-isbn="[% item.browser_normalized_isbn | html%]">
                                     [% IF ( OPACLocalCoverImages ) %]
                                         <div title="[% img_title | html %]" class="[% item.biblionumber | html %] thumbnail-shelfbrowser" id="local-thumbnail-shelf-[% item.biblionumber | html %]"></div>
                                     [% END %]

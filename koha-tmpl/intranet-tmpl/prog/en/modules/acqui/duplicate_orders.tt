@@ -3,12 +3,16 @@
 [% USE Koha %]
 [% USE KohaDates %]
 [% SET footerjs = 1 %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
-[% UNLESS blocking_error %]
-Basket [% basket.basketno | html %] &rsaquo; Duplicate existing orders &rsaquo; [% END %]
-Acquisitions &rsaquo; Koha
-</title>
+<title>[% FILTER collapse %]
+    [% UNLESS blocking_error %]
+        [% tx("Basket {basketnumber}", { basketnumber = basket.basketno }) | html %] &rsaquo;
+        [% t("Duplicate existing orders") | html %] &rsaquo;
+    [% END %]
+    [% t("Acquisitions") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
     .picked_to_duplicate > td { background-color: #bcdb89 !important; }
@@ -43,14 +47,14 @@ Acquisitions &rsaquo; Koha
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-2">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 <h1>Duplicate existing orders</h1>
-[% INCLUDE 'blocking_errors.inc' %]
 
 [% IF op == 'search' || op == 'select' %]
-<form action="/cgi-bin/koha/acqui/duplicate_orders.pl" method="post">
+<form action="/cgi-bin/koha/acqui/duplicate_orders.pl" method="get">
     <fieldset class="rows">
         <legend>
             [% IF op == 'search' %]
@@ -133,11 +137,12 @@ Acquisitions &rsaquo; Koha
 
 [% IF op == 'select' && ( result_order_loop || selected_order_loop ) %]
 <form method="post" action="/cgi-bin/koha/acqui/duplicate_orders.pl">
+    [% INCLUDE 'csrf-token.inc' %]
     <div id="orders_to_copy" class="page-section">
         <table id="table_orders">
             <caption>
                 <span class="actions"><a href="#" id="select_all"><i class="fa fa-check"></i> Select all</a>
-                | <a href="#" id="clear_all"><i class="fa fa-remove"></i> Clear all</a></span>
+                | <a href="#" id="clear_all"><i class="fa fa-times"></i> Clear all</a></span>
             </caption>
 
             <thead>
@@ -171,15 +176,16 @@ Acquisitions &rsaquo; Koha
         </table>
     </div>
     <fieldset class="action">
-        <input type="hidden" name="op" value="batch_edit" />
+        <input type="hidden" name="op" value="cud-batch_edit" />
         <input type="hidden" name="basketno" value="[% basket.basketno | html %]" />
         <button type="submit" class="btn btn-primary go_to_batch_edit">Next <i class="fa fa-fw fa-arrow-right"></i></button>
     </fieldset>
 </form>
 
-[% ELSIF op == "batch_edit" %]
+[% ELSIF op == "cud-batch_edit" %]
 
 <form method="post" action="/cgi-bin/koha/acqui/duplicate_orders.pl" id="batch_edit_form">
+    [% INCLUDE 'csrf-token.inc' %]
     <div id="accounting_details">
       <p>Duplicate all the orders with the following accounting details:</p>
       <fieldset class="rows" style="float:none;">
@@ -249,7 +255,7 @@ Acquisitions &rsaquo; Koha
         [% FOREACH ordernumber IN ordernumbers %]
             <input type="hidden" name="ordernumber" value="[% ordernumber | html %]" />
         [% END %]
-        <input type="hidden" name="op" value="do_duplicate" />
+        <input type="hidden" name="op" value="cud-do_duplicate" />
         <input type="hidden" name="basketno" value="[% basket.basketno | html %]" />
         <!-- origquantityrec only here for javascript compatibility (additem.js needs it, useless here, useful when receiveing an order -->
         <input id="origquantityrec" readonly="readonly" type="hidden" name="origquantityrec" value="1" />
@@ -260,31 +266,33 @@ Acquisitions &rsaquo; Koha
 
 [% ELSIF op == 'duplication_done' %]
     [% IF new_orders %]
-        <table id="table_neworders">
-            <thead>
-                <tr>
-                    <th>Order line</th>
-                    <th>Status</th>
-                    <th>Basket</th>
-                    <th>Basket creator</th>
-                    <th>Basket group</th>
-                    <th>Invoice number</th>
-                    <th class="anti-the">Summary</th>
-                    <th>Vendor</th>
-                    <th>Placed on</th>
-                    <th>Received on</th>
-                    <th>Quantity received</th>
-                    <th>Quantity ordered</th>
-                    <th>Unit cost</th>
-                    <th>Fund</th>
-                </tr>
-            </thead>
-            <tbody>
-            [% FOREACH order IN new_orders %]
-                [% INCLUDE display_order_line %]
-            [% END %]
-            </tbody>
-        </table>
+        <div class="page-section">
+            <table id="table_neworders">
+                <thead>
+                    <tr>
+                        <th>Order line</th>
+                        <th>Status</th>
+                        <th>Basket</th>
+                        <th>Basket creator</th>
+                        <th>Basket group</th>
+                        <th>Invoice number</th>
+                        <th class="anti-the">Summary</th>
+                        <th>Vendor</th>
+                        <th>Placed on</th>
+                        <th>Received on</th>
+                        <th>Quantity received</th>
+                        <th>Quantity ordered</th>
+                        <th>Unit cost</th>
+                        <th>Fund</th>
+                    </tr>
+                </thead>
+                <tbody>
+                [% FOREACH order IN new_orders %]
+                    [% INCLUDE display_order_line %]
+                [% END %]
+                </tbody>
+            </table>
+        </div>
         <a class="btn btn-default" href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basket.basketno | html %]"><i class="fa fa-fw fa-arrow-left"></i> Return to the basket</a
     [% ELSE %]
         <span>No order has been duplicated. Maybe something wrong happened?</span>
@@ -292,13 +300,13 @@ Acquisitions &rsaquo; Koha
 [% END %]
 
 </main>
-</div> <!-- /.col-sm-10.col-sm-push-2 -->
+</div> <!-- /.col-md-10.order-md-2 -->
 
-<div class="col-sm-2 col-sm-pull-10">
+<div class="col-md-2 order-sm-2 order-md-1">
     <aside>
         [% INCLUDE 'acquisitions-menu.inc' %]
     </aside>
-</div> <!-- /.col-sm-2.col-sm-pull-10 -->
+</div> <!-- /.col-md-2.order-md-1 -->
 </div>
 
 [% MACRO jsinclude BLOCK %]
@@ -323,12 +331,12 @@ Acquisitions &rsaquo; Koha
         $(document).ready(function() {
             $('span.hint').hide();
             KohaTable("table_orders", {
-                "bPaginate": false
+                "paginate": false
             });
 
             [% IF op == 'search' OR op == 'select' %]
                 function AddPatron( patron_name, value, container, input_name ) {
-                    div = "<div id='borrower_" + value + "'>" + patron_name + " ( <a href='#' class='removePatron'><i class='fa fa-trash' aria-hidden='true'></i> " + MSG_REMOVE_PATRON + " </a> ) <input type='hidden' name='" + input_name + "' value='" + value + "' /></div>";
+                    div = "<div id='borrower_" + value + "'>" + patron_name + " ( <a href='#' class='removePatron'><i class='fa fa-trash-can' aria-hidden='true'></i> " + MSG_REMOVE_PATRON + " </a> ) <input type='hidden' name='" + input_name + "' value='" + value + "' /></div>";
                     $(container).append( div );
 
                     $(container).parent().show( 800 );
@@ -342,7 +350,7 @@ Acquisitions &rsaquo; Koha
                 }
                 patron_autocomplete($("#find_patron"), {
                     'on-select-callback': function( event, ui ) {
-                        var field = ui.item.borrowernumber;
+                        var field = ui.item.patron_id;
                         AddPatron( ui.item.firstname + " " + ( ui.item.middle_name || "" ) + " " + ui.item.surname, field, $("#basket_creators"), 'created_by' );
                         $("#find_patron").val('').focus();
                         return false;

@@ -77,10 +77,10 @@ if ($bib_list && $format) {
         foreach my $biblionumber (@bibs) {
 
             my $biblio = Koha::Biblios->find($biblionumber);
-            my $record = $biblio->metadata->record(
+            my $record = $biblio->metadata_record(
                 {
                     embed_items => 1,
-                    opac        => 1,
+                    interface   => 'opac',
                     patron      => $patron,
                 }
             );
@@ -102,7 +102,7 @@ if ($bib_list && $format) {
                 $output .= marc2ris($record);
             }
             elsif ($format eq 'bibtex') {
-                $output .= marc2bibtex($record, $biblio);
+                $output .= marc2bibtex($record, $biblio->biblionumber);
             }
             elsif ( $format eq 'isbd' ) {
                 my $framework = GetFrameworkCode( $biblio );

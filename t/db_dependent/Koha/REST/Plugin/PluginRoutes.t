@@ -47,6 +47,8 @@ $logger->mock('error', sub {
 my $schema  = Koha::Database->new->schema;
 my $builder = t::lib::TestBuilder->new;
 
+t::lib::Mocks::mock_preference( 'NotifyPasswordChange', undef );
+
 subtest 'Bad plugins tests' => sub {
 
     plan tests => 3;
@@ -234,7 +236,7 @@ subtest 'needs_install use case tests' => sub {
 
     t::lib::Mocks::mock_preference('Version', '3.0.0');
 
-    $schema->resultset('PluginData')->delete;
+    Koha::Plugins->RemovePlugins( { destructive => 1 } );    # FIXME destructive seems not to be needed here
     $plugins->InstallPlugins;
 
     # re-initialize Koha::REST::V1 after mocking

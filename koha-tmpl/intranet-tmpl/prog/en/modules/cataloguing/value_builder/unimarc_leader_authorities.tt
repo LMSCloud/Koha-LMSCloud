@@ -1,11 +1,17 @@
+[% USE raw %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>UNIMARC leader builder</title>
+<title>[% FILTER collapse %]
+    [% t("UNIMARC leader builder") | html %]
+    [% t("Cataloging") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
-<body id="cat_unimarc_leader_authorities" class="cat" style="padding:1em;">
+<body id="cat_unimarc_leader_authorities" class="cat value_builder">
     <h3>000 - Leader</h3>
-    <div class="page-section">
-        <form name="f_pop" onsubmit="report()" action="">
+    <form method="get" name="f_pop" onsubmit="report()" action="">
+        <div class="page-section">
             <input name="plugin_name" value="unimarc_leader_authorities.pl" type="hidden">
             <table>
                 <tr>
@@ -176,9 +182,18 @@
                     <td>(auto-filled)</td>
                 </tr>
             </table>
-            <fieldset class="action"><input type="submit" value="OK" onclick="report();" /> <a href="#" class="cancel close">Cancel</a></fieldset>
-        </form>
-    </div> <!-- /.page-section -->
+        </div> <!-- /.page-section -->
+
+        <nav class="navbar navbar-default fixed-bottom">
+            <div class="container-fluid">
+                <fieldset class="action">
+                    <input type="button" class="btn btn-primary" onclick="report();" value="Save" />
+                    <button class="btn btn-default close_window">Cancel</button>
+                </fieldset>
+            </div>
+        </nav>
+
+    </form>
 
 <script>
     function report() {

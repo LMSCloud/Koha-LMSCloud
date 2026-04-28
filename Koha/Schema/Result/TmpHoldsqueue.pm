@@ -33,7 +33,7 @@ __PACKAGE__->table("tmp_holdsqueue");
 
   data_type: 'integer'
   is_foreign_key: 1
-  is_nullable: 1
+  is_nullable: 0
 
 =head2 barcode
 
@@ -123,7 +123,7 @@ __PACKAGE__->add_columns(
   "biblionumber",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "itemnumber",
-  { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 0 },
   "barcode",
   { data_type => "varchar", is_nullable => 1, size => 20 },
   "surname",
@@ -158,6 +158,18 @@ __PACKAGE__->add_columns(
     is_nullable => 0,
   },
 );
+
+=head1 PRIMARY KEY
+
+=over 4
+
+=item * L</itemnumber>
+
+=back
+
+=cut
+
+__PACKAGE__->set_primary_key("itemnumber");
 
 =head1 RELATIONS
 
@@ -208,6 +220,21 @@ __PACKAGE__->belongs_to(
   "itemnumber",
   "Koha::Schema::Result::Item",
   { itemnumber => "itemnumber" },
+  { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
+);
+
+
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-07-26 17:44:52
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:5vbBn2tKY/nPx5aA4gaEtg
+
+__PACKAGE__->add_columns(
+    '+item_level_request' => { is_boolean => 1 }
+);
+
+__PACKAGE__->belongs_to(
+  "borrower",
+  "Koha::Schema::Result::Borrower",
+  { borrowernumber => "borrowernumber" },
   {
     is_deferrable => 1,
     join_type     => "LEFT",
@@ -216,10 +243,48 @@ __PACKAGE__->belongs_to(
   },
 );
 
+__PACKAGE__->belongs_to(
+  "item",
+  "Koha::Schema::Result::Item",
+  { itemnumber => "itemnumber" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "CASCADE",
+    on_update     => "CASCADE",
+  },
+);
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2022-11-04 22:42:42
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:RdIrLi+vbzj3ab/UP7e9pw
+__PACKAGE__->belongs_to(
+  "biblio",
+  "Koha::Schema::Result::Biblio",
+  { biblionumber => "biblionumber" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "CASCADE",
+    on_update     => "CASCADE",
+  },
+);
 
+__PACKAGE__->belongs_to(
+  "biblioitem",
+  "Koha::Schema::Result::Biblioitem",
+  { biblionumber => "biblionumber" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "CASCADE",
+    on_update     => "CASCADE",
+  },
+);
 
-# You can replace this text with custom content, and it will be preserved on regeneration
+sub koha_object_class {
+    'Koha::Hold::HoldsQueueItem';
+}
+
+sub koha_objects_class {
+    'Koha::Hold::HoldsQueueItems';
+}
+
 1;

@@ -4,9 +4,14 @@
 [% USE KohaDates %]
 [% USE AuthorisedValues  %]
 [% USE Branches %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Purchase suggestions for [% INCLUDE 'patron-title.inc' no_html = 1 %] &rsaquo; Patrons &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Purchase suggestions for") | html %] [% INCLUDE 'patron-title.inc' no_html = 1 %] &rsaquo;
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -31,14 +36,17 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
                 [% INCLUDE 'members-toolbar.inc' %]
                 <h1>Purchase suggestions</h1>
 
                 <div id="toolbar" class="btn-toolbar">
-                    <a class="btn btn-default" id="newsuggestion" href="/cgi-bin/koha/suggestion/suggestion.pl?op=add&amp;suggestedby=[% patron.borrowernumber | html %]&amp;redirect=purchase_suggestions&amp;borrowernumber=[% patron.borrowernumber | html %]"><i class="fa fa-plus"></i> New purchase suggestion</a>
+                    [% IF CAN_user_suggestions_suggestions_create %]
+                        <a class="btn btn-default" id="newsuggestion" href="/cgi-bin/koha/suggestion/suggestion.pl?op=add_form&amp;suggestedby=[% patron.borrowernumber | html %]&amp;redirect=purchase_suggestions&amp;borrowernumber=[% patron.borrowernumber | html %]"><i class="fa fa-plus"></i> New purchase suggestion</a>
+                    [% END %]
                 </div>
 
                 [% IF suggestions.size %]
@@ -48,6 +56,7 @@
                                 <tr>
                                 <th>Summary</th>
                                 <th>Note</th>
+                                <th>Non-public note</th>
                                 <th>Managed by</th>
                                 <th>Managed on</th>
                                 <th>Suggested on</th>
@@ -78,6 +87,7 @@
                                             </p>
                                         </td>
                                         <td>[% s.note | html %]
+                                        <td>[% s.staff_note | html %]
                                         <td>
                                             [% INCLUDE 'patron-title.inc' patron => s.manager %]
                                         </td>
@@ -111,19 +121,19 @@
                         </table>
                 </div> <!-- /.page-section -->
                 [% ELSE %]
-                    <div class="dialog message">
+                    <div class="alert alert-info">
                         <p>This patron has not submitted any purchase suggestions</p>
                     </div>
                 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'circ-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -133,10 +143,10 @@
     <script>
         $(document).ready(function() {
             $("#suggestions").dataTable($.extend(true, {}, dataTablesDefaults, {
-                'bPaginate': false,
-                'bFilter': false,
-                'bInfo': false,
-                'sDom': 't'
+                "paginate": false,
+                "searching": false,
+                "info": false,
+                "dom": 't'
             } ));
         });
     </script>

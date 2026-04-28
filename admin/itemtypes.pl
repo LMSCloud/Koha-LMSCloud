@@ -60,7 +60,7 @@ if ( $op eq 'add_form' ) {
     my $parent_types   = Koha::ItemTypes->search( { parent_type => undef, itemtype => { '!=' => $itemtype_code } } );
     my $imagesets      = C4::Koha::getImageSets( checked => ( $itemtype ? $itemtype->imageurl : undef ) );
     my $searchcategory = GetAuthorisedValues("ITEMTYPECAT");
-    my $translated_languages = C4::Languages::getTranslatedLanguages( "both", C4::Context->preference('template') );
+    my $translated_languages = C4::Languages::getTranslatedLanguages();
     $template->param(
         itemtype          => $itemtype,
         parent_type       => $parent_type,
@@ -70,7 +70,7 @@ if ( $op eq 'add_form' ) {
         searchcategory    => $searchcategory,
         can_be_translated => ( scalar(@$translated_languages) > 1 ? 1 : 0 ),
     );
-} elsif ( $op eq 'add_validate' ) {
+} elsif ( $op eq 'cud-add_validate' ) {
     my $is_a_modif          = $input->param('is_a_modif');
     my $itemtype            = Koha::ItemTypes->find($itemtype_code);
     my $parent_type         = $input->param('parent_type') || undef;
@@ -187,7 +187,7 @@ if ( $op eq 'add_form' ) {
         $template->param( itemtype => $itemtype, );
     }
 
-} elsif ( $op eq 'delete_confirmed' ) {
+} elsif ( $op eq 'cud-delete_confirmed' ) {
 
     my $itemtype = Koha::ItemTypes->find($itemtype_code);
     my $deleted  = eval { $itemtype->delete };

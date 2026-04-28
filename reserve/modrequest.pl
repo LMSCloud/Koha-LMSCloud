@@ -29,7 +29,7 @@ use List::MoreUtils qw( uniq );
 use Try::Tiny;
 
 use C4::Output;
-use C4::Reserves qw( ModReserve ModReserveCancelAll );
+use C4::Reserves qw( ModReserve );
 use C4::Auth qw( checkauth );
 use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
 
@@ -37,6 +37,7 @@ my $query = CGI->new;
 
 checkauth($query, 0, { reserveforothers => '*' }, 'intranet');
 
+my $op = $query->param('op') || 'cud-modifyall';
 my @reserve_id = $query->multi_param('reserve_id');
 my @rank = $query->multi_param('rank-request');
 my @borrower = $query->multi_param('borrowernumber');
@@ -49,20 +50,8 @@ my $count=@rank;
 
 @biblionumber = uniq @biblionumber;
 
-my $CancelBiblioNumber = $query->param('CancelBiblioNumber');
-my $CancelBorrowerNumber = $query->param('CancelBorrowerNumber');
-my $CancelItemnumber = $query->param('CancelItemnumber');
-
-# 2 possibilitys : cancel an item reservation, or modify or cancel the queded list
-
-# 1) cancel an item reservation by function ModReserveCancelAll (in reserves.pm)
-if ($CancelBorrowerNumber) {
-    ModReserveCancelAll($CancelItemnumber, $CancelBorrowerNumber);
-    $biblionumber[0] = $CancelBiblioNumber,
-}
-
-# 2) Cancel or modify the queue list of reserves (without item linked)
-else {
+# Cancel or modify the queue list of reserves (without item linked)
+if( $op eq 'cud-cancelall' || $op eq 'cud-modifyall' ) {
     for (my $i=0;$i<$count;$i++){
         undef $itemnumber[$i] if !$itemnumber[$i];
         my $suspend_until = $query->param( "suspend_until_" . $reserve_id[$i] );
@@ -88,6 +77,20 @@ else {
             } else {
                 $_->rethrow;
             }
+        };
+
+        if ( $query->param( "change_hold_type_" . $reserve_id[$i] ) ) {
+            my $hold = Koha::Holds->find( $reserve_id[$i] );
+
+            try {
+                $hold->change_type;
+            } catch {
+                if ( $_->isa('Koha::Exceptions::Hold::CannotChangeHoldType') ) {
+                    warn $_;
+                } else {
+                    $_->rethrow;
+                }
+            }
         }
     }
     my @biblio_ids = uniq @biblionumber;
@@ -95,7 +98,7 @@ else {
         {
             biblio_ids => \@biblio_ids
         }
-    );
+    ) if C4::Context->preference('RealTimeHoldsQueue');
 }
 
 my $from=$query->param('from');

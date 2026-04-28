@@ -26,9 +26,9 @@
                 <title>Koha OAI-PMH Data Provider</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-                <script src="/opac-tmpl/bootstrap/lib/jquery/jquery-3.6.0.min.js"></script>
-                <script src="/opac-tmpl/bootstrap/lib/jquery/jquery-migrate-3.3.2.min.js"></script>
-                <script src="/opac-tmpl/bootstrap/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+                <script src="/opac-tmpl/lib/jquery/jquery-3.6.0.min.js"></script>
+                <script src="/opac-tmpl/lib/jquery/jquery-migrate-3.3.2.min.js"></script>
+                <script src="/opac-tmpl/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
                 <link rel="stylesheet" href="/opac-tmpl/bootstrap/css/bootstrap-theme-oai.css" type="text/css" />
                 <link rel="stylesheet" href="/opac-tmpl/bootstrap/css/oai.css" type="text/css" />
             </head>
@@ -290,7 +290,7 @@
                       <div class="alert alert-warning">Record Status: <xsl:value-of select="oai:header/@status"/></div>
                     </xsl:if>
                     <div class="panel panel-success">
-                        <a data-toggle="collapse">
+                        <a data-bs-toggle="collapse">
                             <xsl:attribute name="href">#sets<xsl:value-of select="translate(oai:header/oai:identifier/text(), ':/.', '')"></xsl:value-of></xsl:attribute>
                             <div class="panel-heading">
                                 <h5 class="panel-title">
@@ -316,7 +316,7 @@
                         </div>
                     </div>
                     <div class="panel panel-info">
-                        <a data-toggle="collapse">
+                        <a data-bs-toggle="collapse">
                             <xsl:attribute name="href">#<xsl:value-of select="translate(oai:header/oai:identifier/text(), ':/.', '')"></xsl:value-of></xsl:attribute>
                             <div class="panel-heading">
                                 <h5 class="panel-title">
@@ -333,7 +333,7 @@
                     </div>
                     <xsl:if test="oai:about">
                         <div class="panel panel-success">
-                            <a data-toggle="collapse">
+                            <a data-bs-toggle="collapse">
                                 <xsl:attribute name="href">#about<xsl:value-of select="translate(oai:header/oai:identifier/text(), ':/.', '')"></xsl:value-of></xsl:attribute>
                                 <div class="panel-heading">
                                     <h5 class="panel-title">
@@ -487,7 +487,7 @@
                       <div class="alert alert-warning">Record Status: <xsl:value-of select="@status"/></div>
                     </xsl:if>
                     <div class="panel panel-success">
-                        <a data-toggle="collapse">
+                        <a data-bs-toggle="collapse">
                             <xsl:attribute name="href">#sets<xsl:value-of select="translate(oai:identifier/text(), ':/.', '')"></xsl:value-of></xsl:attribute>
                             <div class="panel-heading">
                                 <h5 class="panel-title">

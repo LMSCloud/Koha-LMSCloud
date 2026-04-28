@@ -1,4 +1,4 @@
-/* global KOHA biblionumber new_results_browser addMultiple vShelfAdd openWindow search_result SEARCH_RESULTS PREF_LocalCoverImages PREF_IntranetCoce PREF_CoceProviders CoceHost CoceProviders addRecord delSingleRecord PREF_BrowseResultSelection resetSearchContext addBibToContext delBibToContext getContextBiblioNumbers holdfor_cardnumber holdforclub strQuery PREF_StaffHighlightedWords PREF_NotHighlightedWords __ */
+/* global KOHA biblionumber new_results_browser addMultiple vShelfAdd openWindow search_result SEARCH_RESULTS PREF_IntranetCoce PREF_CoceProviders CoceHost CoceProviders addRecord delSingleRecord PREF_BrowseResultSelection resetSearchContext addBibToContext delBibToContext getContextBiblioNumbers holdfor_cardnumber holdforclub strQuery PREF_StaffHighlightedWords PREF_NotHighlightedWords __ */
 
 function verify_cover_images() {
     /* Loop over each container in the template which contains covers */
@@ -104,7 +104,6 @@ $(window).load(function() {
     verify_cover_images();
 });
 
-var Sticky;
 var toHighlight = {};
 var q_array;
 
@@ -128,12 +127,6 @@ $(document).ready(function() {
         $(this).siblings(".collapsible-facet").toggle();
         $(this).siblings(".moretoggle").toggle();
         $(this).toggle();
-    });
-
-    Sticky = $("#searchheader");
-    Sticky.hcSticky({
-        stickTo: "main",
-        stickyClass: "floating"
     });
 
     $("#cartsubmit").click(function(e){
@@ -229,10 +222,6 @@ $(document).ready(function() {
         } else if( search_result.gotoNumber == "last" ){
             window.location = "/cgi-bin/koha/catalogue/" + search_result.gotoPage + "?biblionumber=" + search_result.last_biblionumber + "&searchid=" + search_result.searchid;
         }
-    }
-
-    if( PREF_LocalCoverImages ){
-        KOHA.LocalCover.LoadResultsCovers();
     }
 
     if( PREF_IntranetCoce && PREF_CoceProviders ){
@@ -363,7 +352,7 @@ function forgetPatronAndClub(){
     Cookies.remove("holdfor", { path: '/', SameSite: 'Lax' });
     Cookies.remove("holdforclub", { path: '/', SameSite: 'Lax' });
     $(".holdforlink").remove();
-    $("#placeholdc").html("<a class=\"btn btn-default btn-xs placehold\" href=\"#\"><i class=\"fa fa-sticky-note-o\"></i> " + __("Place hold") + "</a>");
+    $("#placeholdc").html("<a class=\"btn btn-default btn-xs placehold\" href=\"#\"><i class=\"fa-solid fa-bookmark\"></i> " + __("Place hold") + "</a>");
 }
 
 function browse_selection () {
@@ -428,6 +417,7 @@ function toggleBatchOp( b ){
 
 function resultsBatchProcess( op ){
     var selected = $(".selection:checked");
+    var form = $("#build_batch_record_modification");
     var params = [];
     var url = "";
     if( op == "edit" ){
@@ -438,8 +428,9 @@ function resultsBatchProcess( op ){
             selected.each(function() {
                 params.push( $(this).val() );
             });
-            url = "/cgi-bin/koha/tools/batch_record_modification.pl?op=list&bib_list=" + params.join("/");
-            location.href = url;
+            form.attr("action", "/cgi-bin/koha/tools/batch_record_modification.pl");
+            $("#recordnumber_list").val( params.join("/") );
+            form.submit();
         }
     } else if( op == "delete" ){
         /* batch delete selected records */
@@ -449,8 +440,10 @@ function resultsBatchProcess( op ){
             selected.each(function() {
                 params.push( $(this).val() );
             });
-            url = "/cgi-bin/koha/tools/batch_delete_records.pl?op=list&type=biblio&bib_list=" + params.join("/");
-            location.href = url;
+
+            form.attr("action", "/cgi-bin/koha/tools/batch_delete_records.pl");
+            $("#recordnumber_list").val( params.join("/") );
+            form.submit();
         }
     } else if( op == "merge" ){
         /* merge selected records */

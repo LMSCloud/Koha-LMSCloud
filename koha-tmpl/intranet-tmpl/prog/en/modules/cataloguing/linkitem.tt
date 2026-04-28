@@ -1,7 +1,13 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE HtmlTags %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Link to host record &rsaquo; Cataloging &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Link to host record") | html %] &rsaquo;
+    [% t("Cataloging") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="catalog_linkitem" class="catalog">
@@ -22,29 +28,24 @@
 
 <div class="container-fluid">
     <div class="row">
-        <div class="col-sm-6 col-sm-offset-3 col-md-6 col-md-offset-3">
+        <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
 
             <h1>Link a host record to [% bibliotitle | html %]</h1>
 
 [% IF ( error ) %]
-    <div class="dialog alert">
+    <div class="alert alert-warning">
 	[% IF ( errornomodbiblio ) %]ERROR: Unable to modify the bibliographic record.[% END %]
 	[% IF ( errornohostitemnumber ) %]ERROR: Unable to get the item number from this barcode.[% END %]
     </div>
-    <form action="/cgi-bin/koha/catalogue/MARCdetail.pl" method="post">
-    <input type="submit" class="btn btn-primary" value="OK" />
-	<input type="hidden" name="biblionumber" value="[% biblionumber | html %]" />
-    </form>
+    <a href="/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=[% biblionumber | uri %]" class="btn btn-primary">OK</a>
 [% ELSE %]
     [% IF ( success ) %]
-    <div class="dialog message">The item has successfully been linked to <em>[% bibliotitle | html %]</em>.</div>
-	<form action="/cgi-bin/koha/catalogue/MARCdetail.pl" method="post">
-        <input type="submit" class="btn btn-primary" value="OK" />
-	    <input type="hidden" name="biblionumber" value="[% biblionumber | html %]" />
-	</form>
+    <div class="alert alert-info">The item has successfully been linked to <em>[% bibliotitle | html %]</em>.</div>
+    <a href="/cgi-bin/koha/catalogue/MARCdetail.pl?biblionumber=[% biblionumber | uri %]" class="btn btn-primary">OK</a>
     [% ELSE %]
 	[% IF ( missingparameter ) %]
 	<form method="post" action="/cgi-bin/koha/cataloguing/linkitem.pl">
+	    [% INCLUDE 'csrf-token.inc' %]
 	    [% IF ( missingbiblionumber ) %]
 	    <fieldset id="biblionumber_fieldset">
 		<label for="biblionumber_fieldset">Select the biblionumber to link the item to</label>
@@ -71,6 +72,7 @@
 	    <input type="hidden" name="barcode" id="barcode" value="[% barcode | html %]" />
 	    [% END %]
 
+        <input type="hidden" name="op" value="cud-linkitem" />
         <input type="submit" class="btn btn-primary" value="Select" />
 
 	</form>

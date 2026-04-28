@@ -21,7 +21,6 @@ use Modern::Perl;
 
 use constant PULL_INTERVAL => 2;
 use List::MoreUtils qw( uniq );
-use YAML::XS;
 use Encode;
 
 use C4::Context;
@@ -29,7 +28,6 @@ use C4::Output qw( output_html_with_http_headers );
 use CGI qw ( -utf8 );
 use C4::Auth qw( get_template_and_user );
 use C4::Items;
-use C4::Reserves qw( ModReserveCancelAll );
 use Koha::Biblios;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Holds;
@@ -53,21 +51,21 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 );
 
 my @messages;
-if ( $op eq 'cancel_reserve' and $reserve_id ) {
+if ( $op eq 'cud-cancel_reserve' and $reserve_id ) {
     my $hold = Koha::Holds->find( $reserve_id );
     if ( $hold ) {
         my $cancellation_reason = $input->param('cancellation-reason');
         $hold->cancel({ cancellation_reason => $cancellation_reason });
         push @messages, { type => 'message', code => 'hold_cancelled' };
     }
-} elsif ( $op =~ m|^mark_as_lost| ) {
+} elsif ( $op eq 'cud-mark_as_lost' or $op eq 'cud-mark_as_lost_and_notify' ) {
     my $hold = Koha::Holds->find( $reserve_id );
     die "wrong reserve_id" unless $hold; # This is a bit rude, but we are not supposed to get a wrong reserve_id
     my $item = $hold->item;
     if ( $item and C4::Context->preference('CanMarkHoldsToPullAsLost') =~ m|^allow| ) {
         my $patron = $hold->borrower;
         C4::Circulation::LostItem( $item->itemnumber, "pendingreserves" );
-        if ( $op eq 'mark_as_lost_and_notify' and C4::Context->preference('CanMarkHoldsToPullAsLost') eq 'allow_and_notify' ) {
+        if ( $op eq 'cud-mark_as_lost_and_notify' and C4::Context->preference('CanMarkHoldsToPullAsLost') eq 'allow_and_notify' ) {
             my $library = $hold->branch;
             my $letter = C4::Letters::GetPreparedLetter(
                 module => 'reserves',
@@ -107,22 +105,15 @@ if ( $op eq 'cancel_reserve' and $reserve_id ) {
             C4::Items::ModItemTransfer( $item->itemnumber, $item->holdingbranch, $item->homebranch, 'LostReserve' );
         }
 
-        if ( my $yaml = C4::Context->preference('UpdateItemWhenLostFromHoldList') ) {
-            $yaml = "$yaml\n\n";  # YAML is anal on ending \n. Surplus does not hurt
-            my $assignments;
-            eval { $assignments = YAML::XS::Load(Encode::encode_utf8($yaml)); };
-            if ($@) {
-                warn "Unable to parse UpdateItemWhenLostFromHoldList syspref : $@" if $@;
-            }
-            else {
-                eval {
-                    while ( my ( $f, $v ) = each( %$assignments ) ) {
-                        $item->$f($v);
-                    }
-                    $item->store;
-                };
-                warn "Unable to modify item itemnumber=" . $item->itemnumber . ": $@" if $@;
-            }
+        my $assignments = C4::Context->yaml_preference('UpdateItemWhenLostFromHoldList');
+        if ( $assignments  ) {
+            eval {
+                while ( my ( $f, $v ) = each( %$assignments ) ) {
+                    $item->$f($v);
+                }
+                $item->store;
+            };
+            warn "Unable to modify item itemnumber=" . $item->itemnumber . ": $@" if $@;
         }
 
     } elsif ( not $item ) {
@@ -204,7 +195,7 @@ if ( $holds->count ) {
 # patrons count per biblio
 my $patrons_count = {
     map { $_->{biblionumber} => $_->{patrons_count} } @{ Koha::Holds->search(
-            { 'suspend' => 0 },
+            { 'suspend' => 0, 'found' => undef },
             {
                 select   => [ 'biblionumber', { count => { distinct => 'borrowernumber' } } ],
                 as       => [qw( biblionumber patrons_count )],

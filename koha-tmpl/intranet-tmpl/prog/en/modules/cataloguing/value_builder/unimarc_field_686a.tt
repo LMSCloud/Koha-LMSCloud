@@ -1,9 +1,15 @@
+[% USE raw %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>UNIMARC field 686a builder</title>
+<title>[% FILTER collapse %]
+    [% t("UNIMARC field 686a builder") | html %]
+    [% t("Cataloging") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
-<body id="cat_unimarc_field_686a" class="cat">
+<body id="cat_unimarc_field_686a" class="cat value_builder">
     <div class="container-fluid">
 
         <h1>UNIMARC field 686a builder</h1>

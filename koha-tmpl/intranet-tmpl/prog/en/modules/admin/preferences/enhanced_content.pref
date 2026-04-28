@@ -248,7 +248,7 @@ Enhanced content:
               choices:
                   1: Show
                   0: "Don't show"
-            - "information on other books in a title's series from Syndetics on item detail pages on the OPAC."
+            - "information on other titles in a series from Syndetics on the record detail pages on the OPAC."
         -
             - pref: SyndeticsSummary
               choices:
@@ -359,6 +359,12 @@ Enhanced content:
             - YouTube links as videos.
     OverDrive:
         -
+            - pref: OPACOverDrive
+              choices:
+                  1: Enable
+                  0: "Don't enable"
+            - "OverDrive integration in the OPAC."
+        -
             - Include OverDrive availability information with the client key
             - pref: OverDriveClientKey
             - and client secret
@@ -382,10 +388,10 @@ Enhanced content:
                   1: Enable
                   0: "Don't enable"
             - users to access their OverDrive circulation history, and circulate items.<br />
-            - Overdrive uses the patron's
+            - OverDrive uses the patron's
             - pref: OverDriveUsername
               choices:
-                  cardnumber: cardnumber
+                  cardnumber: card number
                   userid: user name
             - for user access to OverDrive. <br />
             - A password is
@@ -475,7 +481,7 @@ Enhanced content:
             - If multiple values are provided with the parameter 'ekzWebServicesCustomerNumber' you may also provide different branch codes separated by <strong>|</strong> according to the order of the values specified with 'ekzWebServicesCustomerNumber'. <br>
             - Ekz web services containing explicitly selected branch codes will overwrite this default.
         -
-            - pref:  ekzWebServicesHideOrderedTitlesInOpac
+            - pref: ekzWebServicesHideOrderedTitlesInOpac
               choices:
                   1: Hide
                   0: Show
@@ -528,7 +534,7 @@ Enhanced content:
             - Catalog records may change during the time from ordering to delivery. If this preference is activated, catalog records of ordered material will be retrieved again from sources specified with parameter 'ekzTitleDataServicesSequence' and used to overwrite the local stored catalog record of the delivered material.<br>
             - If this parameter is activated, catalog records of delivered items will be overwritten if all items of the catalog record were ordered via ekz services but not delivered so far or if no item exists with a notforloan-status greater or equal 0 (means all items have an ordered status).<br>
             - "You may provide a list of MARC record field numbers (separated by '|') "
-            - pref:  ekzWebServicesOverwriteCatalogDataKeepFields
+            - pref: ekzWebServicesOverwriteCatalogDataKeepFields
             - "which will be kept of the overwritten record (for example: 072|852|942). Field content of the listed fields will be removed from the new record first before copying the content of the record to overwrite."
 
     ekz Cover:

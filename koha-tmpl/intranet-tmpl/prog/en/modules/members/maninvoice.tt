@@ -3,12 +3,15 @@
 [% USE Koha %]
 [% USE Price %]
 [% USE Branches %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
-
 [% PROCESS 'accounts.inc' %]
-
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Create manual invoice &rsaquo; Patrons &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Create manual invoice") | html %] &rsaquo;
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -33,8 +36,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 
             [% INCLUDE 'members-toolbar.inc' %]
@@ -44,35 +48,36 @@
             <!-- The manual invoice and credit buttons -->
             <div class="toptabs">
                 <ul class="nav nav-tabs" role="tablist">
-                    <li role="presentation" class="transactions">
-                        <a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Transactions</a>
+                    <li role="presentation" class="nav-item transactions">
+                        <a class="nav-link" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Transactions</a>
                     </li>
-                    <li role="presentation" class="makepayment">
-                        <a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Make a payment</a>
+                    <li role="presentation" class="nav-item makepayment">
+                        <a class="nav-link" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Make a payment</a>
                     </li>
-                    <li role="presentation" class="manualinvoice active">
-                        <a href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual invoice</a>
+                    <li role="presentation" class="nav-item manualinvoice">
+                        <a class="nav-link active" href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual invoice</a>
                     </li>
                     [% IF CAN_user_updatecharges_manual_credit %]
-                        <li role="presentation" class="manualcredit">
-                            <a href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual credit</a>
+                        <li role="presentation" class="nav-item manualcredit">
+                            <a class="nav-link" href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual credit</a>
                         </li>
                     [% END %]
                 </ul> <!-- /.nav.nav-tabs -->
                 <div class="tab-content">
                     <div role="tabpanel" class="tab-pane active">
                 [% IF error == 'itemnumber' %]
-                    <div id="error_message" class="dialog alert">
-                        Error: Invalid barcode entered, please try again
+                    <div id="error_message" class="alert alert-warning">
+                        Error: Invalid item barcode entered, please try again
                     </div>
                 [% ELSIF error %]
-                    <div id="error_message" class="dialog alert">
+                    <div id="error_message" class="alert alert-warning">
                         An error occurred, please try again: [% error | html %]
                     </div>
                 [% END %]
                 <form action="/cgi-bin/koha/members/maninvoice.pl" method="post" id="maninvoice">
+                    <input type="hidden" name="op" value="cud-add" />
                     <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber | html %]" />
-                    <input type="hidden" name="csrf_token" value="[% csrf_token | html %]" />
+                    [% INCLUDE 'csrf-token.inc' %]
                     <fieldset class="rows">
                         <legend>Manual invoice</legend>
                         <ol>
@@ -88,10 +93,12 @@
                                     [% END %]
                                 </select>
                             </li>
-                            <li><label for="barcode">Barcode: </label><input type="text" name="barcode" id="barcode" value="[% barcode | html %]" /></li>
+                            <li><label for="barcode">Item barcode: </label><input type="text" name="barcode" id="barcode" value="[% barcode | html %]" /></li>
                             <li><label for="desc">Description: </label><input type="text" name="desc" id="desc" size="50" value="[% desc | html %]" /></li>
                             <li><label for="note">Note: </label><input type="text" name="note" size="50" id="note" value="[% note | html %]" /></li>
-                            <li><label for="amount">Amount: </label><input type="number" step="0.01" lang="[% lang %]" inputmode="decimal" pattern="^\d+(\.\d{2})?$" name="amount" id="amount" required="required" min="0" value="[% amount | $Price on_editing => 1 %]" /> Example: 5.00</li>
+                            <li class="additional_field"><label for="cost">Cost: </label><input type="text" inputmode="decimal" pattern="^\d+(\.\d{2})?$" name="cost" id="cost" min="0" value="[% amount | $Price on_editing => 1 %]" /></li>
+                            <li class="additional_field"><label for="quantity">Quantity: </label><input type="text" name="quantity" id="quantity" value="1" /></li>
+                            <li><label for="amount">Amount: </label><input type="text" inputmode="decimal" pattern="^\d+(\.\d{2})?$" name="amount" id="amount" required="required" min="0" value="[% amount | $Price on_editing => 1 %]" /> Example: 5.00</li>
                         </ol>
                     </fieldset>
 
@@ -113,18 +120,19 @@
             </div> <!-- /.toptabs -->
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'circ-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'str/members-menu.inc' %]
     [% Asset.js("js/members-menu.js") | $raw %]
+    [% Asset.js("js/additional-fields-entry.js") | $raw %]
     <script>
         var type_fees = {};
         [% FOREACH debit_type IN debit_types %]
@@ -140,11 +148,29 @@
             [% UNLESS amount.defined %]
             $("#maninvoice #desc").val($("#maninvoice #type option:selected").text());
             $("#maninvoice #amount").val(type_fees[$("#maninvoice #type option:selected").val()].replace(",","."));
+            $("#maninvoice #cost").val(type_fees[$("#maninvoice #type option:selected").val()].replace(",","."));
+            if(!type_fees[$("#maninvoice #type option:selected").val()]){
+                $("#maninvoice li.additional_field").hide();
+            }
             [% END %]
             $("#maninvoice #type").change(function(){
                 $("#maninvoice #desc").val($(this).find("option:selected").text());
                 $("#maninvoice #amount").val(type_fees[$(this).val()].replace(",","."));
+                $("#maninvoice #cost").val(type_fees[$(this).val()].replace(",","."));
+                $("#maninvoice #quantity").val('1');
+                if(type_fees[$(this).val()]){
+                    $("#maninvoice li.additional_field").show();
+                }
+                else{
+                    $("#maninvoice li.additional_field").hide();
+                }
             });
+            $("#maninvoice #quantity").blur(function(){
+                $("#maninvoice #amount").val(($("#maninvoice #cost").val() * $(this).val()).toFixed(2));
+            })
+            $("#maninvoice #cost").blur(function(){
+                $("#maninvoice #amount").val(($("#maninvoice #quantity").val() * $(this).val()).toFixed(2));
+            })
         });
     </script>
 [% END %]

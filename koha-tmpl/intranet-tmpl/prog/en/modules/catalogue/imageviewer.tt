@@ -1,8 +1,15 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Images &rsaquo; [% INCLUDE 'biblio-title-head.inc' %] &rsaquo; Catalog &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Images") | html %] &rsaquo;
+    [% INCLUDE 'biblio-title-head.inc' %] &rsaquo;
+    [% t("Catalog") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
 #largeCover {
@@ -44,8 +51,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% INCLUDE 'cat-toolbar.inc' %]
 
@@ -86,7 +94,7 @@
                                 [% END %]
                             </a>
                             [% IF CAN_user_tools_upload_local_cover_images %]
-                                <a href="#" class="remove" data-coverimg="[% image.imagenumber | html %]"><i class="fa fa-trash"></i> Delete image</a>
+                                <a href="#" class="remove" data-coverimg="[% image.imagenumber | html %]"><i class="fa fa-trash-can"></i> Delete image</a>
                             [% END %]
                         </li>
                     [% END # /FOREACH img %]
@@ -95,9 +103,9 @@
         </div> <!-- /.row -->
     [% ELSE %]
         [% IF itemnumber %]
-            <div class="dialog message">There are no images for this item.</div>
+            <div class="alert alert-info">There are no images for this item.</div>
         [% ELSE %]
-            <div class="dialog message">There are no images for this record.</div>
+            <div class="alert alert-info">There are no images for this record.</div>
         [% END %]
         [% IF ( CAN_user_tools_upload_local_cover_images ) %]
             <hr />
@@ -113,18 +121,22 @@
         [% END %]
     [% END %]
 [% ELSE %]
-    <div class="dialog message">Local images have not been enabled by your system administrator.</div>
+    <div class="alert alert-info">Local images have not been enabled by your system administrator.</div>
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'biblio-view-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
+
+    [% IF ( Koha.Preference('CatalogConcerns') ) %]
+    [% INCLUDE 'modals/add_catalog_concern.inc' %]
+    [% END %]
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'catalog-strings.inc' %]
@@ -137,6 +149,14 @@
     [% INCLUDE 'select2.inc' %]
     [% Asset.js("js/catalog.js") | $raw %]
     [% Asset.js("js/additional-fields.js") | $raw %]
+    [% Asset.js("js/modals/place_booking.js") | $raw %]
+    [% IF ( Koha.Preference('CatalogConcerns') ) %]
+        <script>
+            /* Set a variable needed by add_catalog_concern.js */
+            var logged_in_user_borrowernumber = "[% logged_in_user.borrowernumber | html %]";
+        </script>
+        [% Asset.js("js/modals/add_catalog_concern.js") | $raw %]
+    [% END %]
     <script>
         var interface = "[% interface | html %]";
         var theme = "[% theme | html %]";
@@ -172,27 +192,26 @@
             thumbnail.find("img").css("opacity", ".2");
             thumbnail.find("a.remove").html("<img style='display:inline-block' src='" + interface + "/" + theme + "/img/spinner-small.gif' alt='' />");
 
-            $.ajax({
-                url: "/cgi-bin/koha/svc/cover_images?action=delete&imagenumber=" + imagenumber,
-                success: function(data) {
-                    $(data).each( function() {
-                        if ( this.deleted == 1 ) {
-                            if( itemnumber ) {
-                                location.href="/cgi-bin/koha/catalogue/imageviewer.pl?itemnumber=" + itemnumber;
-                            } else {
-                                location.href="/cgi-bin/koha/catalogue/imageviewer.pl?biblionumber=" + biblionumber;
-                            }
+            const client = APIClient.cover_image;
+            client.cover_images.delete(imagenumber).then(
+                success => {
+                    if ( success.deleted == 1 ) {
+                        if( itemnumber ) {
+                            location.href="/cgi-bin/koha/catalogue/imageviewer.pl?itemnumber=" + itemnumber;
                         } else {
-                            thumbnail.html( copy );
-                            alert(_("An error occurred on deleting this image"));
+                            location.href="/cgi-bin/koha/catalogue/imageviewer.pl?biblionumber=" + biblionumber;
                         }
-                    });
+                    } else {
+                        thumbnail.html( copy );
+                        alert(_("An error occurred on deleting this image"));
+                    }
                 },
-                error: function(data) {
+                error => {
                     thumbnail.html( copy );
                     alert(_("An error occurred on deleting this image"));
+                    console.warn("Something wrong happened: %s".format(error));
                 }
-            });
+            );
         }
 
         function showCover(img) {

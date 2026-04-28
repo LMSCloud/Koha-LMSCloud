@@ -23,7 +23,7 @@ export class ERMAPIClient extends HttpClient {
                     endpoint: "agreements/" + id,
                     headers: {
                         "x-koha-embed":
-                            "periods,user_roles,user_roles.patron,agreement_licenses,agreement_licenses.license,agreement_relationships,agreement_relationships.related_agreement,documents,agreement_packages,agreement_packages.package,vendor",
+                            "periods,user_roles,user_roles.patron,agreement_licenses,agreement_licenses.license,agreement_relationships,agreement_relationships.related_agreement,documents,agreement_packages,agreement_packages.package,vendor,extended_attributes,+strings",
                     },
                 }),
             getAll: (query, params) =>
@@ -66,7 +66,7 @@ export class ERMAPIClient extends HttpClient {
                     endpoint: "licenses/" + id,
                     headers: {
                         "x-koha-embed":
-                            "user_roles,user_roles.patron,vendor,documents",
+                            "user_roles,user_roles.patron,vendor,documents,extended_attributes,+strings",
                     },
                 }),
             getAll: (query, params) =>
@@ -112,7 +112,7 @@ export class ERMAPIClient extends HttpClient {
                     endpoint: "eholdings/local/packages/" + id,
                     headers: {
                         "x-koha-embed":
-                            "package_agreements,package_agreements.agreement,resources+count,vendor",
+                            "package_agreements,package_agreements.agreement,resources+count,vendor,extended_attributes,+strings",
                     },
                 }),
             getAll: (query, params) =>
@@ -189,6 +189,11 @@ export class ERMAPIClient extends HttpClient {
                     endpoint: "eholdings/local/titles/import",
                     body,
                 }),
+            import_kbart: body =>
+                this.post({
+                    endpoint: "eholdings/local/titles/import_kbart",
+                    body,
+                }),
         };
     }
 
@@ -247,6 +252,200 @@ export class ERMAPIClient extends HttpClient {
                 this.patch({
                     endpoint: "eholdings/ebsco/resources/" + id,
                     body,
+                }),
+        };
+    }
+
+    get usage_data_providers() {
+        return {
+            get: id =>
+                this.get({
+                    endpoint: "usage_data_providers/" + id,
+                }),
+            getAll: query =>
+                this.getAll({
+                    endpoint: "usage_data_providers",
+                    query,
+                    query,
+                }),
+            delete: id =>
+                this.delete({
+                    endpoint: "usage_data_providers/" + id,
+                }),
+            create: usage_data_provider =>
+                this.post({
+                    endpoint: "usage_data_providers",
+                    body: usage_data_provider,
+                }),
+            update: (usage_data_provider, id) =>
+                this.put({
+                    endpoint: "usage_data_providers/" + id,
+                    body: usage_data_provider,
+                }),
+            process_SUSHI_response: (id, body) =>
+                this.post({
+                    endpoint:
+                        "usage_data_providers/" +
+                        id +
+                        "/process_SUSHI_response",
+                    body: body,
+                }),
+            process_COUNTER_file: (id, body) =>
+                this.post({
+                    endpoint:
+                        "usage_data_providers/" + id + "/process_COUNTER_file",
+                    body: body,
+                }),
+            test: id =>
+                this.get({
+                    endpoint: "usage_data_providers/" + id + "/test_connection",
+                }),
+            count: (query = {}) =>
+                this.count({
+                    endpoint:
+                        "usage_data_providers?" +
+                        new URLSearchParams({
+                            _page: 1,
+                            _per_page: 1,
+                            ...(query && { q: JSON.stringify(query) }),
+                        }),
+                }),
+        };
+    }
+
+    get counter_files() {
+        return {
+            delete: id =>
+                this.delete({
+                    endpoint: "counter_files/" + id,
+                }),
+            count: (query = {}) =>
+                this.count({
+                    endpoint:
+                        "counter_files?" +
+                        new URLSearchParams({
+                            _page: 1,
+                            _per_page: 1,
+                            ...(query && { q: JSON.stringify(query) }),
+                        }),
+                }),
+        };
+    }
+
+    get default_usage_reports() {
+        return {
+            getAll: query =>
+                this.get({
+                    endpoint: "default_usage_reports",
+                    query,
+                }),
+            create: default_usage_report =>
+                this.post({
+                    endpoint: "default_usage_reports",
+                    body: default_usage_report,
+                }),
+            delete: id =>
+                this.delete({
+                    endpoint: "default_usage_reports/" + id,
+                }),
+        };
+    }
+
+    get usage_platforms() {
+        return {
+            getAll: query =>
+                this.getAll({
+                    endpoint: "usage_platforms",
+                    query: query,
+                }),
+            count: (query = {}) =>
+                this.count({
+                    endpoint:
+                        "usage_platforms?" +
+                        new URLSearchParams({
+                            _page: 1,
+                            _per_page: 1,
+                            ...(query && { q: JSON.stringify(query) }),
+                        }),
+                }),
+        };
+    }
+
+    get usage_items() {
+        return {
+            getAll: query =>
+                this.getAll({
+                    endpoint: "usage_items",
+                    query: query,
+                }),
+            count: (query = {}) =>
+                this.count({
+                    endpoint:
+                        "usage_items?" +
+                        new URLSearchParams({
+                            _page: 1,
+                            _per_page: 1,
+                            ...(query && { q: JSON.stringify(query) }),
+                        }),
+                }),
+        };
+    }
+
+    get usage_databases() {
+        return {
+            getAll: query =>
+                this.getAll({
+                    endpoint: "usage_databases",
+                    query: query,
+                }),
+            count: (query = {}) =>
+                this.count({
+                    endpoint:
+                        "usage_databases?" +
+                        new URLSearchParams({
+                            _page: 1,
+                            _per_page: 1,
+                            ...(query && { q: JSON.stringify(query) }),
+                        }),
+                }),
+        };
+    }
+
+    get usage_titles() {
+        return {
+            getAll: query =>
+                this.getAll({
+                    endpoint: "usage_titles",
+                    query: query,
+                }),
+            count: (query = {}) =>
+                this.count({
+                    endpoint:
+                        "usage_titles?" +
+                        new URLSearchParams({
+                            _page: 1,
+                            _per_page: 1,
+                            ...(query && { q: JSON.stringify(query) }),
+                        }),
+                }),
+        };
+    }
+
+    get counter_registry() {
+        return {
+            getAll: query =>
+                this.getAll({
+                    endpoint: "counter_registry",
+                    query,
+                }),
+        };
+    }
+    get sushi_service() {
+        return {
+            getAll: query =>
+                this.getAll({
+                    endpoint: "sushi_service",
+                    query,
                 }),
         };
     }

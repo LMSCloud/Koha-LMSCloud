@@ -42,20 +42,15 @@ Controller function that handles listing Koha::Biblio::ItemGroup objects
 
 sub list {
     my $c = shift->openapi->valid_input or return;
-    my $biblio_id = $c->validation->param('biblio_id');
 
-    my $biblio=Koha::Biblios->find( $biblio_id);
+    my $biblio = Koha::Biblios->find( $c->param('biblio_id') );
 
     return try {
-#my $item_groups_set = Koha::Biblio::ItemGroups->new;
-        my $item_groups_set = $biblio->item_groups;
-        my $item_groups     = $c->objects->search( $item_groups_set );
         return $c->render(
             status  => 200,
-            openapi => $item_groups
+            openapi => $c->objects->search( $biblio->item_groups ),
         );
-    }
-    catch {
+    } catch {
         $c->unhandled_exception($_);
     };
 }
@@ -70,8 +65,8 @@ sub get {
     my $c = shift->openapi->valid_input or return;
 
     try {
-        my $item_group_id = $c->validation->param('item_group_id');
-        my $biblio_id = $c->validation->param('biblio_id');
+        my $item_group_id = $c->param('item_group_id');
+        my $biblio_id     = $c->param('biblio_id');
 
         my $item_group = $c->objects->find( Koha::Biblio::ItemGroups->new, $item_group_id );
 
@@ -82,12 +77,7 @@ sub get {
             );
         }
         else {
-            return $c->render(
-                status  => 404,
-                openapi => {
-                    error => 'Item group not found'
-                }
-            );
+            return $c->render_resource_not_found("Item group");
         }
     }
     catch {
@@ -107,10 +97,8 @@ sub add {
     return try {
 
         my $biblio = Koha::Biblios->find( $c->param('biblio_id') );
-        return $c->render(
-            status  => 404,
-            openapi => { error => 'Object not found' }
-        ) unless $biblio;
+        return $c->render_resource_not_found("Bibliographic record")
+            unless $biblio;
 
         my $item_group_data = $c->req->json;
         # biblio_id comes from the path
@@ -123,7 +111,7 @@ sub add {
 
         return $c->render(
             status  => 201,
-            openapi => $item_group->to_api
+            openapi => $c->objects->to_api($item_group),
         );
     }
     catch {
@@ -133,10 +121,7 @@ sub add {
             if (    $_->isa('Koha::Exceptions::Object::FKConstraint')
                 and $_->broken_fk eq 'biblio_id' )
             {
-                return $c->render(
-                    status  => 404,
-                    openapi => { error => "Biblio not found" }
-                );
+                return $c->render_resource_not_found("Bibliographic record");
             }
         }
 
@@ -154,26 +139,21 @@ sub update {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $item_group_id = $c->validation->param('item_group_id');
-        my $biblio_id     = $c->validation->param('biblio_id');
+        my $item_group_id = $c->param('item_group_id');
+        my $biblio_id     = $c->param('biblio_id');
 
         my $item_group = Koha::Biblio::ItemGroups->find( $item_group_id );
 
         unless ( $item_group && $item_group->biblio_id eq $biblio_id ) {
-            return $c->render(
-                status  => 404,
-                openapi => {
-                    error => 'Item group not found'
-                }
-            );
+            return $c->render_resource_not_found("Item group");
         }
 
-        my $item_group_data = $c->validation->param('body');
+        my $item_group_data = $c->req->json;
         $item_group->set_from_api( $item_group_data )->store->discard_changes();
 
         return $c->render(
             status  => 200,
-            openapi => $item_group->to_api
+            openapi => $c->objects->to_api($item_group),
         );
     }
     catch {
@@ -204,24 +184,20 @@ sub delete {
 
     my $c = shift->openapi->valid_input or return;
 
-    my $item_group_id = $c->validation->param('item_group_id');
-    my $biblio_id     = $c->validation->param('biblio_id');
-
     my $item_group = Koha::Biblio::ItemGroups->find(
-        { item_group_id => $item_group_id, biblio_id => $biblio_id } );
+        {
+            item_group_id => $c->param('item_group_id'),
+            biblio_id     => $c->param('biblio_id')
+        }
+    );
 
-    if ( not defined $item_group ) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Item group not found" }
-        );
-    }
+    return $c->render_resource_not_found("Item group")
+        unless $item_group;
 
     return try {
         $item_group->delete;
-        return $c->render( status => 204, openapi => '' );
-    }
-    catch {
+        return $c->render_resource_deleted;
+    } catch {
         $c->unhandled_exception($_);
     };
 }

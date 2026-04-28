@@ -91,4 +91,10 @@ __PACKAGE__->set_primary_key("id");
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration
+sub koha_object_class {
+    'Koha::AcquisitionImport::AcquisitionImportObject';
+}
+sub koha_objects_class {
+    'Koha::AcquisitionImport::AcquisitionImportObjects';
+}
 1;

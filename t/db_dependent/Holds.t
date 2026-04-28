@@ -8,6 +8,7 @@ use t::lib::TestBuilder;
 use C4::Context;
 
 use Test::More tests => 73;
+use Test::NoWarnings;
 use Test::Exception;
 
 use MARC::Record;
@@ -15,7 +16,7 @@ use MARC::Record;
 use C4::Biblio;
 use C4::Calendar;
 use C4::Items;
-use C4::Reserves qw( AddReserve CalculatePriority ModReserve ToggleSuspend AutoUnsuspendReserves SuspendAll ModReserveMinusPriority AlterPriority CanItemBeReserved CheckReserves );
+use C4::Reserves qw( AddReserve CalculatePriority ModReserve AutoUnsuspendReserves SuspendAll ModReserveMinusPriority AlterPriority CanItemBeReserved CheckReserves MoveReserve );
 use C4::Circulation qw( CanBookBeRenewed );
 
 use Koha::Biblios;
@@ -64,7 +65,8 @@ $insert_sth->execute('ONLY1');
 my $biblio = $builder->build_sample_biblio({ itemtype => 'DUMMY' });
 
 # Create item instance for testing.
-my $itemnumber = $builder->build_sample_item({ library => $branch_1, biblionumber => $biblio->biblionumber })->itemnumber;
+my $item = $builder->build_sample_item({ library => $branch_1, biblionumber => $biblio->biblionumber });
+my $itemnumber = $item->itemnumber;
 
 # Create some borrowers
 my @borrowernumbers;
@@ -101,7 +103,6 @@ is( $holds->next->priority, 3, "Reserve 3 has a priority of 3" );
 is( $holds->next->priority, 4, "Reserve 4 has a priority of 4" );
 is( $holds->next->priority, 5, "Reserve 5 has a priority of 5" );
 
-my $item = Koha::Items->find( $itemnumber );
 $holds = $item->current_holds;
 my $first_hold = $holds->next;
 my $reservedate = $first_hold->reservedate;
@@ -159,14 +160,6 @@ ModReserve({ # call without reserve_id
 });
 $hold = Koha::Holds->find( $reserve_id );
 ok( $hold->priority eq '3', "Test ModReserve, priority changed correctly" );
-
-ToggleSuspend( $reserve_id );
-$hold = Koha::Holds->find( $reserve_id );
-ok( ! $hold->suspend, "Test ToggleSuspend(), no date" );
-
-ToggleSuspend( $reserve_id, '2012-01-01' );
-$hold = Koha::Holds->find( $reserve_id );
-is( $hold->suspend_until, '2012-01-01 00:00:00', "Test ToggleSuspend(), with date" );
 
 AutoUnsuspendReserves();
 $hold = Koha::Holds->find( $reserve_id );
@@ -339,7 +332,7 @@ ok(
 my $damaged_item = Koha::Items->find($itemnumber)->damaged(1)->store; # FIXME The $itemnumber is a bit confusing here
 t::lib::Mocks::mock_preference( 'AllowHoldsOnDamagedItems', 1 );
 is( CanItemBeReserved( $patrons[0], $damaged_item)->{status}, 'OK', "Patron can reserve damaged item with AllowHoldsOnDamagedItems enabled" );
-ok( defined( ( CheckReserves($itemnumber) )[1] ), "Hold can be trapped for damaged item with AllowHoldsOnDamagedItems enabled" );
+ok( defined( ( CheckReserves($damaged_item) )[1] ), "Hold can be trapped for damaged item with AllowHoldsOnDamagedItems enabled" );
 
 $hold = Koha::Hold->new(
     {
@@ -356,7 +349,7 @@ $hold->delete();
 
 t::lib::Mocks::mock_preference( 'AllowHoldsOnDamagedItems', 0 );
 ok( CanItemBeReserved( $patrons[0], $damaged_item)->{status} eq 'damaged', "Patron cannot reserve damaged item with AllowHoldsOnDamagedItems disabled" );
-ok( !defined( ( CheckReserves($itemnumber) )[1] ), "Hold cannot be trapped for damaged item with AllowHoldsOnDamagedItems disabled" );
+ok( !defined( ( CheckReserves($damaged_item) )[1] ), "Hold cannot be trapped for damaged item with AllowHoldsOnDamagedItems disabled" );
 
 # Items that are not for loan, but holdable should not be trapped until they are available for loan
 t::lib::Mocks::mock_preference( 'TrapHoldsOnOrder', 0 );
@@ -374,19 +367,19 @@ $hold = Koha::Hold->new(
         branchcode     => $branch_1,
     }
 )->store();
-ok( !defined( ( CheckReserves($itemnumber) )[1] ), "Hold cannot be trapped for item that is not for loan but holdable ( notforloan < 0 )" );
+ok( !defined( ( CheckReserves($nfl_item) )[1] ), "Hold cannot be trapped for item that is not for loan but holdable ( notforloan < 0 )" );
 t::lib::Mocks::mock_preference( 'TrapHoldsOnOrder', 1 );
-ok( defined( ( CheckReserves($itemnumber) )[1] ), "Hold is trapped for item that is not for loan but holdable ( notforloan < 0 )" );
+ok( defined( ( CheckReserves($nfl_item) )[1] ), "Hold is trapped for item that is not for loan but holdable ( notforloan < 0 )" );
 t::lib::Mocks::mock_preference( 'SkipHoldTrapOnNotForLoanValue', '-1' );
-ok( !defined( ( CheckReserves($itemnumber) )[1] ), "Hold cannot be trapped for item with notforloan value matching SkipHoldTrapOnNotForLoanValue" );
+ok( !defined( ( CheckReserves($nfl_item) )[1] ), "Hold cannot be trapped for item with notforloan value matching SkipHoldTrapOnNotForLoanValue" );
 t::lib::Mocks::mock_preference( 'SkipHoldTrapOnNotForLoanValue', '-1|1' );
-ok( !defined( ( CheckReserves($itemnumber) )[1] ), "Hold cannot be trapped for item with notforloan value matching SkipHoldTrapOnNotForLoanValue" );
+ok( !defined( ( CheckReserves($nfl_item) )[1] ), "Hold cannot be trapped for item with notforloan value matching SkipHoldTrapOnNotForLoanValue" );
 t::lib::Mocks::mock_preference( 'SkipHoldTrapOnNotForLoanValue', '' );
 my $item_group_1 = Koha::Biblio::ItemGroup->new( { biblio_id => $biblio->id } )->store();
 my $item_group_2 = Koha::Biblio::ItemGroup->new( { biblio_id => $biblio->id } )->store();
 $item_group_1->add_item({ item_id => $itemnumber });
 $hold->item_group_id( $item_group_2->id )->update;
-ok( !defined( ( CheckReserves($itemnumber) )[1] ), "Hold cannot be trapped for item with non-matching item group" );
+ok( !defined( ( CheckReserves($nfl_item) )[1] ), "Hold cannot be trapped for item with non-matching item group" );
 is(
     CanItemBeReserved( $patrons[0], $nfl_item)->{status}, 'itemAlreadyOnHold',
     "cannot request item that you have already reservedd"
@@ -1498,13 +1491,13 @@ subtest 'non priority holds' => sub {
         }
     );
 
-    Koha::Checkout->new(
+    my $issue = Koha::Checkout->new(
         {
             borrowernumber => $patron1->borrowernumber,
             itemnumber     => $item->itemnumber,
             branchcode     => $item->homebranch
         }
-    )->store;
+    )->store->get_from_storage;
 
     my $hid = AddReserve(
         {
@@ -1517,7 +1510,7 @@ subtest 'non priority holds' => sub {
     );
 
     my ( $ok, $err ) =
-      CanBookBeRenewed( $patron1->borrowernumber, $item->itemnumber );
+      CanBookBeRenewed( $patron1, $issue );
 
     ok( !$ok, 'Cannot renew' );
     is( $err, 'on_reserve', 'Item is on hold' );
@@ -1526,7 +1519,7 @@ subtest 'non priority holds' => sub {
     $hold->non_priority(1)->store;
 
     ( $ok, $err ) =
-      CanBookBeRenewed( $patron1->borrowernumber, $item->itemnumber );
+      CanBookBeRenewed( $patron1, $issue );
 
     ok( $ok, 'Can renew' );
     is( $err, undef, 'Item is on non priority hold' );
@@ -1550,7 +1543,7 @@ subtest 'non priority holds' => sub {
     );
 
     ( $ok, $err ) =
-      CanBookBeRenewed( $patron1->borrowernumber, $item->itemnumber );
+      CanBookBeRenewed( $patron1, $issue );
 
     ok( !$ok, 'Cannot renew' );
     is( $err, 'on_reserve', 'Item is on hold' );
@@ -1806,6 +1799,84 @@ subtest 'Koha::Holds->get_items_that_can_fill returns items with datecancelled o
     is($items_that_can_fill3->count, 1, "Koha::Holds->get_items_that_can_fill returns 1 item with correct parameters");
     is($items_that_can_fill4->next, undef, "Koha::Holds->get_items_that_can_fill doesn't return item with undefined datearrived and undefined datecancelled");
     is($items_that_can_fill4->count, 0, "Koha::Holds->get_items_that_can_fill returns 0 item");
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'EmailPatronWhenHoldIsPlaced tests' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $item           = $builder->build_sample_item;
+    my $patron         = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $borrowernumber = $patron->id;
+    Koha::CirculationRules->set_rules(
+        {
+            categorycode => undef,
+            branchcode   => undef,
+            itemtype     => undef,
+            rules        => {
+                reservesallowed  => 25,
+                holds_per_record => 99,
+            }
+        }
+    );
+
+    t::lib::Mocks::mock_preference( 'EmailPatronWhenHoldIsPlaced', 0 );
+    my $original_notices_count = Koha::Notice::Messages->search(
+        {
+            letter_code => 'HOLDPLACED_PATRON',
+            to_address  => $patron->notice_email_address,
+        }
+    )->count;
+
+    my $hold_id = AddReserve(
+        {
+            branchcode     => $item->homebranch,
+            borrowernumber => $borrowernumber,
+            biblionumber   => $item->biblionumber,
+            itemnumber     => $item->itemnumber,
+        }
+    );
+    my $post_notices_count = Koha::Notice::Messages->search(
+        {
+            letter_code => 'HOLDPLACED_PATRON',
+            to_address  => $patron->notice_email_address,
+        }
+    )->count;
+    is(
+        $post_notices_count, $original_notices_count,
+        "EmailPatronWhenHoldIsPlaced is disabled so no email is queued"
+    );
+    MoveReserve( $item->itemnumber, $borrowernumber, 1 );
+
+    $original_notices_count = Koha::Notice::Messages->search(
+        {
+            letter_code => 'HOLDPLACED_PATRON',
+            to_address  => $patron->notice_email_address,
+        }
+    )->count;
+    t::lib::Mocks::mock_preference( 'EmailPatronWhenHoldIsPlaced', 1 );
+    AddReserve(
+        {
+            branchcode     => $item->homebranch,
+            borrowernumber => $borrowernumber,
+            biblionumber   => $item->biblionumber,
+            itemnumber     => $item->itemnumber,
+        }
+    );
+    $post_notices_count = Koha::Notice::Messages->search(
+        {
+            letter_code => 'HOLDPLACED_PATRON',
+            to_address  => $patron->notice_email_address,
+        }
+    )->count;
+    is(
+        $post_notices_count,
+        $original_notices_count + 1,
+        "EmailPatronWhenHoldIsPlaced is enabled so HOLDPLACED_PATRON email is queued"
+    );
 
     $schema->storage->txn_rollback;
 };

@@ -36,7 +36,7 @@ my $t = Test::Mojo->new('Koha::REST::V1');
 
 subtest 'list() and delete() tests | authorized user' => sub {
 
-    plan tests => 35;
+    plan tests => 44;
 
     $schema->storage->txn_begin;
 
@@ -91,9 +91,25 @@ subtest 'list() and delete() tests | authorized user' => sub {
       ->status_is(200)
       ->json_like( '/0/name' => qr/Amerindia/ );
 
+    my @aliases = ( { alias => 'alias 1' }, { alias => 'alias 2' } );
+    $vendor->aliases( \@aliases );
+    $t->get_ok( "//$userid:$password@/api/v1/acquisitions/vendors" =>
+        { 'x-koha-embed' => 'aliases' } )
+      ->status_is(200)
+      ->json_has('/0/aliases', 'aliases are embedded')
+      ->json_is('/0/aliases/0/alias' => 'alias 1', 'alias 1 is embedded')
+      ->json_is('/0/aliases/1/alias' => 'alias 2', 'alias 2 is embedded');
+
+    for ( 0 .. 1 ) {
+        $builder->build_object( { class => 'Koha::Subscriptions', value => { aqbooksellerid => $vendor->id } } );
+    }
+    $t->get_ok( "//$userid:$password@/api/v1/acquisitions/vendors" => { 'x-koha-embed' => 'subscriptions+count' } )
+        ->status_is(200)->json_has( '/0/subscriptions_count', 'subscriptions_count is embedded' )
+        ->json_is( '/0/subscriptions_count' => '2', 'subscription count is 2' );
+
     $t->delete_ok( "//$userid:$password@/api/v1/acquisitions/vendors/" . $vendor->id )
-      ->status_is(204, 'SWAGGER3.2.4')
-      ->content_is('', 'SWAGGER3.3.4');
+      ->status_is(204, 'REST3.2.4')
+      ->content_is('', 'REST3.3.4');
 
     $t->get_ok( "//$userid:$password@/api/v1/acquisitions/vendors" )
       ->status_is(200)
@@ -101,8 +117,8 @@ subtest 'list() and delete() tests | authorized user' => sub {
       ->json_hasnt( '/1', 'Only one vendor' );
 
     $t->delete_ok( "//$userid:$password@/api/v1/acquisitions/vendors/" . $other_vendor->id )
-      ->status_is(204, 'SWAGGER3.2.4')
-      ->content_is('', 'SWAGGER3.3.4');
+      ->status_is(204, 'REST3.2.4')
+      ->content_is('', 'REST3.3.4');
 
     $t->get_ok( "//$userid:$password@/api/v1/acquisitions/vendors" )
       ->status_is(200)
@@ -193,8 +209,8 @@ subtest 'add() tests' => sub {
 
     # Authorized attempt to write
     $t->post_ok( "//$auth_userid:$password@/api/v1/acquisitions/vendors" => json => $vendor )
-      ->status_is( 201, 'SWAGGER3 .2.1' )
-      ->header_like( Location => qr|^\/api\/v1\/acquisitions\/vendors/\d*|, 'SWAGGER3.4.1')
+      ->status_is( 201, 'REST3 .2.1' )
+      ->header_like( Location => qr|^\/api\/v1\/acquisitions\/vendors/\d*|, 'REST3.4.1')
       ->json_is( '/name' => $vendor->{name} )
       ->json_is( '/address1' => $vendor->{address1} );
 
@@ -330,8 +346,8 @@ subtest 'delete() tests' => sub {
       ->status_is(403);
 
     $t->delete_ok( "//$auth_userid:$password@/api/v1/acquisitions/vendors/" . $vendor->id )
-      ->status_is(204, 'SWAGGER3.2.4')
-      ->content_is('', 'SWAGGER3.3.4');
+      ->status_is(204, 'REST3.2.4')
+      ->content_is('', 'REST3.3.4');
 
     $t->delete_ok( "//$auth_userid:$password@/api/v1/acquisitions/vendors/" . $vendor->id )
       ->status_is(404);

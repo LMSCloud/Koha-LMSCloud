@@ -408,7 +408,7 @@ subtest 'renew_account' => sub {
         my $retrieved_expiry_date = Koha::Patrons->find( $patron->{borrowernumber} )->dateexpiry;
         is( dt_from_string($retrieved_expiry_date), $a_year_later_minus_a_month, "$a_month_ago + 12 months must be $a_year_later_minus_a_month" );
         my $number_of_logs = $schema->resultset('ActionLog')->search( { module => 'MEMBERS', action => 'RENEW', object => $retrieved_patron->borrowernumber } )->count;
-        is( $number_of_logs, 1, 'With BorrowerLogs, Koha::Patron->renew_account should have logged' );
+        is( $number_of_logs, 1, 'With BorrowersLog, Koha::Patron->renew_account should have logged' );
 
         t::lib::Mocks::mock_preference( 'BorrowerRenewalPeriodBase', 'now' );
         t::lib::Mocks::mock_preference( 'BorrowersLog',              0 );
@@ -419,7 +419,7 @@ subtest 'renew_account' => sub {
         $retrieved_expiry_date = $retrieved_patron->dateexpiry;
         is( dt_from_string($retrieved_expiry_date), $a_year_later, "today + 12 months must be $a_year_later" );
         $number_of_logs = $schema->resultset('ActionLog')->search( { module => 'MEMBERS', action => 'RENEW', object => $retrieved_patron->borrowernumber } )->count;
-        is( $number_of_logs, 1, 'Without BorrowerLogs, Koha::Patron->renew_account should not have logged' );
+        is( $number_of_logs, 1, 'Without BorrowersLog, Koha::Patron->renew_account should not have logged' );
 
         t::lib::Mocks::mock_preference( 'BorrowerRenewalPeriodBase', 'combination' );
         $expiry_date = $retrieved_patron_2->renew_account;
@@ -508,7 +508,7 @@ subtest "delete" => sub {
     is( Koha::Patron::Modifications->search( { borrowernumber => $patron->borrowernumber } )->count, 0, q|Koha::Patron->delete should have deleted patron's modifications| );
 
     my $number_of_logs = $schema->resultset('ActionLog')->search( { module => 'MEMBERS', action => 'DELETE', object => $patron->borrowernumber } )->count;
-    is( $number_of_logs, 1, 'With BorrowerLogs, Koha::Patron->delete should have logged' );
+    is( $number_of_logs, 1, 'With BorrowersLog, Koha::Patron->delete should have logged' );
 
     # Test deletion with designated fallback owner
     my $designated_owner = $builder->build_object({ class => 'Koha::Patrons' });
@@ -617,7 +617,7 @@ subtest 'add_enrolment_fee_if_needed' => sub {
 };
 
 subtest 'checkouts + pending_checkouts + overdues + old_checkouts' => sub {
-    plan tests => 17;
+    plan tests => 19;
 
     my $library = $builder->build( { source => 'Branch' } );
     my $biblionumber_1 = $builder->build_sample_biblio->biblionumber;
@@ -658,25 +658,43 @@ subtest 'checkouts + pending_checkouts + overdues + old_checkouts' => sub {
     is( $old_checkouts->count, 0, 'old_checkouts should not return any issues for that patron' );
     is( ref($old_checkouts), 'Koha::Old::Checkouts', 'old_checkouts should return a Koha::Old::Checkouts object' );
 
-    # Not sure how this is useful, but AddIssue pass this variable to different other subroutines
-    $patron = Koha::Patrons->find( $patron->borrowernumber )->unblessed;
-
     t::lib::Mocks::mock_userenv({ branchcode => $library->{branchcode} });
 
-    AddIssue( $patron, $item_1->barcode, DateTime->now->subtract( days => 1 ) );
-    AddIssue( $patron, $item_2->barcode, DateTime->now->subtract( days => 5 ) );
-    AddIssue( $patron, $item_3->barcode );
+    my $issue_1 = AddIssue(
+        $patron, $item_1->barcode, dt_from_string()->subtract( days => 1 ), undef,
+        dt_from_string()->subtract( days => 10 )
+    );
+    sleep(1);    # Pause to ensure timestamps differ and that they do not affect ordering
+    AddIssue(
+        $patron, $item_2->barcode, dt_from_string()->subtract( days => 5 ), undef,
+        dt_from_string()->subtract( days => 1 )
+    );
+    sleep(1);
+    AddIssue( $patron, $item_3->barcode, undef, undef, dt_from_string()->subtract( days => 5 ) );
+    sleep(1);
 
-    $patron = Koha::Patrons->find( $patron->{borrowernumber} );
     $checkouts = $patron->checkouts;
-    is( $checkouts->count, 3, 'checkouts should return 3 issues for that patron' );
-    is( ref($checkouts), 'Koha::Checkouts', 'checkouts should return a Koha::Checkouts object' );
+    is( $checkouts->count, 3,                 'checkouts should return 3 issues for that patron' );
+    is( ref($checkouts),   'Koha::Checkouts', 'checkouts should return a Koha::Checkouts object' );
     $pending_checkouts = $patron->pending_checkouts;
-    is( $pending_checkouts->count, 3, 'pending_checkouts should return 3 issues for that patron' );
-    is( ref($pending_checkouts), 'Koha::Checkouts', 'pending_checkouts should return a Koha::Checkouts object' );
+    is( $pending_checkouts->count, 3,                 'pending_checkouts should return 3 issues for that patron' );
+    is( ref($pending_checkouts),   'Koha::Checkouts', 'pending_checkouts should return a Koha::Checkouts object' );
+
+    my @itemnumbers = $pending_checkouts->get_column('itemnumber');
+    is_deeply(
+        \@itemnumbers, [ $item_2->itemnumber, $item_3->itemnumber, $item_1->itemnumber ],
+        "Checkouts are ordered by the date issued"
+    );
+    $issue_1->auto_renew_error("Updated")->store;
+    $pending_checkouts = $patron->pending_checkouts;
+    @itemnumbers       = $pending_checkouts->get_column('itemnumber');
+    is_deeply(
+        \@itemnumbers, [ $item_2->itemnumber, $item_3->itemnumber, $item_1->itemnumber ],
+        "Checkouts are still ordered by the date issued, updates do not reorder"
+    );
 
     my $first_checkout = $pending_checkouts->next;
-    is( $first_checkout->unblessed_all_relateds->{biblionumber}, $item_3->biblionumber, 'pending_checkouts should prefetch values from other tables (here biblio)' );
+    is( $first_checkout->unblessed_all_relateds->{biblionumber}, $item_2->biblionumber, 'pending_checkouts should prefetch values from other tables (here biblio)' );
 
     my $overdues = $patron->overdues;
     is( $overdues->count, 2, 'Patron should have 2 overdues');
@@ -1077,20 +1095,6 @@ subtest 'holds and old_holds' => sub {
     $patron->delete;
 };
 
-subtest 'notice_email_address' => sub {
-    plan tests => 2;
-
-    my $patron = $builder->build_object({ class => 'Koha::Patrons' });
-
-    t::lib::Mocks::mock_preference( 'AutoEmailPrimaryAddress', 'OFF' );
-    is ($patron->notice_email_address, $patron->email, "Koha::Patron->notice_email_address returns correct value when AutoEmailPrimaryAddress is off");
-
-    t::lib::Mocks::mock_preference( 'AutoEmailPrimaryAddress', 'emailpro' );
-    is ($patron->notice_email_address, $patron->emailpro, "Koha::Patron->notice_email_address returns correct value when AutoEmailPrimaryAddress is emailpro");
-
-    $patron->delete;
-};
-
 subtest 'search_patrons_to_anonymise' => sub {
 
     plan tests => 5;
@@ -1302,8 +1306,10 @@ subtest 'search_patrons_to_anonymise' => sub {
     t::lib::Mocks::mock_preference('IndependentBranches', 0);
 };
 
-subtest 'libraries_where_can_see_patrons + can_see_patron_infos + search_limited' => sub {
-    plan tests => 3;
+subtest
+    'libraries_where_can_see_patrons + libraries_where_can_see_things + can_see_patron_infos + search_limited+ can_see_patrons_from + can_edit_items_from'
+    => sub {
+    plan tests => 6;
 
     # group1
     #   + library_11
@@ -1311,96 +1317,212 @@ subtest 'libraries_where_can_see_patrons + can_see_patron_infos + search_limited
     # group2
     #   + library21
     $nb_of_patrons = Koha::Patrons->search->count;
-    my $group_1 = Koha::Library::Group->new( { title => 'TEST Group 1', ft_hide_patron_info => 1 } )->store;
-    my $group_2 = Koha::Library::Group->new( { title => 'TEST Group 2', ft_hide_patron_info => 1 } )->store;
+    my $group_1    = Koha::Library::Group->new( { title => 'TEST Group 1', ft_hide_patron_info => 1 } )->store;
+    my $group_2    = Koha::Library::Group->new( { title => 'TEST Group 2', ft_hide_patron_info => 1 } )->store;
     my $library_11 = $builder->build( { source => 'Branch' } );
     my $library_12 = $builder->build( { source => 'Branch' } );
     my $library_21 = $builder->build( { source => 'Branch' } );
+    my $library_31 = $builder->build( { source => 'Branch' } );
     $library_11 = Koha::Libraries->find( $library_11->{branchcode} );
     $library_12 = Koha::Libraries->find( $library_12->{branchcode} );
     $library_21 = Koha::Libraries->find( $library_21->{branchcode} );
-    Koha::Library::Group->new(
-        { branchcode => $library_11->branchcode, parent_id => $group_1->id } )->store;
-    Koha::Library::Group->new(
-        { branchcode => $library_12->branchcode, parent_id => $group_1->id } )->store;
-    Koha::Library::Group->new(
-        { branchcode => $library_21->branchcode, parent_id => $group_2->id } )->store;
+    $library_31 = Koha::Libraries->find( $library_31->{branchcode} );
+    Koha::Library::Group->new( { branchcode => $library_11->branchcode, parent_id => $group_1->id } )->store;
+    Koha::Library::Group->new( { branchcode => $library_12->branchcode, parent_id => $group_1->id } )->store;
+    Koha::Library::Group->new( { branchcode => $library_21->branchcode, parent_id => $group_2->id } )->store;
+    # Library 31, not in any group
 
-    my $sth = C4::Context->dbh->prepare(q|INSERT INTO user_permissions( borrowernumber, module_bit, code ) VALUES (?, 4, ?)|); # 4 for borrowers
+    my $sth =
+        C4::Context->dbh->prepare(q|INSERT INTO user_permissions( borrowernumber, module_bit, code ) VALUES (?, ?, ?)|);
+
     # 2 patrons from library_11 (group1)
     # patron_11_1 see patron's infos from outside its group
     # Setting flags => undef to not be considered as superlibrarian
-    my $patron_11_1 = $builder->build({ source => 'Borrower', value => { branchcode => $library_11->branchcode, flags => undef, }});
+    my $patron_11_1 = $builder->build(
+        { source => 'Borrower', value => { branchcode => $library_11->branchcode, flags => undef, } } );
     $patron_11_1 = Koha::Patrons->find( $patron_11_1->{borrowernumber} );
-    $sth->execute( $patron_11_1->borrowernumber, 'edit_borrowers' );
-    $sth->execute( $patron_11_1->borrowernumber, 'view_borrower_infos_from_any_libraries' );
+    $sth->execute( $patron_11_1->borrowernumber, 4, 'edit_borrowers' );
+    $sth->execute( $patron_11_1->borrowernumber, 4, 'view_borrower_infos_from_any_libraries' );
+
     # patron_11_2 can only see patron's info from its group
-    my $patron_11_2 = $builder->build({ source => 'Borrower', value => { branchcode => $library_11->branchcode, flags => undef, }});
+    my $patron_11_2 = $builder->build(
+        { source => 'Borrower', value => { branchcode => $library_11->branchcode, flags => undef, } } );
     $patron_11_2 = Koha::Patrons->find( $patron_11_2->{borrowernumber} );
-    $sth->execute( $patron_11_2->borrowernumber, 'edit_borrowers' );
+    $sth->execute( $patron_11_2->borrowernumber, 4, 'edit_borrowers' );
+    $sth->execute( $patron_11_2->borrowernumber, 9, 'edit_items' );
+
     # 1 patron from library_12 (group1)
-    my $patron_12 = $builder->build({ source => 'Borrower', value => { branchcode => $library_12->branchcode, flags => undef, }});
+    my $patron_12 = $builder->build(
+        { source => 'Borrower', value => { branchcode => $library_12->branchcode, flags => undef, } } );
     $patron_12 = Koha::Patrons->find( $patron_12->{borrowernumber} );
+
     # 1 patron from library_21 (group2) can only see patron's info from its group
-    my $patron_21 = $builder->build({ source => 'Borrower', value => { branchcode => $library_21->branchcode, flags => undef, }});
+    my $patron_21 = $builder->build(
+        { source => 'Borrower', value => { branchcode => $library_21->branchcode, flags => undef, } } );
     $patron_21 = Koha::Patrons->find( $patron_21->{borrowernumber} );
-    $sth->execute( $patron_21->borrowernumber, 'edit_borrowers' );
+    $sth->execute( $patron_21->borrowernumber, 4, 'edit_borrowers' );
+
+    # 1 patron from library_31 (no group) can only see patron's info from its library
+    my $patron_31 = $builder->build(
+        { source => 'Borrower', value => { branchcode => $library_31->branchcode, flags => undef, } } );
+    $patron_31 = Koha::Patrons->find( $patron_31->{borrowernumber} );
+    $sth->execute( $patron_31->borrowernumber, 4, 'edit_borrowers' );
 
     # Pfiou, we can start now!
+    subtest 'libraries_where_can_see_things' => sub {
+        plan tests => 4;
+        t::lib::Mocks::mock_userenv( { patron => $patron_11_1 } );
+        my $params = {
+            permission    => 'borrowers',
+            subpermission => 'view_borrower_infos_from_any_libraries',
+            group_feature => 'ft_hide_patron_info',
+        };
+        my @branchcodes = $patron_11_1->libraries_where_can_see_things($params);
+        is_deeply(
+            \@branchcodes, [],
+            q|patron_11_1 has view_borrower_infos_from_any_libraries => No restriction|
+        );
+        @branchcodes = $patron_11_1->libraries_where_can_see_things($params);
+        is_deeply(
+            \@branchcodes, [],
+            q|confirming second/cached request is the same patron_11_1 has view_borrower_infos_from_any_libraries => No restriction|
+        );
+
+        @branchcodes = $patron_11_2->libraries_where_can_see_things($params);
+        is_deeply(
+            \@branchcodes, [ sort ( $library_11->branchcode, $library_12->branchcode ) ],
+            q|patron_11_2 can only view from group|
+        );
+        @branchcodes = $patron_11_2->libraries_where_can_see_things($params);
+        is_deeply(
+            \@branchcodes, [ sort ( $library_11->branchcode, $library_12->branchcode ) ],
+            q|confirming second/cached request is the same patron_11_2 can only view from group|
+        );
+    };
+
+    subtest 'can_see_patrons_from' => sub {
+        plan tests => 2;
+        ok( $patron_11_2->can_see_patrons_from( $library_11->branchcode ), "We can see a patron from in our group" );
+        ok(
+            !$patron_11_2->can_see_patrons_from( $library_21->branchcode ),
+            "We cannot see a patron from outside our group without permissions"
+        );
+    };
+
+    subtest 'can_edit_items_from' => sub {
+        plan tests => 4;
+        ok( $patron_11_2->can_edit_items_from( $library_11->branchcode ), "We can edit an item from in our group" );
+        ok(
+            $patron_11_2->can_edit_items_from( $library_21->branchcode ),
+            "We can edit an item from outside our group as the group does not limit item editing"
+        );
+        $group_1->ft_limit_item_editing(1)->store();
+
+        $patron_11_2 = Koha::Patrons->find( $patron_11_2->borrowernumber );
+
+        #FIXME We refetch the patron because library lists are cached in an extra hash key
+        # in libraries_where_can_see_things
+
+        ok(
+            !$patron_11_2->can_edit_items_from( $library_21->branchcode ),
+            "We can not edit an item from outside our group as the group does limit item editing"
+        );
+
+        $sth->execute( $patron_11_2->borrowernumber, 9, 'edit_any_item' );
+        $patron_11_2 = Koha::Patrons->find( $patron_11_2->borrowernumber );
+
+        ok(
+            $patron_11_2->can_edit_items_from( $library_21->branchcode ),
+            "We can edit an item from outside our group as we have permission"
+        );
+
+    };
+
     subtest 'libraries_where_can_see_patrons' => sub {
-        plan tests => 3;
+        plan tests => 4;
 
         my @branchcodes;
 
-        t::lib::Mocks::mock_userenv({ patron => $patron_11_1 });
+        t::lib::Mocks::mock_userenv( { patron => $patron_11_1 } );
         @branchcodes = $patron_11_1->libraries_where_can_see_patrons;
         is_deeply( \@branchcodes, [], q|patron_11_1 has view_borrower_infos_from_any_libraries => No restriction| );
 
-        t::lib::Mocks::mock_userenv({ patron => $patron_11_2 });
+        t::lib::Mocks::mock_userenv( { patron => $patron_11_2 } );
         @branchcodes = $patron_11_2->libraries_where_can_see_patrons;
-        is_deeply( \@branchcodes, [ sort ( $library_11->branchcode, $library_12->branchcode ) ], q|patron_11_2 has not view_borrower_infos_from_any_libraries => Can only see patron's from its group| );
+        is_deeply(
+            \@branchcodes, [ sort ( $library_11->branchcode, $library_12->branchcode ) ],
+            q|patron_11_2 has not view_borrower_infos_from_any_libraries => Can only see patron's from its group|
+        );
 
-        t::lib::Mocks::mock_userenv({ patron => $patron_21 });
+        t::lib::Mocks::mock_userenv( { patron => $patron_21 } );
         @branchcodes = $patron_21->libraries_where_can_see_patrons;
-        is_deeply( \@branchcodes, [$library_21->branchcode], q|patron_21 has not view_borrower_infos_from_any_libraries => Can only see patron's from its group| );
+        is_deeply(
+            \@branchcodes, [ $library_21->branchcode ],
+            q|patron_21 has not view_borrower_infos_from_any_libraries => Can only see patron's from its group|
+        );
+
+        t::lib::Mocks::mock_userenv( { patron => $patron_31 } );
+        @branchcodes = $patron_31->libraries_where_can_see_patrons;
+        is_deeply(
+            \@branchcodes, [ $library_31->branchcode ],
+            q|patron_31 has not view_borrower_infos_from_any_libraries => Can only see patron's from its library that is not in a group|
+        );
     };
     subtest 'can_see_patron_infos' => sub {
         plan tests => 6;
 
-        t::lib::Mocks::mock_userenv({ patron => $patron_11_1 });
-        is( $patron_11_1->can_see_patron_infos( $patron_11_2 ), 1, q|patron_11_1 can see patron_11_2, from its library| );
-        is( $patron_11_1->can_see_patron_infos( $patron_12 ),   1, q|patron_11_1 can see patron_12, from its group| );
-        is( $patron_11_1->can_see_patron_infos( $patron_21 ),   1, q|patron_11_1 can see patron_11_2, from another group| );
+        t::lib::Mocks::mock_userenv( { patron => $patron_11_1 } );
+        $patron_11_1 = Koha::Patrons->find( $patron_11_1->borrowernumber );
+        is( $patron_11_1->can_see_patron_infos($patron_11_2), 1, q|patron_11_1 can see patron_11_2, from its library| );
+        is( $patron_11_1->can_see_patron_infos($patron_12),   1, q|patron_11_1 can see patron_12, from its group| );
+        is( $patron_11_1->can_see_patron_infos($patron_21), 1, q|patron_11_1 can see patron_11_2, from another group| );
 
-        t::lib::Mocks::mock_userenv({ patron => $patron_11_2 });
-        is( $patron_11_2->can_see_patron_infos( $patron_11_1 ), 1, q|patron_11_2 can see patron_11_1, from its library| );
-        is( $patron_11_2->can_see_patron_infos( $patron_12 ),   1, q|patron_11_2 can see patron_12, from its group| );
-        is( $patron_11_2->can_see_patron_infos( $patron_21 ),   0, q|patron_11_2 can NOT see patron_21, from another group| );
+        t::lib::Mocks::mock_userenv( { patron => $patron_11_2 } );
+        $patron_11_2 = Koha::Patrons->find( $patron_11_2->borrowernumber );
+        is( $patron_11_2->can_see_patron_infos($patron_11_1), 1, q|patron_11_2 can see patron_11_1, from its library| );
+        is( $patron_11_2->can_see_patron_infos($patron_12),   1, q|patron_11_2 can see patron_12, from its group| );
+        is(
+            $patron_11_2->can_see_patron_infos($patron_21), 0,
+            q|patron_11_2 can NOT see patron_21, from another group|
+        );
     };
     subtest 'search_limited' => sub {
         plan tests => 6;
 
-        t::lib::Mocks::mock_userenv({ patron => $patron_11_1 });
-        my $total_number_of_patrons = $nb_of_patrons + 4; #we added four in these tests
+        t::lib::Mocks::mock_userenv( { patron => $patron_11_1 } );
+        $patron_11_1 = Koha::Patrons->find( $patron_11_1->borrowernumber );
+        my $total_number_of_patrons = $nb_of_patrons + 5;    #we added five in these tests
         is( Koha::Patrons->search->count, $total_number_of_patrons, 'Non-limited search should return all patrons' );
-        is( Koha::Patrons->search_limited->count, $total_number_of_patrons, 'patron_11_1 is allowed to see all patrons' );
+        is(
+            Koha::Patrons->search_limited->count, $total_number_of_patrons,
+            'patron_11_1 is allowed to see all patrons'
+        );
 
-        t::lib::Mocks::mock_userenv({ patron => $patron_11_2 });
-        is( Koha::Patrons->search->count, $total_number_of_patrons, 'Non-limited search should return all patrons');
-        is( Koha::Patrons->search_limited->count, 3, 'patron_12_1 is not allowed to see patrons from other groups, only patron_11_1, patron_11_2 and patron_12' );
+        t::lib::Mocks::mock_userenv( { patron => $patron_11_2 } );
+        $patron_11_2 = Koha::Patrons->find( $patron_11_2->borrowernumber );
+        is( Koha::Patrons->search->count, $total_number_of_patrons, 'Non-limited search should return all patrons' );
+        is(
+            Koha::Patrons->search_limited->count, 3,
+            'patron_12_1 is not allowed to see patrons from other groups, only patron_11_1, patron_11_2 and patron_12'
+        );
 
-        t::lib::Mocks::mock_userenv({ patron => $patron_21 });
-        is( Koha::Patrons->search->count, $total_number_of_patrons, 'Non-limited search should return all patrons');
-        is( Koha::Patrons->search_limited->count, 1, 'patron_21 is not allowed to see patrons from other groups, only himself' );
+        t::lib::Mocks::mock_userenv( { patron => $patron_21 } );
+        $patron_21 = Koha::Patrons->find( $patron_21->borrowernumber );
+        is( Koha::Patrons->search->count, $total_number_of_patrons, 'Non-limited search should return all patrons' );
+        is(
+            Koha::Patrons->search_limited->count, 1,
+            'patron_21 is not allowed to see patrons from other groups, only himself'
+        );
     };
     $patron_11_1->delete;
     $patron_11_2->delete;
     $patron_12->delete;
     $patron_21->delete;
-};
+    $patron_31->delete;
+    };
 
 subtest 'account_locked' => sub {
-    plan tests => 13;
+    plan tests => 14;
     my $patron = $builder->build({ source => 'Borrower', value => { login_attempts => 0 } });
     $patron = Koha::Patrons->find( $patron->{borrowernumber} );
     for my $value ( undef, '', 0 ) {
@@ -1413,8 +1535,10 @@ subtest 'account_locked' => sub {
         is( $patron->account_locked, 1, 'Feature is disabled but administrative lockout has been triggered' );
     }
 
-    t::lib::Mocks::mock_preference('FailedloginAttempts', 3);
     $patron->login_attempts(2)->store;
+    t::lib::Mocks::mock_preference( 'FailedloginAttempts', -3 );
+    is( $patron->account_locked, 0, 'Bad pref value tested' );
+    t::lib::Mocks::mock_preference( 'FailedloginAttempts', 3 );
     is( $patron->account_locked, 0, 'Patron has 2 failed attempts, account should not be considered locked yet' );
     $patron->login_attempts(3)->store;
     is( $patron->account_locked, 1, 'Patron has 3 failed attempts, account should be considered locked yet' );
@@ -1427,7 +1551,7 @@ subtest 'account_locked' => sub {
 };
 
 subtest 'is_child | is_adult' => sub {
-    plan tests => 8;
+    plan tests => 10;
     my $category = $builder->build_object(
         {
             class => 'Koha::Patron::Categories',
@@ -1476,21 +1600,36 @@ subtest 'is_child | is_adult' => sub {
             value => { categorycode => $category->categorycode }
         }
     );
-    is( $patron_adult->is_adult, 1, 'Patron from category A should be considered adult' );
+    $category = $builder->build_object(
+        {
+            class => 'Koha::Patron::Categories',
+            value => { category_type => 'S' }
+        }
+    );
+    my $patron_staff = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { categorycode => $category->categorycode }
+        }
+    );
+    is( $patron_adult->is_adult,   1, 'Patron from category A should be considered adult' );
     is( $patron_adult_i->is_adult, 1, 'Patron from category I should be considered adult' );
-    is( $patron_child->is_adult, 0, 'Patron from category C should not be considered adult' );
-    is( $patron_other->is_adult, 0, 'Patron from category O should not be considered adult' );
+    is( $patron_child->is_adult,   0, 'Patron from category C should not be considered adult' );
+    is( $patron_other->is_adult,   0, 'Patron from category O should not be considered adult' );
+    is( $patron_staff->is_adult,   1, 'Patron from category S should be considered adult' );
 
-    is( $patron_adult->is_child, 0, 'Patron from category A should be considered child' );
+    is( $patron_adult->is_child,   0, 'Patron from category A should be considered child' );
     is( $patron_adult_i->is_child, 0, 'Patron from category I should be considered child' );
-    is( $patron_child->is_child, 1, 'Patron from category C should not be considered child' );
-    is( $patron_other->is_child, 0, 'Patron from category O should not be considered child' );
+    is( $patron_child->is_child,   1, 'Patron from category C should not be considered child' );
+    is( $patron_other->is_child,   0, 'Patron from category O should not be considered child' );
+    is( $patron_staff->is_child,   0, 'Patron from category S should not be considered child' );
 
     # Clean up
     $patron_adult->delete;
     $patron_adult_i->delete;
     $patron_child->delete;
     $patron_other->delete;
+    $patron_staff->delete;
 };
 
 subtest 'overdues' => sub {
@@ -1525,11 +1664,12 @@ subtest 'overdues' => sub {
 
     t::lib::Mocks::mock_preference({ branchcode => $library->{branchcode} });
 
+    $patron = Koha::Patrons->find( $patron->{borrowernumber} );
+
     AddIssue( $patron, $item_1->barcode, DateTime->now->subtract( days => 1 ) );
     AddIssue( $patron, $item_2->barcode, DateTime->now->subtract( days => 5 ) );
     AddIssue( $patron, $item_3->barcode );
 
-    $patron = Koha::Patrons->find( $patron->{borrowernumber} );
     my $overdues = $patron->overdues;
     is( $overdues->count, 2, 'Patron should have 2 overdues');
     is( $overdues->next->itemnumber, $item_1->itemnumber, 'The issue should be returned in the same order as they have been done, first is correct' );
@@ -1615,65 +1755,12 @@ subtest 'userid_is_valid' => sub {
     $patron_3->delete;
 };
 
-subtest 'generate_userid' => sub {
-    plan tests => 7;
-
-    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
-    my $patron_category = $builder->build_object(
-        {
-            class => 'Koha::Patron::Categories',
-            value => { category_type => 'P', enrolmentfee => 0 }
-        }
-    );
-    my %data = (
-        cardnumber   => "123456789",
-        firstname    => "Tômàsító",
-        surname      => "Ñoné",
-        categorycode => $patron_category->categorycode,
-        branchcode   => $library->branchcode,
-    );
-
-    my $expected_userid_patron_1 = 'tomasito.none';
-    my $new_patron = Koha::Patron->new({ firstname => $data{firstname}, surname => $data{surname} } );
-    $new_patron->generate_userid;
-    my $userid = $new_patron->userid;
-    is( $userid, $expected_userid_patron_1, 'generate_userid should generate the userid we expect' );
-    my $borrowernumber = Koha::Patron->new(\%data)->store->borrowernumber;
-    my $patron_1 = Koha::Patrons->find($borrowernumber);
-    is ( $patron_1->userid, $expected_userid_patron_1, 'The userid generated should be the one we expect' );
-
-    $new_patron->generate_userid;
-    $userid = $new_patron->userid;
-    is( $userid, $expected_userid_patron_1 . '1', 'generate_userid should generate the userid we expect' );
-    $data{cardnumber} = '987654321';
-    my $new_borrowernumber = Koha::Patron->new(\%data)->store->borrowernumber;
-    my $patron_2 = Koha::Patrons->find($new_borrowernumber);
-    isnt( $patron_2->userid, 'tomasito',
-        "Patron with duplicate userid has new userid generated" );
-    is( $patron_2->userid, $expected_userid_patron_1 . '1', # TODO we could make that configurable
-        "Patron with duplicate userid has new userid generated (1 is appened" );
-
-    $new_patron->generate_userid;
-    $userid = $new_patron->userid;
-    is( $userid, $expected_userid_patron_1 . '2', 'generate_userid should generate the userid we expect' );
-
-    $patron_1 = Koha::Patrons->find($borrowernumber);
-    $patron_1->userid(undef);
-    $patron_1->generate_userid;
-    $userid = $patron_1->userid;
-    is( $userid, $expected_userid_patron_1, 'generate_userid should generate the userid we expect' );
-
-    # Cleanup
-    $patron_1->delete;
-    $patron_2->delete;
-};
-
 $nb_of_patrons = Koha::Patrons->search->count;
 $retrieved_patron_1->delete;
 is( Koha::Patrons->search->count, $nb_of_patrons - 1, 'Delete should have deleted the patron' );
 
 subtest 'BorrowersLog tests' => sub {
-    plan tests => 4;
+    plan tests => 5;
 
     t::lib::Mocks::mock_preference( 'BorrowersLog', 1 );
     my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
@@ -1686,18 +1773,33 @@ subtest 'BorrowersLog tests' => sub {
     my $log_info = from_json( $logs[0]->info );
     is( $log_info->{cardnumber}->{after}, 'TESTCARDNUMBER', 'Got correct new cardnumber' );
     is( $log_info->{cardnumber}->{before}, $cardnumber, 'Got correct old cardnumber' );
-    is( scalar @logs, 1, 'With BorrowerLogs, one detailed MODIFY action should be logged for the modification.' );
+    is( scalar @logs, 1, 'With BorrowersLog, one detailed MODIFY action should be logged for the modification.' );
 
-    t::lib::Mocks::mock_preference( 'TrackLastPatronActivity', 1 );
-    $patron->track_login();
+    t::lib::Mocks::mock_preference( 'TrackLastPatronActivityTriggers', 'connection' );
+    $patron->update_lastseen('connection');
     @logs = $schema->resultset('ActionLog')->search( { module => 'MEMBERS', action => 'MODIFY', object => $patron->borrowernumber } );
-    is( scalar @logs, 1, 'With BorrowerLogs and TrackLastPatronActivity we should not spam the logs');
-};
+    is( scalar @logs, 1, 'With BorrowersLog and TrackLastPatronActivityTriggers we should not spam the logs');
 
+    Koha::ActionLogs->search()->delete();
+    $patron->get_from_storage();
+    $patron->set( { debarred => "" } );
+    $patron->store;
+    my $log = Koha::ActionLogs->search(
+        {
+            module => 'MEMBERS',
+            action => 'MODIFY',
+            object => $patron->borrowernumber,
+        }
+    )->next;
+    isnt(
+        defined $log,
+        "No action log generated where incoming changed column is empty string and value in storage is NULL"
+    );
+};
 $schema->storage->txn_rollback;
 
 subtest 'Test Koha::Patrons::merge' => sub {
-    plan tests => 110;
+    plan tests => 113;
 
     my $schema = Koha::Database->new()->schema();
 
@@ -1708,6 +1810,13 @@ subtest 'Test Koha::Patrons::merge' => sub {
     my $keeper  = $builder->build_object({ class => 'Koha::Patrons' });
     my $loser_1 = $builder->build({ source => 'Borrower' })->{borrowernumber};
     my $loser_2 = $builder->build({ source => 'Borrower' })->{borrowernumber};
+
+    my $keeper_protected = $builder->build_object( { class => 'Koha::Patrons' } );
+    $keeper_protected->protected(1)->store;
+
+    my $loser_protected_obj = $builder->build_object( { class => 'Koha::Patrons' } );
+    $loser_protected_obj->protected(1)->store;
+    my $loser_protected = $loser_protected_obj->borrowernumber;
 
     my $anonymous_patron_orig = C4::Context->preference('AnonymousPatron');
     my $anonymous_patron = $builder->build({ source => 'Borrower' })->{borrowernumber};
@@ -1731,7 +1840,14 @@ subtest 'Test Koha::Patrons::merge' => sub {
         is( $loser_2_rs->count(), 1, "Found 1 $r rows for loser_2" );
     }
 
-    my $results = $keeper->merge_with([ $loser_1, $loser_2 ]);
+    my $results_protected = $keeper_protected->merge_with( [$loser_1] );
+    is( $results_protected, undef, "Protected patrons cannot have other patrons merged into them" );
+    is(
+        Koha::Patrons->search( { borrowernumber => $loser_1 } )->count, 1,
+        "Patron from attempted merge with protected patron still exists"
+    );
+
+    my $results = $keeper->merge_with( [ $loser_1, $loser_2, $loser_protected ] );
 
     while (my ($r, $field) = each(%$resultsets)) {
         my $keeper_rs =
@@ -1742,6 +1858,7 @@ subtest 'Test Koha::Patrons::merge' => sub {
     is( Koha::Patrons->find($loser_1), undef, 'Loser 1 has been deleted' );
     is( Koha::Patrons->find($loser_2), undef, 'Loser 2 has been deleted' );
     is( ref Koha::Patrons->find($anonymous_patron), 'Koha::Patron', 'Anonymous Patron was not deleted' );
+    is( ref Koha::Patrons->find($loser_protected), 'Koha::Patron', 'Protected patron was not deleted' );
 
     $anonymous_patron = Koha::Patrons->find($anonymous_patron);
     $results = $anonymous_patron->merge_with( [ $keeper->id ] );
@@ -1879,24 +1996,24 @@ subtest 'Test Koha::Patrons::merge' => sub {
 };
 
 subtest '->store' => sub {
-    plan tests => 8;
+    plan tests => 11;
     my $schema = Koha::Database->new->schema;
     $schema->storage->txn_begin;
-
-    my $print_error = $schema->storage->dbh->{PrintError};
-    $schema->storage->dbh->{PrintError} = 0; ; # FIXME This does not longer work - because of the transaction in Koha::Patron->store?
 
     my $patron_1 = $builder->build_object({class=> 'Koha::Patrons'});
     my $patron_2 = $builder->build_object({class=> 'Koha::Patrons'});
 
-    {
-        local *STDERR;
-        open STDERR, '>', '/dev/null';
-        throws_ok { $patron_2->userid( $patron_1->userid )->store; }
-        'Koha::Exceptions::Object::DuplicateID',
-          'Koha::Patron->store raises an exception on duplicate ID';
-        close STDERR;
-    }
+    throws_ok { $patron_2->userid( $patron_1->userid )->store; }
+        'Koha::Exceptions::Patron::InvalidUserid',
+        'Koha::Patron->store raises an exception on duplicate ID';
+
+    # Clear userid and check regeneration
+    $patron_2->userid(undef)->store;
+    like( $patron_2->userid, qr/\w+\.\w+/, 'Userid regenerated' ); # old school userid
+    $patron_2->userid('')->store;
+    like( $patron_2->userid, qr/\w+\.\w+/, 'Userid regenerated' ); # old school userid
+    $patron_2->userid(0)->store;
+    like( $patron_2->userid, qr/\w+\.\w+/, 'Userid regenerated' ); # old school userid
 
     # Test password
     t::lib::Mocks::mock_preference( 'RequireStrongPassword', 0 );
@@ -1922,7 +2039,6 @@ subtest '->store' => sub {
     $patron_1->relationship("")->store;
     is( $patron_1->relationship, undef, );
 
-    $schema->storage->dbh->{PrintError} = $print_error;
     $schema->storage->txn_rollback;
 
     subtest 'skip updated_on for BorrowersLog' => sub {
@@ -1973,7 +2089,9 @@ subtest '->store' => sub {
 
 subtest '->set_password' => sub {
 
-    plan tests => 16;
+    plan tests => 17;
+
+    t::lib::Mocks::mock_preference( 'EmailFieldPrecedence', 'emailpro|email' );
 
     $schema->storage->txn_begin;
 
@@ -2040,14 +2158,29 @@ subtest '->set_password' => sub {
     is( $patron->login_attempts, 0, 'Login attemps have been reset' );
 
     my $number_of_logs = $schema->resultset('ActionLog')->search( { module => 'MEMBERS', action => 'CHANGE PASS', object => $patron->borrowernumber } )->count;
-    is( $number_of_logs, 0, 'Without BorrowerLogs, Koha::Patron->set_password doesn\'t log password changes' );
+    is( $number_of_logs, 0, 'Without BorrowersLog, Koha::Patron->set_password doesn\'t log password changes' );
 
     # Enable logging password changes
     t::lib::Mocks::mock_preference( 'BorrowersLog', 1 );
-    $patron->set_password({ password => 'abcd   b' });
-
-    $number_of_logs = $schema->resultset('ActionLog')->search( { module => 'MEMBERS', action => 'CHANGE PASS', object => $patron->borrowernumber } )->count;
-    is( $number_of_logs, 1, 'With BorrowerLogs, Koha::Patron->set_password does log password changes' );
+    $patron->set_password( { password => 'abcd   b' } );
+    $number_of_logs = $schema->resultset('ActionLog')->search(
+        {
+            module => 'MEMBERS',
+            action => 'CHANGE PASS',
+            object => $patron->borrowernumber
+        }
+    )->count;
+    is( $number_of_logs, 1, 'With BorrowersLog, Koha::Patron->set_password does log password changes' );
+    # add other action name
+    $patron->set_password( { password => 'abcd   b2', action => 'RESET PASS' } );
+    $number_of_logs = $schema->resultset('ActionLog')->search(
+        {
+            module => 'MEMBERS',
+            action => 'RESET PASS',
+            object => $patron->borrowernumber
+        }
+    )->count;
+    is( $number_of_logs, 1, 'set_password allows another action name' );
 
     # Enable notifying patrons of password changes
     t::lib::Mocks::mock_preference( 'NotifyPasswordChange', 1 );
@@ -2100,7 +2233,9 @@ subtest 'search_unsubscribed' => sub {
 };
 
 subtest 'search_anonymize_candidates' => sub {
-    plan tests => 7;
+    plan tests => 10;
+
+    my $cnt;
     my $patron1 = $builder->build_object({ class => 'Koha::Patrons' });
     my $patron2 = $builder->build_object({ class => 'Koha::Patrons' });
     $patron1->anonymized(0);
@@ -2108,11 +2243,13 @@ subtest 'search_anonymize_candidates' => sub {
     $patron2->anonymized(0);
     $patron2->dateexpiry( dt_from_string->add(days => 1) )->store;
 
+    t::lib::Mocks::mock_preference( 'PatronAnonymizeDelay', undef );
+    is( Koha::Patrons->search_anonymize_candidates->count, 0, 'Empty set expected (undef)' );
     t::lib::Mocks::mock_preference( 'PatronAnonymizeDelay', q{} );
-    is( Koha::Patrons->search_anonymize_candidates->count, 0, 'Empty set' );
+    is( Koha::Patrons->search_anonymize_candidates->count, 0, 'Empty set expected (empty string)' );
 
     t::lib::Mocks::mock_preference( 'PatronAnonymizeDelay', 0 );
-    my $cnt = Koha::Patrons->search_anonymize_candidates->count;
+    $cnt = Koha::Patrons->search_anonymize_candidates->count;
     $patron1->dateexpiry( dt_from_string->subtract(days => 1) )->store;
     $patron2->dateexpiry( dt_from_string->subtract(days => 3) )->store;
     is( Koha::Patrons->search_anonymize_candidates->count, $cnt+2, 'Delay 0' );
@@ -2133,24 +2270,28 @@ subtest 'search_anonymize_candidates' => sub {
     $patron2->dateexpiry( dt_from_string->subtract(days => 3) )->store;
     is( Koha::Patrons->search_anonymize_candidates->count, $cnt, 'Delay 4' );
 
+    t::lib::Mocks::mock_preference( 'FailedLoginAttempts', -2 );    # This is a bad value btw
+    $patron1->dateexpiry( dt_from_string->subtract( days => 5 ) )->login_attempts(0)->store;
+    $patron2->dateexpiry( dt_from_string->subtract( days => 5 ) )->login_attempts(0)->store;
+    $cnt = Koha::Patrons->search_anonymize_candidates( { locked => 1 } )->count;
+    $patron1->login_attempts(10)->store;
+    $patron2->login_attempts(-1)->store;
+    is( Koha::Patrons->search_anonymize_candidates( { locked => 1 } )->count, $cnt + 1, 'One admin lock higher' );
+    t::lib::Mocks::mock_preference( 'FailedLoginAttempts', q{} );
+    is( Koha::Patrons->search_anonymize_candidates( { locked => 1 } )->count, $cnt + 1, 'Still one up (empty)' );
+    t::lib::Mocks::mock_preference( 'FailedLoginAttempts', 0 );
+    is( Koha::Patrons->search_anonymize_candidates( { locked => 1 } )->count, $cnt + 1, 'Still one up (zero)' );
+
     t::lib::Mocks::mock_preference( 'FailedLoginAttempts', 3 );
-    $patron1->dateexpiry( dt_from_string->subtract(days => 5) )->store;
-    $patron1->login_attempts(0)->store;
-    $patron2->dateexpiry( dt_from_string->subtract(days => 5) )->store;
+    $patron1->login_attempts(2)->store;
     $patron2->login_attempts(0)->store;
     $cnt = Koha::Patrons->search_anonymize_candidates({locked => 1})->count;
     $patron1->login_attempts(3)->store;
-    is( Koha::Patrons->search_anonymize_candidates({locked => 1})->count,
-        $cnt+1, 'Locked flag' );
+    is( Koha::Patrons->search_anonymize_candidates( { locked => 1 } )->count, $cnt + 1, 'Patron 1 included' );
+    $patron2->login_attempts(-1)->store;
+    is( Koha::Patrons->search_anonymize_candidates( { locked => 1 } )->count, $cnt + 2, 'Patron 1 and 2 included' );
 
     t::lib::Mocks::mock_preference( 'FailedLoginAttempts', q{} );
-    # Patron 1 still on 3 == locked
-    is( Koha::Patrons->search_anonymize_candidates({locked => 1})->count,
-        $cnt+1, 'Still expect same number for FailedLoginAttempts empty' );
-    $patron1->login_attempts(0)->store;
-    # Patron 1 unlocked
-    is( Koha::Patrons->search_anonymize_candidates({locked => 1})->count,
-        $cnt, 'Patron 1 unlocked' );
 };
 
 subtest 'search_anonymized' => sub {
@@ -2246,7 +2387,7 @@ subtest 'queue_notice' => sub {
     plan tests => 11;
 
     my $dbh = C4::Context->dbh;
-    t::lib::Mocks::mock_preference( 'AutoEmailPrimaryAddress', 'email' );
+    t::lib::Mocks::mock_preference( 'EmailFieldPrimary', 'email' );
     my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
     my $branch = $builder->build_object( { class => 'Koha::Libraries' } );
     my $letter_e = $builder->build_object( {
@@ -2474,7 +2615,81 @@ subtest 'filter_by_amount_owed' => sub {
     is( $filtered->_resultset->as_subselect_rs->count, 1,
 "filter_by_amount_owed({ more_than => 6.00, library => $library2->{branchcode} }) found one patron"
     );
+};
 
+subtest 'libraries_where_can_edit_items() and can_edit_items_from() tests' => sub {
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+    my $dbh = $schema->storage->dbh;
+
+    $dbh->do("DELETE FROM library_groups");
+
+    # group1
+    #   library_1A
+    #   library_1B
+    # group2
+    #   library_2A
+    my $group_1 = Koha::Library::Group->new( { title => 'TEST Group 1', ft_limit_item_editing => 1 } )->store;
+    my $group_2 = Koha::Library::Group->new( { title => 'TEST Group 2', ft_limit_item_editing => 1 } )->store;
+    my $library_1A = $builder->build( { source => 'Branch' } );
+    my $library_1B = $builder->build( { source => 'Branch' } );
+    my $library_2A = $builder->build( { source => 'Branch' } );
+    $library_1A = Koha::Libraries->find( $library_1A->{branchcode} );
+    $library_1B = Koha::Libraries->find( $library_1B->{branchcode} );
+    $library_2A = Koha::Libraries->find( $library_2A->{branchcode} );
+    Koha::Library::Group->new( { branchcode => $library_1A->branchcode, parent_id => $group_1->id } )->store;
+    Koha::Library::Group->new( { branchcode => $library_1B->branchcode, parent_id => $group_1->id } )->store;
+    Koha::Library::Group->new( { branchcode => $library_2A->branchcode, parent_id => $group_2->id } )->store;
+
+    my $sth = C4::Context->dbh->prepare(q|INSERT INTO user_permissions( borrowernumber, module_bit, code ) VALUES (?, 9, ?)|); # 9 for editcatalogue
+    # 2 patrons from library_1A (group1)
+    # patron_1A_1 see patron's infos from outside its group
+    # Setting flags => undef to not be considered as superlibrarian
+    my $patron_1A_1 = $builder->build({ source => 'Borrower', value => { branchcode => $library_1A->branchcode, flags => undef, }});
+    $patron_1A_1 = Koha::Patrons->find( $patron_1A_1->{borrowernumber} );
+    $sth->execute( $patron_1A_1->borrowernumber, 'edit_items' );
+    $sth->execute( $patron_1A_1->borrowernumber, 'edit_any_item' );
+    # patron_1A_2 can only see patron's info from its group
+    my $patron_1A_2 = $builder->build({ source => 'Borrower', value => { branchcode => $library_1A->branchcode, flags => undef, }});
+    $patron_1A_2 = Koha::Patrons->find( $patron_1A_2->{borrowernumber} );
+    $sth->execute( $patron_1A_2->borrowernumber, 'edit_items' );
+    # 1 patron from library_1B (group1)
+    my $patron_1B = $builder->build({ source => 'Borrower', value => { branchcode => $library_1B->branchcode, flags => undef, }});
+    $patron_1B = Koha::Patrons->find( $patron_1B->{borrowernumber} );
+    # 1 patron from library_2A (group2) can only see patron's info from its group
+    my $patron_2A = $builder->build({ source => 'Borrower', value => { branchcode => $library_2A->branchcode, flags => undef, }});
+    $patron_2A = Koha::Patrons->find( $patron_2A->{borrowernumber} );
+    $sth->execute( $patron_2A->borrowernumber, 'edit_items' );
+
+    subtest 'libraries_where_can_edit_items' => sub {
+        plan tests => 3;
+
+        my @branchcodes;
+
+        @branchcodes = $patron_1A_1->libraries_where_can_edit_items;
+        is_deeply( \@branchcodes, [], "patron_1A_1 has edit_any_item => No restrictions" );
+
+        @branchcodes = $patron_1A_2->libraries_where_can_edit_items;
+        is_deeply( \@branchcodes, [ sort ( $library_1A->branchcode, $library_1B->branchcode ) ], "patron_1A_2 doesn't have edit_any_item => Can only edit items from its group" );
+
+        @branchcodes = $patron_2A->libraries_where_can_edit_items;
+        is_deeply( \@branchcodes, [$library_2A->branchcode], "patron_2A doesn't have edit_any_item => Can only see patron's from its group" );
+    };
+
+    subtest 'can_edit_items_from' => sub {
+        plan tests => 6;
+
+        t::lib::Mocks::mock_userenv({ patron => $patron_1A_1 });
+        is( $patron_1A_1->can_edit_items_from( $library_1A->id ), 1, "patron_1A_1 can see patron_1A_2, from its library" );
+        is( $patron_1A_1->can_edit_items_from( $library_1B->id ),   1, "patron_1A_1 can see patron_1B, from its group" );
+        is( $patron_1A_1->can_edit_items_from( $library_2A->id ),   1, "patron_1A_1 can see patron_1A_2, from another group" );
+
+        t::lib::Mocks::mock_userenv({ patron => $patron_1A_2 });
+        is( $patron_1A_2->can_edit_items_from( $library_1A->id ),   1, "patron_1A_2 can see patron_1A_1, from its library" );
+        is( $patron_1A_2->can_edit_items_from( $library_1B->id ),   1, "patron_1A_2 can see patron_1B, from its group" );
+        is( $patron_1A_2->can_edit_items_from( $library_2A->id ),   0, "patron_1A_2 can NOT see patron_2A, from another group" );
+    };
 };
 
 subtest 'filter_by_have_permission' => sub {
@@ -2559,6 +2774,88 @@ subtest 'filter_by_have_permission' => sub {
           ->filter_by_have_permission('dont_exist.subperm');
     } 'Koha::Exceptions::ObjectNotFound';
 
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'filter_by_expired_opac_registrations' => sub {
+    plan tests => 8;
+
+    $schema->storage->txn_begin;
+
+    my $category = $builder->build_object( { class => 'Koha::Patron::Categories' } );
+    t::lib::Mocks::mock_preference( 'PatronSelfRegistrationDefaultCategory', $category->categorycode );
+    my $self_reg = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                dateenrolled => '2014-01-01 01:02:03',
+                categorycode => $category->categorycode
+            }
+        }
+    );
+
+    # First test if empty PatronSelfRegistrationExpireTemporaryAccountsDelay returns an exception
+    t::lib::Mocks::mock_preference( 'PatronSelfRegistrationExpireTemporaryAccountsDelay', q{} );
+    throws_ok { Koha::Patrons->filter_by_expired_opac_registrations }
+    'Koha::Exceptions::SysPref::NotSet',
+        'Attempt to filter with empty PatronSelfRegistrationExpireTemporaryAccountsDelay throws exception.';
+
+    # Test zero too
+    t::lib::Mocks::mock_preference( 'PatronSelfRegistrationExpireTemporaryAccountsDelay', 0 );
+    throws_ok { Koha::Patrons->filter_by_expired_opac_registrations }
+    'Koha::Exceptions::SysPref::NotSet',
+        'Attempt to filter with PatronSelfRegistrationExpireTemporaryAccountsDelay set to 0 throws exception.';
+
+    # Also check empty category
+    t::lib::Mocks::mock_preference( 'PatronSelfRegistrationDefaultCategory', q{} );
+    throws_ok { Koha::Patrons->filter_by_expired_opac_registrations }
+    'Koha::Exceptions::SysPref::NotSet',
+        'Attempt to filter with empty PatronSelfRegistrationDefaultCategory throws exception.';
+
+    t::lib::Mocks::mock_preference( 'PatronSelfRegistrationExpireTemporaryAccountsDelay', 360 );
+    throws_ok { Koha::Patrons->filter_by_expired_opac_registrations }
+    'Koha::Exceptions::SysPref::NotSet',
+        'Attempt to filter with empty PatronSelfRegistrationDefaultCategory throws exception, even if PatronSelfRegistrationExpireTemporaryAccountsDelay is set.';
+
+    t::lib::Mocks::mock_preference( 'PatronSelfRegistrationDefaultCategory', $category->categorycode );
+
+    my $checkout = $builder->build_object(
+        {
+            class => 'Koha::Checkouts',
+            value => { borrowernumber => $self_reg->borrowernumber }
+        }
+    );
+    is(
+        Koha::Patrons->filter_by_expired_opac_registrations->filter_by_safe_to_delete->count, 0,
+        "filter_by_safe_to_delete doesn't delete borrower with checkout"
+    );
+
+    my $account_line = $builder->build_object(
+        {
+            class => 'Koha::Account::Lines',
+            value => {
+                borrowernumber    => $self_reg->borrowernumber,
+                amountoutstanding => 5,
+            }
+        }
+    );
+    is(
+        Koha::Patrons->filter_by_expired_opac_registrations->filter_by_safe_to_delete->count, 0,
+        "filter_by_safe_to_delete doesn't delete borrower with checkout and fine"
+    );
+
+    $checkout->delete;
+    is(
+        Koha::Patrons->filter_by_expired_opac_registrations->filter_by_safe_to_delete->count, 0,
+        "filter_by_safe_to_delete doesn't delete borrower with fine and no checkout"
+    );
+
+    $account_line->delete;
+    is(
+        Koha::Patrons->filter_by_expired_opac_registrations->filter_by_safe_to_delete->count, 1,
+        "filter_by_safe_to_delete does delete borrower with no fines and no checkouts"
+    );
 
     $schema->storage->txn_rollback;
 };

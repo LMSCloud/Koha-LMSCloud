@@ -1,21 +1,24 @@
 <template>
     <div v-if="!initialized">{{ $__("Loading") }}</div>
     <div v-else id="licenses_show">
+        <Toolbar>
+            <ToolbarButton
+                :to="{
+                    name: 'LicensesFormAddEdit',
+                    params: { license_id: license.license_id },
+                }"
+                icon="pencil"
+                :title="$__('Edit')"
+            />
+            <a
+                @click="delete_license(license.license_id, license.name)"
+                class="btn btn-default"
+                ><font-awesome-icon icon="trash" /> {{ $__("Delete") }}</a
+            >
+        </Toolbar>
+
         <h2>
             {{ $__("License #%s").format(license.license_id) }}
-            <span class="action_links">
-                <router-link
-                    :to="{
-                        name: 'LicensesFormAddEdit',
-                        params: { license_id: license.license_id },
-                    }"
-                    :title="$__('Edit')"
-                    ><i class="fa fa-pencil"></i
-                ></router-link>
-                <a @click="delete_license(license.license_id, license.name)"
-                    ><i class="fa fa-trash"></i
-                ></a>
-            </span>
         </h2>
         <div>
             <fieldset class="rows">
@@ -113,7 +116,8 @@
                                             {{ document.file_name }}
                                             <i class="fa fa-download"></i>
                                         </a>
-                                        ({{ document.file_type }}) Uploaded on:
+                                        ({{ document.file_type }})
+                                        {{ $__("Uploaded on") }}:
                                         {{ format_date(document.uploaded_on) }}
                                     </div>
                                     <div v-if="document.physical_location">
@@ -132,6 +136,12 @@
                     </li>
                 </ol>
             </fieldset>
+            <AdditionalFieldsDisplay
+                resource_type="license"
+                :additional_field_values="
+                    license._strings.additional_field_values
+                "
+            />
             <fieldset class="action">
                 <router-link
                     :to="{ name: 'LicensesList' }"
@@ -147,6 +157,9 @@
 <script>
 import { inject } from "vue"
 import { APIClient } from "../../fetch/api-client.js"
+import Toolbar from "../Toolbar.vue"
+import ToolbarButton from "../ToolbarButton.vue"
+import AdditionalFieldsDisplay from "../AdditionalFieldsDisplay.vue"
 
 export default {
     setup() {
@@ -177,6 +190,8 @@ export default {
                 type: "",
                 status: "",
                 user_roles: [],
+                extended_attributes: [],
+                _strings: [],
                 started_on: undefined,
                 ended_on: undefined,
             },
@@ -227,16 +242,11 @@ export default {
             )
         },
     },
-    components: {},
+    components: { Toolbar, ToolbarButton, AdditionalFieldsDisplay },
     name: "LicensesShow",
 }
 </script>
 <style scoped>
-.action_links a {
-    padding-left: 0.2em;
-    font-size: 11px;
-    cursor: pointer;
-}
 #license_documents ul {
     padding-left: 0px;
 }

@@ -155,13 +155,11 @@ sub SendPasswordRecoveryEmail {
             to_address             => $userEmail,
             from_address           => $kohaEmail,
             message_transport_type => 'email',
-            branchcode             => $borrower->branchcode
         }
     );
 
     my $num_letters_attempted = 0;
-    $num_letters_attempted =
-      C4::Letters::SendQueuedMessages( { message_id => $message_id } ) if $message_id;
+    $num_letters_attempted = C4::Letters::SendQueuedMessages( { message_id => $message_id } ) if $message_id;
 
     return ($num_letters_attempted > 0);
 }

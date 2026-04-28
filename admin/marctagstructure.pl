@@ -28,6 +28,7 @@ use C4::Context;
 use Koha::Caches;
 use Koha::AuthorisedValues;
 use Koha::BiblioFrameworks;
+use Koha::Database;
 
 # retrieve parameters
 my $input = CGI->new;
@@ -40,8 +41,6 @@ my $offset    = $input->param('offset') || 0;
 my $op        = $input->param('op')     || '';
 my $dspchoice = $input->cookie("marctagstructure_selectdisplay") // $input->param('select_display');
 my $pagesize = 20;
-
-my $script_name = "/cgi-bin/koha/admin/marctagstructure.pl";
 
 my $dbh = C4::Context->dbh;
 my $cache = Koha::Caches->get_instance();
@@ -63,7 +62,7 @@ my ($frameworkexist) = $sth->fetchrow;
 unless ($frameworkexist) {
 	# if frameworkcode does not exists, then OP must be changed to "create framework" if we are not on the way to create it
 	# (op = itemtyp_create_confirm)
-	if ($op eq "framework_create_confirm") {
+	if ($op eq "cud-framework_create_confirm") {
 		duplicate_framework($frameworkcode, $existingframeworkcode);
 		$op = ""; # unset $op to go back to framework list
 	} else {
@@ -75,7 +74,6 @@ my $framework = $frameworks->search({ frameworkcode => $frameworkcode })->next;
 $template->param(
     frameworks    => $frameworks,
     framework     => $framework,
-    script_name   => $script_name,
     ( $op || 'else' ) => 1,
 );
 
@@ -110,7 +108,7 @@ if ($op eq 'add_form') {
 													# END $OP eq ADD_FORM
 ################## ADD_VALIDATE ##################################
 # called by add_form, used to insert/modify data in DB
-} elsif ($op eq 'add_validate') {
+} elsif ($op eq 'cud-add_validate') {
 	my $tagfield         = $input->param('tagfield');
 	my $liblibrarian     = $input->param('liblibrarian');
 	my $libopac          = $input->param('libopac');
@@ -120,6 +118,7 @@ if ($op eq 'add_form') {
 	my $authorised_value = $input->param('authorised_value');
     my $ind1_defaultvalue = $input->param('ind1_defaultvalue');
     my $ind2_defaultvalue = $input->param('ind2_defaultvalue');
+    my $error;
     if ($input->param('modif')) {
         $sth = $dbh->prepare(
         "UPDATE marc_tag_structure SET liblibrarian=? ,libopac=? ,repeatable=? ,mandatory=? ,important=? ,authorised_value=?, ind1_defaultvalue=?, ind2_defaultvalue=? WHERE frameworkcode=? AND tagfield=?"
@@ -136,26 +135,40 @@ if ($op eq 'add_form') {
                         $tagfield
         );
     } else {
-        $sth = $dbh->prepare(
-        "INSERT INTO marc_tag_structure (tagfield,liblibrarian,libopac,repeatable,mandatory,important,authorised_value,ind1_defaultvalue,ind2_defaultvalue,frameworkcode) values (?,?,?,?,?,?,?,?,?,?)"
-        );
-        $sth->execute($tagfield,
-                      $liblibrarian,
-                      $libopac,
-                      $repeatable,
-                      $mandatory,
-                      $important,
-                      $authorised_value,
-                      $ind1_defaultvalue,
-                      $ind2_defaultvalue,
-                      $frameworkcode
-        );
+        my $schema = Koha::Database->new()->schema();
+        my $rs     = $schema->resultset('MarcTagStructure');
+        my $field  = $rs->find( { tagfield => $tagfield, frameworkcode => $frameworkcode } );
+        if ( !$field ) {
+            $sth = $dbh->prepare(
+                "INSERT INTO marc_tag_structure (tagfield,liblibrarian,libopac,repeatable,mandatory,important,authorised_value,ind1_defaultvalue,ind2_defaultvalue,frameworkcode) values (?,?,?,?,?,?,?,?,?,?)"
+            );
+            $sth->execute(
+                $tagfield,
+                $liblibrarian,
+                $libopac,
+                $repeatable,
+                $mandatory,
+                $important,
+                $authorised_value,
+                $ind1_defaultvalue,
+                $ind2_defaultvalue,
+                $frameworkcode
+            );
+        } else {
+            $error = 'duplicate_tagfield';
+        }
     }
-    $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
-    $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
-    $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
-    $cache->clear_from_cache("MarcCodedFields-$frameworkcode");
-    print $input->redirect("/cgi-bin/koha/admin/marctagstructure.pl?searchfield=$tagfield&frameworkcode=$frameworkcode");
+    if ( !$error ) {
+        $cache->clear_from_cache("MarcStructure-0-$frameworkcode");
+        $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
+        $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
+        $cache->clear_from_cache("MarcCodedFields-$frameworkcode");
+    }
+    my $redirect_url = "/cgi-bin/koha/admin/marctagstructure.pl?searchfield=$tagfield&frameworkcode=$frameworkcode";
+    if ($error) {
+        $redirect_url .= "&error=$error";
+    }
+    print $input->redirect($redirect_url);
     exit;
 													# END $OP eq ADD_VALIDATE
 ################## DELETE_CONFIRM ##################################
@@ -171,7 +184,7 @@ if ($op eq 'add_form') {
 													# END $OP eq DELETE_CONFIRM
 ################## DELETE_CONFIRMED ##################################
 # called by delete_confirm, used to effectively confirm deletion of data in DB
-} elsif ($op eq 'delete_confirmed') {
+} elsif ($op eq 'cud-delete_confirmed') {
     my $sth1 = $dbh->prepare("DELETE FROM marc_tag_structure      WHERE tagfield=? AND frameworkcode=?");
     my $sth2 = $dbh->prepare("DELETE FROM marc_subfield_structure WHERE tagfield=? AND frameworkcode=?");
     $sth1->execute($searchfield, $frameworkcode);
@@ -180,7 +193,9 @@ if ($op eq 'add_form') {
     $cache->clear_from_cache("MarcStructure-1-$frameworkcode");
     $cache->clear_from_cache("MarcSubfieldStructure-$frameworkcode");
     $cache->clear_from_cache("MarcCodedFields-$frameworkcode");
-    $template->param( searchfield => $searchfield );
+    print $input->redirect(
+        "/cgi-bin/koha/admin/marctagstructure.pl?searchfield=$searchfield&amp;frameworkcode=$frameworkcode");
+    exit;
 													# END $OP eq DELETE_CONFIRMED
 ################## ITEMTYPE_CREATE ##################################
 # called automatically if an unexisting  frameworkis selected
@@ -198,7 +213,13 @@ if ($op eq 'add_form') {
 
 ################## DEFAULT ##################################
 } else { # DEFAULT
-	# here, $op can be unset or set to "framework_create_confirm".
+    my $error_code = $input->param('error');
+    if ($error_code){
+        if ($error_code eq 'duplicate_tagfield'){
+            $template->param('blocking_error' => $error_code);
+        }
+    }
+	# here, $op can be unset or set to "cud-framework_create_confirm".
     if ($searchfield ne '') {
         $template->param(searchfield => $searchfield);
     }
@@ -270,7 +291,11 @@ if ($op eq 'add_form') {
         # Hidden feature: If search was field$subfield, redirect to the subfield edit form
         my ( $tagfield, $tagsubfield ) = split /\$/, $searchfield;
         if ( $tagsubfield ) {
-            print $input->redirect('/cgi-bin/koha/admin/marc_subfields_structure.pl?op=add_form&tagfield='.$tagfield.'&frameworkcode='.$frameworkcode.'#sub'.$tagsubfield.'field');
+            print $input->redirect(
+                sprintf
+                    '/cgi-bin/koha/admin/marc_subfields_structure.pl?op=add_form&tagfield=%s&frameworkcode=%s#%s_panel',
+                $tagfield, $frameworkcode, $tagsubfield
+            );
             exit;
         }
 		#here, normal old style : display every tags
@@ -295,13 +320,11 @@ if ($op eq 'add_form') {
 		$template->param(isprevpage => $offset,
 						prevpage=> $offset-$pagesize,
 						searchfield => $searchfield,
-                        script_name => $script_name
 		);
 	}
 	if ($offset+$pagesize<$cnt) {
 		$template->param(nextpage =>$offset+$pagesize,
 						searchfield => $searchfield,
-                        script_name => $script_name
 		);
 	}
 } #---- END $OP eq DEFAULT

@@ -118,17 +118,12 @@ $template->param(
 if ( $op eq 'delete_confirm' or $countissues > 0 or $debits or $is_guarantor ) {
     $template->param(
         op         => 'delete_confirm',
-        csrf_token => Koha::Token->new->generate_csrf({ session_id => scalar $input->cookie('CGISESSID') }),
     );
     if ($cash_register) {
         $template->param(cash_register_branchcode => $cash_register->{'cash_register_branchcode'});
     }
-} elsif ( $op eq 'delete_confirmed' ) {
-    output_and_exit( $input, $cookie, $template, 'wrong_csrf_token' )
-        unless Koha::Token->new->check_csrf( {
-            session_id => $input->cookie('CGISESSID'),
-            token  => scalar $input->param('csrf_token'),
-        });
+
+} elsif ( $op eq 'cud-delete_confirmed' ) {
 
     my $patron = Koha::Patrons->find( $member );
 

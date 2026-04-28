@@ -1,13 +1,21 @@
+[% USE raw %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Preview notice template &rsaquo; Tools &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Preview notice template") | html %] &rsaquo;
+    [% t("Notices") | html %] &rsaquo;
+    [% t("Tools") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     </head>
     <body id="preview_letter" class="catalog">
         <div class="main container-fluid">
+            [% INCLUDE 'messages.inc' %]
             <h1>Preview notice template</h1>
             [% FOR m IN messages %]
                 [%# FIXME The message block does not appear at the top of the modal! %]
-                <div class="dialog [% m.type | html %]">
+                <div class="alert alert-[% m.type | html %]">
                     [% SWITCH m.code %]
                     [% CASE 'no_data_for_preview' %]<span>You did not specify data for preview.</span>
                     [% CASE 'preview_not_available' %]<span>Preview is not available for letters '[% m.letter_code | html %]'.</span>
@@ -23,15 +31,15 @@
 
             [% IF rendered_tt_message %]
                 [% IF messages_are_similar %]
-                    <div class="dialog message">The generated notices are exactly the same!</div>
+                    <div class="alert alert-info">The generated notices are exactly the same!</div>
                 [% ELSE %]
-                    <div class="dialog alert">The generated notices are different!</div>
+                    <div class="alert alert-warning">The generated notices are different!</div>
                 [% END %]
             [% END %]
 
             [% IF rendered_message %]
                 <div class="row">
-                    <div class="col-xs-6">
+                    <div class="col-6">
                         <h3>Original version</h3>
                         <span style="font-family:monospace">
                             [% FILTER html_line_break %]
@@ -39,7 +47,7 @@
                             [% END %]
                         </span>
                     </div>
-                    <div class="col-xs-6">
+                    <div class="col-6">
                         <h3>Original message, rendered:</h3>
                         <span style="font-family:monospace">
                             [% FILTER html_line_break %]
@@ -54,7 +62,7 @@
             [% IF rendered_tt_message %]
             <hr />
                 <div class="row">
-                    <div class="col-xs-6">
+                    <div class="col-6">
                         <h3>Converted version</h3>
                         <span style="font-family:monospace">
                             [% FILTER html_line_break %]
@@ -62,7 +70,7 @@
                             [% END %]
                         </span>
                     </div>
-                    <div class="col-xs-6">
+                    <div class="col-6">
                         <h3>Converted message, rendered:</h3>
                         <span style="font-family:monospace">
                             [% FILTER html_line_break %]

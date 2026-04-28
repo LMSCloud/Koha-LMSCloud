@@ -90,6 +90,10 @@ my @status          = $query->multi_param('status');
 my @notes           = $query->multi_param('notes');
 my @subscriptionids = $query->multi_param('subscriptionid');
 my $op              = $query->param('op');
+my $skip_issues     = $query->param('skip_issues') || 0;
+
+my $count_forward = $skip_issues + 1;
+
 if ( scalar(@subscriptionids) == 1 && index( $subscriptionids[0], q|,| ) > 0 ) {
     @subscriptionids = split( /,/, $subscriptionids[0] );
 }
@@ -197,7 +201,7 @@ foreach my $subscriptionid (@subscriptionids) {
 $template->param( newserialloop => \@newserialloop );
 $template->param( subscriptions => \@subscriptionloop );
 
-if ( $op and $op eq 'serialchangestatus' ) {
+if ( $op and $op eq 'cud-serialchangestatus' ) {
 
     # Convert serialseqs to UTF-8 to prevent encoding problems
     foreach my $seq (@serialseqs) {
@@ -241,7 +245,8 @@ if ( $op and $op eq 'serialchangestatus' ) {
                 $pub_date,
                 $publisheddatetexts[$i],
                 $status[$i],
-                $notes[$i]
+                $notes[$i],
+                $count_forward
             );
         }
         my $makePreviousSerialAvailable = C4::Context->preference('makePreviousSerialAvailable');

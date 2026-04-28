@@ -30,7 +30,6 @@ BEGIN {
         AddBiblio
         GetBiblioData
         GetISBDView
-        GetMarcControlnumber
         GetMarcISBN
         GetMarcISSN
         GetMarcSubjects
@@ -100,7 +99,6 @@ use C4::Charset qw(
 use C4::Languages;
 use C4::Linker;
 use C4::OAI::Sets;
-use C4::Items qw( GetMarcItem );
 
 use Koha::Logger;
 use Koha::Caches;
@@ -113,8 +111,10 @@ use Koha::Holds;
 use Koha::ItemTypes;
 use Koha::MarcOverlayRules;
 use Koha::Plugins;
+use Koha::RecordProcessor;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Indexer;
+use Koha::SimpleMARC;
 use Koha::Libraries;
 use Koha::Util::MARC;
 
@@ -180,7 +180,7 @@ The MARC record (in biblio_metadata.metadata) contains the complete marc record,
 
 =head2 AddBiblio
 
-  ($biblionumber,$biblioitemnumber) = AddBiblio($record,$frameworkcode);
+    ( $biblionumber, $biblioitemnumber ) = AddBiblio( $record, $frameworkcode, $options );
 
 Exported function (core API) for adding a new biblio to koha.
 
@@ -192,9 +192,16 @@ The C<$options> argument is a hashref with additional parameters:
 
 =over 4
 
-=item B<defer_marc_save>: used when ModBiblioMarc is handled by the caller
+=item B<skip_record_index>
+Used when the indexing scheduling will be handled by the caller
 
-=item B<skip_record_index>: used when the indexing schedulling will be handled by the caller
+=item C<disable_autolink>
+
+Unless C<disable_autolink> is passed AddBiblio will link record headings
+to authorities based on settings in the system preferences. This flag allows
+us to not link records when the authority linker is saving modifications.
+
+=item B<record_source_id>: set as the record source when saving the record
 
 =back
 
@@ -204,10 +211,10 @@ sub AddBiblio {
     my ( $record, $frameworkcode, $options ) = @_;
 
     $options //= {};
-    my $skip_record_index = $options->{skip_record_index} || 0;
-    my $defer_marc_save   = $options->{defer_marc_save}   || 0;
+    my $skip_record_index = $options->{'skip_record_index'} // 0;
+    my $disable_autolink  = $options->{disable_autolink}    // 0;
 
-    if (!$record) {
+    if ( !$record ) {
         carp('AddBiblio called with undefined record');
         return;
     }
@@ -215,96 +222,106 @@ sub AddBiblio {
     my $schema = Koha::Database->schema;
     my ( $biblionumber, $biblioitemnumber );
     try {
-        $schema->txn_do(sub {
+        $schema->txn_do(
+            sub {
 
-            # transform the data into koha-table style data
-            SetUTF8Flag($record);
-            my $olddata = TransformMarcToKoha({ record => $record, limit_table => 'no_items' });
+                # transform the data into koha-table style data
+                SetUTF8Flag($record);
+                my $olddata = TransformMarcToKoha( { record => $record, limit_table => 'no_items' } );
 
-            my $biblio = Koha::Biblio->new(
-                {
-                    frameworkcode => $frameworkcode,
-                    author        => $olddata->{author},
-                    title         => $olddata->{title},
-                    subtitle      => $olddata->{subtitle},
-                    medium        => $olddata->{medium},
-                    part_number   => $olddata->{part_number},
-                    part_name     => $olddata->{part_name},
-                    unititle      => $olddata->{unititle},
-                    notes         => $olddata->{notes},
-                    serial        => $olddata->{serial},
-                    seriestitle   => $olddata->{seriestitle},
-                    copyrightdate => $olddata->{copyrightdate},
-                    datecreated   => \'NOW()',
-                    abstract      => $olddata->{abstract},
+                my $biblio = Koha::Biblio->new(
+                    {
+                        frameworkcode => $frameworkcode,
+                        author        => $olddata->{author},
+                        title         => $olddata->{title},
+                        subtitle      => $olddata->{subtitle},
+                        medium        => $olddata->{medium},
+                        part_number   => $olddata->{part_number},
+                        part_name     => $olddata->{part_name},
+                        unititle      => $olddata->{unititle},
+                        notes         => $olddata->{notes},
+                        serial        => $olddata->{serial},
+                        seriestitle   => $olddata->{seriestitle},
+                        copyrightdate => $olddata->{copyrightdate},
+                        datecreated   => \'NOW()',
+                        abstract      => $olddata->{abstract},
+                    }
+                )->store;
+                $biblionumber = $biblio->biblionumber;
+                Koha::Exceptions::ObjectNotCreated->throw unless $biblio;
+
+                my ($cn_sort) =
+                    GetClassSort( $olddata->{'biblioitems.cn_source'}, $olddata->{'cn_class'}, $olddata->{'cn_item'} );
+                my $biblioitem = Koha::Biblioitem->new(
+                    {
+                        biblionumber          => $biblionumber,
+                        volume                => $olddata->{volume},
+                        number                => $olddata->{number},
+                        itemtype              => $olddata->{itemtype},
+                        isbn                  => $olddata->{isbn},
+                        issn                  => $olddata->{issn},
+                        publicationyear       => $olddata->{publicationyear},
+                        publishercode         => $olddata->{publishercode},
+                        volumedate            => $olddata->{volumedate},
+                        volumedesc            => $olddata->{volumedesc},
+                        collectiontitle       => $olddata->{collectiontitle},
+                        collectionissn        => $olddata->{collectionissn},
+                        collectionvolume      => $olddata->{collectionvolume},
+                        editionstatement      => $olddata->{editionstatement},
+                        editionresponsibility => $olddata->{editionresponsibility},
+                        illus                 => $olddata->{illus},
+                        pages                 => $olddata->{pages},
+                        notes                 => $olddata->{bnotes},
+                        size                  => $olddata->{size},
+                        place                 => $olddata->{place},
+                        lccn                  => $olddata->{lccn},
+                        url                   => $olddata->{url},
+                        cn_source             => $olddata->{'biblioitems.cn_source'},
+                        cn_class              => $olddata->{cn_class},
+                        cn_item               => $olddata->{cn_item},
+                        cn_suffix             => $olddata->{cn_suff},
+                        cn_sort               => $cn_sort,
+                        totalissues           => $olddata->{totalissues},
+                        ean                   => $olddata->{ean},
+                        agerestriction        => $olddata->{agerestriction},
+                    }
+                )->store;
+                Koha::Exceptions::ObjectNotCreated->throw unless $biblioitem;
+                $biblioitemnumber = $biblioitem->biblioitemnumber;
+
+                _koha_marc_update_bib_ids( $record, $frameworkcode, $biblionumber, $biblioitemnumber );
+
+                # update MARC subfield that stores biblioitems.cn_sort
+                _koha_marc_update_biblioitem_cn_sort( $record, $olddata, $frameworkcode );
+
+                if ( !$disable_autolink && C4::Context->preference('AutoLinkBiblios') ) {
+                    BiblioAutoLink( $record, $frameworkcode );
                 }
-            )->store;
-            $biblionumber = $biblio->biblionumber;
-            Koha::Exceptions::ObjectNotCreated->throw unless $biblio;
 
-            my ($cn_sort) = GetClassSort( $olddata->{'biblioitems.cn_source'}, $olddata->{'cn_class'}, $olddata->{'cn_item'} );
-            my $biblioitem = Koha::Biblioitem->new(
-                {
-                    biblionumber          => $biblionumber,
-                    volume                => $olddata->{volume},
-                    number                => $olddata->{number},
-                    itemtype              => $olddata->{itemtype},
-                    isbn                  => $olddata->{isbn},
-                    issn                  => $olddata->{issn},
-                    publicationyear       => $olddata->{publicationyear},
-                    publishercode         => $olddata->{publishercode},
-                    volumedate            => $olddata->{volumedate},
-                    volumedesc            => $olddata->{volumedesc},
-                    collectiontitle       => $olddata->{collectiontitle},
-                    collectionissn        => $olddata->{collectionissn},
-                    collectionvolume      => $olddata->{collectionvolume},
-                    editionstatement      => $olddata->{editionstatement},
-                    editionresponsibility => $olddata->{editionresponsibility},
-                    illus                 => $olddata->{illus},
-                    pages                 => $olddata->{pages},
-                    notes                 => $olddata->{bnotes},
-                    size                  => $olddata->{size},
-                    place                 => $olddata->{place},
-                    lccn                  => $olddata->{lccn},
-                    url                   => $olddata->{url},
-                    cn_source      => $olddata->{'biblioitems.cn_source'},
-                    cn_class       => $olddata->{cn_class},
-                    cn_item        => $olddata->{cn_item},
-                    cn_suffix      => $olddata->{cn_suff},
-                    cn_sort        => $cn_sort,
-                    totalissues    => $olddata->{totalissues},
-                    ean            => $olddata->{ean},
-                    agerestriction => $olddata->{agerestriction},
+                # now add the record, don't index while we are in the transaction though
+                ModBiblioMarc(
+                    $record, $biblionumber,
+                    {
+                        skip_record_index => 1,
+                        record_source_id  => $options->{record_source_id},
+                    }
+                );
+
+                # update OAI-PMH sets
+                if ( C4::Context->preference("OAI-PMH:AutoUpdateSets") ) {
+                    C4::OAI::Sets::UpdateOAISetsBiblio( $biblionumber, $record );
                 }
-            )->store;
-            Koha::Exceptions::ObjectNotCreated->throw unless $biblioitem;
-            $biblioitemnumber = $biblioitem->biblioitemnumber;
 
-            _koha_marc_update_bib_ids( $record, $frameworkcode, $biblionumber, $biblioitemnumber );
+                _after_biblio_action_hooks( { action => 'create', biblio_id => $biblionumber } );
 
-            # update MARC subfield that stores biblioitems.cn_sort
-            _koha_marc_update_biblioitem_cn_sort( $record, $olddata, $frameworkcode );
+                logaction( "CATALOGUING", "ADD", $biblionumber, "biblio" ) if C4::Context->preference("CataloguingLog");
 
-            if (C4::Context->preference('AutoLinkBiblios')) {
-                BiblioAutoLink( $record, $frameworkcode );
             }
+        );
 
-            # now add the record, don't index while we are in the transaction though
-            ModBiblioMarc( $record, $biblionumber, { skip_record_index => 1 } ) unless $defer_marc_save;
-
-            # update OAI-PMH sets
-            if(C4::Context->preference("OAI-PMH:AutoUpdateSets")) {
-                C4::OAI::Sets::UpdateOAISetsBiblio($biblionumber, $record);
-            }
-
-            _after_biblio_action_hooks({ action => 'create', biblio_id => $biblionumber });
-
-            logaction( "CATALOGUING", "ADD", $biblionumber, "biblio" ) if C4::Context->preference("CataloguingLog");
-
-        });
         # We index now, after the transaction is committed
-        unless ( $skip_record_index ) {
-            my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
+        unless ($skip_record_index) {
+            my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
             $indexer->index_records( $biblionumber, "specialUpdate", "biblioserver" );
         }
     } catch {
@@ -353,6 +370,14 @@ us to not relink records when the authority linker is saving modifications.
 Unless C<skip_holds_queue> is passed, ModBiblio will trigger the BatchUpdateBiblioHoldsQueue
 task to rebuild the holds queue for the biblio if I<RealTimeHoldsQueue> is enabled.
 
+=item C<skip_record_index>
+
+Used when the indexing schedulling will be handled by the caller
+
+=item C<record_source_id>
+
+Set as the record source when saving the record.
+
 =back
 
 Returns 1 on success 0 on failure
@@ -363,7 +388,14 @@ sub ModBiblio {
     my ( $record, $biblionumber, $frameworkcode, $options ) = @_;
 
     $options //= {};
-    my $skip_record_index = $options->{skip_record_index} || 0;
+    my $mod_biblio_marc_options = {
+        skip_record_index => $options->{'skip_record_index'} // 0,
+        (
+              ( exists $options->{record_source_id} )
+            ? ( record_source_id => $options->{record_source_id} )
+            : ()
+        )
+    };
 
     if (!$record) {
         carp 'No record passed to ModBiblio';
@@ -372,7 +404,16 @@ sub ModBiblio {
 
     if ( C4::Context->preference("CataloguingLog") ) {
         my $biblio = Koha::Biblios->find($biblionumber);
-        logaction( "CATALOGUING", "MODIFY", $biblionumber, "biblio BEFORE=>" . $biblio->metadata->record->as_formatted );
+        my $record;
+        my $decoding_error = "";
+        eval { $record = $biblio->metadata->record };
+        if ($@) {
+            my $exception = $@;
+            $exception->rethrow unless ( $exception->isa('Koha::Exceptions::Metadata::Invalid') );
+            $decoding_error = "There was an error with this bibliographic record: " . $exception;
+            $record         = $biblio->metadata->record_strip_nonxml;
+        }
+        logaction( "CATALOGUING", "MODIFY", $biblionumber, "biblio $decoding_error BEFORE=>" . $record->as_formatted );
     }
 
     if ( !$options->{disable_autolink} && C4::Context->preference('AutoLinkBiblios') ) {
@@ -399,7 +440,6 @@ sub ModBiblio {
     # apply overlay rules
     if (   C4::Context->preference('MARCOverlayRules')
         && $biblionumber
-        && defined $options
         && exists $options->{overlay_context} )
     {
         $record = ApplyMarcOverlayRules(
@@ -427,7 +467,7 @@ sub ModBiblio {
     _koha_marc_update_biblioitem_cn_sort( $record, $oldbiblio, $frameworkcode );
 
     # update the MARC record (that now contains biblio and items) with the new record data
-    ModBiblioMarc( $record, $biblionumber, { skip_record_index => $skip_record_index } );
+    ModBiblioMarc( $record, $biblionumber, $mod_biblio_marc_options );
 
     # modify the other koha tables
     _koha_modify_biblio( $dbh, $oldbiblio, $frameworkcode );
@@ -516,9 +556,13 @@ sub DelBiblio {
 
     # We delete any existing holds
     my $holds = $biblio->holds;
+    $holds->update( { deleted_biblionumber => $biblionumber }, { no_triggers => 1 } );
+    my $old_holds = $biblio->old_holds;
+    $old_holds->update( { deleted_biblionumber => $biblionumber }, { no_triggers => 1 } );
     while ( my $hold = $holds->next ) {
+
         # no need to update the holds queue on each step, we'll do it at the end
-        $hold->cancel({ skip_holds_queue => 1 });
+        $hold->cancel( { skip_holds_queue => 1 } );
     }
 
     # We update any existing orders
@@ -577,6 +621,7 @@ sub BiblioAutoLink {
     my $record        = shift;
     my $frameworkcode = shift;
     my $verbose = shift;
+
     if (!$record) {
         carp('Undefined record passed to BiblioAutoLink');
         return 0;
@@ -627,6 +672,7 @@ sub LinkBibHeadingsToAuthorities {
     my $tagtolink     = shift;
     my $verbose = shift;
     my %results;
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance();
     if (!$bib) {
         carp 'LinkBibHeadingsToAuthorities called on undefined bib record';
         return ( 0, {});
@@ -668,7 +714,15 @@ sub LinkBibHeadingsToAuthorities {
             push(@{$results{'details'}}, { tag => $field->tag(), authid => $authid, status => 'LOCAL_FOUND'}) if $verbose;
         }
         else {
-            my $authority_type = Koha::Authority::Types->find( $heading->auth_type() );
+            my $authority_type =
+                $memory_cache->get_from_cache( "LinkBibHeadingsToAuthorities:AuthorityType:" . $heading->auth_type() );
+            unless ($authority_type) {
+                $authority_type = Koha::Authority::Types->find( $heading->auth_type() );
+                $memory_cache->set_in_cache(
+                    "LinkBibHeadingsToAuthorities:AuthorityType:" . $heading->auth_type(),
+                    $authority_type
+                );
+            }
             if ( defined $current_link
                 && (!$allowrelink || C4::Context->preference('LinkerKeepStale')) )
             {
@@ -678,9 +732,10 @@ sub LinkBibHeadingsToAuthorities {
             elsif ( C4::Context->preference('AutoCreateAuthorities') ) {
                 if ( _check_valid_auth_link( $current_link, $field ) ) {
                     $results{'linked'}->{ $heading->display_form() }++;
-                }
-                elsif ( !$match_count ) {
-                    my $authority_type = Koha::Authority::Types->find( $heading->auth_type() );
+                } elsif ( $match_count > 1 ) {
+                    $results{'unlinked'}->{ $heading->display_form() }++;
+                    push(@{$results{'details'}}, { tag => $field->tag(), authid => undef, status => 'MULTIPLE_MATCH', auth_type => $heading->auth_type(), tag_to_report => $authority_type->auth_tag_to_report}) if $verbose;
+                } elsif ( !$match_count ) {
                     my $marcrecordauth = MARC::Record->new();
                     if ( C4::Context->preference('marcflavour') eq 'MARC21' ) {
                         $marcrecordauth->leader('     nz  a22     o  4500');
@@ -763,6 +818,10 @@ sub LinkBibHeadingsToAuthorities {
                     $results{'unlinked'}->{ $heading->display_form() }++;
                     push(@{$results{'details'}}, { tag => $field->tag(), authid => undef, status => 'NONE_FOUND', auth_type => $heading->auth_type(), tag_to_report => $authority_type->auth_tag_to_report}) if $verbose;
                 }
+            }
+            elsif ( $match_count > 1 ) {
+                $results{'unlinked'}->{ $heading->display_form() }++;
+                push(@{$results{'details'}}, { tag => $field->tag(), authid => undef, status => 'MULTIPLE_MATCH', auth_type => $heading->auth_type(), tag_to_report => $authority_type->auth_tag_to_report}) if $verbose;
             }
             else {
                 $results{'unlinked'}->{ $heading->display_form() }++;
@@ -1147,24 +1206,25 @@ sub GetMarcSubfieldStructure {
 
 =head2 GetMarcFromKohaField
 
-    ( $field,$subfield ) = GetMarcFromKohaField( $kohafield );
-    @fields = GetMarcFromKohaField( $kohafield );
-    $field = GetMarcFromKohaField( $kohafield );
+    my ( $field, $subfield )    = GetMarcFromKohaField($kohafield);
+    my ( $f1, $sf1, $f2, $sf2 ) = GetMarcFromKohaField($kohafield);
 
-    Returns the MARC fields & subfields mapped to $kohafield.
+    Returns list of MARC fields and subfields mapped to $kohafield.
     Since the Default framework is considered as authoritative for such
     mappings, the former frameworkcode parameter is obsoleted.
 
-    In list context all mappings are returned; there can be multiple
-    mappings. Note that in the above example you could miss a second
-    mappings in the first call.
-    In scalar context only the field tag of the first mapping is returned.
+    NOTE: There may be multiple mappings! In the first example above
+    you could miss the second mapping (although only a few of these
+    will normally exist).
+    Calling in scalar context has been deprecated as of 10/2023.
 
 =cut
 
 sub GetMarcFromKohaField {
-    my ( $kohafield ) = @_;
+    my ($kohafield) = @_;
+    warn "GetMarcFromKohaField: framework parameter has been obsoleted for long" if @_ > 1;    # TODO Remove later
     return unless $kohafield;
+
     # The next call uses the Default framework since it is AUTHORITATIVE
     # for all Koha to MARC mappings.
     my $mss = GetMarcSubfieldStructure( '', { unsafe => 1 } ); # Do not change framework
@@ -1172,18 +1232,22 @@ sub GetMarcFromKohaField {
     foreach( @{ $mss->{$kohafield} } ) {
         push @retval, $_->{tagfield}, $_->{tagsubfield};
     }
-    return wantarray ? @retval : ( @retval ? $retval[0] : undef );
+    return @retval;
 }
 
 =head2 GetMarcSubfieldStructureFromKohaField
 
-    my $str = GetMarcSubfieldStructureFromKohaField( $kohafield );
+    my $arrayref = GetMarcSubfieldStructureFromKohaField($kohafield);
+    my $hashref  = GetMarcSubfieldStructureFromKohaField($kohafield)->[0];
 
     Returns marc subfield structure information for $kohafield.
     The Default framework is used, since it is authoritative for kohafield
     mappings.
-    In list context returns a list of all hashrefs, since there may be
-    multiple mappings. In scalar context the first hashref is returned.
+
+    Since there MAY be multiple mappings (not that often), you receive an
+    arrayref of all mappings found. In the second example above the first
+    one is picked only. If there are no mappings, you get an empty arrayref
+    (so in the call above $hashref will be undefined - without warnings).
 
 =cut
 
@@ -1195,8 +1259,7 @@ sub GetMarcSubfieldStructureFromKohaField {
     # The next call uses the Default framework since it is AUTHORITATIVE
     # for all Koha to MARC mappings.
     my $mss = GetMarcSubfieldStructure( '', { unsafe => 1 } ); # Do not change framework
-    return unless $mss->{$kohafield};
-    return wantarray ? @{$mss->{$kohafield}} : $mss->{$kohafield}->[0];
+    return $mss->{$kohafield} // [];
 }
 
 =head2 GetXmlBiblio
@@ -1248,7 +1311,7 @@ sub GetMarcPrice {
         @listtags = ('345', '020');
         $subfield="c";
     } elsif ( $marcflavour eq "UNIMARC" ) {
-        @listtags = ('345', '010');
+        @listtags = ( '345', '010', '071' );
         $subfield="d";
     } else {
         return;
@@ -1471,32 +1534,6 @@ sub GetAuthorisedValueDesc {
     } else {
         return $value;    # if nothing is found return the original value
     }
-}
-
-=head2 GetMarcControlnumber
-
-  $marccontrolnumber = GetMarcControlnumber($record,$marcflavour);
-
-Get the control number / record Identifier from the MARC record and return it.
-
-=cut
-
-sub GetMarcControlnumber {
-    my ( $record, $marcflavour ) = @_;
-    if (!$record) {
-        carp 'GetMarcControlnumber called on undefined record';
-        return;
-    }
-    my $controlnumber = "";
-    # Control number or Record identifier are the same field in MARC21 and UNIMARC
-    # Keep $marcflavour for possible later use
-    if ($marcflavour eq "MARC21" || $marcflavour eq "UNIMARC" ) {
-        my $controlnumberField = $record->field('001');
-        if ($controlnumberField) {
-            $controlnumber = $controlnumberField->data();
-        }
-    }
-    return $controlnumber;
 }
 
 =head2 GetMarcISBN
@@ -1791,7 +1828,7 @@ sub GetMarcUrls {
 
                         #  properly, this should be if ind1=4,
                         #  however we will assume http protocol since we're building a link.
-                        $url = 'https://' . $url;
+                        $url = 'http://' . $url;
                     }
                 }
 
@@ -2298,8 +2335,7 @@ sub TransformHtmlToMarc {
     my $record = MARC::Record->new();
     my @fields;
     my ($biblionumbertagfield, $biblionumbertagsubfield) = (-1, -1);
-    ($biblionumbertagfield, $biblionumbertagsubfield) =
-        &GetMarcFromKohaField( "biblio.biblionumber", '' ) if $isbiblio;
+    ( $biblionumbertagfield, $biblionumbertagsubfield ) = &GetMarcFromKohaField("biblio.biblionumber") if $isbiblio;
 #FIXME This code assumes that the CGI params will be in the same order as the fields in the template; this is no absolute guarantee!
     for (my $i = 0; $params[$i]; $i++ ) {    # browse all CGI params
         my $param    = $params[$i];
@@ -2878,24 +2914,36 @@ sub _koha_delete_biblio_metadata {
 
 =head2 ModBiblioMarc
 
-  ModBiblioMarc($newrec,$biblionumber);
+    ModBiblioMarc( $newrec, $biblionumber, $options );
 
 Add MARC XML data for a biblio to koha
 
 Function exported, but should NOT be used, unless you really know what you're doing
+
+The C<$options> argument is a hashref with additional parameters:
+
+=over 4
+
+=item B<skip_record_index>: used when the indexing scheduling will be handled by the caller
+
+=item B<record_source_id>: set as the record source when saving the record
+
+=back
 
 =cut
 
 sub ModBiblioMarc {
     # pass the MARC::Record to this function, and it will create the records in
     # the marcxml field
-    my ( $record, $biblionumber, $params ) = @_;
+    my ( $record, $biblionumber, $options ) = @_;
+    $options //= {};
+
     if ( !$record ) {
         carp 'ModBiblioMarc passed an undefined record';
         return;
     }
 
-    my $skip_record_index = $params->{skip_record_index} || 0;
+    my $skip_record_index = $options->{skip_record_index} // 0;
 
     # Clone record as it gets modified
     $record = $record->clone();
@@ -2923,12 +2971,14 @@ sub ModBiblioMarc {
         }
     }
 
-    #enhancement 5374: update transaction date (005) for marc21/unimarc
+    # Insert/update transaction time (005) for marc21/unimarc
     if($encoding =~ /MARC21|UNIMARC/) {
-      my @a= (localtime) [5,4,3,2,1,0]; $a[0]+=1900; $a[1]++;
-        # YY MM DD HH MM SS (update year and month)
-      my $f005= $record->field('005');
-      $f005->update(sprintf("%4d%02d%02d%02d%02d%04.1f",@a)) if $f005;
+        Koha::SimpleMARC::update_last_transaction_time( { record => $record } );
+    }
+
+    if ( C4::Context->preference('StripWhitespaceChars') ) {
+        my $p = Koha::RecordProcessor->new( { filters => qw(TrimFields) } );
+        $p->process($record);
     }
 
     my $metadata = {
@@ -2958,8 +3008,16 @@ sub ModBiblioMarc {
         { action => 'save', payload => { biblio_id => $biblionumber, record => $record } }
     );
 
-    $m_rs->metadata( $record->as_xml_record($encoding) );
-    $m_rs->store;
+    $m_rs->set(
+        {
+            metadata => $record->as_xml_record($encoding),
+            (
+                exists $options->{record_source_id}
+                ? ( record_source_id => $options->{record_source_id} )
+                : ()
+            )
+        }
+    )->store;
 
     unless ( $skip_record_index ) {
         my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
@@ -2968,134 +3026,6 @@ sub ModBiblioMarc {
 
     return $biblionumber;
 }
-
-=head2 prepare_host_field
-
-$marcfield = prepare_host_field( $hostbiblioitem, $marcflavour );
-Generate the host item entry for an analytic child entry
-
-=cut
-
-sub prepare_host_field {
-    my ( $hostbiblio, $marcflavour ) = @_;
-    $marcflavour ||= C4::Context->preference('marcflavour');
-
-    my $biblio = Koha::Biblios->find($hostbiblio);
-    my $host = $biblio->metadata->record;
-    # unfortunately as_string does not 'do the right thing'
-    # if field returns undef
-    my %sfd;
-    my $field;
-    my $host_field;
-    if ( $marcflavour eq 'MARC21' ) {
-        if ( $field = $host->field('100') || $host->field('110') || $host->field('11') ) {
-            my $s = $field->as_string('ab');
-            if ($s) {
-                $sfd{a} = $s;
-            }
-        }
-        if ( $field = $host->field('245') ) {
-            my $s = $field->as_string('a');
-            if ($s) {
-                $sfd{t} = $s;
-            }
-        }
-        if ( $field = $host->field('260') ) {
-            my $s = $field->as_string('abc');
-            if ($s) {
-                $sfd{d} = $s;
-            }
-        }
-        if ( $field = $host->field('240') ) {
-            my $s = $field->as_string();
-            if ($s) {
-                $sfd{b} = $s;
-            }
-        }
-        if ( $field = $host->field('022') ) {
-            my $s = $field->as_string('a');
-            if ($s) {
-                $sfd{x} = $s;
-            }
-        }
-        if ( $field = $host->field('020') ) {
-            my $s = $field->as_string('a');
-            if ($s) {
-                $sfd{z} = $s;
-            }
-        }
-        if ( $field = $host->field('001') ) {
-            $sfd{w} = $field->data(),;
-        }
-        $host_field = MARC::Field->new( 773, '0', ' ', %sfd );
-        return $host_field;
-    }
-    elsif ( $marcflavour eq 'UNIMARC' ) {
-        #author
-        if ( $field = $host->field('700') || $host->field('710') || $host->field('720') ) {
-            my $s = $field->as_string('ab');
-            if ($s) {
-                $sfd{a} = $s;
-            }
-        }
-        #title
-        if ( $field = $host->field('200') ) {
-            my $s = $field->as_string('a');
-            if ($s) {
-                $sfd{t} = $s;
-            }
-        }
-        #place of publicaton
-        if ( $field = $host->field('210') ) {
-            my $s = $field->as_string('a');
-            if ($s) {
-                $sfd{c} = $s;
-            }
-        }
-        #date of publication
-        if ( $field = $host->field('210') ) {
-            my $s = $field->as_string('d');
-            if ($s) {
-                $sfd{d} = $s;
-            }
-        }
-        #edition statement
-        if ( $field = $host->field('205') ) {
-            my $s = $field->as_string();
-            if ($s) {
-                $sfd{e} = $s;
-            }
-        }
-        #URL
-        if ( $field = $host->field('856') ) {
-            my $s = $field->as_string('u');
-            if ($s) {
-                $sfd{u} = $s;
-            }
-        }
-        #ISSN
-        if ( $field = $host->field('011') ) {
-            my $s = $field->as_string('a');
-            if ($s) {
-                $sfd{x} = $s;
-            }
-        }
-        #ISBN
-        if ( $field = $host->field('010') ) {
-            my $s = $field->as_string('a');
-            if ($s) {
-                $sfd{y} = $s;
-            }
-        }
-        if ( $field = $host->field('001') ) {
-            $sfd{0} = $field->data(),;
-        }
-        $host_field = MARC::Field->new( 461, '0', ' ', %sfd );
-        return $host_field;
-    }
-    return;
-}
-
 
 =head2 UpdateTotalIssues
 
@@ -3111,6 +3041,8 @@ Update the total issue count for a particular bib record.
 
 =item C<$value> is the absolute value that total issues count should be set to. If provided, C<$increase> is ignored.
 
+=item C<$skip_holds_queue> parameter to optionally skip updating the holds queue.
+
 =back
 
 =cut
@@ -3125,22 +3057,28 @@ sub UpdateTotalIssues {
         return;
     }
 
-    my $record = $biblio->metadata->record;
-    unless ($record) {
-        carp "UpdateTotalIssues could not get biblio record";
-        return;
+    my $record;
+    eval { $record = $biblio->metadata->record };
+    if ($@) {
+        my $exception = $@;
+        $exception->rethrow unless ( $exception->isa('Koha::Exceptions::Metadata::Invalid') );
+        warn $exception;
+        warn "UpdateTotalIssues could not get bibliographic record for biblionumber $biblionumber";
+        return -1;
     }
     my $biblioitem = $biblio->biblioitem;
     my ($totalissuestag, $totalissuessubfield) = GetMarcFromKohaField( 'biblioitems.totalissues' );
     unless ($totalissuestag) {
-        return 1; # There is nothing to do
+        return 0; # There is nothing to do
     }
 
+    my $current_issues = $biblioitem->totalissues // 0;
     if (defined $value) {
         $totalissues = $value;
     } else {
-        $totalissues = $biblioitem->totalissues + $increase;
+        $totalissues = $current_issues + $increase;
     }
+    return 0 if $current_issues == $totalissues;    # No need to update if no changes
 
      my $field = $record->field($totalissuestag);
      if (defined $field) {
@@ -3270,7 +3208,7 @@ Helper method that takes care of calling all plugin hooks
 =cut
 
 sub _after_biblio_action_hooks {
-    my ( $args ) = @_;
+    my ($args) = @_;
 
     my $biblio_id = $args->{biblio_id};
     my $action    = $args->{action} // q{};
@@ -3279,7 +3217,12 @@ sub _after_biblio_action_hooks {
     Koha::Plugins->call(
         'after_biblio_action',
         {
-            action    => $action,
+            action  => $action,
+            payload => {
+                biblio    => $biblio,
+                biblio_id => $biblio_id,
+            },
+            # NOTE: Deprecate these duplicate params for 24.11.00
             biblio    => $biblio,
             biblio_id => $biblio_id,
         }

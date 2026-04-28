@@ -25,8 +25,12 @@ C4::SMS - send SMS messages
 
 =head1 SYNOPSIS
 
-my $success = C4::SMS->send_sms({ message     => 'This is my text message',
-                                  destination => '212-555-1212' });
+my ( $success, $error ) = C4::SMS->send_sms(
+    {
+        message     => 'This is my text message',
+        destination => '212-555-1212'
+    }
+);
 
 =head1 DESCRIPTION
 
@@ -87,24 +91,32 @@ sub send_sms {
 
     # This allows the user to override the driver. See SMS::Send::Test
     my $driver = exists $params->{'driver'} ? $params->{'driver'} : $self->driver();
-    return unless $driver;
+    return ( undef, 'SMS_SEND_DRIVER_MISSING' ) unless $driver;
 
     my ($sent, $sender);
 
     my $subpath = $driver;
     $subpath =~ s|::|/|g;
 
+    # Extract additional SMS::Send arguments from file
     my $sms_send_config = C4::Context->config('sms_send_config');
     my $conf_file = defined $sms_send_config
         ? File::Spec->catfile( $sms_send_config, $subpath )
         : $subpath;
     $conf_file .= q{.yaml};
 
-    my %args;
+    my %args = ();
     if ( -f $conf_file ) {
         require YAML::XS;
         my $conf = YAML::XS::LoadFile( $conf_file );
         %args = map { q{_} . $_ => $conf->{$_} } keys %$conf;
+    }
+
+    # Extract additional SMS::Send arguments from the syspref
+    # Merge with any arguments from file with syspref taking precedence
+    if ( C4::Context->preference('SMSSendAdditionalOptions') ) {
+        my $sms_send_config_syspref = C4::Context->yaml_preference('SMSSendAdditionalOptions');
+        %args = ( %args, %$sms_send_config_syspref ) if $sms_send_config_syspref;
     }
 
     eval {
@@ -127,7 +139,7 @@ sub send_sms {
     #Catch those errors and fail the sms-sending gracefully.
     if ($@) {
         warn $@;
-        return;
+        return ( undef, $@ );
     }
     # warn 'failure' unless $sent;
     return $sent;

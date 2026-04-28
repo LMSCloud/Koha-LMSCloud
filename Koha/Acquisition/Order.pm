@@ -23,6 +23,7 @@ use Carp qw( croak );
 
 use C4::Biblio qw( DelBiblio );
 use C4::Acquisition;
+use C4::Suggestions qw( ModSuggestion );
 
 use Koha::Acquisition::Baskets;
 use Koha::Acquisition::Funds;
@@ -35,6 +36,7 @@ use Koha::Biblios;
 use Koha::Holds;
 use Koha::Items;
 use Koha::Number::Price;
+use Koha::Patrons;
 use Koha::Subscriptions;
 
 use base qw(Koha::Object Koha::Object::Mixin::AdditionalFields);
@@ -135,7 +137,7 @@ sub cancel {
     my $biblio = $self->biblio;
     if ( $biblio and $delete_biblio ) {
         if (
-            $biblio->active_orders->search(
+            $biblio->uncancelled_orders->search(
                 { ordernumber => { '!=' => $self->ordernumber } }
             )->count == 0
             and $biblio->subscriptions->count == 0
@@ -159,9 +161,25 @@ sub cancel {
         }
     }
 
+    # If ordered from a suggestion, revert the suggestion status to ACCEPTED
+    my $suggestion = Koha::Suggestions->find({ biblionumber => $self->biblionumber, status => "ORDERED" });
+    if ( $suggestion and $suggestion->id ) {
+        ModSuggestion(
+            {
+                suggestionid => $suggestion->id,
+                biblionumber => $self->biblionumber,
+                STATUS       => 'ACCEPTED',
+            }
+        );
+    }
+
+    $biblio = $self->biblio;
     if ( $biblio and $delete_biblio ) {
         if (
-            $delete_biblio_really
+            $biblio->uncancelled_orders->search(
+                { ordernumber => { '!=' => $self->ordernumber } }
+            )->count == 0
+            and $biblio->subscriptions->count == 0
             and $biblio->items->count == 0
             )
         {
@@ -179,10 +197,10 @@ sub cancel {
 
             my $message;
 
-            if ( $biblio->active_orders->search(
+            if ( $biblio->uncancelled_orders->search(
                 { ordernumber => { '!=' => $self->ordernumber } }
             )->count > 0 ) {
-                $message = 'error_delbiblio_active_orders';
+                $message = 'error_delbiblio_uncancelled_orders';
             }
             elsif ( $biblio->subscriptions->count > 0 ) {
                 $message = 'error_delbiblio_subscriptions';
@@ -204,12 +222,12 @@ sub cancel {
         }
     }
 
-    # Update order status
+    # Update order status; do not overwrite older cancellation date
+    $self->datecancellationprinted(dt_from_string) unless $self->datecancellationprinted;
     $self->set(
         {
-            cancellationreason      => $reason,
-            datecancellationprinted => \'NOW()',
-            orderstatus             => 'cancelled',
+            cancellationreason => $reason,
+            orderstatus        => 'cancelled',
         }
     )->store;
 
@@ -435,6 +453,21 @@ sub claimed_date {
     return $last_claim->claimed_on;
 }
 
+=head3 creator
+
+my $creator = $order->creator;
+
+Retrieves patron that created this order.
+
+=cut
+
+sub creator {
+    my ( $self )  = @_;
+    my $creator_rs = $self->_result->creator;
+    return unless $creator_rs;
+    return Koha::Patron->_new_from_dbic( $creator_rs );
+}
+
 =head3 duplicate_to
 
     my $duplicated_order = $order->duplicate_to($basket, [$default_values]);
@@ -456,21 +489,16 @@ sub duplicate_to {
             for my $field (
                 qw(
                 ordernumber
-                received_on
                 datereceived
                 invoiceid
                 datecancellationprinted
                 cancellationreason
-                purchaseordernumber
-                claims_count
-                claimed_date
                 parent_ordernumber
                 )
               )
             {
                 undef $order_info->{$field};
             }
-            $order_info->{placed_on}        = dt_from_string;
             $order_info->{entrydate}        = dt_from_string;
             $order_info->{orderstatus}      = 'new';
             $order_info->{quantityreceived} = 0;
@@ -655,7 +683,6 @@ sub to_api_mapping {
         ordernumber                   => 'order_id',
         orderstatus                   => 'status',
         parent_ordernumber            => 'parent_order_id',
-        purchaseordernumber           => undef,                    # obsolete
         quantityreceived              => 'quantity_received',
         replacementprice              => 'replacement_price',
         sort1                         => 'statistics_1',
@@ -671,7 +698,8 @@ sub to_api_mapping {
         uncertainprice                => 'uncertain_price',
         unitprice                     => 'unit_price',
         unitprice_tax_excluded        => 'unit_price_tax_excluded',
-        unitprice_tax_included        => 'unit_price_tax_included'
+        unitprice_tax_included        => 'unit_price_tax_included',
+        invoice_unitprice             => 'invoice_unit_price',
     };
 }
 

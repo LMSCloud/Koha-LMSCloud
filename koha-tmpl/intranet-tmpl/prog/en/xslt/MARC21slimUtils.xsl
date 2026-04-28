@@ -285,41 +285,42 @@
                 </xsl:when>
             </xsl:choose>
 
-            <xsl:if test="$field/marc:subfield[@code='a']">
-                <xsl:call-template name="subfieldSelect">
-                    <xsl:with-param name="codes">a</xsl:with-param>
-                </xsl:call-template>
-            </xsl:if>
-            <xsl:text> </xsl:text>
-
-            <xsl:choose>
-                <xsl:when test="$url='1'">
-                    <xsl:if test="$field/marc:subfield[@code='b']">
-                         <a>
-                         <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=Provider:<xsl:value-of select="str:encode-uri($field/marc:subfield[@code='b'], true())"/></xsl:attribute>
-                         <xsl:call-template name="subfieldSelect">
-                             <xsl:with-param name="codes">b</xsl:with-param>
-                         </xsl:call-template>
-                         </a>
-                    </xsl:if>
-                </xsl:when>
-                <xsl:otherwise>
-                    <xsl:if test="$field/marc:subfield[@code='b']">
-                        <xsl:call-template name="subfieldSelect">
-                            <xsl:with-param name="codes">b</xsl:with-param>
+            <xsl:for-each select="marc:subfield">
+                <xsl:if test="@code='a'">
+                    <span class="rda264_place" property="location">
+                        <xsl:value-of select="current()"/>
+                    </span>
+                </xsl:if>
+                <xsl:if test="@code='b'">
+                     <span property="rda264_name" typeof="Organization">
+                         <span property="name" class="rda264_name">
+                            <xsl:choose>
+                                <xsl:when test="$url='1'">
+                                         <a>
+                                         <xsl:attribute name="href">/cgi-bin/koha/catalogue/search.pl?q=Provider:<xsl:value-of select="str:encode-uri(current(), true())"/></xsl:attribute>
+                                         <xsl:value-of select="current()"/>
+                                         </a>
+                                </xsl:when>
+                                <xsl:otherwise>
+                                        <xsl:value-of select="current()"/>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                         </span>
+                     </span>
+                </xsl:if>
+                <xsl:if test="@code='c'">
+                    <span property="date" class="rda264_date">
+                        <xsl:call-template name="chopPunctuation">
+                            <xsl:with-param name="chopString">
+                                <xsl:value-of select="current()"/>
+                            </xsl:with-param>
                         </xsl:call-template>
-                    </xsl:if>
-                </xsl:otherwise>
-            </xsl:choose>
-            <xsl:text> </xsl:text>
-            <xsl:call-template name="chopPunctuation">
-                <xsl:with-param name="chopString">
-                    <xsl:call-template name="subfieldSelect">
-                        <xsl:with-param name="codes">c</xsl:with-param>
-                    </xsl:call-template>
-                </xsl:with-param>
-            </xsl:call-template>
-
+                    </span>
+                </xsl:if>
+                <xsl:if test="position() != last()">
+                    <xsl:text> </xsl:text>
+                </xsl:if>
+            </xsl:for-each>
         </span>
     </xsl:template>
 
@@ -696,6 +697,42 @@
         </xsl:if>
     </xsl:template>
 
+    <xsl:template name="content-warning">
+        <xsl:param name="tag" />
+        <xsl:if test="marc:datafield[@tag=$tag]">
+            <span class="results_summary content_warning">
+                <span class="label">Content warning: </span>
+                <xsl:for-each select="marc:datafield[@tag=$tag]">
+                    <xsl:choose>
+                        <xsl:when test="marc:subfield[@code='u']">
+                            <a>
+                                <xsl:attribute name="href">
+                                    <xsl:value-of select="marc:subfield[@code='u']"/>
+                                </xsl:attribute>
+                                <xsl:choose>
+                                    <xsl:when test="marc:subfield[@code='a']">
+                                        <xsl:value-of select="marc:subfield[@code='a']"/>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <xsl:value-of select="marc:subfield[@code='u']"/>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                            </a>
+                            <xsl:text> </xsl:text>
+                        </xsl:when>
+                        <xsl:when test="not(marc:subfield[@code='u']) and marc:subfield[@code='a']">
+                            <xsl:value-of select="marc:subfield[@code='a']"/><xsl:text> </xsl:text>
+                        </xsl:when>
+                    </xsl:choose>
+                    <xsl:call-template name="subfieldSelect">
+                        <xsl:with-param name="codes">bcdefghijklmnopqrstvwxyz</xsl:with-param>
+                    </xsl:call-template>
+                    <xsl:if test="position()!=last()"><span class="separator"><xsl:text> | </xsl:text></span></xsl:if>
+                </xsl:for-each>
+            </span>
+        </xsl:if>
+    </xsl:template>
+
     <xsl:template name="AddMissingProtocol">
         <xsl:param name="resourceLocation"/>
         <xsl:param name="indicator1"/>
@@ -726,6 +763,59 @@
                 </xsl:otherwise>
             </xsl:choose>
         </xsl:if>
+    </xsl:template>
+
+    <xsl:template name="GetCnumSearchURL">
+        <xsl:param name="title_subfield" select="'t'"/>
+        <xsl:param name="cnum_subfield" select="'w'"/>
+        <xsl:param name="opac_url" select="1"/>
+        <xsl:param name="UseControlNumber"/>
+
+        <xsl:variable name="orgcode">
+            <xsl:choose>
+                <xsl:when test="$UseControlNumber!='1'"/>
+                <xsl:when test="substring-before(marc:subfield[@code=$cnum_subfield],')')">
+                    <!-- substring before closing parenthesis, remove parentheses and spaces -->
+                    <xsl:value-of select="normalize-space(translate(substring-before(marc:subfield[@code=$cnum_subfield],')'),'()',''))"/>
+                </xsl:when>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="controlnumber">
+            <xsl:choose>
+                <xsl:when test="$UseControlNumber!='1'"/>
+                <xsl:when test="substring-after(marc:subfield[@code=$cnum_subfield],')')">
+                    <!-- substring after closing parenthesis, remove spaces -->
+                    <xsl:value-of select="normalize-space(substring-after(marc:subfield[@code=$cnum_subfield],')'))"/>
+                </xsl:when>
+                <xsl:otherwise>
+                    <!-- consider whole subfield now as controlnumber -->
+                    <xsl:value-of select="normalize-space(marc:subfield[@code=$cnum_subfield])"/>
+                </xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="scriptname">
+            <xsl:choose>
+                <xsl:when test="$opac_url=1"><xsl:text>/cgi-bin/koha/opac-search.pl</xsl:text></xsl:when>
+                <xsl:otherwise><xsl:text>/cgi-bin/koha/catalogue/search.pl</xsl:text></xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:choose>
+            <!-- search for (1) controlnumber AND orgcode, or (2) only controlnumber, or (3) title -->
+            <xsl:when test="$controlnumber!='' and $orgcode!=''">
+                <xsl:value-of select="str:encode-uri(concat($scriptname,'?q=Control-number:',$controlnumber,' AND Control-number-identifier:',$orgcode),false())"/>
+            </xsl:when>
+            <xsl:when test="$controlnumber!=''">
+                <xsl:value-of select="str:encode-uri(concat($scriptname,'?q=Control-number:',$controlnumber),false())"/>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:variable name="quoted_title">
+                    <xsl:call-template name="quote_search_term">
+                        <xsl:with-param name="term"><xsl:value-of select="marc:subfield[@code=$title_subfield]"/></xsl:with-param>
+                    </xsl:call-template>
+                </xsl:variable>
+                <xsl:value-of select="str:encode-uri(concat($scriptname,'?q=ti,phr:',translate($quoted_title, '()', '')),false())"/>
+            </xsl:otherwise>
+        </xsl:choose>
     </xsl:template>
 
 </xsl:stylesheet>

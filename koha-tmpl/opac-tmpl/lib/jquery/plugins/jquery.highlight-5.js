@@ -24,7 +24,7 @@ jQuery.fn.highlight = function(pat) {
     var spannode = document.createElement('span');
     spannode.className = 'term';
     var middlebit = node.splitText(pos);
-    var endbit = middlebit.splitText(pat.length);
+    var endbit = middlebit.splitText(Math.min(pat.length,middlebit.length));
     var middleclone = middlebit.cloneNode(true);
     spannode.appendChild(middleclone);
     middlebit.parentNode.replaceChild(spannode, middlebit);
@@ -48,3 +48,4 @@ jQuery.fn.removeHighlight = function() {
   $(this).contents().unwrap();
  });
 };
+

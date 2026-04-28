@@ -7,21 +7,27 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF ( add_form or copy_form ) %]
         [% IF ( modify ) %]
-            Modify notice &rsaquo; [% ELSE %]
-            Add notice &rsaquo; [% END %]
+            [% t("Modify notice") | html %] &rsaquo;
+        [% ELSE %]
+            [% t("New notice") | html %] &rsaquo;
+        [% END %]
     [% END %]
-
     [% IF ( add_validate or copy_validate) %]
-        Notice added &rsaquo; [% END %]
-
+        [% t("Notice added") | html %] &rsaquo;
+    [% END %]
     [% IF ( delete_confirm ) %]
-        Confirm deletion &rsaquo; [% END %]
-
-    Notices &rsaquo; Tools &rsaquo; Koha
-</title>
+        [% t("Confirm deletion") | html %] &rsaquo;
+    [% END %]
+    [% IF ( branchcode ) %]
+        [% Branches.GetName( branchcode ) | html %] &rsaquo;
+    [% END %]
+    [% t("Notices and slips") | html %] &rsaquo;
+    [% t("Tools") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% FILTER collapse %]
     <style>
@@ -39,11 +45,19 @@
         .panel-body fieldset.rows {
             border: 0;
             background: transparent none;
+            clear: none;
+            float: none;
             margin: 0 0 .5em 0;
         }
         #tabs,
         .panel-group {
             margin-top: 3px;
+        }
+        .css-helper::after {
+            content: " | ";
+        }
+        .css-helper:last-child::after {
+            content: none;
         }
     </style>
 [% END %]
@@ -60,7 +74,7 @@
                 <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
             [% END %]
 
-            [% IF ( add_form OR copy_form OR add_validate OR copy_validate OR delete_confirm ) %]
+            [% IF ( add_form OR copy_form OR add_validate OR copy_validate OR delete_confirm OR branchcode ) %]
                 [% WRAPPER breadcrumb_item %]
                     <a href="/cgi-bin/koha/tools/letter.pl">Notices and slips</a>
                 [% END %]
@@ -73,9 +87,13 @@
                     [% END %]
                 [% ELSE %]
                     [% WRAPPER breadcrumb_item bc_active= 1 %]
-                        <span>Add notice</span>
+                        <span>New notice</span>
                     [% END %]
                 [% END # /IF modify %]
+            [% ELSIF ( branchcode ) %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    [% Branches.GetName( branchcode ) | html %]
+                [% END %]
             [% ELSE %]
                 [% IF ( add_validate or copy_validate) %]
                     [% WRAPPER breadcrumb_item bc_active= 1 %]
@@ -100,8 +118,8 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
-                    <h3 id="preview_template_label">Preview notice template</h3>
+                    <h1 class="modal-title" id="preview_template_label">Preview notice template</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div id="loading">
@@ -109,26 +127,49 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <!-- TODO <a href="#" class="btn btn-default" id="preview_template_button" role="button" data-toggle="modal">Convert using the Template Toolkit syntax</a>-->
-                    <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+                    <!-- TODO <a href="#" class="btn btn-default" id="preview_template_button" role="button" data-bs-toggle="modal">Convert using the Template Toolkit syntax</a>-->
+                    <button class="btn btn-default" data-bs-dismiss="modal">Close</button>
                 </div>
             </div> <!-- /.modal-content -->
         </div> <!-- /.modal-dialog -->
     </div> <!-- /#preview_template -->
 
+    <!-- Sample display modal -->
+    <div class="modal" id="noticeSampleModal" tabindex="-1" aria-labelledby="noticeSampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title" id="noticeSampleModalLabel">Default template</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <pre class="template-body"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary copy">Copy to template</button>
+                    <button type="button" class="btn btn-default deny cancel" data-bs-dismiss="modal"><i class="fa fa-times"></i> Close</button>
+                </div>
+            </div> <!-- /.modal-content -->
+        </div> <!-- /.modal-dialog -->
+    </div> <!-- /.modal -->
+
     [% IF add_form or copy_form %]
         <div class="main container-fluid">
             <div class="row">
-                <div class="col-md-8 col-md-offset-2">
+                <div class="col-md-8 offset-md-2">
     [% ELSE %]
         <div class="main container-fluid">
             <div class="row">
-                <div class="col-sm-10 col-sm-push-2">
+                <div class="col-md-10 order-md-2 order-sm-1">
                     <main>
+                        [% INCLUDE 'messages.inc' %]
     [% END %]
 
                 [% IF ( no_op_set ) %]
                     <h1>Notices and slips</h1>
+                    [% IF ( branchcode ) %]
+                        <h2>[% Branches.GetName( branchcode ) | html %]</h2>
+                    [% END %]
                     <form method="get" action="/cgi-bin/koha/tools/letter.pl" id="selectlibrary">
                         <input type="hidden" name="searchfield" value="[% searchfield | html %]" />
                         [% UNLESS independant_branch %]
@@ -144,22 +185,26 @@
 
                     <div id="toolbar" class="btn-toolbar">
                         <div class="btn-group">
-                            <button class="btn btn-default dropdown-toggle" data-toggle="dropdown"><i class="fa fa-plus"></i> New notice <span class="caret"></span></button>
+                            <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa fa-plus"></i> New notice</button>
                             <ul class="dropdown-menu">
-                                <li><a href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=acquisition">Acquisition</a></li>
-                                <li><a href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=catalogue">Catalog</a></li>
-                                <li><a href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=circulation">Circulation</a></li>
-                                <li><a href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=claimacquisition">Claim acquisition</a></li>
-                                <li><a href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=claimissues">Claim serial issue</a></li>
-                                <li><a href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=fines">Fines description</a></li>
-                                <li><a href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=reserves">Holds</a></li>
-                                <li><a href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=ill">Interlibrary loans</a></li>
-                                <li><a href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=orderacquisition">Order acquisition</a></li>
-                                <li><a href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=members">Patrons</a></li>
-                                <li><a href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=serial">Serials (new issue)</a></li>
-                                <li><a href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=suggestions">Suggestions</a></li>
-                                <li><a href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=pos">Point of sale</a></li>
-                                <li><a href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=bookings">Bookings</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=acquisition">Acquisition</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=catalogue">Catalog</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=circulation">Circulation</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=claimacquisition">Claim acquisition</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=claimissues">Claim serial issue</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=reserves">Holds</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=ill">Interlibrary loans</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=lists">Lists</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=orderacquisition">Order acquisition</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=members">Patrons</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=patron_slip">Patrons (custom slip)</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=add_message">Patrons (custom message)</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=preservation">Preservation</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=serial">Serials (new issue)</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=suggestions">Suggestions</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=pos">Point of sale</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=report">Reports</a></li>
+                                <li><a class="dropdown-item" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;module=bookings">Bookings</a></li>
                             </ul>
                         </div>
                     </div> <!-- /#toolbar -->
@@ -213,10 +258,15 @@
                                                     [% CASE 'fines' %]<span>Fines description</span>
                                                     [% CASE 'reserves' %]<span>Holds</span>
                                                     [% CASE 'ill' %]<span>Interlibrary loans</span>
+                                                    [% CASE 'lists' %]<span>Lists</span>
                                                     [% CASE 'members' %]<span>Patrons</span>
+                                                    [% CASE 'patron_slip' %]<span>Patrons (custom slip)</span>
+                                                    [% CASE 'add_message' %]<span>Patrons (custom message)</span>
+                                                    [% CASE 'preservation' %]<span>Preservation</span>
                                                     [% CASE 'serial' %]<span>Serials (new issue)</span>
                                                     [% CASE 'suggestions' %]<span>Suggestions</span>
                                                     [% CASE 'pos' %]<span>Point of sale</span>
+                                                    [% CASE 'report' %]<span>Reports</span>
                                                     [% CASE 'bookings' %]<span>Bookings</span>
                                                     [% CASE %]<span>[% lette.module | html %]</span>
                                                 [% END %]
@@ -227,7 +277,8 @@
                                             <td class="actions">
                                                 [% IF !independant_branch || !lette.branchcode %]
                                                     <form method="post" action="/cgi-bin/koha/tools/letter.pl">
-                                                        <input type="hidden" name="op" value="copy_form" />
+                                                        [% INCLUDE 'csrf-token.inc' %]
+                                                        <input type="hidden" name="op" value="cud-copy_form" />
                                                         <input type="hidden" name="oldbranchcode" value="[% lette.branchcode | html %]" />
                                                         <input type="hidden" name="module" value="[% lette.module | html %]" />
                                                         <input type="hidden" name="code" value="[% lette.code | html %]" />
@@ -236,16 +287,16 @@
                                                         [% ELSE %]
                                                             [% select_for_copy | $raw %]
                                                         [% END %]
-                                                        <button class="btn btn-default btn-xs"><i class="fa fa-clone"></i> Copy</button>
+                                                        <button class="btn btn-default btn-xs"><i class="fa-solid fa-copy"></i> Copy</button>
                                                     </form>
                                                 [% END # /IF !independent_branch %]
                                             </td>
                                             <td class="actions">
                                                 [% IF can_edit %]
-                                                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;branchcode=[% lette.branchcode | html %]&amp;module=[% lette.module | html %]&amp;code=[% lette.code | html %]"><i class="fa fa-pencil"></i> Edit</a>
+                                                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/tools/letter.pl?op=add_form&amp;branchcode=[% lette.branchcode | html %]&amp;module=[% lette.module | html %]&amp;code=[% lette.code | html %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
                                                 [% END %]
                                                 [% IF !lette.protected && can_edit %]
-                                                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/tools/letter.pl?op=delete_confirm&amp;branchcode=[% lette.branchcode | html %]&amp;module=[% lette.module | html %]&amp;code=[% lette.code | html %]"><i class="fa fa-trash"></i> Delete</a>
+                                                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/tools/letter.pl?op=delete_confirm&amp;branchcode=[% lette.branchcode | html %]&amp;module=[% lette.module | html %]&amp;code=[% lette.code | html %]"><i class="fa fa-trash-can"></i> Delete</a>
                                                 [% END %]
                                             </td>
                                         </tr>
@@ -254,7 +305,7 @@
                             </table> <!-- /#lettert -->
                         </div><!-- /.page-section -->
                     [% ELSE # IF lette %]
-                        <div class="dialog message">
+                        <div class="alert alert-info">
                             [% IF ( branchcode ) %]
                                 <p>There are no notices for this library.</p>
                             [% ELSE %]
@@ -269,28 +320,27 @@
                         [% IF ( modify ) %]
                             <span>Modify notice</span>
                         [% ELSE %]
-                            <span>Add notice</span>
+                            <span>New notice</span>
                         [% END %]
                     </h1>
 
-                    <div id="toolbar" class="btn-toolbar">
+                    <div id="toolbar" class="btn-toolbar sticky">
                         <div class="btn-group">
                             <button class="btn btn-primary" id="submit_form"><i class="fa fa-save"></i> Save</button>
-                            <button class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
-                            <span class="caret"></span>
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a id="saveandcontinue" href="#">Save and continue editing</a></li>
+                            <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"></button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" id="saveandcontinue" href="#">Save and continue editing</a></li>
                             </ul>
                         </div>
-                        <a class="btn btn-default cancel" href="/cgi-bin/koha/tools/letter.pl"><i class="fa fa-remove"></i> Cancel</a>
+                        <a class="btn btn-default cancel" href="/cgi-bin/koha/tools/letter.pl"><i class="fa fa-times"></i> Cancel</a>
                     </div> <!-- /#toolbar -->
 
-                    <form id="add_notice" name="Aform" method="post" enctype="multipart/form-data" class="validate">
+                    <form id="add_notice" name="Aform" method="post" enctype="multipart/form-data" action="/cgi-bin/koha/tools/letter.pl" class="validate">
+                        [% INCLUDE 'csrf-token.inc' %]
                         [% IF add_form %]
-                            <input type="hidden" name="op" id="op" value="add_validate" />
+                            <input type="hidden" name="op" id="op" value="cud-add_validate" />
                         [% ELSE %]
-                            <input type="hidden" name="op" id="op" value="copy_validate" />
+                            <input type="hidden" name="op" id="op" value="cud-copy_validate" />
                         [% END %]
 
                         <input type="hidden" name="checked" value="0" />
@@ -301,7 +351,7 @@
                             <input type="hidden" name="add" value="1" />
                         [% END %]
 
-                        <fieldset class="rows">
+                        <fieldset class="rows page-section">
                             <input type="hidden" name="oldbranchcode" value="[% oldbranchcode | html %]" />
                             [% IF independant_branch %]
                                 <input type="hidden" name="branchcode" value="[% independant_branch | html %]" />
@@ -327,7 +377,7 @@
                                     </li>
                             [% END # /IF independant_branch %]
                                 <li>
-                                    <label for="module">Koha module:</label>
+                                    <label for="newmodule">Koha module:</label>
                                     <input type="hidden" name="oldmodule" value="[% module | html %]" />
                                     [% IF adding  %]
                                         <select name="module" id="newmodule">
@@ -364,11 +414,6 @@
                                         [% ELSE %]
                                             <option value="claimissues">Claim serial issue</option>
                                         [% END %]
-                                        [% IF ( module == "fines" ) %]
-                                            <option value="fines" selected="selected">Fines description</option>
-                                        [% ELSE %]
-                                            <option value="fines">Fines description</option>
-                                        [% END %]
                                         [% IF ( module == "reserves" ) %]
                                             <option value="reserves" selected="selected">Holds</option>
                                         [% ELSE %]
@@ -377,12 +422,32 @@
                                         [% IF ( module == "ill" ) %]
                                         <option value="ill" selected="selected">Interlibrary loans</option>
                                         [% ELSE %]
+                                        [% IF ( module == "lists" ) %]
+                                        <option value="lists" selected="selected">Lists</option>
+                                        [% ELSE %]
+                                        <option value="lists">Lists</option>
+                                        [% END %]
                                         <option value="ill">Interlibrary loans</option>
                                         [% END %]
                                         [% IF ( module == "members" ) %]
                                             <option value="members" selected="selected">Patrons</option>
                                         [% ELSE %]
                                             <option value="members">Patrons</option>
+                                        [% END %]
+                                        [% IF ( module == "patron_slip" ) %]
+                                            <option value="patron_slip" selected="selected">Patron (custom slip)</option>
+                                        [% ELSE %]
+                                            <option value="patron_slip">Patron (custom slip)</option>
+                                        [% END %]
+                                        [% IF ( module == "add_message" ) %]
+                                            <option value="add_message" selected="selected">Patrons (custom message)</option>
+                                        [% ELSE %]
+                                            <option value="add_message">Patrons (custom message)</option>
+                                        [% END %]
+                                        [% IF ( module == "preservation" ) %]
+                                            <option value="preservation" selected="selected">Preservation</option>
+                                        [% ELSE %]
+                                            <option value="preservation">Preservation</option>
                                         [% END %]
                                         [% IF ( module == "serial" ) %]
                                             <option value="serial" selected="selected">Serials (new issue)</option>
@@ -399,6 +464,11 @@
                                         [% ELSE %]
                                             <option value="pos">Point of sale</option>
                                         [% END %]
+                                        [% IF ( module == "report" ) %]
+                                            <option value="report" selected="selected">Reports</option>
+                                        [% ELSE %]
+                                            <option value="report">Reports</option>
+                                        [% END %]
                                         [% IF ( module == "bookings" ) %]
                                             <option value="bookings" selected="selected">Bookings</option>
                                         [% ELSE %]
@@ -409,7 +479,7 @@
                                 <li>
                                     [% IF adding %]
                                         <label for="code" class="required">Code:</label>
-                                        <input type="text" id="code" name="code" size="30" maxlength="50" value="" required="required"/>
+                                        <input type="text" id="code" name="code" size="20" maxlength="20" value="" required="required"/>
                                         <span class="required">Required</span>
                                     [% ELSE %]
                                         <span class="label">Code:</span>
@@ -459,6 +529,9 @@
                                 [% WRAPPER tab_panels %]
                                     [% FOREACH lang IN letters.keys %]
                                         [% WRAPPER tab_panel tabname="lang_${lang}" %]
+                                            [% IF lang == 'default' %]
+                                            <p><span class="label">Default language:</span> [% default_language | html %]</p>
+                                            [% END %]
                                             [% PROCESS message_templates %]
                                         [% END # /WRAPPER tab_panel %]
                                     [% END # /FOREACH lang %]
@@ -466,9 +539,14 @@
                             [% END # /WRAPPER tabs#tabs %]
                         [% ELSE %]
                             <div style="clear:both"></div>
+                            <div class="page-section">
                             [% FOREACH lang IN letters.keys %]
+                                [% IF lang == 'default' %]
+                                <p><span class="label">Default language:</span> [% default_language | html %]</p>
+                                [% END %]
                                 [% PROCESS message_templates %]
                             [% END # /FOREACH lang %]
+                            </div>
                         [% END # /IF TranslateNotices %]
 
                         <input type="hidden" id="redirect" name="redirect" value="" />
@@ -478,15 +556,8 @@
                     </form> <!-- /#add_notice -->
                 [% END # /IF add_form %]
 
-                [% IF ( add_validate or copy_validate) %]
-                    Data recorded
-                    <form action="[% action | html %]" method="post">
-                        <input type="submit" class="btn btn-primary" value="OK" />
-                    </form>
-                [% END %]
-
                 [% IF ( delete_confirm ) %]
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         <h1>Delete notice?</h1>
                         <table>
                             <thead>
@@ -504,145 +575,201 @@
                                 <td>[% letter.name | html %]</td>
                             </tr>
                         </table>
-                        <form action="[% action | html %]" method="post">
-                            <input type="hidden" name="op" value="delete_confirmed">
+                        <form action="/cgi-bin/koha/tools/letter.pl" method="post">
+                            [% INCLUDE 'csrf-token.inc' %]
+                            <input type="hidden" name="op" value="cud-delete_confirmed">
                             <input type="hidden" name="branchcode" value="[% letter.branchcode | html %]" />
                             <input type="hidden" name="code" value="[% letter.code | html %]" />
                             <input type="hidden" name="module" value="[% letter.module | html %]" />
-                            <button type="submit" class="approve"><i class="fa fa-check"></i> Yes, delete</button>
+                            <button type="submit" class="btn btn-default approve"><i class="fa fa-check"></i> Yes, delete</button>
                         </form>
 
-                        <form action="[% action | html %]" method="get">
-                            <button type="submit" class="deny"><i class="fa fa-times"></i> No, do not delete</button>
+                        <form action="/cgi-bin/koha/tools/letter.pl" method="get">
+                            <button type="submit" class="btn btn-default deny"><i class="fa fa-times"></i> No, do not delete</button>
                         </form>
                     </div>
                 [% END # /IF delete_confirm %]
-
-                [% IF ( delete_confirmed ) %]
-                    <span>Data deleted</span>
-                    <form action="[% action | html %]" method="post">
-                    <input type="submit" class="btn btn-primary" value="OK" />
-                    </form>
-                [% END %]
 
     [% IF add_form or copy_form %]
             </div> <!-- /.col-md-8 -->
         </div> <!-- /.row -->
     [% ELSE %]
                 </main>
-            </div> <!-- /.col-sm-10.col-sm-push-2 -->
+            </div> <!-- /.col-md-10.order-md-2 -->
 
-            <div class="col-sm-2 col-sm-pull-10">
+            <div class="col-md-2 order-sm-2 order-md-1">
                 <aside>
                     [% INCLUDE 'tools-menu.inc' %]
                 </aside>
-            </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+            </div> <!-- /.col-md-2.order-md-1 -->
         </div> <!-- /.row -->
     [% END %]
 
 [% BLOCK message_templates %]
-    <div class="panel-group" id="group_[% lang | html %]" role="tablist" aria-multiselectable="true">
+    [% WRAPPER accordion panelgroup_id="${lang}" %]
         [% FOR mtt IN letters.$lang.templates.keys.sort %]
             [% SET letter = letters.$lang.templates.$mtt %]
             [% NEXT IF letter.message_transport_type == "itiva" && !Koha.Preference('TalkingTechItivaPhoneNotification') %]
             [% NEXT IF letter.message_transport_type == "phone" && !Koha.Preference('PhoneNotification') %]
-            <div class="panel panel-default">
-                <div class="panel-heading" role="tab" id="[% letter.message_transport_type | html %]_[% lang | html %]Heading">
-                    <h3 class="panel-title">
-                        <a role="button" class="collapsed" data-toggle="collapse" data-parent="#group_[% lang | html %]" href="#[% letter.message_transport_type | html %]_[% lang | html %]" aria-expanded="false" aria-controls="[% letter.message_transport_type | html %]_[% lang | html %]">
-                            [% SWITCH letter.message_transport_type %]
-                                [% CASE 'email' %]<span>Email</span>
-                                [% CASE 'print' %]<span>[% tp('Message transport type', 'Print') | html %]</span>
-                                [% CASE 'sms' %]<span>SMS</span>
-                                [% CASE 'feed' %]<span>Feed</span>
-                                [% CASE 'itiva' %]<span>Phone (i-tiva)</span>
-                                [% CASE 'phone' %]<span>Phone</span>
-                                [% CASE %]<span>[% letter.message_transport_type | html %]</span>
-                            [% END %]
-                        </a>
-                    </h3>
-                </div> <!-- /.panel-heading -->
-                <div id="[% letter.message_transport_type | html %]_[% lang | html %]" class="panel-collapse collapse" role="tabpanel" aria-labelledby="[% letter.message_transport_type | html %]_[% lang | html %]Heading">
-                    <div class="panel-body">
-                        [% IF letter.message_transport_type == "sms" and not Koha.Preference("SMSSendDriver") %]
-                            <fieldset class="rows mtt" disabled="disabled">
-                                <div class="dialog message">You should enable the SMSSendDriver preference to use the SMS templates.</div>
-                        [% ELSE %]
-                            <fieldset class="rows mtt">
+            [% WRAPPER accordion_item %]
+                [% WRAPPER accordion_heading panel_id="${letter.message_transport_type}_${lang}" %]
+                    [% SWITCH letter.message_transport_type %]
+                        [% CASE 'email' %]<span>Email</span>
+                        [% CASE 'print' %]<span>[% tp('Message transport type', 'Print') | html %]</span>
+                        [% CASE 'sms' %]<span>SMS</span>
+                        [% CASE 'feed' %]<span>Feed</span>
+                        [% CASE 'itiva' %]<span>Phone (i-tiva)</span>
+                        [% CASE 'phone' %]<span>Phone</span>
+                        [% CASE %]<span>[% letter.message_transport_type | html %]</span>
+                    [% END %]
+                [% END %]
+                [% WRAPPER accordion_panel panel_id="${letter.message_transport_type}_${lang}" %]
+                    [% SET sms_readonly = letter.message_transport_type == "sms" and not Koha.Preference("SMSSendDriver") %]
+                    <fieldset class="rows mtt">
+                        [% IF sms_readonly %]
+                            <div class="alert alert-info">You should enable the SMSSendDriver preference to use the SMS templates.</div>
                         [% END %]
-                            <input type="hidden" name="message_transport_type" value="[% letter.message_transport_type | html %]" />
-                            <input type="hidden" name="lang" value="[% lang | html %]" />
-                            <ol>
-                                [% IF ( letter.tt_error ) %]
-                                    <li class="template_toolkit_error">
-                                        <span class="label error">Template Toolkit error:</span>
-                                        [% letter.tt_error | html %]
-                                    </li>
-                                [% END %]
-                                [% IF ( letter.updated_on ) %]
-                                    <li>
-                                        <span class="label">Last updated:</span>
-                                        [% letter.updated_on | $KohaDates with_hours = 1 %]
-                                    </li>
-                                [% END %]
+                        <input type="hidden" name="message_transport_type" value="[% letter.message_transport_type | html %]" />
+                        <input type="hidden" name="lang" value="[% lang | html %]" />
+                        <ol>
+                            [% IF ( letter.tt_error ) %]
+                                <li class="template_toolkit_error">
+                                    <span class="label error">Template Toolkit error:</span>
+                                    [% letter.tt_error | html %]
+                                </li>
+                            [% END %]
+                            [% IF ( letter.updated_on ) %]
                                 <li>
-                                    <label for="is_html_[% letter.message_transport_type | html %]_[% lang | html %]">HTML message:</label>
-                                    [% IF letter.is_html %]
+                                    <span class="label">Last updated:</span>
+                                    [% letter.updated_on | $KohaDates with_hours = 1 %]
+                                </li>
+                            [% END %]
+                            <li>
+                                <label for="is_html_[% letter.message_transport_type | html %]_[% lang | html %]">HTML message:</label>
+                                [% IF letter.is_html %]
+                                    [% IF sms_readonly %]
+                                        <input type="checkbox" name="is_html_[% letter.message_transport_type | html %]_[% lang | html %]" id="is_html_[% letter.message_transport_type | html %]_[% lang | html %]" value="1" checked="checked" disabled="disabled" />
+                                    [% ELSE %]
                                         <input type="checkbox" name="is_html_[% letter.message_transport_type | html %]_[% lang | html %]" id="is_html_[% letter.message_transport_type | html %]_[% lang | html %]" value="1" checked="checked" />
+                                    [% END %]
+                                [% ELSE %]
+                                    [% IF sms_readonly %]
+                                        <input type="checkbox" name="is_html_[% letter.message_transport_type | html %]_[% lang | html %]" id="is_html_[% letter.message_transport_type | html %]_[% lang | html %]" value="1" disabled="disabled" />
                                     [% ELSE %]
                                         <input type="checkbox" name="is_html_[% letter.message_transport_type | html %]_[% lang | html %]" id="is_html_[% letter.message_transport_type | html %]_[% lang | html %]" value="1" />
                                     [% END %]
-                                </li>
-                                <li>
-                                    <label for="title_[% letter.message_transport_type | html %]_[% lang | html %]">Message subject:</label><input type="text" id="title_[% letter.message_transport_type | html %]_[% lang | html %]" name="title" size="60" value="[% letter.title | html %]" />
-                                </li>
-                                <li>
-                                    <label for="SQLfieldname_[% letter.message_transport_type | html %]_[% lang | html %]">Message body:</label>
-                                    [% IF letter.message_transport_type == 'sms' %]
+                                [% END %]
+                            </li>
+                            <li>
+                                <label for="title_[% letter.message_transport_type | html %]_[% lang | html %]">Message subject:</label>
+                                [% IF sms_readonly %]
+                                    <input type="text" id="title_[% letter.message_transport_type | html %]_[% lang | html %]" name="title" size="60" value="[% letter.title | html %]" readonly />
+                                [% ELSE %]
+                                    <input type="text" id="title_[% letter.message_transport_type | html %]_[% lang | html %]" name="title" size="60" value="[% letter.title | html %]" />
+                                [% END %]
+                            </li>
+                            <li>
+                                <label for="SQLfieldname_[% letter.message_transport_type | html %]_[% lang | html %]">Message body:</label>
+                                [% IF letter.message_transport_type == 'sms' %]
+                                    [% IF !sms_readonly %]
                                         <span class="sms_counter" id="sms_counter_[% lang | html %]">
                                             [% IF letter.content && letter.content.length > 0 %]
-                                                [% letter.content.length | html %]
+                                                [% tx("{content_length} / 160 characters", {content_length = letter.content.length} ) %]
                                             [% ELSE %]
-                                                0
-                                            [% END %]/160 characters</span>
+                                                [% tx("{content_length} / 160 characters", {content_length = 0} ) %]
+                                            [% END %]
+                                        </span>
                                     [% END %]
-                                    <table>
-                                        <tr>
-                                            <td>
-                                                <select name="SQLfieldname" id="SQLfieldname_[% letter.message_transport_type | html %]_[% lang | html %]" multiple="multiple" size="9">
-                                                    [% FOREACH SQLfieldname IN SQLfieldnames %]
-                                                        <option value="[% SQLfieldname.value | html %]">[% SQLfieldname.text | html %]</option>
-                                                    [% END %]
-                                                </select>
-                                            </td>
-                                            <td class="actions">
-                                                <button type="button" data-containerid="[% letter.message_transport_type | html %]_[% lang | html %]" class="btn btn-default btn-sm insert">Insert <i class="fa fa-long-arrow-right"></i></button>
-                                            </td>
-                                            <td>
-                                                <textarea name="content" data-lang="[% lang | html %]" class="content_[% letter.message_transport_type | html %]" id="content_[% letter.message_transport_type | html %]_[% lang | html %]" cols="80" rows="15">[% letter.content | html %]</textarea>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </li>
-                                [% IF preview_is_available %]
-                                    <li>
-                                        <a href="/cgi-bin/koha/svc/letters/preview" class="preview_template btn btn-default btn-xs" title="Preview this notice template" data-mtt="[% letter.message_transport_type | html %]" data-lang="[% lang | html %]"><i class="fa fa-eye"></i> Preview</a>
-                                    </li>
                                 [% END %]
-                            </ol>
-                        </fieldset> <!-- /.rows.mtt -->
-                    </div> <!-- /.panel-body -->
-                </div> <!-- /.panel-collapse -->
-            </div> <!-- /.panel.panel-default -->
+                                <table>
+                                    <tr>
+                                        <td>
+                                            [% IF sms_readonly %]
+                                                <select name="SQLfieldname" id="SQLfieldname_[% letter.message_transport_type | html %]_[% lang | html %]" multiple="multiple" size="9" disabled="disabled" >
+                                            [% ELSE%]
+                                                <select name="SQLfieldname" id="SQLfieldname_[% letter.message_transport_type | html %]_[% lang | html %]" multiple="multiple" size="9">
+                                            [% END %]
+                                                [% FOREACH SQLfieldname IN SQLfieldnames %]
+                                                    <option value="[% SQLfieldname.value | html %]">[% SQLfieldname.text | html %]</option>
+                                                [% END %]
+                                            </select>
+                                        </td>
+                                        <td class="actions">
+                                            [% IF sms_readonly %]
+                                                <button type="button" data-containerid="[% letter.message_transport_type | html %]_[% lang | html %]" class="btn btn-default btn-sm insert">Insert <i class="fa-solid fa-right-long" disabled="disabled"></i></button>
+                                            [% ELSE %]
+                                                <button type="button" data-containerid="[% letter.message_transport_type | html %]_[% lang | html %]" class="btn btn-default btn-sm insert">Insert <i class="fa-solid fa-right-long"></i></button>
+                                            [% END %]
+                                        </td>
+                                        <td>
+                                        [% IF sms_readonly %]
+                                            <textarea name="content" data-lang="[% lang | html %]" class="content_[% letter.message_transport_type | html %]" id="content_[% letter.message_transport_type | html %]_[% lang | html %]" cols="80" rows="15" readonly>[% letter.content | html %]</textarea>
+                                        [% ELSE %]
+                                            <textarea name="content" data-lang="[% lang | html %]" class="content_[% letter.message_transport_type | html %]" id="content_[% letter.message_transport_type | html %]_[% lang | html %]" cols="80" rows="15">[% letter.content | html %]</textarea>
+                                        [% END %]
+                                        </td>
+                                    </tr>
+                                </table>
+                            </li>
+                            [% IF preview_is_available %]
+                                <li>
+                                    <a href="/cgi-bin/koha/svc/letters/preview" class="preview_template btn btn-default btn-xs" title="Preview this notice template" data-mtt="[% letter.message_transport_type | html %]" data-lang="[% lang | html %]"><i class="fa-solid fa-eye"></i> Preview</a>
+                                </li>
+                            [% END %]
+                            [% IF letter.sample %]
+                            <li>
+                                <button data-noticeid="[% letter.id | html %]" data-replace="content_[% letter.message_transport_type | html %]_[% lang | html %]" class="notice-sample btn btn-default btn-sm"><i class="fa-solid fa-eye"></i> View default</button>
+                                <textarea style="display:none" id="notice[% letter.id | html %]">[% letter.sample | html %]</textarea>
+                            </li>
+                            [% END %]
+                        </ol>
+                    </fieldset> <!-- /.rows.mtt -->
+                [% END %]
+            [% END # /collapse_item %]
         [% END # /FOR mtt %]
-    </div> <!-- /.panel-group#lang_lang -->
+
+        <div class="panel panel-default">
+            <div class="panel-heading" role="tab" id="format_[% lang | html %]Heading">
+                <h3 class="panel-title">
+                    <a role="button" class="collapsed" data-bs-toggle="collapse" data-parent="#group_[% lang | html %]" href="#format_[% lang | html %]" aria-expanded="false" aria-controls="format_[% lang | html %]">
+                        <span>Format</span>
+                    </a>
+                </h3>
+            </div> <!-- /.panel-heading -->
+            <div id="format_[% lang | html %]" class="panel-collapse collapse" role="tabpanel" aria-labelledby="format_[% lang | html %]Heading">
+                <div class="panel-body">
+                    <fieldset class="rows">
+                    <div class="alert alert-info">These format settings apply when a notice is printed.</div>
+                    <div class="col-md-12">
+                        <ol>
+                            <li id="css-helpers">
+                                <label>Insert selectors to apply styles to: </label>
+                                <a class="css-helper headings" data-lang="[% lang | html %]">Headings</a>
+                                <a class="css-helper tables" data-lang="[% lang | html %]">Tables</a>
+                                <a class="css-helper text" data-lang="[% lang | html %]">All text</a>
+                            </li>
+                            <li class="style_notices_option">
+                                <label for="style_[% lang | html %]">Style (CSS): </label>
+                                <textarea id="style_[% lang | html %]" name="style_[% lang | html %]" rows="15" cols="80">[% letters.$lang.params.style | $raw %]</textarea>
+                            </li>
+                            <li class="format_all_notices_option">
+                                <label for="format_all_[% lang | html %]">Apply format settings to all notices[% IF Koha.Preference('TranslateNotices') %] for this language[% END %]:</label>
+                                <input type="checkbox" name="format_all_[% lang | html %]" id="format_all_[% lang | html %]" class="format_all" value="1" />
+                                <span class="hint">Existing format settings will be overwritten.</span>
+                            </li>
+                        </ol>
+                    </div>
+                    </fieldset> <!-- /.rows.mtt -->
+                </div> <!-- /.panel-body -->
+            </div> <!-- /.panel-collapse -->
+        </div> <!-- /.panel.panel-default -->
+    [% END # /WRAPPER accordion %]
 [% END %]
 
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/tools-menu.js") | $raw %]
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
-    [% Asset.js("lib/hc-sticky.js") | $raw %]
     [% Asset.js("lib/jquery/plugins/jquery.insertatcaret.js") | $raw %]
     <script>
         var no_op_set = '[% no_op_set | html %]';
@@ -654,6 +781,58 @@
         var new_lettercode = '[% new_lettercode | html %]';
         var new_branchcode = '[% new_branchcode | html %]';
         var table_settings = [% TablesSettings.GetTableSettings( 'tools', 'notices', 'lettert', 'json' ) | $raw %];
+        $(document).ready(function(){
+            $(".headings").click(function(){
+                var lang = $(this).data('lang');
+                $("#style_"+lang).val(function(i, text) {
+                    return text + 'pre, #slip, #slip h1, #slip h2, #slip h3, #slip h4, #slip h5, #slip h6,\n' +
+                    '#receipt, #receipt h1, #receipt h2, #receipt h3, #receipt h4, #receipt h5, #receipt h6 {\n' +
+                    '// insert CSS here\n' +
+                    '}';
+                });
+            });
+            $(".tables").click(function(){
+                var lang = $(this).data('lang');
+                $("#style_"+lang).val(function(i, text) {
+                    return text + '\nbody, table, th, td, th:last-child, td:last-child {\n' +
+                    '// insert CSS here\n' +
+                    '}';
+                });
+            });
+            $(".text").click(function(){
+                var lang = $(this).data('lang');
+                $("#style_"+lang).val(function(i, text) {
+                    return text + 'pre, #slip, #slip h1, #slip h2, #slip h3, #slip h4, #slip h5, #slip h6,\n' +
+                    '#receipt, #receipt h1, #receipt h2, #receipt h3, #receipt h4, #receipt h5, #receipt h6,\n' +
+                    'table, th, td, th:last-child, td:last-child {\n' +
+                    '// insert CSS here\n' +
+                    '}';
+                });
+            });
+
+            $(".notice-sample").on("click", function(e){
+                e.preventDefault();
+                var noticeid = $(this).data("noticeid");
+                var replaceid = $(this).data("replace");
+                var body = $("#notice" + noticeid ).val();
+                $("#noticeSampleModal .template-body").text(body);
+                $("#noticeSampleModal").attr("data-replaceid", replaceid);
+                $("#noticeSampleModal").modal("show");
+            });
+
+            $("#noticeSampleModal").on("hide.bs.modal", function(){
+                $("#noticeSampleModalLabel").text("");
+                $("#noticeSampleModal .template-body").text("");
+                $("#noticeSampleModal").attr("data-replaceid", '');
+            });
+
+            $("#noticeSampleModal").on("click", ".copy", function(){
+                var content = $('#noticeSampleModal .template-body').text();
+                var replaceid = $('#noticeSampleModal').data('replaceid');
+                $('#'+replaceid).val(content);
+                $('#noticeSampleModal').modal('hide');
+            });
+        });
      </script>
     [% Asset.js("js/letter.js") | $raw %]
 [% END %]

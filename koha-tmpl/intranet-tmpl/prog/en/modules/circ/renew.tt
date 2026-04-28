@@ -2,10 +2,15 @@
 [% USE Asset %]
 [% USE Koha %]
 [% USE KohaDates %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 
-<title>Renew [% title | html %] &rsaquo; Circulation &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% tx("Renew {title}", { title = title }) | html %] &rsaquo;
+    [% t("Circulation") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -33,13 +38,14 @@
                 <div class="row">
 
                 [% IF Koha.Preference('CircSidebar') %]
-                    <div class="col-sm-10 col-sm-push-2">
+                    <div class="col-md-10 order-md-2 order-sm-1">
                 [% ELSE %]
-                    <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+                    <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
                 [% END %]
+                [% INCLUDE 'messages.inc' %]
 
                 [% IF error %]
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         <h1>Cannot renew:</h1>
 
                             [% IF error == "no_item" %]
@@ -56,9 +62,12 @@
 
                                 [% IF Koha.Preference('AllowRenewalLimitOverride') %]
                                     <form method="post" action="/cgi-bin/koha/circ/renew.pl">
+                                        [% INCLUDE 'csrf-token.inc' %]
                                         <input type="hidden" name="barcode" value="[% item.barcode | html %]"/>
                                         <input type="hidden" name="override_limit" value="1" />
-                                        <button type="submit" class="approve"><i class="fa fa-check"></i> Override limit and renew</button>
+                                        <input type="hidden" name="op" value="cud-renew" />
+                                        <input type="hidden" name="hard_due_date" value="[% hard_due_date | html %]" />
+                                        <button type="submit" class="btn btn-default approve"><i class="fa fa-check"></i> Override limit and renew</button>
                                     </form>
                                 [% END %]
 
@@ -68,9 +77,11 @@
 
                                 [% IF Koha.Preference('AllowRenewalLimitOverride') %]
                                     <form method="post" action="/cgi-bin/koha/circ/renew.pl">
+                                        [% INCLUDE 'csrf-token.inc' %]
                                         <input type="hidden" name="barcode" value="[% item.barcode | html %]"/>
                                         <input type="hidden" name="override_limit" value="1" />
-                                        <button type="submit" class="approve"><i class="fa fa-check"></i> Override limit and renew</button>
+                                        <input type="hidden" name="op" value="cud-renew" />
+                                        <button type="submit" class="btn btn-default approve"><i class="fa fa-check"></i> Override limit and renew</button>
                                     </form>
                                 [% END %]
 
@@ -80,9 +91,11 @@
 
                                 [% IF Koha.Preference('AllowRenewalLimitOverride') %]
                                     <form method="post" action="/cgi-bin/koha/circ/renew.pl">
+                                        [% INCLUDE 'csrf-token.inc' %]
                                         <input type="hidden" name="barcode" value="[% item.barcode | html %]"/>
                                         <input type="hidden" name="override_limit" value="1" />
-                                        <button type="submit" class="approve"><i class="fa fa-check"></i> Override and renew</button>
+                                        <input type="hidden" name="op" value="cud-renew" />
+                                        <button type="submit" class="btn btn-default approve"><i class="fa fa-check"></i> Override and renew</button>
                                     </form>
                                 [% END %]
 
@@ -92,9 +105,11 @@
 
                                 [% IF Koha.Preference('AllowRenewalLimitOverride') %]
                                     <form method="post" action="/cgi-bin/koha/circ/renew.pl">
+                                        [% INCLUDE 'csrf-token.inc' %]
                                         <input type="hidden" name="barcode" value="[% item.barcode | html %]"/>
                                         <input type="hidden" name="override_limit" value="1" />
-                                        <button type="submit" class="approve"><i class="fa fa-check"></i> Override and renew</button>
+                                        <input type="hidden" name="op" value="cud-renew" />
+                                        <button type="submit" class="btn btn-default approve"><i class="fa fa-check"></i> Override and renew</button>
                                     </form>
                                 [% END %]
 
@@ -104,9 +119,11 @@
 
                                 [% IF Koha.Preference('AllowRenewalLimitOverride') %]
                                     <form method="post" action="/cgi-bin/koha/circ/renew.pl">
+                                        [% INCLUDE 'csrf-token.inc' %]
                                         <input type="hidden" name="barcode" value="[% item.barcode | html %]"/>
                                         <input type="hidden" name="override_limit" value="1" />
-                                        <input type="submit" class="approve" value="Override and renew" />
+                                        <input type="hidden" name="op" value="cud-renew" />
+                                        <input type="submit" class="btn btn-default approve" value="Override and renew" />
                                     </form>
                                 [% END %]
 
@@ -116,9 +133,11 @@
 
                                 [% IF Koha.Preference('AllowRenewalLimitOverride') %]
                                     <form method="post" action="/cgi-bin/koha/circ/renew.pl">
+                                        [% INCLUDE 'csrf-token.inc' %]
                                         <input type="hidden" name="barcode" value="[% item.barcode | html %]"/>
                                         <input type="hidden" name="override_limit" value="1" />
-                                        <input type="submit" class="approve" value="Override and renew" />
+                                        <input type="hidden" name="op" value="cud-renew" />
+                                        <input type="submit" class="btn btn-default approve" value="Override and renew" />
                                     </form>
                                 [% END %]
 
@@ -128,9 +147,11 @@
 
                                 [% IF Koha.Preference('AllowRenewalLimitOverride') %]
                                     <form method="post" action="/cgi-bin/koha/circ/renew.pl">
+                                        [% INCLUDE 'csrf-token.inc' %]
                                         <input type="hidden" name="barcode" value="[% item.barcode | html %]"/>
                                         <input type="hidden" name="override_limit" value="1" />
-                                        <button type="submit" class="approve"><i class="fa fa-check"></i> Override limit and renew</button>
+                                        <input type="hidden" name="op" value="cud-renew" />
+                                        <button type="submit" class="btn btn-default approve"><i class="fa fa-check"></i> Override limit and renew</button>
                                     </form>
                                 [% END %]
 
@@ -139,6 +160,7 @@
                                 <p>[% INCLUDE 'biblio-title.inc' biblio=item.biblio link = 1 %] ( [% item.barcode | html %] ): This item is on hold for another patron.</p>
 
                                 <form method="post" action="/cgi-bin/koha/circ/renew.pl">
+                                    [% INCLUDE 'csrf-token.inc' %]
                                     <input type="hidden" name="barcode" value="[% item.barcode | html %]"/>
                                     <input type="hidden" name="override_limit" value="1" />
                                     <input type="hidden" name="override_holds" value="1" />
@@ -146,7 +168,8 @@
                                         <label for="renewonholdduedate">Renewal due date:</label>
                                         <input type="text" size="20" id="renewonholdduedate" name="renewonholdduedate" value="" class="flatpickr" data-flatpickr-enable-time="true" />
                                     </div>
-                                    <button type="submit" class="approve"><i class="fa fa-check"></i> Override and renew</button>
+                                    <input type="hidden" name="op" value="cud-renew" />
+                                    <button type="submit" class="btn btn-default approve"><i class="fa fa-check"></i> Override and renew</button>
                                 </form>
 
                             [% ELSIF error == "patron_restricted" %]
@@ -171,13 +194,13 @@
 
                                 <form method="get" action="/cgi-bin/koha/circ/renew.pl">
                                     <input type="hidden" name="hard_due_date" value="[% hard_due_date | html %]" />
-                                    <button type="submit" class="deny"><i class="fa fa-times"></i> Continue without renewing</button>
+                                    <button type="submit" class="btn btn-default deny"><i class="fa fa-times"></i> Continue without renewing</button>
                                 </form>
                     </div>
                 [% END %]
 
                 [% IF date_due %]
-                    <div class="dialog message">
+                    <div class="alert alert-info">
                         <h1>Item renewed:</h1>
                         <p>
                             [% INCLUDE 'biblio-title.inc' biblio=item.biblio link = 1 %]
@@ -191,6 +214,7 @@
 
             [% UNLESS error %]
                 <form method="post" action="/cgi-bin/koha/circ/renew.pl" autocomplete="off" >
+                    [% INCLUDE 'csrf-token.inc' %]
 
                     <fieldset>
                         <h1>Renew</h1>
@@ -207,6 +231,10 @@
                             <input name="barcode" size="14" class="barcode focus" type="text" placeholder="Enter item barcode" />
 
                         [% END %]
+                        <input type="hidden" name="op" value="cud-renew" />
+                        <div id="show-circ-settings">
+                            <a href="#" title="Renewal settings"><i class="fa-solid fa-sliders"></i></a>
+                        </div>
                         <button type="submit" class="btn btn-primary">Submit</button>
 
                         <div class="circ-settings show">
@@ -221,12 +249,12 @@
             [% END %]
 
                     [% IF Koha.Preference('CircSidebar') %]
-                            </div> <!-- /.col-sm-10.col-sm-push-2 -->
-                            <div class="col-sm-2 col-sm-pull-10">
+                            </div> <!-- /.col-md-10.order-md-2 -->
+                            <div class="col-md-2 order-sm-2 order-md-1">
                                 <aside>
                                     [% INCLUDE 'circ-nav.inc' %]
                                 </aside>
-                            </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+                            </div> <!-- /.col-md-2.order-md-1 -->
                         </div> <!-- /.row -->
                     [% END %]
 
@@ -235,6 +263,7 @@
     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/pages/circulation.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
     [% IF error %]
         <script>

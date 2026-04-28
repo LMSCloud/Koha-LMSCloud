@@ -82,6 +82,12 @@ $filters->{to_placed_on}   = $to_placed_on;
   my ( @result_order_loop, @selected_order_loop );
 my @ordernumbers = split ',', scalar $input->param('ordernumbers') || '';
 if ( $op eq 'select' ) {
+
+    # Set filter for 'all status'
+    if ( $filters->{orderstatus} eq "any" ) {
+        $filters->{get_canceled_order} = 1;
+    }
+
     @result_order_loop = map {
         my $order = $_;
         ( grep {$_ eq $order->{ordernumber}} @ordernumbers ) ? () : $order
@@ -92,7 +98,7 @@ if ( $op eq 'select' ) {
       ? @{ C4::Acquisition::GetHistory( ordernumbers => \@ordernumbers ) }
       : ();
 }
-elsif ( $op eq 'batch_edit' ) {
+elsif ( $op eq 'cud-batch_edit' ) {
     @ordernumbers = $input->multi_param('ordernumber');
 
     # build budget list
@@ -120,7 +126,7 @@ elsif ( $op eq 'batch_edit' ) {
         budget_loop => $budget_loop,
     );
 }
-elsif ( $op eq 'do_duplicate' ) {
+elsif ( $op eq 'cud-do_duplicate' ) {
     my @fields_to_copy = $input->multi_param('copy_existing_value');
 
     my $default_values;

@@ -7,6 +7,7 @@ use Text::Wrap qw( wrap );
 use Algorithm::CheckDigits qw( CheckDigits );
 use Text::CSV_XS;
 use Text::Bidi qw( log2vis );
+use GD::Barcode::Code39;
 
 use C4::Context;
 use C4::Biblio qw( GetMarcFromKohaField );
@@ -37,6 +38,8 @@ sub _check_params {
         'oblique_title',
         'font',
         'font_size',
+        'scale_width',
+        'scale_height',
         'callnum_split',
         'justify',
         'format_string',
@@ -191,7 +194,7 @@ sub _get_barcode_data {
             $f = $';
             next FIELD_LIST;
         }
-        elsif ( $f =~ /^($match_kohatable)(\.(split)\('([^']+)'(,([0-9]+))?\)\[([0-9]+)\])?/ ) {
+        elsif ( $f =~ /^($match_kohatable)(\.(split)\('([^']+)'(,([0-9]+))?\)\[([0-9]+)\])/ ) {
             my ($field,$split,$splittext,$splitlimit,$splitindex) = ($1,$3,$4,$6,$7);
             $f = $';
             if ($item->{$field}) {
@@ -609,9 +612,6 @@ sub barcode {
     my $hide_text = 'yes';
     $hide_text = '' if ( $self->{'print_barcode_text'} == 0 );
     if ($params{'barcode_type'} =~ m/CODE39/) {
-        $bar_length = '17.5';
-        $tot_bar_length = ($bar_length * $num_of_bars) + ($guard_length * 2);
-        $x_scale_factor = ($params{'width'} / $tot_bar_length);
         if ($params{'barcode_type'} eq 'CODE39MOD') {
             my $c39 = CheckDigits('code_39');   # get modulo43 checksum
             $params{'barcode_data'} = $c39->complete($params{'barcode_data'});
@@ -622,6 +622,11 @@ sub barcode {
             $hide_text = '';
         }
         eval {
+            #NOTE: Barcode length algorithm comes from PDF::Reuse::Barcode
+            #NOTE: 20 is arbitrary padding added to the barcode background by PDF::Reuse::Barcode
+            my $oGdB                 = GD::Barcode::Code39->new("*$params{'barcode_data'}*");
+            my $whole_barcode_length = ( length( $oGdB->barcode() ) * 0.9 ) + 20;
+            $x_scale_factor = ( $params{'width'} / $whole_barcode_length );
             PDF::Reuse::Barcode::Code39(
                 x                   => $params{'llx'},
                 y                   => $params{'lly'},
@@ -703,7 +708,7 @@ sub csv_data {
     my $item = _get_label_item($self->{'item_number'});
     my $biblio = Koha::Biblios->find($item->{biblionumber});
     my $bib_record = $biblio->metadata->record;
-    my @csv_data = (map { _get_barcode_data($_->{'code'},$item,$bib_record) } @$label_fields);
+    my @csv_data = (map { (_get_barcode_data($_->{'code'},$item,$bib_record))[0] } @$label_fields);
     return \@csv_data;
 }
 

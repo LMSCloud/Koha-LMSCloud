@@ -1,8 +1,12 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE To %]
 [% USE Asset %]
 [% USE AuthorisedValues %]
-
+[% USE Branches %]
+[% USE ItemTypes %]
+[% USE TablesSettings %]
+[% PROCESS 'i18n.inc' %]
 [%- BLOCK form_label -%]
   [%- SWITCH label -%]
     [%- CASE 'barcode' %]<span>Barcode</span>
@@ -26,9 +30,9 @@
     [%- CASE 'All collection codes' %]<span>All collections</span>
     [%- CASE 'notforloan' %]<span>Status</span>
     [%- CASE 'All statuses' %]<span>All statuses</span>
-    [%- CASE 'damaged' %]<span>Damaged</span>
     [%- CASE 'itemlost' %]<span>Lost</span>
     [%- CASE 'withdrawn' %]<span>Withdrawn</span>
+    [%- CASE 'damaged' %]<span>Damaged</span>
     [%- CASE 'new_status' %]<span>Is new</span>
   [%- END -%]
 [%- END -%]
@@ -37,30 +41,59 @@
   <div class="form-field form-field-select">
     <label class="form-field-label" for="[% name | html %]">[% INCLUDE form_label label=name %]</label>
     <select id="[% name | html %]_op" name="[% name | html %]_op">
-      <option value="=">is</option>
-      <option value="!=" >is not</option>
+      [% IF query.param(name _ '_op') == '=' || !query.param(name _ '_op') %]
+        <option value="=" selected="selected">is</option>
+        <option value="!=" >is not</option>
+      [% ELSE %]
+        <option value="=">is</option>
+        <option value="!=" selected="selected">is not</option>
+      [% END %]
     </select>
     <select id="[% name | html %]" name="[% name | html %]" multiple="multiple" size="[% options.size < 4 ? options.size + 1 : 4 | html %]">
-      <option value="" selected="selected">
-        [% IF (empty_option) %][% INCLUDE form_label label=empty_option %][% ELSE %]<span>All</span>[% END %]
-      </option>
+      [% IF query.param(name).size == 0 %]
+        <option value="" selected="selected">
+            [% IF (empty_option) %][% INCLUDE form_label label=empty_option %][% ELSE %]<span>All</span>[% END %]
+        </option>
+      [% END %]
       [% FOREACH option IN options %]
+        [% IF query.param(name).grep('^' _ option.value _ '$').size %]
+            <option value="[% option.value | html %]" selected="selected">[% option.label | html %]</option>
+        [% ELSE %]
         <option value="[% option.value | html %]">[% option.label | html %]</option>
+        [% END %]
       [% END %]
     </select>
   </div>
 [% END %]
 
 [% BLOCK form_field_select_option %]
-  <option value="[% value | html %]">[% INCLUDE form_label label=value %]</option>
+  [% IF query.param('f').$i == value || query.param('f') == value %]
+    <option value="[% value | html %]" selected="selected">[% INCLUDE form_label label=value %]</option>
+  [% ELSE %]
+    <option value="[% value | html %]">[% INCLUDE form_label label=value %]</option>
+  [% END %]
 [% END %]
 
 [% BLOCK form_field_select_text %]
+  [% SET i = loop.index %]
   <div class="form-field form-field-select-text">
-    <select name="c" class="form-field-conjunction" disabled="disabled">
-      <option value="and">AND</option>
-      <option value="or">OR</option>
-    </select>
+    [% IF loop.first || !query.param('f') %]
+        <select name="c" class="form-field-conjunction" disabled="disabled">
+        <option value="and">AND</option>
+        <option value="or">OR</option>
+        </select>
+    [% ELSE %]
+        [% SET j = i - 1 %]
+        <select name="c" class="form-field-conjunction">
+            [% IF query.param('c').$j == 'and' || query.param('c') == 'and' %]
+                <option value="and" selected="selected">AND</option>
+                <option value="or">OR</option>
+            [% ELSE %]
+                <option value="and">AND</option>
+                <option value="or" selected="selected">OR</option>
+            [% END %]
+        </select>
+    [% END %]
     <select name="f" class="form-field-column">
       [% INCLUDE form_field_select_option value='barcode' %]
       [% INCLUDE form_field_select_option value='itemcallnumber' %]
@@ -77,29 +110,27 @@
           [% FOREACH field IN items_search_fields %]
             [% marcfield = field.tagfield %]
             [% IF field.tagsubfield.defined AND field.tagsubfield != "" %]
-              [% marcfield = marcfield _ '$' _ field.tagsubfield %]
+                [% marcfield = "marc:" _ marcfield _ '$' _ field.tagsubfield %]
             [% END %]
-            <option value="marc:[% marcfield | html %]" data-authorised-values-category="[% field.authorised_values_category | html %]">[% field.label | html %] ([% marcfield | html %])</option>
+            [% IF query.param('f').$i == marcfield || query.param('f') == marcfield %]
+                <option value="[% marcfield | html %]" data-authorised-values-category="[% field.authorised_values_category | html %]" selected="selected">[% field.label | html %] ([% marcfield | html %])</option>
+            [% ELSE %]
+                <option value="[% marcfield | html %]" data-authorised-values-category="[% field.authorised_values_category | html %]">[% field.label | html %] ([% marcfield | html %])</option>
+            [% END %]
           [% END %]
         </optgroup>
       [% END %]
     </select>
-    [% IF params.exists('op') %]
-        <select name="op" class="form-field-not">
-           <option value="like">is</option>
-            [% IF params.op == 'not like' %]
-               <option value="not like" selected="selected">is not</option>
-            [% ELSE %]
-               <option value="not like">is not</option>
-            [% END %]
-        </select>
-    [% ELSE %]
-        <select name="op" class="form-field-not">
-           <option value="like">is</option>
-           <option value="not like">is not</option>
-        </select>
-    [% END %]
-    <input type="text" name="q" class="form-field-value" value="" />
+    <select name="op" class="form-field-not">
+        [% IF query.param('op').$i == 'not like' || query.param('op') == 'not like' %]
+            <option value="like">is</option>
+            <option value="not like" selected="selected">is not</option>
+        [% ELSE %]
+            <option value="like">is</option>
+            <option value="not like">is not</option>
+        [% END %]
+    </select>
+    <input type="text" name="q" class="form-field-value" value="[% query.param('q').$i ? query.param('q').$i : query.param('q') | html %]"/>
   </div>
 [% END %]
 
@@ -142,7 +173,11 @@
 
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-  <title>Item search &rsaquo; Catalog &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Item search") | html %] &rsaquo;
+    [% t("Catalog") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
   [% INCLUDE 'doc-head-close.inc' %]
   [% Asset.css("css/itemsearchform.css") | $raw %]
 </head>
@@ -165,13 +200,14 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+        <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
+            [% INCLUDE 'messages.inc' %]
 
     <div id="item-search-block">
       <h1>Item search</h1>
 
       <form action="/cgi-bin/koha/catalogue/itemsearch.pl" method="get" id="itemsearchform">
-          <div id="toolbar" class="btn-toolbar">
+          <div id="toolbar" class="btn-toolbar sticky">
                 <div class="btn-group">
                     <button class="btn btn-primary"><i class="fa fa-search"></i> Search</button>
                 </div>
@@ -179,74 +215,127 @@
                     <a href="/cgi-bin/koha/catalogue/search.pl" class="btn btn-default"><i class="fa fa-search"></i> Go to advanced search</a>
                 </div>
           </div>
-          <fieldset>
-            [% INCLUDE form_field_select name="homebranch" options = homebranches empty_option = "All libraries" %]
-            [% INCLUDE form_field_select name="holdingbranch" options = branches empty_option = "All libraries" %]
+          <fieldset id="librarylocation">
+            [% INCLUDE form_field_select name="homebranch" options = branches %]
+            [% INCLUDE form_field_select name="holdingbranch" options = branches %]
             [% IF locations.size %]
-                [% INCLUDE form_field_select name="location" options = locations empty_option = "All locations" %]
+                [% INCLUDE form_field_select name="location" options = locations %]
             [% END %]
           </fieldset>
-          <fieldset>
-            [% INCLUDE form_field_select name="itype" options = itemtypes empty_option = "All item types" %]
+          <fieldset id="access_and_condition">
+            [% INCLUDE form_field_select name="itype" options = itemtypes style="min-width:300px" %]
             [% IF ccodes.size %]
-                [% INCLUDE form_field_select name="ccode" options = ccodes empty_option = "All collection codes" %]
+                [% INCLUDE form_field_select name="ccode" options = ccodes %]
             [% END %]
             [% IF notforloans.size %]
-                [% INCLUDE form_field_select name="notforloan" options = notforloans empty_option = "All statuses" %]
+                [% INCLUDE form_field_select name="notforloan" options = notforloans %]
             [% END %]
             [% IF itemlosts.size %]
-                [% INCLUDE form_field_select name="itemlost" options = itemlosts empty_option = "All statuses" %]
+                [% INCLUDE form_field_select name="itemlost" options = itemlosts %]
             [% END %]
             [% IF withdrawns.size %]
-                [% INCLUDE form_field_select name="withdrawn" options = withdrawns empty_option = "All statuses" %]
+                [% INCLUDE form_field_select name="withdrawn" options = withdrawns %]
+            [% END %]
+            [% IF damageds.size %]
+                [% INCLUDE form_field_select name="damaged" options = damageds %]
             [% END %]
             <div class="form-field">
                 <label class="form-field-label">Availability:</label>
-                <input type="radio" name="onloan" id="onloan_indifferent" value="" checked="checked"/>
+                [% IF query.param('onloan') == '' %]
+                    <input type="radio" name="onloan" id="onloan_indifferent" value="" checked="checked"/>
+                [% ELSE %]
+                    <input type="radio" name="onloan" id="onloan_indifferent" value=""/>
+                [% END %]
                 <label for="onloan_indifferent">Ignore</label>
-                <input type="radio" name="onloan" id="onloan_yes" value="IS NOT NULL" />
+                [% IF query.param('onloan') == 'IS NOT NULL' %]
+                    <input type="radio" name="onloan" id="onloan_yes" value="IS NOT NULL" checked="checked"/>
+                [% ELSE %]
+                    <input type="radio" name="onloan" id="onloan_yes" value="IS NOT NULL"/>
+                [% END %]
                 <label for="onloan_yes">Checked out</label>
+                [% IF query.param('onloan') == 'IS NULL' %]
+                    <input type="radio" name="onloan" id="onloan_no" value="IS NULL" checked="checked"/>
+                [% ELSE %]
+                    <input type="radio" name="onloan" id="onloan_no" value="IS NULL"/>
+                [% END %]
+                <label for="onloan_no">Not checked out</label>
             </div>
           </fieldset>
-          <fieldset>
-            [% INCLUDE form_field_select_text %]
+          <fieldset id="barcodesearch">
+            [% IF !query.param('f') %]
+                [% INCLUDE form_field_select_text %]
+            [% ELSE %]
+                [% FOREACH field IN query.param('f') %]
+                    [% INCLUDE form_field_select_text %]
+                [% END  %]
+            [% END %]
             <p class="hint">You can use the following wildcard characters: % _</p>
             <p class="hint">% matches any number of characters</p>
             <p class="hint">_ matches only a single character</p>
+            [% IF ( CAN_user_parameters_manage_item_search_fields ) %]
+                <p><a href="/cgi-bin/koha/admin/items_search_fields.pl">Manage custom fields for item search</a></p>
+            [% END %]
           </fieldset>
-          <fieldset>
+          <fieldset id="callnumber_checkouts">
             <div class="form-field">
               <label class="form-field-label" for="itemcallnumber_from">From call number:</label>
-              <input type="text" id="itemcallnumber_from" name="itemcallnumber_from" value="" />
+              <input type="text" id="itemcallnumber_from" name="itemcallnumber_from" value="[% query.param('itemcallnumber_from') | html %]" />
               <span class="hint">(inclusive)</span>
             </div>
             <div class="form-field">
               <label class="form-field-label" for="itemcallnumber_to">To call number:</label>
-              <input type="text" id="itemcallnumber_to" name="itemcallnumber_to" value="" />
+              <input type="text" id="itemcallnumber_to" name="itemcallnumber_to" value="[% query.param('itemcallnumber_to') | html %]" />
               <span class="hint">(inclusive)</span>
             </div>
-            [% INCLUDE form_field_radio_yes_no name="damaged" %]
             [% IF ( has_new_status ) %]
                 [% INCLUDE form_field_radio_yes_no name="new_status" divclass='item-new-status' %]
             [% END %]
             <div class="form-field">
               <label class="form-field-label" for="issues_op">Checkout count:</label>
               <select id="issues_op" name="issues_op">
-                <option value=">">&gt;</option>
-                <option value="<">&lt;</option>
-                <option value="=">=</option>
-                <option value="!=">!=</option>
+                [% IF query.param('issues_op') == '>' %]
+                  <option value=">" selected="selected">&gt;</option>
+                [% ELSE %]
+                  <option value=">">&gt;</option>
+                [% END %]
+                [% IF query.param('issues_op') == '<' %]
+                  <option value="<" selected="selected">&lt;</option>
+                [% ELSE %]
+                  <option value="<">&lt;</option>
+                [% END %]
+                [% IF query.param('issues_op') == '=' %]
+                  <option value="=" selected="selected">=</option>
+                [% ELSE %]
+                  <option value="=">=</option>
+                [% END %]
+                [% IF query.param('issues_op') == '!=' %]
+                  <option value="!=" selected="selected">!=</option>
+                [% ELSE %]
+                  <option value="!=">!=</option>
+                [% END %]
               </select>
-              <input type="text" name="issues" />
+              <input type="text" name="issues" value="[% query.param('issues') | html %]"/>
             </div>
             <div class="form-field">
               <label class="form-field-label" for="datelastborrowed_op">Last checkout date:</label>
               <select id="datelastborrowed_op" name="datelastborrowed_op">
-                <option value=">">After</option>
-                <option value="<">Before</option>
-                <option value="=">On</option>
+                [% IF query.param('datelastborrowed_op') == '>' %]
+                  <option value=">" selected="selected">After</option>
+                [% ELSE %]
+                  <option value=">">After</option>
+                [% END %]
+                [% IF query.param('datelastborrowed_op') == '<' %]
+                  <option value="<" selected="selected">Before</option>
+                [% ELSE %]
+                  <option value="<">Before</option>
+                [% END %]
+                [% IF query.param('datelastborrowed_op') == '=' %]
+                  <option value="=" selected="selected">[% tp('On specific date', 'On') | html %]</option>
+                [% ELSE %]
+                  <option value="=">[% tp('On specific date', 'On') | html %]</option>
+                [% END %]
               </select>
-              <input type="text" name="datelastborrowed" />
+              <input type="text" name="datelastborrowed" value="[% query.param('datelastborrowed') | html %]"/>
               <span class="hint">ISO Format (YYYY-MM-DD)</span>
             </div>
           </fieldset>
@@ -264,16 +353,39 @@
   </div>
     <div class="row">
         <div class="col-md-12">
-      <div id="results-wrapper"></div>
+            <div id="results-wrapper">
+
+            </div>
         </div>
       </div>
 
+        <form method="POST" action="/cgi-bin/koha/tools/batchMod.pl" id="batch_item_operations">
+            <!-- dummy values which will be replaced by JavaScript -->
+            [% INCLUDE 'csrf-token.inc' %]
+            <input type="hidden" name="op" value="cud-show" />
+            <input type="hidden" id="batch_mod_del" name="del" value="0" />
+        </form>
+
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
-    [% Asset.js("lib/jquery/plugins/jquery.dataTables.columnFilter.js") | $raw %]
-    [% Asset.js("lib/hc-sticky.js") | $raw %]
+    [% INCLUDE 'columns_settings.inc' %]
+    [% INCLUDE 'select2.inc' %]
     <script>
         var authorised_values = [% authorised_values_json | $raw %];
+
+        function showItemSelections( number ){
+            let caret = ' <span class="caret">';
+            if( number > 0 ){
+                $("#table_search_selections").show().find("span").html(_("Items selected: ") + number );
+                $("#batch_mod_menu").removeClass("disabled").prop("disabled", false);
+                $("#export-button").html(_("Export selected results (%s) to").format  ( number ) + caret);
+            } else {
+                $("#table_search_selections").hide();
+                $("#batch_mod_menu").prop("disabled", true).addClass("disabled");
+                $("#batch_item_operations").empty();
+                $("#export-button").html(_("Export all results to") + caret);
+            }
+        }
 
         function loadAuthorisedValuesSelect(select) {
             var selected = select.find('option:selected');
@@ -299,7 +411,7 @@
             }
         }
 
-    function addNewField( link ) {
+        function addNewField( link ) {
             var form_field = $('div.form-field-select-text').last();
             var copy = form_field.clone(true);
             copy.find('input,select').not('[type="hidden"]').each(function() {
@@ -307,138 +419,50 @@
             });
             copy.find('.form-field-conjunction').prop('disabled', false).val('and');
             form_field.after(copy);
-      link.remove();
+            link.remove();
             copy.find('select.form-field-column').change();
         }
 
-        function submitForm($form) {
-            var tr = ''
-                + '    <tr>'
-                + '      <th id="items_checkbox"></th>'
-                + '      <th id="items_title">' + _("Title") + '</th>'
-                + '      <th id="items_pubdate">' + _("Publication date") + '</th>'
-                + '      <th id="items_publisher">' + _("Publisher") + '</th>'
-                + '      <th id="items_collection">' + _("Collection") + '</th>'
-                + '      <th id="items_barcode">' + _("Barcode") + '</th>'
-                + '      <th id="items_enumchron">' + _("Serial enumeration") + '</th>'
-                + '      <th id="items_callno">' + _("Call number") + '</th>'
-                + '      <th id="items_homebranch">' + _("Home library") + '</th>'
-                + '      <th id="items_holdingbranch">' + _("Current library") + '</th>'
-                + '      <th id="items_location">' + _("Shelving location") + '</th>'
-                + '      <th id="items_itype">' + _("Itemtype") + '</th>'
-                + '      <th id="item_inventoryno">' + _("Inventory number") + '</th>'
-                + '      <th id="items_status">' + _("Not for loan status") + '</th>'
-                + '      <th id="items_itemlost">' + _("Lost status") + '</th>'
-                + '      <th id="items_widthdrawn">' + _("Withdrawn status") + '</th>'
-                + '      <th id="items_checkouts">' + _("Checkouts") + '</th>'
-                + '      <th id="items_date_due">' + _("Due date") + '</th>'
-                + '      <th id=""></th>'
-                + '    </tr>'
-            var table = ''
-                + '<div class="page-section">'
-                + '<table id="results">'
-                + '  <thead>' + tr + tr + '</thead>'
-                + '  <tbody></tbody>'
-                + '</table>'
-                + '</div>';
-            var advSearchLink = $('<a>')
-                .attr('href', '/cgi-bin/koha/catalogue/search.pl')
-                .html(_("Go to advanced search"));
-            var editSearchLink = $('<a>')
-                .attr('href', '#')
-                .html(_("Edit search"))
-                .addClass('btn btn-default btn-xs')
-                .on('click', function(e) {
-                    e.preventDefault();
-                    $('#item-search-block').show();
-                });
+        function exportItems(format) {
+            let item_search_selections = JSON.parse(localStorage.getItem("item_search_selections")) || [];
+            if (item_search_selections.length > 0) {
+                let inputs = item_search_selections.map(itemnumber =>
+                    `<input type="hidden" name="itemnumber" value="${itemnumber}">`
+                ).join('');
 
-            function getCheckedItemnumbers () {
-                var itemnumbers;
-                try {
-                    itemnumbers = JSON.parse(sessionStorage.getItem('itemsearch_itemnumbers') || '[]');
-                } catch (e) {
-                    itemnumbers = [];
-                }
+                let form = $(`
+                    <form method="POST" action="/cgi-bin/koha/catalogue/item-export.pl">
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="format" value="${format}">
+                        <input type="hidden" name="op" value="cud-export">
+                        ${inputs}
+                    </form>
+                `);
 
-                return new Set(itemnumbers);
-            }
-
-            function exportItems(format) {
-              var itemnumbers = getCheckedItemnumbers();
-              if (itemnumbers.size > 0) {
-                var href = '/cgi-bin/koha/catalogue/item-export.pl?format=' + format;
-                href += '&itemnumber=' + Array.from(itemnumbers).join('&itemnumber=');
-                location = href;
-              } else {
+                $('body').append(form);
+                form.submit();
+                form.remove();
+            } else {
                 $('#format-' + format).prop('checked', true);
                 $('#itemsearchform').submit();
                 $('#format-html').prop('checked', true);
-              }
             }
+        }
 
-            var csvExportLink = $('<a>')
-                .attr('href', '#')
-                .html("CSV")
-                .on('click', function(e) {
-                    e.preventDefault();
-                    exportItems('csv');
+        function prepSelections(){
+            let item_search_selections = JSON.parse( localStorage.getItem("item_search_selections") ) || [];
+            if( item_search_selections.length > 0 ){
+                showItemSelections( item_search_selections.length );
+                $("#item_search input[type='checkbox']").each(function(){
+                    var itemnumber = $(this).val();
+                    if( item_search_selections.indexOf( itemnumber ) >= 0 ){
+                        $(this).prop("checked", true );
+                    }
                 });
-            var barcodesExportLink = $('<a>')
-                .attr('href', '#')
-                .html(_("Barcodes file"))
-                .on('click', function(e) {
-                    e.preventDefault();
-                    exportItems('barcodes');
-              });
+            }
+        }
 
-            var exportButton = $('<div>')
-              .addClass('btn-group')
-              .append($('<button>')
-                  .addClass('btn btn-default btn-xs dropdown-toggle')
-                  .attr('id', 'export-button')
-                  .attr('data-toggle', 'dropdown')
-                  .attr('aria-haspopup', 'true')
-                  .attr('aria-expanded', 'false')
-                  .html(_("Export all results to") + ' <span class="caret"></span>'))
-              .append($('<ul>')
-                  .addClass('dropdown-menu')
-                  .append($('<li>').append(csvExportLink))
-                  .append($('<li>').append(barcodesExportLink)));
-
-            var selectVisibleRows = $('<a>')
-              .attr('href', '#')
-              .append('<i class="fa fa-check"></i> ')
-              .append(_("Select visible rows"))
-              .on('click', function(e) {
-                  e.preventDefault();
-                  $('#results input[type="checkbox"]').prop('checked', true).change();
-              });
-            var clearSelection = $('<a>')
-              .attr('href', '#')
-              .append('<i class="fa fa-remove"></i> ')
-              .append(_("Clear selection"))
-              .on('click', function(e) {
-                  e.preventDefault();
-                  sessionStorage.setItem('itemsearch_itemnumbers', '[]');
-                  $('#results input[type="checkbox"]').prop('checked', false).change();
-              });
-            var exportLinks = $('<p>')
-              .append(selectVisibleRows)
-              .append(' ')
-              .append(clearSelection)
-              .append(' | ')
-              .append(exportButton);
-
-            var results_heading = $('<div>').addClass('results-heading')
-                .append("<h1>" + _("Item search results") + "</h1>")
-                .append($('<p>').append(advSearchLink))
-                .append($('<p>').append(editSearchLink))
-                .append(exportLinks);
-            $('#results-wrapper').empty()
-                .append(results_heading)
-                .append(table);
-
+        function getParams($form) {
             var params = [];
             $form.find('select:not(:disabled) option:selected,input[type="text"]:not(:disabled),input[type="hidden"]:not(:disabled),input[type="radio"]:checked').each(function() {
                 if ( $(this).prop('tagName').toLowerCase() == 'option' ) {
@@ -449,146 +473,252 @@
                     params.push({ 'name': $(this).attr('name'), 'value': $(this).val() });
                 }
             });
+            return params;
+        }
 
-            $('#results').dataTable($.extend(true, {}, dataTablesDefaults, {
-                'bDestroy': true,
-                'bServerSide': true,
-                'bProcessing': true,
-                'sAjaxSource': '/cgi-bin/koha/catalogue/itemsearch.pl',
-                'fnServerData': function(sSource, aoData, fnCallback) {
-                    aoData.push( { 'name': 'format', 'value': 'json' } );
-                    for (i in params) {
-                        aoData.push(params[i]);
-                    }
-                    $.ajax({
-                        'dataType': 'json',
-                        'type': 'POST',
-                        'url': sSource,
-                        'data': aoData,
-                        'success': function(json){
-                            fnCallback(json);
-                        }
-                    });
-                },
-                'sDom': '<"top pager"ilp>t<"bottom pager"ip>r',
-                'aaSorting': [[1, 'asc']],
-                'aoColumns': [
-                    { 'sName': 'checkbox', 'bSortable': false },
-                    { 'sName': 'title' },
-                    { 'sName': 'publicationyear' },
-                    { 'sName': 'publishercode' },
-                    { 'sName': 'ccode' },
-                    { 'sName': 'barcode' },
-                    { 'sName': 'enumchron' },
-                    { 'sName': 'itemcallnumber' },
-                    { 'sName': 'homebranch' },
-                    { 'sName': 'holdingbranch' },
-                    { 'sName': 'location' },
-                    { 'sName': 'itype'},
-                    { 'sName': 'stocknumber' },
-                    { 'sName': 'notforloan' },
-                    { 'sName': 'itemlost' },
-                    { 'sName': 'withdrawn' },
-                    { 'sName': 'issues' },
-                    { 'sName': 'date_due' },
-                    { 'sName': 'actions', 'bSortable': false }
-                ],
-                "sPaginationType": "full_numbers",
-                fixedHeader: false // There is a bug on this view
-            })).columnFilter({
-                'sPlaceHolder': 'head:after',
-                "aoColumns": [
-                    null,
-                    { 'type': 'text' },
-                    { 'type': 'text' },
-                    { 'type': 'text' },
-                    [% IF ccodes.size %]
-                        { 'type': 'select', 'values': [% INCLUDE escape_html_value_label elts => ccodes %] },
-                    [% ELSE %]
-                        null,
-                    [% END %]
-                    { 'type': 'text' },
-                    { 'type': 'text' },
-                    { 'type': 'text' },
-                    { 'type': 'select', 'values': [% INCLUDE escape_html_value_label elts => homebranches %] },
-                    { 'type': 'select', 'values': [% INCLUDE escape_html_value_label elts => branches %] },
-                    [% IF locations.size %]
-                        { 'type': 'select', 'values': [% INCLUDE escape_html_value_label elts => locations %] },
-                    [% ELSE %]
-                        null,
-                    [% END %]
-                    [% IF itemtypes.size %]
-                        { 'type': 'select', 'values': [% INCLUDE escape_html_value_label elts => itemtypes %] },
-                    [% ELSE %]
-                        null,
-                    [% END %]
-                    { 'type': 'text' },
-                    [% IF notforloans.size %]
-                        { 'type': 'select', 'values': [% INCLUDE escape_html_value_label elts => notforloans %] },
-                    [% ELSE %]
-                        null,
-                    [% END %]
-                    [% IF itemlosts.size %]
-                        { 'type': 'select', 'values': [% INCLUDE escape_html_value_label elts => itemlosts %] },
-                    [% ELSE %]
-                        null,
-                    [% END %]
-                    [% IF withdrawns.size %]
-                        { 'type': 'select', 'values': [% INCLUDE escape_html_value_label elts => withdrawns %] },
-                    [% ELSE %]
-                        null,
-                    [% END %]
-                    { 'type': 'text' },
-                    { 'type': 'text' },
-                    null
-                ]
-            });
-            $('#results').on('draw.dt', function (e, settings) {
-                var itemnumbers = getCheckedItemnumbers();
-                $(this).find('input[type="checkbox"][name="itemnumber"]').each(function () {
-                    var itemnumber = this.value;
-                    if (itemnumbers.has(itemnumber)) {
-                        this.checked = true;
-                    }
+        function submitForm($form) {
+            var tr = ''
+                + '    <tr>'
+                + '      <th id="items_checkbox" data-colname="itemsearch_checkbox"></th>'
+                + '      <th id="items_title" data-colname="title">' + _("Title") + '</th>'
+                + '      <th id="items_pubdate" data-colname="publication_date">' + _("Publication date") + '</th>'
+                + '      <th id="items_publisher" data-colname="publisher">' + _("Publisher") + '</th>'
+                + '      <th id="items_collection" data-colname="collection">' + _("Collection") + '</th>'
+                + '      <th id="items_barcode" data-colname="barcode">' + _("Barcode") + '</th>'
+                + '      <th id="items_itemnumber" data-colname="item_number">' + _("Item number") + '</th>'
+                + '      <th id="items_enumchron" data-colname="serial_enumeration">' + _("Serial enumeration") + '</th>'
+                + '      <th id="items_callno" data-colname="call_number">' + _("Call number") + '</th>'
+                + '      <th id="items_homebranch" data-colname="home_library">' + _("Home library") + '</th>'
+                + '      <th id="items_holdingbranch" data-colname="current_library">' + _("Current library") + '</th>'
+                + '      <th id="items_location" data-colname="shelving_location">' + _("Shelving location") + '</th>'
+                + '      <th id="items_itype" data-colname="item_type">' + _("Itemtype") + '</th>'
+                + '      <th id="item_inventoryno" data-colname="inventory_number">' + _("Inventory number") + '</th>'
+                + '      <th id="items_status" data-colname="notforloan_status">' + _("Not for loan status") + '</th>'
+                + '      <th id="items_itemlost" data-colname="lost_status">' + _("Lost status") + '</th>'
+                + '      <th id="items_widthdrawn" data-colname="withdrawn_status">' + _("Withdrawn status") + '</th>'
+                + '      <th id="items_damaged" data-colname="damaged_status">' + _("Damaged status") + '</th>'
+                + '      <th id="items_checkouts" data-colname="checkouts">' + _("Checkouts") + '</th>'
+                + '      <th id="items_datelastborrowed" data-colname="last_checkout_date">' + _("Last checkout date") + '</th>'
+                + '      <th id="items_date_due" data-colname="due_date">' + _("Due date") + '</th>'
+                + '      <th id="items_actions" data-colname="actions">' + _("Actions") + '</th>'
+                + '    </tr>';
+
+            var table = ''
+                + '<div class="page-section">'
+                + '    <div id="searchheader" class="searchheader">'
+                + '        <a href="#" id="select_all" class="btn btn-link"><i class="fa fa-check"></i> '
+                +              _("Select visible rows")
+                + '        </a> | '
+                + '        <a href="#" id="clear_all" class="btn btn-link"><i class="fa fa-times"></i> '
+                +              _("Clear selection")
+                + '        </a>'
+                + '        <div class="btn-group"><button class="btn btn-default btn-sm dropdown-toggle" id="export-button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">' + _("Export all results to") + '</button>'
+                + '            <ul class="dropdown-menu">'
+                + '                <li><a class="dropdown-item" href="#" id="csvExportLink">' + _("CSV") + '</a></li>'
+                + '                <li><a class="dropdown-item" href="#" id="barcodesExportLink">' + _("Barcode file") + '</a></li>'
+                + '            </ul>'
+                + '        </div>';
+            [% IF ( CAN_user_tools_items_batchmod || CAN_user_tools_items_batchdel ) %]
+                table += ''
+                    + '        <div class="btn-group"><button class="btn btn-default btn-sm dropdown-toggle disabled" disabled="disabled" type="button" id="batch_mod_menu"data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="true"> ' + _("Batch operations") + ' </button>'
+                    + '            <ul class="dropdown-menu" aria-labelledby="batch_mod_menu">';
+                [% IF ( CAN_user_tools_items_batchmod ) %]
+                    table += ''
+                        + '                <li> <a class="dropdown-item batch_op send_to_item_mod" href="#" data-submit="batch_item_modification" data-bs-toggle="tooltip" data-bs-placement="right" title="' + _("Send selected items to batch item modification") + '">' + _("Batch item modification") + '</a> </li>';
+                [% END %]
+                [% IF ( CAN_user_tools_items_batchdel ) %]
+                    table += ''
+                        + '                <li> <a class="dropdown-item batch_op send_to_item_del"" href="#" data-submit="batch_item_deletion" data-bs-toggle="tooltip" data-bs-placement="right" title="' + _("Send selected items to batch item deletion") + '">' + _("Batch item deletion") + '</a> </li>';
+                [% END %]
+                table += ''
+                    + '            </ul>'
+                    + '        </div>';
+            [% END # /IF CAN_user_tools_items_batchmod || CAN_user_tools_items_batchdel %]
+            table += ''
+                + '        <div id="table_search_selections" class="btn-group" style="display:none;">'
+                + '            <span></span>'
+                + '            <a href="#" id="clear-row-selection"><i class="fa fa-times"></i> ' + _("Clear") + '</a>'
+                + '        </div>'
+                + '    </div>'
+                + '    <table id="item_search">'
+                + '      <thead>' + tr + '</thead>'
+                + '      <tbody></tbody>'
+                + '    </table>'
+                + '</div>';
+
+            var advSearchLink = $('<a>')
+                .attr('href', '/cgi-bin/koha/catalogue/search.pl')
+                .html(_("Go to advanced search"));
+
+            var editSearchLink = $('<a>')
+                .attr('href', '#')
+                .html("<i class='fa fa-pencil'></i> " + _("Edit search") )
+                .addClass('btn btn-default')
+                .on('click', function(e) {
+                    e.preventDefault();
+                    $('#item-search-block').show();
                 });
-            });
 
-            sessionStorage.setItem('itemsearch_itemnumbers', '[]');
+            var getShareableLink = $('<a>')
+                .attr('href', '#')
+                .html("<i class='fa fa-copy'></i> " + _("Copy shareable link") )
+                .addClass('btn btn-default')
+                .on('click', function(e) {
+                    e.preventDefault();
+                    var params = getParams( $('#itemsearchform') );
+                    params = params.map(p => {
+                        if(p.name === 'format') {
+                            return { ...p, value: 'shareable' };
+                        }
+                        return p;
+                    })
+                    var url = window.location.origin + window.location.pathname + '?' + $.param(params);
+                    navigator.clipboard.writeText(url);
+                    $(this).tooltip({trigger: 'manual', title: _("Copied!")}).tooltip('show');
+                });
 
-            $('#results').on('change', 'input[type="checkbox"]', function() {
-              var itemnumber = this.value;
-              var itemnumbers = getCheckedItemnumbers();
-              if (this.checked) {
-                  itemnumbers.add(itemnumber);
-              } else {
-                  itemnumbers.delete(itemnumber);
-              }
-              sessionStorage.setItem('itemsearch_itemnumbers', JSON.stringify(Array.from(itemnumbers)));
+            var results_heading = $('<div>').addClass('results-heading')
+                .append("<h1>" + _("Item search results") + "</h1>")
+                .append($('<p>').append(advSearchLink))
+                .append($('<div>')
+                    .addClass("btn-toolbar")
+                    .attr("id","toolbar")
+                    .append(editSearchLink)
+                    .append(getShareableLink)
+                );
+            $('#results-wrapper').empty()
+                .append(results_heading)
+                .append(table);
 
-              var caret = ' <span class="caret">';
-              if (itemnumbers.size > 0) {
-                $('#export-button').html(_("Export selected results (%s) to").format(itemnumbers.size) + caret);
-              } else {
-                $('#export-button').html(_("Export all results to") + caret);
-              }
+            var params = getParams($form);
+
+            const all_libraries = [% To.json(Branches.all) | $raw %];
+            const libraries_filters = all_libraries.map(e => {
+                        e["_id"] = e["branchcode"];
+                        e["_str"] = e["branchname"];
+                        return e;
+                    });
+            const libraries_names = new Map(all_libraries.map( l => [l.branchcode, l.branchname] ));
+            const all_item_types = [% To.json(ItemTypes.Get) | $raw %];
+            const item_types_filters = all_item_types.map(e => {
+                        e["_id"] = e["itemtype"];
+                        e["_str"] = e["translated_description"];
+                        return e;
+                    });
+            const item_types_notforloan = new Map(all_item_types.map( it => [it.itemtype, it.notforloan] ));
+            const all_ccodes = [% To.json(AuthorisedValues.GetDescriptionsByKohaField({ kohafield => 'items.ccode' })) | $raw %].map( av => {
+                av._id = av.authorised_value;
+                av._str = av.lib;
+                return av;
+            } );
+            const all_locations = [% To.json(AuthorisedValues.GetDescriptionsByKohaField({ kohafield => 'items.location' })) | $raw %].map( av => {
+                av._id = av.authorised_value;
+                av._str = av.lib;
+                return av;
+            } );
+            const all_notforloans = [% To.json(AuthorisedValues.GetDescriptionsByKohaField({ kohafield => 'items.notforloan' })) | $raw %].map( av => {
+                av._id = av.authorised_value;
+                av._str = av.lib;
+                return av;
+            } );
+            const all_losts = [% To.json(AuthorisedValues.GetDescriptionsByKohaField({ kohafield => 'items.itemlost' })) | $raw %].map( av => {
+                av._id = av.authorised_value;
+                av._str = av.lib;
+                return av;
+            } );
+            const all_withdrawns = [% To.json(AuthorisedValues.GetDescriptionsByKohaField({ kohafield => 'items.withdrawn' })) | $raw %].map( av => {
+                av._id = av.authorised_value;
+                av._str = av.lib;
+                return av;
+             } );
+            const all_damageds = [% To.json(AuthorisedValues.GetDescriptionsByKohaField({ kohafield => 'items.damaged' })) | $raw %].map( av => {
+                av._id = av.authorised_value;
+                av._str = av.lib;
+                return av;
+            } );
+
+            let filters_options = {
+                4: () => all_ccodes,
+                9: () => all_libraries,
+                10: () => all_libraries,
+                11: () => all_locations,
+                12: () => all_item_types,
+                14: () => all_notforloans,
+                15: () => all_losts,
+                16: () => all_withdrawns,
+                17: () => all_damageds,
+            };
+
+            var table_settings = [% TablesSettings.GetTableSettings( 'catalogue', 'itemsearch', 'results', 'json' ) | $raw %];
+            KohaTable('item_search' , {
+                "bKohaColumnsUseNames": true,
+                "destroy": true,
+                "serverSide": true,
+                "processing": true,
+                "ajax": {
+                    url: '/cgi-bin/koha/catalogue/itemsearch.pl',
+                    data: function ( d ) {
+                        for (i in params) {
+                            if(d[params[i].name]){
+                                d[params[i].name] = [].concat(d[params[i].name], params[i].value);
+                            }else{
+                                d[params[i].name] = params[i].value;
+                            }
+                        }
+                        d.format = 'json';
+                        d.columns = JSON.stringify( d.columns );
+                        return d;
+                    }
+                },
+                'dom': 'C<"top pager"ilpB>tr<"bottom pager"ip>',
+                'order': [[1, 'asc']],
+                'columns': [
+                    { 'name': 'checkbox', 'orderable': false, searchable: false, },
+                    { 'name': 'title' },
+                    { 'name': 'publicationyear' },
+                    { 'name': 'publishercode' },
+                    { 'name': 'ccode' },
+                    { 'name': 'barcode' },
+                    { 'name': 'itemnumber' },
+                    { 'name': 'enumchron' },
+                    { 'name': 'itemcallnumber' },
+                    { 'name': 'homebranch' },
+                    { 'name': 'holdingbranch' },
+                    { 'name': 'location' },
+                    { 'name': 'itype'},
+                    { 'name': 'stocknumber' },
+                    { 'name': 'notforloan' },
+                    { 'name': 'itemlost' },
+                    { 'name': 'withdrawn' },
+                    { 'name': 'damaged' },
+                    { 'name': 'issues' },
+                    { 'name': 'datelastborrowed' },
+                    { 'name': 'date_due' },
+                    { 'name': 'actions', 'orderable': false, searchable: false, }
+                ],
+                "pagingType": "full_numbers",
+                "drawCallback": function( settings ) {
+                    prepSelections();
+                },
+                fixedHeader: false // There is a bug on this view
+            }, table_settings, true, null, filters_options );
+
+            $('#item_search').on('draw.dt', function (e, settings) {
+                prepSelections();
+                $('[data-bs-toggle="tooltip"]').tooltip();
             });
         }
-        var Sticky;
+
         $(document).ready(function () {
-            Sticky = $("#toolbar");
-            Sticky.hcSticky({
-                stickTo: "#item-search-block",
-                stickyClass: "floating"
-            });
             // Add the "New field" link.
             var form_field = $('div.form-field-select-text').last()
             var NEW_FIELD = _("New field");
-      var button_field_new = $('<a href="#" class="button-field-new" title="Add a new field"><i class="fa fa-plus"></i> ' + NEW_FIELD + '</a>');
-      button_field_new.click(function(e) {
-          e.preventDefault();
-          addNewField( $(this) );
+            var button_field_new = $('<a href="#" class="button-field-new" title="Add a new field"><i class="fa fa-plus"></i> ' + NEW_FIELD + '</a>');
+            button_field_new.click(function(e) {
+                e.preventDefault();
+                addNewField( $(this) );
             });
-      form_field.append(button_field_new);
+            form_field.append(button_field_new);
 
             // If a field is linked to an authorised values list, display the list.
             $('div.form-field-select-text select[name="f"]').change(function() {
@@ -618,6 +748,122 @@
                     return false;
                 }
             });
+
+            $("body").on("click", "#select_all", function(e) {
+                e.preventDefault();
+                $("#item_search input[type='checkbox']").each(function(){
+                    if( $(this).prop("checked") == false ){
+                        $(this).prop( "checked", true ).change();
+                    }
+                });
+            });
+
+            $("body").on("click", "#clear_all", function(e) {
+                e.preventDefault();
+                $("#item_search input[type='checkbox']").each(function(){
+                    if( $(this).prop("checked") == true ){
+                        $(this).prop( "checked", false ).change();
+                    }
+                });
+            });
+
+            $("body").on("click", "#clear-row-selection", function(e){
+                e.preventDefault();
+                $("#item_search input[type='checkbox']").prop("checked" ,false ).change();
+                localStorage.removeItem("item_search_selections");
+                showItemSelections( 0 );
+            });
+
+            $("body").on('change', '#item_search input[type="checkbox"]', function() {
+                let item_search_selections = JSON.parse( localStorage.getItem("item_search_selections") ) || [];
+                var itemnumber = $(this).val();
+                if( $(this).prop("checked") ){
+                    item_search_selections.push( $(this).val() );
+                    localStorage.setItem('item_search_selections', JSON.stringify( item_search_selections ));
+                    showItemSelections( item_search_selections.length );
+                } else {
+                    var filtered = item_search_selections.filter(function( value ){
+                        return value !== itemnumber;
+                    });
+                    if( filtered.length > 0 ){
+                        localStorage.setItem('item_search_selections', JSON.stringify( filtered ));
+                        item_search_selections = filtered;
+                        showItemSelections( filtered.length );
+                    } else {
+                        item_search_selections = [];
+                        localStorage.removeItem('item_search_selections');
+                        showItemSelections( 0 );
+                    }
+                }
+            });
+
+            $("body").on("click", "#csvExportLink", function(e){
+                e.preventDefault();
+                exportItems('csv');
+            });
+
+            $("body").on("click", "#barcodesExportLink", function(e){
+                e.preventDefault();
+                exportItems('barcodes');
+            });
+
+            $("body").on("click", ".batch_op", function(e){
+                e.preventDefault();
+                let batch_mod_form = $("#batch_item_operations");
+                batch_mod_form.empty();
+                batch_mod_form.append(
+                    $("<input>").attr("type","hidden")
+                    .attr("name", "op")
+                    .val("cud-show")
+                );
+                batch_mod_form.append(
+                    $("<input>").attr("type","hidden")
+                    .attr("name", "csrf_token")
+                    .val($('meta[name="csrf-token"]').attr('content'))
+                );
+                batch_mod_form.append(
+                    $("<input>").attr("type","hidden")
+                    .attr("name", "del")
+                    .attr("id", "batch_mod_del")
+                );
+                let item_search_selections = JSON.parse( localStorage.getItem("item_search_selections") ) || [];
+                // Populate batch forms with itemnumbers in local storage
+                for (let item of item_search_selections){
+                    var field = $("<input>").attr("type","hidden")
+                        .attr("name","itemnumber")
+                        .val( item );
+                    batch_mod_form.append( field );
+                }
+                if( $(this).hasClass("send_to_item_mod") ){
+                    $("#batch_mod_del").val(0);
+                } else if ( $(this).hasClass("send_to_item_del") ){
+                    $("#batch_mod_del").val(1);
+                } else {
+                    return false;
+                }
+                batch_mod_form.submit();
+            });
+
+            $("body").on('click','#item_search tbody td',function(e){
+                var checkbox = $(this).find("input[type=checkbox]");
+                if (e.target.type != "checkbox") {
+                    checkbox.prop('checked', !checkbox.prop("checked"));
+                    checkbox.change();
+                }
+            });
+
+            // Apply select2 to all select fields having a "multiple" attribute
+            let selectFields = document.querySelectorAll('select[multiple]');
+            selectFields.forEach((selectField) => {
+                selectField.style.minWidth = '320px';
+                $(selectField).select2();
+            });
+
+            let urlParams = new URLSearchParams(window.location.search)
+            if (urlParams.get('format') === 'shareable') {
+                submitForm($('#itemsearchform'));
+                $("#item-search-block").hide();
+            }
         });
     </script>
 [% END %]

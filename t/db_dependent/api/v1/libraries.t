@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 5;
+use Test::More tests => 7;
 use Test::Mojo;
 use Test::Warn;
 
@@ -58,7 +58,7 @@ subtest 'list() tests' => sub {
     ## Authorized user tests
     # Make sure we are returned with the correct amount of libraries
     $t->get_ok( "//$userid:$password@/api/v1/libraries" )
-      ->status_is( 200, 'SWAGGER3.2.2' );
+      ->status_is( 200, 'REST3.2.2' );
 
     my $response_count = scalar @{ $t->tx->res->json };
     my $expected_count = min( Koha::Libraries->count, C4::Context->preference('RESTdefaultPageSize') );
@@ -111,7 +111,7 @@ subtest 'list() tests' => sub {
 
 subtest 'get() tests' => sub {
 
-    plan tests => 6;
+    plan tests => 12;
 
     $schema->storage->txn_begin;
 
@@ -125,8 +125,21 @@ subtest 'get() tests' => sub {
     my $userid = $patron->userid;
 
     $t->get_ok( "//$userid:$password@/api/v1/libraries/" . $library->branchcode )
-      ->status_is( 200, 'SWAGGER3.2.2' )
-      ->json_is( '' => $library->to_api, 'SWAGGER3.3.2' );
+      ->status_is( 200, 'REST3.2.2' )
+      ->json_is( '' => $library->to_api, 'REST3.3.2' );
+
+    $t->get_ok( "//$userid:$password@/api/v1/libraries/"
+            . $library->branchcode => { 'x-koha-embed' => 'cash_registers,desks' } )->status_is(200)
+        ->json_is( { %{ $library->to_api }, desks => [], cash_registers => [] } );
+
+    my $desk = $builder->build_object( { class => 'Koha::Desks', value => { branchcode => $library->id } } );
+    my $cash_register =
+        $builder->build_object( { class => 'Koha::Cash::Registers', value => { branch => $library->id } } );
+
+    $t->get_ok( "//$userid:$password@/api/v1/libraries/"
+            . $library->branchcode => { 'x-koha-embed' => 'cash_registers,desks' } )->status_is(200)
+        ->json_is(
+        { %{ $library->to_api }, desks => [ $desk->to_api ], cash_registers => [ $cash_register->to_api ] } );
 
     my $non_existent_code = $library->branchcode;
     $library->delete;
@@ -184,9 +197,9 @@ subtest 'add() tests' => sub {
 
     # Authorized attempt to write
     $t->post_ok( "//$auth_userid:$password@/api/v1/libraries" => json => $library )
-      ->status_is( 201, 'SWAGGER3.2.1' )
-      ->json_is( '' => $library, 'SWAGGER3.3.1' )
-      ->header_is( Location => '/api/v1/libraries/' . $library->{library_id}, 'SWAGGER3.4.1' );
+      ->status_is( 201, 'REST3.2.1' )
+      ->json_is( '' => $library, 'REST3.3.1' )
+      ->header_is( Location => '/api/v1/libraries/' . $library->{library_id}, 'REST3.4.1' );
 
     # save the library_id
     my $library_id = $library->{library_id};
@@ -255,8 +268,8 @@ subtest 'update() tests' => sub {
     $deleted_library->delete;
 
     $t->put_ok( "//$auth_userid:$password@/api/v1/libraries/$library_id" => json => $library_with_updated_field )
-      ->status_is(200, 'SWAGGER3.2.1')
-      ->json_is( '' => $library_with_updated_field, 'SWAGGER3.3.3' );
+      ->status_is(200, 'REST3.2.1')
+      ->json_is( '' => $library_with_updated_field, 'REST3.3.3' );
 
     # Authorized attempt to write invalid data
     my $library_with_invalid_field = { %$library_with_updated_field };
@@ -307,11 +320,97 @@ subtest 'delete() tests' => sub {
       ->status_is(403);
 
     $t->delete_ok( "//$auth_userid:$password@/api/v1/libraries/$library_id" )
-      ->status_is(204, 'SWAGGER3.2.4')
-      ->content_is('', 'SWAGGER3.3.4');
+      ->status_is(204, 'REST3.2.4')
+      ->content_is('', 'REST3.3.4');
 
     $t->delete_ok( "//$auth_userid:$password@/api/v1/libraries/$library_id" )
       ->status_is(404);
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'list_desks() tests' => sub {
+
+    plan tests => 11;
+
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron  = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 4 }
+        }
+    );
+    my $password = 'thePassword123';
+    $patron->set_password( { password => $password, skip_validation => 1 } );
+    my $userid = $patron->userid;
+
+    t::lib::Mocks::mock_preference( 'UseCirculationDesks', 0 );
+
+    $t->get_ok( "//$userid:$password@/api/v1/libraries/" . $library->branchcode . "/desks" )->status_is(404)
+        ->json_is( '/error' => q{Feature disabled} );
+
+    my $non_existent_code = $library->branchcode;
+    $library->delete;
+
+    t::lib::Mocks::mock_preference( 'UseCirculationDesks', 1 );
+
+    $t->get_ok( "//$userid:$password@/api/v1/libraries/" . $non_existent_code . "/desks" )->status_is(404)
+        ->json_is( '/error' => 'Library not found' );
+
+    my $desk_1 = $builder->build_object( { class => 'Koha::Desks', value => { branchcode => $library->id } } );
+    my $desk_2 = $builder->build_object( { class => 'Koha::Desks', value => { branchcode => $library->id } } );
+
+    my $res = $t->get_ok( "//$userid:$password@/api/v1/libraries/" . $library->branchcode . "/desks" )->status_is(200)
+        ->json_is( '/0/desk_id' => $desk_1->id )->json_is( '/1/desk_id' => $desk_2->id )->tx->res->json;
+
+    is( scalar @{$res}, 2 );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'list_cash_registers() tests' => sub {
+
+    plan tests => 11;
+
+    $schema->storage->txn_begin;
+
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $patron  = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 4 }
+        }
+    );
+    my $password = 'thePassword123';
+    $patron->set_password( { password => $password, skip_validation => 1 } );
+    my $userid = $patron->userid;
+
+    t::lib::Mocks::mock_preference( 'UseCashRegisters', 0 );
+
+    $t->get_ok( "//$userid:$password@/api/v1/libraries/" . $library->branchcode . "/cash_registers" )->status_is(404)
+        ->json_is( '/error' => q{Feature disabled} );
+
+    my $non_existent_code = $library->branchcode;
+    $library->delete;
+
+    t::lib::Mocks::mock_preference( 'UseCashRegisters', 1 );
+
+    $t->get_ok( "//$userid:$password@/api/v1/libraries/" . $non_existent_code . "/cash_registers" )->status_is(404)
+        ->json_is( '/error' => 'Library not found' );
+
+    my $cash_register_1 =
+        $builder->build_object( { class => 'Koha::Cash::Registers', value => { branch => $library->id } } );
+    my $cash_register_2 =
+        $builder->build_object( { class => 'Koha::Cash::Registers', value => { branch => $library->id } } );
+
+    my $res =
+        $t->get_ok( "//$userid:$password@/api/v1/libraries/" . $library->branchcode . "/cash_registers" )
+        ->status_is(200)->json_is( '/0/cash_register_id' => $cash_register_1->id )
+        ->json_is( '/1/cash_register_id' => $cash_register_2->id )->tx->res->json;
+
+    is( scalar @{$res}, 2 );
 
     $schema->storage->txn_rollback;
 };

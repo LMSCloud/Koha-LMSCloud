@@ -31,14 +31,19 @@ my $builder = t::lib::TestBuilder->new;
 
 my $t = Test::Mojo->new('Koha::REST::V1');
 t::lib::Mocks::mock_preference( 'RESTBasicAuth', 1 );
+t::lib::Mocks::mock_preference( 'ChildNeedsGuarantor', 0 );
 
 subtest 'list() tests' => sub {
 
-    plan tests => 11;
+    plan tests => 14;
 
     $schema->storage->txn_begin;
 
-    Koha::Patrons->search->update( { flags => 0 } );
+    my $patron_category =
+        $builder->build( { source => 'Category', value => { category_type => 'A', can_be_guarantee => 0 } } )
+        ->{categorycode};
+
+    Koha::Patrons->search->update( { flags => 0, categorycode => $patron_category } );
     $schema->resultset('UserPermission')->delete;
 
     my $librarian = $builder->build_object(
@@ -56,7 +61,7 @@ subtest 'list() tests' => sub {
     # One erm_user created, should get returned
     $librarian->discard_changes;
     $t->get_ok("//$userid:$password@/api/v1/erm/users")->status_is(200)
-      ->json_is( [ $librarian->to_api ] );
+        ->json_is( [ $librarian->to_api( { user => $librarian } ) ] );
 
     my $another_erm_user = $builder->build_object(
         {
@@ -65,9 +70,20 @@ subtest 'list() tests' => sub {
         }
     );
 
+    # Two erm_users created, only self is returned without permission to view_any_borrower
+    $t->get_ok("//$userid:$password@/api/v1/erm/users")->status_is(200)
+        ->json_is( [ $librarian->to_api( { user => $librarian } ) ] );
+
+    my $dbh = C4::Context->dbh;
+    $dbh->do(
+        q{INSERT INTO user_permissions( borrowernumber, module_bit, code ) VALUES (?, ?, ?)}, undef,
+        ( $librarian->borrowernumber, 4, 'view_borrower_infos_from_any_libraries' )
+    );
+
     # Two erm_users created, they should both be returned
     $t->get_ok("//$userid:$password@/api/v1/erm/users")->status_is(200)
-      ->json_is( [ $librarian->to_api ] );
+        ->json_is(
+        [ $librarian->to_api( { user => $librarian } ), $another_erm_user->to_api( { user => $another_erm_user } ) ] );
 
     # Warn on unsupported query parameter
     $t->get_ok("//$userid:$password@/api/v1/erm/users?blah=blah")

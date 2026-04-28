@@ -19,19 +19,21 @@
 use Modern::Perl;
 use MARC::File::XML;
 use List::MoreUtils qw( uniq );
-use Getopt::Long qw( GetOptions );
-use Pod::Usage qw( pod2usage );
+use Getopt::Long    qw( GetOptions );
+use Pod::Usage      qw( pod2usage );
 
 use Koha::Script;
 use C4::Auth;
 use C4::Context;
 use C4::Record;
+use C4::Reports::Guided qw( execute_query );
 
 use Koha::Biblioitems;
 use Koha::Database;
 use Koha::CsvProfiles;
 use Koha::Exporter::Record;
 use Koha::DateUtils qw( dt_from_string output_pref );
+use Koha::Reports;
 
 my (
     $output_format,
@@ -54,6 +56,12 @@ my (
     $start_accession,
     $end_accession,
     $marc_conditions,
+    $embed_see_from_headings,
+    $report_id,
+    @report_params,
+    $report,
+    $sql,
+    $params_needed,
     $help
 );
 
@@ -78,6 +86,9 @@ GetOptions(
     'start_accession=s'       => \$start_accession,
     'end_accession=s'         => \$end_accession,
     'marc_conditions=s'       => \$marc_conditions,
+    'embed_see_from_headings' => \$embed_see_from_headings,
+    'report_id=s'             => \$report_id,
+    'report_param=s'          => \@report_params,
     'h|help|?'                => \$help
 ) || pod2usage(1);
 
@@ -85,9 +96,9 @@ if ($help) {
     pod2usage(1);
 }
 
-$filename ||= 'koha.mrc';
+$filename      ||= 'koha.mrc';
 $output_format ||= 'iso2709';
-$record_type ||= 'bibs';
+$record_type   ||= 'bibs';
 
 # Retrocompatibility for the format parameter
 $output_format = 'iso2709' if $output_format eq 'marc';
@@ -100,7 +111,6 @@ if ( $output_format eq 'csv' and not $csv_profile_id ) {
     pod2usage(q|Define a csv profile to export in CSV|);
 }
 
-
 if ( $record_type ne 'bibs' and $record_type ne 'auths' ) {
     pod2usage(q|--record_type is not valid|);
 }
@@ -109,20 +119,40 @@ if ( $deleted_barcodes and $record_type ne 'bibs' ) {
     pod2usage(q|--deleted_barcodes can only be used with biblios|);
 }
 
-$start_accession = dt_from_string( $start_accession ) if $start_accession;
-$end_accession   = dt_from_string( $end_accession )   if $end_accession;
+if ($report_id) {
+
+    # Check report exists
+    $report = Koha::Reports->find($report_id);
+    unless ($report) {
+        pod2usage( sprintf( "No saved report (%s) found", $report_id ) );
+    }
+    $sql = $report->savedsql;
+
+    # Check defined report can be used to export the record_type
+    if ( $sql !~ /biblionumber/ && $record_type eq 'bibs' ) {
+        pod2usage(q|The --report_id you specified does not fetch a biblionumber|);
+    } elsif ( $sql !~ /authid/ && $record_type eq 'auths' ) {
+        pod2usage(q|The --report_id you specified does not fetch an authid|);
+    }
+
+    # convert SQL parameters to placeholders
+    my $params_needed = ( $sql =~ s/(<<[^>]+>>)/\?/g );
+    die( "You supplied " . scalar @report_params . " parameter(s) and $params_needed are required by the report" )
+        if scalar @report_params != $params_needed;
+}
+
+$start_accession = dt_from_string($start_accession) if $start_accession;
+$end_accession   = dt_from_string($end_accession)   if $end_accession;
 
 # Parse marc conditions
 my @marc_conditions;
 if ($marc_conditions) {
-    foreach my $condition (split(/,\s*/, $marc_conditions)) {
-        if ($condition =~ /^(\d{3})([\w\d]?)(=|(?:!=)|>|<)([^,]+)$/) {
-            push @marc_conditions, [$1, $2, $3, $4];
-        }
-        elsif ($condition =~ /^(exists|not_exists)\((\d{3})([\w\d]?)\)$/) {
-            push @marc_conditions, [$2, $3, $1 eq 'exists' ? '?' : '!?'];
-        }
-        else {
+    foreach my $condition ( split( /,\s*/, $marc_conditions ) ) {
+        if ( $condition =~ /^(\d{3})([\w\d]?)(=|(?:!=)|>|<)([^,]+)$/ ) {
+            push @marc_conditions, [ $1, $2, $3, $4 ];
+        } elsif ( $condition =~ /^(exists|not_exists)\((\d{3})([\w\d]?)\)$/ ) {
+            push @marc_conditions, [ $2, $3, $1 eq 'exists' ? '?' : '!?' ];
+        } else {
             die("Invalid condititon: $condition");
         }
     }
@@ -133,16 +163,34 @@ my $dbh = C4::Context->dbh;
 # Redirect stdout
 open STDOUT, '>', $filename if $filename;
 
-
 my @record_ids;
 
-$timestamp = ($timestamp) ? output_pref({ dt => dt_from_string($timestamp), dateformat => 'iso', dateonly => 0, }): '';
+$timestamp =
+    ($timestamp) ? output_pref( { dt => dt_from_string($timestamp), dateformat => 'iso', dateonly => 0, } ) : '';
 
 if ( $record_type eq 'bibs' ) {
-    if ( $timestamp ) {
-        if (!$dont_export_items) {
+    if ($report) {
+
+        # Run the report and fetch biblionumbers
+        my ($sth) = execute_query(
+            {
+                sql        => $sql,
+                sql_params => \@report_params,
+                report_id  => $report_id,
+            }
+        );
+        while ( my $row = $sth->fetchrow_hashref() ) {
+            if ( $row->{biblionumber} ) {
+                push @record_ids, $row->{biblionumber};
+            } else {
+                pod2usage(q|The --report_id you specified returned no biblionumbers|);
+            }
+        }
+    } elsif ($timestamp) {
+        if ( !$dont_export_items ) {
             push @record_ids, $_->{biblionumber} for @{
-                $dbh->selectall_arrayref(q| (
+                $dbh->selectall_arrayref(
+                    q| (
                     SELECT biblio_metadata.biblionumber
                     FROM biblio_metadata
                       LEFT JOIN items USING(biblionumber)
@@ -154,48 +202,51 @@ if ( $record_type eq 'bibs' ) {
                       LEFT JOIN deleteditems USING(biblionumber)
                     WHERE biblio_metadata.timestamp >= ?
                       OR deleteditems.timestamp >= ?
-                ) |, { Slice => {} }, ( $timestamp ) x 4 );
+                ) |, { Slice => {} }, ($timestamp) x 4
+                );
             };
         } else {
             push @record_ids, $_->{biblionumber} for @{
-                $dbh->selectall_arrayref(q| (
+                $dbh->selectall_arrayref(
+                    q| (
                     SELECT biblio_metadata.biblionumber
                     FROM biblio_metadata
                     WHERE biblio_metadata.timestamp >= ?
-                ) |, { Slice => {} }, $timestamp );
+                ) |, { Slice => {} }, $timestamp
+                );
             };
         }
     } else {
         my $conditions = {
             ( $starting_biblionumber or $ending_biblionumber )
-                ? (
-                    "me.biblionumber" => {
-                        ( $starting_biblionumber ? ( '>=' => $starting_biblionumber ) : () ),
-                        ( $ending_biblionumber   ? ( '<=' => $ending_biblionumber   ) : () ),
-                    }
+            ? (
+                "me.biblionumber" => {
+                    ( $starting_biblionumber ? ( '>=' => $starting_biblionumber ) : () ),
+                    ( $ending_biblionumber   ? ( '<=' => $ending_biblionumber )   : () ),
+                }
                 )
-                : (),
+            : (),
             ( $starting_callnumber or $ending_callnumber )
-                ? (
-                    callnumber => {
-                        ( $starting_callnumber ? ( '>=' => $starting_callnumber ) : () ),
-                        ( $ending_callnumber   ? ( '<=' => $ending_callnumber   ) : () ),
-                    }
+            ? (
+                callnumber => {
+                    ( $starting_callnumber ? ( '>=' => $starting_callnumber ) : () ),
+                    ( $ending_callnumber   ? ( '<=' => $ending_callnumber )   : () ),
+                }
                 )
-                : (),
+            : (),
             ( $start_accession or $end_accession )
-                ? (
-                    dateaccessioned => {
-                        ( $start_accession ? ( '>=' => $start_accession ) : () ),
-                        ( $end_accession   ? ( '<=' => $end_accession   ) : () ),
-                    }
+            ? (
+                dateaccessioned => {
+                    ( $start_accession ? ( '>=' => $start_accession ) : () ),
+                    ( $end_accession   ? ( '<=' => $end_accession )   : () ),
+                }
                 )
-                : (),
-            ( $itemtype
-                ?
-                  C4::Context->preference('item-level_itypes')
-                    ? ( 'items.itype' => $itemtype )
-                    : ( 'me.itemtype' => $itemtype )
+            : (),
+            (
+                  $itemtype
+                ? C4::Context->preference('item-level_itypes')
+                        ? ( 'items.itype' => $itemtype )
+                        : ( 'me.itemtype' => $itemtype )
                 : ()
             ),
 
@@ -205,9 +256,25 @@ if ( $record_type eq 'bibs' ) {
             push @record_ids, $biblioitem->biblionumber;
         }
     }
-}
-elsif ( $record_type eq 'auths' ) {
-    if ($timestamp) {
+} elsif ( $record_type eq 'auths' ) {
+    if ($report) {
+
+        # Run the report and fetch authids
+        my ($sth) = execute_query(
+            {
+                sql        => $sql,
+                sql_params => \@report_params,
+                report_id  => $report_id,
+            }
+        );
+        while ( my $row = $sth->fetchrow_hashref() ) {
+            if ( $row->{authid} ) {
+                push @record_ids, $row->{authid};
+            } else {
+                pod2usage(q|The --report_id you specified returned no authids|);
+            }
+        }
+    } elsif ($timestamp) {
         push @record_ids, $_->{authid} for @{
             $dbh->selectall_arrayref(
                 q| (
@@ -241,41 +308,39 @@ if ( @record_ids and $id_list_file ) {
     open my $fh, '<', $id_list_file or die "Cannot open file $id_list_file ($!)";
     my @filter_record_ids = <$fh>;
     @filter_record_ids = map { my $id = $_; $id =~ s/[\r\n]*$//; $id } @filter_record_ids;
+
     # intersection
     my %record_ids = map { $_ => 1 } @record_ids;
     @record_ids = grep $record_ids{$_}, @filter_record_ids;
 }
 
 if ($deleted_barcodes) {
-    for my $record_id ( @record_ids ) {
-        my $barcode = $dbh->selectall_arrayref(q|
+    for my $record_id (@record_ids) {
+        my $barcode = $dbh->selectall_arrayref(
+            q|
             SELECT DISTINCT barcode
             FROM deleteditems
             WHERE deleteditems.biblionumber = ?
             AND barcode IS NOT NULL AND barcode != ''
-        |, { Slice => {} }, $record_id );
+        |, { Slice => {} }, $record_id
+        );
         say $_->{barcode} for @$barcode;
     }
-}
-else {
-    unless ( $csv_profile_id ) {
-        # FIXME export_format.profile should be a unique key
-        my $default_csv_profiles = Koha::CsvProfiles->search({ profile => C4::Context->preference('ExportWithCsvProfile') });
-        $csv_profile_id = $default_csv_profiles->count ? $default_csv_profiles->next->export_format_id : undef;
-    }
+} else {
     Koha::Exporter::Record::export(
-        {   record_type        => $record_type,
-            record_ids         => \@record_ids,
-            record_conditions  => @marc_conditions ? \@marc_conditions : undef,
-            format             => $output_format,
-            csv_profile_id     => $csv_profile_id,
-            export_items       => (not $dont_export_items),
-            clean              => $clean || 0,
+        {
+            record_type             => $record_type,
+            record_ids              => \@record_ids,
+            record_conditions       => @marc_conditions ? \@marc_conditions : undef,
+            format                  => $output_format,
+            csv_profile_id          => $csv_profile_id,
+            export_items            => ( not $dont_export_items ),
+            clean                   => $clean                   || 0,
+            embed_see_from_headings => $embed_see_from_headings || 0,
         }
     );
 }
 exit;
-
 
 =head1 NAME
 
@@ -399,6 +464,24 @@ Print a brief help message.
                                 <marc_target> exists regardless of target value, and
                                 "exists(<marc_target>)" will include marc records where
                                 no <marc_target> exists.
+
+=item B<--embed_see_from_headings>
+
+ --embed_see_from_headings      Embed see from (non-preferred form) headings in bibliographic record.
+
+=item B<--report_id>
+
+--report_id=ID                  Export biblionumbers or authids from a given saved report output.
+                                If you want to export authority records then your report must
+                                select authid and you must define --record-type=auths when
+                                running this script.
+
+=item B<--report_param>
+
+--report_param=PARAM            Repeatable, should provide one param per param requested for the
+                                report.
+                                Report params are not combined as on the staff side, so you may
+                                need to repeat params.
 
 =back
 

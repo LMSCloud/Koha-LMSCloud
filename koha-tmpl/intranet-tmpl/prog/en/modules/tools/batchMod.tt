@@ -1,8 +1,18 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( del ) %]Batch item deletion[% ELSE %]Batch item modification[% END %] &rsaquo; Cataloging &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF ( del ) %]
+        [% t("Batch item deletion") | html %]
+    [% ELSE %]
+        [% t("Batch item modification") | html %]
+    [% END %] &rsaquo;
+    [% t("Cataloging") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="tools_batchMod" class="tools">
@@ -30,11 +40,13 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
                 <h1>Batch item [% IF ( del ) %]deletion[% ELSE %]modification[% END %]</h1>
                         <form method="post" enctype="multipart/form-data" action="/cgi-bin/koha/tools/batchMod.pl">
+                            [% INCLUDE 'csrf-token.inc' %]
                             <fieldset class="rows">
                                 <legend>Use a file</legend>
                                   <ol>
@@ -54,7 +66,7 @@
                                       <textarea rows="10" cols="30" id="barcodelist" name="barcodelist"></textarea>
                                     </li>
                                 </ol>
-                                <input type="hidden" name="op" value="show" />
+                                <input type="hidden" name="op" value="cud-show" />
                             </fieldset>
 
                             [% UNLESS del %]
@@ -79,13 +91,13 @@
                         </form>
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'cat-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% INCLUDE 'intranet-bottom.inc' %]

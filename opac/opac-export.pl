@@ -25,7 +25,6 @@ use C4::Output;
 use C4::Biblio qw(
     GetFrameworkCode
     GetISBDView
-    GetMarcControlnumber
     CleanCopyRightOrProtectedDataFromRecord
 );
 use CGI qw ( -utf8 );
@@ -34,7 +33,7 @@ use C4::Ris qw( marc2ris );
 use Koha::Biblios;
 use Koha::RecordProcessor;
 
-use List::MoreUtils qw(none);
+use List::MoreUtils qw(none any);
 
 my $query = CGI->new;
 my $op=$query->param("op")||''; #op=export is currently the only use
@@ -43,7 +42,13 @@ my $biblionumber = $query->param("bib")||0;
 $biblionumber = int($biblionumber);
 my $error = q{};
 
+my @dc_subtypes   = qw(rdfdc oaidc srwdc);
 my @valid_formats = split( ',', C4::Context->preference('OpacExportOptions') // '' );
+
+if ( any { $_ eq 'dc' } @valid_formats ) {
+    # DC enabled, add @dc_subtypes to @valid_formats
+    @valid_formats = ( @valid_formats, @dc_subtypes );
+}
 if ( !scalar @valid_formats || none { $format eq $_ } @valid_formats ) {
     # bad request: either the feature is disabled, or requested a format the
     # library hasn't made available
@@ -65,10 +70,10 @@ if ($userenv) {
 my $include_items = ($format =~ /bibtex/) ? 0 : 1;
 my $biblio = Koha::Biblios->find($biblionumber);
 my $marc = $biblio
-  ? $biblio->metadata->record(
+  ? $biblio->metadata_record(
     {
         embed_items => 1,
-        opac        => 1,
+        interface   => 'opac',
         patron      => $patron,
     }
   )
@@ -80,14 +85,14 @@ if(!$marc) {
 }
 
 $marc = CleanCopyRightOrProtectedDataFromRecord($marc);
+my $metadata_extractor = $biblio->metadata_extractor;
 
 my $file_id = $biblionumber;
 my $file_pre = "bib-";
-if( C4::Context->preference('DefaultSaveRecordFileID') eq 'controlnumber' ){
-    my $marcflavour = C4::Context->preference('marcflavour'); #FIXME This option is required but does not change control num behaviour
-    my $control_num = GetMarcControlnumber( $marc, $marcflavour );
-    if( $control_num ){
-        $file_id = $control_num;
+if ( C4::Context->preference('DefaultSaveRecordFileID') eq 'controlnumber' ) {
+    my $control_number = $metadata_extractor->get_control_number();
+    if ($control_number) {
+        $file_id  = $control_number;
         $file_pre = "record-";
     }
 }
@@ -162,6 +167,7 @@ if ($error){
     print $query->end_html();
 }
 else {
+    binmode STDOUT, ':encoding(UTF-8)' if $format ne 'marc8';
     if ($format eq 'marc8'){
         print $query->header(
             -type => 'application/marc',
@@ -182,7 +188,6 @@ else {
             -attachment => "$file_pre$file_id.$format"
         );
     } else {
-        binmode STDOUT, ':encoding(UTF-8)';
         print $query->header(
             -type => 'application/octet-stream',
             -charset => 'utf-8',

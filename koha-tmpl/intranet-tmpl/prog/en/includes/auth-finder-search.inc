@@ -2,10 +2,10 @@
 [% PROCESS 'form-blocks.inc' %]
 
 <div id="toolbar" class="btn-toolbar">
-    <div class="btn-group"><a href="#" id="clear" class="btn btn-default btn-sm"><i class="fa fa-trash"></i> Clear field</a></div>
+    <div class="btn-group"><a href="#" id="clear" class="btn btn-default btn-sm"><i class="fa fa-trash-can"></i> Clear field</a></div>
     <div class="btn-group"><a href="#" id="createnew" class="btn btn-default btn-sm"><i class="fa fa-plus"></i> Create new authority</a></div>
 </div>
-<form name="f" method="get" action="auth_finder.pl">
+<form name="f" method="get" action="auth_finder.pl" class="clearfix">
             <input type="hidden" name="source" value="[% source | html %]" />
             <input type="hidden" name="op" value="do_search" />
             <input type="hidden" name="type" value="intranet" />
@@ -89,7 +89,8 @@
                         <option value="exact">is exactly</option>
                         [% END %]
                     </select>
-                    <input type="text" name="value_match" value="[% value_match | html %]" />
+                    <input id="value_match" style="width:400px;" type="text" name="value_match" value="[% value_match | html %]" />
+                    <div id="yvaluecontainermarclistheading"></div>
                 </li>
                 <li>
                     <label for="marclistanywhere">Search entire record: </label>
@@ -140,8 +141,8 @@
         <fieldset class="rows"><legend>Relationship information</legend>
             <ol>
             <li>
-                <label for="relationship">Special relationship: </label>
-                <select name="relationship" id="relationship">
+                <label for="special_relationship">Special relationship: </label>
+                <select name="relationship" id="special_relationship">
                     [% selected=relationship | html %]
                     [% PROCESS selectoptionopen value='' %]None specified</option>
                     [% IF Koha.Preference('marcflavour') == 'MARC21' %]
@@ -179,6 +180,14 @@
             </ol>
         </fieldset>
         [% END %]
-        <fieldset class="action"> <input type="submit" value="Search" class="submit" id="search" /> <a id="cancel" class="cancel close" href="#">Cancel</a>
-        </fieldset>
+
+        <nav class="navbar navbar-default fixed-bottom">
+            <div class="container-fluid">
+                <fieldset class="action">
+                    <input type="submit" class="btn btn-primary" id="search" value="Search" />
+                    <input type="reset" id="clear-form" class="btn btn-default" value="Clear form" />
+                    <button type="button" class="btn btn-default close_window">Close window</button>
+                </fieldset>
+            </div>
+        </nav>
 </form>

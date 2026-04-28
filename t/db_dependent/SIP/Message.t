@@ -21,7 +21,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 16;
+use Test::More tests => 22;
 use Test::Exception;
 use Test::MockObject;
 use Test::MockModule;
@@ -63,7 +63,7 @@ subtest 'Testing Patron Status Request V2' => sub {
 subtest 'Testing Patron Info Request V2' => sub {
     my $schema = Koha::Database->new->schema;
     $schema->storage->txn_begin;
-    plan tests => 24;
+    plan tests => 32;
     $C4::SIP::Sip::protocol_version = 2;
     test_request_patron_info_v2();
     $schema->storage->txn_rollback;
@@ -72,7 +72,7 @@ subtest 'Testing Patron Info Request V2' => sub {
 subtest 'Checkout V2' => sub {
     my $schema = Koha::Database->new->schema;
     $schema->storage->txn_begin;
-    plan tests => 5;
+    plan tests => 8;
     $C4::SIP::Sip::protocol_version = 2;
     test_checkout_v2();
     $schema->storage->txn_rollback;
@@ -93,6 +93,15 @@ subtest 'Test renew desensitize' => sub {
     plan tests => 6;
     $C4::SIP::Sip::protocol_version = 2;
     test_renew_desensitize();
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Test renew desensitize' => sub {
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
+    plan tests => 3;
+    $C4::SIP::Sip::protocol_version = 2;
+    test_renew_all();
     $schema->storage->txn_rollback;
 };
 
@@ -187,12 +196,14 @@ subtest 'hold_patron_name() tests' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'Lastseen response' => sub {
+subtest 'Lastseen response patron info' => sub {
+
+    plan tests => 6;
 
     my $schema = Koha::Database->new->schema;
     $schema->storage->txn_begin;
 
-    plan tests => 6;
+
     my $builder = t::lib::TestBuilder->new();
     my $branchcode = $builder->build({ source => 'Branch' })->{branchcode};
     my ( $response, $findpatron );
@@ -217,7 +228,7 @@ subtest 'Lastseen response' => sub {
 
     my $server = { ils => $mocks->{ils} };
     undef $response;
-    t::lib::Mocks::mock_preference( 'TrackLastPatronActivity', '' );
+    t::lib::Mocks::mock_preference( 'TrackLastPatronActivityTriggers', '' );
     $msg->handle_patron_info( $server );
 
     isnt( $response, undef, 'At least we got a response.' );
@@ -226,7 +237,7 @@ subtest 'Lastseen response' => sub {
     $seen_patron = Koha::Patrons->find({ cardnumber => $seen_patron->{cardnumber} });
     is( output_pref({str => $seen_patron->lastseen(), dateonly => 1}), output_pref({str => '2001-01-01', dateonly => 1}),'Last seen not updated if not tracking patrons');
     undef $response;
-    t::lib::Mocks::mock_preference( 'TrackLastPatronActivity', '1' );
+    t::lib::Mocks::mock_preference( 'TrackLastPatronActivityTriggers', 'connection' );
     $msg->handle_patron_info( $server );
 
     isnt( $response, undef, 'At least we got a response.' );
@@ -238,6 +249,90 @@ subtest 'Lastseen response' => sub {
 
 };
 
+subtest 'Fine items, currency, start and end item response in patron info' => sub {
+
+    plan tests => 6;
+
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
+
+    my $builder    = t::lib::TestBuilder->new();
+    my $branchcode = $builder->build( { source => 'Branch' } )->{branchcode};
+    my ( $response, $findpatron );
+    my $mocks             = create_mocks( \$response, \$findpatron, \$branchcode );
+    my $patron_with_fines = $builder->build(
+        {
+            source => 'Borrower',
+            value  => {
+                password   => hash_password(PATRON_PW),
+                branchcode => $branchcode,
+            },
+        }
+    );
+
+    # SIP2 currency field is limited to 3 chars
+    my $currency = substr Koha::Acquisition::Currencies->get_active->currency,
+        0, 3;
+
+    my $account = Koha::Account->new( { patron_id => $patron_with_fines->{borrowernumber} } );
+
+    my $amount1 = '1.00';
+    my $amount2 = '2.00';
+    my $amount3 = '3.00';
+
+    my $debt1 = $account->add_debit( { type => 'ACCOUNT', amount => $amount1, interface => 'commandline' } );
+    my $debt2 = $account->add_debit( { type => 'ACCOUNT', amount => $amount2, interface => 'commandline' } );
+    my $debt3 = $account->add_debit( { type => 'ACCOUNT', amount => $amount3, interface => 'commandline' } );
+
+    my $cardnum    = $patron_with_fines->{cardnumber};
+    my $sip_patron = C4::SIP::ILS::Patron->new($cardnum);
+    $findpatron = $sip_patron;
+
+    my $siprequest =
+          PATRON_INFO
+        . 'engYYYYMMDDZZZZHHMMSS'
+        . '   Y      '
+        . FID_INST_ID
+        . $branchcode . '|'
+        . FID_PATRON_ID
+        . $cardnum . '|'
+        . FID_PATRON_PWD
+        . PATRON_PW . '|'
+        . FID_START_ITEM . '2|'
+        . FID_END_ITEM . '3|';
+    my $msg = C4::SIP::Sip::MsgType->new( $siprequest, 0 );
+
+    my $server = { ils => $mocks->{ils} };
+    undef $response;
+    $msg->handle_patron_info($server);
+
+    isnt( $response, undef, 'At least we got a response.' );
+    my $respcode = substr( $response, 0, 2 );
+    is( $respcode, PATRON_INFO_RESP, 'Response code fine' );
+
+    check_field(
+        $respcode, $response, FID_CURRENCY, $currency,
+        'Verified active currency'
+    );
+
+    # the following checks apply to fields which can occur several times
+    isnt(
+        $response =~ /\|${\FID_FINE_ITEMS} $amount1/,
+        1, 'Verified fine item 1 is not in response'
+    );
+    is(
+        $response =~ /\|${\FID_FINE_ITEMS}\s$amount2/,
+        1, 'Verified fine item 2'
+    );
+    is(
+        $response =~ /\|${\FID_FINE_ITEMS}\s$amount3/,
+        1, 'Verified fine item 3'
+    );
+
+    $schema->storage->txn_rollback;
+};
+
+
 subtest "Test patron_status_string" => sub {
     my $schema = Koha::Database->new->schema;
     $schema->storage->txn_begin;
@@ -246,13 +341,13 @@ subtest "Test patron_status_string" => sub {
 
     my $builder = t::lib::TestBuilder->new();
     my $branchcode = $builder->build({ source => 'Branch' })->{branchcode};
-    my $patron = $builder->build({
-        source => 'Borrower',
+    my $patron = $builder->build_object({
+        class => 'Koha::Patrons',
         value  => {
             branchcode => $branchcode,
         },
     });
-    my $sip_patron = C4::SIP::ILS::Patron->new( $patron->{cardnumber} );
+    my $sip_patron = C4::SIP::ILS::Patron->new( $patron->cardnumber );
 
     t::lib::Mocks::mock_userenv({ branchcode => $branchcode });
 
@@ -282,12 +377,21 @@ subtest "Test patron_status_string" => sub {
     );
     AddIssue( $patron, $item2->barcode );
 
-    is( Koha::Checkouts->search({ borrowernumber => $patron->{borrowernumber} })->count, 2, "Found 2 checkouts for this patron" );
+    is(
+        Koha::Checkouts->search( { borrowernumber => $patron->borrowernumber } )->count, 2,
+        "Found 2 checkouts for this patron"
+    );
 
     $item1->itemlost(1)->store();
     $item2->itemlost(2)->store();
 
-    is( Koha::Checkouts->search({ borrowernumber => $patron->{borrowernumber}, 'itemlost' => { '>', 0 } }, { join => 'item'} )->count, 2, "Found 2 lost checkouts for this patron" );
+    is(
+        Koha::Checkouts->search(
+            { borrowernumber => $patron->borrowernumber, 'itemlost' => { '>', 0 } }, { join => 'item' }
+        )->count,
+        2,
+        "Found 2 lost checkouts for this patron"
+    );
 
     my $server->{account}->{lost_block_checkout} = undef;
     my $patron_status_string = C4::SIP::Sip::MsgType::patron_status_string( $sip_patron, $server );
@@ -320,6 +424,109 @@ subtest "Test patron_status_string" => sub {
     is( substr($patron_status_string, 9, 1), q{Y}, "lost_block_checkout = 2, lost_block_checkout_value = 2 does block checkouts with 2 lost checkouts where only 1 has itemlost = 2" );
 
     $schema->storage->txn_rollback;
+};
+
+subtest 'Lastseen response patron status' => sub {
+
+    plan tests => 6;
+
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
+
+    my $builder    = t::lib::TestBuilder->new();
+    my $branchcode = $builder->build( { source => 'Branch' } )->{branchcode};
+    my ( $response, $findpatron );
+    my $mocks       = create_mocks( \$response, \$findpatron, \$branchcode );
+    my $seen_patron = $builder->build(
+        {
+            source => 'Borrower',
+            value  => {
+                lastseen   => '2001-01-01',
+                password   => hash_password(PATRON_PW),
+                branchcode => $branchcode,
+            },
+        }
+    );
+    my $cardnum    = $seen_patron->{cardnumber};
+    my $sip_patron = C4::SIP::ILS::Patron->new($cardnum);
+    $findpatron = $sip_patron;
+
+    my $siprequest =
+          PATRON_STATUS_REQ
+        . 'engYYYYMMDDZZZZHHMMSS'
+        . FID_INST_ID
+        . $branchcode . '|'
+        . FID_PATRON_ID
+        . $cardnum . '|'
+        . FID_PATRON_PWD
+        . PATRON_PW . '|';
+    my $msg = C4::SIP::Sip::MsgType->new( $siprequest, 0 );
+
+    my $server = { ils => $mocks->{ils} };
+    undef $response;
+
+    t::lib::Mocks::mock_preference( 'TrackLastPatronActivityTriggers', '' );
+    $msg->handle_patron_status($server);
+
+    isnt( $response, undef, 'At least we got a response.' );
+    my $respcode = substr( $response, 0, 2 );
+    is( $respcode, PATRON_STATUS_RESP, 'Response code fine' );
+    $seen_patron = Koha::Patrons->find( { cardnumber => $seen_patron->{cardnumber} } );
+    is(
+        output_pref( { str => $seen_patron->lastseen(), dateonly => 1 } ),
+        output_pref( { str => '2001-01-01', dateonly => 1 } ), 'Last seen not updated if not tracking patrons'
+    );
+    undef $response;
+    t::lib::Mocks::mock_preference( 'TrackLastPatronActivityTriggers', 'connection' );
+    $msg->handle_patron_status($server);
+
+    isnt( $response, undef, 'At least we got a response.' );
+    $respcode = substr( $response, 0, 2 );
+    is( $respcode, PATRON_STATUS_RESP, 'Response code fine' );
+    $seen_patron = Koha::Patrons->find( { cardnumber => $seen_patron->cardnumber() } );
+    is(
+        output_pref( { str => $seen_patron->lastseen(), dateonly => 1 } ),
+        output_pref( { dt  => dt_from_string(), dateonly => 1 } ), 'Last seen updated if tracking patrons'
+    );
+    $schema->storage->txn_rollback;
+
+};
+
+subtest 'Invalid cardnumber test response patron status' => sub {
+
+    plan tests => 1;
+
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
+
+    my $builder    = t::lib::TestBuilder->new();
+    my $branchcode = $builder->build( { source => 'Branch' } )->{branchcode};
+    my ( $response, $findpatron );
+    my $mocks      = create_mocks( \$response, \$findpatron, \$branchcode );
+    my $cardnum    = 'nonexistentcardnumber';
+    my $sip_patron = C4::SIP::ILS::Patron->new($cardnum);
+    $findpatron = $sip_patron;
+
+    my $siprequest =
+          PATRON_STATUS_REQ
+        . 'engYYYYMMDDZZZZHHMMSS'
+        . FID_INST_ID
+        . $branchcode . '|'
+        . FID_PATRON_ID
+        . $cardnum . '|'
+        . FID_PATRON_PWD
+        . PATRON_PW . '|';
+    my $msg = C4::SIP::Sip::MsgType->new( $siprequest, 0 );
+
+    my $server = { ils => $mocks->{ils} };
+    undef $response;
+
+    t::lib::Mocks::mock_preference( 'TrackLastPatronActivityTriggers', 'login' );
+    $msg->handle_patron_status($server);
+    isnt( $response, undef, 'At least we got a response.' );
+
+    $schema->storage->txn_rollback;
+
 };
 
 subtest "Test build_additional_item_fields_string" => sub {
@@ -456,20 +663,21 @@ subtest "Test cr_item_field" => sub {
     $server->{account}->{seen_on_item_information} = '';
     $msg->handle_item_information( $server );
     $item_object->get_from_storage;
-    is( $item_object->datelastseen, "1900-01-01", "datelastseen remains unchanged" );
+    my $stored_date = "1900-01-01 00:00:00";
+    is( $item_object->datelastseen, $stored_date, "datelastseen remains unchanged" );
 
     $item_object->update({ itemlost => 1, datelastseen => '1900-01-01' });
     $server->{account}->{seen_on_item_information} = 'keep_lost';
     $msg->handle_item_information( $server );
     $item_object = Koha::Items->find( $item_object->id );
-    isnt( $item_object->datelastseen, "1900-01-01", "datelastseen updated" );
+    isnt( $item_object->datelastseen, $stored_date, "datelastseen updated" );
     is( $item_object->itemlost, 1, "item remains lost" );
 
     $item_object->update({ itemlost => 1, datelastseen => '1900-01-01' });
     $server->{account}->{seen_on_item_information} = 'mark_found';
     $msg->handle_item_information( $server );
     $item_object = Koha::Items->find( $item_object->id );
-    isnt( $item_object->datelastseen, "1900-01-01", "datelastseen updated" );
+    isnt( $item_object->datelastseen, $stored_date, "datelastseen updated" );
     is( $item_object->itemlost, 0, "item is no longer lost" );
 
     my $itype = $item_object->itype;
@@ -581,6 +789,97 @@ subtest 'SC status tests' => sub {
     dies_ok { $msg->handle_sc_status( $server ) } "Dies if sip user cannot be found";
 
     $schema->storage->txn_rollback;
+};
+
+subtest 'test_allow_additional_materials_checkout' => sub {
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
+
+    plan tests => 4;
+
+    my $builder     = t::lib::TestBuilder->new();
+    my $branchcode  = $builder->build( { source => 'Branch' } )->{branchcode};
+    my $branchcode2 = $builder->build( { source => 'Branch' } )->{branchcode};
+    my ( $response, $findpatron );
+    my $mocks = create_mocks( \$response, \$findpatron, \$branchcode );
+
+    # create some data
+    my $patron1 = $builder->build(
+        {
+            source => 'Borrower',
+            value  => {
+                password => hash_password(PATRON_PW),
+            },
+        }
+    );
+    my $card1       = $patron1->{cardnumber};
+    my $sip_patron1 = C4::SIP::ILS::Patron->new($card1);
+    $findpatron = $sip_patron1;
+    my $item_object = $builder->build_sample_item(
+        {
+            damaged       => 0,
+            withdrawn     => 0,
+            itemlost      => 0,
+            restricted    => 0,
+            homebranch    => $branchcode,
+            holdingbranch => $branchcode,
+            materials     => "This is a materials note",
+        }
+    );
+
+    my $mockILS = $mocks->{ils};
+    my $server  = { ils => $mockILS, account => {} };
+    $mockILS->mock( 'institution', sub { $branchcode; } );
+    $mockILS->mock( 'supports',    sub { return; } );
+    $mockILS->mock(
+        'checkout',
+        sub {
+            shift;
+            return C4::SIP::ILS->checkout(@_);
+        }
+    );
+    my $today = dt_from_string;
+    t::lib::Mocks::mock_userenv( { branchcode => $branchcode, flags => 1 } );
+    t::lib::Mocks::mock_preference( 'CircConfirmItemParts', '1' );
+
+    my $siprequest =
+          CHECKOUT . 'YN'
+        . siprequestdate($today)
+        . siprequestdate( $today->clone->add( days => 1 ) )
+        . FID_INST_ID
+        . $branchcode . '|'
+        . FID_PATRON_ID
+        . $sip_patron1->id . '|'
+        . FID_ITEM_ID
+        . $item_object->barcode . '|'
+        . FID_TERMINAL_PWD
+        . 'ignored' . '|';
+    undef $response;
+
+    my $msg = C4::SIP::Sip::MsgType->new( $siprequest, 0 );
+    $server->{account}->{allow_additional_materials_checkout} = 0;
+    $msg->handle_checkout($server);
+    my $respcode = substr( $response, 0, 2 );
+    check_field(
+        $respcode,          $response, FID_SCREEN_MSG, 'Item must be checked out at a circulation desk',
+        'Check screen msg', 'equals'
+    );
+    is(
+        Koha::Checkouts->search( { itemnumber => $item_object->id } )->count, 0,
+        "Item was not checked out (allow_additional_materials_checkout disabled)"
+    );
+
+    $server->{account}->{allow_additional_materials_checkout} = 1;
+    $msg->handle_checkout($server);
+    $respcode = substr( $response, 0, 2 );
+    check_field(
+        $respcode,          $response, FID_SCREEN_MSG, 'Item has additional materials: This is a materials note',
+        'Check screen msg', 'equals'
+    );
+    is(
+        Koha::Checkouts->search( { itemnumber => $item_object->id } )->count, 1,
+        "Item was checked out (allow_additional_materials_checkout enabled"
+    );
 };
 
 # Here is room for some more subtests
@@ -712,15 +1011,40 @@ sub test_request_patron_info_v2 {
     $respcode = substr( $response, 0, 2 );
     check_field( $respcode, $response, FID_PERSONAL_NAME, 'X' . $patron2->{surname} . 'Y', 'Check customized patron name' );
 
+    # Test hide_fields
     undef $response;
-    $server->{account}->{hide_fields} = "BD,BE,BF,PB";
+    $server->{account}->{hide_fields} = join( ",", FID_HOME_ADDR, FID_EMAIL, FID_HOME_PHONE, FID_PATRON_BIRTHDATE );
     $msg->handle_patron_info( $server );
     $respcode = substr( $response, 0, 2 );
     check_field( $respcode, $response, FID_HOME_ADDR, undef, 'Home address successfully stripped from response' );
     check_field( $respcode, $response, FID_EMAIL, undef, 'Email address successfully stripped from response' );
     check_field( $respcode, $response, FID_HOME_PHONE, undef, 'Home phone successfully stripped from response' );
     check_field( $respcode, $response, FID_PATRON_BIRTHDATE, undef, 'Date of birth successfully stripped from response' );
-    $server->{account}->{hide_fields} = "";
+    delete $server->{account}->{hide_fields};
+
+    # Test allow_fields
+    undef $response;
+    $server->{account}->{allow_fields} = join( ",", FID_EMAIL, FID_HOME_PHONE );
+    $msg->handle_patron_info( $server );
+    $respcode = substr( $response, 0, 2 );
+    check_field( $respcode, $response, FID_HOME_ADDR, undef, 'Home address successfully stripped from response' );
+    check_field( $respcode, $response, FID_EMAIL, $patron2->{email}, 'Email address successfully retained in response' );
+    check_field( $respcode, $response, FID_HOME_PHONE, $patron2->{phone}, 'Home phone successfully retained in from response' );
+    check_field( $respcode, $response, FID_PATRON_BIRTHDATE, undef, 'Date of birth successfully stripped from response' );
+    delete $server->{account}->{allow_fields};
+
+    # Test hide_fields should take precedence over allow_fields
+    undef $response;
+    $server->{account}->{hide_fields} = join( ",", FID_HOME_ADDR, FID_EMAIL, FID_PATRON_BIRTHDATE );
+    $server->{account}->{allow_fields} = join( ",", FID_EMAIL, FID_HOME_PHONE );
+    $msg->handle_patron_info( $server );
+    $respcode = substr( $response, 0, 2 );
+    check_field( $respcode, $response, FID_HOME_ADDR, undef, 'Home address successfully stripped from response' );
+    check_field( $respcode, $response, FID_EMAIL, undef, 'Email address successfully stripped from response' );
+    check_field( $respcode, $response, FID_HOME_PHONE, $patron2->{phone}, 'Home phone successfully retained in from response' );
+    check_field( $respcode, $response, FID_PATRON_BIRTHDATE, undef, 'Date of birth successfully stripped from response' );
+    delete $server->{account}->{hide_fields};
+    delete $server->{account}->{allow_fields};
 
     # Check empty password and verify CQ again
     $siprequest = PATRON_INFO. 'engYYYYMMDDZZZZHHMMSS'.'Y         '.
@@ -831,6 +1155,24 @@ sub test_checkout_v2 {
     undef $response;
     $msg->handle_checkout( $server );
     ok( $response =~ m/AH\d{4}-\d{2}-\d{2}/, "Found AH field as SQL date in response");
+
+    #returning item and now testing for blocked_item_types
+    t::lib::Mocks::mock_preference( 'CheckPrevCheckout',  'hardno' );
+    AddReturn($item_object->barcode, $branchcode);
+
+    $msg = C4::SIP::Sip::MsgType->new( $siprequest, 0 );
+    $server->{account}->{blocked_item_types} = "CR|".$item_object->itype;
+    $msg->handle_checkout( $server );
+    $respcode = substr( $response, 0, 2 );
+    check_field( $respcode, $response, FID_SCREEN_MSG, 'Item type cannot be checked out at this checkout location', 'Check screen msg', 'equals' );
+
+    is( Koha::Checkouts->search({ itemnumber => $item_object->id })->count, 0, "Item was not checked out (item type matched blocked_item_types)");
+
+    $msg = C4::SIP::Sip::MsgType->new( $siprequest, 0 );
+    $server->{account}->{blocked_item_types} = "";
+    $msg->handle_checkout( $server );
+    $respcode = substr( $response, 0, 2 );
+    is( Koha::Checkouts->search({ itemnumber => $item_object->id })->count, 1, "Item was checked out successfully");
 
 }
 
@@ -1149,6 +1491,101 @@ sub test_checkout_desensitize {
     is( $respcode, 'Y', "Desensitize flag was set for empty inhouse_item_types" );
 }
 
+sub test_renew_all {
+    my $builder    = t::lib::TestBuilder->new();
+    my $branchcode = $builder->build( { source => 'Branch' } )->{branchcode};
+    my ( $response, $findpatron );
+    my $mocks = create_mocks( \$response, \$findpatron, \$branchcode );
+
+    t::lib::Mocks::mock_preference( 'ItemsDeniedRenewal', 'damaged: [1]' );
+
+    # create some data
+    my $patron1 = $builder->build(
+        {
+            source => 'Borrower',
+            value  => {
+                password => hash_password(PATRON_PW),
+            },
+        }
+    );
+    my $card1           = $patron1->{cardnumber};
+    my $sip_patron1     = C4::SIP::ILS::Patron->new($card1);
+    my $patron_category = $sip_patron1->ptype();
+    $findpatron = $sip_patron1;
+    my $item_object_1 = $builder->build_sample_item(
+        {
+            damaged       => 0,
+            withdrawn     => 0,
+            itemlost      => 0,
+            restricted    => 0,
+            homebranch    => $branchcode,
+            holdingbranch => $branchcode,
+        }
+    );
+    my $item_object_2 = $builder->build_sample_item(
+        {
+            damaged       => 1,
+            withdrawn     => 0,
+            itemlost      => 0,
+            restricted    => 0,
+            homebranch    => $branchcode,
+            holdingbranch => $branchcode,
+        }
+    );
+
+    my $mockILS = $mocks->{ils};
+    my $server  = { ils => $mockILS, account => {} };
+    $mockILS->mock( 'institution', sub { $branchcode; } );
+    $mockILS->mock( 'supports',    sub { return; } );
+    $mockILS->mock(
+        'renew_all',
+        sub {
+            shift;
+            return C4::SIP::ILS->renew_all(@_);
+        }
+    );
+    my $today = dt_from_string;
+    t::lib::Mocks::mock_userenv( { branchcode => $branchcode, flags => 1 } );
+
+    my $issue_1 = Koha::Checkout->new(
+        {
+            branchcode     => $branchcode,
+            borrowernumber => $patron1->{borrowernumber},
+            itemnumber     => $item_object_1->itemnumber
+        }
+    )->store;
+    my $issue_2 = Koha::Checkout->new(
+        {
+            branchcode     => $branchcode,
+            borrowernumber => $patron1->{borrowernumber},
+            itemnumber     => $item_object_2->itemnumber
+        }
+    )->store;
+
+    my $siprequest =
+          RENEW_ALL
+        . siprequestdate($today)
+        . FID_INST_ID
+        . $branchcode . '|'
+        . FID_PATRON_ID
+        . $sip_patron1->id . '|'
+        . FID_TERMINAL_PWD
+        . 'ignored' . '|';
+
+    undef $response;
+    my $msg = C4::SIP::Sip::MsgType->new( $siprequest, 0 );
+    $msg->handle_renew_all($server);
+    isnt(
+        index( $response, "BM" . $item_object_1->barcode ),
+        -1, "Found correct BM for item renewed successfully"
+    );
+    isnt(
+        index( $response, "BN" . $item_object_2->barcode ),
+        -1, "Found correct BN for item not renewed"
+    );
+    is( index( $response, "HASH(", ), -1, "String 'HASH(' not found in response (Bug 35461)" );
+}
+
 sub test_renew_desensitize {
     my $builder = t::lib::TestBuilder->new();
     my $branchcode  = $builder->build({ source => 'Branch' })->{branchcode};
@@ -1236,6 +1673,28 @@ sub test_renew_desensitize {
     is( $respcode, 'N', "Desensitize flag was not set for itemtype in inhouse_item_types" );
 
 }
+
+subtest 'Test  convert_nonprinting_characters' => sub {
+
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
+
+    plan tests => 1;
+    my $msg =
+        qq{64YYYY          eng20241030    115433000000000000000000000000AOtDJZ8mxoq|AAF6LO825MxxosppnEpaUQ6a|AEnzsktrzn seoGzB|BLY|CQY|BHUSD|BV0|CC807485965|BDlbbGF5qo AawLbgu5W cD3r4q KVHWEkp KMAEKo en6QWEa5 Ho12sDL5hf|PB20241030|PCTQvaTv45|PIN|AFComment 1\nComment 2\nComment 3|BEZ2f_HGLMji|BFbbV3yXQ};
+    my $server = { account => { convert_nonprinting_characters => ' -- ' } };
+
+    my $output;
+    {
+        local *STDOUT;
+        open STDOUT, '>', \$output;
+        C4::SIP::Sip::write_msg( undef, $msg, $server )
+    }
+
+    like( $output, qr/Comment 1 -- Comment 2 -- Comment 3/, "Response contains converted restriction comment" );
+
+    $schema->storage->txn_rollback;
+};
 
 # Helper routines
 

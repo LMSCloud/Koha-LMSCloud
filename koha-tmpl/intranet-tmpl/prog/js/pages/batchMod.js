@@ -1,11 +1,11 @@
-/* global dataTablesDefaults allColumns Cookies */
+/* global KohaTable allColumns Cookies */
 // Set expiration date for cookies
 var date = new Date();
 date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
 
 function guess_nb_cols() {
     // This is a bit ugly, we are trying to know if there are checkboxes in the first column of the table
-    if ( $("#itemst tr:first th:first").html() == "" ) {
+    if ($("#itemst tr:first th:first .dt-column-title").html() == "") {
         // First header is empty, it's a checkbox
         return 3;
     } else {
@@ -20,6 +20,7 @@ function hideColumns() {
     if (valCookie) {
         valCookie = valCookie.split("/");
         $("#showall").prop("checked", false).parent().removeClass("selected");
+        $("#hideall").prop("checked", true).parent().addClass("selected");
         for ( var i = 0; i < valCookie.length; i++ ) {
             if (valCookie[i] !== '') {
                 var index = valCookie[i] - nb_cols;
@@ -117,16 +118,20 @@ function hideAllColumns() {
 }
 
 $(document).ready(function () {
-    hideColumns();
-    $("#itemst").dataTable($.extend(true, {}, dataTablesDefaults, {
-        "sDom": 't',
-        "aoColumnDefs": [
-            { "aTargets": [0, 1], "bSortable": false, "bSearchable": false },
-            { "aTargets": [0], "bVisible": false },
-            { "sType": "anti-the", "aTargets": ["anti-the"] }
+    var items_table = KohaTable("itemst", {
+        "columnDefs":  [
+            { "targets":  [0, 1], "orderable":  false, "searchable":  true },
+            { "targets":  [0], "visible":  false },
+            { "type":  "anti-the", "targets":  ["anti-the"] }
         ],
-        "bPaginate": false,
-    }));
+        "paging":  false,
+    });
+
+    hideColumns();
+
+    // Highlight in yellow item rows that cannot be deleted
+    $(".error").parents('tr').find('td').css('background-color', '#ffff99');
+
     $("#selectallbutton").click(function (e) {
         e.preventDefault();
         $("#itemst input:checkbox").each(function () {

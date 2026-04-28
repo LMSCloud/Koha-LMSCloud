@@ -175,12 +175,8 @@ SKIP: {
         my $dbh = C4::Context->dbh;
         my ( $av_id ) = $dbh->selectrow_array(q|
             SELECT id FROM authorised_values WHERE category=?|, undef, $av_category );
-        $s->click(
-            {
-                href => '/admin/authorised_values.pl?op=delete&searchfield=' . $av_category . '&id=' . $av_id,
-                main_class => 'main container-fluid'
-            }
-        );
+        #$driver->find_element('//input[@id="'.$av_id.'"]/following-sibling::button[text() = "Delete"]')->click;
+        $driver->find_element('//input[@name="id"][@value="'.$av_id.'"]/following-sibling::button')->click;
         $s->driver->accept_alert; # Accept the modal "Are you sure you want to delete this authorized value?"
 
         # For an unknown reason the click on the next admin-home link does not work
@@ -197,6 +193,20 @@ SKIP: {
 
         $s->fill_form( { categorycode => $category_code, description => 'Test category', enrolmentperiod => 12, category_type => 'A' } );
         $s->submit_form;
+
+        # Select "Show all" in the datatable "Show x entries" dropdown list to make sure our category is not hidden
+        $s->show_all_entries('//div[@id="patron_categories_wrapper"]');
+
+        $s->click(
+            {
+                href       => '/admin/categories.pl?op=add_form&categorycode=' . $category_code,
+                main_class => 'main container-fluid'
+            }
+        );    # Edit button
+        $s->submit_form;
+
+        # Make sure the category is updated
+        $s->driver->find_element('//div[@class="alert alert-message"]');
 
         # Select "Show all" in the datatable "Show x entries" dropdown list to make sure our category is not hidden
         $s->show_all_entries('//div[@id="patron_categories_wrapper"]');

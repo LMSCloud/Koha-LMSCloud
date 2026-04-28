@@ -1,17 +1,23 @@
 [% USE raw %]
 [% USE To %]
 [% USE Asset %]
-[% SET footerjs = 1 %]
 [% USE Koha %]
 [% USE KohaSpan %]
+[% USE Categories %]
 [% PROCESS 'i18n.inc' %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>MARC overlay rules &rsaquo; Koha &rsaquo; Administration</title>
+<title>[% FILTER collapse %]
+    [% t("Record overlay rules") | html %] &rsaquo;
+    [% t("Koha") | html %] &rsaquo;
+    [% t("Administration") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 
 <style>
-    .required {
-        background-color: #C00;
+    #tag-error {
+        display: block;
+        margin-top: 5px;
     }
 </style>
 
@@ -28,7 +34,7 @@
         [% END %]
         [% WRAPPER breadcrumb_item %]
             <a href="#" aria-current="page">
-                <span>MARC overlay rules</span>
+                <span>Record overlay rules</span>
             </a>
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
@@ -36,12 +42,13 @@
 
     <div class="main container-fluid">
         <div class="row">
-            <div class="col-sm-10 col-sm-push-2">
+            <div class="col-md-10 order-md-2 order-sm-1">
+                [% INCLUDE 'messages.inc' %]
 
-                <h1>Manage MARC overlay rules</h1>
+                <h1>Record overlay rules</h1>
 
                 [% FOR m IN messages %]
-                <div class="dialog [% m.type | html %]">
+                <div class="alert alert-[% m.type | html %]">
                     [% SWITCH m.code %]
                     [% CASE 'invalid_tag_regexp' %]
                       <span>Invalid regular expression "[% m.tag | html %]".</span>
@@ -55,24 +62,15 @@
 
                 [% UNLESS Koha.Preference( 'MARCOverlayRules' ) %]
                 [% SET pref_MARCOverlayRules_link = '<a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=MARCOverlayRules">MARCOverlayRules</a>' %]
-                <div class="dialog message">
+                <div class="alert alert-info">
                     The [%  pref_MARCOverlayRules_link | $raw | $KohaSpan %] preference is not set, don't forget to enable it for rules to take effect.
-                </div>
-                [% END %]
-                [% IF removeConfirm %]
-                <div class="dialog alert">
-                    <h3>Remove rule?</h3>
-                    <p>Are you sure you want to remove the selected rule(s)?</p>
-
-                    <form action="/cgi-bin/koha/admin/marc-overlay-rules.pl" method="GET">
-                        <button type="submit" class="deny"><i class="fa fa-fw fa-remove"></i> No, do not remove</button>
-                    </form>
-                    <button type="button" class="approve" id="doremove"><i class="fa fa-fw fa-check"></i> Yes, remove</button>
                 </div>
                 [% END %]
 
                 <div class="page-section">
                 <form action="/cgi-bin/koha/admin/marc-overlay-rules.pl" method="POST" id="marc-overlay-rules-form">
+                    [% INCLUDE 'csrf-token.inc' %]
+                    <input type="hidden" name="op" value="cud-add">
                     <table id="marc-overlay-rules">
                         <thead><tr>
                             <th>Rule</th>
@@ -80,10 +78,10 @@
                             <th>[% tp('noun', 'Filter') | html %]</th>
                             <th>Tag</th>
                             <th>Preset</th>
-                            <th>Added <i id="info_added" data-toggle="tooltip" title="If a field matching the rule tag only exists in the incoming record" data-placement="right" class="fa fa-info-circle"></i></th>
-                            <th>Appended <i id="info_appended" data-toggle="tooltip" title="If the original record has one or more fields matching with the rule tag, but one or more fields matching the rule tag differ in the incoming record" data-placement="right" class="fa fa-info-circle"></i></th>
-                            <th>Removed <i id="info_removed" data-toggle="tooltip" title="If the original record has a field matching the rule tag, but the matching field is not in the incoming record" data-placement="right" class="fa fa-info-circle"></i></th>
-                            <th>Deleted <i id="info_deleted" data-toggle="tooltip" title="If the original record has fields matching the rule tag, but no fields with this are found in the incoming record" data-placement="right" class="fa fa-info-circle"></i></th>
+                            <th>Added <i id="info_added" data-bs-toggle="tooltip" title="If a field matching the rule tag only exists in the incoming record" data-bs-placement="right" class="fa fa-info-circle"></i></th>
+                            <th>Appended <i id="info_appended" data-bs-toggle="tooltip" title="If the original record has one or more fields matching with the rule tag, but one or more fields matching the rule tag differ in the incoming record" data-bs-placement="right" class="fa fa-info-circle"></i></th>
+                            <th>Removed <i id="info_removed" data-bs-toggle="tooltip" title="If the original record has a field matching the rule tag, but the matching field is not in the incoming record" data-bs-placement="right" class="fa fa-info-circle"></i></th>
+                            <th>Deleted <i id="info_deleted" data-bs-toggle="tooltip" title="If the original record has fields matching the rule tag, but no fields with this are found in the incoming record" data-bs-placement="right" class="fa fa-info-circle"></i></th>
                             <th>Actions</th>
                             <th>&nbsp;</th>
                         </tr></thead>
@@ -94,20 +92,20 @@
                                 <th>
                                     <select name="module">
                                         <option value="source">Source</option>
-                                        <option value="categorycode">User category</option>
+                                        <option value="categorycode">Patron category</option>
                                         <option value="userid">Username</option>
                                     </select>
                                 </th>
                                 <th id="filter-container"></th>
-                                <th><input type="text" size="5" name="tag"/></th>
+                                <th><input type="text" size="5" name="tag" class="required" required="required"/></th>
                                 <th>
                                     <select name="preset">
                                         <option value="" selected>Custom</option>
-                                        <option value="Protect">Protect</option>
-                                        <option value="Overwrite">Overwrite</option>
-                                        <option value="Add new">Add new</option>
-                                        <option value="Add and append">Add and append</option>
-                                        <option value="Protect from deletion">Protect from deletion</option>
+                                        <option value="protect">Protect</option>
+                                        <option value="overwrite">Overwrite</option>
+                                        <option value="add">Add new</option>
+                                        <option value="addappend">Add and append</option>
+                                        <option value="protectfromdeletion">Protect from deletion</option>
                                     </select>
                                 </th>
                                 <th class="rule-operation-action-edit">
@@ -134,8 +132,8 @@
                                         <option value="1">Delete</option>
                                     </select>
                                 </th>
-                                <th><button class="btn btn-default btn-xs" title="Add" id="add"><i class="fa fa-plus"></i> Add rule</button></th>
-                                <th><button id="btn_batchremove" disabled="disabled" class="btn btn-default btn-xs" title="Batch remove"><i class="fa fa-trash"></i> Delete selected</button></th>
+                                <th><button type="submit" class="btn btn-default btn-xs" title="Add" id="add"><i class="fa fa-plus"></i> Add rule</button></th>
+                                <th><button type="button" class="btn btn-default btn-xs" id="btn_batchremove" disabled="disabled" title="Batch remove"><i class="fa fa-trash-can"></i> Delete selected</button></th>
                             </tr>
                         </tfoot>
                         [% END %]
@@ -164,17 +162,17 @@
                                         </select>
                                     </td>
                                     <td id="filter-container" data-filter="[% rule.filter | html %]"></td>
-                                    <td><input type="text" size="3" name="tag" value="[% rule.tag | html %]"/></td>
-                                    <th>
+                                    <td><input type="text" size="3" name="tag" value="[% rule.tag | html %]" class="required" required="required" /></td>
+                                    <td>
                                         <select name="preset">
                                             <option value="" selected>Custom</option>
-                                            <option value="Protect">Protect</option>
-                                            <option value="Overwrite">Overwrite</option>
-                                            <option value="Add new">Add new</option>
-                                            <option value="Add and append">Add and append</option>
-                                            <option value="Protect from deletion">Protect from deletion</option>
+                                            <option value="protect">Protect</option>
+                                            <option value="overwrite">Overwrite</option>
+                                            <option value="add">Add new</option>
+                                            <option value="addappend">Add and append</option>
+                                            <option value="protectfromdeletion">Protect from deletion</option>
                                         </select>
-                                    </th>
+                                    </td>
                                     <td class="rule-operation-action-edit">
                                         <select name="add">
                                             [% IF rule.add %]
@@ -220,29 +218,54 @@
                                         </select>
                                     </td>
                                     <td class="actions">
-                                        <button class="btn btn-default btn-xs" title="Save" id="doedit" value="[% rule.id | html %]"><i class="fa fa-check"></i> Save</button>
-                                        <button type="submit" class="btn btn-default btn-xs" title="Cancel" ><i class="fa fa-times"></i> Cancel</button>
+                                        <button class="btn btn-default btn-xs" title="Save" type="submit" id="doedit" value="[% rule.id | html %]"><i class="fa fa-check"></i> Save</button>
+                                        <a href="/cgi-bin/koha/admin/marc-overlay-rules.pl" class="btn btn-default btn-xs" title="Cancel"><i class="fa fa-times"></i> Cancel</a>
                                     </td>
                                     <td></td>
                                 [% ELSE %]
                                     <td>[% rule.id | html %]</td>
-                                    <td class="rule-module">[% rule.module | html %]</td>
-                                    <td class="rule-filter">[% rule.filter | html %]</td>
+                                    <td class="rule-module">
+                                        [% SWITCH rule.module %]
+                                            [% CASE 'source' %]<span>Source</span>
+                                            [% CASE 'categorycode' %]<span>Patron category</span>
+                                            [% CASE 'userid' %]<span>Username</span>
+                                            [% CASE %]<span>[% rule.module | html %]</span>
+                                        [% END %]
+                                    </td>
+                                    <td class="rule-filter">
+                                        [% IF rule.module == "source" %]
+                                            [% SWITCH rule.filter %]
+                                                [% CASE 'batchmod' %]<span>Batch record modification</span>
+                                                [% CASE 'intranet' %]<span>Staff interface MARC editor</span>
+                                                [% CASE 'batchimport' %]<span>Staged MARC import</span>
+                                                [% CASE 'z3950' %]<span>Z39.50</span>
+                                                [% CASE 'bulkmarkimport' %]<span>bulkmarkimport.pl</span>
+                                                [% CASE 'import_lexile' %]<span>import_lexile.pl</span>
+                                                [% CASE %]<span>[% rule.filter | html %]</span>
+                                            [% END %]
+                                        [% ELSIF rule.module == "categorycode" %]
+                                            [% IF rule.filter != "*" %]
+                                                [% Categories.GetName( rule.filter ) | html %]
+                                            [% ELSE %]
+                                                [% rule.filter | html %]
+                                            [% END %]
+                                        [% ELSE %]
+                                            [% rule.filter | html %]
+                                        [% END %]
+                                    </td>
                                     <td>[% rule.tag | html %]</td>
                                     <td class="rule-preset"></td>
-                                    <td class="rule-operation-action" data-operation="add">[% IF rule.add %]Add[% ELSE %]Skip[% END %]</td>
-                                    <td class="rule-operation-action" data-operation="append">[% IF rule.append %]Append[% ELSE %]Skip[% END %]</td>
-                                    <td class="rule-operation-action" data-operation="remove">[% IF rule.remove %]Remove[% ELSE %]Skip[% END %]</td>
-                                    <td class="rule-operation-action" data-operation="delete">[% IF rule.delete %]Delete[% ELSE %]Skip[% END %]</td>
+                                    <td class="rule-operation-action" data-operation="add" data-value="[% rule.add | html %]">[% IF rule.add %]Add[% ELSE %]Skip[% END %]</td>
+                                    <td class="rule-operation-action" data-operation="append" data-value="[% rule.append | html %]">[% IF rule.append %]Append[% ELSE %]Skip[% END %]</td>
+                                    <td class="rule-operation-action" data-operation="remove" data-value="[% rule.remove | html %]">[% IF rule.remove %]Remove[% ELSE %]Skip[% END %]</td>
+                                    <td class="rule-operation-action" data-operation="delete" data-value="[% rule.delete | html %]">[% IF rule.delete %]Delete[% ELSE %]Skip[% END %]</td>
                                     <td class="actions">
-                                        <a href="?op=remove&id=[% rule.id | uri %]" title="Delete" class="btn btn-default btn-xs"><i class="fa fa-trash"></i> Delete</a>
-                                        <a href="?op=edit&id=[% rule.id | uri %]" title="Edit" class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</a>
+                                        <button type="button" title="Delete" class="btn btn-default btn-xs btn_remove" name="batchremove" value="[% rule.id | html %]"><i class="fa fa-trash-can"></i> Delete</button>
+                                        <a href="?op=edit&id=[% rule.id | uri %]" title="Edit" class="btn btn-default btn-xs"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
                                     </td>
                                     <td>
-                                        [% IF rule.removemarked %]
-                                            <input type="checkbox" name="batchremove" value="[% rule.id | html %]" checked="checked"/>
-                                        [% ELSE %]
-                                            <input type="checkbox" name="batchremove" value="[% rule.id | html %]"/>
+                                        [% UNLESS edit %]
+                                        <input type="checkbox" name="batchremove" value="[% rule.id | html %]"/>
                                         [% END %]
                                     </td>
                                 [% END %]
@@ -253,13 +276,9 @@
                 </form>
                 </div> <!-- /.page-section -->
 
-                <form action="/cgi-bin/koha/admin/marc-overlay-rules.pl" method="post">
-                    <input type="hidden" name="op" value="redo-matching" />
-                </form>
-
             </div><!-- /.col-sm-10.col-sm-push-2 -->
 
-            <div class="col-sm-2 col-sm-pull-10">
+            <div class="col-md-2 order-sm-2 order-md-1">
                 <aside>
                     [% INCLUDE 'admin-menu.inc' %]
                 </aside>
@@ -274,11 +293,14 @@
 
     <script>
     $(document).ready(function(){
-        function doSubmit(op, id) {
-            $('<input type="hidden"/>')
-            .attr('name', 'op')
-            .attr('value', op)
-            .appendTo('#marc-overlay-rules-form');
+
+        var validator = $( "#marc-overlay-rules-form" ).validate({
+            ignore: ".ignore"
+        });
+
+        function prepareSubmit(op, id) {
+
+            $('#marc-overlay-rules-form > input[name="op"]').val(op);
 
             if(id) {
                 $('<input type="hidden"/>')
@@ -287,44 +309,38 @@
                 .appendTo('#marc-overlay-rules-form');
             }
 
-            var valid = true;
-            if (op == 'add' || op == 'edit') {
-                var validate = [
-                    $('#marc-overlay-rules-form input[name="filter"]'),
-                    $('#marc-overlay-rules-form input[name="tag"]')
-                ];
-                for(var i = 0; i < validate.length; i++) {
-                    if (validate[i].length) {
-                        if(validate[i].val().length == 0) {
-                            validate[i].addClass('required');
-                            valid = false;
-                        } else {
-                            validate[i].removeClass('required');
-                        }
-                    }
-                }
+            if (op == 'cud-add' || op == 'cud-edit') {
+                $('#marc-overlay-rules-form input[name="tag"]').removeClass('ignore');
+            } else {
+                $('#marc-overlay-rules-form input[name="tag"]').addClass('ignore');
             }
 
-            if (valid) {
-                $('#marc-overlay-rules-form').submit();
-            }
-
-            return valid;
         }
 
-        $('#doremove').on('click', function(){
-            doSubmit('doremove');
-        });
         $('#doedit').on('click', function(){
-            doSubmit('doedit', $("#doedit").attr('value'));
+            prepareSubmit('cud-edit', $("#doedit").attr('value'));
         });
         $('#add').on('click', function(){
-            doSubmit('add');
-            return false;
+            prepareSubmit('cud-add');
+        });
+        $('.btn_remove').on('click', function(el){
+            // remove all earlier selections
+            $('#marc-overlay-rules-form input[name="batchremove"]').each(function() {
+                $(this).prop( "checked", false );
+            });
+
+            confirm_remove(el.currentTarget.value);
         });
         $('#btn_batchremove').on('click', function(){
-            doSubmit('remove');
+            confirm_remove();
         });
+
+        function confirm_remove(id){
+            if (confirm(_("Are you sure you want to remove the selected rule(s)?"))){
+                prepareSubmit('cud-remove', id);
+                $('#marc-overlay-rules-form').submit()
+            }
+        }
 
         /* Disable batch remove unless one or more checkboxes are checked */
         $('input[name="batchremove"]').change(function() {
@@ -349,60 +365,53 @@
         }
 
         $('#marc-overlay-rules').dataTable($.extend(true, {}, dataTablesDefaults, {
-            "aoColumns": [
-                {"bSearchable": false, "bSortable": false},
-                {"sSortDataType": "dom-input"},
-                {"sSortDataType": "dom-input"},
-                {"bSearchable": false, "sSortDataType": "dom-input"},
-                {"bSearchable": false, "sSortDataType": "dom-input"},
-                {"bSearchable": false, "sSortDataType": "dom-input"},
-                {"bSearchable": false, "sSortDataType": "dom-input"},
-                {"bSearchable": false, "sSortDataType": "dom-input"},
-                {"bSearchable": false, "sSortDataType": "dom-input"},
-                {"bSearchable": false, "bSortable": false},
-                {"bSearchable": false, "bSortable": false}
+            "columns": [
+                {"searchable":  false, "orderable": false},
+                {"orderDataType": "dom-input"},
+                {"orderDataType": "dom-input"},
+                {"searchable":  false, "orderDataType": "dom-input"},
+                {"searchable":  false, "orderDataType": "dom-input"},
+                {"searchable":  false, "orderDataType": "dom-input"},
+                {"searchable":  false, "orderDataType": "dom-input"},
+                {"searchable":  false, "orderDataType": "dom-input"},
+                {"searchable":  false, "orderDataType": "dom-input"},
+                {"searchable":  false, "orderable": false},
+                {"searchable":  false, "orderable": false}
             ],
             "pagingType": "simple"
         }));
 
         var overlay_rules_presets = {};
-        overlay_rules_presets[_("Protect")] = {
+        overlay_rules_presets["protect"] = {
           'add': 0,
           'append': 0,
           'remove': 0,
           'delete': 0
         };
-        overlay_rules_presets[_("Overwrite")] = {
+        overlay_rules_presets["overwrite"] = {
           'add': 1,
           'append': 1,
           'remove': 1,
           'delete': 1
         };
-        overlay_rules_presets[_("Add new")] = {
+        overlay_rules_presets["add"] = {
           'add': 1,
           'append': 0,
           'remove': 0,
           'delete': 0
         };
-        overlay_rules_presets[_("Add and append")] = {
+        overlay_rules_presets["addappend"] = {
           'add': 1,
           'append': 1,
           'remove': 0,
           'delete': 0
         };
-        overlay_rules_presets[_("Protect from deletion")] = {
+        overlay_rules_presets["protectfromdeletion"] = {
           'add': 1,
           'append': 1,
           'remove': 1,
           'delete': 0
         };
-
-        var overlay_rules_label_to_value = {};
-        overlay_rules_label_to_value[_("Add")] = 1;
-        overlay_rules_label_to_value[_("Append")] = 1;
-        overlay_rules_label_to_value[_("Remove")] = 1;
-        overlay_rules_label_to_value[_("Delete")] = 1;
-        overlay_rules_label_to_value[_("Skip")] = 0;
 
         function hash_config(config) {
           return JSON.stringify(config, Object.keys(config).sort());
@@ -423,10 +432,10 @@
           var operations_config = {};
           $('.rule-operation-action', $this).each(function() {
             var $operation = $(this);
-            operations_config[$operation.data('operation')] = overlay_rules_label_to_value[$operation.text()];
+            operations_config[$operation.data('operation')] = $operation.data('value');
           });
           $('.rule-preset', $this).text(
-            operations_config_overlay_rule_preset(operations_config) || _("Custom")
+            $('select[name="preset"] option[value="' + operations_config_overlay_rule_preset(operations_config) + '"]').text()
           );
         });
 
@@ -468,7 +477,7 @@
             intranet: _("Staff interface MARC editor"),
             batchimport: _("Staged MARC import"),
             z3950: _("Z39.50"),
-            /* bulkmarcimport: _("bulkmarcimport.pl"), */
+            bulkmarcimport: _("bulkmarcimport.pl"),
             import_lexile: _("import_lexile.pl")
         },
 
@@ -523,7 +532,6 @@
         if ($filter_container.data('filter')) {
           $('#filter').val($filter_container.data('filter'));
         }
-
     });
     </script>
 [% END %]

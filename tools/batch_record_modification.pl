@@ -89,7 +89,7 @@ if ( $op eq 'form' ) {
             ]
         )
     );
-} elsif ( $op eq 'list' ) {
+} elsif ( $op eq 'cud-list' ) {
     # List all records to process
     my ( @records, @record_ids );
     if ( my $bib_list = $input->param('bib_list') ) {
@@ -152,7 +152,7 @@ if ( $op eq 'form' ) {
         mmtid => $mmtid,
         view => 'list',
     );
-} elsif ( $op eq 'modify' ) {
+} elsif ( $op eq 'cud-modify' ) {
     # We want to modify selected records!
     my @record_ids = $input->multi_param('record_id');
 

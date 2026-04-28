@@ -4,36 +4,34 @@
 [% USE KohaDates %]
 [% USE AuthorisedValues %]
 [% USE Price %]
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% SET ENABLE_OPAC_PAYMENTS = payment_methods %]
 [% USE AdditionalContents %]
 [% SET DISPLAY_PAYMENT_BLOCK = 0 %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Your charges &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+<title>[% FILTER collapse %]
+    [% t("Your charges") | html %] &rsaquo;
+    [% PROCESS 'library_name_title' %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% BLOCK cssinclude %]
-    [% Asset.css("css/datatables.css") | $raw %]
-[% END %]
+[% BLOCK cssinclude %][% END %]
 </head>
 
 [% INCLUDE 'bodytag.inc' bodyid='opac-account' bodyclass='scrollto' %]
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-            </li>
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
-            </li>
-            <li class="breadcrumb-item active">
-                <a href="#" aria-current="page">Your charges</a>
-            </li>
-        </ol>
-    </nav> <!-- /#breadcrumbs -->
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Your charges</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
 
     <div class="container-fluid">
         <div class="row">
@@ -45,7 +43,7 @@
             <div class="col-md-12 col-lg-10 order-1">
                 <div id="useraccount" class="maincontent">
 
-                    <h1>Charges</h1>
+                    <h1>Your charges</h1>
                     [% IF message %]
                         <div class="alert alert-info">
                             [% IF message == 'valid_payment' %]
@@ -84,7 +82,6 @@
 <script>
 $( document ).ready(function() {
 
-    var MSG_MIN_THRESHOLD = _("Minimum amount needed by this service is %s");
     var txtActivefilter = _("Filter paid transactions");
     var txtInactivefilter = _("Show all transactions");
 
@@ -104,6 +101,18 @@ $( document ).ready(function() {
          ],
          'fnDrawCallback': function() {
             show_hiddentfoot('#finestable');
+         }
+    } ));
+
+    $('table[id^="finestable-"]').dataTable($.extend(true, {}, dataTablesDefaults, {
+         "responsive": {
+            "details": { "type": 'column',"target": -1 }
+         },
+         "columnDefs": [
+            { "className": 'dtr-control', "orderable": false, "targets": -1 }
+         ],
+         'fnDrawCallback': function() {
+            show_hiddentfoot('table[id^="finestable-"]');
          }
     } ));
     
@@ -138,16 +147,16 @@ $( document ).ready(function() {
     $("#filter_p").html('<p><a href="#" id="filter_paid"><i class="fa fa-filter" aria-hidden="true"></i> '+txtActivefilter+'</a>');
     $('#filter_paid').click(function(e) {
         e.preventDefault();
+        let filteredValue = '';
         if ($(this).hasClass('filtered')) {
-            var filteredValue = '';
             $(this).html('<i class="fa fa-filter" aria-hidden="true"></i> '+txtActivefilter);
         } else { //Not filtered. Let's do it!
-            var filteredValue = '^((?!0.00).*)$'; //Filter not matching 0.00 http://stackoverflow.com/a/406408
+            filteredValue = '^((?!0.00).*)$'; //Filter not matching 0.00 http://stackoverflow.com/a/406408
             $(this).html('<i class="fa fa-filter" aria-hidden="true"></i> '+txtInactivefilter);
         }
-        fines_table.fnFilter(filteredValue, -2, true, false);
+        fines_table.DataTable().columns(-2).search(filteredValue, {regex: true}).draw();
         [% FOREACH r IN relatives %]
-        fines_table_[% r.patron.id | html %].fnFilter(filteredValue, -2, true, false);
+        fines_table_[% r.patron.id | html %].DataTable().columns(-2).search(filteredValue, {regex: true}).draw();
         [% END %]
         $(this).toggleClass('filtered');
     });
@@ -185,7 +194,7 @@ $( document ).ready(function() {
                             help.addClass('hide');
                         } else {
                             $(self).prop('disabled', true);
-                            help.html(MSG_MIN_THRESHOLD.format(parseInt(threshold,10).toFixed(2))).removeClass('hide');
+                            help.html( _("Minimum amount needed by this service is %s").format(parseInt(threshold,10).toFixed(2)) ).removeClass('hide');
                         }
                         resolve();
                     })

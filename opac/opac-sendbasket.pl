@@ -21,174 +21,99 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use Encode;
-use Carp qw( carp );
-use Try::Tiny qw( catch try );
 
-use C4::Biblio qw(
-    GetMarcSubjects
-);
-use C4::Auth qw( get_template_and_user );
+use C4::Auth   qw( get_template_and_user );
+use C4::Biblio qw(GetMarcSubjects);
 use C4::Output qw( output_html_with_http_headers );
 use C4::Templates;
 use Koha::Biblios;
 use Koha::Email;
 use Koha::Patrons;
-use Koha::Token;
 
 my $query = CGI->new;
 
-my ( $template, $borrowernumber, $cookie ) = get_template_and_user (
+my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
-        template_name   => "opac-sendbasketform.tt",
-        query           => $query,
-        type            => "opac",
+        template_name => "opac-sendbasketform.tt",
+        query         => $query,
+        type          => "opac",
     }
 );
+my $patron     = Koha::Patrons->find($borrowernumber);
+my $user_email = $patron ? $patron->notice_email_address : undef;
 
-my $bib_list     = $query->param('bib_list') || '';
-my $email_add    = $query->param('email_add');
+my $op        = $query->param('op') || q{};
+my $bib_list  = $query->param('bib_list') || '';
+my $email_add = $query->param('email_add');
 
-if ( $email_add ) {
-    die "Wrong CSRF token" unless Koha::Token->new->check_csrf({
-        session_id => scalar $query->cookie('CGISESSID'),
-        token  => scalar $query->param('csrf_token'),
-    });
-    my $patron = Koha::Patrons->find( $borrowernumber );
-    my $user_email = $patron->first_valid_email_address
-    || C4::Context->preference('KohaAdminEmailAddress');
-
-    my $email_replyto = $patron->firstname . " " . $patron->surname . " <$user_email>";
-    my $comment    = $query->param('comment');
-
-    # Since we are already logged in, no need to check credentials again
-    # when loading a second template.
-    my $template2 = C4::Templates::gettemplate(
-        'opac-sendbasket.tt', 'opac', $query,
-    );
+if ( $op eq "cud-send" && $email_add && $user_email ) {
+    my $comment = $query->param('comment');
 
     my @bibs = split( /\//, $bib_list );
-    my @results;
     my $iso2709;
-    my $marcflavour = C4::Context->preference('marcflavour');
-    foreach my $biblionumber (@bibs) {
-        $template2->param( biblionumber => $biblionumber );
-
-        $biblionumber = int($biblionumber);
-        my $biblio    = Koha::Biblios->find( $biblionumber ) or next;
-        my $dat       = $biblio->unblessed;
-        my $record    = $biblio->metadata->record(
-            {
-                embed_items => 1,
-                opac        => 1,
-                patron      => $patron,
-            }
-        );
-        my $marcauthorsarray = $biblio->get_marc_contributors;
-        my $marcsubjctsarray = GetMarcSubjects( $record, $marcflavour );
-
-        my $items = $biblio->items->search_ordered->filter_by_visible_in_opac({ patron => $patron });
-
-        my $hasauthors = 0;
-        if($dat->{'author'} || @$marcauthorsarray) {
-          $hasauthors = 1;
-        }
-
-        $dat->{MARCSUBJCTS}    = $marcsubjctsarray;
-        $dat->{MARCAUTHORS}    = $marcauthorsarray;
-        $dat->{HASAUTHORS}     = $hasauthors;
-        $dat->{'biblionumber'} = $biblionumber;
-        $dat->{ITEM_RESULTS}   = $items;
-        my ( $host, $relatedparts ) = $biblio->get_marc_host;
-        $dat->{HOSTITEMENTRIES} = $host;
-        $dat->{RELATEDPARTS} = $relatedparts;
-
-        $iso2709 .= $record->as_usmarc();
-
-        push( @results, $dat );
+    foreach my $bib (@bibs) {
+        $bib = int($bib);
+        my $biblio = Koha::Biblios->find($bib) or next;
+        $iso2709 .= $biblio->metadata_record( { interface => 'opac' } )->as_usmarc();
     }
-
-    my $resultsarray = \@results;
-    
-    $template2->param(
-        BIBLIO_RESULTS => $resultsarray,
-        comment        => $comment,
-        firstname      => $patron->firstname,
-        surname        => $patron->surname,
-    );
-
-    # Getting template result
-    my $template_res = $template2->output();
-    my $body;
-
-    # Analysing information and getting mail properties
-    my $subject;
-    if ( $template_res =~ /\<SUBJECT\>(?<subject>.*)\<END_SUBJECT\>/s ) {
-        $subject = $+{subject};
-        $subject =~ s|\n?(.*)\n?|$1|;
-    }
-    else {
-        $subject = "no subject";
-    }
-
-    my $email_header = "";
-    if ( $template_res =~ /<HEADER>(.*)<END_HEADER>/s ) {
-        $email_header = $1;
-        $email_header =~ s|\n?(.*)\n?|$1|;
-    }
-
-    if ( $template_res =~ /<MESSAGE>(.*)<END_MESSAGE>/s ) {
-        $body = $1;
-        $body =~ s|\n?(.*)\n?|$1|;
-    }
-
-    my $THE_body = <<END_OF_BODY;
-$email_header
-$body
-END_OF_BODY
 
     if ( !defined $iso2709 ) {
-        carp "Error sending mail: empty basket";
-        $template->param( error => 1 );
+        $template->param( error => 'NO_BODY' );
     }
     else {
-        try {
-            # if you want to use the KohaAdmin address as from, that is the default no need to set it
-            my $email = Koha::Email->create({
-                to       => $email_add,
-                reply_to => $email_replyto,
-                subject  => $subject,
-            });
-            $email->header( 'X-Abuse-Report' => C4::Context->preference('KohaAdminEmailAddress') );
-            $email->text_body( $THE_body );
-            $email->attach(
-                Encode::encode( "UTF-8", $iso2709 ),
-                content_type => 'application/octet-stream',
-                name         => 'basket.iso2709',
-                disposition  => 'attachment',
-            );
-            my $library = $patron->library;
-            $email->transport( $library->smtp_server->transport );
-            $email->send_or_die;
-            $template->param( SENT => "1" );
-        }
-        catch {
-            carp "Error sending mail: $_";
-            $template->param( error => 1 );
+        my %loops = ( biblio => \@bibs, );
+
+        my %substitute = ( comment => $comment, );
+
+        my $letter = C4::Letters::GetPreparedLetter(
+            module      => 'catalogue',
+            letter_code => 'CART',
+            lang        => $patron->lang,
+            tables      => {
+                borrowers => $borrowernumber,
+            },
+            message_transport_type => 'email',
+            loops                  => \%loops,
+            substitute             => \%substitute,
+        );
+
+        my $attachment = {
+            filename => 'basket.iso2709',
+            type     => 'application/octet-stream',
+            content  => Encode::encode( "UTF-8", $iso2709 ),
         };
+
+        my $message_id = C4::Letters::EnqueueLetter(
+            {
+                letter                 => $letter,
+                message_transport_type => 'email',
+                to_address             => $email_add,
+                reply_address          => $user_email,
+                attachments            => [$attachment],
+            }
+        );
+
+        C4::Letters::SendQueuedMessages( { message_id => $message_id } ) if $message_id;
+
+        $template->param( SENT => 1 );
     }
 
     $template->param( email_add => $email_add );
-    output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
-}
-else {
+    output_html_with_http_headers $query, $cookie, $template->output, undef,
+      { force_no_caching => 1 };
+
+} elsif( !$user_email ) {
+    $template->param( email_add => 1, error => 'NO_REPLY_ADDRESS' );
+    output_html_with_http_headers $query, $cookie, $template->output;
+
+} else {
     my $new_session_id = $query->cookie('CGISESSID');
     $template->param(
         bib_list       => $bib_list,
         url            => "/cgi-bin/koha/opac-sendbasket.pl",
         suggestion     => C4::Context->preference("suggestion"),
         virtualshelves => C4::Context->preference("virtualshelves"),
-        csrf_token => Koha::Token->new->generate_csrf(
-            { session_id => $new_session_id, } ),
     );
-    output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
+    output_html_with_http_headers $query, $cookie, $template->output, undef,
+      { force_no_caching => 1 };
 }

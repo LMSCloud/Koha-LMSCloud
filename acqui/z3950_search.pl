@@ -87,7 +87,7 @@ $template->param(
         publicationyear => $publicationyear,
 );
 
-if ( $op ne "do_search" ) {
+if ( $op ne "cud-do_search" ) {
     my $schema = Koha::Database->new()->schema();
     my $rs = $schema->resultset('Z3950server')->search(
         {
@@ -100,7 +100,7 @@ if ( $op ne "do_search" ) {
     );
     $template->param(
         serverloop   => [ $rs->all ],
-        opsearch     => "search",
+        opsearch     => "cud-search",
     );
     output_html_with_http_headers $input, $cookie, $template->output;
     exit;

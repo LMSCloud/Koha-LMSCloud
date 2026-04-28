@@ -4,36 +4,32 @@
 [% USE AuthorisedValues %]
 [% USE TablesSettings %]
 [% PROCESS 'i18n.inc' %]
-
+[% PROCESS 'html_helpers.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
 [% USE HtmlScrubber %]
-<title>Courses &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+<title>[% FILTER collapse %]
+    [% t("Course reserves") | html %] &rsaquo;
+    [% PROCESS 'library_name_title' %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% BLOCK cssinclude %]
-    [% Asset.css("css/datatables.css") | $raw %]
-[% END %]
+[% BLOCK cssinclude %][% END %]
 
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='opac-course-reserves' %]
 [% INCLUDE 'masthead.inc' %]
 
 <div class="main">
-    <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="/cgi-bin/koha/opac-main.pl">Home</a>
-            </li>
-            <li class="breadcrumb-item active">
-                <a href="#" aria-current="page">Course reserves</a>
-            </li>
-        </ol>
-    </nav> <!-- /#breadcrumbs -->
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Course reserves</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
 
     <div class="container-fluid">
         <div class="row">
             <div class="col order-first order-md-first order-lg-2">
                 <div id="courses" class="maincontent">
-                    <h1>Courses</h1>
+                    <h1>Courses reserves</h1>
 
                     <table id="course_reserves_table" class="table table-bordered table-striped table-condensed">
                         <caption class="sr-only">Courses</caption>
@@ -53,7 +49,7 @@
                         <tbody>
                             [% FOREACH c IN courses %]
                                 <tr>
-                                    <td><a href="opac-course-details.pl?course_id=[% c.course_id | uri %]">[% c.course_name | html %]</a></td>
+                                    <td><a href="opac-course-details.pl?course_id=[% c.course_id | uri %]">[% c.course_name | html %][%- IF c.section -%] - [% c.section | html %][%- END -%]</a></td>
                                     <td>[% AuthorisedValues.GetByCode( 'DEPARTMENT', c.department, 1 ) | html %]</td>
                                     <td>[% c.course_number | html %]</td>
                                     <td>[% c.section | html %]</td>
@@ -79,11 +75,10 @@
     [% INCLUDE 'columns_settings.inc' %]
     <script>
         $(document).ready(function() {
-            columns_settings = [% TablesSettings.GetColumns( 'opac', 'biblio-detail', 'course_reserves_table', 'json' ) | $raw %]
+            table_settings = [% TablesSettings.GetTableSettings( 'opac', 'course_list', 'course_reserves_table', 'json' ) | $raw %]
             KohaTable("#course_reserves_table", {
-                "dom": '<"top"f>rt<"clear">',
+                "dom": '<"top"<"table_controls"f>>rt<"clear">',
                 "sorting": [[ 1, "asc" ]],
-                "autoWidth": false,
                 "asColumnDefs": [
                     { "aTargets": [ 1 ], "sType": "nsb-nse" },
                 ],
@@ -94,10 +89,10 @@
                 "responsive": {
                     "details": { "type": 'column',"target": -1 }
                 },
-                "aoColumnDefs": [
+                "cColumnDefs": [
                     { "className": 'dtr-control', "orderable": false, "targets": -1 },
                 ],
-            }, columns_settings );
+            }, table_settings );
         });
     </script>
 [% END %]

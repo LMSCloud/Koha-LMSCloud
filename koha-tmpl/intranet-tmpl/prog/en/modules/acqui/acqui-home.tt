@@ -1,11 +1,17 @@
 [% USE raw %]
+[% USE Koha %]
+[% USE AdditionalContents %]
 [% USE Asset %]
 [% USE Price %]
 [% USE Branches %]
 [% USE TablesSettings %]
 [% SET footerjs = 1 %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Acquisitions &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Acquisitions") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("lib/jquery/plugins/treetable/stylesheets/jquery.treetable.css") | $raw %]
 </head>
@@ -25,8 +31,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-1 order-md-2">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% INCLUDE 'acquisitions-toolbar.inc' %]
 
@@ -34,21 +41,17 @@
     [% INCLUDE 'budgets-active-currency.inc' hide = 'yes' %]
     [% UNLESS ( loop_budget ) %]
         [% IF ( CAN_user_acquisition_period_manage ) %]
-        <div class="dialog alert"><a href="/cgi-bin/koha/admin/aqbudgetperiods.pl">You must define a budget in Administration</a></div>
+        <div class="alert alert-warning"><a href="/cgi-bin/koha/admin/aqbudgetperiods.pl">You must define a budget in Administration</a></div>
         [% ELSE %]
-        <div class="dialog alert">Your administrator must define a budget in Administration</div>
+        <div class="alert alert-warning">Your administrator must define a budget in Administration</div>
         [% END %]
     [% END %]
 <div class="row">
-    [% IF ( suggestions_count || all_pendingsuggestions ) %]
-        <div class="col-sm-6">
-    [% ELSE %]
-        <div class="col-sm-12">
-    [% END %]
+    <div class="col">
 <div id="acqui_acqui_home_order">
     <fieldset>
-        <legend>Manage orders</legend>
-        <form name="findsupplier" action="/cgi-bin/koha/acqui/booksellers.pl" method="post">
+        <legend>Search vendors</legend>
+        <form name="findsupplier" action="/cgi-bin/koha/acqui/booksellers.pl" method="get">
             <p><label for="supplierpage">Vendor: </label><input type="text" size="25" name="supplier" id="supplierpage" class="focus" />
             <input type="submit" class="btn btn-primary" value="Search" />
             </p>
@@ -58,7 +61,7 @@
 </div>
 
 [% IF ( CAN_user_suggestions_suggestions_manage && ( suggestions_count || all_pendingsuggestions ) ) %]
-<div class="col-sm-6">
+<div class="col">
     <div id="acqui_acqui_home_suggestions">
         <fieldset>
         <legend>Pending suggestions</legend>
@@ -80,6 +83,8 @@
 [% END %]
 
 </div>
+
+[% PROCESS acquisitions_filter_form context => "main" %]
 
 [% IF ( loop_budget ) %]
 
@@ -197,17 +202,26 @@
 </div><!-- /.page-section -->
 [% END %]
 
-</main>
-</div> <!-- /.col-sm-10.col-sm-push-2 -->
+    [%- SET StaffAcquisitionsHome = AdditionalContents.get( location => "StaffAcquisitionsHome", lang => lang, library => Branches.GetLoggedInBranchcode ) -%]
+    [%- FOREACH block IN StaffAcquisitionsHome.content -%]
+    <div class="page-section">
+        [%- block.content | $raw -%]
+    </div>
+    [%- END -%]
 
-<div class="col-sm-2 col-sm-pull-10">
+</main>
+</div> <!-- /.col-md-10.order-md-2 -->
+
+<div class="col-md-2 order-sm-2 order-md-1">
     <aside>
         [% INCLUDE 'acquisitions-menu.inc' %]
     </aside>
 </div>
+
 </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
     [% Asset.js("lib/jquery/plugins/treetable/jquery.treetable.js") | $raw %]
     [% Asset.js("js/acquisitions-menu.js") | $raw %]
@@ -218,7 +232,7 @@
         $(document).ready(function() {
             var table_settings = [% TablesSettings.GetTableSettings( 'acqui', 'acq_acqui-home', 'accounts', 'json' ) | $raw %];
             var oTable = KohaTable("accounts", {
-                "fnDrawCallback": function ( oSettings ) {
+                "drawCallback": function ( oSettings ) {
                     if ( oSettings.aiDisplay.length == 0 )
                     {
                         return;
@@ -248,15 +262,15 @@
                     var api = this.api(), data;
                     footer_column_sum( api, [ 6, 7, 8, 9 ] );
                 },
-                "aoColumnDefs": [
-                    { "bVisible": false, "aTargets": [ 0, 1 ] },
-                    { "bSortable": false, "aTargets": ["_all"] }
+                "columnDefs": [
+                    { "orderable": false, "targets": ["_all"] }
                 ],
-                'bSort': true,
-                'aaSortingFixed': [[ 1, 'asc' ]],
-                'bPaginate': false,
-                "bAutoWidth": false
+                "ordering": true,
+                "orderFixed": [[ 1, 'asc' ]],
+                "paging": false,
+                "autoWidth": false
             }, table_settings );
+            let table_dt = oTable.DataTable();
 
             $(oTable).treetable({
                 expandable: true
@@ -273,11 +287,11 @@
 
             $("#hide_inactive").click(function(e){
                 e.preventDefault();
-                oTable.fnFilter( 1, 0 ); // Show only active=1
+                table_dt.columns(0).search(1).draw(); // Show only active=1
             });
             $("#show_inactive").click(function(e){
                 e.preventDefault();
-                oTable.fnFilter( '', 0 );
+                table_dt.columns(0).search("").draw();
             });
             $("#hide_inactive").click();
 
@@ -289,5 +303,4 @@
         });
     </script>
 [% END %]
-
 [% INCLUDE 'intranet-bottom.inc' %]

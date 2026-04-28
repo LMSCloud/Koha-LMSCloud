@@ -35,8 +35,7 @@ sub list {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $quotes_set = Koha::Quotes->new;
-        my $quotes = $c->objects->search( $quotes_set );
+        my $quotes = $c->objects->search( Koha::Quotes->new );
         return $c->render( status => 200, openapi => $quotes );
     }
     catch {
@@ -53,13 +52,12 @@ sub get {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $quote = Koha::Quotes->find( $c->validation->param('quote_id') );
-        unless ($quote) {
-            return $c->render( status  => 404,
-                            openapi => { error => "quote not found" } );
-        }
+        my $quote = Koha::Quotes->find( $c->param('quote_id') );
 
-        return $c->render( status => 200, openapi => $quote->to_api );
+        return $c->render_resource_not_found("Quote")
+            unless $quote;
+
+        return $c->render( status => 200, openapi => $c->objects->to_api($quote), );
     }
     catch {
         $c->unhandled_exception($_);
@@ -74,12 +72,12 @@ sub add {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $quote = Koha::Quote->new_from_api( $c->validation->param('body') );
+        my $quote = Koha::Quote->new_from_api( $c->req->json );
         $quote->store;
         $c->res->headers->location( $c->req->url->to_string . '/' . $quote->id );
         return $c->render(
             status  => 201,
-            openapi => $quote->to_api
+            openapi => $c->objects->to_api($quote),
         );
     }
     catch {
@@ -94,17 +92,15 @@ sub add {
 sub update {
     my $c = shift->openapi->valid_input or return;
 
-    my $quote = Koha::Quotes->find( $c->validation->param('quote_id') );
+    my $quote = Koha::Quotes->find( $c->param('quote_id') );
 
-    if ( not defined $quote ) {
-        return $c->render( status  => 404,
-                           openapi => { error => "Object not found" } );
-    }
+    return $c->render_resource_not_found("Quote")
+        unless $quote;
 
     return try {
-        $quote->set_from_api( $c->validation->param('body') );
+        $quote->set_from_api( $c->req->json );
         $quote->store();
-        return $c->render( status => 200, openapi => $quote->to_api );
+        return $c->render( status => 200, openapi => $c->objects->to_api($quote), );
     }
     catch {
         $c->unhandled_exception($_);
@@ -118,18 +114,14 @@ sub update {
 sub delete {
     my $c = shift->openapi->valid_input or return;
 
-    my $quote = Koha::Quotes->find( $c->validation->param('quote_id') );
-    if ( not defined $quote ) {
-        return $c->render( status  => 404,
-                           openapi => { error => "Object not found" } );
-    }
+    my $quote = Koha::Quotes->find( $c->param('quote_id') );
+
+    return $c->render_resource_not_found("Quote")
+        unless $quote;
 
     return try {
         $quote->delete;
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
+        return $c->render_resource_deleted;
     }
     catch {
         $c->unhandled_exception($_);

@@ -43,21 +43,14 @@ to a given patron.
 sub list_patron_attributes {
     my $c = shift->openapi->valid_input or return;
 
-    my $patron = Koha::Patrons->find( $c->validation->param('patron_id') );
+    my $patron = Koha::Patrons->find( $c->param('patron_id') );
 
-    unless ($patron) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error => 'Patron not found'
-            }
-        );
-    }
+    return $c->render_resource_not_found("Patron")
+        unless $patron;
 
     return try {
 
-        my $attributes_rs = $patron->extended_attributes;
-        my $attributes    = $c->objects->search($attributes_rs);
+        my $attributes = $c->objects->search( $patron->extended_attributes );
 
         return $c->render(
             status  => 200,
@@ -78,29 +71,23 @@ Controller method that handles adding a Koha::Patron::Attribute to a given patro
 sub add {
     my $c = shift->openapi->valid_input or return;
 
-    my $patron = Koha::Patrons->find( $c->validation->param('patron_id') );
+    my $patron = Koha::Patrons->find( $c->param('patron_id') );
 
-    unless ($patron) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error => 'Patron not found'
-            }
-        );
-    }
+    return $c->render_resource_not_found("Patron")
+        unless $patron;
 
     return try {
 
         my $attribute = $patron->add_extended_attribute(
             Koha::Patron::Attribute->new_from_api( # new_from_api takes care of mapping attributes
-                $c->validation->param('body')
+                $c->req->json
             )->unblessed
         );
 
         $c->res->headers->location( $c->req->url->to_string . '/' . $attribute->id );
         return $c->render(
             status  => 201,
-            openapi => $attribute->to_api
+            openapi => $c->objects->to_api($attribute),
         );
     }
     catch {
@@ -150,20 +137,14 @@ Controller method that handles overwriting extended attributes for a given patro
 sub overwrite {
     my $c = shift->openapi->valid_input or return;
 
-    my $patron = Koha::Patrons->find( $c->validation->param('patron_id') );
+    my $patron = Koha::Patrons->find( $c->param('patron_id') );
 
-    unless ($patron) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error => 'Patron not found'
-            }
-        );
-    }
+    return $c->render_resource_not_found("Patron")
+        unless $patron;
 
     return try {
 
-        my $body = $c->validation->every_param('body');
+        my $body = $c->req->json;
 
         my @attrs;
 
@@ -176,7 +157,7 @@ sub overwrite {
 
         return $c->render(
             status  => 200,
-            openapi => $attributes->to_api
+            openapi => $c->objects->to_api($attributes),
         );
     }
     catch {
@@ -228,36 +209,24 @@ Controller method that handles updating a single extended patron attribute.
 sub update {
     my $c = shift->openapi->valid_input or return;
 
-    my $patron = Koha::Patrons->find( $c->validation->param('patron_id') );
+    my $patron = Koha::Patrons->find( $c->param('patron_id') );
 
-    unless ($patron) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error => 'Patron not found'
-            }
-        );
-    }
+    return $c->render_resource_not_found("Patron")
+        unless $patron;
 
     return try {
         my $attribute = $patron->extended_attributes->find(
-            $c->validation->param('extended_attribute_id') );
+            $c->param('extended_attribute_id') );
 
-        unless ($attribute) {
-            return $c->render(
-                status  => 404,
-                openapi => {
-                    error => 'Attribute not found'
-                }
-            );
-        }
+        return $c->render_resource_not_found("Attribute")
+            unless $attribute;
 
-        $attribute->set_from_api( $c->validation->param('body') )->store;
+        $attribute->set_from_api( $c->req->json )->store;
         $attribute->discard_changes;
 
         return $c->render(
             status  => 200,
-            openapi => $attribute->to_api
+            openapi => $c->objects->to_api($attribute),
         );
     }
     catch {
@@ -302,36 +271,21 @@ Controller method that handles removing an extended patron attribute.
 sub delete {
     my $c = shift->openapi->valid_input or return;
 
-    my $patron = Koha::Patrons->find( $c->validation->param('patron_id') );
+    my $patron = Koha::Patrons->find( $c->param('patron_id') );
 
-    unless ($patron) {
-        return $c->render(
-            status  => 404,
-            openapi => {
-                error => 'Patron not found'
-            }
-        );
-    }
+    return $c->render_resource_not_found("Patron")
+        unless $patron;
 
     return try {
 
         my $attribute = $patron->extended_attributes->find(
-            $c->validation->param('extended_attribute_id') );
+            $c->param('extended_attribute_id') );
 
-        unless ($attribute) {
-            return $c->render(
-                status  => 404,
-                openapi => {
-                    error => 'Attribute not found'
-                }
-            );
-        }
+        return $c->render_resource_not_found("Attribute")
+            unless $attribute;
 
         $attribute->delete;
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
+        return $c->render_resource_deleted;
     }
     catch {
         $c->unhandled_exception($_);

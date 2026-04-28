@@ -42,6 +42,7 @@ use C4::Koha;
 
 use Koha::Items;
 use Koha::Biblioitems;
+use Koha::Biblios;
 
 my $cgi = CGI->new;
 
@@ -58,7 +59,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 my $op = $cgi->param('op') // 'show';
 
 my $syspref_name = q|automatic_item_modification_by_age_configuration|;
-if ( $op eq 'update' ) {
+if ( $op eq 'cud-update' ) {
     my @rules;
     my @unique_ids = $cgi->multi_param('unique_id');
     for my $unique_id ( @unique_ids ) {
@@ -113,16 +114,20 @@ if ( $@ ) {
     exit;
 }
 
-my @item_fields = map { "items.$_" } Koha::Items->columns;
+my @item_fields       = map { "items.$_" } Koha::Items->columns;
 my @biblioitem_fields = map { "biblioitems.$_" } Koha::Biblioitems->columns;
-my @age_fields = ('items.dateaccessioned', 'items.replacementpricedate', 'items.datelastborrowed', 'items.datelastseen', 'items.damaged_on', 'items.itemlost_on', 'items.withdrawn_on');
+my @biblio_fields     = map { "biblio.$_" } Koha::Biblios->columns;
+my @age_fields        = (
+    'items.dateaccessioned', 'items.replacementpricedate', 'items.datelastborrowed', 'items.datelastseen',
+    'items.damaged_on',      'items.itemlost_on',          'items.withdrawn_on'
+);
 $template->param(
-    op => $op,
-    messages => \@messages,
-    agefields => [ @age_fields ],
-    condition_fields => [ @item_fields, @biblioitem_fields ],
+    op                  => $op,
+    messages            => \@messages,
+    agefields           => [@age_fields],
+    condition_fields    => [ @item_fields, @biblioitem_fields, @biblio_fields ],
     substitution_fields => \@item_fields,
-    rules => $rules,
+    rules               => $rules,
 );
 
 output_html_with_http_headers $cgi, $cookie, $template->output;

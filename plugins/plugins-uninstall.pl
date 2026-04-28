@@ -40,6 +40,8 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my $class = $input->param('class');
 
-Koha::Plugins::Handler->delete( { class => $class } );
+if ($class) {
+    Koha::Plugins::Handler->delete( { class => $class } );
+}
 
 print $input->redirect("/cgi-bin/koha/plugins/plugins-home.pl");

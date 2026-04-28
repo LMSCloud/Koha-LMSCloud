@@ -25,10 +25,12 @@ use Mojo::JSON;
 use Scalar::Util qw( blessed looks_like_number );
 use Try::Tiny qw( catch try );
 use List::MoreUtils qw( any );
+use DateTime::Format::MySQL;
 
 use Koha::Database;
+use Koha::DateTime::Format::RFC3339;
+use Koha::DateTime::Format::SQL;
 use Koha::Exceptions::Object;
-use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Object::Message;
 
 =head1 NAME
@@ -217,6 +219,18 @@ sub store {
     }
 }
 
+=head3 discard_changes
+
+Refetch the row from the DB
+
+=cut
+
+sub discard_changes {
+    my ($self) = @_;
+    $self->_result->discard_changes;
+    return $self;
+}
+
 =head3 $object->update();
 
 A shortcut for set + store in one call.
@@ -242,11 +256,32 @@ Returns:
 sub delete {
     my ($self) = @_;
 
-    my $deleted = $self->_result()->delete;
+    my $deleted;
+
+    try {
+        $deleted = $self->_result()->delete;
+    } catch {
+        if ( ref($_) eq 'DBIx::Class::Exception' ) {
+            if ( $_->{msg} =~
+                /Cannot delete or update a parent row\: a foreign key constraint fails \(\`(?<database>.*?)\`\.\`(?<table>.*?)\`, CONSTRAINT \`(?<constraint>.*?)\` FOREIGN KEY \(\`(?<fk>.*?)\`\) REFERENCES \`.*\` \(\`(?<column>.*?)\`\)/
+                )
+            {
+                Koha::Exceptions::Object::FKConstraintDeletion->throw(
+                    column     => $+{column},
+                    constraint => $+{constraint},
+                    fk         => $+{fk},
+                    table      => $+{table},
+                );
+            }
+            $_->rethrow();
+        }
+    };
+
     if ( ref $deleted ) {
-        my $object_class  = Koha::Object::_get_object_class( $self->_result->result_class );
+        my $object_class = Koha::Object::_get_object_class( $self->_result->result_class );
         $deleted = $object_class->_new_from_dbic($deleted);
     }
+
     return $deleted;
 }
 
@@ -416,7 +451,6 @@ sub TO_JSON {
         elsif ( _numeric_column_type( $columns_info->{$col}->{data_type} )
             and looks_like_number( $unblessed->{$col} )
         ) {
-
             # TODO: Remove once the solution for
             # https://github.com/perl5-dbi/DBD-mysql/issues/212
             # is ported to whatever distro we support by that time
@@ -426,7 +460,6 @@ sub TO_JSON {
         elsif ( _decimal_column_type( $columns_info->{$col}->{data_type} )
             and looks_like_number( $unblessed->{$col} )
         ) {
-
             # TODO: Remove once the solution for
             # https://github.com/perl5-dbi/DBD-mysql/issues/212
             # is ported to whatever distro we support by that time
@@ -436,10 +469,8 @@ sub TO_JSON {
         elsif ( _datetime_column_type( $columns_info->{$col}->{data_type} ) ) {
             eval {
                 return unless $unblessed->{$col};
-                $unblessed->{$col} = output_pref({
-                    dateformat => 'rfc3339',
-                    dt         => dt_from_string($unblessed->{$col}, 'sql'),
-                });
+                my $dt = Koha::DateTime::Format::SQL->parse_datetime( $unblessed->{$col} );
+                $unblessed->{$col} = Koha::DateTime::Format::RFC3339->format_datetime($dt);
             };
         }
     }
@@ -562,6 +593,7 @@ Returns a representation of the object, suitable for API output.
 
 sub to_api {
     my ( $self, $params ) = @_;
+
     my $json_object = $self->TO_JSON;
 
     # Make sure we duplicate the $params variable to avoid
@@ -589,6 +621,23 @@ sub to_api {
             foreach my $field ( keys %{$string_map} ) {
                 delete $string_map->{$field}
                   unless any { $_ eq $field } @{ $self->public_read_list };
+            }
+        }
+    }
+
+    # Remove forbidden attributes if required (including their coded values)
+    if ( !$self->is_accessible($params) ) {
+        for my $field ( keys %{$json_object} ) {
+            unless ( any { $_ eq $field } @{ $self->unredact_list } ) {
+                $json_object->{$field} = undef;
+            }
+        }
+
+        if ($strings) {
+            foreach my $field ( keys %{$string_map} ) {
+                unless ( any { $_ eq $field } @{ $self->unredact_list } ) {
+                    $string_map->{$field} = undef;
+                }
             }
         }
     }
@@ -725,6 +774,23 @@ sub public_read_list
     return [];
 }
 
+=head3 unredact_list
+
+    my @unredact_list = @{$object->unredact_list};
+
+Generic method that returns the list of database columns that are allowed to
+be passed to render objects on the API when the user making the request should
+not ordinarily have unrestricted access to the data (as returned by the is_accesible method).
+
+Note: this only returns an empty I<arrayref>. Each class should have its
+own implementation.
+
+=cut
+
+sub unredact_list {
+    return [];
+}
+
 =head3 from_api_mapping
 
     my $mapping = $object->from_api_mapping;
@@ -789,6 +855,45 @@ Returns the passed params, converted from API naming into the model.
 
 =cut
 
+sub _recursive_fixup {
+    my ( $self, $key, $value, $column_info ) = @_;
+
+    if ( ref($value) && ref($value) eq 'HASH' ) {
+        my $hash;
+        for my $k ( keys %$value ) {
+            $hash->{$k} = $self->_recursive_fixup( $key, $value->{$k}, $column_info );
+        }
+        return $hash;
+
+    } elsif ( ref($value) && ref($value) eq 'ARRAY' ) {
+        return [ map { $self->_recursive_fixup( $key, $_, $column_info ) } @$value ];
+    } else {
+        if ( $column_info->{is_boolean} ) {
+
+            # TODO: Remove when D8 is formally deprecated
+            # Handle booleans gracefully
+            $value = ($value) ? 1 : 0;
+        } elsif ( _date_or_datetime_column_type( $column_info->{data_type} ) ) {
+            if ( defined $value && $value !~ m{^%|%$} ) {
+                try {
+                    my $dtf = $self->_result->result_source->storage->datetime_parser;
+                    if ( $column_info->{data_type} eq 'date' ) {
+                        my $dt = DateTime::Format::MySQL->parse_date($value);
+                        $value = $dtf->format_date($dt);
+                    } else {
+                        my $dt = Koha::DateTime::Format::RFC3339->parse_datetime($value);
+                        $dt->set_time_zone(C4::Context->tz);
+                        $value = $dtf->format_datetime($dt);
+                    }
+                } catch {
+                    Koha::Exceptions::BadParameter->throw( parameter => $key );
+                };
+            }
+        }
+        return $value;
+    }
+}
+
 sub attributes_from_api {
     my ( $self, $from_api_params ) = @_;
 
@@ -796,36 +901,25 @@ sub attributes_from_api {
 
     my $params;
     my $columns_info = $self->_result->result_source->columns_info;
-    my $dtf          = $self->_result->result_source->storage->datetime_parser;
 
-    while (my ($key, $value) = each %{ $from_api_params } ) {
+    if ( ref($from_api_params) && ref($from_api_params) eq 'ARRAY' ) {
+        # TODO No fixup if an ARRAY is passed
+        return $from_api_params;
+    }
+
+    while ( my ( $key, $value ) = each %{$from_api_params} ) {
         my $koha_field_name =
-          exists $from_api_mapping->{$key}
-          ? $from_api_mapping->{$key}
-          : $key;
+            exists $from_api_mapping->{$key}
+            ? $from_api_mapping->{$key}
+            : $key;
 
-        if ( $columns_info->{$koha_field_name}->{is_boolean} ) {
-            # TODO: Remove when D8 is formally deprecated
-            # Handle booleans gracefully
-            $value = ( $value ) ? 1 : 0;
+        if ( exists $columns_info->{$koha_field_name}  ) {
+            # TODO No fixup if the name is from an embed (eg. suggester.borrowernumber)
+            # See warnings produced by t/db_dependent/Koha/REST/Plugin/Objects.t if this test is removed
+            $params->{$koha_field_name} = $self->_recursive_fixup( $key, $value, $columns_info->{$koha_field_name} );
+        } else {
+            $params->{$koha_field_name} = $value;
         }
-        elsif ( _date_or_datetime_column_type( $columns_info->{$koha_field_name}->{data_type} ) ) {
-            try {
-                if ( $columns_info->{$koha_field_name}->{data_type} eq 'date' ) {
-                    $value = $dtf->format_date(dt_from_string($value, 'iso'))
-                        if defined $value;
-                }
-                else {
-                    $value = $dtf->format_datetime(dt_from_string($value, 'rfc3339'))
-                        if defined $value;
-                }
-            }
-            catch {
-                Koha::Exceptions::BadParameter->throw( parameter => $key );
-            };
-        }
-
-        $params->{$koha_field_name} = $value;
     }
 
     return $params;
@@ -917,24 +1011,34 @@ sub AUTOLOAD {
     $method =~ s/.*://;
 
     my @columns = @{$self->_columns()};
-    # Using direct setter/getter like $item->barcode() or $item->barcode($barcode);
     if ( grep { $_ eq $method } @columns ) {
-        if ( @_ ) {
-            $self->_result()->set_column( $method, @_ );
-            return $self;
-        } else {
-            my $value = $self->_result()->get_column( $method );
-            return $value;
+
+        # Lazy definition of get/set accessors like $item->barcode; note that it contains $method
+        my $accessor = sub {
+            my $self = shift;
+            if (@_) {
+                $self->_result()->set_column( $method, @_ );
+                return $self;
+            } else {
+                return $self->_result()->get_column($method);
+            }
+        };
+        # If called from child class as $self->SUPER-><accessor_name>
+        # $AUTOLOAD will contain ::SUPER which breaks method lookup
+        # therefore we cannot write those entries into the symbol table
+        unless ( $AUTOLOAD =~ /::SUPER::/ ) {
+            no strict 'refs'; ## no critic (strict)
+            *{$AUTOLOAD} = $accessor;
         }
+        return $accessor->( $self, @_ );
     }
 
-    my @known_methods = qw( is_changed id in_storage get_column discard_changes make_column_dirty );
+    my @known_methods = qw( is_changed id in_storage get_column make_column_dirty );
 
     Koha::Exceptions::Object::MethodNotCoveredByTests->throw(
         error      => sprintf("The method %s->%s is not covered by tests!", ref($self), $method),
         show_trace => 1
     ) unless grep { $_ eq $method } @known_methods;
-
 
     my $r = eval { $self->_result->$method(@_) };
     if ( $@ ) {
@@ -981,6 +1085,20 @@ sub _handle_to_api_child {
     }
 
     return $res;
+}
+
+=head3 is_accessible
+
+    if ( $object->is_accessible ) { ... }
+
+Stub method that is expected to be overloaded (if required) by implementing classes.
+
+=cut
+
+sub is_accessible {
+    my ($self) = @_;
+
+    return 1;
 }
 
 sub DESTROY { }

@@ -38,6 +38,7 @@ use C4::CashRegisterManagement qw(passCashRegisterCheck);
 use Scalar::Util qw( looks_like_number );
 use Koha::Patron::Attribute::Types;
 use Koha::Patron::Restriction::Types;
+use Koha::Patron::Categories;
 use Koha::Patron::Messages;
 use Koha::CsvProfiles;
 use Koha::Holds;
@@ -63,7 +64,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         template_name   => $template_name,
         query           => $input,
         type            => "intranet",
-        flagsrequired   => { borrowers => 'edit_borrowers' },
+        flagsrequired   => { borrowers => ['edit_borrowers', 'list_borrowers'] },
     }
 );
 my $borrowernumber = $input->param('borrowernumber');
@@ -74,7 +75,12 @@ my $patron         = Koha::Patrons->find( $borrowernumber );
 my $logged_in_user = Koha::Patrons->find( $loggedinuser );
 output_and_exit_if_error( $input, $cookie, $template, { module => 'members', logged_in_user => $logged_in_user, current_patron => $patron } );
 
-my $category_type = $patron->category->category_type;
+my $category      = $patron->category;
+my $category_type = $category->category_type;
+
+if ( $patron->borrowernumber eq C4::Context->preference("AnonymousPatron") ) {
+    $template->param( is_anonymous => 1 );
+}
 
 if ( $patron->borrowernumber eq C4::Context->preference("AnonymousPatron") ) {
     $template->param( is_anonymous => 1 );
@@ -92,6 +98,7 @@ if ( $patron->is_debarred ) {
     $template->param(
         'userdebarred'    => $patron->debarred,
         'debarredcomment' => $patron->debarredcomment,
+        'debarredsince'   => $patron->restrictions->search()->single->created,
     );
 
     if ( $patron->debarred ne "9999-12-31" ) {
@@ -116,9 +123,21 @@ $template->param(
     guarantor_relationships => $guarantor_relationships,
     guarantees              => \@guarantees,
 );
+if (    C4::Context->preference('ChildNeedsGuarantor')
+    and ( $patron->is_child or $category->can_be_guarantee )
+    and $patron->contactname eq ""
+    and !@guarantors )
+{
+    $template->param( missing_guarantor => 1 );
+}
 
 my $relatives_issues_count =
     Koha::Checkouts->count({ borrowernumber => \@relatives });
+
+if ( @guarantees ) {
+    my $total_amount = $patron->relationships_debt({ include_guarantors => 0, only_this_guarantor => 1, include_this_patron => 1 });
+    $template->param( guarantees_fines => $total_amount );
+}
 
 # Calculate and display patron's age
 if ( !$patron->is_valid_age ) {
@@ -127,10 +146,10 @@ if ( !$patron->is_valid_age ) {
     $template->param( age_high => $patron->category->upperagelimit );
 }
 
-# Generate CSRF token for upload and delete image buttons
-$template->param(
-    csrf_token => Koha::Token->new->generate_csrf({ session_id => $input->cookie('CGISESSID'),}),
-);
+unless ( Koha::Patron::Categories->search_with_library_limits( { 'me.categorycode' => $patron->categorycode } )->count )
+{
+    $template->param( limited_category => 1 );
+}
 
 if (C4::Context->preference('ExtendedPatronAttributes')) {
     my @attributes = $patron->extended_attributes->as_list; # FIXME Must be improved!
@@ -241,18 +260,28 @@ my $issues = $patron->checkouts;
 my $balance = 0;
 $balance = $patron->account->balance;
 
-my $account = $patron->account;
-if( ( my $owing = $account->non_issues_charges ) > 0 ) {
-    my $noissuescharge = C4::Context->preference("noissuescharge") || 5; # FIXME If noissuescharge == 0 then 5, why??
+my $patron_charge_limits = $patron->is_patron_inside_charge_limits();
+if ( $patron_charge_limits->{noissuescharge}->{charge} > 0 ) {
     $template->param(
-        charges => 1,
-        chargesamount => $owing,
-    )
+        charges       => 1,
+        chargesamount => $patron_charge_limits->{noissuescharge}->{charge},
+    );
 } elsif ( $balance < 0 ) {
     $template->param(
-        credits => 1,
+        credits       => 1,
         creditsamount => -$balance,
     );
+}
+
+# Check the debt of this patrons guarantors *and* the guarantees of those guarantors
+my $no_issues_charge_guarantors = $patron_charge_limits->{NoIssuesChargeGuarantorsWithGuarantees}->{limit};
+if ( $no_issues_charge_guarantors ) {
+    if ( $patron_charge_limits->{NoIssuesChargeGuarantorsWithGuarantees}->{overlimit} ) {
+        $template->param(
+            noissues                      => 1,
+            charges_guarantors_guarantees => $patron_charge_limits->{NoIssuesChargeGuarantorsWithGuarantees}->{charge}
+        );
+    }
 }
 
 # if the expiry date is before today ie they have expired
@@ -274,6 +303,7 @@ elsif ( $patron->is_going_to_expire ) {
 
 
 my $has_modifications = Koha::Patron::Modifications->search( { borrowernumber => $borrowernumber } )->count;
+my $patron_lists_count = $patron->get_lists_with_patron->count();
 
 $template->param(
     patron          => $patron,
@@ -291,6 +321,7 @@ $template->param(
     logged_in_user => $logged_in_user,
     files => Koha::Patron::Files->new( borrowernumber => $borrowernumber ) ->GetFilesInfo(),
     has_modifications         => $has_modifications,
+    patron_lists_count => $patron_lists_count,
 );
 
 if ( C4::Context->preference('UseRecalls') ) {

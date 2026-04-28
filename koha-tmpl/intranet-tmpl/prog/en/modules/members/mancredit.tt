@@ -3,13 +3,16 @@
 [% USE Koha %]
 [% USE Branches %]
 [% USE Registers %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
-
 [% PROCESS 'accounts.inc' %]
-
 [% INCLUDE 'doc-head-open.inc' %]
 [% SET registers = Registers.all( { filters => { current_branch => 1 } } ) %]
-<title>Create manual credit &rsaquo; Patrons &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Create manual credit") | html %] &rsaquo;
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -34,8 +37,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
             [% INCLUDE 'members-toolbar.inc' %]
 
@@ -44,26 +48,27 @@
             <!-- The manual invoice and credit buttons -->
             <div class="toptabs">
                 <ul class="nav nav-tabs" role="tablist">
-                    <li role="presentation" class="transactions">
-                        <a href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Transactions</a>
+                    <li role="presentation" class="nav-item transactions">
+                        <a class="nav-link" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Transactions</a>
                     </li>
-                    <li role="presentation" class="makepayment">
-                        <a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Make a payment</a>
+                    <li role="presentation" class="nav-item makepayment">
+                        <a class="nav-link" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Make a payment</a>
                     </li>
                     [% IF CAN_user_updatecharges_manual_invoice %]
-                        <li role="presentation" class="manualinvoice">
-                            <a href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual invoice</a>
+                        <li role="presentation" class="nav-item manualinvoice">
+                            <a class="nav-link" href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual invoice</a>
                         </li>
                     [% END %]
-                    <li role="presentation" class="manualcredit active">
-                        <a href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual credit</a>
+                    <li role="presentation" class="nav-item manualcredit">
+                        <a class="nav-link active" href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual credit</a>
                     </li>
                 </ul> <!-- /.nav.nav-tabs -->
                 <div class="tab-content">
                     <div role="tabpanel" class="tab-pane active">
                         <form action="/cgi-bin/koha/members/mancredit.pl" method="post" id="mancredit">
+                            <input type="hidden" name="op" value="cud-add" />
                             <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber | html %]" />
-                            <input type="hidden" name="csrf_token" value="[% csrf_token | html %]" />
+                            [% INCLUDE 'csrf-token.inc' %]
 
                             <fieldset class="rows">
                                 <legend>Manual credit</legend>
@@ -76,7 +81,7 @@
                                             [% END %]
                                         </select>
                                     </li>
-                                    <li><label for="barcode">Barcode: </label><input type="text" name="barcode" id="barcode" /></li>
+                                    <li><label for="barcode">Item barcode: </label><input type="text" name="barcode" id="barcode" /></li>
                                     <li><label for="desc">Description: </label><input type="text" name="desc" size="50" id="desc" /></li>
                                     <li><label for="note">Note: </label><input type="text" name="note" size="50" id="note" /></li>
                                     <li><label for="amount" class="required">Amount: </label><input type="text" inputmode="decimal" pattern="^\d+(\.\d{2})?$" name="amount" id="amount" required="required" min="0" value=""/> Example: 5.00</li>
@@ -112,25 +117,26 @@
                                 [% INCLUDE 'additional-fields-entry.inc' available=available_additional_fields values=additional_field_values %]
                             [% END %]
 
-                            <fieldset class="action"><input type="submit" name="add" value="Add credit" /> <a class="cancel" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | html %]">Cancel</a></fieldset>
+                            <fieldset class="action"><input class="btn btn-primary" type="submit" name="add" value="Add credit" /> <a class="cancel" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | html %]">Cancel</a></fieldset>
                         </form>
                     </div> <!-- /.tab-pane -->
                 </div> <!-- /.tab-content -->
             </div> <!-- /.toptabs -->
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'circ-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'str/members-menu.inc' %]
     [% Asset.js("js/members-menu.js") | $raw %]
+    [% Asset.js("js/additional-fields-entry.js") | $raw %]
     <script>
         $(document).ready(function(){
             $('#mancredit').preventDoubleFormSubmit();

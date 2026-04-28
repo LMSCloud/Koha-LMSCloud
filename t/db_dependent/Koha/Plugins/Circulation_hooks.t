@@ -75,11 +75,11 @@ subtest 'after_circ_action() hook tests' => sub {
     subtest 'AddIssue' => sub {
         plan tests => 2;
 
-        warning_like { AddIssue( $patron->unblessed, $item_1->barcode ); }
+        warning_like { AddIssue( $patron, $item_1->barcode ); }
         qr/after_circ_action called with action: checkout, ref: Koha::Checkout type: issue/,
           'AddIssue calls the after_circ_action hook';
 
-        warning_like { AddIssue( $patron->unblessed, $item_2->barcode, undef, undef, undef, undef, { onsite_checkout => 1 } ); }
+        warning_like { AddIssue( $patron, $item_2->barcode, undef, undef, undef, undef, { onsite_checkout => 1 } ); }
         qr/after_circ_action called with action: checkout, ref: Koha::Checkout type: onsite_checkout/,
           'AddIssue calls the after_circ_action hook (onsite_checkout case)';
     };
@@ -87,7 +87,15 @@ subtest 'after_circ_action() hook tests' => sub {
     subtest 'AddRenewal' => sub {
         plan tests => 1;
 
-        warning_like { AddRenewal( $patron->borrowernumber, $item_1->id, $patron->branchcode ); }
+        warning_like {
+            AddRenewal(
+                {
+                    borrowernumber => $patron->borrowernumber,
+                    itemnumber     => $item_1->id,
+                    branch         => $patron->branchcode
+                }
+            );
+        }
                 qr/after_circ_action called with action: renewal, ref: Koha::Checkout/,
                 'AddRenewal calls the after_circ_action hook';
     };
@@ -112,6 +120,6 @@ subtest 'after_circ_action() hook tests' => sub {
           'AddReturn calls the after_circ_action hook';
     };
 
+    Koha::Plugins->RemovePlugins;
     $schema->storage->txn_rollback;
-    Koha::Plugins::Methods->delete;
 };

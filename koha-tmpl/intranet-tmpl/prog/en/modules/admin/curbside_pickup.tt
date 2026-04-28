@@ -2,13 +2,15 @@
 [% USE KohaSpan %]
 [% USE Koha %]
 [% USE Asset %]
-[% SET footerjs = 1 %]
 [% USE TablesSettings %]
 [% PROCESS 'i18n.inc' %]
+[% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
-    Curbside pickup &rsaquo; Administration &rsaquo; Koha
-</title>
+<title>[% FILTER collapse %]
+    [% t("Curbside pickup") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
     .pickup-slot {
@@ -40,11 +42,12 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% FOR m IN messages %]
-    <div class="dialog [% m.type | html %]">
+    <div class="alert alert-[% m.type | html %]">
         [% SWITCH m.code %]
         [% CASE %]
             <span>[% m.code | html %]</span>
@@ -58,30 +61,31 @@
 
     [% UNLESS Koha.Preference('CurbsidePickup') %]
         [% SET pref_CurbsidePickup_link = '<a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=CurbsidePickup">CurbsidePickup</a>' %]
-        <div class="dialog message">The [% pref_CurbsidePickup_link | $raw | $KohaSpan %] preference is not enabled, do not forget to enable it to turn the feature on.</div>
+        <div class="alert alert-info">The [% pref_CurbsidePickup_link | $raw | $KohaSpan %] preference is not enabled, do not forget to enable it to turn the feature on.</div>
     [% END %]
     <form method="post" class="form">
-        <div id="curbside_pickup_tabs" class="toptabs">
-            <ul class="nav nav-tabs" role="tablist">
+        [% INCLUDE 'csrf-token.inc' %]
+        [% WRAPPER tabs id= "curbside_pickup_tabs" %]
+            [% WRAPPER tabs_nav %]
                 [% FOREACH l IN libraries %]
                     [% IF loop.first %]
-                    <li role="presentation" class="active">
+                        [% SET bt_active = 1 %]
                     [% ELSE %]
-                    <li role="presentation">
+                        [% SET bt_active = 0 %]
                     [% END %]
-                        <a href="#conf-[% l.branchcode | uri %]" aria-controls="conf-[% l.branchcode | html %]" role="tab" data-toggle="tab">[% l.branchname | html %]</a>
-                    </li>
+                    [% WRAPPER tab_item tabname= "conf-${l.branchcode}" bt_active= bt_active %] <span>[% l.branchname | html %]</span> [% END %]
                 [% END %]
-            </ul>
+            [% END # /WRAPPER tabs_nav %]
 
-            <div class="tab-content">
+            [% WRAPPER tab_panels %]
                 [% FOREACH l IN libraries %]
                     [% SET branchcode = l.branchcode %]
                     [% IF loop.first %]
-                    <div id="conf-[% l.branchcode | html %]" role="tabpanel" class="tab-pane active">
+                        [% SET bt_active = 1 %]
                     [% ELSE %]
-                    <div id="conf-[% l.branchcode | html %]" role="tabpanel" class="tab-pane">
+                        [% SET bt_active = 0 %]
                     [% END %]
+                    [% WRAPPER tab_panel tabname= "conf-${l.branchcode}" bt_active= bt_active %]
                         <fieldset class="rows" style="float: none;">
                             <ol>
                                 <li>
@@ -158,12 +162,12 @@
 
                             </ol>
                         </fieldset>
-                    </div>
-                [% END %]
-            </div>
-        </div>
+                    [% END # /tab_panel %]
+                [% END #FOREACH l %]
+            [% END # /WRAPPER tab_panels %]
+        [% END # /WRAPPER tabs %]
 
-        <input type="hidden" name="op" value="save" />
+        <input type="hidden" name="op" value="cud-save" />
 
         <fieldset class="action">
             <input type="submit" class="btn btn-primary" value="Save configuration" />
@@ -172,13 +176,13 @@
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -222,7 +226,7 @@
                 slots_per_day[day].push(slot);
             });
 
-            $("#conf-"+branchcode).find(".pickup_hours li").remove();
+            $("#conf-"+branchcode+"_panel").find(".pickup_hours li").remove();
 
             const CalendarFirstDayOfWeek = [% Koha.Preference("CalendarFirstDayOfWeek") || 0 | html %];
             [0, 1, 2, 3, 4, 5, 6]
@@ -235,12 +239,12 @@
                         span_node.append('<input type="hidden" name="pickup-slot-'+branchcode+'" value="'+slot+'"/>');
                         span_node.append('<span>'+format_slot(slot)+'</span>');
 
-                        let delete_link = $('<a href="#" on> <i class="fa fa-trash" aria-hidden="true" title="%s"></i>'.format(_("Remove this slot"))).on('click', function(e){ e.preventDefault(); delete_slot($(this).closest('li'), branchcode); });
+                        let delete_link = $('<a href="#" on> <i class="fa fa-trash-can" aria-hidden="true" title="%s"></i>'.format(_("Remove this slot"))).on('click', function(e){ e.preventDefault(); delete_slot($(this).closest('li'), branchcode); });
                         span_node.append(delete_link);
 
                         span_node.appendTo(li_node);
                     });
-                    li_node.appendTo($("#conf-"+branchcode).find(".pickup_hours"));
+                    li_node.appendTo($("#conf-"+branchcode+"_panel").find(".pickup_hours"));
                 });
         }
         function get_day_lib(day){

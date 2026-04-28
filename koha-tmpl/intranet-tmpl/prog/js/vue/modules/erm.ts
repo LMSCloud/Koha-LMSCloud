@@ -24,6 +24,7 @@ import { useVendorStore } from "../stores/vendors";
 import { useAVStore } from "../stores/authorised-values";
 import { useERMStore } from "../stores/erm";
 import { useNavigationStore } from "../stores/navigation";
+import { useReportsStore } from "../stores/usage-reports";
 import i18n from "../i18n";
 
 const pinia = createPinia();
@@ -35,7 +36,7 @@ const routes = navigationStore.setRoutes(routesDef);
 
 const router = createRouter({
     history: createWebHistory(),
-    linkExactActiveClass: "current",
+    linkActiveClass: "current",
     routes,
 });
 
@@ -48,12 +49,15 @@ const rootComponent = app
     .component("font-awesome-icon", FontAwesomeIcon)
     .component("v-select", vSelect);
 
+app.config.unwrapInjectedRef = true;
 app.provide("vendorStore", useVendorStore(pinia));
 app.provide("mainStore", mainStore);
 app.provide("AVStore", AVStore);
 app.provide("navigationStore", navigationStore);
 const ERMStore = useERMStore(pinia);
 app.provide("ERMStore", ERMStore);
+const reportsStore = useReportsStore(pinia);
+app.provide("reportsStore", reportsStore);
 
 app.mount("#erm");
 
@@ -72,7 +76,7 @@ router.afterEach((to, from) => {
     } else if (to.path.match(/\/erm\/eholdings\/local\/titles/)) {
         tab_id = "title";
     }
-    let node = document.getElementById(`${tab_id}_search_tab`);
+    let node = document.getElementById(`${tab_id}_search-tab`);
 
     if (node) {
         node.click();

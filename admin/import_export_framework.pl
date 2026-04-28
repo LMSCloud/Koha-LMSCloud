@@ -41,10 +41,10 @@ unless ($auth_status eq 'ok') {
 }
 
 my $frameworkcode = $input->param('frameworkcode') || 'default';
-my $action = $input->param('action') || 'export';
+my $op = $input->param('op') || 'export';
 
 ## Exporting
-if ($action eq 'export' && $input->request_method() eq 'GET') {
+if ($op eq 'export') {
     my $strXml = '';
     my $format = $input->param('type_export_' . $frameworkcode);
     if ($frameworkcode eq 'default') {
@@ -68,7 +68,7 @@ if ($action eq 'export' && $input->request_method() eq 'GET') {
         print $strODS;
     }
 ## Importing
-} elsif ($input->request_method() eq 'POST') {
+} elsif ($op eq 'cud-import') {
     my $ok = -1;
     my $fieldname = 'file_import_' . $frameworkcode;
     my $filename = $input->param($fieldname);
@@ -79,6 +79,7 @@ if ($action eq 'export' && $input->request_method() eq 'GET') {
         if ($uploadFd && !$input->cgi_error) {
             my $tmpfilename = $input->tmpFileName(scalar $input->param($fieldname));
             $filename = $tmpfilename . '.' . $extension; # rename the tmp file with the extension
+            $frameworkcode = ''                                             if $frameworkcode eq 'default';
             $ok = ImportFramework($filename, $frameworkcode, 1, 'biblio') if (rename($tmpfilename, $filename));
         }
     }

@@ -38,7 +38,7 @@ my ($template, $loggedinuser, $cookie)
     = get_template_and_user({template_name => "members/member.tt",
                  query => $input,
                  type => "intranet",
-                 flagsrequired => {borrowers => 'edit_borrowers'},
+                 flagsrequired => { borrowers => ['edit_borrowers', 'list_borrowers'] },
                  });
 
 my $theme = $input->param('theme') || "default";
@@ -70,8 +70,6 @@ my $searchtype       = $input->param('searchtype');
 
 $template->param( 'alphabet' => C4::Context->preference('alphabet') || join ' ', 'A' .. 'Z' );
 
-my $defer_loading = $input->request_method() eq "GET"  && !$circsearch ? 1 : 0;
-
 $template->param(
     patron_lists => [ GetPatronLists() ],
     searchmember        => $searchmember,
@@ -96,11 +94,8 @@ $template->param(
     validemailavailable => scalar $input->param('validemailavailable'),
     patronlistid        => scalar $input->param('patronlistid'),
     PatronsPerPage      => C4::Context->preference("PatronsPerPage") || 20,
-    do_not_defer_loading => !$defer_loading,
     circsearch          => $circsearch,
-    attribute_type_codes => ( C4::Context->preference('ExtendedPatronAttributes')
-        ? [ Koha::Patron::Attribute::Types->search( { staff_searchable => 1 } )->get_column('code') ]
-        : [] ),
+    defer_loading       => 0,
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

@@ -1,8 +1,38 @@
 package Koha::Manual;
 
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
 use Modern::Perl;
 
 use C4::Context;
+
+=head1 NAME
+
+Koha::Manual - Build links to the documentation
+
+=head1 API
+
+=head2 Class Methods
+
+=head3 _get_help_version
+
+Return the version to use.
+Either the system preference "Version", or the last version.major value if using unstable.
+
+=cut
 
 sub _get_help_version {
     my $help_version = C4::Context->preference("Version");
@@ -15,6 +45,14 @@ sub _get_help_version {
     }
     return $help_version;
 }
+
+=head3 _get_base_url
+
+Return the base URL to use.
+
+Use system preferences 'KohaManualLanguage' and 'KohaManualBaseURL' to properly build the URL.
+
+=cut
 
 sub _get_base_url {
     my ( $preferred_language ) = @_;
@@ -32,7 +70,11 @@ sub _get_base_url {
     if ( $KohaManualBaseURL =~ m|^/| ) {
         $KohaManualBaseURL = C4::Context->preference('staffClientBaseURL') . $KohaManualBaseURL;
     }
-    return $KohaManualBaseURL . '/' . _get_help_version . '/' . $KohaManualLanguage . '/html'; # TODO html could be a KohaManualFormat with pdf, html, epub
+    return
+          ( $KohaManualBaseURL =~ s#/$##r ) . '/'
+        . _get_help_version . '/'
+        . $KohaManualLanguage
+        . '/html';    # TODO html could be a KohaManualFormat with pdf, html, epub
 }
 
 our $mapping = {
@@ -118,7 +160,7 @@ our $mapping = {
     'admin/preferences#web_services'           => '/webservicespreferences.html',
     'admin/smart-rules'                        => '/administration.html#circulation-and-fine-rules',
     'admin/smtp_servers'                       => '/administration.html#smtp-servers',
-    'admin/restrictions'                       => '/administration.html#patron-restrictions',
+    'admin/restrictions'                       => '/administration.html#patron-restriction-types',
     'admin/share_content'                      => '/administration.html#share-content-with-mana-kb',
     'admin/sms_providers'                      => '/administration.html#sms-cellular-providers',
     'admin/systempreferences'                  => '/localusepreferences.html',
@@ -234,6 +276,18 @@ our $mapping = {
     'patroncards/manage'                       => '/tools.html#patron-card-creator',
     'plugins/plugins-home'                     => '/plugins.html',
     'plugins/plugins-upload'                   => '/plugins.html',
+    'preservation/home'                        => '/preservation.html',
+    'preservation/settings/processings/add'    => '/preservation.html#add-a-new-processing',
+    'preservation/settings/processings/edit/'  => '/preservation.html#add-a-new-processing',
+    'preservation/settings'                    => '/preservation.html#settings',
+    'preservation/settings/'                   => '/preservation.html#settings',
+    'preservation/trains'                      => '/preservation.html#trains',
+    'preservation/trains/'                     => '/preservation.html#show-train',
+    'preservation/trains/add'                  => '/preservation.html#new-train',
+    'preservation/trains/edit/'                => '/preservation.html#trains',
+    'preservation/trains//items/add'           => '/preservation.html#add-items',
+    'preservation/trains//items/edit/'         => '/preservation.html#add-items',
+    'preservation/waiting-list'                => '/preservation.html#waiting-list',
     'reports/acquisitions_stats'               => '/reports.html#acquisitions-statistics',
     'reports/bor_issues_top'                   => '/reports.html#patrons-with-the-most-checkouts',
     'reports/borrowers_out'                    => '/reports.html#patrons-with-no-checkouts',
@@ -295,32 +349,43 @@ our $mapping = {
     'virtualshelves/shelves'                   => '/lists.html#lists',
 };
 
+=head3 get_url
+
+    my $koha_manual_url = Koha::Manual::get_url($referer, $lang);
+
+Return the external URL to the manual for the I<$url> passed in parameter
+
+=cut
+
 sub get_url {
     my ( $url, $preferred_language ) = @_;
     my $file;
-    if ($url =~ /koha\/(.*)\.pl/ || $url =~ '/koha/(erm.*)') {
+    if (   $url =~ /koha\/(.*)\.pl/
+        || $url =~ '/koha/(erm[^?]*)'
+        || $url =~ '/koha/(preservation[^?]*)' )
+    {
         $file = $1;
     } else {
         $file = 'mainpage';
     }
     $file =~ s/[^a-zA-Z0-9_\-\/]*//g;
 
-    if ( $file =~ m|^erm| ) {
-        $file =~ s|\d*$||;
+    if ( $file =~ m|^erm| || $file =~ m|^preservation| ) {
+        $file =~ s|\d*+||g;
     }
 
     my $view;
-    if ($url =~ /(?:\?|\&)tab=(?<value>[\w+,.-]*)/) {
+    if ( $url =~ /(?:\?|\&)tab=(?<value>[\w+,.-]*)/ ) {
         $view = $file . '#' . $+{value};
     }
 
-    my $base_url = _get_base_url( $preferred_language );
+    my $base_url = _get_base_url($preferred_language);
     return $base_url
-      . (
-          exists $mapping->{$view} ? $mapping->{$view}
-        : exists $mapping->{$file} ? $mapping->{$file}
-        :                            $mapping->{mainpage}
-      );
+        . (
+          ( defined $view && exists $mapping->{$view} ) ? $mapping->{$view}
+        : ( exists $mapping->{$file} )                  ? $mapping->{$file}
+        :                                                 $mapping->{mainpage}
+        );
 }
 
 1;

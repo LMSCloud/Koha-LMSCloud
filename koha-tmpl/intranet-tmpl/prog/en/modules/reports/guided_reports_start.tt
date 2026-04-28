@@ -7,6 +7,7 @@
 [% USE JSON.Escape %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
+[% USE To %]
 
 [%- BLOCK area_name -%]
     [%- SWITCH area -%]
@@ -21,23 +22,40 @@
 
 [% INCLUDE 'doc-head-open.inc' %]
 
-<title>
-    [%- IF ( saved1 ) -%]
-        Saved reports &rsaquo; [%- ELSIF ( create ) -%]
-        Create from SQL &rsaquo; [%- ELSIF ( showsql ) -%]
-        SQL view &rsaquo; Saved reports &rsaquo; [%- ELSIF ( execute ) -%]
-        Report [% name | html %] ([% id | html %]) &rsaquo; Saved reports &rsaquo; [%- ELSIF ( editsql ) -%]
-        Edit report [% reportname | html %] ([% id | html %]) &rsaquo; Saved reports &rsaquo; [%- END -%]
+<title>[% FILTER collapse %]
+    [% IF ( saved1 ) %]
+        [% t("Saved reports") | html %] &rsaquo;
+    [% ELSIF ( create ) %]
+        [% t("Create from SQL") | html %] &rsaquo;
+    [% ELSIF ( showsql ) %]
+        [% tx("Show report {reportname} ({id})", { reportname = reportname, id = id }) | html %] &rsaquo;
+        [% t("SQL view") | html %] &rsaquo;
+        [% t("Saved reports") | html %] &rsaquo;
+    [% ELSIF ( execute ) %]
+        [% tx("Report {reportname} ({id})", { reportname = name, id = id }) | html %] &rsaquo;
+        [% t("Saved reports") | html %] &rsaquo;
+    [% ELSIF ( editsql ) %]
+        [% tx("Edit report {reportname} ({id})", { reportname = reportname, id = id }) | html %] &rsaquo;
+        [% t("Saved reports") | html %] &rsaquo;
+    [% END %]
 
-    [%- IF ( build1 ) -%]
-        Build a report, step 1 of 6: Choose a module &rsaquo; [%- ELSIF ( build2 ) -%]
-        Build a report, step 2 of 6: Pick a report type &rsaquo; [%- ELSIF ( build3 ) -%]
-        Build a report, step 3 of 6: Select columns for display &rsaquo; [%- ELSIF ( build4 ) -%]
-        Build a report, step 4 of 6: Select criteria to limit on &rsaquo; [%- ELSIF ( build5 ) -%]
-        Build a report, step 5 of 6: Pick which columns to total &rsaquo; [%- ELSIF ( build6 ) -%]
-        Build a report, step 6 of 6: Select how you want the report ordered &rsaquo; [%- END -%]
-    Guided reports wizard &rsaquo; Reports &rsaquo; Koha
-</title>
+    [% IF ( build1 ) %]
+        [% t("Build a report, step 1 of 6: Choose a module") | html %] &rsaquo;
+    [% ELSIF ( build2 ) %]
+        [% t("Build a report, step 2 of 6: Pick a report type") | html %] &rsaquo;
+    [% ELSIF ( build3 ) %]
+        [% t("Build a report, step 3 of 6: Select columns for display") | html %] &rsaquo;
+    [% ELSIF ( build4 ) %]
+        [% t("Build a report, step 4 of 6: Select criteria to limit on") | html %] &rsaquo;
+    [% ELSIF ( build5 ) %]
+        [% t("Build a report, step 5 of 6: Pick which columns to total") | html %] &rsaquo;
+    [% ELSIF ( build6 ) %]
+        [% t("Build a report, step 6 of 6: Select how you want the report ordered") | html %] &rsaquo;
+    [% END %]
+    [% t("Guided reports wizard") | html %] &rsaquo;
+    [% t("Reports") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("lib/codemirror/codemirror.min.css") | $raw %]
@@ -56,6 +74,13 @@
     }
     .data-plain {
         display: none;
+    }
+    div.radio label {
+        font-weight: bold;
+        margin: 0;
+    }
+    #tabs .tab-pane {
+        display: block;
     }
 </style>
 [% Asset.css("css/reports.css") | $raw %]
@@ -77,7 +102,7 @@
         [% END %]
         [% IF ( showsql || editsql || execute ) %]
             [% WRAPPER breadcrumb_item %]
-                <a href="/cgi-bin/koha/reports/guided_reports.pl?phase=Use%20saved">Saved reports</a>
+                <a href="/cgi-bin/koha/reports/guided_reports.pl?op=list">Saved reports</a>
             [% END %]
         [% END %]
         [% IF ( saved1 ) %]
@@ -94,21 +119,21 @@
             [% END %]
         [% ELSIF ( editsql ) %]
             [% WRAPPER breadcrumb_item %]
-                <a href="/cgi-bin/koha/reports/guided_reports.pl?reports=[% id | uri %]&amp;phase=Show%20SQL">[% reportname | html %] ([% id | html %])</a>
+                <a href="/cgi-bin/koha/reports/guided_reports.pl?id=[% id | uri %]&amp;op=show">[% reportname | html %] ([% id | html %])</a>
             [% END %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
                 <span>Edit</span>
             [% END %]
         [% ELSIF ( execute ) %]
             [% WRAPPER breadcrumb_item %]
-                <a href="/cgi-bin/koha/reports/guided_reports.pl?reports=[% id | uri %]&amp;phase=Show%20SQL">[% name | html %] ([% id | html %])</a>
+                <a href="/cgi-bin/koha/reports/guided_reports.pl?id=[% id | uri %]&amp;op=show">[% name | html %] ([% id | html %])</a>
             [% END %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
                 <span>Run</span>
             [% END %]
         [% ELSIF ( build1 || build2 || build3 || build4 || build5 || build6 ) %]
             [% WRAPPER breadcrumb_item %]
-                <a href="/cgi-bin/koha/reports/guided_reports.pl?phase=Build%20new">Build a report</a>
+                <a href="/cgi-bin/koha/reports/guided_reports.pl?op=add_form">Build a report</a>
             [% END %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
                 [% IF ( build1 ) %]
@@ -133,15 +158,15 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
-                <h3 id="update_sql_label">Update SQL</h3>
+                <h1 class="modal-title" id="update_sql_label">Update SQL</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div id="loading"> <img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" alt="" /> Loading </div>
             </div>
             <div class="modal-footer">
-                <a href="#" class="btn btn-default" id="update_sql_button" role="button" data-toggle="modal">Update</a>
-                <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+                <a href="#" class="btn btn-default" id="update_sql_button" role="button" data-bs-toggle="modal">Update</a>
+                <button class="btn btn-default" data-bs-dismiss="modal">Close</button>
             </div>
         </div> <!-- /.modal-content -->
     </div> <!-- /.modal-dialog -->
@@ -149,8 +174,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
                 [% INCLUDE "reports-toolbar.inc" %]
 
@@ -161,42 +187,30 @@
                     <h3>Build and run reports</h3>
 
                     [% IF ( CAN_user_reports_create_reports ) %]
-                        <form action="/cgi-bin/koha/reports/guided_reports.pl">
-                            <input type="hidden" name="phase" value="Build new" />
-                            <input type="submit" name="submit" class="btn btn-primary" value="Build new" />
-                        </form>
+                        <a href="/cgi-bin/koha/reports/guided_reports.pl?op=add_form" class="btn btn-primary"/>Build new</a>
                     [% END %]
 
                     [% IF ( CAN_user_reports_execute_reports ) %]
-                        <form action="/cgi-bin/koha/reports/guided_reports.pl">
-                            <input type="hidden" name="phase" value="Use saved"/>
-                            <input type="submit" name="submit" class="btn btn-primary" value="Use saved" />
-                        </form>
+                        <a href="/cgi-bin/koha/reports/guided_reports.pl?op=list" class="btn btn-primary"/>Use saved</a>
                     [% END %]
 
                     [% IF ( CAN_user_reports_create_reports ) %]
-                        <form action="/cgi-bin/koha/reports/guided_reports.pl">
-                            <input type="hidden" name="phase" value="Create report from SQL"/>
-                            <input type="submit" name="submit" class="btn btn-primary" value="Create report from SQL" />
-                        </form>
+                        <a href="/cgi-bin/koha/reports/guided_reports.pl?op=add_form_sql" class="btn btn-primary"/>Create report from SQL</a>
                     [% END %]
 
                     <h3>Reports Dictionary</h3>
                     <p>Use the reports dictionary to define custom criteria to use in your reports</p>
-                    <form action="/cgi-bin/koha/reports/dictionary.pl">
-                        <input type="hidden" name="phase" value="View Dictionary"/>
-                        <input type="submit" name="submit" class="btn btn-primary" value="View dictionary" />
-                    </form>
+                    <a href="/cgi-bin/koha/reports/dictionary.pl?op=list" class="btn btn-primary"/>View dictionary</a>
                 [% END # /IF (start) %]
 
                 [% IF report_converted %]
-                    <div class="dialog message">
+                    <div class="alert alert-info">
                         The report "[% report_converted | html %]" has been converted.
                     </div>
                 [% END %]
 
                 [% IF report_converted %]
-                    <div class="dialog message">
+                    <div class="alert alert-info">
                         The report "[% report_converted | html %]" has been converted.
                     </div>
                 [% END %]
@@ -217,7 +231,7 @@
                                     [% IF ( filters.keyword ) %]
                                         <span class="filter_keyword"><strong>Keyword:</strong> [% filters.keyword | html %]</span>
                                     [% END %]
-                                    <a class="clear_filter" href="/cgi-bin/koha/reports/guided_reports.pl?phase=Use%20saved&clear_filters=1"><i class="fa fa-remove"></i> Clear</a>
+                                    <a class="clear_filter" href="/cgi-bin/koha/reports/guided_reports.pl?op=list&clear_filters=1"><i class="fa fa-times" aria-hidden="true"></i> Clear</a>
                                 </span>
                             </p>
                         [% END %]
@@ -242,14 +256,15 @@
 
                                     [% IF (Koha.Preference('Mana') == 1) %]
                                         [% IF manamsg %]
-                                            <div id="mana_search_message" class="dialog message">
+                                            <div id="mana_search_message" class="alert alert-info">
                                                 <p> [% manamsg | html %] </p>
                                             </div>
                                         [% END %]
                                     [% END %]
 
                                     <form action="/cgi-bin/koha/reports/guided_reports.pl" id="reports_form" method="post">
-                                        <input type="hidden" name="phase" value="Delete Multiple" />
+                                        [% INCLUDE 'csrf-token.inc' %]
+                                        <input type="hidden" name="op" value="cud-delete" />
                                         <table id="table_reports">
                                             <thead>
                                                 <tr>
@@ -285,12 +300,12 @@
                                                     [% UNLESS ( loop.odd ) %]<tr class="odd">[% ELSE %]<tr>[% END %]
                                                         <td class="report_checkbox">
                                                             [% IF ( CAN_user_reports_delete_reports ) %] <!-- not break CSS -->
-                                                                <input type="checkbox" name="ids" id="ids[% savedreport.id | html %]" value="[% savedreport.id | html %]" />
+                                                                <input type="checkbox" name="id" id="id_[% savedreport.id | html %]" value="[% savedreport.id | html %]" />
                                                             [% END %]
                                                             <input type="hidden" class="report_sql" value="[% savedreport.savedsql |html %]">
                                                         </td>
                                                         <td class="report_id">
-                                                            <label for="ids[% savedreport.id | html %]">[% savedreport.id | html %]</label>
+                                                            <label for="id_[% savedreport.id | html %]">[% savedreport.id | html %]</label>
                                                         </td>
                                                         <td class="report_name">
                                                             [% IF ( savedreport.report_name ) %]
@@ -302,10 +317,10 @@
                                                         <td class="report_type">
                                                             [% savedreport.type | html %]
                                                         </td>
-                                                        <td class="report_group">
+                                                        <td data-search="[% savedreport.report_group | html %]" class="report_group">
                                                             [% savedreport.groupname | html %]
                                                         </td>
-                                                        <td>
+                                                        <td data-search="[% savedreport.report_subgroup | html %]">
                                                             [% savedreport.subgroupname | html %]
                                                         </td>
                                                         <td class="report_notes">
@@ -343,41 +358,44 @@
                                                         </td>
                                                         <td>
                                                             [% FOR result IN savedreport.results %]
-                                                                <a href="/cgi-bin/koha/reports/guided_reports.pl?phase=retrieve%20results&amp;id=[% result.id | uri %]">[% result.date_run | html %]</a>
+                                                                <a href="/cgi-bin/koha/reports/guided_reports.pl?op=retrieve_results&amp;id=[% result.id | uri %]">[% result.date_run | html %]</a>
                                                                 <br/>
                                                             [% END %]
                                                         </td>
                                                         <td>
                                                             [% IF savedreport.seems_obsolete %]
                                                                 This report seems obsolete, it uses biblioitems.marcxml field.
-                                                                <a href="/cgi-bin/koha/svc/convert_report?report_id=[% savedreport.id | uri %]" data-report_id="[% savedreport.id | html %]" class="update_sql btn btn-default btn-xs" title="Update SQL"><i class="fa fa-eye"></i> Update SQL</a>
+                                                                <a href="/cgi-bin/koha/svc/convert_report?id=[% savedreport.id | uri %]" data-report_id="[% savedreport.id | html %]" class="update_sql btn btn-default btn-xs" title="Update SQL"><i class="fa-solid fa-eye" aria-hidden="true"></i> Update SQL</a>
                                                             [% END %]
                                                         </td>
                                                         <td>
                                                             <div class="btn-group dropup">
                                                                 [%# There should be no space between these two buttons, it would render badly %]
                                                                 <a class="btn btn-default btn-xs" role="button"
-                                                                href="/cgi-bin/koha/reports/guided_reports.pl?reports=[% savedreport.id | html %]&amp;phase=Run%20this%20report"><i
+                                                                href="/cgi-bin/koha/reports/guided_reports.pl?id=[% savedreport.id | html %]&amp;op=run"><i
                                                                 class="fa fa-play"></i> Run</a><a
-                                                                class="btn btn-default btn-xs dropdown-toggle" id="reportactions[% savedreport.id | html %]" role="button" data-toggle="dropdown"
-                                                                href="#"><b class="caret"></b></a>
-                                                                <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="reportactions[% savedreport.id | html %]">
-                                                                    <li><a href="/cgi-bin/koha/reports/guided_reports.pl?reports=[% savedreport.id | uri %]&amp;phase=Show%20SQL"><i class="fa fa-search"></i> View</a></li>
+                                                                class="btn btn-default btn-xs dropdown-toggle" id="reportactions[% savedreport.id | html %]" role="button" data-bs-toggle="dropdown"
+                                                                href="#"></a>
+                                                                <ul class="dropdown-menu" role="menu" aria-labelledby="reportactions[% savedreport.id | html %]">
+                                                                    <li><a class="dropdown-item" href="/cgi-bin/koha/reports/guided_reports.pl?id=[% savedreport.id | uri %]&amp;op=show"><i class="fa fa-search" aria-hidden="true"></i> View</a></li>
                                                                     <li>
-                                                                        <a href="/cgi-bin/koha/reports/guided_reports.pl?reports=[% savedreport.id | uri %]&phase=Show%20SQL" class="preview_sql" data-reportid="[% savedreport.id | html %]">
-                                                                            <i class="fa fa-eye"></i> Preview SQL
+                                                                        <a href="/cgi-bin/koha/reports/guided_reports.pl?id=[% savedreport.id | uri %]&op=show" class="dropdown-item preview_sql" data-reportid="[% savedreport.id | html %]">
+                                                                            <i class="fa-solid fa-eye" aria-hidden="true"></i> Preview SQL
                                                                         </a>
                                                                     </li>
                                                                     [% IF ( CAN_user_reports_create_reports ) %]
-                                                                        <li><a href="/cgi-bin/koha/reports/guided_reports.pl?reports=[% savedreport.id | uri %]&amp;phase=Edit%20SQL"><i class="fa fa-pencil"></i> Edit</a></li>
-                                                                        <li><a title="Duplicate this saved report" href="/cgi-bin/koha/reports/guided_reports.pl?phase=Create report from existing&amp;report_id=[% savedreport.id | uri %]"><i class="fa fa-copy"></i> Duplicate</a></li>
+                                                                        <li><a class="dropdown-item" href="/cgi-bin/koha/reports/guided_reports.pl?id=[% savedreport.id | uri %]&amp;op=edit_form"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a></li>
+                                                                        <li><a class="dropdown-item" title="Duplicate this saved report" href="/cgi-bin/koha/reports/guided_reports.pl?op=duplicate&amp;id=[% savedreport.id | uri %]"><i class="fa fa-copy" aria-hidden="true"></i> Duplicate</a></li>
                                                                     [% END %]
                                                                     [% IF (Koha.Preference('Mana') == 1) %]
-                                                                        <li><a class="ShareButton" data-toggle="modal" href="#mana_share_report" title="Share your report with Mana Knowledge Base"><i class="fa fa-share-alt"></i> Share</a></li>
+                                                                        <li><a class="dropdown-item ShareButton" data-bs-toggle="modal" href="#mana_share_report" title="Share your report with Mana Knowledge Base"><i class="fa fa-share-alt" aria-hidden="true"></i> Share</a></li>
                                                                     [% END %]
-                                                                    <li><a href="/cgi-bin/koha/tools/scheduler.pl?id=[% savedreport.id | uri %]"><i class="fa fa-clock-o"></i> Schedule</a></li>
+                                                                    <li><a class="dropdown-item" href="/cgi-bin/koha/tools/scheduler.pl?id=[% savedreport.id | uri %]"><i class="fa-solid fa-clock" aria-hidden="true"></i> Schedule</a></li>
                                                                     [% IF ( CAN_user_reports_delete_reports ) %]
-                                                                        <li><a class="confirmdelete" title="Delete this saved report" href="/cgi-bin/koha/reports/guided_reports.pl?reports=[% savedreport.id | html %]&amp;phase=Delete%20Saved"><i class="fa fa-trash"></i> Delete</a></li>
+                                                                        <li>
+                                                                            <a class="dropdown-item submit-form-link" href="#" data-id="[% savedreport.id | html %]" data-action="guided_reports.pl" data-method="post" data-op="cud-delete" data-confirmation-msg="[% t('Are you sure you want to delete this report?') | html %]"><i class="fa fa-trash-can" aria-hidden="true"></i> Delete</a>
+
+                                                                        </li>
                                                                     [% END %]
                                                                 </ul>
                                                             </div>
@@ -402,31 +420,20 @@
 
 
                     [% ELSE # IF ( savedreports ) %]
-                        <div class="dialog message">
+                        <div class="alert alert-info">
                             [% IF (filter_set || filters.date || filters.author || filters.keyword) %]
                                 <h4>No saved reports match your criteria. </h4>
                                 [% IF ( CAN_user_reports_create_reports ) %]
-                                    <form action="/cgi-bin/koha/reports/guided_reports.pl" method="get">
-                                        <input type="hidden" name="phase" value="Build new" />
-                                        <button type="submit" class="new"><i class="fa fa-plus"></i> New guided report</button>
-                                    </form>
+                                    <a href="/cgi-bin/koha/reports/guided_reports.pl?op=add_form" class="new btn btn-default"><i class="fa fa-plus" aria-hidden="true"></i> New guided report</a>
 
-                                    <form action="/cgi-bin/koha/reports/guided_reports.pl" method="get">
-                                        <input type="hidden" name="phase" value="Create report from SQL" />
-                                        <button type="submit" class="new"><i class="fa fa-plus"></i> New SQL report</button>
-                                    </form>
+                                    <a href="/cgi-bin/koha/reports/guided_reports.pl?op=add_form_sql" class="new btn btn-default"><i class="fa fa-plus" aria-hidden="true"></i> New SQL report</a>
 
-                                    <form action="/cgi-bin/koha/reports/guided_reports.pl" method="get">
-                                        <input type="hidden" name="phase" value="Use saved" />
-                                        <input type="hidden" name="filter_set" value="1" />
-                                        <input type="hidden" name="filter_keyword" value="" />
-                                        <button type="submit" class="deny"><i class="fa fa-fw fa-remove"></i> Cancel filter</button>
-                                    </form>
+                                    <a href="/cgi-bin/koha/reports/guided_reports.pl?op=list&filter_set=1&filter_keywork=" class="deny btn btn-default"><i class="fa fa-fw fa-times" aria-hidden="true"></i> Cancel filter</a>
                                 [% END %]
                             [% ELSE %]
                                 <h4>There are no saved reports. </h4>
                                 [% IF ( CAN_user_reports_create_reports ) %]
-                                    <a href="/cgi-bin/koha/reports/guided_reports.pl?phase=Build%20new">Build a new report?</a>
+                                    <a href="/cgi-bin/koha/reports/guided_reports.pl?op=add_form">Build a new report?</a>
                                 [% END %]
                             [% END # IF (filter_set || filters.date || filters.author || filters.keyword) %]
                         </div> <!-- /.dialog.message -->
@@ -437,13 +444,14 @@
 
                 [% IF ( build1 ) %]
                     [% IF ( cache_error) %]
-                        <div class="dialog alert">
+                        <div class="alert alert-warning">
                             <strong> Please choose a cache_expiry less than 30 days </strong>
                         </div>
                     [% END %]
 
                     <h1>Build a report</h1>
-                    <form action="/cgi-bin/koha/reports/guided_reports.pl">
+                    <form method="post" action="/cgi-bin/koha/reports/guided_reports.pl">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <fieldset class="rows">
                             <legend>Step 1 of 6: Choose a module to report on,[% IF (usecache) %] Set cache expiry, [% END %] and choose report visibility </legend>
                             <ol>
@@ -488,8 +496,8 @@
                             </ol>
                         </fieldset> <!-- /.rows -->
                         <fieldset class="action">
-                            <input type="hidden" name="phase" value="Report on this Area" />
-                            <input type="submit" name="submit" value="Next &gt;&gt;" />
+                            <input type="hidden" name="op" value="cud-report" />
+                            <button type="submit" class="btn btn-primary" />Next &gt;&gt;</button>
                         </fieldset>
                     </form>
                 [% END # /build1 %]
@@ -497,6 +505,7 @@
                 [% IF ( build2 ) %]
                     <h1>Build a report</h1>
                     <form action="/cgi-bin/koha/reports/guided_reports.pl" method="post">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <input type="hidden" name="area" value="[% area | html %]" />
                         <input type="hidden" name="public" value="[% public | html %]" />
                         <input type="hidden" name="cache_expiry" value="[% cache_expiry | html %]" />
@@ -515,9 +524,9 @@
                         </fieldset>
 
                         <fieldset class="action">
-                            <input type="hidden" name="phase" value="Choose this type" />
-                            <input type="button" name="back" value="&lt;&lt; Back" class="goback" />
-                            <input type="submit" name="submit" value="Next &gt;&gt;" />
+                            <input type="hidden" name="op" value="cud-choose_type" />
+                            <button type="submit" class="btn btn-default goback" name="back">&lt;&lt; Back</button>
+                            <button type="submit" class="btn btn-primary" />Next &gt;&gt;</button>
                         </fieldset>
                     </form>
                 [% END # /IF (build2 ) %]
@@ -528,6 +537,7 @@
                     <p>Note: Be careful selecting when selecting columns. If your choice is too broad it could result in a very large report that will either not complete, or slow your system down.</p>
 
                     <form id="column_submit" action="/cgi-bin/koha/reports/guided_reports.pl" method="post">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <input type="hidden" name="area" value="[% area | html %]" />
                         <input type="hidden" name="type" value="[% type | html %]" />
                         <input type="hidden" name="public" value="[% public | html %]" />
@@ -536,25 +546,20 @@
                             <div class="row">
                                 <div class="col-sm-6">
                                     <div style="float: left;">
-                                        <select id="availableColumns" name="oldcolumns2" multiple="multiple" size="25" style="min-width: 200px;height:300px;">
-                                            [% FOREACH column IN columns %]
-                                                [% IF ( column.table ) %]
-                                                    [% IF ( loop.first ) %]
-                                                    [% ELSE %]
-                                                        </optgroup>
+                                        <select id="availableColumns" name="oldcolumns2" multiple="multiple" size="25" style="min-width:200px; height:300px;">
+                                            [% FOREACH table IN columns.keys.sort %]
+                                                <optgroup label="[% table | html %]">
+                                                    [% FOREACH column IN columns.item(table) %]
+                                                        <option value="[% column.name | html %]">
+                                                            [% IF ( column.description ) %]
+                                                                [% column.description | html %] &nbsp; / &nbsp; [% column.name | html %]
+                                                            [% ELSE %]
+                                                                [% column.name | html %]
+                                                            [% END %]
+                                                        </option>
                                                     [% END %]
-                                                    <optgroup label="[% column.table | html %]">
-                                                [% ELSE %]
-                                                    <option value="[% column.name | html %]">
-                                                        [% IF ( column.description ) %]
-                                                            [% column.description | html %] &nbsp; / &nbsp; [% column.name | html %]
-                                                        [% ELSE %]
-                                                            [% column.name | html %]
-                                                        [% END %]
-                                                    </option>
-                                                [% END %]
+                                                </optgroup>
                                             [% END %]
-                                            </optgroup>
                                         </select>
                                     </div>
                                     <div style="width: 6.3em; float: right; margin-top: 100px">
@@ -570,9 +575,9 @@
                             </div> <!-- /.row -->
                         </fieldset>
                         <fieldset class="action">
-                            <input type="hidden" name="phase" value="Choose these columns" />
-                            <input type="button" name="back" value="&lt;&lt; Back" class="goback" />
-                            <input type="submit" name="submit" value="Next &gt;&gt;" />
+                            <input type="hidden" name="op" value="cud-choose_columns" />
+                            <button type="submit" class="btn btn-default goback" name="back">&lt;&lt; Back</button>
+                            <button type="submit" class="btn btn-primary" />Next &gt;&gt;</button>
                         </fieldset>
                     </form> <!-- /#column_submit -->
                 [% END # /IF ( build3 ) %]
@@ -580,6 +585,7 @@
                 [% IF ( build4 ) %]
                     <h1>Build a report</h1>
                     <form action="/cgi-bin/koha/reports/guided_reports.pl" method="post" >
+                        [% INCLUDE 'csrf-token.inc' %]
                         <input type="hidden" name="area" value="[% area | html %]" />
                         <input type="hidden" name="type" value="[% type | html %]" />
                         <input type="hidden" name="column" value="[% column | html %]" />
@@ -657,9 +663,9 @@
                         [% END %]
 
                         <fieldset class="action">
-                            <input type="hidden" name="phase" value="Choose these criteria" />
-                            <input type="button" name="back" value="&lt;&lt; Back" class="goback" />
-                            <input type="submit" name="submit" value="Next &gt;&gt;" />
+                            <input type="hidden" name="op" value="cud-choose_criteria" />
+                            <button type="submit" class="btn btn-default goback" name="back">&lt;&lt; Back</button>
+                            <button type="submit" class="btn btn-primary" />Next &gt;&gt;</button>
                         </fieldset>
                     </form>
                 [% END # /IF ( build4 ) %]
@@ -668,6 +674,7 @@
                     <h1>Build a report</h1>
                     <h3>Step 5 of 6: Pick which columns to total</h3>
                     <form action="/cgi-bin/koha/reports/guided_reports.pl" method="post">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <input type="hidden" name="area" value="[% area | html %]" />
                         <input type="hidden" name="type" value="[% type | html %]" />
                         <input type="hidden" name="column" value="[% column | html %]" />
@@ -695,9 +702,9 @@
                             </table>
                         </fieldset>
 
-                        <fieldset class="action"><input type="hidden" name="phase" value="Choose these operations" />
-                            <input type="button" name="back" value="&lt;&lt; Back" class="goback" />
-                            <input type="submit" name="submit" value="Next &gt;&gt;" />
+                        <fieldset class="action"><input type="hidden" name="op" value="cud-choose_operations" />
+                            <button type="submit" class="btn btn-default goback" name="back">&lt;&lt; Back</button>
+                            <button type="submit" class="btn btn-primary" />Next &gt;&gt;</button>
                         </fieldset>
                     </form>
                 [% END # /IF ( build5 ) %]
@@ -706,6 +713,7 @@
                     <h1>Build a report</h1>
                     <h3>Step 6 of 6: Choose how you want the report ordered</h3>
                     <form action="/cgi-bin/koha/reports/guided_reports.pl" method="post">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <input type="hidden" name="area" value="[% area | html %]" />
                         <input type="hidden" name="type" value="[% type | html %]" />
                         <input type="hidden" name="column" value="[% column | html %]" />
@@ -734,7 +742,7 @@
                             </table>
                         </fieldset>
                         <fieldset class="action">
-                            <input type="hidden" name="phase" value="Build report" />
+                            <input type="hidden" name="op" value="cud-build_report" />
                             <input type="submit" name="submit" class="btn btn-primary" value="Finish" />
                         </fieldset>
                     </form>
@@ -748,12 +756,13 @@
                     </p>
 
                     <form action="/cgi-bin/koha/reports/guided_reports.pl" method="post">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <input type="hidden" name="sql" value="[% sql | html %]" />
                         <input type="hidden" name="type" value="[% type | html %]" />
                         <input type="hidden" name="public" value="[% public | html %]" />
                         <input type="hidden" name="cache_expiry" value="[% cache_expiry | html %]" />
                         <p>You will need to save the report before you can execute it</p>
-                        <fieldset class="action"><input type="hidden" name="phase" value="Save" />
+                        <fieldset class="action"><input type="hidden" name="op" value="cud-save" />
                             <input type="submit" name="submit" class="btn btn-primary" value="Next" />
                         </fieldset>
                     </form>
@@ -761,6 +770,7 @@
 
                 [% IF ( save ) %]
                     <form action="/cgi-bin/koha/reports/guided_reports.pl" method="post" id="sql_report_form">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <input type="hidden" name="sql" value="[% sql | html %]" />
                         <input type="hidden" name="type" value="[% type | html %]" />
                         <input type="hidden" name="area" value="[% area | html %]" />
@@ -781,14 +791,14 @@
                                 </li>
                             </ol>
                         </fieldset>
-                        <fieldset class="action"><input type="hidden" name="phase" value="Save Report" />
+                        <fieldset class="action"><input type="hidden" name="op" value="cud-save" />
                             <input type="submit" name="submit" class="btn btn-primary" value="Save report" />
                         </fieldset>
                     </form>
                 [% END # /IF( save ) %]
 
                 [% IF ( warn_authval_problem ) %]
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         <h3>Errors found when processing parameters for report: [% name | html %]</h3>
                         [% FOREACH problematic_authval IN problematic_authvals %]
                             <p>
@@ -797,8 +807,9 @@
                             </p>
                         [% END %]
                         <!-- Save Anyway Form -->
-                        <form action='/cgi-bin/koha/reports/guided_reports.pl'>
+                        <form method="post" action='/cgi-bin/koha/reports/guided_reports.pl'>
                         <!--Every parameter the user issued is provided as a hidden field for recovery-->
+                            [% INCLUDE 'csrf-token.inc' %]
                             <input type='hidden' name='id' value='[% id | html %]' />
                             <input type='hidden' name='sql' value='[% sql | html %]' />
                             <input type='hidden' name='reportname' value='[% reportname | html %]' />
@@ -808,39 +819,37 @@
                             <input type='hidden' name='cache_expiry' value='[% cache_expiry | html %]' />
                             <input type='hidden' name='cache_expiry_units' value='[% cache_expiry_units | html %]' />
                             <input type='hidden' name='public' value='[% public | html %]' />
-                        [% IF ( phase_update) %]
-                            <input type='hidden' name='phase' value='Update SQL' />
-                            <button type="submit" name="save_anyway" value="Save anyway" class="approve"><i class="fa fa-fw fa-check"></i> Save anyway</button>
-                        [% ELSIF ( phase_save) %]
+                        [% IF ( op == 'update') %]
+                            <input type='hidden' name='op' value='cud-update' />
+                            <button type="submit" name="save_anyway" value="Save anyway" class="approve"><i class="fa fa-fw fa-check" aria-hidden="true"></i> Save anyway</button>
+                        [% ELSIF ( op == 'save') %]
                             <input type='hidden' name='area' value='[% area | html %]' />
-                            <input type='hidden' name='phase' value='Save Report' />
-                            <button type="submit" name="save_anyway" value="Save anyway" class="approve"><i class="fa fa-fw fa-check"></i> Save anyway</button>
+                            <input type='hidden' name='op' value='cud-save' />
+                            <button type="submit" name="save_anyway" value="Save anyway" class="approve"><i class="fa fa-fw fa-check" aria-hidden="true"></i> Save anyway</button>
                         [% END %]
                         </form>
                         <!-- Go back to editing -->
-                        <form action='/cgi-bin/koha/reports/guided_reports.pl'>
-                            <button type="button" class="new goback"><i class="fa fa-fw fa-pencil"></i> Edit SQL</button>
-                        </form>
+                        <a href="/cgi-bin/koha/reports/guided_reports.pl" class="btn btn-default new goback"><i class="fa-fw fa-solid fa-pencil" aria-hidden="true"></i> Edit SQL</a>
                     </div>
                 [% END # /IF ( warn_authval_problem )%]
 
                 [% IF ( enter_params ) %]
-                    <form action='/cgi-bin/koha/reports/guided_reports.pl'>
-                        <input type='hidden' name='reports' value="[% reports | html %]" />
-                        [% IF ( auth_val_error ) %]
-                            <input type='hidden' name='phase' value='Edit SQL' />
-                            <div class="dialog alert">
-                                <h3>Errors found when processing parameters for report: [% name | html %]</h3>
-                                [% FOREACH auth_val_error IN auth_val_errors %]
-                                    <p>
-                                        <strong>[% auth_val_error.entry | html %]:</strong> The authorized value category (<strong>[% auth_val_error.auth_val | html %]</strong>)
-                                        you selected does not exist.
-                                    </p>
-                                [% END %]
-                            </div>
-                            <fieldset class="action"><input type="submit" class="btn btn-primary" value="Edit SQL" /></fieldset>
-                        [% ELSE #  IF ( auth_val_error ) %]
-                            <input type='hidden' name='phase' value='Run this report' />
+                    [% IF ( auth_val_error ) %]
+                        <div class="alert alert-warning">
+                            <h3>Errors found when processing parameters for report: [% name | html %]</h3>
+                            [% FOREACH auth_val_error IN auth_val_errors %]
+                                <p>
+                                    <strong>[% auth_val_error.entry | html %]:</strong> The authorized value category (<strong>[% auth_val_error.auth_val | html %]</strong>)
+                                    you selected does not exist.
+                                </p>
+                            [% END %]
+                        </div>
+                        <fieldset class="action">
+                            <a href="/cgi-bin/koha/reports/guided_reports.pl?op=edit_formid=[% id | uri %]" class="btn btn-primary">Edit SQL</a>
+                        </fieldset>
+                    [% ELSE #  IF ( auth_val_error ) %]
+                        <form method="get" action='/cgi-bin/koha/reports/guided_reports.pl' id='report_param_form'>
+                            <input type='hidden' name='id' value="[% id | html %]" />
                             <h1>Enter parameters for report [% name | html %]:</h1>
                             [% IF ( notes ) %]
                                 <p>[% notes | html %]</p>
@@ -866,7 +875,12 @@
                                         [% ELSE %]
                                             <li>
                                                 <label for="sql_params_[% sql_param.labelid | html %]">[% sql_param.entry | html %]:</label>
-                                                <select name="[%- sql_param.input.name | html -%]" tabindex="1"  id="[%- sql_param.input.id | html -%]">
+                                                [% IF (sql_param.select_multiple) %]
+                                                    <select name="[%- sql_param.input.name | html -%]" tabindex="1"  id="[%- sql_param.input.id | html -%]" multiple>
+                                                        <option value="%" hidden></option>
+                                                [% ELSE %]
+                                                    <select name="[%- sql_param.input.name | html -%]" tabindex="1"  id="[%- sql_param.input.id | html -%]">
+                                                [% END %]
                                                     [% IF (sql_param.include_all) %]
                                                         <option value="%">All</option>
                                                     [% END %]
@@ -880,13 +894,19 @@
                                 </ol>
                             </fieldset> <!-- /.rows -->
                             <fieldset class="action">
-                                <input type="submit" class="btn btn-primary" value="Run the report" />
+                                <input type="hidden" name="op" value="run" />
+                                [% IF ( template_id ) %]
+                                    <input type="hidden" name="template" value="[% template_id | html %]" />
+                                [% END %]
+                                <button type="submit" class="btn btn-primary">Run the report</button>
                             </fieldset>
-                        [% END # / IF ( auth_val_error ) %]
-                    </form>
+                        </form>
+                    [% END # / IF ( auth_val_error ) %]
                 [% END # /IF ( enter_params ) %]
 
-                [% IF ( execute ) %]
+                [% IF processed_notice %]
+                    [% processed_notice | $raw %]
+                [% ELSIF ( execute ) %]
                     <h1>[% name | html %] <span class="report_heading_id"><span class="report_label">Report ID:</span> <span class="report_number">[% id | html %]</span></span></h1>
                     <div class="page-section">
                         [% IF ( notes ) %]
@@ -908,16 +928,17 @@
                         </div>
 
                         <div>
-                            <a href="#" id="toggle_chart_settings_hid" class="toggle_chart_settings" style="display:none"><i class="fa fa-eye-slash"></i> Hide chart</a>
-                            <a href="#" id="toggle_chart_settings_vis" class="toggle_chart_settings" style="display:none"><i class="fa fa fa-eye"></i> Show chart</a>
+                            <a href="#" id="toggle_chart_settings_hid" class="toggle_chart_settings" style="display:none"><i class="fa-solid fa-eye-slash" aria-hidden="true"></i> Hide chart</a>
+                            <a href="#" id="toggle_chart_settings_vis" class="toggle_chart_settings" style="display:none"><i class="fa-solid fa-eye" aria-hidden="true"></i> Show chart</a>
                         </div>
                         <div id="chart" class="clearfix"></div>
 
                         [% IF ( execute ) %]
                             [% UNLESS ( errors ) %]
                                 <form method="post" enctype="multipart/form-data" action="/cgi-bin/koha/tools/batch_record_modification.pl" id="batch_record_modification" target="_blank">
+                                    [% INCLUDE 'csrf-token.inc' %]
                                     <input type="hidden" name="recordtype" value="biblio" />
-                                    <input type="hidden" name="op" value="list" />
+                                    <input type="hidden" name="op" value="cud-list" />
                                     [% # Preserve the whitespace of the following textarea in order to format the values correctly %]
                                     <textarea style="display:none" name="recordnumber_list" id="recordnumber_list">
                                         [%- recordnumbers = PROCESS batch_list results=results batch_type='biblionumber' | trim | html %][% IF recordnumbers %][% SET batch_biblionumbers = 1 %][% recordnumbers | html %][% END -%]
@@ -925,8 +946,9 @@
                                 </form>
 
                                 <form method="POST" action="/cgi-bin/koha/tools/batch_delete_records.pl" id="batch_record_deletion" target="_blank">
+                                    [% INCLUDE 'csrf-token.inc' %]
                                     <input type="hidden" name="recordtype" value="biblio" />
-                                    <input type="hidden" name="op" value="list" />
+                                    <input type="hidden" name="op" value="cud-list" />
                                     [% # Preserve the whitespace of the following textarea in order to format the values correctly %]
                                     <textarea style="display:none" name="recordnumber_list" id="recordnumber_list">
                                         [%- recordnumbers = PROCESS batch_list results=results batch_type='biblionumber' | trim | html %][% IF recordnumbers %][% SET batch_biblionumbers = 1 %][% recordnumbers | html %][% END -%]
@@ -934,7 +956,8 @@
                                 </form>
 
                                 <form method="POST" action="/cgi-bin/koha/tools/batchMod.pl" id="batch_item_modification" target="_blank">
-                                    <input type="hidden" name="op" value="show" />
+                                    [% INCLUDE 'csrf-token.inc' %]
+                                    <input type="hidden" name="op" value="cud-show" />
                                     [% FOREACH result IN results %]
                                         [% FOREACH cells IN result.cells %]
                                             [% place = loop.index %]
@@ -942,14 +965,15 @@
                                             [% IF header_row.$place.cell == 'itemnumber' || header_types.item(header_row.$place.cell) == 'itemnumber'  %]
                                                 [% SET batch_itemnumbers = 1 %]
                                                 [% SET header_row.$place.has_itemnumbers = 1 %]
-                                                <input type="hidden" name="[% header_row.$place.cell | html %]" value="[% cells.cell | html %]" />
+                                                <input type="hidden" name="itemnumber" value="[% cells.cell | html %]" />
                                             [% END %]
                                         [% END %]
                                     [% END %]
                                 </form>
 
                                 <form method="POST" action="/cgi-bin/koha/tools/batchMod.pl" id="batch_item_deletion" target="_blank">
-                                    <input type="hidden" name="op" value="show" />
+                                    [% INCLUDE 'csrf-token.inc' %]
+                                    <input type="hidden" name="op" value="cud-show" />
                                     <input type="hidden" name="del" value="1" />
                                     [% FOREACH result IN results %]
                                         [% FOREACH cells IN result.cells %]
@@ -958,7 +982,7 @@
                                             [% IF header_row.$place.cell == 'itemnumber' || header_types.item(header_row.$place.cell) == 'itemnumber'  %]
                                                 [% SET batch_itemnumbers = 1 %]
                                                 [% SET header_row.$place.has_itemnumbers = 1 %]
-                                                <input type="hidden" name="[% header_row.$place.cell | html %]" value="[% cells.cell | html %]" />
+                                                <input type="hidden" name="itemnumber" value="[% cells.cell | html %]" />
                                             [% END %]
                                         [% END %]
                                     [% END %]
@@ -979,10 +1003,33 @@
                                 </form>
 
                                 <form method="POST" action="/cgi-bin/koha/tools/modborrowers.pl" id="batch_patron_modification" target="_blank">
-                                    <input type="hidden" name="op" value="show" />
+                                    [% INCLUDE 'csrf-token.inc' %]
+                                    <input type="hidden" name="op" value="cud-show" />
                                     [% # Preserve the whitespace of the following textarea in order to format the values correctly %]
-                                    <textarea style="display:none" name="cardnumberlist" id="cardnumberlist">
-                                        [%- cardnumbers = PROCESS batch_list results=results batch_type='cardnumber' | trim | html %][% IF cardnumbers %][% SET batch_cardnumbers = 1 %][% cardnumbers | html %][% END -%]
+                                    [%- borrowernumbers = PROCESS batch_list results=results batch_type='borrowernumber' | trim | html -%]
+                                    [%- IF borrowernumbers -%]
+                                        [%- SET batch_borrowernumbers = 1 -%]
+                                        <textarea style="display:none;" name="borrowernumberlist" id="borrowernumberlist">
+                                        [%- borrowernumbers | html -%]
+                                        </textarea>
+                                    [%- END -%]
+                                    [%- cardnumbers = PROCESS batch_list results=results batch_type='cardnumber' | trim | html %]
+                                    [% IF !batch_borrowernumbers && cardnumbers %]
+                                        [% SET batch_cardnumbers = 1 %]
+                                        <textarea style="display:none;" name="cardnumberlist" id="cardnumberlist">
+                                        [%- cardnumbers | html -%]
+                                        </textarea>
+                                    [% END %]
+
+                                </form>
+
+                                <form action="/cgi-bin/koha/patroncards/edit-batch.pl" id="patron_card_creator" method="post" target="_blank">
+                                    [% INCLUDE 'csrf-token.inc' %]
+                                    <input type="hidden" name="op" value="cud-add" />
+                                    <input type="hidden" name="batch_id" value="0" />
+                                    [% # Preserve the whitespace of the following textarea in order to format the values correctly %]
+                                    <textarea style="display:none;" name="bor_num_list" id="bor_num_list">
+                                        [%- borrowernumbers = PROCESS batch_list results=results batch_type='borrowernumber' | trim | html %][% IF borrowernumbers %][% SET batch_borrowernumbers = 1 %][% borrowernumbers | html %][% END -%]
                                     </textarea>
                                 </form>
 
@@ -998,8 +1045,8 @@
                                 [% END %]
 
                                 <form action="/cgi-bin/koha/reports/guided_reports.pl" method="get" id="limitselect">
-                                    <input type="hidden" name="phase" value="Run this report"/>
-                                    <input type="hidden" name="reports" value="[% report_id | html %]"/>
+                                    <input type="hidden" name="op" value="run"/>
+                                    <input type="hidden" name="id" value="[% id | html %]"/>
                                     [% FOREACH p IN sql_params %]
                                         <input type="hidden" name="sql_params" value="[% p | html %]"/>
                                     [% END %]
@@ -1009,41 +1056,58 @@
                                     <input type="hidden" name="limit" id="limit" value="20" />
                                 </form> <!-- /#limitselect -->
 
-                                [% IF ( batch_biblionumbers || batch_itemnumbers || batch_cardnumbers ) || ( unlimited_total > 10 && limit <= 1000 ) %]
+                                [% IF ( batch_biblionumbers || batch_itemnumbers || batch_cardnumbers || batch_borrowernumbers ) || ( unlimited_total > 10 && limit <= 1000 ) %]
                                     <div id="toolbar" class="btn-toolbar">
-                                        [% IF ( batch_biblionumbers || batch_itemnumbers || batch_cardnumbers ) %]
+                                        [% IF ( batch_biblionumbers || batch_itemnumbers || batch_cardnumbers || batch_borrowernumbers ) %]
                                             <div class="btn-group">
-                                                <button class="btn btn-default btn-sm dropdown-toggle" type="button" id="batch_mod_menu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                                                    Batch operations with [% IF unlimited_total >= limit %][% limit | html %][% ELSE %][% unlimited_total | html %][% END %] visible records
+                                                <button class="btn btn-default btn-sm dropdown-toggle" type="button" id="batch_mod_menu" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                                    Batch operations with [% IF unlimited_total >= limit %][% results.size | html %][% ELSE %][% unlimited_total | html %][% END %] visible records
                                                     <span class="caret"></span>
                                                 </button>
                                                 <ul class="dropdown-menu" aria-labelledby="batch_mod_menu">
                                                     [% FOREACH header_ro IN header_row %]
+                                                        [% IF header_ro.cell == 'cardnumber' || header_types.item( header_ro.cell ) == 'cardnumber' || header_ro.cell == 'borrowernumber' || header_types.item( header_ro.cell ) == 'borrowernumber' %]
+                                                            [% IF header_ro.cell == 'cardnumber' || header_types.item( header_ro.cell ) == 'cardnumber' %]
+                                                                [% SET show_cardnumber_ops = 1 %]
+                                                            [% END %]
+                                                            [% IF header_ro.cell == 'borrowernumber' || header_types.item( header_ro.cell ) == 'borrowernumber' %]
+                                                                [% SET show_borrowernumber_ops = 1 %]
+                                                            [% END %]
+                                                        [% END %]
+                                                    [% END %]
+                                                    [% IF show_cardnumber_ops || show_borrowernumber_ops %]
+                                                        <li><h6 class="dropdown-header">Patron records</h6></li>
+                                                        [% IF show_cardnumber_ops || show_borrowernumber_ops %]
+                                                            <li>
+                                                                <a href="#" data-submit="batch_patron_modification" data-bs-toggle="tooltip" data-bs-placement="right" title="Send visible results to batch patron modification" class="dropdown-item batch_op send_to_patron_mod">Batch patron modification</a>
+                                                            </li>
+                                                        [% END %]
+                                                        [% IF show_borrowernumber_ops %]
+                                                            <li>
+                                                                <a href="#" data-submit="patron_card_creator" data-bs-toggle="tooltip" data-bs-placement="right" title="Send visible results to a new patron card batch" class="dropdown-item batch_op send_to_patron_card_batch">Patron card creator</a>
+                                                            </li>
+                                                        [% END %]
+                                                    [% END %]
+                                                    [% FOREACH header_ro IN header_row %]
                                                         [% IF header_ro.has_biblionumbers && ( header_ro.cell == 'biblionumber' || header_types.item( header_ro.cell ) == 'biblionumber' ) %]
-                                                            <li class="dropdown-header">Bibliographic records</li>
+                                                            <li><h6 class="dropdown-header">Bibliographic records</h6></li>
                                                             <li>
-                                                                <a href="#" data-submit="batch_record_modification" data-toggle="tooltip" data-placement="right" title="Send visible records to batch record modification" class="batch_op send_to_record_mod">Batch record modification</a>
+                                                                <a href="#" data-submit="batch_record_modification" data-bs-toggle="tooltip" data-bs-placement="right" title="Send visible records to batch record modification" class="dropdown-item batch_op send_to_record_mod">Batch record modification</a>
                                                             </li>
                                                             <li>
-                                                                <a href="#" data-submit="batch_record_deletion" data-toggle="tooltip" data-placement="right" title="Send visible records to batch record deletion" class="batch_op send_to_record_del">Batch record deletion</a>
+                                                                <a href="#" data-submit="batch_record_deletion" data-bs-toggle="tooltip" data-bs-placement="right" title="Send visible records to batch record deletion" class="dropdown-item batch_op send_to_record_del">Batch record deletion</a>
                                                             </li>
                                                             <li>
-                                                                <a href="#" data-submit="batch_add_to_list" data-toggle="tooltip" data-placement="right" title="Send visible records to a list" class="batch_op send_to_list">Add to list</a>
+                                                                <a href="#" data-submit="batch_add_to_list" data-bs-toggle="tooltip" data-bs-placement="right" title="Send visible records to a list" class="dropdown-item batch_op send_to_list">Add to list</a>
                                                             </li>
                                                         [% END %]
                                                         [% IF header_ro.has_itemnumbers && ( header_ro.cell == 'itemnumber' || header_types.item( header_ro.cell ) == 'itemnumber' ) %]
-                                                            <li class="dropdown-header">Item records</li>
+                                                            <li><h6 class="dropdown-header">Item records</h6></li>
                                                             <li>
-                                                                <a href="#" data-submit="batch_item_modification" data-toggle="tooltip" data-placement="right" title="Send visible items to batch item modification" class="batch_op send_to_item_mod">Batch item modification</a>
+                                                                <a href="#" data-submit="batch_item_modification" data-bs-toggle="tooltip" data-bs-placement="right" title="Send visible items to batch item modification" class="dropdown-item batch_op send_to_item_mod">Batch item modification</a>
                                                             </li>
                                                             <li>
-                                                                <a href="#" data-submit="batch_item_deletion" data-toggle="tooltip" data-placement="right" title="Send visible items to batch item deletion" class="batch_op send_to_item_del">Batch item deletion</a>
-                                                            </li>
-                                                        [% END %]
-                                                        [% IF header_ro.cell == 'cardnumber' || header_types.item( header_ro.cell ) == 'cardnumber' %]
-                                                            <li class="dropdown-header">Patron records</li>
-                                                            <li>
-                                                                <a href="#" data-submit="batch_patron_modification" data-toggle="tooltip" data-placement="right" title="Send visible results to batch patron modification" class="batch_op send_to_patron_mod">Batch patron modification</a>
+                                                                <a href="#" data-submit="batch_item_deletion" data-bs-toggle="tooltip" data-bs-placement="right" title="Send visible items to batch item deletion" class="dropdown-item batch_op send_to_item_del">Batch item deletion</a>
                                                             </li>
                                                         [% END %]
                                                     [% END # /FOREACH header_ro %]
@@ -1053,24 +1117,24 @@
 
                                         [% IF ( unlimited_total > 10 && limit <= 1000 ) %]
                                             <div class="btn-group">
-                                                <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                     [% IF ( limit ) %]
                                                         Rows per page: <strong>[% limit | html %]</strong>
                                                     [% ELSE %]
                                                         Rows per page
                                                     [% END %]
-                                                    <span class="caret"></span>
+
                                                 </button>
                                                 <ul class="dropdown-menu">
                                                     [% limits = [ 10, 20, 50, 100, 200, 300, 400, 500, 1000 ] %]
                                                     [% FOREACH l IN limits %]
                                                         [% IF l == limit %]
                                                             <li>
-                                                                <a class="limitselect" data-limit="[% l | html %]" href="#"><i class="fa fa-fw fa-check"></i> [% l | html %]</a>
+                                                                <a class="dropdown-item limitselect" data-limit="[% l | html %]" href="#"><i class="fa fa-fw fa-check" aria-hidden="true"></i> [% l | html %]</a>
                                                             </li>
                                                         [% ELSE %]
                                                             <li>
-                                                                <a class="limitselect" data-limit="[% l | html %]" href="#"><i class="fa fa-fw"></i> [% l | html %]</a>
+                                                                <a class="dropdown-item limitselect" data-limit="[% l | html %]" href="#"><i class="fa fa-fw" aria-hidden="true"></i> [% l | html %]</a>
                                                             </li>
                                                         [% END %]
                                                     [% END %]
@@ -1078,10 +1142,10 @@
                                             </div>
                                         [% END # /IF ( unlimited_total > 10 && limit <= 1000 ) %]
 
-                                        [% IF ( batch_biblionumbers || batch_itemnumbers || batch_cardnumbers ) %]
+                                        [% IF ( batch_biblionumbers || batch_itemnumbers || batch_cardnumbers || batch_borrowernumbers ) %]
                                             <a href="#" class="btn btn-link" id="toggle_auto_links">
-                                                <i class="fa fa-eye autolink" style="display:none"></i>
-                                                <i class="fa fa-eye-slash autolink"></i>
+                                                <i class="fa-solid fa-eye autolink" aria-hidden="true" style="display:none"></i>
+                                                <i class="fa-solid fa-eye-slash autolink" aria-hidden="true"></i>
                                                 <span class="autolink" style="display:none">Show data menus</span>
                                                 <span class="autolink">Hide data menus</span>
                                             </a>
@@ -1123,44 +1187,40 @@
                                                 [%- IF header_row.$place.cell == 'itemnumber' || header_types.item(header_row.$place.cell) == 'itemnumber' %]
                                                     <td class="batch-op itemnumber" data-number="itemnumber">
                                                         <span class="data-plain">[% cells.cell | $raw %]</span>
-                                                        <div id="itemnumber_autolink" class="btn-group dropup autolink"><a class="btn btn-link dropdown-toggle" role="button" data-toggle="dropdown" href="#">[% cells.cell | $raw %] <b class="caret"></b></a>
-                                                            <ul class="dropdown-menu pull-right" role="menu">
-                                                                <li><a target="_blank" href="/cgi-bin/koha/cataloguing/additem.pl?op=edititem&itemnumber=[% cells.cell | $raw %]"><i class="fa fa-fw fa-pencil"></i> Edit record</a></li>
-                                                                <li role="separator" class="divider"></li>
-                                                                <li><a target="_blank" href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% cells.cell | $raw %]"><i class="fa fa-fw fa-eye"></i> View record</a></li>
+                                                        <div id="itemnumber_autolink" class="btn-group dropup autolink"><a class="btn btn-link dropdown-toggle" role="button" data-bs-toggle="dropdown" href="#">[% cells.cell | $raw %] </a>
+                                                            <ul class="dropdown-menu" role="menu">
+                                                                <li><a class="dropdown-item" target="_blank" href="/cgi-bin/koha/cataloguing/additem.pl?op=edititem&itemnumber=[% cells.cell | $raw %]"><i class="fa-fw fa-solid fa-pencil" aria-hidden="true"></i> Edit item</a></li>
+                                                                <li><a class="dropdown-item" target="_blank" href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% cells.cell | $raw %]"><i class="fa fa-fw fa-eye" aria-hidden="true"></i> View item</a></li>
                                                             </ul>
                                                         </div>
                                                     </td>
                                                 [% ELSIF header_row.$place.cell == 'biblionumber' || header_types.item(header_row.$place.cell) == 'biblionumber' %]
                                                     <td class="batch-op biblionumber" data-number="biblionumber">
                                                         <span class="data-plain">[% cells.cell | $raw %]</span>
-                                                        <div id="biblionumber_autolink" class="btn-group dropup autolink"><a class="btn btn-link dropdown-toggle" role="button" data-toggle="dropdown" href="#">[% cells.cell | $raw %] <b class="caret"></b></a>
-                                                            <ul class="dropdown-menu pull-right" role="menu">
-                                                                <li><a target="_blank" href="/cgi-bin/koha/cataloguing/addbiblio.pl?biblionumber=[% cells.cell | $raw %]"><i class="fa fa-pencil"></i> Edit record</a></li>
-                                                                <li role="separator" class="divider"></li>
-                                                                <li><a target="_blank" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% cells.cell | $raw %]"><i class="fa fa-eye"></i> View record</a></li>
+                                                        <div id="biblionumber_autolink" class="btn-group dropup autolink"><a class="btn btn-link dropdown-toggle" role="button" data-bs-toggle="dropdown" href="#">[% cells.cell | $raw %] </a>
+                                                            <ul class="dropdown-menu" role="menu">
+                                                                <li><a class="dropdown-item" target="_blank" href="/cgi-bin/koha/cataloguing/addbiblio.pl?biblionumber=[% cells.cell | $raw %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit record</a></li>
+                                                                <li><a class="dropdown-item" target="_blank" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% cells.cell | $raw %]"><i class="fa-solid fa-eye" aria-hidden="true"></i> View record</a></li>
                                                             </ul>
                                                         </div>
                                                     </td>
                                                 [% ELSIF header_row.$place.cell == 'borrowernumber' || header_types.item(header_row.$place.cell) == 'borrowernumber' %]
                                                     <td class="batch-op borrowernumber" data-number="borrowernumber">
                                                         <span class="data-plain">[% cells.cell | $raw %]</span>
-                                                        <div id="borrowernumber_autolink" class="btn-group dropup autolink"><a class="btn btn-link dropdown-toggle" role="button" data-toggle="dropdown" href="#">[% cells.cell | $raw %] <b class="caret"></b></a>
-                                                            <ul class="dropdown-menu pull-right" role="menu">
-                                                                <li><a target="_blank" href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% cells.cell | $raw %]"><i class="fa fa-eye"></i> View patron</a></li>
-                                                                <li role="separator" class="divider"></li>
-                                                                <li><a target="_blank" href="/cgi-bin/koha/members/memberentry.pl?op=modify&borrowernumber=[% cells.cell | $raw %]"><i class="fa fa-pencil"></i> Edit patron</a></li>
-                                                                <li role="separator" class="divider"></li>
-                                                                <li><a target="_blank" href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% cells.cell | $raw %]"><i class="fa fa-barcode"></i> Check out</a></li>
+                                                        <div id="borrowernumber_autolink" class="btn-group dropup autolink"><a class="btn btn-link dropdown-toggle" role="button" data-bs-toggle="dropdown" href="#">[% cells.cell | $raw %] </a>
+                                                            <ul class="dropdown-menu" role="menu">
+                                                                <li><a class="dropdown-item" target="_blank" href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% cells.cell | $raw %]"><i class="fa-solid fa-eye" aria-hidden="true"></i> View patron</a></li>
+                                                                <li><a class="dropdown-item" target="_blank" href="/cgi-bin/koha/members/memberentry.pl?op=edit_form&amp;borrowernumber=[% cells.cell | $raw %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit patron</a></li>
+                                                                <li><a class="dropdown-item" target="_blank" href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% cells.cell | $raw %]"><i class="fa fa-barcode" aria-hidden="true"></i> Check out</a></li>
                                                             </ul>
                                                         </div>
                                                     </td>
                                                 [% ELSIF header_row.$place.cell == 'cardnumber' || header_types.item(header_row.$place.cell) == 'cardnumber' %]
                                                     <td class="batch-op cardnumber" data-number="cardnumber">
                                                         <span class="data-plain">[% cells.cell | $raw %]</span>
-                                                        <div id="cardnumber_autolink" class="btn-group dropup autolink"><a class="btn btn-link dropdown-toggle" role="button" data-toggle="dropdown" href="#">[% cells.cell | $raw %] <b class="caret"></b></a>
-                                                            <ul class="dropdown-menu pull-right" role="menu">
-                                                                <li><a target="_blank" href="/cgi-bin/koha/circ/circulation.pl?findborrower=[% cells.cell | $raw %]"><i class="fa fa-barcode"></i> Check out</a></li>
+                                                        <div id="cardnumber_autolink" class="btn-group dropup autolink"><a class="btn btn-link dropdown-toggle" role="button" data-bs-toggle="dropdown" href="#">[% cells.cell | $raw %] </a>
+                                                            <ul class="dropdown-menu" role="menu">
+                                                                <li><a target="_blank" href="/cgi-bin/koha/circ/circulation.pl?findborrower=[% cells.cell | $raw %]"><i class="fa fa-barcode" aria-hidden="true"></i> Check out</a></li>
                                                             </ul>
                                                         </div>
                                                     </td>
@@ -1184,6 +1244,7 @@
                 [% IF ( create ) %]
                     <h1>Create from SQL</h1>
                     <form action="/cgi-bin/koha/reports/guided_reports.pl" method="post" id="sql_report_form">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <fieldset class="rows">
                             <legend>Create report from SQL</legend>
                             <ol>
@@ -1239,16 +1300,19 @@
                             <legend>SQL:</legend>
                             <div style="margin:1em;">
                                 [% PROCESS insert_runtime_parameter  %]
-                                <textarea id="sql" name="sql" class="required" required="required" cols="50" rows="10">[% sql | html %]</textarea>
+                                <textarea id="sql" name="sql" class="required" required="required" cols="50" rows="10" >[% sql | html %]</textarea>
+                                <span style='color:#383838; font-style:italic'>* In order to achieve auto-complete for columns, please prepend the column name with the table name, followed by a period. For example: 'borrowers.surname'</span>
+                                <br/>
                                 <span class="required">Required</span>
                             </div>
                         </fieldset>
 
                         <fieldset class="action">
-                            <input type="hidden" name="phase" value="Save Report" />
+                            <input type="hidden" name="op" value="cud-save" />
                             <input type="submit" name="submit" class="btn btn-primary" value="Save report" />
-                            <a href="/cgi-bin/koha/reports/guided_reports.pl?phase=Use%20saved" class="cancel">Cancel</a>
+                            <a href="/cgi-bin/koha/reports/guided_reports.pl?op=list" class="cancel">Cancel</a>
                         </fieldset>
+
                     </form>
                 [% END #/IF ( create ) %]
 
@@ -1290,7 +1354,7 @@
                     [% UNLESS ( errors ) %]
                         </br>
                         <div id="report_updated">
-                            <div class="dialog message">
+                            <div class="alert alert-info">
                                 <p>Your report "[% reportname | html %]" has been saved</p>
                             </div>
                         </div>
@@ -1299,7 +1363,7 @@
 
                 [% IF ( editsql ) %]
                     <form action="/cgi-bin/koha/reports/guided_reports.pl" method="post" id="sql_report_form">
-                        <input type="hidden" name="phase" value="Update SQL" />
+                        [% INCLUDE 'csrf-token.inc' %]
                         <input type="hidden" name="id" value="[% id | html %]"/>
                         <fieldset class="rows">
                             <legend><h1>Edit SQL report</h1></legend>
@@ -1351,19 +1415,22 @@
                             <legend>SQL:</legend>
                                 [% PROCESS insert_runtime_parameter  %]
                                 <textarea id="sql" name="sql" class="required" required="required" cols="50" rows="10">[% sql | html %]</textarea>
+                                <span style='color:#383838; font-style:italic'>* In order to achieve auto-complete for columns, please prepend the column name with the table name, followed by a period. For example: 'borrowers.surname'</span>
+                                <br/>
                                 <span class="required" style="margin-left:30px;">Required</span>
                         </fieldset>
 
                         <fieldset class="action">
-                            <input type="submit" name="submit" class="btn btn-primary" value="Update SQL" />
-                            <a href="/cgi-bin/koha/reports/guided_reports.pl?phase=Use%20saved" class="cancel">Cancel</a>
+                            <button class="btn btn-primary" type="submit" name="op" value="cud-update_sql">Update SQL</button>
+                            <button class="btn btn-default" type="submit" name="op" value="cud-update_and_run_sql">Update and run SQL</button>
+                            <a href="/cgi-bin/koha/reports/guided_reports.pl?op=list" class="cancel">Cancel</a>
                         </fieldset>
                     </form>
                 [% END # /IF ( editsql ) %]
 
                 [% IF ( errors ) %]
-                    <form action="/cgi-bin/koha/reports/guided_reports.pl" method="post">
-                        <div class="dialog alert">
+                    <form action="/cgi-bin/koha/reports/guided_reports.pl" method="get">
+                        <div class="alert alert-warning">
                             <strong>The following error was encountered:</strong><br />
                             [% FOREACH error IN errors %]
                                 [% IF ( error.sqlerr ) %]
@@ -1387,21 +1454,21 @@
                             [% END %]
                         </div>
                         <fieldset class="action">
-                            <input type="hidden" name="phase" value="Use saved" />
+                            <input type="hidden" name="op" value="list" />
                             <input type="submit" name="submit" class="btn btn-primary" value="Saved reports" />
                         </fieldset>
                     </form>
                 [% END # /IF ( errors ) %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% IF ( saved1 ) %]
                     <div id="saved-reports-filter">
                         <form action="/cgi-bin/koha/reports/guided_reports.pl" method="get">
-                            <input type="hidden" name="phase" value="Use saved" />
+                            <input type="hidden" name="op" value="list" />
                             <input type="hidden" name="filter_set" value="1" />
                             <fieldset class="brief">
                                 <h3>Filter</h3>
@@ -1423,25 +1490,25 @@
                             </fieldset> <!-- /.brief -->
                             <fieldset class="action">
                                 <input type="submit" class="btn btn-primary" value="Apply filter" />
-                                <a id="resetReportsFilter" href="/cgi-bin/koha/reports/guided_reports.pl?phase=Use%20saved&clear_filters=1">Clear</a>
+                                <a class="btn btn-default clear_search" id="resetReportsFilter" href="/cgi-bin/koha/reports/guided_reports.pl?op=list&clear_filters=1">Clear</a>
                             </fieldset>
                         </form>
                     </div> <!-- /#saved-reports-filter -->
                 [% END %]
                 [% INCLUDE 'guided-reports-view.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
     </div> <!-- /.row -->
 
     <!-- Runtime Parameters Modal -->
     <div class="modal" id="runtime_parameters" tabindex="-1" role="dialog" aria-labelledby="runtime_parametersLabel">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title" id="runtime_parametersLabel">Runtime parameter options</h4>
+                    <h1 class="modal-title" id="runtime_parametersLabel">Runtime parameter options</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="send_runtime_parameter">
+                <form method="get" id="send_runtime_parameter">
                     <input type="hidden" name="param_category" id="param_category" />
                     <div class="modal-body">
                         <div class="form-group">
@@ -1451,16 +1518,36 @@
                         </div>
                         <div id="authorised_value_category" class="form-group" style="display:none">
                             <label for="authorised_value">Authorized value category:</label>
-                            <select class="form-control" name="authorised_value" id="authorised_value">
+                            <select class="form-select" name="authorised_value" id="authorised_value">
                                 <option value=""></option>
                                 [% PROCESS options_for_authorised_value_categories authorised_value_categories => AuthorisedValues.GetCategories() %]
                             </select>
                             <div class="hint">Select which authorized value category the user will choose from.</div>
                         </div>
+                        <div id="runtime_param_options" style="display:none">
+                            <h5>Parameter options:</h5>
+                            <div class="radio">
+                                <input type="radio" id="single_param_check" name="param_option" value="" checked="checked" />
+                                <label for="single_param_check">Single parameter only</label>
+                                <span class="hint">- Query expression should use =</span>
+                            </div>
+
+                            <div class="radio">
+                                <input type="radio" id="include_all_check" name="param_option" value=":all">
+                                <label for="include_all_check">Include option for all</label>
+                                <span class="hint">- Query expression must use LIKE</span>
+                            </div>
+
+                            <div class="radio">
+                                <input type="radio" id="multi_select_check" name="param_option" value=":in">
+                                <label for="multi_select_check">Allow multiple selections</label>
+                                <span class="hint">- Query expression must use IN</span>
+                            </div>
+                        </div>
                     </div> <!-- /.modal-body -->
                     <div class="modal-footer">
                         <button type="submit" id="sendParam" class="btn btn-default approve">Insert parameter</button>
-                        <button type="button" class="btn btn-default deny" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-default deny" data-bs-dismiss="modal">Cancel</button>
                     </div> <!-- /.modal-footer -->
                 </form> <!-- /#send_runtime_parameter -->
             </div> <!-- /.modal-content -->
@@ -1479,9 +1566,36 @@
     [% END %]
     [% Asset.js( "lib/codemirror/codemirror.min.js" ) | $raw %]
     [% Asset.js( "lib/codemirror/overlay.min.js" ) | $raw %]
-    [% Asset.js( "lib/codemirror/sql.min.js" ) | $raw %]
+    [% Asset.js( "lib/codemirror/sql.js" ) | $raw %]
+    [% Asset.js( "lib/codemirror/show-hint.js" ) | $raw %]
+    [% Asset.css("lib/codemirror/show-hint.css") | $raw %]
+    [% Asset.js( "lib/codemirror/sql-hint.js" ) | $raw %]
+    [% Asset.js( "lib/codemirror/highlight.js" ) | $raw %]
+    [% Asset.css("lib/codemirror/highlight.css") | $raw %]
     [% Asset.js( "js/mana.js" ) | $raw %]
     <script>
+
+        //  if the report param form has multiselects override default form submission
+        if( $('#report_param_form').find('select[multiple]').length ) {
+            $('#report_param_form').find('select[multiple]').each( function (i) {
+                $(this).on('change', function() {
+                    var $selected = $(this).val().join('\n');
+                    $(this).find('option:first').val($selected);
+                });
+            });
+
+            $('#report_param_form').on('submit', function(e) {
+                $('#report_param_form').find('select[multiple]').each( function (i) {
+                    if( $(this).find('option:selected').length === 0 ) {
+                        $(this).val(['%']);
+                    }
+                    else if( $(this).find('option:selected').length > 1 ) {
+                        var $selected = $('option:first', this).val();
+                        $(this).val($selected);
+                    }
+                });
+            });
+        }
 
         function hide_bar_element() {
             $('#chart-column-horizontal').hide()
@@ -1511,38 +1625,6 @@
             }
         }
 
-        /* overlay a syntax-highlighting definition on top of the existing sql one */
-        CodeMirror.defineMode("sqlPlaceholders", function(config, parserConfig) {
-            var sqlPlaceholdersOverlay = {
-                token: function(stream, state) {
-                    var ch;
-
-                    if (stream.match("<<")) {
-                        while ((ch = stream.next()) != null) {
-                            if (ch == ">" && stream.next() == ">") {
-                                stream.eat(">");
-                                return "sqlParams";
-                            }
-                        }
-                    }
-
-                    if (stream.match("[[")) {
-                        while ((ch = stream.next()) != null) {
-                            if (ch == "]" && stream.next() == "]") {
-                                stream.eat("]");
-                                return "columnPlaceholder";
-                            }
-                        }
-                    }
-
-                    else if (stream.next() != null) {
-                        return null;
-                    }
-                }
-            };
-            return CodeMirror.overlayMode(CodeMirror.getMode(config, parserConfig.backdrop || "text/x-sql"), sqlPlaceholdersOverlay);
-        });
-
         var MSG_CONFIRM_DELETE = _("Are you sure you want to delete this report? This cannot be undone.");
         var group_subgroups = {};
         [% FOREACH group IN groups_with_subgroups %]
@@ -1559,12 +1641,80 @@
 
             var editor = CodeMirror.fromTextArea(sql, {
                 lineNumbers: true,
-                mode: "sqlPlaceholders", /* text/x-sql plus custom sqlPlaceholders configuration */
+                mode: "text/x-sql",
                 lineWrapping: true,
-                smartIndent: false
+                smartIndent: false,
+                keyword: { // Custom highlighting for items bounded in [[ ]] or << >>.
+                    "\\[\\[(.*?)\\]\\]":"style1",
+                    "<<(.*?)>>":"style1"
+                },
+                hint: CodeMirror.hint.sql,
+                hintOptions: {
+                    tables: [% To.json(tables) | $raw %]
+                }
             });
+            var ExcludedTriggerKeys = { //key-code combinations of keys that will not fire the auto-complete script
+                "8": "backspace",
+                "9": "tab",
+                "13": "enter",
+                "16": "shift",
+                "17": "ctrl",
+                "18": "alt",
+                "19": "pause",
+                "20": "capslock",
+                "27": "escape",
+                "33": "pageup",
+                "32": "spacebar",
+                "34": "pagedown",
+                "35": "end",
+                "36": "home",
+                "37": "left",
+                "38": "up",
+                "39": "right",
+                "40": "down",
+                "45": "insert",
+                "46": "delete",
+                "56": "asterisk",
+                "59": "semicolon",
+                "91": "left window key",
+                "92": "right window key",
+                "93": "select",
+                "106": "asterisk",
+                "107": "add",
+                "109": "subtract",
+                "110": "decimal point",
+                "111": "divide",
+                "112": "f1",
+                "113": "f2",
+                "114": "f3",
+                "115": "f4",
+                "116": "f5",
+                "117": "f6",
+                "118": "f7",
+                "119": "f8",
+                "120": "f9",
+                "121": "f10",
+                "122": "f11",
+                "123": "f12",
+                "144": "numlock",
+                "145": "scrolllock",
+                "186": "semicolon",
+                "187": "equalsign",
+                "188": "comma",
+                "189": "dash",
+                "191": "slash",
+                "192": "graveaccent",
+                "220": "backslash",
+                "222": "quote"
+            }
+            //Trigger auto-complete on all keys not in dictionary of exclusions above.
+            editor.on("keyup", function(cm, e) {
+                if (ExcludedTriggerKeys[e.keyCode] == undefined) {
+                         CodeMirror.commands.autocomplete(editor, null, { completeSingle: false });
+                }
+            })
 
-            // https://stackoverflow.com/questions/2086287/how-to-clear-jquery-validation-error-messages#answer-16025232
+           // https://stackoverflow.com/questions/2086287/how-to-clear-jquery-validation-error-messages#answer-16025232
             function clearValidation( formElement ){
                 // formElement should be a jQuery object
                 var validator = formElement.validate();
@@ -1579,11 +1729,16 @@
         [% END %]
 
         [% IF ( showsql ) %]
+
             var editor = CodeMirror.fromTextArea(sql, {
                 lineNumbers: false,
-                mode: "sqlPlaceholders", /* text/x-sql plus custom sqlPlaceholders configuration */
+                mode: "text/x-sql",
                 lineWrapping: true,
-                readOnly: true
+                readOnly: true,
+                keyword: { // Custom highlighting for items bounded in [[ ]] or << >>.
+                    "\\[\\[(.*?)\\]\\]":"style2",
+                    "<<(.*?)>>":"style1"
+               },
             });
         [% END %]
 
@@ -1597,16 +1752,19 @@
                     $("#authorised_value_category").show();
                     $("label[for='authorised_value']").addClass("required");
                     $("#authorised_value").prop("required", true ).attr("required", "required").addClass("required");
+                    $("#runtime_param_options").show();
                     break;
                 case "insertCnSource":
                     modalTitle.text( _("Insert classification source parameter") );
                     $("#paramLabel").val( _("Source of classification or shelving scheme") );
                     $("#param_category").val("cn_source");
+                    $("#runtime_param_options").show();
                     break;
                 case "insertFramework":
                     modalTitle.text( _("Insert bibliographic framework parameter") );
                     $("#paramLabel").val( _("Framework") );
                     $("#param_category").val("biblio_framework");
+                    $("#runtime_param_options").show();
                     break;
                 case "insertDate":
                     modalTitle.text( _("Insert date parameter") );
@@ -1617,31 +1775,37 @@
                     modalTitle.text( _("Insert item types parameter") );
                     $("#paramLabel").val( _("Item type") );
                     $("#param_category").val("itemtypes");
+                    $("#runtime_param_options").show();
                     break;
                 case "insertBranches":
                     modalTitle.text( _("Insert libraries parameter") );
                     $("#paramLabel").val( _("Library") );
                     $("#param_category").val("branches");
+                    $("#runtime_param_options").show();
                     break;
                 case "insertCategorycode":
                     modalTitle.text( _("Insert patron category parameter") );
                     $("#paramLabel").val( _("Patron category") );
                     $("#param_category").val("categorycode");
+                    $("#runtime_param_options").show();
                     break;
                 case "insertCashregister":
                     modalTitle.text( _("Insert cash register parameter") );
                     $("#paramLabel").val( _("Cash register") );
                     $("#param_category").val("cash_registers");
+                    $("#runtime_param_options").show();
                     break;
                 case "insertDebittypes":
                     modalTitle.text( _("Insert debit type parameter") );
                     $("#paramLabel").val( _("Debit type") );
                     $("#param_category").val("debit_types");
+                    $("#runtime_param_options").show();
                     break;
                 case "insertCredittypes":
                     modalTitle.text( _("Insert credit type parameter") );
                     $("#paramLabel").val( _("Credit type") );
                     $("#param_category").val("credit_types");
+                    $("#runtime_param_options").show();
                     break;
                 case "insertList":
                     modalTitle.text( _("Insert list parameter") );
@@ -1729,6 +1893,9 @@
         $(document).ready(function(){
 
             var activeTab = localStorage.getItem("sql_reports_activetab");
+            if( activeTab == 0 ){
+                $("#subgroup_filter_block").hide();
+            }
 
             $("body").on('click',".fetch_chart_data",function(){
                 if( [% unlimited_total || 0 | $raw %] > 1000 ){
@@ -1849,8 +2016,6 @@
                 load_group_subgroups();
             [% END %]
 
-            $('[data-toggle="tooltip"]').tooltip();
-
             $('#limit').change(function() {
                 $('#limitselect').submit();
             });
@@ -1886,7 +2051,7 @@
                 }
             });
 
-            $("#ManaCloseButton").on("click", function() {
+            $("#mana_share_report").on("hidden.bs.modal", function(){
                 $(".shared_infos").show();
             });
 
@@ -1901,16 +2066,17 @@
             [% IF (saved1) %]
                 var table_settings = [% TablesSettings.GetTableSettings( 'reports', 'saved-sql', 'table_reports', 'json' ) | $raw %];
                 var rtable = KohaTable("table_reports", {
-                    'bAutoWidth': false,
-                    'sPaginationType': 'full',
-                    'aaSorting': [[ 1, "asc" ]],
+                    "autoWidth": false,
+                    "pagingType": 'full',
+                    "order": [[ 1, "asc" ]],
                     "language": {
                         "zeroRecords": _("No matching reports found")
                     },
 
                 }, table_settings);
+                let table_dt = rtable.DataTable();
 
-                $("#tabs a[data-toggle='tab']").on("shown.bs.tab", function (e) {
+                $("#tabs a[data-bs-toggle='tab']").on("shown.bs.tab", function (e) {
                     tabsInit( $(e.target).parent(), rtable );
                 });
 
@@ -1921,18 +2087,16 @@
                 $("#subgroup_filter").change(function() {
                     var selected = $(this).find('option:selected');
                     var sg_id = $(selected).val();
-                    var sg_name = $(selected).text();
+                    let col = table_dt.columns(5);
                     if (sg_id.length > 0) {
-                        rtable.fnFilter('^' + sg_name + '$', 5, true, true, true, false);
-                        rtable.fnSetColumnVis(5, false);
+                        col.search(sg_id, {exact:true}).visible(false).draw();
                     } else {
-                        rtable.fnFilter('', 5);
-                        rtable.fnSetColumnVis(5, true);
+                        col.search("").visible(true).draw();
                     }
                 });
 
                 $("#reports_form").submit(function(){
-                    var checkedItems = $("input[name=ids]:checked");
+                    var checkedItems = $("input[name=id]:checked");
                     if ($(checkedItems).size() == 0) {
                         alert(_("You must select one or more reports to delete"));
                         return false;
@@ -1958,7 +2122,7 @@
                         $("#col1 .show_sql,#col2 .show_sql").html(diffs);
                     });
                     $('#update_sql').modal('show');
-                    $("#update_sql_button").attr("href", "/cgi-bin/koha/reports/guided_reports.pl?phase=Use saved&op=convert&report_id=" + report_id);
+                    $("#update_sql_button").attr("href", "/cgi-bin/koha/reports/guided_reports.pl?op=convert&id=" + report_id);
                 });
 
                 $("#update_sql").on("hidden.bs.modal", function(){
@@ -1993,16 +2157,6 @@
 
             $(".toggle_chart_settings").click(function(){
                 $("#chart, #toggle_chart_settings_hid, #toggle_chart_settings_vis").toggle();
-            });
-
-            $("#table_reports").delegate(".confirmdelete", 'click', function(){
-                $(this).parents('tr').attr("class","warn");
-                if(confirm(_("Are you sure you want to delete this saved report?"))){
-                    return true;
-                } else {
-                    $(this).parents('tr').attr("class","");
-                    return false;
-                }
             });
 
             [% IF (create || editsql || save) %]
@@ -2103,6 +2257,7 @@
                 $("#runtime_parameters").on("hide.bs.modal", function(){
                     $("#send_runtime_parameter")[0].reset();
                     $("#authorised_value_category").val("").hide();
+                    $("#runtime_param_options").val("").hide();
                     $("label[for='authorised_value']").removeClass("required");
                     $("#authorised_value").prop("required", false ).removeAttr("required").removeClass("required");
                 });
@@ -2113,6 +2268,7 @@
                     var paramLabel = $("#paramLabel").val();
                     var param_category = $("#param_category").val();
                     var categoryLabel = $("#authorised_value").val();
+                    var param_option = $('#runtime_param_options input[name="param_option"]:checked').val();
                     // Get CodeMirror environment variables
                     var selection = editor.getSelection();
                     var doc = editor.getDoc();
@@ -2129,6 +2285,9 @@
                         text += paramLabel;
                     } else if( param_category ){
                         text += param_category;
+                    }
+                    if( param_option ){
+                        text += param_option;
                     }
                     if( text != "" ){
                         text = " <<" + text + ">> ";
@@ -2147,10 +2306,6 @@
 
             [% END %]
 
-            $(".delete").on("click",function(){
-                return confirmDelete(MSG_CONFIRM_DELETE);
-            });
-
             $("#mana_search_form").submit(function(e){
                 e.preventDefault();
             });
@@ -2167,8 +2322,12 @@
             // Mana KB
             $("body").on("click", ".mana-use", function(e) {
                 e.preventDefault();
-                $(this).find("i").attr("class","fa fa-refresh fa-spin");
+                $(this).find("i").attr("class","fa-solid fa-rotate fa-spin");
                 mana_use( $(this).data("report_id") );
+            });
+
+            $("#mana_search_result").on("shown.bs.modal", function(){
+                $("#mana_search_field").focus();
             });
 
             $("#mana_search_result").on("hide.bs.modal", function(){
@@ -2197,7 +2356,6 @@
                 $("#limit").val( limit );
                 $("#limitselect").submit();
             });
-
         });
 
         $("#toggle_auto_links").on("click", function(e){
@@ -2224,32 +2382,34 @@
                     $(this).remove();
                 }
             });
-            rtable.fnFilter('', 4);
-            rtable.fnFilter('', 5);
-            rtable.fnSetColumnVis(4, true);
-            rtable.fnSetColumnVis(5, true);
+            let table_dt = rtable.DataTable();
+            let col4 = table_dt.columns(4);
+            col4.search("").visible(true);
+            let col5 = table_dt.columns(5);
+            col5.search("").visible(true);
 
             var g_id = tab.find("a").data("tabname");
-            var g_name = tab.find("a").text().trim();
-
-            if ( g_name == _("All") ) {
-                g_id = "";
-                g_name = "";
+            if (g_id === 'reports') {
+                g_id = '';
             }
 
-            if (g_id && g_id.length > 0) {
-                rtable.fnFilter('^' + g_name + '$', 4, true, true, true, false);
-                rtable.fnSetColumnVis(4, false);
-                for(var i in group_subgroups[g_id]) {
-                    $("#subgroup_filter").append(
-                        '<option value="' + group_subgroups[g_id][i][0] + '">'
-                        + group_subgroups[g_id][i][1] + '</option>'
-                    );
+            if (g_id !== null && g_id !== undefined && g_id.toString().length > 0) {
+                col4.search(g_id, {exact:true}).visible(false);
+                if( group_subgroups[g_id] && group_subgroups[g_id].length > 0 ){
+                    for(var i in group_subgroups[g_id]) {
+                        $("#subgroup_filter").append(
+                            '<option value="' + group_subgroups[g_id][i][0] + '">'
+                            + group_subgroups[g_id][i][1] + '</option>'
+                        );
+                    }
+                    $("#subgroup_filter_block").show();
+                } else {
+                    $("#subgroup_filter_block").hide();
                 }
-                $("#subgroup_filter_block").show();
             } else {
                 $("#subgroup_filter_block").hide();
             }
+            table_dt.draw();
         }
 
         function addColumn() {
@@ -2264,7 +2424,7 @@
             $.ajax( {
                 type:"POST",
                 url: "/cgi-bin/koha/svc/mana/use",
-                data: {id:mana_id, resource: 'report', saveinbase: 1},
+                data: {id:mana_id, resource: 'report', saveinbase: 1, csrf_token: $('meta[name="csrf-token"]').attr('content')},
                 dataType: "json",
             })
             .done( function (result){
@@ -2272,7 +2432,7 @@
                     alert( result.errmsg );
                 }
                 else{
-                    window.location = ("/cgi-bin/koha/reports/guided_reports.pl?reports=").concat(result.id).concat("&phase=Show%20SQL&mana_success=1");
+                    window.location = ("/cgi-bin/koha/reports/guided_reports.pl?id=").concat(result.id).concat("&op=show&mana_success=1");
                 }
             })
             .fail(function( error ) {
@@ -2285,7 +2445,7 @@
 
         function mana_search( textquery ){
             $(".mana_search_status").hide();
-            $("#mana_result_content").load("/cgi-bin/koha/svc/mana/search #mana_results", { resource: 'report', id: textquery, usecomments: 1 }, function( response, status, xhr ) {
+            $("#mana_result_content").load("/cgi-bin/koha/svc/mana/search #mana_results", "resource=report&usecomments=1&id=" + textquery, function( response, status, xhr ) {
 
                     if ( status == "error" ) {
                         $("#mana_search_errortext").html( xhr.status + " " + xhr.statusText );
@@ -2296,14 +2456,14 @@
                         $("#mana_search_result_label").text(_("Results from Mana Knowledge Base"));
                         $("#mana-loading").hide();
                         $("#mana_results_datatable").dataTable($.extend(true, {}, dataTablesDefaults,{
-                            "sPaginationType":"full",
+                            "pagingType": "full",
                             "autoWidth": false,
                             "columnDefs": [
                                 { "width": "35%", "targets": 1 }
                             ],
-                            "aoColumnDefs": [
-                                { 'bSortable': false, "bSearchable": false, 'aTargets': [ 'NoSort' ] },
-                                { 'sType': "anti-the", 'aTargets' : [ 'anti-the'] }
+                            "columnDefs": [
+                                { "orderable": false, "searchable":  false, "targets": [ 'NoSort' ] },
+                                { "type": "anti-the", "targets":  [ 'anti-the'] }
                             ]
                         }));
 
@@ -2350,35 +2510,35 @@
                 $("#preview-sql-modal").remove();
             }
             $("body").append('<div id="preview-sql-modal" tabindex="-1" role="dialog" aria-hidden="true" class="modal">\
-                <div class="modal-dialog">\
+                <div class="modal-dialog modal-xl">\
                     <div class="modal-content">\
                         <div class="modal-header" style="min-height:40px;">\
-                            <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close">\
-                                <span aria-hidden="true">×</span>\
-                            </button>\
-                            <h4 class="modal-title">' + title + '</h4>\
+                            <h1 class="modal-title">' + title + '</h1>\
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + _("Close") + '"></button>\
                         </div>\
                         <div class="modal-body"><textarea id="code' + reportid + '">' + message + '</textarea>\
                         </div>\
                         <div class="modal-footer">\
-                            <a id="preview-modal-editreport" class="btn btn-default" href="/cgi-bin/koha/reports/guided_reports.pl?reports=' + reportid + '&amp;phase=Edit%20SQL"><i class="fa fa-pencil"></i> ' + _("Edit") + '</a>\
-                            <a id="preview-modal-duplicate" class="btn btn-default" href="/cgi-bin/koha/reports/guided_reports.pl?phase=Create report from existing&amp;report_id=' + reportid + '"><i class="fa fa-copy"></i> ' + _("Duplicate") + '</a>\
-                            <a id="preview-modal-duplicate" class="btn btn-default" href="/cgi-bin/koha/tools/scheduler.pl?id=' + reportid + '"><i class="fa fa-clock-o"></i> ' + _("Schedule") + '</a>\
-                            <a id="preview-modal-delete" class="delete btn btn-default" href="/cgi-bin/koha/reports/guided_reports.pl?reports=' + reportid + '&amp;phase=Delete%20Saved"><i class="fa fa-trash"></i> ' + _("Delete") + '</a>\
-                            <a id="preview-modal-runreport" class="btn btn-default" href="/cgi-bin/koha/reports/guided_reports.pl?reports=' + reportid + '&amp;phase=Run%20this%20report"><i class="fa fa-play"></i> ' + _("Run report") + '</a>\
-                            <a href="#" id="preview-sql-modal-cancel" data-dismiss="modal" class="btn btn-default"><i class="fa fa-remove" aria-hidden="true"></i> ' + _("Close") + '</a>\
+                            <a id="preview-modal-editreport" class="btn btn-default" href="/cgi-bin/koha/reports/guided_reports.pl?id=' + reportid + '&amp;op=edit_form"><i class="fa-solid fa-pencil" aria-hidden="true"></i> ' + _("Edit") + '</a>\
+                            <a id="preview-modal-duplicate" class="btn btn-default" href="/cgi-bin/koha/reports/guided_reports.pl?op=duplicate&amp;id=' + reportid + '"><i class="fa fa-copy" aria-hidden="true"></i> ' + _("Duplicate") + '</a>\
+                            <a id="preview-modal-duplicate" class="btn btn-default" href="/cgi-bin/koha/tools/scheduler.pl?id=' + reportid + '"><i class="fa-solid fa-clock" aria-hidden="true"></i> ' + _("Schedule") + '</a>\
+                            <a class="btn btn-default submit-form-link" href="#" data-id="' + reportid + '" data-action="guided_reports.pl" data-method="post" data-op="cud-delete" data-confirmation-msg="' + _("Are you sure you want to delete this report?") + '"><i class="fa fa-trash-can" aria-hidden="true"></i> ' + _("Delete") + '</a>\
+                            <a id="preview-modal-runreport" class="btn btn-default" href="/cgi-bin/koha/reports/guided_reports.pl?id=' + reportid + '&amp;op=run"><i class="fa fa-play" aria-hidden="true"></i> ' + _("Run report") + '</a>\
+                            <a href="#" id="preview-sql-modal-cancel" data-bs-dismiss="modal" class="btn btn-default"><i class="fa fa-times" aria-hidden="true"></i> ' + _("Close") + '</a>\
                         </div>\
                     </div>\
                 </div>\
             </div>');
 
-            $("#preview-sql-modal").modal('show');
-            CodeMirror.fromTextArea( document.getElementById("code" + reportid ), {
-                lineNumbers: false,
-                mode: "text/x-sql",
-                lineWrapping: true,
-                readOnly: true
-            });
+            $("#preview-sql-modal").on("shown.bs.modal", function(){
+                CodeMirror.fromTextArea( document.getElementById("code" + reportid ), {
+                    lineNumbers: false,
+                    mode: "text/x-sql",
+                    lineWrapping: true,
+                    readOnly: true
+                });
+            })
+            .modal('show');
         }
     </script>
 [% END %]
@@ -2439,22 +2599,22 @@
 
 [% BLOCK insert_runtime_parameter %]
     <div class="btn-group"  style="margin-left:30px;">
-        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            Insert runtime parameter <span class="caret"></span>
+        <button type="button" class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Insert runtime parameter
         </button>
         <ul class="dropdown-menu">
-            <li><a href="#" class="insertParam" id="insertAuthVal">Authorized values</a></li>
-            <li><a href="#" class="insertParam" id="insertFramework">Bibliographic framework</a></li>
-            <li><a href="#" class="insertParam" id="insertCnSource">Classification sources</a></li>
-            <li><a href="#" class="insertParam" id="insertDate">Date</a></li>
-            <li><a href="#" class="insertParam" id="insertItemtypes">Item types</a></li>
-            <li><a href="#" class="insertParam" id="insertBranches">Libraries</a></li>
-            <li><a href="#" class="insertParam" id="insertList">List</a></li>
-            <li><a href="#" class="insertParam" id="insertCategorycode">Patron categories</a></li>
-            <li><a href="#" class="insertParam" id="insertCashregister">Cash registers</a></li>
-            <li><a href="#" class="insertParam" id="insertDebittypes">Debit types</a></li>
-            <li><a href="#" class="insertParam" id="insertCredittypes">Credit types</a></li>
-            <li><a href="#" class="insertParam" id="insertText">Text field</a></li>
+            <li><a class="dropdown-item insertParam" href="#" id="insertAuthVal">Authorized values</a></li>
+            <li><a class="dropdown-item insertParam" href="#" id="insertFramework">Bibliographic framework</a></li>
+            <li><a class="dropdown-item insertParam" href="#" id="insertCnSource">Classification sources</a></li>
+            <li><a class="dropdown-item insertParam" href="#" id="insertDate">Date</a></li>
+            <li><a class="dropdown-item insertParam" href="#" id="insertItemtypes">Item types</a></li>
+            <li><a class="dropdown-item insertParam" href="#" id="insertBranches">Libraries</a></li>
+            <li><a class="dropdown-item insertParam" href="#" id="insertList">List</a></li>
+            <li><a class="dropdown-item insertParam" href="#" id="insertCategorycode">Patron categories</a></li>
+            <li><a class="dropdown-item insertParam" href="#" id="insertCashregister">Cash registers</a></li>
+            <li><a class="dropdown-item insertParam" href="#" id="insertDebittypes">Debit types</a></li>
+            <li><a class="dropdown-item insertParam" href="#" id="insertCredittypes">Credit types</a></li>
+            <li><a class="dropdown-item insertParam" href="#" id="insertText">Text field</a></li>
         </ul>
     </div>
 [% END %]

@@ -4,9 +4,21 @@
 [% PROCESS 'restriction-types.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF op == 'add_form' %][% IF ( restriction ) %]Modify restriction '[% PROCESS restriction_type_description restriction_type=restriction %]' &rsaquo; [% ELSE %]New restriction &rsaquo; [% END %][% END %]
-[% IF op == 'delete_confirm' %]Confirm deletion of restriction '[% PROCESS restriction_type_description restriction_type=restriction %]' &rsaquo; [% END %]Patron restrictions &rsaquo; Administration &rsaquo; Koha
-</title>
+<title>[% FILTER collapse %]
+    [% IF op == 'add_form' %]
+        [% IF ( restriction ) %]
+            [% t("Modify restriction type") | html %] '[% PROCESS restriction_type_description restriction_type=restriction %]' &rsaquo;
+        [% ELSE %]
+            [% t("New restriction type") | html %] &rsaquo;
+        [% END %]
+    [% END %]
+    [% IF op == 'delete_confirm' %]
+        [% t("Confirm deletion of restriction type") | html %] '[% PROCESS restriction_type_description restriction_type=restriction %]' &rsaquo;
+    [% END %]
+    [% t("Patron restriction types") | html %] &rsaquo;
+    [% t("Administration") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -23,29 +35,29 @@
 
         [% IF op == 'list' %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Patron restrictions</span>
+                <span>Patron restriction types</span>
             [% END %]
         [% ELSE %]
             [% WRAPPER breadcrumb_item %]
-                <a href="/cgi-bin/koha/admin/restrictions.pl">Patron restrictions</a>
+                <a href="/cgi-bin/koha/admin/restrictions.pl">Patron restriction types</a>
             [% END %]
         [% END %]
 
         [% IF op == 'add_form' %]
             [% IF restriction %]
                 [% WRAPPER breadcrumb_item bc_active= 1 %]
-                    <span>Modify restriction '[% PROCESS restriction_type_description %]'</span>
+                    <span>Modify restriction type '[% PROCESS restriction_type_description %]'</span>
                 [% END %]
             [% ELSE %]
                 [% WRAPPER breadcrumb_item bc_active= 1 %]
-                    <span>New restriction</span>
+                    <span>New restriction type</span>
                 [% END %]
             [% END %]
         [% END %]
 
         [% IF op == 'delete_confirm' %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
-                <span>Delete restriction?</span>
+                <span>Delete restriction type '[% PROCESS restriction_type_description %]'</span>
             [% END %]
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
@@ -53,41 +65,43 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 [% FOR m IN messages %]
-    <div class="dialog message [% m.code | html %]">
+    <div class="alert alert-info [% m.code | html %]">
         [% SWITCH m.code %]
         [% CASE 'add_success' %]
-            Restriction type added
+            <span>Restriction type added.</span>
         [% CASE 'update_success' %]
-            Restriction type updated
+            <span>Restriction type updated.</span>
         [% CASE 'duplicate_display_text' %]
-            Another restriction already has this label
+            <span>Another restriction type already has this label.</span>
         [% CASE 'duplicate_code' %]
-            Another restriction already has this code
+            <span>Another restriction type already has this code.</span>
         [% CASE 'delete_success' %]
-            Restriction type deleted
+            <span>Restriction type deleted.</span>
         [% CASE 'delete_default' %]
-            Cannot delete the default restriction type
+            <span>Cannot delete the default restriction type.</span>
         [% CASE 'delete_system' %]
-            Cannot delete a system restriction type
+            <span>Cannot delete a system restriction type.</span>
         [% CASE %]
-            [% m.code | html %]
+            <span>[% m.code | html %]</span>
         [% END %]
     </div>
 [% END %]
 
 [% IF op == 'add_form' %]
     <form id="restriction_form" action="/cgi-bin/koha/admin/restrictions.pl" method="post">
-        <input type="hidden" name="op" value="add_validate" />
+        [% INCLUDE 'csrf-token.inc' %]
+        <input type="hidden" name="op" value="cud-add_validate" />
         <input type="hidden" name="checked" value="0" />
         [% IF restriction %]
-            <h1>Modify restriction [% PROCESS restriction_type_description restriction_type=restriction %]</h1>
+            <h1>Modify restriction type '[% PROCESS restriction_type_description restriction_type=restriction %]'</h1>
             <input type="hidden" name="is_a_modif" value="1" />
         [% ELSE %]
-            <h1>New restriction</h1>
+            <h1>New restriction type</h1>
         [% END %]
         <fieldset class="rows">
             <ol>
@@ -101,6 +115,22 @@
                         <input type="text" value="[% restriction.display_text | html %]" name="display_text" id="display_text" size="50" maxlength="50" class="required" required="required" />
                         <span class="required">Required</span>
                     </li>
+                    <li>
+                        <label for="lift_after_payment" class="required">Lift after payment: </label>
+                        <select type="text" name="lift_after_payment" id="lift_after_payment"/>
+                        [% IF restriction.lift_after_payment %]
+                            <option value="0">No</option>
+                            <option value="1" selected="selected">Yes</option>
+                        [% ELSE %]
+                            <option value="0" selected="selected">No</option>
+                            <option value="1">Yes</option>
+                        [% END %]
+                        </select>
+                    </li>
+                    <li>
+                        <label for="fee_limit">Fee limit: </label>
+                        <input type="text" value="[% restriction.fee_limit | html %]" inputmode="decimal" pattern="^\d+(\.\d{2})?$" min="0" name="fee_limit" id="fee_limit" />
+                    </li>
                 [% ELSE %]
                     <li>
                         <label for="code" class="required">Code: </label>
@@ -111,6 +141,17 @@
                         <label for="display_text" class="required">Label: </label>
                         <input type="text" name="display_text" id="display_text" size="50" maxlength="50" class="required" required="required" />
                         <span class="required">Required</span>
+                    </li>
+                    <li>
+                        <label for="lift_after_payment">Lift after payment: </label>
+                        <select type="text" name="lift_after_payment" id="lift_after_payment" />
+                            <option value="0" selected="selected">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </li>
+                    <li>
+                        <label for="fee_limit">Fee limit: </label>
+                        <input type="text" inputmode="decimal" pattern="^\d+(\.\d{2})?$" min="0" name="fee_limit" id="fee_limit" />
                     </li>
                 [% END %]
             </ol>
@@ -124,31 +165,28 @@
 [% END %]
 
 [% IF op == 'delete_confirm' %]
-    <form action="/cgi-bin/koha/admin/restrictions.pl" method="post">
-        <fieldset>
-            <legend>
-                Confirm restriction deletion
-            </legend>
-
-            <p>Are you sure you want to delete "[% PROCESS restriction_type_description restriction_type=restriction %]"?</p>
-
-            <fieldset class="action">
-                <input type="hidden" name="op" value="delete_confirmed" />
-                <input type="hidden" name="code" value="[% restriction.code | html %]" />
-                <input type="submit" class="btn btn-primary" value="Delete this restriction" />
-                <a class="cancel" href="/cgi-bin/koha/admin/restrictions.pl">Cancel</a>
-            </fieldset>
-        </fieldset>
-    </form>
+    <div class="alert alert-warning">
+        <h1>Confirm restriction type deletion</h1>
+        <p>Are you sure you want to delete '[% PROCESS restriction_type_description restriction_type=restriction %]'?</p>
+        <form action="/cgi-bin/koha/admin/restrictions.pl" method="post">
+            [% INCLUDE 'csrf-token.inc' %]
+            <input type="hidden" name="op" value="cud-delete_confirmed" />
+            <input type="hidden" name="code" value="[% restriction.code | html %]" />
+            <button type="submit" class="btn btn-default approve"><i class="fa fa-fw fa-check"></i> Yes, delete</button>
+        </form>
+        <form action="/cgi-bin/koha/admin/restrictions.pl" method="get">
+            <button type="submit" class="btn btn-default deny"><i class="fa fa-fw fa-times"></i> No, do not delete</button>
+        </form>
+    </div>
 [% END %]
 
 [% IF op == 'list' %]
 
     <div id="toolbar" class="btn-toolbar">
-        <a class="btn btn-default" id="newrestriction" href="/cgi-bin/koha/admin/restrictions.pl?op=add_form"><i class="fa fa-plus"></i> New restriction</a>
+        <a class="btn btn-default" id="newrestriction" href="/cgi-bin/koha/admin/restrictions.pl?op=add_form"><i class="fa fa-plus"></i> New restriction type</a>
     </div>
 
-    <h1>Patron restrictions</h1>
+    <h1>Patron restriction types</h1>
 
     [% IF restrictions %]
         <div class="page-section">
@@ -158,6 +196,8 @@
                         <th scope="col">Code</th>
                         <th scope="col">Label</th>
                         <th scope="col">Default</th>
+                        <th scope="col">Lift after payment?</th>
+                        <th scope="col">Fee limit</th>
                         <th scope="col">Actions</th>
                     </tr>
                 </thead>
@@ -173,13 +213,24 @@
                             <td>
                                 [% IF restriction.is_default %]Yes[% END %]
                             </td>
+                            <td>
+                                [% IF restriction.lift_after_payment %]Yes[% END %]
+                            </td>
+                            <td>
+                                [% IF restriction.fee_limit %][% restriction.fee_limit | html %][% END %]
+                            </td>
                             <td class="actions">
-                                <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/restrictions.pl?op=add_form&amp;code=[% restriction.code | uri %]"><i class="fa fa-pencil"></i> Edit</a>
+                                <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/restrictions.pl?op=add_form&amp;code=[% restriction.code | uri %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
                                 [% IF !restriction.is_system && !restriction.is_default %]
-                                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/restrictions.pl?op=delete_confirm&amp;code=[% restriction.code | uri %]"><i class="fa fa-trash"></i> Delete</a>
+                                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/restrictions.pl?op=delete_confirm&amp;code=[% restriction.code | uri %]"><i class="fa fa-trash-can"></i> Delete</a>
                                 [% END %]
                                 [% IF !restriction.is_system && !restriction.is_default %]
-                                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/restrictions.pl?op=make_default&amp;code=[% restriction.code | uri %]"><i class="fa fa-archive"></i> Make default</a>
+                                    <form id="make_default_[% restriction.code | html %]" method="post" action="/cgi-bin/koha/admin/restrictions.pl">
+                                        [% INCLUDE 'csrf-token.inc' %]
+                                        <input type="hidden" name="op" value="cud-make_default" />
+                                        <input type="hidden" name="code" value="[% restriction.code | html %]" />
+                                        <button type="submit" class="btn btn-default btn-xs make_default_button" href="#" data-code="[% restriction.code | html %]"><i class="fa fa-archive"></i> Make default</button>
+                                    </form>
                                 [% END %]
                             </td>
                         </tr>
@@ -188,18 +239,18 @@
             </table>
         </div><!-- /.page-section -->
     [% ELSE %]
-        <div class="dialog alert">No restrictions have been defined. <a href="/cgi-bin/koha/admin/restrictions.pl?op=add_form">Create a new restriction</a>.</div>
+        <div class="alert alert-warning">No restriction types have been defined. <a href="/cgi-bin/koha/admin/restrictions.pl?op=add_form">Create a new restriction type</a>.</div>
     [% END %]
 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -207,14 +258,24 @@
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
     <script>
-        var MSG_DUPLICATE_CODE = _("Restriction code is already in use");
-        var MSG_DUPLICATE_DISPLAY_TEXT = _("Label is already in use");
+        var MSG_DUPLICATE_CODE = _("Restriction type code is already in use");
+        var MSG_DUPLICATE_DISPLAY_TEXT = _("Restriction type label is already in use");
         var existing = {
         [% FOREACH ex IN existing %]
             [% NEXT IF ex.code == restriction.code %]
             [% ex.code | $raw %]: '[% ex.display_text | $raw %]',
         [% END %]
         };
+
+        //Require fee limit if "Lift after payment" is set true
+        $("#lift_after_payment").on("change", function(){
+            if($(this).val() == 1){
+                $("#fee_limit").prop("required",true).after('<span class="required">Required</span>');
+            } else {
+                $("#fee_limit").prop("required",false).nextAll().remove();
+            }
+        });
+
     </script>
     [% Asset.js("js/restrictiontypes.js") | $raw %]
 [% END %]

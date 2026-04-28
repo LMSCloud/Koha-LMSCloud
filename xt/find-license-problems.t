@@ -25,44 +25,47 @@
 
 use Modern::Perl;
 use Test::More;
+use Test::NoWarnings;
 
-use File::Spec;
-use File::Find;
+my @files = map {
+    chomp;
+    my $name = $_;
+    !(     $name =~ m{^koha-tmpl/}
+        || $name =~ m{\.(gif|jpg|odt|ogg|pdf|png|po|psd|svg|swf|zip)$}
+        || $name =~ m{xt/find-license-problems|xt/fix-old-fsf-address|misc/translator/po2json}
+        || $name =~ m[t/mock_templates/intranet-tmpl/prog]
+        || !-f $name )
+        ? $_
+        : ()
+} `git ls-tree -r HEAD --name-only`;    # only files part of git
 
-my @files;
-sub wanted {
-    my $name = $File::Find::name;
-    push @files, $name
-        unless $name =~ /\/(\.git|koha-tmpl|node_modules|swagger-ui)(\/.*)?$/ ||
-               $name =~ /\.(gif|jpg|odt|ogg|pdf|png|po|psd|svg|swf|zip|patch)$/ ||
-               $name =~ m[(xt/find-license-problems|xt/fix-old-fsf-address|misc/translator/po2json)] ||
-               ! -f $name;
-}
-
-find({ wanted => \&wanted, no_chdir => 1 }, File::Spec->curdir());
+plan tests => scalar(@files) + 1;
 
 foreach my $name (@files) {
     open( my $fh, '<', $name ) || die "cannot open file $name $!";
-    my ( $hascopyright, $hasgpl, $hasv3, $hasorlater, $haslinktolicense,
+    my ( $hasgpl, $hasv3, $hasorlater, $haslinktolicense,
         $hasfranklinst, $is_not_us ) = (0)x7;
     while ( my $line = <$fh> ) {
-        $hascopyright = 1 if ( $line =~ /^(#|--)?\s*Copyright.*\d\d/ );
         $hasgpl       = 1 if ( $line =~ /GNU General Public License/ );
         $hasv3        = 1 if ( $line =~ /either version 3/ );
         $hasorlater   = 1
           if ( $line =~ /any later version/
             || $line =~ /at your option/ );
-        $haslinktolicense = 1 if $line =~ m|http://www\.gnu\.org/licenses|;
+        $haslinktolicense = 1 if $line =~ m|https?://www\.gnu\.org/licenses|;
         $hasfranklinst    = 1 if ( $line =~ /51 Franklin Street/ );
         $is_not_us        = 1 if $line =~ m|This file is part of the Zebra server|;
     }
     close $fh;
-    next unless $hascopyright;
-    next if $is_not_us;
-    is(    $hasgpl
-        && $hasv3
-        && $hasorlater
-        && $haslinktolicense
-        && !$hasfranklinst,  1 ) or diag(sprintf "File %s has wrong copyright: hasgpl=%s, hasv3=%s, hasorlater=%s, haslinktolicense=%s, hasfranklinst=%s", $name, $hasgpl, $hasv3, $hasorlater, $haslinktolicense, $hasfranklinst);
+
+    if ( $is_not_us || !$hasgpl ) {
+        pass();
+        next;
+    }
+
+    ok( $hasgpl && $hasv3 && $hasorlater && $haslinktolicense && !$hasfranklinst )
+        or diag(
+        sprintf
+            "File %s has wrong copyright: hasgpl=%s, hasv3=%s, hasorlater=%s, haslinktolicense=%s, hasfranklinst=%s",
+        $name, $hasgpl, $hasv3, $hasorlater, $haslinktolicense, $hasfranklinst
+        );
 }
-done_testing;

@@ -20,7 +20,7 @@
 use Modern::Perl;
 use CGI;
 
-use JSON qw( to_json );
+use JSON qw( to_json from_json );
 
 use C4::Auth qw( get_template_and_user );
 use C4::Circulation qw( barcodedecode );
@@ -35,44 +35,45 @@ use Koha::ItemTypes;
 use Koha::Libraries;
 
 my $cgi = CGI->new;
-my %params = $cgi->Vars;
 
 my $format = $cgi->param('format');
 my $template_name = 'catalogue/itemsearch.tt';
 
-if (defined $format and $format eq 'json') {
+if ( defined $format and $format eq 'json' ) {
     $template_name = 'catalogue/itemsearch_json.tt';
 
     # Map DataTables parameters with 'regular' parameters
-    $cgi->param('rows', scalar $cgi->param('iDisplayLength'));
-    $cgi->param('page', (scalar $cgi->param('iDisplayStart') / scalar $cgi->param('iDisplayLength')) + 1);
-    my @columns = split /,/, scalar $cgi->param('sColumns');
-    $cgi->param('sortby', $columns[ scalar $cgi->param('iSortCol_0') ]);
-    $cgi->param('sortorder', scalar $cgi->param('sSortDir_0'));
+    $cgi->param( 'rows', scalar $cgi->param('length') );
+    $cgi->param( 'page', ( scalar $cgi->param('start') / scalar $cgi->param('length') ) + 1 );
+    my @columns = @{ from_json $cgi->param('columns') };
+    $cgi->param( 'sortby',    $columns[ $cgi->param('order[0][column]') ]->{name} );
+    $cgi->param( 'sortorder', scalar $cgi->param('order[0][dir]') );
 
     my @f = $cgi->multi_param('f');
     my @q = $cgi->multi_param('q');
 
     # If index indicates the value is a barcode, we need to preprocess it before searching
-    for ( my $i = 0; $i < @q; $i++ ) {
-        $q[$i] = barcodedecode($q[$i]) if $f[$i] eq 'barcode';
+    for ( my $i = 0 ; $i < @q ; $i++ ) {
+        $q[$i] = barcodedecode( $q[$i] ) if $f[$i] eq 'barcode';
     }
 
     push @q, '' if @q == 0;
     my @op = $cgi->multi_param('op');
-    my @c = $cgi->multi_param('c');
-    my $iColumns = $cgi->param('iColumns');
-    foreach my $i (0 .. ($iColumns - 1)) {
-        my $sSearch = $cgi->param("sSearch_$i");
-        if (defined $sSearch and $sSearch ne '') {
-            my @words = split /\s+/, $sSearch;
+    my @c  = $cgi->multi_param('c');
+    for my $column (@columns) {
+        my $search      = $column->{search}->{value};
+        my $column_name = $column->{name};
+        if ( defined $search and $search ne '' ) {
+            my @words = split /\s+/, $search;
             foreach my $word (@words) {
                 my $searchcol = $columns[$i];
                 push @f, $searchcol;
                 push @c, 'and';
 
-                if ( grep { $_ eq $columns[$i] } qw( ccode homebranch holdingbranch location itype notforloan itemlost onloan ) ) {
-                    push @q, "$word";
+                if ( grep { $_ eq $column_name }
+                    qw( ccode homebranch holdingbranch location itype notforloan itemlost onloan ) )
+                {
+                    push @q,  "$word";
                     push @op, '=';
                 }
                 elsif ( grep(/^$searchcol$/, qw( issues )) && $word && $word =~ /^[0-9]+$/ ) {
@@ -94,19 +95,23 @@ if (defined $format and $format eq 'json') {
             }
         }
     }
-    $cgi->param('f', @f);
-    $cgi->param('q', @q);
-    $cgi->param('op', @op);
-    $cgi->param('c', @c);
-} elsif (defined $format and $format eq 'csv') {
+    $cgi->param( 'f',  @f );
+    $cgi->param( 'q',  @q );
+    $cgi->param( 'op', @op );
+    $cgi->param( 'c',  @c );
+} elsif ( defined $format and $format eq 'csv' ) {
     $template_name = 'catalogue/itemsearch_csv.tt';
 
     # Retrieve all results
-    $cgi->param('rows', 0);
-} elsif (defined $format and $format eq 'barcodes') {
+    $cgi->param( 'rows', 0 );
+} elsif ( defined $format and $format eq 'barcodes' ) {
+
     # Retrieve all results
-    $cgi->param('rows', 0);
-} elsif (defined $format) {
+    $cgi->param( 'rows', 0 );
+} elsif ( defined $format and $format eq 'shareable' ) {
+
+    # get the item search parameters from the url and fill form
+} elsif ( defined $format ) {
     die "Unsupported format $format";
 }
 
@@ -123,11 +128,19 @@ my $itemlost_values = $mss->count ? GetAuthorisedValues($mss->next->authorised_v
 $mss = Koha::MarcSubfieldStructures->search({ frameworkcode => '', kohafield => 'items.withdrawn', authorised_value => [ -and => {'!=' => undef }, {'!=' => ''}] });
 my $withdrawn_values = $mss->count ? GetAuthorisedValues($mss->next->authorised_value) : [];
 
+$mss = Koha::MarcSubfieldStructures->search(
+    {
+        frameworkcode    => '', kohafield => 'items.damaged',
+        authorised_value => [ -and => { '!=' => undef }, { '!=' => '' } ]
+    }
+);
+my $damaged_values = $mss->count ? GetAuthorisedValues( $mss->next->authorised_value ) : [];
+
 if ( Koha::MarcSubfieldStructures->search( { frameworkcode => '', kohafield => 'items.new_status' } )->count ) {
     $template->param( has_new_status => 1 );
 }
 
-if ( defined $format ) {
+if ( defined $format and $format ne 'shareable') {
     # Parameters given, it's a search
 
     my $filter = {
@@ -135,14 +148,22 @@ if ( defined $format ) {
         filters => [],
     };
 
-    foreach my $p (qw(homebranch holdingbranch location itype ccode issues datelastborrowed notforloan itemlost withdrawn)) {
-        if (my @q = $cgi->multi_param($p)) {
-            if ($q[0] ne '') {
+    foreach my $p (
+        qw(homebranch holdingbranch location itype ccode issues datelastborrowed notforloan itemlost withdrawn damaged))
+    {
+
+        my @q;
+        @q = $cgi->multi_param( $p . "[]" );
+        if ( scalar @q == 0 ) {
+            @q = $cgi->multi_param($p);
+        }
+        if (@q) {
+            if ( $q[0] ne '' ) {
                 my $f = {
                     field => $p,
                     query => \@q,
                 };
-                if (my $op = scalar $cgi->param($p . '_op')) {
+                if ( my $op = scalar $cgi->param( $p . '_op' ) ) {
                     $f->{operator} = $op;
                 }
                 push @{ $filter->{filters} }, $f;
@@ -195,7 +216,7 @@ if ( defined $format ) {
 
 
     # Yes/No parameters
-    foreach my $p (qw( damaged new_status )) {
+    foreach my $p (qw( new_status )) {
         my $v = $cgi->param($p) // '';
         my $f = {
             field => $p,
@@ -204,10 +225,10 @@ if ( defined $format ) {
         if ( $p eq 'new_status' ) {
             $f->{ifnull} = 0;
         }
-        if ($v eq 'yes') {
+        if ( $v eq 'yes' ) {
             $f->{operator} = '!=';
             push @{ $filter->{filters} }, $f;
-        } elsif ($v eq 'no') {
+        } elsif ( $v eq 'no' ) {
             $f->{operator} = '=';
             push @{ $filter->{filters} }, $f;
         }
@@ -279,10 +300,11 @@ if ( defined $format ) {
     }
 
     $template->param(
-        filter => $filter,
+        filter        => $filter,
         search_params => $search_params,
-        results => $results,
-        total_rows => $total_rows,
+        results       => $results,
+        total_rows    => $total_rows,
+        user          => Koha::Patrons->find( $borrowernumber ),
     );
 
     if ($format eq 'csv') {
@@ -295,7 +317,7 @@ if ( defined $format ) {
             print "$line\n" unless $line =~ m|^\s*$|;
         }
     } elsif ($format eq 'json') {
-        $template->param(sEcho => scalar $cgi->param('sEcho'));
+        $template->param(draw => scalar $cgi->param('draw'));
         output_with_http_headers $cgi, $cookie, $template->output, 'json';
     }
 
@@ -330,6 +352,14 @@ foreach my $value (@$withdrawn_values) {
     };
 }
 
+my @damageds;
+foreach my $value (@$damaged_values) {
+    push @damageds, {
+        value => $value->{authorised_value},
+        label => $value->{lib},
+    };
+}
+
 my @items_search_fields = GetItemSearchFields();
 
 my $authorised_values = {};
@@ -346,8 +376,10 @@ $template->param(
     ccodes => \@ccodes,
     itemlosts => \@itemlosts,
     withdrawns => \@withdrawns,
+    damageds => \@damageds,
     items_search_fields => \@items_search_fields,
     authorised_values_json => to_json($authorised_values),
+    query => $cgi,
 );
 
 output_html_with_http_headers $cgi, $cookie, $template->output;

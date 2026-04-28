@@ -36,8 +36,7 @@ sub list {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $licenses_set = Koha::ERM::Licenses->new;
-        my $licenses = $c->objects->search( $licenses_set );
+        my $licenses = $c->objects->search( Koha::ERM::Licenses->new );
         return $c->render( status => 200, openapi => $licenses );
     }
     catch {
@@ -56,15 +55,10 @@ sub get {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $license_id = $c->validation->param('license_id');
-        my $license    = $c->objects->find( Koha::ERM::Licenses->search, $license_id );
+        my $license = $c->objects->find( Koha::ERM::Licenses->search, $c->param('license_id') );
 
-        unless ($license) {
-            return $c->render(
-                status  => 404,
-                openapi => { error => "License not found" }
-            );
-        }
+        return $c->render_resource_not_found("License")
+            unless $license;
 
         return $c->render(
             status  => 200,
@@ -89,19 +83,24 @@ sub add {
         Koha::Database->new->schema->txn_do(
             sub {
 
-                my $body = $c->validation->param('body');
+                my $body = $c->req->json;
 
-                my $user_roles = delete $body->{user_roles} // [];
-                my $documents = delete $body->{documents} // [];
+                my $user_roles          = delete $body->{user_roles}          // [];
+                my $documents           = delete $body->{documents}           // [];
+                my $extended_attributes = delete $body->{extended_attributes} // [];
 
                 my $license = Koha::ERM::License->new_from_api($body)->store;
                 $license->user_roles($user_roles);
                 $license->documents($documents);
 
+                my @extended_attributes =
+                    map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
+                $license->extended_attributes( \@extended_attributes );
+
                 $c->res->headers->location($c->req->url->to_string . '/' . $license->license_id);
                 return $c->render(
                     status  => 201,
-                    openapi => $license->to_api
+                    openapi => $c->objects->to_api($license),
                 );
             }
         );
@@ -158,33 +157,32 @@ Controller function that handles updating a Koha::ERM::License object
 sub update {
     my $c = shift->openapi->valid_input or return;
 
-    my $license_id = $c->validation->param('license_id');
-    my $license = Koha::ERM::Licenses->find( $license_id );
+    my $license = Koha::ERM::Licenses->find( $c->param('license_id') );
 
-    unless ($license) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "License not found" }
-        );
-    }
+    return $c->render_resource_not_found("License")
+        unless $license;
 
     return try {
         Koha::Database->new->schema->txn_do(
             sub {
 
-                my $body = $c->validation->param('body');
+                my $body = $c->req->json;
 
-                my $user_roles = delete $body->{user_roles} // [];
-                my $documents = delete $body->{documents} // [];
+                my $user_roles          = delete $body->{user_roles}          // [];
+                my $documents           = delete $body->{documents}           // [];
+                my $extended_attributes = delete $body->{extended_attributes} // [];
 
                 $license->set_from_api($body)->store;
                 $license->user_roles($user_roles);
                 $license->documents($documents);
 
-                $c->res->headers->location($c->req->url->to_string . '/' . $license->license_id);
+                my @extended_attributes =
+                    map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
+                $license->extended_attributes( \@extended_attributes );
+
                 return $c->render(
                     status  => 200,
-                    openapi => $license->to_api
+                    openapi => $c->objects->to_api($license),
                 );
             }
         );
@@ -232,20 +230,14 @@ sub update {
 sub delete {
     my $c = shift->openapi->valid_input or return;
 
-    my $license = Koha::ERM::Licenses->find( $c->validation->param('license_id') );
-    unless ($license) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "License not found" }
-        );
-    }
+    my $license = Koha::ERM::Licenses->find( $c->param('license_id') );
+
+    return $c->render_resource_not_found("License")
+        unless $license;
 
     return try {
         $license->delete;
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
+        return $c->render_resource_deleted;
     }
     catch {
         $c->unhandled_exception($_);

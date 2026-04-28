@@ -39,16 +39,16 @@ $template->process(url_template("css/staff-global.css"), $intranet_vars, \$outpu
 is($output, "/intranet-tmpl/prog/css/staff-global_$version.css");
 
 $output = '';
-$template->process(url_template("lib/font-awesome/css/font-awesome.min.css"), $intranet_vars, \$output);
-is($output, "/intranet-tmpl/lib/font-awesome/css/font-awesome.min_$version.css");
+$template->process(url_template("lib/fontawesome/css/fontawesome.min.css"), $intranet_vars, \$output);
+is($output, "/intranet-tmpl/lib/fontawesome/css/fontawesome.min_$version.css");
 
 $output = '';
 $template->process(url_template("js/global.js"), $opac_vars, \$output);
 is($output, "/opac-tmpl/bootstrap/js/global_$version.js");
 
 $output = '';
-$template->process(url_template("lib/jquery/plugins/jquery.dataTables.min.js"), $opac_vars, \$output);
-is($output, "/opac-tmpl/lib/jquery/plugins/jquery.dataTables.min_$version.js");
+$template->process(url_template("lib/datatables/datatables.min.js"), $opac_vars, \$output);
+is($output, "/opac-tmpl/lib/datatables/datatables.min_$version.js");
 
 $output = '';
 $template->process(url_template("css/opac.css"), $opac_vars, \$output);

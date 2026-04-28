@@ -4,9 +4,13 @@
 [% USE AuthorisedValues %]
 [% USE Branches %]
 [% USE raw %]
-
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Mana Knowledge Base reports search &rsaquo; Reports &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Mana Knowledge Base reports search") | html %] &rsaquo;
+    [% t("Reports") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("css/reports.css") | $raw %]
 </head>
@@ -25,7 +29,7 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
                 <h2>Mana Knowledge Base report search results</h2>
 
@@ -67,11 +71,11 @@
                                         <td title="[% report.savedsql | html %]">
                                             [% IF report.notes.length > 200 %]
                                                 <div>
-                                                    [% report.notes.substr(0,200) | html %]... <a href="#" class="btn btn-link btn-sm showbutton"><i class="fa fa-plus-square-o"></i> Show more</a>
+                                                    [% report.notes.substr(0,200) | html %]... <a href="#" class="btn btn-link btn-sm showbutton"><i class="fa-solid fa-square-plus"></i> Show more</a>
                                                 </div>
                                                 <div style="display:none">
                                                     [% report.notes | html %]
-                                                    <a href="#" class="btn btn-link btn-sm hidebutton"><i class="fa fa-minus-square-o"></i> Show less</a>
+                                                    <a href="#" class="btn btn-link btn-sm hidebutton"><i class="fa-solid fa-square-minus"></i> Show less</a>
                                                 </div>
                                             [% ELSE %]
                                                 [% report.notes | html %]
@@ -114,13 +118,13 @@
                 </div>
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'guided-reports-view.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% INCLUDE 'intranet-bottom.inc' %]

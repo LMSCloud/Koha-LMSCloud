@@ -1,7 +1,13 @@
 <template>
     <div v-if="!initialized">{{ $__("Loading") }}</div>
     <div v-else id="agreements_list">
-        <Toolbar v-if="!embedded" :options="this.toolbar_options" />
+        <Toolbar v-if="!embedded">
+            <ToolbarButton
+                :to="{ name: 'AgreementsFormAdd' }"
+                icon="plus"
+                :title="$__('New agreement')"
+            />
+        </Toolbar>
         <fieldset v-if="agreement_count > 0" class="filters">
             <label for="expired_filter">{{ $__("Filter by expired") }}:</label>
             <input
@@ -37,13 +43,15 @@
             <KohaTable
                 ref="table"
                 v-bind="tableOptions"
+                :searchable_additional_fields="searchable_additional_fields"
+                :searchable_av_options="searchable_av_options"
                 @show="doShow"
                 @edit="doEdit"
                 @delete="doDelete"
                 @select="doSelect"
             ></KohaTable>
         </div>
-        <div v-else class="dialog message">
+        <div v-else class="alert alert-info">
             {{ $__("There are no agreements defined") }}
         </div>
     </div>
@@ -52,6 +60,7 @@
 <script>
 import flatPickr from "vue-flatpickr-component"
 import Toolbar from "../Toolbar.vue"
+import ToolbarButton from "../ToolbarButton.vue"
 import { inject, ref, reactive } from "vue"
 import { APIClient } from "../../fetch/api-client.js"
 import { storeToRefs } from "pinia"
@@ -102,9 +111,13 @@ export default {
             fp_config: flatpickr_defaults,
             agreement_count: 0,
             initialized: false,
+            searchable_additional_fields: [],
+            searchable_av_options: [],
             tableOptions: {
                 columns: this.getTableColumns(),
-                options: { embed: "user_roles,vendor" },
+                options: {
+                    embed: "user_roles,vendor,extended_attributes,+strings",
+                },
                 url: () => this.table_url(),
                 table_settings: this.agreement_table_settings,
                 add_filters: true,
@@ -150,18 +163,19 @@ export default {
             },
             before_route_entered: false,
             building_table: false,
-            toolbar_options: [
-                {
-                    to: "AgreementsFormAdd",
-                    icon: "plus",
-                    button_title: this.$__("New agreement"),
-                },
-            ],
         }
     },
     beforeRouteEnter(to, from, next) {
         next(vm => {
-            vm.getAgreementCount().then(() => (vm.initialized = true))
+            vm.getAgreementCount().then(() =>
+                vm
+                    .getSearchableAdditionalFields()
+                    .then(() =>
+                        vm
+                            .getSearchableAVOptions()
+                            .then(() => (vm.initialized = true))
+                    )
+            )
         })
     },
     methods: {
@@ -173,6 +187,41 @@ export default {
                 },
                 error => {}
             )
+        },
+        async getSearchableAdditionalFields() {
+            const client = APIClient.additional_fields
+            await client.additional_fields.getAll("agreement").then(
+                searchable_additional_fields => {
+                    this.searchable_additional_fields =
+                        searchable_additional_fields.filter(
+                            field => field.searchable
+                        )
+                },
+                error => {}
+            )
+        },
+        async getSearchableAVOptions() {
+            const client_av = APIClient.authorised_values
+            let av_cat_array = this.searchable_additional_fields
+                .filter(field => field.authorised_value_category_name)
+                .map(field => field.authorised_value_category_name)
+
+            await client_av.values
+                .getCategoriesWithValues([
+                    ...new Set(av_cat_array.map(av_cat => '"' + av_cat + '"')),
+                ]) // unique
+                .then(av_categories => {
+                    av_cat_array.forEach(av_cat => {
+                        let av_match = av_categories.find(
+                            element => element.category_name == av_cat
+                        )
+                        this.searchable_av_options[av_cat] =
+                            av_match.authorised_values.map(av => ({
+                                value: av.value,
+                                label: av.description,
+                            }))
+                    })
+                })
         },
         doShow: function ({ agreement_id }, dt, event) {
             event.preventDefault()
@@ -353,7 +402,7 @@ export default {
             }
         },
     },
-    components: { flatPickr, Toolbar, KohaTable },
+    components: { flatPickr, Toolbar, ToolbarButton, KohaTable },
     props: {
         embedded: {
             type: Boolean,

@@ -16,7 +16,7 @@
 
 use Modern::Perl;
 use Data::Dumper qw( Dumper );
-use Test::More tests => 4;
+use Test::More tests => 7;
 
 use C4::Context;
 use C4::Log qw( logaction cronlogaction );
@@ -26,6 +26,8 @@ use Koha::ActionLogs;
 
 use t::lib::Mocks qw/mock_preference/; # to mock CronjobLog
 use t::lib::TestBuilder;
+
+use JSON qw( decode_json );
 
 # Make sure we can rollback.
 our $schema  = Koha::Database->new->schema;
@@ -88,6 +90,21 @@ subtest 'logaction(): interface is correctly logged' => sub {
     logaction( "MEMBERS", "MODIFY", 1, 'test info', 'sip');
     $log = Koha::ActionLogs->search->next;
     is( $log->interface, 'sip', 'Passed interface is respected (sip)');
+};
+
+subtest 'logaction / trace' => sub {
+    plan tests => 2;
+
+    C4::Context->interface( 'intranet' );
+    t::lib::Mocks::mock_preference('ActionLogsTraceDepth',0);
+
+    logaction( "MEMBERS", "MODIFY", 1, "test1");
+    is( Koha::ActionLogs->search({ info => 'test1' })->last->trace, undef, 'No trace at level 0' );
+    t::lib::Mocks::mock_preference('ActionLogsTraceDepth',2);
+    logaction( "MEMBERS", "MODIFY", 1, "test2");
+    like( Koha::ActionLogs->search({ info => 'test2' })->last->trace, qr/("line":.*){2}/, 'Found two trace levels' );
+
+    t::lib::Mocks::mock_preference('ActionLogsTraceDepth',0);
 };
 
 subtest 'GDPR logging' => sub {
@@ -160,7 +177,7 @@ subtest 'Reduce log size by unblessing Koha objects' => sub {
     is( $logs->count, 1, 'Action found' );
     is( length($logs->next->info), length($str), 'Length exactly identical' );
 
-    logaction( 'CATALOGUING', 'MODIFY', $item->itemnumber, $item, 'opac' );
+    logaction( 'CATALOGUING', 'MODIFY', $item->itemnumber, $item, 'opac', $item );
     $logs = Koha::ActionLogs->search({ module => 'CATALOGUING', action => 'MODIFY', object => $item->itemnumber });
     is( substr($logs->next->info, 0, 5), 'item ', 'Prefix item' );
     is( length($logs->reset->next->info), 5+length($str), 'Length + 5' );
@@ -177,6 +194,47 @@ subtest 'Reduce log size by unblessing Koha objects' => sub {
     logaction( 'MY_MODULE', 'TEST03', $item->itemnumber, $builder, 'opac' );
     $logs = Koha::ActionLogs->search({ module => 'MY_MODULE', action => 'TEST03', object => $item->itemnumber });
     like( $logs->next->info, qr/^t::lib::TestBuilder/, 'Dumped TestBuilder object' );
+};
+
+subtest 'Test storing diff of objects' => sub {
+    plan tests => 2;
+
+    my $builder       = t::lib::TestBuilder->new;
+    my $item          = $builder->build_sample_item;
+    my $original      = $item->unblessed();
+    my $original_item = $item->get_from_storage();
+    $item->barcode('_MY_TEST_BARCODE_')->store();
+
+    logaction( 'MY_MODULE', 'TEST01', $item->itemnumber, $item, 'opac', $original );
+    my $logs =
+        Koha::ActionLogs->search( { module => 'MY_MODULE', action => 'TEST01', object => $item->itemnumber } )->next;
+    my $diff = decode_json( $logs->diff );
+    is( $diff->{D}->{barcode}->{N}, '_MY_TEST_BARCODE_', 'Diff of changes logged successfully' );
+
+    logaction( 'MY_MODULE', 'TEST02', $item->itemnumber, $item, 'opac', $original_item );
+    $logs =
+        Koha::ActionLogs->search( { module => 'MY_MODULE', action => 'TEST02', object => $item->itemnumber } )->next;
+    $diff = decode_json( $logs->diff );
+    is( $diff->{D}->{barcode}->{N}, '_MY_TEST_BARCODE_', 'Diff of changes logged successfully' );
+};
+
+subtest 'Test storing original version of an item' => sub {
+    plan tests => 1;
+
+    $Data::Dumper::Sortkeys = 1;
+    my $builder  = t::lib::TestBuilder->new;
+    my $item     = $builder->build_sample_item;
+    my $original = $item->get_from_storage;
+
+    # make sure that $item->...->store logs the update
+    t::lib::Mocks::mock_preference( 'CataloguingLog', 1 );
+    $item->barcode('_MY_OTHER_BARCODE_')->store();
+
+    # update was logged under CATALOGUING / MODIFY so we can retrieve the log now
+    my $log =
+        Koha::ActionLogs->search( { module => 'CATALOGUING', action => 'MODIFY', object => $item->itemnumber } )->next;
+    my $info = $log->info;
+    is( $info, "item " . Dumper( $original->unblessed ), 'Original version of item logged successfully' );
 };
 
 $schema->storage->txn_rollback;

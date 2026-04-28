@@ -1,11 +1,17 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
 [% USE KohaDates %]
 [% USE Branches %]
 [% USE AuthorisedValues %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Files for [% INCLUDE 'patron-title.inc' no_html = 1 %]</title>
+<title>[% FILTER collapse %]
+    [% t("Files for") | html %] [% INCLUDE 'patron-title.inc' no_html = 1 %] &rsaquo;
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -30,17 +36,19 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
                 [% INCLUDE 'members-toolbar.inc' %]
 
                 <h1>Files</h1>
 
                 [% IF errors %]
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         [% IF errors.empty_upload %]The file you are attempting to upload has no contents.[% END %]
                         [% IF errors.no_file %]You did not select a file to upload.[% END %]
+                        [% IF errors.upload_failed %]The upload failed. More information may be in the system logs.[% END %]
                     </div>
                 [% END %]
 
@@ -64,23 +72,34 @@
                                         <td>[% f.file_type | html %]</td>
                                         <td>[% f.file_description | html %]</td>
                                         <td>[% f.date_uploaded | $KohaDates %]</td>
-                                        [% IF CAN_user_borrowers_edit_borrowers %]<td><a class="btn btn-default btn-xs confirmdelete" href="?borrowernumber=[% patron.borrowernumber | html %]&amp;op=delete&amp;file_id=[% f.file_id | html %]"><i class="fa fa-trash"></i> Delete</a></td>[% END %]
+                                        [% IF CAN_user_borrowers_edit_borrowers %]
+                                            <td>
+                                                <form action="files.pl" method="post">
+                                                    [% INCLUDE 'csrf-token.inc' %]
+                                                    <input type="hidden" name="op" value="cud-delete" />
+                                                    <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber | html %]" />
+                                                    <input type="hidden" name="file_id" value="[% f.file_id | html %]" />
+                                                    <button class="btn btn-default btn-xs confirmdelete"><i class="fa fa-trash-can"></i> Delete</button>
+                                                </form>
+                                            </td>
+                                        [% END %]
                                     </tr>
                                 [% END %]
                             </tbody>
                         </table>
                     </div>
                 [% ELSE %]
-                <div class="dialog message">
+                <div class="alert alert-info">
                     <p>This patron has no files attached.</p>
                 </div>
                 [% END %]
 
                 <form method="post" action="/cgi-bin/koha/members/files.pl" enctype="multipart/form-data">
+                    [% INCLUDE 'csrf-token.inc' %]
                     <fieldset class="rows">
                         <legend>Upload new file</legend>
                         <ol>
-                        <li><input type="hidden" name="op" value="upload" />
+                        <li><input type="hidden" name="op" value="cud-upload" />
                         <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber | html %]" />
                         <input type="hidden" name="MAX_FILE_SIZE" value="2000000" />
 
@@ -97,13 +116,13 @@
                 </form>
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'circ-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

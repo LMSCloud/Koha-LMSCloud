@@ -1,11 +1,16 @@
 [% USE raw %]
+[% USE Koha %]
+[% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[%- IF (type == "vendor") -%]
-    Change order vendor note
-[%- ELSE -%]
-    Change order internal note
-[%- END -%] &rsaquo; Acquisition &rsaquo; Koha
-</title>
+<title>[% FILTER collapse %]
+    [% IF (type == "vendor") %]
+        [% t("Change order vendor note") | html %]
+    [% ELSE %]
+        [% t("Change order internal note") | html %]
+    [% END %] &rsaquo;
+    [% t("Acquisition") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -35,7 +40,8 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+        <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
+            [% INCLUDE 'messages.inc' %]
 
       [% IF (type == "vendor") %]
           <h1>Change order vendor note (order no. [% ordernumber | html %])</h1>
@@ -43,13 +49,14 @@
           <h1>Change order internal note (order no. [% ordernumber | html %])</h1>
       [% END %]
       <form action="/cgi-bin/koha/acqui/modordernotes.pl" method="post">
+          [% INCLUDE 'csrf-token.inc' %]
         <fieldset class="brief">
           <label for="ordernotes">Note:</label>
           <textarea id="ordernotes" name="ordernotes" rows="3" cols="30" class="focus">[% ordernotes | html %]</textarea>
         </fieldset>
         <input type="hidden" name="referrer" value="[% referrer | html %]" />
         <input type="hidden" name="ordernumber" value="[% ordernumber | html %]" />
-        <input type="hidden" name="op" value="save" />
+        <input type="hidden" name="op" value="cud-save" />
         <input type="hidden" name="type" value="[% type | html %]" />
         <fieldset class="action">
           <input type="submit" class="btn btn-primary" value="Save" />

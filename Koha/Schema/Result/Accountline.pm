@@ -32,6 +32,13 @@ __PACKAGE__->table("accountlines");
 =head2 issue_id
 
   data_type: 'integer'
+  is_foreign_key: 1
+  is_nullable: 1
+
+=head2 old_issue_id
+
+  data_type: 'integer'
+  is_foreign_key: 1
   is_nullable: 1
 
 =head2 borrowernumber
@@ -150,7 +157,9 @@ __PACKAGE__->add_columns(
   "accountlines_id",
   { data_type => "integer", is_auto_increment => 1, is_nullable => 0 },
   "issue_id",
-  { data_type => "integer", is_nullable => 1 },
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
+  "old_issue_id",
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "borrowernumber",
   { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
   "itemnumber",
@@ -350,6 +359,26 @@ __PACKAGE__->belongs_to(
   },
 );
 
+=head2 issue
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Issue>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "issue",
+  "Koha::Schema::Result::Issue",
+  { issue_id => "issue_id" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "SET NULL",
+    on_update     => "CASCADE",
+  },
+);
+
 =head2 itemnumber
 
 Type: belongs_to
@@ -390,6 +419,26 @@ __PACKAGE__->belongs_to(
   },
 );
 
+=head2 old_issue
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::OldIssue>
+
+=cut
+
+__PACKAGE__->belongs_to(
+  "old_issue",
+  "Koha::Schema::Result::OldIssue",
+  { issue_id => "old_issue_id" },
+  {
+    is_deferrable => 1,
+    join_type     => "LEFT",
+    on_delete     => "SET NULL",
+    on_update     => "CASCADE",
+  },
+);
+
 =head2 register
 
 Type: belongs_to
@@ -411,8 +460,28 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2025-09-11 13:46:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:zdKvdDfSOdPKUFMB1qKlww
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:54
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ghqnRsKHxkIBKVWdwW+Prw
+
+=head2 patron
+
+Type: belongs_to
+
+Related object: L<Koha::Schema::Result::Borrower>
+
+=cut
+
+__PACKAGE__->belongs_to(
+    "patron",
+    "Koha::Schema::Result::Borrower",
+    { borrowernumber => "borrowernumber" },
+    {
+        is_deferrable => 1,
+        join_type     => "LEFT",
+        on_delete     => "SET NULL",
+        on_update     => "CASCADE",
+    },
+);
 
 =head2 library
 

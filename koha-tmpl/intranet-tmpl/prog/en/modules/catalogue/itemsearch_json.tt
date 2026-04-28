@@ -1,10 +1,10 @@
 {
-  "sEcho": [% sEcho | html %],
-  "iTotalRecords": [% total_rows | html %],
-  "iTotalDisplayRecords": [% total_rows | html %],
-  "aaData": [
+  "draw": [% draw | html %],
+  "recordsTotal": [% total_rows | html %],
+  "recordsFiltered": [% total_rows | html %],
+  "data": [
   [%- FOREACH item IN results -%]
-    [%- INCLUDE 'catalogue/itemsearch_item.json.inc' item = item -%]
+    [%- INCLUDE 'catalogue/itemsearch_item.json.inc' item = item, user = user -%]
     [%- UNLESS loop.last %],[% END -%]
   [%- END -%]
   ]

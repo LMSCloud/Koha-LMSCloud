@@ -46,8 +46,10 @@ sub list {
 
     return try {
 
-        my $only_active = delete $c->validation->output->{only_active};
-        my $order_id    = delete $c->validation->output->{order_id};
+        my $only_active = $c->param('only_active');
+        my $order_id    = $c->param('order_id');
+
+        $c->req->params->remove('only_active')->remove('order_id');
 
         my $orders_rs;
 
@@ -93,21 +95,15 @@ Controller function that handles retrieving a single Koha::Acquisition::Order ob
 sub get {
     my $c = shift->openapi->valid_input or return;
 
-    my $order = Koha::Acquisition::Orders->find( $c->validation->param('order_id') );
+    my $order = Koha::Acquisition::Orders->find( $c->param('order_id') );
 
-    unless ($order) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Order not found" }
-        );
-    }
+    return $c->render_resource_not_found("Order")
+        unless $order;
 
     return try {
-        my $embed = $c->stash('koha.embed');
-
         return $c->render(
             status  => 200,
-            openapi => $order->to_api({ embed => $embed })
+            openapi => $c->objects->to_api( $order ),
         );
     }
     catch {
@@ -125,7 +121,7 @@ sub add {
     my $c = shift->openapi->valid_input or return;
 
     return try {
-        my $order = Koha::Acquisition::Order->new_from_api( $c->validation->param('body') );
+        my $order = Koha::Acquisition::Order->new_from_api( $c->req->json );
         $order->store->discard_changes;
 
         $c->res->headers->location(
@@ -134,7 +130,7 @@ sub add {
 
         return $c->render(
             status  => 201,
-            openapi => $order->to_api
+            openapi => $c->objects->to_api( $order ),
         );
     }
     catch {
@@ -158,22 +154,18 @@ Controller function that handles updating a Koha::Acquisition::Order object
 sub update {
     my $c = shift->openapi->valid_input or return;
 
-    my $order = Koha::Acquisition::Orders->find( $c->validation->param('order_id') );
+    my $order = Koha::Acquisition::Orders->find( $c->param('order_id') );
 
-    unless ($order) {
-        return $c->render(
-            status  => 404,
-            openapi => { error => "Order not found" }
-        );
-    }
+    return $c->render_resource_not_found("Order")
+        unless $order;
 
     return try {
-        $order->set_from_api( $c->validation->param('body') );
+        $order->set_from_api( $c->req->json );
         $order->store()->discard_changes;
 
         return $c->render(
             status  => 200,
-            openapi => $order->to_api
+            openapi => $c->objects->to_api( $order ),
         );
     }
     catch {
@@ -183,53 +175,33 @@ sub update {
 
 =head3 delete
 
-Controller function that handles deleting a Koha::Patron object
+Controller function that handles deleting a Koha::Acquisition::Order object
+
+Note that we only allow deletion when the status is cancelled.
 
 =cut
 
 sub delete {
     my $c = shift->openapi->valid_input or return;
 
-    my $order = Koha::Acquisition::Orders->find( $c->validation->param('order_id') );
+    my $order = Koha::Acquisition::Orders->find( $c->param('order_id') );
 
     unless ($order) {
+        return $c->render_resource_not_found("Order");
+    } elsif ( ( $order->orderstatus && $order->orderstatus ne 'cancelled' ) || !$order->datecancellationprinted ) {
+        # Koha may (historically) have inconsistent order data here (e.g. cancelled without date)
         return $c->render(
-            status  => 404,
-            openapi => { error => 'Order not found' }
+            status  => 409,
+            openapi => { error => 'Order status must be cancelled' }
         );
     }
 
     return try {
-
         $order->delete;
-
-        return $c->render(
-            status  => 204,
-            openapi => q{}
-        );
-    }
-    catch {
+        return $c->render_resource_deleted;
+    } catch {
         $c->unhandled_exception($_);
     };
-}
-
-=head2 Internal methods
-
-=head3 table_name_fixer
-
-    $q = $c->table_name_fixer( $q );
-
-The Koha::Biblio representation includes the biblioitem.* attributes. This is handy
-for API consumers but as they are different tables, converting the queries that mention
-biblioitem columns can be tricky. This method renames known column names as used on Koha's
-UI.
-
-=cut
-
-sub table_name_fixer {
-    my ( $self, $q ) = @_;
-    $q =~ s/biblio\.(?=isbn|ean|publisher)/biblio.biblioitem./g;
-    return $q;
 }
 
 1;

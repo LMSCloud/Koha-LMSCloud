@@ -1,7 +1,7 @@
 [% USE raw %]
 [% USE Koha %]
 [% Asset.js("lib/codemirror/codemirror.min.js") | $raw %]
-[% Asset.js("lib/filesaver.js") | $raw %]
+[% Asset.js("lib/filesaver/FileSaver.min.js") | $raw %]
 [% Asset.css("lib/keyboard/css/keyboard.min.css") | $raw %]
 [% Asset.js("lib/keyboard/js/jquery.keyboard.js") | $raw %]
 [% Asset.js("lib/keyboard/languages/all.min.js") | $raw %]
@@ -29,7 +29,7 @@ require.config( {
             themelang: '[% themelang | html %]',
         },
     },
-    waitSeconds: 30,
+    waitSeconds: 0,
 } );
 </script>
 
@@ -200,38 +200,27 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
     }
 
     function getFieldHelpURL( tag ) {
-        [% IF Koha.Preference('marcfielddocurl') %]
-            var docurl = "[% Koha.Preference('marcfielddocurl').replace('"','&quot;') | html %]";
+        [% IF Koha.Preference('MarcFieldDocURL') %]
+            var docurl = "[% Koha.Preference('MarcFieldDocURL').replace('"','&quot;') | html %]";
             docurl = docurl.replace("{MARC}", "[% marcflavour | html %]");
             docurl = docurl.replace("{FIELD}", ""+tag);
             docurl = docurl.replace("{LANG}", "[% lang | html %]");
             return docurl;
         [% ELSIF ( marcflavour == 'MARC21' ) %]
             if ( tag == '000' ) {
-                return "http://www.loc.gov/marc/bibliographic/bdleader.html";
+                return "https://www.loc.gov/marc/bibliographic/bdleader.html";
             } else if ( tag >= '090' && tag < '100' ) {
-                return "http://www.loc.gov/marc/bibliographic/bd09x.html";
+                return "https://www.loc.gov/marc/bibliographic/bd09x.html";
             } else if ( tag < '900' ) {
-                return "http://www.loc.gov/marc/bibliographic/bd" + tag + ".html";
+                return "https://www.loc.gov/marc/bibliographic/bd" + tag + ".html";
             } else {
-                return "http://www.loc.gov/marc/bibliographic/bd9xx.html";
+                return "https://www.loc.gov/marc/bibliographic/bd9xx.html";
             }
         [% ELSIF ( marcflavour == 'UNIMARC' ) %]
-            /* http://archive.ifla.org/VI/3/p1996-1/ is an outdated version of UNIMARC, but
-               seems to be the only version available that can be linked to per tag.  More recent
-               versions of the UNIMARC standard are available on the IFLA website only as
-               PDFs!
+            /* IFLA no longer provides field-level pages for the UNIMARC format
+               (as at December 2024).
             */
-            if ( tag == '000' ) {
-               return  "http://archive.ifla.org/VI/3/p1996-1/uni.htm";
-            } else {
-                var first = tag[0];
-                var url = "http://archive.ifla.org/VI/3/p1996-1/uni" + first + ".htm#";
-                if ( first == '0' ) url += "b";
-                if ( first != '9' ) url += tag;
-
-                return url;
-            }
+            return "https://www.ifla.org/g/unimarc-rg/unimarc-updates/";
         [% END %]
     }
 
@@ -367,7 +356,7 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
         $.each( backend.links || [], function( i, link ) {
             $('#title').append(' <a target="_blank" href="' + link.href.replace( '{ID}', parts[1] ) + '">(' + link.title + ')</a>' );
         } );
-        $( 'title', document.head ).html( _("Koha &rsaquo; Cataloging &rsaquo; ") + backend.titleForRecord.replace( '{ID}', parts[1] ) );
+        $( 'title', document.head ).html( backend.titleForRecord.replace( '{ID}', parts[1] ) + " &rsaquo; " + _("Cataloging") + " &rsaquo; " + _("Koha") );
         $('#save-record span').text( backends[ state.saveBackend ].saveLabel );
     }
 
@@ -423,6 +412,10 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
             if ( !record.error ) {
                 var remove_control_num = [% IF Koha.Preference('autoControlNumber') == 'OFF' %] false [% ELSE %] true [% END %];
                 if( remove_control_num ){ record.removeField("001"); }
+                if( parts[0] === 'duplicate' ) {
+                    let today = new Date();
+                    record.field('008').subfield('@', today.toISOString().substring(2,10).replaceAll('-','') + record.field('008').subfield('@').substring(6));
+                }
                 editor.displayRecord( record );
                 editor.focus();
             }
@@ -445,7 +438,7 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
     function showAdvancedSearch() {
         $('#advanced-search-servers').empty();
         $.each( z3950Servers, function( index, server ) {
-            $('#advanced-search-servers').append( '<li data-server-id="' + index + '"><label><input class="search-toggle-server" type="checkbox"' + ( server.checked ? ' checked="checked">' : '>' ) + server.name + '</label></li>' );
+            $('#advanced-search-servers').append( '<li data-server-id="' + server.server_id + '"><label><input class="search-toggle-server" type="checkbox"' + ( server.checked ? ' checked="checked">' : '>' ) + server.name + '</label></li>' );
         } );
         $('#advanced-search-ui').modal('show');
     }
@@ -507,7 +500,7 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
                 num_fetched += '+';
             }
 
-            $('#search-serversinfo').append( '<li data-server-id="' + index + '"><label><input class="search-toggle-server" type="checkbox"' + ( server.checked ? ' checked="checked">' : '>' ) + server.name + ' (' + num_fetched + ')' + '</label></li>' );
+            $('#search-serversinfo').append( '<li data-server-id="' + server.server_id + '"><label><input class="search-toggle-server" type="checkbox"' + ( server.checked ? ' checked="checked">' : '>' ) + server.name + ' (' + num_fetched + ')' + '</label></li>' );
         } );
 
         var seenColumns = {};
@@ -610,22 +603,22 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
         var max_page = Math.ceil( data.total_fetched / data.page_size ) - 1;
 
         if ( cur_page != 0 ) {
-            pages.push( '<li><a class="search-nav" href="#" data-offset="' + (data.offset - data.page_size) + '"><span aria-hidden="true">&laquo;</span> ' + _("Previous") + '</a></li>' );
+            pages.push( '<li class="page-item"><a class="page-link search-nav" href="#" data-offset="' + (data.offset - data.page_size) + '"><span aria-hidden="true">&laquo;</span> ' + _("Previous") + '</a></li>' );
         }
 
         for ( var page = Math.max( 0, cur_page - 9 ); page <= Math.min( max_page, cur_page + 9 ); page++ ) {
             if ( page == cur_page ) {
-                pages.push( ' <li class="active"><a href="#">' + ( page + 1 ) + '</a></li>' );
+                pages.push( ' <li class="page-item active" aria-current="page"><span class="page-link">' + ( page + 1 ) + '</span></li>' );
             } else {
-                pages.push( ' <li><a class="search-nav" href="#" data-offset="' + ( page * data.page_size ) + '">' + ( page + 1 ) + '</a></li>' );
+                pages.push( ' <li class="page-item"><a class="page-link search-nav" href="#" data-offset="' + ( page * data.page_size ) + '">' + ( page + 1 ) + '</a></li>' );
             }
         }
 
         if ( cur_page < max_page ) {
-            pages.push( ' <li><a class="search-nav" href="#" data-offset="' + (data.offset + data.page_size) + '">' + _("Next") + ' <span aria-hidden="true">&raquo;</span></a></li>' );
+            pages.push( ' <li class="page-item"><a class="page-link search-nav" href="#" data-offset="' + (data.offset + data.page_size) + '">' + _("Next") + ' <span aria-hidden="true">&raquo;</span></a></li>' );
         }
 
-        $( '#search-top-pages, #search-bottom-pages' ).find( 'nav' ).html( pages.length > 1 ? ( '<ul class="pagination pagination-sm">' + pages.join( '' ) + '</ul>' ) : '' );
+        $( '#search-top-pages, #search-bottom-pages' ).find( 'nav' ).html( pages.length > 1 ? ( '<ul class="pagination">' + pages.join( '' ) + '</ul>' ) : '' );
 
         var $overlay = $('#search-overlay');
         $overlay.find('span').text(_("Loading"));
@@ -878,7 +871,7 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
             $("#macro-toolbar").prepend($convert);
         }
         let options = {
-            url: "/api/v1/advanced_editor/macros/",
+            url: "/api/v1/advanced_editor/macros/?_per_page=-1",
             method: "GET",
             contentType: "application/json",
         };
@@ -976,6 +969,20 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
             });
     }
 
+    function changeEditor() {
+            if ( !confirm( _("Any changes will not be saved. Continue?") ) ) return;
+
+            Cookies.set( "catalogue_editor_[% logged_in_user.borrowernumber | html %]", "basic", { expires: 365, path: '/', sameSite: 'Lax'} );
+
+            if ( state.backend == 'catalog' ) {
+                window.location = '/cgi-bin/koha/cataloguing/addbiblio.pl?biblionumber=' + state.recordID;
+            } else if ( state.backend == 'new' ) {
+                window.location = '/cgi-bin/koha/cataloguing/addbiblio.pl';
+            } else {
+                humanMsg.displayAlert( _("Cannot open this record in the basic editor"), { className: 'humanError' } );
+            }
+    }
+
     $(".macro_shared").change(function(){
         if(this.checked){
             saveMacro(true);
@@ -987,6 +994,7 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
     // END Macro functions
 
     $(document).ready( function() {
+
         // Editor setup
         editor = new MARCEditor( {
             onCursorActivity: function() {
@@ -1081,7 +1089,7 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
         } );
         saveableBackends.sort();
         $.each( saveableBackends, function( undef, backend ) {
-            $( '#save-dropdown' ).append( '<li><a href="#" data-backend="' + backend[1] + '">' + backend[0] + '</a></li>' );
+            $( '#save-dropdown' ).append( '<li><a class="dropdown-item" href="#" data-backend="' + backend[1] + '">' + backend[0] + '</a></li>' );
         } );
 
         // Click bindings
@@ -1132,7 +1140,7 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
                     }
                 } );
 
-                $( '#save-record' ).find('i').attr( 'class', 'fa fa-hdd-o' );
+                $( '#save-record' ).find('i').attr( 'class', 'fa-solid fa-hard-drive' );
 
                 if ( result.error ) {
                     // Reset backend info
@@ -1223,18 +1231,12 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
             return false;
         } );
 
+        $( '#toggleEditor' ).change( function() {
+            changeEditor();
+        });
+
         $( '#switch-editor' ).click( function() {
-            if ( !confirm( _("Any changes will not be saved. Continue?") ) ) return;
-
-            Cookies.set( "catalogue_editor_[% logged_in_user.borrowernumber | html %]", "basic", { expires: 365, path: '/', sameSite: 'Lax'} );
-
-            if ( state.backend == 'catalog' ) {
-                window.location = '/cgi-bin/koha/cataloguing/addbiblio.pl?biblionumber=' + state.recordID;
-            } else if ( state.backend == 'new' ) {
-                window.location = '/cgi-bin/koha/cataloguing/addbiblio.pl';
-            } else {
-                humanMsg.displayAlert( _("Cannot open this record in the basic editor"), { className: 'humanError' } );
-            }
+            changeEditor();
         } );
 
         $( '#show-advanced-search' ).click( function() {
@@ -1276,7 +1278,8 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
         });
 
         $( document ).on( 'change', 'input.search-toggle-server', function() {
-            var server = z3950Servers[ $( this ).closest('li').data('server-id') ];
+            const id = $( this ).closest('li').data('server-id');
+            const server = z3950Servers.find(server => server.server_id === id);
             server.checked = this.checked;
 
             if ( $('#search-results-ui').is( ':visible' ) && Search.Fetch() ) {
@@ -1316,13 +1319,16 @@ require( [ 'koha-backend', 'search', 'macros', 'marc-editor', 'marc-record', 'pr
             },
         });
 
+        var popDefaults = $.fn.popover.Constructor.Default;
+
         // Whitelist table elements to ensure popover displays all the info
-        $.fn.popover.Constructor.DEFAULTS.whiteList.table = [];
-        $.fn.popover.Constructor.DEFAULTS.whiteList.tr = [];
-        $.fn.popover.Constructor.DEFAULTS.whiteList.td = [];
-        $.fn.popover.Constructor.DEFAULTS.whiteList.div = [];
-        $.fn.popover.Constructor.DEFAULTS.whiteList.tbody = [];
-        $.fn.popover.Constructor.DEFAULTS.whiteList.thead = [];
+        $.fn.popover.Constructor.Default.allowList.tr = [];
+        $.fn.popover.Constructor.Default.allowList.table = [];
+        $.fn.popover.Constructor.Default.allowList.td = [];
+        $.fn.popover.Constructor.Default.allowList.th = [];
+        $.fn.popover.Constructor.Default.allowList.div = [];
+        $.fn.popover.Constructor.Default.allowList.tbody = [];
+        $.fn.popover.Constructor.Default.allowList.thead = [];
         // https://getbootstrap.com/docs/3.4/javascript/#popovers
 
         $('#show-shortcuts').popover({

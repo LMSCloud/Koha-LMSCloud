@@ -41,6 +41,7 @@ use Koha::CsvProfiles;
 use Koha::Patrons;
 
 use Koha::AdditionalFields;
+use Koha::Old::Biblios;
 
 =head1 NAME
 
@@ -93,7 +94,17 @@ my $bookseller = Koha::Acquisition::Booksellers->find( $booksellerid );
 my $schema = Koha::Database->new()->schema();
 my $rs = $schema->resultset('VendorEdiAccount')->search(
     { vendor_id => $booksellerid, } );
-$template->param( ediaccount => ($rs->count > 0));
+my $ediaccount = ( $rs->count > 0 );
+$template->param( ediaccount => $ediaccount );
+if ($ediaccount) {
+    my @eans = $schema->resultset('EdifactEan')->search(
+        {},
+        {
+            join => 'branch',
+        }
+    );
+    $template->param( eans => \@eans );
+}
 
 unless (CanUserManageBasket($loggedinuser, $basket, $userflags)) {
     $template->param(
@@ -118,7 +129,22 @@ $template->param( skip_confirm_reopen => 1) if $confirm_pref eq '2';
 
 my @messages;
 
-if ( $op eq 'delete_confirm' ) {
+if ( $op eq 'cud-delete-order' ) {
+    output_and_exit( $query, $cookie, $template, 'insufficient_permission' )
+        unless $logged_in_patron->has_permission( { acquisition => 'order_manage' } );
+
+    # We only allow deleting cancelled line without biblionumber for now
+    my $ordernumber = $query->param('ordernumber');
+    my $order       = Koha::Acquisition::Orders->search(
+        {
+            biblionumber => undef,
+            ordernumber  => $ordernumber, orderstatus => 'cancelled'
+        }
+    );
+    $order->delete if $order;
+    $op = 'list';
+
+} elsif ( $op eq 'cud-delete' ) {
 
     output_and_exit( $query, $cookie, $template, 'insufficient_permission' )
       unless $logged_in_patron->has_permission( { acquisition => 'delete_baskets' } );
@@ -127,7 +153,7 @@ if ( $op eq 'delete_confirm' ) {
     my $delbiblio  = $query->param('delbiblio');
     my $basket_obj = Koha::Acquisition::Baskets->find($basketno);
 
-    my $orders = $basket_obj->orders->filter_by_current;
+    my $orders = $basket_obj->orders->filter_out_cancelled;
 
     my @cannotdelbiblios;
 
@@ -144,7 +170,7 @@ if ( $op eq 'delete_confirm' ) {
                 biblionumber  => $biblio->id,
                 title         => $biblio->title // '',
                 author        => $biblio->author // '',
-                countbiblio   => $biblio->active_orders->count,
+                countbiblio   => $biblio->uncancelled_orders->count,
                 itemcount     => $biblio->items->count,
                 subscriptions => $biblio->subscriptions->count,
             };
@@ -170,7 +196,7 @@ if ( $op eq 'delete_confirm' ) {
     my $csv_profile_id = $query->param('csv_profile');
     print GetBasketAsCSV( scalar $query->param('basketno'), $query, $csv_profile_id ); # if no csv_profile_id passed, using default rows
     exit;
-} elsif ($op eq 'email') {
+} elsif ($op eq 'cud-email') {
     my $err = eval {
         SendAlerts( 'orderacquisition', scalar $query->param('basketno'), 'ACQORDER' );
     };
@@ -183,7 +209,7 @@ if ( $op eq 'delete_confirm' ) {
     }
 
     $op = 'list';
-} elsif ($op eq 'close') {
+} elsif ($op eq 'cud-close') {
     my $confirm = $query->param('confirm') || $confirm_pref eq '2';
     if ($confirm) {
 
@@ -221,19 +247,20 @@ if ( $op eq 'delete_confirm' ) {
         basketgroupname => $basket->{'basketname'},
     );
     }
-} elsif ($op eq 'reopen') {
+} elsif ($op eq 'cud-reopen') {
     ReopenBasket(scalar $query->param('basketno'));
     print $query->redirect('/cgi-bin/koha/acqui/basket.pl?basketno='.$basket->{'basketno'})
 }
-elsif ( $op eq 'ediorder' ) {
+elsif ( $op eq 'cud-ediorder' ) {
+    $template->param( booksellername => $bookseller->name );
     edi_close_and_order()
-} elsif ( $op eq 'mod_users' ) {
+} elsif ( $op eq 'cud-mod_users' ) {
     my $basketusers_ids = $query->param('users_ids');
     my @basketusers = split( /:/, $basketusers_ids );
     ModBasketUsers($basketno, @basketusers);
     print $query->redirect("/cgi-bin/koha/acqui/basket.pl?basketno=$basketno");
     exit;
-} elsif ( $op eq 'mod_branch' ) {
+} elsif ( $op eq 'cud-mod_branch' ) {
     my $branch = $query->param('branch');
     $branch = undef if(defined $branch and $branch eq '');
     ModBasket({
@@ -426,9 +453,8 @@ if ( $op eq 'list' ) {
         duplinbatch          => $duplinbatch,
         csv_profiles         => Koha::CsvProfiles->search({ type => 'sql', used_for => 'export_basket' }),
         available_additional_fields => Koha::AdditionalFields->search( { tablename => 'aqbasket' } ),
-        additional_field_values => { map {
-            $_->field->name => $_->value
-        } Koha::Acquisition::Baskets->find($basketno)->additional_field_values->as_list },
+        additional_field_values =>
+            Koha::Acquisition::Baskets->find($basketno)->get_additional_field_values_for_template,
     );
 }
 
@@ -450,6 +476,8 @@ sub get_order_infos {
     $line{order_received} = ( $qty == $order->{'quantityreceived'} && ( $basket->{is_standing} ? $qty : 1 ) );
     $line{basketno}       = $basketno;
     $line{budget_name}    = $budget->{budget_name};
+    $line{sort1_authcat}  = $budget->{sort1_authcat};
+    $line{sort2_authcat}  = $budget->{sort2_authcat};
 
     # If we have an actual cost that should be the total, otherwise use the ecost
     $line{unitprice_tax_included} += 0;
@@ -471,29 +499,35 @@ sub get_order_infos {
     my $biblionumber = $order->{'biblionumber'};
     if ( $biblionumber ) { # The biblio still exists
         my $biblio = Koha::Biblios->find( $biblionumber );
-        my $countbiblio = $biblio->active_orders->count;
+        my $countbiblio = $biblio->uncancelled_orders->count;
 
-        my $ordernumber = $order->{'ordernumber'};
+        my $ordernumber       = $order->{'ordernumber'};
         my $cnt_subscriptions = $biblio->subscriptions->count;
-        my $itemcount   = $biblio->items->count;
-        my $holds_count = $biblio->holds->count;
-        my $order = Koha::Acquisition::Orders->find($ordernumber); # FIXME We should certainly do that at the beginning of this sub
-        my $items = $order->items;
+        my $itemcount         = $biblio->items->count;
+        my $holds_count       = $biblio->holds->count;
+        my $order             = Koha::Acquisition::Orders->find($ordernumber);    # FIXME We should certainly do that at the beginning of this sub
+        my $items   = $order->items;
+        my $invoice = $order->invoice;
+
         my $itemholds  = $biblio->holds->search({ itemnumber => { -in => [ $items->get_column('itemnumber') ] } })->count;
 
         # if the biblio is not in other orders and if there is no items elsewhere and no subscriptions and no holds we can then show the link "Delete order and Biblio" see bug 5680
-        $line{can_del_bib}          = 1 if $countbiblio <= 1 && $itemcount == $items->count && !($cnt_subscriptions) && !($holds_count);
-        $line{items}                = $itemcount - $items->count;
-        $line{left_item}            = 1 if $line{items} >= 1;
-        $line{left_biblio}          = 1 if $countbiblio > 1;
-        $line{biblios}              = $countbiblio - 1;
-        $line{left_subscription}    = 1 if $cnt_subscriptions;
-        $line{subscriptions}        = $cnt_subscriptions;
-        ($holds_count >= 1) ? $line{left_holds} = 1 : $line{left_holds} = 0;
-        $line{left_holds_on_order}  = 1 if $line{left_holds}==1 && ($line{items} == 0 || $itemholds );
-        $line{holds}                = $holds_count;
-        $line{holds_on_order}       = $itemholds?$itemholds:$holds_count if $line{left_holds_on_order};
-        $line{order_object}         = $order;
+        $line{can_del_bib} = 1
+            if $countbiblio <= 1 && $itemcount == $items->count && !($cnt_subscriptions) && !($holds_count);
+        $line{items}             = $itemcount - $items->count;
+        $line{left_item}         = 1 if $line{items} >= 1;
+        $line{left_biblio}       = 1 if $countbiblio > 1;
+        $line{biblios}           = $countbiblio - 1;
+        $line{left_subscription} = 1 if $cnt_subscriptions;
+        $line{subscriptions}     = $cnt_subscriptions;
+        ( $holds_count >= 1 ) ? $line{left_holds} = 1 : $line{left_holds} = 0;
+        $line{left_holds_on_order} = 1 if $line{left_holds} == 1 && ( $line{items} == 0 || $itemholds );
+        $line{holds}               = $holds_count;
+        $line{holds_on_order}      = $itemholds ? $itemholds : $holds_count if $line{left_holds_on_order};
+        $line{order_object}        = $order;
+        $line{invoice_object}      = $invoice;
+    } else {
+        $line{deleted_biblio} = Koha::Old::Biblios->find( $order->{deleted_biblionumber} );
     }
 
     my $suggestion   = GetSuggestionInfoFromBiblionumber($line{biblionumber});
@@ -570,16 +604,20 @@ sub edi_close_and_order {
         exit;
     }
     else {
+
+        my $ean_description = $query->param('ean_description');
+        my $ean_branch      = $query->param('ean_branch');
+
         $template->param(
             edi_confirm     => 1,
             booksellerid    => $booksellerid,
             basketno        => $basket->{basketno},
             basketname      => $basket->{basketname},
             basketgroupname => $basket->{basketname},
+            ean             => $ean             ? $ean             : '',
+            ean_description => $ean_description ? $ean_description : '',
+            ean_branch      => $ean_branch      ? $ean_branch      : '',
         );
-        if ($ean) {
-            $template->param( ean => $ean );
-        }
 
     }
     return;

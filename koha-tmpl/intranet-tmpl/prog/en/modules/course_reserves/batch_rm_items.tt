@@ -1,8 +1,14 @@
+[% USE raw %]
+[% USE Koha %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Remove reserves &rsaquo; Course reserves &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% t("Remove reserves") | html %] &rsaquo;
+    [% t("Course reserves") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="courses_rm_items" class="course">
@@ -24,11 +30,13 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-md-8 col-md-offset-2">
+        <div class="col-md-8 offset-md-2">
+            [% INCLUDE 'messages.inc' %]
             <h1>Batch remove reserves</h1>
         [% IF action == 'display_form' %]
             <form method="post" action="/cgi-bin/koha/course_reserves/batch_rm_items.pl">
-                <input type="hidden" name="action" value="batch_rm" />
+                [% INCLUDE 'csrf-token.inc' %]
+                <input type="hidden" name="op" value="cud-batch_rm" />
                 <fieldset class="rows">
                     <legend>Remove items: scan barcodes</legend>
                     <ol>

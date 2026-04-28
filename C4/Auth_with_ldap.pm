@@ -207,7 +207,7 @@ sub checkpw_ldap {
     my $patron;
     if (( $borrowernumber and $config{update}   ) or
         (!$borrowernumber and $config{replicate})   ) {
-        %borrower = ldap_entry_2_hash($userldapentry,$userid);
+        %borrower = ldap_entry_2_hash($userldapentry,$cardnumber);
         #warn "checkpw_ldap received \%borrower w/ " . keys(%borrower), " keys: ", join(' ', keys %borrower), "\n";
     }
 
@@ -227,6 +227,7 @@ sub checkpw_ldap {
                 map { exists( $borrower{$_} ) ? ( $_ => $borrower{$_} ) : () } @columns
             }
         )->store;
+        $patron->discard_changes;
         die "Insert of new patron failed" unless $patron;
         $borrowernumber = $patron->borrowernumber;
         C4::Members::Messaging::SetMessagingPreferencesFromDefaults(
@@ -264,7 +265,7 @@ sub checkpw_ldap {
                     }
                 );
 
-                C4::Letters::SendQueuedMessages( { message_id => $message_id } );
+                C4::Letters::SendQueuedMessages( { message_id => $message_id } ) if $message_id;
             }
         }
    } else {

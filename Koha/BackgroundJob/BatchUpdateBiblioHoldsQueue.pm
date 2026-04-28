@@ -59,13 +59,7 @@ sub process {
 
     my $schema = Koha::Database->new->schema;
 
-    $self->set(
-        {
-            started_on => \'NOW()',
-            progress   => 0,
-            status     => 'started',
-        }
-    )->store;
+    $self->start;
 
     my @biblio_ids = @{ $args->{biblio_ids} };
 
@@ -116,21 +110,14 @@ sub process {
             $schema->storage->txn_rollback;
         };
 
-        $self->progress( $self->progress + 1 )->store;
+        $self->step;
     }
 
-    my $json = $self->json;
-    my $job_data = $json->decode($self->data);
-    $job_data->{messages} = \@messages;
-    $job_data->{report}   = $report;
+    my $data = $self->decoded_data;
+    $data->{messages} = \@messages;
+    $data->{report} = $report;
 
-    $self->set(
-        {
-            ended_on => \'NOW()',
-            data     => $json->encode($job_data),
-            status   => 'finished',
-        }
-    )->store;
+    $self->finish( $data );
 }
 
 =head3 enqueue
@@ -141,6 +128,8 @@ Enqueue the new job
 
 sub enqueue {
     my ( $self, $args ) = @_;
+
+    return if !C4::Context->preference('RealTimeHoldsQueue');    #TODO Remove check from callers
 
     Koha::Exceptions::MissingParameter->throw(
         "Missing biblio_ids parameter is mandatory")

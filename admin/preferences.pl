@@ -32,7 +32,7 @@ use Koha::Database::Columns;
 use IO::File;
 use YAML::XS;
 use Encode;
-use List::MoreUtils qw( any );
+use List::MoreUtils qw( any uniq );
 
 sub GetTab {
     my ( $input, $tab ) = @_;
@@ -59,12 +59,18 @@ sub _get_chunk {
     if( $options{'syntax'} ){
         $chunk->{'syntax'} = $options{'syntax'};
     }
-
-    if( $options{'type'} && $options{'type'} eq 'modalselect' ){
-        $chunk->{'source'} = $options{'source'};
-        $chunk->{'exclusions'} = $options{'exclusions'} // "";
-        $chunk->{'required'} = $options{'required'} // "";
-        $chunk->{'type'} = 'modalselect';
+    if ( $options{'type'} ) {
+        if ( $options{'type'} eq 'modalselect' ) {
+            $chunk->{'source'}     = $options{'source'};
+            $chunk->{'exclusions'} = $options{'exclusions'} // "";
+            $chunk->{'inclusions'} = $options{'inclusions'} // "";
+            $chunk->{'required'}   = $options{'required'} // "";
+            $chunk->{'type'}       = 'modalselect';
+        } elsif ( $options{'type'} eq 'modaljs' ) {
+            $chunk->{'type'}      = 'modaljs';
+            $chunk->{'initiator'} = $options{'initiator'};
+            $chunk->{'processor'} = $options{'processor'};
+        }
     }
 
     if ( $options{'class'} && $options{'class'} eq 'password' ) {
@@ -87,7 +93,7 @@ sub _get_chunk {
             $interface = 'intranet';
             $theme     = C4::Context->preference('template');
         }
-        $chunk->{'languages'} = getTranslatedLanguages( $interface, $theme, undef, $current_languages );
+        $chunk->{'languages'} = getTranslatedLanguages( $interface, $theme );
         $chunk->{'type'} = 'languages';
     } elsif ( $options{ 'choices' } ) {
         my $add_blank;
@@ -102,6 +108,11 @@ sub _get_chunk {
             } elsif ( $options{choices} eq 'patron-categories' ) {
                 $options{choices} = { map { $_->categorycode => $_->description } Koha::Patron::Categories->search->as_list };
                 $add_blank = 1;
+            } elsif ( $options{'choices'} eq 'authval' ){
+                if( $options{'source'} ){
+                    $options{'choices'} = { map { $_->authorised_value => $_->lib } Koha::AuthorisedValues->search( { category => $options{'source'} } )->as_list };
+                    $add_blank = 1;
+                }
             } else {
                 die 'Unrecognized source of preference values: ' . $options{'choices'};
             }
@@ -150,7 +161,24 @@ sub _get_chunk {
               }
               keys %{ $options{multiple} }
         ];
+    } elsif ( $options{'multiple_sortable'} ) {
+        my @values;
+        @values = split /,/, $value if defined($value);
+        $chunk->{type}    = 'multiple_sortable';
+        my @options = sort keys %{ $options{multiple_sortable} };
+        $chunk->{CHOICES} = [
+              map {
+                my $option_value = $_;
+                {
+                    text     => $options{multiple_sortable}->{$option_value},
+                    value    => $option_value,
+                    selected => (grep { $_ eq $option_value } @values) ? 1 : 0,
+                }
+              }
+              uniq(@values, @options)
+        ];
     }
+
 
     $chunk->{ 'type_' . $chunk->{'type'} } = 1;
 
@@ -227,7 +255,7 @@ sub TransformPrefsToHTML {
                         if ( $minor % 2 ) {
                             $piece =~ s|__VERSION__|${major}_${minor}|g;
                         } else {
-                            $piece =~ s|__VERSION__|master|g;
+                            $piece =~ s|__VERSION__|main|g;
                         }
                     }
                     push @chunks, { type_text => 1, contents => $piece };
@@ -347,7 +375,7 @@ $tab ||= 'accounting'; # Ideally this should be "local-use" but preferences.pl
 
 my $highlighted;
 
-if ( $op eq 'save' ) {
+if ( $op eq 'cud-save' ) {
     output_and_exit_if_error($input, $cookie, $template, { check => 'csrf_token' });
     foreach my $param ( $input->param() ) {
         my ( $pref ) = ( $param =~ /pref_(.*)/ );

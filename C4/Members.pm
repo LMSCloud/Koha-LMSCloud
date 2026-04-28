@@ -45,17 +45,9 @@ BEGIN {
     require Exporter;
     @ISA = qw(Exporter);
     @EXPORT_OK = qw(
-      GetAllIssues
-
       GetBorrowersToExpunge
 
       IssueSlip
-
-      get_cardnumber_length
-      checkcardnumber
-
-      DeleteUnverifiedOpacRegistrations
-      DeleteExpiredOpacRegistrations
     );
 }
 
@@ -143,13 +135,13 @@ sub patronflags {
     my $dbh=C4::Context->dbh;
     my $patron = Koha::Patrons->find( $patroninformation->{borrowernumber} );
     my $account = $patron->account;
-    my $owing = $account->non_issues_charges;
-    if ( $owing > 0 ) {
+    my $patron_charge_limits = $patron->is_patron_inside_charge_limits();
+    if ( $patron_charge_limits->{noissuescharge}->{charge} > 0 ) {
         my %flaginfo;
-        my $noissuescharge = C4::Context->preference("noissuescharge") || 5;
-        $flaginfo{'message'} = sprintf 'Patron owes %.02f', $owing;
-        $flaginfo{'amount'}  = sprintf "%.02f", $owing;
-        if ( $owing > $noissuescharge && !C4::Context->preference("AllowFineOverride") ) {
+        my $noissuescharge = $patron_charge_limits->{noissuescharge}->{limit} || 5;
+        $flaginfo{'message'} = sprintf 'Patron owes %.02f', $patron_charge_limits->{noissuescharge}->{charge};
+        $flaginfo{'amount'}  = sprintf "%.02f", $patron_charge_limits->{noissuescharge}->{charge};
+        if ( $patron_charge_limits->{noissuescharge}->{overlimit} && !C4::Context->preference("AllowFineOverride") ) {
             $flaginfo{'noissues'} = 1;
         }
         $flags{'CHARGES'} = \%flaginfo;
@@ -161,21 +153,14 @@ sub patronflags {
         $flags{'CREDITS'} = \%flaginfo;
     }
 
-    # Check the debt of the guarntees of this patron
-    my $no_issues_charge_guarantees = C4::Context->preference("NoIssuesChargeGuarantees");
-    $no_issues_charge_guarantees = undef unless looks_like_number( $no_issues_charge_guarantees );
+    # Check the debt of this patrons guarantees
+    my $no_issues_charge_guarantees = $patron_charge_limits->{NoIssuesChargeGuarantees}->{limit};
+    $no_issues_charge_guarantees = undef unless looks_like_number($no_issues_charge_guarantees);
     if ( defined $no_issues_charge_guarantees ) {
-        my $p = Koha::Patrons->find( $patroninformation->{borrowernumber} );
-        my @guarantees = map { $_->guarantee } $p->guarantee_relationships->as_list;
-        my $guarantees_non_issues_charges = 0;
-        foreach my $g ( @guarantees ) {
-            $guarantees_non_issues_charges += $g->account->non_issues_charges;
-        }
-
-        if ( $guarantees_non_issues_charges > $no_issues_charge_guarantees ) {
+        if ( $patron_charge_limits->{NoIssuesChargeGuarantees}->{overlimit} ) {
             my %flaginfo;
-            $flaginfo{'message'} = sprintf 'patron guarantees owe %.02f', $guarantees_non_issues_charges;
-            $flaginfo{'amount'}  = $guarantees_non_issues_charges;
+            $flaginfo{'message'} = sprintf 'patron guarantees owe %.02f', $patron_charge_limits->{NoIssuesChargeGuarantees}->{charge};
+            $flaginfo{'amount'}  = $patron_charge_limits->{NoIssuesChargeGuarantees}->{charge};
             $flaginfo{'noissues'} = 1 unless C4::Context->preference("allowfineoverride");
             $flags{'CHARGES_GUARANTEES'} = \%flaginfo;
         }
@@ -237,119 +222,6 @@ sub patronflags {
     return ( \%flags );
 }
 
-
-=head2 GetAllIssues
-
-  $issues = &GetAllIssues($borrowernumber, $sortkey, $limit);
-
-Looks up what the patron with the given borrowernumber has borrowed,
-and sorts the results.
-
-C<$sortkey> is the name of a field on which to sort the results. This
-should be the name of a field in the C<issues>, C<biblio>,
-C<biblioitems>, or C<items> table in the Koha database.
-
-C<$limit> is the maximum number of results to return.
-
-C<&GetAllIssues> an arrayref, C<$issues>, of hashrefs, the keys of which
-are the fields from the C<issues>, C<biblio>, C<biblioitems>, and
-C<items> tables of the Koha database.
-
-=cut
-
-#'
-sub GetAllIssues {
-    my ( $borrowernumber, $order, $limit ) = @_;
-
-    return unless $borrowernumber;
-    $order = 'date_due desc' unless $order;
-
-    my $dbh = C4::Context->dbh;
-    my $query =
-'SELECT issues.*, items.*, biblio.*, biblioitems.*, issues.timestamp as issuestimestamp, issues.renewals_count AS renewals,items.renewals AS totalrenewals,items.timestamp AS itemstimestamp,borrowers.firstname,borrowers.surname
-  FROM issues
-  LEFT JOIN items on items.itemnumber=issues.itemnumber
-  LEFT JOIN borrowers on borrowers.borrowernumber=issues.issuer_id
-  LEFT JOIN biblio ON items.biblionumber=biblio.biblionumber
-  LEFT JOIN biblioitems ON items.biblioitemnumber=biblioitems.biblioitemnumber
-  WHERE issues.borrowernumber=?
-  UNION ALL
-  SELECT old_issues.*, items.*, biblio.*, biblioitems.*, old_issues.timestamp as issuestimestamp, old_issues.renewals_count AS renewals,items.renewals AS totalrenewals,items.timestamp AS itemstimestamp,borrowers.firstname,borrowers.surname
-  FROM old_issues
-  LEFT JOIN items on items.itemnumber=old_issues.itemnumber
-  LEFT JOIN borrowers on borrowers.borrowernumber=old_issues.issuer_id
-  LEFT JOIN biblio ON items.biblionumber=biblio.biblionumber
-  LEFT JOIN biblioitems ON items.biblioitemnumber=biblioitems.biblioitemnumber
-  WHERE old_issues.borrowernumber=? AND old_issues.itemnumber IS NOT NULL
-  order by ' . $order;
-    if ($limit) {
-        $query .= " limit $limit";
-    }
-
-    my $sth = $dbh->prepare($query);
-    $sth->execute( $borrowernumber, $borrowernumber );
-    return $sth->fetchall_arrayref( {} );
-}
-
-sub checkcardnumber {
-    my ( $cardnumber, $borrowernumber ) = @_;
-
-    # If cardnumber is null, we assume they're allowed.
-    return 0 unless defined $cardnumber;
-
-    my $dbh = C4::Context->dbh;
-    my $query = "SELECT * FROM borrowers WHERE cardnumber=?";
-    $query .= " AND borrowernumber <> ?" if ($borrowernumber);
-    my $sth = $dbh->prepare($query);
-    $sth->execute(
-        $cardnumber,
-        ( $borrowernumber ? $borrowernumber : () )
-    );
-
-    return 1 if $sth->fetchrow_hashref;
-
-    my ( $min_length, $max_length ) = get_cardnumber_length();
-    return 2
-        if length $cardnumber > $max_length
-        or length $cardnumber < $min_length;
-
-    return 0;
-}
-
-=head2 get_cardnumber_length
-
-    my ($min, $max) = C4::Members::get_cardnumber_length()
-
-Returns the minimum and maximum length for patron cardnumbers as
-determined by the CardnumberLength system preference, the
-BorrowerMandatoryField system preference, and the width of the
-database column.
-
-=cut
-
-sub get_cardnumber_length {
-    my $borrower = Koha::Database->new->schema->resultset('Borrower');
-    my $field_size = $borrower->result_source->column_info('cardnumber')->{size};
-    my ( $min, $max ) = ( 0, $field_size ); # borrowers.cardnumber is a nullable varchar(20)
-    $min = 1 if C4::Context->preference('BorrowerMandatoryField') =~ /cardnumber/;
-    if ( my $cardnumber_length = C4::Context->preference('CardnumberLength') ) {
-        # Is integer and length match
-        if ( $cardnumber_length =~ m|^\d+$| ) {
-            $min = $max = $cardnumber_length
-                if $cardnumber_length >= $min
-                    and $cardnumber_length <= $max;
-        }
-        # Else assuming it is a range
-        elsif ( $cardnumber_length =~ m|(\d*),(\d*)| ) {
-            $min = $1 if $1 and $min < $1;
-            $max = $2 if $2 and $max > $2;
-        }
-
-    }
-    $min = $max if $min > $max;
-    return ( $min, $max );
-}
-
 =head2 GetBorrowersToExpunge
 
   $borrowers = &GetBorrowersToExpunge(
@@ -403,6 +275,7 @@ sub GetBorrowersToExpunge {
     $query .= q| WHERE  category_type <> 'S'
         AND ( borrowers.flags IS NULL OR borrowers.flags = 0 )
         AND tmp.guarantor_id IS NULL
+        AND borrowers.protected = 0
     |;
     my @query_params;
     if ( $filterbranch && $filterbranch ne "" ) {
@@ -542,7 +415,7 @@ sub IssueSlip {
                       { '>=' => $today_start, '<=' => $today_end, }
                 }
             },
-            { order_by => ['date_due', 'me.timestamp', 'issuedate' ] }
+            { order_by => [ { -desc => 'date_due' }, { -desc => 'me.timestamp' }, { -desc => 'issuedate' } ] }
         );
         my @checkouts;
         while ( my $c = $todays_checkouts->next ) {
@@ -566,7 +439,7 @@ sub IssueSlip {
     else {
         my $today = Koha::Database->new->schema->storage->datetime_parser->format_datetime( dt_from_string );
         # Checkouts due in the future
-        my $checkouts = $pending_checkouts->search({ date_due => { '>' => $today } }, { order_by => ['date_due', 'me.timestamp', 'issuedate' ] } );
+        my $checkouts = $pending_checkouts->search({ date_due => { '>' => $today } }, { order_by => [ { -desc => 'date_due' }, { -desc => 'me.timestamp' }, { -desc => 'issuedate' } ] } );
         my @checkouts; my @overdues;
         while ( my $c = $checkouts->next ) {
             my $all = $c->unblessed_all_relateds;
@@ -579,7 +452,7 @@ sub IssueSlip {
         }
 
         # Checkouts due in the past are overdues
-        my $overdues = $pending_checkouts->search({ date_due => { '<=' => $today } }, { order_by => ['date_due', 'me.timestamp', 'issuedate' ] } );
+        my $overdues = $pending_checkouts->search({ date_due => { '<=' => $today } }, { order_by => [ { -desc => 'date_due' }, { -desc => 'me.timestamp' }, { -desc => 'issuedate' } ] } );
         while ( my $o = $overdues->next ) {
             my $all = $o->unblessed_all_relateds;
             push @overdues, {
@@ -589,40 +462,24 @@ sub IssueSlip {
                 issues      => $all,
             };
         }
-        my $news = Koha::AdditionalContents->search_for_display(
+        my @news_ids = Koha::AdditionalContents->search_for_display(
             {
                 category   => 'news',
                 location   => 'slip',
                 lang       => $patron->lang,
                 library_id => $branch,
             }
-        );
-        my @news;
-        while ( my $n = $news->next ) {
-            my $all = $n->unblessed_all_relateds;
-
-            # FIXME We keep newdate and timestamp for backward compatibility (from GetNewsToDisplay)
-            # But we should remove them and adjust the existing templates in a db rev
-            # FIXME This must be formatted in the notice template
-            my $published_on_dt = output_pref({ dt => dt_from_string( $all->{published_on} ), dateonly => 1 });
-            $all->{newdate} = $published_on_dt;
-            $all->{timestamp} = $published_on_dt;
-
-            push @news, {
-                additional_contents => $all,
-            };
-        }
+        )->get_column('id');
         $letter_code = 'ISSUESLIP';
         %repeat      = (
             checkedout => \@checkouts,
             overdue    => \@overdues,
-            news       => \@news,
         );
         %loops = (
             issues => [ map { $_->{issues}{itemnumber} } @checkouts ],
             overdues   => [ map { $_->{issues}{itemnumber} } @overdues ],
-            opac_news => [ map { $_->{additional_contents}{idnew} } @news ],
-            additional_contents => [ map { $_->{additional_contents}{idnew} } @news ],
+            opac_news => \@news_ids,
+            additional_contents => \@news_ids,
         );
         
         $checkoutcount = scalar @checkouts;
@@ -648,57 +505,6 @@ sub IssueSlip {
         repeat => \%repeat,
         loops => \%loops,
     );
-}
-
-=head2 DeleteExpiredOpacRegistrations
-
-    Delete accounts that haven't been upgraded from the 'temporary' category
-    Returns the number of removed patrons
-
-=cut
-
-sub DeleteExpiredOpacRegistrations {
-
-    my $delay = C4::Context->preference('PatronSelfRegistrationExpireTemporaryAccountsDelay');
-    my $category_code = C4::Context->preference('PatronSelfRegistrationDefaultCategory');
-
-    return 0 unless $category_code && $delay;
-        # DO NOT REMOVE test on delay here!
-        # Some libraries may not use a temporary category, but want to keep patrons.
-        # We should not delete patrons when the value is NULL, empty string or 0.
-
-    my $date_enrolled = dt_from_string();
-    $date_enrolled->subtract( days => $delay );
-
-    my $registrations_to_del = Koha::Patrons->search({
-        dateenrolled => {'<=' => $date_enrolled->ymd},
-        categorycode => $category_code,
-    });
-
-    my $cnt=0;
-    while ( my $registration = $registrations_to_del->next() ) {
-        next if $registration->checkouts->count || $registration->account->balance;
-        $registration->delete;
-        $cnt++;
-    }
-    return $cnt;
-}
-
-=head2 DeleteUnverifiedOpacRegistrations
-
-    Delete all unverified self registrations in borrower_modifications,
-    older than the specified number of days.
-
-=cut
-
-sub DeleteUnverifiedOpacRegistrations {
-    my ( $days ) = @_;
-    my $dbh = C4::Context->dbh;
-    my $sql=qq|
-DELETE FROM borrower_modifications
-WHERE borrowernumber = 0 AND DATEDIFF( NOW(), timestamp ) > ?|;
-    my $cnt=$dbh->do($sql, undef, ($days) );
-    return $cnt eq '0E0'? 0: $cnt;
 }
 
 END { }    # module clean-up code here (global destructor)

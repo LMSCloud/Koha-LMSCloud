@@ -62,7 +62,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 if ( $type eq 'biblio' ) {
     my $biblio = Koha::Biblios->find( $recordid );
-    $record = $biblio->metadata->record({ embed_items => 1 });
+    $record = $biblio->metadata_record( { embed_items => 1 } );
     $recordTitle = $biblio->title;
 }
 elsif ( $type eq 'auth' ) {
@@ -86,7 +86,6 @@ if( $importid ) {
 }
 
 $template->param(
-    SCRIPT_NAME      => '/cgi-bin/koha/tools/showdiffmarc.pl',
     RECORDID         => $recordid,
     IMPORTID         => $importid,
     RECORDTITLE      => $recordTitle,

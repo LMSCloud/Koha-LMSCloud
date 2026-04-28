@@ -5,9 +5,21 @@
 [% USE Branches %]
 [% USE Categories %]
 [% USE TablesSettings %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Batch patron modification &rsaquo; Tools &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF ( op == 'show' or op == 'show_results' ) %]
+        [% IF ( op == 'show' ) %]
+            [% t("Modifications") | html %] &rsaquo;
+        [% ELSE %]
+            [% t("Results") | html %] &rsaquo;
+        [% END %]
+    [% END %]
+    [% t("Batch patron modification") | html %] &rsaquo;
+    [% t("Tools") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -21,21 +33,39 @@
         [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
         [% END %]
-        [% WRAPPER breadcrumb_item bc_active= 1 %]
-            <span>Batch patron modification</span>
+        [% IF ( op == 'show' or op == 'show_results' ) %]
+            [% WRAPPER breadcrumb_item %]
+                <a href="/cgi-bin/koha/tools/modborrowers.pl">Batch patron modification</a>
+            [% END %]
+            [% IF ( op == 'show' ) %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    [% t("Modifications") | html %]
+                [% END %]
+            [% ELSE %]
+                [% WRAPPER breadcrumb_item bc_active= 1 %]
+                    [% t("Results")| html %]
+                [% END %]
+            [% END %]
+        [% ELSE %]
+            [% WRAPPER breadcrumb_item bc_active= 1 %]
+                <span>Batch patron modification</span>
+            [% END %]
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
+
 
                 [% IF ( op == 'show_form' ) %]
                     <h1>Batch patron modification</h1>
                     <form id="patron_batchmod_form" method="post" enctype="multipart/form-data" action="/cgi-bin/koha/tools/modborrowers.pl">
-                        <input type="hidden" name="op" value="show" />
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-show" />
 
                         [% WRAPPER tabs id= "batch_patron_options" %]
                             [% WRAPPER tabs_nav %]
@@ -133,25 +163,24 @@
                 [% IF ( op == 'show') && (!borrowers) && (!notfoundcardnumbers) # Alert if no patrons given%]
                     [% op = 'noshow' # Change op to prevent display in code below %]
                     <h1>Batch patrons modification</h1>
-                    <div class="dialog alert">
+                    <div class="alert alert-warning">
                         <p>No patron card numbers or borrowernumbers given.</p>
                         <form action="/cgi-bin/koha/tools/modborrowers.pl" method="get">
-                         <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> OK</button>
+                         <button type="submit" class="btn btn-default approve"><i class="fa fa-fw fa-check"></i> OK</button>
                         </form>
                     </div>
                 [% END #Alert if no patrons %]
 
                 [% IF ( op == 'show' or op == 'show_results' ) %]
-                    [% IF ( op == 'show' ) %]
-                        <h1>Batch patrons modification</h1>
-                    [% ELSE %]
-                        <h1>Batch patrons results</h1>
+                    <h1>Batch patron modification</h1>
+                    [% UNLESS ( op == 'show' ) %]
+                        <h2>Results</h2>
                     [% END %]
                     [% IF ( notfoundcardnumbers ) %]
                         [% IF ( useborrowernumbers ) -%]
-                            <div class="dialog alert"><p>Warning, the following borrowernumbers were not found:</p></div>
+                            <div class="alert alert-warning"><p>Warning, the following borrowernumbers were not found:</p></div>
                         [% ELSE -%]
-                            <div class="dialog alert"><p>Warning, the following card numbers were not found:</p></div>
+                            <div class="alert alert-warning"><p>Warning, the following card numbers were not found:</p></div>
                         [% END %]
 
                         <div class="page-section">
@@ -174,7 +203,7 @@
 
                     [% IF ( op == 'show_results' ) %]
                         [% IF ( errors ) %]
-                            <div class="dialog alert">
+                            <div class="alert alert-warning">
                             <h4>Errors occurred:</h4>
                             <ul class="warnings">
                             [% FOREACH error IN errors %]
@@ -193,105 +222,131 @@
                     [% END %]
 
                     [% IF ( op == 'show' ) %]
-                    <form name="f" action="modborrowers.pl" method="post">
-                        <input type="hidden" name="op" value="do" />
+                    <form name="f" action="modborrowers.pl" method="post" id="batchmod-borrowers-form">
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-do" />
                         [% IF ( borrowers ) %]
-                            <div class="btn-toolbar selections-toolbar"><a id="selectallbutton" href="#"><i class="fa fa-check"></i> Select all</a> | <a id="clearallbutton" href="#"><i class="fa fa-remove"></i> Clear all</a></div>
+                            <div class="btn-toolbar selections-toolbar"><a id="selectallbutton" href="#"><i class="fa fa-check"></i> Select all</a> | <a id="clearallbutton" href="#"><i class="fa fa-times"></i> Clear all</a></div>
                         [% END %]
                     [% END %]
                         [% IF borrowers %]
                             <div id="cataloguing_additem_itemlist" class="page-section">
-                                <div style="overflow:auto">
-                                    <table id="borrowerst">
-                                        <thead>
+                                <table id="borrowerst">
+                                    <thead>
+                                        <tr>
+                                            [% IF ( op == 'show' ) %]
+                                                <th class="NoSort">&nbsp;</th>
+                                            [% ELSE %]
+                                                <th class="NoVisible">&nbsp;</th>
+                                            [% END %]
+                                            <th>Card number</th>
+                                            <th>Surname</th>
+                                            <th>First name</th>
+                                            <th>Library</th>
+                                            <th>Patron category</th>
+                                            <th>Street number</th>
+                                            <th>Address</th>
+                                            <th>Address 2</th>
+                                            <th>City</th>
+                                            <th>State</th>
+                                            <th>ZIP/Postal code</th>
+                                            <th>Country</th>
+                                            <th>Primary email</th>
+                                            <th>Primary phone</th>
+                                            <th>Other phone</th>
+                                            <th>Fax</th>
+                                            <th>Registration date</th>
+                                            <th>Expiry date</th>
+                                            [% IF CanUpdatePasswordExpiration %]
+                                                <th>Password expiration date</th>
+                                            [% END %]
+                                            [% IF CanUpdateProtectPatron %]
+                                                <th>Protected</th>
+                                            [% END %]
+                                            <th>Circulation note</th>
+                                            <th>OPAC note</th>
+                                            <th>Message</th>
+                                            <th>Restriction expiration</th>
+                                            <th>Restriction comment</th>
+                                            [% FOREACH attrh IN attributes_header %]
+                                                <th>[% attrh.attribute | html %]</th>
+                                            [% END %]
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        [% FOREACH borrower IN borrowers %]
                                             <tr>
                                                 [% IF ( op == 'show' ) %]
-                                                    <th class="NoSort">&nbsp;</th>
+                                                    <td>
                                                 [% ELSE %]
-                                                    <th class="NoVisible">&nbsp;</th>
+                                                    <td class="NoVisible">
                                                 [% END %]
-                                                <th>Card number</th>
-                                                <th>Surname</th>
-                                                <th>First name</th>
-                                                <th>Library</th>
-                                                <th>Patron category</th>
-                                                <th>Street number</th>
-                                                <th>Address</th>
-                                                <th>Address 2</th>
-                                                <th>City</th>
-                                                <th>State</th>
-                                                <th>ZIP/Postal code</th>
-                                                <th>Country</th>
-                                                <th>Primary email</th>
-                                                <th>Primary phone</th>
-                                                <th>Other phone</th>
-                                                <th>Registration date</th>
-                                                <th>Expiry date</th>
+                                                    <input type="checkbox" name="borrowernumber" value="[% borrower.borrowernumber | html %]" checked="checked" />
+                                                </td>
+                                                <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% borrower.borrowernumber | uri %]">[% borrower.cardnumber | html %]</a></td>
+                                                <td>[% borrower.surname | html %]</td>
+                                                <td>[% borrower.firstname | html %]</td>
+                                                <td>[% Branches.GetName( borrower.branchcode ) | html %]</td>
+                                                <td>[% Categories.GetName(borrower.categorycode) | html %]</td>
+                                                <td>[% borrower.streetnumber | html %]</td>
+                                                <td>[% borrower.address | html %]</td>
+                                                <td>[% borrower.address2 | html %]</td>
+                                                <td>[% borrower.city | html %]</td>
+                                                <td>[% borrower.state | html %]</td>
+                                                <td>[% borrower.zipcode | html %]</td>
+                                                <td>[% borrower.country | html %]</td>
+                                                <td>[% borrower.email | html %]</td>
+                                                <td>[% borrower.phone | html %]</td>
+                                                <td>[% borrower.mobile | html %]</td>
+                                                <td>[% borrower.fax | html %]</td>
+                                                <td data-order="[% borrower.dateenrolled | html %]">[% borrower.dateenrolled | $KohaDates %]</td>
+                                                <td data-order="[% borrower.dateexpiry | html %]">[% borrower.dateexpiry | $KohaDates %]</td>
                                                 [% IF CanUpdatePasswordExpiration %]
-                                                    <th>Password expiration date</th>
+                                                    [% IF borrower.password_expiration_date  %]
+                                                        <td data-order="[% borrower.password_expiration_date | html %]">
+                                                            [% borrower.password_expiration_date | $KohaDates %]
+                                                        </td>
+                                                    [% ELSE %]
+                                                        <td data-order="9999-99-99">Never</td>
+                                                    [% END %]
                                                 [% END %]
-                                                <th>Circulation note</th>
-                                                <th>OPAC note</th>
-                                                <th>Restriction expiration</th>
-                                                <th>Restriction comment</th>
-                                                [% FOREACH attrh IN attributes_header %]
-                                                    <th>[% attrh.attribute | html %]</th>
+                                                [% IF CanUpdateProtectPatron %]
+                                                    <td>
+                                                    [% IF borrower.protected %]
+                                                        Yes
+                                                    [% ELSE %]
+                                                        No
+                                                    [% END %]
+                                                    </td>
+                                                [% END %]
+                                                <td>[% borrower.borrowernotes | $raw | html_line_break %]</td>
+                                                <td>[% borrower.opacnote | html %]</td>
+                                                <td>
+                                                    [% FOREACH patron_message IN borrower.patron_messages %]
+                                                        [% patron_message.message | html %] <br>
+                                                        <strong>
+                                                        [% IF (patron_message.message_type == 'B') %]
+                                                            ( OPAC )
+                                                        [% ELSE %]
+                                                            ( Staff )
+                                                        [% END %]
+                                                        </strong><br><br>
+                                                    [% END %]
+                                                </td>
+                                                <td data-order="[% borrower.debarred | html %]">[% borrower.debarred | $KohaDates %]</td>
+                                                <td>[% borrower.debarredcomment | html %]</td>
+                                                [% FOREACH pa IN borrower.patron_attributes %]
+                                                    [% IF ( pa.code ) %]
+                                                    [%# Replace pa.attribute with pa.description if we prefer to display the description %]
+                                                        <td>[% pa.code | html %]=[% pa.attribute | html %]</td>
+                                                    [% ELSE %]
+                                                        <td></td>
+                                                    [% END %]
                                                 [% END %]
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            [% FOREACH borrower IN borrowers %]
-                                                <tr>
-                                                    [% IF ( op == 'show' ) %]
-                                                        <td>
-                                                    [% ELSE %]
-                                                        <td class="NoVisible">
-                                                    [% END %]
-                                                        <input type="checkbox" name="borrowernumber" value="[% borrower.borrowernumber | html %]" checked="checked" />
-                                                    </td>
-                                                    <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% borrower.borrowernumber | uri %]">[% borrower.cardnumber | html %]</a></td>
-                                                    <td>[% borrower.surname | html %]</td>
-                                                    <td>[% borrower.firstname | html %]</td>
-                                                    <td>[% Branches.GetName( borrower.branchcode ) | html %]</td>
-                                                    <td>[% Categories.GetName(borrower.categorycode) | html %]</td>
-                                                    <td>[% borrower.streetnumber | html %]</td>
-                                                    <td>[% borrower.address | html %]</td>
-                                                    <td>[% borrower.address2 | html %]</td>
-                                                    <td>[% borrower.city | html %]</td>
-                                                    <td>[% borrower.state | html %]</td>
-                                                    <td>[% borrower.zipcode | html %]</td>
-                                                    <td>[% borrower.country | html %]</td>
-                                                    <td>[% borrower.email | html %]</td>
-                                                    <td>[% borrower.phone | html %]</td>
-                                                    <td>[% borrower.mobile | html %]</td>
-                                                    <td data-order="[% borrower.dateenrolled | html %]">[% borrower.dateenrolled | $KohaDates %]</td>
-                                                    <td data-order="[% borrower.dateexpiry | html %]">[% borrower.dateexpiry | $KohaDates %]</td>
-                                                    [% IF CanUpdatePasswordExpiration %]
-                                                        [% IF borrower.password_expiration_date  %]
-                                                            <td data-order="[% borrower.password_expiration_date | html %]">
-                                                                [% borrower.password_expiration_date | $KohaDates %]
-                                                            </td>
-                                                        [% ELSE %]
-                                                            <td data-order="9999-99-99">Never</td>
-                                                        [% END %]
-                                                    [% END %]
-                                                    <td>[% borrower.borrowernotes | $raw | html_line_break %]</td>
-                                                    <td>[% borrower.opacnote | html %]</td>
-                                                    <td data-order="[% borrower.debarred | html %]">[% borrower.debarred | $KohaDates %]</td>
-                                                    <td>[% borrower.debarredcomment | html %]</td>
-                                                    [% FOREACH pa IN borrower.patron_attributes %]
-                                                        [% IF ( pa.code ) %]
-                                                        [%# Replace pa.attribute with pa.description if we prefer to display the description %]
-                                                            <td>[% pa.code | html %]=[% pa.attribute | html %]</td>
-                                                        [% ELSE %]
-                                                            <td></td>
-                                                        [% END %]
-                                                    [% END %]
-                                                </tr>
-                                            [% END %]
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        [% END %]
+                                    </tbody>
+                                </table>
                             </div>
 
                             [% IF ( op == 'show' ) %]
@@ -322,23 +377,33 @@
                                                 [% CASE 'email' %]<span>Primary email:</span>
                                                 [% CASE 'phone' %]<span>Primary phone:</span>
                                                 [% CASE 'mobile' %]<span>Other phone:</span>
+                                                [% CASE 'fax' %]<span>Fax:</span>
                                                 [% CASE 'sort1' %]<span>Sort 1:</span>
                                                 [% CASE 'sort2' %]<span>Sort 2:</span>
                                                 [% CASE 'dateenrolled' %]<span>Registration date:</span>
                                                 [% CASE 'dateexpiry' %]<span>Expiry date:</span>
                                                 [% CASE 'borrowernotes' %]<span>Circulation note:</span>
                                                 [% CASE 'opacnote' %]<span>OPAC note:</span>
+                                                [% CASE "message" %]<span>Message:</span>
                                                 [% CASE 'debarred' %]<span>Restriction expiration:</span>
                                                 [% CASE 'debarredcomment' %]<span>Restriction comment:</span>
                                                 [% CASE 'password_expiration_date' %]<span>Password expiration date:</span>
+                                                [% CASE 'protected' %]<span>Protected:</span>
                                             [% END %]
                                             </label>
                                             [% IF ( field.type == 'text' ) %]
+                                                <input type="text" id="[%field.name | html %]" name="[% field.name | html %]" value="" />
+                                            [% END %]
+                                            [% IF ( field.type == 'message_type' ) %]
                                                 <input type="text" name="[% field.name | html %]" value="" />
+                                                <select name="add_message_type" id="message_type">
+                                                    <option value="L">Staff - Internal note</option>
+                                                    <option value="B">OPAC</option>
+                                                </select>
                                             [% END %]
                                             [% IF ( field.type == 'select' ) %]
                                                 [% IF field.option.size %]
-                                                    <select name="[% field.name | html %]" >
+                                                    <select id="[%field.name | html %]" name="[% field.name | html %]" >
                                                         [% FOREACH opt IN field.option %]
                                                             <option value="[% opt.value | html %]">[% opt.lib | html %]</option>
                                                         [% END %]
@@ -347,24 +412,34 @@
                                                     There is no value defined for [% field.name | html %]
                                                 [% END %]
                                             [% END %]
+                                            [% IF ( field.type == 'bool' ) %]
+                                                <select name="[% field.name | html %]" >
+                                                    <option value=""></option>
+                                                    <option value="1">Yes</option>
+                                                    <option value="0">No</option>
+                                                </select>
+                                            [% END %]
                                             [% IF ( field.type == 'date' ) %]
                                                 <input type="text" name="[% field.name | html %]" id="[% field.name | html %]" value="" size="10" maxlength="10" class="flatpickr" />
-                                                <a href="#"  class="clear-date" id="clear-date-[% field.name | html %]" ><i class="fa fa-fw fa-trash"></i> Clear</a>
+                                                <a href="#"  class="clear-date" id="clear-date-[% field.name | html %]" ><i class="fa fa-fw fa-trash-can"></i> Clear</a>
                                             [% END %]
                                             [% IF field.mandatory %]
                                                 <input type="checkbox" title="This field is mandatory" name="disable_input" value="[% field.name | html %]" disabled="disabled" readonly="readonly" />
                                                 <span class="required">Required fields cannot be cleared</span>
                                             [% ELSE %]
                                                 <input type="checkbox" title="Check to delete this field" name="disable_input" value="[% field.name | html %]" />
+                                                [% IF ( field.type == 'message_type' ) %]
+                                                    <span class="hint">NOTE: Checking this box will remove ALL messages</span>
+                                                [% END %]
                                             [% END %]
                                         </li>
                                         [% END %]
                                         [% IF ( patron_attributes_codes ) %]
                                             <li class="attributes">
-                                                <label style="width:auto;">
+                                                <label for="patron_attributes" style="width:auto;">
                                                     <span>Patron attribute:</span>
                                                 </label>
-                                                <select name="patron_attributes">
+                                                <select id="patron_attributes" name="patron_attributes">
                                                     <option value=""></option>
                                                     [% FOREACH pac IN patron_attributes_codes %]
                                                         <option value="[% pac.attribute_code | html %]" data-type="[% pac.type | html %]" data-category="[% pac.category_lib | html %]">[% pac.attribute_lib | html %]</option>
@@ -376,12 +451,14 @@
                                                 <a href="#" class="add_attributes" title="Add an attribute"><i class="fa fa-fw fa-plus"></i> New</a>
                                                 <span class="information_category hint" style="width:25%;float:right;"></span>
                                             </li>
+                                            <div class="hint">NOTE: Attributes set here will replace all attributes of the same type in the patron record.</div>
                                         [% END %]
                                     </ol>
                                 </fieldset>
                                 <fieldset class="action">
                                     <input type="submit" name="mainformsubmit" class="btn btn-primary" value="Save" />
                                     <a href="/cgi-bin/koha/tools/modborrowers.pl" class="cancel">Cancel</a>
+                                    [% PROCESS 'members-patron-selections.inc' id="batchmod-borrowers-form" %]
                                 </fieldset>
                             </div>
                         </form>
@@ -395,13 +472,13 @@
                 [% END %]
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'tools-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
@@ -409,6 +486,7 @@
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'columns_settings.inc' %]
     [% Asset.js("js/tools-menu.js") | $raw %]
+    [% Asset.js("js/members-patron-selections.js") | $raw %]
     <script>
         var patron_attributes_lib = new Array();
         var patron_attributes_values = new Array();
@@ -427,7 +505,6 @@
                 let patron_table = KohaTable("borrowerst", {
                     "order": [[ 1, "asc" ]],
                     "autoWidth": true,
-                    "scrollX": true,
                 }, table_settings);
 
                 $("#selectallbutton").click(function() {
@@ -478,7 +555,7 @@
             });
             $("#patron_batchmod_form").on("submit", function(){
                 /* Reset form fields on inactive tabs */
-                var tab = $(this).find('ul.nav-tabs li.active a').attr('href');
+                var tab = $(this).find('ul.nav-tabs li a.active').attr('href');
                 if ( tab == '#usecardnumber_panel' ) {
                     $("#borrowernumberuploadfile, #patron_list_id, #borrowernumberlist").val("");
                 } else if ( tab == '#useborrowernumber_panel' ) {
@@ -537,12 +614,16 @@
         }
 
         function add_attributes() {
+            var count = $("li.attributes").length;
             var li_node = $("li.attributes:last");
             var li_clone = $(li_node).clone();
             if ( $(li_clone).find("a.del_attributes").length == 0 ) {
                 var add_attributes = $(li_clone).find("a.add_attributes")
-                $(add_attributes).after('<a href="#" title="' + _("Delete") + '" class="del_attributes"><i class="fa fa-fw fa-trash"></i> ' + _("Delete") + '</a>');
+                $(add_attributes).after('<a href="#" title="' + _("Delete") + '" class="del_attributes"><i class="fa fa-fw fa-trash-can"></i> ' + _("Delete") + '</a>');
             }
+            li_node.find("label").attr("for", li_node.find("label").attr("for") + "_" + count );
+            li_node.find("input, select").attr("id", li_node.find("select").attr("id") + "_" + count );
+
             $(li_clone).find('select[name="patron_attributes"]').change(function() {
                 updateAttrValues(this);
             } );

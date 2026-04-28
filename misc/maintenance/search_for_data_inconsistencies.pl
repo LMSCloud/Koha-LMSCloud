@@ -353,10 +353,100 @@ use C4::Biblio qw( GetMarcFromKohaField );
                 "Column " . $rs->result_source->name . "." . $column . " contains $invalid_dates invalid dates" );
 
             if ( $invalid_dates > 0 ) {
-                new_hint("You may change the dates with script: misc/cronjobs/fix_invalid_dates.pl (-c -v)");
+                new_hint("You may change the dates with script: misc/maintenance/fix_invalid_dates.pl (-c -v)");
             }
 
         }
+    }
+}
+
+{
+    my @loop_borrowers_relationships;
+    my @guarantor_ids = Koha::Patron::Relationships->_resultset->get_column('guarantor_id')->all();
+    my @guarantee_ids = Koha::Patron::Relationships->_resultset->get_column('guarantee_id')->all();
+
+    foreach my $guarantor_id (@guarantor_ids) {
+        foreach my $guarantee_id (@guarantee_ids) {
+            if ( $guarantor_id == $guarantee_id ) {
+
+                my $relation_guarantor_id;
+                my $relation_guarantee_id;
+                my $size_list;
+                my $tmp_garantor_id = $guarantor_id;
+                my @guarantor_ids;
+
+                do {
+                    my @relationship_for_go = Koha::Patron::Relationships->search(
+                        {
+                            -or => [
+                                'guarantor_id' => { '=', $tmp_garantor_id },
+                            ]
+                        },
+                    )->as_list;
+                    $size_list = scalar @relationship_for_go;
+
+                    foreach my $relation (@relationship_for_go) {
+                        $relation_guarantor_id = $relation->guarantor_id;
+                        unless ( grep { $_ == $relation_guarantor_id } @guarantor_ids ) {
+                            push @guarantor_ids, $relation_guarantor_id;
+                        }
+                        $relation_guarantee_id = $relation->guarantee_id;
+
+                        my @relationship_for_go = Koha::Patron::Relationships->search(
+                            {
+                                -or => [
+                                    'guarantor_id' => { '=', $relation_guarantee_id },
+                                ]
+                            },
+                        )->as_list;
+                        $size_list = scalar @relationship_for_go;
+
+                        if ( $guarantor_id == $relation_guarantee_id ) {
+                            last;
+                        }
+
+                        foreach my $relation (@relationship_for_go) {
+                            $relation_guarantor_id = $relation->guarantor_id;
+                            unless ( grep { $_ == $relation_guarantor_id } @guarantor_ids ) {
+                                push @guarantor_ids, $relation_guarantor_id;
+                            }
+                            $relation_guarantee_id = $relation->guarantee_id;
+
+                            if ( $guarantor_id == $relation_guarantee_id ) {
+                                last;
+                            }
+                        }
+                        if ( $guarantor_id == $relation_guarantee_id ) {
+                            last;
+                        }
+                    }
+
+                    $tmp_garantor_id = $relation_guarantee_id;
+                } while ( $guarantor_id != $relation_guarantee_id && $size_list > 0 );
+
+                if ( $guarantor_id == $relation_guarantee_id ) {
+                    unless ( grep { join( "", sort @$_ ) eq join( "", sort @guarantor_ids ) }
+                        @loop_borrowers_relationships )
+                    {
+                        push @loop_borrowers_relationships, \@guarantor_ids;
+                    }
+                }
+            }
+        }
+    }
+
+    if ( scalar @loop_borrowers_relationships > 0 ) {
+        new_section("The list of guarantors who are also guarantee.");
+        my $count = 0;
+        foreach my $table (@loop_borrowers_relationships) {
+            $count++;
+            print "Loop $count, borrowers id  : ";
+            foreach my $borrower_id (@$table) {
+                print "$borrower_id , ";
+            }
+            print "\n";
+        }
+        new_hint("Relationships that form guarantor loops must be deleted");
     }
 }
 

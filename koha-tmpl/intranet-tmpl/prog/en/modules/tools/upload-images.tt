@@ -1,16 +1,17 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>
+<title>[% FILTER collapse %]
     [% IF ( biblio ) %]
-        Upload local cover image for [% INCLUDE 'biblio-title-head.inc' %] &rsaquo;
-    [% ELSE %]
-        Upload local cover image &rsaquo;
+        [% t("Upload local cover image for ") | html %] [% INCLUDE 'biblio-title-head.inc' %] &rsaquo;
     [% END %]
-    Cataloging &rsaquo;
-    Koha
-</title>
+    [% t("Upload local cover image") | html %] &rsaquo;
+    [% t("Cataloging") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% FILTER collapse %]
     <style>
@@ -54,7 +55,7 @@
             background-color: #fff;
         }
 
-        #messages {
+        #messages_2 {
             font-weight: normal;
         }
         .cover_preview {
@@ -68,7 +69,7 @@
             margin: .9em;
             background-color: #FFF;
         }
-        .fa-file-archive-o {
+        .fa-file-zipper {
             color: #777;
             font-size: 300%
         }
@@ -123,8 +124,9 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
                 [% UNLESS itemnumber || biblionumber %]
                     <h1>Upload local cover image</h1>
@@ -141,7 +143,7 @@
                     <h2>Image upload results :</h2>
                     <div id="upload_results">
                         [% IF ( error ) %]
-                            <div class="dialog alert">
+                            <div class="alert alert-warning">
                                 [% IF ( error == 'UZIPFAIL' ) %]
                                     <p><strong>Failed to unzip archive.<br />Please ensure you are uploading a valid zip file and try again.</strong></p>
                                 [% ELSIF ( error == 'OPNLINK' ) %]
@@ -182,7 +184,7 @@
                         <div class="col-sm-12">
                     [% END %]
 
-                        <form method="post" action="/cgi-bin/koha/tools/upload-cover-image.pl" id="uploadfile" enctype="multipart/form-data">
+                        <form method="get" action="/cgi-bin/koha/tools/upload-cover-image.pl" id="uploadfile" enctype="multipart/form-data">
                             <fieldset class="rows" >
                                 <div id="fileuploadform">
                                     <label for="fileToUpload">Select the file to upload: </label>
@@ -191,7 +193,8 @@
 
                                 <div id="filedrag">
                                     <a id="click_to_select" href="#">Drop files here or click to select a file</a>
-                                    <div id="messages"></div>
+                                    [%# FIXME Remove the following div and use #message instead %]
+                                    <div id="messages_2"></div>
                                 </div>
 
                                 <div id="uploadpanel">
@@ -206,9 +209,9 @@
                         </form> <!-- /#uploadfile -->
 
                         <form method="post" id="processfile" action="/cgi-bin/koha/tools/upload-cover-image.pl" enctype="multipart/form-data">
+                            [% INCLUDE 'csrf-token.inc' %]
+                            <input type="hidden" name="op" value="cud-process" />
                             <input type="hidden" name="uploadedfileid" id="uploadedfileid" value="" />
-                            <input type="hidden" name="runinbackground" id="runinbackground" value="" />
-                            <input type="hidden" name="completedJobID" id="completedJobID" value="" />
 
                             [% IF itemnumber %]
                                 <input type="hidden" id="itemnumber" name="itemnumber" value="[% itemnumber | html %]" />
@@ -281,7 +284,7 @@
                                                     <img id="thumbnail_[% img.imagenumber | html %]" src="/cgi-bin/koha/catalogue/image.pl?imagenumber=[% img.imagenumber | html %]&amp;thumbnail=1" alt="Thumbnail" />
                                                 [% END %]
                                             </a>
-                                            <a href="#" class="remove" data-coverimg="[% img.imagenumber | html %]"><i class="fa fa-trash"></i> Delete image</a>
+                                            <a href="#" class="remove" data-coverimg="[% img.imagenumber | html %]"><i class="fa fa-trash-can"></i> Delete image</a>
                                         </li>
                                     [% END # /IF img %]
                                 [% END # /FOREACH img %]
@@ -291,13 +294,13 @@
 
                 </div> <!-- /.row -->
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'cat-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

@@ -50,6 +50,11 @@ __PACKAGE__->table("auth_header");
   default_value: current_timestamp
   is_nullable: 0
 
+=head2 heading
+
+  data_type: 'longtext'
+  is_nullable: 1
+
 =head2 origincode
 
   data_type: 'varchar'
@@ -97,6 +102,8 @@ __PACKAGE__->add_columns(
     default_value => \"current_timestamp",
     is_nullable => 0,
   },
+  "heading",
+  { data_type => "longtext", is_nullable => 1 },
   "origincode",
   { data_type => "varchar", is_nullable => 1, size => 20 },
   "authtrees",
@@ -121,9 +128,26 @@ __PACKAGE__->add_columns(
 
 __PACKAGE__->set_primary_key("authid");
 
+=head1 RELATIONS
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2018-02-16 17:54:53
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:kHEdfMFYFtn3sQ20qsdFyg
+=head2 import_oai_authorities
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::ImportOaiAuthority>
+
+=cut
+
+__PACKAGE__->has_many(
+  "import_oai_authorities",
+  "Koha::Schema::Result::ImportOaiAuthority",
+  { "foreign.authid" => "self.authid" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-07-31 14:45:08
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:qQKXXu/9rBZ89hnDzJMsvA
 
 sub koha_object_class {
     'Koha::Authority';

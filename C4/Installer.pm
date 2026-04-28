@@ -29,6 +29,8 @@ use DBI;
 use C4::Context;
 use Koha::Schema;
 use Koha;
+use Koha::Installer;
+use Koha::Installer::Output qw ( say_failure );
 
 use vars qw(@ISA @EXPORT);
 BEGIN {
@@ -493,7 +495,7 @@ sub set_languages_syspref {
 
     warn "UPDATE Languages";
     # intranet
-    my $pref = $self->{'dbh'}->prepare("UPDATE systempreferences SET value=? WHERE variable='language'");
+    my $pref = $self->{'dbh'}->prepare("UPDATE systempreferences SET value=? WHERE variable='StaffInterfaceLanguages'");
     $pref->execute("en,$language");
     # opac
     $pref = $self->{'dbh'}->prepare("UPDATE systempreferences SET value=? WHERE variable='OPACLanguages'");
@@ -743,6 +745,7 @@ sub run_db_rev {
     }
     catch {
         $error = $_;
+        say_failure( $outfh, "ERROR: " . $error );
     };
 
     close $outfh;
@@ -824,17 +827,8 @@ sub generate_output_db_entry {
 }
 
 sub get_atomic_updates {
-    my @atomic_upate_files;
-    # if there is anything in the atomicupdate, read and execute it.
-    my $update_dir = C4::Context->config('intranetdir') . '/installer/data/mysql/atomicupdate/';
-    opendir( my $dirh, $update_dir );
-    foreach my $file ( sort readdir $dirh ) {
-        next if $file !~ /\.(perl|pl)$/;  #skip other files
-        next if $file eq 'skeleton.perl' || $file eq 'skeleton.pl'; # skip the skeleton files
-
-        push @atomic_upate_files, $file;
-    }
-    return \@atomic_upate_files;
+    my $atomic_updates = Koha::Installer::get_atomic_updates();
+    return $atomic_updates;
 }
 
 sub run_atomic_updates {
@@ -930,12 +924,7 @@ to a number, with just 1 .
 
 sub TransformToNum {
     my $version = shift;
-    # remove the 3 last . to have a Perl number
-    $version =~ s/(.*\..*)\.(.*)\.(.*)/$1$2$3/;
-    # three X's at the end indicate that you are testing patch with dbrev
-    # change it into 999
-    # prevents error on a < comparison between strings (should be: lt)
-    $version =~ s/XXX$/999/;
+    $version = Koha::Installer::TransformToNum($version);
     return $version;
 }
 

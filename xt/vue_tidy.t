@@ -20,20 +20,18 @@ use File::Slurp qw( read_file );
 use File::Find;
 use FindBin();
 use Data::Dumper qw( Dumper );
-use Test::More tests => 1;
+use Test::More tests => 2;
 
-my $vue_dir = "$FindBin::Bin/../koha-tmpl/intranet-tmpl/prog/js/vue";
+my @vue_files;
+push @vue_files, `git ls-files 'koha-tmpl/intranet-tmpl/prog/js/vue/*.vue'`;
+my @js_files;
+push @js_files, `git ls-files 'koha-tmpl/intranet-tmpl/prog/js/vue/*.js'`;
+push @js_files, `git ls-files 'koha-tmpl/intranet-tmpl/prog/js/vue/*.ts'`;
+push @js_files, `git ls-files 't/cypress/integration/*.ts'`;
 
-my @files;
-sub wanted {
-    my $name = $File::Find::name;
-    push @files, $name
-        if $name =~ /\.vue$/;
-}
-find({ wanted => \&wanted, no_chdir => 1 }, $vue_dir);
 
 my @not_tidy;
-foreach my $filepath (@files) {
+foreach my $filepath (@vue_files) {
     chomp $filepath;
     my $tidy = qx{yarn --silent run prettier --trailing-comma es5 --semi false --arrow-parens avoid $filepath};
     my $content = read_file $filepath;
@@ -42,4 +40,16 @@ foreach my $filepath (@files) {
     }
 }
 
-is(scalar(@not_tidy), 0, 'No vue file should be messy') or diag Dumper \@not_tidy;
+is(scalar(@not_tidy), 0, 'No .vue file should be messy') or diag Dumper \@not_tidy;
+
+@not_tidy = ();
+foreach my $filepath (@js_files) {
+    chomp $filepath;
+    my $tidy = qx{yarn --silent run prettier --trailing-comma es5 --arrow-parens avoid $filepath};
+    my $content = read_file $filepath;
+    if ( $content ne $tidy ) {
+        push @not_tidy, $filepath;
+    }
+}
+
+is(scalar(@not_tidy), 0, 'No js file from vue directory should be messy') or diag Dumper \@not_tidy;

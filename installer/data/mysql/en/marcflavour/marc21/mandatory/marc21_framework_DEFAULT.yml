@@ -21,7 +21,7 @@
 # *************************************************************
 #     KOHA MARC 21 STANDARD DEFAULT BIBLIOGRAPHIC FRAMEWORK
 #
-#           Revised to Update No. 29 (November 2019)
+#           Revised to Update No. 34 (July 2022)
 # *************************************************************
 
 description:
@@ -1026,7 +1026,7 @@ tables:
           liblibrarian: "DATE AND TIME OF LATEST TRANSACTION"
           libopac: "DATE AND TIME OF LATEST TRANSACTION"
           repeatable: 0
-          mandatory: 1
+          mandatory: 0
           authorised_value: ""
           frameworkcode: ""
 
@@ -1135,8 +1135,8 @@ tables:
           frameworkcode: ""
 
         - tagfield: "023"
-          liblibrarian: "STANDARD FILM NUMBER (VM) [DELETED]"
-          libopac: "STANDARD FILM NUMBER (VM) [DELETED]"
+          liblibrarian: "CLUSTER ISSN"
+          libopac: "CLUSTER ISSN"
           repeatable: 1
           mandatory: 0
           authorised_value:
@@ -1297,7 +1297,7 @@ tables:
         - tagfield: "043"
           liblibrarian: "GEOGRAPHIC AREA CODE"
           libopac: "GEOGRAPHIC AREA CODE"
-          repeatable: 0
+          repeatable: 1
           mandatory: 0
           authorised_value:
           frameworkcode: ""
@@ -1886,6 +1886,22 @@ tables:
           authorised_value:
           frameworkcode: ""
 
+        - tagfield: "334"
+          liblibrarian: "MODE OF ISSUANCE"
+          libopac: "MODE OF ISSUANCE"
+          repeatable: 1
+          mandatory: 0
+          authorised_value:
+          frameworkcode: ""
+
+        - tagfield: "335"
+          liblibrarian: "EXTENSION PLAN"
+          libopac: "EXTENSION PLAN"
+          repeatable: 1
+          mandatory: 0
+          authorised_value:
+          frameworkcode: ""
+
         - tagfield: "336"
           liblibrarian: "CONTENT TYPE"
           libopac: "CONTENT TYPE"
@@ -1951,8 +1967,8 @@ tables:
           frameworkcode: ""
 
         - tagfield: "345"
-          liblibrarian: "PROJECTION CHARACTERISTICS OF MOVING IMAGE"
-          libopac: "PROJECTION CHARACTERISTICS OF MOVING IMAGE"
+          liblibrarian: "MOVING IMAGE CHARACTERISTICS"
+          libopac: "MOVING IMAGE CHARACTERISTICS"
           repeatable: 1
           mandatory: 0
           authorised_value:
@@ -1975,8 +1991,8 @@ tables:
           frameworkcode: ""
 
         - tagfield: "348"
-          liblibrarian: "FORMAT OF NOTATED MUSIC"
-          libopac: "FORMAT OF NOTATED MUSIC"
+          liblibrarian: "NOTATED MUSIC CHARACTERISTICS"
+          libopac: "NOTATED MUSIC CHARACTERISTICS"
           repeatable: 1
           mandatory: 0
           authorised_value:
@@ -2006,6 +2022,14 @@ tables:
           authorised_value:
           frameworkcode: ""
 
+        - tagfield: "353"
+          liblibrarian: "SUPPLEMENTARY CONTENT CHARACTERISTICS"
+          libopac: "SUPPLEMENTARY CONTENT CHARACTERISTICS"
+          repeatable: 1
+          mandatory: 0
+          authorised_value:
+          frameworkcode: ""
+
         - tagfield: "355"
           liblibrarian: "SECURITY CLASSIFICATION CONTROL"
           libopac: "SECURITY CLASSIFICATION CONTROL"
@@ -2026,6 +2050,14 @@ tables:
           liblibrarian: "RENTAL PRICE (VM) [OBSOLETE]"
           libopac: "RENTAL PRICE (VM) [OBSOLETE]"
           repeatable: 0
+          mandatory: 0
+          authorised_value:
+          frameworkcode: ""
+
+        - tagfield: "361"
+          liblibrarian: "STRUCTURED OWNERSHIP AND CUSTODIAL HISTORY"
+          libopac: "STRUCTURED OWNERSHIP AND CUSTODIAL HISTORY"
+          repeatable: 1
           mandatory: 0
           authorised_value:
           frameworkcode: ""
@@ -2103,8 +2135,8 @@ tables:
           frameworkcode: ""
 
         - tagfield: "383"
-          liblibrarian: "NUMERIC DESIGNATION OF MUSICAL WORK"
-          libopac: "NUMERIC DESIGNATION OF MUSICAL WORK"
+          liblibrarian: "NUMERIC DESIGNATION OF MUSICAL WORK OR EXPRESSION"
+          libopac: "NUMERIC DESIGNATION OF MUSICAL WORK OR EXPRESSION"
           repeatable: 1
           mandatory: 0
           authorised_value:
@@ -2129,6 +2161,14 @@ tables:
         - tagfield: "386"
           liblibrarian: "CREATOR/CONTRIBUTOR CHARACTERISTICS"
           libopac: "CREATOR/CONTRIBUTOR CHARACTERISTICS"
+          repeatable: 1
+          mandatory: 0
+          authorised_value:
+          frameworkcode: ""
+
+        - tagfield: "387"
+          liblibrarian: "REPRESENTATIVE EXPRESSION CHARACTERISTICS"
+          libopac: "REPRESENTATIVE EXPRESSION CHARACTERISTICS"
           repeatable: 1
           mandatory: 0
           authorised_value:
@@ -2239,8 +2279,8 @@ tables:
           frameworkcode: ""
 
         - tagfield: "507"
-          liblibrarian: "SCALE NOTE FOR GRAPHIC MATERIAL"
-          libopac: "SCALE NOTE FOR GRAPHIC MATERIAL"
+          liblibrarian: "SCALE NOTE FOR VISUAL MATERIALS"
+          libopac: "SCALE NOTE FOR VISUAL MATERIALS"
           repeatable: 0
           mandatory: 0
           authorised_value:
@@ -3094,6 +3134,14 @@ tables:
           authorised_value:
           frameworkcode: ""
 
+        - tagfield: "788"
+          liblibrarian: "PARALLEL DESCRIPTION IN ANOTHER LANGUAGE OF CATALOGING"
+          libopac: "PARALLEL DESCRIPTION IN ANOTHER LANGUAGE OF CATALOGING"
+          repeatable: 1
+          mandatory: 0
+          authorised_value:
+          frameworkcode: ""
+
         - tagfield: "789"
           liblibrarian: "COMPONENT ITEM ENTRY (RLIN)"
           libopac: "COMPONENT ITEM ENTRY (RLIN)"
@@ -3270,6 +3318,14 @@ tables:
           authorised_value:
           frameworkcode: ""
 
+        - tagfield: "857"
+          liblibrarian: "ELECTRONIC ARCHIVE LOCATION AND ACCESS"
+          libopac: "ELECTRONIC ARCHIVE LOCATION AND ACCESS"
+          repeatable: 1
+          mandatory: 0
+          authorised_value:
+          frameworkcode: ""
+
         - tagfield: "859"
           liblibrarian: "LOCAL CONTROL INFORMATION (RLIN)"
           libopac: "LOCAL CONTROL INFORMATION (RLIN)"
@@ -3385,6 +3441,14 @@ tables:
         - tagfield: "880"
           liblibrarian: "ALTERNATE GRAPHIC REPRESENTATION"
           libopac: "ALTERNATE GRAPHIC REPRESENTATION"
+          repeatable: 1
+          mandatory: 0
+          authorised_value:
+          frameworkcode: ""
+
+        - tagfield: "881"
+          liblibrarian: "MANIFESTATION STATEMENTS"
+          libopac: "MANIFESTATION STATEMENTS"
           repeatable: 1
           mandatory: 0
           authorised_value:
@@ -3821,7 +3885,7 @@ tables:
           liblibrarian: "control field"
           libopac: "control field"
           repeatable: 0
-          mandatory: 1
+          mandatory: 0
           kohafield: ""
           tab: 0
           authorised_value: ""
@@ -4627,6 +4691,42 @@ tables:
           defaultvalue:
 
         - tagfield: "022"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "022"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "022"
           tagsubfield: "2"
           liblibrarian: "Source"
           libopac: "Source"
@@ -4700,8 +4800,8 @@ tables:
 
         - tagfield: "022"
           tagsubfield: "l"
-          liblibrarian: "ISSN-L"
-          libopac: "ISSN-L"
+          liblibrarian: "ISSN-L [OBSOLETE]"
+          libopac: "ISSN-L [OBSOLETE]"
           repeatable: 0
           mandatory: 0
           kohafield: ""
@@ -4718,8 +4818,8 @@ tables:
 
         - tagfield: "022"
           tagsubfield: "m"
-          liblibrarian: "Canceled ISSN-L"
-          libopac: "Canceled ISSN-L"
+          liblibrarian: "Canceled ISSN-L [OBSOLETE]"
+          libopac: "Canceled ISSN-L [OBSOLETE]"
           repeatable: 1
           mandatory: 0
           kohafield: ""
@@ -4771,10 +4871,136 @@ tables:
           defaultvalue:
 
         - tagfield: "023"
-          tagsubfield: "a"
-          liblibrarian: "Standard film number"
-          libopac: "Standard film number"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
           repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "023"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "023"
+          tagsubfield: "2"
+          liblibrarian: "Source"
+          libopac: "Source"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "023"
+          tagsubfield: "6"
+          liblibrarian: "Linkage"
+          libopac: "Linkage"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "023"
+          tagsubfield: "8"
+          liblibrarian: "Field link and sequence number"
+          libopac: "Field link and sequence number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "023"
+          tagsubfield: "a"
+          liblibrarian: "Cluster ISSN"
+          libopac: "Cluster ISSN"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "023"
+          tagsubfield: "y"
+          liblibrarian: "Incorrect Cluster ISSN"
+          libopac: "Incorrect Cluster ISSN"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "023"
+          tagsubfield: "z"
+          liblibrarian: "Canceled Cluster ISSN"
+          libopac: "Canceled Cluster ISSN"
+          repeatable: 1
           mandatory: 0
           kohafield: ""
           tab: 0
@@ -7147,10 +7373,46 @@ tables:
           defaultvalue:
 
         - tagfield: "041"
+          tagsubfield: "3"
+          liblibrarian: "Materials specified"
+          libopac: "Materials specified"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "041"
           tagsubfield: "6"
           liblibrarian: "Linkage"
           libopac: "Linkage"
           repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "041"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
           mandatory: 0
           kohafield: ""
           tab: 0
@@ -7867,6 +8129,24 @@ tables:
           defaultvalue:
 
         - tagfield: "046"
+          tagsubfield: "3"
+          liblibrarian: "Materials specified"
+          libopac: "Materials specified"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "046"
           tagsubfield: "6"
           liblibrarian: "Linkage"
           libopac: "Linkage"
@@ -8105,6 +8385,42 @@ tables:
           liblibrarian: "Ending date for aggregated content"
           libopac: "Ending date for aggregated content"
           repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "046"
+          tagsubfield: "x"
+          liblibrarian: "Nonpublic note"
+          libopac: "Nonpublic note"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: 6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "046"
+          tagsubfield: "z"
+          liblibrarian: "Public note"
+          libopac: "Public note"
+          repeatable: 1
           mandatory: 0
           kohafield: ""
           tab: 0
@@ -9685,9 +10001,45 @@ tables:
           defaultvalue:
 
         - tagfield: "082"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "082"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "082"
           tagsubfield: "2"
-          liblibrarian: "Edition number"
-          libopac: "Edition number"
+          liblibrarian: "Edition information"
+          libopac: "Edition information"
           repeatable: 0
           mandatory: 0
           kohafield: ""
@@ -9714,6 +10066,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "082"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -9811,9 +10181,45 @@ tables:
           defaultvalue:
 
         - tagfield: "083"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "083"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "083"
           tagsubfield: "2"
-          liblibrarian: "Edition number"
-          libopac: "Edition number"
+          liblibrarian: "Edition information"
+          libopac: "Edition information"
           repeatable: 0
           mandatory: 0
           kohafield: ""
@@ -9840,6 +10246,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "083"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -10038,6 +10462,24 @@ tables:
           authtypecode:
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "084"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 0
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -11251,6 +11693,24 @@ tables:
           defaultvalue:
 
         - tagfield: "100"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 1
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "100"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -11647,6 +12107,24 @@ tables:
           defaultvalue:
 
         - tagfield: "110"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 1
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "110"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -12000,6 +12478,24 @@ tables:
           authtypecode:
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "111"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 1
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -12385,6 +12881,24 @@ tables:
           defaultvalue:
 
         - tagfield: "130"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 1
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "130"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -12709,6 +13223,24 @@ tables:
           defaultvalue:
 
         - tagfield: "210"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 2
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "210"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -13001,6 +13533,24 @@ tables:
           liblibrarian: "Linkage"
           libopac: "Linkage"
           repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 2
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "240"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
           mandatory: 0
           kohafield: ""
           tab: 2
@@ -13825,6 +14375,24 @@ tables:
           defaultvalue:
 
         - tagfield: "245"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 2
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "245"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -14095,6 +14663,24 @@ tables:
           defaultvalue:
 
         - tagfield: "246"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 2
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "246"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -14304,6 +14890,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "247"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 2
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -14538,6 +15142,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "250"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 2
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -14797,6 +15419,24 @@ tables:
           defaultvalue:
 
         - tagfield: "255"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 2
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "255"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -14952,6 +15592,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "256"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 2
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -15751,6 +16409,24 @@ tables:
           defaultvalue:
 
         - tagfield: "264"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 2
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "264"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -16266,6 +16942,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "300"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -17370,6 +18064,294 @@ tables:
           link: ""
           defaultvalue:
 
+        - tagfield: "334"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "334"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "334"
+          tagsubfield: "2"
+          liblibrarian: "Source"
+          libopac: "Source"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "334"
+          tagsubfield: "6"
+          liblibrarian: "Linkage"
+          libopac: "Linkage"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "334"
+          tagsubfield: "8"
+          liblibrarian: "Field link and sequence number"
+          libopac: "Field link and sequence number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "334"
+          tagsubfield: "a"
+          liblibrarian: "Mode of issuance term"
+          libopac: "Mode of issuance term"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "334"
+          tagsubfield: "b"
+          liblibrarian: "Mode of issuance code"
+          libopac: "Mode of issuance code"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "335"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "335"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "335"
+          tagsubfield: "2"
+          liblibrarian: "Source"
+          libopac: "Source"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "335"
+          tagsubfield: "3"
+          liblibrarian: "Materials specified"
+          libopac: "Materials specified"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "335"
+          tagsubfield: "6"
+          liblibrarian: "Linkage"
+          libopac: "Linkage"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "335"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "335"
+          tagsubfield: "8"
+          liblibrarian: "Field link and sequence number"
+          libopac: "Field link and sequence number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "335"
+          tagsubfield: "a"
+          liblibrarian: "Extension plan term"
+          libopac: "Extension plan term"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "335"
+          tagsubfield: "b"
+          liblibrarian: "Extension plan code"
+          libopac: "Extension plan code"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
         - tagfield: "336"
           tagsubfield: "0"
           liblibrarian: "Authority record control number or standard number"
@@ -17454,6 +18436,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "336"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -17893,6 +18893,24 @@ tables:
           defaultvalue:
 
         - tagfield: "340"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "340"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -18002,8 +19020,8 @@ tables:
 
         - tagfield: "340"
           tagsubfield: "f"
-          liblibrarian: "Production rate/ratio"
-          libopac: "Production rate/ratio"
+          liblibrarian: "Reduction ratio value"
+          libopac: "Reduction ratio value"
           repeatable: 1
           mandatory: 0
           kohafield: ""
@@ -18109,6 +19127,24 @@ tables:
           defaultvalue:
 
         - tagfield: "340"
+          tagsubfield: "l"
+          liblibrarian: "Binding"
+          libopac: "Binding"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "340"
           tagsubfield: "m"
           liblibrarian: "Book format"
           libopac: "Book format"
@@ -18148,6 +19184,78 @@ tables:
           tagsubfield: "o"
           liblibrarian: "Polarity"
           libopac: "Polarity"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "340"
+          tagsubfield: "p"
+          liblibrarian: "Illustrative content"
+          libopac: "Illustrative content"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "340"
+          tagsubfield: "q"
+          liblibrarian: "Reduction ratio designator"
+          libopac: "Reduction ratio designator"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "341"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "341"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
           repeatable: 1
           mandatory: 0
           kohafield: ""
@@ -19242,6 +20350,42 @@ tables:
           link: ""
           defaultvalue:
 
+        - tagfield: "344"
+          tagsubfield: "i"
+          liblibrarian: "Sound content"
+          libopac: "Sound content"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "344"
+          tagsubfield: "j"
+          liblibrarian: "Original capture and storage technique"
+          libopac: "Original capture and storage technique"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
         - tagfield: "345"
           tagsubfield: "0"
           liblibrarian: "Authority record control number or standard number"
@@ -19372,6 +20516,42 @@ tables:
           tagsubfield: "b"
           liblibrarian: "Projection speed"
           libopac: "Projection speed"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "345"
+          tagsubfield: "c"
+          liblibrarian: "Aspect ratio value"
+          libopac: "Aspect ratio value"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "345"
+          tagsubfield: "d"
+          liblibrarian: "Aspect ratio designator"
+          libopac: "Aspect ratio designator"
           repeatable: 1
           mandatory: 0
           kohafield: ""
@@ -19837,6 +21017,24 @@ tables:
           defaultvalue:
 
         - tagfield: "348"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "348"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -19876,6 +21074,42 @@ tables:
           tagsubfield: "b"
           liblibrarian: "Format of notated music code"
           libopac: "Format of notated music code"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "348"
+          tagsubfield: "c"
+          liblibrarian: "Form of musical notation term"
+          libopac: "Form of musical notation term"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "348"
+          tagsubfield: "d"
+          liblibrarian: "Form of musical notation code"
+          libopac: "Form of musical notation code"
           repeatable: 1
           mandatory: 0
           kohafield: ""
@@ -20250,6 +21484,150 @@ tables:
           link: ""
           defaultvalue:
 
+        - tagfield: "353"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "353"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "353"
+          tagsubfield: "2"
+          liblibrarian: "Source"
+          libopac: "Source"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "353"
+          tagsubfield: "3"
+          liblibrarian: "Materials specified"
+          libopac: "Materials specified"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "353"
+          tagsubfield: "6"
+          liblibrarian: "Linkage"
+          libopac: "Linkage"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "353"
+          tagsubfield: "8"
+          liblibrarian: "Field link and sequence number"
+          libopac: "Field link and sequence number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "353"
+          tagsubfield: "a"
+          liblibrarian: "Supplementary content term"
+          libopac: "Supplementary content term"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "353"
+          tagsubfield: "b"
+          liblibrarian: "Supplementary content code"
+          libopac: "Supplementary content code"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
         - tagfield: "355"
           tagsubfield: "6"
           liblibrarian: "Linkage"
@@ -20561,6 +21939,312 @@ tables:
           liblibrarian: "Rental price"
           libopac: "Rental price"
           repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "3"
+          liblibrarian: "Materials specified"
+          libopac: "Materials specified"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "5"
+          liblibrarian: "Institution to which field applies"
+          libopac: "Institution to which field applies"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "6"
+          liblibrarian: "Linkage"
+          libopac: "Linkage"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "8"
+          liblibrarian: "Field link and sequence number"
+          libopac: "Field link and sequence number"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "a"
+          liblibrarian: "Name"
+          libopac: "Name"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "f"
+          liblibrarian: "Ownership and custodial history evidence term"
+          libopac: "Ownership and custodial history evidence term"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "k"
+          liblibrarian: "Formatted date"
+          libopac: "Formatted date"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "l"
+          liblibrarian: "Date"
+          libopac: "Date"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "o"
+          liblibrarian: "Type of ownership and custodial history information"
+          libopac: "Type of ownership and custodial history information"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "s"
+          liblibrarian: "Shelf mark of copy described"
+          libopac: "Shelf mark of copy described"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "u"
+          liblibrarian: "Uniform Resource Identifier"
+          libopac: "Uniform Resource Identifier"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "x"
+          liblibrarian: "Nonpublic note"
+          libopac: "Nonpublic note"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: 6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "y"
+          liblibrarian: "Identifier of the copy described"
+          libopac: "Identifier of the copy described"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 3
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "361"
+          tagsubfield: "z"
+          liblibrarian: "Public note"
+          libopac: "Public note"
+          repeatable: 1
           mandatory: 0
           kohafield:
           tab: 3
@@ -21601,6 +23285,24 @@ tables:
           defaultvalue:
 
         - tagfield: "370"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "370"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -21853,6 +23555,24 @@ tables:
           defaultvalue:
 
         - tagfield: "377"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "377"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -21997,6 +23717,24 @@ tables:
           defaultvalue:
 
         - tagfield: "380"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "380"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -22116,6 +23854,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "381"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -22278,6 +24034,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "382"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -22537,6 +24311,24 @@ tables:
           defaultvalue:
 
         - tagfield: "383"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "383"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -22645,6 +24437,42 @@ tables:
           defaultvalue:
 
         - tagfield: "384"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "384"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "384"
           tagsubfield: "3"
           liblibrarian: "Materials specified"
           libopac: "Materials specified"
@@ -22674,6 +24502,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "384"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -22800,6 +24646,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "385"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -23005,6 +24869,24 @@ tables:
           defaultvalue:
 
         - tagfield: "386"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "386"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -23112,6 +24994,366 @@ tables:
           link: ""
           defaultvalue:
 
+        - tagfield: "387"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "2"
+          liblibrarian: "Source of term"
+          libopac: "Source of term"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "3"
+          liblibrarian: "Materials specified"
+          libopac: "Materials specified"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "6"
+          liblibrarian: "Linkage"
+          libopac: "Linkage"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "8"
+          liblibrarian: "Field link and sequence number"
+          libopac: "Field link and sequence number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "a"
+          liblibrarian: "Aspect ratio of representative expression"
+          libopac: "Aspect ratio of representative expression"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "b"
+          liblibrarian: "Color content of representative expression"
+          libopac: "Color content of representative expression"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "c"
+          liblibrarian: "Content type of representative expression"
+          libopac: "Content type of representative expression"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "d"
+          liblibrarian: "Date of capture of representative expression"
+          libopac: "Date of capture of representative expression"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "e"
+          liblibrarian: "Date of representative expression"
+          libopac: "Date of representative expression"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "f"
+          liblibrarian: "Duration of representative expression"
+          libopac: "Duration of representative expression"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "g"
+          liblibrarian: "Intended audience of representative expression"
+          libopac: "Intended audience of representative expression"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "h"
+          liblibrarian: "Language of representative expression"
+          libopac: "Language of representative expression"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "i"
+          liblibrarian: "Place of capture of representative expression"
+          libopac: "Place of capture of representative expression"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "j"
+          liblibrarian: "Projection of cartographic content of representative expression"
+          libopac: "Projection of cartographic content of representative expression"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "k"
+          liblibrarian: "Scale of representative expression"
+          libopac: "Scale of representative expression"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "l"
+          liblibrarian: "Script of representative expression"
+          libopac: "Script of representative expression"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "387"
+          tagsubfield: "m"
+          liblibrarian: "Sound content of representative expression"
+          libopac: "Sound content of representative expression"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
         - tagfield: "388"
           tagsubfield: "0"
           liblibrarian: "Authority record control number or standard number"
@@ -23196,6 +25438,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "388"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 3
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -24517,6 +26777,24 @@ tables:
           defaultvalue:
 
         - tagfield: "490"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 4
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "490"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -24606,6 +26884,42 @@ tables:
           link: ""
           defaultvalue:
 
+        - tagfield: "490"
+          tagsubfield: "y"
+          liblibrarian: "Incorrect ISSN"
+          libopac: "Incorrect ISSN"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 4
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -1
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "490"
+          tagsubfield: "z"
+          liblibrarian: "Canceled ISSN"
+          libopac: "Canceled ISSN"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 4
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -1
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
         - tagfield: "500"
           tagsubfield: "3"
           liblibrarian: "Materials specified"
@@ -24654,6 +26968,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "500"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -24805,6 +27137,24 @@ tables:
           defaultvalue:
 
         - tagfield: "501"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "501"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -24852,6 +27202,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "502"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -25111,6 +27479,24 @@ tables:
           defaultvalue:
 
         - tagfield: "505"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "505"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -25213,6 +27599,42 @@ tables:
           value_builder: ""
           isurl: 1
           hidden: 0
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "506"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "506"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
           frameworkcode: ""
           seealso: ""
           link: ""
@@ -25543,6 +27965,24 @@ tables:
           defaultvalue:
 
         - tagfield: "508"
+          tagsubfield: "3"
+          liblibrarian: "Materials specified"
+          libopac: "Materials specified"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "508"
           tagsubfield: "6"
           liblibrarian: "Linkage"
           libopac: "Linkage"
@@ -25554,6 +27994,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "508"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -25644,6 +28102,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "510"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -25744,6 +28220,24 @@ tables:
           tagsubfield: "x"
           liblibrarian: "International Standard Serial Number"
           libopac: "International Standard Serial Number"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "511"
+          tagsubfield: "3"
+          liblibrarian: "Materials specified"
+          libopac: "Materials specified"
           repeatable: 0
           mandatory: 0
           kohafield: ""
@@ -26227,6 +28721,24 @@ tables:
           defaultvalue:
 
         - tagfield: "515"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "515"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -26479,6 +28991,24 @@ tables:
           defaultvalue:
 
         - tagfield: "518"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "518"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -26616,6 +29146,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "520"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -27469,6 +30017,24 @@ tables:
           defaultvalue:
 
         - tagfield: "532"
+          tagsubfield: "3"
+          liblibrarian: "Materials specified"
+          libopac: "Materials specified"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 5
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "532"
           tagsubfield: "6"
           liblibrarian: "Linkage"
           libopac: "Linkage"
@@ -27742,6 +30308,24 @@ tables:
           tagsubfield: "n"
           liblibrarian: "Note about reproduction"
           libopac: "Note about reproduction"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 5
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -1
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "533"
+          tagsubfield: "y"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
           repeatable: 1
           mandatory: 0
           kohafield:
@@ -28549,6 +31133,42 @@ tables:
           defaultvalue:
 
         - tagfield: "540"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "540"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "540"
           tagsubfield: "2"
           liblibrarian: "Source of term"
           libopac: "Source of term"
@@ -28712,8 +31332,8 @@ tables:
 
         - tagfield: "540"
           tagsubfield: "f"
-          liblibrarian: "Use and reproduction rights"
-          libopac: "Use and reproduction rights"
+          liblibrarian: "Standardized terminology for use and reproduction rights"
+          libopac: "Standardized terminology for use and reproduction rights"
           repeatable: 1
           mandatory: 0
           kohafield: ""
@@ -29755,6 +32375,24 @@ tables:
           defaultvalue:
 
         - tagfield: "546"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "546"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -29910,6 +32548,24 @@ tables:
           authtypecode:
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "550"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -30360,6 +33016,24 @@ tables:
           authtypecode:
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "555"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -31267,6 +33941,24 @@ tables:
           defaultvalue:
 
         - tagfield: "580"
+          tagsubfield: "5"
+          liblibrarian: "Institution to which field applies"
+          libopac: "Institution to which field applies"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "580"
           tagsubfield: "6"
           liblibrarian: "Linkage"
           libopac: "Linkage"
@@ -31530,6 +34222,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "583"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 5
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -32401,6 +35111,24 @@ tables:
           defaultvalue:
 
         - tagfield: "600"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "600"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -32977,6 +35705,24 @@ tables:
           defaultvalue:
 
         - tagfield: "610"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "610"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -33517,6 +36263,24 @@ tables:
           defaultvalue:
 
         - tagfield: "611"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "611"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -34039,6 +36803,24 @@ tables:
           defaultvalue:
 
         - tagfield: "630"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "630"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -34489,6 +37271,24 @@ tables:
           defaultvalue:
 
         - tagfield: "647"
+          tagsubfield: "4"
+          liblibrarian: "Relationship"
+          libopac: "Relationship"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "647"
           tagsubfield: "6"
           liblibrarian: "Linkage"
           libopac: "Linkage"
@@ -34510,6 +37310,96 @@ tables:
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "647"
+          tagsubfield: "e"
+          liblibrarian: "Relator term"
+          libopac: "Relator term"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "647"
+          tagsubfield: "a"
+          liblibrarian: "Named event"
+          libopac: "Named event"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "647"
+          tagsubfield: "c"
+          liblibrarian: "Location of named event"
+          libopac: "Location of named event"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "647"
+          tagsubfield: "d"
+          liblibrarian: "Date of named event"
+          libopac: "Date of named event"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "647"
+          tagsubfield: "g"
+          liblibrarian: "Miscellaneous information"
+          libopac: "Miscellaneous information"
           repeatable: 1
           mandatory: 0
           kohafield: ""
@@ -34669,6 +37559,24 @@ tables:
           defaultvalue:
 
         - tagfield: "648"
+          tagsubfield: "4"
+          liblibrarian: "Relationship"
+          libopac: "Relationship"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "648"
           tagsubfield: "6"
           liblibrarian: "Linkage"
           libopac: "Linkage"
@@ -34680,6 +37588,24 @@ tables:
           authtypecode:
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "648"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -34732,6 +37658,24 @@ tables:
           tab: 6
           authorised_value:
           authtypecode: CHRON_TERM
+          value_builder: ""
+          isurl:
+          hidden: 0
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "648"
+          tagsubfield: "e"
+          liblibrarian: "Relator term"
+          libopac: "Relator term"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
           value_builder: ""
           isurl:
           hidden: 0
@@ -34907,6 +37851,24 @@ tables:
           liblibrarian: "Linkage"
           libopac: "Linkage"
           repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "650"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
           mandatory: 0
           kohafield: ""
           tab: 6
@@ -35245,6 +38207,24 @@ tables:
           defaultvalue:
 
         - tagfield: "651"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "651"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -35497,6 +38477,60 @@ tables:
           defaultvalue:
 
         - tagfield: "653"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "653"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "653"
+          tagsubfield: "5"
+          liblibrarian: "Institution to which field applies"
+          libopac: "Institution to which field applies"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "653"
           tagsubfield: "6"
           liblibrarian: "Linkage"
           libopac: "Linkage"
@@ -35508,6 +38542,24 @@ tables:
           authtypecode:
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "653"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -35940,6 +38992,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "655"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -36544,6 +39614,42 @@ tables:
           tagsubfield: "z"
           liblibrarian: "Geographic subdivision"
           libopac: "Geographic subdivision"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "658"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 6
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "658"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
           repeatable: 1
           mandatory: 0
           kohafield: ""
@@ -39763,6 +42869,24 @@ tables:
           defaultvalue:
 
         - tagfield: "700"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 7
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "700"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -40627,6 +43751,24 @@ tables:
           defaultvalue:
 
         - tagfield: "710"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 7
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "710"
           tagsubfield: "8"
           liblibrarian: "Field link and sequence number"
           libopac: "Field link and sequence number"
@@ -41142,6 +44284,24 @@ tables:
           authtypecode:
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "711"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 7
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -41797,6 +44957,42 @@ tables:
           defaultvalue:
 
         - tagfield: "720"
+          tagsubfield: "0"
+          liblibrarian: "Authority record control number or standard number"
+          libopac: "Authority record control number or standard number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 7
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "720"
+          tagsubfield: "1"
+          liblibrarian: "Real World Object URI"
+          libopac: "Real World Object URI"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 7
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "720"
           tagsubfield: "4"
           liblibrarian: "Relationship"
           libopac: "Relationship"
@@ -41815,6 +45011,24 @@ tables:
           defaultvalue:
 
         - tagfield: "720"
+          tagsubfield: "5"
+          liblibrarian: "Institution to which field applies"
+          libopac: "Institution to which field applies"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 7
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "720"
           tagsubfield: "6"
           liblibrarian: "Linkage"
           libopac: "Linkage"
@@ -41826,6 +45040,24 @@ tables:
           authtypecode:
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "720"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 7
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -42564,6 +45796,24 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "751"
+          tagsubfield: "7"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 7
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
           hidden: -6
           frameworkcode: ""
           seealso: ""
@@ -43741,6 +46991,24 @@ tables:
           defaultvalue:
 
         - tagfield: "760"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "760"
           tagsubfield: "m"
           liblibrarian: "Material-specific details"
           libopac: "Material-specific details"
@@ -44086,6 +47354,24 @@ tables:
           tagsubfield: "i"
           liblibrarian: "Relationship information"
           libopac: "Relationship information"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "762"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
           repeatable: 1
           mandatory: 0
           kohafield:
@@ -44464,6 +47750,24 @@ tables:
           tagsubfield: "k"
           liblibrarian: "Series data for related item"
           libopac: "Series data for related item"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "765"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
           repeatable: 1
           mandatory: 0
           kohafield:
@@ -44911,6 +48215,24 @@ tables:
           defaultvalue:
 
         - tagfield: "767"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "767"
           tagsubfield: "m"
           liblibrarian: "Material-specific details"
           libopac: "Material-specific details"
@@ -45343,6 +48665,24 @@ tables:
           defaultvalue:
 
         - tagfield: "770"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "770"
           tagsubfield: "m"
           liblibrarian: "Material-specific details"
           libopac: "Material-specific details"
@@ -45760,6 +49100,24 @@ tables:
           tagsubfield: "k"
           liblibrarian: "Series data for related item"
           libopac: "Series data for related item"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "772"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
           repeatable: 1
           mandatory: 0
           kohafield:
@@ -46045,6 +49403,24 @@ tables:
           defaultvalue:
 
         - tagfield: "773"
+          tagsubfield: "5"
+          liblibrarian: "Institution to which field applies"
+          libopac: "Institution to which field applies"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "773"
           tagsubfield: "6"
           liblibrarian: "Linkage"
           libopac: "Linkage"
@@ -46228,6 +49604,24 @@ tables:
           tagsubfield: "k"
           liblibrarian: "Series data for related item"
           libopac: "Series data for related item"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "773"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
           repeatable: 1
           mandatory: 0
           kohafield:
@@ -46495,6 +49889,24 @@ tables:
           defaultvalue:
 
         - tagfield: "774"
+          tagsubfield: "5"
+          liblibrarian: "Institution to which field applies"
+          libopac: "Institution to which field applies"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "774"
           tagsubfield: "6"
           liblibrarian: "Linkage"
           libopac: "Linkage"
@@ -46678,6 +50090,24 @@ tables:
           tagsubfield: "k"
           liblibrarian: "Series data for related item"
           libopac: "Series data for related item"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "774"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
           repeatable: 1
           mandatory: 0
           kohafield:
@@ -47143,6 +50573,24 @@ tables:
           defaultvalue:
 
         - tagfield: "775"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "775"
           tagsubfield: "m"
           liblibrarian: "Material-specific details"
           libopac: "Material-specific details"
@@ -47575,6 +51023,24 @@ tables:
           defaultvalue:
 
         - tagfield: "776"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "776"
           tagsubfield: "m"
           liblibrarian: "Material-specific details"
           libopac: "Material-specific details"
@@ -48007,6 +51473,24 @@ tables:
           defaultvalue:
 
         - tagfield: "777"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "777"
           tagsubfield: "m"
           liblibrarian: "Material-specific details"
           libopac: "Material-specific details"
@@ -48439,6 +51923,24 @@ tables:
           defaultvalue:
 
         - tagfield: "780"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "780"
           tagsubfield: "m"
           liblibrarian: "Material-specific details"
           libopac: "Material-specific details"
@@ -48856,6 +52358,24 @@ tables:
           tagsubfield: "k"
           liblibrarian: "Series data for related item"
           libopac: "Series data for related item"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "785"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
           repeatable: 1
           mandatory: 0
           kohafield:
@@ -49321,6 +52841,24 @@ tables:
           defaultvalue:
 
         - tagfield: "786"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "786"
           tagsubfield: "m"
           liblibrarian: "Material-specific details"
           libopac: "Material-specific details"
@@ -49573,6 +53111,24 @@ tables:
           defaultvalue:
 
         - tagfield: "787"
+          tagsubfield: "5"
+          liblibrarian: "Institution to which field applies"
+          libopac: "Institution to which field applies"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "787"
           tagsubfield: "6"
           liblibrarian: "Linkage"
           libopac: "Linkage"
@@ -49756,6 +53312,24 @@ tables:
           tagsubfield: "k"
           liblibrarian: "Series data for related item"
           libopac: "Series data for related item"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "787"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
           repeatable: 1
           mandatory: 0
           kohafield:
@@ -49973,6 +53547,276 @@ tables:
           liblibrarian: "International Standard Book Number"
           libopac: "International Standard Book Number"
           repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "4"
+          liblibrarian: "Relationship"
+          libopac: "Relationship"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 7
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "5"
+          liblibrarian: "Institution to which field applies"
+          libopac: "Institution to which field applies"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 7
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "6"
+          liblibrarian: "Linkage"
+          libopac: "Linkage"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "8"
+          liblibrarian: "Field link and sequence number"
+          libopac: "Field link and sequence number"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "a"
+          liblibrarian: "Main entry heading"
+          libopac: "Main entry heading"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "b"
+          liblibrarian: "Edition"
+          libopac: "Edition"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "d"
+          liblibrarian: "Place, publisher, and date of publication"
+          libopac: "Place, publisher, and date of publication"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "e"
+          liblibrarian: "Language of cataloging"
+          libopac: "Language of cataloging"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "i"
+          liblibrarian: "Relationship information"
+          libopac: "Relationship information"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "l"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "n"
+          liblibrarian: "Note"
+          libopac: "Note"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "s"
+          liblibrarian: "Uniform title"
+          libopac: "Uniform title"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "t"
+          liblibrarian: "Title"
+          libopac: "Title"
+          repeatable: 0
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "w"
+          liblibrarian: "Record control number"
+          libopac: "Record control number"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 7
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "788"
+          tagsubfield: "x"
+          liblibrarian: "International Standard Serial Number"
+          libopac: "International Standard Serial Number"
+          repeatable: 0
           mandatory: 0
           kohafield:
           tab: 7
@@ -52992,6 +56836,24 @@ tables:
           link: ""
           defaultvalue:
 
+        - tagfield: "800"
+          tagsubfield: "y"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 8
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
         - tagfield: "810"
           tagsubfield: "0"
           liblibrarian: "Authority record control number or standard number"
@@ -53550,6 +57412,24 @@ tables:
           link: ""
           defaultvalue:
 
+        - tagfield: "810"
+          tagsubfield: "y"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 8
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
         - tagfield: "811"
           tagsubfield: "0"
           liblibrarian: "Authority record control number or standard number"
@@ -54090,6 +57970,24 @@ tables:
           link: ""
           defaultvalue:
 
+        - tagfield: "811"
+          tagsubfield: "y"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 8
+          authorised_value:
+          authtypecode:
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
         - tagfield: "830"
           tagsubfield: "0"
           liblibrarian: "Authority record control number or standard number"
@@ -54550,6 +58448,24 @@ tables:
           tab: 8
           authorised_value: ""
           authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "830"
+          tagsubfield: "y"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield:
+          tab: 8
+          authorised_value:
+          authtypecode:
           value_builder: ""
           isurl:
           hidden: -6
@@ -57296,8 +61212,8 @@ tables:
 
         - tagfield: "856"
           tagsubfield: "b"
-          liblibrarian: "Access number"
-          libopac: "Access number"
+          liblibrarian: "Access number [OBSOLETE]"
+          libopac: "Access number [OBSOLETE]"
           repeatable: 1
           mandatory: 0
           kohafield: ""
@@ -57306,7 +61222,7 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl: 0
-          hidden: -1
+          hidden: -6
           frameworkcode: ""
           seealso: ""
           link: ""
@@ -57349,6 +61265,24 @@ tables:
           defaultvalue:
 
         - tagfield: "856"
+          tagsubfield: "e"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -1
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "856"
           tagsubfield: "f"
           liblibrarian: "Electronic name"
           libopac: "Electronic name"
@@ -57367,27 +61301,9 @@ tables:
           defaultvalue:
 
         - tagfield: "856"
-          tagsubfield: "h"
-          liblibrarian: "Processor of request"
-          libopac: "Processor of request"
-          repeatable: 0
-          mandatory: 0
-          kohafield: ""
-          tab: 8
-          authorised_value: ""
-          authtypecode: ""
-          value_builder: ""
-          isurl: 0
-          hidden: -1
-          frameworkcode: ""
-          seealso: ""
-          link: ""
-          defaultvalue:
-
-        - tagfield: "856"
-          tagsubfield: "i"
-          liblibrarian: "Instruction"
-          libopac: "Instruction"
+          tagsubfield: "g"
+          liblibrarian: "Persistent identifier"
+          libopac: "Persistent identifier"
           repeatable: 1
           mandatory: 0
           kohafield: ""
@@ -57403,9 +61319,9 @@ tables:
           defaultvalue:
 
         - tagfield: "856"
-          tagsubfield: "j"
-          liblibrarian: "Bits per second"
-          libopac: "Bits per second"
+          tagsubfield: "h"
+          liblibrarian: "Non-functioning Uniform Resource Identifier"
+          libopac: "Non-functioning Uniform Resource Identifier"
           repeatable: 0
           mandatory: 0
           kohafield: ""
@@ -57414,7 +61330,43 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl: 0
-          hidden: -1
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "856"
+          tagsubfield: "i"
+          liblibrarian: "Instruction [OBSOLETE]"
+          libopac: "Instruction [OBSOLETE]"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "856"
+          tagsubfield: "j"
+          liblibrarian: "Bits per second [OBSOLETE]"
+          libopac: "Bits per second [OBSOLETE]"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
           frameworkcode: ""
           seealso: ""
           link: ""
@@ -57422,8 +61374,8 @@ tables:
 
         - tagfield: "856"
           tagsubfield: "k"
-          liblibrarian: "Password"
-          libopac: "Password"
+          liblibrarian: "Password [OBSOLETE]"
+          libopac: "Password [OBSOLETE]"
           repeatable: 0
           mandatory: 0
           kohafield: ""
@@ -57432,7 +61384,7 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl: 0
-          hidden: -1
+          hidden: -6
           frameworkcode: ""
           seealso: ""
           link: ""
@@ -57440,9 +61392,9 @@ tables:
 
         - tagfield: "856"
           tagsubfield: "l"
-          liblibrarian: "Logon"
-          libopac: "Logon"
-          repeatable: 0
+          liblibrarian: "Standardized information governing access"
+          libopac: "Standardized information governing access"
+          repeatable: 1
           mandatory: 0
           kohafield: ""
           tab: 8
@@ -57450,7 +61402,7 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl: 0
-          hidden: -1
+          hidden: -6
           frameworkcode: ""
           seealso: ""
           link: ""
@@ -57476,9 +61428,9 @@ tables:
 
         - tagfield: "856"
           tagsubfield: "n"
-          liblibrarian: "Name of location of host"
-          libopac: "Name of location of host"
-          repeatable: 0
+          liblibrarian: "Terms governing access"
+          libopac: "Terms governing access"
+          repeatable: 1
           mandatory: 0
           kohafield: ""
           tab: 8
@@ -57486,7 +61438,7 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl: 0
-          hidden: -1
+          hidden: -6
           frameworkcode: ""
           seealso: ""
           link: ""
@@ -57532,7 +61484,7 @@ tables:
           tagsubfield: "q"
           liblibrarian: "Electronic format type"
           libopac: "Electronic format type"
-          repeatable: 0
+          repeatable: 1
           mandatory: 0
           kohafield: ""
           tab: 8
@@ -57548,9 +61500,9 @@ tables:
 
         - tagfield: "856"
           tagsubfield: "r"
-          liblibrarian: "Settings"
-          libopac: "Settings"
-          repeatable: 0
+          liblibrarian: "Standardized information governing use and reproduction"
+          libopac: "Standardized information governing use and reproduction"
+          repeatable: 1
           mandatory: 0
           kohafield: ""
           tab: 8
@@ -57558,7 +61510,7 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl: 0
-          hidden: -1
+          hidden: -6
           frameworkcode: ""
           seealso: ""
           link: ""
@@ -57584,8 +61536,8 @@ tables:
 
         - tagfield: "856"
           tagsubfield: "t"
-          liblibrarian: "Terminal emulation"
-          libopac: "Terminal emulation"
+          liblibrarian: "Terms governing use and reproduction"
+          libopac: "Terms governing use and reproduction"
           repeatable: 1
           mandatory: 0
           kohafield: ""
@@ -57594,7 +61546,7 @@ tables:
           authtypecode: ""
           value_builder: ""
           isurl: 0
-          hidden: -1
+          hidden: -6
           frameworkcode: ""
           seealso: ""
           link: ""
@@ -57703,6 +61655,438 @@ tables:
           value_builder: ""
           isurl: 0
           hidden: 0
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "2"
+          liblibrarian: "Access method"
+          libopac: "Access method"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "3"
+          liblibrarian: "Materials specified"
+          libopac: "Materials specified"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "5"
+          liblibrarian: "Institution to which field applies"
+          libopac: "Institution to which field applies"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "6"
+          liblibrarian: "Linkage"
+          libopac: "Linkage"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "7"
+          liblibrarian: "Access status"
+          libopac: "Access status"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "8"
+          liblibrarian: "Field link and sequence number"
+          libopac: "Field link and sequence number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "b"
+          liblibrarian: "Name of archiving agency"
+          libopac: "Name of archiving agency"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "c"
+          liblibrarian: "Name of Web archive or digital archive repository"
+          libopac: "Name of Web archive or digital archive repository"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "d"
+          liblibrarian: "Date range of archived material"
+          libopac: "Date range of archived material"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "e"
+          liblibrarian: "Data provenance"
+          libopac: "Data provenance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "f"
+          liblibrarian: "Archive completeness"
+          libopac: "Archive completeness"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "g"
+          liblibrarian: "Persistent identifier"
+          libopac: "Persistent identifier"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "h"
+          liblibrarian: "Non-functioning Uniform Resource Identifier"
+          libopac: "Non-functioning Uniform Resource Identifier"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "l"
+          liblibrarian: "Standardized information governing access"
+          libopac: "Standardized information governing access"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "m"
+          liblibrarian: "Contact for access assistance"
+          libopac: "Contact for access assistance"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "n"
+          liblibrarian: "Terms governing access"
+          libopac: "Terms governing access"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "q"
+          liblibrarian: "Electronic format type"
+          libopac: "Electronic format type"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "r"
+          liblibrarian: "Standardized information governing use and reproduction"
+          libopac: "Standardized information governing use and reproduction"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "s"
+          liblibrarian: "File size"
+          libopac: "File size"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "t"
+          liblibrarian: "Terms governing use and reproduction"
+          libopac: "Terms governing use and reproduction"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "u"
+          liblibrarian: "Uniform Resource Identifier"
+          libopac: "Uniform Resource Identifier"
+          repeatable: 1
+          mandatory: 0
+          kohafield: biblioitems.url
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 1
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "x"
+          liblibrarian: "Nonpublic note"
+          libopac: "Nonpublic note"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: 6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "y"
+          liblibrarian: "Link text"
+          libopac: "Link text"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "857"
+          tagsubfield: "z"
+          liblibrarian: "Public note"
+          libopac: "Public note"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl: 0
+          hidden: -6
           frameworkcode: ""
           seealso: ""
           link: ""
@@ -62122,6 +66506,312 @@ tables:
           tagsubfield: "z"
           liblibrarian: "z"
           libopac: "z"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "3"
+          liblibrarian: "Materials specified"
+          libopac: "Materials specified"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "6"
+          liblibrarian: "Linkage"
+          libopac: "Linkage"
+          repeatable: 0
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "8"
+          liblibrarian: "Field link and sequence number"
+          libopac: "Field link and sequence number"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "a"
+          liblibrarian: "Manifestation statement, high-level/general"
+          libopac: "Manifestation statement, high-level/general"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "b"
+          liblibrarian: "Manifestation identifier statement"
+          libopac: "Manifestation identifier statement"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "c"
+          liblibrarian: "Manifestation title and responsibility statement"
+          libopac: "Manifestation title and responsibility statement"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "d"
+          liblibrarian: "Manifestation edition statement"
+          libopac: "Manifestation edition statement"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "e"
+          liblibrarian: "Manifestation production statement"
+          libopac: "Manifestation production statement"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "f"
+          liblibrarian: "Manifestation publication statement"
+          libopac: "Manifestation publication statement"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "g"
+          liblibrarian: "Manifestation distribution statement"
+          libopac: "Manifestation distribution statement"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "h"
+          liblibrarian: "Manifestation manufacture statement"
+          libopac: "Manifestation manufacture statement"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "i"
+          liblibrarian: "Manifestation copyright statement"
+          libopac: "Manifestation copyright statement"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "j"
+          liblibrarian: "Manifestation frequency statement"
+          libopac: "Manifestation frequency statement"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "k"
+          liblibrarian: "Manifestation designation of sequence statement"
+          libopac: "Manifestation designation of sequence statement"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "l"
+          liblibrarian: "Manifestation series statement"
+          libopac: "Manifestation series statement"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "m"
+          liblibrarian: "Manifestation dissertation statement"
+          libopac: "Manifestation dissertation statement"
+          repeatable: 1
+          mandatory: 0
+          kohafield: ""
+          tab: 8
+          authorised_value: ""
+          authtypecode: ""
+          value_builder: ""
+          isurl:
+          hidden: -6
+          frameworkcode: ""
+          seealso: ""
+          link: ""
+          defaultvalue:
+
+        - tagfield: "881"
+          tagsubfield: "n"
+          liblibrarian: "Manifestation regional encoding statement"
+          libopac: "Manifestation regional encoding statement"
           repeatable: 1
           mandatory: 0
           kohafield: ""

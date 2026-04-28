@@ -1,8 +1,19 @@
 [% USE raw %]
+[% USE Koha %]
 [% USE Asset %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( status ) %]Approved comments[% ELSE %]Comments awaiting moderation[% END %] &rsaquo; Comments &rsaquo; Tools &rsaquo; Koha</title>
+<title>[% FILTER collapse %]
+    [% IF( status ) %]
+        [% t("Approved comments") | html %]
+    [% ELSE %]
+        [% t("Comments awaiting moderation") | html %]
+    [% END %] &rsaquo;
+    [% t("Comments") | html %] &rsaquo;
+    [% t("Tools") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="tools_reviewswaiting" class="tools">
@@ -32,27 +43,28 @@
 
 <div class="main container-fluid">
     <div class="row">
-        <div class="col-sm-10 col-sm-push-2">
+        <div class="col-md-10 order-md-2 order-sm-1">
             <main>
+                [% INCLUDE 'messages.inc' %]
 
 <h1>Comments</h1>
 
 <!-- The manual invoice and credit buttons -->
 <div class="toptabs">
     <ul class="nav nav-tabs" role="tablist">
-        [% IF ( status ) %]
-            <li role="presentation" class="active">
-        [% ELSE %]
-            <li role="presentation">
-        [% END %]
-            <a href="/cgi-bin/koha/reviews/reviewswaiting.pl?status=1">Approved comments</a>
+        <li role="presentation" class="nav-item">
+            [% IF ( status ) %]
+                <a class="nav-link active" href="/cgi-bin/koha/reviews/reviewswaiting.pl?status=1">Approved comments</a>
+            [% ELSE %]
+                <a class="nav-link" href="/cgi-bin/koha/reviews/reviewswaiting.pl?status=1">Approved comments</a>
+            [% END %]
         </li>
-        [% IF ( status ) %]
-            <li role="presentation">
-        [% ELSE %]
-            <li role="presentation" class="active">
-        [% END %]
-            <a href="/cgi-bin/koha/reviews/reviewswaiting.pl" >Comments awaiting moderation</a>
+        <li role="presentation" class="nav-item">
+            [% IF ( status ) %]
+                <a class="nav-link" href="/cgi-bin/koha/reviews/reviewswaiting.pl" >Comments awaiting moderation</a>
+            [% ELSE %]
+                <a class="nav-link active" href="/cgi-bin/koha/reviews/reviewswaiting.pl" >Comments awaiting moderation</a>
+            [% END %]
         </li>
     </ul> <!-- /.nav.nav-tabs -->
     <div class="tab-content">
@@ -86,8 +98,27 @@
             [% review.review | html %]
         </td>
         <td class="actions">
-            [% IF ( status ) %]<a href="/cgi-bin/koha/reviews/reviewswaiting.pl?op=unapprove&amp;reviewid=[% review.reviewid | uri %]" class="btn btn-default btn-xs"><i class="fa fa-remove"></i> Unapprove</a>[% ELSE %]<a href="/cgi-bin/koha/reviews/reviewswaiting.pl?op=approve&amp;reviewid=[% review.reviewid | uri %]" class="btn btn-default btn-xs"><i class="fa fa-check"></i> Approve</a>[% END %]
-            <a href="/cgi-bin/koha/reviews/reviewswaiting.pl?op=delete&amp;reviewid=[% review.reviewid | uri %]" class="btn btn-default btn-xs"><i class="fa fa-trash" aria-hidden="true"></i> Delete</a>
+            [% IF ( review.approved ) %]
+                <form action="/cgi-bin/koha/reviews/reviewswaiting.pl" method="post">
+                    [% INCLUDE 'csrf-token.inc' %]
+                    <input type="hidden" name="op" value="cud-unapprove" />
+                    <input type="hidden" name="reviewid" value="[% review.reviewid | html %]" />
+                    <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-times" aria-hidden="true"></i> Unapprove</button>
+                </form>
+            [% ELSE %]
+                <form action="/cgi-bin/koha/reviews/reviewswaiting.pl" method="post">
+                    [% INCLUDE 'csrf-token.inc' %]
+                    <input type="hidden" name="op" value="cud-approve" />
+                    <input type="hidden" name="reviewid" value="[% review.reviewid | html %]" />
+                    <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-check" aria-hidden="true"></i> Approve</button>
+                </form>
+            [% END %]
+            <form action="/cgi-bin/koha/reviews/reviewswaiting.pl" method="post">
+                [% INCLUDE 'csrf-token.inc' %]
+                <input type="hidden" name="op" value="cud-delete" />
+                <input type="hidden" name="reviewid" value="[% review.reviewid | html %]" />
+                <button type="submit" class="btn btn-default btn-xs delete-comment"><i class="fa fa-trash-can" aria-hidden="true"></i> Delete</button>
+            </form>
         </td>
     </tr>
     [% END %]</tbody>
@@ -101,17 +132,24 @@
 </div> <!-- /.toptabs -->
 
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'tools-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-md-1 -->
      </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/tools-menu.js") | $raw %]
+    <script>
+        $(document).ready(function(){
+            $(".delete-comment").on("click", function(){
+                return confirm( _("Are you sure you want to delete this comment?") );
+            });
+        });
+    </script>
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

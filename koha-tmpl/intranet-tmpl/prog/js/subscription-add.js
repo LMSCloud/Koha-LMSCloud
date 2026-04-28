@@ -422,7 +422,7 @@ function mana_search() {
     $("#mana_search").show();
 
     $.ajax({
-        type: "POST",
+        type: "GET",
         url: "/cgi-bin/koha/svc/mana/search",
         data: {id: $("#biblionumber").val(), resource: 'subscription', usecomments: 1},
         dataType: "html",
@@ -431,19 +431,19 @@ function mana_search() {
             $("#mana_search_result .modal-body").html(result);
             $("#mana_search_result_label").text( __("Results from Mana Knowledge Base") );
             $("#mana_results_datatable").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "sPaginationType": "full",
+                "pagingType":  "full",
                 "order":[[4, "desc"], [5, "desc"]],
                 "autoWidth": false,
                 "columnDefs": [
                     { "width": "35%", "targets": 1 }
                 ],
-                "aoColumnDefs": [
-                    { 'bSortable': false, "bSearchable": false, 'aTargets': [ 'NoSort' ] },
-                    { 'sType': "anti-the", 'aTargets' : [ 'anti-the'] }
+                "columnDefs":  [
+                    { "orderable":  false, "searchable":  false, "targets":  [ 'NoSort' ] },
+                    { "type":  "anti-the", "targets":  [ 'anti-the'] }
                 ]
             }));
             if( $("#mana_results_datatable").length && $("td.dataTables_empty").length == 0){
-                $("#mana_search").html("<p>" + __("Subscription found on Mana Knowledge Base:") + "</p><p> <a href=\"#\" data-toggle=\"modal\" data-target=\"#mana_search_result\"><i class=\"fa fa-window-maximize\"></i> " + __("Show Mana results") + "</a></p>");
+                $("#mana_search").html("<p>" + __("Subscription found on Mana Knowledge Base:") + "</p><p> <a href=\"#\" data-bs-toggle=\"modal\" data-bs-target=\"#mana_search_result\"><i class=\"fa-solid fa-window-maximize\"></i> " + __("Show Mana results") + "</a></p>");
             }
             else if ( $("#mana_results_datatable").length ){
                 $("#mana_search").html("<p>" + __("No subscription found on Mana Knowledge Base") + "</p><p>" + __("Please feel free to share your pattern with all others librarians once you are done") + "</p>");
@@ -461,7 +461,7 @@ function mana_use(mana_id){
     $.ajax( {
         type: "POST",
         url: "/cgi-bin/koha/svc/mana/use",
-        data: {id: mana_id, resource: 'subscription'},
+        data: {id: mana_id, resource: 'subscription', csrf_token: $('meta[name="csrf-token"]').attr('content')},
         dataType: "json",
     })
         .done(function(result){
@@ -545,7 +545,7 @@ function mana_comment_close(){
 
 function showPredictionPatternTest( data ){
     $("#displayexample").html(data).show();
-    $("#page_2 > div").attr("class","col-xs-6");
+    $("#page_2 > div").attr("class","col-sm-6");
 }
 
 function hidePredcitionPatternTest(){
@@ -649,8 +649,6 @@ $(document).ready(function() {
         });
     }
 
-    $("#mana_search").hide();
-
     show_page_1();
     $("#subscription_add_form").on("submit",function(){
         return Check_page2();
@@ -709,7 +707,7 @@ $(document).ready(function() {
 
     $("body").on("click", ".mana-use", function(e) {
         e.preventDefault();
-        $(this).find("i").attr("class","fa fa-refresh fa-spin");
+        $(this).find("i").attr("class","fa-solid fa-rotate fa-spin");
         var subscription_id = $(this).data("subscription_id");
         mana_use( subscription_id );
     });

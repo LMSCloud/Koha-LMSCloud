@@ -17,7 +17,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 7;
+use Test::More tests => 9;
 use Test::MockModule;
 
 use C4::ClassSource;
@@ -35,6 +35,18 @@ my $schema = Koha::Database->new->schema;
 $schema->storage->txn_begin;
 
 use_ok('Koha::UI::Form::Builder::Biblio');
+
+subtest 'new' => sub {
+    plan tests => 1;
+
+    # No warning
+    Koha::UI::Form::Builder::Biblio->new();
+
+    # No warning if passing CGI->param('biblionumber')
+    Koha::UI::Form::Builder::Biblio->new( { biblionumber => undef } );
+
+    ok(1);
+};
 
 subtest 'generate_subfield_form default value' => sub {
     my $builder = Koha::UI::Form::Builder::Biblio->new();
@@ -138,13 +150,13 @@ subtest 'generate_subfield_form class sources' => sub {
         },
     );
 
-    my @class_sources = Koha::ClassSources->search({used => 1}, {order_by => 'cn_source'})->as_list;
-    my %labels = map { $_->cn_source => $_->description } @class_sources;
-    my @values = ('', map { $_->cn_source } @class_sources);
+    my @class_sources = Koha::ClassSources->search( { used => 1 }, { order_by => 'cn_source' } )->as_list;
+    my %labels        = map { $_->cn_source => $_->description } @class_sources;
+    my @values        = ( '', map { $_->cn_source } @class_sources );
 
-    is($subfield->{marc_value}->{type}, 'select');
-    is_deeply($subfield->{marc_value}->{labels}, \%labels);
-    is_deeply($subfield->{marc_value}->{values}, \@values);
+    is( $subfield->{marc_value}->{type}, 'select' );
+    is_deeply( $subfield->{marc_value}->{labels}, \%labels );
+    is_deeply( $subfield->{marc_value}->{values}, \@values );
 };
 
 subtest 'generate_subfield_form authorised value' => sub {
@@ -200,6 +212,12 @@ subtest 'generate_subfield_form framework plugin' => sub {
     is($subfield->{marc_value}->{plugin}, 'barcode.pl');
     is($subfield->{marc_value}->{noclick}, 1);
     like($subfield->{marc_value}->{javascript}, qr,<script>.*</script>,s);
+};
+
+subtest 'generate_subfield_form default value' => sub {
+    my $builder = Koha::UI::Form::Builder::Biblio->new( { biblionumber => 1 } );
+
+    is( $builder->{biblionumber}, 1, "Biblionumber correctly stored in object" );
 };
 
 $schema->storage->txn_rollback;

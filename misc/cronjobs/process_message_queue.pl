@@ -21,31 +21,36 @@ use strict;
 use warnings;
 
 use Koha::Script -cron;
-use C4::Letters qw( SendQueuedMessages );
-use C4::Log qw( cronlogaction );
+use C4::Letters  qw( SendQueuedMessages );
+use C4::Log      qw( cronlogaction );
 use Getopt::Long qw( GetOptions );
-use Try::Tiny qw( catch try );
+use Try::Tiny    qw( catch try );
 
 my $username = undef;
 my $password = undef;
 my $limit    = undef;
-my $method = 'LOGIN';
-my $help = 0;
-my $verbose = 0;
+my $method   = 'LOGIN';
+my $help     = 0;
+my $verbose  = 0;
+my $where;
 my @type;
 my @letter_code;
+my $exit_on_plugin_failure = 0;
 
-my $command_line_options = join(" ",@ARGV);
+my $command_line_options = join( " ", @ARGV );
+cronlogaction( { info => $command_line_options } );
 
 GetOptions(
-    'u|username:s'      => \$username,
-    'p|password:s'      => \$password,
-    'l|limit:s'         => \$limit,
-    'm|method:s'        => \$method,
-    'h|help|?'          => \$help,
-    'v|verbose'         => \$verbose,
-    't|type:s'          => \@type,
-    'c|code:s'          => \@letter_code,
+    'u|username:s'             => \$username,
+    'p|password:s'             => \$password,
+    'l|limit:s'                => \$limit,
+    'm|method:s'               => \$method,
+    'h|help|?'                 => \$help,
+    'v|verbose'                => \$verbose,
+    't|type:s'                 => \@type,
+    'c|code:s'                 => \@letter_code,
+    'w|where:s'                => \$where,
+    'e|exit-on-plugin-failure' => \$exit_on_plugin_failure,
 );
 my $usage = << 'ENDUSAGE';
 
@@ -64,59 +69,39 @@ This script has the following parameters :
     -m --method: authentication method required by SMTP server (See perldoc Sendmail.pm for supported authentication types.)
     -h --help: this message
     -v --verbose: provides verbose output to STDOUT
+    -w --where: filter messages to send with additional conditions in the where clause
+    -e --exit-on-plugin-failure: if enabled, script will exit prematurely if any plugin before_send_messages hook fails
 ENDUSAGE
 
 die $usage if $help;
 
-my $script_handler = Koha::Script->new({ script => $0 });
+my $script_handler = Koha::Script->new( { script => $0 } );
 
 try {
     $script_handler->lock_exec;
-}
-catch {
+} catch {
     my $message = "Skipping execution of $0 ($_)";
     print STDERR "$message\n"
         if $verbose;
-    cronlogaction({ info => $message });
+    cronlogaction( { info => $message } );
     exit;
 };
 
-cronlogaction({ info => $command_line_options });
-
-if ( C4::Context->config("enable_plugins") ) {
-    my @plugins = Koha::Plugins->new->GetPlugins({
-        method => 'before_send_messages',
-    });
-
-    if (@plugins) {
-        foreach my $plugin ( @plugins ) {
-            try {
-                $plugin->before_send_messages(
-                    {
-                        verbose     => $verbose,
-                        limit       => $limit,
-                        type        => \@type,
-                        letter_code => \@letter_code,
-                    }
-                );
-            }
-            catch {
-                warn "$_";
-            };
-        }
-    }
-}
+# Remove empty elements, see bug 37075
+@letter_code = grep { $_ ne q{} } @letter_code;
 
 C4::Letters::SendQueuedMessages(
     {
-        verbose     => $verbose,
-        username    => $username,
-        password    => $password,
-        method      => $method,
-        limit       => $limit,
-        type        => \@type,
-        letter_code => \@letter_code,
+        verbose                => $verbose,
+        username               => $username,
+        password               => $password,
+        method                 => $method,
+        limit                  => $limit,
+        type                   => \@type,
+        letter_code            => \@letter_code,
+        where                  => $where,
+        exit_on_plugin_failure => $exit_on_plugin_failure,
     }
 );
 
-cronlogaction({ action => 'End', info => "COMPLETED" });
+cronlogaction( { action => 'End', info => "COMPLETED" } );

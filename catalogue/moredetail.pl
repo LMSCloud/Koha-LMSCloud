@@ -229,6 +229,9 @@ foreach my $item (@items){
                 $item_info->{paidfor} = { patron => $patron, created_on => $payment_offset->created_on };
             }
         }
+
+        my $return_claim = $item->return_claim;
+        $item_info->{has_return_claim} = 1 if $return_claim;
     }
 
     if (C4::Context->preference("IndependentBranches")) {
@@ -246,6 +249,8 @@ foreach my $item (@items){
             rows     => 3,
         }
     );
+
+    $item_info->{nomod} = !$patron->can_edit_items_from( $item->homebranch );
 
     push @item_data, $item_info;
 }
