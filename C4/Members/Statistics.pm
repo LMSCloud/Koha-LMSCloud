@@ -14,7 +14,7 @@ package C4::Members::Statistics;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -23,22 +23,18 @@ C4::Members::Statistics - Get statistics for patron checkouts
 =cut
 
 use Modern::Perl;
-
-use C4::Context;
-
-our ( @ISA, @EXPORT_OK );
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-    @ISA = qw(Exporter);
-
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         get_fields
         GetTotalIssuesTodayByBorrower
         GetTotalIssuesReturnedTodayByBorrower
         GetPrecedentStateByBorrower
     );
 }
+
+use C4::Context;
 
 =head2 get_fields
   Get fields form syspref 'StatisticsFields'

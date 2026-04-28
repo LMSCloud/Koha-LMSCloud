@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -113,6 +113,9 @@ while ( my $h = $holds_rs->next() ) {
         priority              => $h->priority(),
         reservenotes          => $h->reservenotes(),
         itemtype_limit        => $itemtype_limit,
+        hold_group_id         => $h->hold_group_id,
+        visual_hold_group_id  => $h->hold_group ? $h->hold_group->visual_hold_group_id : q{},
+        is_hold_group_target  => $h->is_hold_group_target,
         reservedate_formatted => $h->reservedate()
         ? output_pref( { dt => dt_from_string( $h->reservedate() ), dateonly => 1 } )
         : q{},
@@ -124,8 +127,8 @@ while ( my $h = $holds_rs->next() ) {
         : q{},
     };
 
-    $hold->{transfered}     = 0;
-    $hold->{not_transfered} = 0;
+    $hold->{transferred}     = 0;
+    $hold->{not_transferred} = 0;
 
     if ($item) {
         $hold->{itemnumber}           = $item->itemnumber();

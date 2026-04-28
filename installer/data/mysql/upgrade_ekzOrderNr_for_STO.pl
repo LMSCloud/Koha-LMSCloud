@@ -13,9 +13,8 @@
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # As we have learned from ekz, the stoID is not a unique identifier for a standing order.
 # Only the combination of ekzKundenNr (ekz customer number) and stoID is unique.

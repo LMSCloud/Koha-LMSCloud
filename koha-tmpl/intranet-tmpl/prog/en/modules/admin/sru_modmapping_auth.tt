@@ -83,32 +83,33 @@
             </nav>
         </form>
     </main>
-
-    [% MACRO jsinclude BLOCK %]
-        <script>
-            $(document).ready(function () {
-                $("#form01").submit(function (event) {
-                    if (window.opener) {
-                        var newmap = allInputs();
-                        window.opener.$("#show_sru_fields").val(newmap);
-                        window.close();
-                    } else {
-                        // In this case not called as a popup. Just do nothing.
-                        event.preventDefault();
-                    }
-                });
-            });
-            function allInputs() {
-                var aInput = new Array();
-                $("form :input").each(function () {
-                    if (this.id && $(this).val()) {
-                        aInput.push(this.id + "=" + $(this).val());
-                    }
-                });
-                return aInput.join(",");
-            }
-        </script>
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' popup_window=1 %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% MACRO jsinclude BLOCK %]
+    <script>
+        $(document).ready(function () {
+            $("#form01").submit(function (event) {
+                if (window.opener) {
+                    var newmap = allInputs();
+                    window.opener.$("#show_sru_fields").val(newmap);
+                    window.close();
+                } else {
+                    // In this case not called as a popup. Just do nothing.
+                    event.preventDefault();
+                }
+            });
+        });
+        function allInputs() {
+            var aInput = new Array();
+            $("form :input").each(function () {
+                if (this.id && $(this).val()) {
+                    aInput.push(this.id + "=" + $(this).val());
+                }
+            });
+            return aInput.join(",");
+        }
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' popup_window=1 %]

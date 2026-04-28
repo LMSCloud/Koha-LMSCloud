@@ -16,25 +16,13 @@ package C4::Languages;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
-
-use Carp qw( carp );
-use CGI;
-use List::MoreUtils qw( any );
-use C4::Context;
-use Koha::Caches;
-use Koha::Cache::Memory::Lite;
-use Koha::Language;
-
-our ( @ISA, @EXPORT_OK );
+use Modern::Perl;
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         getFrameworkLanguages
         getTranslatedLanguages
         getLanguages
@@ -43,6 +31,14 @@ BEGIN {
     push @EXPORT_OK,
         qw(getFrameworkLanguages getTranslatedLanguages getAllLanguages getLanguages get_bidi regex_lang_subtags language_get_description accept_language getlanguage get_rfc4646_from_iso639);
 }
+
+use Carp qw( carp );
+use CGI;
+use List::MoreUtils qw( any );
+use C4::Context;
+use Koha::Caches;
+use Koha::Cache::Memory::Lite;
+use Koha::Language;
 
 =head1 NAME
 
@@ -355,8 +351,8 @@ sub _get_language_dirs {
         next if $lang_string =~ /js$/;
         next if $lang_string =~ /css$/;
         next if $lang_string =~ /CVS$/;
-        next if $lang_string =~ /\.txt$/i;                                            #Don't read the readme.txt !
-        next if $lang_string =~ /img|images|famfam|js|less|lib|sound|pdf|webfonts/;
+        next if $lang_string =~ /\.txt$/i;                                   #Don't read the readme.txt !
+        next if $lang_string =~ /img|images|famfam|js|less|lib|sound|pdf/;
         push @lang_strings, $lang_string;
     }
     close $dir_h;
@@ -423,14 +419,14 @@ sub _build_languages_arrayref {
 
     my %idx          = map { $enabled_languages->[$_] => $_ } reverse 0 .. @$enabled_languages - 1;
     my @ordered_keys = sort {
-        my $aa     = '';
-        my $bb     = '';
-        my $acount = @{ $language_groups->{$a} };
-        my $bcount = @{ $language_groups->{$b} };
+        my $aa      = '';
+        my $bb      = '';
+        my $account = @{ $language_groups->{$a} };
+        my $bcount  = @{ $language_groups->{$b} };
         if ( $language_groups->{$a}->[0]->{enabled} ) {
             $aa = $language_groups->{$a}->[0]->{rfc4646_subtag};
-        } elsif ( $acount > 1 ) {
-            for ( my $i = 1 ; $i < $acount ; $i++ ) {
+        } elsif ( $account > 1 ) {
+            for ( my $i = 1 ; $i < $account ; $i++ ) {
                 if ( $language_groups->{$a}->[$i]->{enabled} ) {
                     $aa = $language_groups->{$a}->[$i]->{rfc4646_subtag};
                     last;
@@ -475,6 +471,12 @@ sub _build_languages_arrayref {
     }
     return \@languages_loop;
 }
+
+=head2 language_get_description
+
+Missing POD for language_get_description.
+
+=cut
 
 sub language_get_description {
     my ( $script, $lang, $type ) = @_;
@@ -587,6 +589,13 @@ sub regex_lang_subtags {
 
 # Script Direction Resources:
 # http://www.w3.org/International/questions/qa-scripts
+
+=head2 get_bidi
+
+Missing POD for get_bidi.
+
+=cut
+
 sub get_bidi {
     my ($language_script) = @_;
     my $dbh = C4::Context->dbh;
@@ -599,6 +608,12 @@ sub get_bidi {
     return $bidi;
 }
 
+=head2 accept_language
+
+Missing POD for accept_language.
+
+=cut
+
 sub accept_language {
 
     # referenced http://search.cpan.org/src/CGILMORE/I18N-AcceptLanguage-1.04/lib/I18N/AcceptLanguage.pm
@@ -606,7 +621,7 @@ sub accept_language {
     my @languages = ();
     if ($clientPreferences) {
 
-        # There should be no whitespace anways, but a cleanliness/sanity check
+        # There should be no whitespace anyway, but a cleanliness/sanity check
         $clientPreferences =~ s/\s//g;
 
         # Prepare the list of client-acceptable languages

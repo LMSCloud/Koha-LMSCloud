@@ -15,7 +15,7 @@ package C4::External::DivibibPatronStatus;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use utf8;
@@ -39,14 +39,14 @@ sub new {
 
     $self->{defaultResponse} = {
         'status' => -1,    # wrong login-data (user or password)    # mandatory
-        'fsk'    => 0,     # mandatory
+        'fsk'    =>  0,    # mandatory
         'cardid' => '',    # mandatory
         'userid' => ''     # mandatory
     };
 
     $self->{patronResponse} = {
         'status' => -1,    # wrong login-data (user or password)    # mandatory
-        'fsk'    => 0,     # mandatory
+        'fsk'    =>  0,    # mandatory
         'cardid' => '',    # mandatory
         'userid' => ''     # mandatory
     };
@@ -67,7 +67,7 @@ sub new {
             } else {
                 $self->{patronResponse}->{'status'} = 3;         # online user access permitted
                 $patron->update( { login_attempts => 0 } );
-                $patron->track_login if ( C4::Context->preference('TrackLastPatronActivity') );
+                $patron->update_lastseen('connection');
             }
         }
 
@@ -84,7 +84,7 @@ sub new {
                 } else {
                     $self->{patronResponse}->{'status'} = 3;         # online user access permitted
                     $patron->update( { login_attempts => 0 } );
-                    $patron->track_login if ( C4::Context->preference('TrackLastPatronActivity') );
+                    $patron->update_lastseen('connection');
                 }
             }
         }
@@ -100,7 +100,7 @@ sub new {
                 if ( $checkpw eq $password || &checkpw_hash( $password, $checkpw ) ) {
                     $self->{patronResponse}->{'status'} = 3;    # online user access permitted
                     $patron->update( { login_attempts => 0 } );
-                    $patron->track_login if ( C4::Context->preference('TrackLastPatronActivity') );
+                    $patron->update_lastseen('connection');
                 } else {
                     $self->{patronResponse}->{'status'} = -2;        # wrong password
                     $foundPatron                        = $patron;

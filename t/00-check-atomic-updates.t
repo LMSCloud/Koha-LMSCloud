@@ -13,10 +13,11 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More;
+use Test::NoWarnings;
+use Test::More tests => 2;
 use File::Find;
 
 SKIP: {
@@ -28,14 +29,12 @@ SKIP: {
     find( \&wanted, $dir );
 
     sub wanted {
+        return if $_ eq 'skeleton.pl';
+        return if $_ eq 'README';
+        return if $_ eq '.';
         push @files, $_;
         return;
     }
 
-    foreach my $f (@files) {
-        next if $f eq 'skeleton.pl';
-        unlike( $f, qr/.*pl$/, "check for unhandled atomic updates: $f" );
-    }
+    is( scalar(@files), 0, "No atomic updates" ) or diag join "\n", @files;
 }
-
-done_testing();

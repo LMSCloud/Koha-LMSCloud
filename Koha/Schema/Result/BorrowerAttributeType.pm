@@ -143,7 +143,15 @@ defines if this field is copied to anonymized_borrower_attributes (1 for yes, 0 
   default_value: 0
   is_nullable: 0
 
-defines if the attribute is mandatory or not
+defines if the attribute is mandatory or not in the staff interface
+
+=head2 opac_mandatory
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+defines if the attribute is mandatory or not in the OPAC
 
 =cut
 
@@ -177,6 +185,8 @@ __PACKAGE__->add_columns(
   "keep_for_pseudonymization",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "mandatory",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
+  "opac_mandatory",
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
 );
 
@@ -244,39 +254,40 @@ __PACKAGE__->belongs_to(
   },
 );
 
-=head2 pseudonymized_borrower_attributes
 
-Type: has_many
-
-Related object: L<Koha::Schema::Result::PseudonymizedBorrowerAttribute>
-
-=cut
-
-__PACKAGE__->has_many(
-  "pseudonymized_borrower_attributes",
-  "Koha::Schema::Result::PseudonymizedBorrowerAttribute",
-  { "foreign.code" => "self.code" },
-  { cascade_copy => 0, cascade_delete => 0 },
-);
-
-
-# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-05-10 14:00:56
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ZmiiXHqRGV2SDb4IgSPvJQ
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-05-06 11:41:17
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:b4xQfwl/oAjpuaJA42qv/Q
 
 __PACKAGE__->add_columns(
+    '+display_checkout'          => { is_boolean => 1 },
+    '+is_date'                   => { is_boolean => 1 },
     '+keep_for_pseudonymization' => { is_boolean => 1 },
     '+mandatory'                 => { is_boolean => 1 },
+    '+opac_display'              => { is_boolean => 1 },
+    '+opac_editable'             => { is_boolean => 1 },
+    '+opac_mandatory'            => { is_boolean => 1 },
+    '+repeatable'                => { is_boolean => 1 },
     '+searched_by_default'       => { is_boolean => 1 },
     '+staff_searchable'          => { is_boolean => 1 },
+    '+unique_id'                 => { is_boolean => 1 },
 );
 
-__PACKAGE__->add_columns(
-    '+is_date' => { is_boolean => 1 },
-);
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
 
 sub koha_object_class {
     'Koha::Patron::Attribute::Type';
 }
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
     'Koha::Patron::Attribute::Types';
 }

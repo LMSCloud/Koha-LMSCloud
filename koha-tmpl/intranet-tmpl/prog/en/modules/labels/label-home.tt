@@ -28,23 +28,30 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
+[% WRAPPER 'main-container.inc' aside='labels-menu' %]
+    [% INCLUDE 'labels-toolbar.inc' %]
+    <h1>Label creator</h1>
+
     <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
-                [% INCLUDE 'labels-toolbar.inc' %]
-                <h1>Label creator</h1>
-            </main>
+        <div class="col-md-6">
+            <ul class="buttons-list">
+                <li
+                    ><a href="/cgi-bin/koha/labels/label-manage.pl?label_element=batch"><i class="fa-solid fa-list-ul"></i> Label batches</a></li
+                >
+                <li
+                    ><a href="/cgi-bin/koha/labels/label-manage.pl?label_element=layout"><i class="fa-solid fa-object-group"></i> Label layouts</a></li
+                >
+                <li
+                    ><a href="/cgi-bin/koha/labels/label-manage.pl?label_element=template"><i class="fa-solid fa-table-cells"></i> Label templates</a></li
+                >
+                <li
+                    ><a href="/cgi-bin/koha/labels/label-manage.pl?label_element=profile"><i class="fa fa-print"></i> Printer profiles</a></li
+                >
+                <li
+                    ><a href="/cgi-bin/koha/labels/label-edit-range.pl"><i class="fa fa-barcode"></i> Print barcode range</a></li
+                >
+            </ul>
         </div>
-        <!-- /.col-md-10.order-md-2 -->
-
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'cat-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
     </div>
-    <!-- /.row -->
-
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+[% END %]
+[% INCLUDE 'intranet-bottom.inc' %]

@@ -62,7 +62,7 @@
                             [% IF ( ENTRY.endnode ) %]
                                 <a href='opac-search.pl?q=[% ENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% ELSE %]
-                                <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% END %]
                             <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number | html %] titles)</a></i></span>
                         </div>
@@ -83,7 +83,7 @@
                             [% IF ( ENTRY.endnode ) %]
                                 <a href='opac-search.pl?q=[% ENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% ELSE %]
-                                <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% END %]
                             <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number | html %] titles)</a></i></span>
                         </div>
@@ -104,7 +104,7 @@
                             [% IF ( ENTRY.endnode ) %]
                                 <a href='opac-search.pl?q=[% ENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% ELSE %]
-                                <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% END %]
                             <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number | html %] titles)</a></i></span>
                         </div>
@@ -125,7 +125,7 @@
                             [% IF ( ENTRY.endnode ) %]
                                 <a href='opac-search.pl?q=[% ENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% ELSE %]
-                                <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% END %]
                             <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number | html %] titles)</a></i></span>
                         </div>
@@ -146,7 +146,7 @@
                             [% IF ( ENTRY.endnode ) %]
                                 <a href='opac-search.pl?q=[% ENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% ELSE %]
-                                <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% END %]
                             <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number | html %] titles)</a></i></span>
                         </div>
@@ -159,7 +159,7 @@
                             [% IF ( ENTRY.endnode ) %]
                                 <a href='opac-search.pl?q=[% ENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% ELSE %]
-                                    <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                    <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% END %]
                             <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number | html %] titles)</a></i></span>
                         </div>
@@ -180,7 +180,7 @@
                             [% IF ( ENTRY.endnode ) %]
                                 <a href='opac-search.pl?q=[% ENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% ELSE %]
-                                <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% END %]
                             <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number | html %] titles)</a></i></span>
                         </div>
@@ -201,7 +201,7 @@
                         [% IF ( ENTRY.endnode ) %]
                             <a href='opac-search.pl?q=[% ENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                         [% ELSE %]
-                            <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                            <a href="opac-browser-kab.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.browse_classification |uri %]"><i class="fa fa-folder"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                         [% END %]
                         <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number | html %] titles)</a></i></span>
                     </div>

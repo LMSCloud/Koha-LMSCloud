@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -28,6 +28,7 @@ use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
 use C4::Koha;
 
+use Koha::AdditionalFields;
 use Koha::Database;
 use Koha::Patrons;
 use Koha::Items;
@@ -48,6 +49,16 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         type          => "intranet",
         flagsrequired => { parameters => 'manage_libraries' },
     }
+);
+
+my $library_for_fields  = Koha::Libraries->find($branchcode);
+my @additional_fields   = Koha::AdditionalFields->search( { tablename => 'branches' } )->as_list;
+my @additional_field_values =
+    $library_for_fields ? $library_for_fields->get_additional_field_values_for_template : ();
+
+$template->param(
+    additional_fields       => \@additional_fields,
+    additional_field_values => @additional_field_values,
 );
 
 if ( $op eq 'add_form' ) {
@@ -150,6 +161,10 @@ if ( $op eq 'add_form' ) {
                         $index++;
                     }
 
+                    my @additional_fields =
+                        Koha::Libraries->find($branchcode)->prepare_cgi_additional_field_values( $input, 'branches' );
+                    Koha::Libraries->find($branchcode)->set_additional_fields( \@additional_fields );
+
                     push @messages, { type => 'message', code => 'success_on_update' };
                 }
             );
@@ -210,6 +225,9 @@ if ( $op eq 'add_form' ) {
                         )->store;
                         $index++;
                     }
+
+                    my @additional_fields = $library->prepare_cgi_additional_field_values( $input, 'branches' );
+                    $library->set_additional_fields( \@additional_fields );
 
                     push @messages, { type => 'message', code => 'success_on_insert' };
                 }

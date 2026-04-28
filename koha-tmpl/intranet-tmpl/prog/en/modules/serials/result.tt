@@ -65,24 +65,25 @@
             </fieldset>
         </div>
     </nav>
-
-    [% MACRO jsinclude BLOCK %]
-        <script>
-            $(document).ready(function () {
-                $(".select_title").on("click", function (e) {
-                    e.preventDefault();
-                    var biblionumber = $(this).data("biblionumber");
-                    GetIt(biblionumber, $(this));
-                });
-            });
-            function GetIt(bibno, title) {
-                title = title.parents("tr").find(".title").text();
-                opener.document.f.biblionumber.value = bibno;
-                opener.document.f.title.value = title;
-                window.close();
-            }
-        </script>
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' popup_window=1 %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% MACRO jsinclude BLOCK %]
+    <script>
+        $(document).ready(function () {
+            $(".select_title").on("click", function (e) {
+                e.preventDefault();
+                var biblionumber = $(this).data("biblionumber");
+                GetIt(biblionumber, $(this));
+            });
+        });
+        function GetIt(bibno, title) {
+            title = title.parents("tr").find(".title").text();
+            opener.document.f.biblionumber.value = bibno;
+            opener.document.f.title.value = title;
+            window.close();
+        }
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' popup_window=1 %]

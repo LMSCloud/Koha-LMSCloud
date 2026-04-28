@@ -1,9 +1,6 @@
 #!/usr/bin/perl
 
 # Copyright 2000-2002 Katipo Communications
-#!/usr/bin/perl
-
-# Copyright 2000-2002 Katipo Communications
 #
 # This file is part of Koha.
 #
@@ -18,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
@@ -57,8 +54,7 @@ my $userenv_register_id = C4::Context->userenv->{'register_id'} || '';
 # based on library categories if defined
 my $branchcategory         = $query->param('branchcategory');
 my $userenv_branchcategory = C4::Context->userenv->{'branchcategory'} || '';
-
-my @updated;
+my $updated;
 
 my $library = Koha::Libraries->find($branch);
 
@@ -72,9 +68,9 @@ if (
 {
     if ( !$userenv_branch or $userenv_branch ne $branch ) {
         my $branchname = $library->branchname;
-        $session->param( 'branchname', $branchname );    # update sesssion in DB
-        $session->param( 'branch',     $branch );        # update sesssion in DB
-        push @updated, { updated_branch => 1 };
+        $session->param( 'branchname', $branchname );    # update session in DB
+        $session->param( 'branch',     $branch );        # update session in DB
+        $updated = 1;
     }
 } else {
     $branch = $userenv_branch;                           # fallback value
@@ -92,7 +88,7 @@ if ( defined($desk_id) && ( !$userenv_desk || $userenv_desk ne $desk_id ) ) {
         # "No desk" was explicitly selected - clear desk from session
         $session->clear( [ 'desk_name', 'desk_id' ] );
     }
-    push @updated, { updated_desk => 1 };
+    $updated = 1;
 } else {
     $desk_id = $userenv_desk;
 }
@@ -101,6 +97,8 @@ if ( defined($register_id)
     && ( !$userenv_register_id || $userenv_register_id ne $register_id ) )
 {
     if ($register_id) {
+
+        # A register was selected
         my $register = Koha::Cash::Registers->find($register_id);
         $session->param( 'register_id',   $register_id );
         $session->param( 'register_name', $register ? $register->name : '' );
@@ -109,10 +107,12 @@ if ( defined($register_id)
         # "No register" was explicitly selected - clear register from session
         $session->clear( [ 'register_id', 'register_name' ] );
     }
-    push @updated, { updated_register => 1 };
+    $updated = 1;
 } else {
     $register_id = $userenv_register_id;
 }
+
+$session->flush();
 
 # store the branchcategory selection for the session
 if (    C4::Context->preference('BookMobileSupportEnabled')
@@ -120,11 +120,12 @@ if (    C4::Context->preference('BookMobileSupportEnabled')
     and $branchcategory ne $userenv_branchcategory )
 {
     $session->param( 'branchcategory', $branchcategory );    # update sesssion in DB
-    push @updated,
-        {
-        updated_branchcategory => 1,
-        old_branchcategory     => $userenv_branchcategory
-        };
+    $updated = 1;
+}
+
+my $referer = $query->param('oldreferer') || $ENV{HTTP_REFERER} || '';
+if ($updated) {
+    print $query->redirect( $referer || '/cgi-bin/koha/mainpage.pl' );
 }
 
 ########################################
@@ -144,29 +145,6 @@ if ( C4::Context->preference('BookMobileSupportEnabled') ) {
             selbranch     => $branch,
         );
     }
-}
-
-$template->param( updated => \@updated ) if ( scalar @updated );
-
-my @recycle_loop;
-foreach ( $query->param() ) {
-    $_ or next;                         # disclude blanks
-    $_ eq "branch"         and next;    # disclude branch
-    $_ eq "desk_id"        and next;    # disclude desk_id
-    $_ eq "register_id"    and next;    # disclude register
-    $_ eq "oldreferer"     and next;    # disclude oldreferer
-    $_ eq "branchcategory" and next;    # disclude branchcategory
-    push @recycle_loop, {
-        param => $_,
-        value => scalar $query->param($_),
-    };
-}
-
-$session->flush();
-
-my $referer = $query->param('oldreferer') || $ENV{HTTP_REFERER} || '';
-if ( scalar @updated ) {
-    print $query->redirect( $referer || '/cgi-bin/koha/mainpage.pl' );
 }
 
 $template->param(

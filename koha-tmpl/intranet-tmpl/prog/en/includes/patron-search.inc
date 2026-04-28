@@ -1,6 +1,7 @@
 [% USE Koha %]
 [% USE I18N %]
 [% USE Branches %]
+[% USE Letters %]
 [% USE ExtendedAttributeTypes %]
 [% USE Categories %]
 [% USE raw %]
@@ -117,53 +118,53 @@
                         [% CASE 'age_range' %]
                             <li>
                                 <label>Patron age:</label>
-                                <span class="label">from</span>
+                                <span>from</span>
                                 <input type="number" name="agerangestart_filter" id="agerangestart_filter" step="any" min="0" class="agerange-input" />
-                                <span class="label">to</span>
+                                <span>to</span>
                                 <input type="number" name="agerangeend_filter" id="agerangeend_filter" step="any" min="0" class="agerange-input" />
                             </li>
                         [% CASE 'issue_count_range' %]
                             <li>
                                 <label>Number of loans:</label>
-                                <span class="label">from</span>
+                                <span>from</span>
                                 <input type="number" name="issuecountstart_filter" id="issuecountstart_filter" step="any" min="0" class="issuecount-input" />
-                                <span class="label">to</span>
+                                <span>to</span>
                                 <input type="number" name="issuecountend_filter" id="issuecountend_filter" step="any" min="0" class="issuecount-input" />
                             </li>
                         [% CASE 'charges_range' %]
                             <li>
                                 <label>Open charges amount:</label>
-                                <span class="label">from</span>
+                                <span>from</span>
                                 <input type="number" name="chargesfrom_filter" id="chargesfrom_filter" step="any" min="0" class="charges-input" />
-                                <span class="label">to</span>
+                                <span>to</span>
                                 <input type="number" name="chargesto_filter" id="chargesto_filter" step="any" min="0" class="charges-input" />
                             </li>
                         [% CASE 'open_charges_since' %]
                             <li>
                                 <label>Open charges:</label>
-                                <span class="label">from</span>
+                                <span>from</span>
                                 <input type="text" size="10" id="chargessince_filter" name="chargessince_filter" class="flatpickr" />
                             </li>
                         [% CASE 'expires_period' %]
                             <li>
                                 <label>Account expiry:</label>
-                                <span class="label">from</span>
+                                <span>from</span>
                                 <input type="text" size="10" id="accountexpiresfrom_filter" name="accountexpiresfrom_filter" class="flatpickr" />
-                                <span class="label">to</span>
+                                <span>to</span>
                                 <input type="text" size="10" id="accountexpiresto_filter" name="accountexpiresto_filter" class="flatpickr" />
                             </li>
                         [% CASE 'debarred_period' %]
                             <li>
                                 <label>Debarred period:</label>
-                                <span class="label">from</span>
+                                <span>from</span>
                                 <input type="text" size="10" id="debarreduntilfrom_filter" name="debarreduntilfrom_filter" class="flatpickr" />
-                                <span class="label">to</span>
+                                <span>to</span>
                                 <input type="text" size="10" id="debarreduntilto_filter" name="debarreduntilto_filter" class="flatpickr" />
                             </li>
                         [% CASE 'inactive_period' %]
                             <li>
                                 <label>Inactive period:</label>
-                                <span class="label">from</span>
+                                <span>from</span>
                                 <input type="text" size="10" id="inactivesince_filter" name="inactivesince_filter" class="flatpickr" />
                             </li>
                         [% CASE 'last_letter' %]
@@ -171,9 +172,9 @@
                             <label for="lastletter_filter">Last letter:</label>
                             <select name="lastletter_filter" id="lastletter_filter">
                                 <option value="">Any</option>
-                                <option value="ODUE">ODUE</option>
-                                <option value="ODUE2">ODUE2</option>
-                                <option value="ODUE3">ODUE3</option>
+                                [% FOREACH letter IN Letters.all %]
+                                    <option value="[% letter.code | html %]">[% letter.name | html %]</option>
+                                [% END %]
                             </select>
                           </li>
                         [% CASE 'overdue_level' %]
@@ -181,9 +182,9 @@
                             <label for="overduelevel_filter">Checkouts overdue level:</label>
                             <select name="overduelevel_filter" id="overduelevel_filter">
                                 <option value="">Not selected</option>
-                                <option value="1">Level 1</option>
-                                <option value="2">Level 2</option>
-                                <option value="3">Level 3</option>
+                                [% FOREACH level IN [ '1', '2', '3', '4', '5' ] %]
+                                    <option value="[% level | html %]">Level [% level | html %]</option>
+                                [% END %]
                             </select>
                           </li>
                         [% CASE 'valid_email' %]
@@ -191,8 +192,8 @@
                             <label for="validemail_filter">Email Address:</label>
                             <select name="validemail_filter" id="validemail_filter">
                                 <option value="">Not selected</option>
-                                <option value="1">Has email</option>
-                                <option value="0">No email</option>
+                                <option value="yes">Email available</option>
+                                <option value="no">Email not available</option>
                             </select>
                           </li>
                         [% CASE 'patron_list' %]
@@ -200,8 +201,9 @@
                             <label for="patronlist_filter">Patron list:</label>
                             <select name="patronlist_filter" id="patronlist_filter">
                                 <option value="">Not selected</option>
-                                <option value="1">In any list</option>
-                                <option value="0">In no list</option>
+                                [% FOREACH p IN patron_lists %]
+                                    <option value="[% p.patron_list_id | html %]">[% p.name | html %]</option>
+                                [% END %]
                             </select>
                           </li>
                         [% END %]
@@ -252,7 +254,7 @@
         [% END %]
     </div>
 
-    <h3 style="display: none;">Patrons found for: <span class="searchpattern"></span></h3>
+    <h3 style="display: none;" class="search_description">Patrons found for: <span class="searchpattern"></span></h3>
 
     <div id="[% table_id | html %]_search_results" style="display:none;">
 
@@ -260,11 +262,8 @@
         <div class="error alert alert-warning" style="display: none; margin: 1em 0"></div>
 
         <input type="hidden" class="firstletter_filter" value="" />
-        [% IF open_on_row_click %]
-        <table id="[% table_id | html %]" class="selections-table">
-        [% ELSE %]
-        <table id="[% table_id | html %]">
-        [% END %]
+        [% SET table_class = open_on_row_click ? 'selections-table' : '' %]
+        <table id="[% table_id | html %]" class="[% table_class | html %]">
             <thead>
                 <tr>
                     [% FOR column IN columns %]
@@ -384,6 +383,13 @@
             return map;
         }, {});
 
+        var filters_options = {
+            libraries,
+            categories,
+            av_bsort1,
+            av_bsort2,
+        };
+
         [% IF Koha.Preference('ExtendedPatronAttributes') %]
             [% SET extended_attribute_types = ExtendedAttributeTypes.codes( staff_searchable => 1, searched_by_default => 1 ) %]
             [% IF ( extended_attribute_types ) %][% extended_attribute_types = [ extended_attribute_types ]  %][% END %]
@@ -404,7 +410,6 @@
 
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'js-patron-get-age.inc' %]
-    [% INCLUDE 'js-patron-format.inc' %]
     [% INCLUDE 'js-patron-format-address.inc' %]
 
     <script>
@@ -510,6 +515,120 @@
                     }
 
                     return filters;
+                },
+                age_from: function(){
+                    let age_from = patron_search_form.find("#agerangestart_filter").val();
+                    if (age_from) {
+                        age_from = age_from.replace(/\D/g,'');
+                        if ( age_from.length ) return age_from;
+                    }
+                    return "";
+                },
+                age_to: function(){
+                    let age_to = patron_search_form.find("#agerangeend_filter").val();
+                    if (age_to) {
+                        age_to = age_to.replace(/\D/g,'');
+                        if ( age_to.length ) return age_to;
+                    }
+                },
+                issue_count_from: function(){
+                    let issue_count_from = patron_search_form.find("#issuecountstart_filter").val();
+                    if (issue_count_from) {
+                        issue_count_from = issue_count_from.replace(/\D/g,'');
+                        if ( issue_count_from.length ) return issue_count_from;
+                    }
+                    return "";
+                },
+                issue_count_to: function(){
+                    let issue_count_to = patron_search_form.find("#issuecountend_filter").val();
+                    if (issue_count_to) {
+                        issue_count_to = issue_count_to.replace(/\D/g,'');
+                        if ( issue_count_to.length ) return issue_count_to;
+                    }
+                },
+                charges_from: function(){
+                    let ret_charges_from = "";
+                    let charges_from = patron_search_form.find("#chargesfrom_filter").val();
+                    if (charges_from && charges_from.length) {
+                        charges_from = parseFloat(charges_from);
+                        if ( !isNaN(charges_from) ) {
+                            ret_charges_from = charges_from;
+                            if ( ret_charges_from == 0 ) ret_charges_from = "0.0";
+                        }
+                    }
+                    return ret_charges_from;
+                },
+                charges_to: function(){
+                    let ret_charges_to = "";
+                    let charges_to = patron_search_form.find("#chargesto_filter").val();
+                    if (charges_to && charges_to.length) {
+                        charges_to = parseFloat(charges_to);
+                        if ( !isNaN(charges_to) ) {
+                            ret_charges_to = charges_to;
+                            if ( ret_charges_to == 0 ) ret_charges_to = "0.0";
+                        }
+                    }
+                    return ret_charges_to;
+                },
+                charges_period_from: function(){
+                    let charges_period_from = patron_search_form.find("#chargessince_filter").val();
+                    if (charges_period_from) {
+                        return charges_period_from;
+                    }
+                },
+                account_expiry_from: function(){
+                    let account_expiry_from = patron_search_form.find("#accountexpiresfrom_filter").val();
+                    if (account_expiry_from) {
+                        return account_expiry_from;
+                    }
+                },
+                account_expiry_to: function(){
+                    let account_expiry_to = patron_search_form.find("#accountexpiresto_filter").val();
+                    if (account_expiry_to) {
+                        return account_expiry_to;
+                    }
+                },
+                debarred_period_from: function(){
+                    let debarred_period_from = patron_search_form.find("#debarreduntilfrom_filter").val();
+                    if (debarred_period_from) {
+                        return debarred_period_from;
+                    }
+                },
+                debarred_period_to: function(){
+                    let debarred_period_to = patron_search_form.find("#debarreduntilto_filter").val();
+                    if (debarred_period_to) {
+                        return debarred_period_to;
+                    }
+                },
+                inactive_period_from: function(){
+                    let inactive_period_from = patron_search_form.find("#inactivesince_filter").val();
+                    if (inactive_period_from) {
+                        return inactive_period_from;
+                    }
+                },
+                last_letter: function(){
+                    let last_letter = patron_search_form.find("#lastletter_filter").val();
+                    if (last_letter) {
+                        return last_letter;
+                    }
+                },
+                overdue_level: function(){
+                    let overdue_level = patron_search_form.find("#overduelevel_filter").val();
+                    if (overdue_level) {
+                        return overdue_level;
+                    }
+                },
+                valid_email: function(){
+                    let valid_email = patron_search_form.find("#validemail_filter").val();
+                    if (valid_email) {
+                        return valid_email;
+                    }
+                },
+                patron_list: function(){
+                    let patron_list = patron_search_form.find("#patronlist_filter").val();
+                    if (patron_list) {
+                        return patron_list;
+                    }
                 }
             };
             let external_filter_nodes = {};
@@ -650,9 +769,10 @@
                                     let patron_id = encodeURIComponent(row.patron_id);
                                     let r = '';
                                     [% IF ! open_on_row_click %]
-                                    r += "<a href=\"/cgi-bin/koha/members/moremember.pl?borrowernumber=" + patron_id + "\" class=\"patron_name\" data-borrowernumber=\"" + patron_id + "\" style=\"white-space:nowrap\">" + $patron_to_html(row, { invert_name: 1 }) + "</a>";
+                                    r += "<a href=\"/cgi-bin/koha/members/moremember.pl?borrowernumber=" + patron_id + "\" class=\"patron_name\" data-borrowernumber=\"" + patron_id + "\" style=\"white-space:nowrap\">"
+                                        + $patron_to_html(row, { invert_name: 1, showDiffFirstname: [% Koha.Preference('ShowPatronFirstnameIfDifferentThanPreferredname') ? 1 : 0 | html %] }) + "</a>";
                                     [% ELSE %]
-                                    r += $patron_to_html(row, { invert_name: 1 });
+                                    r += $patron_to_html(row, { invert_name: 1, showDiffFirstname: [% Koha.Preference('ShowPatronFirstnameIfDifferentThanPreferredname') ? 1 : 0 | html %] });
                                     [% END %]
                                     r += '<br/>';
                                     r += '<div class="address"><ul>';
@@ -674,15 +794,18 @@
                                 "render": function( data, type, row, meta ) {
                                     let patron_id = encodeURIComponent(row.patron_id);
                                     [% IF ! open_on_row_click %]
-                                    return "<a href=\"/cgi-bin/koha/members/moremember.pl?borrowernumber=" + patron_id + "\" class=\"patron_name\" data-borrowernumber=\"" + patron_id + "\" style=\"white-space:nowrap\">" + $patron_to_html(row, { invert_name: 1 }) + "</a>";
+                                    return "<a href=\"/cgi-bin/koha/members/moremember.pl?borrowernumber=" + patron_id + "\" class=\"patron_name\" data-borrowernumber=\"" + patron_id + "\" style=\"white-space:nowrap\">"
+                                        + $patron_to_html(row, { invert_name: 1, showDiffFirstname: [% Koha.Preference('ShowPatronFirstnameIfDifferentThanPreferredname') ? 1 : 0 | html %] }) + "</a>";
                                     [% ELSE %]
-                                    return $patron_to_html(row, { invert_name: 1 });
+                                    return $patron_to_html(row, { invert_name: 1, showDiffFirstname: [% Koha.Preference('ShowPatronFirstnameIfDifferentThanPreferredname') ? 1 : 0 | html %] });
                                     [% END %]
                                 }
                             }
                             [% CASE 'branch' %]
                             {
+                                "name": "library",
                                 "data": "library.name:me.library_id",
+                                "dataFilter": "libraries",
                                 "searchable": true,
                                 "orderable": true,
                                 "render": function( data, type, row, meta ) {
@@ -695,7 +818,9 @@
                             }
                             [% CASE 'category' %]
                             {
+                                "name": "category",
                                 "data": "category_id",
+                                "dataFilter": "categories",
                                 "searchable": true,
                                 "orderable": true,
                                 "render": function( data, type, row, meta ) {
@@ -881,7 +1006,7 @@
                     },
                 [% END %]
                 fixedHeader: false,
-            }, typeof table_settings !== 'undefined' ? table_settings : null, 1, additional_filters, undefined, external_filter_nodes);
+            }, typeof table_settings !== 'undefined' ? table_settings : null, 1, additional_filters, filters_options, external_filter_nodes);
 
             patron_search_form.on('submit', filter);
             patron_search_form.on('submit', update_search_type);
@@ -986,6 +1111,69 @@
             if ( patron_search_form.find(".branchcode_filter").val() ) {
                 searched += _(" in library ") + patron_search_form.find(".branchcode_filter option:selected").text();
             }
+            if ( patron_search_form.find("#agerangestart_filter").val() && patron_search_form.find("#agerangeend_filter").val() ) {
+                searched += _(", Age from ") + patron_search_form.find("#agerangestart_filter").val() + _(" to ") + patron_search_form.find("#agerangeend_filter").val();
+            }
+            else if ( patron_search_form.find("#agerangestart_filter").val() ) {
+                searched += _(", Age from ") + patron_search_form.find("#agerangestart_filter").val();
+            }
+            else if ( patron_search_form.find("#agerangeend_filter").val() ) {
+                searched += _(", Age to ") + patron_search_form.find("#agerangeend_filter").val();
+            }
+            if ( patron_search_form.find("#issuecountstart_filter").val() && patron_search_form.find("#issuecountend_filter").val() ) {
+                searched += _(", Number of loans from ") + patron_search_form.find("#issuecountstart_filter").val() + _(" to ") + patron_search_form.find("#issuecountend_filter").val();
+            }
+            else if ( patron_search_form.find("#issuecountstart_filter").val() ) {
+                searched += _(", Number of loans from ") + patron_search_form.find("#issuecountstart_filter").val();
+            }
+            else if ( patron_search_form.find("#issuecountend_filter").val() ) {
+                searched += _(", Number of loans to ") + patron_search_form.find("#issuecountend_filter").val();
+            }
+            if ( patron_search_form.find("#chargesfrom_filter").val() && patron_search_form.find("#chargesfrom_filter").val().length && patron_search_form.find("#chargesto_filter").val() && patron_search_form.find("#chargesto_filter").val().length ) {
+                searched += _(", Open charges amount from ") + patron_search_form.find("#chargesfrom_filter").val() + _(" to ") + patron_search_form.find("#chargesto_filter").val();
+            }
+            else if ( patron_search_form.find("#chargesfrom_filter").val() && patron_search_form.find("#chargesfrom_filter").val().length ) {
+                searched += _(", Open charges amount from ") + patron_search_form.find("#chargesfrom_filter").val();
+            }
+            else if ( patron_search_form.find("#chargesto_filter").val() && patron_search_form.find("#chargesto_filter").val().length ) {
+                searched += _(", Open charges amount to ") + patron_search_form.find("#chargesto_filter").val();
+            }
+            if ( patron_search_form.find("#chargessince_filter").val() ) {
+                searched += _(", Open charges from ") + $date(patron_search_form.find("#chargessince_filter").val());
+            }
+            if ( patron_search_form.find("#accountexpiresfrom_filter").val() && patron_search_form.find("#accountexpiresto_filter").val() ) {
+                searched += _(", Account expiry from ") + $date(patron_search_form.find("#accountexpiresfrom_filter").val()) +  _(" to ") + $date(patron_search_form.find("#accountexpiresto_filter").val());
+            }
+            else if ( patron_search_form.find("#accountexpiresfrom_filter").val() ) {
+                searched += _(", Account expiry from ") + $date(patron_search_form.find("#accountexpiresfrom_filter").val());
+            }
+            else if ( patron_search_form.find("#accountexpiresto_filter").val() ) {
+                searched += _(", Account expiry to ") + $date(patron_search_form.find("#accountexpiresto_filter").val());
+            }
+            if ( patron_search_form.find("#debarreduntilfrom_filter").val() && patron_search_form.find("#debarreduntilto_filter").val() ) {
+                searched += _(", Debarred period from ") + $date(patron_search_form.find("#debarreduntilfrom_filter").val()) +  _(" to ") + $date(patron_search_form.find("#debarreduntilto_filter").val());
+            }
+            else if ( patron_search_form.find("#debarreduntilfrom_filter").val() ) {
+                searched += _(", Debarred period from ") + $date(patron_search_form.find("#debarreduntilfrom_filter").val());
+            }
+            else if ( patron_search_form.find("#debarreduntilto_filter").val() ) {
+                searched += _(", Debarred period to ") + $date(patron_search_form.find("#debarreduntilto_filter").val());
+            }
+            if ( patron_search_form.find("#inactivesince_filter").val() ) {
+                searched += _(", Inactive period from ") + $date(patron_search_form.find("#inactivesince_filter").val());
+            }
+            if ( patron_search_form.find("#lastletter_filter").val() ) {
+                searched += _(", Last letter ") + "'" + patron_search_form.find("#lastletter_filter option:selected").text() + "'";
+            }
+            if ( patron_search_form.find("#overduelevel_filter").val() ) {
+                searched += _(", Overdue level ") + "'" + patron_search_form.find("#overduelevel_filter option:selected").text() + "'";
+            }
+            if ( patron_search_form.find("#validemail_filter").val() ) {
+                searched += _(", Email Address ") + "'" + patron_search_form.find("#validemail_filter option:selected").text() + "'";
+            }
+            if ( patron_search_form.find("#patronlist_filter").val() ) {
+                searched += _(", Patron list ") + "'" + patron_search_form.find("#patronlist_filter option:selected").text() + "'";
+            }
             if ( patron_search_form.find("select[name='sort1_filter']").val() ) {
                 searched += _(" with sort1 ")
                 if ( patron_search_form.find("select[name='sort1_filter']") ) {
@@ -1076,6 +1264,22 @@
             patron_search_form.find(".search_patron_filter_btn").prop({disabled: false});
             parent_block.find(".firstletter_filter").val('');
             patron_search_form.find(".search_patron_filter").val('');
+            patron_search_form.find("#agerangestart_filter").val('');
+            patron_search_form.find("#agerangeend_filter").val('');
+            patron_search_form.find("#issuecountstart_filter").val('');
+            patron_search_form.find("#issuecountend_filter").val('');
+            patron_search_form.find("#chargesfrom_filter").val('');
+            patron_search_form.find("#chargesto_filter").val('');
+            patron_search_form.find("#chargessince_filter").val('');
+            patron_search_form.find("#accountexpiresfrom_filter").val('');
+            patron_search_form.find("#accountexpiresto_filter").val('');
+            patron_search_form.find("#debarreduntilfrom_filter").val('');
+            patron_search_form.find("#debarreduntilto_filter").val('');
+            patron_search_form.find("#inactivesince_filter").val('');
+            patron_search_form.find("#lastletter_filter option:first").prop("selected", true);
+            patron_search_form.find("#overduelevel_filter option:first").prop("selected", true);
+            patron_search_form.find("#validemail_filter option:first").prop("selected", true);
+            patron_search_form.find("#patronlist_filter option:first").prop("selected", true);
             [% IF adjust_history %]
                 /* remove any search string added by firstletter search */
                 history.pushState( {}, null, window.location.href.split("?" )[0]);
@@ -1158,7 +1362,7 @@
 
     [% search_results_block_id = patron_search_modal_id _ '_searchresults' %]
 
-    <div id="[% patron_search_modal_id | html %]" class="modal modal-full patron_search_modal" tabindex="-1" role="dialog" aria-labelledby="patronSearchLabel" aria-hidden="true" data-bs-backdrop="">
+    <div id="[% patron_search_modal_id | html %]" class="modal modal-full patron_search_modal" tabindex="-1" role="dialog" aria-labelledby="patronSearchLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">

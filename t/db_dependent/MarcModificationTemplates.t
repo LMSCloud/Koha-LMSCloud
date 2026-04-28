@@ -2,7 +2,8 @@
 
 use Modern::Perl;
 
-use Test::More tests => 130;
+use Test::NoWarnings;
+use Test::More tests => 131;
 
 use Koha::Database;
 use Koha::SimpleMARC;
@@ -439,10 +440,10 @@ is(
         '245',        '',             '', '', '',
         '',           '',             '',
         'if',         '245',          'a', 'equals', '^Bad title', '1',
-        'Delete first 245$a mathing ^Bad title'
+        'Delete first 245$a matching ^Bad title'
     ),
     1,
-    'Delete first 245$a mathing ^Bad title'
+    'Delete first 245$a matching ^Bad title'
 );
 
 $record = new_record();
@@ -470,10 +471,10 @@ is(
         '245',        '',             '', '', '',
         '',           '',             '',
         'if',         '245',          'a', 'equals', 'updated$', '1',
-        'Delete first 245$a mathing updated$'
+        'Delete first 245$a matching updated$'
     ),
     1,
-    'Delete first 245$a mathing updated$'
+    'Delete first 245$a matching updated$'
 );
 
 $record = new_record();

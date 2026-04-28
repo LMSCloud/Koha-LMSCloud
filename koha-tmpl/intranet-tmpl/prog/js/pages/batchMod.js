@@ -1,4 +1,4 @@
-/* global KohaTable allColumns Cookies */
+/* global kohaTable allColumns Cookies */
 // Set expiration date for cookies
 var date = new Date();
 date.setTime(date.getTime() + 365 * 24 * 60 * 60 * 1000);
@@ -169,12 +169,16 @@ function hideAllColumns() {
     });
 }
 
+function ShowSerialEditingConfirmation(form) {
+    $("#edit-serial-issues-modal").modal("show");
+    return false;
+}
+
 $(document).ready(function () {
-    var items_table = KohaTable("itemst", {
+    var items_table = $("#itemst").kohaTable({
         columnDefs: [
             { targets: [0, 1], orderable: false, searchable: true },
             { targets: [0], visible: false },
-            { type: "anti-the", targets: ["anti-the"] },
         ],
         paging: false,
     });
@@ -220,4 +224,23 @@ $(document).ready(function () {
             }
         }
     });
+    $(document).on(
+        "click",
+        "#edit-serial-issues-modal-btn-submit",
+        function (e) {
+            e.preventDefault();
+            $("#edit-serial-issues-modal").modal("hide");
+            $("#edit-serial-issues").val("1");
+            return $("form[name='f'").submit();
+        }
+    );
+    $(document).on(
+        "click",
+        "#no-edit-serial-issues-modal-btn-submit",
+        function (e) {
+            e.preventDefault();
+            $("#edit-serial-issues-modal").modal("hide");
+            return $("form[name='f'").submit();
+        }
+    );
 });

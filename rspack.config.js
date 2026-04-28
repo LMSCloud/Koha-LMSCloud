@@ -13,6 +13,11 @@ const createBaseConfig = (isOpac = false) => ({
                 __dirname,
                 "koha-tmpl/intranet-tmpl/prog/js/fetch"
             ),
+            "@koha-vue": path.resolve(
+                __dirname,
+                "koha-tmpl/intranet-tmpl/prog/js/vue"
+            ),
+            "@cypress": path.resolve(__dirname, "t/cypress"),
             "@bookingApi": path.resolve(
                 __dirname,
                 isOpac
@@ -29,10 +34,11 @@ const createBaseConfig = (isOpac = false) => ({
                 options: {
                     experimentalInlineMatchResource: true,
                 },
-                exclude: [path.resolve(__dirname, "t/cypress/")],
+                //exclude: [path.resolve(__dirname, "t/cypress/")],
             },
             {
                 test: /\.ts$/,
+                exclude: /\.d\.ts$/,
                 loader: "builtin:swc-loader",
                 options: {
                     jsc: {
@@ -40,17 +46,22 @@ const createBaseConfig = (isOpac = false) => ({
                             syntax: "typescript",
                         },
                     },
+                    appendTsSuffixTo: [/\.vue$/],
                 },
-                exclude: [
-                    /node_modules/,
-                    path.resolve(__dirname, "t/cypress/"),
-                ],
                 type: "javascript/auto",
             },
             {
                 test: /\.css$/i,
                 type: "javascript/auto",
                 use: ["style-loader", "css-loader"],
+            },
+            {
+                test: /\.md$/,
+                type: "asset/source",
+            },
+            {
+                test: /\.d\.ts$/,
+                type: "asset/source",
             },
         ],
     },
@@ -75,6 +86,30 @@ const createBaseConfig = (isOpac = false) => ({
 });
 
 module.exports = [
+    // Staff interface non-ESM config (erm, preservation, etc.)
+    {
+        ...createBaseConfig(false),
+        entry: {
+            erm: "./koha-tmpl/intranet-tmpl/prog/js/vue/modules/erm.ts",
+            preservation:
+                "./koha-tmpl/intranet-tmpl/prog/js/vue/modules/preservation.ts",
+            "admin/record_sources":
+                "./koha-tmpl/intranet-tmpl/prog/js/vue/modules/admin/record_sources.ts",
+            acquisitions:
+                "./koha-tmpl/intranet-tmpl/prog/js/vue/modules/acquisitions.ts",
+            islands: "./koha-tmpl/intranet-tmpl/prog/js/vue/modules/islands.ts",
+            sip2: "./koha-tmpl/intranet-tmpl/prog/js/vue/modules/sip2.ts",
+        },
+        output: {
+            filename: "[name].js",
+            path: path.resolve(
+                __dirname,
+                "koha-tmpl/intranet-tmpl/prog/js/vue/dist/"
+            ),
+            chunkFilename: "[name].[contenthash].js",
+            globalObject: "window",
+        },
+    },
     // Staff interface ESM config
     {
         ...createBaseConfig(false),
@@ -118,5 +153,49 @@ module.exports = [
                 type: "module",
             },
         },
+    },
+    // Cypress api-client CJS config
+    {
+        resolve: {
+            alias: {
+                "@fetch": path.resolve(
+                    __dirname,
+                    "koha-tmpl/intranet-tmpl/prog/js/fetch"
+                ),
+            },
+        },
+        entry: {
+            "api-client.cjs":
+                "./koha-tmpl/intranet-tmpl/prog/js/fetch/api-client.js",
+        },
+        devtool: false,
+        output: {
+            filename: "[name].js",
+            path: path.resolve(__dirname, "t/cypress/plugins/dist/"),
+            library: {
+                type: "commonjs",
+            },
+            globalObject: "global",
+        },
+        target: "node",
+        module: {
+            rules: [
+                {
+                    test: /\.js$/,
+                    loader: "builtin:swc-loader",
+                    options: {
+                        jsc: {
+                            parser: {
+                                syntax: "ecmascript",
+                            },
+                        },
+                    },
+                    exclude: [/node_modules/],
+                    type: "javascript/auto",
+                },
+            ],
+        },
+        externals: [],
+        plugins: [],
     },
 ];

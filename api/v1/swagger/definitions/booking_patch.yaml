@@ -29,9 +29,14 @@ properties:
     items:
       $ref: extended_attribute_value.yaml
   item_id:
-    description: Internal item identifier
+    description: Internal item identifier for specific item bookings
     type:
       - integer
+      - 'null'
+  itemtype_id:
+    description: Item type identifier for "any item" bookings. Either item_id or itemtype_id must be provided. This is used for server-side optimal item selection and is not persisted.
+    type:
+      - string
       - 'null'
   modification_date:
     description: Modification date and time of this booking

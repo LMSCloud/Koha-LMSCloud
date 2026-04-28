@@ -15,7 +15,7 @@ package C4::Output::JSONStream;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -41,6 +41,12 @@ use warnings;
 
 use JSON qw( to_json );
 
+=head2 new
+
+Missing POD for new.
+
+=cut
+
 sub new {
     my $class = shift;
     my $self  = {
@@ -53,6 +59,12 @@ sub new {
     return $self;
 }
 
+=head2 param
+
+Missing POD for param.
+
+=cut
+
 sub param {
     my $self = shift;
 
@@ -64,6 +76,12 @@ sub param {
         $self->{data}->{ $_[$i] } = $_[ $i + 1 ];
     }
 }
+
+=head2 output
+
+Missing POD for output.
+
+=cut
 
 sub output {
     my $self = shift;

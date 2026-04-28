@@ -373,7 +373,7 @@ copy number (MARC21 952$t)
 
   data_type: 'varchar'
   is_nullable: 1
-  size: 32
+  size: 80
 
 inventory number (MARC21 952$i)
 
@@ -383,7 +383,7 @@ inventory number (MARC21 952$i)
   is_nullable: 1
   size: 32
 
-'new' value, you can put whatever free-text information. This field is intented to be managed by the automatic_item_modification_by_age cronjob.
+'new' value, you can put whatever free-text information. This field is intended to be managed by the automatic_item_modification_by_age cronjob.
 
 =head2 exclude_from_local_holds_priority
 
@@ -511,7 +511,7 @@ __PACKAGE__->add_columns(
   "copynumber",
   { data_type => "varchar", is_nullable => 1, size => 32 },
   "stocknumber",
-  { data_type => "varchar", is_nullable => 1, size => 32 },
+  { data_type => "varchar", is_nullable => 1, size => 80 },
   "new_status",
   { data_type => "varchar", is_nullable => 1, size => 32 },
   "exclude_from_local_holds_priority",
@@ -531,17 +531,36 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("itemnumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-10-25 13:25:14
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:O22k3Wztw3YjkijGj+Xakw
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2025-04-28 16:41:47
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:HKee88cG4WAK2dbWrPNrLg
 
 __PACKAGE__->add_columns(
     '+bookable'                          => { is_boolean => 1 },
+    '+damaged'                           => { is_boolean => 0 },
     '+exclude_from_local_holds_priority' => { is_boolean => 1 },
+    '+itemlost'                          => { is_boolean => 0 },
+    '+notforloan'                        => { is_boolean => 0 },
+    '+restricted'                        => { is_boolean => 0 },
+    '+stack'                             => { is_boolean => 0 },
+    '+withdrawn'                         => { is_boolean => 0 },
 );
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
 
 sub koha_objects_class {
     'Koha::Old::Items';
 }
+
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
+
 sub koha_object_class {
     'Koha::Old::Item';
 }

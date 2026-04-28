@@ -41,7 +41,7 @@
                 [% INCLUDE 'messages.inc' %]
                 <h1>Items required for bookings between <span id="from_date">[% from | $KohaDates %]</span> and <span id="to_date">[% to | $KohaDates %]</span></h1>
                 <h2>Reported on [% todaysdate | $KohaDates %]</h2>
-                <p>The following items have not been collected for bookings. Please retrieve them and check them in.</p>
+                <p>The following items have not been collected for bookings.</p>
                 <div id="searchresults">
                     <table id="bookingst"></table>
                 </div>
@@ -107,58 +107,182 @@
         </div>
     </div>
     <!-- /.row -->
-
-    [% MACRO jsinclude BLOCK %]
-        [% INCLUDE 'calendar.inc' %]
-        [% INCLUDE 'datatables.inc' %]
-        [% INCLUDE 'columns_settings.inc' %]
-        [% Asset.js("lib/jquery/plugins/jquery.dataTables.columnFilter.js") | $raw %]
-        [% INCLUDE 'js-biblio-format.inc' %]
-        [% INCLUDE 'js-date-format.inc' %]
-        [% INCLUDE 'js-patron-format.inc' %]
-        [% Asset.js("js/additional-fields.js") | $raw %]
-
-        [%# Process library data for JavaScript %]
-        [% SET libraries = Branches.all %]
-        <script>
-            var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
-        </script>
-        [% Asset.js("js/bookings-common.js", type => "module") | $raw %]
-        <script>
-            $(document).ready(function() {
-                $("#helper").off("click").on("click", function(e) {
-                    e.preventDefault();
-                    window.open("https://koha-community.org/manual/latest/en/html/circulation.html#bookings-to-collect", "_blank");
-                });
-
-                initializeBookingExtendedAttributes().then(({ extended_attribute_types, authorised_values }) => {
-                    let table_settings = [% TablesSettings.GetTableSettings( 'circ', 'bookings', 'bookings-to-collect', 'json' ) | $raw %];
-
-                    var bookings_table = createPendingBookingsTable("#bookingst", table_settings, {
-                        extended_attribute_types: extended_attribute_types,
-                        authorised_values: authorised_values,
-                        columnOptions: {
-                            showBiblioTitle: true,
-                            showItemData: true,
-                            showCallnumber: true,
-                            showLocation: true,
-                            showHoldingLibrary: true,
-                            showPickupLibrary: true,
-                            showBookingDates: true,
-                            showActions: false,
-                            showStatus: false,
-                            showCreationDate: false,
-                            patronOptions: { display_cardnumber: true, url: true }
-                        }
-                    });
-
-                    $("#bookingsf").on("submit", function(e){
-                        e.preventDefault();
-                        bookings_table.DataTable().draw();
-                    });
-                });
-            });
-        </script>
-    [% END %]
-    [% INCLUDE 'intranet-bottom.inc' %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'js-biblio-format.inc' %]
+    [% INCLUDE 'js-date-format.inc' %]
+    <script>
+        let table_settings = [% TablesSettings.GetTableSettings( 'circ', 'bookings', 'bookings-to-collect', 'json' ) | $raw %];
+
+            let all_libraries  = [% To.json(Branches.all) | $raw %].map(e => {
+                e['_id'] = e.branchcode;
+                e['_str'] = e.branchname;
+                return e;
+            });
+
+            var coded_values = {
+                library: new Map(all_libraries.map( l => [l.branchname, l.branchcode] )),
+            };
+
+            let filters_options = {
+                libraries: all_libraries,
+            };
+        $(document).ready(function() {
+
+            let additional_filters = {
+                start_date: function() {
+                   let fromdate = $("#from");
+                   let isoFrom;
+                   if ( fromdate.val() !== '' ) {
+                     let selectedDate = fromdate.get(0)._flatpickr.selectedDates[0];
+                     selectedDate.setHours(0, 0, 0, 0);
+                     isoFrom = selectedDate.toISOString();
+                   }
+
+                   let todate = $("#to");
+                   let isoTo;
+                   if ( todate.val() !== '' ) {
+                     let selectedDate = todate.get(0)._flatpickr.selectedDates[0];
+                     selectedDate.setHours(23, 59, 59, 999);
+                     isoTo = selectedDate.toISOString();
+                   }
+
+                   if ( isoFrom || isoTo ) {
+                     return { '>=': isoFrom, '<=': isoTo };
+                   } else {
+                     return
+                   }
+                },
+                'item.holding_library_id': function() {
+                   let library = $("#holding_library").find(":selected").val();
+                   return library;
+                },
+                'pickup_library_id': function() {
+                    let library = $("#pickup_library").find(":selected").val();
+                    return library;
+                }
+            };
+
+            var bookings_table_url = '/api/v1/bookings?';
+            var bookings_table = $("#bookingst").kohaTable({
+                ajax: {
+                    url: bookings_table_url
+                },
+                embed: [
+                    "biblio",
+                    "item+strings",
+                    "item.checkout",
+                    "patron",
+                    "pickup_library"
+                ],
+                order: [[ 7, "asc" ]],
+                columns: [{
+                    data: "booking_id",
+                    title: _("Booking ID"),
+                    visible: false
+                },
+                {
+                    data: "me.pickup_library_id",
+                    title: _("Pickup library"),
+                    datatype: "coded_value:library",
+                    dataFilter: "libraries",
+                    searchable: true,
+                    orderable: true,
+                    render: function( data, type, row, meta ) {
+                        return escape_str(row.pickup_library_id ? row.pickup_library.name : row.pickup_library_id);
+                    }
+                },
+                {
+                    data: "biblio.title",
+                    title: _("Title"),
+                    searchable: true,
+                    orderable: true,
+                    render: function(data,type,row,meta) {
+                        return $biblio_to_html(row.biblio, {
+                            link: 'bookings'
+                        });
+                    }
+                },
+                {
+                    data: "item.external_id",
+                    title: _("Item"),
+                    searchable: true,
+                    orderable: true,
+                    defaultContent: _("Any item"),
+                    render: function(data,type,row,meta) {
+                        if ( row.item ) {
+                            return row.item.external_id + " (" + row.booking_id + ")";
+                        } else {
+                            return null;
+                        }
+                    }
+                },
+                {
+                    data: "item.callnumber",
+                    title: _("Callnumber"),
+                    searchable: true,
+                    orderable: true,
+                    render: function(data,type,row,meta) {
+                        if ( row.item ) {
+                            return row.item.callnumber;
+                        } else {
+                            return null;
+                        }
+                    }
+                },
+                {
+                    data: "item.location",
+                    title: _("Location"),
+                    searchable: false,
+                    orderable: false,
+                    render: function(data,type,row,meta) {
+                        if ( row.item ) {
+                            if ( row.item.checked_out_date ) {
+                                return _("On loan, due: ") + $date(row.item.checked_out_date);
+                            } else {
+                                return row.item._strings.location.str;
+                            }
+                        } else {
+                                return null;
+                        }
+                    }
+                },
+                {
+                    data: "patron.firstname:patron.surname",
+                    title: _("Patron"),
+                    searchable: true,
+                    orderable: true,
+                    render: function(data, type, row, meta) {
+                        return $patron_to_html(row.patron, {
+                            display_cardnumber: true,
+                            url: true
+                        });
+                    }
+                },
+                {
+                    data: "start_date",
+                    name: "start_date",
+                    title: _("Booking dates"),
+                    type: "date",
+                    searchable: false,
+                    orderable: true,
+                    render: function(data, type, row, meta) {
+                        return $date(row.start_date) + ' - ' + $date(row.end_date);
+                    }
+                }]
+            }, table_settings, 1, additional_filters, filters_options);
+
+            /** Date filtering */
+            $("#bookingsf").on("submit", function(e){
+                /* stop form from submitting normally */
+                e.preventDefault();
+                bookings_table.DataTable().draw();
+            });
+        });
+    </script>
+[% END %]
+[% INCLUDE 'intranet-bottom.inc' %]

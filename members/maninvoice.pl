@@ -20,7 +20,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Try::Tiny   qw( catch try );
@@ -143,7 +143,7 @@ if ( $op eq 'cud-add' ) {
                     borrowernumber => $borrowernumber
                 },
                 { order_by => { -desc => 'returndate' }, rows => 1 }
-            )->next;
+                )->next;
             $issue_id = $checkout ? $checkout->issue_id : undef;
         }
     }

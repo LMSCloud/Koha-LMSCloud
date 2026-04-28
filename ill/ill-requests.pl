@@ -15,10 +15,9 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Data::Dumper;
 
 use CGI;
 
@@ -31,7 +30,9 @@ use Koha::ILL::Requests;
 use Koha::ILL::Request;
 use Koha::ILL::Batches;
 use Koha::ILL::Request::Workflow::Availability;
+use Koha::ILL::Request::Workflow::HistoryCheck;
 use Koha::ILL::Request::Workflow::TypeDisclaimer;
+use Koha::ILL::Request::Workflow::ConfirmAuto;
 use Koha::Libraries;
 use Koha::Plugins;
 
@@ -99,7 +100,7 @@ if ($backends_available) {
     if ( $op eq 'illview' ) {
 
         # View the details of an ILL
-        my $request = Koha::Illrequests->find( $params->{illrequest_id} );
+        my $request = Koha::ILL::Requests->find( $params->{illrequest_id} );
         if ( !$request ) { redirect_to_list(); }
 
         # Get the details for notices that can be sent from here
@@ -118,12 +119,7 @@ if ($backends_available) {
             notices             => $notices,
             request             => $request,
             request_orderidlink => $request->_backend_capability( "getLink", [ $request, 'orderid' ] ),
-            csrf_token          => Koha::Token->new->generate_csrf(
-                {
-                    session_id => scalar $cgi->cookie('CGISESSID'),
-                }
-            ),
-            ( $params->{tran_error}   ? ( tran_error   => $params->{tran_error} )   : () ),
+            ( $params->{tran_fail}    ? ( tran_fail    => $params->{tran_fail} )    : () ),
             ( $params->{tran_success} ? ( tran_success => $params->{tran_success} ) : () ),
         );
 
@@ -140,11 +136,18 @@ if ($backends_available) {
         my $request = Koha::ILL::Request->new->load_backend( $params->{backend} );
 
         # Before request creation operations - Preparation
+        my $history_check   = Koha::ILL::Request::Workflow::HistoryCheck->new( $params, 'staff' );
         my $availability    = Koha::ILL::Request::Workflow::Availability->new( $params, 'staff' );
         my $type_disclaimer = Koha::ILL::Request::Workflow::TypeDisclaimer->new( $params, 'staff' );
+        my $confirm_auto    = Koha::ILL::Request::Workflow::ConfirmAuto->new( $params, 'staff' );
 
-        # ILLCheckAvailability operation
-        if ( $availability->show_availability($request) ) {
+        # ILLHistoryCheck operation
+        if ( $history_check->show_history_check($request) ) {
+            $op = 'historycheck';
+            $template->param( $history_check->history_check_template_params($params) )
+
+            # ILLCheckAvailability operation
+        } elsif ( $availability->show_availability($request) ) {
             $op = 'availability';
             $template->param( $availability->availability_template_params($params) )
 
@@ -152,6 +155,11 @@ if ($backends_available) {
         } elsif ( $type_disclaimer->show_type_disclaimer($request) ) {
             $op = 'typedisclaimer';
             $template->param( $type_disclaimer->type_disclaimer_template_params($params) );
+
+            # ConfirmAuto operation
+        } elsif ( $confirm_auto->show_confirm_auto($request) ) {
+            $op = 'confirmautoill';
+            $template->param( $confirm_auto->confirm_auto_template_params($params) );
 
             # Ready to create ILL request
         } else {
@@ -171,7 +179,28 @@ if ($backends_available) {
     } elsif ( $op eq 'migrate' ) {
 
         # We're in the process of migrating a request
+        if ( $params->{auto_migrate} ) {
+
+            my $confirm_auto = Koha::ILL::Request::Workflow::ConfirmAuto->new( $params, 'staff' );
+            my $illrequest   = Koha::ILL::Requests->find( $params->{illrequest_id} );
+            if ( !$illrequest ) { redirect_to_list(); }
+            my $extended_attributes_hash =
+                { map { $_->type => $_->value } $illrequest->extended_attributes->search->as_list };
+            my $new_params = { %{ $illrequest->unblessed }, %$extended_attributes_hash };
+
+            $template->param( $confirm_auto->confirm_auto_template_params($new_params) );
+            $template->param(
+                op           => 'confirmautoill',
+                auto_migrate => 1,
+                request      => $illrequest,
+            );
+
+            output_html_with_http_headers( $cgi, $cookie, $template->output );
+            exit;
+        }
+
         my $request = Koha::ILL::Requests->find( $params->{illrequest_id} );
+        if ( !$request ) { redirect_to_list(); }
         my $backend_result;
         if ( $params->{backend} ) {
             $backend_result = $request->backend_migrate($params);
@@ -203,7 +232,7 @@ if ($backends_available) {
 
         # Backend 'confirm' method
         # confirm requires a specific request, so first, find it.
-        my $request = Koha::Illrequests->find( $params->{illrequest_id} );
+        my $request = Koha::ILL::Requests->find( $params->{illrequest_id} );
         if ( !$request ) { redirect_to_list(); }
         my $backend_result = $request->backend_confirm($params);
         $template->param(
@@ -218,7 +247,7 @@ if ($backends_available) {
 
         # Backend 'cancel' method
         # cancel requires a specific request, so first, find it.
-        my $request = Koha::Illrequests->find( $params->{illrequest_id} );
+        my $request = Koha::ILL::Requests->find( $params->{illrequest_id} );
         if ( !$request ) { redirect_to_list(); }
         my $backend_result = $request->backend_cancel($params);
         $template->param(
@@ -236,8 +265,9 @@ if ($backends_available) {
         # (not the Illrequestattributes)
         # We simulate the API for backend requests for uniformity.
         # So, init:
-        my $request = Koha::Illrequests->find( $params->{illrequest_id} );
+        my $request = Koha::ILL::Requests->find( $params->{illrequest_id} );
         if ( !$request ) { redirect_to_list(); }
+        my $batches = Koha::ILL::Batches->search( undef, { order_by => { -asc => 'name' } } );
         if ( !$params->{stage} ) {
             my $backend_result = {
                 error   => 0,
@@ -254,33 +284,46 @@ if ($backends_available) {
                 batches => $batches
             );
         } else {
+            my $valid_patron = Koha::Patrons->find( $params->{borrowernumber} );
+            my $valid_biblio = Koha::Biblios->find( $params->{biblio_id} );
 
-            # Commit:
-            # Save the changes
-            $request->borrowernumber( $params->{borrowernumber} )
-                if $params->{borrowernumber};    # empty borrowernumber would result in 'Broken FK constraint' error
-            $request->biblio_id( $params->{biblio_id} )
-                if $params->{biblio_id};         # empty biblio_id / biblio_id = 0 would destroy consistency
-            $request->branchcode( $params->{branchcode} );
-            $request->price_paid( $params->{price_paid} );
-            $request->notesopac( $params->{notesopac} );
-            $request->notesstaff( $params->{notesstaff} );
-            my $alias =
-                ( length $params->{status_alias} > 0 )
-                ? $params->{status_alias}
-                : "-1";
-            $request->status_alias($alias);
-            $request->store;
-            my $backend_result = {
-                error   => 0,
-                status  => '',
-                message => '',
-                method  => 'edit_action',
-                stage   => 'commit',
-                next    => 'illlist',
-                value   => {}
-            };
-            handle_commit_maybe( $backend_result, $request );
+            if ( $params->{borrowernumber} && !$valid_patron || $params->{biblio_id} && !$valid_biblio ) {
+                my $error_result = {
+                    error  => 1,
+                    status => $params->{borrowernumber} && !$valid_patron ? 'invalid_patron' : 'invalid_biblio',
+                    op     => 'edit_action',
+                    stage  => 'init',
+                    next   => 'illview',
+                };
+                $template->param(
+                    whole   => $error_result,
+                    request => $request,
+                );
+            } else {
+                $request->borrowernumber( $params->{borrowernumber} );
+                $request->biblio_id( $params->{biblio_id} );
+                $request->batch_id( $params->{batch_id} );
+                $request->branchcode( $params->{branchcode} );
+                $request->price_paid( $params->{price_paid} );
+                $request->notesopac( $params->{notesopac} );
+                $request->notesstaff( $params->{notesstaff} );
+                my $alias =
+                    ( length $params->{status_alias} > 0 )
+                    ? $params->{status_alias}
+                    : "-1";
+                $request->status_alias($alias);
+                $request->store;
+                my $backend_result = {
+                    error   => 0,
+                    status  => '',
+                    message => '',
+                    op      => 'edit_action',
+                    stage   => 'commit',
+                    next    => 'illview',
+                    value   => {}
+                };
+                redirect_user( $backend_result, $request );
+            }
         }
 
     } elsif ( $op eq 'moderate_action' ) {
@@ -290,7 +333,7 @@ if ($backends_available) {
         redirect_to_list();
 
     } elsif ( $op eq 'delete_confirm' ) {
-        my $request = Koha::Illrequests->find( $params->{illrequest_id} );
+        my $request = Koha::ILL::Requests->find( $params->{illrequest_id} );
         if ( !$request ) { redirect_to_list(); }
 
         $template->param( request => $request );
@@ -302,10 +345,8 @@ if ($backends_available) {
         if ( $params->{confirmed} ) {
 
             # We simply delete the request...
-            my $req = Koha::Illrequests->find( $params->{illrequest_id} );
-            if ($req) {
-                $req->delete;
-            }
+            my $req = Koha::ILL::Requests->find( $params->{illrequest_id} );
+            $req->delete if $req;
 
             # ... then return to list view.
             redirect_to_list();
@@ -316,7 +357,7 @@ if ($backends_available) {
         }
 
     } elsif ( $op eq 'mark_completed' ) {
-        my $request = Koha::Illrequests->find( $params->{illrequest_id} );
+        my $request = Koha::ILL::Requests->find( $params->{illrequest_id} );
         if ( !$request ) { redirect_to_list(); }
         my $backend_result = $request->mark_completed($params);
         $template->param(
@@ -332,7 +373,7 @@ if ($backends_available) {
         my $backend_result;
         my $request;
         try {
-            $request = Koha::Illrequests->find( $params->{illrequest_id} );
+            $request = Koha::ILL::Requests->find( $params->{illrequest_id} );
             if ( !$request ) { redirect_to_list(); }
             $params->{current_branchcode} = C4::Context->mybranch;
             $backend_result = $request->generic_confirm($params);
@@ -386,7 +427,8 @@ if ($backends_available) {
         redirect_user( $backend_result, $request );
     } elsif ( $op eq 'cud-check_out' ) {
         $op =~ s/^cud-//;
-        my $request        = Koha::ILL::Requests->find( $params->{illrequest_id} );
+        my $request = Koha::ILL::Requests->find( $params->{illrequest_id} );
+        if ( !$request ) { redirect_to_list(); }
         my $backend_result = $request->check_out($params);
         $template->param(
             params  => $params,
@@ -396,7 +438,7 @@ if ($backends_available) {
     } elsif ( $op eq 'illlist' ) {
 
         # If we receive a pre-filter, make it available to the template
-        my $possible_filters = [ 'borrowernumber', 'backend' ];
+        my $possible_filters = [ 'borrowernumber', 'batch_id', 'backend' ];
         my $active_filters   = {};
         foreach my $filter ( @{$possible_filters} ) {
             if ( $params->{$filter} ) {
@@ -413,6 +455,8 @@ if ($backends_available) {
                 push @tpl_arr, $key . "=" . $active_filters->{$key};
             }
         }
+        $template->param( prefilters => join( "&", @tpl_arr ) );
+
         if ( $params->{infilter} ) {
             $template->param( infilter => $params->{infilter} );
         } else {    # no customer is interested in searching ALL illrequests by default, so we search ALL OPEN
@@ -425,7 +469,6 @@ if ($backends_available) {
         if ( $params->{hitname} ) {
             $template->param( hitname => $params->{hitname} );
         }
-        $template->param( prefilters => join( "&", @tpl_arr ) );
 
         if ( $active_filters->{batch_id} ) {
             my $batch_id = $active_filters->{batch_id};
@@ -454,8 +497,9 @@ if ($backends_available) {
     } elsif ( $op eq "send_notice" ) {
         my $illrequest_id = $params->{illrequest_id};
         my $request       = Koha::ILL::Requests->find($illrequest_id);
-        my $ret           = $request->send_patron_notice( $params->{notice_code} );
-        my $append        = '';
+        if ( !$request ) { redirect_to_list(); }
+        my $ret    = $request->send_patron_notice( $params->{notice_code} );
+        my $append = '';
         if ( $ret->{result} && scalar @{ $ret->{result}->{success} } > 0 ) {
             $append .= '&tran_success=' . join( ',', @{ $ret->{result}->{success} } );
         }
@@ -470,11 +514,9 @@ if ($backends_available) {
     } elsif ( $op eq "batch_list" ) {
 
         # Do not remove, it prevents us falling through to the 'else'
-    } elsif ( $op eq "batch_create" ) {
-
-        # Do not remove, it prevents us falling through to the 'else'
     } else {
-        my $request = Koha::Illrequests->find( $params->{illrequest_id} );
+        $op =~ s/^cud-//;
+        my $request = Koha::ILL::Requests->find( $params->{illrequest_id} );
         if ( !$request ) { redirect_to_list(); }
         my $backend_result = $request->custom_capability( $op, $params );
         $template->param(
@@ -491,7 +533,11 @@ $template->param(
     backends => $backends,
     types    => [ "Book", "Article", "Journal" ],
     op       => $op,
-    branches => Koha::Libraries->search,
+    branches => Koha::Libraries->search(
+        { pickup_location => 1 },
+        { order_by        => ['branchname'] }
+    ),
+    illreq_tabs => C4::Context->yaml_preference('ILLRequestsTabs'),
 );
 
 output_html_with_http_headers( $cgi, $cookie, $template->output );

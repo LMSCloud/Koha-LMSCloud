@@ -16,7 +16,7 @@ package Koha::Object;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -466,11 +466,18 @@ sub TO_JSON {
             # or we move to DBD::MariaDB
             $unblessed->{$col} += 0.00;
         } elsif ( _datetime_column_type( $columns_info->{$col}->{data_type} ) ) {
-            eval {
-                return unless $unblessed->{$col};
-                my $dt = Koha::DateTime::Format::SQL->parse_datetime( $unblessed->{$col} );
-                $unblessed->{$col} = Koha::DateTime::Format::RFC3339->format_datetime($dt);
-            };
+            if ( $unblessed->{$col} ) {
+
+                # Emit null rather than leaking a raw, unparseable value (e.g. a
+                # month of '00' in lastseen) which would otherwise pass straight
+                # into the response and fail OpenAPI validation with "Month out
+                # of range", 500ing the request.
+                my $dt = eval { Koha::DateTime::Format::SQL->parse_datetime( $unblessed->{$col} ) };
+                $unblessed->{$col} =
+                    $dt
+                    ? Koha::DateTime::Format::RFC3339->format_datetime($dt)
+                    : undef;
+            }
         }
     }
     return $unblessed;

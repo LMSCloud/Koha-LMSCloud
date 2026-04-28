@@ -15,17 +15,20 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # This runs 'xmllint' (part of libxml2-utils) over each xml file that
 # generates the koha-common man pages and ensures they're correct.
 
 use Modern::Perl;
-use Test::More qw(no_plan);
+use Test::More;
+use Test::NoWarnings;
 
 my $doc_dir   = 'debian/docs';
 my @doc_files = glob( $doc_dir . '/*.xml' );
 my @command   = qw(xmllint --noout);
+
+plan tests => scalar(@doc_files) + 1;
 
 foreach my $file (@doc_files) {
     ok( system( @command, $file ) == 0, "XML validation for $file" );

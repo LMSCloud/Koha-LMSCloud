@@ -11,9 +11,8 @@ package Koha::REST::V1::AuthorisedValue;
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -43,7 +42,13 @@ sub list {
     };
 }
 
-=head3 _to_api
+=head1 NAME
+
+Koha::REST::V1::AuthorisedValue - Controller for authorised values
+
+=head1 METHODS
+
+=head2 _to_api
 
 Helper function that maps a hashref of Koha::Library attributes into REST api
 attribute names.
@@ -72,7 +77,7 @@ sub _to_api {
     return $authorised_value;
 }
 
-=head3 _to_model
+=head2 _to_model
 
 Helper function that maps REST api objects into Koha::Library
 attribute names.

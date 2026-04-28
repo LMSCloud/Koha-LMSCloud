@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 package Koha::OAI::Server::Identify;
 
@@ -33,6 +33,7 @@ sub new {
     my $baseURL = $repository->self_url();
     $baseURL = $+{base_url}
         if $baseURL =~ m/(?<base_url>.*)\?.*/;
+    $baseURL =~ s{/$}{};    # Strip trailing slash for CGI.pm 4.68+ compatibility
 
     my $self = $class->SUPER::new(
         baseURL           => $baseURL,

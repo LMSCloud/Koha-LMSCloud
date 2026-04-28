@@ -241,12 +241,29 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:55
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:e1egUz3/n0agsF+L1k2tYQ
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-04-29 10:38:08
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:apHlJMO/F2On9nRR/ofIqA
+
+__PACKAGE__->add_columns(
+    '+is_html' => { is_boolean => 1 },
+);
+
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
 
 sub koha_object_class {
     'Koha::Notice::Template';
 }
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
     'Koha::Notice::Templates';
 }

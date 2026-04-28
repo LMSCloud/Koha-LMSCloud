@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -48,6 +48,7 @@ use Encode          qw( encode_utf8 );
 use List::MoreUtils qw( any uniq );
 use List::Util      qw( first min );
 use MARC::File::XML;
+use Try::Tiny    qw( catch try );
 use MIME::Base64 qw( decode_base64url encode_base64url );
 use Storable     qw( freeze thaw );
 use URI::Escape  qw( uri_escape_utf8 );
@@ -530,7 +531,8 @@ if ( $op eq "cud-additem" ) {
     my $item = Koha::Items->find($itemnumber);
     my $deleted;
     if ($item) {
-        $deleted = $item->safe_delete;
+        my $delete_serial_issues = $input->param('delete-serial-issues');
+        $deleted = $item->safe_delete( { delete_serial_issues => $delete_serial_issues } );
     } else {
         $deleted = Koha::Result::Boolean->new(0)->add_message( { message => 'item_not_found' } );
     }
@@ -655,7 +657,23 @@ if ( $op eq "cud-additem" ) {
                 };
             }
         }
-        $item->store;
+        try {
+            $item->store;
+        } catch {
+            push @errors, $_->error;
+        };
+    }
+
+    if ( $input->param('edit-serial-issue') ) {
+        my $serialid = $item->serial_item->serialid;
+        my $serial   = Koha::Serials->find($serialid);
+
+        my $redirect = "/cgi-bin/koha/serials/serials-edit.pl?serialid=$serialid";
+        if ($serial) {
+            $redirect .= "&subscriptionid=" . $serial->subscriptionid;
+        }
+        print $input->redirect($redirect);
+        exit;
     }
 
     $nextop = "cud-additem";

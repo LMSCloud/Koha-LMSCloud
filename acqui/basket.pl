@@ -18,7 +18,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use C4::Auth   qw( get_template_and_user haspermission );
@@ -40,6 +40,7 @@ use Koha::Database;
 use Koha::EDI qw( create_edi_order );
 use Koha::CsvProfiles;
 use Koha::Patrons;
+use Koha::Edifact::Files;
 
 use Koha::AdditionalFields;
 use Koha::Old::Biblios;
@@ -50,7 +51,7 @@ basket.pl
 
 =head1 DESCRIPTION
 
- This script display all informations about basket for the supplier given
+ This script display all information about basket for the supplier given
  on input arg.  Moreover, it allows us to add a new order for this supplier from
  an existing record, a suggestion or a new record.
 
@@ -103,8 +104,121 @@ if ($ediaccount) {
             join => 'branch',
         }
     );
-    $template->param( eans => \@eans );
+
+    # Check if this basket was created from a QUOTE message and get the buyer EAN
+    my $quote_ean     = undef;
+    my $quote_message = $schema->resultset('EdifactMessage')->search(
+        {
+            basketno     => $basketno,
+            message_type => 'QUOTE'
+        }
+    )->first;
+
+    if ($quote_message) {
+
+        # For the first message in a QUOTE transport, the raw_msg contains the full message
+        # For subsequent messages, we need to get it from the original message
+        my $raw_msg = $quote_message->raw_msg;
+
+        # If this is a split message (empty raw_msg), find the original message
+        if ( !$raw_msg ) {
+
+            # Look for the original message with the same filename but without suffix
+            my $original_filename = $quote_message->filename;
+            $original_filename =~ s/_\d+$//;    # Remove _2, _3, etc. suffix
+
+            my $original_message = $schema->resultset('EdifactMessage')->search(
+                {
+                    filename     => $original_filename,
+                    message_type => 'QUOTE',
+                    vendor_id    => $quote_message->vendor_id
+                }
+            )->first;
+
+            $raw_msg = $original_message->raw_msg if $original_message;
+        }
+
+        if ($raw_msg) {
+
+            # Parse the EDI message to find the buyer EAN for THIS specific basket
+            eval {
+                require Koha::Edifact;
+                my $edi      = Koha::Edifact->new( { transmission => $raw_msg } );
+                my $messages = $edi->message_array();
+
+                # For multiple messages, we need to find which message corresponds to this basket
+                # The current process_quote creates baskets in order, so we need to determine the index
+                if ( @{$messages} ) {
+                    if ( @{$messages} == 1 ) {
+
+                        # Single message case
+                        $quote_ean = $messages->[0]->buyer_ean;
+                    } else {
+
+                        # Multiple message case - determine which message this basket belongs to
+                        # Check if this is a split message by looking at the filename suffix
+                        my $filename = $quote_message->filename;
+                        if ( $filename =~ /_(\d+)$/ ) {
+                            my $message_index = $1 - 1;    # Convert to 0-based index
+                            $quote_ean = $messages->[$message_index]->buyer_ean if $messages->[$message_index];
+                        } else {
+
+                            # This is the first message (no suffix)
+                            $quote_ean = $messages->[0]->buyer_ean;
+                        }
+                    }
+                }
+            };
+
+            # If there's an error parsing, we'll just fall back to normal behavior
+            # Error is logged but doesn't prevent normal EAN selection
+        }
+    }
+
+    $template->param(
+        eans      => \@eans,
+        quote_ean => $quote_ean
+    );
 }
+
+# Check for EDIFACT messages associated with this basket
+my $edifact_enabled  = C4::Context->preference('EDIFACT');
+my @edifact_messages = ();
+my @edifact_errors   = ();
+
+if ( $edifact_enabled && $basketno ) {
+    my $edifact_messages_rs = Koha::Edifact::Files->search(
+        { basketno => $basketno },
+        { order_by => 'message_type' }
+    );
+
+    while ( my $message = $edifact_messages_rs->next ) {
+        push @edifact_messages, {
+            id            => $message->id,
+            message_type  => $message->message_type,
+            transfer_date => $message->transfer_date,
+            status        => $message->status,
+            filename      => $message->filename,
+        };
+
+        # Get errors for this message
+        my $errors = $message->errors;
+        while ( my $error = $errors->next ) {
+            push @edifact_errors, {
+                message_id   => $message->id,
+                message_type => $message->message_type,
+                section      => $error->section,
+                details      => $error->details,
+            };
+        }
+    }
+}
+
+$template->param(
+    edifact_enabled  => $edifact_enabled,
+    edifact_messages => \@edifact_messages,
+    edifact_errors   => \@edifact_errors,
+);
 
 unless ( CanUserManageBasket( $loggedinuser, $basket, $userflags ) ) {
     $template->param(
@@ -581,7 +695,19 @@ sub edi_close_and_order {
         if ( $basket->{branch} ) {
             $edi_params->{branchcode} = $basket->{branch};
         }
-        if ( create_edi_order($edi_params) ) {
+        my $edi_result = create_edi_order($edi_params);
+        if ( ref $edi_result eq 'HASH' && $edi_result->{error} ) {
+            if ( $edi_result->{error} eq 'duplicate_po_number' ) {
+                push @messages, {
+                    type            => 'error',
+                    code            => 'edi_duplicate_po_number',
+                    po_number       => $edi_result->{po_number},
+                    existing_basket => $edi_result->{existing_basket}
+                };
+                $op = 'list';    # Stay on basket page to show error
+                return;
+            }
+        } elsif ($edi_result) {
 
             #$template->param( edifile => 1 );
         }

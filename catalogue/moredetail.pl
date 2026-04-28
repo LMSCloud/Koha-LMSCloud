@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use C4::Koha qw( GetAuthorisedValues );
@@ -81,9 +81,10 @@ my $title = $query->param('title');
 my $bi    = $query->param('bi');
 $bi         = $biblionumber unless $bi;
 $itemnumber = $query->param('itemnumber');
-my $data         = &GetBiblioData($biblionumber);
-my $dewey        = $data->{'dewey'};
-my $showallitems = $query->param('showallitems');
+my $data           = &GetBiblioData($biblionumber);
+my $dewey          = $data->{'dewey'};
+my $showallitems   = $query->param('showallitems');
+my $withdraw_error = $query->param('nowithdraw');
 
 #coping with subscriptions
 my $subscriptionsnumber = CountSubscriptionFromBiblionumber($biblionumber);
@@ -325,6 +326,7 @@ $template->param(
 );
 
 $template->param(
+    withdraw_error      => $withdraw_error,
     ITEM_DATA           => \@item_data,
     moredetailview      => 1,
     loggedinuser        => $loggedinuser,

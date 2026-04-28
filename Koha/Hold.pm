@@ -16,7 +16,7 @@ package Koha::Hold;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -32,15 +32,16 @@ use Koha::DateUtils qw( dt_from_string );
 use Koha::Patrons;
 use Koha::Biblios;
 use Koha::Hold::CancellationRequests;
+use Koha::Illrequest qw( checkIfIllItem );
 use Koha::Items;
 use Koha::Libraries;
 use Koha::Calendar;
 use Koha::Plugins;
-use Koha::Illrequest qw( checkIfIllItem );
 
 use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
 
 use Koha::Exceptions;
+use Koha::HoldGroups;
 use Koha::Exceptions::Hold;
 
 use base qw(Koha::Object);
@@ -177,6 +178,159 @@ sub delete {
         if C4::Context->preference('HoldsLog');
 
     return $deleted;
+}
+
+=head3 move_hold
+
+$hold->move_hold();
+
+=cut
+
+sub move_hold {
+    my ( $self, $args ) = @_;
+
+    my $original              = $self;
+    my $original_biblionumber = $self->biblionumber;
+
+    my $found = $original->found // '';
+
+    if ( $found eq 'W' ) {
+        return { success => 0, error => 'Cannot move a waiting hold' };
+    }
+
+    if ( $found eq 'T' ) {
+        return { success => 0, error => 'Cannot move a hold in transit' };
+    }
+
+    my $patron = Koha::Patrons->find( { borrowernumber => $self->borrowernumber } );
+    return { success => 0, error => 'Missing patron or target' } unless $patron;
+
+    my ( $new_biblionumber, $new_itemnumber, $item, $canReserve );
+
+    if ( $args->{new_itemnumber} ) {
+        $item = Koha::Items->find( { itemnumber => $args->{new_itemnumber} } )
+            or return { success => 0, error => 'Target item not found' };
+
+        $new_itemnumber   = $item->itemnumber;
+        $new_biblionumber = $item->biblionumber;
+
+        $canReserve = C4::Reserves::CanItemBeReserved( $patron, $item, $self->branchcode, { ignore_hold_counts => 1 } );
+    } elsif ( $args->{new_biblionumber} ) {
+        $new_biblionumber = $args->{new_biblionumber};
+
+        $canReserve = C4::Reserves::CanBookBeReserved(
+            $patron->borrowernumber, $new_biblionumber, $self->branchcode,
+            { ignore_hold_counts => 1 }
+        );
+    } else {
+        return { success => 0, error => 'Missing itemnumber or biblionumber' };
+    }
+
+    return { success => 0, error => $canReserve->{status} }
+        unless $canReserve->{status} eq 'OK';
+
+    my $max = Koha::Holds->search(
+        { biblionumber => $new_biblionumber },
+        { order_by     => { -desc => 'priority' }, rows => 1 }
+    )->next;
+    my $base_priority = $max ? $max->priority : 0;
+    my $priority      = $base_priority + 1;
+    my $new_priority  = C4::Reserves::_ShiftPriority( $new_biblionumber, $priority );
+
+    $self->update(
+        {
+            itemnumber   => $new_itemnumber,     # undef for biblio-level is fine
+            biblionumber => $new_biblionumber,
+            priority     => $new_priority,
+        }
+    );
+
+    C4::Log::logaction( 'HOLDS', 'MODIFY', $self->reserve_id, $self, undef, $original )
+        if C4::Context->preference('HoldsLog');
+
+    return { success => 1, hold => $self };
+}
+
+=head3 cleanup_hold_group
+
+$self->cleanup_hold_group;
+
+Check if a hold group is left with a single or zero holds. Delete hold_group if so.
+Accepts an optional $hold_group_id that, if defined, uses that instead of self->hold_group_id
+
+=cut
+
+sub cleanup_hold_group {
+    my ( $self, $hold_group_id ) = @_;
+
+    my $hold_group_id_to_check = $hold_group_id // $self->hold_group_id;
+    my $hold_group             = Koha::HoldGroups->find($hold_group_id_to_check);
+    return unless $hold_group;
+
+    if ( $hold_group->holds->count <= 1 ) {
+        $hold_group->delete();
+    }
+}
+
+=head3 set_as_hold_group_target
+
+$self->set_as_hold_group_target;
+
+Sets this hold and its' hold group's target
+
+=cut
+
+sub set_as_hold_group_target {
+    my ($self) = @_;
+
+    if ( $self->hold_group && !$self->hold_group->target_hold_id && C4::Context->preference("DisplayAddHoldGroups") ) {
+        $self->_result->create_related(
+            'hold_groups_target_hold',
+            { hold_group_id => $self->hold_group->hold_group_id }
+        );
+    }
+}
+
+=head3 remove_as_hold_group_target
+
+$self->remove_as_hold_group_target;
+
+Removes this hold as the target of its hold group if it is currently set as such,
+and if the DisplayAddHoldGroups system preference is enabled.
+
+=cut
+
+sub remove_as_hold_group_target {
+    my ($self) = @_;
+
+    if (   $self->hold_group
+        && $self->hold_group->target_hold_id
+        && $self->hold_group->target_hold_id eq $self->reserve_id
+        && C4::Context->preference("DisplayAddHoldGroups") )
+    {
+        $self->_result->find_related(
+            'hold_groups_target_hold',
+            { hold_group_id => $self->hold_group->hold_group_id, reserve_id => $self->reserve_id }
+        )->delete();
+    }
+}
+
+=head3 is_hold_group_target
+
+$self->is_hold_group_target;
+
+Returns whether this hold is its hold group target
+
+=cut
+
+sub is_hold_group_target {
+    my ($self) = @_;
+
+    return 1
+        if $self->hold_group
+        && $self->hold_group->target_hold_id
+        && $self->hold_group->target_hold_id eq $self->reserve_id;
+    return 0;
 }
 
 =head3 set_transfer
@@ -542,6 +696,19 @@ sub item {
     return Koha::Item->_new_from_dbic($rs);
 }
 
+=head3 item_type
+
+Returns the related Koha::ItemType object for this hold
+
+=cut
+
+sub item_type {
+    my ($self) = @_;
+    my $rs = $self->_result->itemtype;
+    return unless $rs;
+    return Koha::ItemType->_new_from_dbic($rs);
+}
+
 =head3 item_group
 
 Returns the related Koha::Biblio::ItemGroup object for this Hold
@@ -673,9 +840,10 @@ sub cancellation_requested {
 
 my $cancel_hold = $hold->cancel(
     {
-        [ charge_cancel_fee   => 1||0, ]
-        [ cancellation_reason => $cancellation_reason, ]
-        [ skip_holds_queue    => 1||0 ]
+        [ charge_cancel_fee       => 1||0, ]
+        [ cancellation_reason     => $cancellation_reason, ]
+        [ skip_holds_queue        => 1||0 ]
+        [ skip_hold_group_cleanup => 1||0 ]
     }
 );
 
@@ -692,6 +860,9 @@ sub cancel {
     my ( $self, $params ) = @_;
 
     my $autofill_next = $params->{autofill} && $self->itemnumber && $self->found && $self->found eq 'W';
+
+    # Store hold data for plugin hook (before transaction)
+    my $old_hold_data;
 
     my $original = C4::Context->preference('HoldsLog') ? $self->unblessed : undef;
 
@@ -742,7 +913,7 @@ sub cancel {
                             letter                 => $letter,
                             borrowernumber         => $self->borrowernumber,
                             message_transport_type => 'email',
-                            branchcode             => $self->borrower->branchcode
+                            branchcode             => $self->borrower->branchcode,
                         }
                     );
                 }
@@ -750,13 +921,8 @@ sub cancel {
 
             my $old_me = $self->_move_to_old;
 
-            Koha::Plugins->call(
-                'after_hold_action',
-                {
-                    action  => 'cancel',
-                    payload => { hold => $old_me->get_from_storage }
-                }
-            );
+            # Store data for plugin hook (to be called after transaction)
+            $old_hold_data = $old_me->get_from_storage;
 
             # anonymize if required
             $old_me->anonymize
@@ -764,11 +930,19 @@ sub cancel {
 
             $self->SUPER::delete();    # Do not add a DELETE log
                                        # now fix the priority on the others....
-            C4::Reserves::_FixPriority( { biblionumber => $self->biblionumber } );
+            C4::Reserves::FixPriority( { biblionumber => $self->biblionumber } );
 
             # and, if desired, charge a cancel fee
-            my $charge = C4::Context->preference("ExpireReservesMaxPickUpDelayCharge");
-            if ( $charge && $params->{'charge_cancel_fee'} ) {
+            if ( $params->{'charge_cancel_fee'} ) {
+                my $item   = $self->item;
+                my $charge = Koha::CirculationRules->get_effective_expire_reserves_charge(
+                    {
+                        itemtype     => $item->effective_itemtype,
+                        branchcode   => Koha::Policy::Holds->holds_control_library( $item, $self->borrower ),
+                        categorycode => $self->borrower->categorycode,
+                    }
+                );
+
                 my $account = Koha::Account->new( { patron_id => $self->borrowernumber } );
                 $account->add_debit(
                     {
@@ -779,7 +953,7 @@ sub cancel {
                         type       => 'RESERVE_EXPIRED',
                         item_id    => $self->itemnumber
                     }
-                );
+                ) if $charge;
             }
 
             C4::Log::logaction( 'HOLDS', 'CANCEL', $self->reserve_id, $self, undef, $original )
@@ -791,6 +965,17 @@ sub cancel {
                 or !C4::Context->preference('RealTimeHoldsQueue');
         }
     );
+
+    # Call plugin hook AFTER transaction completes
+    Koha::Plugins->call(
+        'after_hold_action',
+        {
+            action  => 'cancel',
+            payload => { hold => $old_hold_data }
+        }
+    );
+
+    $self->cleanup_hold_group() unless $params->{skip_hold_group_cleanup};
 
     if ($autofill_next) {
         my ( undef, $next_hold ) = C4::Reserves::CheckReserves( $self->item );
@@ -853,15 +1038,12 @@ sub fill {
             $self->SUPER::delete();    # Do not add a DELETE log
 
             # now fix the priority on the others....
-            C4::Reserves::_FixPriority( { biblionumber => $self->biblionumber } );
+            C4::Reserves::FixPriority( { biblionumber => $self->biblionumber } );
 
             if ( C4::Context->preference('HoldFeeMode') eq 'any_time_is_collected' ) {
-
-                # LMSCLoud: check if it is an ILL item and if an (additional) hold fee is acceptable for the involved ILL backend
                 my $reservefee_acceptable = 1;
                 my ( $itisanillitem, $illrequest ) = ( 0, undef );
-                if ( $self->itemnumber && C4::Context->preference("IllModule") )
-                {    # check if the ILL module is activated at all
+                if ( $self->itemnumber && C4::Context->preference("IllModule") ) {
                     eval {
                         my $kohaItem = Koha::Items->find( $self->itemnumber );
                         if ($kohaItem) {
@@ -894,8 +1076,78 @@ sub fill {
             C4::Log::logaction( 'HOLDS', 'FILL', $self->id, $self, undef, $original )
                 if C4::Context->preference('HoldsLog');
 
+            # if this hold was part of a group, cancel other holds in the group
+            if ( $self->hold_group_id ) {
+                my @holds = $self->hold_group->holds->as_list;
+                foreach my $h (@holds) {
+                    $h->cancel( { skip_hold_group_cleanup => 1 } ) unless $h->reserve_id == $self->id;
+                }
+            }
+            $self->cleanup_hold_group();
+
             Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
                 { biblio_ids => [ $old_me->biblionumber ] } )
+                if C4::Context->preference('RealTimeHoldsQueue');
+        }
+    );
+    return $self;
+}
+
+=head3 revert_found
+
+    $hold->revert_found();
+
+Reverts any 'found' hold back to a regular hold with a priority of 1.
+This method can revert holds in 'waiting' (W), 'in transit' (T), or 'in processing' (P) status.
+
+For waiting holds, the desk_id is also cleared since the hold is no longer waiting
+at a specific desk. For in transit and in processing holds, desk_id remains unchanged
+(typically NULL as these statuses don't set desk_id).
+
+=cut
+
+sub revert_found {
+    my ( $self, $params ) = @_;
+
+    Koha::Exceptions::InvalidStatus->throw( invalid_status => 'hold_not_found' )
+        unless $self->is_found;
+
+    $self->_result->result_source->schema->txn_do(
+        sub {
+            my $original = C4::Context->preference('HoldsLog') ? $self->unblessed : undef;
+
+            # Increment the priority of all other non-waiting
+            # reserves for this bib record
+            my $holds = Koha::Holds->search(
+                {
+                    biblionumber => $self->biblionumber,
+                    priority     => { '>' => 0 }
+                }
+            )->update(
+                { priority    => \'priority + 1' },
+                { no_triggers => 1 }
+            );
+
+            ## Fix up the currently found reserve
+            $self->set(
+                {
+                    priority       => 1,
+                    found          => undef,
+                    waitingdate    => undef,
+                    expirationdate => $self->patron_expiration_date,
+                    itemnumber     => $self->item_level_hold ? $self->itemnumber : undef,
+                    ( $self->is_waiting ? ( desk_id => undef ) : () ),
+                }
+            )->store( { hold_reverted => 1 } );
+
+            logaction( 'HOLDS', 'MODIFY', $self->id, $self, undef, $original )
+                if C4::Context->preference('HoldsLog');
+
+            C4::Reserves::FixPriority( { biblionumber => $self->biblionumber } );
+
+            $self->remove_as_hold_group_target();
+
+            Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue( { biblio_ids => [ $self->biblionumber ] } )
                 if C4::Context->preference('RealTimeHoldsQueue');
         }
     );
@@ -996,10 +1248,33 @@ sub store {
 sub _set_default_expirationdate {
     my $self = shift;
 
-    my $period   = C4::Context->preference('DefaultHoldExpirationdatePeriod')     || 0;
+    my $period   = C4::Context->preference('DefaultHoldExpirationdatePeriod');
     my $timeunit = C4::Context->preference('DefaultHoldExpirationdateUnitOfTime') || 'days';
 
-    $self->expirationdate( dt_from_string( $self->reservedate )->add( $timeunit => $period ) );
+    if ( defined C4::Context->preference('DefaultHoldExpirationdatePeriod')
+        && C4::Context->preference('DefaultHoldExpirationdatePeriod') ne '' )
+    {
+        $self->expirationdate( dt_from_string( $self->reservedate )->add( $timeunit => $period ) );
+    }
+}
+
+=head3 hold_group
+
+    my $hold_group = $hold->hold_group;
+    my $hold_group_id = $hold_group->id if $hold_group;
+
+Return the Koha::HoldGroup object of a hold if part of a hold group
+
+=cut
+
+sub hold_group {
+    my ($self) = @_;
+
+    if ( $self->hold_group_id ) {
+        return Koha::HoldGroups->find( $self->hold_group_id );
+    }
+
+    return;
 }
 
 =head3 _move_to_old
@@ -1044,7 +1319,7 @@ sub to_api_mapping {
         lowestPriority         => 'lowest_priority',
         suspend                => 'suspended',
         suspend_until          => 'suspended_until',
-        itemtype               => 'item_type',
+        itemtype               => 'item_type_id',
         item_level_hold        => 'item_level',
     };
 }
@@ -1081,6 +1356,10 @@ sub strings_map {
     my $strings = {
         pickup_library_id => { str => $self->pickup_library->branchname, type => 'library' },
     };
+
+    if ( defined $self->itemtype ) {
+        $strings->{item_type_id} = { str => $self->item_type->description, type => 'item_type' };
+    }
 
     if ( defined $self->cancellation_reason ) {
         my $av = Koha::AuthorisedValues->search(

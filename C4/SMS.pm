@@ -17,7 +17,7 @@ package C4::SMS;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -64,7 +64,7 @@ use File::Spec;
 
 =cut
 
-# The previous implmentation used username and password.
+# The previous implementation used username and password.
 # our $user = C4::Context->config('smsuser');
 # our $pwd  = C4::Context->config('smspass');
 

@@ -17,10 +17,14 @@ package C4::Breeding;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(BreedingSearch ImportBreedingAuth Z3950Search Z3950SearchAuth Z3950SearchGeneral);
+}
 
 use C4::Biblio  qw(TransformMarcToKoha);
 use C4::Koha    qw( GetVariationsOfISBN );
@@ -32,14 +36,6 @@ use C4::AuthoritiesMarc qw( GuessAuthTypeCode GetAuthorizedHeading );
 use C4::Languages;
 use Koha::Database;
 use Koha::XSLT::Base;
-
-our ( @ISA, @EXPORT_OK );
-
-BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(BreedingSearch ImportBreedingAuth Z3950Search Z3950SearchAuth Z3950SearchGeneral);
-}
 
 =head1 NAME
 
@@ -260,7 +256,7 @@ sub _bib_build_query {
     my $qry_build = {
         isbn            => '@attr 1=7 @attr 5=1 "#term" ',
         issn            => '@attr 1=8 @attr 5=1 "#term" ',
-        ean             => '@attr 1=1214 "#term" ',          # effective for zed targets only, ignored for sru targets
+        ean             => '@attr 1=1214 "#term" ',
         title           => '@attr 1=4 "#term" ',
         author          => '@attr 1=1003 "#term" ',
         dewey           => '@attr 1=16 "#term" ',
@@ -321,7 +317,8 @@ sub _handle_one_result {
         $row->{server}       = $servhref->{servername};
         $row->{breedingid}   = $breedingid;
         $row->{isbn}         = _isbn_replace( $row->{isbn} );
-        $row                 = _add_custom_field_rowdata( $row, $marcrecord );
+        my $pref_newtags = C4::Context->preference('AdditionalFieldsInZ3950ResultSearch');
+        $row = _add_custom_field_rowdata( $row, $marcrecord, $pref_newtags );
     }
     return ( $row, $error );
 }
@@ -377,50 +374,54 @@ sub _do_xslt_proc {
 sub _add_custom_field_rowdata {
     my ( $row, $record, $pref_newtags ) = @_;
     $pref_newtags //= '';
-    my $pref_flavour = C4::Context->preference('MarcFlavour');
-
-    $pref_newtags =~ s/^\s+|\s+$//g;
-    $pref_newtags =~ s/\h+/ /g;
+    $pref_newtags =~ s/\h+//g;
 
     my @addnumberfields;
-
-    foreach my $field ( split /\,/, $pref_newtags ) {
-        $field =~ s/^\s+|\s+$//g;    # trim whitespace
-        my ( $tag, $subtags ) = split( /\$/, $field );
-
-        if ( $record->field($tag) ) {
-            my @content = ();
-
+    foreach my $field ( split /,/, $pref_newtags ) {
+        my @content;
+        my ( $tag, $add_spec ) = ( $field =~ /^(\d+)(|\$[0-9a-z]+|p\d+-\d+|p\d+)$/ );
+        next if $tag && exists $row->{$tag};    # Silently ignore double entries in pref
+        if ( !$tag || ( $tag < 10 && $add_spec =~ /^\$/ ) || ( $tag >= 10 && $add_spec =~ /^p/ ) ) {
+            warn "Breeding: invalid expression in AdditionalFieldsInZ3950Result(Auth)Search: $field";
+            next;
+        } elsif ( $tag eq '000' ) {
+            push @content, ( _extract_positions( $record->leader, $add_spec ) ) if $record->leader;
+        } elsif ( $tag =~ /^00\d$/ ) {          # control field
+            my $marcfield = $record->field($tag);
+            push @content, ( _extract_positions( $marcfield->data, $add_spec ) ) if $marcfield;
+        } else {
             for my $marcfield ( $record->field($tag) ) {
-                if ($subtags) {
-                    my $str = '';
-                    for my $code ( split //, $subtags ) {
-                        if ( $marcfield->subfield($code) ) {
-                            $str .= $marcfield->subfield($code) . ' ';
-                        }
-                    }
-                    if ( not $str eq '' ) {
-                        push @content, $str;
-                    }
-                } elsif ( $tag == 10 ) {
-                    push @content, ( $pref_flavour eq "MARC21" ? $marcfield->data : $marcfield->as_string );
-                } elsif ( $tag < 10 ) {
-                    push @content, $marcfield->data();
-                } else {
-                    push @content, $marcfield->as_string();
+                foreach my $subfield ( $marcfield->subfields ) {
+                    next unless !$add_spec || $subfield->[0] =~ /[$add_spec]/;
+                    push @content, '[' . $subfield->[0] . ']' . $subfield->[1];
                 }
             }
-
-            if (@content) {
-                $row->{$field} = \@content;
-                push( @addnumberfields, $field );
-            }
+        }
+        if (@content) {
+            $row->{$tag} = [@content];
+            push @addnumberfields, $tag;
         }
     }
-
-    $row->{'addnumberfields'} = \@addnumberfields;
-
+    $row->{addnumberfields} = [ sort @addnumberfields ];
     return $row;
+}
+
+sub _extract_positions {
+    my ( $data, $spec ) = @_;
+    if ( !defined($data) ) {
+        return;
+    } elsif ( !$spec ) {
+        return $data;
+    } elsif ( $spec =~ /p(\d+)$/ ) {
+        my $pos = $1;
+        return if $pos >= length($data);
+        return "[$pos]" . substr( $data, $pos, 1 );
+    } elsif ( $spec =~ /p(\d+)-(\d+)/ ) {
+        my ( $start, $end ) = ( $1, $2 );
+        return if $end < $start || $start >= length($data);
+        return "[$start-$end]" . substr( $data, $start, $end - $start + 1 );
+    }
+    return;
 }
 
 sub _isbn_replace {

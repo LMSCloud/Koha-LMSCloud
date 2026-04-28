@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # This test is db dependent: SIPServer needs MsgType which needs Auth.
-# And Auth needs config vars and prefences in its BEGIN block.
+# And Auth needs config vars and preferences in its BEGIN block.
 
 # This file is part of Koha.
 #
@@ -16,11 +16,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::NoWarnings;
+use Test::More tests => 2;
 use Test::Warn;
 
 my ( $mockConfig, $mockPrefork );
@@ -37,7 +38,7 @@ BEGIN {
     $mockPrefork->mock( 'run', sub { } );
 }
 
-use C4::SIP::SIPServer qw( get_timeout );
+use C4::SIP::SIPServer;
 
 # Start testing !
 # TODO We should include more tests here.

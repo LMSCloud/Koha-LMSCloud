@@ -15,14 +15,15 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use File::Spec;
 use MARC::Record;
 use English qw( -no_match_vars );
-use Test::More;
+use Test::NoWarnings;
+use Test::More tests => 21;
 
 BEGIN {
     use_ok('Koha::RecordProcessor');
@@ -243,5 +244,3 @@ subtest "'TrimFields' filter tests" => sub {
     my $get523 = $record->field('523');
     is( $get523, undef, "Field with only a subfield containing spaces removed from the record" );
 };
-
-done_testing();

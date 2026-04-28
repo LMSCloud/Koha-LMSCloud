@@ -101,12 +101,16 @@ properties:
   non_priority:
     description: Set this hold as non priority
     type: boolean
-  item_type:
+  item_type_id:
     type:
       - string
       - "null"
     description: If record level hold, the optional itemtype of the item the patron is
       requesting
+  hold_group_id:
+    type:
+      - integer
+      - "null"
   item_level:
     type: boolean
     description: If the hold is placed at item level
@@ -135,6 +139,11 @@ properties:
       - object
       - "null"
     description: Pickup library
+  patron:
+    type:
+      - object
+      - "null"
+    description: Patron for hold
   _strings:
     type:
       - object

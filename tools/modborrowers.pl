@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # modborrowers.pl
 #
@@ -40,6 +40,7 @@ use Koha::Patron::Debarments qw( AddDebarment DelDebarment );
 use Koha::Patrons;
 use List::MoreUtils qw(uniq);
 use Koha::Patron::Messages;
+use Try::Tiny;
 
 my $input = CGI->new;
 my $op    = $input->param('op') || 'show_form';
@@ -60,7 +61,7 @@ if ( $logged_in_user->is_superlibrarian ) {
 }
 my $dbh = C4::Context->dbh;
 
-# Show borrower informations
+# Show borrower information
 if ( $op eq 'cud-show' || $op eq 'show' ) {
     my @borrowers;
     my @patronidnumbers;
@@ -153,7 +154,7 @@ if ( $op eq 'cud-show' || $op eq 'show' ) {
     my @patron_categories =
         Koha::Patron::Categories->search_with_library_limits( {}, { order_by => ['description'] } )->as_list;
     while ( my $attr_type = $patron_attribute_types->next ) {
-        next if $attr_type->unique_id;    # Don't display patron attributes that must be unqiue
+        next if $attr_type->unique_id;    # Don't display patron attributes that must be unique
         my $options =
             $attr_type->authorised_value_category
             ? GetAuthorisedValues( $attr_type->authorised_value_category )
@@ -429,6 +430,9 @@ if ( $op eq 'cud-do' ) {
             $attributes->{$code}->{disabled} = grep { $_ eq sprintf( "attr%s_value", $i++ ) } @disabled;
         }
 
+        my @extended_attributes = map { { code => $_->code, attribute => $_->attribute } }
+            $patron->extended_attributes->filter_by_branch_limitations->as_list;
+
         for my $code ( keys %$attributes ) {
             my $attr_type = Koha::Patron::Attribute::Types->find($code);
 
@@ -437,24 +441,22 @@ if ( $op eq 'cud-do' ) {
             # If this borrower is not in the category of this attribute, we don't want to modify this attribute
             next if $attr_type->category_code and $attr_type->category_code ne $patron->categorycode;
 
-            if ( $attributes->{$code}->{disabled} ) {
+            # Remove any current values of same type
+            @extended_attributes = grep { $_->{code} ne $code } @extended_attributes;
 
-                # The attribute is disabled, we remove it for this borrower !
-                eval {
-                    $patron->extended_attributes->search( { 'me.code' => $code } )
-                        ->filter_by_branch_limitations->delete;
-                };
-                push @errors, { error => $@ } if $@;
-            } else {
-                eval {
-                    $patron->extended_attributes->search( { 'me.code' => $code } )
-                        ->filter_by_branch_limitations->delete;
-                    $patron->add_extended_attribute( { code => $code, attribute => $_ } )
-                        for @{ $attributes->{$code}->{values} };
-                };
-                push @errors, { error => $@ } if $@;
+            # The attribute is disabled, we remove it for this borrower !
+            if ( !$attributes->{$code}->{disabled} ) {
+                push @extended_attributes, { code => $code, attribute => $_ } for @{ $attributes->{$code}->{values} };
             }
+
         }
+
+        try {
+            $patron->extended_attributes( \@extended_attributes );
+        } catch {
+            my $message = blessed $_ ? $_->full_message() : $_;
+            push @errors, { error => $message };
+        };
 
         # Handle patron messages
         my $message      = $input->param('message');

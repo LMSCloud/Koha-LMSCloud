@@ -15,11 +15,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 59;
+use Test::NoWarnings;
+use Test::More tests => 62;
 
 use C4::Context;
 use Koha::Database;
@@ -40,8 +41,8 @@ my $default_layout = {
     format_string => 'title, author, isbn, issn, itemtype, barcode, itemcallnumber',
     guidebox      => 0,
     layout_name   => 'TEST',
-    line_height   => '1',
     layout_xml    => '',
+    line_height   => 1.0,
     oblique_title => 1,
     printing_type => 'BAR',
     scale_height  => 0.01,
@@ -76,6 +77,7 @@ my $new_attr = {
     guidebox      => 1,
     layout_name   => 'TEST',
     layout_xml    => '',
+    line_height   => 1.5,
     oblique_title => 0,
     printing_type => 'BIBBAR',
     scale_height  => 0.02,
@@ -107,9 +109,9 @@ ok(
 );
 
 foreach my $key ( keys %{$new_attr} ) {
-    if ( $key eq 'scale_height' || $key eq 'scale_width' ) {
+    if ( $key eq 'scale_height' || $key eq 'scale_width' || $key eq 'line_height' ) {
 
-        # workaround for is_deeply failing to compare scale_height and scale_width
+        # workaround for is_deeply failing to compare decimal values from DB
         is( $saved_layout->{$key} + 0.00, $new_attr->{$key} );
     } else {
         is( $saved_layout->{$key}, $new_attr->{$key} );

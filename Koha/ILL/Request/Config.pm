@@ -15,7 +15,7 @@ package Koha::ILL::Request::Config;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -67,9 +67,30 @@ sub new {
 
     $self->{configuration} = _load_configuration( C4::Context->config("interlibrary_loans") );
 
+    foreach my $type ( 'default', 'brw_cat', 'branch' ) {
+        $self->{cachedConfigPrefixes}->{$type} = $self->{configuration}->{prefixes}->{$type};
+    }
+
     bless $self, $class;
 
     return $self;
+}
+
+=head3 backends_available
+
+    $backends_available = $config->backends_available('ILLZKSHA,ILLZKSHP');
+    $backends_available = $config->backends_available;
+
+Standard setter/accessor for our backends_available. When set (typically read from
+the C<< <backends_available> >> element of C<koha-conf.xml>'s C<interlibrary_loans>
+block), C<available_backends> will restrict its result to the CSV list supplied.
+
+=cut
+
+sub backends_available {
+    my ( $self, $new ) = @_;
+    $self->{configuration}->{backends_available} = $new if $new;
+    return $self->{configuration}->{backends_available};
 }
 
 =head3 backend
@@ -106,21 +127,17 @@ sub backend_dir {
 
     my @backend_names = $config->get_backend_plugin_names();
 
-Returns a list of names for all the installed ILL backend plugins.
+Returns a list of names for all the installed (and enabled) ILL backend plugins.
 
 =cut
 
 sub get_backend_plugin_names {
     my ($self) = @_;
 
-    my $koha_plugins    = Koha::Plugins->new();
-    my @backend_plugins = $koha_plugins
-        ? $koha_plugins->GetPlugins(
-        {
-            method => 'ill_backend',
-            all    => 1
-        }
-        )
+    my $koha_plugins = Koha::Plugins->new();
+    my @backend_plugins =
+          $koha_plugins
+        ? $koha_plugins->GetPlugins( { method => 'ill_backend' } )
         : ();
 
     return map { $_->{metadata}->{name} } @backend_plugins;
@@ -155,7 +172,50 @@ sub available_backends {
     # installed as a plugin AND as the old way through backend_dir
     my @all_uniq_backends = uniq(@all_backends);
 
+    # LMS extension: when koha-conf.xml declares <backends_available>, treat it as
+    # an allow-list and preserve the declared order.
+    my $backends_available = $self->backends_available;
+    if ($backends_available) {
+        my %present = map  { $_ => 1 } @all_uniq_backends;
+        my @ordered = grep { $present{$_} } split /,/, $backends_available;
+        return \@ordered;
+    }
+
     return \@all_uniq_backends;
+}
+
+=head3 installed_backends
+
+    my $installed_backends = $config->installed_backends();
+
+Returns a list of installed backends.
+
+=cut
+
+sub installed_backends {
+    my ($self) = @_;
+    return [ grep { !/Standard/ } @{ $self->available_backends } ];
+}
+
+=head3 opac_available_backends
+
+Return a list of backends available in the OPAC
+
+=cut
+
+sub opac_available_backends {
+    my ( $self, $loggedinuser ) = @_;
+    my $reduced  = C4::Context->preference('ILLOpacbackends');
+    my $backends = $self->available_backends($reduced);
+    if ( !$loggedinuser && C4::Context->preference('ILLOpacUnauthenticatedRequest') ) {
+        $backends = [
+            grep {
+                my $loaded_b = Koha::ILL::Request->new->load_backend($_);
+                $loaded_b->_backend_capability('opac_unauthenticated_ill_requests')
+            } @$backends
+        ];
+    }
+    return $backends;
 }
 
 =head3 has_branch
@@ -278,8 +338,9 @@ file to ensure we have only valid input there.
 =cut
 
 sub _load_configuration {
-    my ($xml_config) = @_;
-    my $xml_backend_dir = $xml_config->{backend_directory};
+    my ($xml_config)           = @_;
+    my $xml_backend_dir        = $xml_config->{backend_directory};
+    my $xml_backends_available = $xml_config->{backends_available};
 
     # Default data structure to be returned
     my $configuration = {
@@ -293,6 +354,8 @@ sub _load_configuration {
         prefixes           => {},
         raw_config         => $xml_config,
     };
+    $configuration->{backends_available} = $xml_backends_available
+        if defined $xml_backends_available;
 
     # Per Branch Configuration
     my $branches = $xml_config->{branch};

@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::NoWarnings;
+use Test::More tests => 2;
 use Test::Mojo;
 
 use t::lib::TestBuilder;
@@ -60,7 +61,8 @@ subtest 'list() tests' => sub {
     ## Authorized user tests
     # One erm_user created, should get returned
     $librarian->discard_changes;
-    $t->get_ok("//$userid:$password@/api/v1/erm/users")->status_is(200)
+    $t->get_ok("//$userid:$password@/api/v1/erm/users")
+        ->status_is(200)
         ->json_is( [ $librarian->to_api( { user => $librarian } ) ] );
 
     my $another_erm_user = $builder->build_object(
@@ -71,7 +73,8 @@ subtest 'list() tests' => sub {
     );
 
     # Two erm_users created, only self is returned without permission to view_any_borrower
-    $t->get_ok("//$userid:$password@/api/v1/erm/users")->status_is(200)
+    $t->get_ok("//$userid:$password@/api/v1/erm/users")
+        ->status_is(200)
         ->json_is( [ $librarian->to_api( { user => $librarian } ) ] );
 
     my $dbh = C4::Context->dbh;
@@ -81,12 +84,14 @@ subtest 'list() tests' => sub {
     );
 
     # Two erm_users created, they should both be returned
-    $t->get_ok("//$userid:$password@/api/v1/erm/users")->status_is(200)
+    $t->get_ok("//$userid:$password@/api/v1/erm/users")
+        ->status_is(200)
         ->json_is(
         [ $librarian->to_api( { user => $librarian } ), $another_erm_user->to_api( { user => $another_erm_user } ) ] );
 
     # Warn on unsupported query parameter
-    $t->get_ok("//$userid:$password@/api/v1/erm/users?blah=blah")->status_is(400)
+    $t->get_ok("//$userid:$password@/api/v1/erm/users?blah=blah")
+        ->status_is(400)
         ->json_is( [ { path => '/query/blah', message => 'Malformed query string' } ] );
 
     my $patron = $builder->build_object(

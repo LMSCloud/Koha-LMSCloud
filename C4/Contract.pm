@@ -15,7 +15,7 @@ package C4::Contract;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use C4::Context;
@@ -46,7 +46,7 @@ use C4::Contract;
 =head1 DESCRIPTION
 
 The functions in this module deal with contracts. They allow to
-add a new contract, to modify it or to get some informations around
+add a new contract, to modify it or to get some information around
 a contract.
 
 =cut
@@ -109,6 +109,12 @@ sub GetContract {
     return $contracts->[0];
 }
 
+=head2 AddContract
+
+Missing POD for AddContract.
+
+=cut
+
 sub AddContract {
     my ($contract) = @_;
     return unless ( $contract->{booksellerid} );
@@ -116,6 +122,12 @@ sub AddContract {
     my $rs = Koha::Database->new()->schema->resultset('Aqcontract');
     return $rs->create($contract)->id;
 }
+
+=head2 ModContract
+
+Missing POD for ModContract.
+
+=cut
 
 sub ModContract {
     my ($contract) = @_;
@@ -125,6 +137,12 @@ sub ModContract {
     $result = $result->update($contract);
     return $result->in_storage;
 }
+
+=head2 DelContract
+
+Missing POD for DelContract.
+
+=cut
 
 sub DelContract {
     my ($contract) = @_;
@@ -143,6 +161,6 @@ __END__
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 =cut

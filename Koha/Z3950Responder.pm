@@ -15,7 +15,7 @@ package Koha::Z3950Responder;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -140,6 +140,8 @@ fatal error occurs.
 sub start {
     my ($self) = @_;
 
+    # start_server from Net::Z3950::SimpleServer is going to fork
+    C4::Context->dbh->disconnect;
     $self->{server}->launch_server( 'Koha::Z3950Responder', @{ $self->{yaz_options} } );
 }
 

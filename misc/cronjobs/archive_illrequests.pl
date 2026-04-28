@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -108,8 +108,9 @@ use C4::Circulation;
 use Koha::Libraries;
 use Koha::Checkouts;
 use Koha::DateUtils qw( dt_from_string output_pref );
-use Koha::Illrequests;
-use Koha::Illrequestattributes;
+use Koha::ILL::Request::Config;
+use Koha::ILL::Requests;
+use Koha::ILL::Request::Attributes;
 use Koha::Illcomments;
 use Koha::Schema::Result::OldIllrequest;
 use Koha::Schema::Result::OldIllrequestattribute;
@@ -163,7 +164,7 @@ sub archive_illrequests {
     }
 
     # Are we able to actually work?
-    my $backends = Koha::Illrequest::Config->new->available_backends;
+    my $backends = Koha::ILL::Request::Config->new->available_backends;
     warn dt_from_string . " archive_illrequests() backends:" . Dumper($backends) if $debug;
     my $backends_available = ( scalar @{$backends} > 0 );
     my $illmodule          = C4::Context->preference('ILLModule');
@@ -195,7 +196,7 @@ sub archive_illrequests {
     } elsif ( !$backend ) {
         warn dt_from_string . " archive_illrequests() invalid backend name (backend:$backend)";
     } else {
-        my $illrequests = Koha::Illrequests->new();
+        my $illrequests = Koha::ILL::Requests->new();
         my $illrequests_rs;
         if ( $backend eq 'allillbackends' ) {
             $illrequests_rs = $illrequests->_resultset()->search(
@@ -410,7 +411,7 @@ sub archive_illrequests {
                 }
 
                 # archive all correlated illrequestattributes records
-                my $illrequestattributes    = Koha::Illrequestattributes->new();
+                my $illrequestattributes    = Koha::ILL::Request::Attributes->new();
                 my $illrequestattributes_rs = $illrequestattributes->_resultset()
                     ->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
 

@@ -16,14 +16,15 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 #This selenium test is to test authentication, by performing the following: create a category and patron (same as basic_workflow.t). Then the superlibrarian logs out and the created patron must log into the staff intranet and OPAC
 
 #Note: If you are testing this on kohadevbox with selenium installed in kohadevbox then you need to set the staffClientBaseURL to localhost:8080 and the OPACBaseURL to localhost:80
 
 use Modern::Perl;
-use Test::More tests => 3;
+use Test::NoWarnings;
+use Test::More tests => 4;
 
 use C4::Context;
 use Koha::AuthUtils;
@@ -159,7 +160,7 @@ SKIP: {
     };
 
     subtest 'OPAC interface authentication' => sub {
-        plan tests => 7;
+        plan tests => 11;
 
         my $mainpage = $s->opac_base_url . q|opac-main.pl|;
 
@@ -180,6 +181,23 @@ SKIP: {
         # Using the modal
         $driver->find_element('//a[@class="nav-link login-link loginModal-trigger"]')->click;
         $s->fill_form( { muserid => $patron->userid, mpassword => $password } );
+
+        is(
+            $driver->find_element('//div[@id="loginModal"]//input[@id="mpassword"]')->get_attribute('type'),
+            'password',
+            'Password field is obscured initially'
+        );
+
+        $driver->find_element('//div[@id="loginModal"]//input[@class="show-password-toggle-checkbox"]')->click;
+
+        is(
+            $driver->find_element('//div[@id="loginModal"]//input[@id="mpassword"]')->get_attribute('type'),
+            'text',
+            'Password field is shown'
+        );
+
+        $driver->find_element('//div[@id="loginModal"]//input[@class="show-password-toggle-checkbox"]')->click;
+
         $driver->find_element('//div[@id="loginModal"]//input[@type="submit"]')->click;
         like(
             $driver->get_title, qr(Koha online catalog),
@@ -187,7 +205,7 @@ SKIP: {
         );
         $driver->find_element('//div[@id="userdetails"]');
         like(
-            $driver->get_title, qr(Your library home),
+            $driver->get_title, qr(Your summary),
             'Patron without permissions should be able to login to the OPAC using the modal'
         );
 
@@ -220,10 +238,26 @@ SKIP: {
 
         # Using the form on the right
         $s->fill_form( { userid => $patron->userid, password => $password } );
+
+        is(
+            $driver->find_element('//div[@id="login"]//input[@id="password"]')->get_attribute('type'),
+            'password',
+            'Password field is obscured initially'
+        );
+
+        $driver->find_element('//div[@id="login"]//input[@class="show-password-toggle-checkbox"]')->click;
+
+        is(
+            $driver->find_element('//div[@id="login"]//input[@id="password"]')->get_attribute('type'),
+            'text',
+            'Password field is shown'
+        );
+
+        $driver->find_element('//div[@id="login"]//input[@class="show-password-toggle-checkbox"]')->click;
         $s->submit_form;
         $driver->find_element('//div[@id="userdetails"]');
         like(
-            $driver->get_title, qr(Your library home),
+            $driver->get_title, qr(Your summary),
             'Patron without permissions should be able to login to the OPAC using the form on the right'
         );
 
@@ -236,7 +270,7 @@ SKIP: {
         $s->submit_form;
         $driver->find_element('//div[@id="userdetails"]');
         like(
-            $driver->get_title, qr(Your library home),
+            $driver->get_title, qr(Your summary),
             'Patron with catalogue permission should be able to login to the OPAC'
         );
 
@@ -249,7 +283,7 @@ SKIP: {
         $s->submit_form;
         $driver->find_element('//div[@id="userdetails"]');
         like(
-            $driver->get_title, qr(Your library home),
+            $driver->get_title, qr(Your summary),
             'Patron with superlibrarian permission should be able to login to the OPAC'
         );
 
@@ -277,7 +311,7 @@ SKIP: {
             $s->submit_form;
 
             # After logged in, the same cookie is reused
-            like( $driver->get_title, qr(Your library home) );
+            like( $driver->get_title, qr(Your summary) );
             $cookie = $driver->get_cookie_named('CGISESSID');
             is( $cookie->{value}, $first_sessionID, );
             $driver->get( $s->opac_base_url . q|opac-search.pl| );

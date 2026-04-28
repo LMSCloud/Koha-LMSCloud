@@ -49,6 +49,8 @@
                     <span>Item does not belong to your library</span>
                 [% CASE "book_reserved" %]
                     <span>Item has a waiting hold</span>
+                [% CASE "item_has_holds" %]
+                    <span>Item has item level holds</span>
                 [% CASE "linked_analytics" %]
                     <span>Item has linked analytics</span>
                 [% CASE "last_item_for_hold" %]

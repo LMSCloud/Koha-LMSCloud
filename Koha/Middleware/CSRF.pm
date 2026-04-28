@@ -13,7 +13,7 @@ package Koha::Middleware::CSRF;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -47,7 +47,8 @@ sub call {
     my $request_path   = $req->path    // q{};
 
     my %path_exceptions = (
-        '/ilsdi.pl' => 1,
+        '/ilsdi.pl'             => 1,
+        '/opac-divibib-auth.pl' => 1,
     );
 
     #NOTE: Ignore ErrorDocument requests for CSRF

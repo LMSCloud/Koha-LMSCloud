@@ -191,6 +191,9 @@
       Resetting mappings will override any changes made in the Search engine configuration UI.
  -->
  <!-- <elasticsearch_index_mappings>__KOHA_CONF_DIR__/searchengine/elasticsearch/mappings.yaml</elasticsearch_index_mappings> -->
+ <!-- How many indexing tasks the ES indexer will pick at a time
+      If the site is so busy the queue keeps growing, raise it -->
+ <es_indexer_batch_size>10</es_indexer_batch_size>
 
  <interlibrary_loans>
      <!-- Path to where Illbackends are located on the system
@@ -228,12 +231,16 @@
  <!-- Encryption key for crypted password or sensitive data -->
  <encryption_key>__ENCRYPTION_KEY__</encryption_key>
 
- <!-- flag for development purposes
-      dev_install is used to adjust some paths specific to dev installations
-      strict_sql_modes should not be used in a production environment
+ <!-- flags for development purposes
+      git_install is used to adjust some paths specific to git installations (fka dev_install)
+      debug_mode is used to differentiate production from test systems (see for example koha-plack) -->
+ <git_install>0</git_install>
+ <debug_mode>0</debug_mode>
+
+ <!-- strict_sql_modes should not be used in a production environment
       developers use it to catch bugs related to strict SQL modes -->
- <dev_install>0</dev_install>
  <strict_sql_modes>0</strict_sql_modes>
+
  <plugins_restricted>1</plugins_restricted>
  <plugins_restart>1</plugins_restart>
  <plugin_repos>
@@ -285,14 +292,15 @@
      <max_processes>1</max_processes>
  </background_jobs_worker>
 
+ <!-- Example lines. See Koha/CookieManager.pm for more details.
+     <do_not_remove_cookie>some_cookie</do_not_remove_cookie>
+     <remove_cookie>another_cookie</remove_cookie>
+ -->
  <do_not_remove_cookie>catalogue_editor_\d+</do_not_remove_cookie>
  <do_not_remove_cookie>KohaOpacLanguage</do_not_remove_cookie>
  <do_not_remove_cookie>issues-table-load-immediately-.+</do_not_remove_cookie>
  <do_not_remove_cookie>infonline</do_not_remove_cookie>
- <!-- Uncomment lines like hereunder to not clear cookies at logout:
-      The cookie name is case sensitive.
-      NOTE: You may use regex constructions like the example above.
-     <do_not_remove_cookie>KohaOpacLanguage</do_not_remove_cookie>
+ <!--
  -->
 
  <message_domain_limits>

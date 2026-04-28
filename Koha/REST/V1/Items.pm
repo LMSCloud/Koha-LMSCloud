@@ -13,7 +13,7 @@ package Koha::REST::V1::Items;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -140,6 +140,7 @@ sub delete {
                     { code => 'linked_analytics', description => 'The item has linked analytic records' },
                 not_same_branch =>
                     { code => 'not_same_branch', description => 'The item is blocked by independent branches' },
+                item_has_holds => { code => 'item_has_holds', description => 'The item has item level holds' },
             };
 
             if ( any { $error->message eq $_ } keys %{$errors} ) {
@@ -278,6 +279,42 @@ sub bundled_items {
                 join => 'item_bundles_item',
             }
         );
+        my $items = $c->objects->search($items_set);
+        return $c->render(
+            status  => 200,
+            openapi => $items
+        );
+    } catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 public_bundled_items
+
+Controller function that handles public bundled_items Koha::Item objects
+
+=cut
+
+sub public_bundled_items {
+    my $c = shift->openapi->valid_input or return;
+
+    my $item_id = $c->param('item_id');
+    my $item    = Koha::Items->find($item_id);
+
+    return $c->render_resource_not_found("Item")
+        unless $item;
+
+    return try {
+        my $patron    = $c->stash('koha.user');
+        my $items_set = Koha::Items->search(
+            {
+                'item_bundles_item.host' => $item_id,
+            },
+            {
+                join => 'item_bundles_item',
+            }
+        )->filter_by_visible_in_opac( { patron => $patron } );
+
         my $items = $c->objects->search($items_set);
         return $c->render(
             status  => 200,

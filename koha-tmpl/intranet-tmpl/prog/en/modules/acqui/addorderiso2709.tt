@@ -68,7 +68,7 @@
             <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
         [% END %]
         [% WRAPPER breadcrumb_item %]
-            <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% booksellername | html %]</a>
+            <a href="/cgi-bin/koha/acquisition/vendors/[% booksellerid | uri %]">[% booksellername | html %]</a>
         [% END %]
         [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basketno | uri %]">Basket [% basketno | html %]</a>
@@ -577,7 +577,7 @@
                                     <legend>Accounting details</legend>
                                     <ol>
                                         <li>
-                                            <!-- origquantityrec only here for javascript compatibility (additem.js needs it, useless here, useful when receiveing an order -->
+                                            <!-- origquantityrec only here for javascript compatibility (additem.js needs it, useless here, useful when receiving an order -->
                                             <input id="origquantityrec" readonly="readonly" type="hidden" name="origquantityrec" value="1" />
                                         </li>
                                         [% IF ( close ) %]
@@ -662,7 +662,7 @@
                                 <th>Status</th>
                                 <th>Staged</th>
                                 <th># Bibliographic records</th>
-                                <th class="NoSort">&nbsp;</th>
+                                <th class="no-sort">&nbsp;</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -705,9 +705,10 @@
                 <!-- /.page-section -->
             [% END # /IF ( batch_details ) %]
         </div>
-        [% # /div.col-sm-6 %]
+        [%# /div.col-sm-6 %]
     </div>
-    [% # /div.row %]
-
-    [% INCLUDE 'intranet-bottom.inc' %]
+    [%# /div.row %]
 </div>
+<!-- /.container-fluid -->
+
+[% INCLUDE 'intranet-bottom.inc' %]

@@ -198,14 +198,13 @@ FIELD_LIST:
     while ($f) {
         my $err = '';
         $f =~ s/^\s?//;
-
         if ( $f =~ /^('([^']*)')/ ) {
 
             # single quotes indicate a static text string.
             $datastring .= $2;
             $f = $';
             next FIELD_LIST;
-        } elsif ( $f =~ /^($match_kohatable)(\.(split)\('([^']+)'(,([0-9]+))?\)\[([0-9]+)\])/ ) {
+        } elsif ( $f =~ /^($match_kohatable)(\.(split)\('([^']+)'(,([0-9]+))?\)\[([0-9]+)\])?/ ) {
             my ( $field, $split, $splittext, $splitlimit, $splitindex ) = ( $1, $3, $4, $6, $7 );
             $f = $';
             if ( $item->{$field} ) {
@@ -249,7 +248,7 @@ FIELD_LIST:
 
             my $value = '';
             my $subf_data;
-            my ( $itemtag, $itemsubfieldcode ) = &GetMarcFromKohaField( "items.itemnumber", '' );
+            my ( $itemtag, $itemsubfieldcode ) = &GetMarcFromKohaField("items.itemnumber");
             my @marcfield = ();
             if ( !$ind ) {
                 @marcfield = $record->field($field);
@@ -352,10 +351,10 @@ sub _BAR {
         $self->{'lly'} +
         $self->{'top_text_margin'}
         ; # this places the bottom left of the barcode the top text margin distance above the bottom of the label ($lly)
-    my $barcode_width =
-        $self->{'barcode_x_scale'} * $self->{'width'};    # this scales the barcode width to 80% of the label width
-    my $barcode_y_scale_factor =
-        $self->{'barcode_y_scale'} * $self->{'height'};    # this scales the barcode height to 10% of the label height
+    my $barcode_width = $self->{'scale_width'} * $self->{'width'}
+        ;    # You can choose the width of barcode, default value is 0.8 : 80% of the label width
+    my $barcode_y_scale_factor = $self->{'scale_height'} * $self->{'height'}
+        ;    # You can choose the height of barcode, default value is 0.01 : 10% of the label height
     return 0, 0, 0, $barcode_llx, $barcode_lly, $barcode_width, $barcode_y_scale_factor;
 }
 
@@ -369,10 +368,10 @@ sub _BIBBAR {
         $self->{'lly'} +
         $self->{'top_text_margin'}
         ; # this places the bottom left of the barcode the top text margin distance above the bottom of the label ($lly)
-    my $barcode_width =
-        $self->{'barcode_x_scale'} * $self->{'width'};    # this scales the barcode width to 80% of the label width
-    my $barcode_y_scale_factor =
-        $self->{'barcode_y_scale'} * $self->{'height'};    # this scales the barcode height to 10% of the label height
+    my $barcode_width = $self->{'scale_width'} * $self->{'width'}
+        ;    # You can choose the width of barcode, default value is 0.8 : 80% of the label width
+    my $barcode_y_scale_factor = $self->{'scale_height'} * $self->{'height'}
+        ;    # You can choose the height of barcode, default value is 0.01 : 10% of the label height
     my $line_spacer = ( $self->{'font_size'} * $self->{'line_height'} )
         ; # number of pixels between text rows (This is actually leading: baseline to baseline minus font size. Recommended starting point is 20% of font size.).
     my $text_lly = ( $self->{'lly'} + ( $self->{'height'} - $self->{'top_text_margin'} ) );
@@ -389,10 +388,10 @@ sub _BARBIB {
         ( $self->{'lly'} + $self->{'height'} ) -
         $self->{'top_text_margin'}
         ; # this places the bottom left of the barcode the top text margin distance below the top of the label ($self->{'lly'})
-    my $barcode_width =
-        $self->{'barcode_x_scale'} * $self->{'width'};    # this scales the barcode width to 80% of the label width
-    my $barcode_y_scale_factor =
-        $self->{'barcode_y_scale'} * $self->{'height'};    # this scales the barcode height to 10% of the label height
+    my $barcode_width = $self->{'scale_width'} * $self->{'width'}
+        ;    # You can choose the width of barcode, default value is 0.8 : 80% of the label width
+    my $barcode_y_scale_factor = $self->{'scale_height'} * $self->{'height'}
+        ;    # You can choose the height of barcode, default value is 0.01 : 10% of the label height
     my $line_spacer = ( $self->{'font_size'} * $self->{'line_height'} )
         ; # number of pixels between text rows (This is actually leading: baseline to baseline minus font size. Recommended starting point is 20% of font size.).
     my $text_lly =
@@ -426,17 +425,18 @@ sub new {
         text_wrap_cols   => $params{'text_wrap_cols'},
         barcode          => $params{'barcode'},
         line_height      => $params{'line_height'}
+            || 1
         , # multiplier of the line height which controls sapcing between lines, the value is multiplied with the font height
-        barcode_y_scale    => 0.01,
-        barcode_x_scale    => 0.8,
+        scale_width        => $params{'scale_width'}  || 0.8,
+        scale_height       => $params{'scale_height'} || 0.01,
         print_barcode_text => 1,
     };
     if ( $params{'format_string'} ) {
         my $format_string = $params{'format_string'};
         if ( $format_string =~ s/(.*)\{barcodeXScale:([0-9\.]+),barcodeYScale:([0-9\.]+)\}(.*)/$1.$4/e ) {
-            $self->{format_string}   = $format_string;
-            $self->{barcode_x_scale} = $2 + 0.0;
-            $self->{barcode_y_scale} = $3 + 0.0;
+            $self->{format_string} = $format_string;
+            $self->{scale_width}   = $2 + 0.0;
+            $self->{scale_height}  = $3 + 0.0;
         }
         if ( $format_string =~ s/(.*)\{noBarcodeText\}(.*)/$1.$2/e ) {
             $self->{print_barcode_text} = 0;
@@ -588,7 +588,6 @@ LABEL_FIELDS:    # process data for requested fields on current label
                 push @label_lines, $field_data;
             }
         } else {
-
             if ($nowrap) {
                 push( @label_lines, $field_data );
             } else {
@@ -673,6 +672,9 @@ sub barcode {
     $hide_text = '' if ( $self->{'print_barcode_text'} == 0 );
 
     if ( $params{'barcode_type'} =~ m/CODE39/ ) {
+        $bar_length     = '17.5';
+        $tot_bar_length = ( $bar_length * $num_of_bars ) + ( $guard_length * 2 );
+        $x_scale_factor = ( $params{'width'} / $tot_bar_length );
         if ( $params{'barcode_type'} eq 'CODE39MOD' ) {
             my $c39 = CheckDigits('code_39');    # get modulo43 checksum
             $params{'barcode_data'} = $c39->complete( $params{'barcode_data'} );
@@ -785,7 +787,7 @@ This module provides methods for creating, and otherwise manipulating single lab
 =head2 new()
 
     Invoking the I<new> method constructs a new label object containing the supplied values. Depending on the final output format of the label data
-    the minimal required parameters change. (See the implimentation of this object type in labels/label-create-pdf.pl and labels/label-create-csv.pl
+    the minimal required parameters change. (See the implementation of this object type in labels/label-create-pdf.pl and labels/label-create-csv.pl
     and labels/label-create-xml.pl for examples.) The following parameters are optionally accepted as key => value pairs:
 
         C<batch_id>             Batch id with which this label is associated
@@ -918,7 +920,7 @@ R       = Right
 
 =head2 create_label()
 
-    Invoking the I<create_label> method generates the text for that label and returns it as an arrayref of an array contianing the formatted text as well as creating the barcode
+    Invoking the I<create_label> method generates the text for that label and returns it as an arrayref of an array containing the formatted text as well as creating the barcode
     and writing it directly to the pdf stream. The handling of the barcode is not quite good OO form due to the linear format of PDF::Reuse::Barcode. Be aware that the instantiating
     code is responsible to properly format the text for insertion into the pdf stream as well as the actual insertion.
 
@@ -948,6 +950,10 @@ R       = Right
                                                 font_size           => $text_font_size,
                                                 justify             => $text_justification,
                         );>
+
+=head2 draw_guide_box
+
+Missing POD for draw_guide_box.
 
 =head2 barcode()
 
@@ -1006,7 +1012,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Koha; if not, see <http://www.gnu.org/licenses>.
+along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 DISCLAIMER OF WARRANTY
 

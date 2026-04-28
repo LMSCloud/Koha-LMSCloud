@@ -18,7 +18,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -89,7 +89,7 @@ use C4::Search qw( FindDuplicate );
 use C4::ImportBatch qw( SetImportRecordStatus SetMatchedBiblionumber GetImportRecordMarc );
 
 use Koha::Acquisition::Booksellers;
-use Koha::Acquisition::Currencies qw( get_active );
+use Koha::Acquisition::Currencies;
 use Koha::Biblios;
 use Koha::BiblioFrameworks;
 use Koha::DateUtils qw( dt_from_string );
@@ -453,7 +453,7 @@ $template->param(
 $template->param(
     existing => $biblionumber,
 
-    # basket informations
+    # basket information
     basketname           => $basket->{'basketname'},
     basketnote           => $basket->{'note'},
     booksellerid         => $basket->{'booksellerid'},

@@ -115,6 +115,17 @@
                     }
                 }
                 new Maskito( instance.altInput, maskitoOptions );
+
+                /* If there is a node with data-date_to with the id of this node it means we are instantiating a 'from' for a date range */
+                const toInput = instance.input;
+                const fromInput = document.querySelector(`[data-date_to='${toInput.id}']`);
+                if (fromInput && fromInput._flatpickr) {
+                    const fromDate = fromInput._flatpickr.selectedDates[0];
+                    if (fromDate) {
+                        instance.set('minDate', fromDate);
+                    }
+                }
+
             },
             onChange: function( selectedDates, dateText, instance) {
                 if (selectedDates.length === 0) {
@@ -140,16 +151,6 @@
                 if ( set_to_today ) {
                     if ( thisInput.value === '' ) {
                         instance.setDate( new Date() );
-                    }
-                }
-            },
-            onChange: function( selectedDates, dateText, instance) {
-                var thisInput = instance.input;
-                let = accepts_time = $(thisInput).data('flatpickr-enable-time');
-                if ( accepts_time ) {
-                    let parsedDate = flatpickr.parseDate(dateText, instance.config.dateFormat);
-                    if ( isNaN(parsedDate.getHours()) ) {
-                        instance.setDate(selectedDates[0].setHours(23, 59, 0, 0));
                     }
                 }
             },

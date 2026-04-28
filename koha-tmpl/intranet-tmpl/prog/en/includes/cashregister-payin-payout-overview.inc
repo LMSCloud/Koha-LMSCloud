@@ -23,7 +23,7 @@
 </form>
 [% END %]
 
-[% showCashRegisterOverview | html %]
+[% showCashRegisterOverview | $raw %]
 <h4 style="margin-top:20px;">Inpayment overview ([% cash_register.cash_register_name | html %])</h4>
 <table id="inpaymentoverview" class="table-bordered">
     <thead>
@@ -247,7 +247,7 @@
 </table>
 
 
-<h3 style="margin-top:20px">Detailed cash register outpayments</h4>
+<h3 style="margin-top:20px">Detailed cash register outpayments</h3>
 
 <p>
     The following payment overview lists detailed outpayments (without reverse payments) of the selected branch during the selected period.

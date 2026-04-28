@@ -378,7 +378,7 @@
         </xsl:call-template>
         <xsl:call-template name="show-lang-node">
             <xsl:with-param name="langNode" select="marc:subfield[@code='d']"/>
-            <xsl:with-param name="langLabel">Spoken language: </xsl:with-param>
+            <xsl:with-param name="langLabel">Sung or spoken language: </xsl:with-param>
         </xsl:call-template>
         <xsl:call-template name="show-lang-node">
             <xsl:with-param name="langNode" select="marc:subfield[@code='h']"/>
@@ -692,6 +692,9 @@
                             </a>
                         </xsl:otherwise>
                     </xsl:choose>
+                    <xsl:if test="marc:subfield[@code='d']">
+                        <xsl:text> </xsl:text><xsl:value-of select="marc:subfield[@code='d']"/>
+                    </xsl:if>
                     <xsl:if test="marc:subfield[@code='g']">
                         <xsl:text> </xsl:text><xsl:value-of select="marc:subfield[@code='g']"/>
                     </xsl:if>

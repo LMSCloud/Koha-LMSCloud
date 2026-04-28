@@ -24,7 +24,7 @@
 [% INCLUDE 'bodytag.inc' bodyid='opac-course-details' %]
 [% INCLUDE 'masthead.inc' %]
 
-<div class="main">
+<main class="main">
     [% WRAPPER breadcrumbs %]
         [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/opac-course-reserves.pl">Course reserves</a>
@@ -76,7 +76,7 @@
                                         <th>Date due</th>
                                         <th>Notes</th>
                                         <th>Link</th>
-                                        <th></th>
+                                        <th class="dtr-control-col"></th>
                                     </tr>
                                 </thead>
 
@@ -133,29 +133,31 @@
         <!-- / .row -->
     </div>
     <!-- / .container-fluid -->
-</div>
+</main>
 <!-- / .main -->
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
     [% INCLUDE 'datatables.inc' %]
-    [% INCLUDE 'columns_settings.inc' %]
     <script>
         $(document).ready(function() {
             table_settings = [% TablesSettings.GetTableSettings( 'opac', 'course_items', 'course-items-table', 'json' ) | $raw %];
-            KohaTable("#course-items-table", {
-                "dom": '<"top"<"table_controls"f>>rt<"clear">',
-                "sorting": [[ 1, "asc" ]],
-                "language": {
-                    "search": "_INPUT_",
-                    "searchPlaceholder": _("Search course reserves")
+            $("#course-items-table").kohaTable(
+                {
+                    dom: '<"top"<"table_controls"f>>rt<"clear">',
+                    sorting: [[1, "asc"]],
+                    language: {
+                        search: "_INPUT_",
+                        searchPlaceholder: _("Search course reserves"),
+                    },
+                    responsive: {
+                        details: { type: "column", target: -1 },
+                    },
+                    columnDefs: [
+                        { className: "dtr-control", orderable: false, targets: -1 },
+                    ],
                 },
-                "responsive": {
-                    "details": { "type": 'column',"target": -1 }
-                },
-                "columnDefs": [
-                    { "className": 'dtr-control', "orderable": false, "targets": -1 },
-                ],
-            }, table_settings );
+                table_settings
+            );
         });
     </script>
 [% END %]

@@ -2,7 +2,8 @@
 
 use Modern::Perl;
 
-use Test::More;
+use Test::NoWarnings;
+use Test::More tests => 2;
 
 use Koha::Database;
 use Koha::Acquisition::Budget;
@@ -11,8 +12,6 @@ use Koha::Acquisition::Fund;
 use C4::Budgets qw(AddBudget CloneBudgetHierarchy GetBudgetHierarchy);
 
 use t::lib::TestBuilder;
-
-plan tests => 1;
 
 my $schema  = Koha::Database->schema;
 my $builder = t::lib::TestBuilder->new;

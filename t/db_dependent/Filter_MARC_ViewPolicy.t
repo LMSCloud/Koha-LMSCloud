@@ -19,11 +19,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use Test::NoWarnings;
+use Test::More tests => 4;
 
 use List::MoreUtils qw/any/;
 use MARC::Record;
@@ -52,7 +53,7 @@ sub run_hiding_tests {
     my @valid_hidden_values = ( -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8 );
 
     my $hidden = {
-        'opac'     => [ -8, 1,  2,  3,  4,  5, 6, 7, 8 ],
+        'opac'     => [ -8,  1,  2,  3,  4, 5, 6, 7, 8 ],
         'intranet' => [ -8, -7, -4, -3, -2, 2, 3, 5, 8 ]
     };
 

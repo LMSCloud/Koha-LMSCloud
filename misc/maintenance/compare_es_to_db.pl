@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -43,10 +43,15 @@ use Koha::SearchEngine::Elasticsearch;
 
 my $help;
 my $fix;
+my $biblios;
+my $authorities;
+my @indices = ();
 
 GetOptions(
-    'h|help' => \$help,
-    'f|fix'  => \$fix,
+    'h|help'        => \$help,
+    'f|fix'         => \$fix,
+    'b|biblios'     => \$biblios,
+    'a|authorities' => \$authorities
 );
 
 my $usage = <<'ENDUSAGE';
@@ -54,12 +59,17 @@ my $usage = <<'ENDUSAGE';
 This script finds differences between the records on the Koha database
 and the Elasticsearch index.
 
-The `--fix` option switch can be passed to try fixing them.
+You can pass `--biblios` or `--authorities` to limit the check to a single index.
+Both will be checked if nothing is specified.
+
+The `--fix` option switch can be passed to try fixing differences.
 
 This script has the following parameters :
 
-    -f|--fix     Try to fix errors
-    -h|--help    Print this message
+    -b|--biblios    Check the biblios index
+    -a|authorities  Check the authorities index
+    -f|--fix        Try to fix errors
+    -h|--help       Print this message
 
 ENDUSAGE
 
@@ -68,7 +78,12 @@ if ($help) {
     exit;
 }
 
-foreach my $index ( ( 'biblios', 'authorities' ) ) {
+push @indices, "biblios"     if $biblios;
+push @indices, "authorities" if $authorities;
+
+@indices = ( "biblios", "authorities" ) unless @indices;
+
+foreach my $index (@indices) {
     print "=================\n";
     print "Checking $index\n";
     my @db_records =
@@ -137,7 +152,7 @@ foreach my $index ( ( 'biblios', 'authorities' ) ) {
         print "Records that exist in ES but not in Koha\n";
         for my $problem (@es_problems) {
             print "  #$problem";
-            print "  Enter this command to view record: curl $es_base/data/$problem?pretty=true\n";
+            print "  Enter this command to view record: curl $es_base/_doc/$problem?pretty=true\n";
         }
     }
 

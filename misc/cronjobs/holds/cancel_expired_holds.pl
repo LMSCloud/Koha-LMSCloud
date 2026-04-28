@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -50,7 +50,7 @@ use C4::Log qw( cronlogaction );
 # plugins that use own databases access classes that are loaded using a new
 # database connection while performing a transaction / here in Koha::Hold->cancel
 use Koha::Plugins;
-my @enabled_plugins = Koha::Plugins::get_enabled_plugins();
+my @enabled_plugins = Koha::Plugins->get_enabled_plugins();
 
 =head1 OPTIONS
 

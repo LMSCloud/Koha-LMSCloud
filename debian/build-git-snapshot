@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # Written by Robin Sheat <robin@catalyst.net.nz> and
 #   Srdjan Jankovic <srdjan@catalyst.net.nz>
@@ -101,7 +101,7 @@ sub help_and_exit {
     }
     print <<EOH;
 This builds Koha deb packages, from a git snapshot. It's not suitable for
-making upstreamable verions, but handy for your own local packages.
+making upstreamable versions, but handy for your own local packages.
 
 Options:
     --buildresult, -r
@@ -163,7 +163,7 @@ sub build_package {
     sys_command_output_screen("pdebuild --debbuildopts -sa $pdebuildbasetgz $pdebuildopts");
 }
 
-everything_is_committed() or die "cannot build: uncommited changes";
+everything_is_committed() or die "cannot build: uncommitted changes";
 
 my $newversion =
     $auto_version

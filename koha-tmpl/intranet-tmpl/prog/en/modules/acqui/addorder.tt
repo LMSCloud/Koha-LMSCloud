@@ -41,6 +41,7 @@
             </div>
         </form>
     [% END %]
-
-    [% INCLUDE "intranet-bottom.inc" %]
 </div>
+<!-- /.container-fluid -->
+
+[% INCLUDE "intranet-bottom.inc" %]

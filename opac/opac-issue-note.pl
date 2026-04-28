@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -84,6 +84,8 @@ if ( $op eq 'cud-issuenote' && C4::Context->preference('AllowCheckoutNotes') && 
                 tables      => {
                     'biblio'    => $biblio->biblionumber,
                     'borrowers' => $borrowernumber,
+                    'issues'    => $issue->itemnumber,
+                    'items'     => $issue->itemnumber,
                 },
             );
 
@@ -97,7 +99,6 @@ if ( $op eq 'cud-issuenote' && C4::Context->preference('AllowCheckoutNotes') && 
                     borrowernumber         => $patron->borrowernumber,
                     to_address             => $to_address,
                     reply_address          => $reply_address,
-                    branchcode             => $branch,
                 }
             );
         }

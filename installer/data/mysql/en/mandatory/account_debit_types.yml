@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 description:
   - "Debit types used in Koha"
@@ -133,6 +133,48 @@ tables:
         - code: "VOID"
           description: "Credit has been voided"
           can_be_invoiced: "0"
+          can_be_sold: "0"
+          default_amount: ~
+          is_system: "1"
+
+        - code: "CLAIM_LEVEL1"
+          description: "Overdue fine (level 1)"
+          can_be_invoiced: "1"
+          can_be_sold: "0"
+          default_amount: ~
+          is_system: "1"
+
+        - code: "CLAIM_LEVEL2"
+          description: "Overdue fine (level 2)"
+          can_be_invoiced: "1"
+          can_be_sold: "0"
+          default_amount: ~
+          is_system: "1"
+
+        - code: "CLAIM_LEVEL3"
+          description: "Overdue fine (level 3)"
+          can_be_invoiced: "1"
+          can_be_sold: "0"
+          default_amount: ~
+          is_system: "1"
+
+        - code: "CLAIM_LEVEL4"
+          description: "Overdue fine (level 4)"
+          can_be_invoiced: "1"
+          can_be_sold: "0"
+          default_amount: ~
+          is_system: "1"
+
+        - code: "CLAIM_LEVEL5"
+          description: "Overdue fine (level 5)"
+          can_be_invoiced: "1"
+          can_be_sold: "0"
+          default_amount: ~
+          is_system: "1"
+
+        - code: "NOTIFICATION"
+          description: "Notification fee"
+          can_be_invoiced: "1"
           can_be_sold: "0"
           default_amount: ~
           is_system: "1"

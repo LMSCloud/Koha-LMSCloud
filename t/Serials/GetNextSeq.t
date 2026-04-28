@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Test::More tests => 46;
+use Test::NoWarnings;
+use Test::More tests => 47;
 use C4::Serials qw( GetNextSeq );
 
 # TEST CASE 1 - 1 variable, from 1 to 4
@@ -258,6 +259,6 @@ sub _next_seq {
         $seq,                        $subscription->{lastvalue1}, $subscription->{lastvalue2},
         $subscription->{lastvalue3}, $subscription->{innerloop1},
         $subscription->{innerloop2}, $subscription->{innerloop3}
-    ) = GetNextSeq( $subscription, $pattern, undef, undef, $count_forward );
+    ) = GetNextSeq( $subscription, $pattern, undef, undef, undef, $count_forward );
     return $seq;
 }

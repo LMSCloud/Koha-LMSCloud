@@ -15,7 +15,7 @@ package Koha::Club::Fields;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -44,6 +44,12 @@ Represents a collection of club fields.
 sub _type {
     return 'ClubField';
 }
+
+=head2 object_class
+
+Missing POD for object_class.
+
+=cut
 
 sub object_class {
     return 'Koha::Club::Field';

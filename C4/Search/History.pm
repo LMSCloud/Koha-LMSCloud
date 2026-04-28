@@ -286,6 +286,10 @@ It is possible to delete searches for current session or all previous sessions u
 If the type ("biblio" or "authority") is missing, all type will be deleted.
 To delete *all* searches for a given userid, just pass a userid.
 
+=head2 delete_from_cookie
+
+Missing POD for delete_from_cookie.
+
 =head2 get
 
     my $searches C4::Search::History::get({
@@ -337,4 +341,4 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Koha; if not, see <http://www.gnu.org/licenses>.
+along with Koha; if not, see <https://www.gnu.org/licenses>.

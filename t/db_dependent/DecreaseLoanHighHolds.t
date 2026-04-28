@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use DateTime;
@@ -30,7 +30,8 @@ use Koha::CirculationRules;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
-use Test::More tests => 26;
+use Test::NoWarnings;
+use Test::More tests => 27;
 
 my $dbh     = C4::Context->dbh;
 my $schema  = Koha::Database->new()->schema();

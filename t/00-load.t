@@ -15,10 +15,11 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
+use Test::NoWarnings qw( had_no_warnings );
 use Test::More;
 use File::Spec;
 use File::Find;
@@ -100,5 +101,5 @@ sub is_testable {
     return $return_value;
 }
 
+had_no_warnings;
 done_testing();
-

@@ -17,25 +17,13 @@ package C4::Koha;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-
-use C4::Context;
-use Koha::Caches;
-use Koha::AuthorisedValues;
-use Koha::Libraries;
-use Koha::MarcSubfieldStructures;
-use Business::ISBN;
-use Business::ISSN;
-use autouse 'Data::cselectall_arrayref' => qw(Dumper);
-
-our ( @ISA, @EXPORT_OK );
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         GetItemTypesCategorized
         getallthemes
         getFacets
@@ -61,6 +49,14 @@ BEGIN {
 
     );
 }
+
+use C4::Context;
+use Koha::Caches;
+use Koha::AuthorisedValues;
+use Koha::Libraries;
+use Koha::MarcSubfieldStructures;
+use Business::ISBN;
+use Business::ISSN;
 
 =head1 NAME
 
@@ -136,6 +132,12 @@ sub getitemtypeimagedir {
     }
 }
 
+=head2 getitemtypeimagesrc
+
+Missing POD for getitemtypeimagesrc.
+
+=cut
+
 sub getitemtypeimagesrc {
     my $src = shift || 'opac';
     if ( $src eq 'intranet' ) {
@@ -144,6 +146,12 @@ sub getitemtypeimagesrc {
         return '/opac-tmpl' . '/' . C4::Context->preference('opacthemes') . '/itemtypeimg';
     }
 }
+
+=head2 getitemtypeimagelocation
+
+Missing POD for getitemtypeimagelocation.
+
+=cut
 
 sub getitemtypeimagelocation {
     my ( $src, $image ) = @_;
@@ -322,6 +330,12 @@ sub getallthemes {
     close $dir_h;
     return @themes;
 }
+
+=head2 getFacets
+
+Missing POD for getFacets.
+
+=cut
 
 sub getFacets {
     my $facets;
@@ -600,6 +614,12 @@ sub display_marc_indicators {
     return $indicators;
 }
 
+=head2 GetNormalizedUPC
+
+Missing POD for GetNormalizedUPC.
+
+=cut
+
 sub GetNormalizedUPC {
     my ( $marcrecord, $marcflavour ) = @_;
 
@@ -629,6 +649,13 @@ sub GetNormalizedUPC {
 
 # Normalizes and returns the first valid ISBN found in the record
 # ISBN13 are converted into ISBN10. This is required to get some book cover images.
+
+=head2 GetNormalizedISBN
+
+Missing POD for GetNormalizedISBN.
+
+=cut
+
 sub GetNormalizedISBN {
     my ( $isbn, $marcrecord, $marcflavour, $asIsbn13 ) = @_;
     if ($isbn) {
@@ -701,6 +728,12 @@ sub GetNormalizedEAN {
         }
     }
 }
+
+=head2 GetNormalizedOCLCNumber
+
+Missing POD for GetNormalizedOCLCNumber.
+
+=cut
 
 sub GetNormalizedOCLCNumber {
     my ( $marcrecord, $marcflavour ) = @_;
@@ -871,6 +904,12 @@ sub GetVariationsOfISBNs {
 
   If the string cannot be validated as an issn,
   it returns nothing.
+
+=cut
+
+=head2 NormalizeISSN
+
+Missing POD for NormalizeISSN.
 
 =cut
 

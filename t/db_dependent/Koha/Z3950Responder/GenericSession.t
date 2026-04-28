@@ -3,9 +3,10 @@
 use Modern::Perl;
 use utf8;
 
-use Test::More tests => 3;
+use Test::NoWarnings;
+use Test::More tests => 4;
 use Test::WWW::Mechanize;
-use t::lib::Mocks qw(mock_preference);
+use t::lib::Mocks;
 
 use File::Basename;
 use File::Copy;

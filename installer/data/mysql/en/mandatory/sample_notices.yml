@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 # *************************************************************
 #                       SAMPLE NOTICES
 # *************************************************************
@@ -697,7 +697,8 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "<<borrowers.firstname>> <<borrowers.surname>> has added a note to the item <<biblio.title>> - <<biblio.author>> (<<biblio.biblionumber>>)."
+            - "[% borrower.firstname %] [% borrower.surname %] has added a note to the item [% biblio.title %] by [% biblio.author %] ([% item.barcode %]):"
+            - "[% checkout.note %]"
 
         - module: circulation
           code: DUE
@@ -738,12 +739,12 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
             - ""
             - "The following item(s) are now due:"
-            - ""
-            - "<<items.content>>"
-            - ""
+            - "[% FOREACH checkout IN checkouts %]"
+            - "[% checkout.title %], [% checkout.author %] ([% checkout.barcode %])"
+            - "[% END %]"
             - "Thank you."
 
         - module: circulation
@@ -755,9 +756,9 @@ tables:
           message_transport_type: sms
           lang: default
           content:
-            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
             - ""
-            - "You have <<count>> item(s) that are now due"
+            - "You have [% checkouts.size %] item(s) that are now due"
             - ""
             - "Thank you."
 
@@ -879,26 +880,31 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - "[%- USE Price -%]"
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
             - ""
-            - "According to our current records, you have items that are overdue.Your library does not charge late fines, but please return or renew them at the library below as soon as possible."
+            - "According to our current records, you have items that are overdue."
+            - "Please return or renew your overdue items at the library as soon as possible."
             - ""
-            - "<<branches.branchname>>"
-            - "<<branches.branchaddress1>>"
-            - "<<branches.branchaddress2>> <<branches.branchaddress3>>"
-            - "Phone: <<branches.branchphone>>"
-            - "Fax: <<branches.branchfax>>"
-            - "Email: <<branches.branchemail>>"
+            - "[% branch.branchname %]"
+            - "[% branch.branchaddress1 %]"
+            - "[% branch.branchaddress2 %] [% branch.branchaddress3 %]"
+            - "Phone: [% branch.branchphone %]"
+            - "Fax: [% branch.branchfax %]"
+            - "Email: [% branch.branchemail %]"
             - ""
-            - "If you have registered a password with the library, and you have a renewal available, you may renew online. If an item becomes more than 30 days overdue, you will be unable to use your library card until the item is returned."
+            - "If you have registered a password with the library, and you have a renewal available, you may renew online."
             - ""
-            - "The following item(s) is/are currently overdue:"
+            - "[%- IF overdues.count > 1 %]These items are overdue:[%- ELSE -%]This item is overdue:[%- END -%]"
             - ""
-            - "<item>\"<<biblio.title>>\" by <<biblio.author>>, <<items.itemcallnumber>>, Barcode: <<items.barcode>> Fine: <<items.fine>></item>"
+            - "[% FOREACH overdue IN overdues %]"
+            - "[%- SET item = overdue.item -%]"
+            - "\"[% item.biblio.title %]\" by [% item.biblio.author %], [% item.itemcallnumber %], Barcode: [% item.barcode %], Fine: [% overdue.overdue_fines.total_outstanding | $Price %]"
+            - "[% END %]"
             - ""
-            - "Thank-you for your prompt attention to this matter."
+            - "Thank you for your prompt attention to this matter."
             - ""
-            - "<<branches.branchname>> Staff"
+            - "[% branch.branchname %] staff"
             - ""
 
         - module: circulation
@@ -910,10 +916,20 @@ tables:
           message_transport_type: print
           lang: default
           content:
-            - "The following item(s) is/are currently overdue:"
+            - "[%- USE Price -%]"
+            - "The following [% IF overdues.count() > 1 %]items are[% ELSE %]item is[% END %] currently overdue:"
             - ""
-            - "<item>\"<<biblio.title>>\" by <<biblio.author>>, <<items.itemcallnumber>>, Barcode: <<items.barcode>> Fine: <<items.fine>></item>"
-            - ""
+            - "[% FOREACH odue IN overdues %]"
+            - "[% odue.item.biblio.title %]"
+            - "by [% odue.item.biblio.author %]"
+            - "[%- IF odue.item.itemcallnumber %]"
+            - "[% odue.item.itemcallnumber %]"
+            - "[%- END %]"
+            - "Barcode: [% odue.item.barcode %]"
+            - "[%- IF odue.overdue_fines.total_outstanding > 0 %]"
+            - "Fine: [% odue.overdue_fines.total_outstanding | $Price %]"
+            - "[%- END %]"
+            - "[% END %]"
 
         - module: circulation
           code: PREDUE
@@ -954,12 +970,12 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
             - ""
             - "The following item(s) will be due soon:"
-            - ""
-            - "<<items.content>>"
-            - ""
+            - "[% FOREACH checkout IN checkouts %]"
+            - "[% checkout.title %], [% checkout.author %] ([% checkout.barcode %])"
+            - "[% END %]"
             - "Thank you."
 
         - module: circulation
@@ -971,9 +987,9 @@ tables:
           message_transport_type: sms
           lang: default
           content:
-            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
             - ""
-            - "You have <<count>> item(s) that will be due soon."
+            - "You have [% checkouts.size %] item(s) that will be due soon."
             - ""
             - "Thank you."
 
@@ -1025,16 +1041,16 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "<h5>Date: <<today>></h5>"
+            - "<h5>Date: [% today | $KohaDates %]</h5>"
             - "<br>"
-            - "<h3>Transfer to <<branches.branchname>></h3>"
+            - "<h3>Transfer to [% branch.branchname %]</h3>"
             - "<br>"
             - "<h3>ITEM</h3>"
-            - "<h4><<biblio.title>></h4>"
-            - "<h5><<biblio.author>></h5>"
+            - "<h4>[% biblio.title %]</h4>"
+            - "<h5>[% biblio.author %]</h5>"
             - "<ul>"
-            - "   <li><<items.barcode>></li>"
-            - "   <li><<items.itemcallnumber>></li>"
+            - "   <li>[% item.barcode %]</li>"
+            - "   [% IF item.itemcallnumber %]<li>[% item.itemcallnumber %]</li>[% END %]"
             - "</ul>"
 
         - module: claimacquisition
@@ -1461,17 +1477,15 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "Dear <<borrowers.title>> <<borrowers.firstname>> <<borrowers.surname>>,"
+            - "Dear [% borrower.firstname %] [% borrower.surname %],"
             - ""
             - "Your library card will expire soon, on:"
             - ""
-            - "<<borrowers.dateexpiry>>"
+            - "[% borrower.dateexpiry %]"
             - ""
             - "Thank you,"
             - ""
-            - "Librarian"
-            - ""
-            - "<<branches.branchname>>"
+            - "[% branch.branchname %]"
 
         - module: members
           code: MEMBERSHIP_RENEWED
@@ -1580,6 +1594,63 @@ tables:
             - "Your library card number is [% borrower.cardnumber %]<br>"
             - "<br>"
             - "If you have any problems or questions regarding your account, please contact the library."
+
+        - module: members
+          code: WELCOME
+          branchcode: ""
+          name: "Welcome notice "
+          is_html: 1
+          title: "[% USE Koha %][% IF Koha.Preference('LibraryName') %]Welcome to [% Koha.Preference('LibraryName') %][% ELSE %]Welcome to the library[% END %]"
+          message_transport_type: print
+          lang: default
+          content:
+            - "[% USE Koha %]"
+            - "<div class=\"container mt-5\">"
+            - "  <div class=\"row\">"
+            - "    <div class=\"col-6\">"
+            - "      <p>"
+            - "        <strong>[% borrower.firstname %] [% borrower.surname %]</strong><br>"
+            - "        [% borrower.address %]<br>"
+            - "        [% borrower.city %] [% borrower.zipcode %]<br>"
+            - "        [% borrower.country %]<br>"
+            - "      </p>"
+            - "    </div>"
+            - "    <div class=\"col-6 text-end\">"
+            - "      <p>"
+            - "        <strong>[% branch.branchname %]</strong><br>"
+            - "        [% branch.branchaddress1 %]<br>"
+            - "        [% branch.branchaddress2 %]<br>"
+            - "      </p>"
+            - "    </div>"
+            - "  </div>"
+            - "  <div class=\"row mb-4\">"
+            - "    <div class=\"col-12\">"
+            - "      <p class=\"text-end\">"
+            - "      <strong>[% today %]</strong>"
+            - "      </p>"
+            - "  </div>"
+            - "  <div class=\"row mb-4\">"
+            - "    <div class=\"col-12\">"
+            - "      <p>Hello [% borrower.title %] [% borrower.firstname %] [% borrower.surname %]</p>"
+            - "    </div>"
+            - "  </div>"
+            - "  <div class=\"row mb-4\">"
+            - "    <div class=\"col-12\">"
+            - "      <p>"
+            - "        Thank you for joining [% IF Koha.Preference('LibraryName') %][% Koha.Preference('LibraryName') %][% ELSE %]the library[% END %]<br>"
+            - "      </p>"
+            - "      <p>"
+            - "        You can search for all our materials in our <a href='[% Koha.Preference('OPACBaseURL') %]'>catalog</a>.<br>"
+            - "      </p>"
+            - "      <p>"
+            - "        Your library card number is [% borrower.cardnumber %]<br>"
+            - "      </p>"
+            - "      <p>"
+            - "        If you have any problems or questions regarding your account, please contact the library.<br>"
+            - "      </p>"
+            - "    </div>"
+            - "  </div>"
+            - "</div>"
 
         - module: members
           code: 2FA_OTP_TOKEN
@@ -1793,7 +1864,7 @@ tables:
             - "  </tr>"
             - "  <tr>"
             - "    <td>Tendered: </td>"
-            - "    <td>[% collected | $Price %]</td>"
+            - "    <td>[% tendered | $Price %]</td>"
             - "  </tr>"
             - "  <tr>"
             - "    <td>Change: </td>"
@@ -1869,7 +1940,7 @@ tables:
             - "    </tr>"
             - "    <tr>"
             - "      <td>Tendered: </td>"
-            - "      <td>[% collected | $Price %]</td>"
+            - "      <td>[% tendered | $Price %]</td>"
             - "    </tr>"
             - "    <tr>"
             - "      <td>Change given:</td>"
@@ -2022,7 +2093,7 @@ tables:
           message_transport_type: email
           lang: default
           content:
-            - "A hold has been placed on the following item : <<biblio.title>> (<<biblio.biblionumber>>) by the user <<borrowers.firstname>> <<borrowers.surname>> (<<borrowers.cardnumber>>)."
+            - "A hold has been placed on the following item: [% biblio.title %] ([% biblio.biblionumber %]) by the user [% INCLUDE 'patron-title.inc' patron => borrower, no_title => 1, no_html => 1 %]."
 
         - module: reserves
           code: HOLD_CHANGED
@@ -2338,6 +2409,101 @@ tables:
             - "[% item.biblio.title %] [% checkout.date_due | $KohaDates %]"
 
         - module: circulation
+          code: CLAIM_LEVEL1
+          branchcode: ""
+          name: "Overdue claim notice (level 1)"
+          is_html: 0
+          title: "First overdue claim notice"
+          message_transport_type: email
+          lang: default
+          content:
+            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - ""
+            - "The following items are overdue (claim level 1):"
+            - ""
+            - "<item>\"<<biblio.title>>\" <<items.barcode>> due <<issues.date_due>></item>"
+            - ""
+            - "Please return or renew them as soon as possible."
+            - ""
+            - "<<branches.branchname>>"
+
+        - module: circulation
+          code: CLAIM_LEVEL2
+          branchcode: ""
+          name: "Overdue claim notice (level 2)"
+          is_html: 0
+          title: "Second overdue claim notice"
+          message_transport_type: email
+          lang: default
+          content:
+            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - ""
+            - "Despite a previous reminder, the following items remain overdue (claim level 2):"
+            - ""
+            - "<item>\"<<biblio.title>>\" <<items.barcode>> due <<issues.date_due>></item>"
+            - ""
+            - "A claim fee applies. Please return or renew them without further delay."
+            - ""
+            - "<<branches.branchname>>"
+
+        - module: circulation
+          code: CLAIM_LEVEL3
+          branchcode: ""
+          name: "Overdue claim notice (level 3)"
+          is_html: 0
+          title: "Third overdue claim notice"
+          message_transport_type: email
+          lang: default
+          content:
+            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - ""
+            - "The following items are still overdue (claim level 3):"
+            - ""
+            - "<item>\"<<biblio.title>>\" <<items.barcode>> due <<issues.date_due>></item>"
+            - ""
+            - "An additional claim fee has been charged to your account."
+            - ""
+            - "<<branches.branchname>>"
+
+        - module: circulation
+          code: CLAIM_LEVEL4
+          branchcode: ""
+          name: "Overdue claim notice (level 4)"
+          is_html: 0
+          title: "Fourth overdue claim notice"
+          message_transport_type: email
+          lang: default
+          content:
+            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - ""
+            - "The following items remain overdue (claim level 4):"
+            - ""
+            - "<item>\"<<biblio.title>>\" <<items.barcode>> due <<issues.date_due>></item>"
+            - ""
+            - "This is a formal reminder. Further steps may follow if the items are not returned."
+            - ""
+            - "<<branches.branchname>>"
+
+        - module: circulation
+          code: CLAIM_LEVEL5
+          branchcode: ""
+          name: "Overdue claim notice (level 5)"
+          is_html: 0
+          title: "Final overdue claim notice"
+          message_transport_type: email
+          lang: default
+          content:
+            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - ""
+            - "Final notice: the following items are still not returned (claim level 5):"
+            - ""
+            - "<item>\"<<biblio.title>>\" <<items.barcode>> due <<issues.date_due>></item>"
+            - ""
+            - "The outstanding debt may be forwarded to a collection agency."
+            - ""
+            - "<<branches.branchname>>"
+
+        - module: circulation
           code: AUTO_RENEWALS_DGST
           branchcode: ""
           name: "Notification on auto renewals"
@@ -2385,81 +2551,82 @@ tables:
           code: RETURN_RECALLED_ITEM
           branchcode: ""
           name: "Notification to return a recalled item"
-          is_html: 0
+          is_html: 1
           title: "Notification to return a recalled item"
           message_transport_type: email
           lang: default
           content:
-            - "Date: <<today>>"
-            - ""
-            - "<<borrowers.firstname>> <<borrowers.surname>>,"
-            - ""
-            - "A recall has been placed on the following item: <<biblio.title>> / <<biblio.author>> (<<items.barcode>>). The due date has been updated, and is now <<issues.date_due>>. Please return the item before the due date."
-            - ""
+            - "Date: [% today | $KohaDates %]<br>"
+            - "<br>"
+            - "[%~ INCLUDE 'patron-title.inc' patron => borrower, no_title => 1, no_cardnumber => 1 ~%],<br>"
+            - "<br>"
+            - "A recall has been placed on the following item:[%~ INCLUDE 'biblio-title.inc' biblio=biblio link = 0 %][% IF biblio.author %]/ [% biblio.author %][% END %] ([% item.barcode %]). The due date has been updated, and is now [% checkout.date_due | $KohaDates %]. Please return the item before the due date.<br>"
+            - "<br>"
             - "Thank you!"
 
         - module: circulation
           code: PICKUP_RECALLED_ITEM
           branchcode: ""
           name: "Recalled item awaiting pickup"
-          is_html: 0
+          is_html: 1
           title: "Recalled item awaiting pickup"
           message_transport_type: email
           lang: default
           content:
-            - "Date: <<today>>"
-            - ""
-            - "<<borrowers.firstname>> <<borrowers.surname>>,"
-            - ""
-            - "A recall that you requested on the following item: <<biblio.title>> / <<biblio.author>> (<<items.barcode>>) is now ready for you to pick up at <<recalls.pickup_library_id>>. Please pick up your item by <<recalls.expiration_date>>."
-            - ""
+            - "[%- USE Branches -%]"
+            - "Date: [% today | $KohaDates %]<br>"
+            - "<br>"
+            - "[%~ INCLUDE 'patron-title.inc' patron => borrower, no_title => 1, no_cardnumber => 1, no_html = 1 ~%],<br>"
+            - "<br>"
+            - "A recall that you requested on the following item: [% INCLUDE 'biblio-title.inc' biblio=biblio link = 0 %][% IF biblio.author %] / [% biblio.author %][% END %] ([% item.barcode %]) is now ready for you to pick up at [% Branches.GetName( recall.pickup_library_id) %]. Please pick up your item by [% recall.expiration_date | $KohaDates %].<br>"
+            - "<br>"
             - "Thank you!"
 
         - module: circulation
           code: RETURN_RECALLED_ITEM
           branchcode: ""
           name: "Notification to return a recalled item"
-          is_html: 0
+          is_html: 1
           title: "Return recalled item"
           message_transport_type: sms
           lang: default
           content:
-            - "Your item has been recalled: <<biblio.title>> (<<items.barcode>>). Please return it by <<issues.date_due>."
+            - "Your item has been recalled: [% INCLUDE 'biblio-title.inc' biblio=biblio link=0 %] ([% item.barcode %]). Please return by [% checkout.date_due | $KohaDates %]."
 
         - module: circulation
           code: PICKUP_RECALLED_ITEM
           branchcode: ""
           name: "Recalled item awaiting pickup"
-          is_html: 0
+          is_html: 1
           title: "Recalled item awaiting pickup"
           message_transport_type: sms
           lang: default
           content:
-            - "A recalled item: <<biblio.title>> (<<items.barcode>>) is ready for you to pick up at <<recalls.branchcode>>. Please collect by <<recalls.expirationdate>>."
+            - "A recalled item: [% INCLUDE 'biblio-title.inc' biblio=biblio link = 0 %]([% item.barcode %]) is ready for you to pick up at [% recall.pickup_library_id %]. Please collect by [% recall.expiration_date | $KohaDates %]."
 
         - module: circulation
           code: RECALL_REQUESTER_DET
           branchcode: ""
           name: "Details of patron who recalled item"
-          is_html: 0
+          is_html: 1
           title: "Details of patron who recalled item"
           message_transport_type: print
           lang: default
           content:
-            - "Date: <<today>>"
-            - ""
-            - "Recall for pickup at <<branches.branchname>>"
-            - "<<borrowers.surname>>, <<borrowers.firstname>> (<<borrowers.cardnumber>>)"
-            - "<<borrowers.phone>>"
-            - "<<borrowers.streetnumber>> <<borrowers.address>>, <<borrowers.address2>>, <<borrowers.city>> <<borrowers.zipcode>>"
-            - "<<borrowers.email>>"
-            - ""
-            - "ITEM RECALLED"
-            - "<<biblio.title>> by <<biblio.author>>"
-            - "Barcode: <<items.barcode>>"
-            - "Callnumber: <<items.itemcallnumber>>"
-            - "Waiting since: <<recalls.waiting_date>>"
-            - "Notes: <<recalls.notes>>"
+            - "Date: [% today | $KohaDates %]<br>"
+            - "<br>"
+            - "Recall for pickup at [% branch.branchname %]<br>"
+            - "[% INCLUDE 'patron-title.inc' patron => borrower, no_title => 1, no_html = 1 %]<br>"
+            - "[% IF borrower.phone %][% borrower.phone %]<br>[% END %]"
+            - "[% borrower.streetnumber %][% IF borrower.address %] [% borrower.address %],[% END %][% IF borrower.address2 %] [% borrower.address2 %],[% END %] [% borrower.city %] [% borrower.state %] [% borrower.zipcode %]<br>"
+            - "[% IF borrower.email %][% borrower.email %]<br>[% END %]"
+            - "<br>"
+            - "ITEM RECALLED<br>"
+            - "[% INCLUDE 'biblio-title.inc' biblio=biblio link = 0 %][% IF biblio.author %] by [% biblio.author %][% END %]<br>"
+            - "Barcode: [% item.barcode %]<br>"
+            - "[% IF item.itemcallnumber %] Callnumber: [% item.itemcallnumber %]<br>[% END %]"
+            - "Waiting since: [% recall.waiting_date | $KohaDates %]<br>"
+            - "[% IF recall.notes %]Notes: [% recall.notes %]<br>[% END %]"
 
         - module: members
           code: 2FA_DISABLE

@@ -5,7 +5,7 @@
             url: "/cgi-bin/koha/opac-divibib-access.pl",
             type: "POST",
             cache: false,
-            data: { 'divibibID' : divibibID, 'action' : action },
+            data: { 'divibibID' : divibibID, 'action' : action, 'csrf_token' : $('meta[name="csrf-token"]').attr('content') },
             dataType: "json",
             success: function(data) {
                 console.log(data);
@@ -36,24 +36,32 @@
     function showDivibibInavailabilityMessage(title,message) {
         var actionCloseText = _("Close");
         var popupTemplate =
-        '<div class="modal" id="divibibInavailability_dialog" tabindex="-1" role="dialog" aria-labelledby="divibibInavailability_label" aria-hidden="true">' +
-        '  <div class="modal-dialog">' +
+        '<div class="modal" id="divibibInavailability_dialog" tabindex="-1" role="dialog" aria-labelledby="divibibInavailability_title" aria-hidden="true">' +
+        '  <div class="modal-dialog" role="document">' +
         '    <div class="modal-content">' +
         '      <div class="modal-header">' +
-        '        <button type="button" class="divibibInavailability_close btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
         '        <h3 id="divibibInavailability_title">' + title + '</h3>' +
+        '        <button type="button" class="divibibInavailability_close btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
         '      </div>' +
         '      <div class="modal-body">' +
-        '      <p><div id="divibibInavailability_message">' + message + '</div><p>' +
+        '        <div id="divibibInavailability_message">' + message + '</div>' +
+        '      </div>' +
         '      <div class="modal-footer">' +
-        '        <button type="button" class="btn btn-small divibibInavailability_close" data-bs-dismiss="modal">' + actionCloseText + '</button>' +
+        '        <button type="button" class="btn btn-small btn-default divibibInavailability_close" data-bs-dismiss="modal">' + actionCloseText + '</button>' +
         '      </div>' +
         '    </div>' +
         '  </div>' +
         '</div>';
 
-        $(popupTemplate).modal();
-        $(popupTemplate).show();
+        // Drop any leftover dialog from a previous click, then append the fresh
+        // one to the DOM so Bootstrap 5 can control it (a detached node cannot
+        // be shown, and BS5 dropped the argument-less jQuery .modal() shortcut).
+        $('#divibibInavailability_dialog').remove();
+        var $dialog = $(popupTemplate).appendTo('body');
+        $dialog.on('hidden.bs.modal', function () {
+            $dialog.remove();
+        });
+        new bootstrap.Modal($dialog[0]).show();
     }
 
     function checkDivibibAvalability(idList) {
@@ -82,7 +90,7 @@
             url: "/cgi-bin/koha/opac-divibib-availability.pl",
             type: "POST",
             cache: false,
-            data: { divibibID : checkIDs },
+            data: { divibibID : checkIDs, csrf_token : $('meta[name="csrf-token"]').attr('content') },
             dataType: "json",
             success: function(data) {
                 for (var i=0; i < data.titles.length; i++) {

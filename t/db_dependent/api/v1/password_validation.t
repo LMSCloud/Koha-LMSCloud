@@ -14,11 +14,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 6;
+use Test::NoWarnings;
+use Test::More tests => 7;
 use Test::Mojo;
 
 use t::lib::TestBuilder;
@@ -39,9 +40,22 @@ $schema->storage->txn_begin;
 my $librarian = $builder->build_object(
     {
         class => 'Koha::Patrons',
-        value => { flags => 2**4 }    # borrowers flag = 4
+        value => { flags => 0 }     # No top-level permissions
     }
 );
+
+# Ensure our librarian can see users from all branches (once list_borrowers is added)
+$builder->build(
+    {
+        source => 'UserPermission',
+        value  => {
+            borrowernumber => $librarian->borrowernumber,
+            module_bit     => 4,
+            code           => 'api_validate_password',
+        },
+    }
+);
+
 my $password = 'thePassword123';
 $librarian->set_password( { password => $password, skip_validation => 1 } );
 my $userid = $librarian->userid;
@@ -59,12 +73,14 @@ subtest 'password validation - account lock out' => sub {
         password   => "bad",
     };
 
-    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )->status_is(400)
+    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )
+        ->status_is(400)
         ->json_is( { error => q{Validation failed} } );
 
     $json->{password} = $password;
 
-    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )->status_is(400)
+    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )
+        ->status_is(400)
         ->json_is( { error => q{Validation failed} } );
 
     $schema->storage->txn_rollback;
@@ -91,7 +107,8 @@ subtest 'password validation - unauthorized user' => sub {
         password   => "test",
     };
 
-    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )->status_is(403)
+    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )
+        ->status_is(403)
         ->json_is( '/error' => 'Authorization failure. Missing required permission(s).' );
 
     $schema->storage->txn_rollback;
@@ -108,14 +125,15 @@ subtest 'password validation - unauthenticated user' => sub {
     };
 
     $t->post_ok( "/api/v1/auth/password/validation" => json => $json )
-        ->json_is( '/error' => 'Authentication failure.' )->status_is(401);
+        ->json_is( '/error' => 'Authentication failure.' )
+        ->status_is(401);
 
     $schema->storage->txn_rollback;
 };
 
 subtest 'Password validation - authorized requests tests' => sub {
 
-    plan tests => 24;
+    plan tests => 25;
 
     $schema->storage->txn_begin;
 
@@ -171,7 +189,8 @@ subtest 'Password validation - authorized requests tests' => sub {
     };
 
     $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )
-        ->status_is( 400, 'Validating using and invalid userid fails' )->json_is( { error => 'Validation failed' } );
+        ->status_is( 400, 'Validating using and invalid userid fails' )
+        ->json_is( { error => 'Validation failed' } );
 
     $json = {
         password => $password,
@@ -202,6 +221,55 @@ subtest 'Password validation - authorized requests tests' => sub {
         ->status_is( 400, 'Passing both parameters forbidden' )
         ->json_is( { error => 'Bad request. Only one identifier attribute can be passed.' } );
 
+    subtest 'TrackLastPatronActivityTriggers tests' => sub {
+
+        plan tests => 9;
+
+        my $patron          = $builder->build_object( { class => 'Koha::Patrons', value => { lastseen => undef } } );
+        my $patron_password = 'thePassword123';
+        $patron->set_password( { password => $patron_password, skip_validation => 1 } );
+
+        # to avoid interference
+        t::lib::Mocks::mock_preference( 'FailedLoginAttempts', 99 );
+
+        # api_verify disabled
+        t::lib::Mocks::mock_preference( 'TrackLastPatronActivityTriggers', 'login' );
+
+        $patron->lastseen(undef)->store();
+        $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json =>
+                { identifier => $patron->userid, password => $patron_password } )->status_is( 201, 'Validation works' );
+
+        # read patron from the DB
+        $patron->discard_changes();
+        is(
+            $patron->lastseen, undef,
+            "'lastseen' flag untouched if no 'api_verify' in TrackLastPatronActivityTriggers"
+        );
+
+        # good scenario
+        t::lib::Mocks::mock_preference( 'TrackLastPatronActivityTriggers', 'api_verify' );
+
+        $patron->lastseen(undef)->store();
+        $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json =>
+                { identifier => $patron->userid, password => 'wrong password :-D' } )
+            ->status_is( 400, 'Validation failed due to bad password' );
+
+        # read patron from the DB
+        $patron->discard_changes();
+        is( $patron->lastseen, undef, "'lastseen' flag not updated as validation failed" );
+
+        $patron->lastseen(undef)->store();
+        $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json =>
+                { identifier => $patron->userid, password => $patron_password } )->status_is( 201, 'Validation works' );
+
+        # read patron from the DB
+        $patron->discard_changes();
+        ok(
+            $patron->lastseen,
+            "'lastseen' flag updated TrackLastPatronActivityTriggers includes 'api_verify'"
+        );
+    };
+
     $schema->storage->txn_rollback;
 };
 
@@ -230,7 +298,8 @@ subtest 'password validation - expired password' => sub {
         password   => $patron_password,
     };
 
-    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )->status_is(400)
+    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )
+        ->status_is(400)
         ->json_is( '/error' => 'Password expired' );
 
     $schema->storage->txn_rollback;
@@ -265,7 +334,8 @@ subtest 'password validation - users with shared cardnumber / userid' => sub {
         password   => $patron_password_1,
     };
 
-    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )->status_is(201)
+    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )
+        ->status_is(201)
         ->json_is(
         { cardnumber => $patron_1->cardnumber, patron_id => $patron_1->borrowernumber, userid => $patron_1->userid } );
 
@@ -274,7 +344,8 @@ subtest 'password validation - users with shared cardnumber / userid' => sub {
         password   => $patron_password_2,
     };
 
-    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )->status_is(201)
+    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )
+        ->status_is(201)
         ->json_is(
         { cardnumber => $patron_2->cardnumber, patron_id => $patron_2->borrowernumber, userid => $patron_2->userid } );
 
@@ -283,7 +354,8 @@ subtest 'password validation - users with shared cardnumber / userid' => sub {
         password => $patron_password_1,
     };
 
-    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )->status_is(201)
+    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )
+        ->status_is(201)
         ->json_is(
         { cardnumber => $patron_1->cardnumber, patron_id => $patron_1->borrowernumber, userid => $patron_1->userid } );
 
@@ -292,7 +364,8 @@ subtest 'password validation - users with shared cardnumber / userid' => sub {
         password => $patron_password_2,
     };
 
-    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )->status_is(201)
+    $t->post_ok( "//$userid:$password@/api/v1/auth/password/validation" => json => $json )
+        ->status_is(201)
         ->json_is(
         { cardnumber => $patron_2->cardnumber, patron_id => $patron_2->borrowernumber, userid => $patron_2->userid } );
 

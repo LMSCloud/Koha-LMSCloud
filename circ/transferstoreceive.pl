@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
@@ -86,9 +86,8 @@ while ( my $library = $libraries->next ) {
             my $itemtype = Koha::ItemTypes->find( $item->effective_itemtype );
 
             $getransf{'datetransfer'} = $num->{'datesent'};
-            $getransf{'itemtype'}     = $itemtype->description
-                if ($itemtype);    # FIXME Should not it be translated_description?
-            %getransf = (
+            $getransf{'itemtype'}     = $itemtype->description;    # FIXME Should not it be translated_description?
+            %getransf                 = (
                 %getransf,
                 title          => $biblio->title,
                 subtitle       => $biblio->subtitle,
@@ -99,12 +98,13 @@ while ( my $library = $libraries->next ) {
                 biblionumber   => $biblio->biblionumber,
                 itemnumber     => $item->itemnumber,
                 barcode        => $item->barcode,
+                ccode          => $item->ccode,
                 homebranch     => $item->homebranch,
                 holdingbranch  => $item->holdingbranch,
                 itemcallnumber => $item->itemcallnumber,
             );
 
-            # we check if we have a reserv for this transfer
+            # we check if we have a reserve for this transfer
             my $holds = $item->current_holds;
             if ( my $first_hold = $holds->next ) {
                 $getransf{patron} = Koha::Patrons->find( $first_hold->borrowernumber );
@@ -121,8 +121,8 @@ while ( my $library = $libraries->next ) {
             push( @transferloop, \%getransf );
         }
 
-        # 		If we have a return of reservloop we put it in the branchloop sequence
-        $branchloop{'reserv'} = \@transferloop;
+        # If we have a return of reservloop we put it in the branchloop sequence
+        $branchloop{'reserve'} = \@transferloop;
     }
     push( @branchesloop, \%branchloop ) if %branchloop;
 }

@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use warnings;
 use strict;
@@ -73,7 +73,7 @@ Koha's records from other machine without bringing all Koha dependencies with it
 
 =head1 USAGE
 
-This same script can be used as module (as it defines T<Koha::SVC> package) using
+This same script can be used as module (as it defines C<Koha::SVC> package) using
 
   require "koha-svc.pl"
 

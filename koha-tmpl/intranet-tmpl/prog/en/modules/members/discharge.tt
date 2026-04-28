@@ -2,6 +2,7 @@
 [% USE Koha %]
 [% USE Asset %]
 [% USE KohaDates %]
+[% USE Price %]
 [% USE AuthorisedValues %]
 [% USE Branches %]
 [% PROCESS 'i18n.inc' %]
@@ -39,74 +40,70 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' aside='circ-menu' %]
 
-                [% INCLUDE 'members-toolbar.inc' %]
+    [% INCLUDE 'members-toolbar.inc' %]
 
-                <h1>Discharge</h1>
-                [% FOR message IN messages %]
-                    <div class="alert alert-[% message.type | html %]">
-                        [% IF message.code == "unable_to_generate_pdf" %]
-                            An error occurs when generating the PDF file. Please contact the administrator to resolve this problem.
-                        [% END %]
-                    </div>
-                [% END %]
-                [% UNLESS can_be_discharged %]
-                    <p>Cannot edit discharge: the patron has checked out items.</p>
-                [% ELSE %]
-                    [% IF patron.holds.count %]
-                        <p>Patron has holds. They will be cancelled if the discharge is generated.</p>
-                    [% END %]
-                    <div class="btn-toolbar">
-                        <form method="post">
-                            [% INCLUDE 'csrf-token.inc' %]
-                            <input type="hidden" name="op" value="cud-discharge" />
-                            <input type="submit" name="discharge" class="btn btn-primary" value="Generate discharge" />
-                            <input type="hidden" value="[% patron.borrowernumber | html %]" name="borrowernumber" />
-                        </form>
-                    </div>
-                [% END %]
-
-                [% IF validated_discharges %]
-                    <div class="page-section">
-                        <h2>Already validated discharges</h2>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Requested</th>
-                                    <th>Validated</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                [% FOR d IN validated_discharges %]
-                                    <tr>
-                                        <td>[% d.needed | $KohaDates with_hours = 1 %]</td>
-                                        <td>[% d.validated | $KohaDates with_hours = 1 %]</td>
-                                    </tr>
-                                [% END %]
-                            </tbody>
-                        </table>
-                    </div>
-                [% END %]
-            </main>
+    <h1>Discharge</h1>
+    [% FOR message IN messages %]
+        <div class="alert alert-[% message.type | html %]">
+            [% IF message.code == "unable_to_generate_pdf" %]
+                An error occurs when generating the PDF file. Please contact the administrator to resolve this problem.
+            [% END %]
         </div>
-        <!-- /.col-md-10.order-md-2 -->
+    [% END %]
+    [% UNLESS can_be_discharged %]
+        <p>A discharge cannot be generated for this patron for following reasons:</p>
+        <ul>
+            [% IF discharge_problems.checkouts %]
+                <li>The patron has [% discharge_problems.checkouts | html %] item(s) checked out</li>
+            [% END %]
 
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'circ-menu.inc' %] </aside>
+            [% IF discharge_problems.debt %]
+                <li>The patron has unpaid charges of [% discharge_problems.debt | $Price %]</li>
+            [% END %]
+        </ul>
+    [% ELSE %]
+        [% IF patron.holds.count %]
+            <p>The patron has holds. The holds will be cancelled if the discharge is generated.</p>
+        [% END %]
+
+        <div class="btn-toolbar">
+            <form method="post">
+                [% INCLUDE 'csrf-token.inc' %]
+                <input type="hidden" name="op" value="cud-discharge" />
+                <input type="submit" name="discharge" class="btn btn-primary" value="Generate discharge" />
+                <input type="hidden" value="[% patron.borrowernumber | html %]" name="borrowernumber" />
+            </form>
         </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
-
-    [% MACRO jsinclude BLOCK %]
-        [% INCLUDE 'str/members-menu.inc' %]
-        [% Asset.js("js/members-menu.js") | $raw %]
     [% END %]
 
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+    [% IF validated_discharges %]
+        <div class="page-section">
+            <h2>Already validated discharges</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Requested</th>
+                        <th>Validated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    [% FOR d IN validated_discharges %]
+                        <tr>
+                            <td>[% d.needed | $KohaDates with_hours = 1 %]</td>
+                            <td>[% d.validated | $KohaDates with_hours = 1 %]</td>
+                        </tr>
+                    [% END %]
+                </tbody>
+            </table>
+        </div>
+    [% END %]
+[% END %]
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'str/members-menu.inc' %]
+    [% Asset.js("js/members-menu.js") | $raw %]
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]

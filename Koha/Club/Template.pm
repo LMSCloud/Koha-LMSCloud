@@ -15,7 +15,7 @@ package Koha::Club::Template;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -49,6 +49,12 @@ sub club_template_fields {
 
     return Koha::Club::Template::Fields->search( { club_template_id => $self->id() } );
 }
+
+=head2 club_template_enrollment_fields
+
+Missing POD for club_template_enrollment_fields.
+
+=cut
 
 sub club_template_enrollment_fields {
     my ($self) = @_;

@@ -18,11 +18,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 10;
+use Test::NoWarnings;
+use Test::More tests => 11;
 use Test::MockModule;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -154,7 +155,7 @@ is( $monthlength, undef, "Subscription length is undef months, invalid month dat
 ( $numberlength, $weeklength, $monthlength ) = GetSubscriptionLength( 'issues', 'w' );
 is( $monthlength, undef, "Subscription length is undef issues, invalid issue data was not stored" );
 
-# Check subscription length when a special character is inputted into numberic sublength field
+# Check subscription length when a special character is inputted into numeric sublength field
 ( $numberlength, $weeklength, $monthlength ) = GetSubscriptionLength( 'weeks', '!' );
 is( $weeklength, undef, "Subscription length is undef weeks, invalid weeks data was not stored" );
 

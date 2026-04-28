@@ -46,7 +46,17 @@
             [%- END -%]
             [% SET tr_class = hold.suspend ? 'suspend' : '' %]
             <tr class="[% tr_class | html %]">
-                <td><input type="checkbox" class="select_hold" data-id="[% hold.reserve_id | html %]" /></td>
+                <td
+                    ><input
+                        type="checkbox"
+                        class="select_hold"
+                        data-id="[% hold.reserve_id | html %]"
+                        data-item_level_hold="[% hold.item_level_hold | html %]"
+                        data-itemnumber="[% hold.itemnumber | html %]"
+                        data-biblionumber="[% hold.biblionumber | html %]"
+                        data-waiting="[% hold.atdestination | html %]"
+                        data-intransit="[% hold.intransit | html %]"
+                /></td>
                 <td style="min-width:185px;" data-order="[% priority | html %]">
                     <div>
                         <input type="hidden" name="reserve_id" value="[% hold.reserve_id | html %]" />
@@ -190,12 +200,13 @@
                                         <input type="hidden" name="itemnumber" value="[% hold.itemnumber | html %]" />
                                     </a>
                                 [%- ELSE -%]
-                                        <select name="change_hold_type_[% hold.reserve_id | html %]">
-                                        <option selected="selected" value="">Only item [%- IF ( hold.barcodenumber ) -%]
-                                            [%- hold.barcodenumber | html -%]
-                                        [%- ELSE -%]
-                                            No barcode
-                                        [%- END -%]
+                                    <select name="change_hold_type_[% hold.reserve_id | html %]">
+                                        <option selected="selected" value="">
+                                            [%- IF ( hold.barcodenumber ) -%]
+                                                [% tx("Only item {barcode}", {barcode = hold.barcodenumber}) | html %]
+                                            [%- ELSE -%]
+                                                [% t("Only item [No barcode]") | html %]
+                                            [%- END -%]
                                         </option>
                                         <option value="1">Next available</option>
                                     </select>
@@ -224,6 +235,9 @@
                     [%- IF hold.non_priority -%]
                         <br><i>Non priority hold</i>
                     [%- END -%]
+                    [%- IF hold.hold_group_id -%]
+                        <div>(part of a <a href="/cgi-bin/koha/reserve/hold-group.pl?hold_group_id=[% hold.hold_group_id | uri %]" class="hold-group">hold group</a>)</div>
+                    [%- END -%]
                 </td>
                 [%- IF ( CAN_user_reserveforothers_modify_holds_priority ) -%]
                 [%- UNLESS hold.found -%]
@@ -242,7 +256,7 @@
             [%- END -%]
                 [%- END -%]
                 <td>
-                    <a class="cancel-hold" title="Cancel hold" data-borrowernumber="[% hold.borrowernumber | html %]" data-biblionumber="[% hold.biblionumber | html %]" data-id="[% hold.reserve_id | html %]" href="#">
+                    <a class="cancel-hold deny" title="Cancel hold" data-borrowernumber="[% hold.borrowernumber | html %]" data-biblionumber="[% hold.biblionumber | html %]" data-id="[% hold.reserve_id | html %]" href="#">
                         <i class="fa fa-trash" aria-label="Cancel hold"></i>
                     </a>
                 </td>

@@ -15,39 +15,13 @@ package C4::ImportBatch;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
-
-use C4::Context;
-use C4::Koha   qw( GetNormalizedISBN );
-use C4::Biblio qw(
-    AddBiblio
-    DelBiblio
-    GetMarcFromKohaField
-    GetXmlBiblio
-    ModBiblio
-    TransformMarcToKoha
-);
-use C4::Items   qw( AddItemFromMarc ModItemFromMarc );
-use C4::Charset qw( MarcToUTF8Record SetUTF8Flag StripNonXmlChars );
-use C4::AuthoritiesMarc
-    qw( AddAuthority GuessAuthTypeCode GetAuthorityXML ModAuthority DelAuthority GetAuthorizedHeading );
-use C4::MarcModificationTemplates qw( ModifyRecordWithTemplate );
-use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
-use Koha::Items;
-use Koha::SearchEngine;
-use Koha::SearchEngine::Indexer;
-use Koha::Plugins::Handler;
-use Koha::Logger;
-
-our ( @ISA, @EXPORT_OK );
+use Modern::Perl;
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         GetZ3950BatchId
         GetWebserviceBatchId
         GetImportRecordMarc
@@ -96,6 +70,28 @@ BEGIN {
         RecordsFromMarcPlugin
     );
 }
+
+use C4::Context;
+use C4::Koha   qw( GetNormalizedISBN );
+use C4::Biblio qw(
+    AddBiblio
+    DelBiblio
+    GetMarcFromKohaField
+    GetXmlBiblio
+    ModBiblio
+    TransformMarcToKoha
+);
+use C4::Items   qw( AddItemFromMarc ModItemFromMarc );
+use C4::Charset qw( MarcToUTF8Record SetUTF8Flag StripNonXmlChars );
+use C4::AuthoritiesMarc
+    qw( AddAuthority GuessAuthTypeCode GetAuthorityXML ModAuthority DelAuthority GetAuthorizedHeading );
+use C4::MarcModificationTemplates qw( ModifyRecordWithTemplate );
+use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
+use Koha::Items;
+use Koha::SearchEngine;
+use Koha::SearchEngine::Indexer;
+use Koha::Plugins::Handler;
+use Koha::Logger;
 
 =head1 NAME
 
@@ -1165,6 +1161,12 @@ WHERE import_batch_id = ?|;
 
 =cut
 
+=head2 GetNumberOfNonZ3950ImportBatches
+
+Missing POD for GetNumberOfNonZ3950ImportBatches.
+
+=cut
+
 sub GetNumberOfNonZ3950ImportBatches {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare("SELECT COUNT(*) FROM import_batches WHERE batch_type != 'z3950'");
@@ -1879,7 +1881,7 @@ __END__
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 Galen Charlton <galen.charlton@liblime.com>
 

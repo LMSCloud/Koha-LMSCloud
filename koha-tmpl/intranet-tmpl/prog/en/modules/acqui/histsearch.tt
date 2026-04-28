@@ -131,7 +131,7 @@
                                             <br />[% order.author | html %] <br />
                                             [% order.isbn | html %]
                                         </td>
-                                        <td><a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% order.id | uri %]">[% order.name | html %]</a></td>
+                                        <td><a href="/cgi-bin/koha/acquisition/vendors/[% order.id | uri %]">[% order.name | html %]</a></td>
                                         <td data-order="[% order.creationdate | html %]">[% order.creationdate | $KohaDates %]</td>
                                         <td data-order="[% order.datereceived | html %]"> [% order.datereceived | $KohaDates %] </td>
                                         <td>[% order.quantityreceived | html %]</td>
@@ -160,51 +160,33 @@
         </div>
         <!-- /.col-md-2.order-md-1 -->
     </div>
-
-    [% MACRO jsinclude BLOCK %]
-        [% Asset.js("js/acquisitions-menu.js") | $raw %]
-        [% INCLUDE 'calendar.inc' %]
-        [% INCLUDE 'datatables.inc' %]
-        [% INCLUDE 'columns_settings.inc' %]
-        <script>
-            var MSG_REMOVE_PATRON = _("Remove");
-            $(document).ready(function() {
-                var table_settings = [% TablesSettings.GetTableSettings( 'acqui', 'histsearch', 'histsearcht', 'json' ) | $raw %];
-                KohaTable("histsearcht", {
-                    "pagingType": "full"
-                }, table_settings );
-
-                function AddPatron( patron_name, value, container, input_name ) {
-                    div = "<div id='borrower_" + value + "'>" + patron_name + " ( <a href='#' class='removePatron'><i class='fa fa-trash-can' aria-hidden='true'></i> " + MSG_REMOVE_PATRON + " </a> ) <input type='hidden' name='" + input_name + "' value='" + value + "' /></div>";
-                    $(container).append( div );
-
-                    $(container).parent().show( 800 );
-                }
-                function RemovePatron( cardnumber, container ) {
-                    $( '#borrower_' + cardnumber ).remove();
-
-                    if ( ! $(container).html() ) {
-                        $(container).parent("fieldset").hide( 800 );
-                    }
-                }
-                patron_autocomplete($("#find_patron"), {
-                    'on-select-callback': function( event, ui ) {
-                        var field = ui.item.patron_id;
-                        AddPatron( ui.item.firstname + " " + ( ui.item.middle_name || "" ) + " " + ui.item.surname, field, $("#basket_creators"), 'created_by' );
-                        $("#find_patron").val('').focus();
-                        return false;
-                    }
-                });
-                $("body").on("click",".removePatron",function(e){
-                    e.preventDefault();
-                    var divid = $(this).parent().attr("id");
-                    var cardnumber = divid.replace("borrower_","");
-                    RemovePatron(cardnumber, $("#basket_creators"));
-                });
-
-            });
-        </script>
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/acquisitions-menu.js") | $raw %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    <script>
+        $(document).ready(function() {
+            var table_settings = [% TablesSettings.GetTableSettings( 'acqui', 'histsearch', 'histsearcht', 'json' ) | $raw %];
+            $("#histsearcht").kohaTable(
+                {
+                    pagingType: "full",
+                },
+                table_settings
+            );
+
+            patron_autocomplete($("#find_patron"), {
+                'on-select-add-to': {container: $("#basket_creators"), input_name: 'created_by' },
+                'on-select-callback': function( event, ui ) {
+                    $("#find_patron").val('').focus();
+                    return false;
+                }
+            });
+
+        });
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]

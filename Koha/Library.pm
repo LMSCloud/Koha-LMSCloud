@@ -15,7 +15,7 @@ package Koha::Library;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -28,7 +28,7 @@ use Koha::StockRotationStages;
 use Koha::SMTP::Servers;
 use Koha::Library::Hours;
 
-use base qw(Koha::Object);
+use base qw(Koha::Object::Mixin::AdditionalFields Koha::Object);
 
 my $cache = Koha::Caches->get_instance();
 
@@ -377,7 +377,7 @@ sub to_api_mapping {
 
     $library->opac_info({ lang => $lang });
 
-Returns additional contents block OpacLibraryInfo for $lang or 'default'.
+Returns all additional contents blocks OpacLibraryInfo by library and $lang (or 'default').
 
 Note: This replaces the former branches.opac_info column.
 
@@ -385,7 +385,7 @@ Note: This replaces the former branches.opac_info column.
 
 sub opac_info {
     my ( $self, $params ) = @_;
-    return Koha::AdditionalContents->find_best_match(
+    return Koha::AdditionalContents->search_for_display(
         {
             category   => 'html_customizations',
             location   => 'OpacLibraryInfo',

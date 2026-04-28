@@ -4,7 +4,7 @@ properties:
   starting_ccode:
     description: ccode
     type:
-      - string
+      - object
       - 'null'
   count:
     description: number of items

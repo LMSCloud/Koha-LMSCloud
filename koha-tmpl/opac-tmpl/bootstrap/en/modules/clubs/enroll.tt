@@ -2,10 +2,11 @@
 
 <h2> Enroll in <em>[% club.name | html %]</em> </h2>
 
-<div class="container">
-    <form id="patron-enrollment-form">
+<div class="container-fluid">
+    <form method="get" id="patron-enrollment-form">
         <legend class="sr-only">Enrollment</legend>
         <input type="hidden" name="id" value="[% club.id | html %]" />
+        <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]" />
         <fieldset class="rows">
             <ol>
                 [% FOREACH f IN club.club_template.club_template_enrollment_fields %]
@@ -34,13 +35,15 @@
 <script>
     function addEnrollment() {
         $("body").css("cursor", "progress");
+        let data = $( "#patron-enrollment-form" ).serialize();
+        data += '&csrf_token='+$('meta[name="csrf-token"]').attr('content');
         $.ajax({
             type: "POST",
             url: '/cgi-bin/koha/svc/club/enroll',
-            data: $( "#patron-enrollment-form" ).serialize(),
+            data,
             success: function( data ) {
                 if ( data.success ) {
-                    $('#opac-user-clubs').load('/cgi-bin/koha/clubs/clubs-tab.pl?id=[% club.id | html %]', function() {
+                    $('#opac-user-clubs_panel').load('/cgi-bin/koha/clubs/clubs-tab.pl?borrowernumber=[% borrowernumber | html %]&id=[% club.id | html %]', function() {
                         $("body").css("cursor", "default");
                     });
                 } else {
@@ -54,7 +57,7 @@
 
     function showClubs() {
         $("body").css("cursor", "progress");
-        $('#opac-user-clubs').load('/cgi-bin/koha/clubs/clubs-tab.pl?borrowernumber=[% borrowernumber | html %]&id=[% club.id | html %]', function() {
+        $('#opac-user-clubs_panel').load('/cgi-bin/koha/clubs/clubs-tab.pl?borrowernumber=[% borrowernumber | html %]&id=[% club.id | html %]', function() {
             $("body").css("cursor", "default");
         });
     }

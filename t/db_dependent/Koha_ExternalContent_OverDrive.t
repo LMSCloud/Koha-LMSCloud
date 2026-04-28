@@ -2,6 +2,7 @@
 
 use Modern::Perl;
 
+use Test::NoWarnings;
 use Test::More;
 use Test::MockModule;
 use t::lib::Mocks;
@@ -10,7 +11,7 @@ use Module::Load::Conditional qw( can_load check_install );
 
 BEGIN {
     if ( check_install( module => 'WebService::ILS::OverDrive::Patron' ) ) {
-        plan tests => 6;
+        plan tests => 7;
     } else {
         plan skip_all => "Need WebService::ILS::OverDrive::Patron";
     }

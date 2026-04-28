@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -106,11 +106,11 @@ while ( my $patron = $patrons->next ) {
 
     # Don't crash, but keep debarring as long as you can!
     eval {
-        Koha::Patron::Debarments::AddDebarment(
+        Koha::Patron::Debarments::AddUniqueDebarment(
             {
                 borrowernumber => $patron->id,
                 expiration     => $expiration,
-                type           => 'MANUAL',
+                type           => 'FINES',
                 comment        => $message,
             }
         );

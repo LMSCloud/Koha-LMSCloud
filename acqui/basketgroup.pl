@@ -20,7 +20,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -290,7 +290,7 @@ if ( $op eq "add_form" ) {
             selectedbaskets => $selecteds
         );
 
-        # Get general informations about the basket group to prefill the form
+        # Get general information about the basket group to prefill the form
         my $basketgroup = GetBasketgroup($basketgroupid);
         $template->param(
             name              => $basketgroup->{name},

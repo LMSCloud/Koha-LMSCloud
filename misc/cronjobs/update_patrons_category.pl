@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -110,11 +110,11 @@ Supply a number and only account with fines under this number will be updated.
 
 =item B<--regbefore=date | -rb=date>
 
-Enter a date in ISO format YYYY-MM-DD and only patrons registered before this date wil be updated.
+Enter a date in ISO format YYYY-MM-DD and only patrons registered before this date will be updated.
 
 =item B<--regafter=date | -ra=date>
 
-Enter a date in ISO format YYYY-MM-DD and only patrons registered after this date wil be updated.
+Enter a date in ISO format YYYY-MM-DD and only patrons registered after this date will be updated.
 
 =item B<--field column=value | -d column=value>
 

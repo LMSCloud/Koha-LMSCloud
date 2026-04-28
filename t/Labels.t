@@ -13,18 +13,18 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 #
 # for context, see http://bugs.koha-community.org/bugzilla3/show_bug.cgi?id=2691
 
 use Modern::Perl;
 
-use C4::ClassSplitRoutine::LCC qw( split_callnumber );
+use C4::ClassSplitRoutine::LCC;
 use Test::More tests => 12;
 use Test::NoWarnings;
 
 BEGIN {
-    use_ok( 'C4::Labels::Label', qw( _get_text_fields _check_params _guide_box ) );
+    use_ok('C4::Labels::Label');
 }
 
 my $format_string   = "title, callnumber";

@@ -15,7 +15,7 @@ package Koha::Objects;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -94,7 +94,7 @@ sub find {
     unless ( !@pars || none { defined($_) } @pars ) {
         my $result = $self->_resultset()->find(@pars);
         if ($result) {
-            $object = $self->object_class()->_new_from_dbic($result);
+            $object = $self->object_class($result)->_new_from_dbic($result);
         }
     }
 
@@ -114,7 +114,7 @@ sub find_or_create {
 
     return unless $result;
 
-    my $object = $self->object_class->_new_from_dbic($result);
+    my $object = $self->object_class($result)->_new_from_dbic($result);
 
     return $object;
 }
@@ -301,7 +301,7 @@ sub single {
     my $single = $self->_resultset()->single;
     return unless $single;
 
-    return $self->object_class()->_new_from_dbic($single);
+    return $self->object_class($single)->_new_from_dbic($single);
 }
 
 =head3 Koha::Objects->next();
@@ -319,7 +319,7 @@ sub next {
     my $result = $self->_resultset()->next();
     return unless $result;
 
-    my $object = $self->object_class()->_new_from_dbic($result);
+    my $object = $self->object_class($result)->_new_from_dbic($result);
 
     return $object;
 }
@@ -341,7 +341,7 @@ sub last {
 
     my ($result) = $self->_resultset->slice( $count - 1, $count - 1 );
 
-    my $object = $self->object_class()->_new_from_dbic($result);
+    my $object = $self->object_class($result)->_new_from_dbic($result);
 
     return $object;
 }
@@ -507,7 +507,7 @@ wraps the DBIC object in a corresponding Koha object
 sub _wrap {
     my ( $self, @dbic_rows ) = @_;
 
-    my @objects = map { $self->object_class->_new_from_dbic($_) } @dbic_rows;
+    my @objects = map { $self->object_class($_)->_new_from_dbic($_) } @dbic_rows;
 
     return @objects;
 }
@@ -597,6 +597,36 @@ For example, for holds, _type should return 'Reserve'.
 =cut
 
 sub _type { }
+
+=head3 _polymorphic_field
+
+    sub _polymorphic_field {
+        return 'transport';
+    }
+
+The _polymorphic_field method must be set for all child classes that implement
+their own polymorphic children.
+
+It should return the field name that distinguishes the classes.
+
+=cut
+
+=head3 _polymorphic_map
+
+    sub _polymorphic_map {
+        return {
+            sftp => 'Koha::File::Transport::SFTP',
+            ftp  => 'Koha::File::Transport::FTP',
+        };
+    }
+
+The _polymorphic_map method must be implemented by all child classes that implement
+their own polymorphic children.
+
+It should return a simple hashmap mapping for field value to class name for the
+polymorphic class using the value from the _polymorphic_field defined above.
+
+=cut
 
 =head3 object_class
 

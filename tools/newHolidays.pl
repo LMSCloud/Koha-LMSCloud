@@ -13,8 +13,8 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public Lic# along with Koha; if not, see <http://www.gnu.org/licenses>.
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# You should have received a copy of the GNU General Public Lic# along with Koha; if not, see <https://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -146,19 +146,12 @@ sub add_holiday {
     } elsif ( $newoperation eq 'holidayrangerepeat' ) {
         if ( scalar(@$holiday_list) ) {
             foreach my $date (@$holiday_list) {
-                unless (
-                    $calendar->isHoliday(
-                        $date->{local_c}->{day}, $date->{local_c}->{month}, $date->{local_c}->{year}
-                    )
-                    )
-                {
-                    $calendar->insert_day_month_holiday(
-                        day         => $date->{local_c}->{day},
-                        month       => $date->{local_c}->{month},
-                        title       => $title,
-                        description => $description
-                    );
-                }
+                $calendar->insert_day_month_holiday(
+                    day         => $date->{local_c}->{day},
+                    month       => $date->{local_c}->{month},
+                    title       => $title,
+                    description => $description
+                );
             }
         }
     }

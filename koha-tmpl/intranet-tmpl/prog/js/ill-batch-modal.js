@@ -28,7 +28,7 @@
         "create-requests-button"
     );
     var statusesSelect = document.getElementById("status_code");
-    var cancelButton = document.getElementById("lhs").querySelector("button");
+    var cancelButton = document.getElementById("button_cancel_batch");
     var cancelButtonOriginalText = cancelButton.innerHTML;
 
     // We need a data structure keyed on identifier type, which tells us how to parse that
@@ -134,13 +134,16 @@
     // Are we updating an existing batch
     var isUpdate = false;
 
+    // Have requests been created?
+    var requestsCreated = false;
+
     // The datatable
     var table;
     var tableEl = document.getElementById("identifier-table");
 
     // The element that potentially holds the ID of the batch
     // we're working with
-    var idEl = document.getElementById("ill-batch-details");
+    var elId = document.getElementById("ill-batch-details");
     var batchId = null;
     var backend = null;
 
@@ -157,8 +160,8 @@
         $("#ill-batch-modal").on("hidden.bs.modal", function () {
             // Reset our state when we close the modal
             // TODO: need to also reset progress bar and already processed identifiers
-            delete idEl.dataset.batchId;
-            delete idEl.dataset.backend;
+            delete elId.dataset.batchId;
+            delete elId.dataset.backend;
             batchId = null;
             tableEl.style.display = "none";
             tableContent.data = [];
@@ -176,8 +179,8 @@
     }
 
     function init() {
-        batchId = idEl.dataset.batchId;
-        backend = idEl.dataset.backend;
+        batchId = elId.dataset.batchId;
+        backend = elId.dataset.backend;
         emptyBatch.backend = backend;
         progressTotals.data = {
             total: 0,
@@ -188,9 +191,12 @@
             fetchBatch();
             isUpdate = true;
             setModalHeading();
+            finishButton.removeAttribute("disabled");
+            createButton.style.display = "none";
         } else {
             batch.data = emptyBatch;
             setModalHeading();
+            finishButton.style.display = "none";
         }
         fetchStatuses();
         finishButtonEventListener();
@@ -202,8 +208,9 @@
     }
 
     function initPostCreate() {
-        disableCreateButton();
+        hideCreateButton();
         cancelButton.innerHTML = ill_batch_create_cancel_button;
+        finishButton.style.display = "block";
     }
 
     function setFinishButton() {
@@ -313,6 +320,9 @@
                     }
                     return row;
                 });
+            })
+            .then(function (data) {
+                requestsCreated = true;
             })
             .catch(function () {
                 window.handleApiError(ill_batch_api_request_fail);
@@ -467,6 +477,18 @@
     }
 
     function doFinish() {
+        if (!requestsCreated && textarea.value.trim().length !== 0) {
+            if (
+                !confirm(
+                    __(
+                        "Staged identifiers have not yet been added as requests. Proceed?"
+                    )
+                )
+            ) {
+                return;
+            }
+        }
+
         updateBatch().then(function () {
             $("#ill-batch-modal").modal({ show: false });
             location.href =
@@ -714,9 +736,9 @@
         var tabIdentifiers = tableContent.data.map(function (tabId) {
             return tabId.value;
         });
-        var notInTable = deduped.filter(function (ded) {
-            if (!tabIdentifiers.includes(ded.value)) {
-                return ded;
+        var notInTable = deduped.filter(function (d) {
+            if (!tabIdentifiers.includes(d.value)) {
+                return d;
             }
         });
         if (notInTable.length > 0) {
@@ -760,9 +782,8 @@
         processButton.setAttribute("aria-disabled", true);
     }
 
-    function disableCreateButton() {
-        createButton.setAttribute("disabled", true);
-        createButton.setAttribute("aria-disabled", true);
+    function hideCreateButton() {
+        createButton.remove();
     }
 
     async function populateMetadata(identifier) {
@@ -1003,7 +1024,7 @@
     }
 
     function buildTable(identifiers) {
-        table = KohaTable("identifier-table", {
+        table = $("#identifier-table").kohaTable({
             processing: true,
             ordering: false,
             paging: false,
@@ -1046,7 +1067,7 @@
                 {
                     width: "6.5%",
                     render: createActions,
-                    className: "action-column noExport",
+                    className: "action-column no-export",
                 },
             ],
             createdRow: function (row, data) {
@@ -1062,7 +1083,8 @@
             '<button type="button" aria-label=' +
             ill_button_remove +
             (data.requestId ? ' disabled aria-disabled="true"' : "") +
-            ' class="btn btn-xs btn-danger remove-row">' +
+            ' class="btn btn-xs btn-default remove-row">' +
+            '<i class="fa fa-trash-can" aria-hidden="true" style="pointer-events:none"></i> ' +
             ill_button_remove +
             "</button>"
         );

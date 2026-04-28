@@ -43,7 +43,7 @@ The preferred day of the week for delivery.
   data_type: 'mediumtext'
   is_nullable: 0
 
-The Authorised_Value definining the pattern for delivery.
+The Authorised_Value defining the pattern for delivery.
 
 =head2 fav_itemtypes
 
@@ -146,12 +146,25 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:VmCvv8WVQCmAXCfWHsLIdg
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2025-04-28 16:41:47
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:E8zhK2eYY1Q4GiHPNvS66g
+
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
 
 sub koha_object_class {
     'Koha::Patron::HouseboundProfile';
 }
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
     'Koha::Patron::HouseboundProfiles';
 }

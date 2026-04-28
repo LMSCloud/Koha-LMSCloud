@@ -154,7 +154,7 @@ date the item was checked out or issued
 
 =head2 onsite_checkout
 
-  data_type: 'integer'
+  data_type: 'tinyint'
   default_value: 0
   is_nullable: 0
 
@@ -177,7 +177,7 @@ datetime of issue note (yyyy-mm-dd hh:mm::ss)
 
 =head2 noteseen
 
-  data_type: 'integer'
+  data_type: 'tinyint'
   is_nullable: 1
 
 describes whether checkout note has been seen 1, not been seen 0 or doesn't exist null
@@ -239,7 +239,7 @@ __PACKAGE__->add_columns(
     is_nullable => 1,
   },
   "onsite_checkout",
-  { data_type => "integer", default_value => 0, is_nullable => 0 },
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "note",
   { data_type => "longtext", is_nullable => 1 },
   "notedate",
@@ -249,7 +249,7 @@ __PACKAGE__->add_columns(
     is_nullable => 1,
   },
   "noteseen",
-  { data_type => "integer", is_nullable => 1 },
+  { data_type => "tinyint", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
@@ -366,8 +366,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:55
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:EjrYUJ33emyqctea2zQQRQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-14 11:44:00
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:kCR9SlaCvUx0l/kZc58lvQ
 
 __PACKAGE__->add_columns(
     '+auto_renew'      => { is_boolean => 1 },

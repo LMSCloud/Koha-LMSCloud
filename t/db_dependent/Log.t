@@ -12,11 +12,12 @@
 # A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with Koha; if not, see <http://www.gnu.org/licenses>.
+# with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Data::Dumper qw( Dumper );
-use Test::More tests => 7;
+use Test::NoWarnings;
+use Test::More tests => 8;
 
 use C4::Context;
 use C4::Log  qw( logaction cronlogaction );
@@ -24,7 +25,7 @@ use C4::Auth qw( checkpw );
 use Koha::Database;
 use Koha::ActionLogs;
 
-use t::lib::Mocks qw/mock_preference/;    # to mock CronjobLog
+use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 use JSON qw( decode_json );

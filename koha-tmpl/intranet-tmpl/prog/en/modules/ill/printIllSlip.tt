@@ -1,3 +1,4 @@
+[% USE raw %]
 [% INCLUDE 'doc-head-open.inc' %]
     <title>Print ILL slip</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -5,4 +6,6 @@
 <body id="printIllSlip" class="batch">
 [% messages.0.content | $raw %]
 </body>
+<!-- prettier-ignore-start -->
 </html>
+<!-- prettier-ignore-end -->

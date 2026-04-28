@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI       qw ( -utf8 );
@@ -110,7 +110,6 @@ if ( $op eq 'cud-addreport' ) {
                             message_transport_type => $transport,
                             to_address             => $library->inbound_email_address,
                             reply_address          => $reply_address,
-                            branchcode             => $patron->branchcode,
                         }
                     );
                 } else {
@@ -121,7 +120,6 @@ if ( $op eq 'cud-addreport' ) {
                             message_transport_type => $transport,
                             to_address             => C4::Context->preference('KohaAdminEmailAddress'),
                             reply_address          => $reply_address,
-                            branchcode             => $patron->branchcode,
                         }
                     );
                 }

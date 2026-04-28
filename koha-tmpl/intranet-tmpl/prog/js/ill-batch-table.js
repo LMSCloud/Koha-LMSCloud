@@ -45,9 +45,8 @@
     }
 
     // Initialise the Datatable
-    // FIXME: This should be a kohaTable not KohaTable
     var initTable = function () {
-        return KohaTable("ill-batch-requests", {
+        return $("#ill-batch-requests").kohaTable({
             data: batchesProxy.data,
             columns: [
                 {
@@ -82,7 +81,7 @@
                     render: createActions,
                     width: "10%",
                     orderable: false,
-                    className: "noExport",
+                    className: "no-export",
                 },
             ],
             processing: true,
@@ -126,17 +125,32 @@
 
         var editButton = document.createElement("button");
         editButton.setAttribute("type", "button");
-        editButton.setAttribute("class", "editButton btn btn-xs btn-default");
+        editButton.setAttribute("class", "editButton btn btn-default btn-xs");
         editButton.setAttribute("data-batch-id", row.ill_batch_id);
+
+        var editIcon = document.createElement("i");
+        editIcon.setAttribute("class", "fa fa-pencil");
+        editIcon.setAttribute("aria-hidden", "true");
+        editIcon.style.pointerEvents = "none";
+        editButton.appendChild(editIcon);
+        var whitespace = document.createTextNode("\u00A0");
+        editButton.appendChild(whitespace);
         editButton.appendChild(document.createTextNode(ill_batch_edit));
 
         var deleteButton = document.createElement("button");
         deleteButton.setAttribute("type", "button");
         deleteButton.setAttribute(
             "class",
-            "deleteButton btn btn-xs btn-danger"
+            "deleteButton btn btn-default btn-xs"
         );
         deleteButton.setAttribute("data-batch-id", row.ill_batch_id);
+        var deleteIcon = document.createElement("i");
+        deleteIcon.setAttribute("class", "fa fa-trash-can");
+        deleteIcon.setAttribute("aria-hidden", "true");
+        deleteIcon.style.pointerEvents = "none";
+        deleteButton.appendChild(deleteIcon);
+        var whitespace = document.createTextNode("\u00A0");
+        deleteButton.appendChild(whitespace);
         deleteButton.appendChild(document.createTextNode(ill_batch_delete));
 
         div.appendChild(editButton);

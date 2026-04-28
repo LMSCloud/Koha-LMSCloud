@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 7;
+use Test::NoWarnings;
+use Test::More tests => 8;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -32,6 +33,13 @@ my $schema = Koha::Database->new->schema;
 $schema->storage->txn_begin;
 
 my $builder = t::lib::TestBuilder->new();
+
+my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+t::lib::Mocks::mock_userenv(
+    {
+        branchcode => $library->branchcode,
+    }
+);
 
 my $item = $builder->build_sample_item;
 

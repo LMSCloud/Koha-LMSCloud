@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -121,7 +121,7 @@ END_WARN
 # Since advance notice options are not visible in the web-interface
 # unless EnhancedMessagingPreferences is on, let the user know that
 # this script probably isn't going to do much
-if ( !C4::Context->preference('EnhancedMessagingPreferences') ) {
+if ( !C4::Context->preference('EnhancedMessagingPreferences') && $verbose ) {
     warn <<'END_WARN';
 
 The "EnhancedMessagingPreferences" syspref is off.
@@ -323,7 +323,7 @@ sub _ProcessRenewals {
                     );
 
                     if ($letter) {
-                        my $library             = $patron->library;
+                        my $library             = Koha::Libraries->find( Koha::Libraries->get_effective_branch( $patron->branchcode ) );
                         my $admin_email_address = $library->from_email_address;
 
                         C4::Letters::EnqueueLetter(
@@ -331,6 +331,7 @@ sub _ProcessRenewals {
                                 letter                 => $letter,
                                 borrowernumber         => $borrowernumber,
                                 from_address           => $admin_email_address,
+                                branchcode             => $library->branchcode,
                                 message_transport_type => $transport
                             }
                         );

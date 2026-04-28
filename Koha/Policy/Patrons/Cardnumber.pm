@@ -15,7 +15,7 @@ package Koha::Policy::Patrons::Cardnumber;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -60,7 +60,7 @@ sub is_valid {
             cardnumber => $cardnumber,
             ( $patron ? ( borrowernumber => { '!=' => $patron->borrowernumber } ) : () )
         }
-    )->count;
+        )->count;
 
     my ( $min_length, $max_length ) = $class->get_valid_length();
     return Koha::Result::Boolean->new(0)->add_message( { message => "invalid_length" } )

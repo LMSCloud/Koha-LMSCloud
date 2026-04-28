@@ -2,7 +2,7 @@ package C4::RotatingCollections;
 
 # $Id: RotatingCollections.pm,v 0.1 2007/04/20 kylemhall
 
-# This package is inteded to keep track of what library
+# This package is intended to keep track of what library
 # Items of a certain collection should be at.
 
 # Copyright 2007 Kyle Hall
@@ -20,7 +20,7 @@ package C4::RotatingCollections;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 

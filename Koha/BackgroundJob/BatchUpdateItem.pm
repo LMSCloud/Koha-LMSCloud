@@ -13,7 +13,7 @@ package Koha::BackgroundJob::BatchUpdateItem;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use List::MoreUtils qw( uniq );
@@ -91,7 +91,7 @@ sub process {
     }
 
     # this is a hack to avoid the creation of additional database connections by plugins during our database transaction XXXWH
-    my @enabled_plugins = Koha::Plugins::get_enabled_plugins();
+    my @enabled_plugins = Koha::Plugins->get_enabled_plugins();
 
     # FIXME If the job has already been started, but started again (worker has been restart for instance)
     # Then we will start from scratch and so double process the same records
@@ -119,6 +119,7 @@ sub process {
                 callback                          => sub { $self->step; },
             }
         );
+        $report->{errors}               = $results->{errors};
         $report->{modified_itemnumbers} = $results->{modified_itemnumbers};
         $report->{modified_fields}      = $results->{modified_fields};
     } catch {
@@ -129,7 +130,6 @@ sub process {
 
     my $data = $self->decoded_data;
     $data->{report} = $report;
-
     $self->finish($data);
 }
 

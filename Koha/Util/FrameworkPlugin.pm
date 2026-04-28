@@ -17,20 +17,17 @@ package Koha::Util::FrameworkPlugin;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 #
 
 use Modern::Perl;
-
-use constant DEFAULT_008_POS_6_39 => 'b        |||||||| |||| 00| 0 eng d';
-
-our ( @ISA, @EXPORT_OK );
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-    @ISA       = qw( Exporter );
-    @EXPORT_OK = qw( wrapper date_entered biblio_008 );
+    our @EXPORT_OK = qw( wrapper date_entered biblio_008 );
 }
+
+use constant DEFAULT_008_POS_6_39 => 'b        |||||||| |||| 00| 0 eng d';
 
 =head1 NAME
 

@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -62,8 +62,8 @@ my $letter = C4::Letters::GetPreparedLetter(
         borrowers => $patron ? $patron->borrowernumber : undef
     },
     substitute => {
-        collected => scalar $input->param('collected'),
-        change    => scalar $input->param('change')
+        tendered => scalar $input->param('tendered'),
+        change   => scalar $input->param('change')
     }
 );
 

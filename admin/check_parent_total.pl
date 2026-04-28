@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
@@ -54,7 +54,7 @@ $period = GetBudgetPeriod($period_id) if $period_id;
 $parent = GetBudget($parent_id)       if defined $parent_id;
 $budget = GetBudget($budget_id)       if defined $budget_id;
 
-# CHECK THE PARENT BUDGET FOR ENOUGHT AMOUNT UNALLOCATED,  IF NOT THEN RETURN 1
+# CHECK THE PARENT BUDGET FOR ENOUGH AMOUNT UNALLOCATED,  IF NOT THEN RETURN 1
 my ( $sub_unalloc, $period_sum, $budget_period_unalloc );
 
 if ($parent) {

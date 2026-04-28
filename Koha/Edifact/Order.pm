@@ -19,7 +19,7 @@ use utf8;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Carp qw( carp );
 use DateTime;
@@ -226,7 +226,7 @@ sub message_reference {
     my ( $self, $function ) = @_;
     if ( $function eq 'new' || !$self->{message_reference_no} ) {
 
-        # unique 14 char mesage ref
+        # unique 14 char message ref
         $self->{message_reference_no} = sprintf 'ME%012d', int rand($NINES_12);
     }
     return $self->{message_reference_no};
@@ -263,7 +263,8 @@ sub order_msg_header {
         beginning_of_message(
         $self->{basket}->basketno,
         $self->{recipient}->standard,
-        $self->{is_response}
+        $self->{is_response},
+        $self->purchase_order_number
         );
 
     # DTM
@@ -295,10 +296,13 @@ sub order_msg_header {
 }
 
 sub beginning_of_message {
-    my $basketno            = shift;
-    my $standard            = shift;
-    my $response            = shift;
-    my $document_message_no = sprintf '%011d', $basketno;
+    my $basketno              = shift;
+    my $standard              = shift;
+    my $response              = shift;
+    my $purchase_order_number = shift;
+
+    # Use purchase order number if available, otherwise use basketno
+    my $document_message_no = $purchase_order_number ? $purchase_order_number : sprintf '%011d', $basketno;
 
     #    my $message_function = 9;    # original 7 = retransmission
     # message_code values
@@ -330,6 +334,19 @@ sub name_and_address {
     }
 
     return "NAD+$qualifier_code{$party}+${id_code}::$id_agency$seg_terminator";
+}
+
+sub purchase_order_number {
+    my $self = shift;
+
+    # If the vendor EDI account is configured to use purchase order numbers for basket names,
+    # then the basket name IS the purchase order number
+    my $vendor_config = $self->{recipient};
+    if ( $vendor_config && $vendor_config->po_is_basketname ) {
+        return $self->{basket}->basketname;
+    }
+
+    return;
 }
 
 sub order_line {
@@ -776,7 +793,7 @@ Make handling of GIR segments more customizable
     pass the string 'new'.
     In practice we encode 1 message per transmission so there is only one message
     referenced. were we to encode multiple messages a new reference would be
-    neaded for each
+    needed for each
 
 =head2 message_header
 
@@ -784,7 +801,7 @@ Make handling of GIR segments more customizable
 
 =head2 interchange_trailer
 
-    returns the UNZ segment which ends the tranmission encoding the
+    returns the UNZ segment which ends the transmission encoding the
     message count and control reference for the interchange
 
 =head2 order_msg_header
@@ -801,9 +818,13 @@ Make handling of GIR segments more customizable
                 Id
                 Agency
 
-    Returns a NAD segment containg the id and agency for for the Function
+    Returns a NAD segment containing the id and agency for for the Function
     value. Handles the fact that NAD segments encode the value for 'EAN' differently
     to elsewhere.
+
+=head2 purchase_order_number
+
+    Returns the purchase_order_number given the edi vendor configuration
 
 =head2 order_line
 
@@ -854,7 +875,7 @@ Make handling of GIR segments more customizable
 
 =head2 _interchange_sr_identifier
 
-    Format sender and receipient identifiers for use in the interchange header
+    Format sender and recipient identifiers for use in the interchange header
 
 =head2 encode_text
 

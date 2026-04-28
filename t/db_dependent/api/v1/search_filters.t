@@ -12,13 +12,15 @@
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 5;
+use Test::NoWarnings;
+use Test::More tests => 6;
 use Test::Mojo;
 use Test::Warn;
+use Mojo::JSON;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -102,8 +104,11 @@ subtest 'list() tests' => sub {
     );
 
     # Make sure we are returned with the correct amount of macros
-    $t->get_ok("//$userid:$password@/api/v1/search_filters")->status_is( 200, 'REST3.2.2' )
-        ->json_has('/0/search_filter_id')->json_has('/1/search_filter_id')->json_has('/2/search_filter_id')
+    $t->get_ok("//$userid:$password@/api/v1/search_filters")
+        ->status_is( 200, 'REST3.2.2' )
+        ->json_has('/0/search_filter_id')
+        ->json_has('/1/search_filter_id')
+        ->json_has('/2/search_filter_id')
         ->json_has('/3/search_filter_id');
 
     $schema->storage->txn_rollback;
@@ -130,12 +135,14 @@ subtest 'get() tests' => sub {
     my $search_filter_3 = $builder->build_object( { class => 'Koha::SearchFilters' } );
 
     $t->get_ok( "//$userid:$password@/api/v1/search_filters/" . $search_filter_1->id )
-        ->status_is( 200, 'Filter retrieved correctly' )->json_is( $search_filter_1->to_api );
+        ->status_is( 200, 'Filter retrieved correctly' )
+        ->json_is( $search_filter_1->to_api );
 
     my $non_existent_code = $search_filter_1->id;
     $search_filter_1->delete;
 
-    $t->get_ok( "//$userid:$password@/api/v1/search_filters/" . $non_existent_code )->status_is(404)
+    $t->get_ok( "//$userid:$password@/api/v1/search_filters/" . $non_existent_code )
+        ->status_is(404)
         ->json_is( '/error' => 'Search filter not found' );
 
     $patron->flags(4)->store;
@@ -195,7 +202,8 @@ subtest 'add() tests' => sub {
     $search_filter_with_invalid_field->{'coffee_filter'} = 'Chemex';
 
     $t->post_ok( "//$auth_userid:$password@/api/v1/search_filters" => json => $search_filter_with_invalid_field )
-        ->status_is(400)->json_is(
+        ->status_is(400)
+        ->json_is(
         "/errors" => [
             {
                 message => "Properties not allowed: coffee_filter.",
@@ -206,7 +214,8 @@ subtest 'add() tests' => sub {
 
     # Authorized attempt to write
     $t->post_ok( "//$auth_userid:$password@/api/v1/search_filters" => json => $search_filter_values )
-        ->status_is( 201, 'REST3.2.1' )->json_has( '/search_filter_id', 'We generated a new id' )
+        ->status_is( 201, 'REST3.2.1' )
+        ->json_has( '/search_filter_id', 'We generated a new id' )
         ->json_is( '/name'         => $search_filter_values->{name},         'The name matches what we supplied' )
         ->json_is( '/query'        => $search_filter_values->{query},        'The query matches what we supplied' )
         ->json_is( '/limits'       => $search_filter_values->{limits},       'The limits match what we supplied' )
@@ -220,7 +229,8 @@ subtest 'add() tests' => sub {
     # Authorized attempt to create with existing id
     $search_filter_values->{search_filter_id} = $search_filter_id;
 
-    $t->post_ok( "//$auth_userid:$password@/api/v1/search_filters" => json => $search_filter_values )->status_is(400)
+    $t->post_ok( "//$auth_userid:$password@/api/v1/search_filters" => json => $search_filter_values )
+        ->status_is(400)
         ->json_is(
         '/errors' => [
             {
@@ -291,8 +301,8 @@ subtest 'update() tests' => sub {
         ->json_is( '/name'             => $search_filter_update->{name},   'We get back the name' )
         ->json_is( '/query'            => $search_filter_update->{query},  'We get back our query' )
         ->json_is( '/limits'           => $search_filter_update->{limits}, 'We get back our limits' )
-        ->json_is( '/opac'             => 1,                               'We get back our opac visibility unchanged' )
-        ->json_is( '/staff_client'     => 1, 'We get back our staff client visibility unchanged' );
+        ->json_is( '/opac'             => Mojo::JSON->true,                'We get back our opac visibility unchanged' )
+        ->json_is( '/staff_client'     => Mojo::JSON->true, 'We get back our staff client visibility unchanged' );
 
     # Authorized attempt to write invalid data
     my $search_filter_with_invalid_field = {%$search_filter_update};

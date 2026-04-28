@@ -18,7 +18,6 @@
     <div class="container-fluid">
 
         [% PROCESS patron_search_filters categories => categories, libraries => libraries, filters => ['branch', 'category'], search_filter => searchmember %]
-        </form>
 
         [% PROCESS patron_search_table table_id => 'memberresultst' columns => columns %]
 

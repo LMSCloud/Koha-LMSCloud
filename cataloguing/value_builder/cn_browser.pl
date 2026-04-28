@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -35,8 +35,21 @@ my $builder = sub {
 
 function Click$function_name(ev) {
     ev.preventDefault();
+    let window_width = screen.width / 2;
+    let window_height = screen.height;
     q = document.getElementById(ev.data.id);
-    window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=cn_browser.pl&popup&q=\"+encodeURIComponent(q.value),\"cnbrowser\",\"width=500,height=400,toolbar=false,scrollbars=yes\");
+
+    if(localStorage.getItem(\"popup_window_height\") && localStorage.getItem(\"popup_window_width\")){
+        window_width = localStorage.getItem(\"popup_window_width\");
+        window_height = localStorage.getItem(\"popup_window_height\");
+    }
+
+    var windowref = window.open(\"../cataloguing/plugin_launcher.pl?plugin_name=cn_browser.pl&popup&q=\"+encodeURIComponent(q.value),\"cnbrowser\",\"width=\"+window_width+\"\,height=\"+window_height+\"\,toolbar=false,scrollbars=yes\");
+
+    windowref.onresize = function(){
+        localStorage.setItem(\"popup_window_height\", windowref.innerHeight);
+        localStorage.setItem(\"popup_window_width\", windowref.innerWidth);
+    }
 }
 
 </script>
@@ -97,7 +110,7 @@ my $launcher = sub {
 
         #Results before the cn_sort
         $query =
-            "SELECT b.title, b.subtitle, itemcallnumber, biblionumber, barcode, cn_sort, branchname, author, ccode, itype
+            "SELECT b.title, b.subtitle, itemcallnumber, biblionumber, barcode, cn_sort, branchname, author, ccode, location, itype
         FROM items AS i
         JOIN biblio AS b USING (biblionumber)
         LEFT OUTER JOIN branches ON (branches.branchcode = homebranch)
@@ -128,7 +141,7 @@ my $launcher = sub {
 
         #Results after the cn_sort
         $query =
-            "SELECT b.title, b.subtitle, itemcallnumber, biblionumber, barcode, cn_sort, branchname, author, ccode, itype
+            "SELECT b.title, b.subtitle, itemcallnumber, biblionumber, barcode, cn_sort, branchname, author, ccode, location, itype
         FROM items AS i
         JOIN biblio AS b USING (biblionumber)
         LEFT OUTER JOIN branches ON (branches.branchcode = homebranch)

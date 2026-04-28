@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -185,7 +185,7 @@ if ( $op eq "cud-add_confirm" ) {
         push @messages, { type => 'error', code => 'too_many' };
     } elsif ( $suggestions->count >= 1 ) {
 
-        #some suggestion are answering the request Donot Add
+        #some suggestion are answering the request, do not add
         while ( my $suggestion = $suggestions->next ) {
             push @messages,
                 {

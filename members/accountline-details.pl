@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -60,6 +60,7 @@ if ($accountline) {
         available_additional_fields => Koha::AdditionalFields->search(
             { tablename => $accountline->credit_type_code ? 'accountlines:credit' : 'accountlines:debit' }
         ),
+        finesview => 1,
     );
 
     my $patron = Koha::Patrons->find( $accountline->borrowernumber );

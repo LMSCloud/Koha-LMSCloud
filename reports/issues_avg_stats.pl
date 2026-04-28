@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use C4::Auth qw( get_template_and_user );
@@ -207,10 +207,10 @@ sub calculate {
 
     my @linefilter;
 
-    #	warn "filtres ".@filters[0];
-    #	warn "filtres ".@filters[1];
-    #	warn "filtres ".@filters[2];
-    #	warn "filtres ".@filters[3];
+    #    warn "filtres ".@filters[0];
+    #    warn "filtres ".@filters[1];
+    #    warn "filtres ".@filters[2];
+    #    warn "filtres ".@filters[3];
     $line = "old_issues." . $line if ( $line =~ /branchcode/ ) or ( $line =~ /timestamp/ );
     if ( $line =~ /itemtype/ ) { $line = $itype; }
     $linefilter[0] = @$filters[0]  if ( $line =~ /timestamp/ );
@@ -378,27 +378,27 @@ sub calculate {
         my %cell;
         my %ft;
 
-        #		warn "coltitle :".$celvalue;
+        #        warn "coltitle :".$celvalue;
         $cell{coltitle} = $celvalue;
         $ft{totalcol}   = 0;
         push @loopcol, \%cell;
     }
 
-    #	warn "fin des titres colonnes";
+    #    warn "fin des titres colonnes";
 
-    my $i         = 0;
-    my $hilighted = -1;
+    my $i           = 0;
+    my $highlighted = -1;
 
     #Initialization of cell values.....
     my %table;
     my %wgttable;
     my %cnttable;
 
-    #	warn "init table";
+    #    warn "init table";
     foreach my $row (@loopline) {
         foreach my $col (@loopcol) {
 
-            #			warn " init table : $row->{rowtitle} / $col->{coltitle} ";
+            #            warn " init table : $row->{rowtitle} / $col->{coltitle} ";
             $table{ $row->{rowtitle} }->{ $col->{coltitle} } = 0;
         }
         $table{ $row->{rowtitle} }->{totalrow} = 0;
@@ -440,7 +440,7 @@ sub calculate {
     my $dbcalc = $dbh->prepare($strcalc);
     $dbcalc->execute;
 
-    # 	warn "filling table";
+    #     warn "filling table";
     my $issues_count = 0;
     my $loanlength;
     my $emptycol;
@@ -448,7 +448,7 @@ sub calculate {
     while ( my @data = $dbcalc->fetchrow ) {
         my ( $row, $col, $issuedate, $returndate, $weight ) = @data;
 
-        #		warn "filling table $row / $col / $issuedate / $returndate /$weight";
+        #        warn "filling table $row / $col / $issuedate / $returndate /$weight";
         $emptycol = 1         if ( !defined($col) );
         $col      = "zzEMPTY" if ( !defined($col) );
         $row      = "zzEMPTY" if ( !defined($row) );
@@ -457,11 +457,11 @@ sub calculate {
         #  and seconds between the two
         $loanlength = Delta_Days( split( /-/, $issuedate ), split( /-/, $returndate ) );
 
-        #		warn "512 Same row and col DateCalc returns :$loanlength with return ". $returndate ."issue ". $issuedate ."weight : ". $weight;
-        #		warn "513 row :".$row." column :".$col;
+        #        warn "512 Same row and col DateCalc returns :$loanlength with return ". $returndate ."issue ". $issuedate ."weight : ". $weight;
+        #        warn "513 row :".$row." column :".$col;
         $table{$row}->{$col} += $weight * $loanlength;
 
-        #		$table{$row}->{totalrow}+=$weight*$loanlength;
+        #        $table{$row}->{totalrow}+=$weight*$loanlength;
         $cnttable{$row}->{$col} = 1;
         $wgttable{$row}->{$col} += $weight;
     }
@@ -515,15 +515,15 @@ sub calculate {
         }
         push @looprow,
             {
-            'rowtitle'  => ( $row eq "zzEMPTY" ) ? "NULL" : $row,
-            'loopcell'  => \@loopcell,
-            'hilighted' => ( $hilighted > 0 ),
-            'totalrow'  => ($total) ? sprintf( "%.2f", $total ) : 0
+            'rowtitle'    => ( $row eq "zzEMPTY" ) ? "NULL" : $row,
+            'loopcell'    => \@loopcell,
+            'highlighted' => ( $highlighted > 0 ),
+            'totalrow'    => ($total) ? sprintf( "%.2f", $total ) : 0
             };
-        $hilighted = -$hilighted;
+        $highlighted = -$highlighted;
     }
     #
-    # #	warn "footer processing";
+    # #    warn "footer processing";
     foreach my $col (@loopcol) {
         my $total = 0;
         my $nbrow = 0;
@@ -536,10 +536,10 @@ sub calculate {
             $nbrow += $cnttable{ ( $row->{rowtitle} eq "NULL" ) ? "zzEMPTY" : $row->{rowtitle} }
                 ->{ ( $col->{coltitle} eq "NULL" ) ? "zzEMPTY" : $col->{coltitle} };
 
-            #			warn "value added ".$table{$row->{rowtitle}}->{$col->{coltitle}}. "for line ".$row->{rowtitle};
+            #            warn "value added ".$table{$row->{rowtitle}}->{$col->{coltitle}}. "for line ".$row->{rowtitle};
         }
 
-        #		warn "summ for column ".$col->{coltitle}."  = ".$total;
+        #        warn "summ for column ".$col->{coltitle}."  = ".$total;
         $total = $total / $nbrow if ($nbrow);
         push @loopfooter, { 'totalcol' => ($total) ? sprintf( "%.2f", $total ) : 0 };
 
@@ -552,7 +552,7 @@ sub calculate {
     $globalline{looprow} = \@looprow;
     $globalline{loopcol} = \@loopcol;
 
-    # 	# the foot (totals by borrower type)
+    #     # the foot (totals by borrower type)
     $globalline{loopfooter} = \@loopfooter;
     $globalline{total}      = $grantotal;
     $globalline{line}       = $line;

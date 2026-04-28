@@ -184,7 +184,7 @@ the fax number for your patron/borrower's primary address
   data_type: 'mediumtext'
   is_nullable: 1
 
-the secondary email addres for your patron/borrower's primary address
+the secondary email address for your patron/borrower's primary address
 
 =head2 phonepro
 
@@ -368,7 +368,7 @@ comment on the stop of the patron
   data_type: 'longtext'
   is_nullable: 1
 
-used for children and profesionals to include surname or last name of guarantor or organization name
+used for children and professionals to include surname or last name of guarantor or organization name
 
 =head2 contactfirstname
 
@@ -477,6 +477,14 @@ a field that can be used for any information unique to the library
 
 a field that can be used for any information unique to the library
 
+=head2 altcontacttitle
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 255
+
+title of the alternate contact for the patron/borrower
+
 =head2 altcontactfirstname
 
   data_type: 'mediumtext'
@@ -490,14 +498,6 @@ first name of alternate contact for the patron/borrower
   is_nullable: 1
 
 surname or last name of the alternate contact for the patron/borrower
-
-=head2 altcontacttitle
-
-  data_type: 'varchar'
-  is_nullable: 1
-  size: 255
-
-title of the alternate contact for the patron/borrower
 
 =head2 altcontactaddress1
 
@@ -590,10 +590,10 @@ controls if relatives can see this patron's checkouts
 
 =head2 checkprevcheckout
 
-  data_type: 'varchar'
+  data_type: 'enum'
   default_value: 'inherit'
+  extra: {list => ["yes","no","inherit"]}
   is_nullable: 0
-  size: 7
 
 produce a warning for this patron if this item has previously been checked out to this patron if 'yes', not if 'no', defer to category setting if 'inherit'.
 
@@ -629,7 +629,7 @@ lang to use to send notices to this patron
   default_value: 0
   is_nullable: 0
 
-number of failed login attemps
+number of failed login attempts
 
 =head2 overdrive_auth_token
 
@@ -810,12 +810,12 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 80 },
   "sort2",
   { data_type => "varchar", is_nullable => 1, size => 80 },
+  "altcontacttitle",
+  { data_type => "varchar", is_nullable => 1, size => 255 },
   "altcontactfirstname",
   { data_type => "mediumtext", is_nullable => 1 },
   "altcontactsurname",
   { data_type => "mediumtext", is_nullable => 1 },
-  "altcontacttitle",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
   "altcontactaddress1",
   { data_type => "mediumtext", is_nullable => 1 },
   "altcontactaddress2",
@@ -842,10 +842,10 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "checkprevcheckout",
   {
-    data_type => "varchar",
+    data_type => "enum",
     default_value => "inherit",
+    extra => { list => ["yes", "no", "inherit"] },
     is_nullable => 0,
-    size => 7,
   },
   "updated_on",
   {
@@ -1427,6 +1427,21 @@ Related object: L<Koha::Schema::Result::HoldFillTarget>
 __PACKAGE__->has_many(
   "hold_fill_targets",
   "Koha::Schema::Result::HoldFillTarget",
+  { "foreign.borrowernumber" => "self.borrowernumber" },
+  { cascade_copy => 0, cascade_delete => 0 },
+);
+
+=head2 hold_groups
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::HoldGroup>
+
+=cut
+
+__PACKAGE__->has_many(
+  "hold_groups",
+  "Koha::Schema::Result::HoldGroup",
   { "foreign.borrowernumber" => "self.borrowernumber" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
@@ -2267,8 +2282,8 @@ Composing rels: L</user_permissions> -> permission
 __PACKAGE__->many_to_many("permissions", "user_permissions", "permission");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:54
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:No+/ov+CEjvGIponp9YbMg
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-04-21 07:25:39
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:appTVh0IvMifpqU4Kflv9A
 
 __PACKAGE__->belongs_to(
   "library",
@@ -2292,12 +2307,13 @@ __PACKAGE__->has_many(
 );
 
 __PACKAGE__->add_columns(
-    '+anonymized'              => { is_boolean => 1 },
-    '+autorenew_checkouts'     => { is_boolean => 1 },
-    '+gonenoaddress'           => { is_boolean => 1 },
-    '+lost'                    => { is_boolean => 1 },
-    '+privacy_guarantor_fines' => { is_boolean => 1 },
-    '+protected'               => { is_boolean => 1 },
+    '+anonymized'                    => { is_boolean => 1 },
+    '+autorenew_checkouts'           => { is_boolean => 1 },
+    '+gonenoaddress'                 => { is_boolean => 1 },
+    '+lost'                          => { is_boolean => 1 },
+    '+privacy_guarantor_checkouts'   => { is_boolean => 1 },
+    '+privacy_guarantor_fines'       => { is_boolean => 1 },
+    '+protected'                     => { is_boolean => 1 },
 );
 
 sub koha_objects_class {

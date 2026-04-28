@@ -13,13 +13,14 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use utf8;
 use Encode;
 
-use Test::More tests => 6;
+use Test::More tests => 7;
+use Test::NoWarnings;
 use Test::MockModule;
 use Test::Exception;
 use Test::Warn;
@@ -118,7 +119,9 @@ subtest 'enqueue() tests' => sub {
         shibboleth    => undef,
         desk_id       => undef,
         desk_name     => undef,
-        interface     => $interface
+        interface     => $interface,
+
+        # session_id must not be logged!
     };
 
     $job_id = Koha::BackgroundJob::BatchUpdateItem->new->enqueue( { record_ids => [ 1, 2, 3 ] } );
@@ -217,6 +220,8 @@ subtest 'process tests' => sub {
         shibboleth    => undef,
         desk_id       => undef,
         desk_name     => undef,
+
+        # session_id must not be logged!
     };
 
     my $background_job_module = Test::MockModule->new('Koha::BackgroundJob');
@@ -236,7 +241,9 @@ subtest 'process tests' => sub {
     is( C4::Context->interface, 'opac', "Interface set to opac prior to calling process" );
 
     $job->process();
-    is_deeply( C4::Context->userenv,   $job_context, "Userenv set from job context on process" );
+    my $expected_context = C4::Context->userenv;
+    delete $expected_context->{session_id};
+    is_deeply( $expected_context,      $job_context, "Userenv set from job context on process" );
     is_deeply( C4::Context->interface, 'intranet',   "Interface set from job context on process" );
 
     # Manually add a job (->new->store) without context

@@ -15,14 +15,16 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 44;
+use Test::NoWarnings;
+use Test::More tests => 48;
 use Test::Warn;
 use Test::Exception;
 use Test::MockModule;
+use Test::Deep;
 use Time::Fake;
 use DateTime;
 use JSON;
@@ -52,7 +54,11 @@ use t::lib::Mocks;
 my $schema = Koha::Database->new->schema;
 $schema->storage->txn_begin;
 
-my $builder       = t::lib::TestBuilder->new;
+my $builder = t::lib::TestBuilder->new;
+
+# Disable LMS CashRegister to prevent branchcode FK issues in tests
+t::lib::Mocks::mock_preference( 'ActivateCashRegisterTransactionsOnly', 0 );
+
 my $library       = $builder->build( { source => 'Branch' } );
 my $category      = $builder->build( { source => 'Category' } );
 my $nb_of_patrons = Koha::Patrons->search->count;
@@ -498,8 +504,10 @@ subtest 'renew_account' => sub {
             dt_from_string($retrieved_expiry_date), $a_year_later_minus_a_month,
             "$a_month_ago + 12 months must be $a_year_later_minus_a_month"
         );
-        my $number_of_logs = $schema->resultset('ActionLog')
-            ->search( { module => 'MEMBERS', action => 'RENEW', object => $retrieved_patron->borrowernumber } )->count;
+        my $number_of_logs =
+            $schema->resultset('ActionLog')
+            ->search( { module => 'MEMBERS', action => 'RENEW', object => $retrieved_patron->borrowernumber } )
+            ->count;
         is( $number_of_logs, 1, 'With BorrowersLog, Koha::Patron->renew_account should have logged' );
 
         t::lib::Mocks::mock_preference( 'BorrowerRenewalPeriodBase', 'now' );
@@ -513,8 +521,10 @@ subtest 'renew_account' => sub {
         );
         $retrieved_expiry_date = $retrieved_patron->dateexpiry;
         is( dt_from_string($retrieved_expiry_date), $a_year_later, "today + 12 months must be $a_year_later" );
-        $number_of_logs = $schema->resultset('ActionLog')
-            ->search( { module => 'MEMBERS', action => 'RENEW', object => $retrieved_patron->borrowernumber } )->count;
+        $number_of_logs =
+            $schema->resultset('ActionLog')
+            ->search( { module => 'MEMBERS', action => 'RENEW', object => $retrieved_patron->borrowernumber } )
+            ->count;
         is( $number_of_logs, 1, 'Without BorrowersLog, Koha::Patron->renew_account should not have logged' );
 
         t::lib::Mocks::mock_preference( 'BorrowerRenewalPeriodBase', 'combination' );
@@ -648,8 +658,10 @@ subtest "delete" => sub {
         q|Koha::Patron->delete should have deleted patron's modifications|
     );
 
-    my $number_of_logs = $schema->resultset('ActionLog')
-        ->search( { module => 'MEMBERS', action => 'DELETE', object => $patron->borrowernumber } )->count;
+    my $number_of_logs =
+        $schema->resultset('ActionLog')
+        ->search( { module => 'MEMBERS', action => 'DELETE', object => $patron->borrowernumber } )
+        ->count;
     is( $number_of_logs, 1, 'With BorrowersLog, Koha::Patron->delete should have logged' );
 
     # Test deletion with designated fallback owner
@@ -722,7 +734,8 @@ subtest 'add_enrolment_fee_if_needed' => sub {
     foreach ( keys %{$enrolmentfees} ) {
         ( Koha::Patron::Categories->find($_)
                 // $builder->build_object( { class => 'Koha::Patron::Categories', value => { categorycode => $_ } } ) )
-            ->enrolmentfee( $enrolmentfees->{$_} )->store;
+            ->enrolmentfee( $enrolmentfees->{$_} )
+            ->store;
     }
     my $enrolmentfee_K  = $enrolmentfees->{K};
     my $enrolmentfee_J  = $enrolmentfees->{J};
@@ -2019,10 +2032,11 @@ $nb_of_patrons = Koha::Patrons->search->count;
 $retrieved_patron_1->delete;
 is( Koha::Patrons->search->count, $nb_of_patrons - 1, 'Delete should have deleted the patron' );
 
-subtest 'BorrowersLog tests' => sub {
-    plan tests => 5;
+subtest 'BorrowersLog and CardnumberLog tests' => sub {
+    plan tests => 13;
 
-    t::lib::Mocks::mock_preference( 'BorrowersLog', 1 );
+    t::lib::Mocks::mock_preference( 'BorrowersLog',  1 );
+    t::lib::Mocks::mock_preference( 'CardnumberLog', 0 );
     my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
 
     my $cardnumber = $patron->cardnumber;
@@ -2042,7 +2056,8 @@ subtest 'BorrowersLog tests' => sub {
         ->search( { module => 'MEMBERS', action => 'MODIFY', object => $patron->borrowernumber } );
     is( scalar @logs, 1, 'With BorrowersLog and TrackLastPatronActivityTriggers we should not spam the logs' );
 
-    Koha::ActionLogs->search()->delete();
+    # Clear the logs for this patron
+    Koha::ActionLogs->search( { object => $patron->borrowernumber } )->delete();
     $patron->get_from_storage();
     $patron->set( { debarred => "" } );
     $patron->store;
@@ -2057,11 +2072,57 @@ subtest 'BorrowersLog tests' => sub {
         defined $log,
         "No action log generated where incoming changed column is empty string and value in storage is NULL"
     );
+
+    t::lib::Mocks::mock_preference( 'CardnumberLog', 1 );
+    $patron->set( { cardnumber => 'TESTCARDNUMBER_1' } )->store;
+    @logs = $schema->resultset('ActionLog')
+        ->search( { module => 'MEMBERS', action => 'MODIFY', object => $patron->borrowernumber } );
+    is( scalar @logs, 1, 'With BorrowersLog, one detailed MODIFY action should be logged for the modification.' );
+    @logs = $schema->resultset('ActionLog')
+        ->search( { module => 'MEMBERS', action => 'MODIFY_CARDNUMBER', object => $patron->borrowernumber } );
+    is(
+        scalar @logs, 1,
+        'With CardnumberLog, one detailed MODIFY_CARDNUMBER action should be logged for the modification.'
+    );
+
+    t::lib::Mocks::mock_preference( 'BorrowersLog', 0 );
+    $patron->set( { cardnumber => 'TESTCARDNUMBER' } )->store;
+    @logs = $schema->resultset('ActionLog')
+        ->search( { module => 'MEMBERS', action => 'MODIFY', object => $patron->borrowernumber } );
+    is(
+        scalar @logs, 1,
+        'With Cardnumberlog and not BorrowersLog, no more detailed MODIFY action should be logged for the modification.'
+    );
+    @logs = $schema->resultset('ActionLog')
+        ->search( { module => 'MEMBERS', action => 'MODIFY_CARDNUMBER', object => $patron->borrowernumber } );
+    is(
+        scalar @logs, 2,
+        'With CardnumberLogs, one more detailed MODIFY_CARDNUMBER action should be logged for the modification.'
+    );
+    $log_info = from_json( $logs[1]->info );
+    is( $log_info->{after},  'TESTCARDNUMBER',   'Got correct new cardnumber' );
+    is( $log_info->{before}, 'TESTCARDNUMBER_1', 'Got correct old cardnumber' );
+
+    t::lib::Mocks::mock_preference( 'CardnumberLog', 0 );
+    $patron->set( { cardnumber => 'TESTCARDNUMBER_1' } )->store;
+    @logs = $schema->resultset('ActionLog')
+        ->search( { module => 'MEMBERS', action => 'MODIFY', object => $patron->borrowernumber } );
+    is(
+        scalar @logs, 1,
+        'With neither Cardnumberlog nor BorrowersLog, no more detailed MODIFY action should be logged for the modification.'
+    );
+    @logs = $schema->resultset('ActionLog')
+        ->search( { module => 'MEMBERS', action => 'MODIFY_CARDNUMBER', object => $patron->borrowernumber } );
+    is(
+        scalar @logs, 2,
+        'With neither CardnumberLog nor BorrowersLog, one detailed MODIFY_CARDNUMBER action should be logged for the modification.'
+    );
+
 };
 $schema->storage->txn_rollback;
 
 subtest 'Test Koha::Patrons::merge' => sub {
-    plan tests => 113;
+    plan tests => 118;
 
     my $schema = Koha::Database->new()->schema();
 
@@ -2249,6 +2310,20 @@ subtest 'Test Koha::Patrons::merge' => sub {
 
     };
 
+    subtest 'ILL requests' => sub {
+        plan tests => 3;
+
+        my $keep_patron  = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $merge_patron = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $ill_request  = $builder->build_sample_ill_request( { borrowernumber => $merge_patron->borrowernumber } );
+
+        is( $merge_patron->ill_requests->count, 1, 'Patron to be merged has 1 ILL request' );
+        is( $keep_patron->ill_requests->count,  0, 'Patron to be kept has 0 ILL requests' );
+
+        $keep_patron->merge_with( [ $merge_patron->borrowernumber ] );
+        is( $keep_patron->ill_requests->count, 1, 'Patron to be kept now has 1 ILL request' );
+    };
+
     t::lib::Mocks::mock_preference( 'AnonymousPatron', '' );
     $schema->storage->txn_rollback;
 };
@@ -2399,7 +2474,7 @@ subtest '->set_password' => sub {
 
     # Refresh patron from DB, just to make sure
     $patron->discard_changes;
-    is( $patron->login_attempts, 3, 'Previous tests kept login attemps count' );
+    is( $patron->login_attempts, 3, 'Previous tests kept login attempts count' );
 
     $patron->set_password( { password => 'abcD12 34' } );
     $patron->discard_changes;
@@ -2418,10 +2493,12 @@ subtest '->set_password' => sub {
 
     isnt( $patron->password, $old_digest, 'Password has been updated' );
     ok( checkpw_hash( 'abcd   a', $patron->password ), 'Password hash is correct' );
-    is( $patron->login_attempts, 0, 'Login attemps have been reset' );
+    is( $patron->login_attempts, 0, 'Login attempts have been reset' );
 
-    my $number_of_logs = $schema->resultset('ActionLog')
-        ->search( { module => 'MEMBERS', action => 'CHANGE PASS', object => $patron->borrowernumber } )->count;
+    my $number_of_logs =
+        $schema->resultset('ActionLog')
+        ->search( { module => 'MEMBERS', action => 'CHANGE PASS', object => $patron->borrowernumber } )
+        ->count;
     is( $number_of_logs, 0, 'Without BorrowersLog, Koha::Patron->set_password doesn\'t log password changes' );
 
     # Enable logging password changes
@@ -2627,10 +2704,10 @@ subtest 'lock' => sub {
 };
 
 subtest 'anonymize' => sub {
-    plan tests => 10;
+    plan tests => 11;
 
-    my $patron1 = $builder->build_object( { class => 'Koha::Patrons' } );
-    my $patron2 = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $patron1 = $builder->build_object( { class => 'Koha::Patrons' } )->store;
+    my $patron2 = $builder->build_object( { class => 'Koha::Patrons' } )->store;
 
     # First try patron with issues
     my $issue = $builder->build_object(
@@ -2648,17 +2725,354 @@ subtest 'anonymize' => sub {
     is( $patron1->firstname,   undef, 'First name cleared' );
     isnt( $patron1->surname, $surname, 'Surname changed' );
     ok( $patron1->surname =~ /^\w{10}$/, 'Mandatory surname randomized' );
-    is( $patron1->branchcode, $branchcode, 'Branch code skipped' );
-    is( $patron1->email,      undef,       'Email was mandatory, must be cleared' );
+    is( $patron1->branchcode,        $branchcode, 'Branch code skipped' );
+    is( $patron1->email,             undef,       'Email was mandatory, must be cleared' );
+    is( $patron1->checkprevcheckout, 'inherit',   'Enum checkprevcheckout is reset to the default value' );
 
     # Test wrapper in Koha::Patrons
-    $patron1->surname($surname)->store;       # restore
+    $patron1->surname($surname)->store;    # restore
     my $rs = Koha::Patrons->search( { borrowernumber => [ $patron1->borrowernumber, $patron2->borrowernumber ] } )
         ->anonymize;
-    $patron1->discard_changes;                # refresh
+    $patron1->discard_changes;             # refresh
     isnt( $patron1->surname, $surname, 'Surname patron1 changed again' );
-    $patron2->discard_changes;                # refresh
+    $patron2->discard_changes;             # refresh
     is( $patron2->firstname, undef, 'First name patron2 cleared' );
+};
+
+subtest "search_patrons_to_update_category tests" => sub {
+
+    plan tests => 9;
+
+    $schema->storage->txn_begin();
+
+    my $current_dt = dt_from_string();
+
+    # Set up category with age limits
+    my $category_code = 'TEST_CAT';
+    my $category      = $builder->build_object(
+        {
+            class => 'Koha::Patron::Categories',
+            value => {
+                categorycode        => $category_code,
+                description         => 'Test category',
+                dateofbirthrequired => 13,                # Must be 13 or older
+                upperagelimit       => 17,                # Must be 17 or younger
+            }
+        }
+    );
+
+    # Create test patrons with various ages and fines
+    my $patron_12 = $builder->build_object(
+        {    # Too young
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $category_code,
+                dateofbirth  => $current_dt->clone->subtract( years => 12 )->ymd,
+            }
+        }
+    );
+
+    my $patron_13 = $builder->build_object(
+        {    # Minimum age (not too young)
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $category_code,
+                dateofbirth  => $current_dt->clone->subtract( years => 13 )->ymd,
+            }
+        }
+    );
+
+    my $patron_17 = $builder->build_object(
+        {    # Maximum age (not too old)
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $category_code,
+                dateofbirth  => $current_dt->clone->subtract( years => 17 )->ymd,
+            }
+        }
+    );
+
+    my $patron_18 = $builder->build_object(
+        {    # Too old
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $category_code,
+                dateofbirth  => $current_dt->clone->subtract( years => 18 )->ymd,
+            }
+        }
+    );
+
+    my $patron_no_dob = $builder->build_object(
+        {    # No date of birth
+            class => 'Koha::Patrons',
+            value => {
+                categorycode => $category_code,
+                dateofbirth  => undef,
+            }
+        }
+    );
+
+    # Add fines to patrons
+    add_fines( $patron_12->borrowernumber,     5.00 );     # $5
+    add_fines( $patron_13->borrowernumber,     0.00 );     # $0
+    add_fines( $patron_17->borrowernumber,     10.00 );    # $10
+    add_fines( $patron_18->borrowernumber,     20.00 );    # $20
+    add_fines( $patron_no_dob->borrowernumber, 15.00 );    # $15
+
+    # Helper function to add fines
+    sub add_fines {
+        my ( $borrowernumber, $amount ) = @_;
+        if ( $amount > 0 ) {
+            $builder->build_object(
+                {
+                    class => 'Koha::Account::Lines',
+                    value => {
+                        borrowernumber    => $borrowernumber,
+                        amountoutstanding => $amount,
+                        debit_type_code   => 'OVERDUE',
+                    }
+                }
+            );
+        }
+    }
+
+    # Tests for the search_patrons_to_update_category method
+    subtest 'Basic test - from category only' => sub {
+        plan tests => 2;
+
+        my $patrons = Koha::Patrons->search_patrons_to_update_category(
+            {
+                from => $category_code,
+            }
+        );
+
+        is( $patrons->count, 5, "Returns all patrons in the category" );
+        my @expected_patrons = (
+            $patron_12->borrowernumber, $patron_13->borrowernumber,
+            $patron_17->borrowernumber, $patron_18->borrowernumber,
+            $patron_no_dob->borrowernumber
+        );
+
+        is_deeply(
+            [ sort $patrons->get_column('borrowernumber') ],
+            [ sort @expected_patrons ],
+            "Returns the correct patrons"
+        );
+    };
+
+    subtest 'Test too_young parameter' => sub {
+        plan tests => 2;
+
+        my $patrons = Koha::Patrons->search_patrons_to_update_category(
+            {
+                from      => $category_code,
+                too_young => 1,
+            }
+        );
+
+        is( $patrons->count,                1,                          "Returns patrons who are too young" );
+        is( $patrons->next->borrowernumber, $patron_12->borrowernumber, "Returns the correct patron" );
+    };
+
+    subtest 'Test too_old parameter' => sub {
+        plan tests => 2;
+
+        my $patrons = Koha::Patrons->search_patrons_to_update_category(
+            {
+                from    => $category_code,
+                too_old => 1,
+            }
+        );
+
+        is( $patrons->count,                1,                          "Returns patrons who are too old" );
+        is( $patrons->next->borrowernumber, $patron_18->borrowernumber, "Returns the correct patron" );
+    };
+
+    subtest 'Test fine_min parameter' => sub {
+        plan tests => 2;
+
+        my $patrons = Koha::Patrons->search_patrons_to_update_category(
+            {
+                from     => $category_code,
+                fine_min => 10.00,
+            }
+        );
+
+        is( $patrons->count, 3, "Returns patrons with fines >= 10.00" );
+        cmp_bag(
+            [ $patrons->get_column('borrowernumber') ],
+            [ $patron_17->borrowernumber, $patron_18->borrowernumber, $patron_no_dob->borrowernumber ],
+            "Returns the correct patrons"
+        );
+    };
+
+    subtest 'Test fine_max parameter' => sub {
+        plan tests => 2;
+
+        my $patrons = Koha::Patrons->search_patrons_to_update_category(
+            {
+                from     => $category_code,
+                fine_max => 10.00,
+            }
+        );
+
+        is( $patrons->count, 3, "Returns patrons with fines <= 10.00" );
+        cmp_bag(
+            [ $patrons->get_column('borrowernumber') ],
+            [ $patron_12->borrowernumber, $patron_13->borrowernumber, $patron_17->borrowernumber ],
+            "Returns the correct patrons"
+        );
+    };
+
+    subtest 'Test combining age and fine criteria' => sub {
+        plan tests => 2;
+
+        my $patrons = Koha::Patrons->search_patrons_to_update_category(
+            {
+                from     => $category_code,
+                too_old  => 1,
+                fine_min => 15.00,
+            }
+        );
+
+        is( $patrons->count,                1,                          "Returns too old patrons with fines >= 15.00" );
+        is( $patrons->next->borrowernumber, $patron_18->borrowernumber, "Returns the correct patron" );
+    };
+
+    subtest 'Test with empty result' => sub {
+        plan tests => 1;
+
+        my $patrons = Koha::Patrons->search_patrons_to_update_category(
+            {
+                from      => $category_code,
+                too_young => 1,
+                fine_max  => 1.00,
+            }
+        );
+
+        is( $patrons->count, 0, "Returns no patrons when criteria don't match any" );
+    };
+
+    subtest 'Test having both age and fine criteria with multiple matches' => sub {
+        plan tests => 2;
+
+        # Add another patron who is both too young and has fines
+        my $another_young = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => {
+                    categorycode => $category_code,
+                    dateofbirth  => $current_dt->clone->subtract( years => 12 )->subtract( months => 6 )->ymd,
+                }
+            }
+        );
+
+        add_fines( $another_young->borrowernumber, 7.50 );
+
+        my $patrons = Koha::Patrons->search_patrons_to_update_category(
+            {
+                from      => $category_code,
+                too_young => 1,
+                fine_min  => 5.00,
+            }
+        );
+
+        is( $patrons->count, 2, "Returns too young patrons with fines >= 5.00" );
+        cmp_bag(
+            [ $patrons->get_column('borrowernumber') ],
+            [ $patron_12->borrowernumber, $another_young->borrowernumber ],
+            "Returns the correct patrons"
+        );
+    };
+
+    subtest 'Test edge cases with date calculations' => sub {
+        plan tests => 4;
+
+        # Test edge case: Patron exactly at minimum age
+        my $edge_min = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => {
+                    categorycode => $category_code,
+                    dateofbirth  => $current_dt->clone->subtract( years => $category->dateofbirthrequired )->ymd,
+                }
+            }
+        );
+
+        # Test edge case: Patron exactly at upper age limit
+        my $edge_max = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => {
+                    categorycode => $category_code,
+                    dateofbirth  => $current_dt->clone->subtract( years => $category->upperagelimit )->ymd,
+                }
+            }
+        );
+
+        # Test edge case: Patron one day younger than minimum age
+        my $edge_too_young = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => {
+                    categorycode => $category_code,
+                    dateofbirth  =>
+                        $current_dt->clone->subtract( years => $category->dateofbirthrequired )->add( days => 1 )->ymd,
+                }
+            }
+        );
+
+        # Test edge case: Patron one day older than upper age limit
+        my $edge_too_old = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => {
+                    categorycode => $category_code,
+                    dateofbirth  => $current_dt->clone->subtract( years => $category->upperagelimit + 1 )
+                        ->subtract( days => 1 )
+                        ->ymd,
+                }
+            }
+        );
+
+        # Test too_young with edge cases
+        my $patrons = Koha::Patrons->search_patrons_to_update_category(
+            {
+                from      => $category_code,
+                too_young => 1,
+            }
+        );
+
+        my @too_young_patrons = $patrons->get_column('borrowernumber');
+        ok(
+            ( grep { $_ eq $edge_too_young->borrowernumber } @too_young_patrons ),
+            "Patron one day younger than min age is marked as too young"
+        );
+        ok(
+            !( grep { $_ eq $edge_min->borrowernumber } @too_young_patrons ),
+            "Patron exactly at min age is not marked as too young"
+        );
+
+        # Test too_old with edge cases
+        $patrons = Koha::Patrons->search_patrons_to_update_category(
+            {
+                from    => $category_code,
+                too_old => 1,
+            }
+        );
+
+        my @too_old_patrons = $patrons->get_column('borrowernumber');
+        ok(
+            ( grep { $_ eq $edge_too_old->borrowernumber } @too_old_patrons ),
+            "Patron just above upper age limit is marked as too old"
+        );
+        ok(
+            !( grep { $_ eq $edge_max->borrowernumber } @too_old_patrons ),
+            "Patron exactly at upper age limit is not marked as too old"
+        );
+    };
+
+    $schema->storage->txn_rollback();
 };
 
 subtest 'queue_notice' => sub {
@@ -3065,7 +3479,8 @@ subtest 'filter_by_have_permission' => sub {
     is_deeply(
         [
             Koha::Patrons->search( { branchcode => $library->branchcode } )
-                ->filter_by_have_permission('suggestions.suggestions_manage')->get_column('borrowernumber')
+                ->filter_by_have_permission('suggestions.suggestions_manage')
+                ->get_column('borrowernumber')
         ],
         [ $patron_1->borrowernumber, $patron_2->borrowernumber ],
         'Superlibrarian and patron with suggestions.suggestions_manage'
@@ -3074,7 +3489,8 @@ subtest 'filter_by_have_permission' => sub {
     is_deeply(
         [
             Koha::Patrons->search( { branchcode => $library->branchcode } )
-                ->filter_by_have_permission('acquisition.order_manage')->get_column('borrowernumber')
+                ->filter_by_have_permission('acquisition.order_manage')
+                ->get_column('borrowernumber')
         ],
         [ $patron_1->borrowernumber, $patron_3->borrowernumber ],
         'Superlibrarian and patron with acquisition.order_manage'
@@ -3083,7 +3499,8 @@ subtest 'filter_by_have_permission' => sub {
     is_deeply(
         [
             Koha::Patrons->search( { branchcode => $library->branchcode } )
-                ->filter_by_have_permission('parameters.manage_cities')->get_column('borrowernumber')
+                ->filter_by_have_permission('parameters.manage_cities')
+                ->get_column('borrowernumber')
         ],
         [ $patron_1->borrowernumber ],
         'Only Superlibrarian is returned'
@@ -3091,7 +3508,8 @@ subtest 'filter_by_have_permission' => sub {
 
     is_deeply(
         [
-            Koha::Patrons->search( { branchcode => $library->branchcode } )->filter_by_have_permission('suggestions')
+            Koha::Patrons->search( { branchcode => $library->branchcode } )
+                ->filter_by_have_permission('suggestions')
                 ->get_column('borrowernumber')
         ],
         [ $patron_1->borrowernumber, $patron_2->borrowernumber ],
@@ -3185,6 +3603,83 @@ subtest 'filter_by_expired_opac_registrations' => sub {
         Koha::Patrons->filter_by_expired_opac_registrations->filter_by_safe_to_delete->count, 1,
         "filter_by_safe_to_delete does delete borrower with no fines and no checkouts"
     );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'find_by_identifier() tests' => sub {
+
+    plan tests => 7;
+
+    $schema->storage->txn_begin;
+
+    # Create test patrons with specific userid and cardnumber
+    my $patron_1 = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $patron_2 = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    # Create a patron to delete to
+    my $to_delete     = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $ne_userid     = $to_delete->userid;
+    my $ne_cardnumber = $to_delete->cardnumber;
+    $to_delete->delete();
+
+    # Test finding by userid
+    my $found_patron = Koha::Patrons->find_by_identifier( $patron_1->userid );
+    is( $found_patron->id, $patron_1->id, 'Found patron by userid' );
+
+    # Test finding by cardnumber
+    $found_patron = Koha::Patrons->find_by_identifier( $patron_1->cardnumber );
+    is( $found_patron->id, $patron_1->id, 'Found patron by cardnumber' );
+
+    # Test finding by cardnumber when userid doesn't match
+    $found_patron = Koha::Patrons->find_by_identifier( $patron_2->cardnumber );
+    is( $found_patron->id, $patron_2->id, 'Found patron by cardnumber when userid differs' );
+
+    # Test with non-existent identifiers
+    $found_patron = Koha::Patrons->find_by_identifier($ne_cardnumber);
+    is( $found_patron, undef, 'Returns undef for non-existent identifier' );
+    $found_patron = Koha::Patrons->find_by_identifier($ne_userid);
+    is( $found_patron, undef, 'Returns undef for non-existent identifier' );
+
+    # Test with empty identifier
+    $found_patron = Koha::Patrons->find_by_identifier('');
+    is( $found_patron, undef, 'Returns undef for empty identifier' );
+
+    # Test with undef identifier
+    $found_patron = Koha::Patrons->find_by_identifier(undef);
+    is( $found_patron, undef, 'Returns undef for undef identifier' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'check_for_existing_matches' => sub {
+    plan tests => 5;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object(
+        { class => 'Koha::Patrons', value => { firstname => 'John', surname => 'Smith', dateofbirth => '1980-01-01' } }
+    );
+
+    t::lib::Mocks::mock_preference( 'PatronDuplicateMatchingAddFields', 'dateofbirth|firstname|surname' );
+
+    my $match_result = Koha::Patrons->check_for_existing_matches(
+        { firstname => 'John', surname => 'Smith', dateofbirth => '1980-01-01' } );
+    is( $match_result->{duplicate_found},                        1,                       'Duplicate found' );
+    is( $match_result->{matching_patrons}->next->borrowernumber, $patron->borrowernumber, 'Matching patron' );
+
+    t::lib::Mocks::mock_preference( 'PatronDuplicateMatchingAddFields', 'dateofbirth|firstname|surname|city' );
+    $match_result = Koha::Patrons->check_for_existing_matches(
+        { firstname => 'John', surname => 'Smith', dateofbirth => '1980-01-01', city => '' } );
+    is( $match_result->{duplicate_found}, 1, 'Duplicate found despite missing data for the city field' );
+    is(
+        $match_result->{matching_patrons}->next->borrowernumber, $patron->borrowernumber,
+        'Patron match ignores undefined field and still identifies the match'
+    );
+
+    $match_result = Koha::Patrons->check_for_existing_matches(
+        { firstname => 'John', surname => 'Smith', dateofbirth => '1980-01-01', city => 'Sandwich, Kent' } );
+    is( $match_result->{duplicate_found}, 0, 'No duplicate found' );
 
     $schema->storage->txn_rollback;
 };

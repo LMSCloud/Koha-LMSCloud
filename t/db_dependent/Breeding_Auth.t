@@ -15,14 +15,15 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # Main object of this unit test is Z3950SearchAuth in C4::Breeding.
 
 use Modern::Perl;
 use utf8;
 
-use Test::More tests => 2;
+use Test::NoWarnings;
+use Test::More tests => 3;
 use Test::MockModule;
 use Test::MockObject;
 use Test::Warn;

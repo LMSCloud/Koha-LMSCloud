@@ -15,7 +15,7 @@ package Koha::List::Patron;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -26,17 +26,10 @@ Koha::List::Patron - Management of lists of patrons
 =cut
 
 use Modern::Perl;
-
-use Carp qw( carp croak );
-
-use Koha::Database;
-
-our ( @ISA, @EXPORT_OK );
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         GetPatronLists
 
         DelPatronList
@@ -47,6 +40,10 @@ BEGIN {
         DelPatronsFromList
     );
 }
+
+use Carp qw( carp croak );
+
+use Koha::Database;
 
 =head2 GetPatronLists
 
@@ -216,8 +213,11 @@ sub DelPatronsFromList {
 
     return unless ( $list && $patron_list_patrons );
 
-    return Koha::Database->new()->schema()->resultset('PatronListPatron')
-        ->search( { patron_list_patron_id => { 'IN' => $patron_list_patrons } } )->delete();
+    return Koha::Database->new()
+        ->schema()
+        ->resultset('PatronListPatron')
+        ->search( { patron_list_patron_id => { 'IN' => $patron_list_patrons } } )
+        ->delete();
 }
 
 =head1 AUTHOR

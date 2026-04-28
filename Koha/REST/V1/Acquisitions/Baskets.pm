@@ -13,13 +13,17 @@ package Koha::REST::V1::Acquisitions::Baskets;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use Mojo::Base 'Mojolicious::Controller';
 
-use Try::Tiny qw( catch try );
+use Koha::Acquisition::Baskets;
+
+use Clone        qw( clone );
+use Scalar::Util qw( blessed );
+use Try::Tiny    qw( catch try );
 
 =head1 NAME
 
@@ -28,6 +32,30 @@ Koha::REST::V1::Acquisitions::Baskets
 =head1 API
 
 =head2 Class methods
+
+=head3 add
+
+Controller function that handles adding a new Koha::Acquisition::Basket object
+
+=cut
+
+sub add {
+    my $c = shift->openapi->valid_input or return;
+
+    return try {
+        my $basket = Koha::Acquisition::Basket->new_from_api( $c->req->json );
+        $basket->store;
+
+        $c->res->headers->location( $c->req->url->to_string . '/' . $basket->basketno );
+
+        return $c->render(
+            status  => 201,
+            openapi => $c->objects->to_api($basket),
+        );
+    } catch {
+        $c->unhandled_exception($_);
+    };
+}
 
 =head3 list
 

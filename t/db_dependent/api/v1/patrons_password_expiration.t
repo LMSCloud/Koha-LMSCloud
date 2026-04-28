@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::NoWarnings;
+use Test::More tests => 2;
 
 use Test::Mojo;
 
@@ -59,12 +60,14 @@ subtest 'basic tests' => sub {
 
     $t->put_ok( "//$userid:$password@/api/v1/patrons/"
             . $patron->id
-            . "/password/expiration_date" => json => { expiration_date => '01/13/2021' } )->status_is(400)
+            . "/password/expiration_date" => json => { expiration_date => '01/13/2021' } )
+        ->status_is(400)
         ->json_is( '/errors/0/message' => 'Does not match date format.' );
 
     $t->put_ok( "//$userid:$password@/api/v1/patrons/"
             . $patron->id
-            . "/password/expiration_date" => json => { expiration_date => '13/01/2021' } )->status_is(400)
+            . "/password/expiration_date" => json => { expiration_date => '13/01/2021' } )
+        ->status_is(400)
         ->json_is( '/errors/0/message' => 'Does not match date format.' );
 
     $privileged_patron->flags(0)->store();

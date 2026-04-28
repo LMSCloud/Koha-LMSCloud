@@ -1,5 +1,5 @@
 /* global shortcut delBasket AUDIO_ALERT_PATH Cookies */
-/* exported addBibToContext delBibToContext escape_str escape_price openWindow _ removeFocus toUC confirmDelete confirmClone playSound */
+/* exported addBibToContext delBibToContext escape_str escape_price openWindow _ removeFocus toUC confirmDelete confirmClone playSound validatePatronSearch */
 if (KOHA === undefined) var KOHA = {};
 
 function _(s) {
@@ -59,17 +59,37 @@ $.fn.selectTabByID = function (tabID) {
     $("a[href='" + tabID + "']", $(this)).tab("show");
 };
 
-$(document).ready(function () {
-    //check if sticky element is stuck, if so add floating class
-    if ($(".sticky").length) {
+function togglePanel(node) {
+    var panel = node.next();
+    if (panel.is(":visible")) {
+        node.addClass("collapsed")
+            .removeClass("expanded")
+            .attr("title", __("Click to expand this section"));
+        panel.hide();
+    } else {
+        node.addClass("expanded")
+            .removeClass("collapsed")
+            .attr("title", __("Click to collapse this section"));
+        panel.show();
+        panel.find("input, select, textarea").eq(0).focus();
+    }
+}
+
+function apply_sticky(nodes) {
+    if (nodes) {
         const observer = new IntersectionObserver(
             ([e]) =>
                 e.target.classList.toggle("floating", e.intersectionRatio < 1),
             { threshold: [1] }
         );
 
-        observer.observe(document.querySelector(".sticky"));
+        observer.observe(nodes);
     }
+}
+
+$(document).ready(function () {
+    //check if sticky element is stuck, if so add floating class
+    apply_sticky(document.querySelector(".sticky"));
 
     //check for a hash before setting focus
     let hash = window.location.hash;
@@ -190,21 +210,23 @@ $(document).ready(function () {
         $($(this).data("element")).toggle();
     });
 
-    var navmenulist = $("#navmenulist");
-    if (navmenulist.length > 0) {
-        var path = location.pathname.substring(1);
-        var url = window.location.toString();
-        var params = "";
-        if (url.match(/\?(.+)$/)) {
-            params = "?" + RegExp.$1;
-        }
-        if ($('a[href$="/' + path + params + '"]', navmenulist).length == 0) {
-            $('a[href$="/' + path + '"]', navmenulist).addClass("current");
-        } else {
-            $('a[href$="/' + path + params + '"]', navmenulist).addClass(
-                "current"
-            );
-        }
+    var sidebar_menu = $(".sidebar_menu");
+    if (sidebar_menu.length > 0) {
+        sidebar_menu.each(function () {
+            var path = location.pathname.substring(1);
+            var url = window.location.toString();
+            var params = "";
+            if (url.match(/\?(.+)$/)) {
+                params = "?" + RegExp.$1;
+            }
+            if ($('a[href$="/' + path + params + '"]', $(this)).length == 0) {
+                $('a[href$="/' + path + '"]', $(this)).addClass("current");
+            } else {
+                $('a[href$="/' + path + params + '"]', $(this)).addClass(
+                    "current"
+                );
+            }
+        });
     }
 
     $("#catalog-search-link a").on("mouseenter mouseleave", function () {
@@ -420,6 +442,19 @@ $(document).ready(function () {
         }
     });
 
+    (function () {
+        const trigger = document.getElementById("logged-in-menu");
+        if (trigger) {
+            bootstrap.Dropdown.getOrCreateInstance(trigger, {
+                autoClose: "outside",
+            });
+        }
+    })();
+
+    $("#setlibrary_panel").on("click", function (e) {
+        e.stopPropagation();
+    });
+
     $("#logged-in-dropdown").on("hidden.bs.dropdown", function () {
         $("#setlibrary_panel")
             .removeClass("setlibrary_panel_open")
@@ -430,6 +465,23 @@ $(document).ready(function () {
     if ($('[data-bs-toggle="tooltip"]').length) {
         $('[data-bs-toggle="tooltip"]').tooltip();
     }
+
+    if ($(".pagination.output").length > 0) {
+        $(".output.first").append(__("First"));
+        $(".output.previous").append(__("Previous"));
+        $(".output.next").prepend(__("Next"));
+        $(".output.last").prepend(__("Last"));
+    }
+
+    $(".collapsed,.expanded").on("click", function (e) {
+        e.preventDefault();
+        togglePanel($(this));
+    });
+
+    $("#patron_header_search").on("submit", function (e) {
+        e.preventDefault();
+        validatePatronSearch($(this)[0]);
+    });
 });
 
 function removeLastBorrower() {
@@ -473,6 +525,9 @@ function logOut() {
     localStorage.removeItem("patron_search_selections");
     localStorage.removeItem("item_search_selections");
     localStorage.removeItem("copiedPermissions");
+    localStorage.removeItem("popup_window_width");
+    localStorage.removeItem("popup_window_height");
+    localStorage.removeItem("show_local_items");
 
     // Remove DataTables states
     Object.keys(localStorage).forEach(k => {
@@ -654,6 +709,7 @@ function patron_autocomplete(node, options) {
     let link_to;
     let url_params;
     let on_select_callback;
+    let on_select_add_to;
 
     if (options) {
         if (options["link-to"]) {
@@ -664,6 +720,9 @@ function patron_autocomplete(node, options) {
         }
         if (options["on-select-callback"]) {
             on_select_callback = options["on-select-callback"];
+        }
+        if (options["on-select-add-to"]) {
+            on_select_add_to = options["on-select-add-to"];
         }
     }
     return (node
@@ -701,9 +760,30 @@ function patron_autocomplete(node, options) {
             },
             minLength: 3,
             select: function (event, ui) {
-                if (ui.item.link) {
+                if (on_select_add_to) {
+                    let container = on_select_add_to.container;
+
+                    const patron_name = $patron_to_html(ui.item);
+                    const node = `
+                      <div id='patron-detail-${ui.item.patron_id}' class='patron-detail-autocomplete-selection'>
+                        ${patron_name}
+                        (<a href='#' class='removePatron'>
+                          <i class='fa fa-trash-can' aria-hidden='true'></i> ${__("Remove")}
+                        </a>)
+                        <input type='hidden' name='${on_select_add_to.input_name}' value='${ui.item.patron_id}' />
+                      </div>
+                    `;
+
+                    $(container).append(node).parent().show(800);
+
+                    $(container).on("click", ".removePatron", function (e) {
+                        e.preventDefault();
+                        $(this).closest('div[id^="patron-detail-"]').remove();
+                    });
+                } else if (ui.item.link) {
                     window.location.href = ui.item.link;
-                } else if (on_select_callback) {
+                }
+                if (on_select_callback) {
                     return on_select_callback(event, ui);
                 }
             },
@@ -727,11 +807,6 @@ function patron_autocomplete(node, options) {
             item.link = null;
         }
 
-        var cardnumber = "";
-        if (item.cardnumber != "") {
-            // Display card number in parentheses if it exists
-            cardnumber = " (" + item.cardnumber + ") ";
-        }
         if (item.library_id == loggedInLibrary) {
             loggedInClass = "ac-currentlibrary";
         } else {
@@ -743,20 +818,12 @@ function patron_autocomplete(node, options) {
             .append(
                 "" +
                     (item.link ? '<a href="' + item.link + '">' : "<a>") +
-                    (item.surname ? item.surname.escapeHtml() : "") +
-                    ", " +
-                    (item.preferred_name
-                        ? item.preferred_name.escapeHtml()
-                        : item.firstname
-                          ? item.firstname.escapeHtml()
-                          : "") +
-                    " " +
-                    (item.middle_name ? item.middle_name.escapeHtml() : "") +
-                    " " +
-                    (item.other_name
-                        ? "(" + item.other_name.escapeHtml() + ")"
-                        : "") +
-                    cardnumber.escapeHtml() +
+                    $patron_to_html(item, {
+                        display_cardnumber: true,
+                        invert_name: true,
+                        showDiffFirstname:
+                            showPatronFirstnameIfDifferentThanPreferredname,
+                    }) +
                     " " +
                     (item.date_of_birth
                         ? $date(item.date_of_birth) +
@@ -965,4 +1032,65 @@ function toggleBtnIcon(element, start, replacement) {
                 });
             });
     });
+}
+
+/**
+ * Determines which patron page we are on based on the URL
+ * @return {string} The patron page we are on, "circ" or "borrower", or null
+ *                  if neither page is matched
+ */
+function holds_table_patron_page() {
+    var url = window.location.href;
+    if (
+        url.indexOf("/circ/circulation.pl?borrowernumber=") !== -1 ||
+        url.indexOf("/circ/circulation.pl?findborrower=") !== -1
+    )
+        return "circ";
+    else if (url.indexOf("/members/moremember.pl?borrowernumber=") !== -1)
+        return "borrower";
+
+    return null;
+}
+
+/**
+ * Returns a roughly ideal position to scroll an element into view
+ * @param {string} target - The HTML id of the element to scroll into view
+ * @param {string} elemid - The HTML id of the element which might obscure
+ *                          the view of the target element e.g. a floating toolbar
+ * @return {number} - The y-coordinate to pass to window.scrollTo()
+ */
+function getScrollto(target, elemid) {
+    var dest = $("#" + target);
+    var yoffset = dest.offset();
+
+    if (elemid != "") {
+        var element = $("#" + elemid);
+        var elem_height = element.outerHeight();
+    } else {
+        elem_height = 0;
+    }
+    return yoffset.top - elem_height - 20;
+}
+
+function validatePatronSearch(form) {
+    const searchTerm = form.searchmember.value.trim();
+    const branchSelected =
+        form.branchcode_filter && form.branchcode_filter.value !== "";
+    const categorySelected =
+        form.categorycode_filter && form.categorycode_filter.value !== "";
+
+    if (!searchTerm && !branchSelected && !categorySelected) {
+        $(form.searchmember)
+            .tooltip({
+                trigger: "manual",
+                placement: "bottom",
+                title: __("Please enter a card number or name"),
+            })
+            .tooltip("show");
+        $(document).on("click", function () {
+            $(form.searchmember).tooltip("hide");
+        });
+        return false;
+    }
+    return true;
 }

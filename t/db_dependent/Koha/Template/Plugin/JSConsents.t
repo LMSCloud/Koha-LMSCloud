@@ -5,11 +5,12 @@ use Modern::Perl;
 use C4::Context;
 
 use Test::MockModule;
-use Test::More tests => 3;
+use Test::NoWarnings;
+use Test::More tests => 4;
 use t::lib::Mocks;
 
 BEGIN {
-    use_ok( 'Koha::Template::Plugin::JSConsents', "Can use Koha::Template::Plugin::JSConsents" );
+    use_ok('Koha::Template::Plugin::JSConsents');
 }
 
 ok( my $consents = Koha::Template::Plugin::JSConsents->new(), 'Able to instantiate template plugin' );

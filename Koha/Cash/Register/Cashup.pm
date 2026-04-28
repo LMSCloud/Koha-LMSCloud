@@ -13,7 +13,7 @@ package Koha::Cash::Register::Cashup;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -189,7 +189,7 @@ sub summary {
 
 =head3 to_api_mapping
 
-This method returns the mapping for representing a Koha::Cash::Regiser::Cashup object
+This method returns the mapping for representing a Koha::Cash::Register::Cashup object
 on the API.
 
 =cut

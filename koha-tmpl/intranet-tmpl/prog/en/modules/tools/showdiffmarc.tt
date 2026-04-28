@@ -53,7 +53,7 @@
 <div class="main container-fluid">
     <main>
         <div class="row">
-            <div class="col-sm-10 offset-sm-1">
+            <div class="col-sm-10 col-sm-push-1">
                 [% INCLUDE 'messages.inc' %]
                 <h1>Compare matched records</h1>
 
@@ -89,19 +89,20 @@
             </div>
         </div>
     </main>
-
-    [% MACRO jsinclude BLOCK %]
-        [% Asset.js("js/tools-menu.js") | $raw %]
-        [% Asset.js("lib/jsdiff/jsdiff.min.js") | $raw %]
-        <script>
-            $(document).ready(function () {
-                var diff1 = $("#col1 pre").text();
-                var diff2 = $("#col2 pre").text();
-                var diffs = diffString(diff1, diff2);
-                $("#col1 pre,#col2 pre").html(diffs);
-            });
-        </script>
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") | $raw %]
+    [% Asset.js("lib/jsdiff/jsdiff.min.js") | $raw %]
+    <script>
+        $(document).ready(function () {
+            var diff1 = $("#col1 pre").text();
+            var diff2 = $("#col2 pre").text();
+            var diffs = diffString(diff1, diff2);
+            $("#col1 pre,#col2 pre").html(diffs);
+        });
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]

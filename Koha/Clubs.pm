@@ -15,7 +15,7 @@ package Koha::Clubs;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -103,6 +103,12 @@ sub filter_out_empty {
 sub _type {
     return 'Club';
 }
+
+=head2 object_class
+
+Missing POD for object_class.
+
+=cut
 
 sub object_class {
     return 'Koha::Club';

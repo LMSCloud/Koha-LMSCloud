@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::NoWarnings;
+use Test::More tests => 2;
 use Test::Mojo;
 
 use t::lib::TestBuilder;
@@ -111,12 +112,18 @@ subtest 'list() tests' => sub {
 
     ## Authorized user tests
     my $query = encode_json( { item_type_id => $item_type->id } );
-    $t->get_ok("//$userid:$password@/api/v1/item_types?q=$query")->status_is(200)->json_has('/0')
-        ->json_is( '/0/description', $item_type->description )->json_hasnt('/0/translated_descriptions');
+    $t->get_ok("//$userid:$password@/api/v1/item_types?q=$query")
+        ->status_is(200)
+        ->json_has('/0')
+        ->json_is( '/0/description', $item_type->description )
+        ->json_hasnt('/0/translated_descriptions');
 
     $t->get_ok( "//$userid:$password@/api/v1/item_types?q=$query" => { 'x-koha-embed' => 'translated_descriptions' } )
-        ->status_is(200)->json_has('/0')->json_is( '/0/description', $item_type->description )
-        ->json_has('/0/translated_descriptions')->json_is(
+        ->status_is(200)
+        ->json_has('/0')
+        ->json_is( '/0/description', $item_type->description )
+        ->json_has('/0/translated_descriptions')
+        ->json_is(
         '/0/translated_descriptions',
         [
             { lang => 'en',    translation => 'English word "test"' },

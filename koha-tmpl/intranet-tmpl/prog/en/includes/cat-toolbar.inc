@@ -1,6 +1,5 @@
 [% USE Context %]
 [% USE Biblio %]
-[% INCLUDE 'blocking_errors.inc' %]
 
 [%# Parameters: %]
 [%# biblio: the Koha::Biblio object %]
@@ -284,6 +283,10 @@
             [% END %]
         [% END %]
     [% END %]
+
+    <div class="btn-group">
+        <a id="audit_record" class="btn btn-default" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber | html %]&audit=1" role="button"> <i class="fa-solid fa-stethoscope"></i> Audit</a>
+    </div>
 
     [% IF ( CAN_user_circulate_manage_bookings && biblio.items.filter_by_bookable.count ) %]
         [% INCLUDE 'modals/booking/button-place.inc' %]

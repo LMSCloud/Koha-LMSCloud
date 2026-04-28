@@ -13,9 +13,8 @@ package C4::NoticeFees;
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Carp;
@@ -45,7 +44,7 @@ C4::NoticeFees - Koha module to charge notice fees
              amount         => $fee,
              letter_date    => output_pref( { dt => dt_from_string, dateonly => 1 } ),
              claimlevel     => $claimlevel,
-            
+
              # these are parameters that we need for fancy message printig
              branchcode     => $branchcode,
              substitute     => {

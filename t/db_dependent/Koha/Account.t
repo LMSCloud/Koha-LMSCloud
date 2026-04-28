@@ -15,13 +15,15 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>
+# along with Koha; if not, see <https://www.gnu.org/licenses>
 
 use Modern::Perl;
 
-use Test::More tests => 15;
+use Test::NoWarnings;
+use Test::More tests => 16;
 use Test::MockModule;
 use Test::Exception;
+use Test::Warn;
 
 use DateTime;
 
@@ -37,6 +39,23 @@ use t::lib::TestBuilder;
 my $schema = Koha::Database->new->schema;
 $schema->storage->dbh->{PrintError} = 0;
 my $builder = t::lib::TestBuilder->new;
+
+# Disable LMS CashRegister to prevent branchcode FK issues in tests
+t::lib::Mocks::mock_preference( 'ActivateCashRegisterTransactionsOnly', 0 );
+
+# Ensure payment/writeoff notice templates exist to avoid warnings
+for my $code (qw( ACCOUNT_PAYMENT ACCOUNT_WRITEOFF )) {
+    unless ( Koha::Notice::Templates->search( { code => $code, message_transport_type => 'email' } )->count ) {
+        Koha::Notice::Template->new(
+            {
+                module  => 'circulation',  code                   => $code,   branchcode => '',
+                name    => $code,          is_html                => 0,       title      => $code,
+                content => "$code notice", message_transport_type => 'email', lang       => 'default',
+            }
+        )->store;
+    }
+}
+
 C4::Context->interface('commandline');
 
 subtest 'new' => sub {
@@ -130,7 +149,7 @@ subtest 'outstanding_debits() tests' => sub {
         {
             borrowernumber    => $patron_4->id,
             amount            => -3,
-            amountoutstanding => 3,
+            amountoutstanding =>  3,
             interface         => 'commandline',
             credit_type_code  => 'PAYMENT'
         }
@@ -174,7 +193,7 @@ subtest 'outstanding_credits() tests' => sub {
     Koha::Account::Line->new(
         {
             borrowernumber    => $patron_2->id,
-            amount            => 2,
+            amount            =>  2,
             amountoutstanding => -3,
             interface         => 'commandline',
             debit_type_code   => 'OVERDUE'
@@ -335,7 +354,7 @@ subtest 'add_credit() tests' => sub {
 
 subtest 'add_debit() tests' => sub {
 
-    plan tests => 14;
+    plan tests => 15;
 
     $schema->storage->txn_begin;
 
@@ -363,24 +382,26 @@ subtest 'add_debit() tests' => sub {
     }
     'Koha::Exceptions::Account::AmountNotPositive', 'Expected validation exception thrown (amount)';
 
-    throws_ok {
-        local *STDERR;
-        open STDERR, '>', '/dev/null';
-        $account->add_debit(
-            {
-                amount      => 5,
-                description => 'type validation failure',
-                library_id  => $patron->branchcode,
-                note        => 'this should fail anyway',
-                type        => 'failure',
-                user_id     => $patron->id,
-                interface   => 'commandline'
+    warning_like(
+        sub {
+            throws_ok {
+                $account->add_debit(
+                    {
+                        amount      => 5,
+                        description => 'type validation failure',
+                        library_id  => $patron->branchcode,
+                        note        => 'this should fail anyway',
+                        type        => 'failure',
+                        user_id     => $patron->id,
+                        interface   => 'commandline'
+                    }
+                );
             }
-        );
-        close STDERR;
-    }
-    'Koha::Exceptions::Account::UnrecognisedType',
-        'Expected validation exception thrown (type)';
+            'Koha::Exceptions::Account::UnrecognisedType',
+                'Expected validation exception thrown (type)';
+        },
+        qr{a foreign key constraint fails}
+    );
 
     throws_ok {
         $account->add_debit(
@@ -540,13 +561,13 @@ subtest 'reconcile_balance' => sub {
         )->store;
 
         is( $account->balance(),                              -5,  "Account balance is -5" );
-        is( $account->outstanding_debits->total_outstanding,  10,  'Outstanding debits sum 10' );
+        is( $account->outstanding_debits->total_outstanding,   10, 'Outstanding debits sum 10' );
         is( $account->outstanding_credits->total_outstanding, -15, 'Outstanding credits sum -15' );
 
         $account->reconcile_balance();
 
         is( $account->balance(),                              -5, "Account balance is -5" );
-        is( $account->outstanding_debits->total_outstanding,  0,  'No outstanding debits' );
+        is( $account->outstanding_debits->total_outstanding,   0, 'No outstanding debits' );
         is( $account->outstanding_credits->total_outstanding, -5, 'Outstanding credits sum -5' );
 
         $schema->storage->txn_rollback;
@@ -593,8 +614,8 @@ subtest 'reconcile_balance' => sub {
             }
         )->store;
 
-        is( $account->balance(),                              0,   "Account balance is 0" );
-        is( $account->outstanding_debits->total_outstanding,  10,  'Outstanding debits sum 10' );
+        is( $account->balance(),                               0,  "Account balance is 0" );
+        is( $account->outstanding_debits->total_outstanding,   10, 'Outstanding debits sum 10' );
         is( $account->outstanding_credits->total_outstanding, -10, 'Outstanding credits sum -10' );
 
         $account->reconcile_balance();
@@ -648,8 +669,8 @@ subtest 'reconcile_balance' => sub {
             }
         )->store;
 
-        is( $account->balance(),                              5,   "Account balance is 5" );
-        is( $account->outstanding_debits->total_outstanding,  15,  'Outstanding debits sum 15' );
+        is( $account->balance(),                               5,  "Account balance is 5" );
+        is( $account->outstanding_debits->total_outstanding,   15, 'Outstanding debits sum 15' );
         is( $account->outstanding_credits->total_outstanding, -10, 'Outstanding credits sum -10' );
 
         $account->reconcile_balance();
@@ -679,8 +700,8 @@ subtest 'reconcile_balance' => sub {
         my $debit_2 = $account->add_debit( { amount => 2, interface => 'commandline', type => 'OVERDUE' } );
         my $debit_3 = $account->add_debit( { amount => 3, interface => 'commandline', type => 'OVERDUE' } );
 
-        is( $account->balance(),                              2,  "Account balance is 2" );
-        is( $account->outstanding_debits->total_outstanding,  6,  'Outstanding debits sum 6' );
+        is( $account->balance(),                               2, "Account balance is 2" );
+        is( $account->outstanding_debits->total_outstanding,   6, 'Outstanding debits sum 6' );
         is( $account->outstanding_credits->total_outstanding, -4, 'Outstanding credits sum -4' );
 
         $account->reconcile_balance();
@@ -754,7 +775,8 @@ subtest 'pay() tests' => sub {
     my $credit_1_id = $account->pay( { amount => 200 } )->{payment_id};
     my $credit_1    = Koha::Account::Lines->find($credit_1_id);
 
-    is( $credit_1->branchcode, undef, 'No branchcode is set if library_id was not passed' );
+    # LMS: branchcode auto-populated from userenv when library_id not explicitly passed
+    is( $credit_1->branchcode, $library->id, 'branchcode set from userenv when library_id not passed (LMS behavior)' );
 
     my $credit_2_id = $account->pay( { amount => 150, library_id => $library->id } )->{payment_id};
     my $credit_2    = Koha::Account::Lines->find($credit_2_id);
@@ -791,11 +813,11 @@ subtest 'pay() tests' => sub {
     my $payment = Koha::Account::Lines->find( { accountlines_id => $result->{payment_id} } );
     is( $payment->manager_id, undef, "manager_id left undefined when no userenv found" );
 
-    subtest 'UseEmailReceipts tests' => sub {
+    subtest 'AutomaticEmailReceipts tests' => sub {
 
         plan tests => 5;
 
-        t::lib::Mocks::mock_preference( 'UseEmailReceipts', 1 );
+        t::lib::Mocks::mock_preference( 'AutomaticEmailReceipts', 1 );
 
         my %params;
 
@@ -1015,7 +1037,7 @@ subtest 'pay() handles lost items when paying by amount ( not specifying the los
 
     $account->pay(
         {
-            amount     => .5,,
+            amount     => .5,
             library_id => $library->id,
         }
     );
@@ -1258,7 +1280,7 @@ subtest 'Koha::Account::pay() generates credit number (Koha::Account::Line->stor
     $accountlines_id =
         $account->pay( { type => 'WRITEOFF', amount => '1.00', library_id => $library->id } )->{payment_id};
     $accountline = Koha::Account::Lines->find($accountlines_id);
-    is( $accountline->credit_number, undef, "Annual format credit number not aded for writeoff" );
+    is( $accountline->credit_number, undef, "Annual format credit number not added for writeoff" );
 
     t::lib::Mocks::mock_preference( 'AutoCreditNumber', 'branchyyyymmincr' );
     for my $i ( 1 .. 11 ) {
@@ -1359,7 +1381,7 @@ subtest 'Koha::Account::payout_amount() tests' => sub {
     my $credit_3 = $account->add_credit( { amount => 5,  interface => 'commandline' } );
     my $credit_4 = $account->add_credit( { amount => 10, interface => 'commandline' } );
     my $credits  = $account->outstanding_credits();
-    is( $credits->count,                 4,   "Found 4 credits with outstanding amounts" );
+    is( $credits->count,                  4,  "Found 4 credits with outstanding amounts" );
     is( $credits->total_outstanding + 0, -20, "Total -20 outstanding credit" );
 
     my $payout = $account->payout_amount($payout_params);
@@ -1367,7 +1389,7 @@ subtest 'Koha::Account::payout_amount() tests' => sub {
     is( $payout->amount + 0,            10,                    "Payout amount recorded correctly" );
     is( $payout->amountoutstanding + 0, 0,                     "Full amount was paid out" );
     $credits = $account->outstanding_credits();
-    is( $credits->count,                 1,   "Payout was applied against oldest outstanding credits first" );
+    is( $credits->count,                  1,  "Payout was applied against oldest outstanding credits first" );
     is( $credits->total_outstanding + 0, -10, "Total of 10 outstanding credit remaining" );
 
     my $offsets = Koha::Account::Offsets->search( { debit_id => $payout->id } );
@@ -1396,7 +1418,7 @@ subtest 'Koha::Account::payout_amount() tests' => sub {
     $payout                   = $account->payout_amount($payout_params);
 
     $credits = $account->outstanding_credits();
-    is( $credits->count,                 2,      "Second credit not fully paid off" );
+    is( $credits->count,                  2,     "Second credit not fully paid off" );
     is( $credits->total_outstanding + 0, -12.50, "12.50 outstanding credit remaining" );
     $credit_4->discard_changes;
     $credit_5->discard_changes;
@@ -1492,7 +1514,7 @@ subtest 'Koha::Account::payin_amount() tests' => sub {
     my $payin = $account->payin_amount($payin_params);
     is( ref($payin),                   'Koha::Account::Line', 'Return the Koha::Account::Line object for the payin' );
     is( $payin->amount + 0,            -10,                   "Payin amount recorded correctly" );
-    is( $payin->amountoutstanding + 0, 0,                     "Full amount was used to pay debts" );
+    is( $payin->amountoutstanding + 0,  0,                    "Full amount was used to pay debts" );
     $debits = $account->outstanding_debits();
     is( $debits->count,                 1,  "Payin was applied against oldest outstanding debits first" );
     is( $debits->total_outstanding + 0, 10, "Total of 10 outstanding debit remaining" );

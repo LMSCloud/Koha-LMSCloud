@@ -7,7 +7,8 @@ use Koha::Database;
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Library;
 
-use Test::More tests => 7;
+use Test::NoWarnings;
+use Test::More tests => 8;
 
 BEGIN {
     use_ok(
@@ -83,7 +84,7 @@ is_deeply(
         cardnumber => 'Cardnumber1',
         amount     => '10.000000'
     },
-    "GetOffline returns offlineoperation's informations"
+    "GetOffline returns offlineoperation's information"
 );
 is(
     GetOfflineOperation(), undef,

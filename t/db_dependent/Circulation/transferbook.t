@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 6;
+use Test::NoWarnings;
+use Test::More tests => 7;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
@@ -31,12 +32,12 @@ my $schema  = Koha::Database->new->schema;
 
 $schema->storage->txn_begin;
 
-subtest 'transfer a non-existant item' => sub {
+subtest 'transfer a non-existent item' => sub {
     plan tests => 2;
 
     my $library = $builder->build( { source => 'Branch' } );
 
-    #Transfert on unknown barcode
+    #Transfer on unknown barcode
     my $item  = $builder->build_sample_item();
     my $badbc = $item->barcode;
     $item->delete;

@@ -27,8 +27,8 @@
                                 <div class="hint">Enter patron card number or partial name</div>
                             </li>
                             <li>
-                                <label class="required" for="booking_pickup">Pickup at:</label>
-                                <select name="booking_pickup" id="pickup_library_id" required="required" disabled="true"></select>
+                                <label class="required" for="pickup_library_id">Pickup at:</label>
+                                <select name="booking_pickup" id="pickup_library_id" required="required" disabled="disabled"></select>
                                 <span class="required">Required</span>
                             </li>
                             <li>

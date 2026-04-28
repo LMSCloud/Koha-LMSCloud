@@ -13,15 +13,16 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More;
+use Test::More tests => 2;
+use Test::NoWarnings;
 
 use File::Slurp qw(read_file);
 
 my @excluded_paths =
-    qw(C4 debian docs etc external installer/data install_misc Koha misc selenium t test tmp xt changelanguage.pl build-resources.PL fix-perl-path.PL koha_perl_deps.pl );
+    qw(C4 debian docs etc installer/data install_misc Koha misc selenium t test tmp xt changelanguage.pl build-resources.PL fix-perl-path.PL koha_perl_deps.pl );
 push @excluded_paths, 'opac';    # We cannot test the OPAC scripts, some can be accessed without authentication
 
 my $grep_cmd = q{git grep -l '#!/usr/bin/perl' -- } . join( ' ', map { qq{':!$_'} } @excluded_paths );
@@ -39,4 +40,3 @@ FILE: foreach my $file (@files) {
     push @missing_auth_check, $file;
 }
 is( scalar @missing_auth_check, 0 ) or diag "No auth check in the following files:\n" . join "\n", @missing_auth_check;
-done_testing;

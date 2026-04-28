@@ -15,7 +15,7 @@ package Koha::Subscription;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -74,7 +74,9 @@ sub subscribers {
     my ($self) = @_;
     my $schema = Koha::Database->new->schema;
     my @borrowernumbers =
-        $schema->resultset('Alert')->search( { externalid => $self->subscriptionid } )->get_column('borrowernumber')
+        $schema->resultset('Alert')
+        ->search( { externalid => $self->subscriptionid } )
+        ->get_column('borrowernumber')
         ->all;
     return Koha::Patrons->search( { borrowernumber => { -in => \@borrowernumbers } } );
 }

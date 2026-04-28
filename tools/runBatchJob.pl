@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # runBatchJobs.pl
 #
@@ -268,6 +268,15 @@ if ( $op eq 'progress' ) {
             $expired_before = dt_from_string($expired_before);
             $runCmd .=
                 ' --expired_before=' . output_pref( { dt => $expired_before, dateonly => 1, dateformat => 'iso', } );
+        }
+
+        my $delete_patrons_branch = $input->param('delete_patrons_branch') || '';
+        if ( $delete_patrons_branch =~ /^[A-Za-z0-9_-]+$/ ) {
+            $runCmd .= ' --library=' . $delete_patrons_branch;
+        }
+        my $delete_patrons_categorycode = $input->param('delete_patrons_categorycode') || '';
+        if ( $delete_patrons_categorycode =~ /^[A-Za-z0-9_-]+$/ ) {
+            $runCmd .= ' --category_code=' . $delete_patrons_categorycode;
         }
 
         if ( ( !$expired_before ) && ( !$inactive_since ) ) {

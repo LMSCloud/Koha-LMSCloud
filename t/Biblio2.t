@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Test::More;
+use Test::NoWarnings;
+use Test::More tests => 3;
 use Test::MockModule;
 
 use MARC::Record;
@@ -57,5 +58,3 @@ sub _koha_marc_update_bib_ids_control {
     is( $r->field('001')->data(), 10, 'Biblionumber to control field' );
     is( $r->field('004')->data(), 20, 'Biblioitemnumber to control field' );
 }
-
-done_testing();

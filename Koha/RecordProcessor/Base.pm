@@ -15,7 +15,7 @@ package Koha::RecordProcessor::Base;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -38,7 +38,7 @@ The following variables must be defined in each filter:
   our $NAME ='Filter';
   our $VERSION = '1.0';
 
-These methods may be overriden:
+These methods may be overridden:
 
 B<initialize (%params)> - initialize the filter
 
@@ -87,7 +87,7 @@ sub new {
 
 =head2 initialize
 
-    $filter->initalize(%params);
+    $filter->initialize(%params);
 
 Initialize a filter using the specified parameters.
 

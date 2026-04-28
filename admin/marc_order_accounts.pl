@@ -19,7 +19,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
@@ -81,6 +81,7 @@ if ( $op eq 'acct_form' ) {
             encoding           => scalar $input->param('encoding') || 'UTF-8',
             match_field        => scalar $input->param('match_field'),
             match_value        => scalar $input->param('match_value'),
+            basket_name_field  => scalar $input->param('basket_name_field'),
         };
 
         if ( scalar $input->param('id') ) {

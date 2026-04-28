@@ -2805,7 +2805,7 @@
             const section = document.createElement("section");
             const label = document.createElement("header");
             label.textContent = this.label;
-            label.classList.add("h3", "text-muted", "pl-3");
+            label.classList.add("h3", "text-muted", "ps-3");
             coverflowQueryContainer.insertAdjacentElement(
                 "beforebegin",
                 section

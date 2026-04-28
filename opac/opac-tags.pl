@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -357,15 +357,15 @@ __END__
 
 =head1 EXAMPLE AJAX POST PARAMETERS
 
-CGISESSID	7c6288263107beb320f70f78fd767f56
-newtag396	fire,+<a+href="foobar.html">foobar</a>,+<img+src="foo.jpg"+/>
+CGISESSID    7c6288263107beb320f70f78fd767f56
+newtag396    fire,+<a+href="foobar.html">foobar</a>,+<img+src="foo.jpg"+/>
 
 So this request is trying to add 3 tags to biblio #396.  The CGISESSID is the same as that the browser would
 typically communicate using cookies.  If it is valid, the server will split the value of "newtag396" and 
 process the components for addition.  In this case the intended tags are:
-	fire
-	<a+href="foobar.html">foobar</a>
-	<img src="foo.jpg" />
+    fire
+    <a+href="foobar.html">foobar</a>
+    <img src="foo.jpg" />
 
 The first tag is acceptable.  The second will be scrubbed of markup, resulting in the tag "foobar".  
 The third tag is all markup, and will be rejected.  
@@ -373,13 +373,13 @@ The third tag is all markup, and will be rejected.
 =head1 EXAMPLE AJAX JSON response
 
 response = {
-	added: 2,
-	deleted: 0,
-	errors: 2,
-	alerts: [
-		 KOHA.Tags.tag_message.scrubbed("foobar"),
- 		 KOHA.Tags.tag_message.scrubbed_all_bad("1"),
- 	],
+    added: 2,
+    deleted: 0,
+    errors: 2,
+    alerts: [
+         KOHA.Tags.tag_message.scrubbed("foobar"),
+          KOHA.Tags.tag_message.scrubbed_all_bad("1"),
+     ],
 };
 
 =cut

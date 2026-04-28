@@ -14,13 +14,14 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use MARC::File::XML;
 use List::MoreUtils qw( uniq );
 use Getopt::Long    qw( GetOptions );
 use Pod::Usage      qw( pod2usage );
+use File::Basename  qw( fileparse );
 
 use Koha::Script;
 use C4::Auth;
@@ -34,6 +35,7 @@ use Koha::CsvProfiles;
 use Koha::Exporter::Record;
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Reports;
+use Koha::File::Transports;
 
 my (
     $output_format,
@@ -62,7 +64,9 @@ my (
     $report,
     $sql,
     $params_needed,
-    $help
+    $destination_server_id,
+    $delete_local_after_run,
+    $help,
 );
 
 GetOptions(
@@ -89,7 +93,9 @@ GetOptions(
     'embed_see_from_headings' => \$embed_see_from_headings,
     'report_id=s'             => \$report_id,
     'report_param=s'          => \@report_params,
-    'h|help|?'                => \$help
+    'destination_server_id=s' => \$destination_server_id,
+    'delete_local_after_run'  => \$delete_local_after_run,
+    'h|help|?'                => \$help,
 ) || pod2usage(1);
 
 if ($help) {
@@ -117,6 +123,19 @@ if ( $record_type ne 'bibs' and $record_type ne 'auths' ) {
 
 if ( $deleted_barcodes and $record_type ne 'bibs' ) {
     pod2usage(q|--deleted_barcodes can only be used with biblios|);
+}
+
+my $file_transport;
+if ($destination_server_id) {
+    $file_transport = Koha::File::Transports->find($destination_server_id);
+
+    pod2usage( sprintf( "No file transport server (%s) found", $destination_server_id ) )
+        unless $file_transport;
+}
+
+# Validate flag combinations
+if ( $delete_local_after_run && !$destination_server_id ) {
+    pod2usage("--delete_local_after_run requires --destination_server_id to be specified");
 }
 
 if ($report_id) {
@@ -340,6 +359,54 @@ if ($deleted_barcodes) {
         }
     );
 }
+
+if ($file_transport) {
+
+    # Verify the file was created successfully before attempting upload
+    unless ( -f $filename ) {
+        die "Error: Output file '$filename' was not created successfully\n";
+    }
+
+    # Connect to the transport
+    unless ( $file_transport->connect ) {
+        die sprintf( "Error: Unable to connect to file transport server (ID: %s)\n", $destination_server_id );
+    }
+
+    # Change to upload directory if specified
+    my $upload_dir = $file_transport->upload_directory;
+    if ($upload_dir) {
+        unless ( $file_transport->change_directory($upload_dir) ) {
+            $file_transport->disconnect;
+            die sprintf(
+                "Error: Unable to change to upload directory '%s' on server (ID: %s)\n", $upload_dir,
+                $destination_server_id
+            );
+        }
+    }
+
+    # Upload the file
+    # Extract just the filename from the path for remote upload
+    my ($remote_filename) = fileparse($filename);
+    unless ( $file_transport->upload_file( $filename, $remote_filename ) ) {
+        $file_transport->disconnect;
+        die sprintf( "Error: Unable to upload file '%s' to server (ID: %s)\n", $filename, $destination_server_id );
+    }
+
+    # Always disconnect when done
+    $file_transport->disconnect;
+
+    print STDERR "Successfully uploaded '$filename' to file transport server (ID: $destination_server_id)\n";
+}
+
+if ($delete_local_after_run) {
+    if ( -f $filename ) {
+        unless ( unlink $filename ) {
+            die sprintf( "Error: Unable to delete local file '%s': %s\n", $filename, $! );
+        }
+        print STDERR "Successfully deleted local file '$filename'\n";
+    }
+}
+
 exit;
 
 =head1 NAME
@@ -483,6 +550,19 @@ Print a brief help message.
                                 Report params are not combined as on the staff side, so you may
                                 need to repeat params.
 
+=item B<--destination_server_id>
+
+--destination_server_id=ID      Provide this option, along with the destination server ID, to
+                                upload the resultant mrc file to the selected file transport server.
+                                You can create file transport servers using the Koha staff interface,
+                                under Administration.
+
+=item B<--delete_local_after_run>
+
+--delete_local_after_run       Deletes the local file at the end of the script run. Can be
+                                useful if, for example, you are uploading the file to a
+                                file transport server.
+
 =back
 
 =head1 AUTHOR
@@ -508,6 +588,6 @@ This file is part of Koha.
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =cut

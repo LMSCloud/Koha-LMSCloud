@@ -15,18 +15,22 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use JSON qw( to_json );
 
-use Test::More tests => 3;
+use Test::NoWarnings;
+use Test::More tests => 5;
 
 use t::lib::TestBuilder;
+use t::lib::Mocks;
 use Test::Exception;
 
 use Koha::Database;
 use Koha::Patron::Attribute;
 use Koha::Patron::Attributes;
+use Koha::ActionLogs;
 
 my $schema  = Koha::Database->new->schema;
 my $builder = t::lib::TestBuilder->new;
@@ -518,4 +522,251 @@ subtest 'merge_and_replace_with' => sub {
 
     $schema->storage->txn_rollback;
 
+};
+
+subtest 'action log tests' => sub {
+    plan tests => 12;
+    my $schema = Koha::Database->new->schema;
+    $schema->storage->txn_begin;
+
+    my $get_info = sub {
+        my ( $before, $after, $code, $repeatable ) = @_;
+        my $change = {
+            before => $before,
+            after  => $after
+        };
+        if ($repeatable) {
+            while ( my ( $k, $v ) = each %{$change} ) {
+                if ( ref $v eq 'ARRAY' ) {
+                    $change->{$k} = [ sort @{$v} ];
+                } else {
+                    $change->{$k} = $v ? [$v] : [];
+                }
+            }
+        }
+        return to_json( { "attribute.$code" => $change }, { pretty => 1, canonical => 1 } );
+    };
+
+    my $patron         = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $attribute_type = $builder->build_object(
+        {
+            class => 'Koha::Patron::Attribute::Types',
+            value => { repeatable => 0 }
+        }
+    );
+
+    t::lib::Mocks::mock_preference( 'BorrowersLog', 0 );
+    my $attributes = [
+        {
+            attribute => 'Foo',
+            code      => $attribute_type->code,
+        }
+    ];
+    $patron->extended_attributes($attributes);
+
+    my $info        = $get_info->( '', 'Foo', $attribute_type->code );
+    my $action_logs = Koha::ActionLogs->search(
+        {
+            module => "MEMBERS",
+            action => "MODIFY",
+            object => $patron->borrowernumber,
+            info   => $info
+        }
+    );
+    is(
+        $action_logs->count,
+        0,
+        'No action log entry has been created when adding patron attribute if BorrowersLog syspref disabled'
+    );
+
+    t::lib::Mocks::mock_preference( 'BorrowersLog', 1 );
+    my $current_action_logs_count;
+    my $repeatable_text;
+    for my $repeatable ( 0, 1 ) {
+        $repeatable_text = $repeatable ? ' repeatable' : '';
+
+        $patron->extended_attributes( [] );
+
+        $attribute_type = $builder->build_object(
+            {
+                class => 'Koha::Patron::Attribute::Types',
+                value => { repeatable => $repeatable }
+            }
+        );
+        $attributes = [
+            {
+                attribute => 'Foo',
+                code      => $attribute_type->code,
+            }
+        ];
+
+        $patron->extended_attributes($attributes);
+        $info        = $get_info->( '', 'Foo', $attribute_type->code, $repeatable );
+        $action_logs = Koha::ActionLogs->search(
+            {
+                module => "MEMBERS",
+                action => "MODIFY",
+                object => $patron->borrowernumber,
+                info   => $info
+            }
+        );
+        is(
+            $action_logs->count,
+            1,
+            "An action log entry has been created when adding$repeatable_text patron attribute"
+        );
+
+        $current_action_logs_count = Koha::ActionLogs->search(
+            {
+                module => "MEMBERS",
+                action => "MODIFY",
+                object => $patron->borrowernumber
+            }
+        )->count;
+
+        $patron->extended_attributes($attributes);
+        $action_logs = Koha::ActionLogs->search(
+            {
+                module => "MEMBERS",
+                action => "MODIFY",
+                object => $patron->borrowernumber
+            }
+        );
+        is(
+            $action_logs->count,
+            $current_action_logs_count,
+            "No additional action log entry has been created when updating$repeatable_text patron attribute with same value"
+        );
+
+        $attributes = [
+            {
+                attribute => 'Bar',
+                code      => $attribute_type->code,
+            }
+        ];
+        $patron->extended_attributes($attributes);
+        $info        = $get_info->( 'Foo', 'Bar', $attribute_type->code, $repeatable );
+        $action_logs = Koha::ActionLogs->search(
+            {
+                module => "MEMBERS",
+                action => "MODIFY",
+                object => $patron->borrowernumber,
+                info   => $info
+            }
+        );
+        is(
+            $action_logs->count,
+            1,
+            "New action log entry has been created when updating$repeatable_text patron attribute with different value"
+        );
+
+        $patron->extended_attributes( [] );
+        $info        = $get_info->( 'Bar', '', $attribute_type->code, $repeatable );
+        $action_logs = Koha::ActionLogs->search(
+            {
+                module => "MEMBERS",
+                action => "MODIFY",
+                object => $patron->borrowernumber,
+                info   => $info
+            }
+        );
+        is(
+            $action_logs->count,
+            1,
+            "New action log entry has been created when deleting$repeatable_text patron attribute value"
+        );
+    }
+
+    $attributes = [
+        {
+            attribute => 'Foo',
+            code      => $attribute_type->code,
+        },
+        {
+            attribute => 'Bar',
+            code      => $attribute_type->code,
+        }
+    ];
+    $patron->extended_attributes($attributes);
+
+    $info = $get_info->( [], [ 'Foo', 'Bar' ], $attribute_type->code, 1 );
+    use Data::Dumper;
+    print Dumper($info);
+    $action_logs = Koha::ActionLogs->search(
+        {
+            module => "MEMBERS",
+            action => "MODIFY",
+            object => $patron->borrowernumber,
+            info   => $info
+        }
+    );
+    is(
+        $action_logs->count,
+        1,
+        "New action log entry has been created when updating repeatable patron attribute with multiple values"
+    );
+
+    $attributes = [
+        {
+            attribute => 'Foo',
+            code      => $attribute_type->code,
+        },
+        {
+            attribute => 'Bar',
+            code      => $attribute_type->code,
+        },
+        {
+            attribute => 'Baz',
+            code      => $attribute_type->code,
+        }
+    ];
+    $patron->extended_attributes($attributes);
+
+    $info = $get_info->(
+        [ 'Foo', 'Bar' ],
+        [ 'Foo', 'Bar', 'Baz' ],
+        $attribute_type->code,
+        1
+    );
+    $action_logs = Koha::ActionLogs->search(
+        {
+            module => "MEMBERS",
+            action => "MODIFY",
+            object => $patron->borrowernumber,
+            info   => $info
+        }
+    );
+    is(
+        $action_logs->count,
+        1,
+        "New action log entry has been created when updating repeatable patron attribute with existing multiple values with multiple values"
+    );
+
+    my $attribute = {
+        attribute => 'Qux',
+        code      => $attribute_type->code,
+    };
+    $patron->add_extended_attribute($attribute);
+
+    $info = $get_info->(
+        [ 'Foo', 'Bar', 'Baz' ],
+        [ 'Foo', 'Bar', 'Baz', 'Qux' ],
+        $attribute_type->code,
+        1
+    );
+    $action_logs = Koha::ActionLogs->search(
+        {
+            module => "MEMBERS",
+            action => "MODIFY",
+            object => $patron->borrowernumber,
+            info   => $info
+        }
+    );
+    is(
+        $action_logs->count,
+        1,
+        "New action log entry has been created when updating patron attributes using add_extended_attribute"
+    );
+
+    $schema->storage->txn_rollback;
 };

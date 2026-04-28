@@ -16,10 +16,11 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 32;
+use Test::NoWarnings;
+use Test::More tests => 33;
 use Test::MockModule;
 use Test::Warn;
 
@@ -305,7 +306,6 @@ subtest 'regression tests' => sub {
 
     my $item1 = $builder->build_sample_item(
         {
-            barcode        => 'a_t_barcode',
             library        => $library->{branchcode},
             itype          => $itemtype,
             itemcallnumber => 'itemcallnumber1',
@@ -315,7 +315,6 @@ subtest 'regression tests' => sub {
     $item1 = $item1->unblessed;
     my $item2 = $builder->build_sample_item(
         {
-            barcode        => 'another_t_barcode',
             library        => $library->{branchcode},
             itype          => $itemtype,
             itemcallnumber => 'itemcallnumber2',
@@ -325,7 +324,6 @@ subtest 'regression tests' => sub {
     $item2 = $item2->unblessed;
     my $item3 = $builder->build_sample_item(
         {
-            barcode        => 'another_t_barcode_3',
             library        => $library->{branchcode},
             itype          => $itemtype,
             itemcallnumber => 'itemcallnumber3',
@@ -1215,7 +1213,8 @@ EOF
         letter_code => $code,
         tables      => { credits => $account->accountlines_id }
     );
-    is( $letter->{content}, '<span>Payment</span><span> (Cancelled)</span>', "Include used in notice" );
+    ( my $content = $letter->{content} ) =~ s/\s+//g;
+    is( $content, '<span>Payment</span><span>(Cancelled)</span>', "Include used in notice" );
 };
 
 subtest 'Dates formatting' => sub {

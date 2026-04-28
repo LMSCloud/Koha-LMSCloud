@@ -13,9 +13,8 @@ package C4::AggregatedStatistics::AggregatedStatisticsBase;
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -131,6 +130,7 @@ sub add_validate {
     $self->{'enddateDB'} =
         output_pref( { dt => dt_from_string( scalar $input->param('enddate') ), dateformat => 'iso', dateonly => 1 } );
     $self->{'op'} = $input->param('op');
+    $self->{'op'} =~ s/^cud-// if defined $self->{'op'};
 
     my %param;
 

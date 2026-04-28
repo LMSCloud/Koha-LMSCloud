@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -131,6 +131,7 @@ sub create_input {
         $month = sprintf( "%02d", $month );
         $day   = sprintf( "%02d", $day );
         $value =~ s/YYYY/$year/g;
+        $value =~ s/YY/substr($year,2)/eg;
         $value =~ s/MM/$month/g;
         $value =~ s/DD/$day/g;
     }
@@ -160,7 +161,7 @@ sub create_input {
     }
 
     $subfield_data{visibility} = "display:none;"
-        if ( $tagslib->{$tag}->{$subfield}->{hidden} and $value ne ''
+        if ( $tagslib->{$tag}->{$subfield}->{hidden} and $value eq ''
         or ( $value eq '' and !$tagslib->{$tag}->{$subfield}->{mandatory} ) );
 
     # it's an authorised field
@@ -200,6 +201,7 @@ sub create_input {
                 maxlength  => $max_length,
                 javascript => $plugin->javascript,
                 noclick    => $plugin->noclick,
+                plugin     => $plugin->name,
             };
         } else {    # warn and supply default field
             warn $plugin->errstr;
@@ -379,7 +381,7 @@ sub build_tabs {
                             $subfield = '@';
                         }
                         next if ( $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
-                        next if $tagslib->{$tag}->{$subfield}->{hidden} && $subfield ne '9';
+                        next if $tagslib->{$tag}->{$subfield}->{hidden} && $subfield ne '9' && !$value;
                         push(
                             @subfields_data,
                             &create_input(
@@ -394,7 +396,10 @@ sub build_tabs {
                             my $value    = $subfields[$subfieldcount][1];
                             next if ( length $subfield != 1 );
                             next if ( $tagslib->{$tag}->{$subfield}->{tab} ne $tabloop );
-                            next if $tagslib->{$tag}->{$subfield}->{hidden} && $subfield ne '9';
+                            next
+                                if $tagslib->{$tag}->{$subfield}->{hidden}
+                                && $subfield ne '9'
+                                && ( !$value || $tag eq '942' );
                             push(
                                 @subfields_data,
                                 &create_input(
@@ -436,7 +441,7 @@ sub build_tabs {
                             fixedfield    => ( $tag < 10 ) ? (1) : (0),
                             random        => CreateKey,
                         );
-                        if ( $tag >= 10 ) {    # no indicator for theses tag
+                        if ( $tag >= 10 ) {    # no indicator for this tag
                             $tag_data{indicator1} = format_indicator( $field->indicator(1) ),
                                 $tag_data{indicator2} = format_indicator( $field->indicator(2) ),;
                         }

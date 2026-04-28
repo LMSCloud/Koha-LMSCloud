@@ -13,12 +13,14 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 5;
+use Test::NoWarnings;
+use Test::More tests => 7;
 use Test::Mojo;
+use Mojo::JSON;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -100,14 +102,16 @@ subtest 'list() tests' => sub {
     );
 
     # Filtering works, two agreements sharing vendor_id
-    $t->get_ok( "//$userid:$password@/api/v1/erm/agreements?vendor_id=" . $vendor_1->id )->status_is(200)
+    $t->get_ok( "//$userid:$password@/api/v1/erm/agreements?vendor_id=" . $vendor_1->id )
+        ->status_is(200)
         ->json_is( [ $agreement->to_api, $another_agreement->to_api ] );
 
     # Attempt to search by name like 'ko'
     $agreement->delete;
     $another_agreement->delete;
     $agreement_with_another_vendor_id->delete;
-    $t->get_ok(qq~//$userid:$password@/api/v1/erm/agreements?q=[{"me.name":{"like":"%ko%"}}]~)->status_is(200)
+    $t->get_ok(qq~//$userid:$password@/api/v1/erm/agreements?q=[{"me.name":{"like":"%ko%"}}]~)
+        ->status_is(200)
         ->json_is( [] );
 
     my $agreement_to_search = $builder->build_object(
@@ -120,7 +124,8 @@ subtest 'list() tests' => sub {
     );
 
     # Search works, searching for name like 'ko'
-    $t->get_ok(qq~//$userid:$password@/api/v1/erm/agreements?q=[{"me.name":{"like":"%ko%"}}]~)->status_is(200)
+    $t->get_ok(qq~//$userid:$password@/api/v1/erm/agreements?q=[{"me.name":{"like":"%ko%"}}]~)
+        ->status_is(200)
         ->json_is( [ $agreement_to_search->to_api ] );
 
     # Warn on incorrect filter date format
@@ -134,7 +139,8 @@ subtest 'list() tests' => sub {
     );
 
     # Attempt to filter by expired on 2021-03-19
-    $t->get_ok("//$userid:$password@/api/v1/erm/agreements?max_expiration_date=2021-03-19")->status_is(200)
+    $t->get_ok("//$userid:$password@/api/v1/erm/agreements?max_expiration_date=2021-03-19")
+        ->status_is(200)
         ->json_is( [] );
 
     my $agreement_to_filter = $builder->build_object( { class => 'Koha::ERM::Agreements' } );
@@ -148,11 +154,13 @@ subtest 'list() tests' => sub {
     );
 
     # Filter by expired on 2021-03-19
-    $t->get_ok("//$userid:$password@/api/v1/erm/agreements?max_expiration_date=2021-03-19")->status_is(200)
+    $t->get_ok("//$userid:$password@/api/v1/erm/agreements?max_expiration_date=2021-03-19")
+        ->status_is(200)
         ->json_is( [ $agreement_to_filter->to_api ] );
 
     # Warn on unsupported query parameter
-    $t->get_ok("//$userid:$password@/api/v1/erm/agreements?blah=blah")->status_is(400)
+    $t->get_ok("//$userid:$password@/api/v1/erm/agreements?blah=blah")
+        ->status_is(400)
         ->json_is( [ { path => '/query/blah', message => 'Malformed query string' } ] );
 
     # Unauthorized access
@@ -189,7 +197,8 @@ subtest 'get() tests' => sub {
     my $unauth_userid = $patron->userid;
 
     # This agreement exists, should get returned
-    $t->get_ok( "//$userid:$password@/api/v1/erm/agreements/" . $agreement->agreement_id )->status_is(200)
+    $t->get_ok( "//$userid:$password@/api/v1/erm/agreements/" . $agreement->agreement_id )
+        ->status_is(200)
         ->json_is( $agreement->to_api );
 
     # Return one agreement with some embeds
@@ -213,7 +222,8 @@ subtest 'get() tests' => sub {
     my $non_existent_id     = $agreement_to_delete->agreement_id;
     $agreement_to_delete->delete;
 
-    $t->get_ok("//$userid:$password@/api/v1/erm/agreements/$non_existent_id")->status_is(404)
+    $t->get_ok("//$userid:$password@/api/v1/erm/agreements/$non_existent_id")
+        ->status_is(404)
         ->json_is( '/error' => 'Agreement not found' );
 
     $schema->storage->txn_rollback;
@@ -250,9 +260,9 @@ subtest 'add() tests' => sub {
         name             => "Agreement name",
         description      => "Agreement description",
         status           => "active",
-        closure_reason   => "",
-        is_perpetual     => 1,
-        renewal_priority => "",
+        closure_reason   => undef,
+        is_perpetual     => Mojo::JSON->true,
+        renewal_priority => undef,
         license_info     => "Agreement license_info",
     };
 
@@ -265,14 +275,15 @@ subtest 'add() tests' => sub {
         name             => "Agreement name",
         description      => "Agreement description",
         status           => "active",
-        closure_reason   => "",
-        is_perpetual     => 1,
-        renewal_priority => "",
+        closure_reason   => undef,
+        is_perpetual     => Mojo::JSON->true,
+        renewal_priority => undef,
         license_info     => "Agreement license_info",
     };
 
     $t->post_ok( "//$userid:$password@/api/v1/erm/agreements" => json => $agreement_with_invalid_field )
-        ->status_is(400)->json_is(
+        ->status_is(400)
+        ->json_is(
         "/errors" => [
             {
                 message => "Properties not allowed: blah.",
@@ -284,19 +295,25 @@ subtest 'add() tests' => sub {
     # Authorized attempt to write
     my $agreement_id =
         $t->post_ok( "//$userid:$password@/api/v1/erm/agreements" => json => $agreement )
-        ->status_is( 201, 'REST3.2.1' )->header_like(
+        ->status_is( 201, 'REST3.2.1' )
+        ->header_like(
         Location => qr|^/api/v1/erm/agreements/\d*|,
         'REST3.4.1'
-    )->json_is( '/vendor_id' => $agreement->{vendor_id} )->json_is( '/name' => $agreement->{name} )
-        ->json_is( '/description'      => $agreement->{description} )->json_is( '/status' => $agreement->{status} )
+        )
+        ->json_is( '/vendor_id'        => $agreement->{vendor_id} )
+        ->json_is( '/name'             => $agreement->{name} )
+        ->json_is( '/description'      => $agreement->{description} )
+        ->json_is( '/status'           => $agreement->{status} )
         ->json_is( '/closure_reason'   => $agreement->{closure_reason} )
         ->json_is( '/is_perpetual'     => $agreement->{is_perpetual} )
         ->json_is( '/renewal_priority' => $agreement->{renewal_priority} )
-        ->json_is( '/license_info'     => $agreement->{license_info} )->tx->res->json->{agreement_id};
+        ->json_is( '/license_info'     => $agreement->{license_info} )
+        ->tx->res->json->{agreement_id};
 
     # Authorized attempt to create with null id
     $agreement->{agreement_id} = undef;
-    $t->post_ok( "//$userid:$password@/api/v1/erm/agreements" => json => $agreement )->status_is(400)
+    $t->post_ok( "//$userid:$password@/api/v1/erm/agreements" => json => $agreement )
+        ->status_is(400)
         ->json_has('/errors');
 
     # Authorized attempt to create with existing id
@@ -356,7 +373,8 @@ subtest 'update() tests' => sub {
     };
 
     $t->put_ok( "//$userid:$password@/api/v1/erm/agreements/$agreement_id" => json => $agreement_with_missing_field )
-        ->status_is(400)->json_is( "/errors" => [ { message => "Missing property.", path => "/body/name" } ] );
+        ->status_is(400)
+        ->json_is( "/errors" => [ { message => "Missing property.", path => "/body/name" } ] );
 
     # Full object update on PUT
     my $agreement_with_updated_field = {
@@ -371,7 +389,8 @@ subtest 'update() tests' => sub {
     };
 
     $t->put_ok( "//$userid:$password@/api/v1/erm/agreements/$agreement_id" => json => $agreement_with_updated_field )
-        ->status_is(200)->json_is( '/name' => 'New name' );
+        ->status_is(200)
+        ->json_is( '/name' => 'New name' );
 
     # Authorized attempt to write invalid data
     my $agreement_with_invalid_field = {
@@ -386,7 +405,8 @@ subtest 'update() tests' => sub {
     };
 
     $t->put_ok( "//$userid:$password@/api/v1/erm/agreements/$agreement_id" => json => $agreement_with_invalid_field )
-        ->status_is(400)->json_is(
+        ->status_is(400)
+        ->json_is(
         "/errors" => [
             {
                 message => "Properties not allowed: blah.",
@@ -444,11 +464,86 @@ subtest 'delete() tests' => sub {
     $t->delete_ok("//$unauth_userid:$password@/api/v1/erm/agreements/$agreement_id")->status_is(403);
 
     # Delete existing agreement
-    $t->delete_ok("//$userid:$password@/api/v1/erm/agreements/$agreement_id")->status_is( 204, 'REST3.2.4' )
+    $t->delete_ok("//$userid:$password@/api/v1/erm/agreements/$agreement_id")
+        ->status_is( 204, 'REST3.2.4' )
         ->content_is( '', 'REST3.3.4' );
 
     # Attempt to delete non-existent agreement
     $t->delete_ok("//$userid:$password@/api/v1/erm/agreements/$agreement_id")->status_is(404);
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'extended_attributes() tests' => sub {
+
+    plan tests => 12;
+
+    $schema->storage->txn_begin;
+
+    my $librarian = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 2**28 }
+        }
+    );
+    my $password = 'thePassword123';
+    $librarian->set_password( { password => $password, skip_validation => 1 } );
+    my $userid = $librarian->userid;
+
+    # Create an additional field for erm_agreements
+    my $additional_field = $builder->build_object(
+        {
+            class => 'Koha::AdditionalFields',
+            value => {
+                tablename => 'erm_agreements',
+                name      => 'test_field',
+            }
+        }
+    );
+
+    # Create an agreement with extended attributes
+    my $agreement = $builder->build_object( { class => 'Koha::ERM::Agreements' } );
+
+    $agreement->set_additional_fields(
+        [
+            {
+                id    => $additional_field->id,
+                value => 'test_value',
+            }
+        ]
+    );
+
+    # Get the agreement with embedded extended_attributes
+    my $response = $t->get_ok( "//$userid:$password@/api/v1/erm/agreements/"
+            . $agreement->agreement_id => { 'x-koha-embed' => 'extended_attributes' } )->status_is(200)->tx->res->json;
+
+    # Verify extended_attributes are present
+    ok( exists $response->{extended_attributes}, 'extended_attributes key exists in response' );
+    is( ref $response->{extended_attributes},         'ARRAY', 'extended_attributes is an array' );
+    is( scalar @{ $response->{extended_attributes} }, 1,       'One extended attribute returned' );
+
+    my $attr = $response->{extended_attributes}[0];
+    is( $attr->{field_id}, $additional_field->id, 'Correct field_id' );
+    is( $attr->{value},    'test_value',          'Correct value' );
+    ok( !exists $attr->{record_table}, 'record_table field is not exposed in API' );
+
+    # Test with list endpoint
+    $response =
+        $t->get_ok( "//$userid:$password@/api/v1/erm/agreements" => { 'x-koha-embed' => 'extended_attributes' } )
+        ->status_is(200)
+        ->tx->res->json;
+
+    # Verify record_table is still not present in list endpoint
+    my $found = 0;
+    foreach my $agr (@$response) {
+        if ( $agr->{agreement_id} == $agreement->agreement_id ) {
+            $found = 1;
+            $attr  = $agr->{extended_attributes}[0];
+            ok( !exists $attr->{record_table}, 'record_table field is not exposed in list endpoint' );
+            last;
+        }
+    }
+    ok( $found, 'Agreement found in list response' );
 
     $schema->storage->txn_rollback;
 };

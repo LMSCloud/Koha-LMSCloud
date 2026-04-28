@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 4;
+use Test::NoWarnings;
+use Test::More tests => 5;
 use FindBin qw($Bin $Script);
 
 use_ok('Koha::Config');
@@ -225,7 +226,7 @@ subtest 'read_from_file() tests' => sub {
             'timezone'           => '',
             'bcrypt_settings'    => '__BCRYPT_SETTINGS__',
             'encryption_key'     => '__ENCRYPTION_KEY__',
-            'dev_install'        => '0',
+            'git_install'        => '0',
             'strict_sql_modes'   => '0',
             'plugin_repos'       => '',
             'koha_xslt_security' => '',

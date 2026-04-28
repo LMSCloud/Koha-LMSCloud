@@ -1,9 +1,6 @@
-/* keep tidy */
-import HttpClient from "./http-client.js";
-
-export class CirculationAPIClient extends HttpClient {
-    constructor() {
-        super({
+export class CirculationAPIClient {
+    constructor(HttpClient) {
+        this.httpClient = new HttpClient({
             baseURL: "/cgi-bin/koha/svc/",
         });
     }
@@ -11,7 +8,7 @@ export class CirculationAPIClient extends HttpClient {
     get checkins() {
         return {
             create: checkin =>
-                this.post({
+                this.httpClient.post({
                     endpoint: "checkin",
                     body: "itemnumber=%s&borrowernumber=%s&branchcode=%s&exempt_fine=%s&op=%s".format(
                         checkin.item_id,
@@ -31,7 +28,7 @@ export class CirculationAPIClient extends HttpClient {
     get checkouts() {
         return {
             renew: checkout =>
-                this.post({
+                this.httpClient.post({
                     endpoint: "renew",
                     body:
                         "itemnumber=%s&borrowernumber=%s&branchcode=%s&override_limit=%s".format(
@@ -52,7 +49,7 @@ export class CirculationAPIClient extends HttpClient {
                     },
                 }),
             mark_as_seen: checkout_id =>
-                this.post({
+                this.httpClient.post({
                     endpoint: "checkout_notes",
                     body: "issue_id=%s&op=%s".format(checkout_id, "cud-seen"),
                     headers: {
@@ -61,7 +58,7 @@ export class CirculationAPIClient extends HttpClient {
                     },
                 }),
             mark_as_not_seen: checkout_id =>
-                this.post({
+                this.httpClient.post({
                     endpoint: "checkout_notes",
                     body: "issue_id=%s&op=%s".format(
                         checkout_id,

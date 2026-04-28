@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI        qw ( -utf8 );
@@ -69,7 +69,6 @@ my $koha_news = Koha::AdditionalContents->search_for_display(
 
 $template->param(
     koha_news   => $koha_news,
-    csrf_token  => Koha::Token->new->generate_csrf( { session_id => $query->cookie('CGISESSID'), } ),
     daily_quote => Koha::Quotes->get_daily_quote(),
 );
 
@@ -141,6 +140,18 @@ if ( C4::Context->preference('CurbsidePickup') ) {
                 branchcode => $homebranch,
             }
         )->filter_by_to_be_staged->filter_by_scheduled_today,
+    );
+}
+
+if ( C4::Context->preference('PatronSelfRegistrationAlert') ) {
+    my $categorycode = C4::Context->preference('PatronSelfRegistrationDefaultCategory');
+    my $branchcode   = C4::Context::mybranch();
+
+    my $rs = Koha::Patrons->search( { categorycode => $categorycode } );
+
+    $template->param(
+        self_registered_count          => $rs->count,
+        self_registered_mybranch_count => $rs->search( { branchcode => $branchcode } )->count,
     );
 }
 

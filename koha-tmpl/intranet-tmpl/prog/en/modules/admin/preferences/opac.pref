@@ -86,9 +86,10 @@ OPAC:
             - By default, show bibliographic records
             - pref: BiblioDefaultView
               choices:
-                  normal: in simple form.
-                  marc: in their MARC form.
-                  isbd: as specified in the ISBD template.
+                  normal: in simple form
+                  marc: in their MARC form
+                  isbd: as specified in the ISBD template
+            - .
         -
             - When patrons click on a link to another website from your OPAC (like Amazon or OCLC),
             - pref: OPACURLOpenInNewWindow
@@ -126,12 +127,12 @@ OPAC:
             - 'Display authority results in the OPAC using the XSLT stylesheet at: '
             - pref: AuthorityXSLTOpacResultsDisplay
               class: file
-            - '<br />Options:<ul><li>Empty. No XSLT will be applied (<strong>default</strong>)</li><li>Enter a path to a custom XSLT file.</li><li>Enter a URL for an external stylesheet.</li></ul>If you have multiple stylesheets for: <ul><li>different languages: use the placeholder {langcode} - this will be replaced with the current interface language</li><li>authority types: use the placeholder {authtypecode} - this will be replaced with the authority type code'
+            - '<br />Options:<ul><li>Empty. No XSLT will be applied (<strong>default</strong>)</li><li>Enter a path to a custom XSLT file.</li><li>Enter a URL for an external stylesheet.</li></ul>If you have multiple stylesheets for: <ul><li>different languages: use the placeholder {langcode} - this will be replaced with the current interface language</li><li>authority types: use the placeholder {authtypecode} - this will be replaced with the authority type code.'
         -
             - 'Display authority details in the OPAC using the XSLT stylesheet at: '
             - pref: AuthorityXSLTOpacDetailsDisplay
               class: file
-            - '<br />Options:<ul><li>Empty. No XSLT will be applied (<strong>default</strong>)</li><li>Enter a path to a custom XSLT file.</li><li>Enter a URL for an external stylesheet.</li></ul>If you have multiple stylesheets for: <ul><li>different languages: use the placeholder {langcode} - this will be replaced with the current interface language</li><li>authority types: use the placeholder {authtypecode} - this will be replaced with the authority type code'
+            - '<br />Options:<ul><li>Empty. No XSLT will be applied (<strong>default</strong>)</li><li>Enter a path to a custom XSLT file.</li><li>Enter a URL for an external stylesheet.</li></ul>If you have multiple stylesheets for: <ul><li>different languages: use the placeholder {langcode} - this will be replaced with the current interface language</li><li>authority types: use the placeholder {authtypecode} - this will be replaced with the authority type code.'
         -
             - pref: OpacNoItemTypeImages
               default: 0
@@ -152,7 +153,7 @@ OPAC:
                   0: "Don't include"
             - "COinS / OpenURL / Z39.88 in OPAC search results.  <br/>Warning: Enabling this feature will slow OPAC search response times."
             - "<br/>If you want to display a link to an OpenURL resolver, look at the following system preferences:"
-            - '<br/><a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OpenURLResolverURL">OpenURLResolverURL</a>, <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACShowOpenURL">OPACShowOpenURL</a>, <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACOpenURLItemTypes">OPACOpenURLItemTypes</a>, <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OpenURLText">OpenURLText</a>, <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OpenURLImageLocation">OpenURLImageLocation</a>'
+            - '<br/><a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OpenURLResolverURL">OpenURLResolverURL</a>, <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACShowOpenURL">OPACShowOpenURL</a>, <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OPACOpenURLItemTypes">OPACOpenURLItemTypes</a>, <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OpenURLText">OpenURLText</a>, <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OpenURLImageLocation">OpenURLImageLocation</a>.'
         -
             - pref: OPACShowUnusedAuthorities
               choices:
@@ -242,7 +243,7 @@ OPAC:
             - Use the image at
             - pref: OpacFavicon
               class: url
-            - for the OPAC's favicon. (This should be a complete URL, starting with <code>http://</code>.)
+            - for the OPAC's favicon. (This should be a complete URL, starting with <code>https://</code>.)
         -
             - "Include the following JavaScript on all pages in the OPAC:"
             - pref: OPACUserJS
@@ -296,12 +297,6 @@ OPAC:
                   0: "Don't show"
             - a column containing the issuing library branch of the checked out / overdue items on the "my summary" tab.
         -
-            - "Include the following HTML under the facets in OPAC search results:"
-            - pref: OPACResultsSidebar
-              type: textarea
-              syntax: text/html
-              class: code
-        -
             - pref: OpacAddMastheadLibraryPulldown
               choices: 
                   1: Add
@@ -348,13 +343,6 @@ OPAC:
                 holdingbranch: 'holding library'
             - "is the logged in patrons's library. The second tab will contain all other items."
         -
-            - pref: OPACHoldingsDefaultSortField
-              choices:
-                  first_column: First column of the table
-                  homebranch: Home library
-                  holdingbranch: Holding library
-            - "is the default sort field for the holdings table."
-        -
             - Display up to
             - pref: OpacMaxItemsToDisplay
               class: integer
@@ -396,7 +384,7 @@ OPAC:
                   branch: "library and substatus"
                   substatus: "substatus only"
                   branchonly: "library only"
-            - ". (NOTE: For large consortia we recommend to group unavailable items by 'substatus only', listing item counts per substatus. Similarly the option 'library only' results in unavailable item counts per library.)"
+            - "(NOTE: For large consortia we recommend to group unavailable items by 'substatus only', listing item counts per substatus. Similarly the option 'library only' results in unavailable item counts per library.)"
 
     Features:
         -
@@ -661,11 +649,18 @@ OPAC:
                   user: "on patron's 'your summary' page"
             - ". Note that displayed savings may be inaccurate if checkout history is anonymized."
         -
+            - pref: OPACDisableSendList
+              default: 0
+              choices:
+                  1: "Don't allow"
+                  0: Allow
+            - "OPAC users to email lists via a 'Send list' button."
+        -
             - pref: OPACVirtualCard
               choices:
                   1: Allow
                   0: "Don't allow"
-            - patrons to access the 'My virtual card' tab on their account page on the OPAC.
+            - patrons to access the 'Library card' tab on their account page on the OPAC.
             - "If set to allow, show a "
             - pref: OPACVirtualCardBarcode
               default: code39
@@ -690,15 +685,6 @@ OPAC:
                   1: "Don't allow"
                   0: Allow
             - "OPAC users to email lists via a 'Send list' button."
-        -
-            - pref: OPACAuthorIdentifiers
-              default: 0
-              choices:
-                  1: Display
-                  0: "Don't display"
-            - "identifiers for authors and contributors to the detail pages in the OPAC."
-            - "This feature requires authorities with 024$2 and 024$a."
-            - "Valid source codes in $2 are currently: orcid, scopus, loop, rid and viaf."
         -
             - pref: OpacDetailAntolinLinks
               default: 0
@@ -847,7 +833,7 @@ OPAC:
                   checkoutbranch: "the library the item was checked out from"
                   none: "NULL"
                   opacrenew: "'OPACRenew'"
-            - as branchcode to store in the statistics table.
+            - as branchcode to store in the statistics table for renewals done in the OPAC.
         -
             - Only allow patrons to renew their own checkouts on the OPAC if they have less than
             - pref: OPACFineNoRenewals
@@ -864,7 +850,7 @@ OPAC:
               type: textarea
               syntax: text/x-yaml
               class: code
-            - Define custom rules to hide specific items from search and view on the OPAC. How to write these rules is documented on the <a href="http://wiki.koha-community.org/wiki/OpacHiddenItems" target="_blank">Koha wiki</a>.
+            - Define custom rules to hide specific items from search and view on the OPAC. How to write these rules is documented on the <a href="https://wiki.koha-community.org/wiki/OpacHiddenItems" target="_blank">Koha wiki</a>.
         -
             - 'List of patron categories, that can see items otherwise hidden by <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=OpacHiddenItems">OpacHiddenItems</a>:'
             - pref: OpacHiddenItemsExceptions
@@ -1120,6 +1106,12 @@ OPAC:
             - '<br>If you choose <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EmailAddressForPatronRegistrations">EmailAddressForPatronRegistrations</a> you have to enter a valid email address: '
             - pref: EmailAddressForPatronRegistrations
               class: email
+        -
+            - pref: PatronSelfRegistrationAlert
+              choices:
+                0: "Don't show"
+                1: "Show"
+            - an alert on staff interface home page when there are patrons in the category defined by <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=PatronSelfRegistrationDefaultCategory">PatronSelfRegistrationDefaultCategory</a>.
         -
             - "Patron's maximum age when registering: "
             - pref: PatronSelfRegistrationAgeRestriction

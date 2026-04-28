@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -64,16 +64,20 @@ if ( $op eq 'cud-renew' && $barcode ) {
         if ($checkout) {
 
             $patron = $checkout->patron;
+            my $borrowernumber = $patron->borrowernumber;
 
             if ( ( $patron->is_debarred || q{} ) lt dt_from_string()->ymd() ) {
+                my $confirmations;
                 my $can_renew;
                 my $info;
                 ( $can_renew, $error, $info ) = CanBookBeRenewed( $patron, $checkout, $override_limit );
+                push @{$confirmations}, 'RENEWAL_LIMIT' if $override_limit;
 
                 if ( $error && ( $error eq 'on_reserve' ) ) {
                     if ($override_holds) {
                         $can_renew = 1;
                         $error     = undef;
+                        push @{$confirmations}, 'ON_RESERVE';
                     } else {
                         $can_renew = 0;
                     }
@@ -97,10 +101,11 @@ if ( $op eq 'cud-renew' && $barcode ) {
 
                     $date_due = AddRenewal(
                         {
-                            itemnumber => $item->itemnumber(),
-                            branch     => $branchcode,
-                            datedue    => $date_due,
-                            seen       => !$unseen
+                            itemnumber    => $item->itemnumber(),
+                            branch        => $branchcode,
+                            datedue       => $date_due,
+                            seen          => !$unseen,
+                            confirmations => $confirmations
                         }
                     );
                     $template->param( date_due => $date_due );

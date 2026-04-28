@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 package Koha::OAI::Server::Repository;
 
@@ -65,7 +65,7 @@ preferences (OAI-PMH:archiveID and OAI-PMH:MaxCount) and the server returns
 records in marcxml or dublin core format. Dublin core records are created from
 koha marcxml records transformed with XSLT. Used XSL file is located in koha-
 tmpl/intranet-tmpl/prog/en/xslt directory and chosen based on marcflavour,
-respecively MARC21slim2OAIDC.xsl for MARC21 and  MARC21slim2OAIDC.xsl for
+respectively MARC21slim2OAIDC.xsl for MARC21 and  MARC21slim2OAIDC.xsl for
 UNIMARC.
 
 In extended mode, it's possible to parameter other format than marcxml or
@@ -99,6 +99,12 @@ mode. A configuration file koha-oai.conf can look like that:
       xsl_file: /usr/local/koha/koha-tmpl/intranet-tmpl/xslt/UNIMARCslim2OAIDC.xsl
 
 Note the 'include_items' parameter which is the only mean to return item-level info.
+
+=cut
+
+=head2 new
+
+Missing POD for new.
 
 =cut
 
@@ -151,6 +157,11 @@ sub new {
         $response = $class->new( $self, %attr );
     }
 
+    # Strip trailing slash from requestURL for CGI.pm 4.68+ compatibility
+    my $url = $response->requestURL();
+    $url =~ s{/$}{};
+    $response->requestURL($url);
+
     $response->set_handler( XML::SAX::Writer->new( Output => *STDOUT ) );
     $response->xslt("/opac-tmpl/xslt/OAI.xslt");
     $response->generate;
@@ -166,6 +177,12 @@ sub DESTROY {
     C4::Context->dbh->prepare( "SET time_zone='" . $self->{mysql_orig_tz} . "'" )->execute()
         if $self->{mysql_orig_tz};
 }
+
+=head2 get_biblio_marcxml
+
+Missing POD for get_biblio_marcxml.
+
+=cut
 
 sub get_biblio_marcxml {
     my ( $self, $biblionumber, $format ) = @_;
@@ -210,6 +227,12 @@ sub get_biblio_marcxml {
     return ( $record ? $record->as_xml_record( C4::Context->preference('marcflavour') ) : undef, $decoding_error );
 }
 
+=head2 stylesheet
+
+Missing POD for stylesheet.
+
+=cut
+
 sub stylesheet {
     my ( $self, $format ) = @_;
     my $xsl_file =
@@ -221,6 +244,12 @@ sub stylesheet {
             . 'slim2OAIDC.xsl' );
     return $xsl_file;
 }
+
+=head2 items_included
+
+Missing POD for items_included.
+
+=cut
 
 sub items_included {
     my ( $self, $format ) = @_;

@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 admin/itemtypes.pl
 
@@ -99,6 +99,7 @@ if ( $op eq 'add_form' ) {
     my $rentalcharge_hourly_calendar = $input->param('rentalcharge_hourly_calendar') // 0;
     my $automatic_checkin            = $input->param('automatic_checkin')            // 0;
     my $bookable                     = $input->param('bookable')                     // 0;
+    my $checkprevcheckout            = $input->param('checkprevcheckout')            // 'inherit';
 
     if ( $itemtype and $is_a_modif ) {    # it's a modification
         $itemtype->description($description);
@@ -120,6 +121,7 @@ if ( $op eq 'add_form' ) {
         $itemtype->rentalcharge_hourly_calendar($rentalcharge_hourly_calendar);
         $itemtype->automatic_checkin($automatic_checkin);
         $itemtype->bookable($bookable);
+        $itemtype->checkprevcheckout($checkprevcheckout);
 
         eval {
             $itemtype->store;
@@ -154,6 +156,7 @@ if ( $op eq 'add_form' ) {
                 rentalcharge_hourly_calendar => $rentalcharge_hourly_calendar,
                 automatic_checkin            => $automatic_checkin,
                 bookable                     => $bookable,
+                checkprevcheckout            => $checkprevcheckout,
             }
         );
         eval {

@@ -1,4 +1,3 @@
-/* keep tidy */
 // Bookings
 var bookings_table;
 $(document).ready(function () {
@@ -29,19 +28,27 @@ $(document).ready(function () {
         if (!bookings_table) {
             var extended_attribute_types;
             var authorised_values;
-            AdditionalFields.fetchAndProcessExtendedAttributes("booking")
-                .then(types => {
-                    extended_attribute_types = types;
-                    const catArray = Object.values(types)
-                        .map(attr => attr.authorised_value_category_name)
-                        .filter(Boolean);
-                    return AdditionalFields.fetchAndProcessAuthorizedValues(
-                        catArray
-                    );
-                })
-                .then(values => {
-                    authorised_values = values;
-                });
+            if (typeof AdditionalFields !== "undefined") {
+                AdditionalFields.fetchAndProcessExtendedAttributes("booking")
+                    .then(types => {
+                        extended_attribute_types = types;
+                        const catArray = Object.values(types)
+                            .map(attr => attr.authorised_value_category_name)
+                            .filter(Boolean);
+                        return AdditionalFields.fetchAndProcessAuthorizedValues(
+                            catArray
+                        );
+                    })
+                    .then(values => {
+                        authorised_values = values;
+                    })
+                    .catch(e => {
+                        console.warn(
+                            "Could not load additional fields for bookings:",
+                            e
+                        );
+                    });
+            }
 
             var bookings_table_url = "/api/v1/bookings";
             bookings_table = $("#bookings_table").kohaTable(
@@ -133,6 +140,8 @@ $(document).ready(function () {
                                     return "";
                                 }
 
+                                if (typeof AdditionalFields === "undefined")
+                                    return "";
                                 return AdditionalFields.renderExtendedAttributesValues(
                                     filteredAttributes,
                                     extended_attribute_types,

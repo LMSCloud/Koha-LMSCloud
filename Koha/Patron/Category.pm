@@ -13,7 +13,7 @@ package Koha::Patron::Category;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -144,6 +144,12 @@ sub default_messaging {
     }
     return \@messaging;
 }
+
+=head2 get_expiry_date
+
+Missing POD for get_expiry_date.
+
+=cut
 
 sub get_expiry_date {
     my ( $self, $date ) = @_;

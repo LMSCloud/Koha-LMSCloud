@@ -14,7 +14,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -38,12 +38,13 @@ use JSON        qw( encode_json );
 use C4::Log     qw(logaction);
 
 use Koha::Acquisition::Booksellers;
-use Koha::Acquisition::Currencies qw( get_active );
+use Koha::Acquisition::Currencies;
 use Koha::AdditionalFields;
 use Koha::DateUtils qw( output_pref );
 use Koha::Misc::Files;
 use Koha::Acquisition::Invoice::Adjustments;
 use Koha::Acquisition::Invoices;
+use Koha::Edifact::Files;
 
 my $input = CGI->new;
 my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
@@ -317,6 +318,34 @@ $template->param(
     additional_field_values     => $invoice->get_additional_field_values_for_template,
 );
 
+# Check for EDIFACT message information
+my $edifact_message;
+my $edifact_errors  = [];
+my $edifact_enabled = C4::Context->preference('EDIFACT');
+
+if ( $edifact_enabled && $details->{'message_id'} ) {
+    $edifact_message = Koha::Edifact::Files->find( $details->{'message_id'} );
+
+    if ($edifact_message) {
+
+        # Get any processing errors for this message using the relation accessor
+        my $errors = $edifact_message->errors;
+
+        while ( my $error = $errors->next ) {
+            push @$edifact_errors, {
+                section => $error->section,
+                details => $error->details,
+            };
+        }
+    }
+}
+
+$template->param(
+    edifact_enabled => $edifact_enabled,
+    edifact_message => $edifact_message,
+    edifact_errors  => $edifact_errors,
+);
+
 $template->param(
     invoiceid                   => $details->{'invoiceid'},
     invoicenumber               => $details->{'invoicenumber'},
@@ -345,12 +374,11 @@ $template->param(
 defined($invoice_files) && $template->param( files => $invoice_files->GetFilesInfo() );
 
 # FIXME
-# Fonction dupplicated from basket.pl
+# Function duplicated from basket.pl
 # Code must to be exported. Where ??
 sub get_infos {
     my $order      = shift;
     my $bookseller = shift;
-    my $template   = shift;
     my $qty        = $order->{'quantity'} || 0;
     if ( !defined $order->{quantityreceived} ) {
         $order->{quantityreceived} = 0;

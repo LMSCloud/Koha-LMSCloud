@@ -191,12 +191,26 @@ __PACKAGE__->many_to_many(
 # Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-05-12 20:33:58
 # DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:KVYT5xqcXSDijZBaEHLV+g
 
+__PACKAGE__->add_columns(
+    '+wants_digest' => { is_boolean => 1 },
+);
 
-# You can replace this text with custom content, and it will be preserved on regeneration
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
 
 sub koha_object_class {
   'Koha::Patron::MessagePreference';
 }
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
   'Koha::Patron::MessagePreferences';
 }

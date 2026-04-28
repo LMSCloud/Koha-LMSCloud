@@ -14,7 +14,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -50,7 +50,8 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 if ( $op eq "cud-create_template" ) {
     $template_id = '' unless $cgi->param('duplicate_current_template');
     $template_id = AddModificationTemplate( scalar $cgi->param('template_name'), $template_id );
-
+    print $cgi->redirect(
+        "/cgi-bin/koha/tools/marc_modification_templates.pl?template_id=$template_id&op=select_template");
 } elsif ( $op eq "cud-delete_template" ) {
 
     DelModificationTemplate($template_id);

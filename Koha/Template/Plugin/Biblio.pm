@@ -15,7 +15,7 @@ package Koha::Template::Plugin::Biblio;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -23,10 +23,7 @@ use Template::Plugin;
 use base qw( Template::Plugin );
 
 use Koha::Holds;
-use Koha::Biblios;
 use Koha::Database;
-use Koha::Patrons;
-use Koha::ArticleRequests;
 use Koha::Recalls;
 
 # Do not use HoldsCount, it is deprecated and will be removed in a future release.

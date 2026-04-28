@@ -1,4 +1,4 @@
-/* global KOHA searchid biblionumber frameworkcode popup op LABEL_EDIT_ITEM LABEL_DELETE_ITEM MSG_FORM_NOT_SUBMITTED MSG_MANDATORY_FIELDS_EMPTY MSG_ADD_MULTIPLE_ITEMS MSG_ENTER_NUM_ITEMS MSG_CONFIRM_DELETE_ITEM MSG_CONFIRM_ADD_ITEM columns_settings CheckMandatorySubfields CheckMultipleAdd */
+/* global KOHA searchid biblionumber frameworkcode popup op LABEL_EDIT_ITEM LABEL_DELETE_ITEM MSG_FORM_NOT_SUBMITTED MSG_MANDATORY_FIELDS_EMPTY MSG_ADD_MULTIPLE_ITEMS MSG_ENTER_NUM_ITEMS MSG_CONFIRM_DELETE_ITEM MSG_CONFIRM_ADD_ITEM table_settings CheckMandatorySubfields CheckMultipleAdd */
 
 var browser = KOHA.browser(searchid, parseInt(biblionumber, 10));
 browser.show();
@@ -35,7 +35,7 @@ $(document).ready(function () {
                 );
                 $(edit_link).text(LABEL_EDIT_ITEM);
                 var delete_link = $(
-                    '<a class="delete" data-item="' +
+                    '<a class="delete" data-itemnumber="' +
                         num_rowid +
                         '" href="#"></a>'
                 );
@@ -58,8 +58,7 @@ $(document).ready(function () {
     // Skip the first column
     table_settings["columns"].unshift({ cannot_be_toggled: "1" });
 
-    var itemst = KohaTable(
-        "itemst",
+    var itemst = $("#itemst").kohaTable(
         {
             paging: false,
             info: false,
@@ -154,10 +153,51 @@ $(document).ready(function () {
 
     $(document).on("click", ".delete", function (e) {
         e.preventDefault();
-        if (confirmDelete(MSG_CONFIRM_DELETE_ITEM)) {
-            return $("#" + $(this).data("item") + "-delete-item-form").submit();
+        var itemnumber = $(this).data("itemnumber");
+        var hasSerialItem = $(this).data("has-serial-item");
+
+        $("#delete-item-itemnumber").val(itemnumber);
+        $("#delete_associated_serial_issues").attr("checked", false);
+        $("#delete-item-modal-btn-submit").data("item", itemnumber);
+        if (!hasSerialItem) {
+            $(".form-group").hide();
         }
+        $("#delete-item-modal").modal("show");
     });
+    $(document).on("click", "#delete-item-modal-btn-submit", function (e) {
+        e.preventDefault();
+        var itemnumber = $("#delete-item-itemnumber").val();
+        var deleteSerialIssues = $("#delete_associated_serial_issues").prop(
+            "checked"
+        )
+            ? true
+            : false;
+        $("#delete-item-modal").modal("hide");
+        if (deleteSerialIssues) {
+            $("#" + itemnumber + "-delete-serial-issues").val("1");
+        }
+        return $("#" + $(this).data("item") + "-delete-item-form").submit();
+    });
+
+    $(document).on(
+        "click",
+        "#edit-serial-issues-modal-btn-submit",
+        function (e) {
+            e.preventDefault();
+            $("#edit-serial-issues-modal").modal("hide");
+            $("#edit-serial-issue").val("1");
+            return $("#f").submit();
+        }
+    );
+    $(document).on(
+        "click",
+        "#no-edit-serial-issues-modal-btn-submit",
+        function (e) {
+            e.preventDefault();
+            $("#edit-serial-issues-modal").modal("hide");
+            return $("#f").submit();
+        }
+    );
 
     /* On page load, check for location.hash in the page URL */
     /* If present the location hash will be used to scroll to the relevant anchor */
@@ -244,4 +284,9 @@ function Dopop(link, i) {
         "valuebuilder",
         "width=500,height=400,toolbar=false,scrollbars=yes"
     );
+}
+
+function ShowSerialEditingConfirmation(form) {
+    $("#edit-serial-issues-modal").modal("show");
+    return false;
 }

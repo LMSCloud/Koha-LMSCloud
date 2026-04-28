@@ -7,7 +7,7 @@
         @media screen {
         .message {
             color: black;
-            background-color:white
+            background-color: white;
             display: block;
             page-break-after: always;
             border-bottom: 1px solid black; 
@@ -30,4 +30,6 @@
     [% END %]
 
 </body>
+<!-- prettier-ignore-start -->
 </html>
+<!-- prettier-ignore-end -->

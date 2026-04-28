@@ -352,9 +352,7 @@ __PACKAGE__->has_many(
 
     return {
         "$args->{foreign_alias}.record_id" => { -ident => "$args->{self_alias}.basketno" },
-
-        "$args->{foreign_alias}.field_id" =>
-            { -in => \'(SELECT id FROM additional_fields WHERE tablename = "aqbasket")' },
+        "$args->{foreign_alias}.record_table" => __PACKAGE__->table,
     };
   },
   { cascade_copy => 0, cascade_delete => 0 },
@@ -379,9 +377,29 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+__PACKAGE__->belongs_to(
+  "vendor",
+  "Koha::Schema::Result::Aqbookseller",
+  { id => "booksellerid" },
+  { is_deferrable => 1, on_delete => "RESTRICT", on_update => "CASCADE" },
+);
+
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
+
 sub koha_object_class {
     'Koha::Acquisition::Basket';
 }
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
     'Koha::Acquisition::Baskets';
 }

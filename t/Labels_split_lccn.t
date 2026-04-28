@@ -13,14 +13,14 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 #
 # for context, see http://bugs.koha-community.org/bugzilla3/show_bug.cgi?id=2691
 
-use strict;
-use warnings;
+use Modern::Perl;
 
-use C4::ClassSplitRoutine::LCC qw( split_callnumber );
+use C4::ClassSplitRoutine::LCC;
+use Test::NoWarnings;
 use Test::More;
 
 BEGIN {
@@ -43,7 +43,7 @@ BEGIN {
         $test_num += 2 * $split_num;
         $test_num += 4;
     }
-    plan tests => $test_num;
+    plan tests => $test_num + 1;
     use_ok('C4::Labels::Label');
     use vars qw($lccns);
 }

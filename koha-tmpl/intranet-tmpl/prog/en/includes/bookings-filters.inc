@@ -1,14 +1,13 @@
 [%# Common filters form for booking templates %]
 
-[%# Parameters:
-    - form_id: Form ID (default: bookingsf)
-    - show_holding_library: Whether to show holding library filter
-    - show_pickup_library: Whether to show pickup library filter
-    - show_date_filters: Whether to show date filters
-    - from_date: Default from date
-    - to_date: Default to date
-    - branchcode: Selected branch code
-%]
+[%# Parameters: %]
+[%#   - form_id: Form ID (default: bookingsf) %]
+[%#   - show_holding_library: Whether to show holding library filter %]
+[%#   - show_pickup_library: Whether to show pickup library filter %]
+[%#   - show_date_filters: Whether to show date filters %]
+[%#   - from_date: Default from date %]
+[%#   - to_date: Default to date %]
+[%#   - branchcode: Selected branch code %]
 
 <form id="[% form_id || 'bookingsf' | html %]">
     <fieldset class="brief">

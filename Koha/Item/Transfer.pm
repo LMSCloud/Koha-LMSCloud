@@ -13,11 +13,14 @@ package Koha::Item::Transfer;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
+use JSON qw(to_json);
+
 use C4::Items qw( CartToShelf ModDateLastSeen );
+use C4::Log   qw( logaction );
 
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string );
@@ -31,9 +34,38 @@ Koha::Item::Transfer - Koha Item Transfer Object class
 
 =head1 API
 
-=head2 Class Methods
+=head2 Class methods
+
+=head3 store
+
+Overloaded I<store> method.
 
 =cut
+
+sub store {
+    my ($self) = @_;
+
+    $self->_result->result_source->schema->txn_do(
+        sub {
+            my $action = $self->in_storage ? 'UPDATE' : 'CREATE';
+
+            $self = $self->SUPER::store;
+            $self->discard_changes;
+
+            logaction(
+                "TRANSFERS",
+                $action,
+                $self->itemnumber,
+                to_json(
+                    $self->TO_JSON,
+                    { utf8 => 1, pretty => 1, canonical => 1, }
+                )
+            ) if C4::Context->preference("TransfersLog");
+        }
+    );
+
+    return $self;
+}
 
 =head3 item
 
@@ -143,7 +175,7 @@ sub receive {
     # Update the arrived date
     $self->set( { datearrived => dt_from_string } )->store;
 
-    ModDateLastSeen( $self->item->itemnumber );
+    ModDateLastSeen( $self->itemnumber );
     return $self;
 }
 

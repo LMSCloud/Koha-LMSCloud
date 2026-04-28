@@ -62,7 +62,7 @@
             <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
         [% END %]
         [% WRAPPER breadcrumb_item %]
-            <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% name | html %]</a>
+            <a href="/cgi-bin/koha/acquisition/vendors/[% booksellerid | uri %]">[% name | html %]</a>
         [% END %]
         [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basketno | uri %]">Basket [% basketno | html %]</a>
@@ -104,9 +104,8 @@
                             <li> <label for="controlnumber">Control no.: </label> <input type="text" id="controlnumber" name="controlnumber" value="[% controlnumber | html %]" /> </li>
                             <li> <label for="dewey">Dewey: </label> <input type="text" id="dewey" name="dewey" value="[% dewey | html %]" /> </li>
                             <li> <label for="stdid">Standard ID: </label> <input type="text" id="stdid" name="stdid" value="[% stdid | html %]" /> </li>
-                            <li> </li
-                            ><li
-                                ><label for="frameworkcode">Select MARC framework:</label>
+                            <li>
+                                <label for="frameworkcode">Select MARC framework:</label>
                                 <select id="frameworkcode" name="frameworkcode">
                                     <option value="">Default</option>
                                     [% FOREACH framework IN frameworks %]
@@ -172,13 +171,13 @@
                     [% IF ( author ) %]<em>Author: </em><span class="term">[% author | html %]</span>[% END %]
                     [% IF ( publicationyear ) %]<em>Publication year: </em><span class="term">[% publicationyear | html %]</span>[% END %]
                     [% IF ( isbn ) %]<em>ISBN: </em><span class="term">[% isbn | html %]</span>[% END %]
+                    [% IF ( srchany ) %]<em>Keyword (any): </em><span class="term">[% srchany | html %]</span>[% END %]
+                    [% IF ( stdid ) %]<em>Standard ID: </em><span class="term">[% stdid | html %]</span>[% END %]
                     [% IF ( issn ) %]<em>ISSN: </em><span class="term">[% issn | html %]</span>[% END %]
                     [% IF ( lccall ) %]<em>LC call number: </em><span class="term">[% lccall | html %]</span>[% END %]
                     [% IF ( subject ) %]<em>Subject heading: </em><span class="term">[% subject | html %]</span>[% END %]
                     [% IF ( controlnumber ) %]<em>Control no: </em><span class="term">[% controlnumber | html %]</span>[% END %]
                     [% IF ( dewey ) %]<em>Dewey: </em><span class="term">[% dewey | html %]</span>[% END %]
-                    [% IF ( srchany ) %]<em>Keyword (any): </em><span class="term">[% srchany | html %]</span>[% END %]
-                    [% IF ( stdid ) %]<em>Standard ID: </em><span class="term">[% stdid | html %]</span>[% END %]
                 </p>
 
                 [% IF ( breeding_loop ) %]
@@ -193,9 +192,9 @@
                                 <th>ISBN</th>
                                 <th>LCCN</th>
                                 [% IF ( Koha.Preference('AdditionalFieldsInZ3950ResultSearch') != '' ) %]
-                                    <th>Additional fields</th>
+                                    <th class="no-sort">Additional fields</th>
                                 [% END %]
-                                <th>Actions</th>
+                                <th class="no-sort">Actions</th>
                             </tr></thead
                         >
                         <tbody
@@ -279,13 +278,14 @@
                         <input type="hidden" name="current_page" id="current_page" value="[% current_page | html %]" />
                         <input type="hidden" id="searchtitle" name="title" value="[% title | html %]" />
                         <input type="hidden" id="isbn" name="isbn" value="[% isbn | html %]" />
+                        <input type="hidden" id="issn" name="issn" value="[% issn | html %]" />
+                        <input type="hidden" id="srchany" name="srchany" value="[% srchany | html %]" />
+                        <input type="hidden" id="stdid" name="stdid" value="[% stdid | html %]" />
                         <input type="hidden" id="lccall" name="lccall" value="[% lccall | html %]" />
                         <input type="hidden" id="author" name="author" value="[% author | html %]" />
                         <input type="hidden" id="publicationyear" name="publicationyear" value="[% publicationyear | html %]" />
                         <input type="hidden" id="subject" name="subject" value="[% subject | html %]" />
                         <input type="hidden" id="dewey" name="dewey" value="[% dewey | html %]" />
-                        <input type="hidden" id="srchany" name="srchany" value="[% srchany | html %]" />
-                        <input type="hidden" id="stdid" name="stdid" value="[% stdid | html %]" />
                         <input type="hidden" name="frameworkcode" value="[% frameworkcode | html %]" />
                         <input type="hidden" name="biblionumber" value="[% biblionumber | html %]" />
                         <input type="hidden" name="controlnumber" value="[% controlnumber | html %]" />
@@ -326,32 +326,28 @@
         </div>
         <!-- /.row -->
     [% END %]
-
-    [% IF ( numberpending ) %]<h3 align="center">Still [% numberpending | html %] servers to search</h3>[% END %]
-
-    [% MACRO jsinclude BLOCK %]
-        [% Asset.js("js/acquisitions-menu.js") | $raw %]
-        [% INCLUDE 'datatables.inc' %]
-        [% INCLUDE 'z3950_search.inc' %]
-        [% Asset.js("js/z3950_search.js") | $raw %]
-        <script>
-            $(document).ready(function () {
-                var resultst = $("#resultst").dataTable(
-                    $.extend(true, {}, dataTablesDefaults, {
-                        columnDefs: [
-                            { targets: [-1, -2], orderable: false, searchable: false },
-                            { targets: [1], type: "nsb-nse" },
-                        ],
-                        order: [[1, "asc"]],
-                        paginate: false,
-                        searching: false,
-                        info: false,
-                    })
-                );
-                InitLastAction();
-            });
-        </script>
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% IF ( numberpending ) %]<h3 align="center">Still [% numberpending | html %] servers to search</h3>[% END %]
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/acquisitions-menu.js") | $raw %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'z3950_search.inc' %]
+    [% Asset.js("js/z3950_search.js") | $raw %]
+    <script>
+        $(document).ready(function () {
+            var resultst = $("#resultst").kohaTable({
+                columnDefs: [{ targets: [1], type: "nsb-nse" }],
+                order: [[1, "asc"]],
+                paging: false,
+                searching: false,
+                info: false,
+            });
+            InitLastAction();
+        });
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]

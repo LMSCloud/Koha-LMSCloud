@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 #
 #
 use strict;
@@ -25,9 +25,8 @@ use warnings;
 use constant WHEREAMI => 't/db_dependent/Record/testrecords';
 
 # specify the number of tests
-use Test::More tests => 21;    #FIXME Commented out two failing tests
-
-#use C4::Context;
+use Test::NoWarnings;
+use Test::More tests => 22;    #FIXME Commented out two failing tests
 use C4::Record qw( marc2marc marc2marcxml marc2dcxml changeEncoding );
 
 =head1 NAME
@@ -99,8 +98,8 @@ ok(
 ok( !$error, 'no errors in conversion' );
 
 #FIXME This test fails
-#	$marcxml =~ s/\n//g;
-#	$marcxml =~ s/v\/ s/v\/s/g; # FIXME: bug in new_from_xml_record!!
+#\t$marcxml =~ s/\n//g;
+#\t$marcxml =~ s/v\/ s/v\/s/g; # FIXME: bug in new_from_xml_record!!
 #is ($marcxml,$marcxml_utf8, 'record matches antitype');
 
 ok(
@@ -110,8 +109,8 @@ ok(
 ok( !$error, 'no errors in conversion' );
 
 #FIXME This test fails
-#	$marcxml =~ s/\n//g;
-#	$marcxml =~ s/v\/ s/v\/s/g;
+#\t$marcxml =~ s/\n//g;
+#\t$marcxml =~ s/v\/ s/v\/s/g;
 #is ($marcxml,$marcxml_utf8, 'record matches antitype');
 
 print "\n2. checking binary MARC21 records with combining characters to MARCXML\n";

@@ -25,9 +25,24 @@
     [% IF CAN_user_borrowers_edit_borrowers %]
         [% IF patron.is_adult AND Koha.Preference("borrowerRelationship") %]
             [% IF patron.is_family_card %]
-                <a id="addchild" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantor_id=[% patron.borrowernumber | html %]"><i class="fa fa-plus"></i> Add family card member</a>
+                <a id="addchild" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=add_form&amp;guarantor_id=[% patron.borrowernumber | html %]"><i class="fa fa-plus"></i> Add family card member</a>
             [% ELSE %]
-                <a id="addchild" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantor_id=[% patron.borrowernumber | html %]"><i class="fa fa-plus"></i> Add guarantee</a>
+                [% IF guarantee_categories.size > 1 %]
+                    <div id="addchild" class="btn-group">
+                        <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa fa-plus"></i> Add guarantee</button>
+                        <ul class="dropdown-menu">
+                            [% FOREACH cat IN guarantee_categories %]
+                                <li
+                                    ><a class="dropdown-item" href="/cgi-bin/koha/members/memberentry.pl?op=add_form&amp;guarantor_id=[% patron.borrowernumber | html %]&categorycode=[% cat.categorycode | html %]"
+                                        >[% cat.description | html %]</a
+                                    ></li
+                                >
+                            [% END %]
+                        </ul>
+                    </div>
+                [% ELSE %]
+                    <a id="addchild" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=add_form&amp;guarantor_id=[% patron.borrowernumber | html %]"><i class="fa fa-plus"></i> Add guarantee</a>
+                [% END %]
             [% END %]
         [% END %]
         <a id="changepassword" class="btn btn-default" href="/cgi-bin/koha/members/member-password.pl?member=[% patron.borrowernumber | html %]"><i class="fa fa-lock"></i> Change password</a>
@@ -72,14 +87,14 @@
 
     [% IF CAN_user_borrowers_edit_borrowers %]
         <div class="btn-group">
-            <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown">More <span class="caret"></span></button>
+            <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown">[% tp("More menu options", "More") | html %] <span class="caret"></span></button>
             <ul class="dropdown-menu dropdown-menu-end">
                 [% IF CAN_user_borrowers_edit_borrowers %]
-                    <li
-                        ><a class="dropdown-item" id="renewpatron" href="/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% patron.borrowernumber | html %]&amp;destination=[% destination | html %]&amp;reregistration=y"
+                    <li>
+                        <a class="dropdown-item" id="renewpatron" href="/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% patron.borrowernumber | html %]&amp;destination=[% destination | html %]&amp;reregistration=y"
                             >[% IF ( IsFamilyCard ) %]Renew family card[% ELSE %]Renew patron[% END %]</a
-                        ></li
-                    >
+                        >
+                    </li>
                 [% ELSE %]
                     <li data-bs-toggle="tooltip" data-bs-placement="left" title="You are not authorized to renew patrons">
                         <a class="dropdown-item disabled" aria-disabled="true" id="renewpatron" href="#">Renew patron</a>
@@ -94,8 +109,8 @@
                         <a class="dropdown-item disabled" aria-disabled="true" id="patronflags" href="#">Set permissions</a>
                     </li>
                 [% END %]
-                [% IF ( Koha.Preference('TwoFactorAuthentication') == 'enforced' || Koha.Preference('TwoFactorAuthentication') == 'enabled' ) && logged_in_user.borrowernumber == patron.borrowernumber %]
-                    <li><a class="dropdown-item" id="twofa" href="/cgi-bin/koha/members/two_factor_auth.pl">Manage two-factor authentication</a></li>
+                [% IF ( Koha.Preference('TwoFactorAuthentication') == 'enforced' || Koha.Preference('TwoFactorAuthentication') == 'enabled' ) && ( logged_in_user.borrowernumber == patron.borrowernumber || logged_in_user.is_superlibrarian ) %]
+                    <li><a class="dropdown-item" id="twofa" href="/cgi-bin/koha/members/two_factor_auth.pl?borrowernumber=[% patron.borrowernumber | uri %]">Manage two-factor authentication</a></li>
                 [% END %]
 
                 [% IF CAN_user_borrowers_edit_borrowers && useDischarge %]
@@ -225,8 +240,11 @@
                                 <select name="message_type" id="message_type" class="form-select">
                                     <option value="L">Staff - Internal note</option>
                                     <option value="B">OPAC - [% patron.firstname | html %] [% patron.surname | html %]</option>
-                                    [% IF CAN_user_borrowers_send_messages_to_borrowers %]
+                                    [% IF CAN_user_borrowers_send_messages_to_borrowers_email %]
                                         <option value="E">Email - email addresses of patron</option>
+                                    [% END %]
+                                    [% IF Koha.Preference("SMSSendDriver") && CAN_user_borrowers_send_messages_to_borrowers_sms %]
+                                        <option value="SMS">SMS - sms number of patron</option>
                                     [% END %]
                                 </select>
                             </li>
@@ -244,7 +262,7 @@
                                 </li>
                             [% END %]
 
-                            [% patron_letters = NoticeTemplates.GetByModule( 'add_message' ) %]
+                            [% patron_letters = NoticeTemplates.GetByModuleForLibrary( 'add_message' ) %]
                             [% IF patron_letters %]
                                 <li class="form-group form-row">
                                     <label for="select_patron_notice" class="col-form-lable" style="display:none;">Patron notice: </label>

@@ -13,13 +13,14 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use Test::More tests => 14;
+use Test::NoWarnings;
+use Test::More tests => 16;
 use Test::MockModule;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
@@ -36,10 +37,7 @@ use Koha::DateUtils qw( dt_from_string );
 use Koha::MarcSubfieldStructures;
 
 BEGIN {
-    use_ok(
-        'C4::ILSDI::Services',
-        qw( AuthenticatePatron GetPatronInfo LookupPatron HoldTitle HoldItem GetRecords RenewLoan GetAvailability )
-    );
+    use_ok('C4::ILSDI::Services');
 }
 
 my $schema  = Koha::Database->schema;
@@ -884,7 +882,7 @@ subtest 'GetRecords' => sub {
         'GetRecords returns transfer informations'
     );
 
-    # Check informations exposed
+    # Check information exposed
     my $reply_issue = $reply->{record}->[0]->{issues}->{issue}->[0];
     is( $reply_issue->{itemnumber},     $item->itemnumber, 'GetRecords has an issue tag' );
     is( $reply_issue->{borrowernumber}, undef,             'GetRecords does not expose borrowernumber in issue tag' );
@@ -1162,6 +1160,51 @@ subtest 'GetAvailability itemcallnumber' => sub {
         "As expected, GetAvailability biblio has no itemcallnumber tag"
     );
 
+    $schema->storage->txn_rollback;
+};
+
+subtest 'GetAvailability availabilitystatus' => sub {
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+    my $item = $builder->build_sample_item;
+
+    my ( $cgi, $reply, $xml, $status, $message );
+    $cgi = CGI->new;
+    $cgi->param( service => 'GetAvailability' );
+    $cgi->param( id      => $item->biblionumber );
+    $cgi->param( id_type => 'biblio' );
+    $reply  = C4::ILSDI::Services::GetAvailability($cgi);
+    $xml    = XML::LibXML->load_xml( string => $reply );
+    $status = $xml->findnodes('//dlf:availabilitystatus')->to_literal();
+    is( $status, 'available', 'GetAvailability returns available' );
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    $patron->branchcode( $item->holdingbranch )->store;
+    AddReserve(
+        {
+            reservation_date => dt_from_string()->add( days => 1 ),
+            branchcode       => $item->holdingbranch,
+            borrowernumber   => $patron->id,
+            biblionumber     => $item->biblionumber,
+            itemnumber       => $item->itemnumber,
+        }
+    );
+    t::lib::Mocks::mock_preference( 'ConfirmFutureHolds', 0 );
+    $reply  = C4::ILSDI::Services::GetAvailability($cgi);
+    $xml    = XML::LibXML->load_xml( string => $reply );
+    $status = $xml->findnodes('//dlf:availabilitystatus')->to_literal();
+    is( $status, 'available', 'GetAvailability returns available, ignoring future hold' );
+
+    t::lib::Mocks::mock_preference( 'ConfirmFutureHolds', 2 );
+    $reply   = C4::ILSDI::Services::GetAvailability($cgi);
+    $xml     = XML::LibXML->load_xml( string => $reply );
+    $status  = $xml->findnodes('//dlf:availabilitystatus')->to_literal();
+    $message = $xml->findnodes('//dlf:availabilitymsg')->to_literal();
+    is( $status,  'not available', 'GetAvailability returns not available status for future hold' );
+    is( $message, 'On hold',       'GetAvailability returns on hold message for future hold' );
+
+    t::lib::Mocks::mock_preference( 'ConfirmFutureHolds', 0 );
     $schema->storage->txn_rollback;
 };
 

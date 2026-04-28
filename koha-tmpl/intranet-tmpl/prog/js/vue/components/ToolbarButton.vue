@@ -1,23 +1,44 @@
 <template>
-  <router-link :to="to" class="btn btn-default"
-    ><font-awesome-icon v-if="icon" :icon="icon" /> {{ title }}</router-link
-  >
+    <ButtonSubmit v-if="form" v-bind="$props" />
+    <Link v-else v-bind="$props" />
 </template>
 
 <script>
+import ButtonSubmit from "./ButtonSubmit.vue";
+import Link from "./Link.vue";
 export default {
-  props: {
-    to: {
-      type: [String, Object],
+    inheritAttrs: false,
+    components: { Link, ButtonSubmit },
+    props: {
+        action: {
+            type: String,
+            required: false,
+        },
+        to: {
+            type: [String, Object],
+            required: false,
+        },
+        onClick: { type: Function, required: false },
+        icon: {
+            type: String,
+            required: false,
+        },
+        title: {
+            type: String,
+        },
+        callback: {
+            type: [String, Function],
+            required: false,
+        },
+        cssClass: {
+            type: String,
+            default: "btn btn-default",
+            required: false,
+        },
+        form: {
+            type: Object,
+        },
     },
-    icon: {
-      type: String,
-      required: false,
-    },
-    title: {
-      type: String,
-    },
-  },
-  name: "Toolbar",
-}
+    name: "Toolbar",
+};
 </script>

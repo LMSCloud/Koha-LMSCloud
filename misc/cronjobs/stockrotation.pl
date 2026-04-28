@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -520,7 +520,7 @@ emit(
         report      => $out_report,
         send_all    => $send_all,
         send_email  => $send_email,
-        branchcode  => $branch,
+        branchcode  => ( ref $branch ? $branch->branchcode : $branch ),
     }
 );
 

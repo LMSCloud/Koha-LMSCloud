@@ -17,70 +17,16 @@ package C4::Circulation;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use DateTime;
-use POSIX qw( floor );
-use Encode;
-use Try::Tiny;
 
-use C4::Context;
-use C4::Stats qw( UpdateStats );
-use C4::Reserves
-    qw( CheckReserves CanItemBeReserved MoveReserve ModReserve ModReserveMinusPriority RevertWaitingStatus IsAvailableForItemLevelRequest );
-use C4::Biblio qw( UpdateTotalIssues );
-use C4::Items  qw( ModItemTransfer ModDateLastSeen CartToShelf );
-use C4::Accounts;
-use C4::ItemCirculationAlertPreference;
-use C4::Message;
-use C4::Log qw( logaction );    # logaction
-use C4::Overdues;
-use C4::RotatingCollections qw(GetCollectionItemBranches);
-use Algorithm::CheckDigits  qw( CheckDigits );
-
-use Data::Dumper qw( Dumper );
-use Koha::Account;
-use Koha::AuthorisedValues;
-use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
-use Koha::Biblioitems;
-use Koha::DateUtils qw( dt_from_string output_pref );
-use Koha::Calendar;
-use Koha::Checkouts;
-use Koha::ILL::Requests;
-use Koha::Items;
-use Koha::Patrons;
-use Koha::Patron::Debarments qw( DelUniqueDebarment AddUniqueDebarment );
-use Koha::Database;
-use Koha::Libraries;
-use Koha::Account::Lines;
-use Koha::Holds;
-use Koha::OverdueIssue;
-use Koha::OverdueIssues;
-use Koha::Account::Lines;
-use Koha::Account::Offsets;
-use Koha::Config::SysPrefs;
-use Koha::Charges::Fees;
-use Koha::Config::SysPref;
-use Koha::Checkouts::ReturnClaims;
-use Koha::SearchEngine::Indexer;
-use Koha::Exceptions::Checkout;
-use Koha::Plugins;
-use Koha::Recalls;
-use Koha::Library::Hours;
-use Carp            qw( carp );
-use List::MoreUtils qw( any );
-use Scalar::Util    qw( looks_like_number blessed );
-use Date::Calc      qw( Date_to_Days );
-our ( @ISA, @EXPORT_OK );
+use base 'Exporter';
 
 BEGIN {
 
-    require Exporter;
-    @ISA = qw(Exporter);
-
     # FIXME subs that should probably be elsewhere
-    push @EXPORT_OK, qw(
+    our @EXPORT_OK = qw(
         barcodedecode
         LostItem
         ReturnLostItem
@@ -132,6 +78,60 @@ BEGIN {
     );
     push @EXPORT_OK, '_GetCircControlBranch';    # This is wrong!
 }
+
+use DateTime;
+use POSIX qw( floor );
+use Encode;
+use Try::Tiny;
+use JSON;
+
+use C4::Context;
+use C4::Stats qw( UpdateStats );
+use C4::Reserves
+    qw( CheckReserves CanItemBeReserved MoveReserve ModReserve ModReserveMinusPriority IsAvailableForItemLevelRequest );
+use C4::Biblio qw( UpdateTotalIssues );
+use C4::Items  qw( ModItemTransfer ModDateLastSeen CartToShelf );
+use C4::Accounts;
+use C4::ItemCirculationAlertPreference;
+use C4::Message;
+use C4::Log qw( logaction );    # logaction
+use C4::Overdues;
+use C4::RotatingCollections qw(GetCollectionItemBranches);
+use Algorithm::CheckDigits  qw( CheckDigits );
+
+use Data::Dumper qw( Dumper );
+use Koha::Account;
+use Koha::AuthorisedValues;
+use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
+use Koha::Biblioitems;
+use Koha::DateUtils qw( dt_from_string output_pref );
+use Koha::Calendar;
+use Koha::Checkouts;
+use Koha::ILL::Requests;
+use Koha::Items;
+use Koha::Patrons;
+use Koha::Patron::Debarments qw( DelUniqueDebarment AddUniqueDebarment );
+use Koha::Database;
+use Koha::Libraries;
+use Koha::Account::Lines;
+use Koha::Holds;
+use Koha::OverdueIssue;
+use Koha::OverdueIssues;
+use Koha::Account::Lines;
+use Koha::Account::Offsets;
+use Koha::Config::SysPrefs;
+use Koha::Charges::Fees;
+use Koha::Config::SysPref;
+use Koha::Checkouts::ReturnClaims;
+use Koha::SearchEngine::Indexer;
+use Koha::Exceptions::Checkout;
+use Koha::Plugins;
+use Koha::Recalls;
+use Koha::Library::Hours;
+use Carp            qw( carp );
+use List::MoreUtils qw( any );
+use Scalar::Util    qw( looks_like_number blessed );
+use Date::Calc      qw( Date_to_Days );
 
 =head1 NAME
 
@@ -352,7 +352,7 @@ sub transferbook {
     my $itemnumber = $item->itemnumber;
 
     # get branches of book...
-    # LMSCloud: will be assigned with the bookmobile branch if it is a bookmobile station
+    # will be assigned with the bookmobile branch if it is a bookmobile station
     $fbr = Koha::Libraries->get_effective_branch( $params->{from_branch} );
 
     # if using Branch Transfer Limits
@@ -384,7 +384,7 @@ sub transferbook {
     my $issue = $item->checkout;
     if ($issue) {
         AddReturn( $barcode, $fbr );
-        $messages->{'WasReturned'} = $issue->{'borrowernumber'};
+        $messages->{'WasReturned'} = $issue->borrowernumber;
     }
 
     # find reserves.....
@@ -420,9 +420,17 @@ sub transferbook {
         $messages->{'WasTransfered'} = $tbr;
 
     }
-    ModDateLastSeen($itemnumber);
+
+    # Only build the holds queue if we have transferred above
+    ModDateLastSeen( $itemnumber, undef, { skip_holds_queue => 1 } );
     return ( $dotransfer, $messages );
 }
+
+=head2 TooMany
+
+Missing POD for TooMany.
+
+=cut
 
 sub TooMany {
     my ( $patron, $item, $params ) = @_;
@@ -752,7 +760,7 @@ item withdrawn.
 item is restricted (set by ??)
 
 C<$needsconfirmation> a reference to a hash. It contains reasons why the loan 
-could be prevented, but ones that can be overriden by the operator.
+could be prevented, but ones that can be overridden by the operator.
 
 Possible values are :
 
@@ -799,6 +807,7 @@ sub CanBookBeIssued {
 
     my $onsite_checkout     = $params->{onsite_checkout}     || 0;
     my $override_high_holds = $params->{override_high_holds} || 0;
+    my $issueconfirmed      = $params->{issueconfirmed}      || 0;
 
     my $item_object = $params->{item};
     if ( !$item_object and $barcode ) {
@@ -820,9 +829,8 @@ sub CanBookBeIssued {
     my $dbh                = C4::Context->dbh;
     my $patron_unblessed   = $patron->unblessed;
 
-    # LMSCloud: check if it is an ILL item and if an alternative datedue is stored in the Illbackend
     my ( $itisanillitem, $illrequest ) = ( 0, undef );
-    if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+    if ( C4::Context->preference("IllModule") ) {
         eval {
             ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item_unblessed);
             if ( $itisanillitem && $illrequest ) {
@@ -836,7 +844,9 @@ sub CanBookBeIssued {
     my $circ_library = Koha::Libraries->find( _GetCircControlBranch( $item_object, $patron ) );
 
     my $now = dt_from_string();
+
     $duedate ||= CalcDateDue( $now, $effective_itemtype, $circ_library->branchcode, $patron );
+
     if ( DateTime->compare( $duedate, $now ) == -1 ) {    # duedate cannot be before now
         $needsconfirmation{INVALID_DATE} = $duedate;
     }
@@ -867,6 +877,7 @@ sub CanBookBeIssued {
                 ccode          => $item_object->ccode,
                 categorycode   => $patron->categorycode,
                 location       => $item_object->location,
+                interface      => C4::Context->interface,
             }
         );
         my $block_lost_return = C4::Context->preference("BlockReturnOfLostItems") ? 1 : 0;
@@ -1050,6 +1061,7 @@ sub CanBookBeIssued {
             and $issue
             and $issue->onsite_checkout
             and $issue->get_column('borrowernumber') == $patron->borrowernumber ? 1 : 0 );
+
     my $toomany = TooMany(
         $patron, $item_object,
         { onsite_checkout => $onsite_checkout, switch_onsite_checkout => $switch_onsite_checkout, }
@@ -1079,13 +1091,17 @@ sub CanBookBeIssued {
     #
     $patron = Koha::Patrons->find( $patron->borrowernumber )
         ;    # FIXME Refetch just in case, to avoid regressions. But must not be needed
-    my $wants_check = $patron->wants_check_for_previous_checkout;
-    if ( $wants_check and $patron->do_check_for_previous_checkout($item_unblessed) ) {
-        my $biblionumber = $item_unblessed->{biblionumber};
-        require C4::Serials;
-        my $is_a_subscription = C4::Serials::CountSubscriptionFromBiblionumber($biblionumber);
-        if ( !$is_a_subscription ) {
-            $needsconfirmation{PREVISSUE} = 1;
+    my $check_previous_checkout = $patron->do_check_for_previous_checkout($item_unblessed);
+    if ( $patron->wants_check_for_previous_checkout($item_object) && $check_previous_checkout ) {
+        if ( $check_previous_checkout eq "currentlycheckedout" ) {
+            $needsconfirmation{CURRENTISSUE} = 1;
+        } else {
+            my $biblionumber = $item_unblessed->{biblionumber};
+            require C4::Serials;
+            my $is_a_subscription = C4::Serials::CountSubscriptionFromBiblionumber($biblionumber);
+            if ( !$is_a_subscription ) {
+                $needsconfirmation{PREVISSUE} = 1;
+            }
         }
     }
 
@@ -1163,8 +1179,6 @@ sub CanBookBeIssued {
     #
     my $rentalConfirmation = C4::Context->preference("RentalFeesCheckoutConfirmation");
     if ($rentalConfirmation) {
-
-        # LMSCloud: Check whether the patrons category is selected for discarding rental fees
         my $addIssuingRentalFee = 1;
         if ( C4::Context->preference('IssuingDiscardRentalFeesOfPatronCategory') ) {
             my $checkval     = $patron->categorycode;
@@ -1324,10 +1338,34 @@ sub CanBookBeIssued {
         }
     }
 
+    ## CHECK FOR BOOKINGS
+    if (
+        my $booking = $item_object->find_booking(
+            { checkout_date => $now, due_date => $duedate, patron_id => $patron->borrowernumber }
+        )
+        )
+    {
+        my $booking_start = dt_from_string( $booking->start_date );
+
+        if ( $booking->patron_id == $patron->borrowernumber ) {
+            if ( $now < $booking_start ) {
+                $needsconfirmation{'BOOKED_EARLY'} = $booking;
+            } else {
+                $alerts{'BOOKED'} = $booking;
+            }
+        } else {
+            if ( $now < $booking_start && $duedate > $booking_start ) {
+                $needsconfirmation{'BOOKED_TO_ANOTHER'} = $booking;
+            } else {
+                $issuingimpossible{'BOOKED_TO_ANOTHER'} = $booking;
+            }
+        }
+    }
+
     ## CHECK AGE RESTRICTION
-    my $agerestriction = $biblioitem->agerestriction;
-    my ( $restriction_age, $daysToAgeRestriction ) = GetAgeRestriction( $agerestriction, $patron->unblessed );
-    if ( $daysToAgeRestriction && $daysToAgeRestriction > 0 ) {
+    my $agerestriction  = $biblioitem->agerestriction;
+    my $restriction_age = GetAgeRestriction($agerestriction);
+    if ( $restriction_age && $patron->dateofbirth && $restriction_age > $patron->get_age() ) {
         if ( C4::Context->preference('AgeRestrictionOverride') ) {
             $needsconfirmation{AGE_RESTRICTION} = "$agerestriction";
         } else {
@@ -1388,7 +1426,7 @@ sub CanBookBeIssued {
         }
     }
 
-    return ( \%issuingimpossible, \%needsconfirmation, \%alerts, \%messages, );
+    return ( \%issuingimpossible, \%needsconfirmation, \%alerts, \%messages );
 }
 
 =head2 CanBookBeReturned
@@ -1429,8 +1467,6 @@ sub CanBookBeReturned {
     my $fbr = Koha::Libraries->get_effective_branch( $item->{'holdingbranch'} );
     $branch = Koha::Libraries->get_effective_branch($branch);
 
-    # LMSCloud: check whether the item is on transfer
-    # if that's the case, the checkin for the target branch needs to be allowed
     my $transferbranch = '';
     my ( $transferwhen, $transferfrom, $transferto ) = GetTransfers( $item->{'itemnumber'} );
     $transferbranch = Koha::Libraries->get_effective_branch($transferto)
@@ -1463,6 +1499,12 @@ sub CanBookBeReturned {
 
 =cut
 
+=head2 checkHighHolds
+
+Missing POD for checkHighHolds.
+
+=cut
+
 sub checkHighHolds {
     my ( $item, $patron ) = @_;
     my $branchcode = _GetCircControlBranch( $item, $patron );
@@ -1486,7 +1528,7 @@ sub checkHighHolds {
         $return_data->{outstanding} = $holds->count();
 
         my $decreaseLoanHighHoldsControl        = C4::Context->preference('decreaseLoanHighHoldsControl');
-        my $decreaseLoanHighHoldsValue          = C4::Context->preference('decreaseLoanHighHoldsValue');
+        my $decreaseLoanHighHoldsValue          = C4::Context->preference('decreaseLoanHighHoldsValue') || 0;
         my $decreaseLoanHighHoldsIgnoreStatuses = C4::Context->preference('decreaseLoanHighHoldsIgnoreStatuses');
 
         my @decreaseLoanHighHoldsIgnoreStatuses = split( /,/, $decreaseLoanHighHoldsIgnoreStatuses );
@@ -1558,7 +1600,7 @@ sub checkHighHolds {
             # overrides decreaseLoanHighHoldsDuration syspref
             $duration = $rule;
         } else {
-            $duration = C4::Context->preference('decreaseLoanHighHoldsDuration');
+            $duration = C4::Context->preference('decreaseLoanHighHoldsDuration') || 0;
         }
         my $reduced_datedue = $calendar->addDuration( $issuedate, $duration );
         $reduced_datedue->set_hour( $orig_due->hour );
@@ -1609,8 +1651,8 @@ AddIssue does the following things :
               - fill recall if recall to this patron
               - cancel recall or not
               - revert recall's waiting status or not
-          * TRANSFERT PENDING ?
-              - complete the transfert
+          * TRANSFER PENDING ?
+              - complete the transfer
           * ISSUE THE BOOK
 
 =back
@@ -1625,6 +1667,8 @@ sub AddIssue {
     my $auto_renew             = $params && $params->{auto_renew};
     my $cancel_recall          = $params && $params->{cancel_recall};
     my $recall_id              = $params && $params->{recall_id};
+    my $confirmations          = $params->{confirmations};
+    my $forced                 = $params->{forced};
     my $dbh                    = C4::Context->dbh;
     my $barcodecheck           = CheckValidBarcode($barcode);
 
@@ -1673,14 +1717,11 @@ sub AddIssue {
             );
             $issue = $item_object->checkout->get_from_storage;
         } else {
-
-            # LMSCloud: check if it is an ILL item and if an alternative datedue is stored in the Illbackend
             my ( $itisanillitem, $illrequest ) = ( 0, undef );
-            if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+            if ( C4::Context->preference("IllModule") ) {
                 eval {
                     ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item_unblessed);
-                    if ( !$datedue )
-                    {    # explicitly set datedue has higher priority than the datedue that is stored in the Illbackend
+                    if ( !$datedue ) {
                         if ( $itisanillitem && $illrequest ) {
                             my $datedueIllbackendString =
                                 $illrequest->_backend_capability( "getIllrequestDateDue", $illrequest );
@@ -1755,9 +1796,9 @@ sub AddIssue {
                 );
             }
 
-            C4::Reserves::MoveReserve( $item_object->itemnumber, $patron->borrowernumber, $cancelreserve );
+            C4::Reserves::MoveReserve( $item_object, $patron, $cancelreserve );
 
-            # Starting process for transfer job (checking transfert and validate it if we have one)
+            # Starting process for transfer job (checking transfer and validate it if we have one)
             if ( my $transfer = $item_object->get_transfer ) {
 
                 # updating line of branchtranfert to finish it, and changing the to branch value, implement a comment for visibility of this case (maybe for stats ....)
@@ -1845,25 +1886,25 @@ sub AddIssue {
                             # If only in lead/trail period, do nothing - librarian has made informed decision
                         }
                     }
+
+                    if ($issue) {
+                        $issue->set($issue_attributes)->store;
+                    } else {
+                        $issue = Koha::Checkout->new(
+                            {
+                                itemnumber => $item_object->itemnumber,
+                                %$issue_attributes,
+                            }
+                        )->store;
+
+                        # Ensure item is no longer listed in the holds queue
+                        $dbh->do(
+                            q{DELETE tmp_holdsqueue, hold_fill_targets FROM tmp_holdsqueue LEFT JOIN hold_fill_targets USING ( itemnumber ) WHERE itemnumber = ?},
+                            undef, $item_object->id
+                        );
+                    }
                 }
             );
-
-            if ($issue) {
-                $issue->set($issue_attributes)->store;
-            } else {
-                $issue = Koha::Checkout->new(
-                    {
-                        itemnumber => $item_object->itemnumber,
-                        %$issue_attributes,
-                    }
-                )->store;
-
-                # Ensure item is no longer listed in the holds queue
-                $dbh->do(
-                    q{DELETE tmp_holdsqueue, hold_fill_targets FROM tmp_holdsqueue LEFT JOIN hold_fill_targets USING ( itemnumber ) WHERE itemnumber = ?},
-                    undef, $item_object->id
-                );
-            }
             $issue->discard_changes;
 
             #Update borrowers.lastseen
@@ -1891,8 +1932,6 @@ sub AddIssue {
             # Record if item was lost
             my $was_lost = $item_object->itemlost;
 
-            # LMSCloud: if it's configured that an item is always moved to the holding library,
-            # than the homebranch is changed to the holding branch
             if ( C4::Context->preference("IssuingBranchBecomesHomeBranch") ) {
                 $item_object->homebranch( Koha::Libraries->get_effective_branch( C4::Context->userenv->{'branch'} ) );
             }
@@ -1933,7 +1972,6 @@ sub AddIssue {
                 }
             }
 
-            # LMSCloud: Check whether the patrons category is selected for discarding rental fees
             my $addIssuingRentalFee = 1;
             if ( C4::Context->preference('IssuingDiscardRentalFeesOfPatronCategory') ) {
                 my $checkval     = $patron->categorycode;
@@ -1958,23 +1996,20 @@ sub AddIssue {
                 }
             }
 
-            # LMSCloud: if it is an ILL item then update also the ILL backend status
             if ( $itisanillitem && $illrequest ) {
                 eval {
-                    # It is necessary to read the illrequest record a second time here, because meanwhile it may have been updated by AddReturn() called a few lines above.
                     ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item_unblessed);
-                    if ( $itisanillitem && $illrequest )
-                    {    # for safety's sake only, of course this always should be true
+                    if ( $itisanillitem && $illrequest ) {
                         $illrequest->_backend_capability( "itemCheckedOut", $illrequest );
                     }
                 }
             }
 
-            my $nfl_checkout_rules = C4::Context->yaml_preference('UpdateNotForLoanStatusOnCheckout');
-            if ($nfl_checkout_rules) {
-                foreach my $key ( keys %$nfl_checkout_rules ) {
+            my $rules = C4::Context->yaml_preference('UpdateNotForLoanStatusOnCheckout');
+            if ($rules) {
+                foreach my $key ( keys %$rules ) {
                     if ( $item_object->notforloan eq $key ) {
-                        $item_object->notforloan( $nfl_checkout_rules->{$key} )
+                        $item_object->notforloan( $rules->{$key} )
                             ->store( { log_action => 0, skip_record_index => 1 } );
                         last;
                     }
@@ -1997,14 +2032,12 @@ sub AddIssue {
                 }
             );
 
-            # LMSCloud: update bundle item stats
             if ( $item_object->is_bundle ) {
                 my $bundleLostValue = C4::Context->preference('BundleLostValue');
                 my $currdate        = dt_from_string()->ymd();
                 my @bundle_items    = $item_object->bundle_items->as_list;
                 foreach my $bundle_item (@bundle_items) {
                     if ( !$bundle_item->itemlost || $bundle_item->itemlost != $bundleLostValue ) {
-
                         $bundle_item->issues( ( $bundle_item->issues || 0 ) + 1 );
                         $bundle_item->datelastborrowed($currdate);
                         $bundle_item->datelastseen($currdate);
@@ -2045,11 +2078,28 @@ sub AddIssue {
                     }
                 );
             }
-            logaction(
-                "CIRCULATION", "ISSUE",
-                $patron->borrowernumber,
-                $item_object->itemnumber,
-            ) if C4::Context->preference("IssueLog");
+
+            # Log the checkout
+            if ( C4::Context->preference('IssueLog') ) {
+                my $info = $item_object->itemnumber;
+                if ( defined($confirmations) || defined($forced) ) {
+                    $info = to_json(
+                        {
+                            issue         => $issue->issue_id,
+                            branchcode    => $issue->branchcode,
+                            itemnumber    => $item_object->itemnumber,
+                            confirmations => $confirmations,
+                            forced        => $forced
+                        },
+                        { pretty => 1, canonical => 1 }
+                    );
+                }
+                logaction(
+                    "CIRCULATION", "ISSUE",
+                    $patron->borrowernumber,
+                    $info,
+                );
+            }
 
             Koha::Plugins->call(
                 'after_circ_action',
@@ -2062,12 +2112,10 @@ sub AddIssue {
                 }
             );
 
+            # Rebuilding holds queue here to ensure the item is removed from current queue
             Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
                 { biblio_ids => [ $item_object->biblionumber ] } )
                 if C4::Context->preference('RealTimeHoldsQueue');
-
-            # The automatic AddReturn() call for certain types of ILL items had to be moved from here to circ/circulation.pl to avoid access to an otherwise already deleted issues record.
-
         }
     }
     return $issue;
@@ -2164,7 +2212,7 @@ category only
 default branch and category
 
 If no rule has been found in the database, it will default to
-the buillt in rule:
+the built in rule:
 
 patron_maxissueqty - undef
 patron_maxonsiteissueqty - undef
@@ -2340,8 +2388,6 @@ sub AddReturn {
     }
     $branch = C4::Context->userenv->{'branch'} unless $branch;    # we trust userenv to be a safe fallback/default
 
-    # LMSCloud: If the branch is a bookmobile station, the book need to be returned to the bookmobile branch
-    # and not the station
     $branch = Koha::Libraries->get_effective_branch($branch);
 
     my $return_date_specified = !!$return_date;
@@ -2421,87 +2467,33 @@ sub AddReturn {
     my $borrowernumber   = $patron ? $patron->borrowernumber : undef;    # we don't know if we had a borrower or not
     my $patron_unblessed = $patron ? $patron->unblessed      : {};
 
-    my $update_loc_rules = C4::Context->yaml_preference('UpdateItemLocationOnCheckin');
-    if ($update_loc_rules) {
-        if ( defined $update_loc_rules->{_ALL_} ) {
-            if ( $update_loc_rules->{_ALL_} eq '_PERM_' ) {
-                $update_loc_rules->{_ALL_} = $item->permanent_location;
-            }
-            if ( $update_loc_rules->{_ALL_} eq '_BLANK_' ) {
-                $update_loc_rules->{_ALL_} = '';
-            }
-            if (
-                ( defined $item->location && $item->location ne $update_loc_rules->{_ALL_} )
-                || ( !defined $item->location
-                    && $update_loc_rules->{_ALL_} ne "" )
-                )
-            {
-                $messages->{'ItemLocationUpdated'} =
-                    { from => $item->location, to => $update_loc_rules->{_ALL_} };
-                $item->location( $update_loc_rules->{_ALL_} )->store(
-                    {
-                        log_action        => 0,
-                        skip_record_index => 1,
-                        skip_holds_queue  => 1
-                    }
-                );
-            }
-        } else {
-            foreach my $key ( keys %$update_loc_rules ) {
-                if ( $update_loc_rules->{$key} eq '_PERM_' ) {
-                    $update_loc_rules->{$key} = $item->permanent_location;
-                } elsif ( $update_loc_rules->{$key} eq '_BLANK_' ) {
-                    $update_loc_rules->{$key} = '';
-                }
-                if (
-                    (
-                           defined $item->location
-                        && $item->location eq $key
-                        && $item->location ne $update_loc_rules->{$key}
-                    )
-                    || (   $key eq '_BLANK_'
-                        && ( !defined $item->location || $item->location eq '' )
-                        && $update_loc_rules->{$key} ne '' )
-                    )
-                {
-                    $messages->{'ItemLocationUpdated'} = {
-                        from => $item->location,
-                        to   => $update_loc_rules->{$key}
-                    };
-                    $item->location( $update_loc_rules->{$key} )->store(
-                        {
-                            log_action        => 0,
-                            skip_record_index => 1,
-                            skip_holds_queue  => 1
-                        }
-                    );
-                    last;
-                }
-            }
-        }
+    # Update item location
+    my $loc_messages = $item->location_update_trigger('checkin');
+    foreach my $loc_msg_key ( keys %$loc_messages ) {
+        $messages->{$loc_msg_key} = $loc_messages->{$loc_msg_key};
     }
 
-    my $nfl_rules = C4::Context->yaml_preference('UpdateNotForLoanStatusOnCheckin');
-    if ($nfl_rules) {
-        if ( defined $nfl_rules->{ $item->itype } ) {
-            foreach my $notloan_rule_key ( keys %{ $nfl_rules->{ $item->itype } } ) {
+    my $rules = C4::Context->yaml_preference('UpdateNotForLoanStatusOnCheckin');
+    if ($rules) {
+        if ( defined $rules->{ $item->itype } ) {
+            foreach my $notloan_rule_key ( keys %{ $rules->{ $item->itype } } ) {
                 if ( $item->notforloan eq $notloan_rule_key ) {
                     $messages->{'NotForLoanStatusUpdated'} =
-                        { from => $item->notforloan, to => $nfl_rules->{ $item->itype }->{$notloan_rule_key} };
-                    $item->notforloan( $nfl_rules->{ $item->itype }->{$notloan_rule_key} )
+                        { from => $item->notforloan, to => $rules->{ $item->itype }->{$notloan_rule_key} };
+                    $item->notforloan( $rules->{ $item->itype }->{$notloan_rule_key} )
                         ->store( { log_action => 0, skip_record_index => 1, skip_holds_queue => 1 } )
-                        unless $nfl_rules->{ $item->itype }->{$notloan_rule_key} eq 'ONLYMESSAGE';
+                        unless $rules->{ $item->itype }->{$notloan_rule_key} eq 'ONLYMESSAGE';
                     last;
                 }
             }
-        } elsif ( defined $nfl_rules->{'_ALL_'} ) {
-            foreach my $notloan_rule_key ( keys %{ $nfl_rules->{'_ALL_'} } ) {
+        } elsif ( defined $rules->{'_ALL_'} ) {
+            foreach my $notloan_rule_key ( keys %{ $rules->{'_ALL_'} } ) {
                 if ( $item->notforloan eq $notloan_rule_key ) {
                     $messages->{'NotForLoanStatusUpdated'} =
-                        { from => $item->notforloan, to => $nfl_rules->{'_ALL_'}->{$notloan_rule_key} };
-                    $item->notforloan( $nfl_rules->{'_ALL_'}->{$notloan_rule_key} )
+                        { from => $item->notforloan, to => $rules->{'_ALL_'}->{$notloan_rule_key} };
+                    $item->notforloan( $rules->{'_ALL_'}->{$notloan_rule_key} )
                         ->store( { log_action => 0, skip_record_index => 1, skip_holds_queue => 1 } )
-                        unless $nfl_rules->{'_ALL_'}->{$notloan_rule_key} eq 'ONLYMESSAGE';
+                        unless $rules->{'_ALL_'}->{$notloan_rule_key} eq 'ONLYMESSAGE';
                     last;
                 }
             }
@@ -2554,14 +2546,18 @@ sub AddReturn {
                     );
                 }
             } else {
+                my $error = "$@";
                 carp
-                    "The checkin for the following issue failed, Please go to the about page and check all messages on the 'System information' to see if there are configuration / data issues ($@)"
+                    "The checkin for the following issue failed, Please go to the about page and check all messages on the 'System information' to see if there are configuration / data issues, or see the specific message in parentheses ($@)"
                     . Dumper( $issue->unblessed );
 
                 my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
                 $indexer->index_records( $item->biblionumber, "specialUpdate", "biblioserver" );
 
-                return ( 0, { WasReturned => 0, DataCorrupted => 1 }, $issue, $patron_unblessed );
+                return (
+                    0, { WasReturned => 0, DataCorrupted => $error }, $issue,
+                    $patron_unblessed
+                );
             }
 
             # FIXME is the "= 1" right?  This could be the borrower hash.
@@ -2578,8 +2574,6 @@ sub AddReturn {
         $item->holdingbranch($branch)->store( { log_action => 0, skip_record_index => 1, skip_holds_queue => 1 } );
     }
 
-    # LMSCloud: if it's configured that an item has to remain always at the holding library,
-    # the homebranch is changed to the holding branch
     if ( C4::Context->preference("ReturnBranchBecomesHomeBranch") && $item->homebranch ne $branch ) {
         $item->homebranch($branch)->store( { skip_record_index => 1 } );
         $returnbranch = $branch;
@@ -2744,9 +2738,12 @@ sub AddReturn {
     my $lookahead = C4::Context->preference('ConfirmFutureHolds');    #number of days to look for future holds
     ( $resfound, $resrec, undef ) = C4::Reserves::CheckReserves( $item, $lookahead ) unless ( $item->withdrawn );
 
+    # FIXME: CheckReserves should return the Koha::Hold
+    my $hold = Koha::Holds->find( $resrec->{reserve_id} );
+
     # if a hold is found and is waiting at another branch, change the priority back to 1 and trigger the hold (this will trigger a transfer and update the hold status properly)
     if ( $resfound and $resfound eq "Waiting" and $branch ne $resrec->{branchcode} ) {
-        my $hold = C4::Reserves::RevertWaitingStatus( { itemnumber => $item->itemnumber } );
+        $hold->revert_found();
         $resfound = 'Reserved';
         $resrec   = $hold->unblessed;
     }
@@ -2885,14 +2882,11 @@ sub AddReturn {
         }
     }
 
-    # LMSCloud: check if it is an ILL item and update also the ILL backend status
     my ( $itisanillitem, $illrequest ) = ( 0, undef );
-    if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+    if ( C4::Context->preference("IllModule") ) {
         eval {
             ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem( $item->unblessed );
             if ( $itisanillitem && $illrequest ) {
-
-                # update also the ILL backend status
                 $illrequest->_backend_capability( "itemCheckedIn", $illrequest );
             }
         };
@@ -2918,8 +2912,6 @@ sub AddReturn {
             }
         );
 
-        Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue( { biblio_ids => [ $item->biblionumber ] } )
-            if C4::Context->preference('RealTimeHoldsQueue');
     }
 
     return ( $doreturn, $messages, $issue, ( $patron ? $patron->unblessed : {} ) );
@@ -2943,7 +2935,7 @@ Ideally, this function would be internal to C<C4::Circulation>,
 not exported, but it is currently used in misc/cronjobs/longoverdue.pl
 and offline_circ/process_koc.pl.
 
-The last optional parameter allos passing skip_record_index to the item store call.
+The last optional parameter allows passing skip_record_index to the item store call.
 
 =cut
 
@@ -3005,7 +2997,7 @@ sub MarkIssueReturned {
                 $item->last_returned_by( $patron->borrowernumber )->store;
             }
 
-            # Remove any OVERDUES related debarment if the borrower has no overdues
+            # Possibly remove any OVERDUES related debarment
             my $overdue_restrictions = $patron->restrictions->search( { type => 'OVERDUES' } );
             if ( C4::Context->preference('AutoRemoveOverduesRestrictions') ne 'no' && $patron->is_debarred ) {
                 my $remove_restrictions =
@@ -3100,8 +3092,6 @@ sub _calculate_new_debar_dt {
 
         my ($has_been_extended);
         if ( C4::Context->preference('CumulativeRestrictionPeriods') and $patron->is_debarred ) {
-
-            # $patron is the first parameter of _calculate_new_debar_dt
             my $debarment = $patron->restrictions->search( { type => 'SUSPENSION' }, { rows => 1 } )->single;
             if ($debarment) {
                 $return_date       = dt_from_string( $debarment->expiration, 'sql' );
@@ -3301,25 +3291,18 @@ sub GetUpcomingDueIssues {
     $sth->execute(@bind_parameters);
     my $upcoming_dues = $sth->fetchall_arrayref( {} );
 
-    # LMSCloud: add branchemail
     $sth = $dbh->prepare("SELECT branchcode, branchemail, mobilebranch FROM branches");
     $sth->execute();
     my $branchdata = $sth->fetchall_arrayref( {} );
 
     my %branchmail;
-
-    # if it is not a mobilebook station add the branchemail
     foreach my $branch (@$branchdata) {
         $branchmail{ $branch->{branchcode} } = $branch->{branchemail} if ( !$branch->{mobilebranch} );
     }
-
-    # if it is a mobilebook station add the branchemail of the mobilebook branch
     foreach my $branch (@$branchdata) {
         $branchmail{ $branch->{branchcode} } = $branchmail{ $branch->{mobilebranch} }
             if ( $branch->{mobilebranch} && exists( $branchmail{ $branch->{mobilebranch} } ) );
     }
-
-    # now add the branchemail to the data
     foreach my $upcoming (@$upcoming_dues) {
         $upcoming->{branchemail} = '';
         $upcoming->{branchemail} = $branchmail{ $upcoming->{branchcode} }
@@ -3372,16 +3355,12 @@ sub CanBookBeRenewed {
 
     my $final_renewal        = 0;
     my $final_unseen_renewal = 0;
+    my $hasToMany            = 0;
 
-    # LMSCloud: re-fetch patron from checkout to ensure consistency
-    $patron = $issue->patron or return;
-
-    # LMSCloud: UseIssuingBranchConditionsForRenewals allows using issue branchcode
+    # override_limit will override anything else except on_reserve
     my $branchcode = $issue->branchcode;
     $branchcode = _GetCircControlBranch( $item, $patron )
         if ( !C4::Context->preference('UseIssuingBranchConditionsForRenewals') );
-
-    # override_limit will override anything else except on_reserve
     unless ($override_limit) {
 
         ( $auto_renew, $soonest ) = _CanBookBeAutoRenewed(
@@ -3413,7 +3392,7 @@ sub CanBookBeRenewed {
             }
         );
 
-        return ( 0, "too_many" )
+        $hasToMany = 1
             if not $issuing_rule->{renewalsallowed}
             or $issuing_rule->{renewalsallowed} <= $issue->renewals_count;
 
@@ -3438,6 +3417,7 @@ sub CanBookBeRenewed {
         {
             return ( 0, 'overdue' );
         }
+
     }
 
     if ( C4::Context->preference('UseRecalls') ) {
@@ -3445,16 +3425,21 @@ sub CanBookBeRenewed {
         $recall = $item->check_recalls if $item->can_be_waiting_recall;
         if ( defined $recall ) {
             if ( $recall->item_level ) {
+
+                # item-level recall. check if this item is the recalled item, otherwise renewal will be allowed
                 return ( 0, 'recalled' ) if ( $recall->item_id == $item->itemnumber );
             } else {
+
+                # biblio-level recall, so only disallow renewal if the biblio-level recall has been fulfilled by a different item
                 return ( 0, 'recalled' ) unless ( $recall->waiting );
             }
         }
     }
 
     # There is an item level hold on this item, no other item can fill the hold
+    # The flag skip_future_holds may be removed in the future. See bug 40435.
     return ( 0, "on_reserve" )
-        if ( $item->current_holds->search( { non_priority => 0 } )->count );
+        if ( $item->current_holds( { skip_future_holds => 1 } )->search( { non_priority => 0 } )->count );
 
     my ( $status, $matched_reserve, $possible_holds ) = C4::Reserves::CheckReserves($item);
     my @fillable_holds = ();
@@ -3490,7 +3475,7 @@ sub CanBookBeRenewed {
                         unless CanItemBeReserved(
                         $patron_with_reserve, $other_item, undef,
                         { ignore_hold_counts => 1 }
-                    )->{status} eq 'OK';
+                        )->{status} eq 'OK';
 
                     # NOTE: At checkin we call 'CheckReserves' which checks hold 'policy'
                     # CanItemBeReserved checks 'rules' and 'policies' which means
@@ -3541,6 +3526,8 @@ sub CanBookBeRenewed {
         return ( 0, "too_soon", { soonest_renew_date => $soonest } ) unless $override_limit;
     }
 
+    return ( 0, "too_many" ) if $hasToMany;
+
     my $auto_renew_code =
         $final_renewal ? 'auto_renew_final' : $final_unseen_renewal ? 'auto_unseen_final' : 'auto_renew';
     return ( 1, $auto_renew_code ) if $auto_renew eq "ok" || $auto_renew eq "auto_too_soon" && !$override_limit;
@@ -3553,27 +3540,13 @@ sub CanBookBeRenewed {
   &SetDueDateOfItems({ currentDueDate => $currentdue, newDueDate => $newDueDate,
                        libraryCategory => $category, branchcode => $branchcode });
 
-Update the due-date of items. The function is used for bookmobiles to extend the loan
-period if a bookmobile station cannot not be approached on a specific date. Setting
-the due-date prevents that patrons receive overdue notices if they do not have a chance
-to return a book.
-The function can be used for a group of libraries with a specific library category code
-or for a single library.
-
-C<currentDueDate> is the due date that is going to be changed.
-
-C<newDueDate> is the new due date.
-
-C<libraryCategory> if due-dates of a group of libraries are to be changed.
-
-C<branchcode> is used if a group of libraries are to be changed.
+Update the due-date of items for bookmobiles to extend the loan period.
 
 =cut
 
 sub SetDueDateOfItems {
     my ($params) = @_;
 
-    # initialize the variables and return a error code if something is missing
     return ( 0, 'no_params_specified' )            if ( !defined($params) );
     return ( 0, 'current_due_date_not_specified' ) if ( !defined( $params->{currentDueDate} ) );
     return ( 0, 'new_due_date_not_specified' )     if ( !defined( $params->{newDueDate} ) );
@@ -3597,7 +3570,6 @@ sub SetDueDateOfItems {
 
     my $changedissues = 0;
 
-    # now search the issues
     if ( my $checkoutsearch = Koha::Checkouts->get_issue_due_on_selected_date($selparams) ) {
         while ( my $issue = $checkoutsearch->next() ) {
             $changedissues++;
@@ -3605,10 +3577,7 @@ sub SetDueDateOfItems {
             my $currDateDue = dt_from_string( $issue->date_due, 'iso' );
             my $newdate     = $newDueDate->strftime('%Y-%m-%d ') . $currDateDue->strftime('%H:%M');
 
-            # set the new due date of the issue
             $issue->date_due($newdate)->store();
-
-            # set the new due date of the item
             $issue->item->onloan($newdate)->store;
         }
     }
@@ -3678,6 +3647,8 @@ sub AddRenewal {
     my $seen              = $params->{seen};
     my $automatic         = $params->{automatic};
     my $skip_record_index = $params->{skip_record_index};
+    my $confirmations     = $params->{confirmations};
+    my $forced            = $params->{forced};
 
     # Fallback on a 'seen' renewal
     $seen = defined $seen && $seen == 0 ? 0 : 1;
@@ -3755,14 +3726,15 @@ sub AddRenewal {
                 );
                 if ( !$seen && $rule && looks_like_number( $rule->rule_value ) ) {
                     $unseen_renewals++;
+                    push @{$confirmations}, 'UNSEEN';
                 } else {
 
                     # If the renewal is seen, unseen should revert to 0
                     $unseen_renewals = 0;
+                    push @{$confirmations}, 'SEEN';
                 }
             }
 
-            # LMSCloud: Delete overdue reminder history
             my $claimhist = Koha::OverdueIssues->search( { 'issue_id' => $issue->issue_id } );
             while ( my $histentry = $claimhist->next() ) {
                 $histentry->delete();
@@ -3791,10 +3763,9 @@ sub AddRenewal {
             $item_object->renewals($renews);
             $item_object->onloan($datedue);
 
-            # Don't index as we are in a transaction
+            # Don't index as we are in a transaction, skip hardcoded here
             $item_object->store( { log_action => 0, skip_record_index => 1 } );
 
-            # LMSCloud: Check whether the patrons category is selected for renew fees
             my $addRenewRentalFee = 1;
             if ( C4::Context->preference('RenewalDiscardRentalFeesOfPatronCategory') ) {
                 my $checkval     = $patron->categorycode;
@@ -3878,15 +3849,6 @@ sub AddRenewal {
                 }
             );
 
-            #Update borrowers.lastseen
-            try {
-                $patron->update_lastseen('renewal');
-            } catch {
-                my $exception = $_;
-                warn "Problem updating lastseen date for borrowernumber $borrowernumber: $exception";
-            };
-
-            # LMSCloud: update bundle item stats on renewal
             if ( $item_object->is_bundle ) {
                 my $bundleLostValue = C4::Context->preference('BundleLostValue');
                 my $currdate        = dt_from_string()->ymd();
@@ -3912,9 +3874,30 @@ sub AddRenewal {
                 }
             }
 
+            #Update borrowers.lastseen
+            try {
+                $patron->update_lastseen('renewal');
+            } catch {
+                my $exception = $_;
+                warn "Problem updating lastseen date for borrowernumber " . $patron->borrowernumber . ": $exception";
+            };
+
             #Log the renewal
-            logaction( "CIRCULATION", "RENEWAL", $borrowernumber, $itemnumber )
-                if C4::Context->preference("RenewalLog");
+            if ( C4::Context->preference("RenewalLog") ) {
+                my $info = to_json(
+                    {
+                        issue         => $issue->issue_id,
+                        itemnumber    => $itemnumber,
+                        confirmations => $confirmations || [],
+                        forced        => $forced        || []
+                    },
+                    {
+                        pretty    => 1,
+                        canonical => 1
+                    }
+                );
+                logaction( "CIRCULATION", "RENEWAL", $borrowernumber, $info );
+            }
 
             Koha::Plugins->call(
                 'after_circ_action',
@@ -3926,10 +3909,6 @@ sub AddRenewal {
         }
     );
 
-    # We index now, after the transaction is committed
-    my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
-    $indexer->index_records( $item_object->biblionumber, "specialUpdate", "biblioserver" );
-
     unless ($skip_record_index) {
 
         # We index now, after the transaction is committed
@@ -3939,6 +3918,12 @@ sub AddRenewal {
 
     return $datedue;
 }
+
+=head2 GetRenewCount
+
+Missing POD for GetRenewCount.
+
+=cut
 
 sub GetRenewCount {
 
@@ -4184,14 +4169,11 @@ sub GetIssuingCharges {
             # FIXME This should follow CircControl
             my $branch = C4::Context::mybranch();
 
-            # LMSCloud: If the costs are for a renewal and we are supposed to apply conditions of the
-            # issuing branch then we need to apply the rules of the issuing branch
             if ( $isrenewal && C4::Context->preference('UseIssuingBranchConditionsForRenewals') && $issuebranch ) {
                 $branch = $issuebranch;
             }
             $branch = Koha::Libraries->get_effective_branch($branch);
-
-            my $patron   = Koha::Patrons->find($borrowernumber);
+            $patron //= Koha::Patrons->find($borrowernumber);
             my $discount = Koha::CirculationRules->get_effective_rule(
                 {
                     categorycode => $patron->categorycode,
@@ -4390,7 +4372,7 @@ sub SendCirculationAlert {
         unless ($message) {
             C4::Context->dbh->do(q|UNLOCK TABLES|) unless $do_not_lock;
             my $patron = Koha::Patrons->find( $borrower->{borrowernumber} );
-            C4::Message->enqueue( $letter, $patron, $mtt );
+            C4::Message->enqueue( $letter, $patron, $mtt, $branch );
         } else {
             $message->append($letter);
             $message->update;
@@ -4399,45 +4381,6 @@ sub SendCirculationAlert {
     }
 
     return;
-}
-
-=head2 updateWrongTransfer
-
-  $items = updateWrongTransfer($itemNumber,$borrowernumber,$waitingAtLibrary,$FromLibrary);
-
-This function validate the line of brachtransfer but with the wrong destination (mistake from a librarian ...), and create a new line in branchtransfer from the actual library to the original library of reservation
-
-=cut
-
-sub updateWrongTransfer {
-    my ( $itemNumber, $waitingAtLibrary, $FromLibrary ) = @_;
-
-    # first step: cancel the original transfer
-    my $item     = Koha::Items->find($itemNumber);
-    my $transfer = $item->get_transfer;
-    $transfer->set( { datecancelled => dt_from_string, cancellation_reason => 'WrongTransfer' } )->store();
-
-    # second step: create a new transfer to the right location
-    my $new_transfer = $item->request_transfer(
-        {
-            to            => $transfer->to_library,
-            reason        => $transfer->reason,
-            comment       => $transfer->comments,
-            ignore_limits => 1,
-            enqueue       => 1
-        }
-    );
-
-    # LMSCloud 2022-12-21:
-    # The user may abort the (non-modal and even the modal (depending on system preference TransfersBlockCirc)) dialog
-    # 'Wrong Transfer detected, please return item to:...'.
-    # Then field branchtransfers.datesent would stay NULL, so in case of AutomaticItemReturn we have set it here explicitly.
-    # (The request_transfer() function above does nor support setting of datesent.)
-    if ( C4::Context->preference("AutomaticItemReturn") ) {
-        $new_transfer->set( { datesent => dt_from_string } )->store();
-    }
-
-    return $new_transfer;
 }
 
 =head2 CalcDateDue
@@ -4605,7 +4548,7 @@ sub CalcDateDue {
 
         # if the calculated due date is after the 'before' Hard Due Date (ceiling), override
         # if the calculated date is before the 'after' Hard Due Date (floor), override
-        # if the hard due date is set to 'exactly', overrride
+        # if the hard due date is set to 'exactly', override
         if ( $hardduedatecompare == 0 || $hardduedatecompare == $cmp ) {
             $datedue = $hardduedate->clone;
         }
@@ -4637,13 +4580,20 @@ sub CalcDateDue {
     return $datedue;
 }
 
+=head2 CheckValidBarcode
+
+Missing POD for CheckValidBarcode.
+
+=cut
+
 sub CheckValidBarcode {
     my ($barcode) = @_;
     my $dbh       = C4::Context->dbh;
-    my $query     = qq|SELECT count(*) 
-	     FROM items 
-             WHERE barcode=?
-	    |;
+    my $query     = q|
+        SELECT count(*)
+        FROM items
+        WHERE barcode=?
+    |;
     my $sth = $dbh->prepare($query);
     $sth->execute($barcode);
     my $exist = $sth->fetchrow;
@@ -4725,6 +4675,12 @@ sub DeleteBranchTransferLimits {
     my $sth = $dbh->prepare("DELETE FROM branch_transfer_limits WHERE fromBranch = ?");
     return $sth->execute($branch);
 }
+
+=head2 ReturnLostItem
+
+Missing POD for ReturnLostItem.
+
+=cut
 
 sub ReturnLostItem {
     my ( $borrowernumber, $itemnum ) = @_;
@@ -4813,6 +4769,12 @@ sub LostItem {
     }
 }
 
+=head2 GetOfflineOperations
+
+Missing POD for GetOfflineOperations.
+
+=cut
+
 sub GetOfflineOperations {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare("SELECT * FROM pending_offline_operations WHERE branchcode=? ORDER BY timestamp");
@@ -4820,6 +4782,12 @@ sub GetOfflineOperations {
     my $results = $sth->fetchall_arrayref( {} );
     return $results;
 }
+
+=head2 GetOfflineOperation
+
+Missing POD for GetOfflineOperation.
+
+=cut
 
 sub GetOfflineOperation {
     my $operationid = shift;
@@ -4829,6 +4797,12 @@ sub GetOfflineOperation {
     $sth->execute($operationid);
     return $sth->fetchrow_hashref;
 }
+
+=head2 AddOfflineOperation
+
+Missing POD for AddOfflineOperation.
+
+=cut
 
 sub AddOfflineOperation {
     my ( $userid, $branchcode, $timestamp, $action, $barcode, $cardnumber, $amount ) = @_;
@@ -4840,12 +4814,24 @@ sub AddOfflineOperation {
     return "Added.";
 }
 
+=head2 DeleteOfflineOperation
+
+Missing POD for DeleteOfflineOperation.
+
+=cut
+
 sub DeleteOfflineOperation {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare("DELETE FROM pending_offline_operations WHERE operationid=?");
     $sth->execute(shift);
     return "Deleted.";
 }
+
+=head2 ProcessOfflineOperation
+
+Missing POD for ProcessOfflineOperation.
+
+=cut
 
 sub ProcessOfflineOperation {
     my $operation = shift;
@@ -4863,6 +4849,12 @@ sub ProcessOfflineOperation {
 
     return $report;
 }
+
+=head2 ProcessOfflineReturn
+
+Missing POD for ProcessOfflineReturn.
+
+=cut
 
 sub ProcessOfflineReturn {
     my $operation = shift;
@@ -4891,11 +4883,16 @@ sub ProcessOfflineReturn {
     }
 }
 
+=head2 ProcessOfflineIssue
+
+Missing POD for ProcessOfflineIssue.
+
+=cut
+
 sub ProcessOfflineIssue {
     my $operation = shift;
 
-    my $patron = Koha::Patrons->find( { cardnumber => $operation->{cardnumber} } );
-    $patron ||= Koha::Patrons->find( { userid => $operation->{cardnumber} } );
+    my $patron = Koha::Patrons->find_by_identifier( $operation->{cardnumber} );
 
     if ($patron) {
         my $item = Koha::Items->find( { barcode => $operation->{barcode} } );
@@ -4927,11 +4924,16 @@ sub ProcessOfflineIssue {
     }
 }
 
+=head2 ProcessOfflinePayment
+
+Missing POD for ProcessOfflinePayment.
+
+=cut
+
 sub ProcessOfflinePayment {
     my $operation = shift;
 
-    my $patron = Koha::Patrons->find( { cardnumber => $operation->{cardnumber} } );
-    $patron ||= Koha::Patrons->find( { userid => $operation->{cardnumber} } );
+    my $patron = Koha::Patrons->find_by_identifier( $operation->{cardnumber} );
 
     $patron->account->pay(
         {
@@ -5099,6 +5101,12 @@ sub GetPendingOnSiteCheckouts {
     |, { Slice => {} }
     );
 }
+
+=head2 GetTopIssues
+
+Missing POD for GetTopIssues.
+
+=cut
 
 sub GetTopIssues {
     my ($params) = @_;
@@ -5296,6 +5304,6 @@ __END__
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 =cut

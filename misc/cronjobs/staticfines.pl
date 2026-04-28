@@ -23,7 +23,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -64,7 +64,7 @@ GetOptions(
     'u|use-borrower-library' => \$useborrowerlibrary,
     'b|borrower:i'           => \$borrowernumberlimit
 );
-my $usage = << 'ENDUSAGE';
+my $usage = <<'ENDUSAGE';
 
 This script calculates and charges overdue fines to patron accounts.
 

@@ -15,7 +15,7 @@ package Koha::OAI::Server::ListBase;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -34,6 +34,12 @@ use Koha::OAI::Server::Record;
 use Koha::OAI::Server::DeletedRecord;
 use C4::OAI::Sets qw( GetOAISetBySpec GetOAISetsBiblio );
 use MARC::File::XML;
+
+=head2 GetRecords
+
+Missing POD for GetRecords.
+
+=cut
 
 sub GetRecords {
     my ( $class, $self, $repository, $metadata, %args ) = @_;

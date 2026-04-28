@@ -14,7 +14,7 @@
 # A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with Koha; if not, see <http://www.gnu.org/licenses>.
+# with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI;
@@ -33,6 +33,7 @@ my $op        = $input->param('op') // ( $tablename ? 'list' : 'list_tables' );
 if ( $op ne 'list_tables' ) {
     $flagsrequired{acquisition} = 'order_manage'      if $tablename eq 'aqbasket';
     $flagsrequired{serials}     = 'edit_subscription' if $tablename eq 'subscription';
+    $flagsrequired{circulate}   = 'manage_bookings'   if $tablename eq 'bookings';
 }
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(

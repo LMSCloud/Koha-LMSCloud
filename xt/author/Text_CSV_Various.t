@@ -12,9 +12,9 @@
 # A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with Koha; if not, see <http://www.gnu.org/licenses>.
+# with Koha; if not, see <https://www.gnu.org/licenses>.
 
-#This test demonstrates why Koha uses the CSV parser and configration
+#This test demonstrates why Koha uses the CSV parser and configuration
 #it does.  Specifically, the test is for Unicode compliance in text
 #parsing and data.  This test requires other modules that Koha doesn't
 #actually use, in order to compare.  Therefore, running this test is not

@@ -16,7 +16,7 @@ package Koha::Template::Plugin::Branches;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -91,7 +91,7 @@ sub all {
         $search_params->{only_from_group} = $params->{only_from_group} || 0;
     }
 
-    $search_params = { -or => [ mobilebranch => undef, mobilebranch => '' ] }
+    $search_params = { %$search_params, -or => [ mobilebranch => undef, mobilebranch => '' ] }
         if ( $params->{restrict} && $params->{restrict} eq 'NoMobileStations' );
 
     my @selected =

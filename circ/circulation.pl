@@ -21,7 +21,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # FIXME There are too many calls to Koha::Patrons->find in this script
 
@@ -45,6 +45,7 @@ use C4::Context;
 use CGI::Session;
 use C4::CashRegisterManagement qw(passCashRegisterCheck);
 use Koha::AuthorisedValues;
+use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
 use Koha::Checkouts::ReturnClaims;
 use Koha::CsvProfiles;
 use Koha::Patrons;
@@ -244,7 +245,7 @@ if ( @$barcodes == 0 && $charges eq 'yes' ) {
 # STEP 2 : FIND BORROWER
 # if there is a list of find borrowers....
 #
-my $message;
+
 if ($findborrower) {
     Koha::Plugins->call( 'patron_barcode_transform', \$findborrower );
     my $patron = Koha::Patrons->find( { cardnumber => $findborrower } );
@@ -350,6 +351,7 @@ if ( @$barcodes && $op eq 'cud-checkout' ) {
                 {
                     onsite_checkout     => $onsite_checkout,
                     override_high_holds => $override_high_holds || $override_high_holds_tmp || 0,
+                    issueconfirmed      => $issueconfirmed,
                 }
             );
         } catch {
@@ -376,8 +378,11 @@ if ( @$barcodes && $op eq 'cud-checkout' ) {
         }
 
         if ( $issuingimpossible->{'STATS'} ) {
+
             my ( $stats_return, $stats_messages, $stats_iteminformation, $stats_borrower ) =
                 AddReturn( $item->barcode, C4::Context->userenv->{'branch'}, undef, undef, 1 );
+
+            # No rebuild of holds queue here as the item hasn't really moved, just a stat checkout
 
             $template->param(
                 STATS     => 1,
@@ -444,7 +449,8 @@ if ( @$barcodes && $op eq 'cud-checkout' ) {
             }
         }
 
-        delete $needsconfirmation->{'DEBT'} if ($debt_confirmed);
+        my $needsconfirmationDEBT;
+        $needsconfirmationDEBT = delete $needsconfirmation->{'DEBT'} if ($debt_confirmed);
 
         if ( $item && C4::Context->preference('ClaimReturnedLostValue') ) {
             my $autoClaimReturnCheckout = C4::Context->preference('AutoClaimReturnStatusOnCheckout');
@@ -540,20 +546,26 @@ if ( @$barcodes && $op eq 'cud-checkout' ) {
                         }
                     );
                     $recall_id = ( $recall and $recall->id ) ? $recall->id : undef;
+
                 }
 
                 # If booked (alerts or confirmation) update datedue to end of booking
                 if ( my $booked = $needsconfirmation->{BOOKED_EARLY} // $alerts->{BOOKED} ) {
                     $datedue = $booked->end_date;
                 }
+                $needsconfirmation->{'DEBT'} = $needsconfirmationDEBT if ($debt_confirmed);
                 my $issue = AddIssue(
                     $patron, $barcode, $datedue,
                     $cancelreserve,
                     undef, undef,
                     {
-                        onsite_checkout        => $onsite_checkout,        auto_renew => $session->param('auto_renew'),
-                        switch_onsite_checkout => $switch_onsite_checkout, cancel_recall => $cancel_recall,
+                        onsite_checkout        => $onsite_checkout,
+                        auto_renew             => $session->param('auto_renew'),
+                        switch_onsite_checkout => $switch_onsite_checkout,
+                        cancel_recall          => $cancel_recall,
                         recall_id              => $recall_id,
+                        confirmations          => [ grep { /^[A-Z_]+$/ } keys %{$needsconfirmation} ],
+                        forced                 => [ keys %{$issuingimpossible} ]
                     }
                 );
                 $template_params->{issue} = $issue;
@@ -614,7 +626,7 @@ if ($patron) {
     my $holds = Koha::Holds->search( { borrowernumber => $borrowernumber } );    # FIXME must be Koha::Patron->holds
     my $waiting_holds = $holds->waiting;
     $template->param(
-        holds_count  => $holds->count(),
+        holds_count  => $holds->count_holds,
         WaitingHolds => $waiting_holds,
     );
 
@@ -642,10 +654,11 @@ if ($patron) {
         $template->param( is_debarred => 1 );
         $noissues = 1;
     }
-    if ( $patron->borrowernumber eq C4::Context->preference("AnonymousPatron") ) {
+    if ( $patron->is_anonymous ) {
         $template->param( is_anonymous => 1 );
         $noissues = 1;
     }
+
     my $patron_charge_limits = $patron->is_patron_inside_charge_limits();
     if ( $patron_charge_limits->{noissuescharge}->{charge} > 0 ) {
         my $noissuescharge =
@@ -656,10 +669,13 @@ if ($patron) {
             charges       => 1,
             chargesamount => $patron_charge_limits->{noissuescharge}->{charge},
         );
-    } elsif ( $balance < 0 ) {
+    }
+
+    my $credits_balance = $patron->account->outstanding_credits->total_outstanding;
+    if ( $credits_balance < 0 ) {
         $template->param(
             credits       => 1,
-            creditsamount => -$balance,
+            creditsamount => -$credits_balance,
         );
     }
 
@@ -707,9 +723,10 @@ if ($patron) {
     my $patron_messages = $patron->messages->search(
         {},
         {
-            join      => 'manager',
-            '+select' => [ 'manager.surname', 'manager.firstname' ],
-            '+as'     => [ 'manager_surname', 'manager_firstname' ],
+            join       => 'manager',
+            '+select'  => [ 'manager.surname', 'manager.firstname' ],
+            '+as'      => [ 'manager_surname', 'manager_firstname' ],
+            'order_by' => [ 'me.message_type', { -desc => 'me.message_date' }, { -desc => 'me.message_id' } ],
         }
     );
     $template->param( patron_messages => $patron_messages );
@@ -780,7 +797,6 @@ $template->param(
     stickyduedate             => $stickyduedate,
     duedatespec               => $duedatespec,
     restoreduedatespec        => $restoreduedatespec,
-    message                   => $message,
     totaldue                  => sprintf( '%.2f', $balance ),                         # FIXME not used in template?
     inprocess                 => $inprocess,
     $view                     => 1,

@@ -15,9 +15,18 @@ package C4::Accounts;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT = qw(
+        chargelostitem
+        purge_zero_balance_fees
+    );
+}
+
 use C4::Context;
 use C4::Stats;
 use C4::Members;
@@ -25,17 +34,6 @@ use Koha::Account;
 use Koha::Account::Lines;
 use Koha::Account::Offsets;
 use Koha::Items;
-
-use vars qw(@ISA @EXPORT);
-
-BEGIN {
-    require Exporter;
-    @ISA    = qw(Exporter);
-    @EXPORT = qw(
-        chargelostitem
-        purge_zero_balance_fees
-    );
-}
 
 =head1 NAME
 
@@ -146,7 +144,7 @@ B<$days> -- Zero balance fees older than B<$days> days old will be deleted.
 
 B<Warning:> Because fines and payments are not linked in accountlines, it is
 possible for a fine to be deleted without the accompanying payment,
-or vise versa. This won't affect the account balance, but might be
+or vice versa. This won't affect the account balance, but might be
 confusing to staff.
 
 =cut

@@ -250,10 +250,7 @@
       "200":
         description: OK
       "400":
-        description: |
-          Bad request. Possible `error_code` attribute values:
-
-            * `invalid_query`
+        description: Bad request
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "401":

@@ -15,7 +15,7 @@ package Koha::Template::Plugin::Asset;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -25,7 +25,7 @@ Koha::Template::Plugin::Asset
 
 The Asset plugin is a helper that generates HTML tags for JS and CSS files
 
-=head1 SYNOPSYS
+=head1 SYNOPSIS
 
     [% USE Asset %]
 

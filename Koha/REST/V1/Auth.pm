@@ -15,7 +15,7 @@ package Koha::REST::V1::Auth;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -149,11 +149,7 @@ sub authenticate_api_request {
 
     $c->stash_embed( { spec => $spec } );
     $c->stash_overrides();
-
-    # FIXME: Remove once CGI is not used
-    my $accept_language = $c->req->headers->accept_language;
-    $ENV{HTTP_ACCEPT_LANGUAGE} = $accept_language
-        if $accept_language;
+    $c->stash_request_id();
 
     my $cookie_auth = 0;
 
@@ -343,8 +339,7 @@ sub _basic_auth {
     my $decoded_credentials = decode_base64($credentials);
     my ( $identifier, $password ) = split( /:/, $decoded_credentials, 2 );
 
-    my $patron = Koha::Patrons->find( { userid => $identifier } );
-    $patron //= Koha::Patrons->find( { cardnumber => $identifier } );
+    my $patron = Koha::Patrons->find_by_identifier($identifier);
 
     unless ( checkpw_internal( $identifier, $password ) ) {
         Koha::Exceptions::Authorization::Unauthorized->throw( error => 'Invalid password' );

@@ -4,12 +4,12 @@ Staff interface:
             - 'Display authority results in the staff interface using XSLT stylesheet at: '
             - pref: AuthorityXSLTResultsDisplay
               class: file
-            - '<br />Options:<ul><li>Put a path to define a XSLT file</li><li>Put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language and {authtypecode} will be replaced by the authority type code'
+            - '<br />Options:<ul><li>Put a path to define a XSLT file</li><li>Put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language and {authtypecode} will be replaced by the authority type code.'
         -
             - 'Display authority details in the staff interface using XSLT stylesheet at: '
             - pref: AuthorityXSLTDetailsDisplay
               class: file
-            - '<br />Options:<ul><li>Put a path to define a XSLT file</li><li>Put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language and {authtypecode} will be replaced by the authority type code'
+            - '<br />Options:<ul><li>Put a path to define a XSLT file</li><li>Put an URL for an external specific stylesheet.</li></ul>{langcode} will be replaced with current interface language and {authtypecode} will be replaced by the authority type code.'
         -
             - "Display language selector on "
             - pref: StaffLangSelectorMode
@@ -156,6 +156,12 @@ Staff interface:
 
     Options:
         -
+            - pref: FilterSearchResultsByLoggedInBranch
+              choices:
+                  1: Do
+                  0: "Don't"
+            - add a filter to the location column on staff interface search results to filter items by the library the user is currently logged into.
+        -
             - pref: viewMARC
               choices:
                   1: Allow
@@ -237,7 +243,7 @@ Staff interface:
               choices:
                   1: "Don't allow"
                   0: Allow
-            - staff to login by means other than shibboleth.
+            - staff to log in by means other than Shibboleth.
         -
             - pref: TwoFactorAuthentication
               choices:

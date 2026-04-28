@@ -13,7 +13,7 @@ package Koha::CurbsidePickup;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -252,7 +252,15 @@ sub mark_as_delivered {
                 C4::Circulation::CanBookBeIssued( $patron, $hold->item->barcode );
 
             unless ( keys %$issuingimpossible ) {
-                my $issue = C4::Circulation::AddIssue( $patron, $hold->item->barcode );
+                my $issue = C4::Circulation::AddIssue(
+                    $patron,
+                    $hold->item->barcode,
+                    undef, undef, undef, undef,
+                    {
+                        confirmations => [ grep { /^[A-Z_]+$/ } keys %{$needsconfirmation} ],
+                        forced        => [ keys %{$issuingimpossible} ]
+                    }
+                );
                 if ($issue) {
                     Koha::CurbsidePickupIssue->new(
                         {

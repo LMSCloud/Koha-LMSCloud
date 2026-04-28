@@ -8,14 +8,15 @@ use warnings;
 
 use Test::MockModule;
 use Test::MockObject;
-use Test::More tests => 5;
+use Test::NoWarnings;
+use Test::More tests => 6;
 use t::lib::Mocks;
 use MARC::Record;
 
 use C4::AuthoritiesMarc qw( FindDuplicateAuthority );
 
 BEGIN {
-    use_ok( 'C4::AuthoritiesMarc::MARC21', qw( default_auth_type_location fix_marc21_auth_type_location ) );
+    use_ok('C4::AuthoritiesMarc::MARC21');
 }
 
 my @result = C4::AuthoritiesMarc::MARC21::default_auth_type_location();

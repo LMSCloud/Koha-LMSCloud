@@ -12,4 +12,6 @@
         [% message.content | $raw %]
     [% END %]
 </body>
+<!-- prettier-ignore-start -->
 </html>
+<!-- prettier-ignore-end -->

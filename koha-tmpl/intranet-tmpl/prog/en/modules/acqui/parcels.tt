@@ -25,7 +25,7 @@
             <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
         [% END %]
         [% WRAPPER breadcrumb_item %]
-            <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% name | html %]</a>
+            <a href="/cgi-bin/koha/acquisition/vendors/[% booksellerid | uri %]">[% name | html %]</a>
         [% END %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
             <span>Receive shipment from vendor [% name | html %]</span>
@@ -38,7 +38,7 @@
         <div class="col-md-10 order-md-2 order-sm-2">
             <main>
                 [% INCLUDE 'messages.inc' %]
-                <h1>Receive shipment from vendor <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% name | html %]</a></h1>
+                <h1>Receive shipment from vendor <a href="/cgi-bin/koha/acquisition/vendors/[% booksellerid | uri %]">[% name | html %]</a></h1>
 
                 [% IF closed_invoices %]
                     <p>[% I18N.tnx("There is one closed invoice not included in this search.", "There are {closed_invoices} closed invoices not included in this search.", closed_invoices, { closed_invoices => closed_invoices }) %]</p>
@@ -164,10 +164,11 @@
                                     </li>
                                 [% END %]
                                 <!--  // Removing freight input until shipping can be proplerly handled .
-	  <li>
-            <label for="freight">Shipping:</label>
-            <input type="text" size="20" id="freight" name="freight" />
-        </li> -->
+                                <li>
+                                    <label for="freight">Shipping:</label>
+                                    <input type="text" size="20" id="freight" name="freight" />
+                                </li>
+                                -->
                                 <li>
                                     <label for="shipmentdate">Shipment date: </label>
                                     <input type="text" id="shipmentdate" name="shipmentdate" maxlength="10" size="10" value="[% shipmentdate_today | html %]" class="flatpickr" />
@@ -197,7 +198,7 @@
                         [% IF available_additional_fields %]
                             [% INCLUDE 'additional-fields-entry.inc' available=available_additional_fields values=additional_field_values %]
                         [% END %]
-                        <fieldset class="action"><input type="submit" class="btn btn-default" value="Next" /> <a class="cancel" href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | html %]">Cancel</a></fieldset>
+                        <fieldset class="action"><input type="submit" class="btn btn-default" value="Next" /> <a class="cancel" href="/cgi-bin/koha/acquisition/vendors/[% booksellerid | html %]">Cancel</a></fieldset>
                     </form>
                 </div>
             </main>
@@ -260,35 +261,34 @@
         <!-- /.col-md-2.order-md-1 -->
     </div>
     <!-- /.row -->
-
-    [% MACRO jsinclude BLOCK %]
-        [% Asset.js("js/acquisitions-menu.js") | $raw %]
-        [% Asset.js("js/additional-fields-entry.js") | $raw %]
-        [% INCLUDE 'calendar.inc' %]
-        [% INCLUDE 'datatables.inc' %]
-        <script>
-            $(document).ready(function () {
-                var parcelst = $("#parcelst").dataTable(
-                    $.extend(true, {}, dataTablesDefaults, {
-                        paginate: false,
-                    })
-                );
-
-                //keep a copy of all budgets before removing the inactives
-                var budgetId = $("#shipmentcost_budgetid");
-                var disabledBudgetsCopy = budgetId.html();
-                $(".b_inactive").remove();
-
-                $("#showallfunds").click(function () {
-                    if ($(this).is(":checked")) {
-                        budgetId.html(disabledBudgetsCopy); //Puts back all the funds
-                    } else {
-                        $(".b_inactive").remove();
-                    }
-                });
-            });
-        </script>
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/acquisitions-menu.js") | $raw %]
+    [% Asset.js("js/additional-fields-entry.js") | $raw %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    <script>
+        $(document).ready(function () {
+            $("#parcelst").kohaTable({
+                paging: false,
+            });
+
+            //keep a copy of all budgets before removing the inactives
+            var budgetId = $("#shipmentcost_budgetid");
+            var disabledBudgetsCopy = budgetId.html();
+            $(".b_inactive").remove();
+
+            $("#showallfunds").click(function () {
+                if ($(this).is(":checked")) {
+                    budgetId.html(disabledBudgetsCopy); //Puts back all the funds
+                } else {
+                    $(".b_inactive").remove();
+                }
+            });
+        });
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]

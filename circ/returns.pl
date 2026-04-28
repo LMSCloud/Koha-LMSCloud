@@ -19,7 +19,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 returns.pl
 
@@ -37,13 +37,14 @@ use DateTime;
 use C4::Auth        qw( get_template_and_user get_session haspermission );
 use C4::Circulation qw( barcodedecode GetBranchItemRule AddReturn LostItem );
 use C4::Context;
+use C4::Stats qw( UpdateStats );
 use C4::Members::Messaging;
 use C4::Members;
 use C4::Output   qw( output_html_with_http_headers );
 use C4::Reserves qw( ModReserve ModReserveAffect CheckReserves );
 use C4::RotatingCollections;
-use C4::Stats qw( UpdateStats );
 use Koha::AuthorisedValues;
+use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
 use Koha::BiblioFrameworks;
 use Koha::Calendar;
 use Koha::Checkouts;
@@ -52,7 +53,6 @@ use Koha::DateUtils qw( dt_from_string );
 use Koha::Holds;
 use Koha::Item::Transfers;
 use Koha::Items;
-use Koha::Item::Transfers;
 use Koha::Patrons;
 use Koha::Recalls;
 
@@ -100,46 +100,17 @@ my $overduecharges = ( C4::Context->preference('finesMode') && C4::Context->pref
 my $returned_counter = C4::Context->preference('numReturnedItemsToShow') || 8;
 
 # Set up the item stack ....
-my %returneditems;
-my %riduedate;
-my %riborrowernumber;
-my %rinot_returned;
-my @inputloop;
-foreach ( $query->param ) {
-    my $counter;
-    if (/ri-(\d*)/) {
-        $counter = $1;
-        if ( $counter > $returned_counter ) {
-            next;
-        }
-    } else {
-        next;
-    }
+my @checkins;
+my $i;
+for my $counter ( $query->multi_param("checkin_counter") ) {
+    push @checkins, {
+        barcode        => scalar $query->param("checkin_barcode_$counter"),
+        duedate        => scalar $query->param("checkin_duedate_$counter"),
+        borrowernumber => scalar $query->param("checkin_borrowernumber_$counter"),
+        not_returned   => scalar $query->param("checkin_not_returned_$counter"),
+    };
 
-    my %input;
-    my $barcode        = $query->param("ri-$counter");
-    my $duedate        = $query->param("dd-$counter");
-    my $borrowernumber = $query->param("bn-$counter");
-    my $not_returned   = $query->param("nr-$counter");
-    $counter++;
-
-    # decode barcode    ## Didn't we already decode them before passing them back last time??
-    $barcode = barcodedecode($barcode) if $barcode;
-
-    ######################
-    #Are these lines still useful ?
-    $returneditems{$counter}    = $barcode;
-    $riduedate{$counter}        = $duedate;
-    $riborrowernumber{$counter} = $borrowernumber;
-    $rinot_returned{$counter}   = $not_returned;
-
-    #######################
-    $input{counter}        = $counter;
-    $input{barcode}        = $barcode;
-    $input{duedate}        = $duedate;
-    $input{borrowernumber} = $borrowernumber;
-    $input{not_returned}   = $not_returned;
-    push( @inputloop, \%input );
+    last if ++$i >= $returned_counter;
 }
 
 my $op = $query->param('op') // '';
@@ -236,7 +207,7 @@ my $return_date_override = $query->param('return_date_override') || q{};
 if ($return_date_override) {
     if ( C4::Context->preference('SpecifyReturnDate') ) {
 
-        # note that we've overriden the return date
+        # note that we've overridden the return date
         $template->param( return_date_was_overriden => 1 );
 
         my $return_date_override_remember = $query->param('return_date_override_remember');
@@ -251,6 +222,7 @@ if ($return_date_override) {
 
 # If 'needstransfer' was set and the librarian has chosen to initiate the transfer
 if ( $op eq 'cud-dotransfer' ) {
+
     my $transferitem = $query->param('transferitem');
     my $item         = Koha::Items->find($transferitem);
     my $tobranchcode = $query->param('tobranch');
@@ -258,6 +230,14 @@ if ( $op eq 'cud-dotransfer' ) {
     my $trigger      = $query->param('trigger');
     my $transfer     = $item->request_transfer( { to => $tobranch, reason => $trigger } );
     $transfer->transit;
+}
+
+if ( $op eq 'cud-ignore_reserve' ) {
+    my $ignored_item = $query->param('ignoreitem');
+    my $item         = Koha::Items->find($ignored_item);
+    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue( { biblio_ids => [ $item->biblionumber ] } )
+        if C4::Context->preference('RealTimeHoldsQueue');
+
 }
 
 if ( $transit && $op eq 'cud-transfer' ) {
@@ -382,30 +362,26 @@ if ( $barcode && ( $op eq 'cud-checkin' || $op eq 'cud-affect_reserve' ) ) {
     }
 
     # do the return
-    ( $returned, $messages, $issue, $borrower ) = AddReturn( $barcode, $userenv_branch, $exemptfine, $return_date )
-        unless ( $needs_confirm || $bundle_confirm );
+    unless ( $needs_confirm || $bundle_confirm ) {
+        ( $returned, $messages, $issue, $borrower ) = AddReturn( $barcode, $userenv_branch, $exemptfine, $return_date );
+
+        # Rebuild the queue only after handling confirmations
+        Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue( { biblio_ids => [ $item->biblionumber ] } )
+            if $returned && C4::Context->preference('RealTimeHoldsQueue');
+    }
 
     if ($returned) {
-        my $time_now    = dt_from_string()->truncate( to => 'minute' );
         my $date_due_dt = dt_from_string( $issue->date_due, 'sql' );
-        my $duedate     = $date_due_dt->strftime('%Y-%m-%d %H:%M');
-        $returneditems{0}      = $barcode;
-        $riborrowernumber{0}   = $borrower->{'borrowernumber'};
-        $riduedate{0}          = $duedate;
-        $rinot_returned{0}     = 0;
-        $input{borrowernumber} = $borrower->{'borrowernumber'};
-        $input{duedate}        = $duedate;
 
-        unless ($dropboxmode) {
-            $input{return_overdue} = 1 if ( DateTime->compare( $date_due_dt, dt_from_string() ) == -1 );
-        } else {
-            $input{return_overdue} = 1 if ( DateTime->compare( $date_due_dt, $dropboxdate ) == -1 );
-        }
-        push( @inputloop, \%input );
+        unshift @checkins, {
+            barcode        => $barcode,
+            duedate        => $issue ? $issue->date_due       : undef,
+            borrowernumber => $issue ? $issue->borrowernumber : undef,
+            not_returned   => 0,
+        };
 
         # Mark the last return barcode
         $template->param( lastReturnedBarcode => $barcode );
-
         if ( C4::Context->preference("FineNotifyAtCheckin") ) {
             my $patron  = Koha::Patrons->find( $borrower->{borrowernumber} );
             my $balance = $patron->account->balance;
@@ -436,19 +412,12 @@ if ( $barcode && ( $op eq 'cud-checkin' || $op eq 'cud-affect_reserve' ) ) {
         and !$needs_confirm
         and !$bundle_confirm )
     {
-        my $duedate = 0;
-        if ($issue) {
-            my $date_due_dt = dt_from_string( $issue->date_due, 'sql' );
-            $duedate               = $date_due_dt->strftime('%Y-%m-%d %H:%M');
-            $input{borrowernumber} = $issue->borrowernumber;
-            $riborrowernumber{0}   = $borrower->{'borrowernumber'};
-        }
-        $input{duedate}      = $duedate;
-        $input{not_returned} = 1;
-        $rinot_returned{0}   = 1;
-        $returneditems{0}    = $barcode;
-        $riduedate{0}        = $duedate;
-        push( @inputloop, \%input );
+        unshift @checkins, {
+            barcode        => $barcode,
+            duedate        => $issue ? $issue->date_due       : undef,
+            borrowernumber => $issue ? $issue->borrowernumber : undef,
+            not_returned   => 1,
+        };
     }
     $template->param( privacy => $borrower->{privacy} );
 
@@ -562,7 +531,7 @@ if ( $barcode && ( $op eq 'cud-checkin' || $op eq 'cud-affect_reserve' ) ) {
         );
     }
 }
-$template->param( inputloop => \@inputloop );
+$template->param( checkins => \@checkins );
 
 my $found    = 0;
 my $waiting  = 0;
@@ -597,7 +566,7 @@ if ( $messages->{'Wrongbranch'} ) {
     );
 }
 
-# case of wrong transfert, if the document wasn't transferred to the right library (according to branchtransfer (tobranch) BDD)
+# case of wrong transfer, if the document wasn't transferred to the right library (according to branchtransfer (tobranch) BDD)
 
 if ( $messages->{'WrongTransfer'} and not $messages->{'WasTransfered'} ) {
 
@@ -796,7 +765,7 @@ foreach my $code ( keys %$messages ) {
     } elsif ( $code eq 'NotForLoanStatusUpdated' ) {
         $err{NotForLoanStatusUpdated} = $messages->{NotForLoanStatusUpdated};
     } elsif ( $code eq 'DataCorrupted' ) {
-        $err{data_corrupted} = 1;
+        $err{data_corrupted} = $messages->{'DataCorrupted'};
     } elsif ( $code eq 'ReturnClaims' ) {
         $template->param( ReturnClaims => $messages->{ReturnClaims} );
     } elsif ( $code eq 'ClaimAutoResolved' ) {
@@ -821,81 +790,43 @@ foreach my $code ( keys %$messages ) {
 }
 $template->param( errmsgloop => \@errmsgloop );
 
-my $count = 0;
-my @riloop;
 my $shelflocations = {
     map { $_->{authorised_value} => $_->{lib} } Koha::AuthorisedValues->get_descriptions_by_koha_field(
         { frameworkcode => '', kohafield => 'items.location' }
     )
 };
-foreach ( sort { $a <=> $b } keys %returneditems ) {
-    my %ri;
-    if ( $count++ < $returned_counter ) {
-        my $bar_code = $returneditems{$_};
-        if ( $riduedate{$_} ) {
-            my $duedate = dt_from_string( $riduedate{$_}, 'sql' );
-            $ri{year}    = $duedate->year();
-            $ri{month}   = $duedate->month();
-            $ri{day}     = $duedate->day();
-            $ri{hour}    = $duedate->hour();
-            $ri{minute}  = $duedate->minute();
-            $ri{duedate} = $duedate;
-            my $patron = Koha::Patrons->find( $riborrowernumber{$_} );
+for my $checkin (@checkins) {
+    my $item = Koha::Items->find( { barcode => $checkin->{barcode} } );
+    next unless $item;    # FIXME The item has been deleted in the meantime,
+                          # we could handle that better displaying a message in the template
 
-            unless ($dropboxmode) {
-                $ri{return_overdue} = 1 if ( DateTime->compare( $duedate, dt_from_string() ) == -1 );
-            } else {
-                $ri{return_overdue} = 1 if ( DateTime->compare( $duedate, $dropboxdate ) == -1 );
-            }
-            $ri{patron} = $patron,
-                $ri{borissuescount} = $patron->checkouts->count;
+    if ( $checkin->{duedate} ) {
+        my $duedate = dt_from_string( $checkin->{duedate}, 'sql' );
+        my $patron  = Koha::Patrons->find( $checkin->{borrowernumber} );
+
+        my $return_overdue;
+        unless ($dropboxmode) {
+            $return_overdue = 1 if ( DateTime->compare( $duedate, dt_from_string() ) == -1 );
         } else {
-            $ri{borrowernumber} = $riborrowernumber{$_};
+            $return_overdue = 1 if ( DateTime->compare( $duedate, $dropboxdate ) == -1 );
         }
-
-        my $item = Koha::Items->find( { barcode => $bar_code } );
-        next unless $item;    # FIXME The item has been deleted in the meantime,
-                              # we could handle that better displaying a message in the template
-
-        $ri{not_returned} = $rinot_returned{$_};
-        my $biblio = $item->biblio;
-
-        # FIXME pass $item to the template and we are done here...
-        $ri{itembiblionumber}    = $biblio->biblionumber;
-        $ri{itemtitle}           = $biblio->title;
-        $ri{subtitle}            = $biblio->subtitle;
-        $ri{part_name}           = $biblio->part_name;
-        $ri{part_number}         = $biblio->part_number;
-        $ri{itemauthor}          = $biblio->author;
-        $ri{itemcallnumber}      = $item->itemcallnumber;
-        $ri{dateaccessioned}     = $item->dateaccessioned;
-        $ri{recordtype}          = $biblio->itemtype;
-        $ri{itemtype}            = $item->itype;
-        $ri{itemnote}            = $item->itemnotes;
-        $ri{itemnotes_nonpublic} = $item->itemnotes_nonpublic;
-        $ri{ccode}               = $item->ccode;
-        $ri{enumchron}           = $item->enumchron;
-        $ri{itemnumber}          = $item->itemnumber;
-        $ri{barcode}             = $bar_code;
-        $ri{homebranch}          = $item->homebranch;
-        $ri{transferbranch}      = $item->get_transfer ? $item->get_transfer->tobranch : '';
-        $ri{damaged}             = $item->damaged;
-        $ri{withdrawn}           = $item->withdrawn;
-        $ri{transferreason}      = $item->get_transfer ? $item->get_transfer->reason : '';
-
-        $ri{location} = $item->location;
-        my $shelfcode = $ri{'location'};
-        $ri{'location'} = $shelflocations->{$shelfcode}
-            if ( defined($shelfcode) && defined($shelflocations) && exists( $shelflocations->{$shelfcode} ) );
-
-    } else {
-        last;
+        $checkin->{return_overdue} = $return_overdue;
+        $checkin->{patron}         = $patron;
     }
-    push @riloop, \%ri;
+
+    $checkin->{item} = $item;
+    my $biblio = $item->biblio;
+    $checkin->{biblio} = $item->biblio;
+
+    # TODO Move this logic somewhere else
+    $checkin->{item_location} = $item->location;
+    my $shelfcode = $checkin->{item_location};
+    $checkin->{item_location} = $shelflocations->{$shelfcode}
+        if ( defined($shelfcode) && defined($shelflocations) && exists( $shelflocations->{$shelfcode} ) );
 }
 
 $template->param(
-    riloop                   => \@riloop,
+    checkins                 => \@checkins,
     errmsgloop               => \@errmsgloop,
     exemptfine               => $exemptfine,
     dropboxmode              => $dropboxmode,

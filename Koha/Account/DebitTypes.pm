@@ -15,14 +15,14 @@ package Koha::Account::DebitTypes;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use Koha::Database;
 use Koha::Account::DebitType;
 
-use base qw(Koha::Objects Koha::Objects::Limit::Library);
+use base qw(Koha::Objects::Mixin::AdditionalFields Koha::Objects Koha::Objects::Limit::Library);
 
 =head1 NAME
 

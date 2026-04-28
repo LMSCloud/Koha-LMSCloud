@@ -35,13 +35,15 @@
     [% CASE 'NOTICES' %]
         <span>Notices</span>[% UNLESS Koha.Preference('NoticesLog') %]<i class="log-disabled fa-solid fa-triangle-exclamation" title="Log not enabled" data-log="NoticesLog"></i>[% END %]
     [% CASE 'NEWS' %]
-        <span>News</span>[% UNLESS Koha.Preference('NewsLog') %]<i class="log-disabled fa-solid fa-triangle-exclamation" title="Log not enabled" data-log="NewsLog"></i>[% END %]
+        <span>Additional content</span>[% UNLESS Koha.Preference('AdditionalContentLog') %]<i class="log-disabled fa-solid fa-triangle-exclamation" title="Log not enabled" data-log="AdditionalContentLog"></i>[% END %]
     [% CASE 'DIVIBIB' %]
         <span>Divibib</span>[% UNLESS Koha.Preference('DivibibLog') %]<i class="log-disabled fa-solid fa-triangle-exclamation" title="Log not enabled" data-log="DivibibLog"></i>[% END %]
     [% CASE 'RECALLS' %]
         <span>Recalls</span>[% UNLESS Koha.Preference('RecallsLog') %]<i class="log-disabled fa-solid fa-triangle-exclamation" title="Log not enabled" data-log="RecallsLog"></i>[% END %]
     [% CASE 'SUGGESTION' %]
         <span>Suggestions</span>[% UNLESS Koha.Preference('SuggestionsLog') %]<i class="log-disabled fa-solid fa-triangle-exclamation" title="Log not enabled" data-log="SuggestionsLog"></i>[% END %]
+    [% CASE 'TRANSFERS' %]
+        <span>Transfers</span>[% UNLESS Koha.Preference('TransfersLog') %]<i class="log-disabled fa-solid fa-triangle-exclamation" title="Log not enabled" data-log="TransfersLog"></i>[% END %]
     [% CASE %]
         [% module | html %]
     [% END %]
@@ -133,6 +135,8 @@
         <span>Run</span>
     [% CASE 'End' %]
         <span>End</span>
+    [% CASE 'PATRON_MERGE' %]
+        <span>Merge</span>
     [% CASE 'EDIT_MAPPINGS' %]
         <span>Edit mappings</span>
     [% CASE 'RESET_MAPPINGS' %]
@@ -147,6 +151,12 @@
         <span>Overdue</span>
     [% CASE 'EXPIRE' %]
         <span>Expire</span>
+    [% CASE 'MODIFY_CARDNUMBER' %]
+        <span>Modify cardnumber</span>
+    [% CASE 'RESET 2FA' %]
+        <span>Reset 2FA</span>
+    [% CASE 'AUTHENTICATION' %]
+        <span>Authentication</span>
     [% CASE %]
         [% action | html %]
     [% END %]
@@ -170,5 +180,90 @@
         <span>Upgrade</span>
     [% CASE %]
         <span>[% log_interface | html %]</span>
+    [% END %]
+[% END %]
+
+[% BLOCK translate_log_override %]
+    [% SWITCH override %]
+    [% CASE 'HOLD_POLICY_OVERRIDE' %]
+        <span>Hold policy override</span>
+    [% CASE 'INVALID_DATE' %]
+        <span>Invalid date confirmed</span>
+    [% CASE 'DEBT_GUARANTEES' %]
+        <span>Guarantees had debts</span>
+    [% CASE 'DEBT_GUARANTORS' %]
+        <span>Guarantors had debts</span>
+    [% CASE 'DEBT' %]
+        <span>Patron had debt</span>
+    [% CASE 'USERBLOCKEDOVERDUE' %]
+        <span>Patron had overdues</span>
+    [% CASE 'USERBLOCKEDNOENDDATE' %]
+        <span>Patron had an indefinite restriction</span>
+    [% CASE 'ADDITIONAL_MATERIALS' %]
+        <span>Additional materials were confirmed</span>
+    [% CASE 'RENEW_ISSUE' %]
+        <span>Renewal</span>
+    [% CASE 'ISSUED_TO_ANOTHER' %]
+        <span>Item was issued to another patron prior to this checkout</span>
+    [% CASE 'PATRON_CANT' %]
+        <span>Max renewals reached</span>
+    [% CASE 'TOO_MANY' %]
+        <span>Too many checkouts</span>
+    [% CASE 'PREVISSUE' %]
+        <span>Patron was notified of previous issues</span>
+    [% CASE 'NOT_FOR_LOAN' %]
+        <span>Item was not for loan</span>
+    [% CASE 'NOT_FOR_LOAN_FORCING' %]
+        <span>Item was not for loan</span>
+    [% CASE 'ITEM_LOST' %]
+        <span>Item was reported lost</span>
+    [% CASE 'BORRNOTSAMEBRANCH' %]
+        <span>Patron does not belong to this library</span>
+    [% CASE 'RENTALCHARGE' %]
+        <span>Item had a rental charge</span>
+    [% CASE 'RECALLED' %]
+        <span>Item was recalled</span>
+    [% CASE 'RESERVE_WAITING' %]
+        <span>Hold waiting on item</span>
+    [% CASE 'RESERVED' %]
+        <span>Hold placed on item</span>
+    [% CASE 'TRANSFERRED' %]
+        <span>Item was transferred</span>
+    [% CASE 'PROCESSING' %]
+        <span>Item was in processing</span>
+    [% CASE 'BOOKED_EARLY' %]
+        <span>Item was booked and checked out early</span>
+    [% CASE 'BOOKED_TO_ANOTHER' %]
+        <span>Item was booked to another patron</span>
+    [% CASE 'AGE_RESTRICTION' %]
+        <span>Item has an age restriction</span>
+    [% CASE 'HIGHHOLDS' %]
+        <span>Item had high holds</span>
+    [% CASE 'BIBLIO_ALREADY_ISSUED' %]
+        <span>An item from this bibliographic record is already checked out</span>
+    [% CASE 'DEBARRED' %]
+        <span>Patron is restricted</span>
+    [% CASE 'RENEWAL_LIMIT' %]
+        <span>Renewal limit override</span>
+    [% CASE 'UNSEEN_LIMIT' %]
+        <span>Override unseen item restriction</span>
+    [% CASE 'AUTO_TOO_SOON' %]
+        <span>Override auto-renew too soon restriction</span>
+    [% CASE 'AUTO_TOO_LATE' %]
+        <span>Override auto-renew too late restriction</span>
+    [% CASE 'ACCOUNT_EXPIRED' %]
+        <span>Account expired override</span>
+    [% CASE 'ON_RESERVE' %]
+        <span>Override renew hold for another</span>
+    [% CASE 'TOO_MUCH' %]
+        <span>Override auto-renew too much owing restriction</span>
+    [% CASE 'CURRENTISSUE' %]
+        <span>Item is currently checked out to this patron</span>
+    [% CASE 'UNSEEN' %]
+        <span>Unseen renewal</span>
+    [% CASE 'SEEN' %]
+        <span>Seen renewal</span>
+    [% CASE %]
+        <span>[% override | html %]</span>
     [% END %]
 [% END %]

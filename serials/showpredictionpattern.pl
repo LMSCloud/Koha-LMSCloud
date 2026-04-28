@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -174,7 +174,7 @@ while ( $i < 1000 ) {
     (
         $calculated, $subscription{'lastvalue1'}, $subscription{'lastvalue2'}, $subscription{'lastvalue3'},
         $subscription{'innerloop1'}, $subscription{'innerloop2'}, $subscription{'innerloop3'}
-    ) = GetNextSeq( \%subscription, \%pattern, $frequency, $date );
+    ) = GetNextSeq( \%subscription, \%pattern, $frequency, $date, $date );
     $issuenumber++;
     $line{'number'}      = $calculated;
     $line{'issuenumber'} = $issuenumber;

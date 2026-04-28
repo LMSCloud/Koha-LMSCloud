@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -40,6 +40,7 @@ use Koha::Items;
 use Koha::ItemTypes;
 use Koha::Checkouts;
 use Koha::Libraries;
+use Koha::Logger;
 use Koha::Patrons;
 use List::MoreUtils qw( uniq );
 
@@ -113,64 +114,40 @@ if ( $#biblionumbers < 0 && $op ne 'cud-place_reserve' ) {
 # Here we check that the borrower can actually make reserves Stage 1.
 #
 #
-my $noreserves = 0;
-if ( $category->effective_BlockExpiredPatronOpacActions_contains('hold') ) {
-    if ( $patron->is_expired ) {
+my $can_place_holds = $patron->can_place_holds( { no_short_circuit => 1 } );
 
-        # cannot reserve, their card has expired and the rules set mean this is not allowed
-        $noreserves = 1;
-        $template->param( message => 1, expired_patron => 1 );
+if ( !$can_place_holds ) {
+
+    $template->param( message => 1 );
+
+    my $messages = $can_place_holds->messages();
+    foreach my $msg ( @{$messages} ) {
+        if ( $msg->message eq 'expired' ) {
+            $template->param( expired_patron => 1 );
+        } elsif ( $msg->message eq 'debt_limit' ) {
+            $template->param( too_much_oweing => sprintf( "%.02f", $msg->{payload}->{total_outstanding} ) );
+        } elsif ( $msg->message eq 'bad_address' ) {
+            $template->param( GNA => 1 );
+        } elsif ( $msg->message eq 'card_lost' ) {
+            $template->param( lost => 1 );
+        } elsif ( $msg->message eq 'restricted' ) {
+            $template->param(
+                debarred         => 1,
+                debarred_comment => $patron->debarredcomment,
+                debarred_date    => $patron->debarred,
+            );
+        } elsif ( $msg->message eq 'hold_limit' ) {
+            $template->param( too_many_reserves => $msg->{payload}->{total_holds} );
+        } else {
+            Koha::Logger->get->warn( sprintf( "Unhandled 'can_place_holds' error code: %s", $msg->message ) );
+        }
     }
-}
 
-my $maxoutstanding    = C4::Context->preference("maxoutstanding");
-my $amountoutstanding = $patron->account->balance;
-if ( $amountoutstanding && ( $amountoutstanding > $maxoutstanding ) ) {
-    my $amount = sprintf "%.02f", $amountoutstanding;
-    $template->param( message => 1 );
-    $noreserves = 1;
-    $template->param( too_much_oweing => $amount );
-}
-
-if ( $patron->gonenoaddress && ( $patron->gonenoaddress == 1 ) ) {
-    $noreserves = 1;
-    $template->param(
-        message => 1,
-        GNA     => 1
-    );
-}
-
-if ( $patron->lost && ( $patron->lost == 1 ) ) {
-    $noreserves = 1;
-    $template->param(
-        message => 1,
-        lost    => 1
-    );
-}
-
-if ( $patron->is_debarred ) {
-    $noreserves = 1;
-    $template->param(
-        message          => 1,
-        debarred         => 1,
-        debarred_comment => $patron->debarredcomment,
-        debarred_date    => $patron->debarred,
-    );
-}
-
-my $holds          = $patron->holds;
-my $reserves_count = $holds->count;
-$template->param( RESERVES => $holds->unblessed );
-if ( $maxreserves && ( $reserves_count >= $maxreserves ) ) {
-    $template->param( message => 1 );
-    $noreserves = 1;
-    $template->param( too_many_reserves => $holds->count );
-}
-
-if ($noreserves) {
     output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };
     exit;
 }
+
+my $reserves_count = $patron->holds->count;
 
 # pass the pickup branch along....
 my $branch = $query->param('branch') || $patron->branchcode || C4::Context->userenv->{branch} || '';
@@ -183,9 +160,10 @@ $template->param( branch => $branch );
 #
 #
 if ( $op eq 'cud-place_reserve' ) {
-    my $reserve_cnt = 0;
+    my $add_to_hold_group = $query->param('add_to_hold_group');
+    my $reserve_cnt       = 0;
     if ($maxreserves) {
-        $reserve_cnt = $patron->holds->count;
+        $reserve_cnt = $patron->holds->count_holds;
     }
 
     # List is composed of alternating biblio/item/branch
@@ -217,6 +195,7 @@ if ( $op eq 'cud-place_reserve' ) {
     }
 
     my @failed_holds;
+    my @successful_hold_ids;
     while (@selectedItems) {
         my $biblioNum = shift(@selectedItems);
         my $itemNum   = shift(@selectedItems);
@@ -339,11 +318,14 @@ if ( $op eq 'cud-place_reserve' ) {
             );
             if ($reserve_id) {
                 ++$reserve_cnt;
+                push @successful_hold_ids, $reserve_id;
             } else {
                 push @failed_holds, 'not_placed';
             }
         }
     }
+
+    $patron->create_hold_group( \@successful_hold_ids ) if $add_to_hold_group;
 
     print $query->redirect( "/cgi-bin/koha/opac-user.pl?"
             . ( @failed_holds ? "failed_holds=" . join( '|', @failed_holds ) : q|| )

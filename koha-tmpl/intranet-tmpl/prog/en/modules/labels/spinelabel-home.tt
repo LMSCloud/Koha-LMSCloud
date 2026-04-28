@@ -29,49 +29,33 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
-
-                <h1>Quick spine label creator</h1>
-                <form action="/cgi-bin/koha/labels/spinelabel-print.pl" method="get" id="spinelabelprint">
-                    <fieldset class="brief">
-                        <ol>
-                            <li
-                                ><label for="barcode">Barcode: </label>
-                                <input type="text" name="barcode" id="barcode" class="focus" required="required" />
-                            </li>
-                        </ol>
-                    </fieldset>
-                    <fieldset class="action">
-                        <input type="submit" class="btn btn-primary" value="View spine label" />
-                    </fieldset>
-                </form>
-            </main>
-        </div>
-        <!-- /.col-md-10.order-md-2 -->
-
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'cat-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
-
-    [% MACRO jsinclude BLOCK %]
-        <script>
-            $(document).ready(function () {
-                $("#spinelabelprint").on("submit", function (e) {
-                    e.preventDefault();
-                    var params = $(this).serialize();
-                    openWindow("/cgi-bin/koha/labels/spinelabel-print.pl?" + params, "Print spine label", 400, 400);
-                    $("#barcode").val("").focus();
-                });
+[% WRAPPER 'main-container.inc' aside='cat-menu' %]
+    <h1>Quick spine label creator</h1>
+    <form action="/cgi-bin/koha/labels/spinelabel-print.pl" method="get" id="spinelabelprint">
+        <fieldset class="brief">
+            <ol>
+                <li
+                    ><label for="barcode">Barcode: </label>
+                    <input type="text" name="barcode" id="barcode" class="focus" required="required" />
+                </li>
+            </ol>
+        </fieldset>
+        <fieldset class="action">
+            <input type="submit" class="btn btn-primary" value="View spine label" />
+        </fieldset>
+    </form>
+[% END %]
+[% MACRO jsinclude BLOCK %]
+    <script>
+        $(document).ready(function () {
+            $("#spinelabelprint").on("submit", function (e) {
+                e.preventDefault();
+                var params = $(this).serialize();
+                openWindow("/cgi-bin/koha/labels/spinelabel-print.pl?" + params, "Print spine label", 400, 400);
+                $("#barcode").val("").focus();
             });
-        </script>
-    [% END %]
+        });
+    </script>
+[% END %]
 
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+[% INCLUDE 'intranet-bottom.inc' %]

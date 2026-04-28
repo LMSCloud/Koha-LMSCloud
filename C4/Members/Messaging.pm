@@ -15,10 +15,21 @@ package C4::Members::Messaging;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
+
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(
+        GetMessagingPreferences
+        SetMessagingPreference
+        GetMessagingOptions
+        SetMessagingPreferencesFromDefaults
+    );
+}
+
 use C4::Context;
 
 =head1 NAME
@@ -43,7 +54,7 @@ This module lets you modify a patron's messaging preferences.
   my $preferences = C4::Members::Messaging::GetMessagingPreferences( { categorycode => 'LIBRARY',
                                                                        message_name   => 'Item_Due ' } );
 
-returns: a hashref of messaging preferences for a borrower or patron category for a particlar message_name
+returns: a hashref of messaging preferences for a borrower or patron category for a particular message_name
 
 Requires either a borrowernumber or a categorycode key, but not both.
 
@@ -129,8 +140,8 @@ sub SetMessagingPreference {
             return;
         }
     }
-    $params->{'days_in_advance'} = undef unless exists( $params->{'days_in_advance'} );
-    $params->{'wants_digest'}    = 0     unless exists( $params->{'wants_digest'} );
+    $params->{'days_in_advance'} = undef if !exists $params->{'days_in_advance'} || $params->{'days_in_advance'} <= 0;
+    $params->{'wants_digest'}    = 0 unless exists( $params->{'wants_digest'} );
 
     my $dbh = C4::Context->dbh();
 
@@ -149,7 +160,9 @@ END_SQL
     my $sth     = $dbh->prepare($delete_sql);
     my $deleted = $sth->execute(@bind_params);
 
-    if ( $params->{'message_transport_types'} ) {
+    if ( $params->{'message_transport_types'}
+        && !( $params->{'message_attribute_id'} == 2 && !$params->{'days_in_advance'} ) )
+    {
         my $insert_bmp = <<'END_SQL';
 INSERT INTO borrower_message_preferences
 (borrower_message_preference_id, borrowernumber, categorycode, message_attribute_id, days_in_advance, wants_digest)
@@ -337,7 +350,7 @@ L<C4::Letters>
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 Andrew Moore <andrew.moore@liblime.com>
 

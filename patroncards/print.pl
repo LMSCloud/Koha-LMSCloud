@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -48,6 +48,7 @@ my $start_card       = $cgi->param('start_card')     || 1;
 my @borrower_numbers = $cgi->multi_param('borrower_number');
 my $output_format    = $cgi->param('output_format') || 'pdf';
 my $referer          = $cgi->param('referer')       || undef;
+my $order_by         = $cgi->param('order_by')      || undef;
 
 my $layouts           = undef;
 my $templates         = undef;
@@ -76,8 +77,9 @@ if ( $op eq 'export' ) {
             }
         );
         $template->param(
-            batches => \@batches,
-            referer => $referer,
+            batches  => \@batches,
+            referer  => $referer,
+            order_by => $order_by,
         );
     } elsif (@borrower_numbers) {
         my $borrower_number_param = '&borrower_number=';
@@ -96,8 +98,9 @@ if ( $op eq 'export' ) {
             }
         );
         $template->param(
-            batches => \@batches,
-            referer => $referer,
+            batches  => \@batches,
+            referer  => $referer,
+            order_by => $order_by,
         );
     } elsif (@batch_ids) {
         foreach my $batch_id (@batch_ids) {
@@ -115,8 +118,9 @@ if ( $op eq 'export' ) {
             );
         }
         $template->param(
-            batches => \@batches,
-            referer => $referer,
+            batches  => \@batches,
+            referer  => $referer,
+            order_by => $order_by,
         );
     } elsif ($patronlist_id) {
         $template->param(
@@ -126,6 +130,7 @@ if ( $op eq 'export' ) {
             layout_back_id => $layout_back_id,
             start_card     => $start_card,
             referer        => $referer,
+            order_by       => $order_by,
         );
     }
 } elsif ( $op eq 'none' ) {

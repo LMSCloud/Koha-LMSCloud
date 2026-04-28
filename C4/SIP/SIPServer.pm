@@ -1,5 +1,9 @@
 #!/usr/bin/perl
 
+=head1 NAME
+    C4::SIP::SIPServer
+=cut
+
 package C4::SIP::SIPServer;
 
 use strict;
@@ -51,13 +55,13 @@ my %transports = (
 # Read configuration
 #
 my $config = C4::SIP::Sip::Configuration->new( $ARGV[0] );
-my @parms;
+my @params;
 
 #
 # Ports to bind
 #
 foreach my $svc ( keys %{ $config->{listeners} } ) {
-    push @parms, "port=" . $svc;
+    push @params, "port=" . $svc;
 }
 
 #
@@ -77,23 +81,27 @@ foreach my $svc ( keys %{ $config->{listeners} } ) {
 #
 if ( defined( $config->{'server-params'} ) ) {
     while ( my ( $key, $val ) = each %{ $config->{'server-params'} } ) {
-        push @parms, $key . '=' . $val;
+        push @params, $key . '=' . $val;
     }
 }
 
 # Add user and group to prevent warn from Net::Server.
-push @parms, 'user=' . $>;
-push @parms, 'group=' . $>;
+push @params, 'user=' . $>;
+
+# $) can contain supplementary groups like "1010 1010" -> Net::Server tries setgroups() and fails.
+my ($egid) = split /\s+/, $);
+$egid ||= $(;    # fallback to real gid just in case
+push @params, 'group=' . $egid;
 
 #
 # This is the main event.
-__PACKAGE__->run(@parms);
+__PACKAGE__->run(@params) unless caller;
 
 #
 # Server
 #
 
-=head3 options
+=head2 options
 
 As per Net::Server documentation, override "options" to provide your own
 custom options to the Net::Server* object. This allows us to use the Net::Server
@@ -120,7 +128,7 @@ sub options {
     $template->{'custom_tcp_keepalive_intvl'} = \$prop->{'custom_tcp_keepalive_intvl'};
 }
 
-=head3 post_configure_hook
+=head2 post_configure_hook
 
 As per Net::Server documentation, this method validates our custom configuration.
 
@@ -148,7 +156,7 @@ sub post_configure_hook {
     }
 }
 
-=head3 post_accept_hook
+=head2 post_accept_hook
 
 This hook occurs after the client connection socket is created, which gives
 us an opportunity to enable support for TCP keepalives using the SO_KEEPALIVE
@@ -209,12 +217,42 @@ sub post_accept_hook {
     }
 }
 
+=head2 _config_up_to_date
+
+    $server->_config_up_to_date();
+
+Check if the configuration is up to date. Returns 1 if the configuration is up to date, 0 otherwise.
+
+This method is used to check if the configuration stored in the database is different from
+the one stored in the object. If the configuration in the database is newer, the method
+returns 0 and the object must be updated.
+
+=cut
+
+sub _config_up_to_date {
+    my ($self) = @_;
+
+    my $cache                       = Koha::Caches->get_instance();
+    my $sip2_resource_last_modified = $cache->get_from_cache("sip2_resource_last_modified");
+    my $sip2_config_read_timestamp  = $cache->get_from_cache("sip2_config_read_timestamp");
+
+    unless ($sip2_resource_last_modified) {
+        siplog( "LOG_WARNING", "Couldn't find sip2_resource_last_modified, considering configuration not up to date" );
+        return 0;
+    }
+    return $sip2_config_read_timestamp >= $sip2_resource_last_modified;
+}
+
 #
 # Child
 #
 
-# process_request is the callback used by Net::Server to handle
-# an incoming connection request.
+=head2 process_request
+
+process_request is the callback used by Net::Server to handle
+an incoming connection request.
+
+=cut
 
 sub process_request {
     my $self = shift;
@@ -223,6 +261,9 @@ sub process_request {
     my $transport;
 
     $self->{config} = $config;
+    unless ( $self->_config_up_to_date() ) {
+        $self->{config} = C4::SIP::Sip::Configuration->get_configuration( undef, $self->{config} );
+    }
 
     # Flushing L1 to make sure the request will be processed using the correct data
     Koha::Caches->flush_L1_caches();
@@ -270,6 +311,15 @@ sub process_request {
 #
 # Transports
 #
+
+=head2 raw_transport
+
+Manages the SIP login process for raw TCP connections. Clears any
+previous session state, applies a timeout, reads the initial request,
+and authenticates it. On success, sets up logging context and enters
+the SIP protocol loop. Returns on EOF, timeout, or failed login.
+
+=cut
 
 sub raw_transport {
     my $self = shift;
@@ -332,6 +382,15 @@ sub raw_transport {
     return;
 }
 
+=head2 get_clean_string
+
+Cleans a string by removing leading and trailing non-alphanumeric
+characters. Logs the string before and after cleaning, or notes if
+the input was undefined. Returns the cleaned string (or undef if no
+string was provided).
+
+=cut
+
 sub get_clean_string {
     my $string = shift;
     if ( defined $string ) {
@@ -346,6 +405,14 @@ sub get_clean_string {
     return $string;
 }
 
+=head2 get_clean_input
+
+Reads a single line from STDIN, normalizes it using
+C<get_clean_string>, and discards any additional input lines, logging
+them as errors. Returns the cleaned input line.
+
+=cut
+
 sub get_clean_input {
     local $/ = "\012";
     my $in = <STDIN>;
@@ -355,6 +422,17 @@ sub get_clean_input {
     }
     return $in;
 }
+
+=head2 telnet_transport
+
+Handles the login process for terminals connecting via the telnet
+transport. Prompts for a username and password, applies a timeout to
+protect against hung connections, and validates the credentials against
+configured accounts. On successful authentication, initializes the SIP
+session by invoking C<sip_protocol_loop>.  Dies on timeout or repeated
+failed login attempts.
+
+=cut
 
 sub telnet_transport {
     my $self = shift;
@@ -390,9 +468,8 @@ sub telnet_transport {
             $pwd = get_clean_string($pwd);
             siplog( "LOG_DEBUG", "telnet_transport 2: uid length %s, pwd length %s", length($uid), length($pwd) );
 
-            if ( exists( $config->{accounts}->{$uid} )
-                && ( $pwd eq $config->{accounts}->{$uid}->{password} ) )
-            {
+            # Check if user is authorized for SIP access, then authenticate via login_core
+            if ( exists( $config->{accounts}->{$uid} ) ) {
                 $account = $config->{accounts}->{$uid};
                 if ( C4::SIP::Sip::MsgType::login_core( $self, $uid, $pwd ) ) {
                     last;
@@ -420,11 +497,15 @@ sub telnet_transport {
     return;
 }
 
-#
-# The terminal has logged in, using either the SIP login process
-# over a raw socket, or via the pseudo-unix login provided by the
-# telnet transport.  From that point on, both the raw and the telnet
-# processes are the same:
+=head2 sip_protocol_loop
+
+The terminal has logged in, using either the SIP login process
+over a raw socket, or via the pseudo-unix login provided by the
+telnet transport. From that point on, both the raw and the telnet
+processes are the same:
+
+=cut
+
 sub sip_protocol_loop {
     my $self    = shift;
     my $service = $self->{service};
@@ -482,6 +563,16 @@ sub sip_protocol_loop {
     return;
 }
 
+=head2 read_request
+
+Reads a single SIP request line from STDIN using carriage return as the
+record separator. Strips leading and trailing non-alphanumeric
+characters, removes extra line breaks, and logs any trimming that
+occurs. Also flushes Level-1 caches before processing each request.
+Returns the cleaned request string, or undef on EOF.
+
+=cut
+
 sub read_request {
     my $raw_length;
     local $/ = "\015";
@@ -523,15 +614,20 @@ sub read_request {
     return $buffer;
 }
 
-# $server->get_timeout({ $type => 1, fallback => $fallback });
-#     where $type is transport | client | policy
-#
-# Centralizes all timeout logic.
-# Transport refers to login process, client to active connections.
-# Policy timeout is transaction timeout (used in ACS status message).
-#
-# Fallback is optional. If you do not pass transport, client or policy,
-# you will get fallback or hardcoded default.
+=head2 get_timeout
+
+    $server->get_timeout({ $type => 1, fallback => $fallback });
+
+where $type is transport | client | policy
+
+Centralizes all timeout logic.
+Transport refers to login process, client to active connections.
+Policy timeout is transaction timeout (used in ACS status message).
+
+Fallback is optional. If you do not pass transport, client or policy,
+you will get fallback or hardcoded default.
+
+=cut
 
 sub get_timeout {
     my ( $server, $params ) = @_;

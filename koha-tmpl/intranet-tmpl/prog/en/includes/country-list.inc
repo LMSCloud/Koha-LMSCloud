@@ -1,3 +1,4 @@
+<!--prettier-ignore-start -->
 [%~ country_strings = BLOCK ~%]
     [%~ t("Afghanistan") | html ~%],
     [%~ t("Albania") | html ~%], [%~ t("Algeria") | html ~%], [%~ t("Andorra") | html ~%], [%~ t("Angola") | html ~%], [%~ t("Antigua & Deps") | html ~%], [%~ t("Argentina") | html ~%], [%~ t("Armenia") | html ~%],
@@ -27,3 +28,4 @@
     [%~ t("Tuvalu") | html ~%], [%~ t("Uganda") | html ~%], [%~ t("Ukraine") | html ~%], [%~ t("UAE") | html ~%], [%~ t("United Kingdom") | html ~%], [%~ t("USA") | html ~%], [%~ t("Uruguay") | html ~%], [%~ t("Uzbekistan") | html ~%],
     [%~ t("Vanuatu") | html ~%], [%~ t("Vatican City") | html ~%], [%~ t("Venezuela") | html ~%], [%~ t("Vietnam") | html ~%], [%~ t("Yemen") | html ~%], [%~ t("Zambia") | html ~%], [%~ t("Zimbabwe") | html ~%]
 [%~ END ~%]
+<!--prettier-ignore-end -->

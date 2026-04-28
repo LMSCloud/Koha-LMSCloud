@@ -15,24 +15,13 @@ package Koha::Patron::Debarments;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-
-use C4::Context;
-use C4::Log qw( logaction );
-
-use Koha::Database;
-use Koha::Patrons;
-use Koha::Patron::Restriction::Types;
-use Koha::Patron::Restrictions;
-
-our ( @ISA, @EXPORT_OK );
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         AddDebarment
         DelDebarment
         ModDebarment
@@ -42,6 +31,14 @@ BEGIN {
 
     );
 }
+
+use C4::Context;
+use C4::Log qw( logaction );
+
+use Koha::Database;
+use Koha::Patrons;
+use Koha::Patron::Restriction::Types;
+use Koha::Patron::Restrictions;
 
 =head1 Koha::Patron::Debarments
 
@@ -184,7 +181,7 @@ my $success = AddUniqueDebarment({
 
 Creates a new debarment of the type defined by the key type.
 If a unique debarment already exists of the given type, it is updated instead.
-The current unique debarment types are OVERDUES, and SUSPENSION
+The current unique debarment types are OVERDUES, SUSPENSION, and FINES
 
 Required keys: borrowernumber, type
 
@@ -232,7 +229,7 @@ my $success = _DelUniqueDebarment({
 });
 
 Deletes a unique debarment of the type defined by the key type.
-The current unique debarment types are OVERDUES, and SUSPENSION
+The current unique debarment types are OVERDUES, SUSPENSION, and FINES
 
 Required keys: borrowernumber, type
 

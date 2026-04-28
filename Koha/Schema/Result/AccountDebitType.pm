@@ -148,28 +148,48 @@ __PACKAGE__->has_many(
 # Created by DBIx::Class::Schema::Loader v0.07049 @ 2023-01-10 14:49:18
 # DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:9+mMPMSWcc/PwryYNQ2Jqg
 
-__PACKAGE__->add_columns(
-    '+is_system' => { is_boolean => 1 }
+__PACKAGE__->has_many(
+    "additional_field_values",
+    "Koha::Schema::Result::AdditionalFieldValue",
+    sub {
+        my ($args) = @_;
+
+        return {
+            "$args->{foreign_alias}.record_id" => { -ident => "$args->{self_alias}.code" },
+
+            "$args->{foreign_alias}.field_id" =>
+                { -in => \'(SELECT id FROM additional_fields WHERE tablename="account_debit_types")' },
+        };
+    },
+    { cascade_copy => 0, cascade_delete => 0 },
 );
 
 __PACKAGE__->add_columns(
-    "+can_be_sold" => { is_boolean => 1 }
+    '+archived'            => { is_boolean => 1 },
+    '+is_system'           => { is_boolean => 1 },
+    "+can_be_invoiced"     => { is_boolean => 1 },
+    "+can_be_sold"         => { is_boolean => 1 },
+    "+restricts_checkouts" => { is_boolean => 1 },
 );
 
-__PACKAGE__->add_columns(
-    "+can_be_invoiced" => { is_boolean => 1 }
-);
+=head2 koha_objects_class
 
-__PACKAGE__->add_columns(
-    "+restricts_checkouts" => { is_boolean => 1 }
-);
+Missing POD for koha_objects_class.
+
+=cut
 
 sub koha_objects_class {
     'Koha::Account::DebitTypes';
 }
+
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
+
 sub koha_object_class {
     'Koha::Account::DebitType';
 }
 
-# You can replace this text with custom code or comments, and it will be preserved on regeneration
 1;

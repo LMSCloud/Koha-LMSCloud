@@ -68,12 +68,12 @@
         <option value="ti,phr">&nbsp;&nbsp;&nbsp;&nbsp; Title as phrase</option>
     [% END %]
     [% IF ms_se %]
-        <option selected="seleced" value="se">&nbsp;&nbsp;&nbsp;&nbsp; Series title</option>
+        <option selected="selected" value="se">&nbsp;&nbsp;&nbsp;&nbsp; Series title</option>
     [% ELSE %]
         <option value="se">&nbsp;&nbsp;&nbsp;&nbsp; Series title</option>
     [% END %]
     [% IF ms_sys %]
-        <option selected="seleced" value="sys">&nbsp;&nbsp;&nbsp;&nbsp; Classification</option>
+        <option selected="selected" value="sys">&nbsp;&nbsp;&nbsp;&nbsp; Classification</option>
     [% ELSE %]
         <option value="sys">&nbsp;&nbsp;&nbsp;&nbsp; Classification</option>
     [% END %]

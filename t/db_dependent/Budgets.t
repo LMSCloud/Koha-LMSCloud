@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use Modern::Perl;
-use Test::More tests => 156;
+use Test::More tests => 157;
+use Test::NoWarnings;
 use JSON;
 
 BEGIN {
@@ -25,6 +26,7 @@ use t::lib::TestBuilder;
 use t::lib::Mocks;
 use Koha::DateUtils;
 
+use t::lib::Mocks;
 t::lib::Mocks::mock_preference( 'OrderPriceRounding', '' );
 t::lib::Mocks::mock_preference( 'AcquisitionLog',     '1' );
 
@@ -129,7 +131,7 @@ is(
 );
 is(
     $budgetperiod->{budget_period_active}, $my_budgetperiod->{budget_period_active},
-    'ModBudgetPeriod upates active correctly'
+    'ModBudgetPeriod updates active correctly'
 );
 
 $budgetperiods = GetBudgetPeriods();

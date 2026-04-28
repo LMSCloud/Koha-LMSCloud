@@ -3,6 +3,7 @@ type: object
 properties:
   patron_category_id:
     type: string
+    maxLength: 10
     description: Internal patron category identifier
   name:
     type:
@@ -55,9 +56,11 @@ properties:
     description: Are lost items shown to this category (1 for yes, 0 for no)
   category_type:
     type: string
+    maxLength: 1
     description: Type of Koha patron (Adult, Child, Professional, Organizational, Statistical, Staff)
   block_expired_patron_opac_actions:
     type: string
+    maxLength: 128
     description: Specific actions expired patrons of this category are blocked from performing. OPAC actions blocked based on the patron category take priority over this preference
   default_privacy:
     type: string
@@ -123,6 +126,9 @@ properties:
       - boolean
       - "null"
     description: If this patron category is a family card category
+  enforce_expiry_notice:
+    type: boolean
+    description: If the patron expiry notice is enforced for this category
 additionalProperties: false
 required:
   - patron_category_id

@@ -15,7 +15,7 @@ package C4::Creators::Lib;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Storable qw( dclone );
@@ -275,7 +275,7 @@ ADD_LAYOUTS:
   my $profiles = get_all_profiles({ fields => [@fields], filters => { filters => [$value1, $value2] } });
 
 This function returns an arrayref whose elements are hashes containing all profiles upon success and 1 upon failure. Errors are logged
-to the Apache log. Two parameters are accepted. The first limits the field(s) returned. This parameter should be string of comma separted
+to the Apache log. Two parameters are accepted. The first limits the field(s) returned. This parameter should be string of comma separated
 fields. ie. "field_1, field_2, ...field_n" The second limits the records returned based on a string containing a valud SQL 'WHERE' filter.
 
 NOTE: Do not pass in the keyword 'WHERE.'
@@ -531,7 +531,7 @@ sub get_table_names {
 
 =head2 C4::Creators::Lib::html_table()
 
-This function returns an arrayref of an array of hashes contianing the supplied data formatted suitably to
+This function returns an arrayref of an array of hashes containing the supplied data formatted suitably to
 be passed off as a template parameter and used to build an html table.
 
    my $table = html_table(header_fields, array_of_row_data);
@@ -603,7 +603,7 @@ POPULATE_HEADER:
         $field_count++;
         $col_index++;
     }
-    $$table[$row_index] = { header_fields => $fields };
+    $$table[0] = { header_fields => $fields };
     $cols = $col_index;
     $field_count *= scalar(@$data);    # total fields to be displayed in the table
     $col_index = 0;

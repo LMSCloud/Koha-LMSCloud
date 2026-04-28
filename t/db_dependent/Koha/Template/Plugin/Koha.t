@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -55,7 +55,7 @@ subtest 'GenerateCSRF() tests' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'GenerateCSRF - New CSRF token generated everytime we need one' => sub {
+subtest 'GenerateCSRF - New CSRF token generated every time we need one' => sub {
     plan tests => 2;
 
     $schema->storage->txn_begin;

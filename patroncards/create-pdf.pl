@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI      qw ( -utf8 );
@@ -51,6 +51,7 @@ my $start_card       = $cgi->param('start_card')     || 1;
 my @label_ids        = $cgi->multi_param('label_id');
 my @borrower_numbers = $cgi->multi_param('borrower_number');
 my $patronlist_id    = $cgi->param('patronlist_id');
+my $order_by         = $cgi->param('order_by') || undef;
 
 my $items    = undef;    # items = cards
 my $new_page = 0;
@@ -92,19 +93,44 @@ eval {
 
     if (@label_ids) {
         my $batch_items = $batch->get_attr('items');
+        my @borrowernumbers;
         grep {
             my $label_id = $_;
-            push( @{$items}, grep { $_->{'label_id'} == $label_id; } @{$batch_items} );
+            push( @borrowernumbers, grep { $_->{'label_id'} == $label_id; } @{$batch_items} );
         } @label_ids;
+        @borrowernumbers = map { $_->{borrower_number} } @borrowernumbers;
+        @borrowernumbers =
+            map { $_->borrowernumber }
+            Koha::Patrons->search( { borrowernumber => { -in => \@borrowernumbers } }, { order_by => [$order_by] } )
+            ->as_list
+            if ($order_by);
+        grep { push( @{$items}, { borrower_number => $_ } ); } @borrowernumbers;
     } elsif (@borrower_numbers) {
+        @borrower_numbers =
+            map { $_->borrowernumber }
+            Koha::Patrons->search( { borrowernumber => { -in => \@borrower_numbers } }, { order_by => [$order_by] } )
+            ->as_list
+            if ($order_by);
         grep { push( @{$items}, { borrower_number => $_ } ); } @borrower_numbers;
     } elsif ($patronlist_id) {
         my ($list) = GetPatronLists( { patron_list_id => $patronlist_id } );
         my @borrowerlist =
             $list->patron_list_patrons()->search_related('borrowernumber')->get_column('borrowernumber')->all();
+        @borrowerlist =
+            map { $_->borrowernumber }
+            Koha::Patrons->search( { borrowernumber => { -in => \@borrowerlist } }, { order_by => [$order_by] } )
+            ->as_list
+            if ($order_by);
         grep { push( @{$items}, { borrower_number => $_ } ); } @borrowerlist;
     } else {
-        $items = $batch->get_attr('items');
+        my $batch_items     = $batch->get_attr('items');
+        my @borrowernumbers = map { $_->{borrower_number} } @{$batch_items};
+        @borrowernumbers =
+            map { $_->borrowernumber }
+            Koha::Patrons->search( { borrowernumber => { -in => \@borrowernumbers } }, { order_by => [$order_by] } )
+            ->as_list
+            if ($order_by);
+        grep { push( @{$items}, { borrower_number => $_ } ); } @borrowernumbers;
     }
 
     my $layout_xml      = XMLin( $layout->get_attr('layout_xml'), ForceArray => 1 );

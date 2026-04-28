@@ -13,7 +13,7 @@ package Koha::SearchMarcMaps;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -40,6 +40,12 @@ Koha::SearchMarcMaps - Koha SearchMarcMap Object set class
 sub _type {
     return 'SearchMarcMap';
 }
+
+=head2 object_class
+
+Missing POD for object_class.
+
+=cut
 
 sub object_class {
     return 'Koha::SearchMarcMap';

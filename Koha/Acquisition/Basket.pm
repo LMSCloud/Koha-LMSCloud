@@ -15,13 +15,14 @@ package Koha::Acquisition::Basket;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Acquisition::BasketGroups;
+use Koha::Acquisition::Booksellers;
 use Koha::Acquisition::Orders;
 use Koha::Exceptions::Acquisition::Basket;
 use Koha::Patrons;
@@ -49,6 +50,20 @@ sub bookseller {
     my ($self) = @_;
     my $bookseller_rs = $self->_result->booksellerid;
     return Koha::Acquisition::Bookseller->_new_from_dbic($bookseller_rs);
+}
+
+=head3 vendor
+
+    my $vendor = $basket->vendor;
+
+Returns the related I<Koha::Acquisition::Bookseller> object.
+
+=cut
+
+sub vendor {
+    my ($self) = @_;
+    my $vendor_rs = $self->_result->vendor;
+    return Koha::Acquisition::Bookseller->_new_from_dbic($vendor_rs);
 }
 
 =head3 creator
@@ -120,6 +135,30 @@ sub edi_order {
     return $order_rs->single;
 }
 
+=head3 edi_quote
+
+  my $edi_order = $basket->edi_quote;
+
+Returns the EDI quote object if one was used to generate this basket.
+
+NOTE: This currently returns a bare DBIx::Class result or undefined. This is consistent with the rest of EDI;
+However it would be beneficial to convert these to full fledge Koha::Objects in the future.
+
+=cut
+
+sub edi_quote {
+    my ($self) = @_;
+
+    my $order_rs = $self->_result->edifact_messages(
+        {
+            message_type => 'QUOTE',
+            deleted      => 0
+        },
+        { order_by => { '-desc' => 'transfer_date' }, rows => 1 }
+    );
+    return $order_rs->single;
+}
+
 =head3 effective_create_items
 
 Returns C<create_items> for this basket, falling back to C<AcqCreateItem> if unset.
@@ -150,17 +189,16 @@ sub estimated_delivery_date {
     return dt_from_string( $self->closedate )->add( days => $self->bookseller->deliverytime );
 }
 
-=head3 late_since_days
+=head3 days_late
 
-my $number_of_days_late = $basket->late_since_days;
+    my $number_of_days_late = $basket->days_late;
 
-Return the number of days the basket is late.
-
-Return implicit undef if the basket is not closed.
+Returns the number of days the basket is late. I<undef> is returned if
+the basket is not closed.
 
 =cut
 
-sub late_since_days {
+sub days_late {
     my ($self) = @_;
     return unless $self->closedate;
     return dt_from_string->delta_days( dt_from_string( $self->closedate ) )->delta_days();
@@ -271,6 +309,7 @@ sub to_api_mapping {
     return {
         basketno                => 'basket_id',
         basketname              => 'name',
+        note                    => 'internal_note',
         booksellernote          => 'vendor_note',
         contractnumber          => 'contract_id',
         creationdate            => 'creation_date',

@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 4;
+use Test::NoWarnings;
+use Test::More tests => 5;
 use Test::Exception;
 
 BEGIN { use_ok('Koha::Script') }
@@ -44,6 +45,7 @@ is_deeply(
         'desk_name'     => undef,
         'register_id'   => undef,
         'register_name' => undef,
+        'session_id'    => undef,
     },
     "Context userenv set correctly with no flags"
 );

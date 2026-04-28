@@ -26,11 +26,7 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-            
+[% WRAPPER 'main-container.inc' aside='tools-menu' %]
                 <h1>Run batch jobs</h1>
                 <div class="help">
                    <p>Use this function to run batch jobs ad hoc.</p>
@@ -53,11 +49,11 @@
                        </p>
                        <input type="hidden" name="op" value="cud-progress" />
                        <input type="hidden" name="cmd" value="" />
-                       <p>
+                       <div>
                            <div style="border:1px solid black;height:200px;width:100%;overflow-y:scroll;overflow-x:scroll;padding: 5px">
                                <pre>[% outfilecontent | html %]</pre>
                            </div>
-                       </p>
+                       </div>
                        [% IF ( status != 'completed' ) %]
                        <p>
                        <input type="hidden" name="filenamepart" value="[% filenamepart | html %]" />
@@ -82,7 +78,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            </tr>
+                            <tr>
                                 <th>Advance notices</th>
                                 <td>
                                     <p>Prepare pre-due and item due reminders to be sent to patrons.</p>
@@ -93,7 +89,7 @@
                                     <table>
                                         <tr>
                                             <td>Days in advance</td>
-                                            <td><input type="number" min="0" max="10" step="1" name="advance_notices_maxdays" id="advance_notices_maxdays" value="1"></input></td>
+                                            <td><input type="number" min="0" max="10" step="1" name="advance_notices_maxdays" id="advance_notices_maxdays" value="1"></td>
                                         </tr>
                                     </table>
                                 </td>
@@ -120,13 +116,13 @@ produced by other features of Koha. The message queue must be processed regularl
                                         <tr>
                                             <td><label for="membership_expiry_before">Optional parameter to extend the selection with a number of days before the date set by the preference.</label></td>
                                             <td>
-                                                <input type="number" min="0" max="365" step="1" name="embership_expiry_before" id="embership_expiry_before" />
+                                                <input type="number" min="0" max="365" step="1" name="membership_expiry_before" id="membership_expiry_before" />
                                             </td>
                                         </tr>
                                         <tr>
                                             <td><label for="membership_expiry_after">Optional parameter to extend the selection with a number of days after the date set by the preference.</label></td>
                                             <td>
-                                                <input type="number" min="0" max="365" step="1" name="embership_expiry_after" id="embership_expiry_after" />
+                                                <input type="number" min="0" max="365" step="1" name="membership_expiry_after" id="membership_expiry_after" />
                                             </td>
                                         </tr>
                                         <tr>
@@ -289,7 +285,7 @@ produced by other features of Koha. The message queue must be processed regularl
                             </tr>
 
 
-                            </tr>
+                            <tr>
                                 <th>Anonymise patron history that is older than DAYS days</th>
                                 <td>
                                     <p>Koha stores the patron lending history. The batch job can be used to anonymise the patron history that is older than the specified number of days.</p>
@@ -298,7 +294,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                     <table>
                                         <tr>
                                             <td>Number of days</td>
-                                            <td><input type="number" min="0" max="10000" step="1" name="batch_anonymise_days" id="batch_anonymise_days" value="365"></input></td>
+                                            <td><input type="number" min="0" max="10000" step="1" name="batch_anonymise_days" id="batch_anonymise_days" value="365"></td>
                                         </tr>
                                     </table>
                                 </td>
@@ -306,7 +302,7 @@ produced by other features of Koha. The message queue must be processed regularl
                             </tr>
                             
                             
-                            </tr>
+                            <tr>
                                 <th>Deletes patron accounts</th>
                                 <td>
                                     <p>The batch job deletes patron accounts that match to the provided options.</p>
@@ -420,16 +416,8 @@ produced by other features of Koha. The message queue must be processed regularl
                 
                 </form>
             
-            </main>
-        </div> <!-- /.col-md-10.order-md-2.order-sm-1 -->
+[% END %]
 
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'tools-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-sm-2.order-md-1 -->
-     </div> <!-- /.row -->
-    
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/tools-menu.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]

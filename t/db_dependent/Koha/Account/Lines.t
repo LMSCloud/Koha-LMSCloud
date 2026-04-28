@@ -15,11 +15,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>
+# along with Koha; if not, see <https://www.gnu.org/licenses>
 
 use Modern::Perl;
 
-use Test::More tests => 4;
+use Test::NoWarnings;
+use Test::More tests => 5;
 use Test::Exception;
 use Test::MockModule;
 
@@ -310,7 +311,7 @@ subtest 'debits_total() tests' => sub {
             borrowernumber    => $patron->id,
             credit_type_code  => "PAYMENT",
             amount            => -10,
-            amountoutstanding => 0,
+            amountoutstanding =>  0,
             interface         => 'commandline',
         }
     )->store;
@@ -323,7 +324,7 @@ subtest 'debits_total() tests' => sub {
             borrowernumber    => $patron->id,
             credit_type_code  => "PAYMENT",
             amount            => -10,
-            amountoutstanding => 0,
+            amountoutstanding =>  0,
             interface         => 'commandline',
         }
     )->store;
@@ -336,7 +337,7 @@ subtest 'debits_total() tests' => sub {
             borrowernumber    => $patron->id,
             credit_type_code  => "PAYMENT",
             amount            => -100,
-            amountoutstanding => 0,
+            amountoutstanding =>  0,
             interface         => 'commandline',
         }
     )->store;

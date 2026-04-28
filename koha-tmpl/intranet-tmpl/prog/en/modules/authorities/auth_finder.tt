@@ -16,14 +16,15 @@
 <div class="container-fluid">
     <h1>Authority search</h1>
     [% INCLUDE 'auth-finder-search.inc' %]
-
-    [% MACRO jsinclude BLOCK %]
-        <script>
-            var index = "[% index | html %]";
-            var authtypecode = "[% authtypecode | html %]";
-        </script>
-        [% Asset.js("js/auth-finder-search.js") | $raw %]
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' popup_window = 1 %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% MACRO jsinclude BLOCK %]
+    <script>
+        var index = "[% index | html %]";
+        var authtypecode = "[% authtypecode | html %]";
+    </script>
+    [% Asset.js("js/auth-finder-search.js") | $raw %]
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' popup_window = 1 %]

@@ -2,10 +2,17 @@
 [% USE Asset %]
 [% USE Koha %]
 [% USE AdditionalContents %]
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>OverDrive search for '[% q | html %]' &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+<title
+    >[% FILTER collapse %]
+        [% tx("OverDrive search for '{keyword}'", { keyword = q }) | html %]
+        &rsaquo; [% PROCESS 'library_name_title' %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("css/overdrive.css") | $raw %]
 [% BLOCK cssinclude %]
@@ -14,7 +21,7 @@
 [% INCLUDE 'bodytag.inc' bodyid='overdrive-results-page' bodyclass='scrollto' %]
 [% INCLUDE 'masthead.inc' %]
 
-<div class="main">
+<main class="main">
     <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
         <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -24,7 +31,7 @@
                 <a class="previous-page" href="">Catalog search for '[% q | html %]'</a>
             </li>
             <li class="breadcrumb-item active">
-                <a href="#" aria-current="page">OverDrive search for '[% q | html %]'</a>
+                <a href="#" aria-current="page" aria-disabled="true" tabindex="-1">OverDrive search for '[% q | html %]'</a>
             </li>
         </ol>
     </nav>
@@ -63,7 +70,7 @@
         <!-- / .row -->
     </div>
     <!-- / .container-fluid -->
-</div>
+</main>
 <!-- / .main -->
 
 [% IF ( Koha.Preference('OverDriveCirculation') ) %]
@@ -147,27 +154,6 @@
                     results.push( '</a>' );
                     if ( prod.primaryCreator ) results.push( '<p>' + _("by") + ' ', prod.primaryCreator.name, '</p>' );
                     results.push( '<span class="results_summary mediatype"><span class="label">' + _("Type:") + ' </span>', prod.mediaType, '</span>' );
-
-                    if ( prod.starRating ) {
-                        var rating_value = Math.round( prod.starRating );
-                        results.push( '<div class="results_summary ratings">' );
-                        results.push( '<div class="br-wrapper br-theme-fontawesome-stars">');
-                        results.push( '<div class="br-widget br-readonly">');
-                        for ( var rating = 1; rating <= 5; rating++ ) {
-
-                            results.push( '<a href="#"' );
-                            if( rating == rating_value ){
-                                results.push( ' class="br-selected br-current"></a>' );
-                            } else if( rating_value > rating ){
-                                results.push( ' class="br-selected"></a>' );
-                            } else {
-                                results.push( '></a>');
-                            }
-                        }
-                        results.push( '</div>' );
-                        results.push( '</div>' );
-                        results.push( '</div>' );
-                    }
 
                     results.push( '</td>' );
 

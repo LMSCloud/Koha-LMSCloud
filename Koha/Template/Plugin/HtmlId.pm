@@ -13,7 +13,7 @@ package Koha::Template::Plugin::HtmlId;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -30,6 +30,12 @@ Koha::Template::Plugin::HtmlId - Filter characters for HTML IDs
     <div id=[% var | HtmlId %]></div>
 
 It will replace characters that are not valid for HTML IDs with an underscore (_)
+
+=cut
+
+=head2 filter
+
+Missing POD for filter.
 
 =cut
 

@@ -15,7 +15,7 @@ package C4::Patroncards::Lib;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -252,7 +252,21 @@ This library provides functions used by various sections of the Patroncard Creat
 
         box($llx, $lly, $width, $height, $pdf);
 
-=cut
+=head2 get_borrower_attributes
+
+Missing POD for get_borrower_attributes.
+
+=head2 put_image
+
+Missing POD for put_image.
+
+=head2 get_image
+
+Missing POD for get_image.
+
+=head2 rm_image
+
+Missing POD for rm_image.
 
 =head1 AUTHOR
 

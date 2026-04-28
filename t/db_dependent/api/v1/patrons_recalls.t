@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::NoWarnings;
+use Test::More tests => 2;
 use Test::Mojo;
 
 use t::lib::TestBuilder;
@@ -48,7 +49,8 @@ subtest 'list() tests' => sub {
     $patron->set_password( { password => $password, skip_validation => 1 } );
     my $userid = $patron->userid;
 
-    $t->get_ok( "//$userid:$password@/api/v1/patrons/" . $patron->id . '/recalls' )->status_is( 200, 'REST3.2.2' )
+    $t->get_ok( "//$userid:$password@/api/v1/patrons/" . $patron->id . '/recalls' )
+        ->status_is( 200, 'REST3.2.2' )
         ->json_is( [] );
 
     my $recall_1 = $builder->build_object( { class => 'Koha::Recalls', value => { patron_id => $patron->id } } );
@@ -59,15 +61,18 @@ subtest 'list() tests' => sub {
     my $recall_3 = $builder->build_object( { class => 'Koha::Recalls', value => { patron_id => $patron_2->id } } );
 
     $t->get_ok( "//$userid:$password@/api/v1/patrons/" . $patron->id . '/recalls?_order_by=+me.recall_id' )
-        ->status_is( 200, 'REST3.2.2' )->json_is( '' => [ $recall_1->to_api, $recall_2->to_api ], 'Recalls retrieved' );
+        ->status_is( 200, 'REST3.2.2' )
+        ->json_is( '' => [ $recall_1->to_api, $recall_2->to_api ], 'Recalls retrieved' );
 
     $t->get_ok( "//$userid:$password@/api/v1/patrons/" . $patron_2->id . '/recalls?_order_by=+me.recall_id' )
-        ->status_is( 200, 'REST3.2.2' )->json_is( '' => [ $recall_3->to_api ], 'Recalls retrieved' );
+        ->status_is( 200, 'REST3.2.2' )
+        ->json_is( '' => [ $recall_3->to_api ], 'Recalls retrieved' );
 
     $recall_3->delete;
 
     $t->get_ok( "//$userid:$password@/api/v1/patrons/" . $patron_2->id . '/recalls?_order_by=+me.recall_id' )
-        ->status_is( 200, 'REST3.2.2' )->json_is( [] );
+        ->status_is( 200, 'REST3.2.2' )
+        ->json_is( [] );
 
     my $non_existent_patron    = $builder->build_object( { class => 'Koha::Patrons' } );
     my $non_existent_patron_id = $non_existent_patron->id;
@@ -75,7 +80,8 @@ subtest 'list() tests' => sub {
     # get rid of the patron
     $non_existent_patron->delete;
 
-    $t->get_ok( "//$userid:$password@/api/v1/patrons/" . $non_existent_patron_id . '/recalls' )->status_is(404)
+    $t->get_ok( "//$userid:$password@/api/v1/patrons/" . $non_existent_patron_id . '/recalls' )
+        ->status_is(404)
         ->json_is( '/error' => 'Patron not found' );
 
     $schema->storage->txn_rollback;

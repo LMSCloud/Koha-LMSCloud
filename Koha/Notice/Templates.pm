@@ -13,7 +13,7 @@ package Koha::Notice::Templates;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -34,7 +34,7 @@ Koha::Notice::Templates - Koha notice template Object set class, related to the 
 
 =cut
 
-=head3
+=head3 find_effective_template
 
 my $template = Koha::Notice::Templates->find_effective_template(
     {
@@ -96,6 +96,12 @@ sub find_effective_template {
 sub _type {
     return 'Letter';
 }
+
+=head2 object_class
+
+Missing POD for object_class.
+
+=cut
 
 sub object_class {
     return 'Koha::Notice::Template';

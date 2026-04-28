@@ -15,7 +15,7 @@
 </head>
 
 <body id="cat_z3950_search" class="cat">
-<div class="container-fluid">
+<div class="main container-fluid">
     [% IF ( opsearch ) %]
         <h1>Z39.50/SRU search</h1>
         <form method="post" action="z3950_search.pl" name="f" class="checkboxed">
@@ -136,7 +136,7 @@
                                     [% IF Koha.Preference('AdditionalFieldsInZ3950ResultSearch') != '' %]
                                         <th>Additional fields</th>
                                     [% END %]
-                                    <th class="noExport">Actions</th>
+                                    <th class="no-export">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -221,6 +221,7 @@
                             <input type="hidden" name="current_page" id="current_page" value="[% current_page | html %]" />
                             <input type="hidden" id="title" name="title" value="[% title | html %]" />
                             <input type="hidden" id="isbn" name="isbn" value="[% isbn | html %]" />
+                            <input type="hidden" id="issn" name="issn" value="[% issn | html %]" />
                             <input type="hidden" id="lccall" name="lccall" value="[% lccall | html %]" />
                             <input type="hidden" id="controlnumber" name="controlnumber" value="[% controlnumber | html %]" />
                             <input type="hidden" id="srchany" name="srchany" value="[% srchany | html %]" />
@@ -264,36 +265,37 @@
         </div>
         <!-- /.row -->
     [% END # /IF opsearch %]
-
-    [% IF ( numberpending ) %]
-        <h3 align="center">Still [% numberpending | html %] servers to search</h3>
-    [% END %]
-
-    [% MACRO jsinclude BLOCK %]
-        [% INCLUDE 'columns_settings.inc' %]
-        [% INCLUDE 'datatables.inc' %]
-        [% INCLUDE 'z3950_search.inc' %]
-        [% Asset.js("js/z3950_search.js") | $raw %]
-        <script>
-            $(document).ready(function(){
-                var table_settings = [% TablesSettings.GetTableSettings( 'cataloguing', 'z3950_search', 'resultst', 'json' ) | $raw %];
-                var thetable = KohaTable("resultst", {
-                    "columnDefs": [
-                        { "targets": [ 1 ], "type": "nsb-nse" },
-                    ],
-                    "paginate": false,
-                    "searching": false,
-                    "info": false
-                }, table_settings );
-                InitLastAction();
-            });
-
-            function columnsInit(){
-                $(".dataTables_info").text( $("#result_pagenumbers").text() );
-                $("#result_pagenumbers").hide();
-            }
-        </script>
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' popup_window=1 %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% IF ( numberpending ) %]
+    <h3 align="center">Still [% numberpending | html %] servers to search</h3>
+[% END %]
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'z3950_search.inc' %]
+    [% Asset.js("js/z3950_search.js") | $raw %]
+    <script>
+        $(document).ready(function(){
+            var table_settings = [% TablesSettings.GetTableSettings( 'cataloguing', 'z3950_search', 'resultst', 'json' ) | $raw %];
+            var thetable = $("#resultst").kohaTable(
+                {
+                    columnDefs: [{ targets: [1], type: "nsb-nse" }],
+                    paging: false,
+                    searching: false,
+                    info: false,
+                },
+                table_settings
+            );
+            InitLastAction();
+        });
+
+        function columnsInit(){
+            $(".dataTables_info").text( $("#result_pagenumbers").text() );
+            $("#result_pagenumbers").hide();
+        }
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' popup_window=1 %]

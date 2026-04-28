@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -142,7 +142,7 @@ program. They may be redirected to a file if desired.
 =head2 Templates
 
 Templates can contain variables enclosed in double angle brackets like
-E<lt>E<lt>thisE<gt>E<gt>. Those variables will be replaced with values
+<<this>>. Those variables will be replaced with values
 specific to the overdue items or relevant patron. Available variables
 are:
 

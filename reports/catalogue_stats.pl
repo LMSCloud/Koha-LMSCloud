@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use C4::Auth qw( get_template_and_user );
@@ -401,8 +401,8 @@ sub calculate {
         push @loopcol, \%cell;
     }
 
-    my $i         = 0;
-    my $hilighted = -1;
+    my $i           = 0;
+    my $highlighted = -1;
 
     #Initialization of cell values.....
     my %table;
@@ -540,11 +540,11 @@ sub calculate {
         }
         push @looprow,
             {
-            'rowtitle'  => $row->{rowtitle},
-            'value'     => $row->{value},
-            'loopcell'  => \@loopcell,
-            'hilighted' => ( $hilighted *= -1 > 0 ),
-            'totalrow'  => $table{ $row->{value} }->{totalrow}
+            'rowtitle'    => $row->{rowtitle},
+            'value'       => $row->{value},
+            'loopcell'    => \@loopcell,
+            'highlighted' => ( $highlighted *= -1 > 0 ),
+            'totalrow'    => $table{ $row->{value} }->{totalrow}
             };
     }
 

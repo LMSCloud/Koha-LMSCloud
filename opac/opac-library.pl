@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -44,17 +44,19 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
+my $libraries = Koha::Libraries->search( { public => 1 }, { order_by => ['branchname'] } );
+$template->param( public_count => $libraries->count );
+
 my $library;
-if ( $template->{VARS}->{singleBranchMode} ) {
-    $library = Koha::Libraries->search( { public => 1 } )->next;
+if ( $template->{VARS}->{singleBranchMode} || $libraries->count == 1 ) {
+    $library = $libraries->next;
 } elsif ($branchcode) {
-    $library = Koha::Libraries->search( { branchcode => $branchcode, public => 1 } )->next;
+    $library = $libraries->search( { branchcode => $branchcode } )->next;
 }
 
 if ($library) {
     $template->param( library => $library );
 } else {
-    my $libraries = Koha::Libraries->search( { public => 1 }, { order_by => ['branchname'] } );
     $template->param(
         libraries  => $libraries,
         branchcode => C4::Context->userenv ? C4::Context->userenv->{branch} : q{},

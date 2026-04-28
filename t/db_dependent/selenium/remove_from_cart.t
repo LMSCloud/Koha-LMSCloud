@@ -13,12 +13,13 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use File::Basename qw(dirname );
 
 use Test::WWW::Mechanize;
+use Test::NoWarnings;
 use Test::More;
 use Test::MockModule;
 
@@ -33,7 +34,7 @@ eval { require Selenium::Remote::Driver; };
 if ($@) {
     plan skip_all => "Selenium::Remote::Driver is needed for selenium tests.";
 } else {
-    plan tests => 1;
+    plan tests => 2;
 }
 
 my $s = t::lib::Selenium->new;

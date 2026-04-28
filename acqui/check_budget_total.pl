@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
@@ -26,7 +26,7 @@ use C4::Budgets qw( GetBudget );
 
 =head1 DESCRIPTION
 
-fetches the budget amount fron the DB
+fetches the budget amount from the DB
 
 =cut
 

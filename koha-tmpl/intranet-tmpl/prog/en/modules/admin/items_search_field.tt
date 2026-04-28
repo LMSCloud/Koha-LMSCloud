@@ -44,50 +44,35 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' aside='admin-menu' %]
+    <h1>
+        [% IF (field) %]
+            [% tx("Modify search field  '{field}'", { field = field.name }) | html %]
+        [% ELSE %]
+            [% t("New search field") | html %]
+        [% END %]
+    </h1>
 
-                <h1>
-                    [% IF (field) %]
-                        [% tx("Modify search field  '{field}'", { field = field.name }) | html %]
-                    [% ELSE %]
-                        [% t("New search field") | html %]
-                    [% END %]
-                </h1>
+    <form action="/cgi-bin/koha/admin/items_search_field.pl" method="POST" id="search_fields">
+        [% INCLUDE 'csrf-token.inc' %]
+        <fieldset class="rows">
+            [% INCLUDE 'admin-items-search-field-form.inc' field=field %]
+            [% IF (field) %]
+                <input type="hidden" name="op" value="cud-mod" />
+            [% ELSE %]
+                <input type="hidden" name="op" value="cud-add" />
+            [% END %]
+        </fieldset>
+        <fieldset class="action">
+            <input type="submit" class="btn btn-primary" value="Submit" />
+            <a class="cancel" href="/cgi-bin/koha/admin/items_search_fields.pl">Cancel</a>
+        </fieldset>
+    </form>
+[% END %]
 
-                <form action="/cgi-bin/koha/admin/items_search_field.pl" method="POST" id="search_fields">
-                    [% INCLUDE 'csrf-token.inc' %]
-                    <fieldset class="rows">
-                        [% INCLUDE 'admin-items-search-field-form.inc' field=field %]
-                        [% IF (field) %]
-                            <input type="hidden" name="op" value="cud-mod" />
-                        [% ELSE %]
-                            <input type="hidden" name="op" value="cud-add" />
-                        [% END %]
-                    </fieldset>
-                    <fieldset class="action">
-                        <input type="submit" class="btn btn-primary" value="Submit" />
-                        <a class="cancel" href="/cgi-bin/koha/admin/items_search_fields.pl">Cancel</a>
-                    </fieldset>
-                </form>
-            </main>
-        </div>
-        <!-- /.col-md-10.order-md-2 -->
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") | $raw %]
+    [% Asset.js("js/item_search_fields.js") | $raw %]
+[% END %]
 
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'admin-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
-
-    [% MACRO jsinclude BLOCK %]
-        [% Asset.js("js/admin-menu.js") | $raw %]
-        [% Asset.js("js/item_search_fields.js") | $raw %]
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+[% INCLUDE 'intranet-bottom.inc' %]

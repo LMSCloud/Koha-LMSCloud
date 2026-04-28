@@ -20,7 +20,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use C4::Auth           qw( get_template_and_user );
@@ -70,11 +70,14 @@ my $searchtype       = $input->param('searchtype');
 
 $template->param( 'alphabet' => C4::Context->preference('alphabet') || join ' ', 'A' .. 'Z' );
 
+my $branchcode_filter   = scalar $input->param('branchcode_filter');
+my $categorycode_filter = scalar $input->param('categorycode_filter');
+
 $template->param(
     patron_lists        => [ GetPatronLists() ],
     searchmember        => $searchmember,
-    branchcode_filter   => scalar $input->param('branchcode_filter'),
-    categorycode_filter => scalar $input->param('categorycode_filter'),
+    branchcode_filter   => $branchcode_filter,
+    categorycode_filter => $categorycode_filter,
     searchtype          => $searchtype,
     searchfieldstype    => $searchfieldstype,
     chargesfrom         => scalar $input->param('chargesfrom'),
@@ -95,7 +98,7 @@ $template->param(
     patronlistid        => scalar $input->param('patronlistid'),
     PatronsPerPage      => C4::Context->preference("PatronsPerPage") || 20,
     circsearch          => $circsearch,
-    defer_loading       => 0,
+    defer_loading       => ( $searchmember || $branchcode_filter || $categorycode_filter ) ? 0 : 1,
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

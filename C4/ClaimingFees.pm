@@ -13,9 +13,8 @@ package C4::ClaimingFees;
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License along
-# with Koha; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -242,7 +241,7 @@ sub AddClaimFee {
         {
             borrowernumber  => $borrowernumber,
             debit_type_code =>
-                [ 'OVERDUE', 'CLAIM_LEVEL_1', 'CLAIM_LEVEL_2', 'CLAIM_LEVEL_3', 'CLAIM_LEVEL_4', 'CLAIM_LEVEL_5' ],
+                [ 'OVERDUE', 'CLAIM_LEVEL1', 'CLAIM_LEVEL2', 'CLAIM_LEVEL3', 'CLAIM_LEVEL4', 'CLAIM_LEVEL5' ],
             amountoutstanding => { '<>' => 0 }
         }
     );

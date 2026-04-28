@@ -343,7 +343,7 @@ tr {
         }
     }
 
-    &.transfered {
+    &.transferred {
         td {
             background-color: #E8F0F6;
         }
@@ -398,6 +398,11 @@ caption {
     background-color: #FFD000;
 }
 
+.selected-row,
+.selected-row td {
+    background-color: #e6fa8e;
+}
+
 .warned-row,
 .warned-row td {
     background-color: #FF9000;
@@ -410,7 +415,7 @@ caption {
 
 tbody {
     tr {
-        &:nth-child( odd ):not( .dtrg-group, .active, .ok, .highlighted-row ) {
+        &:nth-child( odd ):not( .dtrg-group, .active, .ok, .highlighted-row, .selected-row ) {
             td {
                 &:not( .bg-danger, .bg-warning, .bg-info, .bg-success, .bg-primary, .highlighted-row ) {
                     background-color: $table-odd-row;
@@ -569,6 +574,13 @@ div {
                         content: "\f100";
                         padding-right: .5em;
                     }
+                    /*rtl:raw:
+                      &::before{
+                        transform: scaleX(-1);
+                        padding-left: 0em;
+                        padding-right: .5em;
+                     }
+                      */
                 }
 
                 &.previous {
@@ -576,6 +588,13 @@ div {
                         content: "\f104";
                         padding-right: .5em;
                     }
+                  /*rtl:raw:
+                    &::before{
+                      transform: scaleX(-1);
+                      padding-left: 0em;
+                      padding-right: .5em;
+                   }
+                    */
                 }
 
                 &.next {
@@ -583,6 +602,14 @@ div {
                         content: "\f105";
                         padding-left: .5em;
                     }
+
+                 /*rtl:raw:
+                   &::after{
+                     transform: scaleX(-1);
+                     padding-left: 0.9em;
+                     padding-right: 0;
+                  }
+                   */
                 }
 
                 &.last {
@@ -592,6 +619,14 @@ div {
                         content: "\f101";
                         padding-left: .5em;
                     }
+
+                    /*rtl:raw:
+                      &::after{
+                        transform: scaleX(-1);
+                        padding-left: 0.9em;
+                        padding-right: 0;
+                     }
+                      */
                 }
             }
         }

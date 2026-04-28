@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -54,6 +54,7 @@ use Koha::Old::Patrons;
 use Koha::Patron::Debarments qw( DelDebarment );
 use Koha::Patron::Messages;
 use Koha::PseudonymizedTransactions;
+use Koha::Statistics;
 use Koha::UploadedFiles;
 
 sub usage {
@@ -98,8 +99,8 @@ Usage: $0
    --restrictions DAYS   purge patrons restrictions expired since more than DAYS days.
                          Defaults to 30 days if no days specified.
    --all-restrictions   purge all expired patrons restrictions.
-   --del-exp-selfreg  Delete expired self registration accounts
-   --del-unv-selfreg  DAYS  Delete unverified self registrations older than DAYS
+   --del-exp-selfreg  Delete expired self-registration accounts
+   --del-unv-selfreg  DAYS  Delete unverified self-registrations older than DAYS
    --unique-holidays DAYS  Delete all unique holidays older than DAYS
    --temp-uploads     Delete temporary uploads.
    --temp-uploads-days DAYS Override the corresponding preference value.
@@ -107,6 +108,9 @@ Usage: $0
    --oauth-tokens     Delete expired OAuth2 tokens
    --statistics DAYS       Purge statistics entries more than DAYS days old.
                            This table is used to build reports, make sure you are aware of the consequences of this before using it!
+   --statistics-type TYPES  What type of statistics to purge. Will purge all types if parameter is omitted. Repeatable.
+   --statistics-type-pseudo Purges statistic types of "@Koha::Statistic::pseudonymization_types", unless more types are defined
+                            with --statistics-type.
    --deleted-catalog  DAYS Purge catalog records deleted more then DAYS days ago
                            (from tables deleteditems, deletedbiblioitems, deletedbiblio_metadata and deletedbiblio).
    --deleted-patrons DAYS  Purge patrons deleted more than DAYS days ago.
@@ -155,6 +159,8 @@ my $temp_uploads_days;
 my $uploads_missing;
 my $oauth_tokens;
 my $pStatistics;
+my @statistics_types;
+my $statistics_type_pseudo;
 my $pDeletedCatalog;
 my $pDeletedPatrons;
 my $pOldIssues;
@@ -205,6 +211,8 @@ GetOptions(
     'uploads-missing:i'          => \$uploads_missing,
     'oauth-tokens'               => \$oauth_tokens,
     'statistics:i'               => \$pStatistics,
+    'statistics-type:s'          => \@statistics_types,
+    'statistics-type-pseudo:i'   => \$statistics_type_pseudo,
     'deleted-catalog:i'          => \$pDeletedCatalog,
     'deleted-patrons:i'          => \$pDeletedPatrons,
     'old-issues:i'               => \$pOldIssues,
@@ -234,6 +242,9 @@ $pMessages        = DEFAULT_MESSAGES_PURGEDAYS      if defined($pMessages)      
 $jobs_days        = DEFAULT_JOBS_PURGEDAYS          if defined($jobs_days)        && $jobs_days == 0;
 @jobs_types       = (DEFAULT_JOBS_PURGETYPES)       if $jobs_days                 && @jobs_types == 0;
 $edifact_msg_days = DEFAULT_EDIFACT_MSG_PURGEDAYS   if defined($edifact_msg_days) && $edifact_msg_days == 0;
+
+@statistics_types = ( @statistics_types, @Koha::Statistic::pseudonymization_types ) if defined($statistics_type_pseudo);
+@statistics_types = keys %{ { map { $_, 1 } @statistics_types } };    # remove duplicate types
 
 # Choose the number of days at which to purge unaccepted list invites:
 # - DAYS defined in the list-invites parameter is prioritised first
@@ -602,11 +613,21 @@ if ($oauth_tokens) {
 }
 
 if ($pStatistics) {
-    print "Purging statistics older than $pStatistics days.\n" if $verbose;
-    my $statistics =
-        Koha::Statistics->filter_by_last_update( { timestamp_column_name => 'datetime', days => $pStatistics } );
-    my $count = $statistics->count;
-    $statistics->delete if $confirm;
+    print "Purging statistics older than $pStatistics days" if $verbose;
+    my $statistics_search_params = {};
+
+    if ( scalar(@statistics_types) ) {
+        print " with types \"" . join( ',', @statistics_types ) . "\".\n" if $verbose;
+        $statistics_search_params->{type} = \@statistics_types;
+
+    }
+    print "\n" if $verbose;
+
+    my $statistics = Koha::Statistics->search($statistics_search_params);
+    my $filtered_statistics =
+        $statistics->filter_by_last_update( { timestamp_column_name => 'datetime', days => $pStatistics } );
+    my $count = $filtered_statistics->count;
+    $filtered_statistics->delete if $confirm;
     if ($verbose) {
         say $confirm
             ? sprintf( "Done with purging %d statistics",       $count )

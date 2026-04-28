@@ -1,7 +1,9 @@
 import { defineStore } from "pinia";
+import { reactive, toRefs } from "vue";
+import { $__ } from "@koha-vue/i18n";
 
-export const useReportsStore = defineStore("reports", {
-    state: () => ({
+export const useReportsStore = defineStore("reports", () => {
+    const store = reactive({
         months_data: [
             { short: "Jan", description: "January", value: 1, active: true },
             { short: "Feb", description: "February", value: 2, active: true },
@@ -24,7 +26,7 @@ export const useReportsStore = defineStore("reports", {
                 active: true,
                 used_by: ["title", "item", "database", "platform"],
                 column: {
-                    title: __("Data provider"),
+                    title: $__("Data provider"),
                     data: "provider_name",
                     searchable: true,
                     orderable: true,
@@ -36,7 +38,7 @@ export const useReportsStore = defineStore("reports", {
                 active: false,
                 used_by: ["title", "item", "database"],
                 column: {
-                    title: __("Publisher"),
+                    title: $__("Publisher"),
                     data: "publisher",
                     searchable: true,
                     orderable: true,
@@ -48,7 +50,7 @@ export const useReportsStore = defineStore("reports", {
                 active: false,
                 used_by: ["item", "database", "platform"],
                 column: {
-                    title: __("Platform"),
+                    title: $__("Platform"),
                     data: "platform",
                     searchable: true,
                     orderable: true,
@@ -60,7 +62,7 @@ export const useReportsStore = defineStore("reports", {
                 active: false,
                 used_by: ["title", "database"],
                 column: {
-                    title: __("Publisher ID"),
+                    title: $__("Publisher ID"),
                     data: "publisher_id",
                     searchable: true,
                     orderable: true,
@@ -72,7 +74,7 @@ export const useReportsStore = defineStore("reports", {
                 active: false,
                 used_by: ["title"],
                 column: {
-                    title: __("Online ISSN"),
+                    title: $__("Online ISSN"),
                     data: "online_issn",
                     searchable: true,
                     orderable: true,
@@ -84,7 +86,7 @@ export const useReportsStore = defineStore("reports", {
                 active: false,
                 used_by: ["title"],
                 column: {
-                    title: __("Print ISSN"),
+                    title: $__("Print ISSN"),
                     data: "print_issn",
                     searchable: true,
                     orderable: true,
@@ -96,7 +98,7 @@ export const useReportsStore = defineStore("reports", {
                 active: false,
                 used_by: ["title"],
                 column: {
-                    title: __("DOI"),
+                    title: $__("DOI"),
                     data: "title_doi",
                     searchable: true,
                     orderable: true,
@@ -108,7 +110,7 @@ export const useReportsStore = defineStore("reports", {
                 active: false,
                 used_by: ["title"],
                 column: {
-                    title: __("URI"),
+                    title: $__("URI"),
                     data: "title_uri",
                     searchable: true,
                     orderable: true,
@@ -122,8 +124,8 @@ export const useReportsStore = defineStore("reports", {
             TR_J3: ["Access_Type"],
             TR_J4: ["YOP"],
         },
-    }),
-    actions: {
+    });
+    const actions = {
         getMonthsData() {
             return this.months_data;
         },
@@ -134,5 +136,7 @@ export const useReportsStore = defineStore("reports", {
             if (!this.report_type_map.hasOwnProperty(report_type)) return false;
             return this.report_type_map[report_type].includes(column);
         },
-    },
+    };
+
+    return { ...toRefs(store), ...actions };
 });

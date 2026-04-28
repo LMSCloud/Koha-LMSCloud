@@ -13,7 +13,7 @@ package C4::Calendar;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -729,7 +729,7 @@ sub isHoliday {
 =head2 delete_all_holidays
 
     $calendar->delete_all_holidays()
-    
+
 Delete all defined holidays of a library calendar.
 
 =cut
@@ -753,7 +753,7 @@ sub delete_all_holidays {
 =head2 copy_to_branch
 
     $calendar->copy_to_branch($target_branch)
-    
+
 Copy all holidays from a source calendar to a target calendar which are not yet defined in the target calendar.
 
 =cut
@@ -806,7 +806,7 @@ sub copy_to_branch {
 =head2 copy_to_branch_special
 
     $calendar->copy_to_branch_special($target_branch)
-    
+
 Copy all exception and single holidays of a date range from a source calendar to a target calendar which are not yet defined in the target calendar.
 
 =cut
@@ -884,7 +884,7 @@ sub copy_to_group {
 =head2 copy_to_branch_special
 
     $calendar->copy_to_branch_special($target_branch)
-    
+
 Copy all exception and single holidays of a date range from a source calendar to the target calendars of a group of libraries which are not yet defined in the target calendar.
 
 =cut

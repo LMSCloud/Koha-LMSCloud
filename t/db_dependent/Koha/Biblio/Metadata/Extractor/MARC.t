@@ -15,20 +15,46 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 2;
+use Test::NoWarnings;
+use Test::More tests => 3;
 use Test::Exception;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
+use Koha::Biblios;
 use Koha::Biblio::Metadata::Extractor;
 
 my $schema  = Koha::Database->schema;
 my $builder = t::lib::TestBuilder->new;
+
+subtest 'new' => sub {
+    plan tests => 6;
+
+    my ( $extractor, $params, $record, $biblio );
+    throws_ok { $extractor = Koha::Biblio::Metadata::Extractor->new } 'Koha::Exceptions::MissingParameter',
+        'No parameters';
+    $params = { metadata => q{} };
+    throws_ok { $extractor = Koha::Biblio::Metadata::Extractor->new($params) } 'Koha::Exceptions::MissingParameter',
+        'metadata empty';
+    $params = { metadata => '123' };
+    throws_ok { $extractor = Koha::Biblio::Metadata::Extractor->new($params) } 'Koha::Exceptions::BadParameter',
+        'metadata no object';
+    $params = { metadata => q{}, biblio => 1 };
+    throws_ok { $extractor = Koha::Biblio::Metadata::Extractor->new($params) } 'Koha::Exceptions::BadParameter',
+        'biblio no object';
+
+    $record = MARC::Record->new;
+    $params = { metadata => $record };
+    lives_ok { $extractor = Koha::Biblio::Metadata::Extractor->new($params) } 'correct metadata';
+    $biblio = Koha::Biblio->new;
+    $params = { metadata => q{}, biblio => $biblio };
+    lives_ok { $extractor = Koha::Biblio::Metadata::Extractor->new($params) } 'correct biblio overrules metadata';
+};
 
 subtest 'get_control_number() tests' => sub {
 
@@ -52,28 +78,5 @@ subtest 'get_control_number() tests' => sub {
 
         $record->field('001')->replace_with( MARC::Field->new( '001', $identifier ) );
         is( $extractor->get_control_number, $identifier, 'Returns the right value' );
-    }
-};
-
-subtest 'get_opac_suppression() tests' => sub {
-
-    plan tests => 8;
-
-    foreach my $marcflavour (qw( MARC21 UNIMARC )) {
-        t::lib::Mocks::mock_preference( 'marcflavour', $marcflavour );
-
-        my $record    = MARC::Record->new();
-        my $extractor = Koha::Biblio::Metadata::Extractor->new( { metadata => $record } );
-
-        is( $extractor->get_opac_suppression(), 0, 'If 942$n absent, then not suppressed' );
-
-        $record->append_fields( MARC::Field->new( '942', q{}, q{}, n => '' ) );
-        is( $extractor->get_opac_suppression(), 0, 'If 942$n has empty string, then not suppressed' );
-
-        $record->field('942')->replace_with( MARC::Field->new( '942', q{}, q{}, n => 'potato' ) );
-        is( $extractor->get_opac_suppression(), 1, 'If 942$n has something different than false, then suppressed' );
-
-        $record->field('942')->replace_with( MARC::Field->new( '942', q{}, q{}, n => '1' ) );
-        is( $extractor->get_opac_suppression(), 1, 'If 942$n is 1, then suppressed' );
     }
 };

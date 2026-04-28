@@ -16,9 +16,44 @@ package C4::Serials;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(
+        NewSubscription    ModSubscription    DelSubscription
+        GetSubscription    CountSubscriptionFromBiblionumber      GetSubscriptionsFromBiblionumber
+        SearchSubscriptions
+        GetFullSubscriptionsFromBiblionumber   GetFullSubscription ModSubscriptionHistory
+        HasSubscriptionStrictlyExpired HasSubscriptionExpired GetExpirationDate abouttoexpire
+        GetFictiveIssueNumber
+        GetSubscriptionHistoryFromSubscriptionId
+
+        GetNextSeq GetSeq NewIssue           GetSerials
+        GetLatestSerials   ModSerialStatus    GetNextDate
+        CloseSubscription ReopenSubscription
+        subscriptionCurrentlyOnOrder
+        can_claim_subscription can_edit_subscription can_show_subscription
+        GetSerials2
+        GetSubscriptionLength ReNewSubscription  GetLateOrMissingIssues
+        GetSerialInformation                   AddItem2Serial
+        PrepareSerialsData GetNextExpected    ModNextExpected
+        GetSubscriptionIrregularities
+        GetPreviousSerialid
+
+        GetSuppliersWithLateIssues
+        getroutinglist     delroutingmember   addroutingmember
+        reorder_members
+        check_routing updateClaim
+        CountIssues
+        HasItems
+
+        findSerialsByStatus
+
+    );
+}
 
 use Carp       qw( croak );
 use Date::Calc qw(
@@ -72,44 +107,6 @@ use constant MISSING_STATUSES => (
     MISSING_SOLD_OUT, MISSING_DAMAGED,
     MISSING_LOST
 );
-
-our ( @ISA, @EXPORT_OK );
-
-BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
-        NewSubscription    ModSubscription    DelSubscription
-        GetSubscription    CountSubscriptionFromBiblionumber      GetSubscriptionsFromBiblionumber
-        SearchSubscriptions
-        GetFullSubscriptionsFromBiblionumber   GetFullSubscription ModSubscriptionHistory
-        HasSubscriptionStrictlyExpired HasSubscriptionExpired GetExpirationDate abouttoexpire
-        GetFictiveIssueNumber
-        GetSubscriptionHistoryFromSubscriptionId
-
-        GetNextSeq GetSeq NewIssue           GetSerials
-        GetLatestSerials   ModSerialStatus    GetNextDate
-        CloseSubscription ReopenSubscription
-        subscriptionCurrentlyOnOrder
-        can_claim_subscription can_edit_subscription can_show_subscription
-        GetSerials2
-        GetSubscriptionLength ReNewSubscription  GetLateOrMissingIssues
-        GetSerialInformation                   AddItem2Serial
-        PrepareSerialsData GetNextExpected    ModNextExpected
-        GetSubscriptionIrregularities
-        GetPreviousSerialid
-
-        GetSuppliersWithLateIssues
-        getroutinglist     delroutingmember   addroutingmember
-        reorder_members
-        check_routing updateClaim
-        CountIssues
-        HasItems
-
-        findSerialsByStatus
-
-    );
-}
 
 =head1 NAME
 
@@ -813,7 +810,7 @@ sub GetPreviousSerialid {
     my (
         $nextseq,       $newlastvalue1, $newlastvalue2, $newlastvalue3,
         $newinnerloop1, $newinnerloop2, $newinnerloop3
-    ) = GetNextSeq( $subscription, $pattern, $frequency, $planneddate, $count_forward );
+    ) = GetNextSeq( $subscription, $pattern, $frequency, $planneddate, $nextpublisheddate, $count_forward );
 
 $subscription is a hashref containing all the attributes of the table
 'subscription'.
@@ -821,13 +818,14 @@ $pattern is a hashref containing all the attributes of the table
 'subscription_numberpatterns'.
 $frequency is a hashref containing all the attributes of the table 'subscription_frequencies'
 $planneddate is a date string in iso format.
+$nextpublishedddate is a date string in iso format.
 $count_forward is the number of issues to count forward, defaults to 1 if omitted
 This function get the next issue for the subscription given on input arg
 
 =cut
 
 sub GetNextSeq {
-    my ( $subscription, $pattern, $frequency, $planneddate, $count_forward ) = @_;
+    my ( $subscription, $pattern, $frequency, $planneddate, $nextpublisheddate, $count_forward ) = @_;
 
     return unless ( $subscription and $pattern );
 
@@ -918,7 +916,7 @@ sub GetNextSeq {
             $calculated =~ s/\{Z\}/$newlastvalue3string/g;
         }
 
-        my $dt = dt_from_string($planneddate);
+        my $dt = dt_from_string($nextpublisheddate);
         $calculated =~ s/\{Month\}/$dt->month/eg;
         $calculated =~ s/\{MonthName\}/$dt->month_name/eg;
         $calculated =~ s/\{Year\}/$dt->year/eg;
@@ -1170,15 +1168,16 @@ sub ModSerialStatus {
         my $pattern      = C4::Serials::Numberpattern::GetSubscriptionNumberpattern( $subscription->{numberpattern} );
         my $frequency    = C4::Serials::Frequency::GetSubscriptionFrequency( $subscription->{periodicity} );
 
+        # next date (calculated from actual date & frequency parameters)
+        my $nextpublisheddate = GetNextDate( $subscription, $publisheddate, $frequency, 1 );
+        my $nextpubdate       = $nextpublisheddate;
+
         # next issue number
         my (
             $newserialseq,  $newlastvalue1, $newlastvalue2, $newlastvalue3,
             $newinnerloop1, $newinnerloop2, $newinnerloop3
-        ) = GetNextSeq( $subscription, $pattern, $frequency, $publisheddate, $count );
+        ) = GetNextSeq( $subscription, $pattern, $frequency, $publisheddate, $nextpublisheddate, $count );
 
-        # next date (calculated from actual date & frequency parameters)
-        my $nextpublisheddate = GetNextDate( $subscription, $publisheddate, $frequency, 1 );
-        my $nextpubdate       = $nextpublisheddate;
         $query =
             "UPDATE subscription SET lastvalue1=?, lastvalue2=?, lastvalue3=?, innerloop1=?, innerloop2=?, innerloop3=?
                     WHERE  subscriptionid = ?";
@@ -1722,7 +1721,7 @@ sub NewIssue {
 
 1 or 0 = HasSubscriptionStrictlyExpired($subscriptionid)
 
-the subscription has stricly expired when today > the end subscription date 
+the subscription has strictly expired when today > the end subscription date
 
 return :
 1 if true, 0 if false, -1 if the expiration date is not set.
@@ -1747,7 +1746,7 @@ sub HasSubscriptionStrictlyExpired {
         # Getting today's date
         my ( $nowyear, $nowmonth, $nowday ) = Today();
 
-        # if today's date > expiration date, then the subscription has stricly expired
+        # if today's date > expiration date, then the subscription has strictly expired
         if ( Delta_Days( $nowyear, $nowmonth, $nowday, $endyear, $endmonth, $endday ) < 0 ) {
             return 1;
         } else {
@@ -1845,10 +1844,9 @@ sub DelSubscription {
 
     Koha::AdditionalFieldValues->search(
         {
-            'field.tablename' => 'subscription',
+            'me.record_table' => 'subscription',
             'me.record_id'    => $subscriptionid,
-        },
-        { join => 'field' }
+        }
     )->delete;
 
     logaction( "SERIAL", "DELETE", $subscriptionid, "" ) if C4::Context->preference("SubscriptionLog");
@@ -1940,7 +1938,7 @@ sub GetLateOrMissingIssues {
             "SELECT
                 serialid,      aqbooksellerid,        name,
                 biblio.title,  biblioitems.issn,      planneddate,    serialseq,
-                serial.status, serial.subscriptionid, claimdate, claims_count,
+                serial.status, serial.subscriptionid, claimdate, serial.notes AS notes, claims_count,
                 subscription.branchcode, serial.publisheddate
             FROM      serial
                 LEFT JOIN subscription  ON serial.subscriptionid=subscription.subscriptionid
@@ -1958,7 +1956,7 @@ sub GetLateOrMissingIssues {
             "SELECT
             serialid,      aqbooksellerid,         name,
             biblio.title,  planneddate,           serialseq,
-                serial.status, serial.subscriptionid, claimdate, claims_count,
+                serial.status, serial.subscriptionid, claimdate, serial.notes AS notes, claims_count,
                 subscription.branchcode, serial.publisheddate
             FROM serial
                 LEFT JOIN subscription ON serial.subscriptionid=subscription.subscriptionid
@@ -2244,7 +2242,7 @@ sub HasItems {
     my $query            = q|
             SELECT COUNT(serialitems.itemnumber)
             FROM   serial 
-			LEFT JOIN serialitems USING(serialid)
+            LEFT JOIN serialitems USING(serialid)
             WHERE  subscriptionid=? AND serialitems.serialid IS NOT NULL
         |;
     my $sth = $dbh->prepare($query);
@@ -2489,7 +2487,7 @@ this function it takes the publisheddate and will return the next issue's date
 and will skip dates if there exists an irregularity.
 $publisheddate has to be an ISO date
 $subscription is a hashref containing at least 'firstacquidate', 'irregularity', and 'countissuesperunit'
-$frequency is a hashref containing frequency informations
+$frequency is a hashref containing frequency information
 $updatecount is a boolean value which, when set to true, update the 'countissuesperunit' in database
 - eg if periodicity is monthly and $publisheddate is 2007-02-10 but if March and April is to be
 skipped then the returned date will be 2007-05-10
@@ -2830,6 +2828,6 @@ __END__
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 =cut

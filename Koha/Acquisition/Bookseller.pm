@@ -13,7 +13,7 @@ package Koha::Acquisition::Bookseller;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -22,6 +22,8 @@ use Koha::Acquisition::Bookseller::Contacts;
 use Koha::Acquisition::Bookseller::Interfaces;
 use Koha::Acquisition::Bookseller::Issues;
 use Koha::Subscriptions;
+
+use C4::Contract qw( GetContracts );
 
 use base qw( Koha::Object );
 
@@ -58,9 +60,45 @@ Returns the list of contacts for the vendor
 =cut
 
 sub contacts {
+    my ( $self, $contacts ) = @_;
+
+    if ($contacts) {
+        my $schema = $self->_result->result_source->schema;
+        $schema->txn_do(
+            sub {
+                $self->contacts->delete;
+                for my $contact (@$contacts) {
+                    Koha::Acquisition::Bookseller::Contact->new(
+                        {
+                            %$contact,
+                            booksellerid => $self->id,
+                        }
+                    )->store;
+                }
+            }
+        );
+    }
+
+    my $rs = $self->_result->aqcontacts;
+    return Koha::Acquisition::Bookseller::Contacts->_new_from_dbic($rs);
+}
+
+=head3 contracts
+
+    my $vendor   = Koha::Acquisition::Booksellers->find( $id );
+    my @contracts = $vendor->contracts();
+
+Returns the list of contracts for the vendor
+
+=cut
+
+sub contracts {
     my ($self) = @_;
-    my $contacts_rs = $self->_result->aqcontacts;
-    return Koha::Acquisition::Bookseller::Contacts->_new_from_dbic($contacts_rs);
+    return GetContracts(
+        {
+            booksellerid => $self->id,
+        }
+    );
 }
 
 =head3 subscriptions
@@ -147,6 +185,21 @@ sub issues {
     my ($self) = @_;
     my $rs = $self->_result->aqbookseller_issues;
     return Koha::Acquisition::Bookseller::Issues->_new_from_dbic($rs);
+}
+
+=head3 invoices
+
+    my $vendor  = Koha::Acquisition::Booksellers->find( $id );
+    my @invoices = $vendor->invoices();
+
+Returns the list of invoices for the vendor
+
+=cut
+
+sub invoices {
+    my ($self) = @_;
+    my $invoices_rs = $self->_result->aqinvoices;
+    return Koha::Acquisition::Invoices->_new_from_dbic($invoices_rs);
 }
 
 =head3 to_api_mapping

@@ -15,26 +15,22 @@ package C4::ShelfBrowser;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(
+        GetNearbyItems
+    );
+}
 
 use C4::Biblio qw( GetAuthorisedValueDesc GetMarcUrls );
 use C4::Context;
 use C4::Koha qw( GetNormalizedUPC GetNormalizedOCLCNumber GetNormalizedISBN GetNormalizedEAN );
 use Koha::Biblios;
 use Koha::Libraries;
-
-our ( @ISA, @EXPORT_OK );
-
-BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
-        GetNearbyItems
-    );
-}
 
 =head1 NAME
 
@@ -63,12 +59,12 @@ to take into account.
 
   foreach (@items) {
       # These won't format well like this, but here are the fields
-  	  print $_->{title};
-  	  print $_->{biblionumber};
-  	  print $_->{itemnumber};
-  	  print $_->{browser_normalized_upc};
-  	  print $_->{browser_normalized_oclc};
-  	  print $_->{browser_normalized_isbn};
+        print $_->{title};
+        print $_->{biblionumber};
+        print $_->{itemnumber};
+        print $_->{browser_normalized_upc};
+        print $_->{browser_normalized_oclc};
+        print $_->{browser_normalized_isbn};
       print $_->{browser_normalized_ean};
   }
 
@@ -216,6 +212,13 @@ sub GetNearbyItems {
 
 # populate an item list with its title and upc, oclc and isbn normalized.
 # Not really intended to be exported.
+
+=head2 GetShelfInfo
+
+Missing POD for GetShelfInfo.
+
+=cut
+
 sub GetShelfInfo {
     my @items       = @_;
     my $marcflavour = C4::Context->preference("marcflavour");

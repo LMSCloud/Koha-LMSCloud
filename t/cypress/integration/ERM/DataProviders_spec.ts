@@ -28,7 +28,7 @@ describe("Data provider CRUD operations", () => {
             error: "Something went wrong",
         });
         cy.visit("/cgi-bin/koha/erm/erm.pl");
-        cy.get("#navmenulist").contains("Data providers").click();
+        cy.get(".sidebar_menu").contains("Data providers").click();
         cy.get("main div[class='alert alert-warning']").contains(
             /Something went wrong/
         );
@@ -168,7 +168,7 @@ describe("Data provider CRUD operations", () => {
                 "X-Base-Total-Count": "1",
                 "X-Total-Count": "1",
             },
-        });
+        }).as("get-data-providers");
         cy.intercept(
             "GET",
             "/api/v1/erm/usage_data_providers/*",
@@ -188,11 +188,11 @@ describe("Data provider CRUD operations", () => {
         );
 
         cy.visit("/cgi-bin/koha/erm/eusage/usage_data_providers");
+        cy.wait("@get-data-providers");
         cy.get("#usage_data_providers_list table tbody tr:first")
             .contains("Edit")
             .click();
         cy.wait("@get-data-provider");
-        cy.wait(1000); // Cypress is too fast! Vue hasn't populated the form yet!
         cy.get("#data_providers_add h2").contains("Edit usage data provider");
 
         // Form has been correctly filled in
@@ -290,7 +290,6 @@ describe("Data provider CRUD operations", () => {
         );
         name_link.click();
         cy.wait("@get-data-provider");
-        cy.wait(500); // Cypress is too fast! Vue hasn't populated the form yet!
         cy.get("#usage_data_providers_show h2").contains(
             "Data provider #" + dataProvider.erm_usage_data_provider_id
         );
@@ -359,13 +358,14 @@ describe("Data provider CRUD operations", () => {
                 "X-Base-Total-Count": "1",
                 "X-Total-Count": "1",
             },
-        });
+        }).as("get-data-providers");
         cy.intercept(
             "GET",
             "/api/v1/erm/usage_data_providers/*",
             dataProvider
         ).as("get-data-provider");
         cy.visit("/cgi-bin/koha/erm/eusage/usage_data_providers");
+        cy.wait("@get-data-providers");
         let name_link = cy.get(
             "#usage_data_providers_list table tbody tr:first td:first a"
         );
@@ -378,7 +378,6 @@ describe("Data provider CRUD operations", () => {
         );
         name_link.click();
         cy.wait("@get-data-provider");
-        cy.wait(500);
         cy.get("#usage_data_providers_show h2").contains(
             "Data provider #" + dataProvider.erm_usage_data_provider_id
         );
@@ -501,13 +500,14 @@ describe("Data provider tab options", () => {
                 "X-Base-Total-Count": "1",
                 "X-Total-Count": "1",
             },
-        });
+        }).as("get-data-providers");
         cy.intercept(
             "GET",
             "/api/v1/erm/usage_data_providers/*",
             dataProvider
         ).as("get-data-provider");
         cy.visit("/cgi-bin/koha/erm/eusage/usage_data_providers");
+        cy.wait("@get-data-providers");
         let name_link = cy.get(
             "#usage_data_providers_list table tbody tr:first td:first a"
         );
@@ -520,7 +520,6 @@ describe("Data provider tab options", () => {
         );
         name_link.click();
         cy.wait("@get-data-provider");
-        cy.wait(500);
     });
 
     it("Should display provider details", () => {
@@ -587,10 +586,11 @@ describe("Data provider tab options", () => {
                 "X-Base-Total-Count": "0",
                 "X-Total-Count": "0",
             },
-        });
+        }).as("no-titles");
 
         // We'll test using titles but the component is the same for all four data types
         cy.get("#usage_data_providerstabs").contains("Titles").click();
+        cy.wait("@no-titles");
         cy.get("main div[class='alert alert-info']").should(
             "have.text",
             "No title data has been harvested for this provider"
@@ -600,16 +600,17 @@ describe("Data provider tab options", () => {
 
         const title = cy.get_usage_title();
         const titles = [title];
-        cy.intercept("GET", "/api/v1/erm/usage_titles*", {
+        cy.intercept("GET", "/api/v1/erm/usage_titles?*", {
             statusCode: 200,
             body: titles,
             headers: {
                 "X-Base-Total-Count": "1",
                 "X-Total-Count": "1",
             },
-        });
+        }).as("provider-titles");
 
         cy.get("#usage_data_providerstabs").contains("Titles").click();
+        cy.wait(["@provider-titles", "@provider-titles"]);
         cy.get("#data_list").contains("Showing 1 to 1 of 1 entries");
     });
 
@@ -636,7 +637,7 @@ describe("Data provider tab options", () => {
             }
         );
 
-        cy.get("#files > form > fieldset > input[type=submit]").click();
+        cy.get("#files > form > fieldset > button").click();
 
         cy.get("main div[class='alert alert-info']").should(
             "have.text",
@@ -745,7 +746,7 @@ describe("Data providers action buttons", () => {
                 },
             }
         );
-        cy.get("#confirmation_input_begin_date+input").click();
+        cy.get("#begin_date+input").click();
         cy.get(".flatpickr-current-month select")
             .invoke("val")
             .then(month => {

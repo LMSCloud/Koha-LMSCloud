@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -84,15 +84,20 @@ foreach my $theme (@themes) {
             $theme->{'modules'},
             $theme->{'includes'},
 
-            # templates to exclude from testing because
+            # templates or dirs to exclude from testing because
             # they cannot stand alone
             'doc-head-close.inc',
             'opac-bottom.inc',
+            'ill/backends/Standard/shared/forms',
         );
     } else {
         run_template_test(
             $theme->{'modules'},
             $theme->{'includes'},
+
+            # templates or dirs to exclude from testing because
+            # they cannot stand alone
+            'ill/backends/Standard/shared/forms'
         );
     }
     $pm->finish;
@@ -131,7 +136,7 @@ sub create_template_test {
             }
         );
         foreach my $exclusion (@exclusions) {
-            if ( $_ =~ /${exclusion}$/ ) {
+            if ( $_ =~ m{/${exclusion}(?:/|$)} ) {
                 diag("excluding template $_ because it cannot stand on its own");
                 return;
             }

@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -37,7 +37,7 @@ GetOptions(
     'p|print'   => \$stdout_log
 );
 
-my $usage = << 'ENDUSAGE';
+my $usage = <<'ENDUSAGE';
 
 Script for fixing unclosed (FU), non accruing fine records, which
 may still need FU -> F correction post-Bug 15675. For details,
@@ -167,7 +167,7 @@ sub Bug_17135_fix {
 
             ## If we are here: item is due again, but fine is not accruing
             ## yet (overdue may be in the grace period, 1st charging period
-            ## is not over yet, all days beetwen due date and today are
+            ## is not over yet, all days between due date and today are
             ## holidays etc.). Old fine record needs to be closed
             $is_not_accruing = 1;
         }

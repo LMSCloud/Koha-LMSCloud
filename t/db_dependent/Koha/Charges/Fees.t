@@ -15,11 +15,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 8;
+use Test::NoWarnings;
+use Test::More tests => 9;
 use Test::Exception;
 use Test::Warn;
 
@@ -28,7 +29,7 @@ use t::lib::TestBuilder;
 use t::lib::Dates;
 
 use Time::Fake;
-use C4::Calendar    qw( new insert_week_day_holiday delete_holiday );
+use C4::Calendar;
 use Koha::DateUtils qw(dt_from_string);
 
 BEGIN {
@@ -364,7 +365,7 @@ subtest 'accumulate_rentalcharge tests' => sub {
 
     my $calendar = C4::Calendar->new( branchcode => $library->id );
 
-    # DateTime 1..7 (Mon..Sun), C4::Calender 0..6 (Sun..Sat)
+    # DateTime 1..7 (Mon..Sun), C4::Calendar 0..6 (Sun..Sat)
     my $closed_day =
           ( $dt_from->day_of_week == 6 ) ? 0
         : ( $dt_from->day_of_week == 7 ) ? 1

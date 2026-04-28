@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -27,6 +27,7 @@ our $DT_delay = 1;
 use C4::Context;
 
 use utf8;
+use Test::NoWarnings;
 use Test::More;
 use Test::MockModule;
 
@@ -41,7 +42,7 @@ eval { require Selenium::Remote::Driver; };
 if ($@) {
     plan skip_all => "Selenium::Remote::Driver is needed for selenium tests.";
 } else {
-    plan tests => 2;
+    plan tests => 3;
 }
 
 my $s             = t::lib::Selenium->new;
@@ -341,9 +342,10 @@ subtest 'Search patrons' => sub {
         'Searching in standard brings back correct results'
     );
 
+    # Not ideal as there are 2 select.dt-select-filter in the header (for library and category)
     $s->driver->find_element( '//table[@id="'
             . $table_id
-            . '"]//th[@data-filter="libraries"]/select/option[@value="^'
+            . '"]//th/select[@class="dt-select-filter"]/option[@value="^'
             . $first_patron->library->branchcode
             . '$"]' )->click;
     sleep $DT_delay && $s->wait_for_ajax;

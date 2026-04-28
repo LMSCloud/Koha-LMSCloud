@@ -25,6 +25,7 @@
 [% Asset.js("lib/bootstrap/bootstrap.bundle.min.js") | $raw %]
 [% Asset.js("lib/jquery/plugins/jquery.validate.min.js") | $raw %]
 <!-- koha core js -->
+[% Asset.js("js/patron-format.js") | $raw %]
 [% Asset.js("js/staff-global.js") | $raw %]
 [% Asset.js("js/form-submit.js",{'type' => 'module'}) | $raw %]
 [% INCLUDE 'js-date-format.inc' %]
@@ -94,20 +95,17 @@
 [% IF ( Koha.Preference('SearchEngine') == 'Elasticsearch' && Koha.Preference('IntranetCatalogSearchAutoComplete') ) %]
     <script type="text/javascript">
         $(document).ready(function () {
-            $("#catalog_search #search-form").autocomplete({
+            $("#catalog_search_panel #search-form").autocomplete({
                 source: function (request, response) {
                     if (request.term.match(/[:=]/)) {
                         response([]);
                         return;
                     }
-                    var index = "";
-                    if ($("#idx")) {
-                        index = $("#idx").val();
-                        if (index) {
-                            index = index.replace(/,.*$/, "");
-                            if (index == "kw") {
-                                index = "";
-                            }
+                    var index = $("#catalog_search_panel select[name='idx']").val() || "";
+                    if (index) {
+                        index = index.replace(/,.*$/, "");
+                        if (index == "kw") {
+                            index = "";
                         }
                     }
                     $.ajax({
@@ -126,7 +124,7 @@
                 minLength: 3,
                 delay: 300,
                 select: function (event, ui) {
-                    $("#catalog_search #search-form").val(ui.item.value);
+                    $("#catalog_search_panel #search-form").val(ui.item.value);
                     $("#cat-search-block").submit();
                 },
             });
@@ -139,6 +137,7 @@
     var extendedPatronAttributes = "[% Koha.Preference('ExtendedPatronAttributes') | html %]";
     var loggedInLibrary = '[% Branches.GetLoggedInBranchcode | html %]';
     var singleBranchMode = '[% singleBranchMode | html %]';
+    var showPatronFirstnameIfDifferentThanPreferredname = [% Koha.Preference('ShowPatronFirstnameIfDifferentThanPreferredname') ? 1 : 0 | html %];
 </script>
 [% IF ( PatronAutoComplete ) %]
     <script>
@@ -148,6 +147,9 @@
             [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
                 if ( $("#findborrower").length ) {
                     patron_autocomplete($("#findborrower"), { 'link-to': 'circ' });
+                }
+                if ( $("#findborrower_main").length ) {
+                    patron_autocomplete($("#findborrower_main"), { 'link-to': 'circ' });
                 }
             [% END %]
             if ( $("#searchmember").length ) {

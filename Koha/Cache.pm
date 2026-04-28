@@ -16,7 +16,7 @@ package Koha::Cache;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -333,6 +333,12 @@ sub flush_all {
     return $self->{$cache}->clear();
 }
 
+=head2 flush_L1_cache
+
+Missing POD for flush_L1_cache.
+
+=cut
+
 sub flush_L1_cache {
     my ($self) = @_;
     delete $L1_cache{ $self->{namespace} };
@@ -450,6 +456,12 @@ sub create_scalar {
     tie my $scalar, 'Koha::Cache::Object', $args;
     return \$scalar;
 }
+
+=head2 create_hash
+
+Missing POD for create_hash.
+
+=cut
 
 sub create_hash {
     my ( $self, $args ) = @_;

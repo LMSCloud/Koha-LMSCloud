@@ -24,7 +24,7 @@
             <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisition</a>
         [% END %]
         [% WRAPPER breadcrumb_item %]
-            <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% booksellername | html %]</a>
+            <a href="/cgi-bin/koha/acquisition/vendors/[% booksellerid | uri %]">[% booksellername | html %]</a>
         [% END %]
         [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basketno | uri %]">Basket [% basketname | html %] ([% basketno | html %])</a>
@@ -39,33 +39,28 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
-            [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' %]
 
-            [% IF (type == "vendor") %]
-                <h1>Change order vendor note (order no. [% ordernumber | html %])</h1>
-            [% ELSE %]
-                <h1>Change order internal note (order no. [% ordernumber | html %])</h1>
-            [% END %]
-            <form action="/cgi-bin/koha/acqui/modordernotes.pl" method="post">
-                [% INCLUDE 'csrf-token.inc' %]
-                <fieldset class="brief">
-                    <label for="ordernotes">Note:</label>
-                    <textarea id="ordernotes" name="ordernotes" rows="3" cols="30" class="focus">[% ordernotes | html %]</textarea>
-                </fieldset>
-                <input type="hidden" name="referrer" value="[% referrer | html %]" />
-                <input type="hidden" name="ordernumber" value="[% ordernumber | html %]" />
-                <input type="hidden" name="op" value="cud-save" />
-                <input type="hidden" name="type" value="[% type | html %]" />
-                <fieldset class="action">
-                    <input type="submit" class="btn btn-primary" value="Save" />
-                    <a class="cancel" href="[% referrer | url %]">Cancel</a>
-                </fieldset>
-            </form>
-        </div>
-    </div>
+    [% IF (type == "vendor") %]
+        <h1>Change order vendor note (order no. [% ordernumber | html %])</h1>
+    [% ELSE %]
+        <h1>Change order internal note (order no. [% ordernumber | html %])</h1>
+    [% END %]
+    <form action="/cgi-bin/koha/acqui/modordernotes.pl" method="post">
+        [% INCLUDE 'csrf-token.inc' %]
+        <fieldset class="brief">
+            <label for="ordernotes">Note:</label>
+            <textarea id="ordernotes" name="ordernotes" rows="3" cols="30" class="focus">[% ordernotes | html %]</textarea>
+        </fieldset>
+        <input type="hidden" name="referrer" value="[% referrer | html %]" />
+        <input type="hidden" name="ordernumber" value="[% ordernumber | html %]" />
+        <input type="hidden" name="op" value="cud-save" />
+        <input type="hidden" name="type" value="[% type | html %]" />
+        <fieldset class="action">
+            <input type="submit" class="btn btn-primary" value="Save" />
+            <a class="cancel" href="[% referrer | url %]">Cancel</a>
+        </fieldset>
+    </form>
+[% END %]
 
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+[% INCLUDE 'intranet-bottom.inc' %]

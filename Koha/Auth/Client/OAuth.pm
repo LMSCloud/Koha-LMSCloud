@@ -15,7 +15,7 @@ package Koha::Auth::Client::OAuth;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -72,13 +72,7 @@ sub _get_data_and_patron {
                 if defined $claim->{$pkey};
         }
 
-        my $value = $mapped_data->{$matchpoint};
-
-        my $matchpoint_rs = Koha::Patrons->search( { $matchpoint => $value } );
-
-        if ( defined $value and $matchpoint_rs->count ) {
-            $patron = $matchpoint_rs->next;
-        }
+        $patron = $self->_find_patron_by_matchpoint( $matchpoint, $mapped_data->{$matchpoint} );
     }
 
     if ( defined $config->{userinfo_url} ) {
@@ -101,18 +95,31 @@ sub _get_data_and_patron {
         }
 
         unless ($patron) {
-            my $value = $mapped_data->{$matchpoint};
-
-            my $matchpoint_rs = Koha::Patrons->search( { $matchpoint => $value } );
-
-            if ( defined $value and $matchpoint_rs->count ) {
-                $patron = $matchpoint_rs->next;
-            }
+            $patron = $self->_find_patron_by_matchpoint( $matchpoint, $mapped_data->{$matchpoint} );
         }
 
     }
 
     return ( $mapped_data, $patron );
+}
+
+=head3 _find_patron_by_matchpoint
+
+    my $patron = $client->_find_patron_by_matchpoint( $matchpoint, $value );
+
+Internal method to find a patron by the given matchpoint and value.
+Returns the patron object if found, undef otherwise.
+
+=cut
+
+sub _find_patron_by_matchpoint {
+    my ( $self, $matchpoint, $value ) = @_;
+
+    return unless defined $value;
+
+    my $matchpoint_rs = Koha::Patrons->search( { $matchpoint => $value } );
+
+    return $matchpoint_rs->count ? $matchpoint_rs->next : undef;
 }
 
 1;

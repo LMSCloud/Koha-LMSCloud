@@ -26,7 +26,7 @@ describe("License CRUD operations", () => {
             statusCode: 500,
         });
         cy.visit("/cgi-bin/koha/erm/erm.pl");
-        cy.get("#navmenulist").contains("Licenses").click();
+        cy.get(".sidebar_menu").contains("Licenses").click();
         cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: Internal Server Error"
         );
@@ -73,31 +73,30 @@ describe("License CRUD operations", () => {
             "have.length",
             4
         );
-        cy.get("#license_name").type(license.name);
-        cy.get("#license_description").type(license.description);
+        cy.get("#name").type(license.name);
+        cy.get("#description").type(license.description);
         cy.get("#licenses_add").contains("Submit").click();
-        cy.get("#license_type .vs__search").type(license.type + "{enter}", {
+        cy.get("#type .vs__search").type(license.type + "{enter}", {
             force: true,
         });
-        cy.get("#license_status .vs__search").type(license.status + "{enter}", {
+        cy.get("#status .vs__search").type(license.status + "{enter}", {
             force: true,
         });
 
         // vendors
-        cy.get("#license_vendor_id .vs__selected").should("not.exist"); //no vendor pre-selected for new license
+        cy.get("#vendor_id .vs__selected").should("not.exist"); //no vendor pre-selected for new license
 
         // vendor aliases
-        cy.get("#license_vendor_id .vs__search").click();
-        cy.get("#license_vendor_id #vs1__option-1").contains(vendors[1].name);
-        cy.get("#license_vendor_id #vs1__option-1 cite").contains(
+        cy.get("#vendor_id .vs__search").click();
+        cy.get("#vendor_id #vs3__option-1").contains(vendors[1].name);
+        cy.get("#vendor_id #vs3__option-1 cite").contains(
             vendors[1].aliases[0].alias
         );
 
-        cy.get("#license_vendor_id .vs__search").type(
-            vendors[0].name + "{enter}",
-            { force: true }
-        );
-        cy.get("#license_vendor_id .vs__selected").contains(vendors[0].name);
+        cy.get("#vendor_id .vs__search").type(vendors[0].name + "{enter}", {
+            force: true,
+        });
+        cy.get("#vendor_id .vs__selected").contains(vendors[0].name);
 
         cy.get("#started_on+input").click();
         cy.get(".flatpickr-calendar")
@@ -113,20 +112,20 @@ describe("License CRUD operations", () => {
             .click();
 
         // Add new document
-        cy.get("#documents").contains("Add new document").click();
-        cy.get("#document_0 input[id=file_0]").click();
-        cy.get("#document_0 input[id=file_0]").selectFile(
+        cy.get("#documents_relationship").contains("Add new document").click();
+        cy.get("#documents_0 input[id=file__0]").click();
+        cy.get("#documents_0 input[id=file__0]").selectFile(
             "t/cypress/fixtures/file.json"
         );
-        cy.get("#document_0 .file_information span").contains("file.json");
-        cy.get("#document_0 input[id=file_description_0]").type(
+        cy.get("#documents_0 .file_information span").contains("file.json");
+        cy.get("#documents_0 input[id=file_description__0]").type(
             "file description"
         );
-        cy.get("#document_0 input[id=physical_location_0]").type(
+        cy.get("#documents_0 input[id=documents_physical_location_0]").type(
             "file physical location"
         );
-        cy.get("#document_0 input[id=uri_0]").type("file URI");
-        cy.get("#document_0 input[id=notes_0]").type("file notes");
+        cy.get("#documents_0 input[id=documents_uri_0]").type("file URI");
+        cy.get("#documents_0 input[id=documents_notes_0]").type("file notes");
 
         // Submit the form, get 500
         cy.intercept("POST", "/api/v1/erm/licenses", {
@@ -167,48 +166,42 @@ describe("License CRUD operations", () => {
                 "X-Base-Total-Count": "1",
                 "X-Total-Count": "1",
             },
-        });
+        }).as("get-licenses");
         cy.intercept("GET", "/api/v1/erm/licenses/*", license).as(
             "get-license"
         );
         cy.visit("/cgi-bin/koha/erm/licenses");
+        cy.wait("@get-licenses");
         cy.get("#licenses_list table tbody tr:first").contains("Edit").click();
         cy.wait("@get-license");
-        cy.wait(500); // Cypress is too fast! Vue hasn't populated the form yet!
         cy.get("#licenses_add h2").contains("Edit license");
         cy.left_menu_active_item_is("Licenses");
 
         // Form has been correctly filled in
-        cy.get("#license_name").should("have.value", license.name);
+        cy.get("#name").should("have.value", license.name);
 
         //vendors
-        cy.get("#license_vendor_id .vs__selected").contains(
-            license.vendor[0].name
-        );
+        cy.get("#vendor_id .vs__selected").contains(license.vendor[0].name);
 
-        cy.get("#license_vendor_id .vs__search").type(
-            vendors[1].name + "{enter}",
-            { force: true }
-        );
+        cy.get("#vendor_id .vs__search").type(vendors[1].name + "{enter}", {
+            force: true,
+        });
 
         //vendor aliases
-        cy.get("#license_vendor_id .vs__search").click();
-        cy.get("#license_vendor_id #vs1__option-1").contains(vendors[1].name);
-        cy.get("#license_vendor_id #vs1__option-1 cite").contains(
+        cy.get("#vendor_id .vs__search").click();
+        cy.get("#vendor_id #vs3__option-1").contains(vendors[1].name);
+        cy.get("#vendor_id #vs3__option-1 cite").contains(
             vendors[1].aliases[0].alias
         );
 
-        cy.get("#license_description").should(
-            "have.value",
-            license.description
-        );
-        cy.get("#license_type .vs__selected").contains("Local");
-        cy.get("#license_status .vs__selected").contains("Active");
+        cy.get("#description").should("have.value", license.description);
+        cy.get("#type .vs__selected").contains("Local");
+        cy.get("#status .vs__selected").contains("Active");
         cy.get("#started_on").invoke("val").should("eq", dates["today_iso"]);
         cy.get("#ended_on").invoke("val").should("eq", dates["tomorrow_iso"]);
 
         // Test related document
-        cy.get("#document_0 .file_information span").contains("file.json");
+        cy.get("#documents_0 .file_information span").contains("file.json");
 
         // Submit the form, get 500
         cy.intercept("PUT", "/api/v1/erm/licenses/*", {
@@ -241,21 +234,22 @@ describe("License CRUD operations", () => {
                 "X-Base-Total-Count": "1",
                 "X-Total-Count": "1",
             },
-        });
+        }).as("get-licenses");
         cy.intercept("GET", "/api/v1/erm/licenses/*", license).as(
             "get-license"
         );
         cy.visit("/cgi-bin/koha/erm/licenses");
-        let name_link = cy.get(
-            "#licenses_list table tbody tr:first td:first a"
-        );
-        name_link.should(
-            "have.text",
-            license.name + " (#" + license.license_id + ")"
-        );
+        cy.wait("@get-licenses");
+        let id_cell = cy.get("#licenses_list table tbody tr:first td:first");
+        id_cell.contains(license.license_id);
+
+        let name_link = cy
+            .get("#licenses_list table tbody tr:first td")
+            .eq(1)
+            .find("a");
+        name_link.should("have.text", license.name);
         name_link.click();
         cy.wait("@get-license");
-        cy.wait(500); // Cypress is too fast! Vue hasn't populated the form yet!
         cy.get("#licenses_show h2").contains("License #" + license.license_id);
         cy.left_menu_active_item_is("Licenses");
     });
@@ -318,21 +312,22 @@ describe("License CRUD operations", () => {
                 "X-Base-Total-Count": "1",
                 "X-Total-Count": "1",
             },
-        });
+        }).as("get-licenses");
         cy.intercept("GET", "/api/v1/erm/licenses/*", license).as(
             "get-license"
         );
         cy.visit("/cgi-bin/koha/erm/licenses");
-        let name_link = cy.get(
-            "#licenses_list table tbody tr:first td:first a"
-        );
-        name_link.should(
-            "have.text",
-            license.name + " (#" + license.license_id + ")"
-        );
+        cy.wait("@get-licenses");
+        let id_cell = cy.get("#licenses_list table tbody tr:first td:first");
+        id_cell.contains(license.license_id);
+
+        let name_link = cy
+            .get("#licenses_list table tbody tr:first td")
+            .eq(1)
+            .find("a");
+        name_link.should("have.text", license.name);
         name_link.click();
         cy.wait("@get-license");
-        cy.wait(500); // Cypress is too fast! Vue hasn't populated the form yet!
         cy.get("#licenses_show h2").contains("License #" + license.license_id);
 
         cy.get("#licenses_show #toolbar").contains("Delete").click();

@@ -15,7 +15,7 @@ package Koha::REST::V1::ERM::EUsage::CustomReports;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -678,7 +678,7 @@ sub _create_report_rows {
     }
 }
 
-=head3
+=head3 _get_usage_total
 
 A method for summing the usage counts for a data  object
 

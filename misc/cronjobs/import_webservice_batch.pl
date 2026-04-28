@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -61,7 +61,7 @@ Specify frameworkcode when overlaying records.  Current framework is preserved i
 
 =head1 DESCRIPTION
 
-This script is designed to import batches staged by webservices (e.g. connexion).
+This script is designed to import batches staged by webservices (e.g. connection).
 
 =head1 USAGE EXAMPLES
 

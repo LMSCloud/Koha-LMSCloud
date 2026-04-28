@@ -10,10 +10,10 @@
 "[% FILTER escape_quotes = replace('"', '\"') ~%]
     <input type="checkbox" name="itemnumber" value="[% item.itemnumber | html %]" />
 [%~ END %]",
-"[% FILTER escape_quotes ~%]
+"[% FILTER remove_special_character = replace('[\t\r\n\f\b]', '') ~%][% FILTER escape_quotes ~%]
     <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblio.biblionumber | uri %]" title="Go to record detail page">[% INCLUDE 'biblio-title.inc' | trim | collapse %]</a
     >[% IF ( Koha.Preference( 'marcflavour' ) == 'UNIMARC' && biblio.author ) %]by[% END %] [% biblio.author | html %]
-[%~ END %]",
+[%~ END %][%~ END %]",
 "[% (biblioitem.publicationyear || biblio.copyrightdate) | html | $To %]", "[% biblioitem.publishercode | html | $To %]",
 "[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => item.ccode ) | html | $To %]",
 "[% FILTER escape_quotes ~%]
@@ -24,8 +24,8 @@
 "[% item.stocknumber | html | $To %]", "[% AuthorisedValues.GetDescriptionByKohaField( frameworkcode => biblio.frameworkcode, kohafield => 'items.notforloan', authorised_value => item.notforloan) | html %]",
 "[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.itemlost', authorised_value => item.itemlost ) || "" | html %]",
 "[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.withdrawn', authorised_value => item.withdrawn ) || "" | html %]",
-"[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.damaged', authorised_value => item.damaged ) || "" | html %]", "[% (item.issues || 0) | html %]", "[% item.datelastborrowed | $KohaDates %]",
-"[% IF item.checkout %][% item.checkout.date_due | $KohaDates %][% END %]",
+"[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.damaged', authorised_value => item.damaged ) || "" | html %]", "[% item.dateaccessioned | $KohaDates %]", "[% (item.issues || 0) | html %]",
+"[% item.datelastborrowed | $KohaDates %]", "[% IF item.checkout %][% item.checkout.date_due | $KohaDates %][% END %]",
 "[% FILTER escape_quotes ~%]
     <div class="btn-group dropup"
         ><button type="button" class="btn btn-xs btn-default dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"> <i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit </button>

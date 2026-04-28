@@ -1,12 +1,11 @@
 [%# Bookings timeline include for intranet templates %]
 
-[%# Parameters:
-    - timeline_id: ID for the timeline container (default: bookings-timeline)
-    - loading_id: ID for the loading indicator (default: bookings-timeline-loading)
-    - show_filters: Whether to show filter controls (default: 1)
-    - show_expired_filter: Whether to show expired filter (default: 1)
-    - show_cancelled_filter: Whether to show cancelled filter (default: 1)
-%]
+[%# Parameters: %]
+[%#   - timeline_id: ID for the timeline container (default: bookings-timeline) %]
+[%#   - loading_id: ID for the loading indicator (default: bookings-timeline-loading) %]
+[%#   - show_filters: Whether to show filter controls (default: 1) %]
+[%#   - show_expired_filter: Whether to show expired filter (default: 1) %]
+[%#   - show_cancelled_filter: Whether to show cancelled filter (default: 1) %]
 
 <div id="[% timeline_id || 'bookings-timeline' %]" class="position-relative bookings-timeline-container">
     [% IF show_filters %]

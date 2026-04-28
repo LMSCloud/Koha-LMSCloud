@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -169,6 +169,9 @@ pod2usage( -exitstatus => 0, -verbose => 2 ) if $man;
 _sanity_check();
 
 if ($reset) {
+    my $mappings_yaml = C4::Context->config('elasticsearch_index_mappings');
+    $mappings_yaml ||= C4::Context->config('intranetdir') . '/admin/searchengine/elasticsearch/mappings.yaml';
+    _log( 1, "Resetting mappings from $mappings_yaml\n" );
     Koha::SearchEngine::Elasticsearch->reset_elasticsearch_mappings;
     $delete = 1;
 }

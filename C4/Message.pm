@@ -16,7 +16,7 @@ package C4::Message;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -282,6 +282,13 @@ sub metadata {
 }
 
 # turn $object->metadata into a string suitable for $object->content
+
+=head2 render_metadata
+
+Missing POD for render_metadata.
+
+=cut
+
 sub render_metadata {
     my ( $self, $format ) = @_;
     $format ||= sub { $_[0] || "" };

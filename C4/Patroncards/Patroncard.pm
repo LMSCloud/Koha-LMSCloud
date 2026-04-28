@@ -15,7 +15,7 @@ package C4::Patroncards::Patroncard;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -24,8 +24,8 @@ use autouse 'Data::Dumper' => qw(Dumper);
 
 #use Font::TTFMetrics;
 
-use C4::Creators::Lib    qw( get_unit_values );
-use C4::Creators::PDF    qw(StrWidth);
+use C4::Creators::Lib qw( get_unit_values );
+use C4::Creators::PDF;
 use C4::Patroncards::Lib qw(
     box
     get_borrower_attributes
@@ -292,6 +292,9 @@ sub draw_text {
         my $string_width = C4::Creators::PDF->StrWidth( $line, $text_attribs->{'font'}, $text_attribs->{'font_size'} );
         if ( ( $string_width + $llx_text_attr ) > $self->{'width'} ) {
             my $cur_line = "";
+
+            # counter for a breaking condition to prevent endless looping
+            my $innerwhile = 0;
         WRAP_LINES:
             while (1) {
 
@@ -344,6 +347,11 @@ sub draw_text {
                     # will indicate the layout problem
                     last WRAP_LINES if $cur_line eq $line;
                     $cur_line = $line;
+                }
+                if ( ++$innerwhile == 1000 ) {
+                    warn
+                        "Patroncard.pm => draw_text: Leaving inner while draw_text with innerwhile ($innerwhile): line is: $line\n";
+                    last WRAP_LINES;
                 }
             }
         } else {

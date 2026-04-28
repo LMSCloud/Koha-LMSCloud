@@ -8,7 +8,7 @@ if (RFIDWebService === undefined)
 
         // the default selector for checkin errors
         checkinBlockingSelector:
-            ".problem,.error,.alert,.audio-alert-warning,.audio-alert-action,#hold-found1,#hold-found2",
+            ".problem,.error,.alert,.audio-alert-warning,.audio-alert-action,#hold-found1,#hold-found-modal",
 
         // the action key triggering the RFID batch processing
         actionKey: 32,
@@ -354,52 +354,45 @@ if (RFIDWebService === undefined)
                 menuNames = this.messageServiceProvider.GetRFIDMenuNames();
             }
 
-            $("#toplevelmenu")
-                .children()
-                .last()
-                .before(
-                    $("<li>")
-                        .attr("id", "rfidWebServiceMenue")
-                        .attr("class", "dropdown")
+            var moreMenu = $("#toplevelmenu .fa-bars").closest("li");
+            var rfidMenu = $("<li>")
+                .attr("id", "rfidWebServiceMenu")
+                .attr("class", "nav-item dropdown")
+                .append(
+                    $("<a>")
+                        .attr("class", "nav-link dropdown-toggle")
+                        .attr("href", "#")
+                        .attr("role", "button")
+                        .attr("data-bs-toggle", "dropdown")
+                        .attr("aria-expanded", "false")
                         .append(
-                            $("<a>")
-                                .attr("class", "dropdown-toggle")
-                                .attr(
-                                    "href",
-                                    "/cgi-bin/koha/tools/rfid-webservice.pl"
-                                )
-                                .attr("data-bs-toggle", "dropdown")
-                                .append(
-                                    menuNames.topLevelMenuEntry,
-                                    $("<b>").attr("class", "caret")
-                                ),
-                            $("<ul>")
-                                .attr(
-                                    "class",
-                                    "dropdown-menu dropdown-menu-end"
-                                )
-                                .append(
-                                    $("<li>").append(
-                                        $("<a>")
-                                            .bind("click", function () {
-                                                RFIDWebService.DisplayRFIDServiceStatus();
-                                            })
-                                            .append(
-                                                menuNames.menuEntryServiceInfo
-                                            )
-                                    )
-                                    /*,
-                    $('<li>').append(
-                        $('<a>')
-                            .bind( "click", function() {
-                                alert("Coming soon!");
-                            })
-                            .append(menuNames.menuEntryServiceTools)
-                    )
-                    */
-                                )
+                            $("<span>")
+                                .attr("class", "nav-link-text")
+                                .text(menuNames.topLevelMenuEntry)
+                        ),
+                    $("<ul>")
+                        .attr(
+                            "class",
+                            "dropdown-menu dropdown-menu-dark dropdown-menu-end"
+                        )
+                        .append(
+                            $("<li>").append(
+                                $("<a>")
+                                    .attr("class", "dropdown-item")
+                                    .attr("href", "#")
+                                    .on("click", function (e) {
+                                        e.preventDefault();
+                                        RFIDWebService.DisplayRFIDServiceStatus();
+                                    })
+                                    .text(menuNames.menuEntryServiceInfo)
+                            )
                         )
                 );
+            if (moreMenu.length) {
+                moreMenu.before(rfidMenu);
+            } else {
+                $("#toplevelmenu").append(rfidMenu);
+            }
             if (!enableRFID) {
                 this.DisableTopLevelMenuRFID();
             }
@@ -750,7 +743,7 @@ if (RFIDWebService === undefined)
                                     RFIDWebService.CheckinNextItem("checkin");
                                 }
                             } else {
-                                $("#hold-found2,#hold-found1").on(
+                                $("#hold-found-modal,#hold-found1").on(
                                     "hidden.bs.modal",
                                     function (e) {
                                         let itemCount =
@@ -1469,17 +1462,18 @@ if (RFIDWebService === undefined)
                 '  <div class="modal-dialog">' +
                 '    <div class="modal-content">' +
                 '      <div class="modal-header">' +
-                '        <button type="button" class="rfidErrorMessage_close btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-                '        <h3 id="rfidErrorMessage_title">' +
+                '        <h1 class="modal-title" id="rfidErrorMessage_label">' +
                 messages.title +
-                "</h3>" +
+                "</h1>" +
+                '        <button type="button" class="rfidErrorMessage_close btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
                 "      </div>" +
                 '      <div class="modal-body">' +
-                '      <p><div id="rfidErrorMessage_message">' +
+                '      <div id="rfidErrorMessage_message">' +
                 text +
-                "</div><p>" +
+                "</div>" +
+                "      </div>" +
                 '      <div class="modal-footer">' +
-                '        <button type="button" class="btn btn-small rfidErrorMessage_close" data-bs-dismiss="modal">' +
+                '        <button type="button" class="btn btn-default rfidErrorMessage_close" data-bs-dismiss="modal">' +
                 messages.actionClose +
                 "</button>" +
                 "      </div>" +
@@ -1487,8 +1481,14 @@ if (RFIDWebService === undefined)
                 "  </div>" +
                 "</div>";
 
-            $(popupTemplate).modal();
-            $(popupTemplate).show();
+            var $dialog = $(popupTemplate);
+            $("#" + $dialog.attr("id")).remove();
+            $dialog
+                .appendTo("body")
+                .on("hidden.bs.modal", function () {
+                    $(this).remove();
+                })
+                .modal("show");
         },
 
         // show the RFID service status message
@@ -1610,17 +1610,18 @@ if (RFIDWebService === undefined)
                 '  <div class="modal-dialog">' +
                 '    <div class="modal-content">' +
                 '      <div class="modal-header">' +
-                '        <button type="button" class="rfidStatusMessage_close btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
-                '        <h3 id="rfidStatusMessage_title">' +
+                '        <h1 class="modal-title" id="rfidStatusMessage_label">' +
                 messages.title +
-                "</h3>" +
+                "</h1>" +
+                '        <button type="button" class="rfidStatusMessage_close btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
                 "      </div>" +
                 '      <div class="modal-body">' +
-                '      <p><div id="rfidStatusMessage_message">' +
+                '      <div id="rfidStatusMessage_message">' +
                 text +
-                "</div><p>" +
+                "</div>" +
+                "      </div>" +
                 '      <div class="modal-footer">' +
-                '        <button type="button" class="btn btn-small rfidStatusMessage_close" data-bs-dismiss="modal">' +
+                '        <button type="button" class="btn btn-default rfidStatusMessage_close" data-bs-dismiss="modal">' +
                 messages.actionClose +
                 "</button>" +
                 "      </div>" +
@@ -1628,7 +1629,13 @@ if (RFIDWebService === undefined)
                 "  </div>" +
                 "</div>";
 
-            $(popupTemplate).modal();
-            $(popupTemplate).show();
+            var $dialog = $(popupTemplate);
+            $("#" + $dialog.attr("id")).remove();
+            $dialog
+                .appendTo("body")
+                .on("hidden.bs.modal", function () {
+                    $(this).remove();
+                })
+                .modal("show");
         },
     };

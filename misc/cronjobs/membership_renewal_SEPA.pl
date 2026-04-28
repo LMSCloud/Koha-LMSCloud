@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -104,8 +104,8 @@ Optional parameter to use another lettercode than the standard configured in sys
 
 When setting system preferences be aware that many (but not all) entries in the payment instruction XML file
 are restricted to the SEPA character set, i.e.: a-z A-Z 0-9 ' : ? , . + - ( ) / and blank.
-So try to use other characters only if there are good reasons for it. Probably your XML file then will be rejected by the bank. 
- 
+So try to use other characters only if there are good reasons for it. Probably your XML file then will be rejected by the bank.
+
 Relevant system preferences:
 
 'SepaDirectDebitCreditorBic': BIC of the library's bank account used in XML file containing SEPA direct debits.

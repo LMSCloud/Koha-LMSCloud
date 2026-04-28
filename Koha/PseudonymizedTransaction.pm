@@ -12,7 +12,7 @@ package Koha::PseudonymizedTransaction;
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -22,6 +22,7 @@ use List::MoreUtils            qw(any);
 use Koha::Database;
 use Koha::Exceptions::Config;
 use Koha::Patrons;
+use Koha::ILL::Requests;
 
 use base qw(Koha::Object);
 
@@ -99,14 +100,58 @@ sub create_from_statistic {
     $self->store();
 
     if ($patron) {
-        my $extended_attributes = $patron->extended_attributes->unblessed;
-        for my $attribute (@$extended_attributes) {
-            next unless Koha::Patron::Attribute::Types->find( $attribute->{code} )->keep_for_pseudonymization;
+        my @kept_types = Koha::Patron::Attribute::Types->search(
+            { keep_for_pseudonymization => 1 },
+            { columns                   => ['code'] }
+        )->get_column('code');
 
-            delete $attribute->{id};
-            delete $attribute->{borrowernumber};
+        if (@kept_types) {
+            my $extended_attributes =
+                $patron->extended_attributes->search( { code => { -in => \@kept_types } } )->unblessed;
 
-            $self->_result->create_related( 'pseudonymized_borrower_attributes', $attribute );
+            for my $attribute (@$extended_attributes) {
+                delete $attribute->{id};
+                delete $attribute->{borrowernumber};
+                $attribute->{key}       = delete $attribute->{code};
+                $attribute->{value}     = delete $attribute->{attribute};
+                $attribute->{tablename} = 'borrower_attributes';
+
+                $self->_result->create_related( 'pseudonymized_metadata_values', $attribute );
+            }
+        }
+    }
+
+    if ( $statistic->illrequest_id ) {
+        my $illrequest = Koha::ILL::Requests->find( $statistic->illrequest_id );
+        if ($illrequest) {
+            my @illattributes_to_pseudonymize = qw(
+                type
+            );
+
+            my $extended_attributes_to_pseudonymize =
+                $illrequest->extended_attributes->search( { type => { -in => \@illattributes_to_pseudonymize } } );
+
+            while ( my $attribute = $extended_attributes_to_pseudonymize->next ) {
+                $self->_result->create_related(
+                    'pseudonymized_metadata_values',
+                    {
+                        key       => $attribute->type,
+                        value     => $attribute->value,
+                        tablename => 'illrequestattributes',
+                    }
+                );
+            }
+
+            if ( $illrequest->backend ) {
+                $self->_result->create_related(
+                    'pseudonymized_metadata_values',
+                    {
+                        key       => 'backend',
+                        value     => $illrequest->backend,
+                        tablename => 'illrequestattributes',
+                    }
+                );
+            }
         }
     }
 

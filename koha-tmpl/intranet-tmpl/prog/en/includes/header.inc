@@ -44,7 +44,7 @@
                 [% Koha.Preference('IntranetNav') | $raw %]
                 <li class="nav-item dropdown">
                     <a href="/cgi-bin/koha/mainpage.pl" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false"
-                        ><span class="nav-link-icon"><i class="fa fa-fw fa-bars" title="More"></i></span> <span class="nav-link-text">More</span></a
+                        ><span class="nav-link-icon"><i class="fa fa-fw fa-bars" title="[% tp('More menu options', 'More') | html %]"></i></span> <span class="nav-link-text">[% tp("More menu options", "More") | html %]</span></a
                     >
                     <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
                         <li><a class="dropdown-item" href="/cgi-bin/koha/virtualshelves/shelves.pl">Lists</a></li>
@@ -104,14 +104,16 @@
                             </span>
                             <span id="logged-in-info-full">
                                 [% SET is_superlibrarian = CAN_user_superlibrarian ? 'is_superlibrarian' : '' %]
-                                <span class="loggedinusername [% is_superlibrarian | html %]">[% logged_in_user.userid | html %]</span>
-                                <span class="loggedincategorycode content_hidden">[% logged_in_user.categorycode | html %]</span>
+                                <span class="loggedinusername [% is_superlibrarian | html %]" data-loggedinusername="[% logged_in_user.userid | html %]" data-is-superlibrarian="[% is_superlibrarian | html %]"
+                                    >[% logged_in_user.userid | html %]</span
+                                >
+                                <span class="loggedincategorycode content_hidden" data-loggedincategorycode="[% logged_in_user.categorycode | html %]">[% logged_in_user.categorycode | html %]</span>
                                 [% IF ( StaffLoginRestrictLibraryByIP ) %]
                                     <brand> [% Branches.GetLoggedInBranchname | html %] </brand>
                                 [% ELSE %]
                                     <strong>
-                                        <span class="logged-in-branch-name">[% Branches.GetLoggedInBranchname | html %]</span>
-                                        <span class="logged-in-branch-code content_hidden">[% Branches.GetLoggedInBranchcode | html %]</span>
+                                        <span class="logged-in-branch-name" data-logged-in-branch-name="[% Branches.GetLoggedInBranchname | html %]">[% Branches.GetLoggedInBranchname | html %]</span>
+                                        <span class="logged-in-branch-code content_hidden" data-logged-in-branch-code="[% Branches.GetLoggedInBranchcode | html %]">[% Branches.GetLoggedInBranchcode | html %]</span>
                                     </strong>
                                 [% END %]
                                 [% IF Koha.Preference('UseCirculationDesks') && Desks.ListForLibrary.count %]
@@ -120,16 +122,16 @@
                                         [% IF ( Desks.GetLoggedInDeskName == '' ) %]
                                             <span class="logged-in-desk-name">NO DESK SET</span>
                                         [% ELSE %]
-                                            <span class="logged-in-desk-name">[% Desks.GetLoggedInDeskName | html %]</span>
-                                            <span class="logged-in-desk-id content_hidden">[% Desks.GetLoggedInDeskId | html %]</span>
+                                            <span class="logged-in-desk-name" data-logged-in-desk-name="[% Desks.GetLoggedInDeskName | html %]">[% Desks.GetLoggedInDeskName | html %]</span>
+                                            <span class="logged-in-desk-id content_hidden" data-logged-in-desk-id="[% Desks.GetLoggedInDeskId | html %]">[% Desks.GetLoggedInDeskId | html %]</span>
                                         [% END %]
                                     </strong>
                                 [% END %]
                                 [% IF Koha.Preference('UseCashRegisters') && !(Registers.session_register_name == '') %]
                                     <span class="separator">|</span>
                                     <strong>
-                                        <span class="logged-in-register-name">[% Registers.session_register_name | html %]</span>
-                                        <span class="logged-in-register-id content_hidden">[% Registers.session_register_id | html %]</span>
+                                        <span class="logged-in-register-name" data-logged-in-register-name="[% Registers.session_register_name | html %]">[% Registers.session_register_name | html %]</span>
+                                        <span class="logged-in-register-id content_hidden" data-logged-in-register-id="[% Registers.session_register_id | html %]">[% Registers.session_register_id | html %]</span>
                                     </strong>
                                 [% END %]
                             </span>

@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 pay.pl
 
@@ -50,8 +50,11 @@ use URI::Escape;
 
 our $input = CGI->new;
 
+my $op = $input->param('op') // q{};
 my $updatecharges_permissions =
-    $input->param('woall') ? 'writeoff' : $input->param('cancelall') ? 'cancel_fee' : 'remaining_permissions';
+      ( $op =~ /^cud-(?:woall|writeoff_selected|wo_indiv_|confirm_writeoff)/ ) ? 'writeoff'
+    : ( $op =~ /^cud-(?:cancel_selected|cancel_indiv_|confirm_cancelfee)/ )    ? 'cancel_fee'
+    :                                                                            'remaining_permissions';
 our ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name => 'members/pay.tt',
@@ -85,7 +88,6 @@ $user ||= q{};
 
 our $branch = C4::Context->userenv->{'branch'};
 
-my $op                  = $input->param('op') // q{};
 my $checkCashRegisterOk = passCashRegisterCheck( $branch, $loggedinuser );
 
 if ( $op eq 'cud-paycollect' && $checkCashRegisterOk ) {
@@ -249,7 +251,7 @@ sub writeoff_or_cancel_all {
     my @wo_lines = grep { /^accountlines_id\d+$/ } @params;
 
     my $borrowernumber = $input->param('borrowernumber');
-    my $actiontype     = $input->param('woall') ? 'WRITEOFF' : 'CANCELLATION';
+    my $actiontype     = ( $op =~ /^cud-woall/ ) ? 'WRITEOFF' : 'CANCELLATION';
 
     for (@wo_lines) {
         if (/(\d+)/) {

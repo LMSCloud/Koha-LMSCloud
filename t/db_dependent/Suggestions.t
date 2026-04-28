@@ -13,12 +13,13 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use DateTime::Duration;
-use Test::More tests => 94;
+use Test::NoWarnings;
+use Test::More tests => 96;
 use Test::Warn;
 
 use t::lib::Mocks;
@@ -299,19 +300,16 @@ $status   = ModSuggestion($mod_suggestion5);
 $messages = C4::Letters::GetQueuedMessages( { borrowernumber => $borrowernumber } );
 is( @$messages, 3, 'ModSuggestions does send a message if the status has been changed' );
 
-{
-    # Hiding the expected warning displayed by DBI
-    # DBD::mysql::st execute failed: Incorrect date value: 'invalid date!' for column 'manageddate'
-    local *STDERR;
-    open STDERR, '>', '/dev/null';
+$mod_suggestion4->{manageddate} = 'invalid date!';
+warning_like(
+    sub {
+        ModSuggestion($mod_suggestion4);
+    },
+    qr{Incorrect date value: 'invalid date!' for column .*manageddate}
+);
+$messages = C4::Letters::GetQueuedMessages( { borrowernumber => $borrowernumber2 } );
 
-    $mod_suggestion4->{manageddate} = 'invalid date!';
-    ModSuggestion($mod_suggestion4);
-    $messages = C4::Letters::GetQueuedMessages( { borrowernumber => $borrowernumber2 } );
-
-    close STDERR;
-    is( scalar(@$messages), 1, 'No new letter should have been generated if the update raised an error' );
-}
+is( scalar(@$messages), 1, 'No new letter should have been generated if the update raised an error' );
 
 is( GetSuggestionInfo(), undef, 'GetSuggestionInfo without the suggestion id returns undef' );
 $suggestion = GetSuggestionInfo($my_suggestionid);
@@ -614,7 +612,7 @@ subtest 'EmailPurchaseSuggestions' => sub {
     # EmailPurchaseSuggestions set to disabled
     t::lib::Mocks::mock_preference( "EmailPurchaseSuggestions", "0" );
     Koha::Suggestion->new($my_suggestion)->store;
-    my $newsuggestions_messages = C4::Letters::GetQueuedMessages( { borrowernumber => $borrowernumber } );
+    my $newsuggestions_messages = C4::Letters::GetQueuedMessages( { letter_code => 'NEW_SUGGESTION' } );
     is(
         @$newsuggestions_messages, 0,
         'New suggestion does not send an email when EmailPurchaseSuggestions disabled'
@@ -636,7 +634,7 @@ subtest 'EmailPurchaseSuggestions' => sub {
     Koha::Libraries->find('CPL')->update( { branchreplyto => 'branchemail@b.c' } );
     Koha::Suggestion->new($my_suggestion)->store;
 
-    $newsuggestions_messages = C4::Letters::GetQueuedMessages( { borrowernumber => $borrowernumber } );
+    $newsuggestions_messages = C4::Letters::GetQueuedMessages( { letter_code => 'NEW_SUGGESTION' } );
     isnt( @$newsuggestions_messages, 0, 'New suggestions sends an email wne EmailPurchaseSuggestions enabled' );
     my $message1 =
         C4::Letters::GetMessage( $newsuggestions_messages->[0]->{message_id} );
@@ -675,7 +673,7 @@ subtest 'EmailPurchaseSuggestions' => sub {
     t::lib::Mocks::mock_preference( "ReplytoDefault", 'library@b.c' );
     Koha::Suggestion->new($my_suggestion)->store;
 
-    $newsuggestions_messages = C4::Letters::GetQueuedMessages( { borrowernumber => $borrowernumber } );
+    $newsuggestions_messages = C4::Letters::GetQueuedMessages( { letter_code => 'NEW_SUGGESTION' } );
     my $message5 =
         C4::Letters::GetMessage( $newsuggestions_messages->[4]->{message_id} );
     is(
@@ -707,7 +705,7 @@ subtest 'EmailPurchaseSuggestions' => sub {
     );
     Koha::Suggestion->new($my_suggestion)->store;
 
-    $newsuggestions_messages = C4::Letters::GetQueuedMessages( { borrowernumber => $borrowernumber } );
+    $newsuggestions_messages = C4::Letters::GetQueuedMessages( { letter_code => 'NEW_SUGGESTION' } );
     my $message7 =
         C4::Letters::GetMessage( $newsuggestions_messages->[6]->{message_id} );
     is(

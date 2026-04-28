@@ -15,7 +15,7 @@ package Koha::Biblio::Metadata::Extractor::MARC;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -42,11 +42,15 @@ Constructor for the I<Koha::Biblio::Metadata::Extractor::MARC> class.
 sub new {
     my ( $class, $params ) = @_;
 
+    # If metadata is missing, we should have a biblio parameter (Koha object).
+    # If we do not have biblio, metadata should be a MARC::Record object.
     Koha::Exceptions::MissingParameter->throw( parameter => 'metadata' )
         unless $params->{metadata} || $params->{biblio};
+    Koha::Exceptions::BadParameter->throw('biblio should be a Koha object')
+        if $params->{biblio} && ref( $params->{biblio} ) ne 'Koha::Biblio';
+    Koha::Exceptions::BadParameter->throw('metadata should be a MARC::Record')
+        if !$params->{biblio} && ref( $params->{metadata} ) ne 'MARC::Record';
 
-    #my $metadata = $biblio->metadata;
-    #my $schema   = $metadata->schema;
     # Get the schema from the pref so that we do not fetch the biblio_metadata
     my $schema = C4::Context->preference('marcflavour');
 
@@ -98,23 +102,6 @@ sub get_control_number {
     }
 
     return $control_number;
-}
-
-=head2 get_opac_suppression
-
-    my $opac_suppressed = $extractor->get_opac_suppression();
-
-Returns whether the record is flagged as suppressed in the OPAC.
-FIXME: Revisit after 38330 discussion
-
-=cut
-
-sub get_opac_suppression {
-    my ($self) = @_;
-
-    my $record = $self->metadata;
-
-    return $record->subfield( '942', 'n' ) ? 1 : 0;
 }
 
 =head3 _normalize_string

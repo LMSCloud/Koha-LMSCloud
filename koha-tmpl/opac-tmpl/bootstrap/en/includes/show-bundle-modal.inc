@@ -71,7 +71,7 @@
                     }
                 }
                 $("#bundleItemlistModal").show();
-                $("#bundleItemlistModal").modal();
+                $("#bundleItemlistModal").modal("show");
 
                 if (!$.fn.DataTable.isDataTable("#bundleitemslisttable")) {
                     bundleitemslisttable = $("#bundleitemslisttable").dataTable(

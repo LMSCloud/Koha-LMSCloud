@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -74,7 +74,7 @@ if ( $op eq 'cud-add' && $patrons_by_id ) {
 
 my @patrons_to_add = $cgi->multi_param('patrons_to_add');
 if ( $op eq 'cud-add' && @patrons_to_add ) {
-    AddPatronsToList( { list => $list, cardnumbers => \@patrons_to_add } );
+    AddPatronsToList( { list => $list, borrowernumbers => \@patrons_to_add } );
 }
 
 my @patrons_to_remove = $cgi->multi_param('patrons_to_remove');

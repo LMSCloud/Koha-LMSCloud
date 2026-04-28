@@ -15,13 +15,13 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 DESCRIPTION
 
 This script build OAI-PMH sets (to be used by opac/oai.pl) according to sets
-and mappings defined in Koha. It reads informations from oai_sets and
-oai_sets_mappings, and then fill table oai_sets_biblios with builded infos.
+and mappings defined in Koha. It reads information from oai_sets and
+oai_sets_mappings, and then fill table oai_sets_biblios with built infos.
 
 =head1 USAGE
 
@@ -29,7 +29,7 @@ oai_sets_mappings, and then fill table oai_sets_biblios with builded infos.
         -h          Print help message;
         -v          Be verbose
         -r          Truncate table oai_sets_biblios before inserting new rows
-        -i          Embed items informations, mandatory if you defined mappings
+        -i          Embed items information, mandatory if you defined mappings
                     on item fields
         -l LENGTH   Process LENGTH biblios
         -o OFFSET   If LENGTH is defined, start processing from OFFSET
@@ -180,8 +180,8 @@ sub print_usage {
     print "build_oai_sets.pl: Build OAI-PMH sets, according to mappings defined in Koha\n";
     print "Usage: build_oai_sets.pl [-h] [-v] [-i] [-l LENGTH [-o OFFSET]]\n\n";
     print "\t-h\t\tPrint this help and exit\n";
-    print "\t-v\t\tBe verbose\n";
-    print "\t-i\t\tEmbed items informations, mandatory if you defined mappings on item fields\n";
+    print "\t-v\t\t" . " Be verbose\n";
+    print "\t-i\t\tEmbed items information, mandatory if you defined mappings on item fields\n";
     print "\t-l LENGTH\tProcess LENGTH biblios\n";
     print "\t-o OFFSET\tIf LENGTH is defined, start processing from OFFSET\n\n";
 }

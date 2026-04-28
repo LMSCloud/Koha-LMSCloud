@@ -15,27 +15,22 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 2;
+use Test::More tests => 3;
+use Test::NoWarnings;
 use File::Slurp;
 use Data::Dumper;
 
-my @files;
+use Koha::Devel::Files;
 
-# OPAC
-push @files, `git ls-files 'koha-tmpl/opac-tmpl/bootstrap/en/*.tt'`;
-push @files, `git ls-files 'koha-tmpl/opac-tmpl/bootstrap/en/*.inc'`;
-
-# Staff
-push @files, `git ls-files 'koha-tmpl/intranet-tmpl/prog/en/*.tt'`;
-push @files, `git ls-files 'koha-tmpl/intranet-tmpl/prog/en/*.inc'`;
+my $dev_files = Koha::Devel::Files->new;
+my @files     = $dev_files->ls_tt_files;
 ok( @files > 0, 'We should test something' );
 
 my @errors;
 for my $file (@files) {
-    chomp $file;
     my @e = catch_missing_op($file);
     push @errors, sprintf "%s:%s", $file, join( ",", @e ) if @e;
 }

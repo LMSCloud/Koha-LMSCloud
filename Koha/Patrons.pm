@@ -16,7 +16,7 @@ package Koha::Patrons;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -37,9 +37,34 @@ Koha::Patron - Koha Patron Object class
 
 =head1 API
 
-=head2 Class Methods
+=head2 Class methods
 
 =cut
+
+=head3 find_by_identifier
+
+    my $patron = Koha::Patrons->find_by_identifier($identifier);
+
+Find a patron by either userid or cardnumber. Returns the first patron found
+or undef if no patron matches the identifier.
+
+This method searches first by userid, then by cardnumber if no match is found.
+
+=cut
+
+sub find_by_identifier {
+    my ( $self, $identifier ) = @_;
+
+    return unless defined $identifier && $identifier ne '';
+
+    # First try to find by userid
+    my $patron = $self->search( { userid => $identifier } )->next;
+
+    # If not found by userid, try cardnumber
+    $patron = $self->search( { cardnumber => $identifier } )->next unless $patron;
+
+    return $patron;
+}
 
 =head3 search_limited
 
@@ -360,7 +385,7 @@ sub anonymize {
                       fine_max      => $fine_max,
                       fine_min      => $fin_min,
                       too_young     => $too_young,
-                      too_old      => $too_old,
+                      too_old       => $too_old,
                   });
 
 This method returns all patron who should be updated from one category to another meeting criteria:
@@ -370,6 +395,9 @@ fine_min      - with fines totaling at least this amount
 fine_max      - with fines above this amount
 too_young     - if passed, select patrons who are under the age limit for the current category
 too_old       - if passed, select patrons who are over the age limit for the current category
+
+too_young and too_old logically cannot be used in combination (One cannot be both too old and too young)
+fine_min takes precedence over fine_max if both are passed
 
 =cut
 
@@ -387,7 +415,9 @@ sub search_patrons_to_update_category {
             $search_params->{dateofbirth}{'>'} = $dtf->format_datetime($date_after);
         }
         if ( $cat_from->upperagelimit && $params->{too_old} ) {
-            my $date_before = dt_from_string()->subtract( years => $cat_from->upperagelimit );
+
+            # Must be `upperagelimit + 1` years old (e.g., if limit is 17, query for 18+)
+            my $date_before = dt_from_string()->subtract( years => $cat_from->upperagelimit + 1 );
             $search_params->{dateofbirth}{'<'} = $dtf->format_datetime($date_before);
         }
     }
@@ -650,6 +680,33 @@ sub extended_attributes_config {
         'key_field'    => 'code',
         'schema_class' => 'Koha::Schema::Result::BorrowerAttribute',
     };
+}
+
+=head3 check_for_existing_matches
+
+    my $match_result = Koha::Patrons->check_for_existing_matches( $patron_data );
+
+    Uses the fields from the PatronDuplicateMatchingAddFields preference to check for existing matches
+
+=cut
+
+sub check_for_existing_matches {
+    my ( $self, $new_patron_data ) = @_;
+
+    my @duplicate_match_fields = split '\|', C4::Context->preference('PatronDuplicateMatchingAddFields');
+    my $match_conditions;
+    for my $field (@duplicate_match_fields) {
+        $match_conditions->{$field} = $new_patron_data->{$field} if $new_patron_data->{$field};
+    }
+
+    my $patrons = Koha::Patrons->search($match_conditions);
+    if ( $patrons->count > 0 ) {
+        return {
+            'duplicate_found'  => 1,
+            'matching_patrons' => $patrons
+        };
+    }
+    return { 'duplicate_found' => 0 };
 }
 
 =head3 _type

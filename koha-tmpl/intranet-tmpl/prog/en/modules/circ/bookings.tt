@@ -16,6 +16,57 @@
     [% END %]</title
 >
 [% INCLUDE 'doc-head-close.inc' %]
+<style>
+    #bookingst thead tr:nth-child(2) th {
+        position: relative;
+        padding: 0;
+        height: 28px;
+    }
+    #bookingst thead tr:nth-child(2) th > select,
+    #bookingst thead tr:nth-child(2) th > input[type="text"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        border: 0;
+        font-size: 85%;
+        color: #999;
+        margin: 0;
+        padding: 2px 20px 2px 4px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    #bookingst thead tr:nth-child(2) th > span {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        justify-content: flex-start !important;
+        padding: 0;
+    }
+    #bookingst thead tr:nth-child(2) th > span input {
+        min-width: 0;
+        height: 100%;
+        font-size: 85%;
+        color: #999;
+        border: 0;
+        padding: 2px 4px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        background: transparent;
+    }
+    #bookingst thead tr:nth-child(2) th > span a.clear_date {
+        color: #999;
+        font-size: 80%;
+        padding: 0 4px;
+        flex-shrink: 0;
+    }
+</style>
 </head>
 
 <body id="circ_bookings" class="circ">
@@ -34,37 +85,22 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <!-- Results -->
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
-                <h1>Bookings</h1>
-                <div id="searchresults">
-                    <table id="bookingst"></table>
-                    [% INCLUDE 'modals/cancel_booking.inc' %]
-                    [% INCLUDE 'modals/convert_to_checkout.inc' %]
-                    [% INCLUDE 'modals/booking/island.inc' %]
-                </div>
-            </main>
-        </div>
-
-        <!-- Navigation -->
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'circ-nav.inc' %] </aside>
-        </div>
+[% WRAPPER 'main-container.inc' aside='circ-nav' %]
+    [% INCLUDE 'messages.inc' %]
+    <h1>Bookings</h1>
+    <div id="searchresults">
+        <table id="bookingst"></table>
+        [% INCLUDE 'modals/cancel_booking.inc' %]
+        [% INCLUDE 'modals/convert_to_checkout.inc' %]
+        [% INCLUDE 'modals/booking/island.inc' %]
     </div>
-    <!-- /.row -->
-</div>
-<!-- /.main.container-fluid -->
+[% END %]
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'js-biblio-format.inc' %]
     [% INCLUDE 'js-date-format.inc' %]
-    [% INCLUDE 'js-patron-format.inc' %]
     [% Asset.js("js/additional-fields.js") | $raw %]
     [% Asset.js("js/combobox.js") | $raw %]
     [% Asset.js("js/cancel_booking_modal.js") | $raw %]

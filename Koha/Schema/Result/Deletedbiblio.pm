@@ -38,7 +38,7 @@ unique identifier assigned to each bibliographic record
   is_nullable: 0
   size: 4
 
-foriegn key from the biblio_framework table to identify which framework was used in cataloging this record
+foreign key from the biblio_framework table to identify which framework was used in cataloging this record
 
 =head2 author
 
@@ -139,6 +139,14 @@ the date this record was added to Koha
 
 summary from the MARC record (520$a in MARC21)
 
+=head2 opac_suppressed
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+whether the record should be suppressed in the OPAC
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -179,6 +187,8 @@ __PACKAGE__->add_columns(
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 0 },
   "abstract",
   { data_type => "longtext", is_nullable => 1 },
+  "opac_suppressed",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
 );
 
 =head1 PRIMARY KEY
@@ -211,8 +221,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:KwlqhkWWX6CYWb3l2fCcSg
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2025-10-01 14:27:12
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:aOuATjJCuH2q5r99XkjrGw
 
 __PACKAGE__->has_many(
     "biblioitem",
@@ -228,9 +238,26 @@ __PACKAGE__->has_one(
     { cascade_copy           => 0, cascade_delete => 0 },
 );
 
+__PACKAGE__->add_columns(
+    "+opac_suppressed" => { is_boolean => 1 },
+    '+serial' => { is_boolean => 1 },
+);
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
     'Koha::Old::Biblios';
 }
+
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
 
 sub koha_object_class {
     'Koha::Old::Biblio';

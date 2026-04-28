@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 53;
+use Test::NoWarnings;
+use Test::More tests => 54;
 use C4::Context;
 use C4::RotatingCollections
     qw( AddItemToCollection CreateCollection DeleteCollection GetCollection GetCollectionItemBranches GetCollections GetItemsInCollection RemoveItemFromCollection TransferCollection UpdateCollection isItemInAnyCollection isItemInThisCollection );
@@ -163,13 +164,13 @@ my @collection1 = GetCollection($collection_id1);
 is_deeply(
     \@collection1,
     [ $collection_id1, 'Collection1', 'Description1', undef ],
-    "Collection1's informations"
+    "Collection1's information"
 );
 my @collection2 = GetCollection($collection_id2);
 is_deeply(
     \@collection2,
     [ $collection_id2, 'Collection2 modified', 'Description2 modified', undef ],
-    "Collection2's informations"
+    "Collection2's information"
 );
 my @undef_collection = GetCollection();
 is_deeply(
@@ -206,7 +207,7 @@ Koha::Library->new($samplebranch)->store;
 my ( $transferred, $messages ) = TransferCollection( $collection_id1, $samplebranch->{branchcode} );
 is(
     $transferred,
-    1, "Collection1 has been transfered in the branch SAB"
+    1, "Collection1 has been transferred in the branch SAB"
 );
 @collection1 = GetCollection($collection_id1);
 is_deeply(

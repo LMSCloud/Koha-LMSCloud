@@ -16,14 +16,15 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # pragma
 use Modern::Perl;
 use Try::Tiny;
 
 # external modules
-use CGI qw ( -utf8 );
+use CGI          qw ( -utf8 );
+use Scalar::Util qw( blessed );
 
 # internal modules
 use C4::Auth qw( get_template_and_user haspermission );
@@ -52,7 +53,8 @@ use Koha::SMS::Providers;
 my $input = CGI->new;
 my %data;
 
-my $dbh = C4::Context->dbh;
+my $dbh    = C4::Context->dbh;
+my $logger = Koha::Logger->get( { interface => 'intranet ' } );
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
@@ -252,18 +254,13 @@ if ( $op eq 'cud-insert' || $op eq 'edit_form' || $op eq 'cud-save' || $op eq 'd
     }
 }
 
-# Test uniqueness of surname, firstname and dateofbirth
+#Test uniqueness of fields in PatronDuplicateMatchingAddFields
 if ( ( $op eq 'cud-insert' ) and !$nodouble ) {
-    my @dup_fields = split '\|', C4::Context->preference('PatronDuplicateMatchingAddFields');
-    my $conditions;
-    for my $f (@dup_fields) {
-        $conditions->{$f} = $newdata{$f} if $newdata{$f};
-    }
     $nodouble = 1;
-    my $patrons = Koha::Patrons->search($conditions);
-    if ( $patrons->count > 0 ) {
+    my $match_result = Koha::Patrons->check_for_existing_matches( \%newdata );
+    if ( $match_result->{duplicate_found} ) {
         $nodouble     = 0;
-        $check_patron = $patrons->next;
+        $check_patron = $match_result->{matching_patrons}->next;
         $check_member = $check_patron->borrowernumber;
     }
 }
@@ -278,30 +275,62 @@ if (@delete_guarantor) {
     if ( C4::Context->preference('ChildNeedsGuarantor') && $will_remove_last ) {
         push @errors, 'ERROR_cannot_delete_guarantor';
     } else {
+        my @deleted_guarantors;
         foreach my $id (@delete_guarantor) {
             my $r = Koha::Patron::Relationships->find($id);
-            $r->delete() if $r;
+            if ($r) {
+                $r->delete();
+                push @deleted_guarantors, $id;
+            }
+        }
+        foreach my $deleted_guarantor_id (@deleted_guarantors) {
+            @guarantors = grep { ref($_) eq 'Koha::Patron' && $_->id ne $deleted_guarantor_id } @guarantors;
         }
     }
 }
 
 #Check if guarantor requirements are met
-my $valid_guarantor = @guarantors ? @guarantors : $newdata{'contactname'};
-if (   ( $op eq 'cud-save' || $op eq 'cud-insert' )
-    && C4::Context->preference('ChildNeedsGuarantor')
-    && ( $category->category_type eq 'C' || $category->can_be_guarantee )
-    && !$valid_guarantor )
-{
-    push @errors, 'ERROR_child_no_guarantor';
-}
+my $guarantors_to_be_validated =
+    @guarantors ? \@guarantors : $newdata{'contactname'} ? [ $newdata{'contactname'} ] : [];
+if ( ( $op eq 'cud-save' || $op eq 'cud-insert' ) && $guarantors_to_be_validated ) {
+    try {
+        if ($patron) {
+            if ( $patron->categorycode eq $categorycode ) {
+                $patron->can_be_guaranteed_by($guarantors_to_be_validated);
+            } else {
 
-foreach my $guarantor (@guarantors) {
-    if (   ( $op eq 'cud-save' || $op eq 'cud-insert' )
-        && ( $guarantor->is_child || $guarantor->is_guarantee || ( $patron && $patron->is_guarantor ) ) )
-    {
-        push @errors, 'ERROR_child_is_guarantor'     if ( $guarantor->is_child );
-        push @errors, 'ERROR_guarantor_is_guarantee' if ( !$guarantor->is_child );
-    }
+                # If $patron's categorycode is about to change, check guarantor requirements against
+                # the new category but keep the original $patron object intact
+                # (this clone()s the $patron)
+                ( bless {%$patron}, ref $patron )
+                    ->categorycode($categorycode)
+                    ->can_be_guaranteed_by($guarantors_to_be_validated);
+            }
+        } else {
+            Koha::Patron->new( { categorycode => $categorycode } )->can_be_guaranteed_by($guarantors_to_be_validated);
+        }
+    } catch {
+        unless ( blessed($_) ) {
+            $logger->error($_);
+        } else {
+            if ( $_->isa("Koha::Exceptions::Patron::Relationship::NoGuarantor") ) {
+                push @errors, "ERROR_child_no_guarantor";
+            } elsif ( $_->isa("Koha::Exceptions::Patron::Relationship::InvalidRelationship") ) {
+                if ( $_->invalid_guarantor ) {
+                    push @errors, "ERROR_guarantor_is_guarantee";
+                    $template->param( guarantor_is_guarantee => $_->guarantor );
+                } elsif ( $_->child_guarantor ) {
+                    push @errors, "ERROR_child_is_guarantor";
+                } elsif ( $_->guarantor_cant_have_guarantors ) {
+                    push @errors, "ERROR_guarantor_cant_have_guarantors";
+                }
+            } else {
+                $logger->error( $_->error );
+                $_->rethrow;
+            }
+        }
+        return;
+    };
 }
 
 my @valid_relationships = split( /\|/, C4::Context->preference('borrowerRelationship'), -1 );
@@ -453,7 +482,7 @@ if ( ( !$nok ) and $nodouble and ( $op eq 'cud-insert' or $op eq 'cud-save' ) ) 
         delete $newdata{password2};
         $success = 1;
         $patron  = try {
-            Koha::Patron->new( \%newdata )->store( { guarantors => \@guarantors } );
+            Koha::Patron->new( \%newdata )->store();
         } catch {
             $success = 0;
             $nok     = 1;
@@ -568,7 +597,7 @@ if ( ( !$nok ) and $nodouble and ( $op eq 'cud-insert' or $op eq 'cud-save' ) ) 
         delete $newdata{guarantor_relationship};
 
         try {
-            $patron->set( \%newdata )->store( { guarantors => \@guarantors } ) if scalar( keys %newdata ) > 1;
+            $patron->set( \%newdata )->store() if scalar( keys %newdata ) > 1;
 
             # bug 4508 - avoid crash if we're not updating any columns in the borrowers table (editing patron attrs or msg prefs)
             $success = 1;
@@ -634,46 +663,7 @@ if ( ( !$nok ) and $nodouble and ( $op eq 'cud-insert' or $op eq 'cud-save' ) ) 
         if ( C4::Context->preference('ExtendedPatronAttributes')
             and $input->param('setting_extended_patron_attributes') )
         {
-            my $existing_attributes = $patron->extended_attributes->filter_by_branch_limitations->unblessed;
-
-            my $needs_update = 1;
-
-            # If there are an unqueunal number of new and old patron attributes they definitely need updated
-            if ( scalar @{$existing_attributes} == scalar @{$extended_patron_attributes} ) {
-                my $seen = 0;
-                for ( my $i = 0 ; $i <= scalar @{$extended_patron_attributes} ; $i++ ) {
-                    my $new_attr = $extended_patron_attributes->[$i];
-                    next unless $new_attr;
-                    for ( my $j = 0 ; $j <= scalar @{$existing_attributes} ; $j++ ) {
-                        my $existing_attr = $existing_attributes->[$j];
-                        next unless $existing_attr;
-
-                        if (   $new_attr->{attribute} eq $existing_attr->{attribute}
-                            && $new_attr->{borrowernumber} eq $existing_attr->{borrowernumber}
-                            && $new_attr->{code} eq $existing_attr->{code} )
-                        {
-                            $seen++;
-
-                            # Remove the match from the "old" attribute
-                            splice( @{$existing_attributes}, $j, 1 );
-
-                            # Move on to look at the next "new" attribute
-                            last;
-                        }
-                    }
-                }
-
-                # If we found a match for each existing attribute and the number of see attributes matches the number seen
-                # we don't need to update the attributes
-                if ( scalar @{$existing_attributes} == 0 && $seen == @{$extended_patron_attributes} ) {
-                    $needs_update = 0;
-                }
-            }
-
-            if ($needs_update) {
-                $patron->extended_attributes->filter_by_branch_limitations->delete;
-                $patron->extended_attributes($extended_patron_attributes);
-            }
+            $patron->extended_attributes($extended_patron_attributes);
         }
 
         if (
@@ -694,23 +684,9 @@ if ( ( !$nok ) and $nodouble and ( $op eq 'cud-insert' or $op eq 'cud-save' ) ) 
     }
 }
 
-if ( $op eq 'save' || $op eq 'insert' || $op eq 'add' || $op eq 'modify' ) {
-    my @new_guarantors;
-    my @new_guarantor_id           = $input->multi_param('new_guarantor_id');
-    my @new_guarantor_relationship = $input->multi_param('new_guarantor_relationship');
-    foreach my $gid (@new_guarantor_id) {
-        my $patron       = Koha::Patrons->find($gid);
-        my $relationship = shift(@new_guarantor_relationship);
-        next unless $patron;
-        my $g = { patron => $patron, relationship => $relationship };
-        push( @new_guarantors, $g );
-    }
-    $template->param( new_guarantors => \@new_guarantors );
-}
-
 if ($delete) {
     print $input->redirect("/cgi-bin/koha/deletemem.pl?member=$borrowernumber");
-    exit;    # same as above
+    exit;        # same as above
 }
 
 if ( $nok or !$nodouble ) {
@@ -922,7 +898,7 @@ $template->param(
     BorrowerMandatoryField => C4::Context->preference("BorrowerMandatoryField"),    #field to test with javascript
     destination            => $destination,     #to know where u come from and where u must go in redirect
     check_member           => $check_member,    #to know if the borrower already exist(=>1) or not (=>0)
-    "op$op"                => 1
+    check_patron           => $check_patron
 );
 
 # The following is really not nice and a temporary solution for the change of patron address data if there is an error.

@@ -119,6 +119,10 @@ A module for manipulating Koha Perl dependency list objects.
     example:
         C<my $perl_modules = C4::Installer::PerlModules->new;>
 
+=head2 prereqs
+
+Missing POD for prereqs.
+
 =head2 prereq_pm()
 
     Returns a hashref of a hash of module information suitable for use in Makefile.PL
@@ -195,7 +199,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Koha; if not, see <http://www.gnu.org/licenses>.
+along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 DISCLAIMER OF WARRANTY
 

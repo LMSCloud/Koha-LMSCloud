@@ -13,7 +13,7 @@ package Koha::AdditionalContentsLocalization;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -187,6 +187,19 @@ Return the borrowernumber of the content
 sub borrowernumber {
     my ( $self, @params ) = @_;
     return $self->additional_content->borrowernumber(@params);
+}
+
+=head3 public_read_list
+
+This method returns the list of publicly readable database fields for both API and UI output purposes
+
+=cut
+
+sub public_read_list {
+    return [
+        'id',      'additional_content_id', 'title',
+        'content', 'lang',                  'updated_on',
+    ];
 }
 
 =head2 Class Methods

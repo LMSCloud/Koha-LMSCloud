@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI qw/-utf8/;
@@ -56,7 +56,8 @@ Script to control the guided report creation
 my $input    = CGI->new;
 my $usecache = Koha::Caches->get_instance->memcached_cache;
 
-my $op = $input->param('op') // '';
+my $op    = $input->param('op')    // '';
+my $phase = $input->param('phase') // '';
 my $flagsrequired;
 if (   ( $op eq 'add_form' )
     || ( $op eq 'add_form_sql' )
@@ -397,7 +398,7 @@ if ( !$op ) {
     my @columns = split( ',', $column );
     my @total_by;
 
-    # build structue for use by tmpl_loop to choose columns to order by
+    # build structure for use by tmpl_loop to choose columns to order by
     # need to do something about the order of the order :)
     # we also want to use the %columns hash to get the plain english names
     foreach my $col (@columns) {
@@ -438,7 +439,7 @@ if ( !$op ) {
     my @columns = split( ',', $column );
     my @order_by;
 
-    # build structue for use by tmpl_loop to choose columns to order by
+    # build structure for use by tmpl_loop to choose columns to order by
     # need to do something about the order of the order :)
     foreach my $col (@columns) {
         my %order   = ( name => $col );

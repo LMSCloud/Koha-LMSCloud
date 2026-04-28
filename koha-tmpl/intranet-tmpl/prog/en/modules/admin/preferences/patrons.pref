@@ -5,8 +5,8 @@ Patrons:
            default: no
            choices:
                hardyes: "Do"
-               softyes: "Unless overridden by patron category, do"
-               softno: "Unless overridden by patron category, do not"
+               softyes: "Unless overridden by patron category or by item type, do"
+               softno: "Unless overridden by patron category or by item type, do not"
                hardno: "Do not"
          - " check borrower checkout history to see if the current item has been checked out before."
      -
@@ -37,8 +37,9 @@ Patrons:
          - "When deleting a patron who owns public or shared lists,"
          - pref: ListOwnershipUponPatronDeletion
            choices:
-            delete: "delete these lists."
-            transfer: "change owner of these lists."
+               delete: "delete these lists."
+               transfer: "change owner of these lists."
+               transfer_public: "change owner of public lists, delete shared lists."
          - All public or shared lists of this patron are either deleted or transferred to a new owner according to your choice; other private lists (not shared) are deleted.
          - "<br/>When changing owner at patron deletion, use borrowernumber "
          - pref: ListOwnerDesignated
@@ -80,17 +81,11 @@ Patrons:
                contains: "Contains"
          - Enable this search method to determine whether to use 'starts with' or 'contains' for all patron searches, including auto-complete.
      -
-         - pref: DefaultPatronSearchMethod
-           choices:
-               starts_with: "Starts with"
-               contains: "Contains"
-         - Enable this search method to determine whether to use Starts with or Contains for autocomplete patron searches.
-     -
          - "Show the following fields from the items database table as columns on the statistics tab on the patron record: "
          - pref: StatisticsFields
            type: modalselect
            source: items
-         - "If empty, defaults to: location|itype|ccode"
+         - "If empty, defaults to \"location|itype|ccode\"."
      -
          - pref: EnableBorrowerFiles
            choices:
@@ -121,6 +116,7 @@ Patrons:
                check_in: "Checking in an item"
                hold: "Placing a hold on an item"
                article: "Placing an article request"
+               api_verify: "Patron authentication via API"
      -
          - pref: AutoApprovePatronProfileSettings
            choices:
@@ -147,6 +143,12 @@ Patrons:
            class: integer
          - days. Leave empty to disable this behavior.
          - "<br><strong>NOTE:</strong> This system preference requires the misc/cronjobs/cleanup_database.pl cronjob. Ask your system administrator to schedule it."
+     -
+         - pref: ShowPatronFirstnameIfDifferentThanPreferredname
+           choices:
+               1: Show
+               0: "Don't show"
+         - "a patron's firstname in search results if their preferred name is different."
 
     Membership expiry:
      -
@@ -167,6 +169,7 @@ Patrons:
            class: integer
          - days.
          - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/membership_expiry.pl</code> cronjob. Ask your system administrator to schedule it."
+         - "<br><strong>NOTE:</strong> The parameters you use to select patrons when running the cronjob will supersede a user's messaging preferences. For example, a user may have opted to receive the expiry notice but if they are not included in the search parameters on the cronjob then they will not receive the notice."
     Notices and notifications:
      -
          - pref: EnhancedMessagingPreferences
@@ -197,7 +200,7 @@ Patrons:
                0: "Don't notify"
          - patrons whenever their password is changed.
      -
-         - pref: UseEmailReceipts
+         - pref: AutomaticEmailReceipts
            choices:
                1: Send
                0: "Don't send"
@@ -221,7 +224,7 @@ Patrons:
          - pref: EmailFieldPrecedence
            class: multi
          - '<br><strong>NOTE:</strong> All patron fields can be used, but to work correctly they must contain a valid email address or an empty string.'
-         - "Valid options are the <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a> of the borrowers table, separated by | (pipe)."
+         - "Valid options are the <a href='https://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a> of the borrowers table, separated by | (pipe)."
          - "Example: email|emailpro|B_email"
      -
          - "When <a href='/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=EmailFieldPrimary'>EmailFieldPrimary</a> is set to '<strong>selected addresses</strong>', send email to all valid email addresses in the selected fields:"
@@ -231,6 +234,7 @@ Patrons:
                email: primary email
                emailpro: secondary email
                B_email: alternate email
+         - .
      -
          - pref: TalkingTechItivaPhoneNotification
            choices:
@@ -288,14 +292,14 @@ Patrons:
          - "<br />An asterix can be used as wildcard character to match multiple letter codes."
     Patron forms:
      -
-         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a> must be filled in on the patron entry screen:"
+         - "The following <a href='https://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a> must be filled in on the patron entry screen:"
          - pref: BorrowerMandatoryField
            type: modalselect
            source: borrowers
            exclusions: flags
          - '<strong>NOTE:</strong> If <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=autoMemberNum">autoMemberNum</a> is enabled, the system preference <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=BorrowerMandatoryField">BorrowerMandatoryField</a> must not contain the field <code>cardnumber</code>.'
      -
-         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a> will not appear on the patron entry screen:"
+         - "The following <a href='https://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a> will not appear on the patron entry screen:"
          - pref: BorrowerUnwantedField
            type: modalselect
            source: borrowers
@@ -305,7 +309,7 @@ Patrons:
          - "Borrowers can have the following titles:"
          - pref: BorrowersTitles
            class: multi
-         - (separate multiple choices with |)
+         - (separate multiple choices with <code>|</code>).
      -
          - pref: autoMemberNum
            choices:
@@ -325,7 +329,7 @@ Patrons:
                0: "Don't"
          - store and display surnames in upper case.
      -
-         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a>:"
+         - "The following <a href='https://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a>:"
          - pref: PatronQuickAddFields
            type: modalselect
            source: borrowers
@@ -349,8 +353,9 @@ Patrons:
                housebound: "Housebound roles"
                additional: "Additional attributes and identifiers"
                messaging: "Patron messaging preferences"
+         - .
      -
-         - "The following <a href='http://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a>:"
+         - "The following <a href='https://schema.koha-community.org/__VERSION__/tables/borrowers.html' target='_blank'>database columns</a>:"
          - pref: PatronDuplicateMatchingAddFields
            type: modalselect
            source: borrowers
@@ -426,13 +431,14 @@ Patrons:
                0: "does not require"
          - a guarantor be set when adding the patron.
          - <p><strong>WARNING:</strong> Setting this preference to <em>requires</em> will cause errors for any pre-existing patrons that would now require a guarantor and do not have one.
+    Patron restrictions:
      -
          - pref: RestrictPatronsWithFailedNotices
            choices:
                1: Apply
                0: "Don't apply"
          - "a restriction to a patron when their email and SMS messages fail to send at the Koha level."
-         - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/restrict_patrons_with_failed_notices.pl</code> cronjob. Ask your system administrator to schedule it."
+         - "<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/restrict_patrons_with_failed_notices.pl</code> cronjob. Ask your system administrator to schedule it. When run, the cronjob restricts any patron with a failed email or SMS message in the preceding 7 days."
 
     Privacy:
      -

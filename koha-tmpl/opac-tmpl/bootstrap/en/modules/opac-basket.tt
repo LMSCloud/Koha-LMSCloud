@@ -32,7 +32,7 @@
 [% END %]
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='basket' %]
-<div class="main">
+<main class="main">
     <div class="container-fluid">
         <div class="row">
             <div class="col">
@@ -81,7 +81,7 @@
                                 <a href="#" class="btn btn-link btn-sm remove deleteshelf disabled" aria-disabled="true"><i class="fa fa-times" aria-hidden="true"></i> Remove</a>
                                 [% IF ( Koha.Preference( 'opacuserlogin' ) == 1 ) %]
                                     [% IF ( ( Koha.Preference( 'virtualshelves' ) == 1 ) && loggedinusername ) %]
-                                        <a href="#" class="btn btn-link btn-sm newshelf disabled" aria-disabled="true"><i class="fa fa-fw fa-list" aria-hidden="true"></i> Add to a list</a>
+                                        <a href="#" class="btn btn-link btn-sm newshelf disabled" aria-disabled="true"><i class="fa fa-fw fa-list" aria-hidden="true"></i> Add to list</a>
                                     [% END %]
                                     [% IF ( Koha.Preference( 'OPACHoldRequests' ) == 1 ) %]
                                         <a href="#" class="btn btn-link btn-sm hold disabled" aria-disabled="true"><i class="fa fa-fw fa-bookmark" aria-hidden="true"></i> Place hold</a>
@@ -314,11 +314,11 @@
                                 <caption class="sr-only">Items in your cart</caption>
                                 <thead>
                                     <tr>
-                                        <th class="noprint">&nbsp;</th>
+                                        <th class="noprint no-sort">&nbsp;</th>
                                         <th>Title</th>
                                         <th>Author</th>
                                         <th>Year</th>
-                                        <th>Location (Status)</th>
+                                        <th class="no-sort">Location (Status)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -409,7 +409,7 @@
         <!-- / .row -->
     </div>
     <!-- / .container-fluid -->
-</div>
+</main>
 <!-- / .main -->
 
 [% INCLUDE 'opac-bottom.inc' %]
@@ -544,19 +544,9 @@
             });
 
             if( $("#itemst").length > 0 ){
-                var itemst = $("#itemst").dataTable($.extend(true, {}, dataTablesDefaults, {
-                    "order": [[ 1, "asc" ]],
-                    "columnDefs": [
-                      { "targets": [ 0,-1 ], "sortable": false, "searchable": false }
-                    ],
-                    "columns": [
-                        null,
-                        { "type": "anti-the" },
-                        null,
-                        null,
-                        null
-                    ],
-                }));
+                var itemst = $("#itemst").kohaTable({
+                    order: [[1, "asc"]],
+                });
 
                 var buttons = new $.fn.dataTable.Buttons(itemst, {
                      buttons: [

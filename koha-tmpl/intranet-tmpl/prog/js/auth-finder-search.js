@@ -19,6 +19,7 @@ $(document).ready(function () {
                 url: "/cgi-bin/koha/authorities/ysearch.pl",
                 dataType: "json",
                 data: {
+                    index: index,
                     authtypecode: authtypecode,
                     term: request.term,
                     op: "do_search",
@@ -52,6 +53,7 @@ $(document).ready(function () {
                 url: "/cgi-bin/koha/authorities/ysearch.pl",
                 dataType: "json",
                 data: {
+                    index: index,
                     authtypecode: authtypecode,
                     term: request.term,
                     op: "do_search",
@@ -85,6 +87,7 @@ $(document).ready(function () {
                 url: "/cgi-bin/koha/authorities/ysearch.pl",
                 dataType: "json",
                 data: {
+                    index: index,
                     authtypecode: authtypecode,
                     term: request.term,
                     op: "do_search",
@@ -118,6 +121,7 @@ $(document).ready(function () {
                 url: "/cgi-bin/koha/authorities/ysearch.pl",
                 dataType: "json",
                 data: {
+                    index: index,
                     authtypecode: authtypecode,
                     term: request.term,
                     op: "do_search",
@@ -145,6 +149,10 @@ $(document).ready(function () {
         minLength: 3,
     });
     $("#clear-form").click(function () {
+        let legend = $("legend");
+        if (legend.hasClass("collapsed")) {
+            legend.click();
+        }
         setTimeout(function () {
             $(":input[type='text']").val("");
             $("#mainmainentry").val("contains");
@@ -155,6 +163,10 @@ $(document).ready(function () {
         }, 50);
         return true;
     });
+
+    if ($("#resultlist").length === 0) {
+        $("legend").click();
+    }
 });
 
 function finderjump(page, full) {

@@ -6,11 +6,12 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("System preferences") | html %] &rsaquo;
-    [% t("Administration") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("System preferences") | html %]
+        &rsaquo; [% t("Administration") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("lib/jquery/plugins/multiple-select/multiple-select.min.css") | $raw %]
 [% Asset.css("css/preferences.css") | $raw %]
@@ -34,30 +35,23 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' aside='prefs-menu' %]
 
     [% IF ( jump_not_found ) %]
-    <div class="alert alert-warning">
-        Could not find a system preference named <code>[% jumpfield | html %]</code>.
-    </div>
+        <div class="alert alert-warning"> Could not find a system preference named <code>[% jumpfield | html %]</code>. </div>
     [% END %]
     [% IF ( search_not_found ) %]
-    <div class="alert alert-warning">
-        No system preferences matched your search for: <strong>[% searchfield | html %]</strong>
-    </div>
-    <h1>System preferences</h1>
+        <div class="alert alert-warning"> No system preferences matched your search for: <strong>[% searchfield | html %]</strong> </div>
+        <h1>System preferences</h1>
     [% ELSIF searchfield %]
-    <h1>System preferences matching: [% searchfield | html %]</h1>
+        <h1>System preferences matching: [% searchfield | html %]</h1>
     [% ELSE %]
-    <h1>System preferences</h1>
+        <h1>System preferences</h1>
     [% END %]
     [% FOREACH TAB IN TABS %]
-    <div class="prefs-tab">
-    <h2>[% TAB.tab_title | html %] preferences</h2>
+        <div class="prefs-tab">
+            <h2>[% TAB.tab_title | html %] preferences</h2>
+            <!-- prettier-ignore-start -->
     <form action="/cgi-bin/koha/admin/preferences.pl" method="post">
         [% INCLUDE 'csrf-token.inc' %]
         [% UNLESS ( searchfield ) %]<div id="toolbar" class="sticky"><button class="save-all btn btn-primary" type="submit">Save all [% TAB.tab_title | html %] preferences</button></div>[% END %]
@@ -170,6 +164,28 @@
                             <textarea style="display:none" name="pref_[% CHUNK.name | html %]" id="pref_[% CHUNK.name | html %]" class="preference preference-[% CHUNK.class or "short" | html %] codemirror" rows="10" cols="40">[% CHUNK.value | html %]</textarea>
                             <a class="collapse-textarea" id="collapse_[% CHUNK.name | html %]" data-target="[% CHUNK.name | html %]" data-syntax="[% CHUNK.syntax | html %]" style="display:none" href="#">Collapse</br></a>
                         [% END %]
+                    [% ELSIF ( CHUNK.type_ill_backends ) %]
+                        [% IF ( !CHUNK.ill_backends.empty ) %]
+                            <ul class="sortable">
+                                [% FOREACH ill_backend IN CHUNK.ill_backends %]
+                                    <li>
+                                        <i class="fa-solid fa-fw fa-grip-vertical" aria-hidden="true" style="color:#B7B7B7"></i>
+                                        [% IF ( ill_backend.enabled ) %]
+                                            <label for="pref_[% CHUNK.name | html %]_[% ill_backend.name | html %]">[% loop.index()+1 | html %]. [% ill_backend.name | html %]</label>
+                                            <input value="[% ill_backend.name | html %]" name="pref_[% CHUNK.name | html %]" id="pref_[% CHUNK.name | html %]_[% ill_backend.name | html %]" type="checkbox" class="preference preference-checkbox" checked="checked" />
+                                        [% ELSIF (ill_backend.unable) %]
+                                            <label style="color:red" for="pref_[% CHUNK.name | html %]_[% ill_backend.name | html %]">[% loop.index()+1 | html %]. [% ill_backend.name | html %] (Unable to provide availability)</label>
+                                            <input value="[% ill_backend.name | html %]" name="pref_[% CHUNK.name | html %]" id="pref_[% CHUNK.name | html %]_[% ill_backend.name | html %]" type="checkbox" class="preference preference-checkbox" disabled />
+                                        [% ELSE %]
+                                            <label for="pref_[% CHUNK.name | html %]_[% ill_backend.name | html %]">[% ill_backend.name | html %]</label>
+                                            <input value="[% ill_backend.name | html %]" name="pref_[% CHUNK.name | html %]" id="pref_[% CHUNK.name | html %]_[% ill_backend.name | html %]" type="checkbox" class="preference preference-checkbox" />
+                                        [% END %]
+                                    </li>
+                                [% END # FOREACH ill_backend %]
+                            </ul> <!-- / ul.sortable -->
+                        [% ELSE %]
+                            <p><strong>No available backends</strong></p>
+                        [% END # IF ( CHUNK.ill_backends ) %]
                     [% ELSIF ( CHUNK.type_languages ) %]
                         <ul class="sortable">
                             [% FOREACH language IN CHUNK.languages %]
@@ -238,18 +254,10 @@
         [% END %]
         <fieldset class="action"><button class="save-all submit btn btn-primary" type="submit">Save all [% TAB.tab_title | html %] preferences</button> <a href="/cgi-bin/koha/admin/preferences.pl" class="force_reload cancel">Cancel</a></fieldset>
     </form>
-    </div>
+    <!-- prettier-ignore-end -->
+        </div>
     [% END %]
-
-            </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
-
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'prefs-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-     </div> <!-- /.row -->
+[% END %]
 
 <!-- Modal -->
 <div class="modal" id="prefModal" tabindex="-1" role="dialog" aria-labelledby="prefModalLabel">
@@ -293,7 +301,6 @@
     [% Asset.js( "lib/codemirror/css-lint.min.js" ) | $raw %]
     [% Asset.js( "lib/codemirror/yaml-lint.min.js" ) | $raw %]
     [% Asset.js( "lib/sortable/Sortable.min.js" ) | $raw %]
-
     <script>
         var themelang = "[% themelang | html %]";
         $(document).ready(function(){
@@ -313,7 +320,6 @@
         var to_highlight = "[% To.json( searchfield ) | html %]";
         var search_jumped = [% IF ( search_jumped ) %]true[% ELSE %]false[% END %];
         var db_columns = [% To.json( db_columns ) | $raw %];
-
     </script>
     [% Asset.js("lib/jquery/plugins/humanmsg.js") | $raw %]
     [% Asset.js("js/ajax.js") | $raw %]

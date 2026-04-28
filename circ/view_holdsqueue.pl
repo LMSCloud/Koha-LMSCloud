@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 view_holdsqueue
 
@@ -39,12 +39,15 @@ my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
     }
 );
 
-my $params         = $query->Vars;
-my $run_report     = $params->{'run_report'};
-my $branchlimit    = $params->{'branchlimit'};
-my $itemtypeslimit = $params->{'itemtypeslimit'};
-my $ccodeslimit    = $params->{'ccodeslimit'};
-my $locationslimit = $params->{'locationslimit'};
+my $params          = $query->Vars;
+my $run_report      = $params->{'run_report'};
+my $branchlimit     = $params->{'branchlimit'};
+my $itemtypeslimit  = $params->{'itemtypeslimit'};
+my @locationslimits = $query->multi_param('locationslimit');
+my @ccodeslimits    = $query->multi_param('ccodeslimit');
+
+my $locationslimit = @locationslimits ? \@locationslimits : undef;
+my $ccodeslimit    = @ccodeslimits    ? \@ccodeslimits    : undef;
 
 if ($run_report) {
     my $items = GetHoldsQueueItems(
@@ -52,7 +55,7 @@ if ($run_report) {
             branchlimit    => $branchlimit,
             itemtypeslimit => $itemtypeslimit,
             ccodeslimit    => $ccodeslimit,
-            locationslimit => $locationslimit
+            locationslimit => $locationslimit,
         }
     );
 

@@ -83,7 +83,7 @@
                                     <th>Earliest hold date</th>
                                     <th>Hold notes</th>
                                     <th class="string-sort">Pickup location</th>
-                                    <th class="NoSort">Action</th>
+                                    <th class="no-sort">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -108,6 +108,9 @@
                                                     [% IF ( biblio.copyrightdate ) %]<p>[% biblio.copyrightdate | html %]</p>[% END %]
                                                 [% ELSE %]
                                                     [% IF ( biblio.biblioitem.publicationyear ) %]<p>[% biblio.biblioitem.publicationyear | html %]</p>[% END %]
+                                                [% END %]
+                                                [% IF ( hold.hold_group_id ) %]
+                                                    <p>(part of a <a class="hold-group" href="/cgi-bin/koha/reserve/hold-group.pl?hold_group_id=[% hold.hold_group_id | html %]">hold group</a>)</p>
                                                 [% END %]
                                             </td>
                                         [% ELSE %]
@@ -286,46 +289,71 @@
         <!-- /.col-md-2.order-md-1 -->
     </div>
     <!-- /.row -->
-
-    [% MACRO jsinclude BLOCK %]
-        [% INCLUDE 'calendar.inc' %]
-        [% INCLUDE 'datatables.inc' %]
-        [% INCLUDE 'columns_settings.inc' %]
-        <script>
-            function get_options(column){
-                let regex = /(<([^>]+)>)/ig; // Remove html tags
-                let options = [... new Set(column
-                    .data()
-                    .toArray()
-                    .map(d => d.replace(regex, '').trim().split(/\n/gi).map(s => s.trim()).flat())
-                    .flat()
-                    .sort())];
-
-                return options
-                    .map(e => {
-                        return {_id: e, _str: e}
-                    });
-            }
-
-            $(document).ready(function() {
-                let filters_options = {
-                    [5] : (table_dt) => get_options(table_dt.column(5)),
-                    [10] : (table_dt) => get_options(table_dt.column(10)),
-                    [11] : (table_dt) => get_options(table_dt.column(11)),
-                    [15] : (table_dt) => get_options(table_dt.column(15)),
-                };
-
-
-                var table_settings = [% TablesSettings.GetTableSettings('circ', 'holds', 'holds-to-pull', 'json') | $raw %];
-                var holdst = KohaTable("holdst", {
-                    "pagingType": "full_numbers",
-                    "columnDefs": [
-                        { "orderable": false, "searchable":  false, "targets": [ 'NoSort' ] },
-                    ],
-                }, table_settings, true, null, filters_options);
-            });
-        </script>
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% INCLUDE 'hold-group-modal.inc' %]
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    [% Asset.js("js/hold-group.js") | $raw %]
+    <script>
+        function get_options(column){
+            let regex = /(<([^>]+)>)/ig; // Remove html tags
+            let options = [... new Set(column
+                .data()
+                .toArray()
+                .map(d => d.replace(regex, '').trim().split(/\n/gi).map(s => s.trim()).flat())
+                .flat()
+                .sort())];
+
+            return options
+                .map(e => {
+                    return {_id: e, _str: e}
+                });
+        }
+
+        $(document).ready(function() {
+            let filters_options = {
+                libraries: (table_dt) => get_options(table_dt.column(5)),
+                item_types: (table_dt) => get_options(table_dt.column(10)),
+                locations: (table_dt) => get_options(table_dt.column(11)),
+                pickup_locations : (table_dt) => get_options(table_dt.column(15)),
+            };
+
+
+            var table_settings = [% TablesSettings.GetTableSettings('circ', 'holds', 'holds-to-pull', 'json') | $raw %];
+            var holdst = $("#holdst").kohaTable(
+                {
+                    pagingType: "full_numbers",
+                    columns: [
+                        {name: "pull_items" },
+                        {name: "available_items" },
+                        {name: "patrons" },
+                        {name: "patron" },
+                        {name: "title" },
+                        {name: "libraries", dataFilter: "libraries" },
+                        {name: "barcodes" },
+                        {name: "call_numbers" },
+                        {name: "copy_numbers" },
+                        {name: "enumeration" },
+                        {name: "itemtypes", dataFilter: "item_types" },
+                        {name: "locations", dataFilter: "locations" },
+                        {name: "collection" },
+                        {name: "hold_date" },
+                        {name: "reserve_nodes" },
+                        {name: "pickup_location", dataFilter: "pickup_locations" },
+                        {name: "action" },
+                    ],
+                },
+                table_settings,
+                true,
+                null,
+                filters_options
+            );
+        });
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]

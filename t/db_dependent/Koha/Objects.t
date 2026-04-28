@@ -15,11 +15,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 23;
+use Test::NoWarnings;
+use Test::More tests => 25;
 use Test::Exception;
 use Test::MockModule;
 use Test::Warn;
@@ -150,7 +151,7 @@ subtest 'new' => sub {
 };
 
 subtest 'find' => sub {
-    plan tests => 4;
+    plan tests => 5;
 
     # check find on a single PK
     my $patron = $builder->build( { source => 'Borrower' } );
@@ -178,6 +179,20 @@ subtest 'find' => sub {
     );
 
     is( Koha::Patrons->find(), undef, 'Find returns undef if no params passed' );
+
+    # Test that find passes $result in object_class call
+    my $module = Test::MockModule->new('Koha::Patrons');
+    $module->mock(
+        'object_class',
+        sub {
+            my ( $self, $params ) = @_;
+            warn "Found " . ref $params;
+            return $module->original("object_class")->( $self, $params );
+        }
+    );
+    warning_is { $obj = Koha::Patrons->find( $patron->{borrowernumber} ); }
+    'Found Koha::Schema::Result::Borrower', "Koha::Objects->find passed DBIx::Class::Result to \$self->object_class";
+    $module->unmock('object_class');
 };
 
 subtest 'search_related' => sub {
@@ -192,7 +207,7 @@ subtest 'search_related' => sub {
         ->search_related('branchcode');
     is(
         ref($libraries), 'Koha::Libraries',
-        'Koha::Objects->search_related should return an instanciated Koha::Objects-based object'
+        'Koha::Objects->search_related should return an instantiated Koha::Objects-based object'
     );
     is(
         $libraries->count, 2,
@@ -208,7 +223,7 @@ subtest 'search_related' => sub {
 };
 
 subtest 'single' => sub {
-    plan tests => 2;
+    plan tests => 3;
     my $builder  = t::lib::TestBuilder->new;
     my $patron_1 = $builder->build( { source => 'Borrower' } );
     my $patron_2 = $builder->build( { source => 'Borrower' } );
@@ -216,10 +231,49 @@ subtest 'single' => sub {
     is( ref($patron), 'Koha::Patron', 'Koha::Objects->single returns a single Koha::Patron object.' );
     warning_like { Koha::Patrons->search->single } qr/SQL that returns multiple rows/,
         "Warning is presented if single is used for a result with multiple rows.";
+
+    # Test that single passes $result in object_class call
+    my $module = Test::MockModule->new('Koha::Patrons');
+    $module->mock(
+        'object_class',
+        sub {
+            my ( $self, $params ) = @_;
+            warn "Found " . ref $params;
+            return $module->original("object_class")->( $self, $params );
+        }
+    );
+    warning_is { $patron = Koha::Patrons->search( {}, { rows => 1 } )->single; }
+    'Found Koha::Schema::Result::Borrower',
+        "Koha::Objects->single passed DBIx::Class::Result into \$self->object_class";
+
+    $module->unmock('object_class');
+};
+
+subtest 'next' => sub {
+    plan tests => 1;
+
+    my $builder  = t::lib::TestBuilder->new;
+    my $patron_1 = $builder->build( { source => 'Borrower' } );
+    my $patron_2 = $builder->build( { source => 'Borrower' } );
+
+    # Test that single passes $result in object_class call
+    my $module = Test::MockModule->new('Koha::Patrons');
+    $module->mock(
+        'object_class',
+        sub {
+            my ( $self, $params ) = @_;
+            warn "Found " . ref $params;
+            return $module->original("object_class")->( $self, $params );
+        }
+    );
+    warning_is { my $next_patron = Koha::Patrons->search->next; }
+    'Found Koha::Schema::Result::Borrower', "Koha::Objects->next passed DBIx::Class::Result into \$self->object_class";
+
+    $module->unmock('object_class');
 };
 
 subtest 'last' => sub {
-    plan tests => 3;
+    plan tests => 4;
     my $builder     = t::lib::TestBuilder->new;
     my $patron_1    = $builder->build( { source => 'Borrower' } );
     my $patron_2    = $builder->build( { source => 'Borrower' } );
@@ -232,6 +286,21 @@ subtest 'last' => sub {
     );
     $last_patron = Koha::Patrons->search( { surname => 'should_not_exist' } )->last;
     is( $last_patron, undef, '->last should return undef if search does not return any results' );
+
+    # Test that single passes $result in object_class call
+    my $module = Test::MockModule->new('Koha::Patrons');
+    $module->mock(
+        'object_class',
+        sub {
+            my ( $self, $params ) = @_;
+            warn "Found " . ref $params;
+            return $module->original("object_class")->( $self, $params );
+        }
+    );
+    warning_is { $last_patron = Koha::Patrons->search->last; }
+    'Found Koha::Schema::Result::Borrower', "Koha::Objects->last passed DBIx::Class::Result into \$self->object_class";
+
+    $module->unmock('object_class');
 };
 
 subtest 'get_column' => sub {
@@ -517,7 +586,7 @@ subtest 'Return same values as DBIx::Class' => sub {
                     !defined $e_us && !defined $e_them,
                     'Successful delete should not raise an exception'
                 );
-                is( ref($r_us), 'Koha::City', 'Successful delete should return our Koha::Obect based object' );
+                is( ref($r_us), 'Koha::City', 'Successful delete should return our Koha::Object based object' );
 
                 # CASE 2 - Delete an object that is not in storage
                 try { $r_us   = $r_us->delete; } catch   { $e_us   = $_ };
@@ -527,7 +596,7 @@ subtest 'Return same values as DBIx::Class' => sub {
                     'Delete an object that is not in storage should raise an exception'
                 );
                 is( ref($e_us), 'DBIx::Class::Exception' )
-                    ;    # FIXME This needs adjustement, we want to throw a Koha::Exception
+                    ;    # FIXME This needs adjustment, we want to throw a Koha::Exception
 
             };
 
@@ -646,7 +715,7 @@ subtest 'Return same values as DBIx::Class' => sub {
                 );
                 is(
                     ref($r_us), 'Koha::Patron',
-                    'Successful delete should return our Koha::Obect based object'
+                    'Successful delete should return our Koha::Object based object'
                 );
 
                 # CASE 2 - Delete a patron that is not in storage
@@ -657,7 +726,7 @@ subtest 'Return same values as DBIx::Class' => sub {
                     'Delete a patron that is not in storage should raise an exception'
                 );
                 is( ref($e_us), 'DBIx::Class::Exception' )
-                    ;    # FIXME This needs adjustement, we want to throw a Koha::Exception
+                    ;    # FIXME This needs adjustment, we want to throw a Koha::Exception
 
                 # CASE 3 - Delete a patron that cannot be deleted (as a checkout)
                 $patron = Koha::Patron->new($patron_data)->store;
@@ -675,7 +744,7 @@ subtest 'Return same values as DBIx::Class' => sub {
                     'Delete a patron that cannot be deleted should raise an exception'
                 );
                 is( ref($e_us), 'DBIx::Class::Exception' )
-                    ;    # FIXME This needs adjustement, we want to throw a Koha::Exception
+                    ;    # FIXME This needs adjustment, we want to throw a Koha::Exception
             };
 
             subtest 'Koha::Objects->delete' => sub {
@@ -870,7 +939,7 @@ subtest 'Return same values as DBIx::Class' => sub {
                     !defined $e_us && !defined $e_them,
                     'Successful update should not raise an exception'
                 );
-                is( ref($r_us), 'Koha::City', 'Successful update should return our Koha::Obect based object' );
+                is( ref($r_us), 'Koha::City', 'Successful update should return our Koha::Object based object' );
 
                 # CASE 2 - Update an object that is not in storage
                 $c_us->delete;
@@ -1007,7 +1076,7 @@ subtest 'Return same values as DBIx::Class' => sub {
                 );
                 is(
                     ref($r_us), 'Koha::Patron',
-                    'Successful update should return our Koha::Obect based object'
+                    'Successful update should return our Koha::Object based object'
                 );
 
                 # CASE 2 - Update a patron that is not in storage
@@ -1185,7 +1254,7 @@ subtest "filter_by_last_update" => sub {
                 class => 'Koha::Patrons',
                 value => { updated_on => $now->clone->subtract( days => $i ) }
             }
-        )->borrowernumber;
+            )->borrowernumber;
     }
 
     my $patrons = Koha::Patrons->search( { borrowernumber => { -in => \@borrowernumbers } } );

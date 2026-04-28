@@ -3,7 +3,7 @@
         <div id="toolbar" class="toolbar clearfix">
             <div class="container-fluid">
                 <div class="row">
-                    <div class="span12">
+                    <div class="col-12">
                         <div class="detail_volume_header">Parts of the work ([% VolumeData.size | html %])</div>
                     </div>
                 </div>
@@ -30,11 +30,11 @@
         <div id="toolbar" class="toolbar clearfix">
             <div class="container-fluid">
                 <div class="row">
-                    <div class="span12">
+                    <div class="col-12">
                         [% IF (LinkedRecordData.size == 1) %]
-                            <div class="detail_linked_record_header">The title is part fo the following work</div>
+                            <div class="detail_linked_record_header">The title is part of the following work</div>
                         [% ELSE %]
-                            <div class="detail_linked_record_header">The title is part fo the following works</div>
+                            <div class="detail_linked_record_header">The title is part of the following works</div>
                         [% END %]
                     </div>
                 </div>

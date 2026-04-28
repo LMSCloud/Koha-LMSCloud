@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -63,9 +63,17 @@ if ( $op eq 'cud-edit_message' && $message_id ) {
         )->store;
     }
 
-    if ( $message_type eq 'E' ) {
-        my $logged_in_patron = Koha::Patrons->find($loggedinuser);
-        if ( !$logged_in_patron->has_permission( { borrowers => 'send_messages_to_borrowers' } ) ) {
+    if ( $message_type eq 'E' or $message_type eq 'SMS' ) {
+        my $message_transport_type = $message_type eq 'SMS' ? 'sms' : 'email';
+        my $logged_in_patron       = Koha::Patrons->find($loggedinuser);
+        if ( $message_transport_type eq 'email'
+            && !$logged_in_patron->has_permission( { borrowers => 'send_messages_to_borrowers_email' } ) )
+        {
+            C4::Output::output_and_exit( $input, $cookie, $template, 'insufficient_permission' );
+        }
+        if ( $message_transport_type eq 'sms'
+            && !$logged_in_patron->has_permission( { borrowers => 'send_messages_to_borrowers_sms' } ) )
+        {
             C4::Output::output_and_exit( $input, $cookie, $template, 'insufficient_permission' );
         }
 
@@ -78,10 +86,12 @@ if ( $op eq 'cud-edit_message' && $message_id ) {
 
         if ($letter_code) {
             $letter = C4::Letters::GetPreparedLetter(
-                module      => 'add_message',
-                letter_code => $letter_code,
-                lang        => $patron->lang,
-                tables      => {
+                module                 => 'add_message',
+                letter_code            => $letter_code,
+                lang                   => $patron->lang,
+                message_transport_type => $message_transport_type,
+                branchcode             => $branchcode,
+                tables                 => {
                     'borrowers' => $borrowernumber,
                     'branches'  => $branchcode,
                 },
@@ -92,7 +102,7 @@ if ( $op eq 'cud-edit_message' && $message_id ) {
             {
                 letter                 => $letter,
                 borrowernumber         => $borrowernumber,
-                message_transport_type => 'email',
+                message_transport_type => $message_transport_type,
             }
         ) or warn "can't enqueue letter";
     }

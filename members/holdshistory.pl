@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -42,13 +42,6 @@ my $patron         = Koha::Patrons->find( $cardnumber ? { cardnumber => $cardnum
 unless ($patron) {
     print $input->redirect("/cgi-bin/koha/circ/circulation.pl?borrowernumber=$borrowernumber");
     exit;
-}
-
-if ( $borrowernumber eq C4::Context->preference('AnonymousPatron') ) {
-
-    # use of 'eq' in the above comparison is intentional -- the
-    # system preference value could be blank
-    $template->param( is_anonymous => 1 );
 }
 
 $template->param(

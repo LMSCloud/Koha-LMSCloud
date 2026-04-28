@@ -18,12 +18,13 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use File::Find;
 use Data::Dumper;
-use Test::More tests => 1;
+use Test::More tests => 2;
+use Test::NoWarnings;
 
 my @files;
 
@@ -31,7 +32,7 @@ sub wanted {
     my $name = $File::Find::name;
 
     # Ignore files in .git, blib and node_modules
-    return if $name =~ m[^\./(.git|blib|node_modules|merge-analysis)];
+    return if $name =~ m[^\./(.git|blib|node_modules)];
 
     # Ignore directories
     return if -d $name;    # Skip dir

@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 76;
+use Test::NoWarnings;
+use Test::More tests => 77;
 use Test::Warn;
 use Test::MockModule;
 use t::lib::TestBuilder;
@@ -29,7 +30,7 @@ $| = 1;
 BEGIN {
     use FindBin;
     use lib $FindBin::Bin;
-    use_ok( 'C4::Barcodes', qw( value initial max db_max next_value next previous serial autoBarcode is_max ) );
+    use_ok('C4::Barcodes');
 }
 
 my $builder = t::lib::TestBuilder->new;

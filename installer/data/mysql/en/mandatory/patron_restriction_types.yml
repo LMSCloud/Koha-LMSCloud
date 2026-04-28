@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 description:
   - "Default Koha system patron restriction types"
@@ -47,5 +47,10 @@ tables:
 
         - code: "NOTICE_FAILURE_SUSPENSION"
           display_text: "Notice failure suspension"
+          is_system: 1
+          is_default: 0
+
+        - code: "FINES"
+          display_text: "Fines suspension"
           is_system: 1
           is_default: 0

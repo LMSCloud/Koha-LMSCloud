@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 housebound.pl
 
@@ -122,7 +122,7 @@ if ( $op eq 'cud-updateconfirm' and $houseboundprofile ) {
     $houseboundvisit = $visit;
 } elsif ( $op eq 'cud-visit_delete' and $visit ) {
 
-    # We want ot delete a specific visit.
+    # We want to delete a specific visit.
     my $success = eval { return $visit->delete };
     push @messages, { type => 'error', code => 'error_on_visit_delete' }
         if ( $@ or !$success );

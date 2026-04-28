@@ -15,11 +15,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 7;
+use Test::NoWarnings;
+use Test::More tests => 8;
 
 use Test::Exception;
 use Test::MockModule;
@@ -61,7 +62,7 @@ subtest 'store' => sub {
 };
 
 subtest 'holds + current_holds' => sub {
-    plan tests => 5;
+    plan tests => 6;
     C4::Reserves::AddReserve(
         {
             branchcode     => $patron->branchcode,
@@ -84,12 +85,16 @@ subtest 'holds + current_holds' => sub {
             reservation_date => dt_from_string->add( days => 2 ),
         }
     );
+    t::lib::Mocks::mock_preference( 'ConfirmFutureHolds', 0 );
     $holds = $biblio->holds;
     is( $holds->count, 1, '->holds should return future holds' );
     $holds = $biblio->current_holds;
-    is( $holds->count, 0, '->current_holds should not return future holds' );
+    is( $holds->count, 0, '->current_holds without lookahead should not return future holds' );
+    t::lib::Mocks::mock_preference( 'ConfirmFutureHolds', 2 );
+    $holds = $biblio->current_holds;
+    is( $holds->count, 1, '->current_holds with lookahead returns future holds' );
     $holds->delete;
-
+    t::lib::Mocks::mock_preference( 'ConfirmFutureHolds', 0 );
 };
 
 subtest 'waiting_or_in_transit' => sub {

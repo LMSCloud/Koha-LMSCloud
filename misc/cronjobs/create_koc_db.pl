@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 #
 
 =head1 NAME
@@ -188,7 +188,7 @@ pass in the filename that we're considering using for the SQLite db.
 
 returns true if we can use it.
 
-returns false if we can't. For example, if it alredy exists and we
+returns false if we can't. For example, if it already exists and we
 don't have --force or don't have permissions to unlink it.
 
 =cut

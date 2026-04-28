@@ -13,13 +13,14 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use POSIX qw(strftime);
 
-use Test::More tests => 73;
+use Test::NoWarnings;
+use Test::More tests => 74;
 use t::lib::Mocks;
 use Koha::Database;
 use Koha::DateUtils qw(dt_from_string output_pref);
@@ -180,7 +181,7 @@ my ( $biblionumber3, $biblioitemnumber3 ) = AddBiblio( MARC::Record->new, '' );
 my ( $biblionumber4, $biblioitemnumber4 ) = AddBiblio( MARC::Record->new, '' );
 my ( $biblionumber5, $biblioitemnumber5 ) = AddBiblio( MARC::Record->new, '' );
 
-# Prepare 6 orders, and make distinction beween fields to be tested with eq and with ==
+# Prepare 6 orders, and make distinction between fields to be tested with eq and with ==
 # Ex : a price of 50.1 will be stored internally as 5.100000
 
 my @order_content = (

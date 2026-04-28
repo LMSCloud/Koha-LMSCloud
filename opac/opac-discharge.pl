@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Carp qw( carp );
@@ -45,10 +45,16 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
-my $can_be_discharged = Koha::Patron::Discharge::can_be_discharged( { borrowernumber => $loggedinuser } );
+my ( $can_be_discharged, $discharge_problems ) =
+    Koha::Patron::Discharge::can_be_discharged( { borrowernumber => $loggedinuser } );
 if ( $can_be_discharged == 0 ) {
     $template->param( has_checkouts => 1 );
 }
+
+$template->param(
+    can_be_discharged  => $can_be_discharged,
+    discharge_problems => $discharge_problems,
+);
 
 my $pending = Koha::Patron::Discharge::count(
     {
@@ -73,7 +79,7 @@ if ( $op eq 'cud-request' ) {
     if ($success) {
         $template->param( success => 1 );
     } else {
-        $template->param( has_issues => 1 );
+        $template->param( failure => 1 );
     }
 } elsif ( $op eq 'get' ) {
     unless ($available) {

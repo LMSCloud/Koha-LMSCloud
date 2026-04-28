@@ -1,4 +1,4 @@
-/* global __ dataTablesDefaults */
+/* global __ */
 
 function clean_line(line) {
     $(line).find('input[type="text"]').val("");
@@ -52,16 +52,10 @@ function tableInit(oldtabid, newtabid) {
         oldTableId.DataTable().destroy();
     }
 
-    var newTableId = $("#" + newtabid + "_table");
-    newTableId.DataTable(
-        $.extend(true, {}, dataTablesDefaults, {
-            columnDefs: [
-                { orderable: false, searchable: false, targets: ["NoSort"] },
-            ],
-            paging: false,
-            autoWidth: false,
-        })
-    );
+    $("#" + newtabid + "_table").kohaTable({
+        paging: false,
+        autoWidth: false,
+    });
 }
 
 $(document).ready(function () {
@@ -157,10 +151,7 @@ $(document).ready(function () {
 
     $("#facet_biblios_table").DataTable(
         $.extend(true, {}, dataTablesDefaults, {
-            columnDefs: [
-                { orderable: false, targets: ["NoSort"] },
-                { searchable: false, visible: false, targets: 0 },
-            ],
+            columnDefs: [{ searchable: false, visible: false, targets: 0 }],
             dom: "t",
             paging: false,
             autoWidth: false,

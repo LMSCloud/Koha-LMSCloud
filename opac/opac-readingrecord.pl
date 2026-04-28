@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -21,6 +21,7 @@ use CGI qw ( -utf8 );
 
 use C4::Auth                  qw( get_template_and_user );
 use C4::Biblio                qw( GetXmlBiblio );
+use C4::Charset               qw( StripNonXmlChars );
 use C4::External::BakerTaylor qw( image_url link_url );
 use C4::Koha                  qw( GetNormalizedUPC GetNormalizedOCLCNumber );
 use MARC::Record;
@@ -120,7 +121,7 @@ if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnab
         my $marcxml = C4::Biblio::GetXmlBiblio($biblionumber);
         next unless $marcxml;
         eval {
-            $marcxml = Koha::Misc::XML::StripNonXmlChars($marcxml) if $marcxml;
+            $marcxml = StripNonXmlChars($marcxml) if $marcxml;
             my $marc_rec = MARC::Record::new_from_xml( $marcxml, 'UTF-8', C4::Context->preference('marcflavour') );
             if ($marc_rec) {
                 my @coverurls;

@@ -23,7 +23,7 @@
         </fieldset>
     </form>
     [% END %]
-    [% showCashRegisterOverview | html %]
+    [% showCashRegisterOverview | $raw %]
     <h4 style="margin-top:20px;">Inpayment overview ([% cash_register.cash_register_name | html %])</h4>
     <table id="inpaymentoverview" class="table-bordered">
         <thead>
@@ -516,7 +516,7 @@
 		[% CASE 'writeoffbyday' %]Detailed write offs and cancellations by day
         [% CASE %][% seltype | html %]
         [%- END -%]
-    </h4>
+    </h3>
     [% IF (finesstats.type == 'paymentsbyday' || finesstats.type == 'paymentsbymanager' || finesstats.type == 'paymentsbytype') %]
     <p>
         The following payment overview lists detailed payments of the selected branch during the selected period. It includes all cash payments, deposits and adjustments of cash registers during the selected period.

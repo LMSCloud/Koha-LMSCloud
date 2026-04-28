@@ -12,19 +12,17 @@
 # A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with Koha; if not, see <http://www.gnu.org/licenses>.
+# with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
+use Test::NoWarnings;
 use Test::More tests => 9;
 use Test::MockModule;
 use t::lib::TestBuilder;
 
 use Koha::Database;
-
-BEGIN {
-    use_ok( 'C4::Barcodes::ValueBuilder', qw( get_barcode ) );
-}
+use C4::Barcodes::ValueBuilder;
 
 my $schema = Koha::Database->new->schema;
 $schema->storage->txn_begin;

@@ -4,9 +4,17 @@
 [% USE ItemTypes %]
 [% USE AdditionalContents %]
 [% USE Price %]
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
 
-<title>Request article &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+<title
+    >[% FILTER collapse %]
+        [% title_in_title = INCLUDE 'biblio-title-head.inc' %]
+        [% tx("Request article from {title}", { title = title_in_title }) | html %]
+        &rsaquo; [% PROCESS 'library_name_title' %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %]
 [% END %]
@@ -18,7 +26,7 @@
 [% SET disclaimer = AdditionalContents.get( location => "ArticleRequestsDisclaimerText", lang => lang, library => logged_in_user.branchcode || default_branch ) %]
 [% SET AllPublicBranches = Branches.all(  search_params => { public => 1 } ) %]
 
-<div class="main">
+<main class="main">
     [% WRAPPER breadcrumbs %]
         [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblio.biblionumber | uri %]">Details for: [% biblio.title | html %]</a>
@@ -249,7 +257,7 @@
         <!-- /.row -->
     </div>
     <!-- / .container-fluid -->
-</div>
+</main>
 <!-- / .main -->
 
 [% INCLUDE 'opac-bottom.inc' %]
@@ -278,6 +286,19 @@
                         if ( ! $("#" + m[i]).val() ) {
                             f.push( m[i] );
                         }
+                    }
+
+                    // Initialize format(s)
+                    var supported_formats = "[% Koha.Preference('ArticleRequestsSupportedFormats') | $raw %]";
+                    if( !supported_formats.match(/PHOTOCOPY/) )
+                        $('#format option[value="PHOTOCOPY"]').remove();
+                    if( !supported_formats.match(/SCAN/) )
+                        $('#format option[value="SCAN"]').remove();
+
+                    if( $('#format option').length > 1 ) {
+                        // Select first listed format
+                        var first_format = supported_formats.split('|')[0].replace(/^\s*|\s*$/g, '');
+                        $('#format option[value="'+first_format+'"]').attr('selected', true);
                     }
 
                     if ( f.length ) {

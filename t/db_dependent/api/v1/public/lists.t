@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::NoWarnings;
+use Test::More tests => 2;
 use Test::Mojo;
 
 use JSON qw(encode_json);
@@ -74,7 +75,8 @@ subtest 'list_public() tests' => sub {
     );
 
     # anonymous
-    $t->get_ok("/api/v1/public/lists?q=$q")->status_is( 200, "Anonymous users can only fetch public lists" )
+    $t->get_ok("/api/v1/public/lists?q=$q")
+        ->status_is( 200, "Anonymous users can only fetch public lists" )
         ->json_is( [ $list_1->to_api( { public => 1 } ), $list_3->to_api( { public => 1 } ) ] );
 
     $t->get_ok("/api/v1/public/lists?q=$q&only_public=1")

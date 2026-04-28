@@ -15,7 +15,7 @@ package Koha::Account;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -42,6 +42,12 @@ use Koha::Plugins;
 
 =head1 NAME
 Koha::Accounts - Module for managing payments and fees for patrons
+
+=cut
+
+=head2 new
+
+Missing POD for new.
 
 =cut
 
@@ -87,18 +93,8 @@ sub pay {
     my $onlinePaymentCashRegisterManagerId = $params->{onlinePaymentCashRegisterManagerId} || 0;
 
     my $userenv = C4::Context->userenv;
-
-    # LMSCloud: only populate library_id from userenv for CashRegister-relevant
-    # payment types. Plain pay() calls without explicit library_id must keep
-    # library_id undef to match upstream behavior.
-    if (  !$library_id
-        && $userenv
-        && $userenv->{branch}
-        && $payment_type
-        && $payment_type =~ /^(CASH|SEPA|ONLINE|SIP)/
-        && C4::Context->preference("ActivateCashRegisterTransactionsOnly") )
-    {
-        $library_id = $userenv->{branch};
+    if ( !$library_id && $userenv && $userenv->{branch} ) {
+        $library_id = $userenv->{branch} if Koha::Libraries->find( $userenv->{branch} );
     }
 
     unless ( $type eq 'WRITEOFF' || $type eq 'CANCELLATION' ) {
@@ -137,15 +133,13 @@ sub pay {
 
     # NOTE: Pay historically always applied as much credit as it could to all
     # existing outstanding debits, whether passed specific debits or otherwise.
-    if ( $payment->amountoutstanding < -0.001 || $payment->amountoutstanding > 0.001 )
-    {    # calculation with MariaDB: -6.40 + 0.30 + 0.30 + 3.30 + 2.50 = -8.88178419700125e-16
+    if ( $payment->amountoutstanding < -0.001 || $payment->amountoutstanding > 0.001 ) {
         $payment = $payment->apply( { debits => [ $self->outstanding_debits->as_list ] } );
     }
 
     my $patron          = Koha::Patrons->find( $self->{patron_id} );
     my @account_offsets = $payment->credit_offsets( { type => 'APPLY' } )->as_list;
-
-    if ( C4::Context->preference('UseEmailReceipts') ) {
+    if ( C4::Context->preference('AutomaticEmailReceipts') ) {
         if (
             my $letter = C4::Letters::GetPreparedLetter(
                 module                 => 'circulation',
@@ -406,23 +400,16 @@ sub payin_amount {
     # amount should always be passed as a positive value
     my $amount = $params->{amount};
     unless ( $amount > 0 ) {
-        Koha::Exceptions::Account::AmountNotPositive->throw( error => 'Payin amount passed ($amount) is not positive' );
+        Koha::Exceptions::Account::AmountNotPositive->throw( error => "Payin amount passed ($amount) is not positive" );
     }
 
     my $cash_register_mngmt = undef;
-
-    # Check whether cash registers are activated and mandatory for payment actions.
-    # If thats the case than we need to check whether the manager has opened a cash
-    # register to use for payments.
-    if (  !$params->{noCashReg}
-        && $params->{payment_type}
-        && $params->{payment_type} =~ /^(CASH|SEPA|ONLINE|SIP)/
+    if (   !$params->{noCashReg}
+        && ( $params->{payment_type} // '' ) =~ /^(CASH|SEPA|ONLINE|SIP)/
         && C4::Context->preference("ActivateCashRegisterTransactionsOnly")
         && $params->{type} eq 'PAYMENT' )
     {
         $cash_register_mngmt = C4::CashRegisterManagement->new( $params->{library_id}, $params->{user_id} );
-
-        # if there is no open cash register of the manager we return without a doing the payment
         Koha::Exceptions::Account::RegisterRequired->throw()
             if ( !$cash_register_mngmt->managerHasOpenCashRegister( $params->{library_id}, $params->{user_id} ) );
     }
@@ -449,9 +436,8 @@ sub payin_amount {
 
             # If it is not SIP it is a cash payment and if cash registers are activated as too,
             # the cash payment need to registered for the opened cash register as cash receipt
-            if (  !$params->{noCashReg}
-                && $params->{payment_type}
-                && $params->{payment_type} =~ /^(CASH|SEPA|ONLINE|SIP)/
+            if (   !$params->{noCashReg}
+                && ( $params->{payment_type} // '' ) =~ /^(CASH|SEPA|ONLINE|SIP)/
                 && C4::Context->preference("ActivateCashRegisterTransactionsOnly")
                 && $params->{type} eq 'PAYMENT' )
             {
@@ -689,17 +675,11 @@ sub payout_amount {
         unless ( $outstanding >= $amount );
 
     my $cash_register_mngmt = undef;
-
-    # Check whether cash registers are activated and mandatory for payment actions.
-    # If thats the case than we need to check whether the manager has opened a cash
-    # register to use for payments.
     if (  !$params->{noCashReg}
         && $params->{payout_type} =~ /^(CASH|SEPA|ONLINE|SIP)/
         && C4::Context->preference("ActivateCashRegisterTransactionsOnly") )
     {
         $cash_register_mngmt = C4::CashRegisterManagement->new( $params->{branch}, $params->{staff_id} );
-
-        # if there is no open cash register of the manager we return without a doing the payment
         Koha::Exceptions::Account::RegisterRequired->throw()
             if ( !$cash_register_mngmt->managerHasOpenCashRegister( $params->{branch}, $params->{staff_id} ) );
     }

@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -270,7 +270,7 @@ program. They may be redirected to a file if desired.
 =head2 Templates
 
 Templates can contain variables enclosed in double angle brackets like
-E<lt>E<lt>thisE<gt>E<gt>. Those variables will be replaced with values
+<<this>>. Those variables will be replaced with values
 specific to the overdue items or relevant patron. Available variables
 are:
 
@@ -425,7 +425,7 @@ if ($branchcount) {
         and warn "Found $branchcount $overduebranch_word with first message enabled: "
         . join( ', ', map { "'$_'" } @overduebranches ), "\n";
 } else {
-    die 'No branches with active overduerules';
+    $verbose and die 'No branches with active overduerules';
 }
 
 if (@branchcodes) {
@@ -553,6 +553,7 @@ foreach my $branchcode (@branches) {
     my $branch_email_address = C4::Context->preference('AddressForFailedOverdueNotices')
         || $library->inbound_email_address;
     my @output_chunks;    # may be sent to mail or stdout or csv file.
+    my %already_queued;
 
     $verbose and print "======================================\n";
     $verbose and warn sprintf "branchcode : '%s' using %s\n", $branchcode, $branch_email_address;
@@ -1345,9 +1346,6 @@ sub _get_html_start {
 <style type='text/css'>
 pre {page-break-after: always;}
 pre {white-space: pre-wrap;}
-pre {white-space: -moz-pre-wrap;}
-pre {white-space: -o-pre-wrap;}
-pre {word-wrap: break-work;}
 </style>
 </head>
 <body>";

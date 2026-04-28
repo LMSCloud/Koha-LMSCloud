@@ -16,9 +16,17 @@ package C4::XISBN;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(
+        get_xisbns
+    );
+}
+
 use XML::Simple;
 
 use C4::Biblio              qw(TransformMarcToKoha);
@@ -30,16 +38,6 @@ use LWP::UserAgent;
 use Koha::Biblios;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
-
-our ( @ISA, @EXPORT_OK );
-
-BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
-        get_xisbns
-    );
-}
 
 =head1 NAME
 
@@ -79,6 +77,12 @@ sub _get_biblio_from_xisbn {
 =head1 get_xisbns($isbn, $biblionumber);
 
 =head2 $isbn is an ISBN string
+
+=cut
+
+=head2 get_xisbns
+
+Missing POD for get_xisbns.
 
 =cut
 

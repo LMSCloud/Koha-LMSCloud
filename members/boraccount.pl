@@ -19,7 +19,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use URI::Escape qw( uri_unescape );
@@ -54,8 +54,7 @@ my $schema         = Koha::Database->new->schema;
 my $borrowernumber = $input->param('borrowernumber');
 my $payment_id     = $input->param('payment_id');
 my $change_given   = $input->param('change_given');
-my $action         = $input->param('action') || '';
-my $op             = $input->param('op')     || '';
+my $op             = $input->param('op') || '';
 my @renew_results  = $input->multi_param('renew_result');
 
 my $logged_in_user = Koha::Patrons->find($loggedinuser);
@@ -75,68 +74,28 @@ my $branch              = C4::Context->userenv->{'branch'};
 my $checkCashRegisterOk = passCashRegisterCheck( $branch, $loggedinuser );
 my $registerid          = $input->param('registerid');
 
-if ( $action eq 'reverse' ) {
-    my $payment_id = scalar $input->param('accountlines_id');
-    my $payment    = Koha::Account::Lines->find($payment_id);
-    my $voided     = $payment->void(
-        {
-            branch    => $library_id,
-            staff_id  => $logged_in_user->id,
-            interface => 'intranet',
-        }
-    );
-
-    my $charge_id   = $voided->id;
-    my $charge      = Koha::Account::Lines->find($charge_id);
-    my $amount      = $voided->amount;
-    my $refund_type = scalar $input->param('refund_type');
-    $refund_type = 'CASH' if ( !$refund_type );
-
-    $schema->txn_do(
-        sub {
-
-            my $refund = $charge->reduce(
-                {
-                    reduction_type => 'REFUND',
-                    branch         => $library_id,
-                    staff_id       => $logged_in_user->id,
-                    interface      => 'intranet',
-                    amount         => $amount
-                }
-            );
-            my $payout = $refund->payout(
-                {
-                    payout_type   => $refund_type,
-                    branch        => $library_id,
-                    staff_id      => $logged_in_user->id,
-                    cash_register => $registerid,
-                    interface     => 'intranet',
-                    amount        => $amount
-                }
-            );
-        }
-    );
-}
-
-if ( $action eq 'void' ) {
+if ( $op eq 'cud-void' ) {
     output_and_exit_if_error( $input, $cookie, $template, { check => 'csrf_token' } );
     my $payment_id = scalar $input->param('accountlines_id');
     my $payment    = Koha::Account::Lines->find($payment_id);
+    my $note       = scalar $input->param('void_note');
     $payment->void(
         {
             branch    => $library_id,
             staff_id  => $logged_in_user->id,
             interface => 'intranet',
+            note      => $note
         }
     );
 }
 
-if ( $action eq 'payout' ) {
+if ( $op eq 'cud-payout' ) {
     output_and_exit_if_error( $input, $cookie, $template, { check => 'csrf_token' } );
     my $payment_id  = scalar $input->param('accountlines_id');
     my $payment     = Koha::Account::Lines->find($payment_id);
     my $amount      = scalar $input->param('amount');
     my $payout_type = scalar $input->param('payout_type');
+    my $note        = scalar $input->param('payout_note');
     if ( $payment_id eq "" ) {
         $schema->txn_do(
             sub {
@@ -147,7 +106,7 @@ if ( $action eq 'payout' ) {
                         staff_id      => $logged_in_user->id,
                         cash_register => $registerid,
                         interface     => 'intranet',
-                        amount        => $amount
+                        amount        => $amount,
                     }
                 );
             }
@@ -163,7 +122,8 @@ if ( $action eq 'payout' ) {
                         staff_id      => $logged_in_user->id,
                         cash_register => $registerid,
                         interface     => 'intranet',
-                        amount        => $amount
+                        amount        => $amount,
+                        note          => $note
                     }
                 );
             }
@@ -171,12 +131,14 @@ if ( $action eq 'payout' ) {
     }
 }
 
-if ( $action eq 'refund' ) {
+if ( $op eq 'cud-refund' ) {
     output_and_exit_if_error( $input, $cookie, $template, { check => 'csrf_token' } );
     my $charge_id   = scalar $input->param('accountlines_id');
     my $charge      = Koha::Account::Lines->find($charge_id);
     my $amount      = scalar $input->param('amount');
     my $refund_type = scalar $input->param('refund_type');
+    my $note        = scalar $input->param('refund_note');
+
     $schema->txn_do(
         sub {
 
@@ -186,7 +148,8 @@ if ( $action eq 'refund' ) {
                     branch         => $library_id,
                     staff_id       => $logged_in_user->id,
                     interface      => 'intranet',
-                    amount         => $amount
+                    amount         => $amount,
+                    note           => $note
                 }
             );
             unless ( $refund_type eq 'AC' ) {
@@ -197,7 +160,8 @@ if ( $action eq 'refund' ) {
                         staff_id      => $logged_in_user->id,
                         cash_register => $registerid,
                         interface     => 'intranet',
-                        amount        => $amount
+                        amount        => $amount,
+                        note          => $note
                     }
                 );
             }
@@ -205,11 +169,12 @@ if ( $action eq 'refund' ) {
     );
 }
 
-if ( $action eq 'discount' ) {
+if ( $op eq 'cud-discount' ) {
     output_and_exit_if_error( $input, $cookie, $template, { check => 'csrf_token' } );
     my $charge_id = scalar $input->param('accountlines_id');
     my $charge    = Koha::Account::Lines->find($charge_id);
     my $amount    = scalar $input->param('amount');
+    my $note      = scalar $input->param('apply_discount_note');
     $schema->txn_do(
         sub {
 
@@ -219,7 +184,8 @@ if ( $action eq 'discount' ) {
                     branch         => $library_id,
                     staff_id       => $logged_in_user->id,
                     interface      => 'intranet',
-                    amount         => $amount
+                    amount         => $amount,
+                    note           => $note,
                 }
             );
         }
@@ -260,6 +226,28 @@ if ( $op eq 'cud-send_receipt' ) {
     } else {
         $receipt_sent = -1;
     }
+}
+
+if ( $op eq 'cud-edit_note' ) {
+
+    output_and_exit_if_error( $input, $cookie, $template, { check => 'csrf_token' } );
+
+    my $payment_id = scalar $input->param('accountlines_id');
+    my $note       = scalar $input->param('edited_note');
+
+    my $payment = Koha::Account::Lines->find($payment_id);
+
+    $schema->txn_do(
+        sub {
+            # Update the note and date in the account line
+            $payment->set(
+                {
+                    date => \'NOW()',
+                    note => $note
+                }
+            )->store();
+        }
+    );
 }
 
 #get account details

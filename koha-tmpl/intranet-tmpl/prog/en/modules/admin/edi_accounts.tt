@@ -1,6 +1,7 @@
 [% USE raw %]
 [% USE Koha %]
 [% USE Asset %]
+[% USE TablesSettings %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
@@ -31,7 +32,11 @@
 [% WRAPPER 'sub-header.inc' %]
     [% WRAPPER breadcrumbs %]
         [% WRAPPER breadcrumb_item %]
-            <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
+            [% IF CAN_user_parameters %]
+                <a href="/cgi-bin/koha/admin/admin-home.pl">Administration</a>
+            [% ELSE %]
+                <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisitions</a>
+            [% END %]
         [% END %]
 
         [% IF acct_form || delete_confirm %]
@@ -62,334 +67,358 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' aside='admin-menu' %]
 
-                [% UNLESS Koha.Preference('EDIFACT') %]
-                    <div class="alert alert-info"> EDIFACT is currently disabled </div>
-                [% END %]
-
-                [% IF display %]
-                    <div id="toolbar" class="btn-toolbar">
-                        <a class="btn btn-default" id="newediacct" href="/cgi-bin/koha/admin/edi_accounts.pl?op=acct_form">
-                            <i class="fa fa-plus"></i>
-                            New account
-                        </a>
-                    </div>
-                [% END %]
-
-                [% IF acct_form %]
-                    <form action="/cgi-bin/koha/admin/edi_accounts.pl" name="Actform" method="post">
-                        [% INCLUDE 'csrf-token.inc' %]
-                        <input type="hidden" name="op" value="cud-save" />
-                        [% IF account %]
-                            <input type="hidden" name="id" value="[% account.id | html %]" />
-                        [% END %]
-                        <h1>
-                            [% IF account %]
-                                [% tx("Modify account '{edi_account}' for vendor '{vendor}'", { edi_account = account.description, vendor = account.vendor.name }) %]
-                            [% ELSE %]
-                                <span>New account</span>
-                            [% END %]
-                        </h1>
-                        <fieldset class="rows">
-                            <legend class="sr-only">Account details</legend>
-
-                            <ol>
-                                <li>
-                                    <label for="vendor_id">Vendor: </label>
-                                    <select name="vendor_id" id="vendor_id">
-                                        [% FOREACH vendor IN vendors %]
-                                            [% IF account.vendor_id == vendor.id %]
-                                                <option value="[% vendor.id | html %]" selected="selected">[% vendor.name | html %]</option>
-                                            [% ELSE %]
-                                                <option value="[% vendor.id | html %]">[% vendor.name | html %]</option>
-                                            [% END %]
-                                        [% END %]
-                                    </select>
-                                </li>
-                                [% IF plugins %]
-                                    <li>
-                                        <label for="plugin">Plugin: </label>
-                                        <select name="plugin" id="plugin">
-                                            <option value="">Do not use plugin</option>
-                                            [% FOREACH plugin IN plugins %]
-                                                [% IF account.plugin == plugin.class %]
-                                                    <option value="[% plugin.class | html %]" selected="selected">[% plugin.metadata.name | html %]</option>
-                                                [% ELSE %]
-                                                    <option value="[% plugin.class | html %]">[% plugin.metadata.name | html %]</option>
-                                                [% END %]
-                                            [% END %]
-                                        </select>
-                                    </li>
-                                [% ELSE %]
-                                    <input type="hidden" name="plugin" value="" />
-                                [% END %]
-                                <li>
-                                    <label for="description">Description: </label>
-                                    <input type="text" name="description" id="description" size="20" value="[% account.description | html %]" />
-                                </li>
-                                <li>
-                                    [% transport_types = [ 'FTP', 'SFTP', 'FILE' ] %]
-                                    <label for="transport">Transport: </label>
-                                    <select name="transport" title="valid types of transport are FTP and SFTP" id="transport">
-                                        [% FOREACH transport_type IN transport_types %]
-                                            [% IF transport_type == account.transport %]
-                                                <option value="[% transport_type | html %]" selected="selected">[% transport_type | html %]</option>
-                                            [% ELSE %]
-                                                <option value="[% transport_type | html %]">[% transport_type | html %]</option>
-                                            [% END %]
-                                        [% END %]
-                                    </select>
-                                </li>
-                                <li>
-                                    <label for="host">Remote host: </label>
-                                    <input type="text" name="host" id="host" size="20" maxlength="40" value="[% account.host | html %]" />
-                                </li>
-                                <li>
-                                    <label for="username">Username: </label>
-                                    <input type="text" name="username" id="username" size="20" maxlength="40" value="[% account.username | html %]" />
-                                </li>
-                                <li>
-                                    <label for="password">Password: </label>
-                                    <input type="text" name="password" id="password" size="20" maxlength="40" value="[% account.password | html %]" />
-                                </li>
-                                <li>
-                                    <label for="upload_port">Upload port: </label>
-                                    <input type="text" name="upload_port" id="upload_port" size="20" maxlength="40" value="[% account.upload_port | html %]" />
-                                    <div class="hint">The upload port will default to 22 (for SFTP) or 21 (for FTP) if not set.</div>
-                                </li>
-                                <li>
-                                    <label for="download_port">Download port: </label>
-                                    <input type="text" name="download_port" id="download_port" size="20" maxlength="40" value="[% account.download_port | html %]" />
-                                    <div class="hint">The download port will default to 22 (for SFTP) or 21 (for FTP) if not set.</div>
-                                </li>
-                                <li>
-                                    <label for="download_directory">Download directory: </label>
-                                    <input type="text" name="download_directory" id="download_directory" size="20" value="[% account.download_directory | html %]" />
-                                    <div class="hint">The download directory specifies the directory on the ftp site from which quotes and invoices are downloaded.</div>
-                                </li>
-                                <li>
-                                    <label for="upload_directory">Upload directory: </label>
-                                    <input type="text" name="upload_directory" id="upload_directory" size="20" value="[% account.upload_directory | html %]" />
-                                    <div class="hint">The upload directory specifies the directory on the ftp site to which orders are uploaded.</div>
-                                </li>
-                                <li>
-                                    <label for="id_code_qualifier">Qualifier:</label>
-                                    <select name="id_code_qualifier" id="id_code_qualifier">
-                                        [% FOREACH qualifier IN code_qualifiers %]
-                                            [% IF qualifier.code == account.id_code_qualifier %]
-                                                <option value="[% qualifier.code | html %]" selected="selected"> [% qualifier.description | html %] ([% qualifier.code | html %]) </option>
-                                            [% ELSE %]
-                                                <option value="[% qualifier.code | html %]"> [% qualifier.description | html %] ([% qualifier.code | html %]) </option>
-                                            [% END %]
-                                        [% END %]
-                                    </select>
-                                </li>
-                                <li>
-                                    <label for="san">SAN: </label>
-                                    <input type="text" name="san" id="san" size="20" maxlength="20" value="[% account.san | html %]" />
-                                </li>
-                                <li>
-                                    <label for="standard">Standard:</label>
-                                    <select name="standard" id="standard">
-                                        [% FOREACH standard IN standards %]
-                                            [% IF standard == 'BIC' %]
-                                                [% SET description = 'BiC' %]
-                                            [% ELSE %]
-                                                [% SET description = 'EDItEUR' %]
-                                            [% END %]
-                                            [% IF standard == account.standard %]
-                                                <option value="[% standard | html %]" selected="selected"> [% description | html %] </option>
-                                            [% ELSE %]
-                                                <option value="[% standard | html %]"> [% description | html %] </option>
-                                            [% END %]
-                                        [% END %]
-                                    </select>
-                                </li>
-                                <li>
-                                    <label for="quotes_enabled">Quotes enabled: </label>
-                                    [% IF account.quotes_enabled %]
-                                        <input type="checkbox" name="quotes_enabled" id="quotes_enabled" value="1" checked="checked" />
-                                    [% ELSE %]
-                                        <input type="checkbox" name="quotes_enabled" id="quotes_enabled" value="1" />
-                                    [% END %]
-                                </li>
-                                <li>
-                                    <label for="orders_enabled">Orders enabled: </label>
-                                    [% IF account.orders_enabled %]
-                                        <input type="checkbox" name="orders_enabled" id="orders_enabled" value="1" checked="checked" />
-                                    [% ELSE %]
-                                        <input type="checkbox" name="orders_enabled" id="orders_enabled" value="1" />
-                                    [% END %]
-                                </li>
-                                <li>
-                                    <label for="invoices_enabled">Invoices enabled: </label>
-                                    [% IF account.invoices_enabled %]
-                                        <input type="checkbox" name="invoices_enabled" id="invoices_enabled" value="1" checked="checked" />
-                                    [% ELSE %]
-                                        <input type="checkbox" name="invoices_enabled" id="invoices_enabled" value="1" />
-                                    [% END %]
-                                </li>
-                                <li>
-                                    <label for="responses_enabled">Responses enabled: </label>
-                                    [% IF account.responses_enabled %]
-                                        <input type="checkbox" name="responses_enabled" id="responses_enabled" value="1" checked="checked" />
-                                    [% ELSE %]
-                                        <input type="checkbox" name="responses_enabled" id="responses_enabled" value="1" />
-                                    [% END %]
-                                </li>
-                                <li>
-                                    <label for="auto_orders">Automatic ordering: </label>
-                                    [% IF account.auto_orders %]
-                                        <input type="checkbox" name="auto_orders" id="auto_orders" value="1" checked="checked" />
-                                    [% ELSE %]
-                                        <input type="checkbox" name="auto_orders" id="auto_orders" value="1" />
-                                    [% END %]
-                                    <div class="hint"> With automatic ordering quotes generate orders without staff intervention. </div>
-                                </li>
-                            </ol>
-                        </fieldset>
-
-                        <fieldset class="action">
-                            <input type="submit" class="btn btn-primary" value="Submit" />
-                            <a href="/cgi-bin/koha/admin/edi_accounts.pl" class="cancel">Cancel</a>
-                        </fieldset>
-                    </form>
-                [% END %]
-                [% IF delete_confirm %]
-                    <div class="alert alert-warning">
-                        <h1>Confirm deletion of account?</h1>
-                        <table>
-                            <tr>
-                                <th>Vendor</th>
-                                <td>[% account.vendor.name | html %]</td>
-                            </tr>
-                            <tr>
-                                <th>Description</th>
-                                <td>[% account.description | html %]</td>
-                            </tr>
-                            <tr>
-                                <th>SAN</th>
-                                <td>[% account.san | html %]</td>
-                            </tr>
-                        </table>
-                        <form action="/cgi-bin/koha/admin/edi_accounts.pl" method="post">
-                            [% INCLUDE 'csrf-token.inc' %]
-                            <table> </table>
-                            <input type="hidden" name="op" value="cud-delete_confirmed" />
-                            <input type="hidden" name="id" value="[% account.id | html %]" />
-                            <button type="submit" class="btn btn-default approve"><i class="fa fa-fw fa-check"></i> Yes, delete</button>
-                        </form>
-                        <form action="/cgi-bin/koha/admin/edi_accounts.pl" method="get">
-                            <button type="submit" class="btn btn-default deny"><i class="fa fa-fw fa-times"></i> No, do not delete</button>
-                        </form>
-                    </div>
-                [% END %]
-                [% IF display %]
-                    [% IF ( ediaccounts ) %]
-                        <h1>EDI accounts</h1>
-                        <div class="page-section">
-                            <table>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Vendor</th>
-                                    <th>Description</th>
-                                    <th>Transport</th>
-                                    <th>Remote host</th>
-                                    <th>Username</th>
-                                    <th>Password</th>
-                                    <th>Upload port</th>
-                                    <th>Download port</th>
-                                    <th>Download directory</th>
-                                    <th>Upload directory</th>
-                                    <th>Qualifier</th>
-                                    <th>SAN</th>
-                                    <th>Standard</th>
-                                    <th>[% tp('EDIFACT message QUOTE', 'Quotes') | html %]</th>
-                                    <th>Orders</th>
-                                    <th>Invoices</th>
-                                    <th>Responses</th>
-                                    <th>Auto ordering</th>
-                                    <th class="noExport">Actions</th>
-                                </tr>
-                                [% FOREACH account IN ediaccounts %]
-                                    <tr>
-                                        <td>[% account.id | html %]</td>
-                                        <td><a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% account.vendor_id | uri %]">[% account.vendor.name | html %]</a></td>
-                                        <td>[% account.description | html %]</td>
-                                        <td>[% account.transport | html %]</td>
-                                        <td>[% account.host | html %]</td>
-                                        <td>[% account.username | html %]</td>
-                                        <td>[% IF account.password %]*****[% END %]</td>
-                                        <td>[% account.upload_port | html %]</td>
-                                        <td>[% account.download_port | html %]</td>
-                                        <td>[% account.download_directory | html %]</td>
-                                        <td>[% account.upload_directory | html %]</td>
-                                        <td>
-                                            [% FOREACH qualifier IN code_qualifiers %]
-                                                [% IF qualifier.code == account.id_code_qualifier %]
-                                                    [% qualifier.description | html %]
-                                                [% END %]
-                                            [% END %]
-                                            ([% account.id_code_qualifier | html %])
-                                        </td>
-                                        <td>[% account.san | html %]</td>
-                                        <td>[% IF account.standard == 'BIC' %]BiC[% ELSE %]EDItEUR[% END %]</td>
-                                        [% IF account.quotes_enabled %]
-                                            <td>Yes</td>
-                                        [% ELSE %]
-                                            <td>No</td>
-                                        [% END %]
-                                        [% IF account.orders_enabled %]
-                                            <td>Yes</td>
-                                        [% ELSE %]
-                                            <td>No</td>
-                                        [% END %]
-                                        [% IF account.invoices_enabled %]
-                                            <td>Yes</td>
-                                        [% ELSE %]
-                                            <td>No</td>
-                                        [% END %]
-                                        [% IF account.responses_enabled %]
-                                            <td>Yes</td>
-                                        [% ELSE %]
-                                            <td>No</td>
-                                        [% END %]
-                                        [% IF account.auto_orders %]
-                                            <td>Yes</td>
-                                        [% ELSE %]
-                                            <td>No</td>
-                                        [% END %]
-                                        <td class="actions">
-                                            <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/edi_accounts.pl?op=acct_form&id=[% account.id | html %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
-                                            <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/edi_accounts.pl?op=delete_confirm&id=[% account.id | html %]"><i class="fa fa-trash-can"></i> Delete</a>
-                                        </td>
-                                    </tr>
-                                [% END %]
-                            </table>
-                        </div>
-                        <!-- /.page-section -->
-                    [% ELSE %]
-                        <div class="alert alert-info"> There are no EDI accounts. </div>
-                    [% END %]
-                [% END %]
-            </main>
-        </div>
-        <!-- /.col-md-10.order-md-2 -->
-
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'admin-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
-
-    [% MACRO jsinclude BLOCK %]
-        [% Asset.js("js/admin-menu.js") | $raw %]
+    [% UNLESS Koha.Preference('EDIFACT') %]
+        <div class="alert alert-info"> EDIFACT is currently disabled </div>
     [% END %]
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+
+    [% IF display %]
+        <div id="toolbar" class="btn-toolbar">
+            <a class="btn btn-default" id="newediacct" href="/cgi-bin/koha/admin/edi_accounts.pl?op=acct_form">
+                <i class="fa fa-plus"></i>
+                New account
+            </a>
+        </div>
+    [% END %]
+
+    [% IF acct_form %]
+        <form action="/cgi-bin/koha/admin/edi_accounts.pl" name="Actform" method="post">
+            [% INCLUDE 'csrf-token.inc' %]
+            <input type="hidden" name="op" value="cud-save" />
+            [% IF account %]
+                <input type="hidden" name="id" value="[% account.id | html %]" />
+            [% END %]
+            <h1>
+                [% IF account %]
+                    [% tx("Modify account '{edi_account}' for vendor '{vendor}'", { edi_account = account.description, vendor = account.vendor.name }) %]
+                [% ELSE %]
+                    <span>New account</span>
+                [% END %]
+            </h1>
+
+            <!-- Basic information -->
+            <fieldset class="rows">
+                <legend>Basic information</legend>
+                <ol>
+                    <li>
+                        <label for="vendor_id">Vendor: </label>
+                        <select name="vendor_id" id="vendor_id">
+                            [% FOREACH vendor IN vendors %]
+                                [% IF account.vendor_id == vendor.id %]
+                                    <option value="[% vendor.id | html %]" selected="selected">[% vendor.name | html %]</option>
+                                [% ELSE %]
+                                    <option value="[% vendor.id | html %]">[% vendor.name | html %]</option>
+                                [% END %]
+                            [% END %]
+                        </select>
+                    </li>
+                    <li>
+                        <label for="description">Description: </label>
+                        <input type="text" name="description" id="description" size="20" value="[% account.description | html %]" />
+                    </li>
+                    [% IF plugins %]
+                        <li>
+                            <label for="plugin">Plugin: </label>
+                            <select name="plugin" id="plugin">
+                                <option value="">Do not use plugin</option>
+                                [% FOREACH plugin IN plugins %]
+                                    [% IF account.plugin == plugin.class %]
+                                        <option value="[% plugin.class | html %]" selected="selected">[% plugin.metadata.name | html %]</option>
+                                    [% ELSE %]
+                                        <option value="[% plugin.class | html %]">[% plugin.metadata.name | html %]</option>
+                                    [% END %]
+                                [% END %]
+                            </select>
+                        </li>
+                    [% ELSE %]
+                        <input type="hidden" name="plugin" value="" />
+                    [% END %]
+                    <li>
+                        <label for="id_code_qualifier">Qualifier:</label>
+                        <select name="id_code_qualifier" id="id_code_qualifier">
+                            [% FOREACH qualifier IN code_qualifiers %]
+                                [% IF qualifier.code == account.id_code_qualifier %]
+                                    <option value="[% qualifier.code | html %]" selected="selected"> [% qualifier.description | html %] ([% qualifier.code | html %]) </option>
+                                [% ELSE %]
+                                    <option value="[% qualifier.code | html %]"> [% qualifier.description | html %] ([% qualifier.code | html %]) </option>
+                                [% END %]
+                            [% END %]
+                        </select>
+                    </li>
+                    <li>
+                        <label for="san">SAN: </label>
+                        <input type="text" name="san" id="san" size="20" maxlength="20" value="[% account.san | html %]" />
+                    </li>
+                    <li>
+                        <label for="standard">Standard:</label>
+                        <select name="standard" id="standard">
+                            [% FOREACH standard IN standards %]
+                                [% IF standard == 'BIC' %]
+                                    [% SET description = 'BiC' %]
+                                [% ELSE %]
+                                    [% SET description = 'EDItEUR' %]
+                                [% END %]
+                                [% IF standard == account.standard %]
+                                    <option value="[% standard | html %]" selected="selected"> [% description | html %] </option>
+                                [% ELSE %]
+                                    <option value="[% standard | html %]"> [% description | html %] </option>
+                                [% END %]
+                            [% END %]
+                        </select>
+                    </li>
+                </ol>
+            </fieldset>
+
+            <!-- Transport settings -->
+            <fieldset class="rows">
+                <legend>Transport settings</legend>
+                <ol>
+                    <li>
+                        <label for="file_transport_id">File transport: </label>
+                        <select name="file_transport_id" id="file_transport_id">
+                            <option value="">Select a file transport configuration</option>
+                            [% FOREACH transport IN file_transports %]
+                                [% IF transport.file_transport_id == account.file_transport_id %]
+                                    <option value="[% transport.file_transport_id | html %]" selected="selected">[% transport.name | html %] ([% transport.transport | upper | html %] - [% transport.host | html %])</option>
+                                [% ELSE %]
+                                    <option value="[% transport.file_transport_id | html %]">[% transport.name | html %] ([% transport.transport | upper | html %] - [% transport.host | html %])</option>
+                                [% END %]
+                            [% END %]
+                        </select>
+                        <div class="hint"> Select a file transport configuration for this EDI account. File transports can be managed in <a href="/cgi-bin/koha/admin/file_transports.pl">Administration &rsaquo; File transports</a>. </div>
+                    </li>
+                </ol>
+            </fieldset>
+
+            <!-- Message types -->
+            <fieldset class="rows">
+                <legend>Message types</legend>
+                <ol>
+                    <li>
+                        <label for="quotes_enabled">Quotes enabled: </label>
+                        [% IF account.quotes_enabled %]
+                            <input type="checkbox" name="quotes_enabled" id="quotes_enabled" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" name="quotes_enabled" id="quotes_enabled" value="1" />
+                        [% END %]
+                    </li>
+                    <li>
+                        <label for="orders_enabled">Orders enabled: </label>
+                        [% IF account.orders_enabled %]
+                            <input type="checkbox" name="orders_enabled" id="orders_enabled" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" name="orders_enabled" id="orders_enabled" value="1" />
+                        [% END %]
+                    </li>
+                    <li>
+                        <label for="invoices_enabled">Invoices enabled: </label>
+                        [% IF account.invoices_enabled %]
+                            <input type="checkbox" name="invoices_enabled" id="invoices_enabled" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" name="invoices_enabled" id="invoices_enabled" value="1" />
+                        [% END %]
+                    </li>
+                    <li>
+                        <label for="responses_enabled">Responses enabled: </label>
+                        [% IF account.responses_enabled %]
+                            <input type="checkbox" name="responses_enabled" id="responses_enabled" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" name="responses_enabled" id="responses_enabled" value="1" />
+                        [% END %]
+                    </li>
+                </ol>
+            </fieldset>
+
+            <!-- Functional switches -->
+            <fieldset class="rows">
+                <legend>Functional switches</legend>
+                <ol>
+                    <li>
+                        <label for="auto_orders">Automatic ordering: </label>
+                        [% IF account.auto_orders %]
+                            <input type="checkbox" name="auto_orders" id="auto_orders" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" name="auto_orders" id="auto_orders" value="1" />
+                        [% END %]
+                        <div class="hint"> With automatic ordering quotes generate orders without staff intervention. </div>
+                    </li>
+                    <li>
+                        <label for="po_is_basketname">Use purchase order numbers: </label>
+                        [% IF account.po_is_basketname %]
+                            <input type="checkbox" name="po_is_basketname" id="po_is_basketname" value="1" checked="checked" />
+                        [% ELSE %]
+                            <input type="checkbox" name="po_is_basketname" id="po_is_basketname" value="1" />
+                        [% END %]
+                        <div class="hint">
+                            When enabled, basket names are used as purchase order numbers. <br />For received QUOTE messages, we will use the RFF+ON field to populate the basket name. <br />For generated ORDER messages, we will use the
+                            basket name to populate the BGM segment.</div
+                        >
+                    </li>
+                </ol>
+            </fieldset>
+
+            <fieldset class="action">
+                <input type="submit" class="btn btn-primary" value="Submit" />
+                <a href="/cgi-bin/koha/admin/edi_accounts.pl" class="cancel">Cancel</a>
+            </fieldset>
+        </form>
+    [% END %]
+    [% IF delete_confirm %]
+        <div class="alert alert-warning">
+            <h1>Confirm deletion of account?</h1>
+            <table>
+                <tr>
+                    <th>Vendor</th>
+                    <td>[% account.vendor.name | html %]</td>
+                </tr>
+                <tr>
+                    <th>Description</th>
+                    <td>[% account.description | html %]</td>
+                </tr>
+                <tr>
+                    <th>SAN</th>
+                    <td>[% account.san | html %]</td>
+                </tr>
+            </table>
+            <form action="/cgi-bin/koha/admin/edi_accounts.pl" method="post">
+                [% INCLUDE 'csrf-token.inc' %]
+                <table> </table>
+                <input type="hidden" name="op" value="cud-delete_confirmed" />
+                <input type="hidden" name="id" value="[% account.id | html %]" />
+                <button type="submit" class="btn btn-default approve"><i class="fa fa-fw fa-check"></i> Yes, delete</button>
+            </form>
+            <form action="/cgi-bin/koha/admin/edi_accounts.pl" method="get">
+                <button type="submit" class="btn btn-default deny"><i class="fa fa-fw fa-times"></i> No, do not delete</button>
+            </form>
+        </div>
+    [% END %]
+    [% IF display %]
+        [% IF ( ediaccounts ) %]
+            <h1>EDI accounts</h1>
+            <div class="page-section">
+                <table id="edi_accounts_table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Vendor</th>
+                            <th>Description</th>
+                            <th>File transport</th>
+                            <th>Qualifier</th>
+                            <th>SAN</th>
+                            <th>Standard</th>
+                            <th>[% tp('EDIFACT message QUOTE', 'Quotes') | html %]</th>
+                            <th>Orders</th>
+                            <th>Invoices</th>
+                            <th>Responses</th>
+                            <th>Auto ordering</th>
+                            <th class="no-sort no-export">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        [% FOREACH account IN ediaccounts %]
+                            <tr>
+                                <td>[% account.id | html %]</td>
+                                <td><a href="/cgi-bin/koha/acquisition/vendors/[% account.vendor_id | uri %]">[% account.vendor.name | html %]</a></td>
+                                <td>[% account.description | html %]</td>
+                                <td>
+                                    [% IF account.file_transport %]
+                                        [% account.file_transport.name | html %]
+                                        [% IF account.file_transport.status %]
+                                            [% IF account.file_transport.status.status == "ok" %]
+                                                (<i class="text-success fa-solid fa-circle-check"></i> <span class="text-success">Tests passing</span>)
+                                            [% ELSIF account.file_transport.status.status == "errors" %]
+                                                (<i class="text-danger fa-solid fa-circle-xmark"></i> <span class="text-danger">Errors detected</span>)
+                                            [% ELSE %]
+                                                (<em>Never used</em>)
+                                            [% END %]
+                                        [% ELSE %]
+                                            (<em>Never used</em>)
+                                        [% END %]
+                                    [% ELSE %]
+                                        <span class="text-danger">No transport configured</span>
+                                    [% END %]
+                                </td>
+                                <td>
+                                    [% FOREACH qualifier IN code_qualifiers %]
+                                        [% IF qualifier.code == account.id_code_qualifier %]
+                                            [% qualifier.description | html %]
+                                        [% END %]
+                                    [% END %]
+                                    ([% account.id_code_qualifier | html %])
+                                </td>
+                                <td>[% account.san | html %]</td>
+                                <td>
+                                    [% IF account.standard == 'BIC' %]
+                                        BiC
+                                    [% ELSE %]
+                                        EDItEUR
+                                    [% END %]
+                                </td>
+                                <td>
+                                    [% IF account.quotes_enabled %]
+                                        Yes
+                                    [% ELSE %]
+                                        No
+                                    [% END %]
+                                </td>
+                                <td>
+                                    [% IF account.orders_enabled %]
+                                        Yes
+                                    [% ELSE %]
+                                        No
+                                    [% END %]
+                                </td>
+                                <td>
+                                    [% IF account.invoices_enabled %]
+                                        Yes
+                                    [% ELSE %]
+                                        No
+                                    [% END %]
+                                </td>
+                                <td>
+                                    [% IF account.responses_enabled %]
+                                        Yes
+                                    [% ELSE %]
+                                        No
+                                    [% END %]
+                                </td>
+                                <td>
+                                    [% IF account.auto_orders %]
+                                        Yes
+                                    [% ELSE %]
+                                        No
+                                    [% END %]
+                                </td>
+                                <td class="actions">
+                                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/edi_accounts.pl?op=acct_form&id=[% account.id | html %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+                                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/edi_accounts.pl?op=delete_confirm&id=[% account.id | html %]"><i class="fa fa-trash-can"></i> Delete</a>
+                                </td>
+                            </tr>
+                        [% END %]
+                    </tbody>
+                </table>
+            </div>
+            <!-- /.page-section -->
+        [% ELSE %]
+            <div class="alert alert-info"> There are no EDI accounts. </div>
+        [% END %]
+    [% END %]
+[% END %]
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") | $raw %]
+    [% INCLUDE 'datatables.inc' %]
+    <script>
+        $(document).ready(function(){
+            var table_settings = [% TablesSettings.GetTableSettings( 'admin', 'edi_accounts', 'edi_accounts_table', 'json' ) | $raw %];
+            $("#edi_accounts_table").kohaTable(
+                {
+                    pagingType: "full",
+                },
+                table_settings
+            );
+        });
+    </script>
+[% END %]
+[% INCLUDE 'intranet-bottom.inc' %]

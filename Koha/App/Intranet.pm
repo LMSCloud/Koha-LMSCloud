@@ -15,11 +15,13 @@ package Koha::App::Intranet;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use Mojo::Base 'Mojolicious';
+
+use CGI::Compile;    # This module needs to be loaded early; do not remove
 
 use Koha::Caches;
 use Koha::Cache::Memory::Lite;
@@ -29,10 +31,7 @@ sub startup {
 
     push @{ $self->plugins->namespaces }, 'Koha::App::Plugin';
     push @{ $self->static->paths },       $self->home->rel_file('koha-tmpl');
-
-    # Create route for all CGI scripts, need to be loaded first because of
-    # CGI::Compile
-    $self->plugin('CGIBinKoha');
+    $self->routes->namespaces( ['Koha::App::Controller'] );
 
     # Create routes for API
     $self->plugin('RESTV1');
@@ -44,6 +43,10 @@ sub startup {
     $self->hook( around_action   => \&_around_action );
 
     my $r = $self->routes;
+
+    $r->any('/cgi-bin/koha/acquisition/vendors')->to( 'CGI#intranet', { script => 'acqui/vendors.pl' } );
+    $r->any('/cgi-bin/koha/acquisition/vendors/*')->to( 'CGI#intranet', { script => 'acqui/vendors.pl' } );
+    $r->any('/cgi-bin/koha/*script')->to('CGI#intranet')->name('cgi');
 
     $r->any('/')->to( cb => sub { shift->redirect_to('/cgi-bin/koha/mainpage.pl') } );
 }

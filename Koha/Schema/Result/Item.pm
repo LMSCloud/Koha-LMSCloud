@@ -377,7 +377,7 @@ copy number (MARC21 952$t)
 
   data_type: 'varchar'
   is_nullable: 1
-  size: 32
+  size: 80
 
 inventory number (MARC21 952$i)
 
@@ -387,7 +387,7 @@ inventory number (MARC21 952$i)
   is_nullable: 1
   size: 32
 
-'new' value, you can put whatever free-text information. This field is intented to be managed by the automatic_item_modification_by_age cronjob.
+'new' value, you can put whatever free-text information. This field is intended to be managed by the automatic_item_modification_by_age cronjob.
 
 =head2 exclude_from_local_holds_priority
 
@@ -525,7 +525,7 @@ __PACKAGE__->add_columns(
   "copynumber",
   { data_type => "varchar", is_nullable => 1, size => 32 },
   "stocknumber",
-  { data_type => "varchar", is_nullable => 1, size => 32 },
+  { data_type => "varchar", is_nullable => 1, size => 80 },
   "new_status",
   { data_type => "varchar", is_nullable => 1, size => 32 },
   "exclude_from_local_holds_priority",
@@ -1006,8 +1006,8 @@ __PACKAGE__->might_have(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:55
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:x61Y/7hpD65W0rDbLQ9HEg
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-04-29 10:02:59
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:hQXAbm9iS77uNWwk7ORyUg
 
 __PACKAGE__->belongs_to( biblioitem => "Koha::Schema::Result::Biblioitem", "biblioitemnumber" );
 

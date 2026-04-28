@@ -15,7 +15,7 @@ package Koha::MetadataRecord::Authority;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -161,6 +161,12 @@ sub get_from_breeding {
     bless $self, $class;
     return $self;
 }
+
+=head2 authorized_heading
+
+Missing POD for authorized_heading.
+
+=cut
 
 sub authorized_heading {
     my ($self) = @_;

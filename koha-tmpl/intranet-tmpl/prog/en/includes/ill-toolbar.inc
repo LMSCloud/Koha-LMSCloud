@@ -2,85 +2,76 @@
 [% IF Koha.Preference('ILLModule') && CAN_user_ill %]
     <div id="toolbar" class="btn-toolbar ill-toolbar">
         [% IF backends_available %]
-          [% IF backends.size > 1 %]
-            <div class="dropdown btn-group">
-                <button class="btn btn-default dropdown-toggle" type="button" id="ill-backend-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                    <i class="fa fa-plus"></i> New ILL request
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="ill-backend-dropdown">
-                    [% FOREACH backend IN backends %]
-                        <li><a class="dropdown-item" id="[% backend | html %]BackendNameInDropDown" href="/cgi-bin/koha/ill/ill-requests.pl?method=create&amp;backend=[% backend | uri %]">[% backend | html %]</a></li>
-                    [% END %]
-                </ul>
-            </div>
-          [% ELSE %]
-            <a id="ill-new" class="btn btn-default" href="/cgi-bin/koha/ill/ill-requests.pl?method=create&amp;backend=[% backends.0 | html %]">
-                <i class="fa fa-plus"></i> New ILL request
-            </a>
-          [% END %]
+            [% IF Koha.Preference('AutoILLBackendPriority') %]
+                <a id="ill-new" class="btn btn-default" href="/cgi-bin/koha/ill/ill-requests.pl?method=create&amp;backend=Standard"> <i class="fa fa-plus"></i> New ILL request </a>
+            [% ELSIF backends.size > 1 %]
+                <div class="dropdown btn-group">
+                    <button class="btn btn-default dropdown-toggle" type="button" id="ill-backend-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="true"> <i class="fa fa-plus"></i> New ILL request </button>
+                    <ul class="dropdown-menu" aria-labelledby="ill-backend-dropdown">
+                        [% FOREACH backend IN backends %]
+                            <li><a class="dropdown-item" id="[% backend | html %]BackendNameInDropDown" href="/cgi-bin/koha/ill/ill-requests.pl?method=create&amp;backend=[% backend | uri %]">[% backend | html %]</a></li>
+                        [% END %]
+                    </ul>
+                </div>
+            [% ELSE %]
+                <a id="ill-new" class="btn btn-default" href="/cgi-bin/koha/ill/ill-requests.pl?method=create&amp;backend=[% backends.0 | html %]"> <i class="fa fa-plus"></i> New ILL request </a>
+            [% END %]
         [% ELSE %]
-            <a id="ill-new" class="btn btn-default disabled" href="">
-                <i class="fa fa-plus"></i> New ILL request
-            </a>
+            <a id="ill-new" class="btn btn-default disabled" href=""> <i class="fa fa-plus"></i> New ILL request </a>
         [% END %]
         [% IF op == 'illlist' %]
-            <a id="ill-list" class="btn btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl">
-                <i class="fa fa-list"></i> Refresh
-            </a>
+            <a id="ill-list" class="btn btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl"> <i class="fa fa-list"></i> Refresh </a>
         [% ELSE %]
-            <a id="ill-list" class="btn btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl">
-                <i class="fa fa-list"></i> List requests
-            </a>
+            <a id="ill-list" class="btn btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl"> <i class="fa fa-list"></i> List requests </a>
         [% END %]
         <a id="ill-list_closed" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&infilter=status,-in,COMP&hitname=Details for all completed requests">
             <i class="fa fa-list"></i> List completed requests
         </a>
-        <a id="ill-list_all" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&hitname=Details for all requests">
-            <i class="fa fa-list"></i> List all requests
-        </a>
+        <a id="ill-list_all" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&hitname=Details for all requests"> <i class="fa fa-list"></i> List all requests </a>
         <a id="ill-list_open" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests">
             <i class="fa fa-list"></i> List open requests
         </a>
         [% IF Koha.Preference('ILLALVSources') %]
-          <a id="ill-list_open_ILLALV" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&backend=ILLALV&amp;infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests (ALV)">
-              <i class="fa fa-list"></i> List open ALV requests
-          </a>
+            <a id="ill-list_open_ILLALV" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&backend=ILLALV&amp;infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests (ALV)">
+                <i class="fa fa-list"></i> List open ALV requests
+            </a>
         [% END %]
         [% IF Koha.Preference('ILLZKSHADeliverySlipCode') %]
-          <a id="ill-list_open_ILLZKSHA" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&backend=ILLZKSHA&amp;infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests (RLV-active)">
-              <i class="fa fa-list"></i> List open ZKSHA requests
-          </a>
+            <a
+                id="ill-list_open_ILLZKSHA"
+                class="btn btn-sm btn-default btn-group"
+                href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&backend=ILLZKSHA&amp;infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests (RLV-active)"
+            >
+                <i class="fa fa-list"></i> List open ZKSHA requests
+            </a>
         [% END %]
         [% IF Koha.Preference('ILLZKSHPNotDeliveredLettercode') %]
-          <a id="ill-list_open_ILLZKSHP" class="btn btn-sm btn-default btn-group" href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&backend=ILLZKSHP&amp;infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests (RLV-passive)">
-              <i class="fa fa-list"></i> List open ZKSHP requests
-          </a>
+            <a
+                id="ill-list_open_ILLZKSHP"
+                class="btn btn-sm btn-default btn-group"
+                href="/cgi-bin/koha/ill/ill-requests.pl?method=illlist&backend=ILLZKSHP&amp;infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests (RLV-passive)"
+            >
+                <i class="fa fa-list"></i> List open ZKSHP requests
+            </a>
         [% END %]
         [% IF have_batch.size > 0 && metadata_enrichment_services %]
-        <div id="ill-batch">
-            <div class="dropdown btn-group">
-                <button class="btn btn-default dropdown-toggle" type="button" id="ill-batch-backend-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                    <i class="fa fa-plus"></i> New ILL requests batch
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="ill-batch-backend-dropdown">
-                    [% FOREACH backend IN have_batch %]
-                        <li><a class="dropdown-item" href="#" role="button" onclick="window.openBatchModal(null, '[% backend | html %]')">[% backend | html %]</a></li>
-                    [% END %]
-                </ul>
+            <div id="ill-batch">
+                <div class="dropdown btn-group">
+                    <button class="btn btn-default dropdown-toggle" type="button" id="ill-batch-backend-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                        <i class="fa fa-plus"></i> New ILL requests batch
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="ill-batch-backend-dropdown">
+                        [% FOREACH backend IN have_batch %]
+                            <li><a class="dropdown-item" href="#" role="button" onclick="window.openBatchModal(null, '[% backend | html %]')">[% backend | html %]</a></li>
+                        [% END %]
+                    </ul>
+                </div>
+                <a class="btn btn-default" type="button" href="/cgi-bin/koha/ill/ill-requests.pl?method=batch_list"> <i class="fa fa-tasks"></i> Batch requests </a>
             </div>
-            <a class="btn btn-default" type="button" href="/cgi-bin/koha/ill/ill-requests.pl?method=batch_list" %]">
-                <i class="fa fa-tasks"></i> Batch requests</span>
-            </a>
-        </div>
         [% END %]
     </div>
 [% END %]
-
-
-
-
 <script type= "text/javascript">
-
     function backendNameToDesignation (backend_name) {
         var backend_designation = '';
         if ( backend_name ) {
@@ -245,5 +236,4 @@
             hitheader.innerText = newHitheaderText;
         }
     };
-
 </script>

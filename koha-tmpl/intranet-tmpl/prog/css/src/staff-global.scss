@@ -424,11 +424,20 @@ aside {
             }
         }
     }
+
+    .breadcrumb-item {
+        + .breadcrumb-item {
+            &::before {
+                background: transparent none;
+                display: none;
+                height: unset;
+                width: unset;
+            }
+        }
+    }
 }
 
-#menu,
-#navmenulist,
-#serialmenu {
+.sidebar_menu {
     background-color: #E6E6E6;
     display: block;
     padding: 1em 0 1em 0;
@@ -446,14 +455,20 @@ aside {
         padding-left: 0;
 
         ul {
-            font-size: 75%;
+            background-color: #F3F4F4;
+
+            li {
+                a {
+                    padding: .5em .3em .5em 1.3rem;
+                }
+            }
         }
 
         li {
             list-style: none;
 
             a {
-                border-left: 5px solid #E6E6E6;
+                border-left: 5px solid transparent;
                 color: #000;
                 display: block;
                 padding: .7em .3em .7em 1rem;
@@ -481,14 +496,9 @@ aside {
             }
         }
     }
-}
 
-#admin_preferences #menu {
-    ul {
-        ul {
-            background-color: #F3F4F4;
-            font-size: 85%;
-        }
+    .breadcrumb-item {
+        font-style: normal;
     }
 }
 
@@ -569,6 +579,12 @@ div {
                 padding: 0 .3em;
             }
         }
+    }
+
+    &.required {
+        color: $warning-text-color;
+        font-style: italic;
+        margin-left: .5em;
     }
 
     // Tools > automatic_item_modification_by_age
@@ -679,42 +695,6 @@ div {
         }
     }
 
-    &.pages {
-        margin: .5em 0;
-
-        a {
-            font-weight: bold;
-            padding: 1px 5px;
-            text-decoration: none;
-
-            &:link,
-            &:visited {
-                background-color: #EEEEEE;
-                color: #3366CC;
-            }
-
-            &:hover,
-            &:active {
-                background-color: #FFC;
-            }
-        }
-
-        .current,
-        .currentPage {
-            background-color: #E6FCB7;
-            color: #666;
-            font-weight: bold;
-            padding: 1px 5px;
-        }
-
-        .inactive {
-            background-color: #F3F3F3;
-            color: #BCBCBC;
-            font-weight: bold;
-            padding: 1px 5px;
-        }
-    }
-
     .browse {
         margin: .5em 0;
     }
@@ -803,6 +783,19 @@ form {
             display: inline-block;
             font-size: 90%;
         }
+    }
+}
+
+td .main_contact_method {
+    background-color: #FFE;
+    border: 1px solid #CCC;
+    border-radius: 5px;
+    display: inline-block;
+    margin: .5em 0;
+    padding: .1em .3em;
+
+    &.none {
+        background-color: #EEE;
     }
 }
 
@@ -1230,6 +1223,35 @@ fieldset {
     }
 }
 
+legend {
+    &.collapsed,
+    &.expanded {
+        border: 1px solid #FFF;
+        margin-left: -.7em;
+        margin-top: -.7em;
+        padding: .7em;
+
+        &:hover {
+            border: 1px solid #6FAF44;
+            cursor: pointer;
+        }
+
+        i {
+            color: #4C7AA8;
+            font-size: 80%;
+            padding-right: .2rem;
+        }
+    }
+
+    &.collapsed {
+        margin-bottom: -.5em;
+
+        i.fa.fa-caret-down::before {
+            content: "\f0da";
+        }
+    }
+}
+
 details {
     > summary {
         cursor: pointer;
@@ -1336,10 +1358,6 @@ dd {
 }
 
 .patroninfo-container {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: left;
     margin-left: 1rem;
 }
 
@@ -1529,6 +1547,12 @@ i {
         }
     }
 }
+
+/*rtl:raw:
+    i.fa.fa-arrow-right {
+        transform: scaleX(-1);
+    }
+*/
 
 .item_status {
     padding: .2rem 0;
@@ -1827,7 +1851,6 @@ i {
 // style for shelving location in catalogsearch
 .shelvingloc {
     display: block;
-    font-style: italic;
 }
 
 // style for bundled detail in catalogsearch
@@ -1864,6 +1887,11 @@ i {
 
 li {
     &.email {
+    }
+}
+
+.patronbriefinfo, .patroninfo-section {
+    li {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1872,11 +1900,8 @@ li {
 
 .patronbriefinfo {
     li {
-        &.email {
-            font-size: 87%;
-            padding: 0 10px 0 0;
-            width: 90%;
-        }
+        padding: 0 10px 0 0;
+        width: 90%;
     }
 }
 
@@ -2016,6 +2041,14 @@ li {
             display: block;
         }
     }
+
+    .all {
+        display: block;
+    }
+
+    .branch_specific {
+        display: none;
+    }
 }
 
 #searchresults,
@@ -2031,24 +2064,6 @@ li {
                 list-style: none;
                 margin-left: 1ch;
                 padding: 0;
-            }
-        }
-    }
-
-    .dropdown-menu {
-        background-color: #FFFFFF;
-        color: #000;
-        height: fit-content;
-        top: 100%;
-
-        a {
-            color: #000;
-
-            &:hover {
-                background-color: #FFFFFF;
-                background-image: none;
-                color: #000;
-                text-decoration: underline;
             }
         }
     }
@@ -2202,6 +2217,16 @@ li {
 td {
     &.actions {
         white-space: nowrap;
+
+        a,
+        button {
+            display: inline-block;
+            margin-left: .3rem;
+
+            &:first-child {
+                margin-left: 0;
+            }
+        }
     }
 
     &.bookcoverimg {
@@ -2304,6 +2329,12 @@ td.bundle {
 .waitinghere,
 .credit {
     color: #669900;
+}
+
+#holdings_table {
+    .holding_status {
+        display: block;
+    }
 }
 
 #mainuserblock {
@@ -2830,6 +2861,10 @@ td.bundle {
     background: #FFF url( "../img/spinner-small.gif" ) right center no-repeat;
 }
 
+.patron-detail-autocomplete-selection {
+    padding: 0.3em;
+}
+
 .toptabs {
     margin: 1rem 0;
 }
@@ -3038,6 +3073,12 @@ nav {
             height: .8em;
             margin-right: .3rem;
             width: .8em;
+        }
+    }
+
+    &.active {
+        a {
+            pointer-events: none;
         }
     }
 }
@@ -3419,7 +3460,6 @@ progress {
 .tag_editor {
     background: transparent url( "../img/edit-tag.png" ) top left no-repeat;
     display: block;
-    float: left;
     height: 16px;
     margin: 4px;
     overflow: hidden;
@@ -3582,18 +3622,10 @@ input.renew {
         &.currentlanguage {
             color: #000;
             font-weight: bold;
-        }
-    }
-
-    a {
-        &.currentlanguage {
-            &:link,
-            &:visited {
-                font-weight: bold;
-            }
+            pointer-events: none;
         }
 
-        .sublanguage-selected {
+        &.sublanguage-selected {
             color: #000;
             font-weight: bold;
         }
@@ -3715,18 +3747,6 @@ input.renew {
     }
 
     #ill-batch-modal {
-        .modal-footer {
-            display: flex;
-
-            & > * {
-                flex: 1;
-            }
-
-            #lhs {
-                text-align: left;
-            }
-        }
-
         #create-progress {
             margin-top: 17px;
         }
@@ -3776,20 +3796,11 @@ input.renew {
     }
 
     #batch-form {
-        legend {
-            margin-bottom: 2em;
-        }
-
         textarea {
             min-height: 100px;
             padding: 5px;
             resize: vertical;
             width: 100%;
-        }
-
-        #new-batch-form {
-            display: flex;
-            gap: 20px;
         }
 
         li#process-button {
@@ -3812,10 +3823,6 @@ input.renew {
 
         .batch-modal-actions {
             text-align: center;
-        }
-
-        fieldset {
-            border: 2px solid #B9D8D9;
         }
     }
 
@@ -3893,6 +3900,10 @@ input.renew {
         .modal-body {
             max-height: 70vh;
         }
+    }
+
+    pre {
+        font-family: inherit;
     }
 }
 
@@ -4371,6 +4382,48 @@ div .suggestion_note {
 
     i {
         color: #CCC;
+    }
+}
+
+.nav.nav-tabs > li > a {
+    align-items: center;
+    display: flex;
+    gap: 5px;
+
+    span[class*="badge"] {
+        color: #000;
+        font-size: 85%;
+        font-weight: bold;
+
+        &.text-bg-info {
+            background-color: #9BD6E8;
+        }
+
+        &.text-bg-danger {
+            background-color: #FF7873;
+        }
+
+        &:has( span:empty + span:empty ), /* If the element contains two empty spans */
+        &:has( span:only-child:empty ) { /* If the element contains only one span and it is empty */
+            background-color: transparent;
+            padding: 0;
+        }
+
+        &:has( span + span:empty ) { /* If the element has a non-empty span followed by an empty one, reset style */
+            background-color: #9BD6E8;
+        }
+    }
+}
+
+.count-active { /* Add separator between two counts in a tab */
+    & + .count-inactive {
+        &:empty::before {
+            content: "";
+        }
+
+        &::before {
+            content: " / ";
+        }
     }
 }
 
@@ -4890,46 +4943,52 @@ div .suggestion_note {
     }
 }
 
-/* LMSCloud additions */
-
-// CSS custom properties for bookings timeline colors
-// These are used in JavaScript inline styles to override vis-timeline's CSS specificity
-:root {
-    --bookings-timeline-bg-checkout: #{map-deep-get($bookings, timeline, bg-checkout)};
-    --bookings-timeline-text-checkout: #{map-deep-get($bookings, timeline, text-checkout)};
-    --bookings-timeline-bg-cancelled: #{map-deep-get($bookings, timeline, bg-cancelled)};
-    --bookings-timeline-text-cancelled: #{map-deep-get($bookings, timeline, text-cancelled)};
-}
-
-.bookings-timeline {
-    &-container {
-        min-height: 12.5rem;
-    }
-
-    &-loading-overlay {
-        background: rgba(255, 255, 255, 0.8);
-        z-index: 1000;
+[class*="filters-"] {
+    [data-filtered] span:nth-child(2) {
         display: none;
-        width: 100%;
-        height: 100%;
     }
 
-    &-loading {
-        background-color: #{map-deep-get($bookings, timeline, loading, bg)};
-        border: 0.125rem solid #{map-deep-get($bookings, timeline, loading, border)};
-        border-radius: 0.1875rem;
-        box-shadow: 0.125rem 0.125rem 0.1875rem 0.0625rem rgba(0, 0, 0, 0.2);
-        color: #{map-deep-get($bookings, timeline, loading, text)};
-        padding: 1.5em;
-        text-align: center;
-        width: 100%;
-        height: 100%;
-        min-height: 12.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    a:not([data-filtered]) span:nth-child(1) {
+        display: none;
+    }
+
+    a {
+        cursor: pointer;
     }
 }
 
+/*rtl:raw:
+.dropdown-menu-end[data-bs-popper] {
+  left: auto;
+  right: 0;
+}
+*/
+
+/*rtl:raw:
+.CodeMirror{
+    text-align: left;
+}
+*/
+// Repeatable fields display (Bug 30148)
+.resource_list {
+    display: inline-block;
+    margin: 0;
+    padding-left: 0;
+
+    li {
+        display: inline-block;
+        white-space: nowrap;
+
+        &::after {
+            content: " | ";
+        }
+
+        &:last-child {
+            &::after {
+                content: "";
+            }
+        }
+    }
+}
 
 @import "_lmscloud";

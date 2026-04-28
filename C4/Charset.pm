@@ -15,23 +15,13 @@ package C4::Charset;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-
-use MARC::Charset;
-use Text::Iconv;
-use Unicode::Normalize qw( NFC NFD );
-use Encode;
-
-use Koha::Logger;
-
-our ( @ISA, @EXPORT_OK );
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         NormalizeString
         IsStringUTF8ish
         MarcToUTF8Record
@@ -42,6 +32,13 @@ BEGIN {
         SanitizeRecord
     );
 }
+
+use MARC::Charset;
+use Text::Iconv;
+use Unicode::Normalize qw( NFC NFD );
+use Encode;
+
+use Koha::Logger;
 
 =encoding UTF-8
 
@@ -196,7 +193,7 @@ sub NormalizeString {
 =head2 MarcToUTF8Record
 
   ($marc_record, $converted_from, $errors_arrayref) = MarcToUTF8Record($marc_blob, 
-					$marc_flavour, [, $source_encoding]);
+                    $marc_flavour, [, $source_encoding]);
 
 Given a MARC blob or a C<MARC::Record>, the MARC flavour, and an 
 optional source encoding, return a C<MARC::Record> that is 
@@ -368,7 +365,7 @@ removed.
 This function exists to work around a problem
 that can occur with badly-encoded MARC records.
 Specifically, if a UTF-8 MARC record also
-has excape (\x1b) characters, MARC::File::XML
+has escape (\x1b) characters, MARC::File::XML
 will let the escape characters pass through
 when as_xml() or as_xml_record() is called.  The
 problem is that the escape character is not
@@ -707,7 +704,7 @@ sub _marc_to_utf8_via_text_iconv {
     my $decoder;
     eval { $decoder = Text::Iconv->new( $source_encoding, 'utf8' ); };
     if ($@) {
-        push @errors, "Could not initialze $source_encoding => utf8 converter: $@";
+        push @errors, "Could not initialize $source_encoding => utf8 converter: $@";
         return @errors;
     }
 
@@ -1043,7 +1040,7 @@ $chars{0xc777} = 0x1e87;    # small w with dot above
 $chars{0xc778} = 0x1e8b;    # small x with dot above
 $chars{0xc779} = 0x1e8f;    # small y with dot above
 $chars{0xc77a} = 0x017c;    # small z with dot above
-                            # 4/8 trema, diaresis
+                            # 4/8 trema, diaeresis
 $chars{0xc820} = 0x00a8;    # diaeresis
 $chars{0xc841} = 0x00c4;    # capital a with diaeresis
 $chars{0xc845} = 0x00cb;    # capital e with diaeresis
@@ -1284,7 +1281,7 @@ sub char_decode5426 {
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 Galen Charlton <galen.charlton@liblime.com>
 

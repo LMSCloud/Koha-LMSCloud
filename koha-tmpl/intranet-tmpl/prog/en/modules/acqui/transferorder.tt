@@ -165,29 +165,30 @@
             </fieldset>
         </div>
     </nav>
+</div>
+<!-- /.container-fluid -->
 
-    [% MACRO jsinclude BLOCK %]
-        [% IF transferred %]
-            <script>
-                opener.location.reload();
-                window.close();
-            </script>
-        [% END %]
-
-        [% IF ( bookselleridfrom ) %]
-            <script>
-                $(document).ready(function () {
-                    $(".confirm_transfer").on("click", function () {
-                        return confirm(_("Transfer order to this basket?"));
-                    });
-                    $("#vendor_search_submit").on("click", function (e) {
-                        e.preventDefault();
-                        $("#vendor_search_form").submit();
-                    });
-                });
-            </script>
-        [% END %]
+[% MACRO jsinclude BLOCK %]
+    [% IF transferred %]
+        <script>
+            opener.location.reload();
+            window.close();
+        </script>
     [% END %]
 
-    [% INCLUDE 'intranet-bottom.inc' popup_window=1 %]
-</div>
+    [% IF ( bookselleridfrom ) %]
+        <script>
+            $(document).ready(function () {
+                $(".confirm_transfer").on("click", function () {
+                    return confirm(_("Transfer order to this basket?"));
+                });
+                $("#vendor_search_submit").on("click", function (e) {
+                    e.preventDefault();
+                    $("#vendor_search_form").submit();
+                });
+            });
+        </script>
+    [% END %]
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' popup_window=1 %]

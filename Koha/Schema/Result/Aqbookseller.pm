@@ -550,9 +550,37 @@ __PACKAGE__->add_columns(
     '+invoiceincgst' => { is_boolean => 1 },
 );
 
+=head2 aliases
+
+Type: has_many
+
+Related object: L<Koha::Schema::Result::AqbooksellerAlias>
+
+=cut
+
+__PACKAGE__->has_many(
+    "aliases",
+    "Koha::Schema::Result::AqbooksellerAlias",
+    { "foreign.vendor_id" => "self.id" },
+    { cascade_copy        => 0, cascade_delete => 0 },
+);
+
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
+
 sub koha_object_class {
     'Koha::Acquisition::Bookseller';
 }
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
     'Koha::Acquisition::Booksellers';
 }

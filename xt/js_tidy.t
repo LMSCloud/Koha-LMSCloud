@@ -1,4 +1,4 @@
-#/usr/bin/perl
+#!/usr/bin/perl
 
 # This file is part of Koha.
 #
@@ -13,27 +13,27 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use File::Slurp qw( read_file );
-use File::Find;
-use FindBin();
-use Data::Dumper qw( Dumper );
-use Test::More tests => 1;
+use Test::More;
+use Test::NoWarnings;
 
-my $cmd      = q{git grep -l '/\* keep tidy \*/'  -- '*.js'};
-my @js_files = qx{$cmd};
+use Koha::Devel::CI::IncrementalRuns;
 
-my @not_tidy;
-foreach my $filepath (@js_files) {
+my $ci = Koha::Devel::CI::IncrementalRuns->new( { context => 'tidy' } );
+
+my @files = $ci->get_files_to_test('js');
+
+plan tests => scalar @files + 1;
+
+my %results;
+foreach my $filepath (@files) {
     chomp $filepath;
-    my $tidy    = qx{yarn --silent run prettier --trailing-comma es5 --arrow-parens avoid $filepath};
+    my $tidy    = qx{perl misc/devel/tidy.pl --silent --no-write $filepath};
     my $content = read_file $filepath;
-    if ( $content ne $tidy ) {
-        push @not_tidy, $filepath;
-    }
+    ok( $content eq $tidy, "$filepath should be kept tidy" ) or $results{$filepath} = 1;
 }
 
-is( scalar(@not_tidy), 0, sprintf( 'No .js file should be messy %s/%s', scalar(@not_tidy), scalar(@js_files) ) )
-    or diag Dumper \@not_tidy;
+$ci->report_results( \%results );

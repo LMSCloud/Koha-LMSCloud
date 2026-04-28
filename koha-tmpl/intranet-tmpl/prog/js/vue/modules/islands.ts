@@ -2,6 +2,8 @@ import { Component, defineCustomElement } from "vue";
 import { createPinia } from "pinia";
 import { $__ } from "../i18n";
 import { useMainStore } from "../stores/main";
+import { useNavigationStore } from "../stores/navigation";
+import { useVendorStore } from "../stores/vendors";
 import { useBookingStore } from "../stores/bookingStore";
 
 /**
@@ -42,6 +44,36 @@ type WebComponentDynamicImport = {
 export const componentRegistry: Map<string, WebComponentDynamicImport> =
     new Map([
         [
+            "acquisitions-menu",
+            {
+                importFn: async () => {
+                    const module = await import(
+                        /* webpackChunkName: "acquisitions-menu" */
+                        "../components/Islands/AcquisitionsMenu.vue"
+                    );
+                    return module.default;
+                },
+                config: {
+                    stores: ["vendorStore", "navigationStore"],
+                },
+            },
+        ],
+        [
+            "vendor-menu",
+            {
+                importFn: async () => {
+                    const module = await import(
+                        /* webpackChunkName: "vendor-menu" */
+                        "../components/Islands/VendorMenu.vue"
+                    );
+                    return module.default;
+                },
+                config: {
+                    stores: ["vendorStore", "navigationStore"],
+                },
+            },
+        ],
+        [
             "booking-modal-island",
             {
                 importFn: async () => {
@@ -66,6 +98,9 @@ export function hydrate(): void {
     window.requestIdleCallback(async () => {
         const pinia = createPinia();
         const storesMatrix = {
+            mainStore: useMainStore(pinia),
+            navigationStore: useNavigationStore(pinia),
+            vendorStore: useVendorStore(pinia),
             bookingStore: useBookingStore(pinia),
         };
 

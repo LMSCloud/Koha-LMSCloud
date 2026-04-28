@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -254,7 +254,7 @@ if ( $op eq 'list' ) {
     my $period_total = 0;
     my ( $period_alloc_total, $spent_total, $ordered_total, $available_total ) = ( 0, 0, 0, 0 );
 
-    #This Looks WEIRD to me : should budgets be filtered in such a way ppl who donot own it would not see the amount spent on the budget by others ?
+    #This Looks WEIRD to me : should budgets be filtered in such a way ppl who do not own it would not see the amount spent on the budget by others ?
 
     my @budgets_to_display;
     foreach my $budget (@budgets) {

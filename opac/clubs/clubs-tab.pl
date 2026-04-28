@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -44,6 +44,7 @@ $template->param(
     enrollments => \@enrollments,
     clubs       => \@clubs,
     patron      => $patron,
+    borrower    => $patron,
 );
 
 output_html_with_http_headers( $cgi, $cookie, $template->output, undef, { force_no_caching => 1 } );

@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -48,6 +48,16 @@ get '/cities/rs' => sub {
     my $c = shift;
     $c->validation->output( $c->req->params->to_hash );
     $c->stash_embed;
+    my $cities = $c->objects->search_rs( Koha::Cities->new );
+
+    $c->render( status => 200, json => { count => $cities->count } );
+};
+
+get '/cities/rs_regression' => sub {
+    my $c = shift;
+    $c->validation->output( $c->req->params->to_hash );
+    $c->stash_embed;
+    $c->req->params->remove('q');
     my $cities = $c->objects->search_rs( Koha::Cities->new );
 
     $c->render( status => 200, json => { count => $cities->count } );
@@ -134,7 +144,8 @@ get '/cities/:city_id/rs' => sub {
 };
 
 # The tests
-use Test::More tests => 18;
+use Test::NoWarnings;
+use Test::More tests => 20;
 use Test::Mojo;
 
 use t::lib::Mocks;
@@ -175,8 +186,11 @@ subtest 'objects.search helper' => sub {
     );
 
     my $t = Test::Mojo->new;
-    $t->get_ok('/cities?name=manuel&_per_page=1&_page=1')->status_is(200)
-        ->header_like( 'Link' => qr/<http:\/\/.*[\?&]_page=2.*>; rel="next",/ )->json_has('/0')->json_hasnt('/1')
+    $t->get_ok('/cities?name=manuel&_per_page=1&_page=1')
+        ->status_is(200)
+        ->header_like( 'Link' => qr/<http:\/\/.*[\?&]_page=2.*>; rel="next",/ )
+        ->json_has('/0')
+        ->json_hasnt('/1')
         ->json_is( '/0/name' => 'Manuel' );
 
     $builder->build_object(
@@ -187,22 +201,44 @@ subtest 'objects.search helper' => sub {
     );
 
     # _match=starts_with
-    $t->get_ok('/cities?name=manuel&_per_page=4&_page=1&_match=starts_with')->status_is(200)->json_has('/0')
-        ->json_has('/1')->json_has('/2')->json_hasnt('/3')->json_is( '/0/name' => 'Manuel' )
-        ->json_is( '/1/name' => 'Manuela' )->json_is( '/2/name' => 'Manuelab' );
+    $t->get_ok('/cities?name=manuel&_per_page=4&_page=1&_match=starts_with')
+        ->status_is(200)
+        ->json_has('/0')
+        ->json_has('/1')
+        ->json_has('/2')
+        ->json_hasnt('/3')
+        ->json_is( '/0/name' => 'Manuel' )
+        ->json_is( '/1/name' => 'Manuela' )
+        ->json_is( '/2/name' => 'Manuelab' );
 
     # _match=ends_with
-    $t->get_ok('/cities?name=manuel&_per_page=4&_page=1&_match=ends_with')->status_is(200)->json_has('/0')
-        ->json_has('/1')->json_hasnt('/2')->json_is( '/0/name' => 'Manuel' )->json_is( '/1/name' => 'Emanuel' );
+    $t->get_ok('/cities?name=manuel&_per_page=4&_page=1&_match=ends_with')
+        ->status_is(200)
+        ->json_has('/0')
+        ->json_has('/1')
+        ->json_hasnt('/2')
+        ->json_is( '/0/name' => 'Manuel' )
+        ->json_is( '/1/name' => 'Emanuel' );
 
     # _match=exact
-    $t->get_ok('/cities?name=manuel&_per_page=4&_page=1&_match=exact')->status_is(200)->json_has('/0')
-        ->json_hasnt('/1')->json_is( '/0/name' => 'Manuel' );
+    $t->get_ok('/cities?name=manuel&_per_page=4&_page=1&_match=exact')
+        ->status_is(200)
+        ->json_has('/0')
+        ->json_hasnt('/1')
+        ->json_is( '/0/name' => 'Manuel' );
 
     # _match=contains
-    $t->get_ok('/cities?name=manuel&_per_page=4&_page=1&_match=contains')->status_is(200)->json_has('/0')
-        ->json_has('/1')->json_has('/2')->json_has('/3')->json_hasnt('/4')->json_is( '/0/name' => 'Manuel' )
-        ->json_is( '/1/name' => 'Manuela' )->json_is( '/2/name' => 'Manuelab' )->json_is( '/3/name' => 'Emanuel' );
+    $t->get_ok('/cities?name=manuel&_per_page=4&_page=1&_match=contains')
+        ->status_is(200)
+        ->json_has('/0')
+        ->json_has('/1')
+        ->json_has('/2')
+        ->json_has('/3')
+        ->json_hasnt('/4')
+        ->json_is( '/0/name' => 'Manuel' )
+        ->json_is( '/1/name' => 'Manuela' )
+        ->json_is( '/2/name' => 'Manuelab' )
+        ->json_is( '/3/name' => 'Emanuel' );
 
     # Add 20 more cities
     for ( 1 .. 20 ) {
@@ -251,26 +287,54 @@ subtest 'objects.search helper, sorting on mapped column' => sub {
     my $t = Test::Mojo->new;
 
     # CSV-param
-    $t->get_ok('/cities?_order_by=%2Bname,-country')->status_is(200)->json_has('/0')->json_has('/1')
-        ->json_is( '/0/name' => 'A' )->json_is( '/1/name' => 'B' )->json_is( '/2/name' => 'C' )
-        ->json_is( '/2/country' => 'Belarus' )->json_is( '/3/name' => 'C' )->json_is( '/3/country' => 'Argentina' )
+    $t->get_ok('/cities?_order_by=%2Bname,-country')
+        ->status_is(200)
+        ->json_has('/0')
+        ->json_has('/1')
+        ->json_is( '/0/name'    => 'A' )
+        ->json_is( '/1/name'    => 'B' )
+        ->json_is( '/2/name'    => 'C' )
+        ->json_is( '/2/country' => 'Belarus' )
+        ->json_is( '/3/name'    => 'C' )
+        ->json_is( '/3/country' => 'Argentina' )
         ->json_hasnt('/4');
 
     # Multi-param: traditional
-    $t->get_ok('/cities?_order_by=%2Bname&_order_by=-country')->status_is(200)->json_has('/0')->json_has('/1')
-        ->json_is( '/0/name' => 'A' )->json_is( '/1/name' => 'B' )->json_is( '/2/name' => 'C' )
-        ->json_is( '/2/country' => 'Belarus' )->json_is( '/3/name' => 'C' )->json_is( '/3/country' => 'Argentina' )
+    $t->get_ok('/cities?_order_by=%2Bname&_order_by=-country')
+        ->status_is(200)
+        ->json_has('/0')
+        ->json_has('/1')
+        ->json_is( '/0/name'    => 'A' )
+        ->json_is( '/1/name'    => 'B' )
+        ->json_is( '/2/name'    => 'C' )
+        ->json_is( '/2/country' => 'Belarus' )
+        ->json_is( '/3/name'    => 'C' )
+        ->json_is( '/3/country' => 'Argentina' )
         ->json_hasnt('/4');
 
-    # Multi-param: PHP Style, Passes validation as above, subsequntly explodes
-    $t->get_ok('/cities?_order_by[]=%2Bname&_order_by[]=-country')->status_is(200)->json_has('/0')->json_has('/1')
-        ->json_is( '/0/name' => 'A' )->json_is( '/1/name' => 'B' )->json_is( '/2/name' => 'C' )
-        ->json_is( '/2/country' => 'Belarus' )->json_is( '/3/name' => 'C' )->json_is( '/3/country' => 'Argentina' )
+    # Multi-param: PHP Style, Passes validation as above, subsequently explodes
+    $t->get_ok('/cities?_order_by[]=%2Bname&_order_by[]=-country')
+        ->status_is(200)
+        ->json_has('/0')
+        ->json_has('/1')
+        ->json_is( '/0/name'    => 'A' )
+        ->json_is( '/1/name'    => 'B' )
+        ->json_is( '/2/name'    => 'C' )
+        ->json_is( '/2/country' => 'Belarus' )
+        ->json_is( '/3/name'    => 'C' )
+        ->json_is( '/3/country' => 'Argentina' )
         ->json_hasnt('/4');
 
     # Single-param
-    $t->get_ok('/cities?_order_by=-name')->status_is(200)->json_has('/0')->json_has('/1')->json_is( '/0/name' => 'C' )
-        ->json_is( '/1/name' => 'C' )->json_is( '/2/name' => 'B' )->json_is( '/3/name' => 'A' )->json_hasnt('/4');
+    $t->get_ok('/cities?_order_by=-name')
+        ->status_is(200)
+        ->json_has('/0')
+        ->json_has('/1')
+        ->json_is( '/0/name' => 'C' )
+        ->json_is( '/1/name' => 'C' )
+        ->json_is( '/2/name' => 'B' )
+        ->json_is( '/3/name' => 'A' )
+        ->json_hasnt('/4');
 
     $schema->storage->txn_rollback;
 };
@@ -287,7 +351,10 @@ subtest 'objects.search helper, encoding' => sub {
     $builder->build_object( { class => 'Koha::Cities', value => { city_name => 'B', city_country => '❤Argentina❤' } } );
 
     my $t = Test::Mojo->new;
-    $t->get_ok('/cities?q={"country": "❤Argentina❤"}')->status_is(200)->json_has('/0')->json_hasnt('/1')
+    $t->get_ok('/cities?q={"country": "❤Argentina❤"}')
+        ->status_is(200)
+        ->json_has('/0')
+        ->json_hasnt('/1')
         ->json_is( '/0/name' => 'B' );
 
     $schema->storage->txn_rollback;
@@ -315,11 +382,13 @@ subtest 'objects.search helper, X-Total-Count and X-Base-Total-Count' => sub {
     }
 
     my $t = Test::Mojo->new;
-    $t->get_ok('/cities?name=L&_per_page=10&_page=1&_match=starts_with')->status_is(200)
+    $t->get_ok('/cities?name=L&_per_page=10&_page=1&_match=starts_with')
+        ->status_is(200)
         ->header_is( 'X-Total-Count'      => 20, 'X-Total-Count header present' )
         ->header_is( 'X-Base-Total-Count' => 20, 'X-Base-Total-Count header present' );
 
-    $t->get_ok('/cities?name=Llan&_per_page=10&_page=1&_match=starts_with')->status_is(200)
+    $t->get_ok('/cities?name=Llan&_per_page=10&_page=1&_match=starts_with')
+        ->status_is(200)
         ->header_is( 'X-Total-Count'      => 17, 'X-Total-Count header present' )
         ->header_is( 'X-Base-Total-Count' => 20, 'X-Base-Total-Count header present' );
 
@@ -645,13 +714,18 @@ subtest 'objects.search helper, search_limited() tests' => sub {
     t::lib::Mocks::mock_userenv( { patron => $patron } );
 
     $t->get_ok( "/my_patrons?q=" . encode_json( { library_id => [ $library_1->id, $library_2->id ] } ) )
-        ->status_is(200)->json_is( '/0/patron_id' => $patron_1->id )->json_is( '/1/patron_id' => $patron_2->id )
+        ->status_is(200)
+        ->json_is( '/0/patron_id' => $patron_1->id )
+        ->json_is( '/1/patron_id' => $patron_2->id )
         ->json_is( '/2/patron_id' => $patron_3->id );
 
     @libraries_where_can_see_patrons = ( $library_2->id );
 
-    my $res = $t->get_ok( "/my_patrons?q=" . encode_json( { library_id => [ $library_1->id, $library_2->id ] } ) )
-        ->status_is(200)->json_is( '/0/patron_id' => $patron_3->id, 'Returns the only allowed patron' )->tx->res->json;
+    my $res =
+        $t->get_ok( "/my_patrons?q=" . encode_json( { library_id => [ $library_1->id, $library_2->id ] } ) )
+        ->status_is(200)
+        ->json_is( '/0/patron_id' => $patron_3->id, 'Returns the only allowed patron' )
+        ->tx->res->json;
 
     is( scalar @{$res}, 1, 'Only one patron returned' );
 
@@ -749,16 +823,24 @@ subtest 'objects.find helper with expanded authorised values' => sub {
         }
     );
 
-    $t->get_ok( '/cities/' . $manuel->id => { 'x-koha-embed' => '+strings' } )->status_is(200)
-        ->json_is( '/name' => 'Manuel' )->json_has('/_strings')->json_is( '/_strings/country/type' => 'av' )
+    $t->get_ok( '/cities/' . $manuel->id => { 'x-koha-embed' => '+strings' } )
+        ->status_is(200)
+        ->json_is( '/name' => 'Manuel' )
+        ->json_has('/_strings')
+        ->json_is( '/_strings/country/type'     => 'av' )
         ->json_is( '/_strings/country/category' => $cat->category_name )
         ->json_is( '/_strings/country/str'      => $ar->lib );
 
-    $t->get_ok( '/cities/' . $manuel->id => { 'x-koha-embed' => '' } )->status_is(200)->json_is( '/name' => 'Manuel' )
+    $t->get_ok( '/cities/' . $manuel->id => { 'x-koha-embed' => '' } )
+        ->status_is(200)
+        ->json_is( '/name' => 'Manuel' )
         ->json_hasnt('/_strings');
 
-    $t->get_ok( '/cities/' . $manuela->id => { 'x-koha-embed' => '+strings' } )->status_is(200)
-        ->json_is( '/name' => 'Manuela' )->json_has('/_strings')->json_is( '/_strings/country/type' => 'av' )
+    $t->get_ok( '/cities/' . $manuela->id => { 'x-koha-embed' => '+strings' } )
+        ->status_is(200)
+        ->json_is( '/name' => 'Manuela' )
+        ->json_has('/_strings')
+        ->json_is( '/_strings/country/type'     => 'av' )
         ->json_is( '/_strings/country/category' => $cat->category_name )
         ->json_is( '/_strings/country/str'      => $us->lib );
 
@@ -857,17 +939,30 @@ subtest 'objects.search helper with expanded authorised values' => sub {
     );
 
     $t->get_ok( '/cities?name=manuel&_per_page=4&_page=1&_match=starts_with' => { 'x-koha-embed' => '+strings' } )
-        ->status_is(200)->json_has('/0')->json_has('/1')->json_hasnt('/2')->json_is( '/0/name' => 'Manuel' )
-        ->json_has('/0/_strings')->json_is( '/0/_strings/country/str' => $ar->lib )
+        ->status_is(200)
+        ->json_has('/0')
+        ->json_has('/1')
+        ->json_hasnt('/2')
+        ->json_is( '/0/name' => 'Manuel' )
+        ->json_has('/0/_strings')
+        ->json_is( '/0/_strings/country/str'      => $ar->lib )
         ->json_is( '/0/_strings/country/type'     => 'av' )
-        ->json_is( '/0/_strings/country/category' => $cat->category_name )->json_is( '/1/name' => 'Manuela' )
-        ->json_has('/1/_strings')->json_is( '/1/_strings/country/str' => $us->lib )
+        ->json_is( '/0/_strings/country/category' => $cat->category_name )
+        ->json_is( '/1/name'                      => 'Manuela' )
+        ->json_has('/1/_strings')
+        ->json_is( '/1/_strings/country/str'      => $us->lib )
         ->json_is( '/1/_strings/country/type'     => 'av' )
         ->json_is( '/1/_strings/country/category' => $cat->category_name );
 
-    $t->get_ok('/cities?name=manuel&_per_page=4&_page=1&_match=starts_with')->status_is(200)->json_has('/0')
-        ->json_has('/1')->json_hasnt('/2')->json_is( '/0/name' => 'Manuel' )->json_hasnt('/0/_strings')
-        ->json_is( '/1/name' => 'Manuela' )->json_hasnt('/1/_strings');
+    $t->get_ok('/cities?name=manuel&_per_page=4&_page=1&_match=starts_with')
+        ->status_is(200)
+        ->json_has('/0')
+        ->json_has('/1')
+        ->json_hasnt('/2')
+        ->json_is( '/0/name' => 'Manuel' )
+        ->json_hasnt('/0/_strings')
+        ->json_is( '/1/name' => 'Manuela' )
+        ->json_hasnt('/1/_strings');
 
     $schema->storage->txn_rollback;
 };
@@ -983,10 +1078,45 @@ subtest 'date handling' => sub {
             borrowernumber => $patron->id
         }
     );
-    $t->get_ok( "//$userid:$password@/api/v1/jobs?q=" . $q )->status_is(200)->json_is( '/0/job_id' => $job_1->id )
+    $t->get_ok( "//$userid:$password@/api/v1/jobs?q=" . $q )
+        ->status_is(200)
+        ->json_is( '/0/job_id' => $job_1->id )
         ->json_is( '/1/job_id' => $job_3->id );
     $response_count = scalar @{ $t->tx->res->json };
     is( $response_count, 2 );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Regression test - search_rs should not reinstate removed query parameters' => sub {
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    # Remove existing cities to have more control on the search results
+    Koha::Cities->delete;
+
+    # Create three sample cities that match the query. We want to get all three returned when the city_name query parameter is removed
+    $builder->build_object(
+        {
+            class => 'Koha::Cities',
+            value => { city_name => 'city1' }
+        }
+    );
+    $builder->build_object(
+        {
+            class => 'Koha::Cities',
+            value => { city_name => 'city2' }
+        }
+    );
+    $builder->build_object(
+        {
+            class => 'Koha::Cities',
+            value => { city_name => 'city3' }
+        }
+    );
+    my $t = Test::Mojo->new;
+    $t->get_ok('/cities/rs_regression?q={"city_name":"city1"}')->status_is(200)->json_is( '/count' => 3 );
 
     $schema->storage->txn_rollback;
 };

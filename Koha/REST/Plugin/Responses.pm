@@ -13,7 +13,7 @@ package Koha::REST::Plugin::Responses;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -26,6 +26,12 @@ Koha::REST::Plugin::Responses
 =head1 API
 
 =head2 Helper methods
+
+=cut
+
+=head2 register
+
+Missing POD for register.
 
 =cut
 

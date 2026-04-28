@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -94,8 +94,8 @@ if ( !$record ) {
 
     # biblionumber invalid -> report and exit
     $template->param(
-        unknownbiblionumber => 1,
-        biblionumber        => $biblionumber
+        blocking_error => 'unknown_biblionumber',
+        biblionumber   => $biblionumber
     );
     output_html_with_http_headers $query, $cookie, $template->output;
     exit;
@@ -184,30 +184,23 @@ for ( my $tabloop = 0 ; $tabloop <= 10 ; $tabloop++ ) {
             # loop through each subfield
             for my $i ( 0 .. $#subf ) {
                 $subf[$i][0] = "@" unless defined $subf[$i][0];
+                my $sf = $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] };
                 next
-                    if ( $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }->{tab} // q{} ) ne
-                    $tabloop;    # Note: defaulting to '0' changes behavior!
+                    if ( $sf->{tab} // q{} ) ne $tabloop;    # Note: defaulting to '0' changes behavior!
                 next
-                    if ( $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }->{hidden} =~ /-7|-4|-3|-2|2|3|5|8/ );
+                    if ( $sf->{hidden} =~ /-7|-4|-3|-2|2|3|5|8/ );
                 my %subfield_data;
-                $subfield_data{short_desc} = $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }->{lib};
-                $subfield_data{long_desc} =
-                    $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }->{lib};
-                $subfield_data{link} =
-                    $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }->{link};
+                $subfield_data{short_desc} = $sf->{lib};
+                $subfield_data{long_desc}  = $sf->{lib};
+                $subfield_data{link}       = $sf->{link};
 
-                #                 warn "tag : ".$tagslib->{$fields[$x_i]->tag()}." subfield :".$tagslib->{$fields[$x_i]->tag()}->{$subf[$i][0]}."lien koha? : "$subfield_data{link};
-                if ( $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }->{isurl} ) {
+                if ( $sf->{isurl} ) {
                     $subfield_data{marc_value} = $subf[$i][1];
                     $subfield_data{is_url}     = 1;
-                } elsif ( $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }->{kohafield}
-                    && $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }->{kohafield} eq "biblioitems.isbn" )
-                {
-
-                    #                    warn " tag : ".$tagslib->{$fields[$x_i]->tag()}." subfield :".$tagslib->{$fields[$x_i]->tag()}->{$subf[$i][0]}. "ISBN : ".$subf[$i][1]."PosttraitementISBN :".DisplayISBN($subf[$i][1]);
+                } elsif ( $sf->{kohafield} && $sf->{kohafield} eq "biblioitems.isbn" ) {
                     $subfield_data{marc_value} = $subf[$i][1];
                 } else {
-                    if ( $tagslib->{ $fields[$x_i]->tag() }->{ $subf[$i][0] }->{authtypecode} ) {
+                    if ( $sf->{authtypecode} ) {
                         $subfield_data{authority} = $fields[$x_i]->subfield(9);
                     }
                     $subfield_data{marc_value} = GetAuthorisedValueDesc(
@@ -253,7 +246,7 @@ for ( my $tabloop = 0 ; $tabloop <= 10 ; $tabloop++ ) {
 # now, build item tab !
 # the main difference is that datas are in lines and not in columns : thus, we build the <th> first, then the values...
 # loop through each tag
-# warning : we may have differents number of columns in each row. Thus, we first build a hash, complete it if necessary
+# warning : we may have different number of columns in each row. Thus, we first build a hash, complete it if necessary
 # then construct template.
 my @fields = $record->fields();
 my %witness;    #---- stores the list of subfields used at least once, with the "meaning" of the code

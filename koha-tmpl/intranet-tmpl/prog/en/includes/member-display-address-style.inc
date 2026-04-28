@@ -29,10 +29,16 @@
     [%~ END ~%]
     [%~ IF ( patron.city || patron.zipcode || patron.state || patron.country ) ~%]
         <li class="patroncity">
-            <span class="city">[%~ patron.city |html ~%]</span>[%~ IF ( patron.state ) %][%~ IF ( patron.city ) ~%],[% END ~%]<span class="state">[% patron.state |html ~%]</span>[%~ END ~%]
-            [%~ IF ( patron.zipcode ) %]<span class="zipcode">[%~ " " _ patron.zipcode |html ~%]</span>[% END %][%~ IF ( patron.country ) %][%~ IF ( patron.zipcode || patron.state || patron.city ) ~%]
-                <span class="comma">,</span>
-            [% END ~%]<span class="country">[% patron.country |html ~%]</span>[%~ END ~%]
+            <span class="city">[%~ patron.city |html ~%]</span>
+            [%~ IF ( patron.state ) %]
+                [%~ IF ( patron.city ) ~%][% ", " | $raw %][% END ~%]
+                <span class="state">[% patron.state |html ~%]</span>
+            [%~ END ~%]
+            [%~ IF ( patron.zipcode ) %]<span class="zipcode">[%~ " " _ patron.zipcode |html ~%]</span>[% END %]
+            [%~ IF ( patron.country ) %]
+                [% line_break | $raw %]
+                <span class="country">[% patron.country |html ~%]</span>
+            [%~ END ~%]
         </li>
     [%~ END ~%]
 [%~ END ~%]

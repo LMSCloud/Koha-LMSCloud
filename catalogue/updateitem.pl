@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 use Modern::Perl;
 use CGI      qw ( -utf8 );
 use C4::Auth qw( checkauth );
@@ -105,8 +105,13 @@ if ( $op eq "cud-set_non_public_note" ) {
     exit;
 }
 
-$item->store;
-
+eval { $item->store; };
+if ($@) {
+    my $error_message = $@->message;
+    print $cgi->redirect(
+        "moredetail.pl?biblionumber=$biblionumber&itemnumber=$itemnumber&nowithdraw=$error_message#item$itemnumber");
+    exit;
+}
 LostItem( $itemnumber, 'moredetail' ) if $op eq "cud-set_lost";
 
 print $cgi->redirect(

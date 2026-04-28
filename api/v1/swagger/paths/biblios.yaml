@@ -322,7 +322,6 @@
             - extended_attributes
             - extended_attributes+strings
         collectionFormat: csv
-      - $ref: "../swagger.yaml#/parameters/q_header"
     consumes:
       - application/json
     produces:

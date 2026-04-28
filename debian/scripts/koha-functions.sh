@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
 die()
@@ -392,24 +392,59 @@ is_elasticsearch_enabled()
     fi
 }
 
-adjust_paths_dev_install()
+adjust_paths_git_install()
 {
-# Adjust KOHA_HOME, PERL5LIB for dev installs, as indicated by
-# corresponding tag in koha-conf.xml
+# Adjust KOHA_HOME, PERL5LIB, KOHA_BINDIR for git installs
 
     local instancename=$1
-    local dev_install=""
 
-    if [ "$instancename" != "" ] && is_instance $instancename; then
-        dev_install=$(run_safe_xmlstarlet $instancename dev_install)
-    fi
-
-    if [ "$dev_install" != "" ] && [ "$dev_install" != "0" ]; then
-        DEV_INSTALL=1
+    if is_git_install $instancename; then
         KOHA_HOME=$(run_safe_xmlstarlet $instancename intranetdir)
         PERL5LIB="$KOHA_HOME:$KOHA_HOME/lib"
+        KOHA_BINDIR=misc
     else
-        DEV_INSTALL=""
+        KOHA_BINDIR=bin
+    fi
+}
+
+is_git_install()
+{
+    local instancename=$1 git_install
+
+    # env var GIT_INSTALL overrules koha-conf entry
+    if [ -n "$GIT_INSTALL" ]; then
+        if [ "$GIT_INSTALL" != "0" ]; then return 0; else return 1; fi
+    fi
+
+    # now check koha-conf; looking at dev_install as historical fallback
+    if [ "$instancename" != "" ] && is_instance $instancename; then
+        git_install=$(run_safe_xmlstarlet $instancename git_install)
+        if [ -z "$git_install" ]; then git_install=$(run_safe_xmlstarlet $instancename dev_install); fi
+    fi
+    if [ -n "$git_install" ] && [ "$git_install" != "0" ]; then
+        return 0; # true
+    else
+        return 1
+    fi
+}
+
+is_debug_mode()
+{
+    local instancename=$1 debug_mode
+
+    # env var DEBUG_MODE overrules koha-conf entry
+    if [ -n "$DEBUG_MODE" ]; then
+        if [ "$DEBUG_MODE" != "0" ]; then return 0; else return 1; fi
+    fi
+
+    # now check koha-conf
+    if [ "$instancename" != "" ] && is_instance $instancename; then
+        debug_mode=$(run_safe_xmlstarlet $instancename debug_mode)
+    fi
+    if [ -n "$debug_mode" ] && [ "debug_mode" != "0" ]; then
+        return 0; # true
+    else
+        return 1
     fi
 }
 
@@ -492,4 +527,15 @@ run_safe_xmlstarlet()
     set +e; # stay on the safe side
     echo $(xmlstarlet sel -t -v "yazgfs/config/$myexpr" /etc/koha/sites/$instancename/koha-conf.xml)
     return 0
+}
+
+get_es_indexer_batch_size()
+{
+    local instancename=$1
+    local retval=$(xmlstarlet sel -t -v 'yazgfs/config/es_indexer_batch_size' /etc/koha/sites/$instancename/koha-conf.xml)
+    if [ "$retval" != "" ]; then
+        echo "$retval"
+    else
+        echo "10"
+    fi
 }

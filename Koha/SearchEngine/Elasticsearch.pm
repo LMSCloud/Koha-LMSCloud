@@ -15,7 +15,7 @@ package Koha::SearchEngine::Elasticsearch;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use base qw(Class::Accessor);
 
@@ -38,6 +38,24 @@ use Clone qw( clone );
 use Modern::Perl;
 use Readonly qw( Readonly );
 use Search::Elasticsearch;
+use Search::Elasticsearch::Role::Cxn;
+{
+    # Monkey-patch Search::Elasticsearch::Role::Cxn::process_response
+    no warnings 'redefine';
+
+    my $orig_sub = \&Search::Elasticsearch::Role::Cxn::process_response;
+
+    # Override method
+    *Search::Elasticsearch::Role::Cxn::process_response = sub {
+        my ( $self, $params, $code, $msg, $body, $headers ) = @_;
+
+        unless ( $headers && $headers->{'x-elastic-product'} && $headers->{'x-elastic-product'} eq 'Elasticsearch' ) {
+            $Search::Elasticsearch::Role::Cxn::PRODUCT_CHECK_VALUE = '';
+        }
+        $orig_sub->(@_);
+    };
+}
+
 use Try::Tiny qw( catch try );
 use YAML::XS;
 
@@ -75,6 +93,12 @@ The Elasticsearch index name with Koha instance prefix.
 
 
 =head1 FUNCTIONS
+
+=cut
+
+=head2 new
+
+Missing POD for new.
 
 =cut
 
@@ -207,20 +231,20 @@ sub get_elasticsearch_mappings {
                     $es_type = 'boolean';
                 } elsif ( $type eq 'number' || $type eq 'sum' ) {
                     $es_type = 'integer';
-                } elsif ( $type eq 'availability' ) {
-                    $es_type = 'availability';
                 } elsif ( $type eq 'isbn' || $type eq 'stdno' ) {
                     $es_type = 'stdno';
                 } elsif ( $type eq 'year' ) {
                     $es_type = 'year';
-                } elsif ( $type eq 'date' ) {
-                    $es_type = 'date';
-                } elsif ( $type eq 'string_plus' ) {
-                    $es_type = 'string_plus';
                 } elsif ( $type eq 'callnumber' ) {
                     $es_type = 'cn_sort';
                 } elsif ( $type eq 'geo_point' ) {
                     $es_type = 'geo_point';
+                } elsif ( $type eq 'availability' ) {
+                    $es_type = 'availability';
+                } elsif ( $type eq 'date' ) {
+                    $es_type = 'date';
+                } elsif ( $type eq 'string_plus' ) {
+                    $es_type = 'string_plus';
                 }
 
                 if ( $type eq 'geo_point' ) {
@@ -375,6 +399,12 @@ sub _load_elasticsearch_mappings {
     return YAML::XS::LoadFile($mappings_yaml);
 }
 
+=head2 reset_elasticsearch_mappings
+
+Missing POD for reset_elasticsearch_mappings.
+
+=cut
+
 sub reset_elasticsearch_mappings {
     my ($self) = @_;
     my $indexes = $self->_load_elasticsearch_mappings();
@@ -428,6 +458,13 @@ sub reset_elasticsearch_mappings {
 
 # This overrides the accessor provided by Class::Accessor so that if
 # sort_fields isn't set, then it'll generate it.
+
+=head2 sort_fields
+
+Missing POD for sort_fields.
+
+=cut
+
 sub sort_fields {
     my $self = shift;
     if (@_) {
@@ -568,16 +605,17 @@ sub _process_mappings {
             }
         }
 
-        # Remove text between MARC non-sorting characters \x{0098} and \x{009c} in sort values
-        # and remove the non-sorting characters in all other values.
-        # Remove common articles and special characters that are not needed for sorting.
         if ($sort) {
             for ( my $i = 0 ; $i <= $#$values ; $i++ ) {
-                $values->[$i] =~ s/^\s*[\x{0098}¬]([^\x{009c}¬]*)[\x{009c}¬]\s*// if ( $values->[$i] );
-                $values->[$i] =~ s/(\s*)[\x{0098}¬]([^\x{009c}¬]*)[\x{009c}¬](\s*)/($1 && $3 ? $3 : '')/ge
+                $values->[$i] =~ s/^\s*[\x{0098}\x{00AC}]([^\x{009c}\x{00AC}]*)[\x{009c}\x{00AC}]\s*//
                     if ( $values->[$i] );
-                $values->[$i] =~ s/[(){}»«›‹›‹…"'`':,;<>\.¡¿?!¬#\x{00}-\x{1F}]+// if ( $values->[$i] );
-                $values->[$i] =~ s/^[\s\-\+]+//                                   if ( $values->[$i] );
+                $values->[$i] =~
+                    s/(\s*)[\x{0098}\x{00AC}]([^\x{009c}\x{00AC}]*)[\x{009c}\x{00AC}](\s*)/($1 && $3 ? $3 : '')/ge
+                    if ( $values->[$i] );
+                $values->[$i] =~
+                    s/[(){}\x{00BB}\x{00AB}\x{203A}\x{2039}\x{2026}\x{201C}\x{2018}`':,;<>.\x{00A1}\x{00BF}?!\x{00AC}#\x{00}-\x{1F}]+//
+                    if ( $values->[$i] );
+                $values->[$i] =~ s/^[\s\-\+]+// if ( $values->[$i] );
                 $values->[$i] =~
                     s/^\s*((Der|Die|Das|Den|Dem|Ein|Eine|Einen|Le|La|Les|Un|Une|De|Des|The|A|An|El|En|La|Los|Las|Un|Unos|Una|Unas)\s)+//;
                 $values->[$i] =~ s/^\s*(L'|D')//i;
@@ -746,7 +784,6 @@ sub marc_records_to_documents {
                             my $data_field = $field->clone;    #copy field to preserve for alt scripts
                             $data_field->delete_subfield( match => qr/^$/ )
                                 ;    #remove empty subfields, otherwise they are printed as a space
-                                     # get values for subfields as a combined string, using the specified subfield order
                             my @fieldvals;
                             foreach my $subf ( split( //, $subfields_group ) ) {
                                 foreach my $subv ( $data_field->subfield($subf) ) {
@@ -756,8 +793,6 @@ sub marc_records_to_documents {
                                 }
                             }
                             my $data = join( " ", @fieldvals );
-
-                            # my $data = $data_field->as_string( $subfields_group ); #get values for subfields as a combined string, preserving record order
                             if ($data) {
                                 $self->_process_mappings(
                                     $subfields_join_mappings->{$subfields_group},
@@ -964,6 +999,16 @@ sub marc_records_to_documents {
             }
         }
 
+        if (   $self->index eq $AUTHORITIES_INDEX
+            && exists $record_document->{'subject-heading-thesaurus'}
+            && scalar @{ $record_document->{'subject-heading-thesaurus'} } > 1 )
+        {
+            # We should really only have two thesauri defined in the case where 008/_11 = 'z' and 040$f is defined
+            # In that case, we should drop the z
+            @{ $record_document->{'subject-heading-thesaurus'} } =
+                map { $_ eq 'z' ? () : $_ } @{ $record_document->{'subject-heading-thesaurus'} };
+        }
+
         # Check if there is at least one available item
         if ( $self->index eq $BIBLIOS_INDEX ) {
             my ( $tag, $code ) = C4::Biblio::GetMarcFromKohaField('biblio.biblionumber');
@@ -1088,7 +1133,7 @@ sub _array_to_marc {
 
 =head2 _field_mappings($facet, $suggestible, $sort, $search, $filter, $target_name, $target_type, $range, $indicator1, $indicator2)
 
-    my @mappings = _field_mappings($facet, $suggestible, $sort, $search, $filter, $target_name, $target_type, $range, $indicator1, $indicator2)
+    my @mappings = _field_mappings( $facet, $suggestible, $sort, $search, $filter, $target_name, $target_type, $range, $indicator1, $indicator2 )
 
 Get mappings, an internal data structure later used by
 L<_process_mappings($mappings, $data, $record_document, $meta)> to process MARC target
@@ -1141,16 +1186,6 @@ so "0-2" means the first three characters of MARC data.
 If only "<START>" is provided only one character at position "<START>" will
 be extracted.
 
-=item C<$indicator1>
-
-An optional value of an indicator. To be indexed, the indicator of the MARC field 
-value need to be equally to the specified indicator 1.
-
-=item C<$indicator2>
-
-An optional value of an indicator. To be indexed, the indicator of the MARC field 
-value need to be equally to the specified indicator 2.
-
 =back
 
 =cut
@@ -1197,11 +1232,9 @@ sub _field_mappings {
     } elsif ( $target_type eq 'year' ) {
         $default_options->{value_callbacks} //= [];
 
-        # Only accept years containing digits and "u"
+        # Only accept strict 4-digit years; strip any 0000 results to keep the year index clean
         push @{ $default_options->{value_callbacks} }, sub {
             my ($value) = @_;
-
-            # Replace "u" with "0" for sorting
             return map { s/^0000$//gr } ( $value =~ /[0-9]{4}/g );
         };
     } elsif ( $target_type eq 'date' ) {
@@ -1264,7 +1297,7 @@ each call to C<MARC::Record>->field) we create an optimized structure of mapping
 rules keyed by MARC field tags holding all the mapping rules for that particular tag.
 
 We can then iterate through all MARC fields for each record and apply all relevant
-rules once per fields instead of retreiving fields multiple times for each mapping rule
+rules once per fields instead of retrieving fields multiple times for each mapping rule
 which is terribly slow.
 
 =cut
@@ -1311,7 +1344,6 @@ sub _get_marc_mapping_rules {
                 my $field_tag = $1;
 
                 my ( $indicator1, $indicator2 );
-
                 if ( defined $2 ) {
                     my $indicators = $2;
                     if ( substr( $indicators, 1, 1 ) ne '*' ) {
@@ -1638,41 +1670,7 @@ Returns the list of Koha::SearchFields marked to be faceted.
 sub get_facet_fields {
     my ($self) = @_;
 
-    # These should correspond to the ES field names, as opposed to the CCL
-    # things that zebra uses.
-    my @search_field_names =
-        qw( author itype location su-geo title-series subject ccode holdingbranch homebranch ln subject-genre-form publyear);
-    my @faceted_fields = Koha::SearchFields->search(
-        { name     => { -in => \@search_field_names }, facet_order => { '!=' => undef } },
-        { order_by => ['facet_order'] }
-    )->as_list;
-    my @not_faceted_fields = Koha::SearchFields->search(
-        { name     => { -in => \@search_field_names }, facet_order => undef },
-        { order_by => ['facet_order'] }
-    )->as_list;
-
-    # This could certainly be improved
-    return ( @faceted_fields, @not_faceted_fields );
-}
-
-=head2 get_didyoumean_fields
-
-my @get_didyoumean_fields = Koha::SearchEngine::Elasticsearch->get_didyoumean_fields();
-
-Returns the list of ES field names indexed by type string_plus.
-
-=cut
-
-sub get_didyoumean_fields {
-    my ($self) = @_;
-
-    my @didyoumean_fields;
-    for my $field ( Koha::SearchFields->search( { type => 'string_plus' }, { order_by => ['name'] } )->as_list ) {
-        push @didyoumean_fields, $field->name;
-    }
-
-    # This could certainly be improved
-    return (@didyoumean_fields);
+    return Koha::SearchFields->search( { facet_order => { '!=' => undef } }, { order_by => ['facet_order'] } )->as_list;
 }
 
 =head2 clear_search_fields_cache
@@ -1691,6 +1689,24 @@ sub clear_search_fields_cache {
     $cache->clear_from_cache('elasticsearch_search_fields_staff_client_authorities');
     $cache->clear_from_cache('elasticsearch_search_fields_opac_authorities');
 
+}
+
+=head2 get_didyoumean_fields
+
+my @get_didyoumean_fields = Koha::SearchEngine::Elasticsearch->get_didyoumean_fields();
+
+Returns the list of ES field names indexed by type string_plus.
+
+=cut
+
+sub get_didyoumean_fields {
+    my ($self) = @_;
+
+    my @didyoumean_fields;
+    for my $field ( Koha::SearchFields->search( { type => 'string_plus' }, { order_by => ['name'] } )->as_list ) {
+        push @didyoumean_fields, $field->name;
+    }
+    return (@didyoumean_fields);
 }
 
 1;

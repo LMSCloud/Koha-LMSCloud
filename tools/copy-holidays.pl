@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -28,6 +28,7 @@ use C4::Calendar;
 use Koha::DateUtils qw( dt_from_string output_pref );
 
 my $input = CGI->new;
+my $op    = $input->param('op') // q{};
 my $dbh   = C4::Context->dbh();
 
 checkauth( $input, 0, { tools => 'edit_calendar' }, 'intranet' );
@@ -40,24 +41,26 @@ my $limitcopydeletebefore = $input->param('limitcopydeletebefore');
 my $datefrom              = $input->param('datefrom');
 my $dateto                = $input->param('dateto');
 
-if ($limitcopydaterange) {
-    $datefrom = eval { output_pref( { dt => dt_from_string($datefrom), dateformat => 'iso', dateonly => 1 } ); };
-    $dateto   = eval { output_pref( { dt => dt_from_string($dateto),   dateformat => 'iso', dateonly => 1 } ); };
+if ( $op eq 'cud-copy' ) {
+    if ($limitcopydaterange) {
+        $datefrom = eval { output_pref( { dt => dt_from_string($datefrom), dateformat => 'iso', dateonly => 1 } ); };
+        $dateto   = eval { output_pref( { dt => dt_from_string($dateto),   dateformat => 'iso', dateonly => 1 } ); };
 
-    if ( $datefrom && $dateto ) {
-        if ( $branchgroup && $from_branchcode ) {
-            C4::Calendar->new( branchcode => $from_branchcode )
-                ->copy_to_group_special( $branchgroup, $datefrom, $dateto, $limitcopydeletebefore );
-        } elsif ( $branchcode && $from_branchcode ) {
-            C4::Calendar->new( branchcode => $from_branchcode )
-                ->copy_to_branch_special( $branchcode, $datefrom, $dateto, $limitcopydeletebefore );
+        if ( $datefrom && $dateto ) {
+            if ( $branchgroup && $from_branchcode ) {
+                C4::Calendar->new( branchcode => $from_branchcode )
+                    ->copy_to_group_special( $branchgroup, $datefrom, $dateto, $limitcopydeletebefore );
+            } elsif ( $branchcode && $from_branchcode ) {
+                C4::Calendar->new( branchcode => $from_branchcode )
+                    ->copy_to_branch_special( $branchcode, $datefrom, $dateto, $limitcopydeletebefore );
+            }
         }
-    }
-} else {
-    if ( $branchgroup && $from_branchcode ) {
-        C4::Calendar->new( branchcode => $from_branchcode )->copy_to_group($branchgroup);
-    } elsif ( $branchcode && $from_branchcode ) {
-        C4::Calendar->new( branchcode => $from_branchcode )->copy_to_branch($branchcode);
+    } else {
+        if ( $branchgroup && $from_branchcode ) {
+            C4::Calendar->new( branchcode => $from_branchcode )->copy_to_group($branchgroup);
+        } elsif ( $branchcode && $from_branchcode ) {
+            C4::Calendar->new( branchcode => $from_branchcode )->copy_to_branch($branchcode);
+        }
     }
 }
 

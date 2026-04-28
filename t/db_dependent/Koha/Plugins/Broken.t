@@ -12,11 +12,12 @@
 # A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with Koha; if not, see <http://www.gnu.org/licenses>.
+# with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use File::Basename;
-use Test::More tests => 2;
+use Test::NoWarnings;
+use Test::More tests => 3;
 use Test::Warn;
 
 use t::lib::Mocks;
@@ -36,12 +37,13 @@ $schema->storage->txn_begin;
 
 t::lib::Mocks::mock_config( 'enable_plugins', 1 );
 
-my $plugins = Koha::Plugins->new;
+my $plugins      = Koha::Plugins->new;
+my $error_string = 'Why Liz? WHY?';
 
 warnings_are { $plugins->InstallPlugins; }
 [
-    "Calling 'install' died for plugin Koha::Plugin::BrokenInstall",
-    "Calling 'upgrade' died for plugin Koha::Plugin::BrokenUpgrade"
+    "Calling 'install' died for plugin Koha::Plugin::BrokenInstall: $error_string",
+    "Calling 'upgrade' died for plugin Koha::Plugin::BrokenUpgrade: $error_string"
 ];
 
 $schema->storage->txn_begin;

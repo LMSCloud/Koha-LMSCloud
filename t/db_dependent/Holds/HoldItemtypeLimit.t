@@ -5,7 +5,8 @@ use Modern::Perl;
 use C4::Context;
 use Koha::CirculationRules;
 
-use Test::More tests => 4;
+use Test::NoWarnings;
+use Test::More tests => 5;
 
 use t::lib::TestBuilder;
 
@@ -111,7 +112,7 @@ my $reserve_id = AddReserve(
     }
 );
 my ($status) = CheckReserves($item);
-is( $status, 'Reserved', "Hold where itemtype matches item's itemtype targed" );
+is( $status, 'Reserved', "Hold where itemtype matches item's itemtype target" );
 Koha::Holds->find($reserve_id)->cancel;
 
 # Itemtypes don't match

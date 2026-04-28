@@ -13,7 +13,7 @@
 </head>
 
 <body id="pat_update-child" class="pat">
-<div class="container-fluid">
+<div class="main container-fluid">
     [% IF ( MULTI ) %]
         <h1> Choose adult category </h1>
 
@@ -24,7 +24,7 @@
                     <table id="catst">
                         <thead>
                             <tr>
-                                <th>&nbsp;</th>
+                                <th class="no-sort">&nbsp;</th>
                                 <th>Code</th>
                                 <th>Description</th>
                             </tr>
@@ -58,37 +58,35 @@
             </form>
         [% END %]
     [% END %]
-
-    [% MACRO jsinclude BLOCK %]
-        [% INCLUDE 'datatables.inc' %]
-        <script>
-            $(document).ready(function () {
-                $("#catst").dataTable(
-                    $.extend(true, {}, dataTablesDefaults, {
-                        dom: "t",
-                        order: [[2, "asc"]],
-                        columnDefs: [{ targets: [0], orderable: false, searchable: false }],
-                        paginate: false,
-                    })
-                );
-                $("#updatechildf").validate({
-                    rules: {
-                        catcode: {
-                            required: true,
-                        },
-                    },
-                });
-            });
-        </script>
-        [% IF ( SUCCESS ) %]
-            <script>
-                self.opener.location.href='/cgi-bin/koha/members/moremember.pl?borrowernumber=[% borrowernumber | html %]';
-                window.close();
-            </script>
-        [% END %]
-        [% INCLUDE 'str/members-menu.inc' %]
-        [% Asset.js("js/members-menu.js") | $raw %]
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' popup_window=1 %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    <script>
+        $(document).ready(function () {
+            $("#catst").kohaTable({
+                dom: "t",
+                order: [[2, "asc"]],
+                paging: false,
+            });
+            $("#updatechildf").validate({
+                rules: {
+                    catcode: {
+                        required: true,
+                    },
+                },
+            });
+        });
+    </script>
+    [% IF ( SUCCESS ) %]
+        <script>
+            self.opener.location.href='/cgi-bin/koha/members/moremember.pl?borrowernumber=[% borrowernumber | html %]';
+            window.close();
+        </script>
+    [% END %]
+    [% INCLUDE 'str/members-menu.inc' %]
+    [% Asset.js("js/members-menu.js") | $raw %]
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' popup_window=1 %]

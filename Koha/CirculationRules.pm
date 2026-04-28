@@ -15,7 +15,7 @@ package Koha::CirculationRules;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Carp qw( croak );
@@ -97,6 +97,11 @@ our $RULE_KINDS = {
     cap_fine_to_replacement_price => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
     },
+    expire_reserves_charge => {
+        scope        => [ 'branchcode', 'categorycode', 'itemtype' ],
+        can_be_blank => 0,
+    },
+
     chargeperiod => {
         scope => [ 'branchcode', 'categorycode', 'itemtype' ],
     },
@@ -435,6 +440,7 @@ sub set_rule {
             $rule->rule_value($rule_value);
             $rule->update();
         } else {
+            $rule->rule_value(undef);
             $rule->delete();
         }
     } else {
@@ -456,6 +462,10 @@ sub set_rule {
     for my $k ( $memory_cache->all_keys ) {
         $memory_cache->clear_from_cache($k) if $k =~ m{^CircRules:};
     }
+
+    $rule = Koha::CirculationRule->new(
+        { rule_name => $rule_name, branchcode => $branchcode, categorycode => $categorycode, itemtype => $itemtype } )
+        unless $rule;
 
     return $rule;
 }
@@ -770,6 +780,37 @@ sub get_effective_daysmode {
     return ( defined($daysmode_rule) and $daysmode_rule->rule_value ne '' )
         ? $daysmode_rule->rule_value
         : C4::Context->preference('useDaysMode');
+
+}
+
+=head3 get_effective_expire_reserves_charge
+
+Return the value for expire_reserves_charge defined in the circulation rules.
+If not defined (or empty string), the value of the system preference ExpireReservesMaxPickUpDelayCharge is returned
+
+=cut
+
+sub get_effective_expire_reserves_charge {
+    my ( $class, $params ) = @_;
+
+    my $itemtype     = $params->{itemtype};
+    my $branchcode   = $params->{branchcode};
+    my $categorycode = $params->{categorycode};
+
+    my $expire_reserves_charge_rule = $class->get_effective_rule(
+        {
+            itemtype     => $itemtype,
+            branchcode   => $branchcode,
+            categorycode => $categorycode,
+            rule_name    => 'expire_reserves_charge',
+        }
+    );
+
+    # return the rule value (incl. 0) if rule found so there's an object in the variable,
+    # or return default value from sysprefs when rule wasn't found and there's undef
+    return $expire_reserves_charge_rule
+        ? $expire_reserves_charge_rule->rule_value
+        : C4::Context->preference("ExpireReservesMaxPickUpDelayCharge");
 
 }
 

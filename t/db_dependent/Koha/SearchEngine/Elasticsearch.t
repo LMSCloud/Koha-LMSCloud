@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Encode;
@@ -197,15 +197,15 @@ subtest 'get_elasticsearch_mappings() tests' => sub {
         { index => $Koha::SearchEngine::Elasticsearch::BIBLIOS_INDEX } );
     $mappings = $search_engine_elasticsearch->get_elasticsearch_mappings();
 
-    is(
-        $mappings->{properties}{"cn-sort__sort"}{index}, 'false',
+    ok(
+        !$mappings->{properties}{"cn-sort__sort"}{index},
         'Field mappings parsed correctly for sort for callnumber type'
     );
-    is(
-        $mappings->{properties}{"cn-sort__sort"}{numeric}, 'false',
+    ok(
+        !$mappings->{properties}{"cn-sort__sort"}{numeric},
         'Field mappings parsed correctly for sort for callnumber type'
     );
-    is( $mappings->{properties}{isbn__sort}{index}, 'false', 'Field mappings parsed correctly' );
+    ok( !$mappings->{properties}{isbn__sort}{index}, 'Field mappings parsed correctly' );
 
 };
 
@@ -214,7 +214,7 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
     plan tests => 71;
 
     t::lib::Mocks::mock_preference( 'marcflavour',             'MARC21' );
-    t::lib::Mocks::mock_preference( 'ElasticsearchMARCFormat', 'ISO2709' );
+    t::lib::Mocks::mock_preference( 'ElasticsearchMARCFormat', 'base64ISO2709' );
 
     my @mappings = (
         {
@@ -538,8 +538,8 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
 
     is( scalar @{ $docs->[0]->{subject} }, 2, 'First document subject field should contain two values' );
     is_deeply(
-        $docs->[0]->{subject}, [ 'Heading Geohead Formhead', 'Heading Gensubhead Geohead' ],
-        'First document asubject field should be set correctly, record order preserved for grouped subfield mapping'
+        $docs->[0]->{subject}, [ 'Heading Formhead Geohead', 'Heading Gensubhead Geohead' ],
+        'First document asubject field should be set correctly, mapping order preserved for grouped subfield mapping'
     );
 
     is( scalar @{ $docs->[0]->{author__sort} }, 1, 'First document author__sort field should have a single value' );
@@ -550,13 +550,13 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
 
     is( scalar @{ $docs->[0]->{title__sort} }, 1, 'First document title__sort field should have a single' );
     is_deeply(
-        $docs->[0]->{title__sort}, ['Title: first record Title: first record'],
+        $docs->[0]->{title__sort}, ['Title first record Title first record'],
         'First document title__sort field should be set correctly'
     );
 
     is( scalar @{ $docs->[3]->{title__sort} }, 1, 'First document title__sort field should have a single' );
     is_deeply(
-        $docs->[3]->{title__sort}, ['Title\'s the thing : fourth record The Title\'s the thing : fourth record'],
+        $docs->[3]->{title__sort}, ['Titles the thing : fourth record Titles the thing : fourth record'],
         'Fourth document title__sort field should be set correctly'
     );
     is_deeply(
@@ -746,7 +746,7 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
 
     ok( !( defined $docs->[0]->{unimarc_title} ), "No mapping when marc_type doesn't match marc flavour" );
 
-    # Marc serialization format fallback for records exceeding ISO2709 max record size
+    # Marc serialization format fallback for records exceeding base64ISO2709 max record size
 
     my $large_marc_record = MARC::Record->new();
     $large_marc_record->leader('     cam  22      a 4500');
@@ -972,10 +972,10 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents_array () t
 
 subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () authority tests' => sub {
 
-    plan tests => 5;
+    plan tests => 9;
 
     t::lib::Mocks::mock_preference( 'marcflavour',             'MARC21' );
-    t::lib::Mocks::mock_preference( 'ElasticsearchMARCFormat', 'ISO2709' );
+    t::lib::Mocks::mock_preference( 'ElasticsearchMARCFormat', 'base64ISO2709' );
 
     my $builder = t::lib::TestBuilder->new;
     my $auth_type =
@@ -1001,6 +1001,26 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () authori
             sort        => 0,
             marc_type   => 'marc21',
             marc_field  => '185v',
+        },
+        {
+            name        => 'subject-heading-thesaurus',
+            type        => 'string',
+            facet       => 0,
+            suggestible => 0,
+            searchable  => 1,
+            sort        => 0,
+            marc_type   => 'marc21',
+            marc_field  => '008_/11',
+        },
+        {
+            name        => 'subject-heading-thesaurus',
+            type        => 'string',
+            facet       => 0,
+            suggestible => 0,
+            searchable  => 1,
+            sort        => 0,
+            marc_type   => 'marc21',
+            marc_field  => '040f',
         }
     );
 
@@ -1046,7 +1066,20 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () authori
     $marc_record_3->append_fields(
         MARC::Field->new( '185', '', '', v => 'Formsubdiv' ),
     );
-    my $records = [ $marc_record_1, $marc_record_2, $marc_record_3 ];
+
+    my $marc_record_4 = MARC::Record->new();
+    $marc_record_4->append_fields(
+        MARC::Field->new( '008', ' ' x 11 . 'z' . ' ' x 28 ),
+        MARC::Field->new( '040', ' ', ' ', f => 'special_sauce' ),
+        MARC::Field->new( '150', ' ', ' ', a => 'Philosophy' ),
+    );
+
+    my $marc_record_5 = MARC::Record->new();
+    $marc_record_5->append_fields(
+        MARC::Field->new( '008', ' ' x 11 . 'z' . ' ' x 28 ),
+        MARC::Field->new( '150', ' ', ' ', a => 'Philosophy' ),
+    );
+    my $records = [ $marc_record_1, $marc_record_2, $marc_record_3, $marc_record_4, $marc_record_5 ];
 
     $see->get_elasticsearch_mappings(); #sort_fields will call this and use the actual db values unless we call it first
 
@@ -1063,15 +1096,34 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () authori
         "Second record match-heading should contain the correctly formatted heading without wrong subfield"
     );
     is_deeply(
-        ["Subject Genresubdiv Geosubdiv Generalsubdiv wrongsubdiv"],
+        ["Subject wrongsubdiv Genresubdiv Generalsubdiv Geosubdiv"],
         $docs->[1]->{'match'},
-        "Second record heading should contain the subfields with record order retained"
+        "Second record heading should contain the subfields in mapping order"
     );
     ok( !exists $docs->[2]->{'match-heading'}, "No match heading defined for subdivision record" );
     is_deeply(
         ["Formsubdiv"],
         $docs->[2]->{'match'},
         "Third record heading should contain the subfield"
+    );
+    is(
+        scalar( @{ $docs->[3]->{'subject-heading-thesaurus'} } ),
+        1,
+        "Only one subject-heading-thesaurus element for a record with 040 \$f"
+    );
+    is_deeply(
+        $docs->[3]->{'subject-heading-thesaurus'}->[0],
+        'special_sauce',
+        "Fourth record's subject-heading-thesaurus taken from 040 \$f"
+    );
+    is(
+        scalar( @{ $docs->[4]->{'subject-heading-thesaurus'} } ),
+        1,
+        "Just one subject-heading-thesaurus element for a record with 008/11 = 'z' and without 040 \$f"
+    );
+    is_deeply(
+        $docs->[4]->{'subject-heading-thesaurus'}->[0],
+        'z', "Fifth record's subject-heading-thesaurus taken from 008/11"
     );
 
 };

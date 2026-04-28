@@ -16,9 +16,28 @@ package C4::Overdues;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    # subs to rename (and maybe merge some...)
+    our @EXPORT_OK = qw(
+        CalcFine
+        Getoverdues
+        checkoverdues
+        UpdateFine
+        GetFine
+        GetBranchcodesWithOverdueRules
+        get_chargeable_units
+        GetOverduesForBranch
+        GetOverdueMessageTransportTypes
+        parse_overdues_letter
+        GetIssuesIteminfo
+    );
+}
+
 use Date::Calc                    qw( Today );
 use Date::Manip                   qw( UnixDate );
 use List::MoreUtils               qw( uniq );
@@ -36,28 +55,6 @@ use Koha::Libraries;
 use Koha::Recalls;
 use Koha::Logger;
 use Koha::Patrons;
-
-our ( @ISA, @EXPORT_OK );
-
-BEGIN {
-    require Exporter;
-    @ISA = qw(Exporter);
-
-    # subs to rename (and maybe merge some...)
-    @EXPORT_OK = qw(
-        CalcFine
-        Getoverdues
-        checkoverdues
-        UpdateFine
-        GetFine
-        GetBranchcodesWithOverdueRules
-        get_chargeable_units
-        GetOverduesForBranch
-        GetOverdueMessageTransportTypes
-        parse_overdues_letter
-        GetIssuesIteminfo
-    );
-}
 
 =head1 NAME
 
@@ -474,6 +471,12 @@ C<$itemnumber> is  item number.
 
 =cut
 
+=head2 GetWdayFromItemnumber
+
+Missing POD for GetWdayFromItemnumber.
+
+=cut
+
 sub GetWdayFromItemnumber {
     my ($itemnumber) = @_;
     my $iteminfo = GetIssuesIteminfo($itemnumber);
@@ -572,7 +575,7 @@ sub UpdateFine {
         {
             borrowernumber  => $borrowernumber,
             debit_type_code =>
-                [ 'OVERDUE', 'CLAIM_LEVEL_1', 'CLAIM_LEVEL_2', 'CLAIM_LEVEL_3', 'CLAIM_LEVEL_4', 'CLAIM_LEVEL_5' ],
+                [ 'OVERDUE', 'CLAIM_LEVEL1', 'CLAIM_LEVEL2', 'CLAIM_LEVEL3', 'CLAIM_LEVEL4', 'CLAIM_LEVEL5' ],
         },
         { order_by => { -desc => 'accountlines_id' } }
     );
@@ -587,7 +590,8 @@ sub UpdateFine {
     while ( my $overdue = $overdues->next ) {
         if (   defined $overdue->checkout
             && $overdue->checkout->issue_id == $issue_id
-            && $overdue->status eq 'UNRETURNED' )
+            && $overdue->debit_type_code eq 'OVERDUE'
+            && ( $overdue->status eq 'UNRETURNED' || $overdue->status eq 'LOST' ) )
         {
             if ($accountline) {
                 Koha::Logger->get->debug("Not a unique accountlines record for issue_id $issue_id")
@@ -620,7 +624,15 @@ sub UpdateFine {
     }
 
     if ($accountline) {
-        if ( Koha::Number::Price->new( $accountline->amount )->round != Koha::Number::Price->new($amount)->round ) {
+
+        # A matched OVERDUE line whose status is LOST (item marked lost without an
+        # automatic return) is only identified here to avoid duplicating the charge
+        # when the item later returns; its amount is frozen at loss time and cannot
+        # be re-adjusted (adjust()/overdue_update is only allowed on UNRETURNED
+        # lines), so restrict the increment to still-accruing UNRETURNED fines.
+        if (   $accountline->status eq 'UNRETURNED'
+            && Koha::Number::Price->new( $accountline->amount )->round != Koha::Number::Price->new($amount)->round )
+        {
             $accountline->adjust(
                 {
                     amount    => $amount,
@@ -660,7 +672,7 @@ sub UpdateFine {
                     note        => undef,
                     user_id     => undef,
                     interface   => C4::Context->interface,
-                    library_id  => $branchcode,
+                    library_id  => undef,       #FIXME: Should we grab the checkout or circ-control branch here perhaps?
                     type        => 'OVERDUE',
                     item_id     => $itemnum,
                     issue_id    => $issue_id,
@@ -855,7 +867,7 @@ sub GetOverdueMessageTransportTypes {
     }
 
     # Put 'print' in first if exists
-    # It avoid to sent a print notice with an email or sms template is no email or sms is defined
+    # It avoids sending a print notice with an email or sms template if no email or sms is defined
     @mtts = uniq( 'print', @mtts )
         if grep { $_ eq 'print' } @mtts;
 
@@ -970,6 +982,6 @@ __END__
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 =cut

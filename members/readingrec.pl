@@ -18,7 +18,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -86,10 +86,7 @@ if ( $op eq 'export_barcodes' ) {
 }
 
 # Do not request the old issues of anonymous patron
-if ( $patron->borrowernumber eq C4::Context->preference('AnonymousPatron') ) {
-
-    # use of 'eq' in the above comparison is intentional -- the
-    # system preference value could be blank
+if ( $patron->is_anonymous ) {
     $template->param( is_anonymous => 1 );
 } else {
     $template->param(

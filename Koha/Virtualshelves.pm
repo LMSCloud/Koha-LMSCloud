@@ -13,7 +13,7 @@ package Koha::Virtualshelves;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -45,9 +45,10 @@ just delete them if not possible.
 sub disown_or_delete {
     my ($self) = @_;
 
+    my $list_pref = C4::Context->preference('ListOwnershipUponPatronDeletion');
     $self->_resultset->result_source->schema->txn_do(
         sub {
-            if ( C4::Context->preference('ListOwnershipUponPatronDeletion') eq 'transfer' ) {
+            if ( $list_pref ne 'delete' ) {    # transfer or transfer_public
                 my $new_owner;
 
                 $new_owner = C4::Context->preference('ListOwnerDesignated')
@@ -59,9 +60,11 @@ sub disown_or_delete {
                 }
 
                 while ( my $list = $self->next ) {
-                    if ( $new_owner && ( $list->is_public or $list->is_shared ) ) {
+                    if ( $new_owner && $list->is_public ) {
                         $list->transfer_ownership($new_owner);
-                    } else {
+                    } elsif ( $new_owner && $list->is_shared && $list_pref eq 'transfer' ) {
+                        $list->transfer_ownership($new_owner);
+                    } else {    # private list, or shared list with transfer_public
                         $list->delete;
                     }
                 }
@@ -84,6 +87,9 @@ sub get_private_shelves {
     my $rows           = $params->{rows};
     my $borrowernumber = $params->{borrowernumber} || 0;
 
+    my $sort_by  = $params->{sort_by};
+    my $order_by = _prepare_order_by_for_shelves( { sort_by => $sort_by } );
+
     $self->search(
         {
             public => 0,
@@ -95,7 +101,7 @@ sub get_private_shelves {
         {
             join     => ['virtualshelfshares'],
             distinct => 'shelfnumber',
-            order_by => 'shelfname',
+            order_by => $order_by,
             ( ( $page and $rows ) ? ( page => $page, rows => $rows ) : () ),
         }
     );
@@ -110,16 +116,44 @@ sub get_public_shelves {
     my $page = $params->{page};
     my $rows = $params->{rows};
 
+    my $sort_by  = $params->{sort_by};
+    my $order_by = _prepare_order_by_for_shelves( { sort_by => $sort_by } );
+
     $self->search(
         {
             public => 1,
         },
         {
             distinct => 'shelfnumber',
-            order_by => 'shelfname',
+            order_by => $order_by,
             ( ( $page and $rows ) ? ( page => $page, rows => $rows ) : () ),
         }
     );
+}
+
+=head3 _prepare_order_by_for_shelves
+
+Create an "order_by" statement when sorting lists of lists
+
+=cut
+
+sub _prepare_order_by_for_shelves {
+    my ($args)       = @_;
+    my $sort_by      = $args->{sort_by};
+    my $order_by_dir = '-asc';
+    my $order_by_col = 'shelfname';
+    if ($sort_by) {
+        my $sortfield = $sort_by->{sortfield};
+        my $direction = $sort_by->{direction};
+        if ( $direction eq 'asc' || $direction eq 'desc' ) {
+            $order_by_dir = '-' . $direction;
+        }
+        if ( $sortfield eq 'shelfname' || $sortfield eq 'lastmodified' ) {
+            $order_by_col = $sortfield;
+        }
+    }
+    my $order_by = { $order_by_dir => $order_by_col };
+    return $order_by;
 }
 
 =head3 get_some_shelves

@@ -15,7 +15,7 @@ package C4::VolumeData;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -58,7 +58,7 @@ environment.
 =head2 GetVolumeData
 
   $result = GetVolumeData($refnumber,$biblionumber,$linkedRecords,$lang);
-  
+
 =head3 Arguments
 
     * $refnumber is the record number to search for typically provided in MARC field 001
@@ -69,7 +69,7 @@ environment.
 =head3 Returns
 
     Returns a list of three data elements
-    
+
     * $error if an error occured
     * $volumes is a list of volume records
     * $linkedRecordData is a list of related records that link to that record

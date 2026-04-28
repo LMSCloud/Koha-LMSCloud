@@ -4,7 +4,7 @@
 <productname>Koha</productname> is the first free software library automation package.
 <author>
   <orgname>The Koha Community</orgname>
-  <uri>http://koha-community.org/</uri>
+  <uri>https://koha-community.org/</uri>
 </author>
 </info>
 
@@ -34,7 +34,7 @@
       <arg>-r|--reset</arg>
       <arg>-b|--biblios</arg>
       <arg>-a|--authorities</arg>
-      <arg>-v|--verbose</arg>
+      <arg>-w|--where</arg>
       <arg>-c n|--commit n</arg>
       <arg>-v|--verbose</arg>
       <arg choice="req" rep="repeat"><replaceable>instancename</replaceable></arg>
@@ -58,28 +58,34 @@
   <refsect1><title>Options</title>
   <variablelist>
     <varlistentry>
-      <term><option>-d</option></term>
+      <term><option>-d, --delete</option></term>
       <listitem>
         <para>In conjunction with <option>--rebuild</option>, it deletes existing indexes before reindexing.</para>
       </listitem>
     </varlistentry>
     <varlistentry>
-      <term><option>-r</option></term>
+      <term><option>-r, --reset</option></term>
       <listitem>
         <para>In conjunction with <option>--rebuild</option>, it reloads the settings from the Elasticsearch
               files set in koha-conf.xml . This option implies delete.</para>
       </listitem>
     </varlistentry>
     <varlistentry>
-      <term><option>-a</option></term>
+      <term><option>-a, --authorities</option></term>
       <listitem>
         <para>In conjunction with <option>--rebuild</option>, it triggers authority record reindexing.</para>
       </listitem>
     </varlistentry>
     <varlistentry>
-      <term><option>-b</option></term>
+      <term><option>-b, --biblio</option></term>
       <listitem>
         <para>In conjunction with <option>--rebuild</option> it triggers bibliographic record reindexing.</para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term><option>-w, --where</option></term>
+      <listitem>
+        <para>In conjunction with <option>--rebuild</option>, pass some arbitrary SQL to limit the records to be indexed.</para>
       </listitem>
     </varlistentry>
     <varlistentry>

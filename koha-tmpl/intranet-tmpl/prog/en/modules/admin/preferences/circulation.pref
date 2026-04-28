@@ -241,7 +241,7 @@ Circulation:
                   0: "Don't allow"
             - checkouts of items reserved to someone else via SIP checkout messages.
             - If allowed do not generate RESERVED warning.
-            - This allows self checkouts for those items. If using the holds queue items with pending holds will be marked as "unavailable" if this set to "Don't allow".
+            - This allows self-checkouts for those items. If using the holds queue items with pending holds will be marked as "unavailable" if this set to "Don't allow".
         -
             - pref: AllowItemsOnLoanCheckoutSIP
               choices:
@@ -249,19 +249,19 @@ Circulation:
                   0: "Don't allow"
             - checkouts of items already checked out to someone else via SIP checkout messages.
             - If allowed do not generate ISSUED_TO_ANOTHER warning.
-            - This allows self checkouts for those items.
+            - This allows self-checkouts for those items.
         -
             - pref: AllowItemsOnHoldCheckoutSCO
               choices:
                   1: Allow
                   0: "Don't allow"
-            - checkouts of items reserved to someone else in the SCO module. If allowed do not generate RESERVE_WAITING and RESERVED warning. This allows self checkouts for those items.
+            - checkouts of items reserved to someone else in the SCO module. If allowed do not generate RESERVE_WAITING and RESERVED warning. This allows self-checkouts for those items.
         -
             - pref: AllFinesNeedOverride
               choices:
                   1: Require
                   0: "Don't require"
-            - staff to manually override all fines, even fines less than set in the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=noissuescharge">noissuescharge</a> system preference. Enabling this system preference will block all checkouts for patrons with fines both via the web-based self checkout system and via SIP.
+            - staff to manually override all fines, even fines less than set in the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=noissuescharge">noissuescharge</a> system preference. Enabling this system preference will block all checkouts for patrons with fines both via the web-based self-checkout system and via SIP.
         -
             - pref: AllowFineOverride
               choices:
@@ -296,33 +296,37 @@ Circulation:
             - pref: CircControl
               type: choice
               choices:
-                  PickupLibrary: the library you are logged in at.
-                  PatronLibrary: the library the patron is from.
-                  ItemHomeLibrary: the library the item is from.
+                  PickupLibrary: the library you are logged in at
+                  PatronLibrary: the library the patron is from
+                  ItemHomeLibrary: the library the item is from
+            - .
         -
             - To determine whether an item is transferred or remains in the library after checkin, use the circulation rules of
             - pref: CircControlReturnsBranch
               type: choice
               choices:
-                  ItemHoldingLibrary: the library the item is currently held by.
-                  CheckInLibrary: the library the item is checked in at.
-                  ItemHomeLibrary: the library the item is owned by.
+                  ItemHoldingLibrary: the library the item is currently held by
+                  CheckInLibrary: the library the item is checked in at
+                  ItemHomeLibrary: the library the item is owned by
+            - .
         -
             - Use the circulation and fine rules of
             - pref: HomeOrHoldingBranch
               type: choice
               choices:
-                  homebranch: the item's home library (homebranch).
-                  holdingbranch: the item's holding library (holdingbranch).
+                  homebranch: the item's home library (homebranch)
+                  holdingbranch: the item's holding library (holdingbranch)
+            - .
         -
             - Allow items to be checked in
             - pref: AllowReturnToBranch
               type: choice
               choices:
-                  anywhere: at any library.
-                  homebranch: only at the library the item is from.
-                  holdingbranch: only at the library the item was checked out from.
-                  homeorholdingbranch: either at the library the item is from or the library it was checked out from.
+                  anywhere: at any library
+                  homebranch: only at the library the item is from
+                  holdingbranch: only at the library the item was checked out from
+                  homeorholdingbranch: either at the library the item is from or the library it was checked out from
+            - .
         -
             - For search results in the staff interface, display
             - pref: StaffSearchResultsDisplayBranch
@@ -342,15 +346,16 @@ Circulation:
             - Calculate "No renewal before" based on
             - pref: NoRenewalBeforePrecision
               choices:
-                  date: date.
-                  exact_time: exact time.
-            - Only relevant for loans calculated in days, hourly loans are not affected.
+                  date: date
+                  exact_time: exact time
+            - . Only relevant for loans calculated in days, hourly loans are not affected.
         -
             - When renewing checkouts, base the new due date on
             - pref: RenewalPeriodBase
               choices:
-                  date_due: the old due date of the checkout.
-                  now: the current date.
+                  date_due: the old due date of the checkout
+                  now: the current date
+            - .
         -
             - pref: RenewalSendNotice
               choices:
@@ -419,6 +424,7 @@ Circulation:
         -
             - "Send all notices as a BCC to this email address:"
             - pref: NoticeBcc
+              class: email
         -
             - Consider
             - pref: OverdueNoticePeriodCalculationMethod
@@ -462,13 +468,6 @@ Circulation:
               class: integer
             - "item lines in a printed overdue notice. If the number of items is greater than this number, the notice will end with a warning asking the patron to check their online account for a full list of overdue items. Set to 0 to include all overdue items in the notice, no matter how many there are."
         -
-            - Allocate messages to the 
-            - pref: PrintPreferenceBranch
-              choices:
-                  1: "issuing branch"
-                  0: "patrons home branch"
-            - "when processing prepared messages for further processing."
-        -
             - pref: OverduesBlockCirc
               choices:
                   block: Block
@@ -496,6 +495,13 @@ Circulation:
                   0: "Don't allow"
             - "patrons to check out multiple items from the same record. (<strong>NOTE:</strong> This will only affect records without a subscription attached.)"
         -
+            - Allocate messages to the
+            - pref: PrintPreferenceBranch
+              choices:
+                  1: "issuing branch"
+                  0: "patrons home branch"
+            - "when processing prepared messages for further processing."
+        -
             - pref: OnSiteCheckouts
               choices:
                   1: Enable
@@ -506,7 +512,7 @@ Circulation:
               choices:
                   1: Enable
                   0: Disable
-            - the on-site checkout for all cases (even if a patron is debarred, etc.).
+            - the on-site checkout for all cases (even if a patron is debarred or under similar restrictions).
         -
             - pref: ConsiderOnSiteCheckoutsAsNormalCheckouts
               choices:
@@ -529,7 +535,6 @@ Circulation:
                   allow: allow renewing.
                   blockitem: block renewing only for this item.
                   block: block renewing for all the patron's items.
-        -
         -
             - Select the receiver of family card member overdue notices. Send overdue notices to
             - pref: FamilyCardMemberOverdueReceiver
@@ -573,7 +578,7 @@ Circulation:
             - "<br />Can name any field in the items table followed by a colon then a space then"
             - "a bracketed list of values separated by commas."
             - "For example:"
-            - "<br />ccode: [NEWFIC,null,DVD]"
+            - "<br />ccode: [NEWFIC,NULL,DVD]"
             - "<br />itype: [NEWBK,\"\"]"
             - "<br /><strong>NOTE:</strong> The word 'NULL' can be used to block renewal on undefined fields, while an empty string \"\" will block on an empty (but defined) field."
             - "<br /><strong>Configuration:</strong> <a href='/cgi-bin/koha/admin/authorised_values.pl?searchfield=CCODE'>Collections (CCODE)</a> | <a href='/cgi-bin/koha/admin/itemtypes.pl'>Item types</a>"
@@ -599,8 +604,8 @@ Circulation:
               type: textarea
               syntax: text/x-yaml
               class: code
-            - This is a list of value pairs. When an item is checked out, if the not for loan value on the left matches the items not for loan value
-            - "it will be updated to the right-hand value. For example, '-1: 0' will cause an item that was set to 'Ordered' to now be available for loan."
+            - "This is a list of value pairs. When an item is checked out, if its not for loan value matches the value on the left, then the item's not for loan value will be updated to the value on the right.<br/>"
+            - "For example, '-1: 0' will cause an item that was set to 'Ordered' to now be available for loan."
             - Each pair of values should be on a separate line.
         -
             - When checking out an hourly loan that will be due after the library closes,
@@ -653,7 +658,7 @@ Circulation:
         -
             - When using the automatic item loss process, skip items with <a href="/cgi-bin/koha/admin/authorised_values.pl?searchfield=LOST">LOST</a> values matching any of
             - pref: DefaultLongOverdueSkipLostStatuses
-            - "."
+            - .
             - <br>Leave this field empty if you don't want to skip any <a href="/cgi-bin/koha/admin/authorised_values.pl?searchfield=LOST">LOST</a> statuses.
             - <br>Set to a list of comma separated values, e.g. <em>5,6,7</em>.
         -
@@ -725,6 +730,13 @@ Circulation:
                   1: Block
                   0: "Don't block"
             - returning of items that have been withdrawn.
+        -
+            - "Prevent the ability to withdraw items with the following statuses:"
+            - pref: PreventWithdrawingItemsStatus
+              multiple:
+                intransit: In-transit
+                checkedout: Checked out
+            -
         -
             - pref: BlockReturnOfLostItems
               choices:
@@ -817,13 +829,7 @@ Circulation:
             - Default the holds ratio report to
             - pref: HoldRatioDefault
               class: integer
-            - "."
-        -
-            - pref: EnableItemGroups
-              choices:
-                  1: Enable
-                  0: "Don't enable"
-            - the item groups feature to allow collecting groups of items on a record together.
+            - .
         -
             - In the staff interface, split the holds queue into separate tables by
             - pref: HoldsSplitQueue
@@ -832,7 +838,7 @@ Circulation:
                   branch: "pickup library"
                   itemtype: "hold item type"
                   branch_itemtype: "pickup library and item type"
-            - "."
+            - .
         -
             - pref: EnableItemGroupHolds
               choices:
@@ -845,7 +851,7 @@ Circulation:
               choices:
                   actual: "the actual priority, which may be out of order"
                   virtual: "'virtual' priorities, where each group is numbered separately"
-            - "."
+            - .
         -
             - pref: RealTimeHoldsQueue
               choices:
@@ -902,7 +908,7 @@ Circulation:
             - Confirm future hold requests (starting no later than
             - pref: ConfirmFutureHolds
               class: integer
-            - days from now) at checkin time. Note that this number of days will be used too in calculating the default end date for the Holds to pull-report. But it does not interfere with issuing, renewing or transferring items.
+            - days from now) at checkin time. Note that this number of days is used in determining which holds are considered as 'current holds'. It also sets the default end date for the Holds to pull-report. It still does not interfere with renewing items.
         -
             - Check the rule from the
             - pref: ReservesControlBranch
@@ -935,7 +941,7 @@ Circulation:
             - If using <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=ExpireReservesMaxPickUpDelay">ExpireReservesMaxPickUpDelay</a>, charge a patron who allows their waiting hold to expire a fee of
             - pref: ExpireReservesMaxPickUpDelayCharge
               class: currency
-            - "."
+            - .
         -
             - The holds queue should prioritize filling a hold by matching the patron's home library with an item having a matching
             - pref: HoldsQueuePrioritizeBranch
@@ -979,12 +985,6 @@ Circulation:
                 intransit: In transit
                 suspended: Suspended
         -
-            - pref: ReservesNeedReturns
-              choices:
-                  1: "Don't automatically"
-                  0: Automatically
-            - mark a hold as found and waiting when a hold is placed on a specific item and that item is already checked in.
-        -
             - Initialize the pickup location of item level holds with the 
             - pref: SetPickupLocationOfReservedItems
               choices:
@@ -993,6 +993,12 @@ Circulation:
                   holdingbranch: "holding library of the item"
             - "if the user is not allowed to select the pickup location (parameter: OPACAllowUserToChooseBranch not set).<br/>"
             - "The setting can be useful for libraries that do not support branch transfers and expect patrons to pick up items at the location of the item. The patron has to pick up the item at the selected location."
+        -
+            - pref: ReservesNeedReturns
+              choices:
+                  1: "Don't automatically"
+                  0: Automatically
+            - mark a hold as found and waiting when a hold is placed on a specific item and that item is already checked in.
         -
             - Patrons can have a maximum of
             - pref: maxreserves
@@ -1023,6 +1029,12 @@ Circulation:
                   1: Enable
                   0: "Don't enable"
             - "the ability to place holds on different items at the same time in staff interface and OPAC."
+        -
+            - pref: DisplayAddHoldGroups
+              choices:
+                  1: Enable
+                  0: "Don't enable"
+            - "the ability to create hold groups which are fulfilled by one item"
         -
             - pref: TransferWhenCancelAllWaitingHolds
               choices:
@@ -1094,8 +1106,10 @@ Circulation:
         -
             - pref: LocalHoldsPriority
               choices:
-                  1: Give
-                  0: "Don't give"
+                  GiveLibrary: Give library
+                  None: "Don't give"
+                  GiveLibraryGroup: Give library group
+                  GiveLibraryAndGroup: Give library then library group
             - priority for filling holds to patrons whose
             - pref: LocalHoldsPriorityPatronControl
               choices:
@@ -1106,6 +1120,7 @@ Circulation:
               choices:
                   homebranch: "home library"
                   holdingbranch: "holding library"
+            - <br/><strong>Note:</strong> If a group option is selected, LocalHoldsPriorityPatronControl and LocalHoldsPriorityItemControl will use the <a href="/cgi-bin/koha/admin/library_groups.pl">library hold group</a> of the selected libraries.
         -
             - pref: OPACHoldsIfAvailableAtPickup
               choices:
@@ -1151,6 +1166,7 @@ Circulation:
                   months: months
                   years: years
             - from reserve date.
+            - <br><strong>NOTE:</strong> If <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=DefaultHoldExpirationdatePeriod">DefaultHoldExpirationdatePeriod</a> is left blank, no default expiration date is set.</br>
         -
             - When placing a hold via the staff interface default the pickup location to the
             - pref: DefaultHoldPickupLocation
@@ -1159,7 +1175,7 @@ Circulation:
                   loggedinlibrary: "logged in library"
                   homebranch: "item's home library"
                   holdingbranch: "item's holding library"
-            - "."
+            - .
         -
             - pref: AutomaticCheckinAutoFill
               choices:
@@ -1173,6 +1189,12 @@ Circulation:
                   1: "Do"
                   0: "Don't"
             - place a hold when ordering from a suggestion.
+        -
+            - pref: HoldCancellationRequestSIP
+              choices:
+                  1: "Do"
+                  0: "Don't"
+            - set holds cancelled via SIP as cancellation requests.
         -
             - "Discard a notice fee for holds if the home branch of the item is one of the specified codes (seperated by |).<br>"
             - pref: DiscardHoldsNoticeFeeOfHomeLibraries
@@ -1311,15 +1333,15 @@ Circulation:
               type: textarea
               syntax: javascript
               class: code
-    Self check-out module:
+    Self-checkout module:
         -
-            - "Include the following JavaScript on all pages in the web-based self checkout:"
+            - "Include the following JavaScript on all pages in the web-based self-checkout:"
             - pref: SCOUserJS
               type: textarea
               syntax: javascript
               class: code
         -
-            - "Include the following CSS on all pages in the web-based self checkout:"
+            - "Include the following CSS on all pages in the web-based self-checkout:"
             - pref: SCOUserCSS
               type: textarea
               syntax: css
@@ -1329,28 +1351,28 @@ Circulation:
               choices:
                   1: Show
                   0: "Don't show"
-            - "the patron's list of current checkouts by default when they log in to the self checkout module."
+            - "the patron's list of current checkouts by default when they log in to the self-checkout module."
         -
             - pref: ShowPatronImageInWebBasedSelfCheck
               choices:
                   1: Show
                   0: "Don't show"
-            - "the patron's picture (if one has been added) when they use the web-based self checkout."
+            - "the patron's picture (if one has been added) when they use the web-based self-checkout."
         -
             - pref: WebBasedSelfCheck
               choices:
                   1: Enable
                   0: "Don't enable"
-            - "the web-based self checkout system (available at: /cgi-bin/koha/sco/sco-main.pl)."
+            - "the web-based self-checkout system (available at: /cgi-bin/koha/sco/sco-main.pl)."
         -
-            - Have patrons log into the web-based self checkout system with their
+            - Have patrons log into the web-based self-checkout system with their
             - pref: SelfCheckoutByLogin
               choices:
                   1: username and password
                   0: cardnumber
             - ".</br>NOTE: If using 'cardnumber' and AutoSelfCheckAllowed you should set SelfCheckAllowByIPRanges to prevent brute force attacks to gain patron information outside the library."
         -
-            - "Time out the current patron's web-based self checkout system login after"
+            - "Time out the current patron's web-based self-checkout system login after"
             - pref: SelfCheckTimeout
               class: integer
             - seconds.
@@ -1359,13 +1381,13 @@ Circulation:
               choices:
                   1: Allow
                   0: "Don't allow"
-            - patrons to return items through web-based self checkout system. 
+            - patrons to return items through web-based self-checkout system.
         -
             - pref: AutoSelfCheckAllowed
               choices:
                   1: Allow
                   0: "Don't allow"
-            - "the web-based self checkout system to automatically log in with this staff login"
+            - "the web-based self-checkout system to automatically log in with this staff login"
             - pref: AutoSelfCheckID
             - and this password
             - pref: AutoSelfCheckPass
@@ -1377,14 +1399,14 @@ Circulation:
               choices:
                   1: Show
                   0: "Don't show"
-            - "the print receipt popup dialog when self checkout is finished."
+            - "the print receipt popup dialog when self-checkout is finished."
         -
             - "Allow access to the self check from the following IP addresses:"
             - pref: SelfCheckAllowByIPRanges
               class: short
             - (Leave blank if not used. Use ranges or simple IP addresses separated by spaces, like <code>192.168.1.1 192.168.0.0/24</code>.)
         -
-            - "Patron categories allowed to check out in a batch while logged into the self checkout system:"
+            - "Patron categories allowed to check out in a batch while logged into the self-checkout system:"
             - pref: SCOBatchCheckoutsValidCategories
               choices: patron-categories
               class: multiple
@@ -1421,6 +1443,41 @@ Circulation:
                   1: Enable
                   0: Disable
             - "the stock rotation module."
+    Bookings:
+        -
+            - pref: BookingDateRangeConstraint
+              choices:
+                  "": "Don't constrain"
+                  issuelength: "Constrain to issue length"
+                  issuelength_with_renewals: "Constrain to issue length with renewals"
+            - booking date ranges based on circulation rules. When set, users can only create bookings within the specified period based on circulation rules for the patron category, item type, and library.
+        -
+            - pref: BookingConstraintMode
+              choices:
+                  range: "Allow any date within range"
+                  end_date_only: "Allow only start and end dates"
+            - for booking date constraints. When set to 'end_date_only', patrons can only book the calculated start date or end date, with intermediate dates blocked.
+
+    RFID-Web-Service batch checkin/checkout:
+         -
+            - pref: RFIDWebService
+              choices:
+                  1: Enable
+                  0: "Don't enable"
+            - "the RFID-Web-Service batch checkin/checkout using an RFID-Reader with an RFID-Web-Service.<br />"
+            - "The RFID-Web-Service must be provided by the RFID vendor. The RFID-Web-Service is typically running on a Koha-Client."
+         -
+            - pref: RFIDWebServiceCheckinBlocker
+            - "The RFID batch checkin stops if the checkin page contains elements of the specified jQuery selectors.<br />"
+            - "Overwrite only if you want to change the default: .problem,.error,.alert,.audio-alert-warning,.audio-alert-action,#hold-found1,#hold-found-modal"
+         -
+            - pref: RFIDWebServiceCheckoutBlocker
+            - "The RFID batch checkout stops if the checkout page contains elements of the specified jQuery selectors.<br />"
+            - "Overwrite only if you want to change the default: #circ_impossible,#circ_needsconfirmation"
+         -
+            - pref: RFIDWebServiceURL
+            - "URL of the RFID-Web-Service.<br />"
+            - "Example: https://localhost:10004/ ."
     Article requests:
         -
             - pref: ArticleRequests
@@ -1433,7 +1490,7 @@ Circulation:
               choices:
                   1: Enable
                   0: Disable
-            - " redirection from child to host based on MARC21 773$w when the child has no items when requesting articles on the Opac."
+            - " redirection from child to host based on MARC21 773$w when the child has no items when requesting articles on the OPAC."
         -
             - pref: ArticleRequestsLinkControl
               choices:
@@ -1479,48 +1536,11 @@ Circulation:
         -
             - "The following article request formats are supported:"
             - pref: ArticleRequestsSupportedFormats
-
               multiple_sortable:
-
                 PHOTOCOPY: Photocopy
                 SCAN: Scan
             - "The first listed format is selected by default when you request via the OPAC."
 
-    Bookings:
-        -
-            - pref: BookingDateRangeConstraint
-              choices:
-                  "": "Don't constrain"
-                  issuelength: "Constrain to issue length"
-                  issuelength_with_renewals: "Constrain to issue length with renewals"
-            - booking date ranges based on circulation rules. When set, users can only create bookings within the specified period based on circulation rules for the patron category, item type, and library.
-        -
-            - pref: BookingConstraintMode
-              choices:
-                  range: "Allow any date within range"
-                  end_date_only: "Allow only start and end dates"
-            - for booking date constraints. When set to 'end_date_only', patrons can only book the calculated start date or end date, with intermediate dates blocked.
-
-    RFID-Web-Service batch checkin/checkout:
-         -
-            - pref: RFIDWebService
-              choices:
-                  1: Enable
-                  0: "Don't enable"
-            - "the RFID-Web-Service batch checkin/checkout using an RFID-Reader with an RFID-Web-Service.<br />" 
-            - "The RFID-Web-Service must be provided by the RFID vendor. The RFID-Web-Service is typically running on a Koha-Client."
-         -
-            - pref: RFIDWebServiceCheckinBlocker
-            - "The RFID batch checkin stops if the checkin page contains elements of the specified jQuery selectors.<br />"
-            - "Overwrite only if you want to change the default: .problem,.error,.alert,.audio-alert-warning,.audio-alert-action,#hold-found1,#hold-found2"
-         -
-            - pref: RFIDWebServiceCheckoutBlocker
-            - "The RFID batch checkout stops if the checkout page contains elements of the specified jQuery selectors.<br />"
-            - "Overwrite only if you want to change the default: #circ_impossible,#circ_needsconfirmation"
-         -
-            - pref: RFIDWebServiceURL
-            - "URL of the RFID-Web-Service.<br />"
-            - "Example: https://localhost:10004/ ."
 
     Item bundles:
         -
@@ -1631,3 +1651,11 @@ Circulation:
                   1: Enable
                   0: Disable
             - "the curbside pickup module."
+
+    Booking module:
+        -
+            - pref: EnableBooking
+              choices:
+                  1: Enable
+                  0: Disable
+            - "the booking module."

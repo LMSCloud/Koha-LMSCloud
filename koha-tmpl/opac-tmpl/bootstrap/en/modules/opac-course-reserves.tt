@@ -21,7 +21,7 @@
 [% INCLUDE 'bodytag.inc' bodyid='opac-course-reserves' %]
 [% INCLUDE 'masthead.inc' %]
 
-<div class="main">
+<main class="main">
     [% WRAPPER breadcrumbs %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
             <span>Course reserves</span>
@@ -32,7 +32,7 @@
         <div class="row">
             <div class="col order-first order-md-first order-lg-2">
                 <div id="courses" class="maincontent">
-                    <h1>Courses reserves</h1>
+                    <h1>Course reserves</h1>
 
                     <table id="course_reserves_table" class="table table-bordered table-striped table-condensed">
                         <caption class="sr-only">Courses</caption>
@@ -45,7 +45,7 @@
                                 <th>[% tp('Semester', 'Term') | html %]</th>
                                 <th>Instructors</th>
                                 <th>Notes</th>
-                                <th></th>
+                                <th class="dtr-control-col">[% t('Expand') | html %]</th>
                             </tr>
                         </thead>
 
@@ -78,32 +78,32 @@
         <!-- / .row -->
     </div>
     <!-- / .container-fluid -->
-</div>
+</main>
 <!-- / .main -->
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
     [% INCLUDE 'datatables.inc' %]
-    [% INCLUDE 'columns_settings.inc' %]
     <script>
         $(document).ready(function() {
             table_settings = [% TablesSettings.GetTableSettings( 'opac', 'course_list', 'course_reserves_table', 'json' ) | $raw %]
-            KohaTable("#course_reserves_table", {
-                "dom": '<"top"<"table_controls"f>>rt<"clear">',
-                "sorting": [[ 1, "asc" ]],
-                "asColumnDefs": [
-                    { "aTargets": [ 1 ], "sType": "nsb-nse" },
-                ],
-                "language": {
-                    "search": "_INPUT_",
-                    "searchPlaceholder": _("Search courses")
+            $("#course_reserves_table").kohaTable(
+                {
+                    dom: '<"top"<"table_controls"f>>rt<"clear">',
+                    order: [[1, "asc"]],
+                    asColumnDefs: [{ aTargets: [1], sType: "nsb-nse" }],
+                    language: {
+                        search: "<span class='visually-hidden'>" + _("Search courses") + "</span> _INPUT_",
+                        searchPlaceholder: _("Search courses"),
+                    },
+                    responsive: {
+                        details: { type: "column", target: -1 },
+                    },
+                    cColumnDefs: [
+                        { className: "dtr-control", orderable: false, targets: -1 },
+                    ],
                 },
-                "responsive": {
-                    "details": { "type": 'column',"target": -1 }
-                },
-                "cColumnDefs": [
-                    { "className": 'dtr-control', "orderable": false, "targets": -1 },
-                ],
-            }, table_settings );
+                table_settings
+            );
         });
     </script>
 [% END %]

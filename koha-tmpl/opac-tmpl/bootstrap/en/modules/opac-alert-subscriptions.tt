@@ -13,7 +13,7 @@
 [% INCLUDE 'bodytag.inc' bodyid='opac-alert-subscriptions' %]
 [% INCLUDE 'masthead.inc' %]
 
-<div class="main">
+<main class="main">
     <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
         <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -23,7 +23,7 @@
                 <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
             </li>
             <li class="breadcrumb-item active">
-                <a href="#" aria-current="page">Your alert subscriptions</a>
+                <a href="#" aria-current="page" aria-disabled="true" tabindex="-1">Your alert subscriptions</a>
             </li>
         </ol>
     </nav>
@@ -93,7 +93,7 @@
         <!-- / .row -->
     </div>
     <!-- / .container-fluid -->
-</div>
+</main>
 <!-- / .main -->
 
 [% INCLUDE 'opac-bottom.inc' %]

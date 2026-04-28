@@ -266,8 +266,8 @@ Composing rels: L</erm_eholdings_packages_agreements> -> package
 __PACKAGE__->many_to_many("packages", "erm_eholdings_packages_agreements", "package");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-12-13 09:09:49
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:bzhxGUEnZxPw2mhUyxgTlA
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2024-12-05 12:43:20
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:xIOE4v6oCypgauXw3feURg
 
 __PACKAGE__->has_many(
   "user_roles",
@@ -312,9 +312,22 @@ __PACKAGE__->has_many(
     { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
+
 sub koha_object_class {
     'Koha::ERM::Agreement';
 }
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
     'Koha::ERM::Agreements';
 }

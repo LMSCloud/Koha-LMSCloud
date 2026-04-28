@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -476,7 +476,6 @@ if ( $pending_checkouts->count ) {    # Useless test
         }
     }
 }
-
 my $overduesblockrenewing = C4::Context->preference('OverduesBlockRenewing');
 $canrenew = 0 if ( $overduesblockrenewing ne 'allow' and $overdues_count == $count ) || !$are_renewable_items;
 $template->param( ISSUES               => \@issuedat );
@@ -500,8 +499,9 @@ $template->param( show_barcode => 1 ) if $show_barcode;
 my $reserves = $patron->holds->filter_out_has_cancellation_requests;
 
 $template->param(
-    RESERVES     => $reserves,
-    showpriority => $show_priority,
+    RESERVES       => $reserves,
+    reserves_count => $reserves->count_holds,
+    showpriority   => $show_priority,
 );
 
 if ( C4::Context->preference('OPACBookings') ) {
@@ -592,6 +592,7 @@ $template->param(
     OpacHoldNotes              => C4::Context->preference('OpacHoldNotes'),
     failed_holds               => scalar $query->param('failed_holds'),
     opac_user_holds            => scalar $query->param('opac-user-holds')            || 0,
+    opac_user_overdues         => scalar $query->param('opac-user-overdues')         || 0,
     opac_user_article_requests => scalar $query->param('opac-user-article-requests') || 0,
 );
 

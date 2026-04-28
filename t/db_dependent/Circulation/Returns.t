@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 7;
+use Test::NoWarnings;
+use Test::More tests => 8;
 use Test::MockModule;
 use Test::Warn;
 
@@ -313,9 +314,9 @@ subtest 'Handle ids duplication' => sub {
     ],
         'DBD should have raised an error about dup primary key';
 
-    is( $doreturn,                  0, 'Return should not have been done' );
-    is( $messages->{WasReturned},   0, 'messages should have the WasReturned flag set to 0' );
-    is( $messages->{DataCorrupted}, 1, 'messages should have the DataCorrupted flag set to 1' );
+    is( $doreturn,                  0,              'Return should not have been done' );
+    is( $messages->{WasReturned},   0,              'messages should have the WasReturned flag set to 0' );
+    is( $messages->{DataCorrupted}, 'Duplicate ID', 'messages should have the DataCorrupted flag set to 1' );
 
     $account_lines =
         Koha::Account::Lines->search( { borrowernumber => $borrower->{borrowernumber}, issue_id => $issue_id } );

@@ -15,7 +15,7 @@ package Koha::SuggestionEngine::Plugin::AuthorityFile;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -23,6 +23,7 @@ Koha::SuggestionEngine::Plugin::AuthorityFile - get suggestions from the authori
 
 =head1 SYNOPSIS
 
+=cut
 
 =head1 DESCRIPTION
 

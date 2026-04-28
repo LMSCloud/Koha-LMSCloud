@@ -6,20 +6,27 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% IF ( show ) %]
-        [% t("Confirm selection") | html %] &rsaquo;
-    [% END %]
-    [% IF op == 'enqueued' %]
-        [% t("Job enqueued") | html %] &rsaquo;
-    [% END %]
-    [% t("Batch item deletion") | html %] &rsaquo;
-    [% t("Cataloging") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% IF ( show ) %]
+            [% t("Confirm selection") | html %]
+            &rsaquo;
+        [% END %]
+        [% IF op == 'enqueued' %]
+            [% t("Job enqueued") | html %]
+            &rsaquo;
+        [% END %]
+        [% t("Batch item deletion") | html %]
+        &rsaquo; [% t("Cataloging") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 <!--[if IE]>
-<style>#selections { display: none; }</style>
+    <style>
+        #selections {
+            display: none;
+        }
+    </style>
 <![endif]-->
 </head>
 <body id="tools_batchMod-del" class="tools">
@@ -60,149 +67,156 @@
     <h1>Batch item deletion</h1>
 
     [% FOREACH message IN messages %]
-      [% IF message.type == 'success' %]
-        <div class="alert alert-info">
-      [% ELSIF message.type == 'warning' %]
-        <div class="alert alert-warning">
-      [% ELSIF message.type == 'error' %]
-        <div class="alert alert-warning" style="margin:auto;">
-      [% END %]
-      [% IF message.code == 'cannot_enqueue_job' %]
-          <span>Cannot enqueue this job.</span>
-      [% END %]
-      [% IF message.error %]
-        <span>(The error was: [% message.error | html %], see the Koha log file for more information).</span>
-      [% END %]
-      </div>
+        [% SET message_type = "alert-info" %]
+        [% IF message.type == 'success' %]
+            [% message_type = "alert-info" %]
+        [% ELSIF message.type == 'warning' %]
+            [% message_type = "alert-warning" %]
+        [% ELSIF message.type == 'error' %]
+            [% message_type = "alert-warning" %]
+        [% END %]
+        <div class="alert [% message_type | html %]">
+            [% IF message.code == 'cannot_enqueue_job' %]
+                <span>Cannot enqueue this job.</span>
+            [% END %]
+            [% IF message.error %]
+                <span>(The error was: [% message.error | html %], see the Koha log file for more information).</span>
+            [% END %]
+        </div>
     [% END %]
-
 
     [% UNLESS ( action ) %]
 
-    [% IF ( notfoundbarcodes.size ) %]
-        <div class="alert alert-warning">
-            [% IF ( itemresults ) %]<p>Warning, the following barcodes were not found:</p>[% ELSE %]<p>Warning: no barcodes were found</p>[% END %]
-        </div>
-        <table style="margin:auto;">
-            <thead>
-                <tr><th>Barcodes not found</th></tr>
-            </thead>
-            <tbody>
-                [% FOREACH notfoundbarcode IN notfoundbarcodes %]
-                    <tr><td>[% notfoundbarcode |html %]</td></td>
-                [% END %]
-            </tbody>
-        </table>
-    [% END %] <!-- /notfoundbarcodes -->
-    [% IF ( notfounditemnumbers.size ) %]
-        <div class="alert alert-warning">
-            [% IF ( itemresults ) %]<p>Warning, the following itemnumbers were not found:</p>[% ELSE %]<p>Warning: no itemnumbers were found</p>[% END %]
-        </div>
-        <table style="margin:auto;">
-            <thead>
-                <tr><th>Itemnumbers not found</th></tr>
-            </thead>
-            <tbody>
-                [% FOREACH notfounditemnumber IN notfounditemnumbers %]
-                    <tr><td>[% notfounditemnumber |html %]</td></td>
-                [% END %]
-            </tbody>
-        </table>
-    [% END %] <!-- /notfounditemnumbers -->
+        [% IF ( notfoundbarcodes.size ) %]
+            <div class="alert alert-warning"> [% IF ( itemresults ) %]<p>Warning, the following barcodes were not found:</p>[% ELSE %]<p>Warning: no barcodes were found</p>[% END %] </div>
+            <table style="margin:auto;">
+                <thead>
+                    <tr><th>Barcodes not found</th></tr>
+                </thead>
+                <tbody>
+                    [% FOREACH notfoundbarcode IN notfoundbarcodes %]
+                        <tr><td>[% notfoundbarcode |html %]</td></tr>
+                    [% END %]
+                </tbody>
+            </table>
+        [% END %]
+        <!-- /notfoundbarcodes -->
+        [% IF ( notfounditemnumbers.size ) %]
+            <div class="alert alert-warning"> [% IF ( itemresults ) %]<p>Warning, the following itemnumbers were not found:</p>[% ELSE %]<p>Warning: no itemnumbers were found</p>[% END %] </div>
+            <table style="margin:auto;">
+                <thead>
+                    <tr><th>Itemnumbers not found</th></tr>
+                </thead>
+                <tbody>
+                    [% FOREACH notfounditemnumber IN notfounditemnumbers %]
+                        <tr><td>[% notfounditemnumber |html %]</td></tr>
+                    [% END %]
+                </tbody>
+            </table>
+        [% END %]
+        <!-- /notfounditemnumbers -->
 
-    [% IF cannot_be_deleted.size %]
-        <div class="alert alert-warning">
-            <p>Warning, the following items cannot be deleted: </p>
-        </div>
-        <table style="margin:auto;">
-            <thead>
-                <tr><th>Cannot be deleted</th></tr>
-            </thead>
-            <tbody>
-                [% FOREACH barcode IN cannot_be_deleted %]
-                    <tr><td>[% barcode | html %]</td></td>
-                [% END %]
-            </tbody>
-        </table>
-    [% END %]
-
-    [% IF ( notfoundbarcodes.size || notfounditemnumbers.size || cannot_be_deleted.size ) && !too_many_items_display && item_loop %]
-        <h4>The following barcodes were found: </h4>
-    [% END %]
-
-
-<form name="f" action="batchMod.pl" method="post">
-    [% INCLUDE 'csrf-token.inc' %]
-     <input type="hidden" name="biblionumber" id="biblionumber" value="[% biblionumber | html %]" />
-     <input type="hidden" name="op" value="[% op | html %]" />
-     <input type="hidden" name="searchid" value="[% searchid | html %]" />
-     <input type="hidden" name="src" id="src" value="[% src | html %]" />
-     [% IF biblionumber %]
-        <input type="hidden" name="biblionumber" id="biblionumber" value="[% biblionumber | html %]" />
-     [% END %]
-
-[% IF items.size %]
-    [% PROCESS items_table_batchmod headers => item_header_loop, items => items, checkboxes_delete => 1, display_columns_selection => 1 %]
-[% END %]
-
-[% IF ( simple_items_display ) %]
-    <ul>
-    [% FOREACH simple_items_displa IN simple_items_display %]
-        <li>
-            <a href="[% simple_items_displa.itemnumber | url %]">[% simple_items_displa.barcode | html %]</a>
-        </li>
-    [% END %]
-    </ul>
-[% END %]
-
-
-[% IF ( show ) %]
-
-[% IF ( too_many_items_display ) %]
-    <p>Too many items ([% too_many_items_display | html %]) to display individually.</p>
-    [% FOREACH itemnumber IN itemnumbers_array %]
-        <input type="hidden" name="itemnumber" value="[% itemnumber | html %]" />
-    [% END %]
-[% END %]
-
-    [% IF ( itemresults ) %]
-        <div id="cataloguing_additem_newitem" class="item_edit_form">
-         <input type="hidden" name="op" value="[% op | html %]" />
-         <p>This will delete [% IF ( too_many_items_display ) %]all the[% ELSE %]the selected[% END %] items.</p>
-         <input type="hidden" name="del" value="1" />
-         [% IF ( CAN_user_editcatalogue_edit_catalogue ) %]
-             <input type="checkbox" name="del_records" id="del_records" />
-             <label for="del_records">Delete records if no items remain.</label>
-         [% END %]
-
-         <fieldset class="action">
-        [% IF too_many_items_display %]
-            <input type="submit" name="mainformsubmit" class="btn btn-primary" value="Delete ALL submitted items" />
-        [% ELSE %]
-            <input type="submit" name="mainformsubmit" class="btn btn-primary" value="Delete selected items" />
+        [% IF cannot_be_deleted.size %]
+            <div class="alert alert-warning">
+                <p>Warning, the following items cannot be deleted: </p>
+            </div>
+            <table style="margin:auto;">
+                <thead>
+                    <tr><th>Cannot be deleted</th></tr>
+                </thead>
+                <tbody>
+                    [% FOREACH barcode IN cannot_be_deleted %]
+                        <tr><td>[% barcode | html %]</td></tr>
+                    [% END %]
+                </tbody>
+            </table>
         [% END %]
 
-        <a href="/cgi-bin/koha/tools/batchMod.pl?del=1" class="cancel">Cancel</a>
-        </fieldset>
-    </div>
-    [% ELSE %]
-    <p><a href="/cgi-bin/koha/tools/batchMod.pl?del=1">Return to batch item deletion</a></p>
-    [% END %]
-    [% END %]
-    </form>
-    [% END %]
+        [% IF ( notfoundbarcodes.size || notfounditemnumbers.size || cannot_be_deleted.size ) && !too_many_items_display && item_loop %]
+            <h4>The following barcodes were found: </h4>
+        [% END %]
 
+        <form name="f" action="batchMod.pl" method="post">
+            [% INCLUDE 'csrf-token.inc' %]
+            <input type="hidden" name="biblionumber" id="biblionumber" value="[% biblionumber | html %]" />
+            <input type="hidden" name="op" value="[% op | html %]" />
+            <input type="hidden" name="searchid" value="[% searchid | html %]" />
+            <input type="hidden" name="src" id="src" value="[% src | html %]" />
+            [% IF biblionumber %]
+                <input type="hidden" name="biblionumber" id="biblionumber" value="[% biblionumber | html %]" />
+            [% END %]
+
+            [% IF items.size %]
+                [% PROCESS items_table_batchmod headers => item_header_loop, items => items, checkboxes_delete => 1, display_columns_selection => 1 %]
+            [% END %]
+
+            [% IF ( simple_items_display ) %]
+                <ul>
+                    [% FOREACH simple_items_displa IN simple_items_display %]
+                        <li>
+                            <a href="[% simple_items_displa.itemnumber | url %]">[% simple_items_displa.barcode | html %]</a>
+                        </li>
+                    [% END %]
+                </ul>
+            [% END %]
+
+            [% IF ( show ) %]
+
+                [% IF ( too_many_items_display ) %]
+                    <p>Too many items ([% too_many_items_display | html %]) to display individually.</p>
+                    [% FOREACH itemnumber IN itemnumbers_array %]
+                        <input type="hidden" name="itemnumber" value="[% itemnumber | html %]" />
+                    [% END %]
+                [% END %]
+
+                [% IF ( itemresults ) %]
+                    <div id="cataloguing_additem_newitem" class="item_edit_form">
+                        <input type="hidden" name="op" value="[% op | html %]" />
+                        <p>This will delete [% IF ( too_many_items_display ) %]all the[% ELSE %]the selected[% END %] items.</p>
+                        <input type="hidden" name="del" value="1" />
+                        [% IF ( CAN_user_editcatalogue_edit_catalogue ) %]
+                            <div style="display: flex; flex-direction: column; gap: 5px;">
+                                <div>
+                                    <input type="checkbox" name="del_records" id="del_records" />
+
+                                    <label for="del_records">Delete records if no items remain.</label>
+                                </div>
+                                <div>
+                                    <input type="checkbox" name="del_serial_issues" id="del_serial_issues" />
+                                    <label for="del_serial_issues">Delete serial issues linked to items.</label>
+                                </div>
+                            </div>
+                        [% END %]
+
+                        <fieldset class="action">
+                            [% IF too_many_items_display %]
+                                <input type="submit" name="mainformsubmit" class="btn btn-primary" value="Delete ALL submitted items" />
+                            [% ELSE %]
+                                <input type="submit" name="mainformsubmit" class="btn btn-primary" value="Delete selected items" />
+                            [% END %]
+
+                            <a href="/cgi-bin/koha/tools/batchMod.pl?del=1" class="cancel">Cancel</a>
+                        </fieldset>
+                    </div>
+                [% ELSE %]
+                    <p><a href="/cgi-bin/koha/tools/batchMod.pl?del=1">Return to batch item deletion</a></p>
+                [% END %]
+            [% END %]
+        </form>
+    [% END %]
 
     [% IF op == 'enqueued' %]
         <div class="alert alert-info">
             <h1>The job has been enqueued!</h1>
             <p>It will be processed as soon as possible.</p>
-          <p><a href="/cgi-bin/koha/admin/background_jobs.pl?op=view&id=[% job_id | uri %]" title="View detail of the enqueued job">View detail of the enqueued job</a>
-          | <a href="/cgi-bin/koha/tools/batchMod.pl?del=1" title="New batch item deletion">New batch item deletion</a></p>
+            <p
+                ><a href="/cgi-bin/koha/admin/background_jobs.pl?op=view&id=[% job_id | uri %]" title="View detail of the enqueued job">View detail of the enqueued job</a> |
+                <a href="/cgi-bin/koha/tools/batchMod.pl?del=1" title="New batch item deletion">New batch item deletion</a></p
+            >
         </div>
 
         <fieldset class="action">
-            [% IF src == 'CATALOGUING' # from catalogue/detail.pl > Delete items in a batch%]
+            [% IF src == 'CATALOGUING' # from catalogue/detail.pl > Delete items in a batch %]
                 [% IF searchid %]
                     <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber | uri %]&searchid=[% searchid | uri %]">Return to the record</a>
                 [% ELSE %]
@@ -215,13 +229,11 @@
             [% END %]
         </fieldset>
     [% END %]
-
-    </div>
+</div>
 
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/tools-menu.js") | $raw %]
     [% INCLUDE 'datatables.inc' %]
-    [% INCLUDE 'columns_settings.inc' %]
     [% Asset.js("js/pages/batchMod.js") | $raw %]
     [% Asset.js("js/browser.js") | $raw %]
     <script>

@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -56,7 +56,7 @@ EAN8
 EAN13
 COOP2of5
 
-If ommited,it defaults to Code39.
+If omitted,it defaults to Code39.
 
 =item I<notext>
 

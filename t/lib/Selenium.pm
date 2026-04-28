@@ -13,7 +13,7 @@ package t::lib::Selenium;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Carp qw( croak );
@@ -420,6 +420,18 @@ It will remove any kinds of error raised by the driver.
 It can be useful in some cases, for instance if you want to make sure something will not happen and that could make the driver exploses otherwise.
 You certainly should call it for only one statement then must call add_error_handler right after.
 
+=head2 config
+
+Missing POD for config.
+
+=head2 opac_auth
+
+Missing POD for opac_auth.
+
+=head2 max_retries
+
+Missing POD for max_retries.
+
 =head1 AUTHORS
 
 Jonathan Druart <jonathan.druart@bugs.koha-community.org>
@@ -441,7 +453,7 @@ the Free Software Foundation; either version 3 of the License, or (at your optio
 
 Koha is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with Koha; if not, see <http://www.gnu.org/licenses>.
+You should have received a copy of the GNU General Public License along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =cut
 

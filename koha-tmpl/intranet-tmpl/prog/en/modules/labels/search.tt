@@ -157,6 +157,7 @@
         </nav>
     </form>
 </div>
+<!-- /.main.container-fluid -->
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]

@@ -1,0 +1,55 @@
+@import "variables";
+@import "mixins";
+
+// CSS custom properties for bookings timeline colors
+// These are used in JavaScript inline styles to override vis-timeline's CSS specificity
+:root {
+    --bookings-timeline-bg-checkout: #{map-deep-get($bookings, timeline, bg-checkout)};
+    --bookings-timeline-text-checkout: #{map-deep-get($bookings, timeline, text-checkout)};
+    --bookings-timeline-bg-cancelled: #{map-deep-get($bookings, timeline, bg-cancelled)};
+    --bookings-timeline-text-cancelled: #{map-deep-get($bookings, timeline, text-cancelled)};
+}
+
+.bookings-timeline {
+    &-container {
+        min-height: 12.5rem;
+    }
+
+    &-loading-overlay {
+        background: rgba(255, 255, 255, 0.8);
+        z-index: 1000;
+        display: none;
+        width: 100%;
+        height: 100%;
+    }
+
+    &-loading {
+        background-color: #{map-deep-get($bookings, timeline, loading, bg)};
+        border: 0.125rem solid #{map-deep-get($bookings, timeline, loading, border)};
+        border-radius: 0.1875rem;
+        box-shadow: 0.125rem 0.125rem 0.1875rem 0.0625rem rgba(0, 0, 0, 0.2);
+        color: #{map-deep-get($bookings, timeline, loading, text)};
+        padding: 1.5em;
+        text-align: center;
+        width: 100%;
+        height: 100%;
+        min-height: 12.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+#bookings-timeline {
+    .vis-item.vis-range {
+        &.cancelled {
+            background: repeating-linear-gradient(
+                135deg,
+                rgba(211, 211, 211, 0.5) 0,
+                rgba(211, 211, 211, 0.5) 10px,
+                transparent 10px,
+                transparent 20px
+            );
+        }
+    }
+}

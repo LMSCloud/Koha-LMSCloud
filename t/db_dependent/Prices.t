@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Test::More tests => 1;
+use Test::NoWarnings;
+use Test::More tests => 2;
 use Test::MockModule;
 
 use t::lib::Mocks;
@@ -510,11 +511,11 @@ subtest 'Tests from t' => sub {
         t::lib::Mocks::mock_preference( 'CurrencyFormat', $currency_format );
         is(
             Koha::Number::Price->new(1234567)->format_for_editing, '1234567.00',
-            'format_for_editing should return unformated integer part with 2 decimals'
+            'format_for_editing should return unformatted integer part with 2 decimals'
         );
         is(
             Koha::Number::Price->new(1234567.89)->format_for_editing, '1234567.89',
-            'format_for_editing should return unformated integer part with 2 decimals'
+            'format_for_editing should return unformatted integer part with 2 decimals'
         );
     }
 };

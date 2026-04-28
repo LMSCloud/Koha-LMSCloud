@@ -15,7 +15,7 @@ package C4::ItemCirculationAlertPreference;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -220,6 +220,12 @@ B<Example>:
     if ($alert->is_enabled_for($conditions)) {
         # ...
     }
+
+=cut
+
+=head2 is_disabled_for
+
+Missing POD for is_disabled_for.
 
 =cut
 

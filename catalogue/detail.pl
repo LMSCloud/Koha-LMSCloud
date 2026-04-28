@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -49,6 +49,7 @@ use Koha::Biblio::ItemGroup::Items;
 use Koha::Biblio::ItemGroups;
 use Koha::CoverImages;
 use Koha::DateUtils;
+use Koha::Database::DataInconsistency;
 use Koha::ILL::Requests;
 use Koha::Items;
 use Koha::ItemTypes;
@@ -99,8 +100,8 @@ unless ($biblio) {
 
     # biblionumber invalid -> report and exit
     $template->param(
-        unknownbiblionumber => 1,
-        biblionumber        => $biblionumber
+        blocking_error => 'unknown_biblionumber',
+        biblionumber   => $biblionumber
     );
     output_html_with_http_headers $query, $cookie, $template->output;
     exit;
@@ -451,7 +452,10 @@ if ( C4::Context->preference("virtualshelves") ) {
     my $shelves = Koha::Virtualshelves->search(
         {
             biblionumber => $biblionumber,
-            public       => 1,
+            '-or'        => {
+                public => 1,
+                owner  => $patron->borrowernumber
+            }
         },
         {
             join => 'virtualshelfcontents',
@@ -482,7 +486,7 @@ if (   ( C4::Context->preference("HTML5MediaEnabled") eq 'both' )
 }
 
 # EKZ or Divibib Cover
-if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled") ) {
+if ( !$invalid_marc_record && ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled") ) ) {
     my @titlecoverurls = ();
     my $coverfound     = 0;
     foreach my $tag ( $marc_record->field('856') ) {
@@ -568,5 +572,13 @@ $template->param( item_type_image_locations => \%item_type_image_locations );
 $template->param( found1 => scalar $query->param('found1') );
 
 $template->param( biblio => $biblio );
+
+if ( $query->param('audit') ) {
+    my $audit_errors = Koha::Database::DataInconsistency->for_biblio($biblio);
+    $template->param(
+        auditing     => 1,
+        audit_errors => [ map { scalar @{ $audit_errors->{$_} } ? @{ $audit_errors->{$_} } : () } keys %$audit_errors ],
+    );
+}
 
 output_html_with_http_headers $query, $cookie, $template->output;
