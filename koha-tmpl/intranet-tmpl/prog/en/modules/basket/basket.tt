@@ -362,7 +362,7 @@
                                             [% ELSE %]
                                                 [% FOREACH ITEM_RESULT IN BIBLIO_RESULT.ITEM_RESULTS %]
                                                     [% IF (ITEM_RESULT.itemtype) %]
-                                                        [% ITEM_RESULT.itemtype.description %][% LAST %]
+                                                        [% ITEM_RESULT.itemtype.description | html %][% LAST %]
                                                     [% END %]
                                                 [% END %]
                                             [% END %]

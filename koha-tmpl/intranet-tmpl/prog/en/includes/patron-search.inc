@@ -1139,7 +1139,7 @@
                 [% IF callback %]
                     [% callback | html %](borrowernumber, data);
                 [% ELSE %]
-                    select_user(borrowernumber, data[% IF ill_patrontype_lmsc.length %], '[% ill_patrontype_lmsc %]'[% END %]);
+                    select_user(borrowernumber, data[% IF ill_patrontype_lmsc.length %], '[% ill_patrontype_lmsc | html %]'[% END %]);
                 [% END %]
             }
         }

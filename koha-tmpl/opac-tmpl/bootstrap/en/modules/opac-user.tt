@@ -269,7 +269,7 @@
 
                             [% IF Koha.Preference('DivibibEnabled') && divibib_issues_count %]
                                 [% WRAPPER tab_item tabname= "opac-user-divibibcheckouts" %]
-                                    <span>Onleihen ([% divibib_issues_count %])</span>
+                                    <span>Onleihen ([% divibib_issues_count | html %])</span>
                                 [% END %]
                             [% END %]
                             [% IF ( overdues_count ) %]
@@ -726,7 +726,7 @@
                             [% IF Koha.Preference('DivibibEnabled') && divibib_issues_count %]
                                 [% WRAPPER tab_panel tabname="opac-user-divibibcheckouts" %]
                                     <table id="divibibcheckoutst" class="table table-bordered table-striped">
-                                        <caption>[% divibib_issues_count %] Item(s) checked out</caption>
+                                        <caption>[% divibib_issues_count | html %] Item(s) checked out</caption>
                                         <thead>
                                             <tr>
                                                 <th class="anti-the">Title</th>

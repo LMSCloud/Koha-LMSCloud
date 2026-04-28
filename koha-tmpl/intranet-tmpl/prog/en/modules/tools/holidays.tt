@@ -309,12 +309,12 @@
                                         <input type="hidden" name="op" value="cud-copy_to_group" />
                                         <p>
                                             <div class="copyHolidaysToGroupSelect">
-                                                <input type="hidden" name="from_branchcode" value="[% branch %]" />
+                                                <input type="hidden" name="from_branchcode" value="[% branch | html %]" />
                                                 <label for="branchgroup">Copy holidays to all libraries of group:</label>
                                                 <select id="branchgroup" name="branchgroup">
                                                     <option value=""></option>
                                                     [% FOREACH group IN librarygroups %]
-                                                        <option value="[% group.id %]">[% group.title %]</option>
+                                                        <option value="[% group.id | html %]">[% group.title | html %]</option>
                                                     [% END %]
                                                 </select>
                                             </div>

@@ -4,7 +4,7 @@
             <div class="container-fluid">
                 <div class="row">
                     <div class="span12">
-                        <div class="detail_volume_header">Parts of the work ([% VolumeData.size %])</div>
+                        <div class="detail_volume_header">Parts of the work ([% VolumeData.size | html %])</div>
                     </div>
                 </div>
             </div>
@@ -15,13 +15,13 @@
                 <tr>
                     <td class="bibliocol" style="">
                         <div class="detail_volume_volname">
-                            [% IF (Volume.sortvolume) %][% Volume.sortvolume %][% END %][% IF (Volume.sortpart) %][% IF (Volume.sortvolume) %], [% END %][% Volume.sortpart %][% END %]
+                            [% IF (Volume.sortvolume) %][% Volume.sortvolume | html %][% END %][% IF (Volume.sortpart) %][% IF (Volume.sortvolume) %], [% END %][% Volume.sortpart | html %][% END %]
                         </div>
                     
                     </td>
                     <td>
                         <div class="detail_volume_bibdata">
-                            [% Volume.XSLTResultsRecord %]
+                            [% Volume.XSLTResultsRecord | $raw %]
                         </div>
                     </td>
                 </tr>
@@ -51,7 +51,7 @@
                 <tr>
                     <td>
                         <div class="detail_linked_record_bibdata">
-                            [% Volume.XSLTResultsRecord %]
+                            [% Volume.XSLTResultsRecord | $raw %]
                         </div>
                     </td>
                 </tr>

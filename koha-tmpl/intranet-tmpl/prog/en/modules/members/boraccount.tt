@@ -199,18 +199,18 @@
           [% IF (checkCashRegisterFailed) %]
             <button type="button" class="btn btn-default btn-xs payout-action" disabled="disabled"><i class="fa fa-money"></i> Issue payout</button>
           [% ELSE %]
-            <button type="button" data-bs-toggle="modal" data-bs-target="#issuePayoutModal" data-account="[%- PROCESS account_type_description account=account -%]" data-accountline="[% account.accountlines_id | html %]" data-amount="[% account.amountoutstanding %]" data-amount-formatted="[% account.amountoutstanding | $Price %]" class="btn btn-default btn-xs payout-action"><i class="fa fa-money"></i> Issue payout</button>
+            <button type="button" data-bs-toggle="modal" data-bs-target="#issuePayoutModal" data-account="[%- PROCESS account_type_description account=account -%]" data-accountline="[% account.accountlines_id | html %]" data-amount="[% account.amountoutstanding | html %]" data-amount-formatted="[% account.amountoutstanding | $Price %]" class="btn btn-default btn-xs payout-action"><i class="fa fa-money"></i> Issue payout</button>
           [% END %]
         [% END %]
         [% IF CAN_user_updatecharges_refund && account.is_debit && ( account.amountoutstanding != account.amount ) && !(account.status == 'REFUNDED' || account.status == 'CANCELLED') && (account.debit_type_code == 'VOID') && !(account.debit_type_code == 'PAYOUT') %]
           [% IF (checkCashRegisterFailed) %]
             <button type="button"  class="btn btn-default btn-xs refund-action" disabled="disabled"><i class="fa fa-money"></i> Issue refund</button>
           [% ELSE %]
-            <button type="button"  class="btn btn-default btn-xs refund-action" data-bs-toggle="modal" data-bs-target="#issueRefundModal" data-item="[%- PROCESS account_type_description account=account -%]" data-accountline="[% account.accountlines_id | html %]" data-amount="[% account.amount %]" data-amountformatted="[% account.amount | $Price %]" data-amountoutstanding="[% account.amountoutstanding %]" data-amountoutstandingformatted="[% account.amountoutstanding | $Price %]" data-member="[% account.borrowernumber | html %]"><i class="fa fa-money"></i> Issue refund</button>
+            <button type="button"  class="btn btn-default btn-xs refund-action" data-bs-toggle="modal" data-bs-target="#issueRefundModal" data-item="[%- PROCESS account_type_description account=account -%]" data-accountline="[% account.accountlines_id | html %]" data-amount="[% account.amount | html %]" data-amountformatted="[% account.amount | $Price %]" data-amountoutstanding="[% account.amountoutstanding | html %]" data-amountoutstandingformatted="[% account.amountoutstanding | $Price %]" data-member="[% account.borrowernumber | html %]"><i class="fa fa-money"></i> Issue refund</button>
           [% END %]
         [% END %]
         [% IF CAN_user_updatecharges_discount && account.is_debit && ( account.amountoutstanding == account.amount ) && !(account.debit_type_code == 'PAYOUT') && !(account.debit_type_code == 'VOID') %]
-          <button type="button" data-bs-toggle="modal" data-bs-target="#applyDiscountModal" data-item="[%- PROCESS account_type_description account=account -%]" data-accountline="[% account.accountlines_id | html %]" data-amount="[% account.amount %]" data-amountformatted="[% account.amount | $Price %]" data-amountoutstanding="[% account.amountoutstanding %]" data-amountoutstandingformatted="[% account.amountoutstanding | $Price %]" class="btn btn-default btn-xs discount-action">Apply discount</button>
+          <button type="button" data-bs-toggle="modal" data-bs-target="#applyDiscountModal" data-item="[%- PROCESS account_type_description account=account -%]" data-accountline="[% account.accountlines_id | html %]" data-amount="[% account.amount | html %]" data-amountformatted="[% account.amount | $Price %]" data-amountoutstanding="[% account.amountoutstanding | html %]" data-amountoutstandingformatted="[% account.amountoutstanding | $Price %]" class="btn btn-default btn-xs discount-action">Apply discount</button>
         [% END %]
       </td>
     </tr>
@@ -223,7 +223,7 @@
         <td class="credit" style="text-align: right;">[% total | $Price %]</td>
         <td>
           [% IF CAN_user_updatecharges_payout && total < 0.0 %]
-          <button type="button" data-bs-toggle="modal" data-bs-target="#issuePayoutModal" data-amount="[% total %]" data-amount-formatted="[% total | $Price %]" class="btn btn-default btn-xs payout-amount-action"><i class="fa fa-money"></i> Payout amount</button>
+          <button type="button" data-bs-toggle="modal" data-bs-target="#issuePayoutModal" data-amount="[% total | html %]" data-amount-formatted="[% total | $Price %]" class="btn btn-default btn-xs payout-amount-action"><i class="fa fa-money"></i> Payout amount</button>
           [% END %]
         </td>
     [% ELSE %]
@@ -279,7 +279,7 @@ Please open a cash register to reverse payments.
                                 </li>
                                 <li>
                                     <label class="required" for="amount">Returned to patron: </label>
-                                    <input type="text" inputmode="decimal" pattern="[0-9]*([\.\,][0-9]{1,2})?" step="0.01" lang="[% lang %]" id="amount" name="amount" required="required">
+                                    <input type="text" inputmode="decimal" pattern="[0-9]*([\.\,][0-9]{1,2})?" step="0.01" lang="[% lang | html %]" id="amount" name="amount" required="required">
                                     <span class="required">Required</span>
                                 </li>
 

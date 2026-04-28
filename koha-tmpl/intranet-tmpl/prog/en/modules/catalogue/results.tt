@@ -495,7 +495,7 @@
             [% IF ( SEARCH_RESULT.titlecoverurls && (Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled')) ) %]
                 [% FOREACH myurl IN SEARCH_RESULT.titlecoverurls %] 
                 <div id="ekzcover-[% SEARCH_RESULT.biblionumber | html %]" class="cover-image ekzcover-coverimg">
-                    <img src="[% myurl %]" width="170" title="[% SEARCH_RESULT.biblionumber |url %]"></img>[% LAST %]
+                    <img src="[% myurl | url %]" width="170" title="[% SEARCH_RESULT.biblionumber |url %]"></img>[% LAST %]
                 </div>
                 [% END # /FOREACH  %]
             [% END # / IF titlecoverurls %]
@@ -693,7 +693,7 @@
                                                                             [% END %]
                                                                             
                                                                             [% IF Koha.Preference('IssuingStatsOnIntranetResultPageYears') %]
-                                                                                <div class="issuingstats" data-itemnumbers="[% items_loo.itemnumbers %]"></div>
+                                                                                <div class="issuingstats" data-itemnumbers="[% items_loo.itemnumbers | html %]"></div>
                                                                             [% END %]
                                                                         </li>
                                                                     [% END # /FOREACH other_items_loo %]
@@ -814,7 +814,7 @@
     [% Asset.js("js/browser.js") | $raw %]
     [% Asset.js("js/coce.js") | $raw %]
     [% IF Koha.Preference('IssuingStatsOnIntranetResultPageYears') %]
-    [% Asset.js("js/issuingstats.js") %]
+    [% Asset.js("js/issuingstats.js") | $raw %]
     [% END %]
     [% Asset.css("css/humanmsg.css") | $raw %]
     [% Asset.js("lib/jquery/plugins/humanmsg.js") | $raw %]
@@ -866,7 +866,7 @@
         var PREF_IssuingStatsOnIntranetResultPageYears = parseInt( "[% Koha.Preference('IssuingStatsOnIntranetResultPageYears') | html %]", 10);
         [% IF Koha.Preference('IssuingStatsOnIntranetResultPageYears') %]
            var biblionumbersForStats=[];
-           [% FOREACH SEARCH_RESULT IN SEARCH_RESULTS %]biblionumbersForStats.push("[% SEARCH_RESULT.biblionumber%]");
+           [% FOREACH SEARCH_RESULT IN SEARCH_RESULTS %]biblionumbersForStats.push("[% SEARCH_RESULT.biblionumber | html %]");
            [% END %]
            var IssuingStatsCheckoutTxt = _("Checkouts");
            var IssuingStatsTotalTxt    = _("Total");

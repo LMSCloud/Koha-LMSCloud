@@ -70,7 +70,7 @@
 [% END %]
 
 [% IF ( Koha.Preference('RFIDWebService') &&  Koha.Preference('RFIDWebServiceURL') ) %]
-[% Asset.js("js/rfidwebservice.js") %]
+[% Asset.js("js/rfidwebservice.js") | $raw %]
 [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
 [% INCLUDE 'rfid-web-service-messages.inc' %]
     <script type="text/javascript">
@@ -79,7 +79,7 @@
             if (typeof RFIDWebServiceMessageProvider !== 'undefined') {
                 rfidMessageProvider = RFIDWebServiceMessageProvider;
             }
-            RFIDWebService.Init('[% Koha.Preference('RFIDWebServiceURL') | html %]', rfidMessageProvider, '[% Koha.Preference('RFIDWebServiceCheckoutBlocker') | html %]', '[% Koha.Preference('RFIDWebServiceCheckinBlocker') | html %]'[% IF (Koha.Preference('RFIDWebServiceActionKey')) %], [% Koha.Preference('RFIDWebServiceActionKey') %][% END %]);
+            RFIDWebService.Init('[% Koha.Preference('RFIDWebServiceURL') | html %]', rfidMessageProvider, '[% Koha.Preference('RFIDWebServiceCheckoutBlocker') | html %]', '[% Koha.Preference('RFIDWebServiceCheckinBlocker') | html %]'[% IF (Koha.Preference('RFIDWebServiceActionKey')) %], [% Koha.Preference('RFIDWebServiceActionKey') | html %][% END %]);
         });
     </script>
 [% ELSE %]

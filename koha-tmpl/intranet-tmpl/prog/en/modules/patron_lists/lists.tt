@@ -105,7 +105,7 @@
                                             <li><hr class="dropdown-divider" /></li>
                                             [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
                                                 <li>
-                                                    <a class="dropdown-item" href="#startPatronlistIdSearch" onclick="startpatronlistidsearch([% l.patron_list_id %])" >
+                                                    <a class="dropdown-item" href="#startPatronlistIdSearch" onclick="startpatronlistidsearch([% l.patron_list_id | html %])" >
                                                         <i class="fa fa-search"></i> Show in patron search
                                                     </a>
                                                 </li>

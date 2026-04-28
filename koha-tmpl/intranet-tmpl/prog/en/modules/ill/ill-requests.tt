@@ -730,7 +730,7 @@
                             <ol>
                                 [% FOREACH meta IN request.metadata %]
                                     <li class="requestmeta-[% meta.key.replace('\s','_') | html %]">
-                                        <span class="label" id="labelForMetaData[% meta.key %]">[% meta.key | html %]:</span>
+                                        <span class="label" id="labelForMetaData[% meta.key | html %]">[% meta.key | html %]:</span>
                                         [% meta.value | html %]
                                     </li>
                                 [% END %]
@@ -828,7 +828,7 @@
                     <!-- illlist -->
                     <h1>View ILL requests</h1>
                     <div id="results" class="page-section">
-                        <h2 id="hitheader" name="hitheader" >[% IF hitname %][% hitname %][% ELSE %]Details for all requests[% END %]</h2>
+                        <h2 id="hitheader" name="hitheader" >[% IF hitname %][% hitname | html %][% ELSE %]Details for all requests[% END %]</h2>
                          [% INCLUDE 'ill-list-table.inc' %]
                     </div> <!-- /#results -->
 
@@ -947,7 +947,7 @@
         // introducing JS variables to make the filter parameters accessible for js/ill-list-table.js
         var prefilters = '[% prefilters | $raw %]';    // e.g. "backend=ILLALV"
         var infilter = '[% infilter | $raw %]';    // e.g. "status,-not_in,COMP,QUEUED"
-        var query_type_js = '[% query_type %]';    // e.g. "illview", or "illlist"
+        var query_type_js = '[% query_type | html %]';    // e.g. "illview", or "illlist"
 
         // Set column settings
         var table_settings = [% TablesSettings.GetTableSettings( 'illrequests', 'ill-requests', 'ill-requests', 'json' ) | $raw %];

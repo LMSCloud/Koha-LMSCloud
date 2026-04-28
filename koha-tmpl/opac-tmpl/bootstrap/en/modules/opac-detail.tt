@@ -69,16 +69,17 @@
                         
                         [% IF ( contentsample && Koha.Preference('DivibibEnabled') ) %]
                             <div class="contentsamplelink">
+                            [% sample_lang = lang.match('^de') ? 'de' : 'en' %]
                             [% IF ( contentsample.type == 'ebook' ) %]
-                                <a href="[% contentsample.link %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% lang.match('^de') ? 'de' : 'en' %].png" alt="Preview" title="Preview" /></a><br />
+                                <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% sample_lang | html %].png" alt="Preview" title="Preview" /></a><br />
                             [% ELSIF ( contentsample.type == 'eaudio' ) %]
-                                <a href="[% contentsample.link %]" target="_new"><img src="https://static.lmscloud.net/images/Sample_[% lang.match('^de') ? 'de' : 'en' %].png" alt="Preview" title="Sample" /></a><br />
+                                <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Sample_[% sample_lang | html %].png" alt="Preview" title="Sample" /></a><br />
                             [% ELSIF ( contentsample.type == 'emusic' ) %]
-                                <a href="[% contentsample.link %]" target="_new"><img src="https://static.lmscloud.net/images/Sample_[% lang.match('^de') ? 'de' : 'en' %].png" alt="Preview" title="Sample" /></a><br />
+                                <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Sample_[% sample_lang | html %].png" alt="Preview" title="Sample" /></a><br />
                             [% ELSIF ( contentsample.type == 'evideo' ) %]
-                                <a href="[% contentsample.link %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% lang.match('^de') ? 'de' : 'en' %].png" alt="Preview" title="Preview" /></a><br />
+                                <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% sample_lang | html %].png" alt="Preview" title="Preview" /></a><br />
                             [% ELSE %]
-                                <a href="[% contentsample.link %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% lang.match('^de') ? 'de' : 'en' %].png" alt="Preview" title="Preview" /></a><br />
+                                <a href="[% contentsample.link | url %]" target="_new"><img src="https://static.lmscloud.net/images/Preview_[% sample_lang | html %].png" alt="Preview" title="Preview" /></a><br />
                             [% END %]
                             </div>
                         [% END # / IF contentsample %]
@@ -100,15 +101,15 @@
                                 [% FOREACH myurl IN titlecoverurls %]
                                     [% IF myurl.match('ekz') %]
                                         <div class="cover-image" id="ekz-coverimg">
-                                            <img src="[% myurl %]" alt="ekz Cover of [% img_title | html %]" title="[% img_title | html %]"></img>
+                                            <img src="[% myurl | url %]" alt="ekz Cover of [% img_title | html %]" title="[% img_title | html %]"></img>
                                         </div>
                                     [% ELSIF myurl.match('onleihe') %]
                                         <div class="cover-image" id="onleihe-coverimg">
-                                            <img src="[% myurl %]" alt="Onleihe Cover of [% img_title | html %]" title="[% img_title | html %]"></img>
+                                            <img src="[% myurl | url %]" alt="Onleihe Cover of [% img_title | html %]" title="[% img_title | html %]"></img>
                                         </div>
                                     [% ELSE %]
                                         <div class="cover-image" id="other-coverimg">
-                                            <img src="[% myurl %]" alt="Cover of [% img_title | html %]" title="[% img_title | html %]"></img>
+                                            <img src="[% myurl | url %]" alt="Cover of [% img_title | html %]" title="[% img_title | html %]"></img>
                                         </div>
                                     [% END %]
                                 [% END # /FOREACH  %]
@@ -1391,9 +1392,9 @@
                        <span class="itypetext">[% ITEM_RESULT.description | html %]</span>
                        [% IF bundlesEnabled && ITEM_RESULT.bundled_items > 0 %]
                            [% IF bundlesEnabled && ITEM_RESULT.bundled_items > 1 %]
-                           <div class="show_bundle_items"><a class="show_bundle_items_link" data-itemnumber="[% ITEM_RESULT.itemnumber %]">Media bundle with [% ITEM_RESULT.bundled_items %] media items</a></div>
+                           <div class="show_bundle_items"><a class="show_bundle_items_link" data-itemnumber="[% ITEM_RESULT.itemnumber | html %]">Media bundle with [% ITEM_RESULT.bundled_items | html %] media items</a></div>
                            [% ELSE %]
-                           <div class="show_bundle_items"><a class="show_bundle_items_link" data-itemnumber="[% ITEM_RESULT.itemnumber %]">Media bundle with [% ITEM_RESULT.bundled_items %] media item</a></div>
+                           <div class="show_bundle_items"><a class="show_bundle_items_link" data-itemnumber="[% ITEM_RESULT.itemnumber | html %]">Media bundle with [% ITEM_RESULT.bundled_items | html %] media item</a></div>
                            [% END %]
                        [% END %]
                     </td>
@@ -1465,30 +1466,30 @@
                     [% IF ( ITEM_RESULT.itemcallnumber ) %]
                         [% ITEM_RESULT.itemcallnumber | html %]
                         [% IF ( OPACShelfBrowser ) %]
-                            (<a href="#" class="lmscoverflow-shelfbrowser" data-biblionumber="[% ITEM_RESULT.biblionumber %]" data-itemnumber="[% ITEM_RESULT.itemnumber %]">Browse shelf<span class="sr-only">(Opens below)</span></a>)
+                            (<a href="#" class="lmscoverflow-shelfbrowser" data-biblionumber="[% ITEM_RESULT.biblionumber | html %]" data-itemnumber="[% ITEM_RESULT.itemnumber | html %]">Browse shelf<span class="sr-only">(Opens below)</span></a>)
                         [% END %]
                     [% END %]
                     [% IF ( Koha.Preference('DivibibEnabled') ) %]
                         [% IF ( ITEM_RESULT.onleihe ) %]
                             [% IF ( ITEM_RESULT.available ) %]
                                 [% IF ( loggedinusername ) %]
-                                    <a class="external-offer-link" href="#" onclick="accessDivibibResource('loan','[% ITEM_RESULT.itemId %]'); return false;">
+                                    <a class="external-offer-link" href="#" onclick="accessDivibibResource('loan','[% ITEM_RESULT.itemId | html %]'); return false;">
                                        <b><span class="available">Online available for download.</span></b>
                                    </a>
                                 [% ELSE %]
                                    [% IF Koha.Preference( 'DivibibTitleAccessURL' ) %]
-                                   <a class="external-offer-link" href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) %]" alt="Link to Onleihe" target="_blank"><b><span class="available">Available as digital version. Click here for online lending.</span></b></a>
+                                   <a class="external-offer-link" href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) | url %]" alt="Link to Onleihe" target="_blank"><b><span class="available">Available as digital version. Click here for online lending.</span></b></a>
                                    [% ELSE %]
                                    <span class="available">Download available for logged in users.</span>
                                    [% END %]
                                 [% END %]
                             [% ELSIF ITEM_RESULT.reservable %]
                                 [% IF ( loggedinusername ) %]
-                                     <a class="external-offer-link" href="#" onclick="accessDivibibResource('reservation','[% ITEM_RESULT.itemId %]'); return false;">
+                                     <a class="external-offer-link" href="#" onclick="accessDivibibResource('reservation','[% ITEM_RESULT.itemId | html %]'); return false;">
                                         <b><span class="available">A copy is available on the [% ITEM_RESULT.datedue | $KohaDates %]. Click here to place a hold.</span></b></a>
                                 [% ELSE %]
                                      [% IF Koha.Preference( 'DivibibTitleAccessURL' ) %]
-                                     <a class="external-offer-link" href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) %]" alt="Link to Onleihe" target="_blank"><b><span class="available">Becomes available as digital version on [% ITEM_RESULT.datedue | $KohaDates %]. Click here to make a reservation.</span></b></a>
+                                     <a class="external-offer-link" href="[% Koha.Preference( 'DivibibTitleAccessURL' ).replace('{TITLEID}',ITEM_RESULT.itemId) | url %]" alt="Link to Onleihe" target="_blank"><b><span class="available">Becomes available as digital version on [% ITEM_RESULT.datedue | $KohaDates %]. Click here to make a reservation.</span></b></a>
                                      [% ELSE %]
                                      <span class="available"><b>Available on the  [% ITEM_RESULT.datedue | $KohaDates %]. Reservable for logged in users.</b></span>
                                      [% END %]
@@ -1957,7 +1958,7 @@
                 "bKohaColumnsUseNames": true,
                 "autoWidth": false,
                 "responsive": {
-                    "details": { "type": 'column', "target": -1, display: $.fn.dataTable.Responsive.display.[% ShowChildRowImmediately %] }
+                    "details": { "type": 'column', "target": -1, display: $.fn.dataTable.Responsive.display.[% ShowChildRowImmediately | html %] }
                 }
             }, table_settings);
 
@@ -1982,7 +1983,7 @@
                 "bKohaColumnsUseNames": true,
                 "autoWidth": false,
                 "responsive": {
-                    "details": { "type": 'column', "target": -1, display: $.fn.dataTable.Responsive.display.[% ShowChildRowImmediately %] }
+                    "details": { "type": 'column', "target": -1, display: $.fn.dataTable.Responsive.display.[% ShowChildRowImmediately | html %] }
                 }
             }, table_settings);
 
@@ -2036,7 +2037,7 @@
                         type: 'GET',
                         success: function(checkouts) {
                             window.BookingsTimeline({
-                                loggedInUser: "[% logged_in_user.borrowernumber %]",
+                                loggedInUser: "[% logged_in_user.borrowernumber | html %]",
                                 bookings: [% To.json(biblio.bookings.filter_by_active.unblessed) | $raw %] || [],
                                 bookableItems: [% To.json(biblio.items.filter_by_bookable.unblessed) | $raw %] || [],
                                 checkouts: checkouts
@@ -2045,7 +2046,7 @@
                         error: function() {
                             // If checkouts fetch fails, initialize timeline without checkouts
                             window.BookingsTimeline({
-                                loggedInUser: "[% logged_in_user.borrowernumber %]",
+                                loggedInUser: "[% logged_in_user.borrowernumber | html %]",
                                 bookings: [% To.json(biblio.bookings.filter_by_active.unblessed) | $raw %] || [],
                                 bookableItems: [% To.json(biblio.items.filter_by_bookable.unblessed) | $raw %] || [],
                                 checkouts: []

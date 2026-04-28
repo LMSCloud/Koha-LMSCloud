@@ -7,7 +7,7 @@
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Fines overview &rsaquo; Reports &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/datatables.css") %]
+[% Asset.css("css/datatables.css") | $raw %]
 </head>
 
 <body id="circ_managecashregister" class="rep">

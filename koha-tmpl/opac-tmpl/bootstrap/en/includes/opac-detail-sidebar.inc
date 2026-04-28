@@ -87,11 +87,11 @@
                                 <div class="dropdown-menu dropdown-menu-end" aria-labelledby="format">
                 [% END # / AntolinLinks == 1 %]
                     [% IF ( OPACURLOpenInNewWindow ) %]
-                        <a class="dropdown-item" href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]" target="_blank">
+                        <a class="dropdown-item" href="[% MARCurl.MARCURL | url %]" title="[% MARCurl.MARCURL | html %]" target="_blank">
                     [% ELSE %]
-                        <a class="dropdown-item" href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]">
+                        <a class="dropdown-item" href="[% MARCurl.MARCURL | url %]" title="[% MARCurl.MARCURL | html %]">
                     [% END %]
-                    [% MARCurl.linktext %]</a>
+                    [% MARCurl.linktext | html %]</a>
             [% END # / IF MARCurl.linktext.match('^Antolin') %]
         [% END # / FOREACH MARCURLS %]
         [% IF AntolinLinks >= 1 %]
@@ -116,11 +116,11 @@
                                 <div class="dropdown-menu dropdown-menu-end" aria-labelledby="format">
                 [% END # / WikipediaLinks == 1 %]
                 [% IF ( OPACURLOpenInNewWindow ) %]
-                    <a class="dropdown-item" href="[% MARCurl.MARCURL | replace('Ä', '%C3%84') | replace('Ö', '%C3%96') | replace('Ü', '%C3%9C') | replace('ä', '%C3%A4') | replace('ö', '%C3%B6') | replace('ü', '%C3%BC') | replace('ß', '%C3%9F') | replace('ẞ', '%E1%BA%9E') %]" title="[% MARCurl.MARCURL %]" target="_blank">
+                    <a class="dropdown-item" href="[% MARCurl.MARCURL | replace('Ä', '%C3%84') | replace('Ö', '%C3%96') | replace('Ü', '%C3%9C') | replace('ä', '%C3%A4') | replace('ö', '%C3%B6') | replace('ü', '%C3%BC') | replace('ß', '%C3%9F') | replace('ẞ', '%E1%BA%9E') | url %]" title="[% MARCurl.MARCURL | html %]" target="_blank">
                 [% ELSE %]
-                    <a class="dropdown-item" href="[% MARCurl.MARCURL | replace('Ä', '%C3%84') | replace('Ö', '%C3%96') | replace('Ü', '%C3%9C') | replace('ä', '%C3%A4') | replace('ö', '%C3%B6') | replace('ü', '%C3%BC') | replace('ß', '%C3%9F') | replace('ẞ', '%E1%BA%9E') %]" title="[% MARCurl.MARCURL %]">
+                    <a class="dropdown-item" href="[% MARCurl.MARCURL | replace('Ä', '%C3%84') | replace('Ö', '%C3%96') | replace('Ü', '%C3%9C') | replace('ä', '%C3%A4') | replace('ö', '%C3%B6') | replace('ü', '%C3%BC') | replace('ß', '%C3%9F') | replace('ẞ', '%E1%BA%9E') | url %]" title="[% MARCurl.MARCURL | html %]">
                 [% END %]
-                [% MARCurl.linktext %]</a>
+                [% MARCurl.linktext | html %]</a>
                 
             [% END # / IF MARCurl.MARCURL.match('wikipedia') %]
         [% END # / FOREACH MARCURLS %]
@@ -138,7 +138,7 @@
                 <div class="dropdown"> 
                    <a id="open_bookshop_menu" class="btn btn-link btn-lg dropdown-toggle" class="dropdown-toggle" data-bs-toggle="dropdown" href="#"><i class="fa fa-fw fa-eur" aria-hidden="true"></i> Buy here<b class="caret"></b></a>
                     <div class="dropdown-menu dropdown-menu-end" aria-labelledby="format">
-                        [% OpacDetailBookShopLinkContent %]
+                        [% OpacDetailBookShopLinkContent | $raw %]
                     </div>
                 </div>
             </div>

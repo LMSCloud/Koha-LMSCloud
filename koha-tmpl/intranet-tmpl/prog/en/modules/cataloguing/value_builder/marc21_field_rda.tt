@@ -5,7 +5,7 @@
 </head>
 
 <body id="rda_field_selector_body" class="cat" style="padding:1em;">
-<h3>Selection of values of RDA field [% rdafield %]</h3>
+<h3>Selection of values of RDA field [% rdafield | html %]</h3>
 <form name="f_pop" action="">
 <table>
 	<tr>
@@ -16,7 +16,7 @@
 			[% IF ( authval.authname == currval ) %]
 				<option value="[% authval.authvalue | html %];;;[% authval.rdaname | html %];;;[% authval.authname | html %]" selected="selected">[% authval.authvalue | html %] - [% authval.authname | html %]</option>
 			[% ELSE %]
-				<option value="[% authval.authvalue | html %];;;[% authval.rdaname | html %];;;[% authval.authname | html %]">[% authval.authvalue | html %] - [% authval.authname %]</option>
+				<option value="[% authval.authvalue | html %];;;[% authval.rdaname | html %];;;[% authval.authname | html %]">[% authval.authvalue | html %] - [% authval.authname | html %]</option>
 			[% END %]
 			[% END %]
 			</select>

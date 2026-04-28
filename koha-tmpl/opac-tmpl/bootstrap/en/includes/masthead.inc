@@ -337,7 +337,7 @@
                     [% END %]
                 [% END %]
                 [% IF ( Koha.Preference( opacmoresearchescontentname ) ) %]
-                    [% Koha.Preference( opacmoresearchescontentname ) | eval %]
+                    [% Koha.Preference( opacmoresearchescontentname ) | $raw %]
                 [% ELSE %]
                 <ul class="nav" id="moresearches">
                     <li class="nav-item">

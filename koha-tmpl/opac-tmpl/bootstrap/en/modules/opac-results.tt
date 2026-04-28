@@ -416,7 +416,7 @@
 
                                                         [% IF ( SEARCH_RESULT.titlecoverurls && (Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled')) ) %]
                                                             [% FOREACH myurl IN SEARCH_RESULT.titlecoverurls %] 
-                                                                <img src="[% myurl %]" class="ekzcover" title="[% SEARCH_RESULT.biblionumber |url %]"></img>[% LAST %]
+                                                                <img src="[% myurl | url %]" class="ekzcover" title="[% SEARCH_RESULT.biblionumber |url %]"></img>[% LAST %]
                                                             [% END # /FOREACH  %]
                                                         [% END # / IF url %]
 
@@ -643,9 +643,9 @@
         <script src="https://ltfl.librarything.com/forlibraries/widget.js?id=[% LibraryThingForLibrariesID | html %]&amp;systype=koha"></script>
     [% END %]
     [% IF ( OverDriveEnabled ) %][% Asset.js("js/overdrive.js") | $raw %][% END %]
-    [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %][% Asset.js("js/munzinger.js") %][% END %]
-    [% IF ( Koha.Preference( 'BrockhausSearchActive' ) ) %][% Asset.js("js/brockhaus.js") %][% END %]
-    [% IF ( Koha.Preference( 'FilmfriendSearchActive' ) ) %][% Asset.js("js/filmfriend.js") %][% END %]
+    [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %][% Asset.js("js/munzinger.js") | $raw %][% END %]
+    [% IF ( Koha.Preference( 'BrockhausSearchActive' ) ) %][% Asset.js("js/brockhaus.js") | $raw %][% END %]
+    [% IF ( Koha.Preference( 'FilmfriendSearchActive' ) ) %][% Asset.js("js/filmfriend.js") | $raw %][% END %]
     [% IF ( Koha.Preference('DivibibEnabled') ) %][% INCLUDE 'divibib-js.inc' %][% END %]
     [% Asset.js("js/authtoresults.js") | $raw %]
     [% IF ( OpacHighlightedWords ) %]
@@ -666,12 +666,12 @@
         [% IF ( Koha.Preference( 'DivibibEnabled' ) == 1 )  %]
             [% IF ( Koha.Preference( 'DivibibAvailabilityCheckSingle' ) == 1 )  %]
             [% FOREACH item IN divibibIDs %]
-            checkDivibibAvalability("[% item %]");
+            checkDivibibAvalability("[% item | html %]");
             [% END %]
             [% ELSE %]
             var divibibIDs = [];
             [% FOREACH item IN divibibIDs %]
-            divibibIDs[[% loop.index %]] = "[% item %]";
+            divibibIDs[[% loop.index | html %]] = "[% item | html %]";
             [% END %]
             checkDivibibAvalability(divibibIDs);
             [% END %]
@@ -964,13 +964,13 @@
             var query_desc = "[% query_desc |replace("'", "\'") |replace('\n', '\\n') |replace('\r', '\\r') | html %]";
             
             [% IF ( Koha.Preference( 'BrockhausSearchActive' ) ) %]
-                getBrockhausFacet(query_desc,[% Koha.Preference('BrockhausNumSearchResults') %], _("Prev &laquo;"), _("Next &raquo;"));
+                getBrockhausFacet(query_desc,[% Koha.Preference('BrockhausNumSearchResults') | html %], _("Prev &laquo;"), _("Next &raquo;"));
             [% END %]
             [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %]
-                getMunzingerFacet(query_desc,[% Koha.Preference('MunzingerNumSearchResults') or 20 %], _("Prev &laquo;"), _("Next &raquo;"), _("Appearence: "), _("Show/Hide appearences"), _("Top-Hit") );
+                getMunzingerFacet(query_desc,[% Koha.Preference('MunzingerNumSearchResults') or 20 | html %], _("Prev &laquo;"), _("Next &raquo;"), _("Appearence: "), _("Show/Hide appearences"), _("Top-Hit") );
             [% END %]
             [% IF ( Koha.Preference( 'FilmfriendSearchActive' ) ) %]
-                getFilmfriendFacet(query_desc,[% Koha.Preference('FilmfriendNumSearchResults') %], _("Prev &laquo;"), _("Next &raquo;"), _("Read more »"), _("« Read less"), _("by/with "), _("Language: "), _("Subtitle language: ") );
+                getFilmfriendFacet(query_desc,[% Koha.Preference('FilmfriendNumSearchResults') | html %], _("Prev &laquo;"), _("Next &raquo;"), _("Read more »"), _("« Read less"), _("by/with "), _("Language: "), _("Subtitle language: ") );
             [% END %]
 
             $(".moretoggle").click(function(e){

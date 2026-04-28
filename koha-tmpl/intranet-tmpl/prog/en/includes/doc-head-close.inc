@@ -54,8 +54,6 @@ var Koha = {};
 
 [% KohaPlugins.get_plugins_intranet_head | $raw %]
 
-[% KohaPlugins.get_plugins_intranet_head %]
-
 [% UNLESS ( footerjs ) %]
     [% INCLUDE js_includes.inc %]
 [% END %]

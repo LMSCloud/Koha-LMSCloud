@@ -165,8 +165,8 @@
     <input type="hidden" name="accountlines_id" id="accountlines_id" value="[% accountlines_id | html %]" />
     <input type="hidden" name="change_given" id="change_given" />
     <input type="hidden" name="collected" id="collected" value="[% total | html %]" />
-    <input type="hidden" name="total" id="total" value="[% amountoutstanding %]" />
-    <input type="hidden" name="paid" id="paid" value="[% amountoutstanding %]" />
+    <input type="hidden" name="total" id="total" value="[% amountoutstanding | html %]" />
+    <input type="hidden" name="paid" id="paid" value="[% amountoutstanding | html %]" />
     [% IF (openedCashRegister && openedCashRegister.name == Koha.Preference('SepaDirectDebitCashRegisterName')) %]
 		<input type="hidden" name="payment_type" id="payment_type" value="SEPA" />
 	[% ELSIF (openedCashRegister && openedCashRegister.name == Koha.Preference('PaymentsOnlineCashRegisterName')) %]
@@ -206,7 +206,7 @@
     <li>
         <label for="collected">Collect from patron: </label>
         <!-- default to paying all (default amount handed out == amountoutstanding) -->
-        <input name="given" id="given" value="[% amountoutstanding | $Price %]"  step="0.01" lang="[% lang %]" type="text" onchange="moneyFormat(document.payindivfine.given,'pay')" required />
+        <input name="given" id="given" value="[% amountoutstanding | $Price %]"  step="0.01" lang="[% lang | html %]" type="text" onchange="moneyFormat(document.payindivfine.given,'pay')" required />
     </li>
     <li>
         <label for="returnAmount">Return to patron: </label>
@@ -221,7 +221,7 @@
 			 [% ELSIF (openedCashRegister.name == Koha.Preference('PaymentsOnlineCashRegisterName')) %]<i class="fa fa-credit-card" aria-hidden="true"></i> 
 			 [% ELSIF (openedCashRegister.name == Koha.Preference('SIPCashRegisterName')) %]<i class="fa fa-money" aria-hidden="true"></i> 
 			 [% ELSE %]<i class="fa fa-eur" aria-hidden="true"></i> [% END %]
-             [% openedCashRegister.name %]</div>
+             [% openedCashRegister.name | html %]</div>
     </li>
     [% END %]
     
@@ -294,7 +294,7 @@
     <input type="hidden" name="accountlines_id" id="accountlines_id" value="[% accountlines_id | html %]" />
     <input type="hidden" name="payment_note" id="payment_note" value="[% payment_note | html %]" />
     <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding | html %]" />
-    <input type="hidden" name="amountwrittenoff" id="amountwrittenoff" value="[% amountoutstanding %]" />
+    <input type="hidden" name="amountwrittenoff" id="amountwrittenoff" value="[% amountoutstanding | html %]" />
     <input type="hidden" name="confirm_writeoff" id="confirm_writeoff" value="1" />
     <input type="hidden" name="change_given" id="change_given" />
     <input type="hidden" name="paid" id="paid" value="[% amountoutstanding  | html %]" />
@@ -331,7 +331,7 @@
 
         <div class="action">
             <input type="submit" class="btn btn-primary" value="Write off this charge" />
-            <a class="cancel" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber %]">Cancel</a>
+            <a class="cancel" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]">Cancel</a>
         </div>
     </form>
 [% ELSIF ( cancel_individual ) %]
@@ -348,18 +348,18 @@
     <input type="hidden" name="op" value="cud-confirm_cancelfee" />
     <fieldset class="rows">
     <legend>Cancel an individual fine</legend>
-    <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber %]" />
-    <input type="hidden" name="cancel_individual" id="cancel_individual" value="[% cancel_individual %]" />
-    <input type="hidden" name="itemnumber" id="itemnumber" value="[% itemnumber %]" />
-    <input type="hidden" name="description" id="description" value="[% individual_description %]" />
+    <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber | html %]" />
+    <input type="hidden" name="cancel_individual" id="cancel_individual" value="[% cancel_individual | html %]" />
+    <input type="hidden" name="itemnumber" id="itemnumber" value="[% itemnumber | html %]" />
+    <input type="hidden" name="description" id="description" value="[% individual_description | html %]" />
     <input type="hidden" name="debit_type_code" id="debit_type_code" value="[% debit_type_code | html %]" />
-    <input type="hidden" name="amount" id="amount" value="[% amount %]" />
-    <input type="hidden" name="amountwrittenoff" id="amountwrittenoff" value="[% amountoutstanding %]" />
-    <input type="hidden" name="accountlines_id" id="accountlines_id" value="[% accountlines_id %]" />
+    <input type="hidden" name="amount" id="amount" value="[% amount | html %]" />
+    <input type="hidden" name="amountwrittenoff" id="amountwrittenoff" value="[% amountoutstanding | html %]" />
+    <input type="hidden" name="accountlines_id" id="accountlines_id" value="[% accountlines_id | html %]" />
     <input type="hidden" name="title" id="title" value="[% title_desc | html %]" />
-    <input type="hidden" name="payment_note" id="payment_note" value="[% payment_note %]" />
-    <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding %]" />
-    <input type="hidden" name="paid" id="paid" value="[% amountoutstanding %]" />
+    <input type="hidden" name="payment_note" id="payment_note" value="[% payment_note | html %]" />
+    <input type="hidden" name="amountoutstanding" id="amountoutstanding" value="[% amountoutstanding | html %]" />
+    <input type="hidden" name="paid" id="paid" value="[% amountoutstanding | html %]" />
     <input type="hidden" name="confirm_cancelfee" id="confirm_cancelfee" value="1" />
     
     <table>
@@ -371,7 +371,7 @@
         </tr></thead>
     <tfoot><td colspan="3">Total amount to be cancelled:</td><td class="debit">[% amountoutstanding | $Price %]</td></tfoot>
     <tbody><tr>
-            <td>[% individual_description %] [% title_desc %]</td>
+            <td>[% individual_description | html %] [% title_desc | html %]</td>
             [% line.debit_type_code = debit_type_code;  line.debit_type = debit_type %]
             <td>[% PROCESS account_type_description account=line %]</td>
             <td class="debit">[% amount | $Price %]</td>
@@ -437,9 +437,9 @@
     <input type="hidden" name="collected" id="collected" value="[% total | html %]" />
     <input type="hidden" name="type" value="[% type | html %]" />
     <input type="hidden" name="change_given" id="change_given" />
-    <input type="hidden" name="paid" id="paid" value="[% total %]" />
-    <input type="hidden" name="total" id="total" value="[% total %]" />
-    <input type="hidden" name="collected" id="collected" value="[% total %]" />
+    <input type="hidden" name="paid" id="paid" value="[% total | html %]" />
+    <input type="hidden" name="total" id="total" value="[% total | html %]" />
+    <input type="hidden" name="collected" id="collected" value="[% total | html %]" />
     [% IF (type != 'WRITEOFF' && type != 'CANCELLATION') %]
 		[% IF (openedCashRegister && openedCashRegister.name == Koha.Preference('SepaDirectDebitCashRegisterName')) %]
 			<input type="hidden" name="payment_type" id="payment_type" value="SEPA" />
@@ -516,7 +516,7 @@
 			 [% ELSIF (openedCashRegister.name == Koha.Preference('PaymentsOnlineCashRegisterName')) %]<i class="fa fa-credit-card" aria-hidden="true"></i> 
 			 [% ELSIF (openedCashRegister.name == Koha.Preference('SIPCashRegisterName')) %]<i class="fa fa-money" aria-hidden="true"></i> 
 			 [% ELSE %]<i class="fa fa-eur" aria-hidden="true"></i> [% END %]
-             [% openedCashRegister.name %]</div>
+             [% openedCashRegister.name | html %]</div>
     </li>
     [% END %]
     </ol>

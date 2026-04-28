@@ -399,7 +399,7 @@
 
                                                                 [% IF ( Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled') ) %]
                                                                     [% FOREACH myurl IN itemsloo.titlecoverurls %] 
-                                                                        <img src="[% myurl %]" class="ekzcover" title="[% itemsloo.biblionumber | html %]" alt="[% img_title | html %]"></img>[% LAST %]
+                                                                        <img src="[% myurl | url %]" class="ekzcover" title="[% itemsloo.biblionumber | html %]" alt="[% img_title | html %]"></img>[% LAST %]
                                                                     [% END # /FOREACH  %]
                                                                 [% END  %]
 
@@ -909,12 +909,12 @@ $(function() {
     [% IF ( Koha.Preference( 'DivibibEnabled' ) == 1 )  %]
         [% IF ( Koha.Preference( 'DivibibAvailabilityCheckSingle' ) == 1 )  %]
         [% FOREACH item IN divibibIDs %]
-        checkDivibibAvalability("[% item %]");
+        checkDivibibAvalability("[% item | html %]");
         [% END %]
         [% ELSE %]
         var divibibIDs = [];
         [% FOREACH item IN divibibIDs %]
-        divibibIDs[[% loop.index %]] = "[% item %]";
+        divibibIDs[[% loop.index | html %]] = "[% item | html %]";
         [% END %]
         checkDivibibAvalability(divibibIDs);
         [% END %]

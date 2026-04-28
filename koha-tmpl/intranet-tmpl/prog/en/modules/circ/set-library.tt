@@ -65,7 +65,7 @@
                                     <select name="branchcategory" id="branchcategory">
                                         <option value="*">All library groups</option>
                                         [% FOREACH group IN librarygroups %]
-                                            <option value="[% group.id %]">[% group.title %]</option>
+                                            <option value="[% group.id | html %]">[% group.title | html %]</option>
                                         [% END %]
                                     </select></li>
                                     [% END %]

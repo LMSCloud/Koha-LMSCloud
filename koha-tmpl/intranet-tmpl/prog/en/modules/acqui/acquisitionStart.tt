@@ -9,7 +9,7 @@
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Acquisitions &rsaquo; Koha</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% Asset.css("css/datatables.css") %]
+[% Asset.css("css/datatables.css") | $raw %]
 
 <body id="acq_acquistion-start" class="acq">
 [% WRAPPER 'header.inc' %]

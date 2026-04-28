@@ -147,7 +147,7 @@
                         
                         [% IF ( issue.titlecoverurls && (Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled')) ) %]
                             [% FOREACH myurl IN issue.titlecoverurls %] 
-                                <img src="[% myurl %]" class="ekzcover" title="[% issue.biblionumber |url %]"></img>[% LAST %]
+                                <img src="[% myurl | url %]" class="ekzcover" title="[% issue.biblionumber |url %]"></img>[% LAST %]
                             [% END # /FOREACH  %]
                         [% END # / IF url %]
 

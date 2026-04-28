@@ -53,7 +53,7 @@
                 <li>Patron's record has guaranteed accounts attached.</li>
             [% END %]
             [% IF ( cash_register_branchcode ) %]
-                <li>Patron has opened a cash register of library [% cash_register_branchcode %].</li>
+                <li>Patron has opened a cash register of library [% cash_register_branchcode | html %].</li>
             [% END %]
             </ul>
     </div>
