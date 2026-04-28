@@ -61,10 +61,12 @@ subtest 'Cash register management' => sub {
     );
 
     my @exported = @C4::CashRegisterManagement::EXPORT;
-    ok( ( grep { $_ eq 'passCashRegisterCheck' } @exported ),
+    ok(
+        ( grep { $_ eq 'passCashRegisterCheck' } @exported ),
         'passCashRegisterCheck is exported by default'
     );
-    ok( ( grep { $_ eq 'getOpenedCashRegister' } @exported ),
+    ok(
+        ( grep { $_ eq 'getOpenedCashRegister' } @exported ),
         'getOpenedCashRegister is exported by default'
     );
 
@@ -74,7 +76,7 @@ subtest 'Cash register management' => sub {
 
         use_ok('Koha::Account');
 
-        my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $patron  = $builder->build_object( { class => 'Koha::Patrons' } );
         my $account = Koha::Account->new( { patron_id => $patron->borrowernumber } );
 
         t::lib::Mocks::mock_preference( 'UseCashRegisters',                     0 );
@@ -92,8 +94,8 @@ subtest 'Cash register management' => sub {
         my $payment = $account->pay(
             {
                 amount                        => 5.00,
-                withoutCashRegisterManagement  => 1,
-                interface                      => 'commandline',
+                withoutCashRegisterManagement => 1,
+                interface                     => 'commandline',
             }
         );
 
@@ -101,10 +103,10 @@ subtest 'Cash register management' => sub {
 
         my $payment2 = $account->pay(
             {
-                amount                               => 0.01,
-                withoutCashRegisterManagement         => 1,
-                onlinePaymentCashRegisterManagerId    => 0,
-                interface                             => 'commandline',
+                amount                             => 0.01,
+                withoutCashRegisterManagement      => 1,
+                onlinePaymentCashRegisterManagerId => 0,
+                interface                          => 'commandline',
             }
         );
 
@@ -175,9 +177,9 @@ subtest 'Claiming fees' => sub {
             {
                 class => 'Koha::ClaimingRules',
                 value => {
-                    branchcode      => '*',
-                    categorycode    => '*',
-                    itemtype        => '*',
+                    branchcode       => '*',
+                    categorycode     => '*',
+                    itemtype         => '*',
                     claim_fee_level1 => 1.00,
                     claim_fee_level2 => 2.00,
                     claim_fee_level3 => 3.00,

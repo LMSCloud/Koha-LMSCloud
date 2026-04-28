@@ -298,7 +298,7 @@ subtest 'ItemType parent_type relationship' => sub {
     ok( $itemtype_source->has_column('parent_type'), 'itemtypes table has parent_type column' );
 
     my $parent_type_info = $itemtype_source->column_info('parent_type');
-    is( $parent_type_info->{is_nullable},   1, 'parent_type is nullable' );
+    is( $parent_type_info->{is_nullable},    1, 'parent_type is nullable' );
     is( $parent_type_info->{is_foreign_key}, 1, 'parent_type is a foreign key' );
 
     my $parent = $builder->build_object(

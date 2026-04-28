@@ -39,8 +39,9 @@ subtest 'EnableHoldsNotForLoanStatus syspref-driven notforloan check' => sub {
     $schema->storage->txn_begin;
 
     my $library = $builder->build_object( { class => 'Koha::Libraries', value => { pickup_location => 1 } } );
-    my $patron  = $builder->build_object( { class => 'Koha::Patrons', value => { branchcode => $library->branchcode } } );
-    my $biblio  = $builder->build_sample_biblio;
+    my $patron =
+        $builder->build_object( { class => 'Koha::Patrons', value => { branchcode => $library->branchcode } } );
+    my $biblio = $builder->build_sample_biblio;
 
     Koha::CirculationRules->set_rules(
         {
@@ -132,7 +133,10 @@ subtest 'EnableHoldsNotForLoanStatus syspref-driven notforloan check' => sub {
     t::lib::Mocks::mock_preference( 'EnableHoldsNotForLoanStatus', '-1|-2' );
 
     my $result = ItemsAnyAvailableAndNotRestricted( { biblionumber => $biblio->biblionumber, patron => $patron } );
-    is( $result, 0, 'ItemsAnyAvailableAndNotRestricted returns 0 when all items have negative notforloan and EnableHoldsNotForLoanStatus matches them (items treated as unavailable via notforloan)' );
+    is(
+        $result, 0,
+        'ItemsAnyAvailableAndNotRestricted returns 0 when all items have negative notforloan and EnableHoldsNotForLoanStatus matches them (items treated as unavailable via notforloan)'
+    );
 
     $schema->storage->txn_rollback;
 };
@@ -227,8 +231,9 @@ subtest 'ILL hold fee check in AddReserve' => sub {
     t::lib::Mocks::mock_preference( 'IllModule', 1 );
 
     my $library = $builder->build_object( { class => 'Koha::Libraries', value => { pickup_location => 1 } } );
-    my $patron  = $builder->build_object( { class => 'Koha::Patrons', value => { branchcode => $library->branchcode } } );
-    my $biblio  = $builder->build_sample_biblio;
+    my $patron =
+        $builder->build_object( { class => 'Koha::Patrons', value => { branchcode => $library->branchcode } } );
+    my $biblio       = $builder->build_sample_biblio;
     my $ill_itemtype = 'ILL_T';
 
     my $itemtype_obj = Koha::ItemTypes->find($ill_itemtype);

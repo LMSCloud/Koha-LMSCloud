@@ -174,7 +174,7 @@ subtest 'EKZ integration' => sub {
 
     use_ok('C4::External::EKZ::EkzAuthentication');
 
-    SKIP: {
+SKIP: {
         my $can_load_soap = eval { require SOAP::Lite; 1 };
         skip 'SOAP::Lite not installed, skipping BudgetCheckElement', 1 unless $can_load_soap;
 
