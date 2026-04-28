@@ -31,7 +31,7 @@ export function enhanceStatusFilter(
         )
         .each(function (/** @type {any} */ _index, el) {
             const $el = $(el);
-            const thId = $el.data("th-id");
+            const thId = dataTable.column(el).index();
             // Check if this th's corresponding column is the status column
             if (typeof thId === "number" && aoColumns[thId]) {
                 const colName = aoColumns[thId].sName || aoColumns[thId].data;

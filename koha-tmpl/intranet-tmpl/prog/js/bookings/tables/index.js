@@ -588,7 +588,7 @@ function enhanceItemTypeFilterSearch(
         const $th = $(this);
         if ($th.data("filter") !== "getItemTypeOptions") return;
 
-        const colIndex = $th.data("th-id");
+        const colIndex = dataTable.column(this).index();
         if (typeof colIndex === "undefined") return;
 
         // Rebuild select with optgroup hierarchy (Koha convention from smart-rules.tt)
