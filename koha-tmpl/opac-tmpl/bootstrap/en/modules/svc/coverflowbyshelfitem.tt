@@ -1,10 +1,10 @@
 {
   "countItems": [% count | html %],
-  "starting_homebranch": { "code": "[% starting_homebranch.code %]", "description": "[% starting_homebranch.description %]" },
-  "starting_location": { "code": "[% starting_location.code %]", "description": "[% starting_location.description %]" },
-  "starting_ccode": { "code": "[% starting_ccode.code %]", "description": "[% starting_ccode.description %]" },[% IF ( shelfbrowser_prev_item && shelfbrowser_prev_item.biblionumber ) %]
-  "shelfbrowser_prev_item": { "biblionumber": [% shelfbrowser_prev_item.biblionumber %], "itemnumber": [% shelfbrowser_prev_item.itemnumber %] },[% END %][% IF ( shelfbrowser_prev_item && shelfbrowser_next_item.biblionumber ) %]
-  "shelfbrowser_next_item": { "biblionumber": [% shelfbrowser_next_item.biblionumber %], "itemnumber": [% shelfbrowser_next_item.itemnumber %] },[% END %]
+  "starting_homebranch": { "code": "[% starting_homebranch.code | html %]", "description": "[% starting_homebranch.description | html %]" },
+  "starting_location": { "code": "[% starting_location.code | html %]", "description": "[% starting_location.description | html %]" },
+  "starting_ccode": { "code": "[% starting_ccode.code | html %]", "description": "[% starting_ccode.description | html %]" },[% IF ( shelfbrowser_prev_item && shelfbrowser_prev_item.biblionumber ) %]
+  "shelfbrowser_prev_item": { "biblionumber": [% shelfbrowser_prev_item.biblionumber | html %], "itemnumber": [% shelfbrowser_prev_item.itemnumber | html %] },[% END %][% IF ( shelfbrowser_prev_item && shelfbrowser_next_item.biblionumber ) %]
+  "shelfbrowser_next_item": { "biblionumber": [% shelfbrowser_next_item.biblionumber | html %], "itemnumber": [% shelfbrowser_next_item.itemnumber | html %] },[% END %]
   "items": [
   [%- FOREACH item IN items %]
     [%- INCLUDE 'coverflow-item.json.inc' item = item -%]

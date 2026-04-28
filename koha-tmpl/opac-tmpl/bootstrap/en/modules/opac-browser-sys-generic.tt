@@ -2,7 +2,7 @@
 [% USE Asset %]
 [% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Browse our catalog &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha [% END %] - Catalog</title>
+<title>Browse our catalog &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha [% END %] - Catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
@@ -28,9 +28,9 @@
     [% FOREACH ENTRY IN HIERARCHY_LOOP %]
         <div class="taxonomy-hierachy-entry">
             [% IF ( ENTRY.level != MYENTRY.level ) %]
-            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-sys-generic.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.description |uri %]&amp;parent=[% ENTRY.parent |uri %]">&#10149; [% ENTRY.description | html %]</a></h3>
+            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-sys-generic.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.description |uri %]&amp;parent=[% ENTRY.parent |uri %]">&#10149; [% ENTRY.description | html %]</a></h3>
             [% ELSE %]
-            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-sys-generic.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.description |uri %]&amp;parent=[% ENTRY.parent |uri %]">&#10149; [% ENTRY.description | html %]</a></h3>
+            <h3 class="taxononmy-hierarchy-header"><a href="opac-browser-sys-generic.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.description |uri %]&amp;parent=[% ENTRY.parent |uri %]">&#10149; [% ENTRY.description | html %]</a></h3>
             [% END %]
     [% END %]
  
@@ -48,10 +48,10 @@
                 <div class="row entry-page-row">
                     [% IF ( MYENTRY.search ) %]
                         <div class="col-lg-12 entry-page-col"><a href='opac-search.pl?q=[% MYENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;All titles</a>
-                        <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% MYENTRY.search |uri %]'>([% MYENTRY.number %] titles)</a></i></span></div>
+                        <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% MYENTRY.search |uri %]'>([% MYENTRY.number | html %] titles)</a></i></span></div>
                     [% ELSE %]
                         <div class="col-lg-12 entry-page-col"><i class="fa fa-list-ul"></i>&nbsp;&nbsp;All titles
-                        <span style="font-size:0.75em"><i> ([% MYENTRY.number %] titles)</i></span></div>
+                        <span style="font-size:0.75em"><i> ([% MYENTRY.number | html %] titles)</i></span></div>
                     [% END %]
                 </div>
                 <div class="row entry-page-row">
@@ -78,12 +78,12 @@
                                     <i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]
                                 [% END %]
                             [% ELSE %]
-                                <a href="opac-browser-sys-generic.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.description |uri %]&amp;parent=[% ENTRY.parent |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+                                <a href="opac-browser-sys-generic.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.description |uri %]&amp;parent=[% ENTRY.parent |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
                             [% END %]
                             [% IF ( ENTRY.search ) %]
-                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number %] titles)</a></i></span>
+                                <span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number | html %] titles)</a></i></span>
                             [% ELSE %]
-                                <span style="font-size:0.75em"><i> ([% ENTRY.number %] titles)</i></span>
+                                <span style="font-size:0.75em"><i> ([% ENTRY.number | html %] titles)</i></span>
                             [% END %]
                         </div>
                     </div>
@@ -105,9 +105,9 @@
 									[% IF ( ENTRY.endnode ) %]
 										<a href='opac-search.pl?q=[% ENTRY.search |uri %]'><i class="fa fa-list-ul"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
 									[% ELSE %]
-										<a href="opac-browser-sys-generic.pl?level=[% ENTRY.level %]&amp;filter=[% ENTRY.description |uri %]&amp;parent=[% ENTRY.parent |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
+										<a href="opac-browser-sys-generic.pl?level=[% ENTRY.level | uri %]&amp;filter=[% ENTRY.description |uri %]&amp;parent=[% ENTRY.parent |uri %]"><i class="fa fa-folder-o"></i>&nbsp;&nbsp;[% ENTRY.description |html %]</a>
 									[% END %]
-									<span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number %] titles)</a></i></span>
+									<span style="font-size:0.75em"><i> <a href='opac-search.pl?q=[% ENTRY.search |uri %]'>([% ENTRY.number | html %] titles)</a></i></span>
 								</div>
 							</div>
 						[% END %]

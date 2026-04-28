@@ -1,21 +1,21 @@
     {
-        "biblionumber": [% item.biblionumber %],
-        "titleblock": "[% FILTER escape_quotes = replace('"', '\"') ~%][% FILTER remove_special_character = replace('([\t\r\n\f\b]|\s{3,})','') ~%][% item.titleblock %][%~ END %][%~ END %]",
-        "title": "[% item.title | escape_quotes | remove_special_character %]",
-        "subtitle": "[% item.subtitle | escape_quotes | remove_special_character %]",
-        "medium": "[% item.medium | escape_quotes | remove_special_character %]",
-        "part_number": "[% item.part_number | escape_quotes | remove_special_character %]",
-        "part_name": "[% item.part_name | escape_quotes | remove_special_character %]",
-        "year": "[% item.year | escape_quotes | remove_special_character %]",
-        "edition": "[% item.edition | escape_quotes | remove_special_character %]",
-        "publisher": "[% item.publisher | escape_quotes | remove_special_character %]",
-        "place": "[% item.place | escape_quotes | remove_special_character %]",
-        "author": "[% item.author | escape_quotes | remove_special_character %]",[% IF item.itemnumber %]
-        "itemnumber": [% item.itemnumber %],[% END %][% IF item.cn_sort %]
-        "cn_sort": "[% item.cn_sort %]",[% END %][% IF item.itemcallnumber %]
-        "itemcallnumber": "[% item.itemcallnumber | escape_quotes | remove_special_character %]",[% END %]
+        "biblionumber": [% item.biblionumber | html %],
+        "titleblock": "[% FILTER escape_quotes = replace('"', '\"') ~%][% FILTER remove_special_character = replace('([\t\r\n\f\b]|\s{3,})','') ~%][% item.titleblock | html %][%~ END %][%~ END %]",
+        "title": "[% item.title | escape_quotes | remove_special_character | html %]",
+        "subtitle": "[% item.subtitle | escape_quotes | remove_special_character | html %]",
+        "medium": "[% item.medium | escape_quotes | remove_special_character | html %]",
+        "part_number": "[% item.part_number | escape_quotes | remove_special_character | html %]",
+        "part_name": "[% item.part_name | escape_quotes | remove_special_character | html %]",
+        "year": "[% item.year | escape_quotes | remove_special_character | html %]",
+        "edition": "[% item.edition | escape_quotes | remove_special_character | html %]",
+        "publisher": "[% item.publisher | escape_quotes | remove_special_character | html %]",
+        "place": "[% item.place | escape_quotes | remove_special_character | html %]",
+        "author": "[% item.author | escape_quotes | remove_special_character | html %]",[% IF item.itemnumber %]
+        "itemnumber": [% item.itemnumber | html %],[% END %][% IF item.cn_sort %]
+        "cn_sort": "[% item.cn_sort | html %]",[% END %][% IF item.itemcallnumber %]
+        "itemcallnumber": "[% item.itemcallnumber | escape_quotes | remove_special_character | html %]",[% END %]
         [%- IF item.coverurl %]
-        "coverurl": "[% item.coverurl | escape_quotes | remove_special_character %]",
+        "coverurl": "[% item.coverurl | escape_quotes | remove_special_character | html %]",
         [%- ELSIF ( (OPACLocalCoverImages && item.local_immage_count > 0) || OPACAmazonCoverImages || ( SyndeticsEnabled && SyndeticsCoverImages ) || GoogleJackets || BakerTaylorEnabled || ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) || ( Koha.Preference('OPACCustomCoverImages') AND Koha.Preference('CustomCoverImagesURL') ) ) %]
         "coverhtml": "[% FILTER remove_special_character %][% FILTER escape_quotes %]
             [%- IF ( item.title ) -%]
@@ -70,10 +70,10 @@
                 [% END %]
             [% END %][% END %][% END %]",
         [%- ELSE -%]
-            "coverurl": "[% item.gencover| escape_quotes | remove_special_character %]",
+            "coverurl": "[% item.gencover| escape_quotes | remove_special_character | html %]",
         [% END %]
-        "normalized_upc": "[% item.browser_normalized_upc | escape_quotes | remove_special_character %]",
-        "normalized_oclc_number": "[% item.browser_normalized_oclc | escape_quotes | remove_special_character %]",
-        "normalized_isbn": "[% item.browser_normalized_isbn | escape_quotes | remove_special_character %]",
-        "normalized_ean": "[% item.browser_normalized_ean | escape_quotes | remove_special_character %]"
+        "normalized_upc": "[% item.browser_normalized_upc | escape_quotes | remove_special_character | html %]",
+        "normalized_oclc_number": "[% item.browser_normalized_oclc | escape_quotes | remove_special_character | html %]",
+        "normalized_isbn": "[% item.browser_normalized_isbn | escape_quotes | remove_special_character | html %]",
+        "normalized_ean": "[% item.browser_normalized_ean | escape_quotes | remove_special_character | html %]"
     }

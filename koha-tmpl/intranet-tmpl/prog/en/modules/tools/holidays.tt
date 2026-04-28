@@ -266,6 +266,8 @@
                             <div class="tab-content">
                                 <div id="copytolibrary" role="tabpanel" class="tab-pane active">
                                     <form action="copy-holidays.pl" method="post">
+                                        [% INCLUDE 'csrf-token.inc' %]
+                                        <input type="hidden" name="op" value="cud-copy_to_library" />
                                         <p>
                                             <div id="copyHolidaysToBranchSelect">
                                                 <input type="hidden" name="from_branchcode" value="[% branch | html %]" />
@@ -303,6 +305,8 @@
                                 </div>
                                 <div id="copytogroup" role="tabpanel" class="tab-pane">
                                     <form action="copy-holidays.pl" method="post">
+                                        [% INCLUDE 'csrf-token.inc' %]
+                                        <input type="hidden" name="op" value="cud-copy_to_group" />
                                         <p>
                                             <div class="copyHolidaysToGroupSelect">
                                                 <input type="hidden" name="from_branchcode" value="[% branch %]" />

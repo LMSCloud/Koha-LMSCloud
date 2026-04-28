@@ -776,7 +776,8 @@
                                                         [% END %]
                                                         [% IF s.is_shared_with( loggedinusernumber ) %]
                                                             <form action="opac-shelves.pl" method="post" id="unshare[% s.shelfnumber | html %]" class="d-inline">
-                                                                <input type="hidden" name="op" value="remove_share" />
+                                                                [% INCLUDE 'csrf-token.inc' %]
+                                                                <input type="hidden" name="op" value="cud-remove_share" />
                                                                 <input type="hidden" name="referer" value="list" />
                                                                 <input type='hidden' name='public' value='[% public | html %]' />
                                                                 <input type="hidden" name="shelfnumber" value="[% s.shelfnumber | html %]" />

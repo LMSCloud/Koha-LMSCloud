@@ -155,6 +155,8 @@
 
             [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
                 <form name="startPatronlistIdSearch" id="startPatronlistIdSearch" style="display:none;" action="/cgi-bin/koha/members/member.pl" method="post" >
+                    [% INCLUDE 'csrf-token.inc' %]
+                    <input type="hidden" name="op" value="cud-patronlist_search" />
                     <input type="hidden" id="patronlistid" name="patronlistid" value="" />
                 </form>
             [% END %]

@@ -214,6 +214,8 @@
                     <h5>Upload patron photo</h5>
                     <form method="post" id="picture-upload" action="/cgi-bin/koha/tools/picture-upload.pl"
                         enctype="multipart/form-data">
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-Upload" />
                         [% IF ( patron.image ) %]
                             <div class="hint">
                                 To update the image for [% patron.title | html %] [% patron.firstname | html %] [% patron.surname | html %], select a new image file and click 'Upload.' <br />Click the 'Delete' button to
@@ -228,12 +230,10 @@
                         <label for="uploadfile">Select the file to upload: </label>
                         <input type="file" id="uploadfile" name="uploadfile" required="required" />
                         <div class="action">
-                            <input type="hidden" id="csrf_token" name="csrf_token" value="[% csrf_token | html %]" />
                             <input type="hidden" id="image" name="filetype" value="image" />
                             <input type="hidden" id="cardnumber" name="cardnumber" value="[% patron.cardnumber | html %]" />
                             <input type="hidden" id="borrowernumber" name="borrowernumber" value="[% patron.borrowernumber | html %]" />
                             <button type="submit" class="btn btn-default btn-xs"><i class="fa fa-upload"></i> Upload photo</button>
-                            <input name="op" type="hidden" value="Upload" />
                             [% IF ( patron.image ) %]
                                 <a id="delpicture"
                                     href="/cgi-bin/koha/tools/picture-upload.pl?op=Delete&amp;borrowernumber=[% patron.borrowernumber | html %]&amp;csrf_token=[% csrf_token | html %]"
@@ -245,6 +245,8 @@
                 <div id="capture-patron-image" class="patroninfo-section">
                     <h5>Take patron photo</h5>
                     <form method="post" id="camera-upload" action="/cgi-bin/koha/tools/picture-upload.pl">
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-Upload" />
                         <div class="btn-toolbar">
                             <div class="btn-group">
                                 <button class="btn btn-default" id="takebutton"><i class="fa fa-camera"></i> Take photo</button>
@@ -268,11 +270,9 @@
                         </div>
                         <input type="hidden" name="uploadfilename" value="patron-photo.jpg" />
                         <textarea id="uploadfiletext" name="uploadfiletext" style="display:none;"></textarea>
-                        <input type="hidden" name="csrf_token" value="[% csrf_token | html %]" />
                         <input type="hidden" name="filetype" value="image" />
                         <input type="hidden" name="cardnumber" value="[% patron.cardnumber | html %]" />
                         <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber | html %]" />
-                        <input name="op" type="hidden" value="Upload" />
                     </form>
                 </div>
                 <div class="dialog message" style="display:none" id="camera-error">

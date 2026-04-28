@@ -344,7 +344,8 @@
     </ul>
     
     <form name="cancelindivfine" id="cancelindivfine" action="/cgi-bin/koha/members/pay.pl" method="post" >
-    <input type="hidden" name="csrf_token" value="[% csrf_token %]" />
+    [% INCLUDE 'csrf-token.inc' %]
+    <input type="hidden" name="op" value="cud-confirm_cancelfee" />
     <fieldset class="rows">
     <legend>Cancel an individual fine</legend>
     <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber %]" />

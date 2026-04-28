@@ -1,6 +1,6 @@
 [% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha [% END %] - Browse Catalog</title>
+<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha [% END %] - Browse Catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %][% END %]
 </head>
@@ -14,7 +14,7 @@
         [% SET opacentrypagename = "$testname" %]
     [% END %]
 [% END %]
-[% Koha.Preference( opacentrypagename ) | eval %]
+[% Koha.Preference( opacentrypagename ) | eval | html %]
 
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK searchbuttons %]
@@ -22,7 +22,7 @@
 [% END %]
 
 [% BLOCK jsinclude %]
-<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.deserialize.min.js"></script>
+<script type="text/javascript" src="[% interface | html %]/[% theme | html %]/lib/jquery/plugins/jquery.deserialize.min.js"></script>
 <script type="text/javascript">//<![CDATA[
 	function startSearch() {
 

@@ -803,8 +803,9 @@
                                 <h3><a id="toggle_addcomment" href="#">Add comment</a></h3>
                                 <div id="addcomment" class="content_hidden">
                                     <form class="validated" method="post" action="/cgi-bin/koha/ill/ill-requests.pl">
+                                        [% INCLUDE 'csrf-token.inc' %]
+                                        <input type="hidden" name="op" value="cud-save_comment">
                                         <input type="hidden" value="save_comment" name="method">
-                                        <input type="hidden" value="[% csrf_token | html %]" name="csrf_token">
                                         <input type="hidden" value="[% request.illrequest_id | html %]" name="illrequest_id">
                                         <fieldset class="rows">
                                             <ol>
