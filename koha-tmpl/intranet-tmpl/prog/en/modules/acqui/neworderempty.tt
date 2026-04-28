@@ -753,7 +753,7 @@
     </fieldset>
 </form>
 
-<div id="procModal" data-backdrop="static" class="modal" aria-labelledby="procModal" aria-hidden="true">
+<div id="procModal" data-bs-backdrop="static" class="modal" aria-labelledby="procModal" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">

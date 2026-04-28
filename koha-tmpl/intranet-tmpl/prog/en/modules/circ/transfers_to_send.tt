@@ -100,7 +100,7 @@
                         <p>No transfers to send</p>
                         [% END %]
 
-                    </div> <!-- /.col-sm-10.col-sm-push-2 OR /.col-md-10 offset-md-1 col-lg-8 offset-lg-2-->
+                    </div> <!-- /.col-md-10.order-md-2.order-sm-1 OR /.col-md-10 offset-md-1 col-lg-8 offset-lg-2-->
 
                     [% IF Koha.Preference('CircSidebar') %]
                     <div class="col-md-2 order-sm-2 order-md-1">

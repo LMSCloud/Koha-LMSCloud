@@ -916,7 +916,7 @@
                                         [% END %]
                                     [% ELSE %]
                                         <div id="addcomment">
-                                            <a class="login-link loginModal-trigger" role="button" data-toggle="modal" data-return="true" data-tab="comment" href="/cgi-bin/koha/opac-user.pl">Log in to your account</a> to post a comment.
+                                            <a class="login-link loginModal-trigger" role="button" data-bs-toggle="modal" data-return="true" data-tab="comment" href="/cgi-bin/koha/opac-user.pl">Log in to your account</a> to post a comment.
                                         </div>
                                     [% END # / IF loggedinusername %]
                             [% END # /tab_panel#newcomment %]
@@ -1075,8 +1075,8 @@
                                                             <div class="btn-group">
                                                                 <button type="button" 
                                                                     class="btn btn-sm btn-default" 
-                                                                    data-toggle="modal"
-                                                                    data-target="#cancelBookingModal"
+                                                                    data-bs-toggle="modal"
+                                                                    data-bs-target="#cancelBookingModal"
                                                                     data-booking="[% booking.booking_id | html %]">
                                                                     <i class="fa fa-times" aria-hidden="true"></i> Cancel
                                                                 </button>
@@ -1284,16 +1284,14 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="libraryInfoModalLabel"></h5>
-                <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div id="libraryInfo"></div>
             </div>
             <div class="modal-footer">
                 <a id="libraryInfoLink" href="" class="btn btn-primary">Visit web site</a>
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div> <!-- /.modal-content -->
     </div> <!-- /.modal-dialog -->
@@ -1658,7 +1656,7 @@
     [% IF ( Koha.Preference('OPACBookings') && biblio.bookings.filter_by_active.count ) %]
         [% Asset.js("lib/vis-timeline/vis-timeline-graph2d.min.js") | $raw %]
         [% Asset.js("js/combobox.js") | $raw %]
-        [% Asset.js("js/bookings-timeline.js") %]
+        [% Asset.js("js/bookings-timeline.js") | $raw %]
         [% Asset.js("js/modals/booking/cancel.js") | $raw %]
     [% END %]
     [% Asset.js("js/additional-fields.js") | $raw %]
@@ -2038,7 +2036,7 @@
 
             var dTables = $("#holdingst,#subscriptionst,#otherholdingst,#bookingst");
             let bookingsTabInitialized = false;
-            $('a[data-toggle="tab"]').on('shown.bs.tab', function (event) {
+            $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (event) {
                 dTables.DataTable().responsive.recalc();
 
                 /* When the bookings tab is clicked, we initialize the vis-timeline after

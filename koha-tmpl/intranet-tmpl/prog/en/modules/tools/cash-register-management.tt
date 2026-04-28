@@ -171,7 +171,7 @@
                                 <li>
                                     <label>&nbsp;</label>
                                     <button class="btn btn-default btn-xs btn-primary" name="op" value="cud-save" id="savedata" type="submit"><i class="fa fa-save"></i> Save</button>
-                                    <button onclick="window.location.href='/cgi-bin/koha/tools/cash-register-management.p';" class="clear_edit btn btn-default btn-xs" data-dismiss="modal" aria-hidden="true"><i class="fa fa-times"></i> Cancel</button>
+                                    <button onclick="window.location.href='/cgi-bin/koha/tools/cash-register-management.p';" class="clear_edit btn btn-default btn-xs" data-bs-dismiss="modal" aria-hidden="true"><i class="fa fa-times"></i> Cancel</button>
                                     <!-- <a class="cancel" href="/cgi-bin/koha/tools/cash-register-management.pl" class="clear_edit btn btn-default btn-xs">Cancel</a> -->
                                 </li>
                             </ol>
@@ -181,13 +181,13 @@
                 </div>
                 [% END %]
             </main>
-        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+        </div> <!-- /.col-md-10.order-md-2.order-sm-1 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'tools-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-sm-2.order-md-1 -->
     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]

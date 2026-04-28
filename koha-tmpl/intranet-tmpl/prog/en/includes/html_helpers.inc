@@ -509,26 +509,26 @@
 [% END %]
 
 [% BLOCK accordion_item %]
-    <div class="panel panel-default">
+    <div class="card">
         [% content | $raw %]
     </div>
 [% END %]
 
 [% BLOCK accordion_heading %]
-    <div class="panel-heading" role="tab" id="[% panel_id | $raw %]_heading">
-        <h2 class="panel-title">
-            <a id="[% panel_id | $raw %]Toggle" href="#[% panel_id | $raw %]_panel" class="collapsed" role="button" data-bs-toggle="collapse" data-parent="#[% panelgroup_id | $raw %]_group" aria-expanded="false" aria-controls="[% panel_id | $raw %]_panel">
+    <div class="card-header" role="tab" id="[% panel_id | $raw %]_heading">
+        <h2 class="card-title h5 mb-0">
+            <a id="[% panel_id | $raw %]Toggle" href="#[% panel_id | $raw %]_panel" class="collapsed" role="button" data-bs-toggle="collapse" data-bs-parent="#[% panelgroup_id | $raw %]_group" aria-expanded="false" aria-controls="[% panel_id | $raw %]_panel">
                 [% content | $raw %]
             </a>
         </h2>
-    </div> <!-- /.panel-heading -->
+    </div> <!-- /.card-header -->
 [% END %]
 
 [% BLOCK accordion_panel %]
     <div id="[% panel_id | $raw %]_panel" class="panel-collapse collapse" role="tabpanel" aria-labelledby="[% panel_id | $raw %]_heading">
-        <div class="panel-body">
+        <div class="card-body">
             [% content | $raw %]
-        </div> <!-- /.panel-body -->
+        </div> <!-- /.card-body -->
     </div> <!-- /.panel-collapse -->
 [% END %]
 

@@ -83,7 +83,7 @@
                     <li>
                         <div id="antolinquiz_menu">
                             <div class="dropdown">
-                                <a id="open_antolinquiz_menu" class="btn btn-link btn-lg dropdown-toggle" data-toggle="dropdown" href="#"><img src="/webcustom/images/Antolin16.png" alt="Antolin book" title="Antolin book" class="antolin_menu_icon" aria-hidden="true" /> Antolin Quiz <b class="caret"></b></a>
+                                <a id="open_antolinquiz_menu" class="btn btn-link btn-lg dropdown-toggle" data-bs-toggle="dropdown" href="#"><img src="/webcustom/images/Antolin16.png" alt="Antolin book" title="Antolin book" class="antolin_menu_icon" aria-hidden="true" /> Antolin Quiz <b class="caret"></b></a>
                                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="format">
                 [% END # / AntolinLinks == 1 %]
                     [% IF ( OPACURLOpenInNewWindow ) %]
@@ -112,7 +112,7 @@
                     <li>
                         <div id="wikipedia_menu">
                             <div class="dropdown">
-                                <a id="format" class="btn btn-link btn-lg dropdown-toggle" data-toggle="dropdown" href="#"><i class="fa fa-fw fa-wikipedia-w" aria-hidden="true"></i> Wikipedia-Article <b class="caret"></b></a>
+                                <a id="format" class="btn btn-link btn-lg dropdown-toggle" data-bs-toggle="dropdown" href="#"><i class="fa fa-fw fa-wikipedia-w" aria-hidden="true"></i> Wikipedia-Article <b class="caret"></b></a>
                                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="format">
                 [% END # / WikipediaLinks == 1 %]
                 [% IF ( OPACURLOpenInNewWindow ) %]
@@ -136,7 +136,7 @@
         <li>
             <div id="bookshop_menu">
                 <div class="dropdown"> 
-                   <a id="open_bookshop_menu" class="btn btn-link btn-lg dropdown-toggle" class="dropdown-toggle" data-toggle="dropdown" href="#"><i class="fa fa-fw fa-eur" aria-hidden="true"></i> Buy here<b class="caret"></b></a>
+                   <a id="open_bookshop_menu" class="btn btn-link btn-lg dropdown-toggle" class="dropdown-toggle" data-bs-toggle="dropdown" href="#"><i class="fa fa-fw fa-eur" aria-hidden="true"></i> Buy here<b class="caret"></b></a>
                     <div class="dropdown-menu dropdown-menu-right" aria-labelledby="format">
                         [% OpacDetailBookShopLinkContent %]
                     </div>

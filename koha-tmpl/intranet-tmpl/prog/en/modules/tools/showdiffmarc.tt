@@ -44,7 +44,7 @@
 <div class="main container-fluid">
     <main>
     <div class="row">
-        <div class="col-sm-10 col-sm-push-1">
+        <div class="col-sm-10 offset-sm-1">
             [% INCLUDE 'messages.inc' %]
             <h1>Compare matched records</h1>
 

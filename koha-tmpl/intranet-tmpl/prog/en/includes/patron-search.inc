@@ -1158,7 +1158,7 @@
 
     [% search_results_block_id = patron_search_modal_id _ '_searchresults' %]
 
-    <div id="[% patron_search_modal_id | html %]" class="modal modal-full patron_search_modal" tabindex="-1" role="dialog" aria-labelledby="patronSearchLabel" aria-hidden="true" data-backdrop="">
+    <div id="[% patron_search_modal_id | html %]" class="modal modal-full patron_search_modal" tabindex="-1" role="dialog" aria-labelledby="patronSearchLabel" aria-hidden="true" data-bs-backdrop="">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">

@@ -24,7 +24,7 @@
         '        <h3>' +
                     _("Media bundle") + 
                 '</h3>' +
-        '        <button type="button" class="bundleItemlistModal_close closebtn" data-dismiss="modal" aria-hidden="true">&times;</button>' +
+        '        <button type="button" class="bundleItemlistModal_close btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
         '      </div>' +
         '      <div class="modal-body">' +
         '        <div id="bundleitemslistnotfound" style="display:none">' +
@@ -34,7 +34,7 @@
         '        </table>' +
         '      </div>' +
         '      <div class="modal-footer">' +
-        '        <button type="button" class="btn btn-small btn-default bundleItemlistModal_close" data-dismiss="modal" rel="modal:close">' + _("Close") + '</button>' +
+        '        <button type="button" class="btn btn-small btn-default bundleItemlistModal_close" data-bs-dismiss="modal" rel="modal:close">' + _("Close") + '</button>' +
         '      </div>' +
         '    </div>' +
         '  </div>' +

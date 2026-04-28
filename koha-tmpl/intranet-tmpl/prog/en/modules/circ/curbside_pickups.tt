@@ -416,9 +416,9 @@
                                     </div>
                                 [% END %]
                                 <div class="col-10 col-sm-4 form-group">
-                                    <div class="input-group-addon">
+                                    <span class="input-group-text">
                                         <label for="find-patron" class="form-label">Search a patron</label>
-                                    </div>
+                                    </span>
                                     <div>
                                         <input autocomplete="off" id="find-patron" class="form-control" type="text" style="" class="noEnterSubmit" placeholder="Enter patron card number or name"/>
                                     </div>

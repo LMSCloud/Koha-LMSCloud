@@ -42,7 +42,7 @@
                 margin: 0; width : auto;
             }
         }
-        .panel-body fieldset.rows {
+        .card-body fieldset.rows {
             border: 0;
             background: transparent none;
             clear: none;
@@ -728,16 +728,16 @@
             [% END # /collapse_item %]
         [% END # /FOR mtt %]
 
-        <div class="panel panel-default">
-            <div class="panel-heading" role="tab" id="format_[% lang | html %]Heading">
-                <h3 class="panel-title">
-                    <a role="button" class="collapsed" data-bs-toggle="collapse" data-parent="#group_[% lang | html %]" href="#format_[% lang | html %]" aria-expanded="false" aria-controls="format_[% lang | html %]">
+        <div class="card">
+            <div class="card-header" role="tab" id="format_[% lang | html %]Heading">
+                <h3 class="card-title h5 mb-0">
+                    <a role="button" class="collapsed" data-bs-toggle="collapse" data-bs-parent="#group_[% lang | html %]" href="#format_[% lang | html %]" aria-expanded="false" aria-controls="format_[% lang | html %]">
                         <span>Format</span>
                     </a>
                 </h3>
-            </div> <!-- /.panel-heading -->
+            </div> <!-- /.card-header -->
             <div id="format_[% lang | html %]" class="panel-collapse collapse" role="tabpanel" aria-labelledby="format_[% lang | html %]Heading">
-                <div class="panel-body">
+                <div class="card-body">
                     <fieldset class="rows">
                     <div class="alert alert-info">These format settings apply when a notice is printed.</div>
                     <div class="col-md-12">
@@ -760,9 +760,9 @@
                         </ol>
                     </div>
                     </fieldset> <!-- /.rows.mtt -->
-                </div> <!-- /.panel-body -->
+                </div> <!-- /.card-body -->
             </div> <!-- /.panel-collapse -->
-        </div> <!-- /.panel.panel-default -->
+        </div> <!-- /.card -->
     [% END # /WRAPPER accordion %]
 [% END %]
 

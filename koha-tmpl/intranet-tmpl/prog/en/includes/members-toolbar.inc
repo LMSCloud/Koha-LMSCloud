@@ -169,7 +169,7 @@
         <div class="modal-content">
             <form id="noticeform">
                 <div class="modal-header">
-                    <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     <h3 id="selectAdhocNoticeLetter_label">Send Notice</h3>
                 </div>
                 <div class="modal-body">

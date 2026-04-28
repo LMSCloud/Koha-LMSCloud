@@ -39,13 +39,13 @@ function showDivibibInavailabilityMessage(title,message) {
     '  <div class="modal-dialog">' +
     '    <div class="modal-content">' +
     '      <div class="modal-header">' +
-    '        <button type="button" class="divibibInavailability_close closebtn" data-dismiss="modal" aria-hidden="true">&times;</button>' +
+    '        <button type="button" class="divibibInavailability_close btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
     '        <h3 id="divibibInavailability_title">' + title + '</h3>' +
     '      </div>' +
     '      <div class="modal-body">' +
     '      <p><div id="divibibInavailability_message">' + message + '</div><p>' +
     '      <div class="modal-footer">' +
-    '        <button type="button" class="btn btn-small divibibInavailability_close" data-dismiss="modal">' + actionCloseText + '</button>' +
+    '        <button type="button" class="btn btn-small divibibInavailability_close" data-bs-dismiss="modal">' + actionCloseText + '</button>' +
     '      </div>' +
     '    </div>' +
     '  </div>' +

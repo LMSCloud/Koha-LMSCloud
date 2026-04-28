@@ -257,10 +257,10 @@
                         <div id="copyactions" class="toptabs" style="margin-top:2em">
                             <ul class="nav nav-tabs" role="tablist">
                                 <li role="presentation" class="active">
-                                    <a href="#copytolibrary" data-tabname="copytolibrary" aria-controls="copytolibrary" role="tab" data-toggle="tab">Copy to library</a>
+                                    <a href="#copytolibrary" data-tabname="copytolibrary" aria-controls="copytolibrary" role="tab" data-bs-toggle="tab">Copy to library</a>
                                 </li>
                                 <li role="presentation">
-                                    <a href="#copytogroup" data-tabname="copytogroup" aria-controls="copytogroup" role="tab" data-toggle="tab">Copy to group of libraries</a>
+                                    <a href="#copytogroup" data-tabname="copytogroup" aria-controls="copytogroup" role="tab" data-bs-toggle="tab">Copy to group of libraries</a>
                                 </li>
                             </ul>
                             <div class="tab-content">

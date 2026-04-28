@@ -245,7 +245,7 @@ var RFIDWebService = {
             $('<li>').attr("id","rfidWebServiceMenue").attr("class","dropdown").append(
                 $('<a>').attr("class","dropdown-toggle")
                     .attr("href","/cgi-bin/koha/tools/rfid-webservice.pl")
-                    .attr("data-toggle","dropdown")
+                    .attr("data-bs-toggle","dropdown")
                     .append(
                         menuNames.topLevelMenuEntry,
                         $('<b>').attr("class","caret")
@@ -955,13 +955,13 @@ var RFIDWebService = {
         '  <div class="modal-dialog">' +
         '    <div class="modal-content">' +
         '      <div class="modal-header">' +
-        '        <button type="button" class="rfidErrorMessage_close closebtn" data-dismiss="modal" aria-hidden="true">&times;</button>' +
+        '        <button type="button" class="rfidErrorMessage_close btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
         '        <h3 id="rfidErrorMessage_title">' + messages.title + '</h3>' +
         '      </div>' +
         '      <div class="modal-body">' +
         '      <p><div id="rfidErrorMessage_message">' + text + '</div><p>' +
         '      <div class="modal-footer">' +
-        '        <button type="button" class="btn btn-small rfidErrorMessage_close" data-dismiss="modal">' + messages.actionClose + '</button>' +
+        '        <button type="button" class="btn btn-small rfidErrorMessage_close" data-bs-dismiss="modal">' + messages.actionClose + '</button>' +
         '      </div>' +
         '    </div>' +
         '  </div>' +
@@ -1038,13 +1038,13 @@ var RFIDWebService = {
         '  <div class="modal-dialog">' +
         '    <div class="modal-content">' +
         '      <div class="modal-header">' +
-        '        <button type="button" class="rfidStatusMessage_close closebtn" data-dismiss="modal" aria-hidden="true">&times;</button>' +
+        '        <button type="button" class="rfidStatusMessage_close btn-close" data-bs-dismiss="modal" aria-label="Close"></button>' +
         '        <h3 id="rfidStatusMessage_title">' + messages.title + '</h3>' +
         '      </div>' +
         '      <div class="modal-body">' +
         '      <p><div id="rfidStatusMessage_message">' + text + '</div><p>' +
         '      <div class="modal-footer">' +
-        '        <button type="button" class="btn btn-small rfidStatusMessage_close" data-dismiss="modal">' + messages.actionClose + '</button>' +
+        '        <button type="button" class="btn btn-small rfidStatusMessage_close" data-bs-dismiss="modal">' + messages.actionClose + '</button>' +
         '      </div>' +
         '    </div>' +
         '  </div>' +

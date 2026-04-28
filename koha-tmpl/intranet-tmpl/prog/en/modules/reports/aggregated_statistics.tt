@@ -258,7 +258,7 @@
             <aside>
                 [% INCLUDE 'reports-menu.inc' %]
             </aside>
-        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        </div> <!-- /.col-md-2.order-sm-2.order-md-1 -->
     </div>
 
 [% MACRO jsinclude BLOCK %]
