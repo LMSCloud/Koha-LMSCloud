@@ -16,10 +16,7 @@
       '200':
         description: An object that contains coverflow data in a list of biblios by biblionumber
         schema:
-          type: object
-          additionalProperties: false
-          items:
-            $ref: "../swagger.yaml#/definitions/coverflow_data_biblionumber"
+          $ref: "../swagger.yaml#/definitions/coverflow_data_biblionumber"
       "400":
         description: |
           Bad request. Possible `error_code` attribute values:
