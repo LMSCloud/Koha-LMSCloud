@@ -372,17 +372,14 @@ export const useBookingStore = defineStore("bookingStore", {
             }
 
             const itemTypeMap = {};
-            allItemTypes.forEach(it => {
-                itemTypeMap[it.item_type_id] = it;
-            });
+            allItemTypes.forEach(it => { itemTypeMap[it.item_type_id] = it; });
 
             const derivedTypeIds = Object.keys(typesMap);
             derivedTypeIds.forEach(typeId => {
                 const fullType = itemTypeMap[typeId];
                 if (fullType?.parent_type && !typesMap[fullType.parent_type]) {
                     const parentFull = itemTypeMap[fullType.parent_type];
-                    typesMap[fullType.parent_type] =
-                        parentFull?.description || fullType.parent_type;
+                    typesMap[fullType.parent_type] = parentFull?.description || fullType.parent_type;
                 }
             });
 
