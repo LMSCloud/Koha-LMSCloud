@@ -496,8 +496,8 @@ export function getBookingTableColumns(
                 if (showDeleteAction) {
                     html += `
                         <button type="button" class="btn btn-default btn-xs cancel-action"
-                            data-toggle="modal"
-                            data-target="#cancelBookingModal"
+                            data-bs-toggle="modal"
+                            data-bs-target="#cancelBookingModal"
                             data-booking="${escapeAttr(row.booking_id)}">
                             <i class="fa fa-trash" aria-hidden="true"></i> ${__("Cancel")}
                         </button>`;
@@ -509,8 +509,8 @@ export function getBookingTableColumns(
                     const biblioTitle = row.biblio?.title || window.BIBLIO_TITLE || "";
                     html += `
                         <button type="button" class="btn btn-default btn-xs convert-to-checkout-action"
-                            data-toggle="modal"
-                            data-target="#convertToCheckoutModal"
+                            data-bs-toggle="modal"
+                            data-bs-target="#convertToCheckoutModal"
                             data-borrowernumber="${escapeAttr(row.patron_id)}"
                             data-barcode="${escapeAttr(row.item?.external_id)}"
                             data-itemid="${escapeAttr(row.item_id)}"

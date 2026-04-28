@@ -4,6 +4,7 @@ import HttpClient from "./http-client.js";
 import ArticleRequestAPIClient from "./article-request-api-client.js";
 import AdditionalFieldsAPIClient from "./additional-fields-api-client.js";
 import AVAPIClient from "./authorised-value-api-client.js";
+import AVsAPIClient from "./authorised-values-api-client.js";
 import CataloguingAPIClient from "./cataloguing-api-client.js";
 import CirculationAPIClient from "./circulation-api-client.js";
 import ClubAPIClient from "./club-api-client.js";
@@ -18,6 +19,7 @@ export const APIClient = {
     article_request: new ArticleRequestAPIClient(),
     additional_fields: new AdditionalFieldsAPIClient(HttpClient),
     authorised_value: new AVAPIClient(),
+    authorised_values: new AVsAPIClient(HttpClient),
     cataloguing: new CataloguingAPIClient(),
     circulation: new CirculationAPIClient(),
     club: new ClubAPIClient(),

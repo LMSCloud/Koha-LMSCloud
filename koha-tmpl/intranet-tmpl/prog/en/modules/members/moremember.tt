@@ -859,6 +859,7 @@
         });
     </script>
     [% Asset.js("js/checkouts.js") | $raw %]
+    [% Asset.js("js/additional-fields.js") | $raw %]
     [% Asset.js("js/tables/bookings.js") | $raw %]
 [% END %]
 
