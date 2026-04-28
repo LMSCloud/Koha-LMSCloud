@@ -289,7 +289,7 @@ MARC order accounts
             </main>
         </div> <!-- /.col-sm-10.col-sm-push-2 -->
 
-        <div class="col-sm-2 col-sm-pull-10">
+        <div class="col-md-2 order-sm-2 order-md-1">
             <aside>
                 [% INCLUDE 'admin-menu.inc' %]
             </aside>
