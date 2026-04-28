@@ -18,7 +18,7 @@ export async function fetchBookableItems(biblionumber) {
     }
 
     const response = await fetch(
-        `/api/v1/public/biblios/${encodeURIComponent(biblionumber)}/items`,
+        `/api/v1/public/biblios/${encodeURIComponent(biblionumber)}/items?bookable=1`,
         {
             headers: {
                 "x-koha-embed": "+strings",
