@@ -33,8 +33,7 @@ jQuery.validator.addMethod(
 );
 
 $(document).ready(function () {
-    KohaTable(
-        "patron_categories",
+    $("#patron_categories").kohaTable(
         {
             columnDefs: [
                 {
@@ -48,14 +47,14 @@ $(document).ready(function () {
                 },
             ],
             pagingType: "full",
-            exportColumns: ":visible:not(.noExport)",
             bKohaColumnsUseNames: true,
         },
         table_settings
     );
 
-    if ($("#branches option:selected").length < 1) {
-        $("#branches option:first").attr("selected", "selected");
+    if ($("#library_limitation").length > 0) {
+        $("#library_limitation")[0].style.minWidth = "450px";
+        $("#library_limitation").select2();
     }
 
     $("#categorycode").on("blur", function () {

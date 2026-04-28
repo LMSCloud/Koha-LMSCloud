@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -56,6 +56,12 @@ Verbose. Without this flag set, only fatal errors are reported.
 
 Do not send any email. Membership expire notices that would have been sent to
 the patrons are printed to standard out.
+
+
+=item B<-p>
+
+Force the generation of print notices, even if the borrower has an email address.
+Note that this flag cannot be used in combination with -n
 
 =item B<-c>
 
@@ -132,8 +138,12 @@ In the event that the C<-n> flag is passed to this program, no emails
 are sent. Instead, messages are sent on standard output from this
 program.
 
+When using the C<-p> flag, print notices are generated regardless of whether or
+not the borrower has an email address. This can be useful for libraries that
+prefer to deal with print notices.
+
 Notices can contain variables enclosed in double angle brackets like
-E<lt>E<lt>thisE<gt>E<gt>. Those variables will be replaced with values
+<<this>>. Those variables will be replaced with values
 specific to the soon expiring members.
 Available variables are:
 
@@ -165,6 +175,7 @@ use Koha::Patrons;
 # These are defaults for command line options.
 my $confirm;        # -c: Confirm that the user has read and configured this script.
 my $nomail;         # -n: No mail. Will not send any emails.
+my $forceprint;     # -p: Force print notices, even if email is found
 my $verbose = 0;    # -v: verbose
 my $help    = 0;
 my $man     = 0;
@@ -186,6 +197,7 @@ GetOptions(
     'man'            => \$man,
     'c'              => \$confirm,
     'n'              => \$nomail,
+    'p'              => \$forceprint,
     'v'              => \$verbose,
     'branch:s'       => \$branch,
     'before:i'       => \$before,
@@ -244,6 +256,8 @@ my $upcoming_mem_expires = Koha::Patrons->search_upcoming_membership_expires(
         after  => $after,
     }
 );
+my @mandatory_expiry_notice_categories =
+    map { $_->categorycode } Koha::Patron::Categories->search( { 'me.enforce_expiry_notice' => 1 } )->as_list;
 
 my $where_literal = join ' AND ', @where;
 $upcoming_mem_expires = $upcoming_mem_expires->search( \$where_literal ) if @where;
@@ -253,33 +267,33 @@ warn 'found ' . $upcoming_mem_expires->count . ' soon expiring members'
 
 # main loop
 my ( $count_skipped, $count_renewed, $count_enqueued ) = ( 0, 0, 0 );
-while ( my $recent = $upcoming_mem_expires->next ) {
-    if ( $active && !$recent->is_active( { months => $active } ) ) {
+while ( my $expiring_patron = $upcoming_mem_expires->next ) {
+    if ( $active && !$expiring_patron->is_active( { months => $active } ) ) {
         $count_skipped++;
         next;
-    } elsif ( $inactive && $recent->is_active( { months => $inactive } ) ) {
+    } elsif ( $inactive && $expiring_patron->is_active( { months => $inactive } ) ) {
         $count_skipped++;
         next;
     }
 
     my $which_notice;
     if ($renew) {
-        $recent->renew_account;
+        $expiring_patron->renew_account;
         $which_notice = $letter_renew;
         $count_renewed++;
     } else {
         $which_notice = $letter_expiry;
     }
 
-    my $from_address = $recent->library->from_email_address;
+    my $from_address = $expiring_patron->library->from_email_address;
     my $letter       = C4::Letters::GetPreparedLetter(
         module      => 'members',
         letter_code => $which_notice,
-        branchcode  => $recent->branchcode,
-        lang        => $recent->lang,
+        branchcode  => $expiring_patron->branchcode,
+        lang        => $expiring_patron->lang,
         tables      => {
-            borrowers => $recent->borrowernumber,
-            branches  => $recent->branchcode,
+            borrowers => $expiring_patron->borrowernumber,
+            branches  => $expiring_patron->branchcode,
         },
     );
     last if !$letter;    # Letters.pm already warned, just exit
@@ -291,23 +305,23 @@ while ( my $recent = $upcoming_mem_expires->next ) {
     C4::Letters::EnqueueLetter(
         {
             letter                 => $letter,
-            borrowernumber         => $recent->borrowernumber,
+            borrowernumber         => $expiring_patron->borrowernumber,
             from_address           => $from_address,
             message_transport_type => 'email',
-            branchcode             => $recent->branchcode,
+            branchcode             => $expiring_patron->branchcode,
         }
     );
     $count_enqueued++;
 
-    if ( $recent->smsalertnumber ) {
+    if ( $expiring_patron->smsalertnumber ) {
         my $smsletter = C4::Letters::GetPreparedLetter(
             module      => 'members',
             letter_code => $which_notice,
-            branchcode  => $recent->branchcode,
-            lang        => $recent->lang,
+            branchcode  => $expiring_patron->branchcode,
+            lang        => $expiring_patron->lang,
             tables      => {
-                borrowers => $recent->borrowernumber,
-                branches  => $recent->branchcode,
+                borrowers => $expiring_patron->borrowernumber,
+                branches  => $expiring_patron->branchcode,
             },
             message_transport_type => 'sms',
         );
@@ -315,9 +329,9 @@ while ( my $recent = $upcoming_mem_expires->next ) {
             C4::Letters::EnqueueLetter(
                 {
                     letter                 => $smsletter,
-                    borrowernumber         => $recent->borrowernumber,
+                    borrowernumber         => $expiring_patron->borrowernumber,
                     message_transport_type => 'sms',
-                    branchcode             => $recent->branchcode,
+                    branchcode             => $expiring_patron->branchcode,
                 }
             );
         }

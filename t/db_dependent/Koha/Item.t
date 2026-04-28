@@ -15,12 +15,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use utf8;
 
-use Test::More tests => 39;
+use Test::More tests => 40;
 use Test::Exception;
 use Test::MockModule;
 use Test::Warn;
@@ -187,6 +187,57 @@ subtest '_status() tests' => sub {
     }
 
     t::lib::Mocks::mock_preference( 'UseRecalls', 0 );
+    $schema->storage->txn_rollback;
+};
+
+subtest 'store PreventWithdrawingItemsStatus' => sub {
+    plan tests => 2;
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'PreventWithdrawingItemsStatus', 'intransit,checkedout' );
+    my $library_1 = $builder->build( { source => 'Branch' } );
+    my $library_2 = $builder->build( { source => 'Branch' } );
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    t::lib::Mocks::mock_userenv( { branchcode => $patron->branchcode } );
+
+    my $item = $builder->build_sample_item(
+        {
+            withdrawn => 0,
+        }
+    );
+
+    #Check item out
+    C4::Circulation::AddIssue( $patron, $item->barcode );
+
+    throws_ok { $item->withdrawn('1')->store }
+    'Koha::Exceptions::Item::Transfer::OnLoan',
+        'Exception thrown when trying to withdraw checked-out item';
+
+    my $item_2 = $builder->build_sample_item(
+        {
+            withdrawn => 0,
+        }
+    );
+
+    #set in_transit
+    my $transfer_1 = $builder->build_object(
+        {
+            class => 'Koha::Item::Transfers',
+            value => {
+                itemnumber => $item_2->itemnumber,
+                frombranch => $library_1->{branchcode},
+                tobranch   => $library_2->{branchcode},
+                datesent   => '1999-12-31',
+            }
+        }
+    );
+
+    throws_ok { $item_2->withdrawn('1')->store }
+    'Koha::Exceptions::Item::Transfer::InTransit',
+        'Exception thrown when trying to withdraw item in transit';
+
+    t::lib::Mocks::mock_preference( 'PreventWithdrawingItemsStatus', '' );
 
     $schema->storage->txn_rollback;
 };
@@ -196,7 +247,6 @@ subtest 'z3950_status' => sub {
 
     $schema->storage->txn_begin;
     t::lib::Mocks::mock_preference( 'z3950Status', '' );
-
     my $itemtype = $builder->build_object( { class => "Koha::ItemTypes" } );
     my $item     = $builder->build_sample_item(
         {
@@ -707,8 +757,9 @@ subtest "as_marc_field() tests" => sub {
 
 subtest 'pickup_locations() tests' => sub {
 
-    plan tests => 68;
+    plan tests => 69;
 
+    t::lib::Mocks::mock_preference( 'canreservefromotherbranches', 1 );
     $schema->storage->txn_begin;
 
     my $dbh = C4::Context->dbh;
@@ -1029,11 +1080,37 @@ subtest 'pickup_locations() tests' => sub {
 
     t::lib::Mocks::mock_preference( 'UseBranchTransferLimits', 0 );
 
+    t::lib::Mocks::mock_preference( 'IndependentBranches',         1 );
+    t::lib::Mocks::mock_preference( 'canreservefromotherbranches', 0 );
+    t::lib::Mocks::mock_userenv( { branchcode => $library4->branchcode } );
+
+    my $item4 = $builder->build_sample_item(
+        {
+            homebranch    => $library4->branchcode,
+            holdingbranch => $library4->branchcode
+        }
+    )->store;
+    my $patron5 = $builder->build_object(
+        { class => 'Koha::Patrons', value => { branchcode => $library4->branchcode, firstname => '5', flags => 84 } } );
+
+    @pickup_locations = map {
+        my $pickup_location = $_;
+        grep { $pickup_location->branchcode eq $_ } @branchcodes
+    } $item4->pickup_locations( { patron => $patron5 } )->as_list;
+    ok(
+        scalar(@pickup_locations) == 1 && $pickup_locations[0] eq $library4->branchcode,
+        'There should be only one branch in the pickup locations, the connected branch'
+    );
+
+    t::lib::Mocks::mock_userenv( { branchcode => $library2->branchcode } );
+
+    t::lib::Mocks::mock_preference( 'UseBranchTransferLimits', 0 );
+
     $schema->storage->txn_rollback;
 };
 
 subtest 'request_transfer' => sub {
-    plan tests => 16;
+    plan tests => 20;
     $schema->storage->txn_begin;
 
     my $library1 = $builder->build_object( { class => 'Koha::Libraries' } );
@@ -1055,11 +1132,36 @@ subtest 'request_transfer' => sub {
         'Exception thrown if `to` parameter is missing';
 
     # Successful request
+    t::lib::Mocks::mock_preference( 'TransfersLog', 0 );
+
+    $schema->resultset('ActionLog')->search()->delete();
     my $transfer = $item->request_transfer( { to => $library1, reason => 'Manual' } );
     is(
         ref($transfer), 'Koha::Item::Transfer',
         'Koha::Item->request_transfer should return a Koha::Item::Transfer object'
     );
+    is( $schema->resultset('ActionLog')->count(), 0, 'False value for TransfersLog does not trigger logging' );
+    $transfer->delete;
+
+    t::lib::Mocks::mock_preference( 'TransfersLog', 1 );
+
+    $transfer = $item->request_transfer( { to => $library1, reason => 'Manual' } );
+    is(
+        ref($transfer), 'Koha::Item::Transfer',
+        'Koha::Item->request_transfer should return a Koha::Item::Transfer object'
+    );
+    is( $schema->resultset('ActionLog')->count(), 1, 'True value for TransfersLog does trigger logging' );
+    $transfer->delete;
+
+    t::lib::Mocks::mock_preference( 'TransfersLog', 0 );
+
+    # Successful request
+    $transfer = $item->request_transfer( { to => $library1, reason => 'Manual' } );
+    is(
+        ref($transfer), 'Koha::Item::Transfer',
+        'Koha::Item->request_transfer should return a Koha::Item::Transfer object'
+    );
+
     my $original_transfer = $transfer->get_from_storage;
 
     # Duplicated request
@@ -1163,7 +1265,7 @@ subtest 'store check barcodes' => sub {
 };
 
 subtest 'deletion' => sub {
-    plan tests => 15;
+    plan tests => 18;
 
     $schema->storage->txn_begin;
 
@@ -1243,6 +1345,29 @@ subtest 'deletion' => sub {
         'not_same_branch',
         'IndependentBranches prevents deletion at another branch',
     );
+
+    # item_has_holds
+    my $item_level_hold = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => {
+                biblionumber => $item->biblionumber,
+                itemnumber   => $item->itemnumber,
+                found        => undef,
+            }
+        }
+    );
+
+    $item->discard_changes;
+    my $safe_to_delete = $item->safe_to_delete;
+    ok( !$safe_to_delete, 'Cannot delete item with item level holds' );
+    is(
+        @{ $safe_to_delete->messages }[0]->message,
+        'item_has_holds',
+        'Koha::Item->safe_to_delete reports item has item level holds',
+    );
+
+    $item_level_hold->delete;
 
     # linked_analytics
 
@@ -1351,6 +1476,56 @@ subtest 'deletion' => sub {
         my $extra_item = $builder->build_sample_item( { biblionumber => $item->biblionumber } );
 
         ok( $item->safe_to_delete );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'serial issues tests' => sub {
+        plan tests => 4;
+
+        t::lib::Mocks::mock_preference( 'IndependentBranches', 0 );
+
+        $schema->storage->txn_begin;
+
+        my $biblio           = $builder->build_sample_biblio;
+        my $item_with_serial = $builder->build_sample_item( { biblionumber => $biblio->id } );
+        my $serial =
+            $builder->build_object( { class => 'Koha::Serials', value => { biblionumber => $biblio->biblionumber } } );
+        my $serial_item = $builder->build_object(
+            {
+                class => 'Koha::Serial::Items',
+                value => { itemnumber => $item_with_serial->itemnumber, serialid => $serial->serialid }
+            }
+        );
+
+        # Check serial issue is not deleted unless argument passed
+        $item_with_serial->safe_delete( { delete_serial_issues => 0 } );
+
+        my $serial_check      = Koha::Serials->find( $serial->serialid );
+        my $serial_item_check = Koha::Serial::Items->find( $serial_item->itemnumber );
+
+        is( $serial_check->serialid, $serial->serialid, 'Serial not deleted as the argument was not passed' );
+        is( $serial_item_check,      undef,             'Serial item deleted by cascade' );
+
+        $biblio           = $builder->build_sample_biblio;
+        $item_with_serial = $builder->build_sample_item( { biblionumber => $biblio->id } );
+        $serial =
+            $builder->build_object( { class => 'Koha::Serials', value => { biblionumber => $biblio->biblionumber } } );
+        $serial_item = $builder->build_object(
+            {
+                class => 'Koha::Serial::Items',
+                value => { itemnumber => $item_with_serial->itemnumber, serialid => $serial->serialid }
+            }
+        );
+
+        # Check serial issue is deleted when argument passed
+        $item_with_serial->safe_delete( { delete_serial_issues => 1 } );
+
+        $serial_check      = Koha::Serials->find( $serial->serialid );
+        $serial_item_check = Koha::Serial::Items->find( $serial_item->itemnumber );
+
+        is( $serial_check,      undef, 'Serial deleted' );
+        is( $serial_item_check, undef, 'Serial item deleted by cascade' );
 
         $schema->storage->txn_rollback;
     };
@@ -2701,7 +2876,7 @@ subtest 'store() tests' => sub {
             {
                 borrowernumber    => $patron->id,
                 date              => '1970-01-01 14:00:01',
-                amountoutstanding => 0,
+                amountoutstanding =>  0,
                 amount            => -5,
                 interface         => 'commandline',
                 credit_type_code  => 'PAYMENT'

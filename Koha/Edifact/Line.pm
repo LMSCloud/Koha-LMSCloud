@@ -15,7 +15,7 @@ package Koha::Edifact::Line;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -438,8 +438,9 @@ sub coded_substitute_text {
 }
 
 # This will take a standard code as returned
-# by (orderline|substitue)-free_text (FTX seg LIN)
+# by (orderline|substitute)-free_text (FTX seg LIN)
 # and expand it using EditEUR code list 8B
+
 sub translate_8B {
     my ($code) = @_;
 
@@ -684,6 +685,7 @@ sub extract_gir {
 }
 
 # mainly for invoice processing amt_ will derive from MOA price_ from PRI and tax_ from TAX/MOA pairsn
+
 sub moa_amt {
     my ( $self, $qualifier ) = @_;
     foreach my $s ( @{ $self->{segs} } ) {
@@ -723,18 +725,21 @@ sub amt_prepayment {
 }
 
 # total including allowances & tax
+
 sub amt_total {
     my $self = shift;
     return $self->moa_amt('128');
 }
 
 # Used to give price in currency other than that given in price
+
 sub amt_unitprice {
     my $self = shift;
     return $self->moa_amt('146');
 }
 
 # item amount after allowances excluding tax
+
 sub amt_lineitem {
     my $self = shift;
     return $self->moa_amt('203');
@@ -750,9 +755,9 @@ sub pri_price {
 
     # In practice qualifier is AAE in the quote and AAA & AAB in invoices
     # but the following are defined
-    # AAA calculation price net (unit price excl tax but incl any allowances or charges)
-    # AAB calculation price gross (unit price excl all taxes, allowances and charges )
-    # AAE information price (incl tax but excl allowances or charges )
+    # AAA calculation price net (unit price excluding tax but including any allowances or charges)
+    # AAB calculation price gross (unit price excluding all taxes, allowances and charges )
+    # AAE information price (including tax but excluding allowances or charges )
     # AAF information price (including all taxes, allowances or charges)
     foreach my $s ( @{ $self->{segs} } ) {
         if ( $s->tag eq 'PRI' && $s->elem( 0, 0 ) eq $price_qualifier ) {
@@ -773,7 +778,8 @@ sub pri_price {
     return;
 }
 
-# unit price that will be chaged excl tax
+# unit price that will be charged excl tax
+
 sub price_net {
     my $self = shift;
     my $p    = $self->pri_price('AAA');
@@ -784,6 +790,7 @@ sub price_net {
 }
 
 # unit price excluding all allowances, charges and taxes
+
 sub price_gross {
     my $self = shift;
     my $p    = $self->pri_price('AAB');
@@ -794,6 +801,7 @@ sub price_gross {
 }
 
 # information price incl tax excluding allowances, charges
+
 sub price_info {
     my $self = shift;
     my $p    = $self->pri_price('AAE');
@@ -804,6 +812,7 @@ sub price_info {
 }
 
 # information price incl tax,allowances, charges
+
 sub price_info_inclusive {
     my $self = shift;
     my $p    = $self->pri_price('AAF');
@@ -892,6 +901,214 @@ Koha::Edifact::Line
 =head2 new
 
    Called with an array ref of segments constituting the line
+
+
+=head2 marc_record
+
+Missing POD for marc_record.
+
+
+=head2 corpcon
+
+Missing POD for corpcon.
+
+=head2 new_field
+
+Missing POD for new_field.
+
+
+=head2 item_number_id
+
+Missing POD for item_number_id.
+
+
+=head2 line_item_number
+
+Missing POD for line_item_number.
+
+=head2 additional_product_ids
+
+Missing POD for additional_product_ids.
+
+=head2 action_notification
+
+Missing POD for action_notification.
+
+=head2 item_description
+
+Missing POD for item_description.
+
+=head2 monetary_amount
+
+Missing POD for monetary_amount.
+
+=head2 quantity
+
+Missing POD for quantity.
+
+=head2 quantity_invoiced
+
+Missing POD for quantity_invoiced.
+
+=head2 price
+
+Missing POD for price.
+
+=head2 reference
+
+Missing POD for reference.
+
+=head2 orderline_reference_number
+
+Missing POD for orderline_reference_number.
+
+=head2 ordernumber
+
+Missing POD for ordernumber.
+
+=head2 free_text
+
+Missing POD for free_text.
+
+=head2 coded_free_text
+
+Missing POD for coded_free_text.
+
+=head2 internal_notes
+
+Missing POD for internal_notes.
+
+=head2 coded_internal_note
+
+Missing POD for coded_internal_note.
+
+=head2 orderline_free_text
+
+Missing POD for orderline_free_text.
+
+=head2 coded_orderline_text
+
+Missing POD for coded_orderline_text.
+
+=head2 substitute_free_text
+
+Missing POD for substitute_free_text.
+
+=head2 coded_substitute_text
+
+Missing POD for coded_substitute_text.
+
+=head2 translate_8B
+
+Missing POD for translate_8B.
+
+=head2 translate_12B
+
+Missing POD for translate_12B.
+
+=head2 title
+
+Missing POD for title.
+
+=head2 author
+
+Missing POD for author.
+
+=head2 series
+
+Missing POD for series.
+
+=head2 publisher
+
+Missing POD for publisher.
+
+=head2 publication_date
+
+Missing POD for publication_date.
+
+=head2 dewey_class
+
+Missing POD for dewey_class.
+
+=head2 lc_class
+
+Missing POD for lc_class.
+
+=head2 girfield
+
+Missing POD for girfield.
+
+=head2 number_of_girs
+
+Missing POD for number_of_girs.
+
+=head2 extract_gir
+
+Missing POD for extract_gir.
+
+=head2 moa_amt
+
+Missing POD for moa_amt.
+
+=head2 moa_multiple_amt
+
+Missing POD for moa_multiple_amt.
+
+=head2 amt_discount
+
+Missing POD for amt_discount.
+
+=head2 amt_prepayment
+
+Missing POD for amt_prepayment.
+
+=head2 amt_total
+
+Missing POD for amt_total.
+
+=head2 amt_unitprice
+
+Missing POD for amt_unitprice.
+
+=head2 amt_lineitem
+
+Missing POD for amt_lineitem.
+
+=head2 amt_taxoncharge
+
+Missing POD for amt_taxoncharge.
+
+=head2 pri_price
+
+Missing POD for pri_price.
+
+=head2 price_net
+
+Missing POD for price_net.
+
+=head2 price_gross
+
+Missing POD for price_gross.
+
+=head2 price_info
+
+Missing POD for price_info.
+
+=head2 price_info_inclusive
+
+Missing POD for price_info_inclusive.
+
+=head2 tax
+
+Missing POD for tax.
+
+=head2 tax_rate
+
+Missing POD for tax_rate.
+
+=head2 availability_date
+
+Missing POD for availability_date.
 
 =head1 AUTHOR
 

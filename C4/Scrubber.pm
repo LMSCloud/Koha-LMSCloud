@@ -17,7 +17,7 @@ package C4::Scrubber;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -27,14 +27,72 @@ use HTML::Scrubber;
 use C4::Context;
 
 my %scrubbertypes = (
-    default   => {},    # place holder, default settings are below as fallbacks in call to constructor
-    comment   => { allow => [qw( br b i em big small strong )], },
-    note      => { allow => [qw[ br b i em big small strong u hr span div p ol ul li dl dt dd ]] },
-    munzinger => { allow => [qw( span )], rules => [ span => { class => 1 } ] },
+    default        => {},    # place holder, default settings are below as fallbacks in call to constructor
+    comment        => { allow => [qw( br b i em big small strong )], },
+    note           => { allow => [qw[ br b i em big small strong u hr span div p ol ul li dl dt dd ]] },
+    munzinger      => { allow => [qw( span )], rules => [ span => { class => 1 } ] },
+    record_display => {
+        allow => [
+            qw(
+                div span h1 h2 h3 h4 h5 h6 p br
+                ul ol li dl dt dd
+                a img
+                strong b em i u s strike del ins sup sub
+                blockquote cite q abbr acronym dfn
+                table thead tbody tfoot tr td th caption
+                pre code kbd samp var
+                hr
+                address
+            )
+        ],
+        rules => [
+            div => {
+                class => qr/^[\w\s\-_]+$/,
+                id    => qr/^[\w\-_]+$/,
+            },
+
+            span => {
+                class => qr/^[\w\s\-_]+$/,
+                id    => qr/^[\w\-_]+$/,
+            },
+
+            p => {
+                class => qr/^[\w\s\-_]+$/,
+                id    => qr/^[\w\-_]+$/,
+            },
+
+            a => {
+                href   => qr{^(?:https?://|/cgi-bin/|mailto:|#)}i,
+                class  => qr/^[\w\s\-_]+$/,
+                title  => 1,
+                target => qr/^_(?:blank|self|parent|top)$/,
+            },
+
+            ul => {
+                class => qr/^[\w\s\-_]+$/,
+                id    => qr/^[\w\-_]+$/,
+            },
+
+            ol => {
+                class => qr/^[\w\s\-_]+$/,
+                id    => qr/^[\w\-_]+$/,
+            },
+
+            li => {
+                class => qr/^[\w\s\-_]+$/,
+                id    => qr/^[\w\-_]+$/,
+            },
+
+            i => {
+                class        => qr/^[\w\s\-_]+$/,
+                'aria-label' => 1,
+            },
+        ],
+    },
 );
 
 sub new {
-    shift;              # ignore our class we are wrapper
+    shift;    # ignore our class we are wrapper
     my $type = (@_) ? shift : 'default';
     $type = 'default' if !defined $type;
     if ( !exists $scrubbertypes{$type} ) {
@@ -61,7 +119,10 @@ Standardized wrapper with settings for building HTML::Scrubber tailored to vario
 The default is to scrub everything, leaving no markup at all.  This is compatible with the expectations
 for Tags.
 
-=head2 TODO: Add real perldoc
+=head1 Functions
+
+=head2 new
+
+Missing POD for new.
 
 =cut
-

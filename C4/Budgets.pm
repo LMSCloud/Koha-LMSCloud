@@ -15,23 +15,13 @@ package C4::Budgets;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use JSON;
-use C4::Context;
-use Koha::Database;
-use Koha::Patrons;
-use Koha::Acquisition::Invoice::Adjustments;
-use C4::Acquisition;
-use C4::Log qw(logaction);
-
-our ( @ISA, @EXPORT_OK );
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
 
         GetBudget
         GetBudgetByOrderNumber
@@ -84,9 +74,23 @@ BEGIN {
     );
 }
 
+use JSON;
+use C4::Context;
+use Koha::Database;
+use Koha::Patrons;
+use Koha::Acquisition::Invoice::Adjustments;
+use C4::Acquisition;
+use C4::Log qw(logaction);
+
 # ----------------------------BUDGETS.PM-----------------------------";
 
 =head1 FUNCTIONS ABOUT BUDGETS
+
+=cut
+
+=head2 HideCols
+
+Missing POD for HideCols.
 
 =cut
 
@@ -107,6 +111,12 @@ sub HideCols {
     }
 }
 
+=head2 GetCols
+
+Missing POD for GetCols.
+
+=cut
+
 sub GetCols {
     my ( $authcat, $authvalue ) = @_;
 
@@ -126,6 +136,12 @@ sub GetCols {
 
 }
 
+=head2 CheckBudgetParentPerm
+
+Missing POD for CheckBudgetParentPerm.
+
+=cut
+
 sub CheckBudgetParentPerm {
     my ( $budget, $borrower_id ) = @_;
     my $depth     = $budget->{depth};
@@ -141,6 +157,12 @@ sub CheckBudgetParentPerm {
     return 0;
 }
 
+=head2 AddBudgetPeriod
+
+Missing POD for AddBudgetPeriod.
+
+=cut
+
 sub AddBudgetPeriod {
     my ($budgetperiod) = @_;
     return unless ( $budgetperiod->{budget_period_startdate} && $budgetperiod->{budget_period_enddate} );
@@ -151,6 +173,13 @@ sub AddBudgetPeriod {
 }
 
 # -------------------------------------------------------------------
+
+=head2 GetPeriodsCount
+
+Missing POD for GetPeriodsCount.
+
+=cut
+
 sub GetPeriodsCount {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare( "
@@ -161,6 +190,13 @@ sub GetPeriodsCount {
 }
 
 # -------------------------------------------------------------------
+
+=head2 CheckBudgetParent
+
+Missing POD for CheckBudgetParent.
+
+=cut
+
 sub CheckBudgetParent {
     my ( $new_parent, $budget ) = @_;
     my $new_parent_id = $new_parent->{'budget_id'};
@@ -188,6 +224,13 @@ sub CheckBudgetParent {
 }
 
 # -------------------------------------------------------------------
+
+=head2 BudgetHasChildren
+
+Missing POD for BudgetHasChildren.
+
+=cut
+
 sub BudgetHasChildren {
     my ($budget_id) = @_;
     my $dbh         = C4::Context->dbh;
@@ -201,6 +244,12 @@ sub BudgetHasChildren {
     return $sum->{'sum'};
 }
 
+=head2 GetBudgetChildren
+
+Missing POD for GetBudgetChildren.
+
+=cut
+
 sub GetBudgetChildren {
     my ($budget_id) = @_;
     my $dbh = C4::Context->dbh;
@@ -211,6 +260,12 @@ sub GetBudgetChildren {
     |, { Slice => {} }, $budget_id
     );
 }
+
+=head2 SetOwnerToFundHierarchy
+
+Missing POD for SetOwnerToFundHierarchy.
+
+=cut
 
 sub SetOwnerToFundHierarchy {
     my ( $budget_id, $borrowernumber ) = @_;
@@ -225,6 +280,13 @@ sub SetOwnerToFundHierarchy {
 }
 
 # -------------------------------------------------------------------
+
+=head2 GetBudgetsPlanCell
+
+Missing POD for GetBudgetsPlanCell.
+
+=cut
+
 sub GetBudgetsPlanCell {
     my ( $cell, $period, $budget ) = @_;    #FIXME we don't use $period
     my ( $actual, $sth );
@@ -324,6 +386,13 @@ sub GetBudgetsPlanCell {
 }
 
 # -------------------------------------------------------------------
+
+=head2 ModBudgetPlan
+
+Missing POD for ModBudgetPlan.
+
+=cut
+
 sub ModBudgetPlan {
     my ( $budget_plan, $budget_period_id, $authcat ) = @_;
     my $dbh = C4::Context->dbh;
@@ -364,6 +433,13 @@ sub ModBudgetPlan {
 }
 
 # -------------------------------------------------------------------
+
+=head2 GetBudgetSpent
+
+Missing POD for GetBudgetSpent.
+
+=cut
+
 sub GetBudgetSpent {
     my ($budget_id) = @_;
     my $dbh = C4::Context->dbh;
@@ -408,6 +484,13 @@ sub GetBudgetSpent {
 }
 
 # -------------------------------------------------------------------
+
+=head2 GetBudgetOrdered
+
+Missing POD for GetBudgetOrdered.
+
+=cut
+
 sub GetBudgetOrdered {
     my ($budget_id) = @_;
     my $dbh = C4::Context->dbh;
@@ -483,6 +566,13 @@ sub GetBudgetAuthCats {
 }
 
 # -------------------------------------------------------------------
+
+=head2 GetBudgetPeriods
+
+Missing POD for GetBudgetPeriods.
+
+=cut
+
 sub GetBudgetPeriods {
     my ( $filters, $orderby ) = @_;
 
@@ -493,6 +583,13 @@ sub GetBudgetPeriods {
 }
 
 # -------------------------------------------------------------------
+
+=head2 GetBudgetPeriod
+
+Missing POD for GetBudgetPeriod.
+
+=cut
+
 sub GetBudgetPeriod {
     my ($budget_period_id) = @_;
     my $dbh                = C4::Context->dbh;
@@ -506,6 +603,12 @@ sub GetBudgetPeriod {
     return $sth->fetchrow_hashref;
 }
 
+=head2 DelBudgetPeriod
+
+Missing POD for DelBudgetPeriod.
+
+=cut
+
 sub DelBudgetPeriod {
     my ($budget_period_id) = @_;
     my $dbh = C4::Context->dbh;
@@ -515,7 +618,7 @@ sub DelBudgetPeriod {
     ## get information about the record that will be deleted
     my $sth = $dbh->prepare(
         qq|
-		DELETE 
+         DELETE
          FROM aqbudgetperiods
          WHERE budget_period_id=? |
     );
@@ -523,6 +626,13 @@ sub DelBudgetPeriod {
 }
 
 # -------------------------------------------------------------------
+
+=head2 ModBudgetPeriod
+
+Missing POD for ModBudgetPeriod.
+
+=cut
+
 sub ModBudgetPeriod {
     my ($budget_period) = @_;
     my $result = Koha::Database->new()->schema->resultset('Aqbudgetperiod')->find($budget_period);
@@ -533,6 +643,13 @@ sub ModBudgetPeriod {
 }
 
 # -------------------------------------------------------------------
+
+=head2 GetBudgetHierarchy
+
+Missing POD for GetBudgetHierarchy.
+
+=cut
+
 sub GetBudgetHierarchy {
     my ( $budget_period_id, $branchcode, $owner, $skiptotals ) = @_;
     my @bind_params;
@@ -701,7 +818,7 @@ sub _recursiveAdd {
     }
 }
 
-# Recursive method to add a budget and its chidren to an array
+# Recursive method to add a budget and its children to an array
 sub _add_budget_children {
     my $res    = shift;
     my $budget = shift;
@@ -716,6 +833,13 @@ sub _add_budget_children {
 
 # -------------------------------------------------------------------
 # FIXME Must be replaced by Koha::Acquisition::Fund->store
+
+=head2 AddBudget
+
+Missing POD for AddBudget.
+
+=cut
+
 sub AddBudget {
     my ($budget) = @_;
     return unless ($budget);
@@ -744,6 +868,13 @@ sub AddBudget {
 
 # -------------------------------------------------------------------
 # FIXME Must be replaced by Koha::Acquisition::Fund->store
+
+=head2 ModBudget
+
+Missing POD for ModBudget.
+
+=cut
+
 sub ModBudget {
     my ($budget) = @_;
     my $result = Koha::Database->new()->schema->resultset('Aqbudget')->find($budget);
@@ -776,6 +907,13 @@ sub ModBudget {
 
 # -------------------------------------------------------------------
 # FIXME Must be replaced by Koha::Acquisition::Fund->delete
+
+=head2 DelBudget
+
+Missing POD for DelBudget.
+
+=cut
+
 sub DelBudget {
     my ($budget_id) = @_;
     my $dbh         = C4::Context->dbh;
@@ -915,7 +1053,7 @@ sub GetBudgetsByActivity {
 
 Get all but cancelled orders for all funds.
 
-If the optionnal activity parameter is passed, returns orders for active/inactive budgets only.
+If the optional activity parameter is passed, returns orders for active/inactive budgets only.
 
 active = 1
 inactive = 0
@@ -1107,6 +1245,12 @@ sub ModBudgetUsers {
     }
 }
 
+=head2 CanUserUseBudget
+
+Missing POD for CanUserUseBudget.
+
+=cut
+
 sub CanUserUseBudget {
     my ( $borrower, $budget, $userflags ) = @_;
 
@@ -1188,6 +1332,12 @@ sub CanUserUseBudget {
 
     return 1;
 }
+
+=head2 CanUserModifyBudget
+
+Missing POD for CanUserModifyBudget.
+
+=cut
 
 sub CanUserModifyBudget {
     my ( $borrower, $budget, $userflags ) = @_;
@@ -1517,6 +1667,6 @@ __END__
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 =cut

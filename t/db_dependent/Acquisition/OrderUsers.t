@@ -1,5 +1,6 @@
 use Modern::Perl;
-use Test::More tests => 3;
+use Test::NoWarnings;
+use Test::More tests => 4;
 
 use C4::Acquisition qw( NewBasket AddInvoice ModOrder ModOrderUsers GetOrder GetOrderUsers ModReceiveOrder );
 use C4::Biblio      qw( AddBiblio );
@@ -14,6 +15,24 @@ use t::lib::TestBuilder;
 my $schema = Koha::Database->schema;
 $schema->storage->txn_begin;
 my $builder = t::lib::TestBuilder->new;
+
+# Ensure ACQ_NOTIF_ON_RECEIV letter template exists
+use Koha::Notice::Template;
+use Koha::Notice::Templates;
+Koha::Notice::Templates->search( { code => 'ACQ_NOTIF_ON_RECEIV' } )->delete;
+Koha::Notice::Template->new(
+    {
+        module                 => 'acquisition',
+        code                   => 'ACQ_NOTIF_ON_RECEIV',
+        branchcode             => '',
+        name                   => 'Acquisition notification on receiving',
+        is_html                => 0,
+        title                  => 'Order received',
+        content                => 'Your order has been received.',
+        message_transport_type => 'email',
+        lang                   => 'default',
+    }
+)->store;
 
 my $library = $builder->build(
     {

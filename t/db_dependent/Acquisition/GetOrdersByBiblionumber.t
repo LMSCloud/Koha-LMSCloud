@@ -2,7 +2,8 @@
 
 use Modern::Perl;
 
-use Test::More;
+use Test::NoWarnings;
+use Test::More tests => 4;
 use C4::Acquisition qw( NewBasket GetOrders GetOrdersByBiblionumber GetOrder );
 use C4::Biblio      qw( AddBiblio );
 use C4::Budgets     qw( AddBudget GetBudget );
@@ -88,5 +89,3 @@ is( scalar(@orders), 2, '2 orders on biblionumber 2' );
 
 #End transaction
 $schema->storage->txn_rollback();
-
-done_testing;

@@ -23,7 +23,7 @@
 </form>
 [% END %]
 
-[% showCashRegisterOverview | html %]
+[% showCashRegisterOverview | $raw %]
 <h4 style="margin-top:20px;">Inpayment overview ([% cash_register.cash_register_name | html %])</h4>
 <table id="inpaymentoverview" class="table-bordered">
     <thead>

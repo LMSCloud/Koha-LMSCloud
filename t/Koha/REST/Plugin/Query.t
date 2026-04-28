@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -294,6 +294,18 @@ get '/stash_overrides' => sub {
     );
 };
 
+get '/stash_request_id' => sub {
+    my $c = shift;
+
+    $c->stash_request_id();
+    my $request_id = $c->stash('koha.request_id');
+
+    $c->render(
+        status => 200,
+        json   => $request_id
+    );
+};
+
 get '/dbic_extended_attributes_join' => sub {
     my ( $c, $args ) = @_;
 
@@ -369,7 +381,8 @@ sub to_model {
 
 # The tests
 
-use Test::More tests => 10;
+use Test::NoWarnings;
+use Test::More tests => 12;
 use Test::Mojo;
 
 subtest 'extract_reserved_params() tests' => sub {
@@ -378,30 +391,32 @@ subtest 'extract_reserved_params() tests' => sub {
 
     my $t = Test::Mojo->new;
 
-    $t->get_ok('/query?_page=2&_per_page=3&firstname=Manuel&surname=Cohen%20Arazi')->status_is(200)
+    $t->get_ok('/query?_page=2&_per_page=3&firstname=Manuel&surname=Cohen%20Arazi')
+        ->status_is(200)
         ->json_is( '/filtered_params' => { firstname => 'Manuel', surname   => 'Cohen Arazi' } )
         ->json_is( '/reserved_params' => { _page     => 2,        _per_page => 3 } );
 
     $t->get_ok(
         '/query_full/with/path?_match=exact&_order_by=blah&_page=2&_per_page=3&firstname=Manuel&surname=Cohen%20Arazi')
-        ->status_is(200)->json_is(
+        ->status_is(200)
+        ->json_is(
         '/filtered_params' => {
             firstname => 'Manuel',
             surname   => 'Cohen Arazi'
         }
-    )->json_is(
+        )->json_is(
         '/reserved_params' => {
             _page     => 2,
             _per_page => 3,
             _match    => 'exact',
             _order_by => 'blah'
         }
-    )->json_is(
+        )->json_is(
         '/path_params' => {
             id    => 'with',
             subid => 'path'
         }
-    );
+        );
 
 };
 
@@ -411,8 +426,11 @@ subtest 'dbic_merge_sorting() tests' => sub {
 
     my $t = Test::Mojo->new;
 
-    $t->get_ok('/dbic_merge_sorting')->status_is(200)->json_is( '/a' => 'a', 'Existing values are kept (a)' )
-        ->json_is( '/b' => 'b', 'Existing values are kept (b)' )->json_is(
+    $t->get_ok('/dbic_merge_sorting')
+        ->status_is(200)
+        ->json_is( '/a' => 'a', 'Existing values are kept (a)' )
+        ->json_is( '/b' => 'b', 'Existing values are kept (b)' )
+        ->json_is(
         '/order_by' => [
             'uno',
             { -desc => 'dos' },
@@ -421,9 +439,11 @@ subtest 'dbic_merge_sorting() tests' => sub {
         ]
         );
 
-    $t->get_ok('/dbic_merge_sorting_result_set')->status_is(200)
+    $t->get_ok('/dbic_merge_sorting_result_set')
+        ->status_is(200)
         ->json_is( '/a' => 'a', 'Existing values are kept (a)' )
-        ->json_is( '/b' => 'b', 'Existing values are kept (b)' )->json_is(
+        ->json_is( '/b' => 'b', 'Existing values are kept (b)' )
+        ->json_is(
         '/order_by' => [
             'city_name',
             { -desc => 'city_zipcode' },
@@ -432,12 +452,17 @@ subtest 'dbic_merge_sorting() tests' => sub {
         ]
         );
 
-    $t->get_ok('/dbic_merge_sorting_date')->status_is(200)->json_is( '/a' => 'a', 'Existing values are kept (a)' )
+    $t->get_ok('/dbic_merge_sorting_date')
+        ->status_is(200)
+        ->json_is( '/a'        => 'a', 'Existing values are kept (a)' )
         ->json_is( '/b'        => 'b', 'Existing values are kept (b)' )
         ->json_is( '/order_by' => [ { -desc => 'reservedate' } ] );
 
-    $t->get_ok('/dbic_merge_sorting_single')->status_is(200)->json_is( '/a' => 'a', 'Existing values are kept (a)' )
-        ->json_is( '/b' => 'b', 'Existing values are kept (b)' )->json_is( '/order_by' => [ { '-desc' => 'uno' } ] );
+    $t->get_ok('/dbic_merge_sorting_single')
+        ->status_is(200)
+        ->json_is( '/a'        => 'a', 'Existing values are kept (a)' )
+        ->json_is( '/b'        => 'b', 'Existing values are kept (b)' )
+        ->json_is( '/order_by' => [ { '-desc' => 'uno' } ] );
 };
 
 subtest '/dbic_merge_prefetch' => sub {
@@ -445,7 +470,9 @@ subtest '/dbic_merge_prefetch' => sub {
 
     my $t = Test::Mojo->new;
 
-    $t->get_ok('/dbic_merge_prefetch')->status_is(200)->json_is( '/prefetch/0' => { 'biblio' => 'orders' } )
+    $t->get_ok('/dbic_merge_prefetch')
+        ->status_is(200)
+        ->json_is( '/prefetch/0' => { 'biblio' => 'orders' } )
         ->json_is( '/prefetch/1' => 'item' );
 
     $t->get_ok('/dbic_merge_prefetch_recursive')->status_is(200)->json_is(
@@ -506,23 +533,28 @@ subtest '_build_query_params_from_api' => sub {
     my $t = Test::Mojo->new;
 
     # _match => contains
-    $t->get_ok('/build_query?_match=contains&title=Ender&author=Orson')->status_is(200)
+    $t->get_ok('/build_query?_match=contains&title=Ender&author=Orson')
+        ->status_is(200)
         ->json_is( '/query' => { author => { like => '%Orson%' }, title => { like => '%Ender%' } } );
 
     # _match => starts_with
-    $t->get_ok('/build_query?_match=starts_with&title=Ender&author=Orson')->status_is(200)
+    $t->get_ok('/build_query?_match=starts_with&title=Ender&author=Orson')
+        ->status_is(200)
         ->json_is( '/query' => { author => { like => 'Orson%' }, title => { like => 'Ender%' } } );
 
     # _match => ends_with
-    $t->get_ok('/build_query?_match=ends_with&title=Ender&author=Orson')->status_is(200)
+    $t->get_ok('/build_query?_match=ends_with&title=Ender&author=Orson')
+        ->status_is(200)
         ->json_is( '/query' => { author => { like => '%Orson' }, title => { like => '%Ender' } } );
 
     # _match => exact
-    $t->get_ok('/build_query?_match=exact&title=Ender&author=Orson')->status_is(200)
+    $t->get_ok('/build_query?_match=exact&title=Ender&author=Orson')
+        ->status_is(200)
         ->json_is( '/query' => { author => 'Orson', title => 'Ender' } );
 
     # _match => blah
-    $t->get_ok('/build_query?_match=blah&title=Ender&author=Orson')->status_is(400)
+    $t->get_ok('/build_query?_match=blah&title=Ender&author=Orson')
+        ->status_is(400)
         ->json_is( '/exception_msg'  => 'Invalid value for _match param (blah)' )
         ->json_is( '/exception_type' => 'Koha::Exceptions::WrongParameter' );
 
@@ -567,7 +599,8 @@ subtest 'stash_embed() tests' => sub {
         }
     )->json_is( '/strings' => 1 );
 
-    $t->get_ok( '/stash_embed_no_spec' => { 'x-koha-embed' => 'checkouts,checkouts.item,patron' } )->status_is(400)
+    $t->get_ok( '/stash_embed_no_spec' => { 'x-koha-embed' => 'checkouts,checkouts.item,patron' } )
+        ->status_is(400)
         ->json_is( '/error' =>
             qq{Exception 'Koha::Exceptions::BadParameter' thrown 'Embedding objects is not allowed on this endpoint.'\n}
         );
@@ -585,6 +618,20 @@ subtest 'stash_overrides() tests' => sub {
     $t->get_ok( '/stash_overrides' => { 'x-koha-override' => '' } )->json_is( {} );    # empty string is skipped
 
     $t->get_ok( '/stash_overrides' => {} )->json_is( {} );    # x-koha-ovverride not passed is skipped
+
+};
+
+subtest 'stash_request_id() tests' => sub {
+
+    plan tests => 6;
+
+    my $t = Test::Mojo->new;
+
+    $t->get_ok( '/stash_request_id' => { 'x-koha-request-id' => '123456789' } )->json_is('123456789');
+
+    $t->get_ok( '/stash_request_id' => { 'x-koha-request-id' => '' } )->json_is(q{});
+
+    $t->get_ok( '/stash_request_id' => {} )->json_is(q{});
 
 };
 

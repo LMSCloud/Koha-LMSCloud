@@ -13,7 +13,7 @@ package Koha::BackgroundJob;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Encode qw();
@@ -124,6 +124,9 @@ sub enqueue {
     my $job_context = $params->{job_context} // { %{ C4::Context->userenv // {} } };
     my $job_queue   = $params->{job_queue}   // 'default';
     my $json        = $self->json;
+
+    # session_id must not be logged
+    delete $job_context->{session_id};
 
     # LMSCloud adds branchcategory to userenv; strip it for job context
     # serialization since it is not needed for restoring context and it
@@ -461,6 +464,7 @@ sub core_types_to_classes {
         marc_import_revert_batch            => 'Koha::BackgroundJob::MARCImportRevertBatch',
         pseudonymize_statistic              => 'Koha::BackgroundJob::PseudonymizeStatistic',
         import_from_kbart_file              => 'Koha::BackgroundJob::ImportKBARTFile',
+        file_transport_test                 => 'Koha::BackgroundJob::TestTransport',
     };
 }
 

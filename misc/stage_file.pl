@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -238,7 +238,7 @@ Parameters:
     --add-items             use this option to specify that
                             item data is embedded in the MARC
                             bibs and should be parsed.
-    --item-action           action to take if --add-items is specifed;
+    --item-action           action to take if --add-items is specified;
                             choices are 'always_add',
                             'add_only_for_matches', 'add_only_for_new',
                             'ignore', or 'replace'

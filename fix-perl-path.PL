@@ -12,7 +12,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 #
 
 use strict;
@@ -29,7 +29,7 @@ $bindir =~ s!\\!/!g;    # make all directory separators uniform since Win32 does
 my $shebang = "#!$bindir\/perl";
 
 warn "Perl binary located in $bindir on this system.\n"        if $DEBUG;
-warn "The shebang line for this sytems should be $shebang\n\n" if $DEBUG;
+warn "The shebang line for this system should be $shebang\n\n" if $DEBUG;
 
 die if $basedir eq 'test';
 

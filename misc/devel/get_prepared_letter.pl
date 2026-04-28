@@ -14,7 +14,7 @@
 # A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with Koha; if not, see <http://www.gnu.org/licenses>.
+# with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -51,17 +51,17 @@ The letter language (es-ES, fr-FR, ...)
 =item B<--repeat REPEAT>
 
 A JSON formatted string that will be used as repeat parameter. See
-documentation of GetPreparedLetter for more informations.
+documentation of GetPreparedLetter for more information.
 
 =item B<--tables TABLES>
 
 A JSON formatted string that will be used as tables parameter. See
-documentation of GetPreparedLetter for more informations.
+documentation of GetPreparedLetter for more information.
 
 =item B<--loops LOOPS>
 
 A JSON formatted string that will be used as loops parameter. See
-documentation of GetPreparedLetter for more informations.
+documentation of GetPreparedLetter for more information.
 
 =back
 

@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -21,8 +21,7 @@ use Getopt::Long qw( GetOptions );
 use Pod::Usage   qw( pod2usage );
 
 use Koha::Script -cron;
-
-use C4::Context;
+use C4::Biblio qw( DelBiblio );
 use Koha::Items;
 
 my $dbh = C4::Context->dbh();
@@ -123,6 +122,10 @@ clause querying the items table. These are joined by C<AND>.
 
 No items will be deleted unless the C<--commit> flag is present.
 
+=item B<--del_bibs>
+
+Deletes the bibliographic record if the last item is deleted.
+
 =back
 
 =cut
@@ -131,7 +134,7 @@ No items will be deleted unless the C<--commit> flag is present.
 
   The following is an example of this script:
 
- delete_items.pl --where "items.withdrawn ! 0"  --where "items.withdrawn_on < $(date --date="13 month ago" --rfc-3339=date)" --commit
+ delete_items.pl --where "withdrawn ! 0"  --where "withdrawn_on < $(date --date="13 month ago" --rfc-3339=date)" --commit
 
  delete_items.pl --where "itemlost >= '1'" --where "itemlost <='4'" --where "itemlost_on < '2014-04-28'" --commit
 

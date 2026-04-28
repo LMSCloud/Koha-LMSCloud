@@ -58,6 +58,8 @@
             </form>
         [% END %]
     [% END %]
+</div>
+<!-- /.main.container-fluid -->
 
     [% MACRO jsinclude BLOCK %]
         [% INCLUDE 'datatables.inc' %]

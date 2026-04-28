@@ -137,10 +137,10 @@ sub text_replace {
                 sub {
                     $_ = $_[0];
                     my ( $kind, $t, $attr ) = ( $_->type, $_->string, $_->attributes );
-                    $kind == C4::TmplTokenType::TAG && %$attr ? text_replace_tag( $t, $attr ) : $t;
+                    $kind == C4::TmplTokenType::TAG && $attr && %$attr ? text_replace_tag( $t, $attr ) : $t;
                 }
             );
-        } elsif ( $kind eq C4::TmplTokenType::TAG && %$attr ) {
+        } elsif ( $kind eq C4::TmplTokenType::TAG && $attr && %$attr ) {
             print $output text_replace_tag( $t, $attr );
         } elsif ( $s->has_js_data ) {
             for my $t ( @{ $s->js_data } ) {

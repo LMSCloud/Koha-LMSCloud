@@ -234,196 +234,191 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' aside='admin-menu' %]
+    <h1>Table settings</h1>
+    [% WRAPPER accordion panelgroup_id="modules" %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="acqui" %]
+                <span>Acquisition</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="acqui" %]
+                <h3>Acquisition tables</h3>
+                [% PROCESS pagelist module=modules.acqui modulename="acqui" %]
+            [% END %]
+        [% END %]
 
-                <h1>Table settings</h1>
-                [% WRAPPER accordion panelgroup_id="modules" %]
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="acqui" %]
-                            <span>Acquisition</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="acqui" %]
-                            <h3>Acquisition tables</h3>
-                            [% PROCESS pagelist module=modules.acqui modulename="acqui" %]
-                        [% END %]
-                    [% END %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="admin" %]
+                <span>Administration</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="admin" %]
+                <h3>Administration tables</h3>
+                [% PROCESS pagelist module=modules.admin modulename="admin" %]
+            [% END %]
+        [% END %]
 
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="admin" %]
-                            <span>Administration</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="admin" %]
-                            <h3>Administration tables</h3>
-                            [% PROCESS pagelist module=modules.admin modulename="admin" %]
-                        [% END %]
-                    [% END %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="authorities" %]
+                <span>Authorities</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="authorities" %]
+                <h3>Authorities tables</h3>
+                [% PROCESS pagelist module=modules.authorities modulename="authorities" %]
+            [% END %]
+        [% END %]
 
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="authorities" %]
-                            <span>Authorities</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="authorities" %]
-                            <h3>Authorities tables</h3>
-                            [% PROCESS pagelist module=modules.authorities modulename="authorities" %]
-                        [% END %]
-                    [% END %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="catalogue" %]
+                <span>Catalog</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="catalogue" %]
+                <h3>Catalogue tables</h3>
+                [% PROCESS pagelist module=modules.catalogue modulename="catalogue" %]
+            [% END %]
+        [% END %]
 
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="catalogue" %]
-                            <span>Catalog</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="catalogue" %]
-                            <h3>Catalogue tables</h3>
-                            [% PROCESS pagelist module=modules.catalogue modulename="catalogue" %]
-                        [% END %]
-                    [% END %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="cataloguing" %]
+                <span>Cataloging</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="cataloguing" %]
+                <h3>Cataloguing tables</h3>
+                [% PROCESS pagelist module=modules.cataloguing modulename="cataloguing" %]
+            [% END %]
+        [% END %]
 
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="cataloguing" %]
-                            <span>Cataloging</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="cataloguing" %]
-                            <h3>Cataloguing tables</h3>
-                            [% PROCESS pagelist module=modules.cataloguing modulename="cataloguing" %]
-                        [% END %]
-                    [% END %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="circ" %]
+                <span>Circulation</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="circ" %]
+                <h3>Circulation tables</h3>
+                [% PROCESS pagelist module=modules.circ modulename="circ" %]
+            [% END %]
+        [% END %]
 
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="circ" %]
-                            <span>Circulation</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="circ" %]
-                            <h3>Circulation tables</h3>
-                            [% PROCESS pagelist module=modules.circ modulename="circ" %]
-                        [% END %]
-                    [% END %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="coursereserves" %]
+                <span>Course reserves</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="coursereserves" %]
+                <h3>Course reserves tables</h3>
+                [% PROCESS pagelist module=modules.coursereserves modulename="coursereserves" %]
+            [% END %]
+        [% END %]
 
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="coursereserves" %]
-                            <span>Course reserves</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="coursereserves" %]
-                            <h3>Course reserves tables</h3>
-                            [% PROCESS pagelist module=modules.coursereserves modulename="coursereserves" %]
-                        [% END %]
-                    [% END %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="erm" %]
+                <span>E-resource management</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="erm" %]
+                <h3>E-resource management tables</h3>
+                [% PROCESS pagelist module=modules.erm modulename="erm" %]
+            [% END %]
+        [% END %]
 
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="erm" %]
-                            <span>E-resource management</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="erm" %]
-                            <h3>E-resource management tables</h3>
-                            [% PROCESS pagelist module=modules.erm modulename="erm" %]
-                        [% END %]
-                    [% END %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="illrequests" %]
+                <span>Interlibrary loans</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="illrequests" %]
+                <h3>Interlibrary loans tables</h3>
+                [% PROCESS pagelist module=modules.illrequests modulename="illrequests" %]
+            [% END %]
+        [% END %]
 
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="illrequests" %]
-                            <span>Interlibrary loans</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="illrequests" %]
-                            <h3>Interlibrary loans tables</h3>
-                            [% PROCESS pagelist module=modules.illrequests modulename="illrequests" %]
-                        [% END %]
-                    [% END %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="members" %]
+                <span>Patrons</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="members" %]
+                <h3>Patrons tables</h3>
+                [% PROCESS pagelist module=modules.members modulename="members" %]
+            [% END %]
+        [% END %]
 
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="members" %]
-                            <span>Patrons</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="members" %]
-                            <h3>Patrons tables</h3>
-                            [% PROCESS pagelist module=modules.members modulename="members" %]
-                        [% END %]
-                    [% END %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="pos" %]
+                <span>Point of sale</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="pos" %]
+                <h3>Point of sale tables</h3>
+                [% PROCESS pagelist module=modules.pos modulename="pos" %]
+            [% END %]
+        [% END %]
 
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="pos" %]
-                            <span>Point of sale</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="pos" %]
-                            <h3>Point of sale tables</h3>
-                            [% PROCESS pagelist module=modules.pos modulename="pos" %]
-                        [% END %]
-                    [% END %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="tools" %]
+                <span>Tools</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="tools" %]
+                <h3>Tools tables</h3>
+                [% PROCESS pagelist module=modules.tools modulename="tools" %]
+            [% END %]
+        [% END %]
 
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="tools" %]
-                            <span>Tools</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="tools" %]
-                            <h3>Tools tables</h3>
-                            [% PROCESS pagelist module=modules.tools modulename="tools" %]
-                        [% END %]
-                    [% END %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="opac" %]
+                <span>OPAC</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="opac" %]
+                <h3>OPAC tables</h3>
+                [% PROCESS pagelist module=modules.opac modulename="opac" %]
+            [% END %]
+        [% END %]
 
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="opac" %]
-                            <span>OPAC</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="opac" %]
-                            <h3>OPAC tables</h3>
-                            [% PROCESS pagelist module=modules.opac modulename="opac" %]
-                        [% END %]
-                    [% END %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="sip2" %]
+                <span>SIP2</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="sip2" %]
+                <h3>SIP2 tables</h3>
+                [% PROCESS pagelist module=modules.sip2 modulename="sip2" %]
+            [% END %]
+        [% END %]
 
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="reports" %]
-                            <span>Reports</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="reports" %]
-                            <h3>Reports tables</h3>
-                            [% PROCESS pagelist module=modules.reports modulename="reports" %]
-                        [% END %]
-                    [% END %]
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="reports" %]
+                <span>Reports</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="reports" %]
+                <h3>Reports tables</h3>
+                [% PROCESS pagelist module=modules.reports modulename="reports" %]
+            [% END %]
+        [% END %]
 
-                    [% WRAPPER accordion_item %]
-                        [% WRAPPER accordion_heading panel_id="serials" %]
-                            <span>Serials</span>
-                        [% END %]
-                        [% WRAPPER accordion_panel panel_id="serials" %]
-                            <h3>Serials tables</h3>
-                            [% PROCESS pagelist module=modules.serials modulename="serials" %]
-                        [% END %]
-                    [% END %]
-                [% END # /WRAPPER accordion %]
-            </main>
-        </div>
-        <!-- /.col-md-10.order-md-2 -->
+        [% WRAPPER accordion_item %]
+            [% WRAPPER accordion_heading panel_id="serials" %]
+                <span>Serials</span>
+            [% END %]
+            [% WRAPPER accordion_panel panel_id="serials" %]
+                <h3>Serials tables</h3>
+                [% PROCESS pagelist module=modules.serials modulename="serials" %]
+            [% END %]
+        [% END %]
+    [% END # /WRAPPER accordion %]
+[% END %]
 
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'admin-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/admin-menu.js") | $raw %]
 
-    [% MACRO jsinclude BLOCK %]
-        [% Asset.js("js/admin-menu.js") | $raw %]
-
-        [%- IF ( panel.defined ) -%]
-            <script>
-                $(document).ready( function() {
-                    $("#[% panel | uri %]_panel").collapse("show");
-                    [%- IF page.defined -%]
-                        $("#[% panel | uri %]_panel").on('shown.bs.collapse', function () {
-                            $('html, body').animate({
-                                [%- IF table.defined -%]
-                                    scrollTop: ($("#[% page | uri %]\\|[% table | uri %]").offset().top)
-                                [%- ELSE -%]
-                                    scrollTop: ($("#[% page | uri %]").offset().top)
-                                [%- END -%]
-                            }, 500);
-                        });
-                    [%- END -%]
-                });
-            </script>
-        [%- END -%]
-    [% END %]
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+    [%- IF ( panel.defined ) -%]
+        <script>
+            $(document).ready( function() {
+                $("#[% panel | uri %]_panel").collapse("show");
+                [%- IF page.defined -%]
+                    $("#[% panel | uri %]_panel").on('shown.bs.collapse', function () {
+                        $('html, body').animate({
+                            [%- IF table.defined -%]
+                                scrollTop: ($("#[% page | uri %]\\|[% table | uri %]").offset().top)
+                            [%- ELSE -%]
+                                scrollTop: ($("#[% page | uri %]").offset().top)
+                            [%- END -%]
+                        }, 500);
+                    });
+                [%- END -%]
+            });
+        </script>
+    [%- END -%]
+[% END %]
+[% INCLUDE 'intranet-bottom.inc' %]

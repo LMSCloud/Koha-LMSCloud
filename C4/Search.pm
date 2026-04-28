@@ -13,9 +13,26 @@ package C4::Search;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(
+        FindDuplicate
+        SimpleSearch
+        searchResults
+        getRecords
+        buildQuery
+        GetDistinctValues
+        enabled_staff_search_views
+        new_record_from_zebra
+        z3950_search_args
+        getIndexes
+    );
+}
+
 use C4::Context;
 use C4::Biblio qw( TransformMarcToKoha GetMarcFromKohaField GetFrameworkCode GetAuthorisedValueDesc GetBiblioData );
 use C4::Koha
@@ -40,25 +57,8 @@ use URI::Escape;
 use Business::ISBN;
 use MARC::Record;
 use MARC::Field;
-
-our ( @ISA, @EXPORT_OK );
-
-BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
-        FindDuplicate
-        SimpleSearch
-        searchResults
-        getRecords
-        buildQuery
-        GetDistinctValues
-        enabled_staff_search_views
-        new_record_from_zebra
-        z3950_search_args
-        getIndexes
-    );
-}
+use POSIX qw(setlocale LC_COLLATE);
+use Unicode::Collate::Locale;
 
 =head1 NAME
 
@@ -196,7 +196,7 @@ for my $r ( @{$marcresults} ) {
     my $marcrecord = MARC::File::USMARC::decode($r);
     my $biblio = TransformMarcToKoha({ record => $marcrecord });
 
-    #build the iarray of hashs for the template.
+    #build the iarray of hashes for the template.
     push @results, {
         title           => $biblio->{'title'},
         subtitle        => $biblio->{'subtitle'},
@@ -296,6 +296,40 @@ See verbose embedded documentation.
 
 =cut
 
+=head2 _sort_facets_zebra
+
+    my $sorted_facets = _sort_facets_zebra($facets, $locale);
+
+Sorts facets using a configurable locale for Zebra search engine.
+
+=cut
+
+sub _sort_facets_zebra {
+    my ( $facets, $locale ) = @_;
+
+    if ( !$locale ) {
+
+        # Get locale from system preference, falling back to system LC_COLLATE
+        $locale = C4::Context->preference('FacetSortingLocale') || 'default';
+        if ( $locale eq 'default' || !$locale ) {
+
+            #NOTE: When setlocale is run with only the 1st parameter, it is a "get" not a "set" function.
+            $locale = setlocale(LC_COLLATE) || 'default';
+        }
+    }
+
+    my $collator = Unicode::Collate::Locale->new( locale => $locale );
+    if ( $collator && $facets ) {
+        my @sorted_facets = sort { $collator->cmp( $a->{facet_label_value}, $b->{facet_label_value} ) } @{$facets};
+        if (@sorted_facets) {
+            return \@sorted_facets;
+        }
+    }
+
+    #NOTE: If there was a problem, at least return the not sorted facets
+    return $facets;
+}
+
 sub getRecords {
     my (
         $koha_query,       $simple_query, $sort_by_ref, $servers_ref,
@@ -312,7 +346,7 @@ sub getRecords {
     my @results;
     my $results_hashref = ();
 
-    # TODO simplify this structure ( { branchcode => $branchname } is enought) and remove this parameter
+    # TODO simplify this structure ( { branchcode => $branchname } is enough) and remove this parameter
     $branches ||= { map { $_->branchcode => { branchname => $_->branchname } } Koha::Libraries->search->as_list };
 
     # Initialize variables for the faceted results objects
@@ -559,19 +593,28 @@ sub getRecords {
     if (@facets_loop) {
         foreach my $f (@facets_loop) {
             if ( C4::Context->preference('FacetOrder') eq 'Alphabetical' ) {
-                $f->{facets} =
-                    [ sort { uc( $a->{facet_label_value} ) cmp uc( $b->{facet_label_value} ) } @{ $f->{facets} } ]
-                    if ( $f->{type_link_value} ne 'publyear' );
-                $f->{facets} =
-                    [ reverse sort { uc( $a->{facet_label_value} ) cmp uc( $b->{facet_label_value} ) }
-                        @{ $f->{facets} } ]
-                    if ( $f->{type_link_value} eq 'publyear' );
+                my $sorted_facets = _sort_facets_zebra( $f->{facets} );
+                if ($sorted_facets) {
+
+                    # LMS: invert publyear so newest year appears first
+                    $sorted_facets = [ reverse @{$sorted_facets} ] if $f->{type_link_value} eq 'publyear';
+                    $f->{facets} = $sorted_facets;
+                }
+            } elsif ( C4::Context->preference('FacetOrder') eq 'Stringwise' ) {
+                @{ $f->{facets} } = sort { $a->{facet_label_value} cmp $b->{facet_label_value} } @{ $f->{facets} };
+                @{ $f->{facets} } = reverse @{ $f->{facets} } if $f->{type_link_value} eq 'publyear';
             }
         }
     }
 
     return ( undef, $results_hashref, \@facets_loop );
 }
+
+=head2 GetFacets
+
+Missing POD for GetFacets.
+
+=cut
 
 sub GetFacets {
 
@@ -1722,7 +1765,9 @@ sub searchResults {
 
     # set stuff for XSLT processing here once, not later again for every record we retrieved
 
-    my $userenv = C4::Context->userenv;
+    my $userenv        = C4::Context->userenv;
+    my $userenv_branch = $userenv->{'branch'};
+
     my $logged_in_user =
         ( defined $userenv and $userenv->{number} )
         ? Koha::Patrons->find( $userenv->{number} )
@@ -1771,6 +1816,7 @@ sub searchResults {
             or $oldbiblio->{normalized_ean}
             or $oldbiblio->{normalized_upc} );
 
+        # LMS: harvest cover URLs and content-sample links from MARC 856 so opac-results.tt can display them
         if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnabled") ) {
             my $titlecoverurls = [];
             my $coverfound     = 0;
@@ -1792,8 +1838,10 @@ sub searchResults {
                     && $marcrecord->field('337')
                     && $marcrecord->field('337')->subfield('a') )
                 {
-                    $oldbiblio->{'contentsample'} =
-                        { 'link' => $tag->subfield('u'), 'type' => $marcrecord->field('337')->subfield('a') };
+                    $oldbiblio->{'contentsample'} = {
+                        'link' => $tag->subfield('u'),
+                        'type' => $marcrecord->field('337')->subfield('a'),
+                    };
                 }
             }
             $oldbiblio->{'titlecoverurls'} = $titlecoverurls if ($coverfound);
@@ -1848,23 +1896,26 @@ sub searchResults {
         my $onloan_items;
         my $other_items;
 
-        my $ordered_count         = 0;
-        my $available_count       = 0;
-        my $onloan_count          = 0;
-        my $longoverdue_count     = 0;
-        my $other_count           = 0;
-        my $withdrawn_count       = 0;
-        my $itemlost_count        = 0;
-        my $hideatopac_count      = 0;
-        my $itembinding_count     = 0;
-        my $itemdamaged_count     = 0;
-        my $item_in_transit_count = 0;
-        my $item_onhold_count     = 0;
-        my $notforloan_count      = 0;
-        my $item_recalled_count   = 0;
-        my $items_count           = scalar(@fields);
-        my $maxitems_pref         = C4::Context->preference('maxItemsinSearchResults');
-        my $maxitems              = $maxitems_pref ? $maxitems_pref - 1 : 1;
+        my $ordered_count          = 0;
+        my $available_count        = 0;
+        my $branch_available_count = 0;
+        my $onloan_count           = 0;
+        my $branch_onloan_count    = 0;
+        my $longoverdue_count      = 0;
+        my $other_count            = 0;
+        my $branch_other_count     = 0;
+        my $withdrawn_count        = 0;
+        my $itemlost_count         = 0;
+        my $hideatopac_count       = 0;
+        my $itembinding_count      = 0;
+        my $itemdamaged_count      = 0;
+        my $item_in_transit_count  = 0;
+        my $item_onhold_count      = 0;
+        my $notforloan_count       = 0;
+        my $item_recalled_count    = 0;
+        my $items_count            = scalar(@fields);
+        my $maxitems_pref          = C4::Context->preference('maxItemsinSearchResults');
+        my $maxitems               = $maxitems_pref ? $maxitems_pref - 1 : 1;
         my @hiddenitems;    # hidden itemnumbers based on OpacHiddenItems syspref
 
         # loop through every item
@@ -1921,8 +1972,11 @@ sub searchResults {
                 and !( $patron_category_hide_lost_items and $item->{itemlost} ) )
             {
                 $onloan_count++;
+                $branch_onloan_count++
+                    if $userenv_branch && defined $item->{'branchcode'} && $item->{'branchcode'} eq $userenv_branch;
                 my $key = $prefix . $item->{onloan} . $item->{barcode};
-                $onloan_items->{$key}->{due_date} = $item->{onloan};
+                $onloan_items->{$key}->{branchonloancount} = $branch_onloan_count;
+                $onloan_items->{$key}->{due_date}          = $item->{onloan};
                 $onloan_items->{$key}->{count}++ if $item->{$hbranch};
                 $onloan_items->{$key}->{branchname}     = $item->{branchname};
                 $onloan_items->{$key}->{branchcode}     = $item->{branchcode};
@@ -2031,15 +2085,17 @@ sub searchResults {
                         . ( $item->{notforloan} // q{} );
 
                     $other_count++;
-
+                    $branch_other_count++
+                        if $userenv_branch && defined $item->{'branchcode'} && $item->{'branchcode'} eq $userenv_branch;
                     my $key = $prefix . $item->{status};
                     foreach (qw(withdrawn itemlost damaged branchname itemcallnumber)) {
                         $other_items->{$key}->{$_} = $item->{$_};
                     }
-                    $other_items->{$key}->{branchcode} = $item->{branchcode};
-                    $other_items->{$key}->{intransit}  = ( $transfertwhen ne '' ) ? 1 : 0;
-                    $other_items->{$key}->{recalled}   = ($recallstatus)          ? 1 : 0;
-                    $other_items->{$key}->{onhold}     = ($reservestatus)         ? 1 : 0;
+                    $other_items->{$key}->{branchothercount} = $branch_other_count;
+                    $other_items->{$key}->{branchcode}       = $item->{branchcode};
+                    $other_items->{$key}->{intransit}        = ( $transfertwhen ne '' ) ? 1 : 0;
+                    $other_items->{$key}->{recalled}         = ($recallstatus)          ? 1 : 0;
+                    $other_items->{$key}->{onhold}           = ($reservestatus)         ? 1 : 0;
                     $other_items->{$key}->{notforloan} =
                         GetAuthorisedValueDesc( '', '', $item->{notforloan}, '', '', $notforloan_authorised_value )
                         if $notforloan_authorised_value and $item->{notforloan};
@@ -2059,12 +2115,15 @@ sub searchResults {
                 # item is available
                 else {
                     $available_count++;
+                    $branch_available_count++
+                        if $userenv_branch && defined $item->{'branchcode'} && $item->{'branchcode'} eq $userenv_branch;
                     $available_items->{$prefix}->{count}++ if $item->{$hbranch};
                     foreach (qw(branchname itemcallnumber description)) {
                         $available_items->{$prefix}->{$_} = $item->{$_};
                     }
-                    $available_items->{$prefix}->{branchcode} = $item->{branchcode};
-                    $available_items->{$prefix}->{location}   = $shelflocations->{ $item->{location} }
+                    $available_items->{$prefix}->{branchavailablecount} = $branch_available_count;
+                    $available_items->{$prefix}->{branchcode}           = $item->{branchcode};
+                    $available_items->{$prefix}->{location}             = $shelflocations->{ $item->{location} }
                         if $item->{location};
                     $available_items->{$prefix}->{imageurl} = getitemtypeimagelocation(
                         $search_context->{'interface'},
@@ -2128,7 +2187,7 @@ sub searchResults {
                 }
             );
         }
-
+        my $branch_count  = $branch_available_count + $branch_onloan_count + $branch_other_count || 0;
         my $biblio_object = Koha::Biblios->find( $oldbiblio->{biblionumber} );
         $oldbiblio->{biblio_object} = $biblio_object;
         $oldbiblio->{coins}         = eval { $biblio_object->get_coins }
@@ -2152,19 +2211,25 @@ sub searchResults {
         $oldbiblio->{onloan_items_loop}    = \@onloan_items_loop;
         $oldbiblio->{other_items_loop}     = \@other_items_loop;
         $oldbiblio->{availablecount}       = $available_count;
-        $oldbiblio->{availableplural}      = 1 if $available_count > 1;
-        $oldbiblio->{onloancount}          = $onloan_count;
-        $oldbiblio->{onloanplural}         = 1 if $onloan_count > 1;
-        $oldbiblio->{othercount}           = $other_count;
-        $oldbiblio->{otherplural}          = 1 if $other_count > 1;
-        $oldbiblio->{withdrawncount}       = $withdrawn_count;
-        $oldbiblio->{itemlostcount}        = $itemlost_count;
-        $oldbiblio->{damagedcount}         = $itemdamaged_count;
-        $oldbiblio->{intransitcount}       = $item_in_transit_count;
-        $oldbiblio->{onholdcount}          = $item_onhold_count;
-        $oldbiblio->{recalledcount}        = $item_recalled_count;
-        $oldbiblio->{orderedcount}         = $ordered_count;
-        $oldbiblio->{notforloancount}      = $notforloan_count;
+
+        $oldbiblio->{branchavailablecount} = $branch_available_count || 0;
+        $oldbiblio->{branchonloancount}    = $branch_onloan_count    || 0;
+        $oldbiblio->{branchothercount}     = $branch_other_count     || 0;
+        $oldbiblio->{branchtotalcount}     = $branch_count           || 0;
+
+        $oldbiblio->{availableplural} = 1 if $available_count > 1;
+        $oldbiblio->{onloancount}     = $onloan_count;
+        $oldbiblio->{onloanplural}    = 1 if $onloan_count > 1;
+        $oldbiblio->{othercount}      = $other_count;
+        $oldbiblio->{otherplural}     = 1 if $other_count > 1;
+        $oldbiblio->{withdrawncount}  = $withdrawn_count;
+        $oldbiblio->{itemlostcount}   = $itemlost_count;
+        $oldbiblio->{damagedcount}    = $itemdamaged_count;
+        $oldbiblio->{intransitcount}  = $item_in_transit_count;
+        $oldbiblio->{onholdcount}     = $item_onhold_count;
+        $oldbiblio->{recalledcount}   = $item_recalled_count;
+        $oldbiblio->{orderedcount}    = $ordered_count;
+        $oldbiblio->{notforloancount} = $notforloan_count;
 
         if ( C4::Context->preference("AlternateHoldingsField") && $items_count == 0 ) {
             my $fieldspec             = C4::Context->preference("AlternateHoldingsField");
@@ -2429,6 +2494,6 @@ __END__
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 =cut

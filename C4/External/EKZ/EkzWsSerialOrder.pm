@@ -15,7 +15,7 @@ package C4::External::EKZ::EkzWsSerialOrder;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -136,7 +136,7 @@ sub genKohaRecords {
     my $authorisedby     = undef;
     my $exceptionThrown;
 
-    my @enabled_plugins = Koha::Plugins::get_enabled_plugins()
+    my @enabled_plugins = Koha::Plugins->get_enabled_plugins()
         ; # this is a hack to avoid the creation of additional database connections by plugins during our database transaction XXXWH
     my $schema = Koha::Database->schema;
     $schema->storage->txn_begin;

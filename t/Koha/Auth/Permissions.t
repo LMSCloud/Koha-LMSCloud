@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use Test::NoWarnings;
+use Test::More tests => 4;
 
 use_ok('Koha::Auth::Permissions');
 
@@ -124,11 +125,14 @@ subtest 'superlibrarian tests' => sub {
         'CAN_user_acquisition_reopen_closed_invoices'               => 1,
         'CAN_user_acquisition_vendors_manage'                       => 1,
         'CAN_user_acquisition'                                      => 1,
+        'CAN_user_borrowers_send_messages_to_borrowers_email'       => 1,
+        'CAN_user_borrowers_send_messages_to_borrowers_sms'         => 1,
         'CAN_user_borrowers_send_messages_to_borrowers'             => 1,
         'CAN_user_borrowers_delete_borrowers'                       => 1,
         'CAN_user_borrowers_merge_borrowers'                        => 1,
         'CAN_user_borrowers_edit_borrowers'                         => 1,
         'CAN_user_borrowers_list_borrowers'                         => 1,
+        'CAN_user_borrowers_api_validate_password'                  => 1,
         'CAN_user_borrowers_view_borrower_infos_from_any_libraries' => 1,
         'CAN_user_borrowers'                                        => 1,
         'CAN_user_cash_management_anonymous_refund'                 => 1,
@@ -140,6 +144,7 @@ subtest 'superlibrarian tests' => sub {
         'CAN_user_circulate_force_checkout'                         => 1,
         'CAN_user_circulate_manage_bookings'                        => 1,
         'CAN_user_circulate_manage_checkout_notes'                  => 1,
+        'CAN_user_circulate_send_adhoc_notices'                     => 1,
         'CAN_user_circulate_manage_curbside_pickups'                => 1,
         'CAN_user_circulate_manage_restrictions'                    => 1,
         'CAN_user_circulate_overdues_report'                        => 1,
@@ -188,6 +193,7 @@ subtest 'superlibrarian tests' => sub {
         'CAN_user_parameters_manage_column_config'                  => 1,
         'CAN_user_parameters_manage_curbside_pickups'               => 1,
         'CAN_user_parameters_manage_didyoumean'                     => 1,
+        'CAN_user_parameters_manage_file_transports'                => 1,
         'CAN_user_parameters_manage_identity_providers'             => 1,
         'CAN_user_parameters_manage_item_circ_alerts'               => 1,
         'CAN_user_parameters_manage_item_search_fields'             => 1,
@@ -208,6 +214,7 @@ subtest 'superlibrarian tests' => sub {
         'CAN_user_parameters_manage_search_targets'                 => 1,
         'CAN_user_parameters_manage_sms_providers'                  => 1,
         'CAN_user_parameters_manage_smtp_servers'                   => 1,
+        'CAN_user_parameters_manage_file_transports'                => 1,
         'CAN_user_parameters_manage_sysprefs'                       => 1,
         'CAN_user_parameters_manage_transfers'                      => 1,
         'CAN_user_parameters_manage_usage_stats'                    => 1,
@@ -230,6 +237,7 @@ subtest 'superlibrarian tests' => sub {
         'CAN_user_reports'                                          => 1,
         'CAN_user_reserveforothers_modify_holds_priority'           => 1,
         'CAN_user_reserveforothers_place_holds'                     => 1,
+        'CAN_user_reserveforothers_alter_hold_targets'              => 1,
         'CAN_user_reserveforothers'                                 => 1,
         'CAN_user_self_check_self_checkin_module'                   => 1,
         'CAN_user_self_check_self_checkout_module'                  => 1,
@@ -252,9 +260,15 @@ subtest 'superlibrarian tests' => sub {
         'CAN_user_suggestions_suggestions_manage'                   => 1,
         'CAN_user_suggestions_suggestions_delete'                   => 1,
         'CAN_user_suggestions'                                      => 1,
+        'CAN_user_tools_cash_register_manage'                       => 1,
+        'CAN_user_tools_download_batchprint_files'                  => 1,
+        'CAN_user_tools_duedate_update'                             => 1,
+        'CAN_user_tools_edit_notice_fee_rules'                      => 1,
+        'CAN_user_tools_run_batch_programs'                         => 1,
         'CAN_user_superlibrarian'                                   => 1,
         'CAN_user_tools_access_files'                               => 1,
         'CAN_user_tools_batch_extend_due_dates'                     => 1,
+        'CAN_user_tools_batch_modify_holds'                         => 1,
         'CAN_user_tools_batch_upload_patron_images'                 => 1,
         'CAN_user_tools_delete_anonymize_patrons'                   => 1,
         'CAN_user_tools_edit_additional_contents'                   => 1,
@@ -287,10 +301,13 @@ subtest 'superlibrarian tests' => sub {
         'CAN_user_tools_view_system_logs'                           => 1,
         'CAN_user_tools'                                            => 1,
         'CAN_user_updatecharges_discount'                           => 1,
+        'CAN_user_updatecharges_edit_accountline_notes'             => 1,
         'CAN_user_updatecharges_manual_credit'                      => 1,
         'CAN_user_updatecharges_manual_invoice'                     => 1,
         'CAN_user_updatecharges_payout'                             => 1,
         'CAN_user_updatecharges_refund'                             => 1,
+        'CAN_user_updatecharges_cancel_fee'                         => 1,
+        'CAN_user_updatecharges_cash_management'                    => 1,
         'CAN_user_updatecharges_remaining_permissions'              => 1,
         'CAN_user_updatecharges_writeoff'                           => 1,
         'CAN_user_updatecharges'                                    => 1,

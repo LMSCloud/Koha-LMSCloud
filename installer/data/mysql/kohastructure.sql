@@ -1,8 +1,9 @@
--- MariaDB dump 10.19  Distrib 10.11.11-MariaDB, for debian-linux-gnu (x86_64)
+/*M!999999\- enable the sandbox mode */ 
+-- MariaDB dump 10.19  Distrib 10.11.14-MariaDB, for debian-linux-gnu (x86_64)
 --
 -- Host: db    Database: koha_kohadev
 -- ------------------------------------------------------
--- Server version	11.7.2-MariaDB-ubu2404
+-- Server version	12.1.2-MariaDB-ubu2404
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -291,10 +292,12 @@ DROP TABLE IF EXISTS `additional_field_values`;
 CREATE TABLE `additional_field_values` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key identifier',
   `field_id` int(11) NOT NULL COMMENT 'foreign key references additional_fields(id)',
-  `record_id` int(11) NOT NULL COMMENT 'record_id',
+  `record_table` varchar(255) NOT NULL DEFAULT '' COMMENT 'tablename of the related record',
+  `record_id` varchar(80) NOT NULL DEFAULT '' COMMENT 'record_id',
   `value` varchar(255) NOT NULL DEFAULT '' COMMENT 'value for this field',
   PRIMARY KEY (`id`),
   KEY `afv_fk` (`field_id`),
+  KEY `record_table` (`record_table`),
   CONSTRAINT `afv_fk` FOREIGN KEY (`field_id`) REFERENCES `additional_fields` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -513,10 +516,10 @@ DROP TABLE IF EXISTS `aqbookseller_aliases`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `aqbookseller_aliases` (
-  `alias_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key and unique identifier assigned by Koha',
+  `vendor_alias_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key and unique identifier assigned by Koha',
   `vendor_id` int(11) NOT NULL COMMENT 'link to the vendor',
   `alias` varchar(255) NOT NULL COMMENT 'the alias',
-  PRIMARY KEY (`alias_id`),
+  PRIMARY KEY (`vendor_alias_id`),
   KEY `aqbookseller_aliases_ibfk_1` (`vendor_id`),
   CONSTRAINT `aqbookseller_aliases_ibfk_1` FOREIGN KEY (`vendor_id`) REFERENCES `aqbooksellers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -530,7 +533,7 @@ DROP TABLE IF EXISTS `aqbookseller_interfaces`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `aqbookseller_interfaces` (
-  `interface_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key and unique identifier assigned by Koha',
+  `vendor_interface_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key and unique identifier assigned by Koha',
   `vendor_id` int(11) NOT NULL COMMENT 'link to the vendor',
   `type` varchar(80) DEFAULT NULL COMMENT 'type of the interface, authorised value VENDOR_INTERFACE_TYPE',
   `name` varchar(255) NOT NULL COMMENT 'name of the interface',
@@ -539,7 +542,7 @@ CREATE TABLE `aqbookseller_interfaces` (
   `password` mediumtext DEFAULT NULL COMMENT 'hashed password',
   `account_email` mediumtext DEFAULT NULL COMMENT 'account email',
   `notes` longtext DEFAULT NULL COMMENT 'notes',
-  PRIMARY KEY (`interface_id`),
+  PRIMARY KEY (`vendor_interface_id`),
   KEY `aqbookseller_interfaces_ibfk_1` (`vendor_id`),
   CONSTRAINT `aqbookseller_interfaces_ibfk_1` FOREIGN KEY (`vendor_id`) REFERENCES `aqbooksellers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -1024,7 +1027,6 @@ CREATE TABLE `auth_header` (
   `heading` longtext DEFAULT NULL,
   `origincode` varchar(20) DEFAULT NULL,
   `authtrees` longtext DEFAULT NULL,
-  `marc` blob DEFAULT NULL,
   `linkid` bigint(20) DEFAULT NULL,
   `marcxml` longtext NOT NULL,
   PRIMARY KEY (`authid`),
@@ -1206,8 +1208,10 @@ CREATE TABLE `biblio` (
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'date and time this record was last touched',
   `datecreated` date NOT NULL COMMENT 'the date this record was added to Koha',
   `abstract` longtext DEFAULT NULL COMMENT 'summary from the MARC record (520$a in MARC21)',
+  `opac_suppressed` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'whether the record should be suppressed in the OPAC',
   PRIMARY KEY (`biblionumber`),
-  KEY `blbnoidx` (`biblionumber`)
+  KEY `blbnoidx` (`biblionumber`),
+  KEY `suppressedidx` (`opac_suppressed`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1355,7 +1359,8 @@ CREATE TABLE `borrower_attribute_types` (
   `category_code` varchar(10) DEFAULT NULL COMMENT 'defines a category for an attribute_type',
   `class` varchar(255) NOT NULL DEFAULT '' COMMENT 'defines a class for an attribute_type',
   `keep_for_pseudonymization` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'defines if this field is copied to anonymized_borrower_attributes (1 for yes, 0 for no)',
-  `mandatory` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'defines if the attribute is mandatory or not',
+  `mandatory` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'defines if the attribute is mandatory or not in the staff interface',
+  `opac_mandatory` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'defines if the attribute is mandatory or not in the OPAC',
   PRIMARY KEY (`code`),
   KEY `auth_val_cat_idx` (`authorised_value_category`),
   KEY `category_code` (`category_code`),
@@ -1507,7 +1512,7 @@ CREATE TABLE `borrower_modifications` (
   `othernames` longtext DEFAULT NULL,
   `initials` mediumtext DEFAULT NULL,
   `pronouns` longtext DEFAULT NULL,
-  `streetnumber` varchar(10) DEFAULT NULL,
+  `streetnumber` tinytext DEFAULT NULL,
   `streettype` varchar(50) DEFAULT NULL,
   `address` longtext DEFAULT NULL,
   `address2` mediumtext DEFAULT NULL,
@@ -1521,7 +1526,7 @@ CREATE TABLE `borrower_modifications` (
   `fax` longtext DEFAULT NULL,
   `emailpro` mediumtext DEFAULT NULL,
   `phonepro` mediumtext DEFAULT NULL,
-  `B_streetnumber` varchar(10) DEFAULT NULL,
+  `B_streetnumber` tinytext DEFAULT NULL,
   `B_streettype` varchar(50) DEFAULT NULL,
   `B_address` varchar(100) DEFAULT NULL,
   `B_address2` mediumtext DEFAULT NULL,
@@ -1554,9 +1559,9 @@ CREATE TABLE `borrower_modifications` (
   `contactnote` varchar(255) DEFAULT NULL,
   `sort1` varchar(80) DEFAULT NULL,
   `sort2` varchar(80) DEFAULT NULL,
+  `altcontacttitle` varchar(255) DEFAULT NULL,
   `altcontactfirstname` varchar(255) DEFAULT NULL,
   `altcontactsurname` varchar(255) DEFAULT NULL,
-  `altcontacttitle` varchar(255) DEFAULT NULL,
   `altcontactaddress1` varchar(255) DEFAULT NULL,
   `altcontactaddress2` varchar(255) DEFAULT NULL,
   `altcontactaddress3` varchar(255) DEFAULT NULL,
@@ -1642,7 +1647,7 @@ CREATE TABLE `borrowers` (
   `phone` mediumtext DEFAULT NULL COMMENT 'the primary phone number for your patron/borrower''s primary address',
   `mobile` tinytext DEFAULT NULL COMMENT 'the other phone number for your patron/borrower''s primary address',
   `fax` longtext DEFAULT NULL COMMENT 'the fax number for your patron/borrower''s primary address',
-  `emailpro` mediumtext DEFAULT NULL COMMENT 'the secondary email addres for your patron/borrower''s primary address',
+  `emailpro` mediumtext DEFAULT NULL COMMENT 'the secondary email address for your patron/borrower''s primary address',
   `phonepro` mediumtext DEFAULT NULL COMMENT 'the secondary phone number for your patron/borrower''s primary address',
   `B_streetnumber` tinytext DEFAULT NULL COMMENT 'the house number for your patron/borrower''s alternate address',
   `B_streettype` tinytext DEFAULT NULL COMMENT 'the street type (Rd., Blvd, etc) for your patron/borrower''s alternate address',
@@ -1665,7 +1670,7 @@ CREATE TABLE `borrowers` (
   `lost` tinyint(1) DEFAULT NULL COMMENT 'set to 1 for yes and 0 for no, flag to note that library marked this patron/borrower as having lost their card',
   `debarred` date DEFAULT NULL COMMENT 'until this date the patron can only check-in (no loans, no holds, etc.), is a fine based on days instead of money (YYYY-MM-DD)',
   `debarredcomment` varchar(255) DEFAULT NULL COMMENT 'comment on the stop of the patron',
-  `contactname` longtext DEFAULT NULL COMMENT 'used for children and profesionals to include surname or last name of guarantor or organization name',
+  `contactname` longtext DEFAULT NULL COMMENT 'used for children and professionals to include surname or last name of guarantor or organization name',
   `contactfirstname` mediumtext DEFAULT NULL COMMENT 'used for children to include first name of guarantor',
   `contacttitle` mediumtext DEFAULT NULL COMMENT 'used for children to include title (Mr., Mrs., etc) of guarantor',
   `borrowernotes` longtext DEFAULT NULL COMMENT 'a note on the patron/borrower''s account that is only visible in the staff interface',
@@ -1680,9 +1685,9 @@ CREATE TABLE `borrowers` (
   `contactnote` varchar(255) DEFAULT NULL COMMENT 'a note related to the patron/borrower''s alternate address',
   `sort1` varchar(80) DEFAULT NULL COMMENT 'a field that can be used for any information unique to the library',
   `sort2` varchar(80) DEFAULT NULL COMMENT 'a field that can be used for any information unique to the library',
+  `altcontacttitle` varchar(255) DEFAULT NULL COMMENT 'title of the alternate contact for the patron/borrower',
   `altcontactfirstname` mediumtext DEFAULT NULL COMMENT 'first name of alternate contact for the patron/borrower',
   `altcontactsurname` mediumtext DEFAULT NULL COMMENT 'surname or last name of the alternate contact for the patron/borrower',
-  `altcontacttitle` varchar(255) DEFAULT NULL COMMENT 'title of the alternate contact for the patron/borrower',
   `altcontactaddress1` mediumtext DEFAULT NULL COMMENT 'the first address line for the alternate contact for the patron/borrower',
   `altcontactaddress2` mediumtext DEFAULT NULL COMMENT 'the second address line for the alternate contact for the patron/borrower',
   `altcontactaddress3` mediumtext DEFAULT NULL COMMENT 'the city for the alternate contact for the patron/borrower',
@@ -1695,11 +1700,11 @@ CREATE TABLE `borrowers` (
   `privacy` int(11) NOT NULL DEFAULT 1 COMMENT 'patron/borrower''s privacy settings related to their checkout history',
   `privacy_guarantor_fines` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'controls if relatives can see this patron''s fines',
   `privacy_guarantor_checkouts` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'controls if relatives can see this patron''s checkouts',
-  `checkprevcheckout` varchar(7) NOT NULL DEFAULT 'inherit' COMMENT 'produce a warning for this patron if this item has previously been checked out to this patron if ''yes'', not if ''no'', defer to category setting if ''inherit''.',
+  `checkprevcheckout` enum('yes','no','inherit') NOT NULL DEFAULT 'inherit' COMMENT 'produce a warning for this patron if this item has previously been checked out to this patron if ''yes'', not if ''no'', defer to category setting if ''inherit''.',
   `updated_on` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'time of last change could be useful for synchronization with external systems (among others)',
   `lastseen` datetime DEFAULT NULL COMMENT 'last time a patron has been seen (connected at the OPAC or staff interface)',
   `lang` varchar(25) NOT NULL DEFAULT 'default' COMMENT 'lang to use to send notices to this patron',
-  `login_attempts` int(4) NOT NULL DEFAULT 0 COMMENT 'number of failed login attemps',
+  `login_attempts` int(4) NOT NULL DEFAULT 0 COMMENT 'number of failed login attempts',
   `overdrive_auth_token` mediumtext DEFAULT NULL COMMENT 'persist OverDrive auth token',
   `anonymized` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'flag for data anonymization',
   `autorenew_checkouts` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'flag for allowing auto-renewal',
@@ -1853,36 +1858,8 @@ CREATE TABLE `browser` ( -- store classification values
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `cash_register_actions`
+-- Table structure for table `cash_register_account`
 --
-
-DROP TABLE IF EXISTS `cash_register_actions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `cash_register_actions` (
-  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'unique identifier for each account register action',
-  `code` varchar(24) NOT NULL COMMENT 'action code denoting the type of action recorded (enum),',
-  `register_id` int(11) NOT NULL COMMENT 'id of cash_register this action belongs to,',
-  `manager_id` int(11) NOT NULL COMMENT 'staff member performing the action',
-  `amount` decimal(28,6) DEFAULT NULL COMMENT 'amount recorded in action (signed)',
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `cash_register_actions_manager` (`manager_id`),
-  KEY `cash_register_actions_register` (`register_id`),
-  CONSTRAINT `cash_register_actions_manager` FOREIGN KEY (`manager_id`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `cash_register_actions_register` FOREIGN KEY (`register_id`) REFERENCES `cash_registers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table cash_register_account
---
-
--- The table cash_register_account stores all cash register transactions. 
--- Actions are open and close the cash register, pay in, pay out, and adjust the
--- the cash register balance.
--- Payment actions (except pay outs) and refunds link typically to the accountline
--- bookings.
 
 DROP TABLE IF EXISTS `cash_register_account`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -1909,6 +1886,28 @@ CREATE TABLE `cash_register_account` (
   CONSTRAINT `cash_register_account_fk_2` FOREIGN KEY (`accountlines_id`)
     REFERENCES `accountlines` (`accountlines_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `cash_register_actions`
+--
+
+DROP TABLE IF EXISTS `cash_register_actions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cash_register_actions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'unique identifier for each account register action',
+  `code` varchar(24) NOT NULL COMMENT 'action code denoting the type of action recorded (enum),',
+  `register_id` int(11) NOT NULL COMMENT 'id of cash_register this action belongs to,',
+  `manager_id` int(11) NOT NULL COMMENT 'staff member performing the action',
+  `amount` decimal(28,6) DEFAULT NULL COMMENT 'amount recorded in action (signed)',
+  `timestamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `cash_register_actions_manager` (`manager_id`),
+  KEY `cash_register_actions_register` (`register_id`),
+  CONSTRAINT `cash_register_actions_manager` FOREIGN KEY (`manager_id`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `cash_register_actions_register` FOREIGN KEY (`register_id`) REFERENCES `cash_registers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2008,7 +2007,7 @@ CREATE TABLE `categories` (
   `BlockExpiredPatronOpacActions` varchar(128) NOT NULL DEFAULT 'follow_syspref_BlockExpiredPatronOpacActions' COMMENT 'specific actions expired patrons of this category are blocked from performing or if the BlockExpiredPatronOpacActions system preference is to be followed',
   `default_privacy` enum('default','never','forever') NOT NULL DEFAULT 'default' COMMENT 'Default privacy setting for this patron category',
   `family_card` tinyint(1) NOT NULL default 0 COMMENT 'mark a category as family card (linked borrowers via the guarantor relationship are not charged with the enrollment fee)',
-  `checkprevcheckout` varchar(7) NOT NULL DEFAULT 'inherit' COMMENT 'produce a warning for this patron category if this item has previously been checked out to this patron if ''yes'', not if ''no'', defer to syspref setting if ''inherit''.',
+  `checkprevcheckout` enum('yes','no','inherit') NOT NULL DEFAULT 'inherit' COMMENT 'produce a warning for this patron category if this item has previously been checked out to this patron if ''yes'', not if ''no'', defer to syspref setting if ''inherit''.',
   `can_place_ill_in_opac` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'can this patron category place interlibrary loan requests',
   `can_be_guarantee` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'if patrons of this category can be guarantees',
   `reset_password` tinyint(1) DEFAULT NULL COMMENT 'if patrons of this category can do the password reset flow,',
@@ -2020,6 +2019,7 @@ CREATE TABLE `categories` (
   `noissuescharge` int(11) DEFAULT NULL COMMENT 'define maximum amount outstanding before checkouts are blocked',
   `noissueschargeguarantees` int(11) DEFAULT NULL COMMENT 'define maximum amount that the guarantees of a patron in this category can have outstanding before checkouts are blocked',
   `noissueschargeguarantorswithguarantees` int(11) DEFAULT NULL COMMENT 'define maximum amount that the guarantors with guarantees of a patron in this category can have outstanding before checkouts are blocked',
+  `enforce_expiry_notice` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'enforce the patron expiry notice for this category',
   PRIMARY KEY (`categorycode`),
   UNIQUE KEY `categorycode` (`categorycode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -2108,12 +2108,6 @@ CREATE TABLE `cities` (
 --
 -- Table structure for table `claiming_rules`
 --
-
--- Claiming fee rules store configurations for charging claiming fees for overdue items.
--- Claiming rules can contain a specific defined values for branchcode, item type, or
--- borrower category or an asterix '*' which is wildcard for any possible values.
--- Rules with a specific value are more relevant than a rule with a wildcard value.
--- The rules are applied from most specific to less specific.
 
 DROP TABLE IF EXISTS `claiming_rules`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -2266,7 +2260,7 @@ CREATE TABLE `club_holds` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `club_id` int(11) NOT NULL COMMENT 'id for the club the hold was generated for',
   `biblio_id` int(11) NOT NULL COMMENT 'id for the bibliographic record the hold has been placed against',
-  `item_id` int(11) DEFAULT NULL COMMENT 'If item-level, the id for the item the hold has been placed agains',
+  `item_id` int(11) DEFAULT NULL COMMENT 'If item-level, the id for the item the hold has been placed against',
   `date_created` timestamp NOT NULL DEFAULT current_timestamp() COMMENT 'Timestamp for the placed hold',
   PRIMARY KEY (`id`),
   KEY `clubs_holds_ibfk_1` (`club_id`),
@@ -2436,8 +2430,8 @@ CREATE TABLE `columns_settings` (
   `page` varchar(255) NOT NULL,
   `tablename` varchar(255) NOT NULL,
   `columnname` varchar(255) NOT NULL,
-  `cannot_be_toggled` int(1) NOT NULL DEFAULT 0,
-  `is_hidden` int(1) NOT NULL DEFAULT 0,
+  `cannot_be_toggled` tinyint(1) NOT NULL DEFAULT 0,
+  `is_hidden` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`module`(191),`page`(191),`tablename`(191),`columnname`(191))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -2783,6 +2777,27 @@ CREATE TABLE `currency` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `deletedauth_header`
+--
+
+DROP TABLE IF EXISTS `deletedauth_header`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `deletedauth_header` (
+  `authid` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `authtypecode` varchar(10) NOT NULL DEFAULT '',
+  `datecreated` date DEFAULT NULL,
+  `modification_time` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `heading` longtext DEFAULT NULL,
+  `origincode` varchar(20) DEFAULT NULL,
+  `authtrees` longtext DEFAULT NULL,
+  `linkid` bigint(20) DEFAULT NULL,
+  `marcxml` longtext NOT NULL,
+  PRIMARY KEY (`authid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `deletedbiblio`
 --
 
@@ -2791,7 +2806,7 @@ DROP TABLE IF EXISTS `deletedbiblio`;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `deletedbiblio` (
   `biblionumber` int(11) NOT NULL AUTO_INCREMENT COMMENT 'unique identifier assigned to each bibliographic record',
-  `frameworkcode` varchar(4) NOT NULL DEFAULT '' COMMENT 'foriegn key from the biblio_framework table to identify which framework was used in cataloging this record',
+  `frameworkcode` varchar(4) NOT NULL DEFAULT '' COMMENT 'foreign key from the biblio_framework table to identify which framework was used in cataloging this record',
   `author` longtext DEFAULT NULL COMMENT 'statement of responsibility from MARC record (100$a in MARC21)',
   `title` longtext DEFAULT NULL COMMENT 'title (without the subtitle) from the MARC record (245$a in MARC21)',
   `medium` longtext DEFAULT NULL COMMENT 'medium from the MARC record (245$h in MARC21)',
@@ -2806,6 +2821,7 @@ CREATE TABLE `deletedbiblio` (
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'date and time this record was last touched',
   `datecreated` date NOT NULL COMMENT 'the date this record was added to Koha',
   `abstract` longtext DEFAULT NULL COMMENT 'summary from the MARC record (520$a in MARC21)',
+  `opac_suppressed` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'whether the record should be suppressed in the OPAC',
   PRIMARY KEY (`biblionumber`),
   KEY `blbnoidx` (`biblionumber`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -2916,7 +2932,7 @@ CREATE TABLE `deletedborrowers` (
   `phone` mediumtext DEFAULT NULL COMMENT 'the primary phone number for your patron/borrower''s primary address',
   `mobile` tinytext DEFAULT NULL COMMENT 'the other phone number for your patron/borrower''s primary address',
   `fax` longtext DEFAULT NULL COMMENT 'the fax number for your patron/borrower''s primary address',
-  `emailpro` mediumtext DEFAULT NULL COMMENT 'the secondary email addres for your patron/borrower''s primary address',
+  `emailpro` mediumtext DEFAULT NULL COMMENT 'the secondary email address for your patron/borrower''s primary address',
   `phonepro` mediumtext DEFAULT NULL COMMENT 'the secondary phone number for your patron/borrower''s primary address',
   `B_streetnumber` tinytext DEFAULT NULL COMMENT 'the house number for your patron/borrower''s alternate address',
   `B_streettype` tinytext DEFAULT NULL COMMENT 'the street type (Rd., Blvd, etc) for your patron/borrower''s alternate address',
@@ -2939,7 +2955,7 @@ CREATE TABLE `deletedborrowers` (
   `lost` tinyint(1) DEFAULT NULL COMMENT 'set to 1 for yes and 0 for no, flag to note that library marked this patron/borrower as having lost their card',
   `debarred` date DEFAULT NULL COMMENT 'until this date the patron can only check-in (no loans, no holds, etc.), is a fine based on days instead of money (YYYY-MM-DD)',
   `debarredcomment` varchar(255) DEFAULT NULL COMMENT 'comment on the stop of patron',
-  `contactname` longtext DEFAULT NULL COMMENT 'used for children and profesionals to include surname or last name of guarantor or organization name',
+  `contactname` longtext DEFAULT NULL COMMENT 'used for children and professionals to include surname or last name of guarantor or organization name',
   `contactfirstname` mediumtext DEFAULT NULL COMMENT 'used for children to include first name of guarantor',
   `contacttitle` mediumtext DEFAULT NULL COMMENT 'used for children to include title (Mr., Mrs., etc) of guarantor',
   `borrowernotes` longtext DEFAULT NULL COMMENT 'a note on the patron/borrower''s account that is only visible in the staff interface',
@@ -2954,9 +2970,9 @@ CREATE TABLE `deletedborrowers` (
   `contactnote` varchar(255) DEFAULT NULL COMMENT 'a note related to the patron/borrower''s alternate address',
   `sort1` varchar(80) DEFAULT NULL COMMENT 'a field that can be used for any information unique to the library',
   `sort2` varchar(80) DEFAULT NULL COMMENT 'a field that can be used for any information unique to the library',
+  `altcontacttitle` varchar(255) DEFAULT NULL COMMENT 'title of the alternate contact for the patron/borrower',
   `altcontactfirstname` mediumtext DEFAULT NULL COMMENT 'first name of alternate contact for the patron/borrower',
   `altcontactsurname` mediumtext DEFAULT NULL COMMENT 'surname or last name of the alternate contact for the patron/borrower',
-  `altcontacttitle` varchar(255) DEFAULT NULL COMMENT 'title of the alternate contact for the patron/borrower',
   `altcontactaddress1` mediumtext DEFAULT NULL COMMENT 'the first address line for the alternate contact for the patron/borrower',
   `altcontactaddress2` mediumtext DEFAULT NULL COMMENT 'the second address line for the alternate contact for the patron/borrower',
   `altcontactaddress3` mediumtext DEFAULT NULL COMMENT 'the city for the alternate contact for the patron/borrower',
@@ -2969,11 +2985,11 @@ CREATE TABLE `deletedborrowers` (
   `privacy` int(11) NOT NULL DEFAULT 1 COMMENT 'patron/borrower''s privacy settings related to their checkout history  KEY `borrowernumber` (`borrowernumber`),',
   `privacy_guarantor_fines` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'controls if relatives can see this patron''s fines',
   `privacy_guarantor_checkouts` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'controls if relatives can see this patron''s checkouts',
-  `checkprevcheckout` varchar(7) NOT NULL DEFAULT 'inherit' COMMENT 'produce a warning for this patron if this item has previously been checked out to this patron if ''yes'', not if ''no'', defer to category setting if ''inherit''.',
+  `checkprevcheckout` enum('yes','no','inherit') NOT NULL DEFAULT 'inherit' COMMENT 'produce a warning for this patron if this item has previously been checked out to this patron if ''yes'', not if ''no'', defer to category setting if ''inherit''.',
   `updated_on` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'time of last change could be useful for synchronization with external systems (among others)',
   `lastseen` datetime DEFAULT NULL COMMENT 'last time a patron has been seen (connected at the OPAC or staff interface)',
   `lang` varchar(25) NOT NULL DEFAULT 'default' COMMENT 'lang to use to send notices to this patron',
-  `login_attempts` int(4) NOT NULL DEFAULT 0 COMMENT 'number of failed login attemps',
+  `login_attempts` int(4) NOT NULL DEFAULT 0 COMMENT 'number of failed login attempts',
   `overdrive_auth_token` mediumtext DEFAULT NULL COMMENT 'persist OverDrive auth token',
   `anonymized` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'flag for data anonymization',
   `autorenew_checkouts` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'flag for allowing auto-renewal',
@@ -3038,8 +3054,8 @@ CREATE TABLE `deleteditems` (
   `more_subfields_xml` longtext DEFAULT NULL COMMENT 'additional 952 subfields in XML format',
   `enumchron` mediumtext DEFAULT NULL COMMENT 'serial enumeration/chronology for the item (MARC21 952$h)',
   `copynumber` varchar(32) DEFAULT NULL COMMENT 'copy number (MARC21 952$t)',
-  `stocknumber` varchar(32) DEFAULT NULL COMMENT 'inventory number (MARC21 952$i)',
-  `new_status` varchar(32) DEFAULT NULL COMMENT '''new'' value, you can put whatever free-text information. This field is intented to be managed by the automatic_item_modification_by_age cronjob.',
+  `stocknumber` varchar(80) DEFAULT NULL COMMENT 'inventory number (MARC21 952$i)',
+  `new_status` varchar(32) DEFAULT NULL COMMENT '''new'' value, you can put whatever free-text information. This field is intended to be managed by the automatic_item_modification_by_age cronjob.',
   `exclude_from_local_holds_priority` tinyint(1) DEFAULT NULL COMMENT 'Exclude this item from local holds priority',
   PRIMARY KEY (`itemnumber`),
   KEY `delitembarcodeidx` (`barcode`),
@@ -3104,6 +3120,25 @@ CREATE TABLE `edifact_ean` (
   PRIMARY KEY (`ee_id`),
   KEY `efk_branchcode` (`branchcode`),
   CONSTRAINT `efk_branchcode` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `edifact_errors`
+--
+
+DROP TABLE IF EXISTS `edifact_errors`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `edifact_errors` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `message_id` int(11) NOT NULL,
+  `date` date DEFAULT NULL,
+  `section` mediumtext DEFAULT NULL,
+  `details` mediumtext DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `messageid` (`message_id`),
+  CONSTRAINT `emfk_message` FOREIGN KEY (`message_id`) REFERENCES `edifact_messages` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -3683,6 +3718,36 @@ CREATE TABLE `external_order` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `external_order_extid`      (`order_type`,`external_order_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'Used for processing external orders';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `file_transports`
+--
+
+DROP TABLE IF EXISTS `file_transports`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `file_transports` (
+  `file_transport_id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(80) NOT NULL,
+  `host` varchar(80) NOT NULL DEFAULT 'localhost',
+  `port` int(11) NOT NULL DEFAULT 22,
+  `transport` enum('ftp','sftp','local') NOT NULL DEFAULT 'sftp',
+  `passive` tinyint(1) NOT NULL DEFAULT 1,
+  `user_name` varchar(80) DEFAULT NULL,
+  `password` mediumtext DEFAULT NULL,
+  `key_file` mediumtext DEFAULT NULL,
+  `auth_mode` enum('password','key_file','noauth') NOT NULL DEFAULT 'password',
+  `download_directory` mediumtext DEFAULT NULL,
+  `upload_directory` mediumtext DEFAULT NULL,
+  `status` longtext DEFAULT NULL,
+  `debug` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`file_transport_id`),
+  KEY `host_idx` (`host`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `hold_cancellation_requests`
 --
 
@@ -3723,6 +3788,41 @@ CREATE TABLE `hold_fill_targets` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `hold_groups`
+--
+
+DROP TABLE IF EXISTS `hold_groups`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `hold_groups` (
+  `hold_group_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `borrowernumber` int(11) DEFAULT NULL COMMENT 'foreign key, linking this to the borrowers table',
+  `visual_hold_group_id` int(11) DEFAULT NULL COMMENT 'visual ID for this hold group, in the context of the related patron',
+  PRIMARY KEY (`hold_group_id`),
+  KEY `hold_groups_borrowernumber` (`borrowernumber`),
+  CONSTRAINT `hold_groups_ibfk_1` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `hold_groups_target_holds`
+--
+
+DROP TABLE IF EXISTS `hold_groups_target_holds`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `hold_groups_target_holds` (
+  `hold_group_id` int(10) unsigned NOT NULL COMMENT 'foreign key, linking this to the hold_groups table',
+  `reserve_id` int(11) NOT NULL COMMENT 'foreign key, linking this to the reserves table',
+  PRIMARY KEY (`hold_group_id`,`reserve_id`),
+  UNIQUE KEY `uq_hold_group_target_holds_hold_group_id` (`hold_group_id`),
+  UNIQUE KEY `uq_hold_group_target_holds_reserve_id` (`reserve_id`),
+  CONSTRAINT `hold_group_target_holds_ibfk_1` FOREIGN KEY (`hold_group_id`) REFERENCES `hold_groups` (`hold_group_id`) ON DELETE CASCADE,
+  CONSTRAINT `hold_group_target_holds_ibfk_2` FOREIGN KEY (`reserve_id`) REFERENCES `reserves` (`reserve_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `housebound_profile`
 --
 
@@ -3732,7 +3832,7 @@ DROP TABLE IF EXISTS `housebound_profile`;
 CREATE TABLE `housebound_profile` (
   `borrowernumber` int(11) NOT NULL COMMENT 'Number of the borrower associated with this profile.',
   `day` mediumtext NOT NULL COMMENT 'The preferred day of the week for delivery.',
-  `frequency` mediumtext NOT NULL COMMENT 'The Authorised_Value definining the pattern for delivery.',
+  `frequency` mediumtext NOT NULL COMMENT 'The Authorised_Value defining the pattern for delivery.',
   `fav_itemtypes` mediumtext DEFAULT NULL COMMENT 'Free text describing preferred itemtypes.',
   `fav_subjects` mediumtext DEFAULT NULL COMMENT 'Free text describing preferred subjects.',
   `fav_authors` mediumtext DEFAULT NULL COMMENT 'Free text describing preferred authors.',
@@ -3794,12 +3894,13 @@ CREATE TABLE `identity_provider_domains` (
   `identity_provider_domain_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'unique key, used to identify providers domain',
   `identity_provider_id` int(11) NOT NULL COMMENT 'Reference to provider',
   `domain` varchar(100) DEFAULT NULL COMMENT 'Domain name. If null means all domains',
-  `auto_register` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Allow user auto register',
   `update_on_auth` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Update user data on auth login',
   `default_library_id` varchar(10) DEFAULT NULL COMMENT 'Default library to create user if auto register is enabled',
   `default_category_id` varchar(10) DEFAULT NULL COMMENT 'Default category to create user if auto register is enabled',
   `allow_opac` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Allow provider from opac interface',
   `allow_staff` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Allow provider from staff interface',
+  `auto_register_opac` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Allow user auto register (OPAC)',
+  `auto_register_staff` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Allow user auto register (Staff interface)',
   PRIMARY KEY (`identity_provider_domain_id`),
   UNIQUE KEY `identity_provider_id` (`identity_provider_id`,`domain`),
   KEY `domain` (`domain`),
@@ -4198,10 +4299,10 @@ CREATE TABLE `issues` (
   `auto_renew_error` varchar(32) DEFAULT NULL COMMENT 'automatic renewal error',
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'the date and time this record was last touched',
   `issuedate` datetime DEFAULT NULL COMMENT 'date the item was checked out or issued',
-  `onsite_checkout` int(1) NOT NULL DEFAULT 0 COMMENT 'in house use flag',
+  `onsite_checkout` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'in house use flag',
   `note` longtext DEFAULT NULL COMMENT 'issue note text',
   `notedate` datetime DEFAULT NULL COMMENT 'datetime of issue note (yyyy-mm-dd hh:mm::ss)',
-  `noteseen` int(1) DEFAULT NULL COMMENT 'describes whether checkout note has been seen 1, not been seen 0 or doesn''t exist null',
+  `noteseen` tinyint(1) DEFAULT NULL COMMENT 'describes whether checkout note has been seen 1, not been seen 0 or doesn''t exist null',
   PRIMARY KEY (`issue_id`),
   UNIQUE KEY `itemnumber` (`itemnumber`),
   KEY `issuesborridx` (`borrowernumber`),
@@ -4209,10 +4310,11 @@ CREATE TABLE `issues` (
   KEY `branchcode_idx` (`branchcode`),
   KEY `bordate` (`borrowernumber`,`timestamp`),
   KEY `issues_ibfk_borrowers_borrowernumber` (`issuer_id`),
+  KEY `issues_booking_id_fk` (`booking_id`),
+  CONSTRAINT `issues_booking_id_fk` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`booking_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `issues_ibfk_1` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON UPDATE CASCADE,
   CONSTRAINT `issues_ibfk_2` FOREIGN KEY (`itemnumber`) REFERENCES `items` (`itemnumber`) ON UPDATE CASCADE,
-  CONSTRAINT `issues_ibfk_borrowers_borrowernumber` FOREIGN KEY (`issuer_id`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `issues_booking_id_fk` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`booking_id`) ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT `issues_ibfk_borrowers_borrowernumber` FOREIGN KEY (`issuer_id`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -4362,8 +4464,8 @@ CREATE TABLE `items` (
   `more_subfields_xml` longtext DEFAULT NULL COMMENT 'additional 952 subfields in XML format',
   `enumchron` mediumtext DEFAULT NULL COMMENT 'serial enumeration/chronology for the item (MARC21 952$h)',
   `copynumber` varchar(32) DEFAULT NULL COMMENT 'copy number (MARC21 952$t)',
-  `stocknumber` varchar(32) DEFAULT NULL COMMENT 'inventory number (MARC21 952$i)',
-  `new_status` varchar(32) DEFAULT NULL COMMENT '''new'' value, you can put whatever free-text information. This field is intented to be managed by the automatic_item_modification_by_age cronjob.',
+  `stocknumber` varchar(80) DEFAULT NULL COMMENT 'inventory number (MARC21 952$i)',
+  `new_status` varchar(32) DEFAULT NULL COMMENT '''new'' value, you can put whatever free-text information. This field is intended to be managed by the automatic_item_modification_by_age cronjob.',
   `exclude_from_local_holds_priority` tinyint(1) DEFAULT NULL COMMENT 'Exclude this item from local holds priority',
   PRIMARY KEY (`itemnumber`),
   UNIQUE KEY `itembarcodeidx` (`barcode`),
@@ -4451,6 +4553,7 @@ CREATE TABLE `itemtypes` (
   `searchcategory` varchar(80) DEFAULT NULL COMMENT 'Group this item type with others with the same value on OPAC search options',
   `automatic_checkin` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'If automatic checkin is enabled for items of this type',
   `bookable` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Activate bookable feature for items related to this item type',
+  `checkprevcheckout` enum('yes','no','inherit') NOT NULL DEFAULT 'inherit' COMMENT 'produce a warning for a patron if a item of this type has previously been checked out to the same patron if ''yes'', not if ''no'', defer to category setting if ''inherit''.',
   PRIMARY KEY (`itemtype`),
   UNIQUE KEY `itemtype` (`itemtype`),
   KEY `itemtypes_ibfk_1` (`parent_type`),
@@ -4610,7 +4713,7 @@ CREATE TABLE `library_groups` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'unique id for each group',
   `parent_id` int(11) DEFAULT NULL COMMENT 'if this is a child group, the id of the parent group',
   `branchcode` varchar(10) DEFAULT NULL COMMENT 'The branchcode of a branch belonging to the parent group',
-  `title` varchar(100) DEFAULT NULL COMMENT 'Short description of the goup',
+  `title` varchar(100) DEFAULT NULL COMMENT 'Short description of the group',
   `description` mediumtext DEFAULT NULL COMMENT 'Longer explanation of the group, if necessary',
   `ft_hide_patron_info` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Turn on the feature ''Hide patron''s info'' for this group',
   `ft_limit_item_editing` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Turn on the feature "Limit item editing by group" for this group',
@@ -4797,6 +4900,7 @@ CREATE TABLE `marc_order_accounts` (
   `encoding` varchar(50) DEFAULT NULL COMMENT 'file encoding',
   `match_field` varchar(10) DEFAULT NULL COMMENT 'the field that a vendor account has been mapped to in a marc record',
   `match_value` varchar(50) DEFAULT NULL COMMENT 'the value to be matched against the marc record',
+  `basket_name_field` varchar(10) DEFAULT NULL COMMENT 'the field that a vendor can use to include a basket name that will be used to create the basket for the file',
   PRIMARY KEY (`id`),
   KEY `marc_ordering_account_ibfk_1` (`vendor_id`),
   KEY `marc_ordering_account_ibfk_2` (`budget_id`),
@@ -5019,7 +5123,7 @@ CREATE TABLE `message_queue` (
   `reply_address` longtext DEFAULT NULL,
   `content_type` mediumtext DEFAULT NULL,
   `failure_code` mediumtext DEFAULT NULL,
-  `branchcode` varchar(10)  COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `branchcode` varchar(10) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
   PRIMARY KEY (`message_id`),
   KEY `borrowernumber` (`borrowernumber`),
   KEY `message_transport_type` (`message_transport_type`),
@@ -5134,14 +5238,6 @@ CREATE TABLE `need_merge_authorities` (
 --
 -- Table structure for table `notice_fee_rules`
 --
-
--- Notice fee rules store configurations for charging notice fees when sending notifications to patrons.
--- The rules can contain a specific defined values for branchcode, borrower category, message transport type,
--- and letter code or an asterix '*' which is wildcard for any
--- the possible values of the listed fields.
--- Rules with a specific value are more relevant than a rule with a wildcard value.
--- The rules are applied from most specific to less specific in the following field order:
--- branchcode, categorycode, message_transport_type, letter_code
 
 DROP TABLE IF EXISTS `notice_fee_rules`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -5354,20 +5450,21 @@ CREATE TABLE `old_issues` (
   `auto_renew_error` varchar(32) DEFAULT NULL COMMENT 'automatic renewal error',
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'the date and time this record was last touched',
   `issuedate` datetime DEFAULT NULL COMMENT 'date the item was checked out or issued',
-  `onsite_checkout` int(1) NOT NULL DEFAULT 0 COMMENT 'in house use flag',
+  `onsite_checkout` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'in house use flag',
   `note` longtext DEFAULT NULL COMMENT 'issue note text',
   `notedate` datetime DEFAULT NULL COMMENT 'datetime of issue note (yyyy-mm-dd hh:mm::ss)',
-  `noteseen` int(1) DEFAULT NULL COMMENT 'describes whether checkout note has been seen 1, not been seen 0 or doesn''t exist null',
+  `noteseen` tinyint(1) DEFAULT NULL COMMENT 'describes whether checkout note has been seen 1, not been seen 0 or doesn''t exist null',
   PRIMARY KEY (`issue_id`),
   KEY `old_issuesborridx` (`borrowernumber`),
   KEY `old_issuesitemidx` (`itemnumber`),
   KEY `branchcode_idx` (`branchcode`),
   KEY `old_bordate` (`borrowernumber`,`timestamp`),
   KEY `old_issues_ibfk_borrowers_borrowernumber` (`issuer_id`),
+  KEY `old_issues_booking_id_fk` (`booking_id`),
+  CONSTRAINT `old_issues_booking_id_fk` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`booking_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `old_issues_ibfk_1` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE SET NULL ON UPDATE SET NULL,
   CONSTRAINT `old_issues_ibfk_2` FOREIGN KEY (`itemnumber`) REFERENCES `items` (`itemnumber`) ON DELETE SET NULL ON UPDATE SET NULL,
-  CONSTRAINT `old_issues_ibfk_borrowers_borrowernumber` FOREIGN KEY (`issuer_id`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `old_issues_booking_id_fk` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`booking_id`) ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT `old_issues_ibfk_borrowers_borrowernumber` FOREIGN KEY (`issuer_id`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -5405,6 +5502,7 @@ CREATE TABLE `old_reserves` (
   `itemtype` varchar(10) DEFAULT NULL COMMENT 'If record level hold, the optional itemtype of the item the patron is requesting',
   `item_level_hold` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Is the hold placed at item level',
   `non_priority` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Is this a non priority hold',
+  `hold_group_id` int(10) unsigned DEFAULT NULL COMMENT 'The id of a group of titles reservations fulfilled when one title is picked',
   PRIMARY KEY (`reserve_id`),
   KEY `old_reserves_borrowernumber` (`borrowernumber`),
   KEY `old_reserves_biblionumber` (`biblionumber`),
@@ -5412,23 +5510,20 @@ CREATE TABLE `old_reserves` (
   KEY `old_reserves_branchcode` (`branchcode`),
   KEY `old_reserves_itemtype` (`itemtype`),
   KEY `old_reserves_ibfk_ig` (`item_group_id`),
+  KEY `old_reserves_ibfk_hg` (`hold_group_id`),
   CONSTRAINT `old_reserves_ibfk_1` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE SET NULL ON UPDATE SET NULL,
   CONSTRAINT `old_reserves_ibfk_2` FOREIGN KEY (`biblionumber`) REFERENCES `biblio` (`biblionumber`) ON DELETE SET NULL ON UPDATE SET NULL,
   CONSTRAINT `old_reserves_ibfk_3` FOREIGN KEY (`itemnumber`) REFERENCES `items` (`itemnumber`) ON DELETE SET NULL ON UPDATE SET NULL,
   CONSTRAINT `old_reserves_ibfk_4` FOREIGN KEY (`itemtype`) REFERENCES `itemtypes` (`itemtype`) ON DELETE SET NULL ON UPDATE SET NULL,
   CONSTRAINT `old_reserves_ibfk_branchcode` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `old_reserves_ibfk_hg` FOREIGN KEY (`hold_group_id`) REFERENCES `hold_groups` (`hold_group_id`) ON DELETE SET NULL ON UPDATE SET NULL,
   CONSTRAINT `old_reserves_ibfk_ig` FOREIGN KEY (`item_group_id`) REFERENCES `item_groups` (`item_group_id`) ON DELETE SET NULL ON UPDATE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table overdue_issues
+-- Table structure for table `overdue_issues`
 --
-
--- The table overdue_issues stores the claiming history of issues. 
--- It's used to persist the reached claim level and the claiming date.
--- The information is used to detect, which claim level has been reached before
--- when calculating the date for the next claim.
 
 DROP TABLE IF EXISTS `overdue_issues`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -5456,18 +5551,18 @@ CREATE TABLE `overduerules` (
   `categorycode` varchar(10) NOT NULL DEFAULT '' COMMENT 'foreign key from the categories table to define which patron category this rule is for',
   `delay1` int(4) DEFAULT NULL COMMENT 'number of days after the item is overdue that the first notice is sent',
   `letter1` varchar(20) DEFAULT NULL COMMENT 'foreign key from the letter table to define which notice should be sent as the first notice',
-  `debarred1` varchar(1) DEFAULT '0' COMMENT 'is the patron restricted when the first notice is sent (1 for yes, 0 for no)',
+  `debarred1` tinyint(1) DEFAULT 0 COMMENT 'is the patron restricted when the first notice is sent (1 for yes, 0 for no)',
   `delay2` int(4) DEFAULT NULL COMMENT 'number of days after the item is overdue that the second notice is sent',
-  `debarred2` varchar(1) DEFAULT '0' COMMENT 'is the patron restricted when the second notice is sent (1 for yes, 0 for no)',
+  `debarred2` tinyint(1) DEFAULT 0 COMMENT 'is the patron restricted when the second notice is sent (1 for yes, 0 for no)',
   `letter2` varchar(20) DEFAULT NULL COMMENT 'foreign key from the letter table to define which notice should be sent as the second notice',
   `delay3` int(4) DEFAULT NULL COMMENT 'number of days after the item is overdue that the third notice is sent',
   `letter3` varchar(20) DEFAULT NULL COMMENT 'foreign key from the letter table to define which notice should be sent as the third notice',
-  `debarred3` int(1) DEFAULT 0 COMMENT 'is the patron restricted when the third notice is sent (1 for yes, 0 for no)',
+  `debarred3` tinyint(1) DEFAULT 0 COMMENT 'is the patron restricted when the third notice is sent (1 for yes, 0 for no)',
   `delay4` int(4) DEFAULT NULL COMMENT 'number of days after the item is overdue that the fourth notice is sent',
-  `letter4` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'foreign key from the letter table to define which notice should be sent as the fourth notice',
+  `letter4` varchar(20) DEFAULT NULL COMMENT 'foreign key from the letter table to define which notice should be sent as the fourth notice',
   `debarred4` int(1) DEFAULT 0 COMMENT 'is the patron restricted when the fourth notice is sent (1 for yes, 0 for no)',
   `delay5` int(4) DEFAULT NULL COMMENT 'number of days after the item is overdue that the fifth notice is sent',
-  `letter5` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'foreign key from the letter table to define which notice should be sent as the fifth notice',
+  `letter5` varchar(20) DEFAULT NULL COMMENT 'foreign key from the letter table to define which notice should be sent as the fifth notice',
   `debarred5` int(1) DEFAULT 0 COMMENT 'is the patron restricted when the fifth notice is sent (1 for yes, 0 for no)',
   PRIMARY KEY (`overduerules_id`),
   UNIQUE KEY `overduerules_branch_cat` (`branchcode`,`categorycode`)
@@ -5680,7 +5775,7 @@ DROP TABLE IF EXISTS `preservation_processings`;
 CREATE TABLE `preservation_processings` (
   `processing_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'primary key',
   `name` varchar(80) NOT NULL COMMENT 'name of the processing',
-  `letter_code` varchar(20) DEFAULT NULL COMMENT 'Foreign key to the letters table',
+  `letter_code` varchar(50) DEFAULT NULL COMMENT 'Foreign key to the letters table',
   PRIMARY KEY (`processing_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -5782,22 +5877,21 @@ CREATE TABLE `problem_reports` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `pseudonymized_borrower_attributes`
+-- Table structure for table `pseudonymized_metadata_values`
 --
 
-DROP TABLE IF EXISTS `pseudonymized_borrower_attributes`;
+DROP TABLE IF EXISTS `pseudonymized_metadata_values`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pseudonymized_borrower_attributes` (
+CREATE TABLE `pseudonymized_metadata_values` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Row id field',
   `transaction_id` int(11) NOT NULL,
-  `code` varchar(64) NOT NULL COMMENT 'foreign key from the borrower_attribute_types table, defines which custom field this value was entered for',
-  `attribute` varchar(255) DEFAULT NULL COMMENT 'custom patron field value',
+  `tablename` varchar(64) NOT NULL COMMENT 'Name of the related table',
+  `key` varchar(64) NOT NULL COMMENT 'key for the metadata',
+  `value` varchar(255) DEFAULT NULL COMMENT 'value for the metadata',
   PRIMARY KEY (`id`),
-  KEY `pseudonymized_borrower_attributes_ibfk_1` (`transaction_id`),
-  KEY `anonymized_borrower_attributes_ibfk_2` (`code`),
-  CONSTRAINT `anonymized_borrower_attributes_ibfk_2` FOREIGN KEY (`code`) REFERENCES `borrower_attribute_types` (`code`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `pseudonymized_borrower_attributes_ibfk_1` FOREIGN KEY (`transaction_id`) REFERENCES `pseudonymized_transactions` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  KEY `pseudonymized_metadata_values_ibfk_1` (`transaction_id`),
+  CONSTRAINT `pseudonymized_metadata_values_ibfk_1` FOREIGN KEY (`transaction_id`) REFERENCES `pseudonymized_transactions` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -6003,6 +6097,7 @@ CREATE TABLE `reserves` (
   `itemtype` varchar(10) DEFAULT NULL COMMENT 'If record level hold, the optional itemtype of the item the patron is requesting',
   `item_level_hold` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Is the hold placed at item level',
   `non_priority` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Is this a non priority hold',
+  `hold_group_id` int(10) unsigned DEFAULT NULL COMMENT 'The id of a group of titles reservations fulfilled when one title is picked',
   PRIMARY KEY (`reserve_id`),
   KEY `priorityfoundidx` (`priority`,`found`),
   KEY `borrowernumber` (`borrowernumber`),
@@ -6012,12 +6107,14 @@ CREATE TABLE `reserves` (
   KEY `desk_id` (`desk_id`),
   KEY `itemtype` (`itemtype`),
   KEY `reserves_ibfk_ig` (`item_group_id`),
+  KEY `reserves_ibfk_hg` (`hold_group_id`),
   CONSTRAINT `reserves_ibfk_1` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `reserves_ibfk_2` FOREIGN KEY (`biblionumber`) REFERENCES `biblio` (`biblionumber`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `reserves_ibfk_3` FOREIGN KEY (`itemnumber`) REFERENCES `items` (`itemnumber`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `reserves_ibfk_4` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `reserves_ibfk_5` FOREIGN KEY (`itemtype`) REFERENCES `itemtypes` (`itemtype`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `reserves_ibfk_6` FOREIGN KEY (`desk_id`) REFERENCES `desks` (`desk_id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `reserves_ibfk_hg` FOREIGN KEY (`hold_group_id`) REFERENCES `hold_groups` (`hold_group_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `reserves_ibfk_ig` FOREIGN KEY (`item_group_id`) REFERENCES `item_groups` (`item_group_id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -6153,7 +6250,7 @@ CREATE TABLE `search_field` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL COMMENT 'the name of the field as it will be stored in the search engine',
   `label` varchar(255) NOT NULL COMMENT 'the human readable name of the field, for display',
-  `type` enum('','string','date','number','boolean','sum','isbn','stdno','year','callnumber','string_plus','availability','geo_point') NOT NULL COMMENT 'what type of data this holds, relevant when storing it in the search engine',
+  `type` enum('','string','date','number','boolean','sum','isbn','stdno','year','callnumber','geo_point','string_plus','availability') NOT NULL COMMENT 'what type of data this holds, relevant when storing it in the search engine',
   `weight` decimal(5,2) DEFAULT NULL,
   `facet_order` tinyint(4) DEFAULT NULL COMMENT 'the order place of the field in facet list if faceted',
   `staff_client` tinyint(1) NOT NULL DEFAULT 1,
@@ -6308,6 +6405,231 @@ CREATE TABLE `sessions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `sip_account_custom_item_fields`
+--
+
+DROP TABLE IF EXISTS `sip_account_custom_item_fields`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sip_account_custom_item_fields` (
+  `sip_account_custom_item_field_id` int(11) NOT NULL AUTO_INCREMENT,
+  `sip_account_id` int(11) NOT NULL COMMENT 'Foreign key to sip_accounts.sip_account_id',
+  `field` varchar(80) NOT NULL COMMENT 'SIP field name e.g. XY',
+  `template` varchar(255) NOT NULL COMMENT 'Template toolkit template name',
+  PRIMARY KEY (`sip_account_custom_item_field_id`),
+  UNIQUE KEY `sip_account` (`sip_account_custom_item_field_id`,`sip_account_id`),
+  KEY `sip_account_custom_item_fields_ibfk_1` (`sip_account_id`),
+  CONSTRAINT `sip_account_custom_item_fields_ibfk_1` FOREIGN KEY (`sip_account_id`) REFERENCES `sip_accounts` (`sip_account_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sip_account_custom_patron_fields`
+--
+
+DROP TABLE IF EXISTS `sip_account_custom_patron_fields`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sip_account_custom_patron_fields` (
+  `sip_account_custom_patron_field_id` int(11) NOT NULL AUTO_INCREMENT,
+  `sip_account_id` int(11) NOT NULL COMMENT 'Foreign key to sip_accounts.sip_account_id',
+  `field` varchar(80) NOT NULL COMMENT 'SIP field name e.g. XY',
+  `template` varchar(80) NOT NULL COMMENT 'Template toolkit template',
+  PRIMARY KEY (`sip_account_custom_patron_field_id`),
+  UNIQUE KEY `sip_account` (`sip_account_custom_patron_field_id`,`sip_account_id`),
+  KEY `sip_account_custom_patron_fields_ibfk_1` (`sip_account_id`),
+  CONSTRAINT `sip_account_custom_patron_fields_ibfk_1` FOREIGN KEY (`sip_account_id`) REFERENCES `sip_accounts` (`sip_account_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sip_account_item_fields`
+--
+
+DROP TABLE IF EXISTS `sip_account_item_fields`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sip_account_item_fields` (
+  `sip_account_item_field_id` int(11) NOT NULL AUTO_INCREMENT,
+  `sip_account_id` int(11) NOT NULL COMMENT 'Foreign key to sip_accounts.sip_account_id',
+  `field` varchar(80) NOT NULL COMMENT 'SIP field name e.g. XY',
+  `code` varchar(80) NOT NULL COMMENT 'Item field e.g. "permanent_location"',
+  PRIMARY KEY (`sip_account_item_field_id`),
+  UNIQUE KEY `sip_account` (`sip_account_item_field_id`,`sip_account_id`),
+  KEY `sip_account_item_fields_ibfk_1` (`sip_account_id`),
+  CONSTRAINT `sip_account_item_fields_ibfk_1` FOREIGN KEY (`sip_account_id`) REFERENCES `sip_accounts` (`sip_account_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sip_account_patron_attributes`
+--
+
+DROP TABLE IF EXISTS `sip_account_patron_attributes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sip_account_patron_attributes` (
+  `sip_account_patron_attribute_id` int(11) NOT NULL AUTO_INCREMENT,
+  `sip_account_id` int(11) NOT NULL COMMENT 'Foreign key to sip_accounts.sip_account_id',
+  `field` varchar(80) NOT NULL COMMENT 'SIP field name e.g. XY',
+  `code` varchar(80) NOT NULL COMMENT 'Patron attribute code as in borrower_attribute_types.code',
+  PRIMARY KEY (`sip_account_patron_attribute_id`),
+  UNIQUE KEY `sip_account` (`sip_account_patron_attribute_id`,`sip_account_id`),
+  KEY `sip_account_patron_attributes_ibfk_1` (`sip_account_id`),
+  CONSTRAINT `sip_account_patron_attributes_ibfk_1` FOREIGN KEY (`sip_account_id`) REFERENCES `sip_accounts` (`sip_account_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sip_account_screen_msg_regexs`
+--
+
+DROP TABLE IF EXISTS `sip_account_screen_msg_regexs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sip_account_screen_msg_regexs` (
+  `sip_account_screen_msg_regex_id` int(11) NOT NULL AUTO_INCREMENT,
+  `sip_account_id` int(11) NOT NULL COMMENT 'Foreign key to sip_accounts.sip_account_id',
+  `find` varchar(255) NOT NULL COMMENT 'Regex find',
+  `replace` varchar(255) NOT NULL COMMENT 'Regex replace',
+  PRIMARY KEY (`sip_account_screen_msg_regex_id`),
+  UNIQUE KEY `sip_account` (`sip_account_screen_msg_regex_id`,`sip_account_id`),
+  KEY `sip_account_sip_account_screen_msg_regexs_ibfk_1` (`sip_account_id`),
+  CONSTRAINT `sip_account_sip_account_screen_msg_regexs_ibfk_1` FOREIGN KEY (`sip_account_id`) REFERENCES `sip_accounts` (`sip_account_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sip_account_sort_bin_mappings`
+--
+
+DROP TABLE IF EXISTS `sip_account_sort_bin_mappings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sip_account_sort_bin_mappings` (
+  `sip_account_sort_bin_mapping_id` int(11) NOT NULL AUTO_INCREMENT,
+  `sip_account_id` int(11) NOT NULL COMMENT 'Foreign key to sip_accounts.sip_account_id',
+  `mapping` varchar(255) NOT NULL COMMENT 'The mapping definition',
+  PRIMARY KEY (`sip_account_sort_bin_mapping_id`),
+  UNIQUE KEY `sip_account` (`sip_account_sort_bin_mapping_id`,`sip_account_id`),
+  KEY `sip_account_sort_bin_mappings_ibfk_1` (`sip_account_id`),
+  CONSTRAINT `sip_account_sort_bin_mappings_ibfk_1` FOREIGN KEY (`sip_account_id`) REFERENCES `sip_accounts` (`sip_account_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sip_account_system_preference_overrides`
+--
+
+DROP TABLE IF EXISTS `sip_account_system_preference_overrides`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sip_account_system_preference_overrides` (
+  `sip_account_system_preference_override_id` int(11) NOT NULL AUTO_INCREMENT,
+  `sip_account_id` int(11) NOT NULL COMMENT 'Foreign key to sip_accounts.sip_account_id',
+  `variable` varchar(80) NOT NULL COMMENT 'System preference name',
+  `value` varchar(80) NOT NULL COMMENT 'System preference value',
+  PRIMARY KEY (`sip_account_system_preference_override_id`),
+  UNIQUE KEY `sip_account` (`sip_account_system_preference_override_id`,`sip_account_id`),
+  KEY `sip_account_system_preference_overrides_ibfk_1` (`sip_account_id`),
+  CONSTRAINT `sip_account_system_preference_overrides_ibfk_1` FOREIGN KEY (`sip_account_id`) REFERENCES `sip_accounts` (`sip_account_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sip_accounts`
+--
+
+DROP TABLE IF EXISTS `sip_accounts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sip_accounts` (
+  `sip_account_id` int(11) NOT NULL AUTO_INCREMENT,
+  `sip_institution_id` int(11) NOT NULL COMMENT 'Foreign key to sip_institutions.sip_institution_id',
+  `ae_field_template` varchar(255) DEFAULT NULL,
+  `allow_additional_materials_checkout` tinyint(1) DEFAULT NULL,
+  `allow_empty_passwords` tinyint(1) DEFAULT NULL,
+  `allow_fields` varchar(255) DEFAULT NULL,
+  `av_field_template` varchar(255) DEFAULT NULL,
+  `blocked_item_types` varchar(255) DEFAULT NULL,
+  `checked_in_ok` tinyint(1) DEFAULT NULL,
+  `convert_nonprinting_characters` varchar(10) DEFAULT NULL,
+  `cr_item_field` varchar(255) DEFAULT NULL,
+  `ct_always_send` tinyint(1) DEFAULT NULL,
+  `cv_send_00_on_success` tinyint(1) DEFAULT NULL,
+  `cv_triggers_alert` tinyint(1) DEFAULT NULL,
+  `da_field_template` varchar(255) DEFAULT NULL,
+  `delimiter` varchar(10) DEFAULT '|',
+  `disallow_overpayment` tinyint(1) DEFAULT NULL,
+  `encoding` varchar(10) DEFAULT NULL,
+  `error_detect` tinyint(1) DEFAULT NULL,
+  `format_due_date` tinyint(1) DEFAULT NULL,
+  `hide_fields` varchar(255) DEFAULT NULL,
+  `holds_block_checkin` tinyint(1) DEFAULT NULL,
+  `holds_get_captured` tinyint(1) DEFAULT NULL,
+  `inhouse_item_types` varchar(255) DEFAULT NULL,
+  `inhouse_patron_categories` varchar(255) DEFAULT NULL,
+  `login_id` varchar(255) NOT NULL COMMENT 'Staff userid for SIP2 authentication',
+  `lost_block_checkout` tinyint(1) DEFAULT NULL COMMENT 'actual tinyint, not boolean',
+  `lost_block_checkout_value` tinyint(1) DEFAULT NULL COMMENT 'actual tinyint, not boolean',
+  `lost_status_for_missing` tinyint(1) DEFAULT NULL COMMENT 'actual tinyint, not boolean',
+  `overdues_block_checkout` tinyint(1) DEFAULT NULL,
+  `payment_type_writeoff` varchar(10) DEFAULT NULL,
+  `prevcheckout_block_checkout` tinyint(1) DEFAULT NULL,
+  `register_id` int(11) DEFAULT NULL COMMENT 'Foreign key to cash_registers.id',
+  `seen_on_item_information` varchar(255) DEFAULT NULL,
+  `send_patron_home_library_in_af` tinyint(1) DEFAULT NULL,
+  `show_checkin_message` tinyint(1) DEFAULT NULL,
+  `show_outstanding_amount` tinyint(1) DEFAULT NULL,
+  `terminator` enum('CR','CRLF') NOT NULL DEFAULT 'CRLF',
+  PRIMARY KEY (`sip_account_id`),
+  UNIQUE KEY `account_login_id` (`login_id`),
+  KEY `sip_accounts_ibfk_1` (`sip_institution_id`),
+  KEY `sip_accounts_ibfk_2` (`register_id`),
+  CONSTRAINT `sip_accounts_ibfk_1` FOREIGN KEY (`sip_institution_id`) REFERENCES `sip_institutions` (`sip_institution_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `sip_accounts_ibfk_2` FOREIGN KEY (`register_id`) REFERENCES `cash_registers` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sip_institutions`
+--
+
+DROP TABLE IF EXISTS `sip_institutions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sip_institutions` (
+  `sip_institution_id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(80) NOT NULL COMMENT 'Unique varchar identifier. Previously "id" in SIPconfig.xml',
+  `implementation` varchar(80) NOT NULL DEFAULT 'ILS',
+  `checkin` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Previously attribute of "policy" in SIPconfig.xml',
+  `checkout` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Previously attribute of "policy" in SIPconfig.xml',
+  `offline` tinyint(1) DEFAULT NULL COMMENT 'Previously attribute of "policy" in SIPconfig.xml',
+  `renewal` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Previously attribute of "policy" in SIPconfig.xml',
+  `retries` int(11) NOT NULL DEFAULT 5 COMMENT 'Previously attribute of "policy" in SIPconfig.xml',
+  `status_update` tinyint(1) DEFAULT NULL COMMENT 'Previously attribute of "policy" in SIPconfig.xml',
+  `timeout` int(11) NOT NULL DEFAULT 100 COMMENT 'Previously attribute of "policy" in SIPconfig.xml',
+  PRIMARY KEY (`sip_institution_id`),
+  UNIQUE KEY `institution_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `sip_system_preference_overrides`
+--
+
+DROP TABLE IF EXISTS `sip_system_preference_overrides`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sip_system_preference_overrides` (
+  `sip_system_preference_override_id` int(11) NOT NULL AUTO_INCREMENT,
+  `variable` varchar(80) NOT NULL COMMENT 'System preference name',
+  `value` varchar(80) NOT NULL COMMENT 'System preference value',
+  PRIMARY KEY (`sip_system_preference_override_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `sms_providers`
 --
 
@@ -6400,6 +6722,7 @@ CREATE TABLE `statistics` (
   `value` double(16,4) DEFAULT NULL COMMENT 'monetary value associated with the transaction',
   `type` varchar(16) DEFAULT NULL COMMENT 'transaction type (localuse, issue, return, renew, writeoff, payment)',
   `other` longtext DEFAULT NULL COMMENT 'used by SIP',
+  `illrequest_id` int(11) DEFAULT NULL COMMENT 'foreign key from the illrequests table, links transaction to a specific illrequest',
   `itemnumber` int(11) DEFAULT NULL COMMENT 'foreign key from the items table, links transaction to a specific item',
   `itemtype` varchar(10) DEFAULT NULL COMMENT 'foreign key from the itemtypes table, links transaction to a specific item type',
   `location` varchar(80) DEFAULT NULL COMMENT 'authorized value for the shelving location for this item (MARC21 952$c)',
@@ -6413,7 +6736,8 @@ CREATE TABLE `statistics` (
   KEY `itemnumber_idx` (`itemnumber`),
   KEY `itemtype_idx` (`itemtype`),
   KEY `borrowernumber_idx` (`borrowernumber`),
-  KEY `ccode_idx` (`ccode`)
+  KEY `ccode_idx` (`ccode`),
+  KEY `illrequest_idx` (`illrequest_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -6466,7 +6790,7 @@ CREATE TABLE `stockrotationstages` (
   `position` int(11) NOT NULL COMMENT 'The position of this stage within its rota',
   `rota_id` int(11) NOT NULL COMMENT 'The rota this stage belongs to',
   `branchcode_id` varchar(10) NOT NULL COMMENT 'Branch this stage relates to',
-  `duration` int(11) NOT NULL DEFAULT 4 COMMENT 'The number of days items shoud occupy this stage',
+  `duration` int(11) NOT NULL DEFAULT 4 COMMENT 'The number of days items should occupy this stage',
   PRIMARY KEY (`stage_id`),
   KEY `stockrotationstages_rifk` (`rota_id`),
   KEY `stockrotationstages_bifk` (`branchcode_id`),
@@ -6709,7 +7033,7 @@ DROP TABLE IF EXISTS `systempreferences`;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `systempreferences` (
   `variable` varchar(50) NOT NULL DEFAULT '' COMMENT 'system preference name',
-  `value` mediumtext DEFAULT NULL COMMENT 'system preference values',
+  `value` mediumtext NOT NULL DEFAULT '' COMMENT 'system preference values',
   `options` longtext DEFAULT NULL COMMENT 'options for multiple choice system preferences',
   `explanation` mediumtext DEFAULT NULL COMMENT 'descriptive text for the system preference',
   `type` varchar(20) DEFAULT NULL COMMENT 'type of question this preference asks (multiple choice, plain text, yes or no, etc)',
@@ -6986,19 +7310,11 @@ DROP TABLE IF EXISTS `vendor_edi_accounts`;
 CREATE TABLE `vendor_edi_accounts` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `description` mediumtext NOT NULL,
-  `host` varchar(40) DEFAULT NULL,
-  `username` varchar(40) DEFAULT NULL,
-  `password` mediumtext DEFAULT NULL,
-  `upload_port` int(11) DEFAULT NULL,
-  `download_port` int(11) DEFAULT NULL,
   `last_activity` date DEFAULT NULL,
   `vendor_id` int(11) DEFAULT NULL,
-  `download_directory` mediumtext DEFAULT NULL,
-  `upload_directory` mediumtext DEFAULT NULL,
   `san` varchar(20) DEFAULT NULL,
   `standard` varchar(3) DEFAULT 'EUR',
   `id_code_qualifier` varchar(3) DEFAULT '14',
-  `transport` varchar(6) DEFAULT 'FTP',
   `quotes_enabled` tinyint(1) NOT NULL DEFAULT 0,
   `invoices_enabled` tinyint(1) NOT NULL DEFAULT 0,
   `orders_enabled` tinyint(1) NOT NULL DEFAULT 0,
@@ -7006,9 +7322,13 @@ CREATE TABLE `vendor_edi_accounts` (
   `auto_orders` tinyint(1) NOT NULL DEFAULT 0,
   `shipment_budget` int(11) DEFAULT NULL,
   `plugin` varchar(256) NOT NULL DEFAULT '',
+  `file_transport_id` int(11) DEFAULT NULL,
+  `po_is_basketname` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `vendorid` (`vendor_id`),
   KEY `shipmentbudget` (`shipment_budget`),
+  KEY `vendor_edi_accounts_file_transport_id` (`file_transport_id`),
+  CONSTRAINT `vendor_edi_accounts_ibfk_file_transport` FOREIGN KEY (`file_transport_id`) REFERENCES `file_transports` (`file_transport_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `vfk_shipment_budget` FOREIGN KEY (`shipment_budget`) REFERENCES `aqbudgets` (`budget_id`),
   CONSTRAINT `vfk_vendor_id` FOREIGN KEY (`vendor_id`) REFERENCES `aqbooksellers` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -7046,7 +7366,7 @@ CREATE TABLE `virtualshelfshares` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'unique key',
   `shelfnumber` int(11) NOT NULL COMMENT 'foreign key for virtualshelves',
   `borrowernumber` int(11) DEFAULT NULL COMMENT 'borrower that accepted access to this list',
-  `invitekey` varchar(10) DEFAULT NULL COMMENT 'temporary string used in accepting the invitation to access thist list; not-empty means that the invitation has not been accepted yet',
+  `invitekey` varchar(10) DEFAULT NULL COMMENT 'temporary string used in accepting the invitation to access this list; not-empty means that the invitation has not been accepted yet',
   `sharedate` datetime DEFAULT NULL COMMENT 'date of invitation or acceptance of invitation',
   PRIMARY KEY (`id`),
   KEY `virtualshelfshares_ibfk_1` (`shelfnumber`),
@@ -7139,4 +7459,4 @@ CREATE TABLE `zebraqueue` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-05-05 12:15:00
+-- Dump completed on 2025-12-05 17:27:25

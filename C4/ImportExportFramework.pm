@@ -15,10 +15,19 @@ package C4::ImportExportFramework;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(
+        ExportFramework
+        ImportFramework
+        createODS
+    );
+}
+
 use XML::LibXML;
 use XML::LibXML::XPathContext;
 use Digest::MD5;
@@ -28,18 +37,6 @@ use List::MoreUtils qw( indexes );
 
 use C4::Context;
 use Koha::Logger;
-
-our ( @ISA, @EXPORT_OK );
-
-BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
-        ExportFramework
-        ImportFramework
-        createODS
-    );
-}
 
 use constant XMLSTR => '<?xml version="1.0" encoding="UTF-8"?>
 <?mso-application progid="Excel.Sheet"?>
@@ -177,7 +174,7 @@ C4::ImportExportFramework - Import/Export Framework to Excel-xml/ODS Module Func
 Module to Import/Export Framework to Excel-xml/ODS on intranet administration - MARC Frameworks section
 
 Module to Import/Export Framework to Excel-xml/ODS on intranet administration - MARC Frameworks section
-exporting the tables marc_tag_structure, marc_subfield_structure to excel-xml/ods or viceversa
+exporting the tables marc_tag_structure, marc_subfield_structure to excel-xml/ods or vice-versa
 
 Functions for handling import/export.
 
@@ -191,7 +188,7 @@ Functions for handling import/export.
 Export all information of a bibliographic or authority MARC framework to an Excel "xml" file, comma separated values "csv" or OpenDocument SpreadSheet "ods".
 
 return :
-succes
+success
 
 =cut
 
@@ -746,7 +743,7 @@ sub ImportFramework {
         }
         unlink($filename) if ($deleteFilename);    # remove temporary file
     } else {
-        Koha::Logger->get->warn("Error ImportFramework no conex to database or not readeable $filename");
+        Koha::Logger->get->warn("Error ImportFramework no conex to database or not readable $filename");
     }
     if ( $deleteFilename && $tempdir && -d $tempdir && -w $tempdir ) {
         eval {
@@ -1009,7 +1006,7 @@ sub _import_table_csv {
     while ( my $row = $csv->getline($dom) ) {
         my @fields = @$row;
         @arrData = @fields;
-        next if scalar @arrData == grep { $_ eq '' } @arrData;    # Emtpy lines
+        next if scalar @arrData == grep { $_ eq '' } @arrData;    # Empty lines
             #$arrData[0] = substr($arrData[0], 1) if ($arrData[0] =~ /^"/);
             #$arrData[$#arrData] =~ s/[\r\n]+$//;
             #chop $arrData[$#arrData] if ($arrData[$#arrData] =~ /"$/);
@@ -1244,7 +1241,7 @@ __END__
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 =cut
 

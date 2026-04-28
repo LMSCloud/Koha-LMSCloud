@@ -1,0 +1,31 @@
+<template>
+    <div class="btn-group">
+        <a
+            class="btn btn-default dropdown-toggle"
+            data-bs-toggle="dropdown"
+            href="#"
+            ><i class="fa fa-plus"></i> {{ title }}</a
+        >
+        <ul class="dropdown-menu">
+            <li v-for="(button, index) in dropdownButtons" :key="index">
+                <ToolbarButton
+                    :to="button.to"
+                    :title="$__(button.title)"
+                    :callback="button.callback"
+                    :cssClass="'dropdown-item'"
+                />
+            </li>
+        </ul>
+    </div>
+</template>
+
+<script>
+import ToolbarButton from "./ToolbarButton.vue";
+
+export default {
+    components: { ToolbarButton },
+    props: ["dropdownButtons", "title"],
+};
+</script>
+
+<style></style>

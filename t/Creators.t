@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 #
-# This module will excercise pdf creation routines
+# This module will exercise pdf creation routines
 #
-# When run with KEEP_PDF enviroment variable it will keep
+# When run with KEEP_PDF environment variable it will keep
 # test.pdf for manual inspection. This can be used to verify
 # that ttf font configuration is complete like:
 #
@@ -14,11 +14,12 @@ use strict;
 use warnings;
 
 use File::Temp qw/ tempfile  /;
-use Test::More tests => 41;
+use Test::NoWarnings;
+use Test::More tests => 48;
 
 BEGIN {
     use_ok('C4::Creators');
-    use_ok( 'C4::Creators::PDF', qw( Init Add Bookmark Compress Font FontSize Page StrWidth Text End ) );
+    use_ok('C4::Creators::PDF');
 }
 
 my $pdf_creator = C4::Creators::PDF->new( InitVars => 0 );

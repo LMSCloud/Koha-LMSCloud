@@ -23,143 +23,19 @@ $(document).ready(function () {
         });
     }
     if (CAN_user_borrowers_edit_borrowers) {
-        $("#renewpatron").click(function () {
+        $("#renewpatron").click(function (e) {
+            e.preventDefault();
             confirm_reregistration();
-            $(".btn-group").removeClass("open");
-            return false;
         });
+
         $("#updatechild").click(function (e) {
+            e.preventDefault();
             if ($(this).data("toggle") == "tooltip") {
                 // Disabled menu option has tooltip attribute
-                e.preventDefault();
             } else {
                 update_child();
-                $(".btn-group").removeClass("open");
             }
         });
-        if ($("#notice_sent_dialog_member").length == 1) {
-            $("#notice_sent_dialog_member").hide();
-
-            $("#send_notice_letter_select").on("click", function (e) {
-                var patronCount = 1;
-                $("#selectAdhocNoticeLetterPatronCount").text(patronCount);
-
-                $.ajax({
-                    data: {},
-                    type: "POST",
-                    url: "/cgi-bin/koha/svc/members/adhocletters",
-                    success: function (data) {
-                        var letterSelect = $(
-                            "#adhocNoticeLetterSelection_letter"
-                        );
-                        letterSelect.find("option").remove();
-                        for (var i = 0; i < data.letters.length; i++) {
-                            letterSelect.append(
-                                $("<option></option>")
-                                    .val(data.letters[i].code)
-                                    .html(data.letters[i].name)
-                            );
-                        }
-                        $("#selectAdhocNoticeLetter").modal("show");
-                    },
-                    error: function () {
-                        alert(
-                            _(
-                                "An error occured while retrieving available letters for adhoc-notices."
-                            )
-                        );
-                    },
-                });
-
-                return true;
-            });
-            $("#send_notice_submit").on("click", function (e) {
-                e.preventDefault();
-                var patronCount = 1;
-
-                var borrowernumbers = [];
-                borrowernumbers.push(borrowernumber);
-
-                var data = {
-                    use_letter: $("#adhocNoticeLetterSelection_letter").val(),
-                    use_email: $("#preferEmail").is(":checked")
-                        ? $("#preferEmail").val()
-                        : "",
-                    no_notice_fees: $("#dontCharge").is(":checked")
-                        ? $("#dontCharge").val()
-                        : "",
-                    no_email_bcc: $("#noBccEmail").is(":checked")
-                        ? ""
-                        : $("#noBccEmail").val(),
-                    borrowernumbers: borrowernumbers,
-                };
-
-                $.ajax({
-                    data: data,
-                    type: "POST",
-                    url: "/cgi-bin/koha/svc/members/sendnotice",
-                    success: function (data) {
-                        var patronExportModal = $("#selectAdhocNoticeLetter");
-                        $("#notice_sent_dialog_member").show();
-                        $("#notice_sent_dialog_member")
-                            .find(".patrons-length")
-                            .text(patronCount);
-                        $("#notice_sent_dialog_member")
-                            .find(".letter-name")
-                            .text(
-                                $("#adhocNoticeLetterSelection_letter")
-                                    .find("option:selected")
-                                    .text()
-                            );
-                        if (data.letter_mailed > 0) {
-                            $("#notice_sent_dialog_member")
-                                .find(".letter-email-count")
-                                .text(data.letter_mailed);
-                            $("#notice_sent_dialog_member")
-                                .find(".letter-email")
-                                .show();
-                        } else {
-                            $("#notice_sent_dialog_member")
-                                .find(".letter-email")
-                                .hide();
-                        }
-                        if (data.letter_printed > 0) {
-                            $("#notice_sent_dialog_member")
-                                .find(".letter-print-count")
-                                .text(data.letter_printed);
-                            $("#notice_sent_dialog_member")
-                                .find("a")
-                                .attr(
-                                    "href",
-                                    "/cgi-bin/koha/tools/download-files.pl?filename=" +
-                                        data.printedfile +
-                                        "&op=download"
-                                );
-                            $("#notice_sent_dialog_member")
-                                .find(".letter-print")
-                                .show();
-                        } else {
-                            $("#notice_sent_dialog_member")
-                                .find(".letter-print")
-                                .hide();
-                        }
-
-                        //console.log(data);
-                        patronExportModal.modal("hide");
-                        $("#memberresultst").DataTable().ajax.reload();
-                    },
-                    error: function () {
-                        alert(
-                            _(
-                                "A server error occured processing the adhoc notice request."
-                            )
-                        );
-                    },
-                });
-
-                return true;
-            });
-        }
     }
 
     $(".delete_message").click(function () {
@@ -170,21 +46,20 @@ $(document).ready(function () {
         );
     });
 
-    $("#exportcheckins").click(function () {
+    $("#exportcheckins").click(function (e) {
+        e.preventDefault();
         export_barcodes();
-        $(".btn-group").removeClass("open");
-        return false;
     });
-    $("#print_overdues").click(function () {
+    $("#print_overdues").click(function (e) {
+        e.preventDefault();
         window.open(
             "/cgi-bin/koha/members/print_overdues.pl?borrowernumber=" +
                 borrowernumber,
             "printwindow"
         );
-        $(".btn-group").removeClass("open");
-        return false;
     });
-    $(".printslip").click(function () {
+    $(".printslip").click(function (e) {
+        e.preventDefault();
         let slip_code = $(this).data("code");
         let clear_screen = $(this).data("clear");
         if (slip_code == "printsummary") {
@@ -204,9 +79,6 @@ $(document).ready(function () {
         }
         if (clear_screen) {
             window.location.replace("/cgi-bin/koha/circ/circulation.pl");
-        } else {
-            $(".btn-group").removeClass("open");
-            return false;
         }
     });
     $("#searchtohold").click(function () {
@@ -222,7 +94,7 @@ $(document).ready(function () {
     });
 
     $("#message_type").on("change", function () {
-        if ($(this).val() == "E") {
+        if ($(this).val() == "E" || $(this).val() == "SMS") {
             $("label[for='borrower_message']").show();
             $("#subject_form").show();
             $("label[for='select_patron_notice']").show();
@@ -241,6 +113,16 @@ $(document).ready(function () {
             $("#borrower_subject").prop("disabled", false);
             $("#borrower_message").prop("disabled", false);
             $("#select_patron_messages").val("");
+        }
+        if ($(this).val() == "SMS") {
+            $("#borrower_subject").val(__("SMS added by a librarian"));
+            $("#subject_form").hide();
+        } else {
+            if (
+                $("#borrower_subject").val() == __("SMS added by a librarian")
+            ) {
+                $("#borrower_subject").val("");
+            }
         }
     });
 
@@ -273,6 +155,128 @@ $(document).ready(function () {
             }
         });
     });
+
+    // LMSCloud: adhoc notice letter sending
+    if ($("#notice_sent_dialog_member").length == 1) {
+        $("#notice_sent_dialog_member").hide();
+
+        $("#send_notice_letter_select").on("click", function (e) {
+            var patronCount = 1;
+            $("#selectAdhocNoticeLetterPatronCount").text(patronCount);
+
+            $.ajax({
+                data: {},
+                type: "POST",
+                url: "/cgi-bin/koha/svc/members/adhocletters",
+                success: function (data) {
+                    var letterSelect = $("#adhocNoticeLetterSelection_letter");
+                    letterSelect.find("option").remove();
+                    for (var i = 0; i < data.letters.length; i++) {
+                        letterSelect.append(
+                            $("<option></option>")
+                                .val(data.letters[i].code)
+                                .html(data.letters[i].name)
+                        );
+                    }
+                    $("#selectAdhocNoticeLetter").modal("show");
+                },
+                error: function () {
+                    alert(
+                        __(
+                            "An error occured while retrieving available letters for adhoc-notices."
+                        )
+                    );
+                },
+            });
+
+            return true;
+        });
+        $("#send_notice_submit").on("click", function (e) {
+            e.preventDefault();
+            var patronCount = 1;
+
+            var borrowernumbers = [];
+            borrowernumbers.push(borrowernumber);
+
+            var data = {
+                use_letter: $("#adhocNoticeLetterSelection_letter").val(),
+                use_email: $("#preferEmail").is(":checked")
+                    ? $("#preferEmail").val()
+                    : "",
+                no_notice_fees: $("#dontCharge").is(":checked")
+                    ? $("#dontCharge").val()
+                    : "",
+                no_email_bcc: $("#noBccEmail").is(":checked")
+                    ? ""
+                    : $("#noBccEmail").val(),
+                borrowernumbers: borrowernumbers,
+            };
+
+            $.ajax({
+                data: data,
+                type: "POST",
+                url: "/cgi-bin/koha/svc/members/sendnotice",
+                success: function (data) {
+                    var patronExportModal = $("#selectAdhocNoticeLetter");
+                    $("#notice_sent_dialog_member").show();
+                    $("#notice_sent_dialog_member")
+                        .find(".patrons-length")
+                        .text(patronCount);
+                    $("#notice_sent_dialog_member")
+                        .find(".letter-name")
+                        .text(
+                            $("#adhocNoticeLetterSelection_letter")
+                                .find("option:selected")
+                                .text()
+                        );
+                    if (data.letter_mailed > 0) {
+                        $("#notice_sent_dialog_member")
+                            .find(".letter-email-count")
+                            .text(data.letter_mailed);
+                        $("#notice_sent_dialog_member")
+                            .find(".letter-email")
+                            .show();
+                    } else {
+                        $("#notice_sent_dialog_member")
+                            .find(".letter-email")
+                            .hide();
+                    }
+                    if (data.letter_printed > 0) {
+                        $("#notice_sent_dialog_member")
+                            .find(".letter-print-count")
+                            .text(data.letter_printed);
+                        $("#notice_sent_dialog_member")
+                            .find("a")
+                            .attr(
+                                "href",
+                                "/cgi-bin/koha/tools/download-files.pl?filename=" +
+                                    data.printedfile +
+                                    "&op=download"
+                            );
+                        $("#notice_sent_dialog_member")
+                            .find(".letter-print")
+                            .show();
+                    } else {
+                        $("#notice_sent_dialog_member")
+                            .find(".letter-print")
+                            .hide();
+                    }
+
+                    patronExportModal.modal("hide");
+                    $("#memberresultst").DataTable().ajax.reload();
+                },
+                error: function () {
+                    alert(
+                        __(
+                            "A server error occured processing the adhoc notice request."
+                        )
+                    );
+                },
+            });
+
+            return true;
+        });
+    }
 });
 
 function searchfield_date_tooltip(filter) {
@@ -347,20 +351,6 @@ function export_barcodes() {
             borrowernumber +
             "&op=export_barcodes"
     );
-}
-var slip_re = /slip/;
-function printx_window(print_type) {
-    var handler = print_type.match(slip_re) ? "printslip" : "summary-print";
-    window.open(
-        "/cgi-bin/koha/members/" +
-            handler +
-            ".pl?borrowernumber=" +
-            borrowernumber +
-            "&print=" +
-            print_type,
-        "printwindow"
-    );
-    return false;
 }
 
 function searchToHold() {

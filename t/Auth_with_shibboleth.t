@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -216,7 +216,8 @@ subtest "get_login_shib tests" => sub {
     $login = get_login_shib();
 
     $logger->debug_is( "koha borrower field to match: userid", "borrower match field debug info" )
-        ->debug_is( "shibboleth attribute to match: uid", "shib match attribute debug info" )->clear();
+        ->debug_is( "shibboleth attribute to match: uid", "shib match attribute debug info" )
+        ->clear();
 
     is( $login, "test1234", "good config, attribute value returned" );
 };
@@ -250,14 +251,16 @@ subtest "checkpw_shib tests" => sub {
     is( $retcard,         "testcardnumber", "expected cardnumber returned" );
     is( $retuserid,       "test1234",       "expected userid returned" );
     $logger->debug_is( "koha borrower field to match: userid", "borrower match field debug info" )
-        ->debug_is( "shibboleth attribute to match: uid", "shib match attribute debug info" )->clear();
+        ->debug_is( "shibboleth attribute to match: uid", "shib match attribute debug info" )
+        ->clear();
 
     # bad user
     $shib_login = 'martin';
     ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
     is( $retval, "0", "user not authenticated" );
     $logger->debug_is( "koha borrower field to match: userid", "borrower match field debug info" )
-        ->debug_is( "shibboleth attribute to match: uid", "shib match attribute debug info" )->clear();
+        ->debug_is( "shibboleth attribute to match: uid", "shib match attribute debug info" )
+        ->clear();
 
     # duplicated matchpoint
     $matchpoint       = 'email';
@@ -266,14 +269,16 @@ subtest "checkpw_shib tests" => sub {
     ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
     is( $retval, "0", "user not authenticated if duplicated matchpoint" );
     $logger->debug_is( "koha borrower field to match: email", "borrower match field debug info" )
-        ->debug_is( "shibboleth attribute to match: email", "shib match attribute debug info" )->clear();
+        ->debug_is( "shibboleth attribute to match: email", "shib match attribute debug info" )
+        ->clear();
 
     ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
     $logger->debug_is( "koha borrower field to match: email", "borrower match field debug info" )
-        ->debug_is( "shibboleth attribute to match: email", "shib match attribute debug info" )->warn_is(
+        ->debug_is( "shibboleth attribute to match: email", "shib match attribute debug info" )
+        ->warn_is(
         'There are several users with email of kid@clamp.io, matchpoints must be unique',
         "duplicated matchpoint warned with debug"
-    )->clear();
+        )->clear();
 
     reset_config();
 
@@ -301,7 +306,8 @@ subtest "checkpw_shib tests" => sub {
     is( $retval,    "1",        "user authenticated" );
     is( $retuserid, "test4321", "expected userid returned" );
     $logger->debug_is( "koha borrower field to match: userid", "borrower match field debug info" )
-        ->debug_is( "shibboleth attribute to match: uid", "shib match attribute debug info" )->clear();
+        ->debug_is( "shibboleth attribute to match: uid", "shib match attribute debug info" )
+        ->clear();
 
     ok my $new_user = ResultSet('Borrower')->search( { 'userid' => 'test4321' }, { rows => 1 } ), "new user found";
     is_fields [qw/surname dateexpiry address city/], $new_user->next,
@@ -315,7 +321,8 @@ subtest "checkpw_shib tests" => sub {
     $ENV{'city'} = 'AnotherCity';
     ( $retval, $retcard, $retuserid ) = checkpw_shib($shib_login);
     $logger->debug_is( "koha borrower field to match: userid", "borrower match field debug info" )
-        ->debug_is( "shibboleth attribute to match: uid", "shib match attribute debug info" )->clear();
+        ->debug_is( "shibboleth attribute to match: uid", "shib match attribute debug info" )
+        ->clear();
 
     ok my $sync_user = ResultSet('Borrower')->search( { 'userid' => 'test4321' }, { rows => 1 } ), "sync user found";
 
@@ -331,7 +338,8 @@ subtest "checkpw_shib tests" => sub {
     is( $retcard,   "testcardnumber", "expected cardnumber returned" );
     is( $retuserid, "test1234",       "expected userid returned" );
     $logger->debug_is( "koha borrower field to match: userid", "borrower match field debug info" )
-        ->debug_is( "shibboleth attribute to match: uid", "shib match attribute debug info" )->clear();
+        ->debug_is( "shibboleth attribute to match: uid", "shib match attribute debug info" )
+        ->clear();
 
     # bad user
     $shib_login = "martin";

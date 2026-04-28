@@ -254,6 +254,27 @@ modules:
               columnname: actions
               cannot_be_toggled: 1
               cannot_be_modified: 1
+
+    vendors:
+      vendors:
+        columns:
+          -
+            columnname: name
+          -
+            columnname: status
+          -
+            columnname: type
+          -
+            columnname: invoice_currency
+          -
+            columnname: baskets
+          -
+            columnname: subscriptions
+          -
+            columnname: actions
+            cannot_be_toggled: 1
+            cannot_be_modified: 1
+
   admin:
     cities:
       table_cities:
@@ -347,6 +368,56 @@ modules:
             -
               columnname: guarantors_checkout_charge_limit
             -
+              columnname: enforce_expiry_notice
+            -
+              columnname: actions
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+
+    edi_accounts:
+      edi_accounts_table:
+        default_display_length: 20
+        default_sort_order: 1
+        columns:
+            -
+              columnname: id
+            -
+              columnname: vendor
+            -
+              columnname: description
+            -
+              columnname: transport
+            -
+              columnname: remote_host
+            -
+              columnname: username
+            -
+              columnname: password
+            -
+              columnname: upload_port
+            -
+              columnname: download_port
+            -
+              columnname: download_directory
+            -
+              columnname: upload_directory
+            -
+              columnname: qualifier
+            -
+              columnname: san
+            -
+              columnname: standard
+            -
+              columnname: quotes
+            -
+              columnname: orders
+            -
+              columnname: invoices
+            -
+              columnname: responses
+            -
+              columnname: auto_ordering
+            -
               columnname: actions
               cannot_be_toggled: 1
               cannot_be_modified: 1
@@ -415,6 +486,8 @@ modules:
             -
               columnname: public
             -
+              columnname: mobilebranch
+            -
               columnname: smtp_server
             -
               columnname: library_hours
@@ -441,6 +514,8 @@ modules:
               columnname: holdingbranch
             -
               columnname: homebranch
+            -
+              columnname: location
             -
               columnname: ccode
             -
@@ -509,6 +584,8 @@ modules:
               columnname: holdingbranch
             -
               columnname: homebranch
+            -
+              columnname: location
             -
               columnname: ccode
             -
@@ -637,6 +714,8 @@ modules:
             -
               columnname: author
             -
+              columnname: copynumber
+            -
               columnname: callnumber
             -
               columnname: barcode
@@ -732,6 +811,8 @@ modules:
               columnname: withdrawn_status
             -
               columnname: damaged_status
+            -
+              columnname: dateaccessioned
             -
               columnname: checkouts
             -
@@ -937,6 +1018,8 @@ modules:
       agreements:
         columns:
             -
+              columnname: id
+            -
               columnname: name
             -
               columnname: vendor
@@ -957,6 +1040,8 @@ modules:
     licenses:
       licenses:
         columns:
+            -
+              columnname: id
             -
               columnname: name
             -
@@ -1011,11 +1096,11 @@ modules:
     usage_data_providers:
       usage_data_providers:
         columns:
-            - 
+            -
               columnname: name
             -
               columnname: description
-            - 
+            -
               columnname: actions
               cannot_be_toggled: 1
               cannot_be_modified: 1
@@ -1033,7 +1118,7 @@ modules:
               columnname: filename
             -
               columnname: importdate
-            - 
+            -
               columnname: actions
               cannot_be_toggled: 1
               cannot_be_modified: 1
@@ -1323,7 +1408,10 @@ modules:
               cannot_be_modified: 1
 
       holds-table:
+        default_sort_order: 1
         columns:
+            -
+              columnname: checkbox
             -
               columnname: reservedate
             -
@@ -1629,6 +1717,121 @@ modules:
               cannot_be_modified: 1
 
   circ:
+    article-requests:
+      article-requests-requested-table:
+        default_sort_order: 13
+        columns:
+            -
+              columnname: selections
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+            -
+              columnname: title
+            -
+              columnname: requested_article
+            -
+              columnname: collection
+            -
+              columnname: item_type
+            -
+              columnname: call_number
+            -
+              columnname: status
+            -
+              columnname: copy_number
+            -
+              columnname: enumeration
+            -
+              columnname: barcode
+            -
+              columnname: format
+            -
+              columnname: urls
+            -
+              columnname: patron
+            -
+              columnname: date
+            -
+              columnname: actions
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+
+      article-requests-pending-table:
+        default_sort_order: 13
+        columns:
+            -
+              columnname: selections
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+            -
+              columnname: title
+            -
+              columnname: requested_article
+            -
+              columnname: collection
+            -
+              columnname: item_type
+            -
+              columnname: call_number
+            -
+              columnname: status
+            -
+              columnname: copy_number
+            -
+              columnname: enumeration
+            -
+              columnname: barcode
+            -
+              columnname: format
+            -
+              columnname: urls
+            -
+              columnname: patron
+            -
+              columnname: date
+            -
+              columnname: actions
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+
+      article-requests-processing-table:
+        default_sort_order: 13
+        columns:
+            -
+              columnname: selections
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+            -
+              columnname: title
+            -
+              columnname: requested_article
+            -
+              columnname: collection
+            -
+              columnname: item_type
+            -
+              columnname: call_number
+            -
+              columnname: status
+            -
+              columnname: copy_number
+            -
+              columnname: enumeration
+            -
+              columnname: barcode
+            -
+              columnname: format
+            -
+              columnname: urls
+            -
+              columnname: patron
+            -
+              columnname: date
+            -
+              columnname: actions
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+
     circulation:
       issues-table:
         columns:
@@ -1755,7 +1958,10 @@ modules:
               is_hidden: 1
 
       holds-table:
+        default_sort_order: 1
         columns:
+            -
+              columnname: checkbox
             -
               columnname: reservedate
             -
@@ -1785,6 +1991,56 @@ modules:
               cannot_be_modified: 1
             -
               columnname: status
+
+    curbside_pickups:
+      to_be_stagedt:
+        columns:
+          -
+            columnname: pickup_datetime
+          -
+            columnname: patron
+          -
+            columnname: items_for_pickup
+          -
+            columnname: action
+            cannot_be_toggled: 1
+            cannot_be_modified: 1
+      staged_and_readyt:
+        columns:
+          -
+            columnname: pickup_datetime
+          -
+            columnname: patron
+          -
+            columnname: items_for_pickup
+          -
+            columnname: staged_by
+          -
+            columnname: action
+            cannot_be_toggled: 1
+            cannot_be_modified: 1
+      patron_is_outsidet:
+        columns:
+          -
+            columnname: pickup_datetime
+          -
+            columnname: patron
+          -
+            columnname: items_for_pickup
+          -
+            columnname: staged_by
+          -
+            columnname: action
+            cannot_be_toggled: 1
+            cannot_be_modified: 1
+      delivered_todayt:
+        columns:
+          -
+            columnname: delivery_datetime
+          -
+            columnname: patron
+          -
+            columnname: items_checked_out
 
     returns:
       checkedintable:
@@ -2230,6 +2486,7 @@ modules:
   opac:
     biblio-detail:
       holdingst:
+        default_sort_order: 1
         columns:
             -
               columnname: item_cover
@@ -2277,6 +2534,9 @@ modules:
               columnname: serial_serialseq
             -
               columnname: serial_publisheddate
+            -
+              columnname: serial_publisheddatetext
+              is_hidden: 1
             -
               columnname: serial_planneddate
             -
@@ -2352,6 +2612,36 @@ modules:
               columnname: booking_actions
 
   serials:
+    claims:
+      claimst:
+        default_sort_order: 7
+        columns:
+            -
+              columnname: selection
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+            -
+              columnname: vendor
+            -
+              columnname: library
+            -
+              columnname: title
+            -
+              columnname: issn
+            -
+              columnname: issue_number
+            -
+              columnname: status
+            -
+              columnname: since
+            -
+              columnname: publication_date
+            -
+              columnname: claims_count
+            -
+              columnname: claim_date
+            -
+              columnname: notes
     subscription-detail:
       orders:
         columns:
@@ -2417,18 +2707,76 @@ modules:
             -
               columnname: batch_patron_edit_mobile
             -
+              columnname: batch_patron_edit_fax
+            -
               columnname: batch_patron_edit_dateenrolled
             -
               columnname: batch_patron_edit_dateexpiry
+            -
+              columnname: batch_patron_edit_password_expiration_date
+            -
+              columnname: batch_patron_edit_protected
             -
               columnname: batch_patron_edit_borrowernotes
             -
               columnname: batch_patron_edit_opacnote
             -
+              columnname: batch_patron_edit_messages
+            -
               columnname: batch_patron_edit_debarred
             -
               columnname: batch_patron_edit_debarredcomment
 
+    batch_hold_modification:
+      holds_to_modify:
+        default_display_length: 20
+        columns:
+            -
+              columnname: batch_hold_edit_selections
+              cannot_be_toggled: 1
+              cannot_be_modified: 1
+            -
+              columnname: batch_hold_edit_hold_date
+            -
+              columnname: batch_hold_edit_expiration_date
+            -
+              columnname: batch_hold_edit_title
+            -
+              columnname: batch_hold_edit_barcode
+            -
+              columnname: batch_hold_edit_patron
+            -
+              columnname: batch_hold_edit_status
+            -
+              columnname: batch_hold_edit_hold_pickup_library
+            -
+              columnname: batch_hold_edit_suspended
+            -
+              columnname: batch_hold_edit_suspended_until
+            -
+              columnname: batch_hold_edit_note
+
+      modified_holds:
+        default_display_length: 20
+        columns:
+            -
+              columnname: expiration_date
+            -
+              columnname: title
+            -
+              columnname: barcode
+            -
+              columnname: patron
+            -
+              columnname: status
+            -
+              columnname: pickup_library
+            -
+              columnname: suspended
+            -
+              columnname: suspended_until
+            -
+              columnname: notes
     logviewer:
       logst:
         default_display_length: 20
@@ -2447,6 +2795,9 @@ modules:
               columnname: info
             -
               columnname: interface
+            -
+              columnname: diff
+              is_hidden: 1
     marc-modification-templates:
       templatest:
         columns:
@@ -2573,6 +2924,49 @@ modules:
                 columnname: last_seen
             -
                 columnname: problems
+
+  sip2:
+    institutions:
+      institutions:
+        columns:
+            -
+              columnname: sip_institution_id
+            -
+              columnname: name
+            -
+              columnname: implementation
+            -
+              columnname: checkin
+            -
+              columnname: checkout
+            -
+              columnname: renewal
+            -
+              columnname: retries
+            -
+              columnname: status_update
+            -
+              columnname: timeout
+
+    accounts:
+      accounts:
+        columns:
+            -
+              columnname: sip_account_id
+            -
+              columnname: sip_institution_id
+            -
+              columnname: login_id
+
+    system_preference_overrides:
+      system_preference_overrides:
+        columns:
+            -
+              columnname: sip_system_preference_override_id
+            -
+              columnname: variable
+            -
+              columnname: value
 
   pos:
     pay:

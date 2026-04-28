@@ -15,7 +15,7 @@ package C4::Form::MessagingPreferences;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -93,7 +93,7 @@ OPTION: foreach my $option (@$messaging_options) {
         }
 
         if ( $option->{'takes_days'} ) {
-            if ( defined $query->param( $option->{'message_attribute_id'} . '-DAYS' ) ) {
+            if ( $query->param( $option->{'message_attribute_id'} . '-DAYS' ) ) {
                 $updater->{'days_in_advance'} = $query->param( $option->{'message_attribute_id'} . '-DAYS' );
             }
         }
@@ -135,7 +135,7 @@ PREF: foreach my $option (@$messaging_options) {
             $option->{days_in_advance} = $days_in_advance;
             @{ $option->{'select_days'} } = map {
                 {
-                    day      => $_,
+                    day      => $_ || q{},
                     selected => $_ == $days_in_advance
                 }
             } ( 0 .. MAX_DAYS_IN_ADVANCE );
@@ -173,7 +173,7 @@ sub restore_form_values {
             $option->{days_in_advance} = $days_in_advance;
             @{ $option->{'select_days'} } = map {
                 {
-                    day      => $_,
+                    day      => $_ || q{},
                     selected => $_ == $days_in_advance
                 }
             } ( 0 .. MAX_DAYS_IN_ADVANCE );
@@ -201,7 +201,7 @@ sub restore_form_values {
 
 =item Handle when form input is invalid
 
-=item Generalize into a system of form handler clases
+=item Generalize into a system of form handler classes
 
 =back
 
@@ -211,7 +211,7 @@ L<C4::Members::Messaging>, F<admin/categories.pl>, F<opac/opac-messaging.pl>, F<
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 Galen Charlton <galen.charlton@liblime.com> refactoring code by Andrew Moore.
 

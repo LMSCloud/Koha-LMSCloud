@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 4;
+use Test::NoWarnings;
+use Test::More tests => 5;
 
 use Test::Mojo;
 use Test::Warn;
@@ -290,13 +291,15 @@ subtest 'delete() tests' => sub {
     );
 
     # Test deleting a return claim
-    $t->delete_ok( "//$userid:$password@/api/v1/return_claims/" . $claim->id )->status_is( 204, 'REST3.2.4' )
+    $t->delete_ok( "//$userid:$password@/api/v1/return_claims/" . $claim->id )
+        ->status_is( 204, 'REST3.2.4' )
         ->content_is( '', 'REST3.3.4' );
 
     my $THE_claim = Koha::Checkouts::ReturnClaims->find( $claim->id );
     isnt( $THE_claim, "Return claim was deleted" );
 
-    $t->delete_ok( "//$userid:$password@/api/v1/return_claims/" . $claim->id )->status_is(404)
+    $t->delete_ok( "//$userid:$password@/api/v1/return_claims/" . $claim->id )
+        ->status_is(404)
         ->json_is( '/error' => 'Claim not found' );
 
     $schema->storage->txn_rollback;

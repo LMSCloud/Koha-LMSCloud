@@ -1,4 +1,4 @@
-/* global dataTablesDefaults tagsubfield selectBsTabByHash */
+/* global tagsubfield selectBsTabByHash */
 $(document).ready(function () {
     if (tagsubfield && tagsubfield == "@") {
         $("#subfieldtabs a[href='#AT_panel']").tab("show");
@@ -28,6 +28,10 @@ $(document).ready(function () {
     $("input[id^='hidden_']").click(setHiddenValue);
     $("input[id^='hidden-']").each(function () {
         populateHiddenCheckboxes($(this).attr("id").split("-")[1]);
+    });
+    $("#table_marcsubfieldstructure").kohaTable({
+        order: [],
+        paging: false,
     });
     $("#table_marcsubfieldstructure").dataTable(
         $.extend(true, {}, dataTablesDefaults, {
@@ -189,7 +193,7 @@ function populateHiddenCheckboxes(tab) {
     // read the serialized value
     var hidden_value = $("#hidden-" + tab).val();
     var hidden_protected = $("#hidden-" + tab).attr("data-koha-protected");
-    // deafult to false
+    // default to false
     var opac_checked = false;
     var intranet_checked = false;
     var editor_checked = false;

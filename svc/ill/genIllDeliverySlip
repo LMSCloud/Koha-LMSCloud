@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI;
@@ -235,8 +235,9 @@ sub SendMailMessages {
 
     my @messages = @{ C4::Letters::GetMessagesById( { message_id => \@messageIDs } ) };
 
+    my $smtp_transports = {};
     foreach my $message (@messages) {
-        C4::Letters::_send_message_by_email($message);
+        C4::Letters::_send_message_by_email( $message, undef, undef, undef, $smtp_transports );
     }
 }
 

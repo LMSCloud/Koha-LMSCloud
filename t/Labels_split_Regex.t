@@ -13,12 +13,13 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 5;
-use C4::ClassSplitRoutine::RegEx qw( split_callnumber );
+use Test::NoWarnings;
+use Test::More tests => 6;
+use C4::ClassSplitRoutine::RegEx;
 
 my $callnumbers = {
     '830 Han'          => [qw{830 Han}],

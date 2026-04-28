@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # Note that at present this test is almost identical to the one testing
 # the encapsulating method in Koha::MetadataRecord.
@@ -23,7 +23,8 @@
 use strict;
 use warnings;
 
-use Test::More tests => 4;
+use Test::NoWarnings;
+use Test::More tests => 5;
 use MARC::Record;
 
 BEGIN {

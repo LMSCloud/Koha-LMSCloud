@@ -24,6 +24,7 @@
         description: The mapping was applied and stored with the catalog records.
         schema:
           type: object
+          additionalProperties: false
           properties:
             process_info:
               type: string

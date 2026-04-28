@@ -28,33 +28,19 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' aside='serials-menu' %]
 
-                [% INCLUDE 'serials-toolbar.inc' %]
+    [% INCLUDE 'serials-toolbar.inc' %]
 
-                <h1>Serials</h1>
+    <h1>Serials</h1>
 
-                [% INCLUDE 'serials-advsearch.inc' %]
+    [% INCLUDE 'serials-advsearch.inc' %]
 
-                [%- SET StaffSerialsHome = AdditionalContents.get( location => "StaffSerialsHome", lang => lang, library => Branches.GetLoggedInBranchcode ) -%]
-                [%- FOREACH block IN StaffSerialsHome.content -%]
-                    <div class="page-section"> [%- block.content | $raw -%] </div>
-                [%- END -%]
-            </main>
-        </div>
-        <!-- /.col-md-10.order-md-2 -->
-
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'serials-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
-</div>
+    [%- SET StaffSerialsHome = AdditionalContents.get( location => "StaffSerialsHome", lang => lang, library => Branches.GetLoggedInBranchcode ) -%]
+    [%- FOREACH block IN StaffSerialsHome.content -%]
+        <div class="page-section"> [%- block.content | $raw -%] </div>
+    [%- END -%]
+[% END %]
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'calendar.inc' %]

@@ -83,6 +83,7 @@
             </form>
         </div>
     </div>
-
-    [% INCLUDE 'intranet-bottom.inc' %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% INCLUDE 'intranet-bottom.inc' %]

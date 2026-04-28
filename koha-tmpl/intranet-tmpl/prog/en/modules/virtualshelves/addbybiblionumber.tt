@@ -130,7 +130,8 @@
             </nav>
         </form>
     [% END %]
-
-    [% SET popup_window = 1 %]
-    [% INCLUDE 'intranet-bottom.inc' %]
 </div>
+<!-- /.container-fluid -->
+
+[% SET popup_window = 1 %]
+[% INCLUDE 'intranet-bottom.inc' %]

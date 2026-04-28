@@ -13,15 +13,14 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More;
+use Test::NoWarnings;
+use Test::More tests => 33;
 use Test::MockModule;
 use Test::Warn;
-
-plan tests => 32;
 
 use_ok(
     'C4::Biblio',

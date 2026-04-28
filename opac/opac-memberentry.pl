@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -138,6 +138,8 @@ if ( $op eq 'cud-create' ) {
     my @empty_mandatory_fields =
         ( CheckMandatoryFields( \%borrower, $op ), CheckMandatoryAttributes( \%borrower, $attributes ) );
     my $invalidformfields = CheckForInvalidFields( { borrower => \%borrower, context => 'create' } );
+    my $match_result      = Koha::Patrons->check_for_existing_matches( \%borrower );
+
     delete $borrower{'password2'};
     my $is_cardnumber_valid;
     if ( !grep { $_ eq 'cardnumber' } @empty_mandatory_fields ) {
@@ -158,12 +160,18 @@ if ( $op eq 'cud-create' ) {
         }
     }
 
-    if ( @empty_mandatory_fields || @$invalidformfields || !$is_cardnumber_valid || $conflicting_attribute ) {
+    if (   @empty_mandatory_fields
+        || @$invalidformfields
+        || !$is_cardnumber_valid
+        || $conflicting_attribute
+        || $match_result->{duplicate_found} )
+    {
 
         $template->param(
             empty_mandatory_fields => \@empty_mandatory_fields,
             invalid_form_fields    => $invalidformfields,
-            borrower               => \%borrower
+            borrower               => \%borrower,
+            duplicate_found        => $match_result->{duplicate_found}
         );
         $template->param( patron_attribute_classes => GeneratePatronAttributesForm( undef, $attributes ) );
     } elsif ( md5_base64( uc( $cgi->param('captcha') ) ) ne $cgi->param('captcha_digest') ) {
@@ -478,7 +486,7 @@ sub CheckMandatoryAttributes {
     for my $attribute (@$attributes) {
         my $attr = Koha::Patron::Attribute::Types->find( $attribute->{code} );
         push @empty_mandatory_fields, $attribute->{code}
-            if $attr && $attr->mandatory && $attribute->{attribute} =~ m|^\s*$|;
+            if $attr && $attr->opac_mandatory && $attribute->{attribute} =~ m|^\s*$|;
     }
 
     return @empty_mandatory_fields;

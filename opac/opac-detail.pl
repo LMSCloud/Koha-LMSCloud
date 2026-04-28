@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -34,7 +34,7 @@ use C4::Koha        qw(
 );
 use C4::Search  qw( new_record_from_zebra searchResults getRecords );
 use C4::Serials qw( CountSubscriptionFromBiblionumber SearchSubscriptions GetLatestSerials );
-use C4::Output  qw( parametrized_url output_html_with_http_headers );
+use C4::Output  qw( parametrized_url output_html_with_http_headers redirect_if_opac_suppressed );
 use C4::Biblio  qw(
     CountItemsIssued
     GetBiblioData
@@ -874,8 +874,8 @@ if ( not $viewallitems and $items->count > $max_items_to_display ) {
         $library_info->{ $item->holdingbranch } = $opac_info_holding;
         $opac_info_home = $library_info->{ $item->homebranch } // $item->home_branch->opac_info( { lang => $lang } );
         $library_info->{ $item->homebranch } = $opac_info_home;
-        $item_info->{holding_library_info}   = $opac_info_holding->content if $opac_info_holding;
-        $item_info->{home_library_info}      = $opac_info_home->content    if $opac_info_home;
+        $item_info->{holding_library_info}   = $opac_info_holding if $opac_info_holding;
+        $item_info->{home_library_info}      = $opac_info_home    if $opac_info_home;
 
         $can_item_be_reserved =
             $can_item_be_reserved || $patron && IsAvailableForItemLevelRequest( $item, $patron, undef );
@@ -915,6 +915,13 @@ if ( not $viewallitems and $items->count > $max_items_to_display ) {
         {
             $itemfields{$field} = 1 if $item_info->{$field};
         }
+
+        # eMedien (divibib/Onleihe) items have no physical call number, but the
+        # Onleihe download/reservation link is rendered in the call number column.
+        # Force that column visible so the link is not auto-hidden for eMedien-only
+        # records (community 25.11 hides columns with no item data).
+        $itemfields{itemcallnumber} = 1
+            if C4::Context->preference("DivibibEnabled") && $item_info->{onleihe};
 
         # FIXME The following must be Koha::Item->serial
         my $serial_item = Koha::Serial::Items->find( $item->itemnumber );
@@ -1136,7 +1143,10 @@ if ( C4::Context->preference("virtualshelves") ) {
     my $shelves = Koha::Virtualshelves->search(
         {
             biblionumber => $biblionumber,
-            public       => 1,
+            '-or'        => {
+                public => 1,
+                owner  => $borrowernumber
+            }
         },
         {
             join => 'virtualshelfcontents',

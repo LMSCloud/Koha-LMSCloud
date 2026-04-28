@@ -22,6 +22,7 @@
         description: An object that contains coverflow data of nearby items and additional metadata about the selection
         schema:
           type: object
+          additionalProperties: false
           items:
             $ref: "../swagger.yaml#/definitions/coverflow_data_nearby_items"
       "400":

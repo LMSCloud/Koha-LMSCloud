@@ -156,6 +156,16 @@ sub before_send_messages {
     Koha::Exception->throw("before_send_messages called");
 }
 
+sub notices_content {
+    my ( $self, $params ) = @_;
+    return {
+        custom_attribute => {
+            module  => $params->{module},
+            message => 'notices_content() called',
+        },
+    };
+}
+
 sub before_biblio_action {
     my ( $self, $params ) = @_;
 
@@ -177,8 +187,9 @@ sub before_biblio_action {
 sub after_biblio_action {
     my ( $self, $params ) = @_;
     my $action    = $params->{action} // '';
-    my $biblio    = $params->{biblio};
-    my $biblio_id = $params->{biblio_id};
+    my $payload   = $params->{payload};
+    my $biblio    = $payload->{biblio};
+    my $biblio_id = $payload->{biblio_id};
 
     if ( $action ne 'delete' ) {
         Koha::Exception->throw( "after_biblio_action called with action: $action, ref: " . ref($biblio) );
@@ -421,6 +432,18 @@ sub transform_prepared_letter {
     $params->{letter}->{content} .= "\nThank you for using your local library!";
 
     Koha::Exception->throw("transform_prepared_letter called with letter content $params->{letter}->{content}");
+}
+
+sub ill_backend {
+    my ( $class, $args ) = @_;
+    return 'Test Plugin';
+}
+
+sub new_ill_backend {
+    my ( $self, $params ) = @_;
+
+    require Koha::Plugin::ILL::TestPlugin;
+    return Koha::Plugin::ILL::TestPlugin->new($params);
 }
 
 sub auth_client_get_user {

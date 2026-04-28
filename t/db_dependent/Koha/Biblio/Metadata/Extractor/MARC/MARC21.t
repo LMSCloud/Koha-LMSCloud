@@ -15,16 +15,18 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use Test::NoWarnings;
+use Test::More tests => 5;
 use Test::Exception;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
+use C4::Biblio qw(ModBiblio);
 use Koha::Biblio::Metadata::Extractor;
 
 my $schema  = Koha::Database->schema;
@@ -85,4 +87,45 @@ subtest 'get_normalized_oclc() tests' => sub {
 
     is( $extractor->get_normalized_oclc, "" );
 
+};
+
+subtest 'check_fixed_length' => sub {
+
+    plan tests => 8;
+    $schema->storage->txn_begin;
+
+    # Check empty object
+    my $record    = MARC::Record->new;
+    my $extractor = Koha::Biblio::Metadata::Extractor::MARC->new( { metadata => $record } );
+    my $result    = $extractor->check_fixed_length;
+    is( scalar @{ $result->{passed} }, 0, 'No passed fields' );
+    is( scalar @{ $result->{failed} }, 0, 'No failed fields' );
+
+    $record->append_fields(
+        MARC::Field->new( '005', '0123456789012345' ),
+    );
+    my $biblio = $builder->build_sample_biblio;
+    ModBiblio( $record, $biblio->biblionumber );
+
+    $extractor = Koha::Biblio::Metadata::Extractor::MARC->new( { biblio => $biblio } );
+    $result    = $extractor->check_fixed_length;
+    is( $result->{passed}->[0],        '005', 'Check first passed field' );
+    is( scalar @{ $result->{failed} }, 0,     'Check failed count' );
+
+    $record->append_fields(
+        MARC::Field->new( '006', '01234567890123456789' ),      # too long
+        MARC::Field->new( '007', 'a1234567' ),
+        MARC::Field->new( '007', 'm12345678' ),                 # should be 8 or 23
+        MARC::Field->new( '007', 'm1234567890123456789012' ),
+    );
+
+    # Passing latest record changes via metadata now
+    $extractor = Koha::Biblio::Metadata::Extractor::MARC->new( { metadata => $record } );
+    $result    = $extractor->check_fixed_length;
+    is( $result->{passed}->[1], '007', 'Check second passed field' );
+    is( $result->{passed}->[2], '007', 'Check third passed field' );
+    is( $result->{failed}->[0], '006', 'Check first failed field' );
+    is( $result->{failed}->[1], '007', 'Check second failed field' );
+
+    $schema->storage->txn_rollback;
 };

@@ -597,18 +597,17 @@ __PACKAGE__->has_many(
 
     return {
         "$args->{foreign_alias}.record_id" => { -ident => "$args->{self_alias}.subscriptionid" },
-
-        "$args->{foreign_alias}.field_id" =>
-            { -in => \'(SELECT id FROM additional_fields WHERE tablename = "subscription")' },
+        "$args->{foreign_alias}.record_table" => __PACKAGE__->table,
     };
   },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
 __PACKAGE__->add_columns(
-    '+closed'         => { is_boolean => 1 },
-    '+skip_serialseq' => { is_boolean => 1 },
+    '+closed'          => { is_boolean => 1 },
+    '+manualhistory'   => { is_boolean => 1 },
+    '+serialsadditems' => { is_boolean => 1 },
+    '+skip_serialseq'  => { is_boolean => 1 },
 );
 
-# You can replace this text with custom content, and it will be preserved on regeneration
 1;

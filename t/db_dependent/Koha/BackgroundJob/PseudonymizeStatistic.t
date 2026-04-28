@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 2;
+use Test::NoWarnings;
+use Test::More tests => 3;
 use Test::Exception;
 
 use Koha::Database;
@@ -67,7 +68,7 @@ subtest 'enqueue() tests' => sub {
 
 subtest 'process() tests' => sub {
 
-    plan tests => 3;
+    plan tests => 4;
 
     $schema->storage->txn_begin;
 
@@ -102,7 +103,8 @@ subtest 'process() tests' => sub {
     is( $statistic->{datetime}, $pt_after->last->datetime, "'datetime' column preserved" );
 
     $job->discard_changes;
-    is( $job->data, '{"data":""}', "Job data cleared after pseudonymization" );
+    is( $job->data,     '{"data":""}', "Job data cleared after pseudonymization" );
+    is( $job->progress, 1,             "Job progress is updated" );
 
     $schema->storage->txn_rollback;
 };

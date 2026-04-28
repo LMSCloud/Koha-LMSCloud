@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
@@ -32,9 +32,9 @@ This plugin is specific to AM123 but could be used as a base for similar operati
 It is used for stocknumber computation.
 
 If the user send an empty string, we return a simple incremented stocknumber.
-If a prefix is submited, we look for the highest stocknumber with this prefix, and return it incremented.
+If a prefix is submitted, we look for the highest stocknumber with this prefix, and return it incremented.
 In this case, a stocknumber has this form : "PREFIX 0009678570".
- - PREFIX is an upercase word
+ - PREFIX is an uppercase word
  - a space separator
  - 10 digits, with leading 0s if needed
 
@@ -87,7 +87,7 @@ my $launcher = sub {
             );
         }
 
-        # If a prefix is submited, we look for the highest stocknumber with this prefix, and return it incremented
+        # If a prefix is submitted, we look for the highest stocknumber with this prefix, and return it incremented
     } elsif ( $code =~ m/^[a-zA-Z]+$/ ) {
         my $sth = $dbh->prepare(
             "SELECT MAX(CAST(SUBSTRING_INDEX(stocknumber,' ',-1) AS SIGNED)) FROM items WHERE stocknumber LIKE ?");

@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::NoWarnings;
+use Test::More tests => 2;
 use Test::Mojo;
 
 use t::lib::TestBuilder;
@@ -73,7 +74,8 @@ subtest 'get() tests' => sub {
 
     # This document exists, should get returned
     $t->get_ok( "//$userid:$password@/api/v1/erm/documents/" . $document->document_id . "/file/content" )
-        ->status_is(200)->json_is('123');
+        ->status_is(200)
+        ->json_is('123');
 
     # Create a document through a license, gets returned
     my $license = $builder->build_object( { class => 'Koha::ERM::Licenses' } );
@@ -93,7 +95,8 @@ subtest 'get() tests' => sub {
     my @documents           = $license->documents->as_list;
     my $license_document_id = $documents[0]->document_id;
 
-    $t->get_ok( "//$userid:$password@/api/v1/erm/documents/" . $license_document_id . "/file/content" )->status_is(200)
+    $t->get_ok( "//$userid:$password@/api/v1/erm/documents/" . $license_document_id . "/file/content" )
+        ->status_is(200)
         ->content_is( decode_base64('321') );
 
     # Delete a document through a license, no longer exists
@@ -121,7 +124,8 @@ subtest 'get() tests' => sub {
     my $non_existent_id    = $document_to_delete->id;
     $document_to_delete->delete;
 
-    $t->get_ok("//$userid:$password@/api/v1/erm/documents/$non_existent_id/file/content")->status_is(404)
+    $t->get_ok("//$userid:$password@/api/v1/erm/documents/$non_existent_id/file/content")
+        ->status_is(404)
         ->json_is( '/error' => 'Document not found' );
 
     $schema->storage->txn_rollback;

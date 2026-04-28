@@ -15,7 +15,7 @@ package C4::Barcodes;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -245,25 +245,25 @@ The default behavior here in Barcodes should be essentially a more flexible vers
 
 To add a new barcode format, a developer should:
 
-	create a module in C4/Barcodes/, like C4/Barcodes/my_new_format.pm;
-	add to the $types hashref in this file; 
-	add tests under the "t" directory; and
-	edit autoBarcode syspref to include new type.
+    create a module in C4/Barcodes/, like C4/Barcodes/my_new_format.pm;
+    add to the $types hashref in this file;
+    add tests under the "t" directory; and
+    edit autoBarcode syspref to include new type.
 
 =head2 Adding a new module
 
 Each new module that needs differing behavior must override these subs:
 
-	new_object
-	initial
-	db_max
-	parse
+    new_object
+    initial
+    db_max
+    parse
 
 Or else the CLASS subs will be used.
 
 =head2 $types hashref
 
-The hash referenced can be thought of as the constructor farm for all the C4::Barcodes types.  
+The hash referenced can be thought of as the constructor farm for all the C4::Barcodes types.
 Each value should be a reference to a sub that calls the module constructor.
 
 =head1 Notes
@@ -273,5 +273,70 @@ like the IBM "Boulder" format can cause problems for sprintf.  Basically, the va
 %d version of an integer, and we cannot count on perl having been compiled with support for quads 
 (64-bit integers).  So we have to use floats or increment a piece of it and return the rejoined fragments.
 
-=cut
+=head1 Functions
 
+=head2 initial
+
+Missing POD for initial.
+
+=head2 width
+
+Missing POD for width.
+
+=head2 process_head
+
+Missing POD for process_head.
+
+=head2 process_tail
+
+Missing POD for process_tail.
+
+=head2 is_max
+
+Missing POD for is_max.
+
+=head2 value
+
+Missing POD for value.
+
+=head2 autoBarcode
+
+Missing POD for autoBarcode.
+
+=head2 parse
+
+Missing POD for parse.
+
+=head2 max
+
+Missing POD for max.
+
+=head2 db_max
+
+Missing POD for db_max.
+
+=head2 next_value
+
+Missing POD for next_value.
+
+=head2 next
+
+Missing POD for next.
+
+=head2 previous
+
+Missing POD for previous.
+
+=head2 serial
+
+Missing POD for serial.
+
+=head2 default_self
+
+Missing POD for default_self.
+
+=head2 new_object
+
+Missing POD for new_object.
+
+=cut

@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use CGI qw ( -utf8 );
 use Modern::Perl;
@@ -49,6 +49,7 @@ my $biblionumber                      = $input->param('biblionumber');
 my $op                                = $input->param('op');
 my $del                               = $input->param('del');
 my $del_records                       = $input->param('del_records');
+my $del_serial_issues                 = $input->param('del_serial_issues');
 my $src                               = $input->param('src');
 my $use_default_values                = $input->param('use_default_values');
 my $exclude_from_local_holds_priority = $input->param('exclude_from_local_holds_priority');
@@ -94,8 +95,9 @@ if ( $op eq "cud-action" ) {
     if ($del) {
         try {
             my $params = {
-                record_ids     => \@itemnumbers,
-                delete_biblios => $del_records,
+                record_ids           => \@itemnumbers,
+                delete_biblios       => $del_records,
+                delete_serial_issues => $del_serial_issues,
             };
             my $job_id = Koha::BackgroundJob::BatchDeleteItem->new->enqueue($params);
             $nextop = 'enqueued';
@@ -185,6 +187,18 @@ if ( $op eq "cud-action" ) {
             my $job_id = Koha::BackgroundJob::BatchUpdateItem->new->enqueue($params);
             $nextop = 'enqueued';
             $template->param( job_id => $job_id, );
+
+            if ( $input->param('edit-serial-issues') ) {
+                my @linked_serial_ids = $input->multi_param('linked_serial_id');
+                my $subscriptionid    = Koha::Serials->find( $linked_serial_ids[0] )->subscriptionid;
+                my $redirect_url      = "/cgi-bin/koha/serials/serials-edit.pl?";
+                for my $serial_id (@linked_serial_ids) {
+                    $redirect_url .= "serialid=$serial_id&";
+                }
+                $redirect_url .= "subscriptionid=$subscriptionid";
+                print $input->redirect($redirect_url);
+                exit;
+            }
         } catch {
             push @messages,
                 {
@@ -280,6 +294,15 @@ if ( $op eq "cud-show" || $op eq "show" ) {
         # Even if we do not display the items, we need the itemnumbers
         $template->param( itemnumbers_array => \@itemnumbers );
     }
+
+    my @linked_serial_ids;
+    foreach my $itemnumber (@itemnumbers) {
+        my $item        = Koha::Items->find($itemnumber);
+        my $serial_item = $item->serial_item;
+        push( @linked_serial_ids, $serial_item->serialid ) if $serial_item;
+    }
+    $template->param( linked_serial_ids => \@linked_serial_ids );
+    $template->param( linked_serials    => 1 ) if scalar(@linked_serial_ids) > 0;
 
     # now, build the item form for entering a new item
 

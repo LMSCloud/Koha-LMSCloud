@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -24,8 +24,11 @@ use JSON qw( encode_json );
 use CGI      qw ( -utf8 );
 use C4::Auth qw( get_template_and_user );
 use C4::Koha;
-use C4::Output qw( output_html_with_http_headers );
-use POSIX      qw( strftime );
+use C4::Output     qw( output_html_with_http_headers );
+use Digest::MD5    qw( md5_base64 );
+use POSIX          qw( strftime );
+use String::Random qw( random_string );
+use URI::Escape    qw( uri_escape );
 
 use Koha::ILL::Request::Config;
 use Koha::ILL::Requests;
@@ -33,6 +36,8 @@ use Koha::ILL::Request;
 use Koha::Libraries;
 use Koha::Patrons;
 use Koha::ILL::Request::Workflow::Availability;
+use Koha::ILL::Request::Workflow::ConfirmAuto;
+use Koha::ILL::Request::Workflow::HistoryCheck;
 use Koha::ILL::Request::Workflow::TypeDisclaimer;
 
 my $query = CGI->new;
@@ -41,6 +46,8 @@ my $query = CGI->new;
 # 'our' since Plack changes the scoping
 # of 'my'
 our $params = $query->Vars();
+
+my $op = Koha::ILL::Request->get_op_param_deprecation( 'opac', $params );
 
 # if illrequests is disabled, leave immediately
 if ( !C4::Context->preference('ILLModule') ) {
@@ -67,9 +74,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 # Are we able to actually work?
 my $backends_available = ( scalar @{$backends} > 0 );
 $template->param( backends_available => $backends_available );
-my $patron = Koha::Patrons->find($loggedinuser);
-
-my $op = Koha::ILL::Request->get_op_param_deprecation( 'opac', $params );
 
 my ( $illrequest_id, $request );
 if ( $illrequest_id = $params->{illrequest_id} ) {
@@ -82,6 +86,7 @@ if ( $illrequest_id = $params->{illrequest_id} ) {
     }
 }
 
+my $patron                       = Koha::Patrons->find($loggedinuser);
 my $can_patron_place_ill_in_opac = Koha::ILL::Request->can_patron_place_ill_in_opac($patron);
 if ( ( $op eq 'cud-create' || $op eq 'cancreq' || $op eq 'cud-update' ) && !$can_patron_place_ill_in_opac ) {
     print $query->redirect('/cgi-bin/koha/errors/403.pl');
@@ -89,6 +94,11 @@ if ( ( $op eq 'cud-create' || $op eq 'cancreq' || $op eq 'cud-update' ) && !$can
 }
 
 if ( $op eq 'list' ) {
+    $template->param( backends => $backends );
+} elsif ( $op eq 'view' ) {
+    $template->param( request => $request );
+} elsif ( $op eq 'cud-update' ) {
+    $request->notesopac( $params->{notesopac} )->store;
 
     my $requests = Koha::ILL::Requests->search( { borrowernumber => $loggedinuser } );
     $template->param(
@@ -115,13 +125,24 @@ if ( $op eq 'list' ) {
 } elsif ( $op eq 'cud-create' ) {
     if ( !$params->{backend} ) {
         my $req = Koha::ILL::Request->new;
-        $template->param( backends => $req->available_backends );
+        $template->param( backends => $backends );
     } else {
+
+        if ( C4::Context->preference('ILLOpacUnauthenticatedRequest') && !$patron ) {
+            my $captcha = random_string("CCCCC");
+            $template->param(
+                captcha        => $captcha,
+                captcha_digest => md5_base64($captcha),
+            );
+        }
+
         my $request = Koha::ILL::Request->new->load_backend( $params->{backend} );
 
         # Before request creation operations - Preparation
+        my $history_check   = Koha::ILL::Request::Workflow::HistoryCheck->new( $params, 'opac' );
         my $availability    = Koha::ILL::Request::Workflow::Availability->new( $params, 'opac' );
         my $type_disclaimer = Koha::ILL::Request::Workflow::TypeDisclaimer->new( $params, 'opac' );
+        my $confirm_auto    = Koha::ILL::Request::Workflow::ConfirmAuto->new( $params, 'opac' );
 
         # ILLCheckAvailability operation
         if ( $availability->show_availability($request) ) {
@@ -140,15 +161,27 @@ if ( $op eq 'list' ) {
                 $template->output, undef,
                 { force_no_caching => 1 };
             exit;
+
+            # ConfirmAuto operation
+        } elsif ( $confirm_auto->show_confirm_auto($request) ) {
+            $op = 'confirmautoill';
+            $template->param( $confirm_auto->confirm_auto_template_params($params) );
+            output_html_with_http_headers $query, $cookie,
+                $template->output, undef,
+                { force_no_caching => 1 };
+            exit;
         }
 
-        my $patron = Koha::Patrons->find( { borrowernumber => $loggedinuser } );
+        if ( $request->_backend_capability( 'can_create_request', $params ) ) {
+            if ( md5_base64( uc( $params->{captcha} ) ) ne $params->{captcha_digest} ) {
+                $params->{failed_captcha} = 1;
+            }
+        }
 
-        $params->{cardnumber} = $patron->cardnumber;
-        $params->{branchcode} = $patron->branchcode;
+        $params->{cardnumber} = $patron->cardnumber if $patron;
         $params->{opac}       = 1;
         $params->{lang}       = C4::Languages::getlanguage($query);
-        my $backend_result = $request->backend_create($params);
+        my $backend_result = $request->backend_create( $params, $patron );
 
         if ( $backend_result->{stage} eq 'copyrightclearance' ) {
             $template->param(
@@ -158,18 +191,54 @@ if ( $op eq 'list' ) {
         } else {
             $template->param(
                 types    => [ "Book", "Article", "Journal" ],
-                branches => Koha::Libraries->search->unblessed,
-                whole    => $backend_result,
-                request  => $request
+                branches => Koha::Libraries->search(
+                    { pickup_location => 1 },
+                    { order_by        => ['branchname'] }
+                ),
+                whole   => $backend_result,
+                request => $request
             );
             if ( $backend_result->{stage} eq 'commit' ) {
+
+                $request->set_copyright_clearance_confirmed(1)
+                    if $params->{copyrightclearance_confirmed};
 
                 # After creation actions
                 if ( $params->{type_disclaimer_submitted} ) {
                     $type_disclaimer->after_request_created( $params, $request );
                 }
-                print $query->redirect('/cgi-bin/koha/opac-illrequests.pl?message=2');
-                exit;
+                if ( C4::Context->preference('ILLHistoryCheck') ) {
+                    $history_check->after_request_created( $params, $request );
+                }
+                if ( C4::Context->preference('ILLOpacUnauthenticatedRequest') && !$patron ) {
+                    my $sessionID = $query->cookie('CGISESSID');
+                    my $session   = C4::Auth::get_session($sessionID);
+
+                    my $request_unblessed = $request->unblessed;
+                    $request_unblessed->{updated} = $request_unblessed->{updated}->ymd;
+                    $request_unblessed->{placed}  = $request_unblessed->{placed}->ymd;
+                    $request_unblessed->{unauthenticated_first_name} =
+                        $request->extended_attributes->find( { 'type' => 'unauthenticated_first_name' } )->value;
+                    $request_unblessed->{unauthenticated_last_name} =
+                        $request->extended_attributes->find( { 'type' => 'unauthenticated_last_name' } )->value;
+                    $request_unblessed->{unauthenticated_email} =
+                        $request->extended_attributes->find( { 'type' => 'unauthenticated_email' } )->value;
+                    $request_unblessed->{metadata} = $request->metadata;
+
+                    my $capabilities = $request->capabilities;
+                    $request_unblessed->{status} = $capabilities->{ $request->status }->{name};
+                    $request_unblessed->{type}   = $request->get_type;
+
+                    $session->param(
+                        'ill_request_unauthenticated',
+                        uri_escape( encode_json($request_unblessed) )
+                    );
+                    $session->flush;
+                    print $query->redirect('/cgi-bin/koha/opac-illrequests-unauthenticated.pl');
+                } else {
+                    print $query->redirect('/cgi-bin/koha/opac-illrequests.pl?message=2');
+                    exit;
+                }
             }
         }
 
@@ -177,6 +246,7 @@ if ( $op eq 'list' ) {
 }
 
 $template->param(
+    unauthenticated_ill          => C4::Context->preference('ILLOpacUnauthenticatedRequest'),
     can_patron_place_ill_in_opac => $can_patron_place_ill_in_opac,
     message                      => $params->{message},
     illrequestsview              => 1,

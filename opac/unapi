@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -52,7 +52,7 @@ This hashref of hashrefs maps from a MARC flavour and unAPI format
 to the stylesheet that should be used to transform the bib MARCXML
 to the desired output format.  As new MARC XSLT stylesheets are added,
 (particularly for UNIMARC), this map should be updated.  Of course,
-if/when we add support for emitting a format that is not genreated
+if/when we add support for emitting a format that is not generated
 by a stylesheet, the structure of this variable will have to be changed.
 At present, this doubles as the list of output formats supported by
 this unAPI implementation.
@@ -159,6 +159,9 @@ if ( not defined $format ) {
         print $cgi->header( -status => '404 record not found' );
         exit 0;
     }
+} elsif ( $id && not defined $format ) {
+    emit_formats( $id, $format_to_stylesheet_map, $format_info, $cgi );
+
 } else {
 
     # supplied a format but no id - caller is doing it wrong

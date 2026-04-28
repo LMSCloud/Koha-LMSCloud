@@ -28,7 +28,6 @@
         [% INCLUDE 'calendar.inc' %]
         [% INCLUDE 'datatables.inc' %]
         [% INCLUDE 'columns_settings.inc' %]
-        [% INCLUDE 'js-patron-format.inc' %]
         [% INCLUDE 'js-date-format.inc' %]
         <script>
             const agreement_table_settings = [% TablesSettings.GetTableSettings( 'erm', 'agreements', 'agreements', 'json' ) | $raw %];

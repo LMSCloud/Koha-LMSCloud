@@ -18,7 +18,8 @@ use Koha::Acquisition::Booksellers;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 use Test::MockModule;
-use Test::More tests => 63;
+use Test::NoWarnings;
+use Test::More tests => 65;
 
 BEGIN {
     use_ok(
@@ -26,6 +27,9 @@ BEGIN {
         qw( updateClaim NewSubscription GetSubscription GetSubscriptionHistoryFromSubscriptionId SearchSubscriptions ModSubscription GetExpirationDate GetSerials GetSerialInformation NewIssue AddItem2Serial DelSubscription GetFullSubscription PrepareSerialsData GetSubscriptionsFromBiblionumber ModSubscriptionHistory GetSerials2 GetLatestSerials GetNextSeq GetSeq CountSubscriptionFromBiblionumber ModSerialStatus findSerialsByStatus HasSubscriptionStrictlyExpired HasSubscriptionExpired GetLateOrMissingIssues check_routing addroutingmember GetNextDate )
     );
 }
+
+my $builder = t::lib::TestBuilder->new();
+t::lib::Mocks::mock_userenv( { patron => $builder->build_object( { class => 'Koha::Patrons', } ) } );
 
 # Auth required for cataloguing plugins
 my $mAuth = Test::MockModule->new('C4::Auth');
@@ -36,8 +40,6 @@ $schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
 
 $dbh->do('DELETE FROM subscription');
-
-my $builder = t::lib::TestBuilder->new();
 
 # This could/should be used for all untested methods
 my @methods = ('updateClaim');
@@ -403,7 +405,7 @@ subtest 'GetSubscriptionsFromBiblionumber' => sub {
 is( C4::Serials::GetSerials(),  undef, 'test getting serials when you enter nothing' );
 is( C4::Serials::GetSerials2(), undef, 'test getting serials when you enter nothing' );
 
-is( C4::Serials::GetLatestSerials(), undef, 'test getting lastest serials' );
+is( C4::Serials::GetLatestSerials(), undef, 'test getting latest serials' );
 
 is( C4::Serials::GetNextSeq(), undef, 'test getting next seq when you enter nothing' );
 
@@ -617,7 +619,7 @@ subtest "Do not generate an expected if one already exists" => sub {
         $publisheddate, $publisheddate, '1', 'an useless note'
     );
     @serialsByStatus = C4::Serials::findSerialsByStatus( 1, $subscriptionid );
-    is( @serialsByStatus, 1, "ModSerialStatus delete corectly serial expected and create another if not exist" );
+    is( @serialsByStatus, 1, "ModSerialStatus delete correctly serial expected and create another if not exist" );
 
     # add 1 serial with status=Expected 1
     C4::Serials::ModSerialStatus(
@@ -634,7 +636,7 @@ subtest "Do not generate an expected if one already exists" => sub {
 
     #try if create or not another serial with status is expected
     @serialsByStatus = C4::Serials::findSerialsByStatus( 1, $subscriptionid );
-    is( @serialsByStatus, 1, "ModSerialStatus delete corectly serial expected and not create another if exists" );
+    is( @serialsByStatus, 1, "ModSerialStatus delete correctly serial expected and not create another if exists" );
 };
 
 subtest "PreserveSerialNotes preference" => sub {
@@ -725,16 +727,97 @@ subtest "test numbering pattern with dates in GetSeq GetNextSeq" => sub {
         'GetSeq correctly calculates numbering from first aqui date, leap year'
     );
 
-    my $planneddate = '1970-11-01';
-    ($numbering) = GetNextSeq( $subscription, $pattern, undef, $planneddate );
-    is( $numbering, '1970 1 Sunday 11 November', 'GetNextSeq correctly calculates numbering from planned date' );
-    $planneddate = '2024-02-29';
-    ($numbering) = GetNextSeq( $subscription, $pattern, undef, $planneddate );
+    my $planneddate       = '1970-10-01';
+    my $nextpublisheddate = '1970-11-01';
+    ($numbering) = GetNextSeq( $subscription, $pattern, undef, $planneddate, $nextpublisheddate );
+    is( $numbering, '1970 1 Sunday 11 November', 'GetNextSeq correctly calculates numbering from next published date' );
+    $planneddate       = '2024-01-29';
+    $nextpublisheddate = '2024-02-29';
+    ($numbering) = GetNextSeq( $subscription, $pattern, undef, $planneddate, $nextpublisheddate );
     is(
         $numbering, '2024 29 Thursday 2 February',
-        'GetNextSeq correctly calculates numbering from planned date, leap year'
+        'GetNextSeq correctly calculates numbering from next published date, leap year'
     );
 
+};
+
+subtest "DelSubscription" => sub {
+    plan tests => 5;
+
+    # Create a mock for C4::Context preferences
+    t::lib::Mocks::mock_preference( "SubscriptionLog", 1 );
+
+    # Create a Subscription for testing
+    my $subscription_to_delete = NewSubscription(
+        undef,        "",            undef, undef,          $budget_id, $biblionumber,
+        '2013-01-01', $frequency_id, undef, undef,          undef,
+        undef,        undef,         undef, undef,          undef, undef,
+        1,            $notes,        undef, '2013-01-01',   undef, $pattern_id,
+        undef,        undef,         0,     $internalnotes, 0,
+        undef,        undef,         0,     undef,          '2013-12-31', 0
+    );
+
+    # Verify subscription was created
+    my $subscription = GetSubscription($subscription_to_delete);
+    is(
+        $subscription->{subscriptionid}, $subscription_to_delete,
+        'Subscription created successfully for deletion test'
+    );
+
+    # Create an additional field value for this subscription
+    my $additional_field = $builder->build_object(
+        {
+            class => 'Koha::AdditionalFields',
+            value => {
+                tablename                 => 'subscription',
+                name                      => 'test_field',
+                authorised_value_category => undef,
+            }
+        }
+    );
+
+    my $field_value = Koha::AdditionalFieldValue->new(
+        {
+            field_id     => $additional_field->id,
+            record_id    => $subscription_to_delete,
+            value        => 'test_value',
+            record_table => 'subscription',
+        }
+    )->store;
+
+    # Verify additional field value exists
+    my $count = Koha::AdditionalFieldValues->search(
+        {
+            'me.record_table' => 'subscription',
+            'me.record_id'    => $subscription_to_delete,
+        }
+    )->count;
+    is( $count, 1, 'Additional field value was created for the subscription' );
+
+    my $action_logs_before = $schema->resultset('ActionLog')->search()->count;
+
+    # Delete the subscription
+    DelSubscription($subscription_to_delete);
+
+    # Test 1: Subscription should be deleted
+    $subscription = GetSubscription($subscription_to_delete);
+    is( $subscription, undef, 'Subscription was successfully deleted' );
+
+    # Test 2: Additional field values should be deleted
+    $count = Koha::AdditionalFieldValues->search(
+        {
+            'me.record_table' => 'subscription',
+            'me.record_id'    => $subscription_to_delete,
+        }
+    )->count;
+    is( $count, 0, 'Additional field values were deleted with the subscription' );
+
+    # Test 3: Logaction should have been called with correct parameters
+    my $action_logs_after = $schema->resultset('ActionLog')->search()->count;
+    is(
+        $action_logs_after, $action_logs_before + 1,
+        'logaction was called when SubscriptionLog preference is enabled'
+    );
 };
 
 subtest "_numeration" => sub {

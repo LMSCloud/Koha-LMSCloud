@@ -20,6 +20,7 @@
         description: Provide cataloge updates in blocks of created, updated and deleted that contains list of bib record identifiers.
         schema:
           type: object
+          additionalProperties: false
           items:
             $ref: "../swagger.yaml#/definitions/bzsh_bib_updates"
       "400":

@@ -43,6 +43,24 @@ Interlibrary loans:
             - pref: ILLPartnerCode
               choices: patron-categories
             - "as partners to place ILL requests with."
+        -
+            - "Add customizable tabs to interlibrary loan requests list:"
+            - pref: ILLRequestsTabs
+              syntax: text/x-yaml
+              class: code
+              type: textarea
+            - "This is a list that defines tab names and statuses that will be sorted under that tab.<br/><br/>"
+            - "Examples:<br/>"
+            - "<pre>- name: Closed</pre>"
+            - "<pre>  status:</pre>"
+            - "<pre>    - COMP</pre>"
+            - "<pre>- name: Ordered</pre>"
+            - "<pre>  status:</pre>"
+            - "<pre>    - REQ</pre>"
+            - "<pre>    - ANOTHER_ORDER_STATUS</pre>"
+            - "<pre>- name: On loan</pre>"
+            - "<pre>  status:</pre>"
+            - "<pre>    - CHK</pre>"
     Notifications:
         -
             - "Send these ILL notices to staff when appropriate:"
@@ -53,12 +71,20 @@ Interlibrary loans:
             - "Fallback email address for staff ILL notices to be sent to in the absence of a library address:"
             - pref: ILLDefaultStaffEmail
               class: email
+            - .
     OPAC:
         -
             - "Enabled ILL backends for OPAC initiated requests:"
             - pref: ILLOpacbackends
               class: multi
             - (separated with |). If left empty, all installed backends will be enabled.
+        -
+            - pref: ILLOpacUnauthenticatedRequest
+              default: 0
+              choices:
+                  0: "Don't allow"
+                  1: Allow
+            - OPAC users to place ILL requests without having to be logged in.
     Workflow:
         -
             - pref: ILLCheckAvailability
@@ -67,6 +93,13 @@ Interlibrary loans:
                   1: Check
                   0: "Don't check"
             - external sources for availability during the request process.
+        -
+            - pref: ILLHistoryCheck
+              default: 0
+              choices:
+                  1: Check
+                  0: "Don't check"
+            - "if an ILL request has previously been placed by the same patron. Verification is done using one of the following identifier fields: DOI, Pubmed ID or ISBN."
         -
             - "If the ILL backend supports it, adding YAML will enable the request type disclaimer stage in request creation, prompting the user with a request type specific disclaimer as defined (staff interface and OPAC)."
             - "For each request type, you can have 3 configuration options: <code>text</code>, <code>av_category_code</code> and <code>bypass</code><ul>"
@@ -89,3 +122,8 @@ Interlibrary loans:
               type: textarea
               syntax: text/x-yaml
               class: code
+        -
+            - "Select which backends will be queried for availability and in what order of priority. The first available backend will be suggested to place the request with.<br>"
+            - "If no backend is selected, automatic backend selection will not take place."
+            - pref: AutoILLBackendPriority
+              type: ill-backends

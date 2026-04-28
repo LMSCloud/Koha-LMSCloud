@@ -147,6 +147,8 @@
         <span>Overdue</span>
     [% CASE 'EXPIRE' %]
         <span>Expire</span>
+    [% CASE 'AUTHENTICATION' %]
+        <span>Authentication</span>
     [% CASE %]
         [% action | html %]
     [% END %]

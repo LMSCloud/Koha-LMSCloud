@@ -15,7 +15,7 @@ package Koha::SearchEngine::Elasticsearch::QueryBuilder;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -86,69 +86,71 @@ our %index_field_convert = (
     'cnum'                    => 'control-number',
     'su'                      => 'subject',
     'su-to'                   => 'subject',
-    'su-ut'                   => 'subject',
-    'ti'                      => 'title',
-    'se'                      => 'title-series',
-    'ut'                      => 'title-uniform',
-    'an'                      => 'koha-auth-number',
-    'authority-number'        => 'koha-auth-number',
-    'at'                      => 'authtype',
-    'he'                      => 'heading',
-    'rank'                    => 'relevance',
-    'phr'                     => 'st-phrase',
-    'wrdl'                    => 'st-word-list',
-    'rt'                      => 'right-truncation',
-    'rtrn'                    => 'right-truncation',
-    'ltrn'                    => 'left-truncation',
-    'rltrn'                   => 'left-and-right',
-    'mc-itemtype'             => 'itemtype',
-    'mc-ccode'                => 'ccode',
-    'branch'                  => 'homebranch',
-    'mc-loc'                  => 'location',
-    'loc'                     => 'location',
-    'stocknumber'             => 'number-local-acquisition',
-    'inv'                     => 'number-local-acquisition',
-    'bc'                      => 'barcode',
-    'mc-itype'                => 'itype',
-    'aub'                     => 'author-personal-bibliography',
-    'auo'                     => 'author-in-order',
-    'ff8-22'                  => 'ta',
-    'aud'                     => 'ta',
-    'audience'                => 'ta',
-    'frequency-code'          => 'ff8-18',
-    'illustration-code'       => 'ff8-18-21',
-    'regularity-code'         => 'ff8-19',
-    'type-of-serial'          => 'ff8-21',
-    'format'                  => 'ff8-23',
-    'conference-code'         => 'ff8-29',
-    'festschrift-indicator'   => 'ff8-30',
-    'index-indicator'         => 'ff8-31',
-    'fiction'                 => 'lf',
-    'fic'                     => 'lf',
-    'literature-code'         => 'lf',
-    'biography'               => 'bio',
-    'ff8-34'                  => 'bio',
-    'biography-code'          => 'bio',
-    'l-format'                => 'ff7-01-02',
-    'lex'                     => 'lexile-number',
-    'hi'                      => 'host-item-number',
-    'itu'                     => 'index-term-uncontrolled',
-    'itg'                     => 'index-term-genre',
-    'cn'                      => 'control-number',
-    'cna'                     => 'control-number-agency',
-    'sbg'                     => 'subject-genre-form',
-    'ocn'                     => 'other-classification-number', # replaces lcn on 084 values with asb|kab|ssd|sfb values
-    'katno'                   => 'kateg-no',
-    'katname'                 => 'kateg-name',
-    'sys'                     => 'systematik',
-    'sysp'                    => 'systematik-prefix',
-    'sysc'                    => 'systematik-class-part',
-    'sysn'                    => 'systematik-num-part',
-    'fsk'                     => 'ekz-fsk',
-    'usk'                     => 'ekz-usk',
-    'age'                     => 'ekz-age',
-    'antc'                    => 'antolin-count',
-    'anta'                    => 'antolin-age',
+
+    #'su-geo' => 'subject',
+    'su-ut'                 => 'subject',
+    'ti'                    => 'title',
+    'se'                    => 'title-series',
+    'ut'                    => 'title-uniform',
+    'an'                    => 'koha-auth-number',
+    'authority-number'      => 'koha-auth-number',
+    'at'                    => 'authtype',
+    'he'                    => 'heading',
+    'rank'                  => 'relevance',
+    'phr'                   => 'st-phrase',
+    'wrdl'                  => 'st-word-list',
+    'rt'                    => 'right-truncation',
+    'rtrn'                  => 'right-truncation',
+    'ltrn'                  => 'left-truncation',
+    'rltrn'                 => 'left-and-right',
+    'mc-itemtype'           => 'itemtype',
+    'mc-ccode'              => 'ccode',
+    'branch'                => 'homebranch',
+    'mc-loc'                => 'location',
+    'loc'                   => 'location',
+    'stocknumber'           => 'number-local-acquisition',
+    'inv'                   => 'number-local-acquisition',
+    'bc'                    => 'barcode',
+    'mc-itype'              => 'itype',
+    'aub'                   => 'author-personal-bibliography',
+    'auo'                   => 'author-in-order',
+    'ff8-22'                => 'ta',
+    'aud'                   => 'ta',
+    'audience'              => 'ta',
+    'frequency-code'        => 'ff8-18',
+    'illustration-code'     => 'ff8-18-21',
+    'regularity-code'       => 'ff8-19',
+    'type-of-serial'        => 'ff8-21',
+    'format'                => 'ff8-23',
+    'conference-code'       => 'ff8-29',
+    'festschrift-indicator' => 'ff8-30',
+    'index-indicator'       => 'ff8-31',
+    'fiction'               => 'lf',
+    'fic'                   => 'lf',
+    'literature-code'       => 'lf',
+    'biography'             => 'bio',
+    'ff8-34'                => 'bio',
+    'biography-code'        => 'bio',
+    'l-format'              => 'ff7-01-02',
+    'lex'                   => 'lexile-number',
+    'hi'                    => 'host-item-number',
+    'itu'                   => 'index-term-uncontrolled',
+    'itg'                   => 'index-term-genre',
+    'cn'                    => 'control-number',
+    'cna'                   => 'control-number-agency',
+    'sbg'                   => 'subject-genre-form',
+    'ocn'                   => 'other-classification-number',
+    'katno'                 => 'kateg-no',
+    'katname'               => 'kateg-name',
+    'sys'                   => 'systematik',
+    'sysp'                  => 'systematik-prefix',
+    'sysc'                  => 'systematik-class-part',
+    'sysn'                  => 'systematik-num-part',
+    'fsk'                   => 'ekz-fsk',
+    'usk'                   => 'ekz-usk',
+    'age'                   => 'ekz-age',
+    'antc'                  => 'antolin-count',
+    'anta'                  => 'antolin-age',
 );
 my $field_name_pattern   = '[\w\-]+';
 my $multi_field_pattern  = "(?:\\.$field_name_pattern)*";
@@ -217,17 +219,19 @@ sub build_query {
         push @$fields, 'marc_data_array.*';
     }
     $res->{track_total_hits} = JSON::true;
-    $res->{query}            = {
-        query_string => {
-            query            => $query,
-            fuzziness        => $fuzzy_enabled ? 'auto' : '0',
-            default_operator => 'AND',
-            fields           => $fields,
-            lenient          => JSON::true,
-            analyze_wildcard => JSON::true,
-        }
+    my $query_string = {
+        query            => $query,
+        fuzziness        => $fuzzy_enabled ? 'auto' : '0',
+        default_operator => 'AND',
+        fields           => $fields,
+        lenient          => JSON::true,
+        analyze_wildcard => JSON::true,
     };
-    $res->{query}->{query_string}->{type} = 'cross_fields' if C4::Context->preference('ElasticsearchCrossFields');
+    $query_string->{type} = 'cross_fields' if C4::Context->preference('ElasticsearchCrossFields');
+
+    $res->{query} = { bool => { must => [ { query_string => $query_string } ] } };
+
+    $res->{query}->{bool}->{should} = $options{field_match_boost_query} if $options{field_match_boost_query};
 
     if ( $options{sort} ) {
         foreach my $sort ( @{ $options{sort} } ) {
@@ -240,6 +244,14 @@ sub build_query {
             push @{ $res->{sort} }, { $f => { order => $d } };
         }
     }
+
+    # If not sorting by anything explicitly search by score
+    if ( !defined $res->{sort} ) {
+        push @{ $res->{sort} }, { _score => { order => 'desc' } };
+    }
+
+    # Add a tie breaker in case of equally relevant records
+    push @{ $res->{sort} }, { 'local-number' => { order => 'desc' } };
 
     unless ( $options{skip_facets} ) {
 
@@ -294,6 +306,10 @@ sub build_query_compat {
     } else {
         my @sort_params  = $self->_convert_sort_fields(@$sort_by);
         my @index_params = $self->_convert_index_fields(@$indexes);
+        my $field_match_boost_query =
+            C4::Context->preference('ElasticsearchBoostFieldMatch')
+            ? $self->_build_field_match_boost_query( { operands => $operands, indexes => \@index_params } )
+            : [];
         $limits = $self->_fix_limit_special_cases($orig_limits);
         if ( $params->{suppress} ) { push @$limits, "suppress:false"; }
 
@@ -334,12 +350,13 @@ sub build_query_compat {
         # If there's no query on the left, let's remove the junk left behind
         $query_str =~ s/^ AND //;
         my %options;
-        $options{sort}            = \@sort_params;
-        $options{is_opac}         = $params->{is_opac};
-        $options{weighted_fields} = $params->{weighted_fields};
-        $options{whole_record}    = $params->{whole_record};
-        $options{skip_facets}     = $params->{skip_facets};
-        $query                    = $self->build_query( $query_str, %options );
+        $options{sort}                    = \@sort_params;
+        $options{is_opac}                 = $params->{is_opac};
+        $options{weighted_fields}         = $params->{weighted_fields};
+        $options{whole_record}            = $params->{whole_record};
+        $options{skip_facets}             = $params->{skip_facets};
+        $options{field_match_boost_query} = $field_match_boost_query if @$field_match_boost_query;
+        $query                            = $self->build_query( $query_str, %options );
     }
 
     # We roughly emulate the CGI parameters of the zebra query builder
@@ -351,7 +368,10 @@ sub build_query_compat {
         $query_cgi .= 'idx=' . uri_escape_utf8( $index // '' ) . '&q=' . uri_escape_utf8($oand);
         $query_cgi .= '&op=' . uri_escape_utf8($otor) if $otor;
     }
-    $query_cgi .= '&scan=1' if ($scan);
+    $query_cgi .= '&scan=1'                    if ($scan);
+    $query_cgi .= '&weight_search=1'           if ( $params->{weighted_fields} );
+    $query_cgi .= '&weight_search_submitted=1' if ( $params->{weight_search_submitted} );
+    $query_cgi .= '&whole_record=1'            if ( $params->{whole_record} );
 
     my $simple_query;
     $simple_query = $operands->[0] if @$operands == 1;
@@ -373,6 +393,30 @@ sub build_query_compat {
         undef,  $query,     $simple_query, $query_cgi, $query_desc,
         $limit, $limit_cgi, $limit_desc,   undef,      undef
     );
+}
+
+=head2 _build_field_match_boost_query
+
+    my ($query, $query_str) = $builder->_build_field_match_boost_query({ operands => \@operands, indexes => \@indexes)
+
+This will build an array of match queries for terms and indexes passed in and return a reference to the array.
+
+=cut
+
+sub _build_field_match_boost_query {
+    my ( $self, $params ) = @_;
+    my $indexes  = $params->{indexes};
+    my $operands = $params->{operands};
+
+    my @boost_query;
+    my $ea = each_array( @$operands, @$indexes );
+    while ( my ( $operand, $index ) = $ea->() ) {
+        next unless $operand;
+        $index = $index->{field} if ref $index eq 'HASH';
+        $index = 'title-cover'   if ( !$index || $index eq 'kw' || $index eq 'ti' || $index eq 'title' );
+        push @boost_query, { match => { $index => { query => $operand } } };
+    }
+    return \@boost_query;
 }
 
 =head2 build_authorities_query
@@ -733,7 +777,7 @@ sub _convert_sort_fields {
         popularity   => 'issues',
         relevance    => undef,                   # default
         title        => 'title',
-        pubdate      => 'publyear',
+        pubdate      => 'date-of-publication',
         biblionumber => 'local-number',
     );
     my %sort_order_convert = ( qw( desc desc ), qw( dsc desc ), qw( asc asc ), qw( az asc ), qw( za desc ) );
@@ -989,7 +1033,6 @@ to ensure those parts are correct.
 sub clean_search_term {
     my ( $self, $term ) = @_;
 
-    # replace lower case operators or|and|not with uppercase expressions
     $term =~ s/\s+(and|or|not)\s+/' '.uc($1).' '/gei;
     $term =~ s/[?]{3}/drei fragezeichen/g;
     $term =~ s/[!]{3}/drei ausrufezeichen/g;
@@ -1215,13 +1258,6 @@ sub _fix_limit_special_cases {
             } else {
                 push @new_lim, $term;
             }
-        } elsif ( $l =~ /^\s*(kw\b[\w,-]*?):(.*)/ ) {
-            my ( $field, $term ) = ( $1, $2 );
-            if ( defined($field) && defined($term) && $field =~ /,phr$/ ) {
-                push @new_lim, "(\"$term\")";
-            } else {
-                push @new_lim, $term;
-            }
         } elsif ( $l =~ /^acqdate,st-date-normalized=/ ) {
             my ($date) = ( $l =~ /^acqdate,st-date-normalized=(.*)$/ );
             next unless defined($date);
@@ -1302,10 +1338,10 @@ any field prefixes and quoted strings.
 
 =cut
 
+my $tokenize_split_re = qr/((?:${field_name_pattern}${multi_field_pattern}:)?"[^"]+"|\s+)/;
+
 sub _split_query {
     my ( $self, $query ) = @_;
-
-    my $tokenize_split_re = qr/((?:${field_name_pattern}${multi_field_pattern}:)?"[^"]+"|\s+)/;
 
     # '"donald duck" title:"the mouse" and peter" get split into
     # ['', '"donald duck"', '', ' ', '', 'title:"the mouse"', '', ' ', 'and', ' ', 'pete']
@@ -1439,7 +1475,7 @@ sub _is_safe_to_auto_truncate {
     # Do not auto truncate fields that should not be auto truncated,
     # primarily various types of identifiers, above all record identifiers.
     # Other search fields that should not be auto truncated can be defined
-    # with ESPreventAutoTruncate syspref.
+    # with ElasticsearchPreventAutoTruncate syspref.
     my %do_not_autotruncate_fields;
     my $cache                          = Koha::Caches->get_instance();
     my $cache_key                      = 'elasticsearch_search_do_not_autotruncate';
@@ -1465,7 +1501,7 @@ sub _is_safe_to_auto_truncate {
     # processing of the syspref is done outside cache since the systempreference
     # can be modified and the modification should be reflected in the
     # $do_not_autotruncate_fields array
-    my $prevent_autotruncate = C4::Context->preference('ESPreventAutoTruncate');
+    my $prevent_autotruncate = C4::Context->preference('ElasticsearchPreventAutoTruncate');
     for my $field ( split( /\s*[,;|]\s*/, $prevent_autotruncate ) ) {
         $do_not_autotruncate_fields{$field} = 1;
     }

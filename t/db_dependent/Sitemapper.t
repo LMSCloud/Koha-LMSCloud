@@ -15,10 +15,11 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 1;
+use Test::NoWarnings;
+use Test::More tests => 2;
 use Carp qw/croak/;
 use File::Basename;
 use File::Path;
@@ -51,7 +52,7 @@ subtest 'Sitemapper' => sub {
 
     my $dir = C4::Context::temporary_directory;
 
-    # Create a sitemap for a catalog containg 2 biblios, with option 'long url'
+    # Create a sitemap for a catalog containing 2 biblios, with option 'long url'
     my $sitemapper = Koha::Sitemapper->new(
         verbose => 0,
         url     => 'http://www.mylibrary.org',
@@ -95,7 +96,7 @@ EOS
 EOS
     is( $file_content, $expected_content, 'Its content is valid' );
 
-    # Create a sitemap for a catalog containg 2 biblios, with option 'short url'.
+    # Create a sitemap for a catalog containing 2 biblios, with option 'short url'.
     # Test that 2 files are created.
     $sitemapper = Koha::Sitemapper->new(
         verbose => 0,

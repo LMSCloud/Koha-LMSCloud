@@ -47,6 +47,8 @@ sub set_additional_fields {
 
     $self->additional_field_values->delete;
 
+    my $table = $self->_result->table;
+
     my $biblionumber;
     my $record;
     my $record_updated;
@@ -80,9 +82,10 @@ sub set_additional_fields {
         if ( defined $value && $value ne '' ) {
             my $field_value = Koha::AdditionalFieldValue->new(
                 {
-                    field_id  => $additional_field->{id},
-                    record_id => $self->id,
-                    value     => $value,
+                    field_id     => $additional_field->{id},
+                    record_table => $table,
+                    record_id    => $self->id,
+                    value        => $value,
                 }
             )->store;
         }
@@ -308,7 +311,7 @@ sub strings_map {
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 =head1 COPYRIGHT AND LICENSE
 
@@ -326,7 +329,7 @@ WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along
-with Koha; if not, see <http://www.gnu.org/licenses>.
+with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =cut
 

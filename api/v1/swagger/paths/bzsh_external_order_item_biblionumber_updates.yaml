@@ -20,6 +20,7 @@
         description: Provide item biblionumber updates in blocks with external order ID and old and new biblionumber.
         schema:
           type: object
+          additionalProperties: false
           items:
             $ref: "../swagger.yaml#/definitions/bzsh_external_order_item_biblionumber_updates"
       "400":

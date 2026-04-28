@@ -16,26 +16,14 @@ package C4::Tags;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
-use Carp qw( carp );
-use Exporter;
-
+use Modern::Perl;
+use base 'Exporter';
 use C4::Context;
-use Module::Load::Conditional qw( check_install );
-use Koha::Tags;
-use Koha::Tags::Approvals;
-use Koha::Tags::Indexes;
-use constant TAG_FIELDS => qw(tag_id borrowernumber biblionumber term language date_created);
-use constant TAG_SELECT => "SELECT " . join( ',', TAG_FIELDS ) . "\n FROM   tags_all\n";
-
-our ( @ISA, @EXPORT_OK );
 
 BEGIN {
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         get_tags get_tag_rows
         add_tags
         add_tag
@@ -64,7 +52,22 @@ BEGIN {
     }
 }
 
+use Carp qw( carp );
+
+use Module::Load::Conditional qw( check_install );
+use Koha::Tags;
+use Koha::Tags::Approvals;
+use Koha::Tags::Indexes;
+use constant TAG_FIELDS => qw(tag_id borrowernumber biblionumber term language date_created);
+use constant TAG_SELECT => "SELECT " . join( ',', TAG_FIELDS ) . "\n FROM   tags_all\n";
+
 =head1 C4::Tags.pm - Support for user tagging of biblios.
+
+=cut
+
+=head2 get_filters
+
+Missing POD for get_filters.
 
 =cut
 
@@ -81,15 +84,21 @@ sub get_filters {
     return $sth->fetchall_arrayref( {} );
 }
 
-# 	(SELECT count(*) FROM tags_all     ) as tags_all,
-# 	(SELECT count(*) FROM tags_index   ) as tags_index,
+#     (SELECT count(*) FROM tags_all     ) as tags_all,
+#     (SELECT count(*) FROM tags_index   ) as tags_index,
+
+=head2 approval_counts
+
+Missing POD for approval_counts.
+
+=cut
 
 sub approval_counts {
     my $query = "SELECT
-		(SELECT count(*) FROM tags_approval WHERE approved= 1) as approved_count,
-		(SELECT count(*) FROM tags_approval WHERE approved=-1) as rejected_count,
-		(SELECT count(*) FROM tags_approval WHERE approved= 0) as unapproved_count
-	";
+        (SELECT count(*) FROM tags_approval WHERE approved= 1) as approved_count,
+        (SELECT count(*) FROM tags_approval WHERE approved=-1) as rejected_count,
+        (SELECT count(*) FROM tags_approval WHERE approved= 0) as unapproved_count
+    ";
     my $sth = C4::Context->dbh->prepare($query);
     $sth->execute;
     my $result = $sth->fetchrow_hashref();
@@ -113,6 +122,12 @@ sub get_count_by_tag_status {
     $sth->execute($status);
     return $sth->fetchrow;
 }
+
+=head2 remove_tag
+
+Missing POD for remove_tag.
+
+=cut
 
 sub remove_tag {
     my $tag_id  = shift or return;
@@ -140,6 +155,12 @@ sub remove_tag {
     }
     Koha::Tags->search( { tag_id => $tag_id } )->delete;
 }
+
+=head2 get_tag_rows
+
+Missing POD for get_tag_rows.
+
+=cut
 
 sub get_tag_rows {
     my $hash      = shift || {};
@@ -178,6 +199,12 @@ sub get_tag_rows {
     }
     return $sth->fetchall_arrayref( {} );
 }
+
+=head2 get_tags
+
+Missing POD for get_tags.
+
+=cut
 
 sub get_tags {    # i.e., from tags_index
     my $hash      = shift || {};
@@ -231,11 +258,11 @@ sub get_tags {    # i.e., from tags_index
         }
     }
     my $query = "
-	SELECT    tags_index.term as term,biblionumber,weight,weight_total
-	FROM      tags_index
-	LEFT JOIN tags_approval 
-	ON        tags_index.term = tags_approval.term
-	" . ( $wheres || '' ) . $order . $limit;
+    SELECT    tags_index.term as term,biblionumber,weight,weight_total
+    FROM      tags_index
+    LEFT JOIN tags_approval
+    ON        tags_index.term = tags_approval.term
+    " . ( $wheres || '' ) . $order . $limit;
     my $sth = C4::Context->dbh->prepare($query);
     if (@exe_args) {
         $sth->execute(@exe_args);
@@ -244,6 +271,12 @@ sub get_tags {    # i.e., from tags_index
     }
     return $sth->fetchall_arrayref( {} );
 }
+
+=head2 get_approval_rows
+
+Missing POD for get_approval_rows.
+
+=cut
 
 sub get_approval_rows {    # i.e., from tags_approval
     my $hash      = shift || {};
@@ -296,15 +329,15 @@ sub get_approval_rows {    # i.e., from tags_approval
         }
     }
     my $query = "
-	SELECT 	tags_approval.term          AS term,
-			tags_approval.approved      AS approved,
-			tags_approval.date_approved AS date_approved,
-			tags_approval.approved_by   AS approved_by,
-			tags_approval.weight_total  AS weight_total,
-			CONCAT(borrowers.surname, ', ', borrowers.firstname) AS approved_by_name
-	FROM 	tags_approval
-	LEFT JOIN borrowers
-	ON      tags_approval.approved_by = borrowers.borrowernumber ";
+    SELECT     tags_approval.term          AS term,
+            tags_approval.approved      AS approved,
+            tags_approval.date_approved AS date_approved,
+            tags_approval.approved_by   AS approved_by,
+            tags_approval.weight_total  AS weight_total,
+            CONCAT(borrowers.surname, ', ', borrowers.firstname) AS approved_by_name
+    FROM     tags_approval
+    LEFT JOIN borrowers
+    ON      tags_approval.approved_by = borrowers.borrowernumber ";
     $query .= ( $wheres || '' ) . $order . $limit;
     my $sth = C4::Context->dbh->prepare($query);
     if (@exe_args) {
@@ -314,6 +347,12 @@ sub get_approval_rows {    # i.e., from tags_approval
     }
     return $sth->fetchall_arrayref( {} );
 }
+
+=head2 is_approved
+
+Missing POD for is_approved.
+
+=cut
 
 sub is_approved {
     my $term = shift or return;
@@ -327,6 +366,12 @@ sub is_approved {
     return $sth->fetchrow;
 }
 
+=head2 get_tag_index
+
+Missing POD for get_tag_index.
+
+=cut
+
 sub get_tag_index {
     my $term = shift or return;
     my $sth;
@@ -339,6 +384,12 @@ sub get_tag_index {
     }
     return $sth->fetchrow_hashref;
 }
+
+=head2 whitelist
+
+Missing POD for whitelist.
+
+=cut
 
 sub whitelist {
     my $operator = shift;
@@ -364,6 +415,13 @@ sub whitelist {
 # note: there is no "unwhitelist" operation because there is no remove for Ispell.
 # The blacklist regexps should operate "in front of" the whitelist, so if you approve
 # a term mistakenly, you can still reverse it. But there is no going back to "neutral".
+
+=head2 blacklist
+
+Missing POD for blacklist.
+
+=cut
+
 sub blacklist {
     my $operator = shift;
     defined $operator or return;    # have to test defined to allow =0 (kohaadmin)
@@ -378,6 +436,12 @@ sub blacklist {
     return scalar @_;
 }
 
+=head2 add_filter
+
+Missing POD for add_filter.
+
+=cut
+
 sub add_filter {
     my $operator = shift;
     defined $operator or return;    # have to test defined to allow =0 (kohaadmin)
@@ -386,6 +450,12 @@ sub add_filter {
     # my $sth = C4::Context->dbh->prepare($query);
     return scalar @_;
 }
+
+=head2 remove_filter
+
+Missing POD for remove_filter.
+
+=cut
 
 sub remove_filter {
     my $operator = shift;
@@ -396,6 +466,12 @@ sub remove_filter {
     # $sth->execute($term);
     return scalar @_;
 }
+
+=head2 add_tag_approval
+
+Missing POD for add_tag_approval.
+
+=cut
 
 sub add_tag_approval {    # or disapproval
     my $term  = shift or return;
@@ -421,6 +497,12 @@ sub add_tag_approval {    # or disapproval
     return $sth->rows;
 }
 
+=head2 mod_tag_approval
+
+Missing POD for mod_tag_approval.
+
+=cut
+
 sub mod_tag_approval {
     my $operator = shift;
     defined $operator or return;                 # have to test defined to allow =0 (kohaadmin)
@@ -430,6 +512,12 @@ sub mod_tag_approval {
     my $sth      = C4::Context->dbh->prepare($query);
     $sth->execute( $operator, $approval, $term );
 }
+
+=head2 add_tag_index
+
+Missing POD for add_tag_index.
+
+=cut
 
 sub add_tag_index {
     my $term         = shift or return;
@@ -444,27 +532,63 @@ sub add_tag_index {
     return $sth->rows;
 }
 
+=head2 increment_weights
+
+Missing POD for increment_weights.
+
+=cut
+
 sub increment_weights {
     increment_weight(@_);
     increment_weight_total(shift);
 }
+
+=head2 decrement_weights
+
+Missing POD for decrement_weights.
+
+=cut
 
 sub decrement_weights {
     decrement_weight(@_);
     decrement_weight_total(shift);
 }
 
+=head2 increment_weight_total
+
+Missing POD for increment_weight_total.
+
+=cut
+
 sub increment_weight_total {
     _set_weight_total( 'weight_total+1', shift );
 }
+
+=head2 increment_weight
+
+Missing POD for increment_weight.
+
+=cut
 
 sub increment_weight {
     _set_weight( 'weight+1', shift, shift );
 }
 
+=head2 decrement_weight_total
+
+Missing POD for decrement_weight_total.
+
+=cut
+
 sub decrement_weight_total {
     _set_weight_total( 'weight_total-1', shift );
 }
+
+=head2 decrement_weight
+
+Missing POD for decrement_weight.
+
+=cut
 
 sub decrement_weight {
     _set_weight( 'weight-1', shift, shift );
@@ -472,21 +596,21 @@ sub decrement_weight {
 
 sub _set_weight_total {
     my $sth = C4::Context->dbh->prepare( "
-	UPDATE tags_approval
-	SET    weight_total=" . (shift) . "
-	WHERE  term=?
-	" );    # note: CANNOT use "?" for weight_total (see the args above).
+    UPDATE tags_approval
+    SET    weight_total=" . (shift) . "
+    WHERE  term=?
+    " );    # note: CANNOT use "?" for weight_total (see the args above).
     $sth->execute(shift);    # just the term
 }
 
 sub _set_weight {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare( "
-	UPDATE tags_index
-	SET    weight=" . (shift) . "
-	WHERE  term=?
-	AND    biblionumber=?
-	" );
+    UPDATE tags_index
+    SET    weight=" . (shift) . "
+    WHERE  term=?
+    AND    biblionumber=?
+    " );
     $sth->execute(@_);
 }
 
@@ -500,8 +624,8 @@ sub add_tag {    # biblionumber,term,[borrowernumber,approvernumber]
     my $rows =
         get_tag_rows( { biblionumber => $biblionumber, borrowernumber => $borrowernumber, term => $term, limit => 1 } );
     my $query = "INSERT INTO tags_all
-	(borrowernumber,biblionumber,term,date_created)
-	VALUES (?,?,?,NOW())";
+    (borrowernumber,biblionumber,term,date_created)
+    VALUES (?,?,?,NOW())";
 
     if ( scalar @$rows ) {
         return;
@@ -538,6 +662,13 @@ sub add_tag {    # biblionumber,term,[borrowernumber,approvernumber]
 # is only one weight. Beware of divide by zeros.
 # This will add a field to the tag called "stratum" containing the calculated
 # value.
+
+=head2 stratify_tags
+
+Missing POD for stratify_tags.
+
+=cut
+
 sub stratify_tags {
     my ( $strata, $tags ) = @_;
     return ( 0, 0 ) if !@$tags;
@@ -592,10 +723,10 @@ instructions.
 =head2 Table Structure
 
 The tables used by tags are:
-	tags_all
-	tags_index
-	tags_approval
-	tags_blacklist
+    tags_all
+    tags_index
+    tags_approval
+    tags_blacklist
 
 Your first thought may be that this looks a little complicated.  It is, but only because
 it has to be.  I'll try to explain.
@@ -603,21 +734,21 @@ it has to be.  I'll try to explain.
 tags_all - This table would be all we really need if we didn't care about moderation or
 performance or tags disappearing when borrowers are removed.  Too bad, we do.  Otherwise
 though, it contains all the relevant info about a given tag:
-	tag_id         - unique id number for it
-	borrowernumber - user that entered it
-	biblionumber   - book record it is attached to
-	term           - tag "term" itself
-	language       - perhaps used later to influence weighting
-	date_created   - date and time it was created
+    tag_id         - unique id number for it
+    borrowernumber - user that entered it
+    biblionumber   - book record it is attached to
+    term           - tag "term" itself
+    language       - perhaps used later to influence weighting
+    date_created   - date and time it was created
 
 tags_approval - Since we need to provide moderation, this table is used to track it.  If no
 external dictionary is used, this table is the sole reference for approval and rejection.
 With an external dictionary, it tracks pending terms and past whitelist/blacklist actions.
 This could be called an "approved terms" table.  See above regarding the External Dictionary.
-	term           - tag "term" itself 
-	approved       - Negative, 0 or positive if tag is rejected, pending or approved.
-	date_approved  - date of last action
-	approved_by    - staffer performing the last action
+    term           - tag "term" itself
+    approved       - Negative, 0 or positive if tag is rejected, pending or approved.
+    date_approved  - date of last action
+    approved_by    - staffer performing the last action
     weight_total   - total occurrence of term in any biblio by any users
 
 tags_index - This table is for performance, because by far the most common operation will 
@@ -625,9 +756,9 @@ be fetching tags for a list of search results.  We will have a set of biblios, a
 want ONLY their approved tags and overall weighting.  While we could implement a query that
 would traverse tags_all filtered against tags_approval, the performance implications of
 trying to calculate that and the "weight" (number of times a tag appears) on the fly are drastic.
-	term           - approved term as it appears in tags_approval
-	biblionumber   - book record it is attached to
-	weight         - number of times tag applied by any user
+    term           - approved term as it appears in tags_approval
+    biblionumber   - book record it is attached to
+    weight         - number of times tag applied by any user
 
 tags_blacklist - A set of regular expression filters.  Unsurprisingly, these should be perl-
 compatible (PCRE) for your version of perl.  Since this is a blacklist, a term will be

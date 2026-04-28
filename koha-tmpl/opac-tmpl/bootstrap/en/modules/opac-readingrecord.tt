@@ -5,12 +5,20 @@
 [% USE AdditionalContents %]
 [% USE Asset %]
 [% USE Price %]
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Your checkout history &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Your checkout history") | html %]
+        &rsaquo; [% PROCESS 'library_name_title' %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
-[% BLOCK cssinclude %][% END %]
+[% BLOCK cssinclude %]
+[% END %]
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='opac-readingrecord' %]
 [% INCLUDE 'masthead.inc' %]
@@ -21,7 +29,7 @@
     [% AmazonAssocTag = '' %]
 [% END %]
 
-<div class="main">
+<main class="main">
     [% WRAPPER breadcrumbs %]
         [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
@@ -34,12 +42,9 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col col-lg-2 order-2 order-lg-1">
-                <div id="navigation">
-                    [% INCLUDE 'navigation.inc' IsPatronPage=1 %]
-                </div>
+                <div id="navigation"> [% INCLUDE 'navigation.inc' IsPatronPage=1 %] </div>
             </div>
             <div class="col-md-12 col-lg-10 order-1">
-
                 <div id="userreadingrecord" class="maincontent">
                     <h1>Checkout history</h1>
                     [% UNLESS checkouts %][% checkouts = [] %][% END %]
@@ -49,11 +54,8 @@
                         You have never borrowed anything from this library.
                     [% ELSE %]
                         <div id="opac-user-readingrec">
-
                             [% IF savings %]
-                                <div class="alert alert-info" id="savings">
-                                    Congratulations, you have saved a total of [% savings | $Price with_symbol => 1 %] by using the library.
-                                </div>
+                                <div class="alert alert-info" id="savings"> Congratulations, you have saved a total of [% savings | $Price with_symbol => 1 %] by using the library. </div>
                             [% END %]
 
                             <div class="resultscontrol resort js-hide">
@@ -69,13 +71,9 @@
                             </div>
 
                             [% IF limit %]
-                                <p>
-                                    Showing last 50 items. <a href="/cgi-bin/koha/opac-readingrecord.pl?limit=full[% IF ( orderbytitle ) %]&amp;order=title[% END %]">Show all items</a>
-                                </p>
+                                <p> Showing last 50 items. <a href="/cgi-bin/koha/opac-readingrecord.pl?limit=full[% IF ( orderbytitle ) %]&amp;order=title[% END %]">Show all items</a> </p>
                             [% ELSE %]
-                                <p>
-                                    Showing all items. <a href="/cgi-bin/koha/opac-readingrecord.pl?limit=50[% IF ( orderbytitle ) %]&amp;order=title[% END %]">Show last 50 items</a>
-                                </p>
+                                <p> Showing all items. <a href="/cgi-bin/koha/opac-readingrecord.pl?limit=50[% IF ( orderbytitle ) %]&amp;order=title[% END %]">Show last 50 items</a> </p>
                             [% END %]
 
                             [% IF Koha.Preference( 'OnSiteCheckouts' ) == 1 %]
@@ -100,21 +98,27 @@
                             [% ELSE %]
                                 [% PROCESS checkout_history_table %]
                             [% END %]
-                        </div> <!-- / .opac-user-readingrec -->
+                        </div>
+                        <!-- / .opac-user-readingrec -->
                     [% END # / IF checkouts.size == 0 %]
-                </div> <!-- / .userreadingrecord -->
-            </div> <!-- / .col-lg-10 -->
-        </div> <!-- / .row -->
-    </div> <!-- / .container-fluid -->
-</div> <!-- / .main -->
+                </div>
+                <!-- / .userreadingrecord -->
+            </div>
+            <!-- / .col-lg-10 -->
+        </div>
+        <!-- / .row -->
+    </div>
+    <!-- / .container-fluid -->
+</main>
+<!-- / .main -->
 
 [% BLOCK checkout_history_table %]
     <table id="readingrec" class="table table-bordered table-striped">
         <caption class="sr-only">Checkout history</caption>
         <thead>
             <tr>
-                <th style="display:none;" class="noExport">Type</th>
-                <th class="NoSort noExport"></th>
+                <th style="display:none;" class="no-export">Type</th>
+                <th class="no-sort no-export"></th>
                 <th class="all anti-the">Title</th>
                 <th>Author</th>
                 <th>Item type</th>
@@ -124,7 +128,7 @@
                 [% IF ( OPACMySummaryHTML ) %]
                     <th class="NoSort noExport">Links</th>
                 [% END %]
-                <th></th>
+                <th class="dtr-control-col"></th>
             </tr>
         </thead>
         <tbody>
@@ -155,7 +159,7 @@
                             [% IF  issue.normalized_isbn %]
                                 <div title="[% issue.biblionumber |url %]" class="[% issue.normalized_isbn | html %]" id="gbs-thumbnail[% loop.count | html %]"></div>
                             [% ELSE %]
-                            <span class="no-image">No cover image available</span>
+                                <span class="no-image">No cover image available</span>
                             [% END %]
                         [% END %]
 
@@ -192,6 +196,7 @@
                         <span class="tdlabel">Call number:</span>
                         [% issue.itemcallnumber | html %]
                     </td>
+                    <td> [% item.itemcallnumber | html %] </td>
                     <td>
                         [% IF issue.enumchron %]
                             [% issue.enumchron | html %]
@@ -218,44 +223,45 @@
 
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
-[% INCLUDE 'datatables.inc' %]
-[% INCLUDE 'columns_settings.inc' %]
-<script>
-    $(document).ready(function(){
-        [% IF ( GoogleJackets ) %]KOHA.Google.GetCoverFromIsbn();[% END %]
-        $('#order').change(function() {
-            $('#sortform').submit();
-        });
+    [% INCLUDE 'datatables.inc' %]
+    <script>
+        $(document).ready(function(){
+            [% IF ( GoogleJackets ) %]KOHA.Google.GetCoverFromIsbn();[% END %]
+            $('#order').change(function() {
+                $('#sortform').submit();
+            });
 
-        var table = KohaTable("#readingrec", {
-            "dom": '<"top"<"table_entries"i><"table_controls"fB>>t',
-            "language": {
-                "search": "_INPUT_",
-                "searchPlaceholder": _("Search")
-            },
-            "responsive": {
-                "details": {"type": 'column',"target": -1}
-            },
-            "aoColumnDefs": [
-                { "className": "dtr-control","orderable": false,"targets": [-1] },
-                { "visible": false, "targets": [0]},
-                { "orderable": false, "targets": [1]}
-            ],
-        }, columns_settings);
+            var table = $("#readingrec").kohaTable(
+                {
+                    dom: '<"top"<"table_entries"i><"table_controls"fB>>t',
+                    language: {
+                        search: "_INPUT_",
+                        searchPlaceholder: _("Search"),
+                    },
+                    responsive: {
+                        details: { type: "column", target: -1 },
+                    },
+                    columnDefs: [
+                        { className: "dtr-control", orderable: false, targets: [-1] },
+                        { visible: false, targets: [0] },
+                    ],
+                },
+            );
 
-        $("#tabs a[data-bs-toggle='tab']").on("shown.bs.tab", function (e) {
-            var id = e.target.id;
-            if ( id == "checkout-tab" ) {
-                table.fnFilter("standard_checkout", 0);
-            } else if ( id == "onsite_checkout-tab" ) {
-                table.fnFilter("onsite_checkout", 0);
-            } else { // all
-                table.fnFilter('', 0);
-            }
-            table_dt.columns(0).search(pattern).draw();
+            let table_dt = table.DataTable();
+
+            $("#tabs a[data-bs-toggle='tab']").on("shown.bs.tab", function (e) {
+                var id = e.target.id;
+                let pattern = "";
+                if ( id == "checkout-tab" ) {
+                    pattern = "standard_checkout";
+                } else if ( id == "onsite_checkout-tab" ) {
+                    pattern = "onsite_checkout";
+                }
+                table_dt.columns(0).search(pattern).draw();
+            });
         });
-    });
-</script>
+    </script>
     [% IF ( Koha.Preference('OpacStarRatings') == 'all' ) %]
         [% Asset.js("lib/jquery/plugins/jquery.barrating.min.js") | $raw %]
         [% Asset.js("js/ratings.js") | $raw %]

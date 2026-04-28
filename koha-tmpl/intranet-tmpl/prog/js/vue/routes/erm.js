@@ -1,26 +1,14 @@
 import { markRaw } from "vue";
 
 import Home from "../components/ERM/Home.vue";
-import AgreementsList from "../components/ERM/AgreementsList.vue";
-import AgreementsShow from "../components/ERM/AgreementsShow.vue";
-import AgreementsFormAdd from "../components/ERM/AgreementsFormAdd.vue";
-import EHoldingsLocalPackagesFormAdd from "../components/ERM/EHoldingsLocalPackagesFormAdd.vue";
-import EHoldingsLocalTitlesFormAdd from "../components/ERM/EHoldingsLocalTitlesFormAdd.vue";
 import EHoldingsLocalTitlesFormImport from "../components/ERM/EHoldingsLocalTitlesFormImport.vue";
 import EHoldingsLocalTitlesKBARTImport from "../components/ERM/EHoldingsLocalTitlesKBARTImport.vue";
-import EHoldingsLocalPackagesList from "../components/ERM/EHoldingsLocalPackagesList.vue";
-import EHoldingsLocalPackagesShow from "../components/ERM/EHoldingsLocalPackagesShow.vue";
 import EHoldingsLocalResourcesShow from "../components/ERM/EHoldingsLocalResourcesShow.vue";
-import EHoldingsLocalTitlesList from "../components/ERM/EHoldingsLocalTitlesList.vue";
-import EHoldingsLocalTitlesShow from "../components/ERM/EHoldingsLocalTitlesShow.vue";
 import EHoldingsEBSCOPackagesList from "../components/ERM/EHoldingsEBSCOPackagesList.vue";
 import EHoldingsEBSCOPackagesShow from "../components/ERM/EHoldingsEBSCOPackagesShow.vue";
 import EHoldingsEBSCOResourcesShow from "../components/ERM/EHoldingsEBSCOResourcesShow.vue";
 import EHoldingsEBSCOTitlesList from "../components/ERM/EHoldingsEBSCOTitlesList.vue";
 import EHoldingsEBSCOTitlesShow from "../components/ERM/EHoldingsEBSCOTitlesShow.vue";
-import LicensesList from "../components/ERM/LicensesList.vue";
-import LicensesShow from "../components/ERM/LicensesShow.vue";
-import LicensesFormAdd from "../components/ERM/LicensesFormAdd.vue";
 import UsageStatisticsDataProvidersList from "../components/ERM/UsageStatisticsDataProvidersList.vue";
 import UsageStatisticsDataProvidersSummary from "../components/ERM/UsageStatisticsDataProvidersSummary.vue";
 import UsageStatisticsDataProvidersFormAdd from "../components/ERM/UsageStatisticsDataProvidersFormAdd.vue";
@@ -28,7 +16,9 @@ import UsageStatisticsDataProvidersShow from "../components/ERM/UsageStatisticsD
 import UsageStatisticsReportsHome from "../components/ERM/UsageStatisticsReportsHome.vue";
 import UsageStatisticsReportsViewer from "../components/ERM/UsageStatisticsReportsViewer.vue";
 
-import { $__ } from "../i18n";
+import ResourceWrapper from "../components/ResourceWrapper.vue";
+
+import { $__ } from "@koha-vue/i18n";
 
 export const routes = [
     {
@@ -48,29 +38,37 @@ export const routes = [
                 title: $__("Agreements"),
                 icon: "fa fa-check-circle",
                 is_end_node: true,
+                resource: "ERM/AgreementResource.vue",
                 children: [
                     {
                         path: "",
                         name: "AgreementsList",
-                        component: markRaw(AgreementsList),
+                        component: markRaw(ResourceWrapper),
                     },
                     {
                         path: ":agreement_id",
                         name: "AgreementsShow",
-                        component: markRaw(AgreementsShow),
-                        title: $__("Show agreement"),
+                        component: markRaw(ResourceWrapper),
+                        title: "{name}",
                     },
                     {
                         path: "add",
                         name: "AgreementsFormAdd",
-                        component: markRaw(AgreementsFormAdd),
+                        component: markRaw(ResourceWrapper),
                         title: $__("Add agreement"),
                     },
                     {
                         path: "edit/:agreement_id",
                         name: "AgreementsFormAddEdit",
-                        component: markRaw(AgreementsFormAdd),
-                        title: $__("Edit agreement"),
+                        component: markRaw(ResourceWrapper),
+                        title: "{name}",
+                        breadcrumbFormat: ({ match, params, query }) => {
+                            match.name = "AgreementsShow";
+                            return match;
+                        },
+                        additionalBreadcrumbs: [
+                            { title: $__("Modify agreement"), disabled: true },
+                        ],
                     },
                 ],
             },
@@ -79,29 +77,37 @@ export const routes = [
                 title: $__("Licenses"),
                 icon: "fa fa-gavel",
                 is_end_node: true,
+                resource: "ERM/LicenseResource.vue",
                 children: [
                     {
                         path: "",
                         name: "LicensesList",
-                        component: markRaw(LicensesList),
+                        component: markRaw(ResourceWrapper),
                     },
                     {
                         path: ":license_id",
                         name: "LicensesShow",
-                        component: markRaw(LicensesShow),
-                        title: $__("Show license"),
+                        component: markRaw(ResourceWrapper),
+                        title: "{name}",
                     },
                     {
                         path: "add",
                         name: "LicensesFormAdd",
-                        component: markRaw(LicensesFormAdd),
+                        component: markRaw(ResourceWrapper),
                         title: $__("Add license"),
                     },
                     {
                         path: "edit/:license_id",
                         name: "LicensesFormAddEdit",
-                        component: markRaw(LicensesFormAdd),
-                        title: $__("Edit license"),
+                        component: markRaw(ResourceWrapper),
+                        title: "{name}",
+                        breadcrumbFormat: ({ match, params, query }) => {
+                            match.name = "LicensesShow";
+                            return match;
+                        },
+                        additionalBreadcrumbs: [
+                            { title: $__("Modify license"), disabled: true },
+                        ],
                     },
                 ],
             },
@@ -122,37 +128,46 @@ export const routes = [
                                 title: $__("Packages"),
                                 icon: "fa fa-archive",
                                 is_end_node: true,
+                                resource:
+                                    "ERM/EHoldingsLocalPackageResource.vue",
                                 children: [
                                     {
                                         path: "",
                                         name: "EHoldingsLocalPackagesList",
-                                        component: markRaw(
-                                            EHoldingsLocalPackagesList
-                                        ),
+                                        component: markRaw(ResourceWrapper),
                                     },
                                     {
                                         path: ":package_id",
                                         name: "EHoldingsLocalPackagesShow",
-                                        component: markRaw(
-                                            EHoldingsLocalPackagesShow
-                                        ),
-                                        title: $__("Show package"),
+                                        component: markRaw(ResourceWrapper),
+                                        title: "{name}",
                                     },
                                     {
                                         path: "add",
                                         name: "EHoldingsLocalPackagesFormAdd",
-                                        component: markRaw(
-                                            EHoldingsLocalPackagesFormAdd
-                                        ),
+                                        component: markRaw(ResourceWrapper),
                                         title: $__("Add package"),
                                     },
                                     {
                                         path: "edit/:package_id",
                                         name: "EHoldingsLocalPackagesFormAddEdit",
-                                        component: markRaw(
-                                            EHoldingsLocalPackagesFormAdd
-                                        ),
-                                        title: $__("Edit package"),
+                                        component: markRaw(ResourceWrapper),
+                                        title: "{name}",
+                                        breadcrumbFormat: ({
+                                            match,
+                                            params,
+                                            query,
+                                        }) => {
+                                            match.name =
+                                                "EHoldingsLocalPackagesShow";
+                                            return match;
+                                        },
+                                        additionalBreadcrumbs: [
+                                            {
+                                                title: $__("Modify package"),
+                                                disabled: true,
+                                            },
+                                        ],
                                     },
                                 ],
                             },
@@ -161,37 +176,45 @@ export const routes = [
                                 title: $__("Titles"),
                                 icon: "fa-solid fa-arrow-down-a-z",
                                 is_end_node: true,
+                                resource: "ERM/EHoldingsLocalTitleResource.vue",
                                 children: [
                                     {
                                         path: "",
                                         name: "EHoldingsLocalTitlesList",
-                                        component: markRaw(
-                                            EHoldingsLocalTitlesList
-                                        ),
+                                        component: markRaw(ResourceWrapper),
                                     },
                                     {
                                         path: ":title_id",
                                         name: "EHoldingsLocalTitlesShow",
-                                        component: markRaw(
-                                            EHoldingsLocalTitlesShow
-                                        ),
-                                        title: $__("Show title"),
+                                        component: markRaw(ResourceWrapper),
+                                        title: "{publication_title}",
                                     },
                                     {
                                         path: "add",
                                         name: "EHoldingsLocalTitlesFormAdd",
-                                        component: markRaw(
-                                            EHoldingsLocalTitlesFormAdd
-                                        ),
+                                        component: markRaw(ResourceWrapper),
                                         title: $__("Add title"),
                                     },
                                     {
                                         path: "edit/:title_id",
                                         name: "EHoldingsLocalTitlesFormAddEdit",
-                                        component: markRaw(
-                                            EHoldingsLocalTitlesFormAdd
-                                        ),
-                                        title: $__("Edit title"),
+                                        component: markRaw(ResourceWrapper),
+                                        title: "{publication_title}",
+                                        breadcrumbFormat: ({
+                                            match,
+                                            params,
+                                            query,
+                                        }) => {
+                                            match.name =
+                                                "EHoldingsLocalTitlesShow";
+                                            return match;
+                                        },
+                                        additionalBreadcrumbs: [
+                                            {
+                                                title: $__("Modify title"),
+                                                disabled: true,
+                                            },
+                                        ],
                                     },
                                     {
                                         path: "import",
@@ -306,7 +329,7 @@ export const routes = [
                                 ),
                             },
                             {
-                                path: ":usage_data_provider_id",
+                                path: ":erm_usage_data_provider_id",
                                 name: "UsageStatisticsDataProvidersShow",
                                 component: markRaw(
                                     UsageStatisticsDataProvidersShow
@@ -322,7 +345,7 @@ export const routes = [
                                 title: $__("Add data provider"),
                             },
                             {
-                                path: "edit/:usage_data_provider_id",
+                                path: "edit/:erm_usage_data_provider_id",
                                 name: "UsageStatisticsDataProvidersFormAddEdit",
                                 component: markRaw(
                                     UsageStatisticsDataProvidersFormAdd

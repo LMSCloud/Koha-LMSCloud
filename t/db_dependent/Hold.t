@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -22,14 +22,15 @@ use C4::Context;
 use C4::Biblio qw( AddBiblio );
 use Koha::Database;
 use Koha::Libraries;
-use C4::Calendar qw( new insert_single_holiday );
+use C4::Calendar;
 use Koha::Patrons;
 use Koha::Holds;
 use Koha::Item;
 use Koha::DateUtils qw( dt_from_string );
 use t::lib::TestBuilder;
 
-use Test::More tests => 35;
+use Test::NoWarnings;
+use Test::More tests => 36;
 use Test::Exception;
 use Test::Warn;
 
@@ -159,7 +160,7 @@ $schema->storage->txn_rollback();
 
 subtest "store() tests" => sub {
 
-    plan tests => 7;
+    plan tests => 8;
 
     $schema->storage->txn_begin();
 
@@ -256,7 +257,7 @@ subtest "store() tests" => sub {
     $hold->discard_changes;
 
     $hold->set_waiting;
-    C4::Reserves::RevertWaitingStatus( { itemnumber => $item->itemnumber } );
+    $hold->revert_found();
     $hold->discard_changes;
 
     $expected_date = dt_from_string( $hold->reservedate )->add( years => 2 )->ymd;
@@ -282,13 +283,33 @@ subtest "store() tests" => sub {
     $hold->discard_changes;
 
     $hold->set_waiting;
-    C4::Reserves::RevertWaitingStatus( { itemnumber => $item->itemnumber } );
+    $hold->revert_found();
     $hold->discard_changes;
 
     is(
         $hold->expirationdate,
         $patron_expiration_date,
         'Expiration date set same as patron_expiration_date after reverting holds waiting status.'
+    );
+
+    # Do not set expiration date for hold if no period is set
+    t::lib::Mocks::mock_preference( 'DefaultHoldExpirationdatePeriod', '' );
+    $hold = Koha::Hold->new(
+        {
+            biblionumber   => $biblio->biblionumber,
+            itemnumber     => $item->id,
+            reservedate    => '2022-12-14',
+            waitingdate    => '2022-12-14',
+            borrowernumber => $borrower->borrowernumber,
+            branchcode     => $library->branchcode,
+            suspend        => 0,
+        }
+    )->store;
+    $hold->discard_changes;
+
+    is(
+        $hold->expirationdate,
+        undef, 'Expiration date not set if "DefaultHoldExpirationdatePeriod" is left empty.'
     );
 
     $schema->storage->txn_rollback();
@@ -335,8 +356,10 @@ subtest "delete() tests" => sub {
         "Koha::Hold->delete should have deleted the hold"
     );
 
-    my $number_of_logs = $schema->resultset('ActionLog')
-        ->search( { module => 'HOLDS', action => 'DELETE', object => $hold->{reserve_id} } )->count;
+    my $number_of_logs =
+        $schema->resultset('ActionLog')
+        ->search( { module => 'HOLDS', action => 'DELETE', object => $hold->{reserve_id} } )
+        ->count;
     is( $number_of_logs, 0, 'With HoldsLogs, Koha::Hold->delete shouldn\'t have been logged' );
 
     # Enable logging
@@ -355,8 +378,10 @@ subtest "delete() tests" => sub {
         "Koha::Hold->delete should have deleted the hold"
     );
 
-    $number_of_logs = $schema->resultset('ActionLog')
-        ->search( { module => 'HOLDS', action => 'DELETE', object => $hold->{reserve_id} } )->count;
+    $number_of_logs =
+        $schema->resultset('ActionLog')
+        ->search( { module => 'HOLDS', action => 'DELETE', object => $hold->{reserve_id} } )
+        ->count;
     is( $number_of_logs, 1, 'With HoldsLogs, Koha::Hold->delete should have been logged' );
 
     $schema->storage->txn_rollback();
@@ -448,7 +473,8 @@ subtest 'suspend() tests' => sub {
     t::lib::Mocks::mock_preference( 'HoldsLog', 1 );
 
     my $logs_count =
-        $schema->resultset('ActionLog')->search( { module => 'HOLDS', action => 'SUSPEND', object => $hold->id } )
+        $schema->resultset('ActionLog')
+        ->search( { module => 'HOLDS', action => 'SUSPEND', object => $hold->id } )
         ->count;
 
     $hold = $builder->build_object(
@@ -460,7 +486,8 @@ subtest 'suspend() tests' => sub {
 
     $hold->suspend_hold;
     my $new_logs_count =
-        $schema->resultset('ActionLog')->search( { module => 'HOLDS', action => 'SUSPEND', object => $hold->id } )
+        $schema->resultset('ActionLog')
+        ->search( { module => 'HOLDS', action => 'SUSPEND', object => $hold->id } )
         ->count;
 
     is( $new_logs_count, $logs_count + 1, 'If logging is enabled, suspending a hold gets logged' );

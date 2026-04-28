@@ -27,26 +27,23 @@
     [% END %]
 [% END %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            [% INCLUDE 'messages.inc' %]
-            [% INCLUDE 'authorities-toolbar.inc' %]
+[% WRAPPER 'main-container.inc' %]
+    [% INCLUDE 'authorities-toolbar.inc' %]
 
-            <h1>Authorities</h1>
+    <h1>Authorities</h1>
 
-            <div id="merge_in_progress" class="alert alert-info" style="display:none;"></div>
+    <div id="merge_in_progress" class="alert alert-info" style="display:none;"></div>
 
-            [%- SET StaffAuthoritiesHome = AdditionalContents.get( location => "StaffAuthoritiesHome", lang => lang, library => Branches.GetLoggedInBranchcode ) -%]
-            [%- FOREACH block IN StaffAuthoritiesHome.content -%]
-                <div class="page-section"> [%- block.content | $raw -%] </div>
-            [%- END -%]
-        </div>
-    </div>
+    [%- SET StaffAuthoritiesHome = AdditionalContents.get( location => "StaffAuthoritiesHome", lang => lang, library => Branches.GetLoggedInBranchcode ) -%]
+    [%- FOREACH block IN StaffAuthoritiesHome.content -%]
+        <div class="page-section"> [%- block.content | $raw -%] </div>
+    [%- END -%]
+[% END %]
+[% MACRO jsinclude BLOCK %]
+    <script>
+        const searchType = "[% marclist | html %]";
+    </script>
+    [% Asset.js("js/authorities.js") | $raw %]
+[% END %]
 
-    [% MACRO jsinclude BLOCK %]
-        [% INCLUDE 'authorities_js.inc' %]
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+[% INCLUDE 'intranet-bottom.inc' %]

@@ -15,7 +15,7 @@ package Koha::Acquisition::Order;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -175,6 +175,7 @@ sub cancel {
 
     $biblio = $self->biblio;
     if ( $biblio and $delete_biblio ) {
+
         if (    $biblio->uncancelled_orders->search( { ordernumber => { '!=' => $self->ordernumber } } )->count == 0
             and $biblio->subscriptions->count == 0
             and $biblio->items->count == 0 )
@@ -241,6 +242,14 @@ sub add_item {
     my $rs     = $schema->resultset('AqordersItem');
     $rs->create( { ordernumber => $self->ordernumber, itemnumber => $itemnumber } );
 }
+
+=head3 search_order_by_item
+
+    my $aqorder = $order->search_order_by_item($itemnumber);
+
+LMSCloud: find the aqorder that owns a given itemnumber.
+
+=cut
 
 sub search_order_by_item {
     my ( $self, $itemnumber ) = @_;
@@ -542,12 +551,13 @@ sub populate_with_prices_for_ordering {
 
     my $discount = $self->discount || 0;
     $discount /= 100 if $discount > 1;
+    my $unitprice = $self->unitprice // 0;
 
     if ( $bookseller->listincgst ) {
 
         # The user entered the prices tax included
-        $self->unitprice( $self->unitprice + 0 );
-        $self->unitprice_tax_included( $self->unitprice );
+        $self->unitprice($unitprice);
+        $self->unitprice_tax_included($unitprice);
         $self->rrp_tax_included( $self->rrp );
 
         # price tax excluded = price tax included / ( 1 + tax rate )
@@ -575,7 +585,7 @@ sub populate_with_prices_for_ordering {
     } else {
 
         # The user entered the prices tax excluded
-        $self->unitprice_tax_excluded( $self->unitprice );
+        $self->unitprice_tax_excluded($unitprice);
         $self->rrp_tax_excluded( $self->rrp );
 
         # price tax included = price tax excluded * ( 1 - tax rate )

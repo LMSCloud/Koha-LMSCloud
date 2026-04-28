@@ -10,20 +10,20 @@
 # A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with Koha; if not, see <http://www.gnu.org/licenses>.
+# with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 
 use Test::Mojo;
 use Data::Dumper;
-
 use PPI;
 use FindBin();
 use IPC::Cmd        qw(can_run);
 use List::MoreUtils qw(any);
 use File::Slurp     qw(read_file);
+use YAML::XS        qw(LoadFile);
 
 use Koha::Database;
 
@@ -211,5 +211,54 @@ subtest 'POST (201) have location header' => sub {
                 fail("$file:$name does not contain the location header");
             }
         }
+    }
+};
+
+subtest 'maxlength + enum' => sub {
+    my $def_map = {
+
+        # api def => schema
+        erm_agreement       => 'ErmAgreement',
+        erm_eholdings_title => 'ErmEholdingsTitle',
+        item                => 'Item',
+        library             => 'Branch',
+        patron              => 'Borrower',
+        patron_category     => 'Category',
+        vendor              => 'Aqbookseller',
+    };
+    plan tests => scalar keys %$def_map;
+    my $schema = Koha::Database->new->schema;
+    while ( my ( $def, $dbic_src ) = each %$def_map ) {
+        my @failures;
+        my $definition   = LoadFile("api/v1/swagger/definitions/$def.yaml");
+        my $source       = $schema->source($dbic_src);
+        my $object_class = Koha::Object::_get_object_class( $source->result_class );
+        eval "require $object_class";
+        my $koha_object = $object_class->new;
+        my $api_mapping = $koha_object->to_api_mapping;
+        my $reversed_api_mapping =
+            { reverse map { defined $api_mapping->{$_} ? ( $_ => $api_mapping->{$_} ) : () } keys %$api_mapping };
+
+        my $db_columns = $koha_object->_result->columns_info;
+        while ( my ( $db_col, $column_info ) = each %{$db_columns} ) {
+            my $api_attr   = $api_mapping->{$db_col} || $db_col;
+            my $properties = $definition->{properties}->{$api_attr};
+
+            next unless $properties;
+
+            next unless $column_info->{size};
+
+            next if ref( $column_info->{size} ) eq 'ARRAY';    # decimal # FIXME Could have a test for this as well
+
+            next
+                if $properties->{enum}
+                ; # FIXME This is not fully correct, we might want to make sure enum is set for both DB and spec. eg. now checkprevcheckout is enum only for the api spec
+
+            if ( !exists $properties->{maxLength} || $column_info->{size} != $properties->{maxLength} ) {
+                push @failures, sprintf "%s.%s should have maxLength=%s in api spec", $def, $api_attr,
+                    $column_info->{size};
+            }
+        }
+        is( scalar(@failures), 0, "maxLength tests for $def" ) or diag Dumper @failures;
     }
 };

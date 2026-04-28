@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # This file tests that Koha's yarn.lock file is updated with the
 # packages.json file. If this test fails, the likely solution is to run
@@ -23,7 +23,8 @@
 # 'git commit ./yarn.lock'.
 
 use Modern::Perl;
-use Test::More tests => 1;
+use Test::More tests => 2;
+use Test::NoWarnings;
 
 my $rc;
 

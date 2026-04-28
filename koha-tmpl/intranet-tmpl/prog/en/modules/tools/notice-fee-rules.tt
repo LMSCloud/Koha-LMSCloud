@@ -26,10 +26,7 @@
 
 [% branches = Branches.all( selected => branch, restrict => 'NoMobileStations' ) %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
+[% WRAPPER 'main-container.inc' aside='tools-menu' %]
                 <h1>
                     [% IF ( branch && branch != '*' ) %]
                     Defining rules for notice fees: [% Branches.GetName( branch ) | html %]
@@ -197,15 +194,7 @@
                     </table>
                     </p>
                 </div>
-            </main>
-        </div> <!-- /.col-md-10.order-md-2.order-sm-1 -->
-
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'tools-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-sm-2.order-md-1 -->
-     </div> <!-- /.row -->
+[% END %]
 
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/tools-menu.js") | $raw %]

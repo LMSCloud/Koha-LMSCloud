@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 2;
+use Test::NoWarnings;
+use Test::More tests => 3;
 use Test::Mojo;
 
 use t::lib::Mocks;
@@ -51,7 +52,8 @@ subtest 'cancel() tests' => sub {
     my $deleted_article_request_id = $deleted_article_request->id;
     $deleted_article_request->delete;
 
-    $t->delete_ok("//$userid:$password@/api/v1/article_requests/$deleted_article_request_id")->status_is(404)
+    $t->delete_ok("//$userid:$password@/api/v1/article_requests/$deleted_article_request_id")
+        ->status_is(404)
         ->json_is( '/error_code' => 'not_found' );
 
     my $article_request = $builder->build_object(
@@ -66,7 +68,8 @@ subtest 'cancel() tests' => sub {
 
     $t->delete_ok( "//$userid:$password@/api/v1/article_requests/"
             . $article_request->id
-            . "?cancellation_reason=$reason&notes=$notes" )->status_is( 204, 'REST3.2.4' )
+            . "?cancellation_reason=$reason&notes=$notes" )
+        ->status_is( 204, 'REST3.2.4' )
         ->content_is( q{}, 'REST3.2.4' );
 
     # refresh object
@@ -108,7 +111,8 @@ subtest 'patron_cancel() tests' => sub {
 
     # delete non existent article request
     $t->delete_ok("//$userid:$password@/api/v1/public/patrons/$patron_id/article_requests/$deleted_article_request_id")
-        ->status_is(404)->json_is( '/error_code' => 'not_found' );
+        ->status_is(404)
+        ->json_is( '/error_code' => 'not_found' );
 
     my $another_patron    = $builder->build_object( { class => 'Koha::Patrons' } );
     my $another_patron_id = $another_patron->id;
@@ -118,12 +122,14 @@ subtest 'patron_cancel() tests' => sub {
 
     # delete another patron's request when unauthorized
     $t->delete_ok( "/api/v1/public/patrons/$another_patron_id/article_requests/" . $article_request_2->id )
-        ->status_is(401)->json_is( '/error' => "Authentication failure." );
+        ->status_is(401)
+        ->json_is( '/error' => "Authentication failure." );
 
     # delete another patron's request
     $t->delete_ok(
         "//$userid:$password@/api/v1/public/patrons/$another_patron_id/article_requests/" . $article_request_2->id )
-        ->status_is(403)->json_is( '/error' => "Unprivileged user cannot access another user's resources" );
+        ->status_is(403)
+        ->json_is( '/error' => "Unprivileged user cannot access another user's resources" );
 
     my $another_article_request = $builder->build_object(
         {
@@ -134,7 +140,8 @@ subtest 'patron_cancel() tests' => sub {
 
     $t->delete_ok(
         "//$userid:$password@/api/v1/public/patrons/$patron_id/article_requests/" . $another_article_request->id )
-        ->status_is(404)->json_is( '/error_code' => 'not_found' );
+        ->status_is(404)
+        ->json_is( '/error_code' => 'not_found' );
 
     my $article_request = $builder->build_object(
         {
@@ -148,7 +155,8 @@ subtest 'patron_cancel() tests' => sub {
 
     $t->delete_ok( "//$userid:$password@/api/v1/public/patrons/$patron_id/article_requests/"
             . $article_request->id
-            . "?cancellation_reason=$reason&notes=$notes" )->status_is( 204, 'REST3.2.4' )
+            . "?cancellation_reason=$reason&notes=$notes" )
+        ->status_is( 204, 'REST3.2.4' )
         ->content_is( q{}, 'REST3.2.4' );
 
     # refresh object

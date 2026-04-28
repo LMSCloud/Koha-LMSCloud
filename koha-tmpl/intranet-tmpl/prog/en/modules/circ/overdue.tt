@@ -337,81 +337,84 @@
         <!-- /.col-md-2.order-md-1 -->
     </div>
     <!-- /.row -->
-
-    [% MACRO jsinclude BLOCK %]
-        [% INCLUDE 'calendar.inc' %]
-        [% INCLUDE 'datatables.inc' %]
-        [% INCLUDE 'columns_settings.inc' %]
-        [% INCLUDE 'select2.inc' %]
-        [% INCLUDE 'js-date-format.inc' %]
-        [% PROCESS 'modal-claims-js' %]
-        <script>
-            function clone_input( node, original_id ) {
-                var original = node;
-                var clone = original.clone();
-                var appendid = original_id + "-" + Math.floor(Math.random()*1000+1);
-                clone.find(".delete_clone").show();
-                if( clone.find("select").length ){
-                    /* <select> element is present */
-                    clone.find("select").removeClass("select2-hidden-accessible").removeAttr("data-select2-id").attr("id", appendid );
-                    clone.find(".select2").remove();
-                    original.after( clone );
-                    $("#" + appendid ).select2();
-                } else if( clone.find(".flatpickr").length ){
-                    clone.attr("id", appendid );
-                    original.after( clone );
-                    apply_flatpickr(clone.find(".flatpickr"));
-                } else {
-                    clone.attr("id", appendid );
-                    original.after( clone );
-                }
-            }
-
-            function update_date_due_filters_visibility(){
-                if( $("#showall").is(":checked")) {
-                    $(".date_due_filter").hide();
-                    $("#from").prop("disabled", true);
-                    $("#to").prop("disabled", true);
-                } else {
-                    $(".date_due_filter").show();
-                    $("#from").prop("disabled", false);
-                    $("#to").prop("disabled", false);
-                }
-            }
-
-            $(document).ready(function(){
-                var table_settings = [% TablesSettings.GetTableSettings( 'circ', 'overdues', 'circ-overdues', 'json' ) | $raw %];
-
-                [% IF !Koha.Preference('ClaimReturnedLostValue') %]
-                    table_settings['columns'].splice(13, 1);
-                [% END %]
-
-                KohaTable("overduest", {
-                    "pagingType": "full",
-                    "autoWidth": false,
-                }, table_settings);
-
-                $("#showall").on("change", function(){
-                    update_date_due_filters_visibility();
-                });
-                update_date_due_filters_visibility();
-
-                $(".pattrodue-input").each(function(){
-                    $(this).select2();
-                });
-
-                $("body").on("click", ".delete_clone", function(e){
-                    e.preventDefault();
-                    $(this).parent().remove();
-                });
-
-                $("body").on("click", ".clone-attribute", function(e){
-                    e.preventDefault();
-                    clone_input( $(this).parent(), $(this).data("original-id") );
-                })
-            });
-        </script>
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'select2.inc' %]
+    [% INCLUDE 'js-date-format.inc' %]
+    [% PROCESS 'modal-claims-js' %]
+    <script>
+        function clone_input( node, original_id ) {
+            var original = node;
+            var clone = original.clone();
+            var appendid = original_id + "-" + Math.floor(Math.random()*1000+1);
+            clone.find(".delete_clone").show();
+            if( clone.find("select").length ){
+                /* <select> element is present */
+                clone.find("select").removeClass("select2-hidden-accessible").removeAttr("data-select2-id").attr("id", appendid );
+                clone.find(".select2").remove();
+                original.after( clone );
+                $("#" + appendid ).select2();
+            } else if( clone.find(".flatpickr").length ){
+                clone.attr("id", appendid );
+                original.after( clone );
+                apply_flatpickr(clone.find(".flatpickr"));
+            } else {
+                clone.attr("id", appendid );
+                original.after( clone );
+            }
+        }
+
+        function update_date_due_filters_visibility(){
+            if( $("#showall").is(":checked")) {
+                $(".date_due_filter").hide();
+                $("#from").prop("disabled", true);
+                $("#to").prop("disabled", true);
+            } else {
+                $(".date_due_filter").show();
+                $("#from").prop("disabled", false);
+                $("#to").prop("disabled", false);
+            }
+        }
+
+        $(document).ready(function(){
+            var table_settings = [% TablesSettings.GetTableSettings( 'circ', 'overdues', 'circ-overdues', 'json' ) | $raw %];
+
+            [% IF !Koha.Preference('ClaimReturnedLostValue') %]
+                table_settings['columns'].splice(13, 1);
+            [% END %]
+
+            $("#overduest").kohaTable(
+                {
+                    pagingType: "full",
+                    autoWidth: false,
+                },
+                table_settings
+            );
+
+            $("#showall").on("change", function(){
+                update_date_due_filters_visibility();
+            });
+            update_date_due_filters_visibility();
+
+            $(".pattrodue-input").each(function(){
+                $(this).select2();
+            });
+
+            $("body").on("click", ".delete_clone", function(e){
+                e.preventDefault();
+                $(this).parent().remove();
+            });
+
+            $("body").on("click", ".clone-attribute", function(e){
+                e.preventDefault();
+                clone_input( $(this).parent(), $(this).data("original-id") );
+            })
+        });
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]

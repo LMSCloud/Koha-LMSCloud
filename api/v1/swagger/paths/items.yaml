@@ -158,6 +158,7 @@
             * last_item_for_hold: The item is the last one on a record on which a biblio-level hold is placed
             * linked_analytics: The item has linked analytic records
             * not_same_branch: The item is blocked by independent branches
+            * item_has_holds: The item has holds
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       "500":

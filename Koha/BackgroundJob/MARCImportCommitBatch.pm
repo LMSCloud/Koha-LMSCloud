@@ -13,7 +13,7 @@ package Koha::BackgroundJob::MARCImportCommitBatch;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Try::Tiny;
@@ -84,11 +84,10 @@ sub process {
                 progress_callback => sub { my $job_progress = shift; $self->progress($job_progress)->store },
             }
             );
-        my $count = $num_added + $num_updated;
-        if ($count) {
-            $self->set( { progress => $count, size => $count } );
-        } else {    # TODO Refine later
-            $self->set( { progress => 0, status => 'failed' } );
+        my $count = $num_added + $num_updated + $num_ignored;
+        $self->set( { progress => $count } );
+        if ( $count != $size ) {
+            $self->set( { status => 'failed' } );
         }
     } catch {
         warn $_;

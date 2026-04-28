@@ -15,20 +15,17 @@ package C4::Scheduler;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(get_jobs get_at_jobs get_at_job add_at_job remove_at_job);
+}
 
 use C4::Context;
 use Schedule::At;
-
-our ( @ISA, @EXPORT_OK );
-
-BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(get_jobs get_at_jobs get_at_job add_at_job remove_at_job);
-}
 
 =head1 NAME
 
@@ -108,7 +105,7 @@ sub add_at_job {
     #    not check all error conditions - in particular, it does
     #    not check the return value of the "at" run; it basically
     #    complains only if it can't find at.
-    # 3. Similary, Schedule::At::add() does not do something more useful,
+    # 3. Similarly, Schedule::At::add() does not do something more useful,
     #    such as returning the job ID.  To be fair, it is possible
     #    that 'at' does not allow this in any portable way.
     # 4. Although unlikely, it is possible that a job could be added
@@ -124,6 +121,12 @@ sub add_at_job {
         return $job_found;
     }
 }
+
+=head2 remove_at_job
+
+Missing POD for remove_at_job.
+
+=cut
 
 sub remove_at_job {
     my ($jobid) = @_;

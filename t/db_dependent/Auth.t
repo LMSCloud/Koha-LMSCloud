@@ -7,7 +7,8 @@ use CGI qw ( -utf8 );
 use Test::MockObject;
 use Test::MockModule;
 use List::MoreUtils qw/all any none/;
-use Test::More tests => 23;
+use Test::More tests => 24;
+use Test::NoWarnings;
 use Test::Warn;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
@@ -82,7 +83,7 @@ subtest 'checkauth() tests' => sub {
 
     my $is_allowed = C4::Auth::haspermission( $db_user_id, { can_do => 'everything' } );
 
-    # FIXME This belongs to t/db_dependent/Auth/haspermission.t but we do not want to c/p the pervious mock statements
+    # FIXME This belongs to t/db_dependent/Auth/haspermission.t but we do not want to c/p the previous mock statements
     ok( !$is_allowed, 'DB user should not have any permissions' );
 
     subtest 'Prevent authentication when sending credential via GET' => sub {
@@ -526,8 +527,8 @@ subtest 'get_template_and_user' => sub {    # Tests for the language URL paramet
     t::lib::Mocks::mock_preference( 'EnableOpacSearchHistory', 1 );
 
     # Enable es-ES for the OPAC and staff interfaces
-    t::lib::Mocks::mock_preference( 'OPACLanguages', 'en,es-ES' );
-    t::lib::Mocks::mock_preference( 'language',      'en,es-ES' );
+    t::lib::Mocks::mock_preference( 'OPACLanguages',           'en,es-ES' );
+    t::lib::Mocks::mock_preference( 'StaffInterfaceLanguages', 'en,es-ES' );
 
     # we need a session cookie
     $ENV{"SERVER_PORT"} = 80;
@@ -840,7 +841,7 @@ subtest 'checkauth & check_cookie_auth' => sub {
         my $stdout;
         open STDOUT, '>', \$stdout;
         C4::Auth::checkauth( $cgi, 0, { catalogue => 1 } );
-        like( $stdout, qr{<title>\s*Log in to your account} );
+        like( $stdout, qr{<title\s*>\s*Log in to your account} );
         $sessionID = ( $stdout =~ m{Set-Cookie: CGISESSID=((\d|\w)+);} ) ? $1 : undef;
         ok($sessionID);
         close STDOUT;
@@ -1191,7 +1192,7 @@ subtest 'checkpw() return values tests' => sub {
         $password_expired = 1;
         @return           = checkpw( $patron->userid, $password, undef, );
 
-        is( scalar @return,    2,  "Two results on expired password scenario" );
+        is( scalar @return,     2, "Two results on expired password scenario" );
         is( $return[0],        -2, '-2 returned' );
         is( ref( $return[1] ), 'Koha::Patron' );
         is( $return[1]->id,    $patron->id, 'Patron matched correctly' );
@@ -1199,7 +1200,7 @@ subtest 'checkpw() return values tests' => sub {
         t::lib::Mocks::mock_preference( 'AnonymousPatron', $patron->id );
         @return = checkpw( $patron->userid, $password, undef, );
 
-        is( scalar @return,    2,  "Two results on expired password scenario" );
+        is( scalar @return,     2, "Two results on expired password scenario" );
         is( $return[0],        -3, '-3 returned' );
         is( ref( $return[1] ), 'Koha::Patron' );
         is( $return[1]->id,    $patron->id, 'Patron matched correctly' );
@@ -1283,14 +1284,14 @@ subtest 'checkpw() return values tests' => sub {
         $password_expired = 1;
         @return           = checkpw( $patron->userid, $password, $query, );
 
-        is( scalar @return,    2,  "Two results on expired password scenario" );
+        is( scalar @return,     2, "Two results on expired password scenario" );
         is( $return[0],        -2, '-2 returned' );
         is( ref( $return[1] ), 'Koha::Patron' );
         is( $return[1]->id,    $patron->id, 'Patron matched correctly' );
 
         t::lib::Mocks::mock_preference( 'AnonymousPatron', $patron->id );
         @return = checkpw( $patron->userid, $password, undef, );
-        is( scalar @return,    2,  "Two results on expired password scenario" );
+        is( scalar @return,     2, "Two results on expired password scenario" );
         is( $return[0],        -3, '-3 returned' );
         is( ref( $return[1] ), 'Koha::Patron' );
         is( $return[1]->id,    $patron->id, 'Patron matched correctly' );
@@ -1569,7 +1570,7 @@ subtest 'AutoSelfCheckAllowed' => sub {
                 flagsrequired => { self_check => "self_checkout_module" },
             }
         );
-        like( $stdout, qr{<title>\s*Log in to your account} );
+        like( $stdout, qr{<title\s*>\s*Log in to your account} );
         close STDOUT;
     };
 
@@ -1593,7 +1594,7 @@ subtest 'AutoSelfCheckAllowed' => sub {
                 flagsrequired => { self_check => "self_checkout_module" },
             }
         );
-        like( $stdout, qr{<title>\s*Log in to your account} );
+        like( $stdout, qr{<title\s*>\s*Log in to your account} );
         close STDOUT;
     };
 
@@ -1616,7 +1617,7 @@ subtest 'AutoSelfCheckAllowed' => sub {
                 flagsrequired => { self_check => "self_checkout_module" },
             }
         );
-        like( $stdout, qr{<title>\s*Log in to your account} );
+        like( $stdout, qr{<title\s*>\s*Log in to your account} );
         close STDOUT;
     };
 

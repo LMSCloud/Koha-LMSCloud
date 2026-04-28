@@ -15,10 +15,15 @@ package C4::Auth_with_cas;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK =
+        qw(check_api_auth_cas checkpw_cas login_cas logout_cas login_cas_url logout_if_required multipleAuth getMultipleAuth);
+}
 
 use C4::Context;
 use Koha::AuthUtils qw( get_script_name );
@@ -29,14 +34,6 @@ use URI::Escape;
 
 use Koha::Logger;
 
-our ( @ISA, @EXPORT_OK );
-
-BEGIN {
-    require Exporter;
-    @ISA = qw(Exporter);
-    @EXPORT_OK =
-        qw(check_api_auth_cas checkpw_cas login_cas logout_cas login_cas_url logout_if_required multipleAuth getMultipleAuth);
-}
 my $defaultcasserver;
 my $casservers;
 my $yamlauthfile = C4::Context->config('intranetdir') . "/C4/Auth_cas_servers.yaml";
@@ -57,16 +54,37 @@ if ( multipleAuth() ) {
 =cut
 
 # Is there a configuration file for multiple cas servers?
+
+=head2 multipleAuth
+
+Missing POD for multipleAuth.
+
+=cut
+
 sub multipleAuth {
     return ( -e qq($yamlauthfile) );
 }
 
 # Returns configured CAS servers' list if multiple authentication is enabled
+
+=head2 getMultipleAuth
+
+Missing POD for getMultipleAuth.
+
+=cut
+
 sub getMultipleAuth {
     return $casservers;
 }
 
 # Logout from CAS
+
+=head2 logout_cas
+
+Missing POD for logout_cas.
+
+=cut
+
 sub logout_cas {
     my ( $query, $type ) = @_;
     my ( $cas,   $uri )  = _get_cas_and_service( $query, undef, $type );
@@ -83,6 +101,13 @@ sub logout_cas {
 }
 
 # Login to CAS
+
+=head2 login_cas
+
+Missing POD for login_cas.
+
+=cut
+
 sub login_cas {
     my ( $query, $type ) = @_;
     my ( $cas,   $uri )  = _get_cas_and_service( $query, undef, $type );
@@ -90,6 +115,13 @@ sub login_cas {
 }
 
 # Returns CAS login URL with callback to the requesting URL
+
+=head2 login_cas_url
+
+Missing POD for login_cas_url.
+
+=cut
+
 sub login_cas_url {
     my ( $query, $key, $type ) = @_;
     my ( $cas, $uri ) = _get_cas_and_service( $query, $key, $type );
@@ -98,6 +130,13 @@ sub login_cas_url {
 
 # Checks for password correctness
 # In our case : is there a ticket, is it valid and does it match one of our users ?
+
+=head2 checkpw_cas
+
+Missing POD for checkpw_cas.
+
+=cut
+
 sub checkpw_cas {
     my ( $ticket, $query, $type ) = @_;
     my $retnumber;
@@ -118,11 +157,7 @@ sub checkpw_cas {
 
             # Does it match one of our users ?
             my $dbh    = C4::Context->dbh;
-            my $patron = Koha::Patrons->find( { userid => $userid } );
-            if ($patron) {
-                return ( 1, $patron->cardnumber, $patron->userid, $ticket, $patron );
-            }
-            $patron = Koha::Patrons->find( { cardnumber => $userid } );
+            my $patron = Koha::Patrons->find_by_identifier($userid);
             if ($patron) {
                 return ( 1, $patron->cardnumber, $patron->userid, $ticket, $patron );
             }
@@ -143,6 +178,13 @@ sub checkpw_cas {
 }
 
 # Proxy CAS auth
+
+=head2 check_api_auth_cas
+
+Missing POD for check_api_auth_cas.
+
+=cut
+
 sub check_api_auth_cas {
     my ( $PT, $query, $type ) = @_;
     my $retnumber;
@@ -241,7 +283,7 @@ sub _url_with_get_params {
 sub logout_if_required {
     my ($query) = @_;
 
-    # Check we havent been hit by a logout call
+    # Check we haven't been hit by a logout call
     my $xml = $query->param('logoutRequest');
     return 0 unless $xml;
 
@@ -262,6 +304,12 @@ sub logout_if_required {
     print $query->header;
     exit;
 }
+
+=head2 delete_cas_session
+
+Missing POD for delete_cas_session.
+
+=cut
 
 sub delete_cas_session {
     my $session = shift;

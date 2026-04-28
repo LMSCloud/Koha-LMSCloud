@@ -13,7 +13,7 @@ package Koha::REST::V1::Bookings;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -79,7 +79,34 @@ sub add {
         my $body                = $c->req->json;
         my $extended_attributes = delete $body->{extended_attributes} // [];
 
+        # Validate that exactly one of item_id or itemtype_id is provided
+        my $has_item_id     = defined $body->{item_id};
+        my $has_itemtype_id = defined $body->{itemtype_id};
+
+        if ( !$has_item_id && !$has_itemtype_id ) {
+            return $c->render(
+                status  => 400,
+                openapi => { error => "Either item_id or itemtype_id must be provided" }
+            );
+        }
+
+        if ( $has_item_id && $has_itemtype_id ) {
+            return $c->render(
+                status  => 400,
+                openapi => { error => "Cannot specify both item_id and itemtype_id" }
+            );
+        }
+
+        # Extract and remove itemtype_id from body (it's not a database column)
+        my $itemtype_id = delete $body->{itemtype_id};
+
         my $booking = Koha::Booking->new_from_api($body);
+
+        # Set transient itemtype filter if provided (for server-side optimal selection)
+        if ($itemtype_id) {
+            $booking->set_itemtype_filter($itemtype_id);
+        }
+
         $booking->store;
         $booking->discard_changes;
 
@@ -128,7 +155,16 @@ sub update {
         my $body                = $c->req->json;
         my $extended_attributes = delete $body->{extended_attributes} // [];
 
+        # Extract and remove itemtype_id from body (it's not a database column)
+        my $itemtype_id = delete $body->{itemtype_id};
+
         $booking->set_from_api($body);
+
+        # Set transient itemtype filter if provided (for server-side optimal selection)
+        if ($itemtype_id) {
+            $booking->set_itemtype_filter($itemtype_id);
+        }
+
         $booking->store();
         $booking->discard_changes;
 

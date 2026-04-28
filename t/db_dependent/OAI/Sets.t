@@ -14,11 +14,12 @@
 # A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with Koha; if not, see <http://www.gnu.org/licenses>.
+# with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 153;
+use Test::NoWarnings;
+use Test::More tests => 154;
 use Test::MockModule;
 use Test::Warn;
 use MARC::Record;
@@ -175,7 +176,7 @@ isa_ok( $set, 'HASH', '$set is a hash describing the set whose spec is $oai_sets
 is( $set->{spec}, 'specSet2', 'spec field is "specSet2"' );
 is( $set->{name}, 'nameSet2', 'name field is "nameSet2"' );
 
-#GetOAISetBySpec does't return the description field.
+#GetOAISetBySpec does not return the description field.
 
 # ---------- Testing ModOAISet ------------------
 ok( !defined(ModOAISet), 'ModOAISet without argument is undef' );

@@ -4,6 +4,7 @@ import { createPinia } from "pinia";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
+    faList,
     faPlus,
     faMinus,
     faPencil,
@@ -13,24 +14,24 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import vSelect from "vue-select";
 
-library.add(faPlus, faMinus, faPencil, faTrash, faSpinner);
+library.add(faList, faPlus, faMinus, faPencil, faTrash, faSpinner);
 
 import App from "../components/ERM/Main.vue";
+
+import "../../../css/vue.css";
 
 import { routes as routesDef } from "../routes/erm";
 
 import { useMainStore } from "../stores/main";
 import { useVendorStore } from "../stores/vendors";
-import { useAVStore } from "../stores/authorised-values";
 import { useERMStore } from "../stores/erm";
 import { useNavigationStore } from "../stores/navigation";
 import { useReportsStore } from "../stores/usage-reports";
-import i18n from "../i18n";
+import i18n from "@koha-vue/i18n";
 
 const pinia = createPinia();
 
 const mainStore = useMainStore(pinia);
-const AVStore = useAVStore(pinia);
 const navigationStore = useNavigationStore(pinia);
 const routes = navigationStore.setRoutes(routesDef);
 
@@ -52,7 +53,6 @@ const rootComponent = app
 app.config.unwrapInjectedRef = true;
 app.provide("vendorStore", useVendorStore(pinia));
 app.provide("mainStore", mainStore);
-app.provide("AVStore", AVStore);
 app.provide("navigationStore", navigationStore);
 const ERMStore = useERMStore(pinia);
 app.provide("ERMStore", ERMStore);
@@ -63,7 +63,11 @@ app.mount("#erm");
 
 const { removeMessages } = mainStore;
 router.beforeEach((to, from) => {
-    navigationStore.$patch({ current: to.matched, params: to.params || {} });
+    navigationStore.$patch({
+        current: to.matched,
+        params: to.params || {},
+        from,
+    });
     removeMessages(); // This will actually flag the messages as displayed already
 });
 router.afterEach((to, from) => {

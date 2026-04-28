@@ -31,182 +31,169 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
+[% WRAPPER 'main-container.inc' aside='tools-menu' %]
+
+    [% INCLUDE 'patroncards-toolbar.inc' %]
+    <h1>Image manager</h1>
+    [% INCLUDE 'patroncards-errors.inc' %]
     <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
+        <div class="col-md-6">
+            <h2>Upload additional images for patron cards</h2>
+            <p>Manage additional images to use as logo, decoration or background on a patron card layout.</p>
+            <form name="upload_images" method="post" action="/cgi-bin/koha/patroncards/image-manage.pl" enctype="multipart/form-data">
+                [% INCLUDE 'csrf-token.inc' %]
+                <fieldset class="brief">
+                    <div class="hint">Only PNG, GIF, JPEG, XPM formats are supported. Maximum image size is 2MB.</div>
+                    <ol>
+                        <li>
+                            <label for="uploadfile">Select the file to upload: </label>
+                            <input type="file" id="uploadfile" name="uploadfile" />
+                            <input type="hidden" id="image" name="filetype" value="image" />
+                        </li>
+                        <li>
+                            <label for="image_name">Image name: </label>
+                            <div class="hint"> This will be the name by which you will refer to this image in the patron card layout editor. </div>
+                            <div class="hint"> To replace an image, delete it, upload a new file and give it the same image name. </div>
 
-                [% INCLUDE 'patroncards-toolbar.inc' %]
-                <h1>Image manager</h1>
-                [% INCLUDE 'patroncards-errors.inc' %]
-                <div class="row">
-                    <div class="col-md-6">
-                        <h2>Upload additional images for patron cards</h2>
-                        <p>Manage additional images to use as logo, decoration or background on a patron card layout.</p>
-                        <form name="upload_images" method="post" action="/cgi-bin/koha/patroncards/image-manage.pl" enctype="multipart/form-data">
-                            [% INCLUDE 'csrf-token.inc' %]
-                            <fieldset class="brief">
-                                <div class="hint">Only PNG, GIF, JPEG, XPM formats are supported. Maximum image size is 2MB.</div>
-                                <ol>
-                                    <li>
-                                        <label for="uploadfile">Select the file to upload: </label>
-                                        <input type="file" id="uploadfile" name="uploadfile" />
-                                        <input type="hidden" id="image" name="filetype" value="image" />
-                                    </li>
-                                    <li>
-                                        <label for="image_name">Image name: </label>
-                                        <div class="hint"> This will be the name by which you will refer to this image in the patron card layout editor. </div>
-                                        <div class="hint"> To replace an image, delete it, upload a new file and give it the same image name. </div>
+                            <input type="text" id="image_name" name="image_name" size="20" />
+                        </li>
+                    </ol>
+                    [% IF ( IMPORT_SUCCESSFUL ) %]
+                        <div class="alert alert-info">
+                            <h3>Image successfully uploaded</h3>
+                            <ul
+                                ><li>File: [% SOURCE_FILE | html %]</li>
+                                <li>Image name: [% IMAGE_NAME | html %]</li></ul
+                            >
+                        </div>
+                    [% END %]
+                </fieldset>
+                <fieldset class="action">
+                    <input type="hidden" name="op" value="cud-upload" />
+                    <input class="btn btn-primary" id="uploadsu" type="submit" value="Upload" />
+                </fieldset>
+            </form>
+        </div>
+        <div class="col-md-6">
+            <h2>Delete images</h2>
+            [% IF ( TABLE ) %]
+                <form name="delete_images" method="post" action="/cgi-bin/koha/patroncards/image-manage.pl" enctype="multipart/form-data">
+                    [% INCLUDE 'csrf-token.inc' %]
+                    <fieldset class="brief">
+                        <div class="hint"> Select one or more images to delete. </div>
+                        <table>
+                            [% FOREACH line IN TABLE %]
 
-                                        <input type="text" id="image_name" name="image_name" size="20" />
-                                    </li>
-                                </ol>
-                                [% IF ( IMPORT_SUCCESSFUL ) %]
-                                    <div class="alert alert-info">
-                                        <h3>Image successfully uploaded</h3>
-                                        <ul
-                                            ><li>File: [% SOURCE_FILE | html %]</li>
-                                            <li>Image name: [% IMAGE_NAME | html %]</li></ul
-                                        >
-                                    </div>
-                                [% END %]
-                            </fieldset>
-                            <fieldset class="action">
-                                <input type="hidden" name="op" value="cud-upload" />
-                                <input class="btn btn-primary" id="uploadsu" type="submit" value="Upload" />
-                            </fieldset>
-                        </form>
-                    </div>
-                    <div class="col-md-6">
-                        <h2>Delete images</h2>
-                        [% IF ( TABLE ) %]
-                            <form name="delete_images" method="post" action="/cgi-bin/koha/patroncards/image-manage.pl" enctype="multipart/form-data">
-                                [% INCLUDE 'csrf-token.inc' %]
-                                <fieldset class="brief">
-                                    <div class="hint"> Select one or more images to delete. </div>
-                                    <table>
-                                        [% FOREACH TABL IN TABLE %]
-
-                                            [% IF ( TABL.header_fields ) %]
-                                                <tr>
-                                                    [% FOREACH header_field IN TABL.header_fields %]
-                                                        [% SWITCH header_field.field_label -%]
-                                                        [% CASE "ID" %]
-                                                            <th>Image ID</th>
-                                                        [% CASE "Name" %]
-                                                            <th>Name</th>
-                                                        [% CASE " " %]
-                                                            <th>Delete</th>
-                                                        [% CASE %]
-                                                            <th>[% header_field.field_label | html %]</th>
-                                                        [% END %]
-                                                    [% END %]
-                                                </tr>
-                                            [% ELSE %]
-                                                <tr>
-                                                    [% FOREACH text_field IN TABL.text_fields %]
-                                                        [% IF ( text_field.select_field ) %]
-                                                            <td>
-                                                                <a
-                                                                    class="btn btn-default btn-xs submit-form-link"
-                                                                    href="#"
-                                                                    data-image_id="[% text_field.field_value | html %]"
-                                                                    data-action="/cgi-bin/koha/patroncards/image-manage.pl"
-                                                                    data-method="post"
-                                                                    data-op="cud-delete"
-                                                                    data-confirmation-msg="[% tx('Are you sure you want to delete image {image_id}?', {image_id = text_field.field_value} ) | html %]"
-                                                                >
-                                                                    <i class="fa fa-trash-can"></i> Delete
-                                                                </a>
-                                                            </td>
-                                                            <td><input type="checkbox" id="image_id_[% text_field.field_value | html %]" name="image_id" value="[% text_field.field_value | html %]" /></td>
-                                                        [% ELSIF ( text_field.field_value ) %]
-                                                            <td>[% text_field.field_value | html %]</td>
-                                                        [% ELSE %]
-                                                            <td>&nbsp;</td>
-                                                        [% END %]
-                                                    [% END %]
-                                                </tr>
+                                [% IF ( line.header_fields ) %]
+                                    <tr>
+                                        [% FOREACH header_field IN line.header_fields %]
+                                            [% SWITCH header_field.field_label -%]
+                                            [% CASE "ID" %]
+                                                <th>Image ID</th>
+                                            [% CASE "Name" %]
+                                                <th>Name</th>
+                                            [% CASE " " %]
+                                                <th>Delete</th>
+                                            [% CASE %]
+                                                <th>[% header_field.field_label | html %]</th>
                                             [% END %]
                                         [% END %]
-                                    </table>
-                                    [% IF ( DELETE_SUCCESSFULL ) %]
-                                        <div id="dialog" class="alert alert-info">
-                                            <h3>Image(s) successfully deleted</h3>
-                                        </div>
-                                    [% END %]
-                                </fieldset>
-                                <fieldset class="action">
-                                    <input type="hidden" name="op" value="cud-delete" />
-                                    <input class="btn btn-primary" type="button" id="delete" value="Delete selected" />
-                                </fieldset>
-                            </form>
-                        [% ELSE %]
-                            <fieldset class="brief">
-                                <div class="hint"> No images are currently available. </div>
-                                [% IF ( DELETE_SUCCESSFULL ) %]
-                                    <div id="dialog" class="alert alert-info">
-                                        <h3>Image(s) successfully deleted</h3>
-                                    </div>
+                                    </tr>
+                                [% ELSE %]
+                                    <tr>
+                                        [% FOREACH text_field IN line.text_fields %]
+                                            [% IF ( text_field.select_field ) %]
+                                                <td>
+                                                    <a
+                                                        class="btn btn-default btn-xs submit-form-link"
+                                                        href="#"
+                                                        data-image_id="[% text_field.field_value | html %]"
+                                                        data-action="/cgi-bin/koha/patroncards/image-manage.pl"
+                                                        data-method="post"
+                                                        data-op="cud-delete"
+                                                        data-confirmation-msg="[% tx('Are you sure you want to delete image {image_id}?', {image_id = text_field.field_value} ) | html %]"
+                                                    >
+                                                        <i class="fa fa-trash-can"></i> Delete
+                                                    </a>
+                                                </td>
+                                                <td><input type="checkbox" id="image_id_[% text_field.field_value | html %]" name="image_id" value="[% text_field.field_value | html %]" /></td>
+                                            [% ELSIF ( text_field.field_value ) %]
+                                                <td>[% text_field.field_value | html %]</td>
+                                            [% ELSE %]
+                                                <td>&nbsp;</td>
+                                            [% END %]
+                                        [% END %]
+                                    </tr>
                                 [% END %]
-                            </fieldset>
+                            [% END %]
+                        </table>
+                        [% IF ( DELETE_SUCCESSFULL ) %]
+                            <div id="dialog" class="alert alert-info">
+                                <h3>Image(s) successfully deleted</h3>
+                            </div>
                         [% END %]
-                    </div>
-                </div>
-            </main>
+                    </fieldset>
+                    <fieldset class="action">
+                        <input type="hidden" name="op" value="cud-delete" />
+                        <input class="btn btn-primary" type="button" id="delete" value="Delete selected" />
+                    </fieldset>
+                </form>
+            [% ELSE %]
+                <fieldset class="brief">
+                    <div class="hint"> No images are currently available. </div>
+                    [% IF ( DELETE_SUCCESSFULL ) %]
+                        <div id="dialog" class="alert alert-info">
+                            <h3>Image(s) successfully deleted</h3>
+                        </div>
+                    [% END %]
+                </fieldset>
+            [% END %]
         </div>
-        <!-- /.col-md-10.order-md-2 -->
-
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'tools-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
     </div>
-    <!-- /.row -->
+[% END %]
 
-    [% MACRO jsinclude BLOCK %]
-        <script>
-            function DeleteConfirm() {
-                var results = selected_images();
-                if (results) {
-                    var msg = _("Are you sure you want to delete image(s): %s?").format(results.image_ids);
-                    var answer = confirm(msg);
-                    if (answer) {
-                        const delete_form = document.delete_images;
-                        if (delete_form) {
-                            delete_form.submit();
-                        }
-                    } else {
-                        return; // abort delete
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") | $raw %]
+    <script>
+        function DeleteConfirm() {
+            var results = selected_images();
+            if (results) {
+                var msg = _("Are you sure you want to delete image(s): %s?").format(results.image_ids);
+                var answer = confirm(msg);
+                if (answer) {
+                    const delete_form = document.delete_images;
+                    if (delete_form) {
+                        delete_form.submit();
                     }
                 } else {
-                    alert(_("Please select image(s) to delete."));
+                    return; // abort delete
                 }
+            } else {
+                alert(_("Please select image(s) to delete."));
             }
+        }
 
-            function selected_images() {
-                var image_ids = new Array();
-                let checkboxes = document.getElementsByName("image_id");
-                if (checkboxes.length) {
-                    for (i = 0; i < checkboxes.length; i++) {
-                        if (checkboxes[i].checked) {
-                            image_ids.push(checkboxes[i].value);
-                        }
+        function selected_images() {
+            var image_ids = new Array();
+            let checkboxes = document.getElementsByName("image_id");
+            if (checkboxes.length) {
+                for (i = 0; i < checkboxes.length; i++) {
+                    if (checkboxes[i].checked) {
+                        image_ids.push(checkboxes[i].value);
                     }
                 }
-                if (image_ids.length) {
-                    return { image_ids: image_ids };
-                }
-                return null;
             }
-            $(document).ready(function () {
-                $("#delete").click(function () {
-                    return DeleteConfirm();
-                });
+            if (image_ids.length) {
+                return { image_ids: image_ids };
+            }
+            return null;
+        }
+        $(document).ready(function () {
+            $("#delete").click(function () {
+                return DeleteConfirm();
             });
-        </script>
-    [% END %]
+        });
+    </script>
+[% END %]
 
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+[% INCLUDE 'intranet-bottom.inc' %]

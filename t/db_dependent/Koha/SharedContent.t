@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -23,7 +23,8 @@ use t::lib::TestBuilder;
 use t::lib::Mocks;
 use Test::MockModule;
 use Test::MockObject;
-use Test::More tests => 45;
+use Test::NoWarnings;
+use Test::More tests => 46;
 use Koha::Database;
 use Koha::Patrons;
 use Koha::Subscriptions;
@@ -152,7 +153,7 @@ my $subscription = $builder->build(
 
 t::lib::Mocks::mock_userenv( { patron => $loggedinuser } );
 
-t::lib::Mocks::mock_preference( 'language', 'en' );
+t::lib::Mocks::mock_preference( 'StaffInterfaceLanguages', 'en' );
 
 $post_request = 1;
 $result       = Koha::SharedContent::send_entity(

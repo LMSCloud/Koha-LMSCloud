@@ -4,13 +4,20 @@
 [% USE KohaDates %]
 [% USE Branches %]
 [% USE AdditionalContents %]
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Your curbside pickups &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Your curbside pickups") | html %]
+        &rsaquo; [% PROCESS 'library_name_title' %]
+    [% END %]</title
+>
 [% FILTER collapse %]
     <style>
-        .pickup_time input[type='radio'] {
+        .pickup_time input[type="radio"] {
             display: none;
         }
         .pickup_time {
@@ -24,41 +31,41 @@
             max-width: 80%;
         }
         fieldset.rows .pickup_time label {
-            background: #e6e6e6 linear-gradient(180deg,#f0f0f0,#e6e6e6);
+            background: #e6e6e6 linear-gradient(180deg, #f0f0f0, #e6e6e6);
             border: 1px solid #b3b3b3;
             border-radius: 3px;
             cursor: pointer;
             float: none;
             font-weight: normal;
-            padding: .2em .1em;
+            padding: 0.2em 0.1em;
             text-align: center;
             width: 6rem;
         }
         fieldset.rows .pickup_time label:hover {
-            background: #e6e6e6 linear-gradient(180deg,#F7F7F7,#F0F0F0);
+            background: #e6e6e6 linear-gradient(180deg, #f7f7f7, #f0f0f0);
         }
         fieldset.rows .pickup_time label::before {
             font-family: "Font Awesome 6 Free";
-            color: #AAA;
+            color: #aaa;
             content: "\f1db";
             display: inline-block;
-            padding-right: .5em;
+            padding-right: 0.5em;
         }
         fieldset.rows .pickup_time input:checked + label {
-            background: #5cb85c linear-gradient(180deg,#5cb85c,#4cae4c);
+            background: #5cb85c linear-gradient(180deg, #5cb85c, #4cae4c);
             border: 1px solid #548e54;
-            color: #FFF;
+            color: #fff;
         }
         fieldset.rows .pickup_time input:checked + label::before {
             font-family: "Font Awesome 6 Free";
-            color: #FFF;
+            color: #fff;
             content: "\f05d";
             display: inline-block;
-            padding-right: .5em;
+            padding-right: 0.5em;
         }
         fieldset.rows .pickup_time input:disabled + label {
-            background: #F0F0F0 none;
-            border: 1px solid #E6E6E6;
+            background: #f0f0f0 none;
+            border: 1px solid #e6e6e6;
             color: #6c6c6c;
         }
         fieldset.rows .pickup_time input:disabled + label:hover {
@@ -84,11 +91,12 @@
     </style>
 [% END %]
 [% INCLUDE 'doc-head-close.inc' %]
-[% BLOCK cssinclude %][% END %]
+[% BLOCK cssinclude %]
+[% END %]
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='opac-curside-pickups' bodyclass='scrollto' %]
 [% INCLUDE 'masthead.inc' %]
-<div class="main">
+<main class="main">
     [% WRAPPER breadcrumbs %]
         [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
@@ -101,20 +109,18 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col col-lg-2 order-2 order-lg-1">
-                <div id="navigation">
-                    [% INCLUDE 'navigation.inc' IsPatronPage=1 %]
-                </div>
+                <div id="navigation"> [% INCLUDE 'navigation.inc' IsPatronPage=1 %] </div>
             </div>
             <div class="col-md-12 col-lg-10 order-1">
-                <div id='pickupdetails' class="maincontent">
-                    <h2>Curbside pickups</h2>
+                <div id="pickupdetails" class="maincontent">
+                    <h1>Curbside pickups</h1>
 
                     [% FOR m IN messages %]
+                        [% SET alert_type = "alert alert-info" %]
                         [% IF m.type == "error" %]
-                        <div class="alert alert-warning">
-                        [% ELSE %]
-                        <div class="alert alert-info">
+                            [% alert_type = "alert alert-warning" %]
                         [% END %]
+                        <div class="[% alert_type | html %]">
                             [% SWITCH m.code %]
                             [% CASE 'not_enabled' %]
                                 <span>The curbside pickup feature is not enabled for this library.</span>
@@ -167,11 +173,11 @@
                                     <table id="pickups-table" class="table table-striped">
                                         <thead>
                                             <tr>
-                                                <th>Pickup library</td>
+                                                <th>Pickup library</th>
                                                 <th>Schedule</th>
                                                 <th>Notes</th>
                                                 <th>Actions</th>
-                                                <th></th>
+                                                <th class="dtr-control-col"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -186,24 +192,21 @@
                                                             <input type="hidden" name="op" value="cud-arrival-alert" />
                                                             <input type="hidden" name="pickup_id" value="[% p.id | html %]" />
                                                             [% IF ! p.staged_datetime || p.arrival_datetime %]
-                                                            <button class="btn disabled" disabled href="#" >
+                                                                <button class="btn disabled" disabled href="#"> <i class="fa fa-bell" aria-hidden="true"></i> Alert staff of your arrival </button>
                                                             [% ELSE %]
-                                                            <button type="submit" class="btn" href="#" >
+                                                                <button type="submit" class="btn" href="#"> <i class="fa fa-bell" aria-hidden="true"></i> Alert staff of your arrival </button>
                                                             [% END %]
-                                                            <i class="fa fa-bell" aria-hidden="true"></i> Alert staff of your arrival
-                                                            </button>
                                                         </form>
-                                                        <p>
+                                                        <p></p>
                                                         <form method="post">
                                                             [% INCLUDE 'csrf-token.inc' %]
                                                             <input type="hidden" name="op" value="cud-cancel-pickup" />
                                                             <input type="hidden" name="pickup_id" value="[% p.id | html %]" />
                                                             [% IF p.delivered_datetime %]
-                                                                <button class="btn disabled" disabled href="#" >
+                                                                <button class="btn disabled" disabled href="#"> <i class="fa fa-ban" aria-hidden="true"></i> Cancel this pickup </button>
                                                             [% ELSE %]
-                                                                <button type="submit" class="btn" href="#" >
+                                                                <button type="submit" class="btn" href="#"> <i class="fa fa-ban" aria-hidden="true"></i> Cancel this pickup </button>
                                                             [% END %]
-                                                                <i class="fa fa-ban" aria-hidden="true"></i> Cancel this pickup</button>
                                                         </form>
                                                     </td>
                                                     <td></td>
@@ -231,7 +234,6 @@
                                                         <option value="">Select a library</option>
                                                         [% FOR p IN policies %]
                                                             <option value="[% p.branchcode | html %]">[% Branches.GetName(p.branchcode) | html %]</option>
-
                                                         [% END %]
                                                     </select>
                                                     <span id="existing-pickup-warning" class="required" style="display: none;">You already have a pickup scheduled for this library.</span>
@@ -261,11 +263,16 @@
                             [% END # /IF policies.count %]
                         [% END # /WRAPPER tab_panels %]
                     [% END # /WRAPPER tabs %]
-                </div> <!-- /#pickupdetails -->
-            </div> <!-- / .col-lg-10 -->
-        </div> <!-- / .row -->
-    </div> <!-- / .container-fluid -->
-</div> <!-- / .main -->
+                </div>
+                <!-- /#pickupdetails -->
+            </div>
+            <!-- / .col-lg-10 -->
+        </div>
+        <!-- / .row -->
+    </div>
+    <!-- / .container-fluid -->
+</main>
+<!-- / .main -->
 
 [% INCLUDE 'opac-bottom.inc' %]
 
@@ -273,8 +280,12 @@
     [% Asset.js("lib/dayjs/dayjs.min.js") | $raw %]
     [% Asset.js("lib/dayjs/plugin/isSameOrAfter.js") | $raw %]
     [% Asset.js("lib/dayjs/plugin/customParseFormat.js") | $raw %]
-    <script>dayjs.extend(window.dayjs_plugin_isSameOrAfter)</script>
-    <script>dayjs.extend(window.dayjs_plugin_customParseFormat)</script>
+    <script>
+        dayjs.extend(window.dayjs_plugin_isSameOrAfter);
+    </script>
+    <script>
+        dayjs.extend(window.dayjs_plugin_customParseFormat);
+    </script>
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
     <script>
@@ -321,17 +332,15 @@
         });
 
         $(document).ready(function() {
-            $('#pickups-table').dataTable($.extend(true, {}, dataTablesDefaults, {
-                "searching": false,
-                "paging": false,
-                "info": false,
-                "responsive": {
-                    "details": { "type": 'column',"target": -1 }
+            $("#pickups-table").kohaTable({
+                searching: false,
+                paging: false,
+                info: false,
+                responsive: {
+                    details: { type: "column", target: -1 },
                 },
-                "columnDefs": [
-                    { "className": 'dtr-control', "orderable": false, "targets": -1 }
-                ],
-            }));
+                columnDefs: [{ className: "dtr-control", orderable: false, targets: -1 }],
+            });
             $("#pickup-branch option").each(function(){
                 if ( $(this).val() != "" && !policies[$(this).val()].enabled ) {
                     $(this).prop("disabled", "disabled");

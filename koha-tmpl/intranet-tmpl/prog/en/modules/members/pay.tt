@@ -39,310 +39,303 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' aside='circ-menu' %]
+    [% INCLUDE 'members-toolbar.inc' borrowernumber=patron.borrowernumber %]
 
-                [% INCLUDE 'members-toolbar.inc' borrowernumber=patron.borrowernumber %]
+    <h1>Make a payment</h1>
 
-                <h1>Make a payment</h1>
+    <!-- The manual invoice and credit buttons -->
+    <div id="account-tabs" class="toptabs">
+        <ul class="nav nav-tabs" role="tablist">
+            <li role="presentation" class="nav-item transactions">
+                <a class="nav-link" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Transactions</a>
+            </li>
+            <li role="presentation" class="nav-item makepayment">
+                <a class="nav-link active" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Make a payment</a>
+            </li>
+            [% IF CAN_user_updatecharges_manual_invoice %]
+                <li role="presentation" class="nav-item manualinvoice">
+                    <a class="nav-link" href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual invoice</a>
+                </li>
+            [% END %]
+            [% IF CAN_user_updatecharges_manual_credit %]
+                <li role="presentation" class="nav-item manualcredit">
+                    <a class="nav-link" href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual credit</a>
+                </li>
+            [% END %]
+        </ul>
+        <!-- /.nav.nav-tabs -->
+        <div class="tab-content">
+            <div role="tabpanel" class="tab-pane active">
+                [% INCLUDE 'renew_results.inc' renew_results=renew_results %]
+                [% IF ( accounts ) %]
+                    <form action="/cgi-bin/koha/members/pay.pl" method="post" id="pay-fines-form">
+                        <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber | html %]" />
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <p
+                            ><span class="checkall"
+                                ><a id="CheckAll" href="#"><i class="fa fa-check"></i> Select all</a></span
+                            >
+                            |
+                            <span class="clearall"
+                                ><a id="CheckNone" href="#"><i class="fa fa-times"></i> Clear all</a></span
+                            ></p
+                        >
+                        <table id="finest">
+                            <thead>
+                                <tr>
+                                    <th class="no-sort">&nbsp;</th>
+                                    <th class="no-sort no-export">Actions</th>
+                                    <th>Account type</th>
+                                    <th>Description</th>
+                                    <th>Date</th>
+                                    <th>Barcode</th>
+                                    <th>Call number</th>
+                                    <th>Due date</th>
+                                    <th>Checkin date</th>
+                                    <th>Checkout date</th>
+                                    <th class="checked_out_from">Checked out from</th>
+                                    <th>Home library</th>
+                                    <th class="no-sort">Payment note</th>
+                                    <th>Amount</th>
+                                    <th>Amount outstanding</th>
+                                </tr>
+                            </thead>
 
-                <!-- The manual invoice and credit buttons -->
-                <div>
-                    <ul class="nav nav-tabs" role="tablist">
-                        <li role="presentation" class="nav-item transactions">
-                            <a class="nav-link" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Transactions</a>
-                        </li>
-                        <li role="presentation" class="nav-item makepayment">
-                            <a class="nav-link active" href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Make a payment</a>
-                        </li>
-                        [% IF CAN_user_updatecharges_manual_invoice %]
-                            <li role="presentation" class="nav-item manualinvoice">
-                                <a class="nav-link" href="/cgi-bin/koha/members/maninvoice.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual invoice</a>
-                            </li>
-                        [% END %]
-                        [% IF CAN_user_updatecharges_manual_credit %]
-                            <li role="presentation" class="nav-item manualcredit">
-                                <a class="nav-link" href="/cgi-bin/koha/members/mancredit.pl?borrowernumber=[% patron.borrowernumber | uri %]" role="tab">Create manual credit</a>
-                            </li>
-                        [% END %]
-                    </ul>
-                    <!-- /.nav.nav-tabs -->
-                    <div class="tab-content">
-                        <div role="tabpanel" class="tab-pane active">
-                            [% INCLUDE 'renew_results.inc' renew_results=renew_results %]
-                            [% IF ( accounts ) %]
-                                <form action="/cgi-bin/koha/members/pay.pl" method="post" id="pay-fines-form">
-                                    <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber | html %]" />
-                                    [% INCLUDE 'csrf-token.inc' %]
-                                    <p
-                                        ><span class="checkall"
-                                            ><a id="CheckAll" href="#"><i class="fa fa-check"></i> Select all</a></span
+                            <tbody>
+                                [% FOREACH line IN accounts %]
+                                    <tr>
+                                        <td>
+                                            [% IF ( line.amountoutstanding > 0 ) %]
+                                                <input class="cb" type="checkbox" checked="checked" name="incl_par_[% line.accountlines_id | html %]" />
+                                            [% END %]
+                                        </td>
+                                        <td class="actions">
+                                            [% IF ( line.amountoutstanding > 0 ) %]
+                                                [% IF (checkCashRegisterFailed) %]
+                                                    <button type="submit" class="btn btn-default btn-xs" name="op" value="cud-pay_indiv_[% line.accountlines_id | html %]" disabled="disabled">Pay</button>
+                                                [% ELSE %]
+                                                    <button type="submit" class="btn btn-default btn-xs" name="op" value="cud-pay_indiv_[% line.accountlines_id | html %]">Pay</button>
+                                                [% END %]
+                                                [% IF CAN_user_updatecharges_writeoff %]
+                                                    <button type="submit" class="btn btn-default btn-xs" name="op" value="cud-wo_indiv_[% line.accountlines_id | html %]">Write off</button>
+                                                [% END %]
+                                                [% IF CAN_user_updatecharges_cancel_fee %]
+                                                    <button type="submit" class="btn btn-default btn-xs" name="op" value="cud-cancel_indiv_[% line.accountlines_id | html %]">Cancel fee</button>
+                                                [% END %]
+                                            [% END %]
+                                            <input type="hidden" name="itemnumber[% line.accountlines_id | html %]" value="[% line.itemnumber | html %]" />
+                                            <input type="hidden" name="description[% line.accountlines_id | html %]" value="[% line.description | html %]" />
+                                            <input type="hidden" name="debit_type_code[% line.accountlines_id | html %]" value="[% line.debit_type_code | html %]" />
+                                            <input type="hidden" name="amount[% line.accountlines_id | html %]" value="[% line.amount | html %]" />
+                                            <input type="hidden" name="accountlines_id[% line.accountlines_id | html %]" value="[% line.accountlines_id | html %]" />
+                                            <input type="hidden" name="amountoutstanding[% line.accountlines_id | html %]" value="[% line.amountoutstanding | html %]" />
+                                            <input type="hidden" name="borrowernumber[% line.accountlines_id | html %]" value="[% line.borrowernumber | html %]" />
+                                        </td>
+                                        <td> [% PROCESS account_type_description account=line %] </td>
+                                        <td>
+                                            [%- IF line.description %][% line.description | html %][% END %]
+                                            [% IF line.itemnumber %]([% line.item.biblio.title | html %])[% END %]
+                                        </td>
+                                        <td data-order="[% line.date | html %]"> [% line.date | $KohaDates %] </td>
+                                        <td>
+                                            [% IF line.itemnumber %]
+                                                <a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% line.itemnumber | uri %]&amp;biblionumber=[% line.item.biblionumber | uri %]#item[% line.itemnumber | uri %]"
+                                                    >[% line.item.barcode | html %]</a
+                                                >
+                                            [% END %]
+                                        </td>
+                                        <td>
+                                            [% IF line.itemnumber %]
+                                                [% line.item.itemcallnumber | html %]
+                                            [% END %]
+                                        </td>
+                                        <td>
+                                            [% IF line.issue_id || line.old_issue_id %]
+                                                [% line.checkout.date_due | $KohaDates as_due_date => 1 %]
+                                            [% END %]
+                                        </td>
+                                        <td>
+                                            [% IF line.issue_id || line.old_issue_id %]
+                                                [% line.checkout.returndate | $KohaDates with_hours => 1 %]
+                                            [% END %]
+                                        </td>
+                                        <td>
+                                            [% IF line.issue_id || line.old_issue_id %]
+                                                [% line.checkout.issuedate | $KohaDates %]
+                                            [% END %]
+                                        </td>
+                                        <td class="checked_out_from">
+                                            [% IF (line.issue_id || line.old_issue_id) && line.checkout.library %]
+                                                [% line.checkout.library.branchname | html %]
+                                            [% END %]
+                                        </td>
+                                        <td>
+                                            [% IF line.itemnumber %]
+                                                [% Branches.GetName( line.item.homebranch ) | html %]
+                                            [% END %]
+                                        </td>
+                                        <td class="actions">
+                                            [% IF line.note %]
+                                                <a href="#" class="add-note" data-accountlines_id="[% line.accountlines_id | html %]" style="display:none;"><i class="fa fa-plus"></i> Add note</a>
+                                                <span class="payment_note" id="payment_note_[% line.accountlines_id | html %]"
+                                                    ><input type="text" size="10" name="payment_note_[% line.accountlines_id | html %]" value="[% line.note | html %]" /> <a href="#" class="cancel-note"><i class="fa fa-times"></i></a
+                                                ></span>
+                                            [% ELSE %]
+                                                <a href="#" class="add-note" data-accountlines_id="[% line.accountlines_id | html %]"><i class="fa fa-plus"></i> Add note</a>
+                                                <span class="payment_note" id="payment_note_[% line.accountlines_id | html %]" style="display:none"
+                                                    ><input type="text" size="10" name="payment_note_[% line.accountlines_id | html %]" value="" /> <a href="#" class="cancel-note"><i class="fa fa-times"></i></a
+                                                ></span>
+                                            [% END %]
+                                        </td>
+                                        <td class="debit" style="text-align: right;">[% line.amount | $Price %]</td>
+                                        <td class="debit" style="text-align: right;">[% line.amountoutstanding | $Price %]</td>
+                                    </tr>
+                                [% END %]
+                            </tbody>
+
+                            <tfoot>
+                                <tr>
+                                    <th scope="row" class="total" colspan="14">Total due:</th>
+                                    <td style="text-align: right;">[% total | $Price %]</td>
+                                </tr>
+                                [% IF outstanding_credits.total_outstanding < 0 %]
+                                    <tr>
+                                        <th scope="row" class="total" colspan="14">Outstanding credits could be applied: </th>
+                                        <td class="credit" style="text-align: right;"
+                                            ><button type="submit" id="apply_credits" name="op" value="cud-apply_credits" class="btn btn-default btn-sm"
+                                                >Apply <strong class="credit">[% outstanding_credits.total_outstanding | $Price %]</strong></button
+                                            ></td
                                         >
-                                        |
-                                        <span class="clearall"
-                                            ><a id="CheckNone" href="#"><i class="fa fa-remove"></i> Clear all</a></span
-                                        ></p
-                                    >
-                                    <table id="finest">
-                                        <thead>
-                                            <tr>
-                                                <th class="NoSort">&nbsp;</th>
-                                                <th class="NoSort noExport">Actions</th>
-                                                <th>Account type</th>
-                                                <th>Description</th>
-                                                <th>Date</th>
-                                                <th>Barcode</th>
-                                                <th>Call number</th>
-                                                <th>Due date</th>
-                                                <th>Checkin date</th>
-                                                <th>Checkout date</th>
-                                                <th class="checked_out_from">Checked out from</th>
-                                                <th>Home library</th>
-                                                <th class="NoSort">Payment note</th>
-                                                <th>Amount</th>
-                                                <th>Amount outstanding</th>
-                                            </tr>
-                                        </thead>
-
-                                        <tbody>
-                                            [% FOREACH line IN accounts %]
-                                                <tr>
-                                                    <td>
-                                                        [% IF ( line.amountoutstanding > 0 ) %]
-                                                            <input class="cb" type="checkbox" checked="checked" name="incl_par_[% line.accountlines_id | html %]" />
-                                                        [% END %]
-                                                    </td>
-                                                    <td class="actions">
-                                                        [% IF ( line.amountoutstanding > 0 ) %]
-                                                            [% IF (checkCashRegisterFailed) %]
-                                                                <button type="submit" class="btn btn-default btn-xs" name="pay_indiv_[% line.accountlines_id | html %]" value="Pay" disabled="disabled">Pay</button>
-                                                            [% ELSE %]
-                                                                <button type="submit" class="btn btn-default btn-xs" name="pay_indiv_[% line.accountlines_id | html %]" value="Pay">Pay</button>
-                                                            [% END %]
-                                                            [% IF CAN_user_updatecharges_writeoff %]
-                                                                <button type="submit" class="btn btn-default btn-xs" name="op" value="cud-wo_indiv_[% line.accountlines_id | html %]">Write off</button>
-                                                            [% END %]
-                                                            [% IF CAN_user_updatecharges_cancel_fee %]
-                                                                <button type="submit" class="btn btn-default btn-xs" name="cancel_indiv_[% line.accountlines_id | html %]" value="Cancel fee">Cancel fee</button>
-                                                            [% END %]
-                                                        [% END %]
-                                                        <input type="hidden" name="itemnumber[% line.accountlines_id | html %]" value="[% line.itemnumber | html %]" />
-                                                        <input type="hidden" name="description[% line.accountlines_id | html %]" value="[% line.description | html %]" />
-                                                        <input type="hidden" name="debit_type_code[% line.accountlines_id | html %]" value="[% line.debit_type_code | html %]" />
-                                                        <input type="hidden" name="amount[% line.accountlines_id | html %]" value="[% line.amount | html %]" />
-                                                        <input type="hidden" name="accountlines_id[% line.accountlines_id | html %]" value="[% line.accountlines_id | html %]" />
-                                                        <input type="hidden" name="amountoutstanding[% line.accountlines_id | html %]" value="[% line.amountoutstanding | html %]" />
-                                                        <input type="hidden" name="borrowernumber[% line.accountlines_id | html %]" value="[% line.borrowernumber | html %]" />
-                                                    </td>
-                                                    <td> [% PROCESS account_type_description account=line %] </td>
-                                                    <td>
-                                                        [%- IF line.description %][% line.description | html %][% END %]
-                                                        [% IF line.itemnumber %]([% line.item.biblio.title | html %])[% END %]
-                                                    </td>
-                                                    <td data-order="[% line.date | html %]"> [% line.date | $KohaDates %] </td>
-                                                    <td>
-                                                        [% IF line.itemnumber %]
-                                                            <a href="/cgi-bin/koha/catalogue/moredetail.pl?itemnumber=[% line.itemnumber | uri %]&amp;biblionumber=[% line.item.biblionumber | uri %]#item[% line.itemnumber | uri %]"
-                                                                >[% line.item.barcode | html %]</a
-                                                            >
-                                                        [% END %]
-                                                    </td>
-                                                    <td>
-                                                        [% IF line.itemnumber %]
-                                                            [% line.item.itemcallnumber | html %]
-                                                        [% END %]
-                                                    </td>
-                                                    <td>
-                                                        [% IF line.issue_id %]
-                                                            [% line.checkout.date_due | $KohaDates as_due_date => 1 %]
-                                                        [% END %]
-                                                    </td>
-                                                    <td>
-                                                        [% IF line.issue_id || line.old_issue_id %]
-                                                            [% line.checkout.returndate | $KohaDates with_hours => 1 %]
-                                                        [% END %]
-                                                    </td>
-                                                    <td>
-                                                        [% IF line.issue_id || line.old_issue_id %]
-                                                            [% line.checkout.issuedate | $KohaDates %]
-                                                        [% END %]
-                                                    </td>
-                                                    <td class="checked_out_from">
-                                                        [% IF (line.issue_id || line.old_issue_id) && line.checkout.library %]
-                                                            [% line.checkout.library.branchname | html %]
-                                                        [% END %]
-                                                    </td>
-                                                    <td>
-                                                        [% IF line.itemnumber %]
-                                                            [% Branches.GetName( line.item.homebranch ) | html %]
-                                                        [% END %]
-                                                    </td>
-                                                    <td class="actions">
-                                                        <a href="#" class="add-note" data-accountlines_id="[% line.accountlines_id | html %]"><i class="fa fa-plus"></i> Add note</a>
-                                                        <span class="payment_note" id="payment_note_[% line.accountlines_id | html %]" style="display:none"
-                                                            ><input type="text" size="10" name="payment_note_[% line.accountlines_id | html %]" value="" /> <a href="#" class="cancel-note"><i class="fa fa-times"></i></a
-                                                        ></span>
-                                                    </td>
-                                                    <td class="debit" style="text-align: right;">[% line.amount | $Price %]</td>
-                                                    <td class="debit" style="text-align: right;">[% line.amountoutstanding | $Price %]</td>
-                                                </tr>
-                                            [% END %]
-                                        </tbody>
-
-                                        <tfoot>
-                                            <tr>
-                                                <th scope="row" class="total" colspan="14">Total due:</th>
-                                                <td style="text-align: right;">[% total | $Price %]</td>
-                                            </tr>
-                                            [% IF outstanding_credits.total_outstanding < 0 %]
-                                                <tr>
-                                                    <th scope="row" class="total" colspan="14">Outstanding credits could be applied: </th>
-                                                    <td class="credit" style="text-align: right;"
-                                                        ><button type="submit" id="apply_credits" name="op" value="cud-apply_credits" class="btn btn-default btn-sm"
-                                                            >Apply <strong class="credit">[% outstanding_credits.total_outstanding | $Price %]</strong></button
-                                                        ></td
-                                                    >
-                                                </tr>
-                                                <tr>
-                                                    <th scope="row" class="total" colspan="14">Total due if credit applied:</th>
-                                                    <td style="text-align: right;">[% total + outstanding_credits.total_outstanding | $Price %]</td>
-                                                </tr>
-                                            [% END %]
-                                        </tfoot>
-                                    </table>
-                                    <fieldset class="action">
-                                        [% IF (checkCashRegisterFailed) %]
-                                            <input type="submit" id="paycollect" name="paycollect" value="Pay amount" class="submit" disabled="disabled" />
-                                            <input type="submit" id="payselected" name="payselected" value="Pay selected" class="submit" disabled="disabled" />&nbsp;&nbsp;
-                                        [% ELSE %]
-                                            <input type="submit" id="paycollect" name="paycollect" value="Pay amount" class="submit" />
-                                            <input type="submit" id="payselected" name="payselected" value="Pay selected" class="submit" />&nbsp;&nbsp;
-                                        [% END %]
-                                        [% IF CAN_user_updatecharges_writeoff %]
-                                            <input type="submit" name="woall" id="woall" value="Write off all" class="submit" />
-                                            <input type="submit" id="writeoff-selected" name="writeoff_selected" value="Write off selected" class="submit" />&nbsp;&nbsp;
-                                        [% END %]
-                                        [% IF CAN_user_updatecharges_cancel_fee %]
-                                            <input type="submit" name="cancelall" id="cancelall" value="Cancel all" class="submit" />
-                                            <input type="submit" id="cancel-selected" name="cancel_selected" value="Cancel selected" class="submit" />&nbsp;&nbsp;
-                                        [% END %]
-                                        <a class="cancel" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | html %]">Cancel</a>
-                                    </fieldset>
-                                </form>
-                            [% ELSE %]
-                                <p>[% INCLUDE 'patron-title.inc' %] has no outstanding charges.</p>
-                            [% END %]
+                                    </tr>
+                                    <tr>
+                                        <th scope="row" class="total" colspan="14">Total due if credit applied:</th>
+                                        <td style="text-align: right;">[% total + outstanding_credits.total_outstanding | $Price %]</td>
+                                    </tr>
+                                [% END %]
+                            </tfoot>
+                        </table>
+                        <fieldset class="action">
                             [% IF (checkCashRegisterFailed) %]
-                                <div class="warn"
-                                    ><i class="fa fa-warning"></i>
-                                    Please open a cash register to enable cash payments.
-                                </div>
+                                <button type="submit" id="paycollect" name="op" value="cud-paycollect" class="submit btn btn-primary" disabled="disabled">Pay amount</button>
+                                <button type="submit" id="payselected" name="op" value="cud-payselected" class="submit btn btn-primary" disabled="disabled">Pay selected</button>
+                            [% ELSE %]
+                                <button type="submit" id="paycollect" name="op" value="cud-paycollect" class="submit btn btn-primary">Pay amount</button>
+                                <button type="submit" id="payselected" name="op" value="cud-payselected" class="submit btn btn-primary">Pay selected</button>
                             [% END %]
-                        </div>
-                        <!-- /.tab-pane -->
-                    </div>
-                    <!-- /.tab-content -->
-                </div>
-                <!-- /.toptabs -->
-            </main>
-        </div>
-        <!-- /.col-md-10.order-md-2 -->
-
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'circ-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
-
-    [% MACRO jsinclude BLOCK %]
-        [% INCLUDE 'str/members-menu.inc' %]
-        [% Asset.js("js/members-menu.js") | $raw %]
-        [% INCLUDE 'datatables.inc' %]
-        [% INCLUDE 'columns_settings.inc' %]
-        <script>
-            function enableCheckboxActions(){
-                // Enable/disable controls if checkboxes are checked
-                var checkedBoxes = $("input.cb:checked");
-                if ($(checkedBoxes).size()) {
-                  [% IF (checkCashRegisterFailed) %]
-                  $("#payselected").prop("disabled",true);
-                  [% ELSE %]
-                  $("#payselected").prop("disabled",false);
-                  [% END %]
-                  $("#writeoff-selected").prop("disabled",false);
-                  $("#cancel-selected").prop("disabled",false);
-                } else {
-                  $("#payselected, #writeoff-selected,#cancel-selected").prop("disabled",true);
-                }
-            }
-            $(document).ready(function(){
-                [% IF payment_id && Koha.Preference('FinePaymentAutoPopup') %]
-                    window.open('/cgi-bin/koha/members/printfeercpt.pl?action=print&accountlines_id=[% payment_id | html %]&change_given=[% change_given | html %]&borrowernumber=[% patron.borrowernumber | html %]', '_blank');
+                            [% IF CAN_user_updatecharges_writeoff %]
+                                <button type="submit" id="woall" name="op" value="cud-woall" class="submit btn btn-primary">Write off all</button>
+                                <button type="submit" id="writeoff-selected" name="op" value="cud-writeoff_selected" class="submit btn btn-primary">Write off selected</button>
+                            [% END %]
+                            [% IF CAN_user_updatecharges_cancel_fee %]
+                                <button type="submit" id="cancelall" name="op" value="cud-cancel_selected" class="submit btn btn-primary">Cancel all</button>
+                                <button type="submit" id="cancel-selected" name="op" value="cud-cancel_selected" class="submit btn btn-primary">Cancel selected</button>
+                            [% END %]
+                            <a class="cancel" href="/cgi-bin/koha/members/boraccount.pl?borrowernumber=[% patron.borrowernumber | html %]">Cancel</a>
+                        </fieldset>
+                    </form>
+                [% ELSE %]
+                    <p>[% INCLUDE 'patron-title.inc' %] has no outstanding charges.</p>
                 [% END %]
+                [% IF (checkCashRegisterFailed) %]
+                    <div class="warn"><i class="fa fa-warning"></i> Please open a cash register to enable cash payments. </div>
+                [% END %]
+            </div>
+            <!-- /.tab-pane -->
+        </div>
+        <!-- /.tab-content -->
+    </div>
+    <!-- /.toptabs -->
+[% END %]
 
-                $('#pay-fines-form').preventDoubleFormSubmit();
-                $("#woall").click(function(event){
-                    var msg = _("Are you sure you want to write off %s in outstanding charges? This cannot be undone!").format( "[% total | $Price %]" );
-                    var answer = confirm(msg);
-                    if (!answer){
-                        event.preventDefault();
-                        $(".cb").each(function(){
-                            $(this).prop("checked", true );
-                        });
-                        enableCheckboxActions();
-                        $("#writeoff-selected").click();
-                    }
-                });
-                $("#cancelall").click(function(event){
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'str/members-menu.inc' %]
+    [% Asset.js("js/members-menu.js") | $raw %]
+    [% INCLUDE 'datatables.inc' %]
+    <script>
+        function enableCheckboxActions(){
+            // Enable/disable controls if checkboxes are checked
+            var checkedBoxes = $("input.cb:checked");
+            if ($(checkedBoxes).size()) {
+              [% IF (checkCashRegisterFailed) %]
+              $("#payselected").prop("disabled",true);
+              [% ELSE %]
+              $("#payselected").prop("disabled",false);
+              [% END %]
+              $("#writeoff-selected").prop("disabled",false);
+              $("#cancel-selected").prop("disabled",false);
+            } else {
+              $("#payselected, #writeoff-selected, #cancel-selected").prop("disabled",true);
+            }
+        }
+        $(document).ready(function(){
+            [% IF payment_id && Koha.Preference('FinePaymentAutoPopup') %]
+                window.open('/cgi-bin/koha/members/printfeercpt.pl?action=print&accountlines_id=[% payment_id | html %]&change_given=[% change_given | html %]&borrowernumber=[% patron.borrowernumber | html %]', '_blank');
+            [% END %]
+
+            $('#pay-fines-form').preventDoubleFormSubmit();
+            $("#woall").click(function(event){
+                var msg = _("Are you sure you want to write off %s in outstanding charges? This cannot be undone!").format( "[% total | $Price %]" );
+                var answer = confirm(msg);
+                if (!answer){
                     event.preventDefault();
                     $(".cb").each(function(){
                         $(this).prop("checked", true );
                     });
                     enableCheckboxActions();
-                    $("#cancel-selected").click();
-                });
-                $('#CheckAll').click(function(e){
-                    e.preventDefault();
-                    $(".cb").each(function(){
-                        $(this).prop("checked", true );
-                    });
-                    enableCheckboxActions();
-                });
-                $('#CheckNone').click(function(e){
-                    e.preventDefault();
-                    $(".cb").each(function(){
-                        $(this).prop("checked", false );
-                    });
-                    enableCheckboxActions();
-                });
-                $(".cb").change(function(){
-                    enableCheckboxActions();
+                    $("#writeoff-selected").click();
+                }
+            });
+            $("#cancelall").click(function(event){
+                event.preventDefault();
+                $(".cb").each(function(){
+                    $(this).prop("checked", true );
                 });
                 enableCheckboxActions();
-                $(".add-note").on("click", function(e){
-                    e.preventDefault();
-                    $(this).hide();
-                    var accountlines_id = $(this).data("accountlines_id");
-                    $("#payment_note_" + accountlines_id ).show().find("input").focus();
-                });
-                $(".cancel-note").on("click", function(e){
-                    e.preventDefault();
-                    $(".payment_note").hide().find("input").val("");
-                    $(".add-note").show();
-                });
-
-                var table_settings = [% TablesSettings.GetTableSettings('members', 'pay', 'pay-fines-table', 'json') | $raw %];
-                KohaTable("finest", {
-                    "paging": false,
-                    "autoWidth": false
-                }, table_settings );
+                $("#cancel-selected").click();
             });
-        </script>
-    [% END %]
+            $('#CheckAll').click(function(e){
+                e.preventDefault();
+                $(".cb").each(function(){
+                    $(this).prop("checked", true );
+                });
+                enableCheckboxActions();
+            });
+            $('#CheckNone').click(function(e){
+                e.preventDefault();
+                $(".cb").each(function(){
+                    $(this).prop("checked", false );
+                });
+                enableCheckboxActions();
+            });
+            $(".cb").change(function(){
+                enableCheckboxActions();
+            });
+            enableCheckboxActions();
+            $(".add-note").on("click", function(e){
+                e.preventDefault();
+                $(this).hide();
+                var accountlines_id = $(this).data("accountlines_id");
+                $("#payment_note_" + accountlines_id ).show().find("input").focus();
+            });
+            $(".cancel-note").on("click", function(e){
+                e.preventDefault();
+                this_td = $(this).closest('td.actions');
+                this_td.find(".payment_note").hide().find("input").val("");
+                this_td.find(".add-note").show();
+            });
+
+            var table_settings = [% TablesSettings.GetTableSettings('members', 'pay', 'pay-fines-table', 'json') | $raw %];
+            $("#finest").kohaTable(
+                {
+                    paging: false,
+                    autoWidth: false,
+                },
+                table_settings
+            );
+        });
+    </script>
+[% END %]
 
     [% INCLUDE 'intranet-bottom.inc' %]
 </div>

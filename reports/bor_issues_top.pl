@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -280,10 +280,10 @@ sub calculate {
     my %patrons = ();
 
     # DATA STRUCTURE is going to look like this:
-    # 	(2253=> {name=>"John Doe",
-    # 				allcols=>{MAIN=>12, MEDIA_LIB=>3}
-    # 			},
-    # 	)
+    #     (2253=> {name=>"John Doe",
+    #                 allcols=>{MAIN=>12, MEDIA_LIB=>3}
+    #             },
+    #     )
     while ( my @data = $dbcalc->fetchrow ) {
         my ( $row, $rank, $id, $col ) = @data;
         $col = "zzEMPTY" if ( !defined($col) );
@@ -303,6 +303,16 @@ sub calculate {
             $patrons{$id} = { name => $row, allcols => {}, newcols => {}, oldcols => {} };
         }
         $patrons{$id}->{newcols}->{$col} = $rank;
+    }
+
+    foreach my $id ( keys %patrons ) {
+        my @uniq =
+            keys %{ { %{ $patrons{$id}->{newcols} }, %{ $patrons{$id}->{oldcols} } } };    # get uniq keys, see perlfaq4
+        foreach (@uniq) {
+            my $count = ( $patrons{$id}->{newcols}->{$_} || 0 ) + ( $patrons{$id}->{oldcols}->{$_} || 0 );
+            $patrons{$id}->{allcols}->{$_} = $count;
+            $patrons{$id}->{total} += $count;
+        }
     }
 
     foreach my $id ( keys %patrons ) {

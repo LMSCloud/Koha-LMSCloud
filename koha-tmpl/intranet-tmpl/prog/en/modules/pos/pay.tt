@@ -32,220 +32,212 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-sm-1 order-md-2">
-            [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' aside='pos-menu' %]
+    <h1>Point of sale</h1>
 
-            <h1>Point of sale</h1>
-
-            [% IF ( registers.size == 0 ) %]
-                <div id="error_message" class="alert alert-info">
-                    <p> You must have at least one cash register associated with the library before you can record payments. </p>
-                    [% IF ( CAN_user_parameters_manage_cash_registers ) %]
-                        <form action="/cgi-bin/koha/admin/cash_registers.pl" method="get">
-                            <input type="hidden" name="op" value="add_form" />
-                            <button class="new" type="submit"><i class="fa fa-plus"></i> Create a new cash register</button>
-                        </form>
-                    [% END %]
-                </div>
-            [% ELSE %]
-
-                [% IF payment_id && !Koha.Preference('FinePaymentAutoPopup') %]
-                    <div class="alert alert-info audio-alert-action">
-                        <p>Payment received</p>
-                        <p>
-                            <a target="_blank" href="/cgi-bin/koha/pos/printreceipt.pl?action=print&accountlines_id=[% payment_id | uri %]&collected=[% collected | uri %]&change=[% change | uri %]" class="btn btn-default"
-                                ><i class="fa fa-print"></i> Print receipt</a
-                            >
-                            <a href="#" data-bs-toggle="modal" data-bs-target="#emailReceiptModal" class="btn btn-default"><i class="fa-solid fa-envelope"></i> Email receipt</a>
-                        </p>
-                    </div>
-                [% END %]
-
-                <form name="payForm" id="payForm" method="post" action="/cgi-bin/koha/pos/pay.pl">
-                    [% INCLUDE 'csrf-token.inc' %]
-                    <input type="hidden" name="op" value="cud-pay" />
-                    <div class="row">
-                        <div class="col-md-6">
-                            <fieldset class="rows">
-                                <legend>Items for purchase</legend>
-                                Please select items from below to add to this transaction:
-                                [% IF invoice_types %]
-                                    <table id="invoices">
-                                        <thead>
-                                            <tr>
-                                                <th>Code</th>
-                                                <th>Description</th>
-                                                <th class="NoSort">Cost</th>
-                                                <th class="NoSort">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            [% FOREACH invoice IN invoice_types %]
-                                                <tr>
-                                                    <td>[% invoice.code | html %]</td>
-                                                    <td>[% invoice.description | html %]</td>
-                                                    <td>[% invoice.default_amount | $Price %]</td>
-                                                    <td>
-                                                        <button
-                                                            type="button"
-                                                            class="btn btn-default btn-xs add_button"
-                                                            data-invoice-code="[% invoice.code | html %]"
-                                                            data-invoice-title="[% invoice.description | html %]"
-                                                            data-invoice-price="[% invoice.default_amount | html %]"
-                                                            ><i class="fa fa-plus"></i> Add</button
-                                                        >
-                                                    </td>
-                                                </tr>
-                                            [% END %]
-                                        </tbody></table
-                                    >
-                                [% ELSE %]
-                                    You have no manual invoice types defined
-                                [% END %]
-                            </fieldset>
-                        </div>
-
-                        <div class="col-md-6">
-                            <fieldset class="rows">
-                                <legend>This sale</legend>
-                                <p>Click to edit item cost or quantities</p>
-                                <table id="sale" class="table_sale">
-                                    <thead>
-                                        <tr>
-                                            <th>Item</th>
-                                            <th>Cost</th>
-                                            <th>Quantity</th>
-                                            <th>Total</th>
-                                            <th>Action</th>
-                                            <th>CODE</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody> </tbody>
-                                    <tfoot>
-                                        <tr>
-                                            <td colspan="3">Total payable:</td>
-                                            <td></td>
-                                            <td></td>
-                                            <td></td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </fieldset>
-
-                            <fieldset class="rows">
-                                <legend>Collect payment</legend>
-                                <ol>
-                                    <li>
-                                        <label for="paid">Amount being paid: </label>
-                                        <input type="text" inputmode="none" pattern="[0-9]*" name="paid" id="paid" value="" readonly />
-                                    </li>
-                                    <li>
-                                        <label for="collected" class="required">Amount tendered: </label>
-                                        <input type="text" inputmode="numeric" pattern="[0-9]*" name="collected" id="collected" value="" class="required" required="required" />
-                                        <span class="required">Required</span>
-                                    </li>
-                                    <li>
-                                        <label>Change to give: </label>
-                                        <span id="change">[% 0 | $Price %]</span>
-                                        <input type="hidden" name="change" value="[% 0 | $Price %]" />
-                                    </li>
-
-                                    [% INCLUDE 'transaction_types.inc' type="payment" %]
-
-                                    <li>
-                                        <label for="registerid" class="required">Cash register: </label>
-                                        <select name="registerid" id="registerid" class="required" required="required">
-                                            <option id="noregister" disabled="disabled" value="">-- Select an option--</option>
-                                            [% PROCESS options_for_registers %]
-                                        </select>
-                                        <span class="required">Required</span>
-                                    </li>
-                                </ol>
-                            </fieldset>
-
-                            <fieldset class="action">
-                                <input type="submit" id="submitbutton" name="submitbutton" class="btn btn-primary" value="Confirm" />
-                                <a class="cancel" href="/cgi-bin/koha/pos/pay.pl">Cancel</a>
-                            </fieldset>
-                        </div>
-                    </div>
+    [% IF ( registers.size == 0 ) %]
+        <div id="error_message" class="alert alert-info">
+            <p> You must have at least one cash register associated with the library before you can record payments. </p>
+            [% IF ( CAN_user_parameters_manage_cash_registers ) %]
+                <form action="/cgi-bin/koha/admin/cash_registers.pl" method="get">
+                    <input type="hidden" name="op" value="add_form" />
+                    <button class="new" type="submit"><i class="fa fa-plus"></i> Create a new cash register</button>
                 </form>
             [% END %]
-
-            [%- SET StaffPOSHome = AdditionalContents.get( location => "StaffPOSHome", lang => lang, library => Branches.GetLoggedInBranchcode ) -%]
-            [%- FOREACH block IN StaffPOSHome.content -%]
-                <div class="page-section"> [%- block.content | $raw -%] </div>
-            [%- END -%]
         </div>
+    [% ELSE %]
 
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'pos-menu.inc' %] </aside>
-        </div>
-    </div>
-    <!-- /.row -->
+        [% IF payment_id && !Koha.Preference('FinePaymentAutoPopup') %]
+            <div class="alert alert-info audio-alert-action">
+                <p>Payment received</p>
+                <p>
+                    <a target="_blank" href="/cgi-bin/koha/pos/printreceipt.pl?action=print&accountlines_id=[% payment_id | uri %]&tendered=[% tendered | uri %]&change=[% change | uri %]" class="btn btn-default"
+                        ><i class="fa fa-print"></i> Print receipt</a
+                    >
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#emailReceiptModal" class="btn btn-default"><i class="fa-solid fa-envelope"></i> Email receipt</a>
+                </p>
+            </div>
+        [% END %]
 
     <!-- Email receipt modal -->
     <div class="modal" id="emailReceiptModal" tabindex="-1" role="dialog" aria-labelledby="emailReceiptLabel">
         <form id="email_form" action="/cgi-bin/koha/pos/pay.pl" method="post" enctype="multipart/form-data" class="validated">
             [% INCLUDE 'csrf-token.inc' %]
-            <input type="hidden" name="payment_id" value="[% payment_id | uri %]" />
-            <input type="hidden" name="collected" value="[% collected | uri %]" />
-            <input type="hidden" name="change" value="[% change | uri %]" />"
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h1 class="modal-title" id="emailReceiptLabel">Email receipt</h1>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <fieldset class="rows">
-                            <ol>
-                                <li>
-                                    <label class="required" for="toaddr">Email address: </label>
-                                    <input type="email" id="toaddr" name="toaddr" required="required" />
-                                    <span class="required">Required</span>
-                                </li>
-                            </ol>
-                        </fieldset>
-                        <!-- /.rows -->
-                    </div>
-                    <!-- /.modal-body -->
-                    <div class="modal-footer">
-                        <input type="hidden" name="op" value="cud-send" />
-                        <button type="submit" class="btn btn-primary">Confirm</button>
-                        <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
-                    </div>
-                    <!-- /.modal-footer -->
+            <input type="hidden" name="op" value="cud-pay" />
+            <div class="row">
+                <div class="col-md-6">
+                    <fieldset class="rows">
+                        <legend>Items for purchase</legend>
+                        Please select items from below to add to this transaction:
+                        [% IF invoice_types %]
+                            <table id="invoices">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Description</th>
+                                        <th class="no-sort">Cost</th>
+                                        <th class="no-sort">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    [% FOREACH invoice IN invoice_types %]
+                                        <tr>
+                                            <td>[% invoice.code | html %]</td>
+                                            <td>[% invoice.description | html %]</td>
+                                            <td>[% invoice.default_amount | $Price %]</td>
+                                            <td>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-default btn-xs add_button"
+                                                    data-invoice-code="[% invoice.code | html %]"
+                                                    data-invoice-title="[% invoice.description | html %]"
+                                                    data-invoice-price="[% invoice.default_amount | html %]"
+                                                    ><i class="fa fa-plus"></i> Add</button
+                                                >
+                                            </td>
+                                        </tr>
+                                    [% END %]
+                                </tbody></table
+                            >
+                        [% ELSE %]
+                            You have no manual invoice types defined
+                        [% END %]
+                    </fieldset>
+                </div>
+
+                <div class="col-md-6">
+                    <fieldset class="rows">
+                        <legend>This sale</legend>
+                        <p>Click to edit item cost or quantities</p>
+                        <table id="sale" class="table_sale">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Cost</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                    <th>Action</th>
+                                    <th>CODE</th>
+                                </tr>
+                            </thead>
+                            <tbody> </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3">Total payable:</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </fieldset>
+
+                    <fieldset class="rows">
+                        <legend>Collect payment</legend>
+                        <ol>
+                            <li>
+                                <label for="paid">Amount being paid: </label>
+                                <input type="text" inputmode="none" pattern="[0-9]*" name="paid" id="paid" value="" readonly />
+                            </li>
+                            <li>
+                                <label for="tendered" class="required">Amount tendered: </label>
+                                <input type="text" inputmode="numeric" pattern="[0-9]*" name="tendered" id="tendered" value="" class="required" required="required" />
+                                <span class="required">Required</span>
+                            </li>
+                            <li>
+                                <label>Change to give: </label>
+                                <span id="change">[% 0 | $Price %]</span>
+                                <input type="hidden" name="change" value="[% 0 | $Price %]" />
+                            </li>
+
+                            [% INCLUDE 'transaction_types.inc' type="payment" %]
+
+                            <li>
+                                <label for="registerid" class="required">Cash register: </label>
+                                <select name="registerid" id="registerid" class="required" required="required">
+                                    <option id="noregister" disabled="disabled" value="">-- Select an option--</option>
+                                    [% PROCESS options_for_registers %]
+                                </select>
+                                <span class="required">Required</span>
+                            </li>
+                        </ol>
+                    </fieldset>
+
+                    <fieldset class="action">
+                        <input type="submit" id="submitbutton" name="submitbutton" class="btn btn-primary" value="Confirm" />
+                        <a class="cancel" href="/cgi-bin/koha/pos/pay.pl">Cancel</a>
+                    </fieldset>
                 </div>
                 <!-- /.modal-content -->
             </div>
             <!-- /.modal-dialog -->
         </form>
-        <!-- /#email_form -->
-    </div>
-    <!-- /#emailReceiptModal -->
+    [% END %]
 
-    <!-- Change modal -->
-    <div id="confirm_change_form" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
+    [%- SET StaffPOSHome = AdditionalContents.get( location => "StaffPOSHome", lang => lang, library => Branches.GetLoggedInBranchcode ) -%]
+    [%- FOREACH block IN StaffPOSHome.content -%]
+        <div class="page-section"> [%- block.content | $raw -%] </div>
+    [%- END -%]
+[% END %]
+
+<!-- Email receipt modal -->
+<div class="modal" id="emailReceiptModal" tabindex="-1" role="dialog" aria-labelledby="emailReceiptLabel">
+    <form id="email_form" action="/cgi-bin/koha/pos/pay.pl" method="post" enctype="multipart/form-data" class="validated">
+        [% INCLUDE 'csrf-token.inc' %]
+        <input type="hidden" name="payment_id" value="[% payment_id | uri %]" />
+        <input type="hidden" name="tendered" value="[% tendered | uri %]" />
+        <input type="hidden" name="change" value="[% change | uri %]" />"
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <h1 class="modal-title">The amount collected is more than the outstanding charge</h1>
                 </div>
                 <div class="modal-body">
-                    <p>The amount collected from the patron is higher than the amount to be paid.</p>
-                    <p
-                        >The change to give is <strong><span id="modal_change">[% 0 | $Price %]</span></strong
-                        >.</p
-                    >
-                    <p>Confirm this payment?</p>
+                    <fieldset class="rows">
+                        <ol>
+                            <li>
+                                <label class="required" for="toaddr">Email address: </label>
+                                <input type="email" id="toaddr" name="toaddr" required="required" />
+                                <span class="required">Required</span>
+                            </li>
+                        </ol>
+                    </fieldset>
+                    <!-- /.rows -->
                 </div>
+                <!-- /.modal-body -->
                 <div class="modal-footer">
-                    <button class="btn btn-default approve" id="modal_submit" type="button"><i class="fa fa-check"></i> Yes</button>
-                    <button class="btn btn-default deny cancel" data-bs-dismiss="modal" type="button"><i class="fa fa-times"></i> No</button>
+                    <input type="hidden" name="op" value="cud-send" />
+                    <button type="submit" class="btn btn-primary">Confirm</button>
+                    <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
                 </div>
+                <!-- /.modal-footer -->
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </form>
+    <!-- /#email_form -->
+</div>
+<!-- /#emailReceiptModal -->
+
+<!-- Change modal -->
+<div id="confirm_change_form" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title">The amount collected is more than the outstanding charge</h1>
+            </div>
+            <div class="modal-body">
+                <p>The amount collected from the patron is higher than the amount to be paid.</p>
+                <p
+                    >The change to give is <strong><span id="modal_change">[% 0 | $Price %]</span></strong
+                    >.</p
+                >
+                <p>Confirm this payment?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default approve" id="modal_submit" type="button"><i class="fa fa-check"></i> Yes</button>
+                <button class="btn btn-default deny cancel" data-bs-dismiss="modal" type="button"><i class="fa fa-times"></i> No</button>
             </div>
         </div>
     </div>
@@ -282,13 +274,29 @@
                     }
                 }
 
-                if (!dolFlag) {
-                    dolAmount = decAmount;
-                    decAmount = "";
-                }
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'format_price.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    <script>
+        function moneyFormat(textObj) {
+            var newValue = textObj.value;
+            var decAmount = "";
+            var dolAmount = "";
+            var dolFlag   = false;
+            var aChar     = "";
 
-                if (dolAmount == "") {
-                    dolAmount = "0";
+            for(var i = newValue.length; 0 < i; i--) {
+                aChar = newValue.substring(i-1, i);
+                if ("0" <= aChar && aChar <= "9") {
+                    if(dolFlag) {
+                        dolAmount = "" + aChar + dolAmount;
+                    }
+                    else {
+                        decAmount = "" + aChar + decAmount;
+                    }
+                }
+                if (aChar == "." || aChar == ",") {
+                    dolFlag = true;
                 }
             // Strip leading 0s
                 if (dolAmount.length > 1) {
@@ -310,228 +318,263 @@
                 textObj.value = dolAmount + "." + decAmount;
             }
 
-            function fnClickAddRow( table, invoiceCode, invoiceTitle, invoicePrice ) {
-              var defaultPrice = { value: invoicePrice };
-              moneyFormat(defaultPrice);
-              table.row.add( [
-                invoiceTitle,
-                defaultPrice.value,
-                1,
-                null,
-                '<button class="btn btn-default btn-xs drop" type="button"><i class="fa fa-trash-can"></i> ' + _("Remove") + '</button>',
-                invoiceCode
-                ]
-              ).draw();
+            if (!dolFlag) {
+                dolAmount = decAmount;
+                decAmount = "";
             }
 
-            function updateChangeValues() {
-                var change = $('#change')[0];
-                var zero_formatted = "[% 0 | $Price %]";
-                change.innerHTML = Math.round(($('#collected')[0].value - $('#paid')[0].value) * 100) / 100;
-                if (change.innerHTML <= 0) {
-                    var paid = $('#paid')[0];
-                    moneyFormat(paid);
-                    $('#collected').rules( "add", { min: Number(paid.value) });
-                    change.innerHTML = zero_formatted;
-                    $(':input[name="change"]').val(zero_formatted);
-                } else {
-                    change.value = change.innerHTML;
-                    moneyFormat(change);
-                    change.innerHTML = change.value;
-                    $(':input[name="change"]').val(change.value);
+            if (dolAmount == "") {
+                dolAmount = "0";
+            }
+        // Strip leading 0s
+            if (dolAmount.length > 1) {
+                while(dolAmount.length > 1 && dolAmount.substring(0,1) == "0") {
+                    dolAmount = dolAmount.substring(1,dolAmount.length);
+                }
+            }
+            if (decAmount.length > 2) {
+                decAmount = decAmount.substring(0,2);
+            }
+        // Pad right side
+            if (decAmount.length == 1) {
+               decAmount = decAmount + "0";
+            }
+            if (decAmount.length == 0) {
+               decAmount = decAmount + "00";
+            }
+
+            textObj.value = dolAmount + "." + decAmount;
+        }
+
+        function fnClickAddRow( table, invoiceCode, invoiceTitle, invoicePrice ) {
+          var defaultPrice = { value: invoicePrice };
+          moneyFormat(defaultPrice);
+          table.row.add( [
+            invoiceTitle,
+            defaultPrice.value,
+            1,
+            null,
+            '<button class="btn btn-default btn-xs drop" type="button"><i class="fa fa-trash-can"></i> ' + _("Remove") + '</button>',
+            invoiceCode
+            ]
+          ).draw();
+        }
+
+        function updateChangeValues() {
+            var change = $('#change')[0];
+            var zero_formatted = "[% 0 | $Price %]";
+            change.innerHTML = Math.round(($('#tendered')[0].value - $('#paid')[0].value) * 100) / 100;
+            if (change.innerHTML <= 0) {
+                var paid = $('#paid')[0];
+                moneyFormat(paid);
+                $('#tendered').rules( "add", { min: Number(paid.value) });
+                change.innerHTML = zero_formatted;
+                $(':input[name="change"]').val(zero_formatted);
+            } else {
+                change.value = change.innerHTML;
+                moneyFormat(change);
+                change.innerHTML = change.value;
+                $(':input[name="change"]').val(change.value);
+            }
+
+            $('#modal_change').html(change.innerHTML);
+        }
+
+        $(document).ready(function() {
+            const sale_table = document.getElementById('sale');
+            const sale_kohaTable = $("#sale").kohaTable({
+                paging: false,
+                searching: false,
+                info: false,
+                columnDefs: [{
+                    "targets": [-2],
+                    "orderable": false,
+                    "searchable":  false,
+                }, {
+                    targets: [-3],
+                    render: function ( data, type, full ) {
+                        var price = Number.parseFloat(data);
+                        return price.format_price();
+                    }
+                }, {
+                    targets: [-5],
+                    className:  "editable",
+                }, {
+                    targets: [-4],
+                    className:  "editable_int",
+                }, {
+                    targets: [-1],
+                    visible: false,
+                    searchable: false
+                }],
+                rowCallback: function( row, data ) {
+                    const total = data[1] * data[2];
+                    data[3] = total;
+                    sale_kohaTable.api().cell(row, 3).invalidate();
+                },
+                footerCallback: function(tfoot, data, start, end, display) {
+                    let total_price = 0;
+
+                    // Loop through the data to calculate the total
+                    for (let i = 0; i < data.length; i++) {
+                        total_price += parseFloat(data[i][3]) || 0;
+                    }
+
+                    // Format the total price (assuming `format_price` is a custom function)
+                    total_price = total_price.format_price();
+
+                    // Update the footer cell
+                    $(tfoot).find('td').eq(1).html(total_price);
+
+                    // Update a related element and trigger change
+                    $('#paid').val(total_price).trigger('change');
+                },
+                autoWidth: false
+            });
+
+            $("#sale").on("click", "button.drop", function(){
+                    sale_kohaTable.api().row($(this).parents('tr')).remove().draw(false);
+            });
+
+            // Set up editable columns based on header classes
+            const editableColumns = Array.from(sale_table.querySelectorAll('thead th'))
+                .map((header, index) => {
+                    if (header.classList.contains('editable') || header.classList.contains('editable_int')) {
+                        return { index: index, type: header.classList.contains('editable_int') ? 'number' : 'text' };
+                    }
+                    return null;
+                })
+                .filter(column => column !== null); // Filter out non-editable columns
+
+            sale_table.querySelector('tbody').addEventListener('click', function (event) {
+                const cell = event.target.closest('td');
+                if (!cell) return;
+
+                const cellIndex = cell.cellIndex;
+                const editableColumn = editableColumns.find(column => column.index === cellIndex);
+                if (editableColumn) {
+                    const originalContent = cell.textContent.trim();
+                    const input = document.createElement('input');
+                    input.type = editableColumn.type;
+                    input.value = originalContent;
+                    input.style.width = '8em';
+
+                    // Prevent click on numeric up/down buttons from closing input
+                    input.addEventListener('click', (e) => e.stopPropagation());
+
+                    // Replace cell content with the input
+                    cell.textContent = '';
+                    cell.appendChild(input);
+                    input.focus();
+
+                    // Handle blur and Enter key events
+                    input.addEventListener('blur', updateCell);
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            updateCell();
+                        }
+                    });
+
+                    function updateCell() {
+                        const newValue = input.value.trim() || originalContent; // Fallback to original content
+                        cell.textContent = newValue; // Set the final value in the cell
+                        sale_kohaTable.api().cell(cell).data(newValue).invalidate().draw(false); // Update dataTable data
+                    }
+                }
+            });
+
+            var items_table_settings = [% TablesSettings.GetTableSettings('pos', 'pay', 'invoices', 'json') | $raw %];
+            var items_table = $("#invoices").kohaTable(
+                {
+                    pagingType: "full",
+                    order: [[0, "asc"]],
+                    autoWidth: false,
+                },
+                items_table_settings,
+                false
+            );
+
+            $("#invoices").on("click", ".add_button", function(e) {
+                e.preventDefault();
+                fnClickAddRow(sale_kohaTable.api(), $( this ).data('invoiceCode'), $( this ).data('invoiceTitle'), $( this ).data('invoicePrice') );
+                if($('#invoices_filter').find('input[type=search]').val() !== ''){
+                    items_table.DataTable().search('').draw();
+                }
+            });
+
+            // Change calculation and modal
+            var change = $('#change')[0];
+            $("#paid, #tendered").on("change",function() {
+                moneyFormat( this );
+                if (change != undefined) {
+                    updateChangeValues();
+                }
+            });
+
+            var checked = false;
+            $('#modal_submit').click(function() {
+                checked = true;
+                $('#payForm').submit();
+            });
+
+            $('#payForm').validate({
+                rules: {
+                    paid: {
+                        required: true
+                    },
+                    tendered: {
+                        required: true
+                    },
+                    payment_type: {
+                        required: true
+                    },
+                    registerid: {
+                        required: true
+                    }
+                }
+            });
+
+            $('#payForm').submit(function(e){
+                // first, clear stale sales 'rows' from the payForm
+                if($('input[name="sales"]').length > 0) {
+                    $('input[name="sales"]').each(function() {
+                        $(this).remove();
+                    });
                 }
 
-                $('#modal_change').html(change.innerHTML);
-            }
-
-            $(document).ready(function() {
-                const sale_table = document.getElementById('sale');
-                const saleDataTable = $("#sale").DataTable($.extend(true, {}, dataTablesDefaults, {
-                    "paginate": false,
-                    "searching": false,
-                    "info": false,
-                    "columnDefs": [{
-                        "targets": [-2],
-                        "orderable": false,
-                        "searchable":  false,
-                    }, {
-                        "targets": [-3],
-                        "render": function ( data, type, full ) {
-                            var price = Number.parseFloat(data);
-                            return price.format_price();
-                        }
-                    }, {
-                        "targets": [-5],
-                        "className":  "editable",
-                    }, {
-                        "targets": [-4],
-                        "className":  "editable_int",
-                    }, {
-                        "targets": [-1],
-                        "visible": false,
-                        "searchable": false
-                    }],
-                    "order": [],
-                    "rowCallback": function( row, data ) {
-                        const total = data[1] * data[2];
-                        data[3] = total;
-                        saleDataTable.cell(row, 3).invalidate();
-                    },
-                    "footerCallback": function(tfoot, data, start, end, display) {
-                        let total_price = 0;
-
-                        // Loop through the data to calculate the total
-                        for (let i = 0; i < data.length; i++) {
-                            total_price += parseFloat(data[i][3]) || 0;
-                        }
-
-                        // Format the total price (assuming `format_price` is a custom function)
-                        total_price = total_price.format_price();
-
-                        // Update the footer cell
-                        $(tfoot).find('td').eq(1).html(total_price);
-
-                        // Update a related element and trigger change
-                        $('#paid').val(total_price).trigger('change');
-                    },
-                    "autoWidth": false
-                }));
-
-                $("#sale").on("click", "button.drop", function(){
-                        saleDataTable.row($(this).parents('tr')).remove().draw(false);
-                });
-
-                // Set up editable columns based on header classes
-                const editableColumns = Array.from(sale_table.querySelectorAll('thead th'))
-                    .map((header, index) => {
-                        if (header.classList.contains('editable') || header.classList.contains('editable_int')) {
-                            return { index: index, type: header.classList.contains('editable_int') ? 'number' : 'text' };
-                        }
-                        return null;
-                    })
-                    .filter(column => column !== null); // Filter out non-editable columns
-
-                sale_table.querySelector('tbody').addEventListener('click', function (event) {
-                    const cell = event.target.closest('td');
-                    if (!cell) return;
-
-                    const cellIndex = cell.cellIndex;
-                    const editableColumn = editableColumns.find(column => column.index === cellIndex);
-                    if (editableColumn) {
-                        const originalContent = cell.textContent.trim();
-                        const input = document.createElement('input');
-                        input.type = editableColumn.type;
-                        input.value = originalContent;
-                        input.style.width = '8em';
-
-                        // Prevent click on numeric up/down buttons from closing input
-                        input.addEventListener('click', (e) => e.stopPropagation());
-
-                        // Replace cell content with the input
-                        cell.textContent = '';
-                        cell.appendChild(input);
-                        input.focus();
-
-                        // Handle blur and Enter key events
-                        input.addEventListener('blur', updateCell);
-                        input.addEventListener('keyup', function(e) {
-                            if (e.key === 'Enter') updateCell();
-                        });
-
-                        function updateCell() {
-                            const newValue = input.value.trim() || originalContent; // Fallback to original content
-                            cell.textContent = newValue; // Set the final value in the cell
-                            saleDataTable.cell(cell).data(newValue).invalidate().draw(false); // Update DataTable data
-                        }
-                    }
-                });
-
-                var items_table_settings = [% TablesSettings.GetTableSettings('pos', 'pay', 'invoices', 'json') | $raw %];
-                var items_table = KohaTable("invoices", {
-                       "pagingType": "full",
-                       "order": [[ 0, "asc" ]],
-                       "autoWidth": false
-                }, items_table_settings, false);
-
-                $("#invoices").on("click", ".add_button", function(e) {
+                // now, process the current & fresh contents of the sale_kohaTable
+                if (change != undefined && change.innerHTML > 0.00 && !checked) {
                     e.preventDefault();
-                    fnClickAddRow(saleDataTable, $( this ).data('invoiceCode'), $( this ).data('invoiceTitle'), $( this ).data('invoicePrice') );
-                    if($('#invoices_filter').find('input[type=search]').val() !== ''){
-                        items_table.DataTable().search('').draw();
-                    }
-                });
-
-                // Change calculation and modal
-                var change = $('#change')[0];
-                $("#paid, #collected").on("change",function() {
-                    moneyFormat( this );
-                    if (change != undefined) {
-                        updateChangeValues();
-                    }
-                });
-
-                var checked = false;
-                $('#modal_submit').click(function() {
-                    checked = true;
-                    $('#payForm').submit();
-                });
-
-                $('#payForm').validate({
-                    rules: {
-                        paid: {
-                            required: true
-                        },
-                        collected: {
-                            required: true
-                        },
-                        payment_type: {
-                            required: true
-                        },
-                        registerid: {
-                            required: true
-                        }
-                    }
-                });
-
-                $('#payForm').submit(function(e){
-                    // first, clear stale sales 'rows' from the payForm
-                    if($('input[name="sales"]').length > 0) {
-                        $('input[name="sales"]').each(function() {
-                            $(this).remove();
-                        });
-                    }
-
-                    // now, process the current & fresh contents of the saleDataTable
-                    if (change != undefined && change.innerHTML > 0.00 && !checked) {
-                        e.preventDefault();
-                        $("#confirm_change_form").modal("show");
-                    } else {
-                        var rows = saleDataTable.data().toArray();
-                        rows.forEach(function (row, index) {
-                            var sale = {
-                                code: row[5],
-                                price: row[1],
-                                quantity: row[2]
-                            };
-                            $('<input>').attr({
-                                type: 'hidden',
-                                name: 'sales',
-                                value: JSON.stringify(sale)
-                            }).appendTo('#payForm');
-                        });
-                        return true;
-                    }
-                });
-
-                [% IF payment_id && Koha.Preference('FinePaymentAutoPopup') %]
-                    $("#printReceipt").click(function() {
-                        var win = window.open('/cgi-bin/koha/pos/printreceipt.pl?action=print&accountlines_id=[% payment_id | uri %]&collected=[% collected | uri %]&change=[% change | uri %]', '_blank');
-                        win.focus();
+                    $("#confirm_change_form").modal("show");
+                } else {
+                    var rows = sale_kohaTable.api().data().toArray();
+                    rows.forEach(function (row, index) {
+                        var sale = {
+                            code: row[5],
+                            price: row[1],
+                            quantity: row[2]
+                        };
+                        $('<input>').attr({
+                            type: 'hidden',
+                            name: 'sales',
+                            value: JSON.stringify(sale)
+                        }).appendTo('#payForm');
                     });
-                    $("#printReceipt").click();
-                [% END %]
+                    return true;
+                }
             });
-        </script>
-    [% END %]
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+
+            [% IF payment_id && Koha.Preference('FinePaymentAutoPopup') %]
+                $("#printReceipt").click(function() {
+                    var win = window.open('/cgi-bin/koha/pos/printreceipt.pl?action=print&accountlines_id=[% payment_id | uri %]&tendered=[% tendered | uri %]&change=[% change | uri %]', '_blank');
+                    win.focus();
+                });
+                $("#printReceipt").click();
+            [% END %]
+        });
+    </script>
+[% END %]
+[% END %]
+[% INCLUDE 'intranet-bottom.inc' %]

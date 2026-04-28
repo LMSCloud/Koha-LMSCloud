@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -24,7 +24,7 @@ use Test::Warn;
 use List::MoreUtils qw( uniq );
 use MARC::Record;
 
-use t::lib::Mocks qw( mock_preference );
+use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 use Koha::ActionLogs;
@@ -395,7 +395,7 @@ sub run_tests {
     my $data = GetBiblioData($biblionumber);
     is(
         $data->{isbn}, $isbn,
-        '(GetBiblioData) ISBN correctly retireved.'
+        '(GetBiblioData) ISBN correctly retrieved.'
     );
     is(
         $data->{title}, undef,
@@ -587,8 +587,8 @@ sub run_tests {
     is( @$marcurl, 2, 'GetMarcUrls returns two URLs' );
     like( $marcurl->[0]->{MARCURL}, qr/^https/, 'GetMarcUrls did not stumble over a preceding space' );
     ok(
-        $marcflavour ne 'MARC21' || $marcurl->[1]->{MARCURL} =~ /^http:\/\//,
-        "GetMarcUrls prefixed a $marcflavour URL with http://"
+        $marcflavour ne 'MARC21' || $marcurl->[1]->{MARCURL} =~ /^https:\/\//,
+        "GetMarcUrls prefixed a $marcflavour URL with https:// (LMS security improvement)"
     );
 
     # Automatic authority creation

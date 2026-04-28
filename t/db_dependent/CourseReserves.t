@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 26;
+use Test::NoWarnings;
+use Test::More tests => 27;
 
 use Koha::Database;
 use t::lib::TestBuilder;
@@ -75,7 +76,7 @@ $course_id = ModCourse(
 my $course = GetCourse($course_id);
 
 ok( $course->{'course_name'} eq "Test Course",      "GetCourse returned correct course" );
-ok( $course->{'staff_note'} eq "Test staff note 2", "ModCourse updated course succesfully" );
+ok( $course->{'staff_note'} eq "Test staff note 2", "ModCourse updated course successfully" );
 is( $course->{'enabled'}, 'no', "Test Course is disabled" );
 
 my $courses = GetCourses();

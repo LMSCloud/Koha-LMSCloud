@@ -15,11 +15,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::NoWarnings;
+use Test::More tests => 2;
 use Test::Exception;
 
 use t::lib::Mocks;
@@ -30,7 +31,7 @@ my $builder = t::lib::TestBuilder->new;
 
 subtest 'disown_or_delete() tests' => sub {
 
-    plan tests => 3;
+    plan tests => 4;
 
     subtest 'All set cases' => sub {
 
@@ -167,6 +168,46 @@ subtest 'disown_or_delete() tests' => sub {
         my $second = $rs->next;
         is( $second->id,    $private_list_shared->id );
         is( $second->owner, $patron_3->id );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'ListOwnershipUponPatronDeletion set to transfer_public' => sub {
+        plan tests => 2;
+        $schema->storage->txn_begin;
+        my $patron_1    = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $patron_2    = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $patron_3    = $builder->build_object( { class => 'Koha::Patrons' } );
+        my $public_list = $builder->build_object(
+            {
+                class => "Koha::Virtualshelves",
+                value => { owner => $patron_1->id, public => 1 }
+            }
+        );
+        my $private_list_shared = $builder->build_object(
+            {
+                class => "Koha::Virtualshelves",
+                value => { owner => $patron_1->id, public => 0 }
+            }
+        );
+        $builder->build_object(
+            {
+                class => 'Koha::Virtualshelfshares',
+                value =>
+                    { shelfnumber => $private_list_shared->id, invitekey => undef, borrowernumber => $patron_2->id }
+            }
+        );
+
+        t::lib::Mocks::mock_preference( 'ListOwnershipUponPatronDeletion', 'transfer_public' );
+        t::lib::Mocks::mock_preference( 'ListOwnerDesignated',             $patron_3->id );
+
+        my $rs = Koha::Virtualshelves->search( { shelfnumber => [ $public_list->id, $private_list_shared->id ] } );
+
+        my $result = $rs->disown_or_delete;
+        $rs->reset;
+
+        is( $rs->count,    1,                'Only public list should be transferred' );
+        is( $rs->next->id, $public_list->id, 'Check id too' );
 
         $schema->storage->txn_rollback;
     };

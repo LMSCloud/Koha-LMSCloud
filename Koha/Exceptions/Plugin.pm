@@ -13,7 +13,7 @@ package Koha::Exceptions::Plugin;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -35,12 +35,12 @@ use Exception::Class (
     'Koha::Exceptions::Plugin::InstallDied' => {
         isa         => 'Koha::Exceptions::Plugin',
         description => 'The plugin died on install',
-        fields      => ['plugin_class'],
+        fields      => [ 'plugin_class', 'install_error' ],
     },
     'Koha::Exceptions::Plugin::UpgradeDied' => {
         isa         => 'Koha::Exceptions::Plugin',
         description => 'The plugin died on upgrade',
-        fields      => ['plugin_class'],
+        fields      => [ 'plugin_class', 'upgrade_error' ],
     },
 );
 
@@ -56,9 +56,9 @@ sub full_message {
                 $self->plugin_name, $self->method
             );
         } elsif ( $self->isa('Koha::Exceptions::Plugin::InstallDied') ) {
-            $msg = sprintf( "Calling 'install' died for plugin %s", $self->plugin_class );
+            $msg = sprintf( "Calling 'install' died for plugin %s: %s", $self->plugin_class, $self->install_error );
         } elsif ( $self->isa('Koha::Exceptions::Plugin::UpgradeDied') ) {
-            $msg = sprintf( "Calling 'upgrade' died for plugin %s", $self->plugin_class );
+            $msg = sprintf( "Calling 'upgrade' died for plugin %s: %s", $self->plugin_class, $self->upgrade_error );
         }
     }
 

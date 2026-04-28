@@ -13,7 +13,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Koha; if not, see <http://www.gnu.org/licenses>.
+// along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 var munzingerData = new Object();
 var origResultHeaderMunzinger;
@@ -47,7 +47,11 @@ function getMunzingerFacet(
         url: "/cgi-bin/koha/opac-munzinger.pl",
         method: "POST",
         cache: false,
-        data: { search: query_desc, maxcount: 0 },
+        data: {
+            search: query_desc,
+            maxcount: 0,
+            csrf_token: $('meta[name="csrf-token"]').attr("content"),
+        },
         dataType: "json",
         success: function (data) {
             if (
@@ -78,6 +82,7 @@ function getMunzingerResult(facetID, offset) {
             maxcount: maxHitCountMunzinger,
             offset: offset,
             publication: publication,
+            csrf_token: $('meta[name="csrf-token"]').attr("content"),
         },
         dataType: "json",
         success: function (data) {

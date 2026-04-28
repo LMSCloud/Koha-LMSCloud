@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -35,14 +35,15 @@ my ( $user, $cookie ) = C4::Auth::checkauth( $cgi, $authnotrequired, $flags, $ty
 my $op = $cgi->param('op') // q{};
 
 if ( $op eq "cud-cancel" ) {
-    my $accountlines_id = $cgi->param('accountlines_id');
-
-    my $charge         = Koha::Account::Lines->find($accountlines_id);
-    my $borrowernumber = $charge->patron->borrowernumber;
+    my $accountlines_id    = $cgi->param('accountlines_id');
+    my $cancel_charge_note = $cgi->param('cancel_charge_note');
+    my $charge             = Koha::Account::Lines->find($accountlines_id);
+    my $borrowernumber     = $charge->patron->borrowernumber;
     $charge->cancel(
         {
             branch   => C4::Context->userenv->{'branch'},
-            staff_id => C4::Context->userenv->{'number'}
+            staff_id => C4::Context->userenv->{'number'},
+            note     => $cancel_charge_note,
         }
     );
     print $cgi->redirect( '/cgi-bin/koha/members/boraccount.pl?borrowernumber=' . $borrowernumber );

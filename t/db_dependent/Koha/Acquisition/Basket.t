@@ -15,11 +15,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 13;
+use Test::NoWarnings;
+use Test::More tests => 15;
 use Test::Exception;
 
 use t::lib::TestBuilder;
@@ -224,7 +225,7 @@ subtest 'estimated_delivery_date' => sub {
     $bookseller->deliverytime(2)->store;                                # 2 delivery days
     is(
         $basket->estimated_delivery_date,
-        undef, 'return undef if closedate is not defined (basket stil open)'
+        undef, 'return undef if closedate is not defined (basket still open)'
     );
 
     $bookseller->deliverytime(2)->store;                                # 2 delivery days
@@ -238,7 +239,8 @@ subtest 'estimated_delivery_date' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'late_since_days' => sub {
+subtest 'days_late() tests' => sub {
+
     plan tests => 3;
 
     $schema->storage->txn_begin;
@@ -250,13 +252,13 @@ subtest 'late_since_days' => sub {
 
     my $now = dt_from_string;
     $basket->closedate(undef)->store;    # Basket is open
-    is( $basket->late_since_days, undef, 'return undef if basket is still open' );
+    is( $basket->days_late, undef, 'return undef if basket is still open' );
 
     $basket->closedate($now)->store;     #Closing the basket today
-    is( $basket->late_since_days, 0, 'return 0 if basket has been closed on today' );
+    is( $basket->days_late, 0, 'return 0 if basket has been closed on today' );
 
     $basket->closedate( $now->clone->subtract( days => 2 ) )->store;
-    is( $basket->late_since_days, 2, 'return 2 if basket has been closed 2 days ago' );
+    is( $basket->days_late, 2, 'return 2 if basket has been closed 2 days ago' );
 
     $schema->storage->txn_rollback;
 };
@@ -441,6 +443,25 @@ subtest 'close() tests' => sub {
         Koha::ActionLogs->search( { module => 'ACQUISITIONS', action => 'CLOSE_BASKET', object => $basket->id } )
         ->as_list;
     is( scalar @close_logs, 1, 'Basket closure is logged' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'vendor() tests' => sub {
+
+    plan tests => 2;
+
+    $schema->storage->txn_begin;
+
+    my $basket = $builder->build_object( { class => 'Koha::Acquisition::Baskets' } );
+    my $vendor = $basket->vendor;
+    is( ref($vendor), 'Koha::Acquisition::Bookseller', 'Right object type' );
+    my $other_vendor = $builder->build_object( { class => 'Koha::Acquisition::Booksellers' } );
+
+    # change the vendor
+    $basket->set( { booksellerid => $other_vendor->id } )->store()->discard_changes();
+
+    is( $basket->vendor->id, $other_vendor->id, 'Method returns the new vendor' );
 
     $schema->storage->txn_rollback;
 };

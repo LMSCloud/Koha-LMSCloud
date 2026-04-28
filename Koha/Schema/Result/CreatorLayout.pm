@@ -230,9 +230,13 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("layout_id");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:55
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:o5CdU4ddCP5SKH1T0CUMMw
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-05-06 11:41:17
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:5BT2GKh+xMLMEFwa89Hptg
 
+__PACKAGE__->add_columns(
+    '+callnum_split' => { is_boolean => 0 },
+    '+guidebox'      => { is_boolean => 0 },
+    '+oblique_title' => { is_boolean => 0 },
+);
 
-# You can replace this text with custom content, and it will be preserved on regeneration
 1;

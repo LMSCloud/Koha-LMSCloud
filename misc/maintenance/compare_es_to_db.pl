@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -137,7 +137,40 @@ foreach my $index ( ( 'biblios', 'authorities' ) ) {
         print "Records that exist in ES but not in Koha\n";
         for my $problem (@es_problems) {
             print "  #$problem";
-            print "  Enter this command to view record: curl $es_base/data/$problem?pretty=true\n";
+            print "  Enter this command to view record: curl $es_base/_doc/$problem?pretty=true\n";
+        }
+    }
+
+    if ( $fix && ( @koha_problems || @es_problems ) ) {
+
+        print "=================\n";
+        print "Trying to fix problems:\n\n";
+
+        my $indexer;
+        my $server;
+        if ( $index eq 'biblios' ) {
+            $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+            $server  = 'biblioserver';
+        } else {
+            $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::AUTHORITIES_INDEX } );
+            $server  = 'authorityserver';
+        }
+
+        if (@koha_problems) {
+
+            print "=================\n";
+            print "Scheduling indexing of missing records ($index):\n\n";
+
+            # index_records() takes care of splitting into chunks.
+            $indexer->index_records( \@koha_problems, 'specialUpdate', $server );
+        }
+
+        if (@es_problems) {
+
+            print "=================\n";
+            print "Deleting non-existent records from the index ($index)...\n";
+
+            $indexer->delete_index( \@es_problems );
         }
     }
 

@@ -15,7 +15,7 @@ package Koha::SearchEngine::Elasticsearch::Indexer;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Carp qw( carp croak );
 use Modern::Perl;
@@ -261,7 +261,7 @@ sub index_status {
 Generate Elasticsearch mappings from mappings stored in database and
 perform a request to update Elasticsearch index mappings. Will throw an
 error and set index status to C<INDEX_STATUS_RECREATE_REQUIRED> if update
-failes.
+failed.
 
 =cut
 

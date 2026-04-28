@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # This script is used to maintain the Z3950 servers table.
 # Parameter $op is operation: list, new, edit, add_validated, delete_confirmed.
@@ -89,12 +89,13 @@ if ( $op eq 'cud-delete_confirmed' && $id ) {
 # Now list multiple records, or edit one record
 
 my $data = [];
-if ( $op eq 'add' || $op eq 'edit' ) {
+if ( $op eq 'add_form' || $op eq 'edit_form' ) {
     $data = ServerSearch( $schema, $id, $searchfield ) if $searchfield || $id;
-    delete $data->[0]->{id}                            if @$data && $op eq 'add';    #cloning record
+    delete $data->[0]->{id}                            if @$data && $op eq 'add_form';    #cloning record
     $template->param(
-        add_form => 1, server => @$data ? $data->[0] : undef,
-        op => $op, type => $op eq 'add' ? lc $type : ''
+        server => @$data ? $data->[0] : undef,
+        op     => $op,
+        type   => ( $op eq 'add_form' ) ? lc $type : ''
     );
 } else {
     $data = ServerSearch( $schema, $id, $searchfield );

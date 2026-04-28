@@ -124,6 +124,7 @@ Foreign key to the letters table
 =head2 branchcode
 
   data_type: 'varchar'
+  default_value: (empty string)
   is_foreign_key: 1
   is_nullable: 0
   size: 10
@@ -180,7 +181,13 @@ __PACKAGE__->add_columns(
   "failure_code",
   { data_type => "mediumtext", is_nullable => 1 },
   "branchcode",
-  { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
+  {
+    data_type => "varchar",
+    default_value => "",
+    is_foreign_key => 1,
+    is_nullable => 0,
+    size => 10,
+  },
 );
 
 =head1 PRIMARY KEY
@@ -268,12 +275,25 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:55
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:/TSXsh7x4fg86Hn47uMKSg
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-05-06 11:41:17
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:QF7j1VqbYrU7242FjmlrFw
+
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
 
 sub koha_object_class {
     'Koha::Notice::Message';
 }
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
     'Koha::Notice::Messages';
 }

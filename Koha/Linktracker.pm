@@ -15,7 +15,7 @@ package Koha::Linktracker;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -36,6 +36,12 @@ use C4::Context;
 use base qw(Class::Accessor);
 
 __PACKAGE__->mk_accessors(qw( trackingmethod ));
+
+=head2 trackclick
+
+Missing POD for trackclick.
+
+=cut
 
 sub trackclick {
     my ( $self, $linkinfo ) = @_;

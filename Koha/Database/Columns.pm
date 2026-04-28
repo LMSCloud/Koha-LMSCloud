@@ -13,7 +13,7 @@ package Koha::Database::Columns;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Koha::I18N qw( __ );
@@ -131,6 +131,7 @@ sub columns {
             "altcontactphone"             => __("Alternate contact: Phone"),
             "altcontactstate"             => __("Alternate contact: State"),
             "altcontactsurname"           => __("Alternate contact: Surname"),
+            "altcontacttitle"             => __("Alternate contact: Title"),
             "altcontactzipcode"           => __("Alternate contact: ZIP/Postal code"),
             "anonymized"                  => __("Data anonymization flag"),
             "auth_method"                 => __("Authentication method"),
@@ -152,8 +153,8 @@ sub columns {
             "categorycode"                => __("Patron category"),
             "checkprevcheckout"           => __("Check for previous checkouts"),
             "city"                        => __("City"),
-            "contactfirstname"            => __("Alternate contact: First name"),
-            "contactname"                 => __("Alternate contact: Surname"),
+            "contactfirstname"            => __("Guarantor first name"),
+            "contactname"                 => __("Guarantor surname"),
             "contactnote"                 => __("Alternate contact: Note"),
             "contacttitle"                => __("Alternate contact: Title"),
             "country"                     => __("Country"),
@@ -257,22 +258,23 @@ sub columns {
             "withdrawn_on"                      => __("Withdrawn on"),
         },
         biblio => {
-            "abstract"      => __("Abstract"),
-            "author"        => __("Author"),
-            "biblionumber"  => __("Biblio number (internal)"),
-            "copyrightdate" => __("Copyright date"),
-            "datecreated"   => __("Creation date"),
-            "frameworkcode" => __("Framework code"),
-            "medium"        => __("Medium"),
-            "notes"         => __("Notes"),
-            "part_name"     => __("Name of part/section of a work"),
-            "part_number"   => __("Number of part/section of a work"),
-            "serial"        => __("Is a serial?"),
-            "seriestitle"   => __("Series title"),
-            "subtitle"      => __("Remainder of title"),
-            "timestamp"     => __("Modification date"),
-            "title"         => __("Title"),
-            "unititle"      => __("Uniform title"),
+            "abstract"        => __("Abstract"),
+            "opac_suppressed" => __("Suppressed from OPAC"),
+            "author"          => __("Author"),
+            "biblionumber"    => __("Biblio number (internal)"),
+            "copyrightdate"   => __("Copyright date"),
+            "datecreated"     => __("Creation date"),
+            "frameworkcode"   => __("Framework code"),
+            "medium"          => __("Medium"),
+            "notes"           => __("Notes"),
+            "part_name"       => __("Name of part/section of a work"),
+            "part_number"     => __("Number of part/section of a work"),
+            "serial"          => __("Is a serial?"),
+            "seriestitle"     => __("Series title"),
+            "subtitle"        => __("Remainder of title"),
+            "timestamp"       => __("Modification date"),
+            "title"           => __("Title"),
+            "unititle"        => __("Uniform title"),
         },
         biblioitems => {
             "agerestriction"        => __("Age restriction"),

@@ -193,6 +193,9 @@
     [%- CASE 'manage_smtp_servers' -%]
         <span class="sub_permission manage_manage_smtp_servers_subpermission"> Manage SMTP servers </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'manage_file_transports' -%]
+        <span class="sub_permission manage_manage_file_transports_subpermission"> Manage file transports </span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'manage_column_config' -%]
         <span class="sub_permission manage_column_config_subpermission"> Manage column configuration </span>
         <span class="permissioncode">([% name | html %])</span>
@@ -239,14 +242,26 @@
             View patron infos from any libraries. If not set the logged in user could only access patron infos from its own library or group of libraries.
         </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'api_validate_password' -%]
+        <span class="sub_permission api_validate_password_subpermission">Validate patron passwords using the API</span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'send_messages_to_borrowers' -%]
         <span class="sub_permission send_messages_to_borrowers_subpermission"> Send messages to patrons </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'send_messages_to_borrowers_email' -%]
+        <span class="sub_permission send_messages_to_borrowers_email_subpermission"> Send messages to patrons via email</span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'send_messages_to_borrowers_sms' -%]
+        <span class="sub_permission send_messages_to_borrowers_sms_subpermission"> Send messages to patrons via sms</span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'modify_holds_priority' -%]
         <span class="sub_permission modify_holds_priority_subpermission"> Modify holds priority </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'place_holds' -%]
         <span class="sub_permission place_holds_subpermission"> Place holds for patrons </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'alter_hold_targets' -%]
+        <span class="sub_permission place_holds_subpermission"> Move holds between items and records </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'delete_all_items' -%]
         <span class="sub_permission delete_all_items_subpermission"> Delete all items at once </span>
@@ -311,6 +326,9 @@
     [%- CASE 'suggestions_create' -%]
         <span class="sub_permission suggestions_create_subpermission"> Create purchase suggestions </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'edit_accountline_notes' -%]
+        <span class="sub_permission edit_notes_subpermission"> Edit accountline notes </span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'suggestions_manage' -%]
         <span class="sub_permission suggestions_manage_subpermission"> Edit purchase suggestions </span>
         <span class="permissioncode">([% name | html %])</span>
@@ -367,6 +385,9 @@
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'batch_extend_due_dates' -%]
         <span class="sub_permission batch_extend_due_dates_subpermission"> Perform batch extend due dates </span>
+        <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'batch_modify_holds' -%]
+        <span class="sub_permission batch_modify_holds_subpermission"> Perform batch modification of holds </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'edit_calendar' -%]
         <span class="sub_permission edit_calendar_subpermission"> Define days when the library is closed </span>

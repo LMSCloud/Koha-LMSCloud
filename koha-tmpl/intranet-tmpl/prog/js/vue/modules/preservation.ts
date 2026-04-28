@@ -29,18 +29,18 @@ library.add(
 
 import App from "../components/Preservation/Main.vue";
 
+import "../../../css/vue.css";
+
 import { routes as routesDef } from "../routes/preservation";
 
 import { useMainStore } from "../stores/main";
-import { useAVStore } from "../stores/authorised-values";
 import { usePreservationStore } from "../stores/preservation";
 import { useNavigationStore } from "../stores/navigation";
-import i18n from "../i18n";
+import i18n from "@koha-vue/i18n";
 
 const pinia = createPinia();
 
 const mainStore = useMainStore(pinia);
-const AVStore = useAVStore(pinia);
 const navigationStore = useNavigationStore(pinia);
 const routes = navigationStore.setRoutes(routesDef);
 
@@ -61,7 +61,6 @@ const rootComponent = app
 
 app.config.unwrapInjectedRef = true;
 app.provide("mainStore", mainStore);
-app.provide("AVStore", useAVStore(pinia));
 app.provide("navigationStore", navigationStore);
 const PreservationStore = usePreservationStore(pinia);
 app.provide("PreservationStore", PreservationStore);

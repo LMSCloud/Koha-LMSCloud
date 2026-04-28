@@ -15,7 +15,7 @@ package Koha::Statistic;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -27,12 +27,14 @@ use Koha::BackgroundJob::PseudonymizeStatistic;
 
 use base qw(Koha::Object);
 
-our @allowed_accounts_types        = qw( writeoff payment );
+our @allowed_accounts_types        = qw( writeoff payment cancelfee );
 our @allowed_circulation_types     = qw( renew issue localuse return onsite_checkout recall item_found item_lost );
 our @allowed_authentication_types  = qw( auth-ext );
+our @allowed_ill_types             = qw( illreq_created illreq_comp );
 our @mandatory_accounts_keys       = qw( type branch borrowernumber value );    # note that amount is mapped to value
 our @mandatory_circulation_keys    = qw( type branch borrowernumber itemnumber ccode itemtype );
 our @mandatory_authentication_keys = qw( type branch borrowernumber other );
+our @mandatory_ill_keys            = qw( type branch );
 
 =head1 NAME
 
@@ -87,6 +89,8 @@ sub new {
         $category = 'accounts';
     } elsif ( grep { $_ eq $params->{type} } @allowed_authentication_types ) {
         $category = 'authentication';
+    } elsif ( grep { $_ eq $params->{type} } @allowed_ill_types ) {
+        $category = 'ill';
     } else {
         Koha::Exceptions::WrongParameter->throw( name => 'type', value => $params->{type} );
     }
@@ -94,8 +98,10 @@ sub new {
     my @mandatory_keys =
           $category eq 'circulation'    ? @mandatory_circulation_keys
         : $category eq 'authentication' ? @mandatory_authentication_keys
-        :                                 @mandatory_accounts_keys;
-    my @missing = map { exists $params->{$_} ? () : $_ } @mandatory_keys;
+        : $category eq 'ill'            ? @mandatory_ill_keys
+        : $category eq 'accounts'       ? @mandatory_accounts_keys
+        :                                 ();
+    my @missing = grep { !exists $params->{$_} } @mandatory_keys;
     Koha::Exceptions::MissingParameter->throw( parameter => join( ',', @missing ) ) if @missing;
 
     my $datetime = $params->{datetime} ? $params->{datetime} : dt_from_string();
@@ -106,7 +112,8 @@ sub new {
             categorycode   => $params->{categorycode},
             ccode          => exists $params->{ccode} ? $params->{ccode} : q{},
             datetime       => $datetime,
-            interface      => $params->{interface} // C4::Context->interface,
+            illrequest_id  => $params->{illrequest_id} // q{},
+            interface      => $params->{interface}     // C4::Context->interface,
             itemnumber     => $params->{itemnumber},
             itemtype       => exists $params->{itemtype} ? $params->{itemtype} : q{},
             location       => $params->{location},
@@ -157,7 +164,7 @@ Generate a pesudonymized version of the statistic.
 sub pseudonymize {
     my ($self) = @_;
 
-    return unless ( $self->borrowernumber && grep { $_ eq $self->type } qw(renew issue return onsite_checkout) );
+    return unless ( $self->borrowernumber && grep { $_ eq $self->type } @Koha::Statistic::pseudonymization_types );
 
     # FIXME When getting the object from svc/renewal we get a DateTime object
     # normally we just fetch from DB to clear this, but statistics has no primary key
@@ -168,6 +175,14 @@ sub pseudonymize {
     Koha::BackgroundJob::PseudonymizeStatistic->new->enqueue( { statistic => $unblessed } );
 
 }
+
+=head2 Pseudonymization types
+
+=head3 @pseudonymization_types
+
+=cut
+
+our @pseudonymization_types = qw(renew issue return onsite_checkout illreq_created illreq_comp);
 
 =head2 Internal methods
 

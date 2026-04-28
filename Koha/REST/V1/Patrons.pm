@@ -13,7 +13,7 @@ package Koha::REST::V1::Patrons;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -55,10 +55,19 @@ sub list {
         $query->{debarred} = { '!=' => undef }
             if $restricted;
 
-        if ( exists $c->validation->output->{q} ) {
-            my $q_param         = $c->validation->output->{q};
-            my $addional_params = _extract_additional_params($q_param);
-            _add_additional_params_to_query( $addional_params, $query );
+        # The LMSCloud patron-search filters (age range, charges, etc.) are
+        # carried as reserved words inside the `q` parameter. objects->search
+        # reads q from $c->req->params, so strip the reserved words there (not
+        # from the validation output, which is a separate copy) and translate
+        # them into real SQL on $query.
+        my $q_params = $c->req->params->every_param('q');
+        if ( @{$q_params} ) {
+            my ( $addional_params, $cleaned_q ) = _extract_additional_params($q_params);
+            if ( %{$addional_params} ) {
+                $c->req->params->remove('q');
+                $c->req->params->append( 'q' => $_ ) for @{$cleaned_q};
+                _add_additional_params_to_query( $addional_params, $query );
+            }
         }
 
         my $patrons_rs = Koha::Patrons->search($query);
@@ -266,6 +275,7 @@ sub _add_additional_params_to_query {
 sub _extract_additional_params {
     my $params            = shift;
     my $additional_params = {};
+    my $newarray          = [];
 
     my @reserved_words =
         qw( age_from age_to issue_count_from issue_count_to charges_from charges_to charges_period_from account_expiry_from account_expiry_to debarred_period_from debarred_period_to inactive_period_from last_letter overdue_level valid_email patron_list);
@@ -275,8 +285,7 @@ sub _extract_additional_params {
     # print STDERR "Params is a: ", ref($params), "\n";
 
     if ( ref($params) eq 'ARRAY' ) {
-        my $newarray = [];
-        my $found    = 0;
+        my $found = 0;
         foreach my $param (@$params) {
 
             # print STDERR Dumper(\$param);
@@ -321,7 +330,10 @@ sub _extract_additional_params {
         }
     }
 
-    return $additional_params;
+    # Returns the extracted reserved-word filters plus the cleaned q strings
+    # (the reserved words removed) so the caller can write them back to the
+    # request before objects->search re-applies q to the resultset.
+    return ( $additional_params, $newarray );
 }
 
 =head3 get
@@ -391,6 +403,18 @@ sub add {
                 my $body = $c->req->json;
 
                 my $extended_attributes = delete $body->{extended_attributes} // [];
+
+                my $confirm_not_duplicate = $c->req->headers->header('x-confirm-not-duplicate');
+                if ( !$confirm_not_duplicate ) {
+                    my $match_result =
+                        Koha::Patrons->check_for_existing_matches( Koha::Patron->new_from_api($body)->unblessed );
+                    if ( $match_result->{duplicate_found} ) {
+                        return $c->render(
+                            status  => 409,
+                            openapi => { error => 'A patron record matching these details already exists' }
+                        );
+                    }
+                }
 
                 my $patron = Koha::Patron->new_from_api($body)->store;
 

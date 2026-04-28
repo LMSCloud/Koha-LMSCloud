@@ -15,11 +15,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 12;
+use Test::NoWarnings;
+use Test::More tests => 13;
 use Test::MockModule;
 use Test::Warn;
 
@@ -77,9 +78,9 @@ is(
 subtest 'is_overdue' => sub {
     plan tests => 6;
     my $ten_days_ago   = dt_from_string->add( days => -10 );
-    my $ten_days_later = dt_from_string->add( days => 10 );
+    my $ten_days_later = dt_from_string->add( days =>  10 );
     my $yesterday      = dt_from_string->add( days => -1 );
-    my $tomorrow       = dt_from_string->add( days => 1 );
+    my $tomorrow       = dt_from_string->add( days =>  1 );
 
     $retrieved_checkout_1->date_due($ten_days_ago)->store;
     is(
@@ -298,7 +299,7 @@ subtest 'Koha::Old::Checkouts->filter_by_todays_checkins' => sub {
                 itemnumber     => $item->itemnumber,
                 branchcode     => $library->{branchcode},
             }
-        )->store;
+            )->store;
     }
 
     # Checkin 3 today - 2 days

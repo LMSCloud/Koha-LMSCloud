@@ -17,7 +17,7 @@ package C4::Record;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -264,7 +264,7 @@ sub marc2dcxml {
     my ( $marcxml, $record, $output );
 
     # set the default path for intranet xslts
-    # differents xslts to process (OAIDC, SRWDC and RDFDC)
+    # different xslts to process (OAIDC, SRWDC and RDFDC)
     my $xsl =
           C4::Context->config('intrahtdocs')
         . '/prog/en/xslt/'
@@ -360,6 +360,12 @@ sub _transformWithStylesheet {
     my $xslfile   = C4::Context->config('intrahtdocs') . $stylesheet;
     return C4::XSLT::engine->transform( $xmlrecord, $xslfile );
 }
+
+=head2 marc2endnote
+
+Missing POD for marc2endnote.
+
+=cut
 
 sub marc2endnote {
     my ($marc) = @_;
@@ -725,8 +731,8 @@ sub changeEncoding {
     if ( lc($format) =~ /^marc$/o ) {
 
         # if we're converting encoding of an ISO2709 file, we need to roundtrip through XML
-        # 	because MARC::Record doesn't directly provide us with an encoding method
-        # 	It's definitely less than idea and should be fixed eventually - kados
+        #     because MARC::Record doesn't directly provide us with an encoding method
+        #     It's definitely less than idea and should be fixed eventually - kados
         my $marcxml;    # temporary storage of MARCXML scalar
         ( $error, $marcxml ) = marc2marcxml( $record, $to_encoding, $flavour );
         unless ($error) {

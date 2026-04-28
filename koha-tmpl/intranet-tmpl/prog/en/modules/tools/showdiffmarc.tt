@@ -89,19 +89,21 @@
             </div>
         </div>
     </main>
+</div>
+<!-- /.main.container-fluid -->
 
-    [% MACRO jsinclude BLOCK %]
-        [% Asset.js("js/tools-menu.js") | $raw %]
-        [% Asset.js("lib/jsdiff/jsdiff.min.js") | $raw %]
-        <script>
-            $(document).ready(function () {
-                var diff1 = $("#col1 pre").text();
-                var diff2 = $("#col2 pre").text();
-                var diffs = diffString(diff1, diff2);
-                $("#col1 pre,#col2 pre").html(diffs);
-            });
-        </script>
-    [% END %]
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") | $raw %]
+    [% Asset.js("lib/jsdiff/jsdiff.min.js") | $raw %]
+    <script>
+        $(document).ready(function () {
+            var diff1 = $("#col1 pre").text();
+            var diff2 = $("#col2 pre").text();
+            var diffs = diffString(diff1, diff2);
+            $("#col1 pre,#col2 pre").html(diffs);
+        });
+    </script>
+[% END %]
 
     [% INCLUDE 'intranet-bottom.inc' %]
 </div>

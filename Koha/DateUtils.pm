@@ -14,27 +14,24 @@ package Koha::DateUtils;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use DateTime;
-use C4::Context;
-use Koha::Exceptions;
-use Koha::DateTime::Format::RFC3339;
-
-use vars qw(@ISA @EXPORT_OK);
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-    @ISA = qw(Exporter);
-
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         dt_from_string
         output_pref
         format_sqldatetime
         flatpickr_date_format
     );
 }
+
+use DateTime;
+use C4::Context;
+use Koha::Exceptions;
+use Koha::DateTime::Format::RFC3339;
 
 =head1 DateUtils
 
@@ -54,6 +51,12 @@ $dt = dt_from_string($date_string, [$format, $timezone ]);
 
 Passed a date string returns a DateTime object format and timezone default
 to the system preferences. If the date string is empty DateTime->now is returned
+
+=cut
+
+=head2 dt_from_string
+
+Missing POD for dt_from_string.
 
 =cut
 

@@ -1,7 +1,8 @@
 import { defineStore } from "pinia";
+import { reactive, toRefs, computed } from "vue";
 
-export const useNavigationStore = defineStore("navigation", {
-    state: () => ({
+export const useNavigationStore = defineStore("navigation", () => {
+    const store = reactive({
         routeState: {
             alt: "Home",
             href: "/cgi-bin/koha/mainpage.pl",
@@ -11,8 +12,11 @@ export const useNavigationStore = defineStore("navigation", {
         },
         current: null,
         params: {},
-    }),
-    actions: {
+        from: null,
+        query: {},
+        breadcrumbMetadata: null,
+    });
+    const actions = {
         setRoutes(routesDef) {
             if (!Array.isArray(routesDef)) {
                 routesDef = [routesDef];
@@ -68,17 +72,19 @@ export const useNavigationStore = defineStore("navigation", {
                 child.meta.self = child;
             }
         },
-    },
-    getters: {
-        breadcrumbs() {
-            if (this.current)
+    };
+
+    const getters = {
+        breadcrumbs: computed(() => {
+            if (store.current)
                 return _buildFromCurrentMatches(
-                    this.current,
-                    this.routeState,
-                    this.params
+                    store.current,
+                    store.routeState,
+                    store.params,
+                    store.breadcrumbMetadata
                 );
 
-            return _getBaseElements(this.routeState);
+            return _getBaseElements(store.routeState);
 
             // Function declarations
 
@@ -107,7 +113,8 @@ export const useNavigationStore = defineStore("navigation", {
             function _buildFromCurrentMatches(
                 currentMatches,
                 routeState,
-                params
+                params,
+                breadcrumbMetadata
             ) {
                 return [
                     {
@@ -115,7 +122,7 @@ export const useNavigationStore = defineStore("navigation", {
                         icon: null,
                         children: null,
                     },
-                    ..._mapMatches(currentMatches, params),
+                    ..._mapMatches(currentMatches, params, breadcrumbMetadata),
                 ];
             }
 
@@ -136,23 +143,60 @@ export const useNavigationStore = defineStore("navigation", {
                 return match.path;
             }
 
-            function _mapMatches(currentMatches, params) {
-                return currentMatches
+            function _mapMatches(currentMatches, params, breadcrumbMetadata) {
+                const matches = currentMatches
                     .filter(match => _isBaseOrNotStub(match.meta.self))
                     .filter(match => _isEmptyNode(match.meta.self))
-                    .map(match => {
+                    .reduce((acc, match) => {
                         let path = _getPath(match, params);
-                        return {
-                            ...match.meta.self,
+                        const externalPath = path.includes(".pl");
+                        let {
+                            meta: { self },
+                        } = match;
+                        let breadcrumbInfo = {
+                            ...self,
                             icon: null,
-                            path,
+                            ...(externalPath
+                                ? { href: path, path: null }
+                                : { path }),
                             children: null,
                         };
-                    });
+                        if (self.breadcrumbFormat) {
+                            breadcrumbInfo = self.breadcrumbFormat({
+                                match: breadcrumbInfo,
+                                params: store.params,
+                                query: store.query,
+                            });
+                        }
+                        if (breadcrumbMetadata) {
+                            breadcrumbInfo.title = self.title.replace(
+                                /{([^}]+)}/g,
+                                (match, paramName) =>
+                                    paramName in breadcrumbMetadata
+                                        ? breadcrumbMetadata[paramName]
+                                        : match
+                            );
+                        }
+                        if (self.additionalBreadcrumbs) {
+                            return [
+                                ...acc,
+                                breadcrumbInfo,
+                                ...self.additionalBreadcrumbs,
+                            ];
+                        }
+                        return [...acc, breadcrumbInfo];
+                    }, []);
+                return matches;
             }
-        },
-        leftNavigation() {
-            return _getNavigationElements(this.routeState);
+        }),
+        leftNavigation: computed(() => {
+            const currentRoute = store.current[store.current.length - 1];
+            if (currentRoute) {
+                const alternateMenuRequired =
+                    currentRoute.meta.self.alternateLeftMenu;
+                if (alternateMenuRequired) return alternateMenuRequired;
+            }
+            return _getNavigationElements(store.routeState);
 
             // Function declarations
 
@@ -203,9 +247,9 @@ export const useNavigationStore = defineStore("navigation", {
                     (!parent.children || !parent.children.length)
                 );
             }
-        },
-        navigationRoutes() {
-            let routes = _toRoute(this.routeState);
+        }),
+        navigationRoutes: computed(() => {
+            let routes = _toRoute(store.routeState);
             return Array.isArray(routes) ? routes : [routes];
 
             // Function declarations
@@ -220,8 +264,14 @@ export const useNavigationStore = defineStore("navigation", {
                     .map(child => _toRoute(child))
                     .flat(Infinity);
             }
-        },
-    },
+        }),
+    };
+
+    return {
+        ...toRefs(store),
+        ...actions,
+        ...getters,
+    };
 });
 
 function addSlashIfNotPresent(path) {

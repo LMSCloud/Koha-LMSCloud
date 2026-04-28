@@ -15,7 +15,7 @@ package Koha::Holds;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -204,6 +204,29 @@ sub filter_out_has_cancellation_requests {
         { 'hold_cancellation_request_id' => { '=' => undef } },
         { join                           => 'cancellation_requests' }
     );
+}
+
+=head3 count_holds
+
+    $holds->count_holds( $search_params );
+
+This overwrites the default count().
+
+Return the number of holds, where a hold group is counted as one hold.
+
+=cut
+
+sub count_holds {
+    my ( $self, $search_params, $search_attrs ) = @_;
+    $search_params                  = {} if !$search_params;
+    $search_attrs                   = {} if !$search_attrs;
+    $search_params->{hold_group_id} = undef;
+    my $holds_without_group_count = $self->search( $search_params, $search_attrs )->count();
+
+    $search_params->{hold_group_id} = { '!=', undef };
+    $search_attrs->{group_by}       = 'me.hold_group_id';
+    my $hold_groups_count = $self->search( $search_params, $search_attrs )->count();
+    return $holds_without_group_count + $hold_groups_count;
 }
 
 =head2 Internal methods

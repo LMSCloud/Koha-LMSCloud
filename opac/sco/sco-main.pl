@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # We're going to authenticate a self-check user.  we'll add a flag to borrowers 'selfcheck'
 #
@@ -281,7 +281,13 @@ if ( $patron && $op eq "cud-returnbook" && $allowselfcheckreturns ) {
                     )->count;
                 }
 
-                my $new_issue = AddIssue( $patron, $barcode );
+                my $new_issue = AddIssue(
+                    $patron, $barcode, undef, undef, undef, undef,
+                    {
+                        confirmations => [ grep { /^[A-Z_]+$/ } keys %{$needconfirm} ],
+                        forced        => [ keys %{$impossible} ]
+                    }
+                );
                 $template->param( issued => 1, new_issue => $new_issue );
                 push @newissueslist, $barcode unless ( grep /^$barcode$/, @newissueslist );
 

@@ -16,7 +16,7 @@ package Koha;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -29,7 +29,7 @@ use vars qw{ $VERSION };
 # - #4 : the developer version. The 4th number is the database subversion.
 #        used by developers when the database changes. updatedatabase take care of the changes itself
 #        and is automatically called by Auth.pm when needed.
-$VERSION = "24.11.13.000";
+$VERSION = "25.11.03.000";
 
 sub version {
     return $VERSION;

@@ -60,6 +60,13 @@ function clone_entry(node) {
     $("input#patron_attr_" + newId, clone).attr("value", "");
     $("select#patron_attr_" + newId, clone).attr("value", "");
     $(original).after(clone);
+
+    // regenerate flatpickr calendars to add event listeners
+    $(`.flatpickr_wrapper`, clone).remove();
+    $(".flatpickr", clone).each(function () {
+        apply_flatpickr(this);
+    });
+
     return false;
 }
 
@@ -81,6 +88,24 @@ function update_category_code(category_code) {
     );
     var hint_string = __("Minimum password length: %s").format(min_length);
     hint.html(hint_string);
+
+    // Change patron's expiration date
+    $("#categorycode_entry").change(function () {
+        $("#expirationDateModal").modal("show");
+        // Handle confirmation Yes button click
+        $("#expirationDateConfirmBtn").on("click", function () {
+            var fp = $("#to").flatpickr();
+            var expiryDate = $(
+                "select" + category_selector + " option:selected"
+            ).data("expiryDate");
+            // Check if expiryDate is available and format it to YYYY-MM-DD
+            if (expiryDate) {
+                var formattedDate = expiryDate.split("T")[0];
+                fp.setDate(formattedDate);
+            }
+            $("#expirationDateModal").modal("hide");
+        });
+    });
 }
 
 function select_user(borrowernumber, borrower, relationship) {
@@ -142,7 +167,6 @@ function select_user(borrowernumber, borrower, relationship) {
             .find(".new_guarantor_relationship")
             .first()
             .val(guarantor_relationship);
-        $("#relationship").find("option:eq(0)").prop("selected", true);
 
         fieldset
             .find(".guarantor-details")
@@ -154,6 +178,21 @@ function select_user(borrowernumber, borrower, relationship) {
 
         if (relationship) {
             fieldset.find(".new_guarantor_relationship").val(relationship);
+        }
+
+        if (prefill_fields && to_api_mapping) {
+            for (let i = 0; i < parseInt(prefill_fields.length, 10); i++) {
+                let field_name = prefill_fields[i];
+                let attribute = to_api_mapping[field_name] || field_name;
+                if (
+                    borrower[attribute] != null &&
+                    document.forms.entryform[field_name] &&
+                    document.forms.entryform[field_name].value == ""
+                ) {
+                    document.forms.entryform[field_name].value =
+                        borrower[attribute];
+                }
+            }
         }
     }
 
@@ -244,15 +283,6 @@ $(document).ready(function () {
 
     $("fieldset.rows input, fieldset.rows select").addClass("noEnterSubmit");
 
-    $("body").on("click", "#guarantor_search", function (e) {
-        e.preventDefault();
-        var newin = window.open(
-            "/cgi-bin/koha/members/search.pl?columns=cardnumber,name,category,branch,dateofbirth,address-library,action",
-            "popup",
-            "width=1024,height=768,resizable=no,toolbar=false,scrollbars=yes,top"
-        );
-    });
-
     $("#guarantor_relationships").on(
         "click",
         ".guarantor_cancel",
@@ -267,28 +297,48 @@ $(document).ready(function () {
         var addressfield = $(this).data("addressfield");
         var myRegEx = new RegExp(/(.*)\|(.*)\|(.*)\|(.*)/);
         var matches = selected_city.match(myRegEx);
-        $(this)
-            .closest("fieldset")
-            .find("input[name='" + addressfield + "zipcode']")
+        var $scope = $(this).closest("fieldset");
+        $scope
+            .find(
+                "input[name='" +
+                    addressfield +
+                    "zipcode'], input[name='" +
+                    addressfield +
+                    "zipcode_quick_add']"
+            )
             .val(matches[1]);
         if (addressfield != "altcontact") {
-            $(this)
-                .closest("fieldset")
-                .find("input[name='" + addressfield + "city']")
+            $scope
+                .find(
+                    "input[name='" +
+                        addressfield +
+                        "city'], input[name='" +
+                        addressfield +
+                        "city_quick_add']"
+                )
                 .val(matches[2]);
         } else {
-            $(this)
-                .closest("fieldset")
+            $scope
                 .find("input[name='" + addressfield + "address3']")
                 .val(matches[2]);
         }
-        $(this)
-            .closest("fieldset")
-            .find("input[name='" + addressfield + "state']")
+        $scope
+            .find(
+                "input[name='" +
+                    addressfield +
+                    "state'], input[name='" +
+                    addressfield +
+                    "state_quick_add']"
+            )
             .val(matches[3]);
-        $(this)
-            .closest("fieldset")
-            .find("input[name='" + addressfield + "country']")
+        $scope
+            .find(
+                "input[name='" +
+                    addressfield +
+                    "country'], input[name='" +
+                    addressfield +
+                    "country_quick_add']"
+            )
             .val(matches[4]);
     });
 

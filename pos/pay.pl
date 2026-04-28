@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -80,7 +80,7 @@ if ( $op eq 'cud-pay' ) {
 
         $template->param(
             payment_id => $payment->accountlines_id,
-            collected  => scalar $input->param('collected'),
+            tendered   => scalar $input->param('tendered'),
             change     => scalar $input->param('change')
         );
     }
@@ -89,7 +89,7 @@ if ( $op eq 'cud-pay' ) {
 if ( $op eq 'cud-send' ) {
     my $payment_id = $input->param('payment_id');
     my $change     = $input->param('change');
-    my $collected  = $input->param('collected');
+    my $tendered   = $input->param('tendered');
     my $toaddr     = $input->param('toaddr');
 
     # Create our letter from the template
@@ -102,8 +102,8 @@ if ( $op eq 'cud-send' ) {
             credits => $payment_id,
         },
         substitute => {
-            collected => $collected,
-            change    => $change
+            tendered => $tendered,
+            change   => $change
         }
     );
 
@@ -114,7 +114,6 @@ if ( $op eq 'cud-send' ) {
             message_transport_type => 'email',
             from_address           => C4::Context->preference('KohaAdminEmailAddress'),
             to_address             => $toaddr,
-            branchcode             => C4::Context->userenv->{'branch'},
         }
     );
 
@@ -124,7 +123,7 @@ if ( $op eq 'cud-send' ) {
     # Set variables for template to allow printing still
     $template->param(
         payment_id => $payment_id,
-        collected  => $collected,
+        tendered   => $tendered,
         change     => $change
     );
 }

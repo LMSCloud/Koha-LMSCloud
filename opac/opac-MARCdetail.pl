@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -46,7 +46,7 @@ use Modern::Perl;
 
 use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output qw( parametrized_url output_html_with_http_headers );
+use C4::Output qw( parametrized_url output_html_with_http_headers redirect_if_opac_suppressed );
 use CGI        qw ( -utf8 );
 use C4::Biblio qw(
     CountItemsIssued
@@ -299,7 +299,7 @@ for ( my $tabloop = 0 ; $tabloop <= 9 ; $tabloop++ ) {
 # now, build item tab !
 # the main difference is that datas are in lines and not in columns : thus, we build the <th> first, then the values...
 # loop through each tag
-# warning : we may have differents number of columns in each row. Thus, we first build a hash, complete it if necessary
+# warning : we may have different number of columns in each row. Thus, we first build a hash, complete it if necessary
 # then construct template.
 # $record has already had all the item fields filtered above.
 my @fields = $record->fields();

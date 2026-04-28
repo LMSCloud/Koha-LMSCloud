@@ -1,184 +1,207 @@
 <template>
-  <v-select
-    :id="id"
-    v-model="model"
-    :label="label"
-    :options="paginationRequired ? paginated : data"
-    :reduce="item => item[dataIdentifier]"
-    @open="onOpen"
-    @close="onClose"
-    @option:selected="onSelected"
-    @search="searchFilter($event)"
-    ref="select"
-  >
-    <template v-if="required" #search="{ attributes, events }">
-      <input
-        :required="!model"
-        class="vs__search"
-        v-bind="attributes"
-        v-on="events"
-      />
-    </template>
-    <template #selected-option="option">
-      {{ selectedOptionLabel }}
-    </template>
-    <template #list-footer>
-      <li v-show="hasNextPage && !this.search" ref="load">
-        {{ $__("Loading more options...") }}
-      </li>
-    </template>
-  </v-select>
+    <v-select
+        :id="id"
+        v-model="model"
+        :label="label"
+        :options="paginationRequired ? paginated : data"
+        :reduce="item => item[dataIdentifier]"
+        @open="onOpen"
+        @close="onClose"
+        @option:selected="onSelected"
+        @search="searchFilter($event)"
+        ref="select"
+    >
+        <template v-if="required" #search="{ attributes, events }">
+            <input
+                :required="!model"
+                class="vs__search"
+                v-bind="attributes"
+                v-on="events"
+            />
+        </template>
+        <template #selected-option="option">
+            {{ selectedOptionLabel }}
+        </template>
+        <template #list-footer>
+            <li v-show="hasNextPage && !searchString" ref="load">
+                {{ $__("Loading more options...") }}
+            </li>
+        </template>
+    </v-select>
 </template>
 
 <script>
-import { APIClient } from "../fetch/api-client.js"
+import { computed, nextTick, onMounted, ref, useTemplateRef } from "vue";
+import { APIClient } from "../fetch/api-client.js";
 
 export default {
-  props: {
-    id: String,
-    selectedData: Object,
-    dataType: String,
-    modelValue: Number,
-    dataIdentifier: String,
-    label: String,
-    required: Boolean,
-  },
-  emits: ["update:modelValue"],
-  data() {
-    return {
-      observer: null,
-      limit: null,
-      search: "",
-      scrollPage: null,
-      data: [this.selectedData],
-      paginationRequired: false,
-      selectedOptionLabel: this.selectedData[this.label],
-    }
-  },
-  computed: {
-    model: {
-      get() {
-        return this.modelValue
-      },
-      set(value) {
-        this.$emit("update:modelValue", value)
-      },
+    props: {
+        id: String,
+        selectedData: Object,
+        dataType: String,
+        modelValue: Number,
+        dataIdentifier: String,
+        label: String,
+        required: Boolean,
     },
-    filtered() {
-      return this.data.filter(item => item[this.label].includes(this.search))
-    },
-    paginated() {
-      return this.filtered.slice(0, this.limit)
-    },
-    hasNextPage() {
-      return this.paginated.length < this.filtered.length
-    },
-  },
-  mounted() {
-    this.observer = new IntersectionObserver(this.infiniteScroll)
-  },
-  methods: {
-    async fetchInitialData(dataType) {
-      const client = APIClient.erm
-      await client[dataType]
-        .getAll(
-          {},
-          {
-            _page: 1,
-            _per_page: 20,
-            _match: "contains",
-          }
-        )
-        .then(
-          items => {
-            this.data = items
-            this.search = ""
-            this.limit = 19
-            this.scrollPage = 1
-          },
-          error => {}
-        )
-    },
-    async searchFilter(e) {
-      if (e) {
-        this.paginationRequired = false
-        this.observer.disconnect()
-        this.data = []
-        this.search = e
-        const client = APIClient.erm
-        const attribute = "me." + this.label
-        const q = {}
-        q[attribute] = { like: `%${e}%` }
-        await client[this.dataType]
-          .getAll(q, {
-            _per_page: -1,
-          })
-          .then(
-            items => {
-              this.data = [...items]
+    emits: ["update:modelValue"],
+    setup(props, { emit }) {
+        const observer = ref(null);
+        const limit = ref(null);
+        const searchString = ref("");
+        const scrollPage = ref(null);
+        const data = ref([props.selectedData]);
+        const paginationRequired = ref(false);
+        const selectedOptionLabel = ref(props.selectedData[props.label]);
+
+        const model = computed({
+            get() {
+                return props.modelValue;
             },
-            error => {}
-          )
-      } else {
-        this.resetSelect()
-      }
+            set(value) {
+                emit("update:modelValue", value);
+            },
+        });
+
+        const filtered = computed(() => {
+            return data.value.filter(item =>
+                item[props.label].includes(searchString.value)
+            );
+        });
+        const paginated = computed(() => {
+            return filtered.value.slice(0, limit.value);
+        });
+        const hasNextPage = computed(() => {
+            return paginated.value.length < filtered.value.length;
+        });
+
+        const loadingBlock = useTemplateRef("load");
+        const select = useTemplateRef("select");
+
+        const fetchInitialData = async dataType => {
+            const client = APIClient.erm;
+            await client[dataType]
+                .getAll(
+                    {},
+                    {
+                        _page: 1,
+                        _per_page: 20,
+                        _match: "contains",
+                    }
+                )
+                .then(
+                    items => {
+                        data.value = items;
+                        searchString.value = "";
+                        limit.value = 19;
+                        scrollPage.value = 1;
+                    },
+                    error => {}
+                );
+        };
+        const searchFilter = async e => {
+            if (e) {
+                paginationRequired.value = false;
+                observer.value.disconnect();
+                data.value = [];
+                searchString.value = e;
+                const client = APIClient.erm;
+                const attribute = "me." + props.label;
+                const q = {};
+                q[attribute] = { like: `%${e}%` };
+                await client[props.dataType]
+                    .getAll(q, {
+                        _per_page: -1,
+                    })
+                    .then(
+                        items => {
+                            data.value = [...items];
+                        },
+                        error => {}
+                    );
+            } else {
+                resetSelect();
+            }
+        };
+        const onOpen = async () => {
+            paginationRequired.value = true;
+            await fetchInitialData(props.dataType);
+            if (hasNextPage.value) {
+                await nextTick();
+                observer.value.observe(loadingBlock.value);
+            }
+        };
+        const infiniteScroll = async ([{ isIntersecting, target }]) => {
+            setTimeout(async () => {
+                if (isIntersecting) {
+                    const ul = target.offsetParent;
+                    const scrollTop = target.offsetParent.scrollTop;
+                    limit.value += 20;
+                    scrollPage.value++;
+                    await nextTick();
+                    const client = APIClient.erm;
+                    ul.scrollTop = scrollTop;
+                    await client[props.dataType]
+                        .getAll(
+                            {},
+                            {
+                                _page: scrollPage,
+                                _per_page: 20,
+                                _match: "contains",
+                            }
+                        )
+                        .then(
+                            items => {
+                                const existingData = [...data.value];
+                                data.value = [...existingData, ...items];
+                            },
+                            error => {}
+                        );
+                    ul.scrollTop = scrollTop;
+                }
+            }, 250);
+        };
+        const resetSelect = async () => {
+            if (select.value.open) {
+                await fetchInitialData(props.dataType);
+                if (hasNextPage.value) {
+                    await nextTick();
+                    observer.value.observe(loadingBlock.value);
+                }
+            } else {
+                paginationRequired.value = false;
+            }
+        };
+        const onClose = () => {
+            observer.value.disconnect();
+        };
+        const onSelected = option => {
+            selectedOptionLabel.value = option[props.label];
+        };
+        onMounted(() => {
+            observer.value = new IntersectionObserver(infiniteScroll);
+        });
+
+        return {
+            observer,
+            limit,
+            searchString,
+            scrollPage,
+            data,
+            paginationRequired,
+            selectedOptionLabel,
+            model,
+            filtered,
+            paginated,
+            hasNextPage,
+            searchFilter,
+            onOpen,
+            onClose,
+            onSelected,
+            resetSelect,
+            fetchInitialData,
+        };
     },
-    async onOpen() {
-      this.paginationRequired = true
-      await this.fetchInitialData(this.dataType)
-      if (this.hasNextPage) {
-        await this.$nextTick()
-        this.observer.observe(this.$refs.load)
-      }
-    },
-    onClose() {
-      this.observer.disconnect()
-    },
-    onSelected(option) {
-      this.selectedOptionLabel = option[this.label]
-    },
-    async infiniteScroll([{ isIntersecting, target }]) {
-      setTimeout(async () => {
-        if (isIntersecting) {
-          const ul = target.offsetParent
-          const scrollTop = target.offsetParent.scrollTop
-          this.limit += 20
-          this.scrollPage++
-          await this.$nextTick()
-          const client = APIClient.erm
-          ul.scrollTop = scrollTop
-          await client[this.dataType]
-            .getAll(
-              {},
-              {
-                _page: this.scrollPage,
-                _per_page: 20,
-                _match: "contains",
-              }
-            )
-            .then(
-              items => {
-                const existingData = [...this.data]
-                this.data = [...existingData, ...items]
-              },
-              error => {}
-            )
-          ul.scrollTop = scrollTop
-        }
-      }, 250)
-    },
-    async resetSelect() {
-      if (this.$refs.select.open) {
-        await this.fetchInitialData(this.dataType)
-        if (this.hasNextPage) {
-          await this.$nextTick()
-          this.observer.observe(this.$refs.load)
-        }
-      } else {
-        this.paginationRequired = false
-      }
-    },
-  },
-  name: "InfiniteScrollSelect",
-}
+    name: "InfiniteScrollSelect",
+};
 </script>

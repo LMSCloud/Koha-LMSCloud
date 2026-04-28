@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 13;
+use Test::NoWarnings;
+use Test::More tests => 14;
 
 use C4::Biblio qw( AddBiblio );
 use C4::Context;
@@ -187,7 +188,7 @@ t::lib::Mocks::mock_userenv( { patron => $john_doe_patron } );
 # Search private lists by title
 $search_results = C4::Utils::DataTables::VirtualShelves::search(
     {
-        shelfname => "ist",
+        shelfname => "list",
         %dt_params,
         public => 0,
     }
@@ -200,7 +201,7 @@ is(
 
 is(
     $search_results->{recordsFiltered}, 2,
-    "There should be 2 private shelves with title like '%ist%"
+    "There should be 2 private shelves with title like '%list%"
 );
 
 is(

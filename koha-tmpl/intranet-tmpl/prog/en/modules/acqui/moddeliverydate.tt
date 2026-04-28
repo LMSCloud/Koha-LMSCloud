@@ -22,7 +22,7 @@
             <a href="/cgi-bin/koha/acqui/acqui-home.pl">Acquisition</a>
         [% END %]
         [% WRAPPER breadcrumb_item %]
-            <a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid=[% booksellerid | uri %]">[% booksellername | html %]</a>
+            <a href="/cgi-bin/koha/acquisition/vendors/[% booksellerid | uri %]">[% booksellername | html %]</a>
         [% END %]
         [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/acqui/basket.pl?basketno=[% basketno | uri %]">Basket [% basketname | html %] ([% basketno | html %])</a>
@@ -33,33 +33,27 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
-            [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' %]
+    <h1>Change estimated delivery date</h1>
+    <form action="/cgi-bin/koha/acqui/moddeliverydate.pl" method="post">
+        [% INCLUDE 'csrf-token.inc' %]
+        <fieldset class="brief">
+            <label for="estimated_delivery_date">Estimated delivery date:</label>
+            <input type="text" id="estimated_delivery_date" size="10" name="estimated_delivery_date" class="flatpickr" value="[% estimated_delivery_date | html %]" />
+            <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
+        </fieldset>
+        <input type="hidden" name="referrer" value="[% referrer | html %]" />
+        <input type="hidden" name="ordernumber" value="[% ordernumber | html %]" />
+        <input type="hidden" name="op" value="cud-save" />
+        <fieldset class="action">
+            <input type="submit" class="btn btn-primary" value="Save" />
+            <a class="cancel" href="[% referrer | url %]">Cancel</a>
+        </fieldset>
+    </form>
+[% END %]
 
-            <h1>Change estimated delivery date</h1>
-            <form action="/cgi-bin/koha/acqui/moddeliverydate.pl" method="post">
-                [% INCLUDE 'csrf-token.inc' %]
-                <fieldset class="brief">
-                    <label for="estimated_delivery_date">Estimated delivery date:</label>
-                    <input type="text" id="estimated_delivery_date" size="10" name="estimated_delivery_date" class="flatpickr" value="[% estimated_delivery_date | html %]" />
-                    <div class="hint">[% INCLUDE 'date-format.inc' %]</div>
-                </fieldset>
-                <input type="hidden" name="referrer" value="[% referrer | html %]" />
-                <input type="hidden" name="ordernumber" value="[% ordernumber | html %]" />
-                <input type="hidden" name="op" value="cud-save" />
-                <fieldset class="action">
-                    <input type="submit" class="btn btn-primary" value="Save" />
-                    <a class="cancel" href="[% referrer | url %]">Cancel</a>
-                </fieldset>
-            </form>
-        </div>
-    </div>
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+[% END %]
 
-    [% MACRO jsinclude BLOCK %]
-        [% INCLUDE 'calendar.inc' %]
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+[% INCLUDE 'intranet-bottom.inc' %]

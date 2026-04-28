@@ -14,7 +14,7 @@ package Koha::Template::Plugin::AuthorisedValues;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -89,10 +89,19 @@ sub GetDescriptionByKohaField {
         : $description;
 }
 
+=head1 METHODS
+
+=head2 get_all_by_category
+
+Returns a hashref mapping every authorised value category to its entries,
+sorted by lib/lib_opac. Used by templates that need to render several
+category selectors in bulk.
+
+=cut
+
 sub get_all_by_category {
     my ( $self, $params ) = @_;
 
-    # Get all categories
     my @categories = Koha::AuthorisedValues->new->categories;
     my %authorised_values_by_category;
 
@@ -102,13 +111,13 @@ sub get_all_by_category {
             { order_by => [ 'lib', 'lib_opac' ] }
         );
 
-        my @values = [];
+        my @values = ();
         while ( my $av = $avs->next ) {
             push @values, {
                 value            => $av->authorised_value,
                 description      => $av->lib,
                 opac_description => $av->opac_description,
-                imageurl         => $av->imageurl
+                imageurl         => $av->imageurl,
             };
         }
         $authorised_values_by_category{$category} = \@values;
@@ -140,9 +149,17 @@ Koha::Template::Plugin::AuthorisedValues - TT Plugin for authorised values
 In a template, you can get the description for an authorised value with
 the following TT code: [% AuthorisedValues.GetByCode( 'CATEGORY', 'AUTHORISED_VALUE_CODE', 'IS_OPAC' ) %]
 
+=head2 Get
+
+Missing POD for Get.
+
 =head2 GetAuthValueDropbox
 
 The parameters are identical to those used by the subroutine C4::Koha::GetAuthValueDropbox
+
+=head2 GetCategories
+
+Missing POD for GetCategories.
 
 =head2 GetDescriptionsByKohaField
 

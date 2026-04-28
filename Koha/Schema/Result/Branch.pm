@@ -1036,17 +1036,46 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:54
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ygw1c25h8ArDBBQ7cxZzuw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-14 11:43:59
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:IcS5sPKquoqci2c4Y7+TeQ
+
+__PACKAGE__->has_many(
+    "additional_field_values",
+    "Koha::Schema::Result::AdditionalFieldValue",
+    sub {
+        my ($args) = @_;
+
+        return {
+            "$args->{foreign_alias}.record_id" => { -ident => "$args->{self_alias}.branchcode" },
+
+            "$args->{foreign_alias}.field_id" =>
+                { -in => \'(SELECT id FROM additional_fields WHERE tablename="branches")' },
+        };
+    },
+    { cascade_copy => 0, cascade_delete => 0 },
+);
 
 __PACKAGE__->add_columns(
     '+pickup_location' => { is_boolean => 1 },
     '+public'          => { is_boolean => 1 }
 );
 
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
+
 sub koha_object_class {
     'Koha::Library';
 }
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
     'Koha::Libraries';
 }

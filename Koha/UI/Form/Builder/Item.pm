@@ -13,7 +13,7 @@ package Koha::UI::Form::Builder::Item;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use feature    qw(fc);
@@ -329,6 +329,7 @@ sub generate_subfield_form {
                 class      => $class,
                 nopopup    => $plugin->noclick,
                 javascript => $plugin->javascript,
+                plugin     => $plugin->name,
             };
         } else {
             warn $plugin->errstr;

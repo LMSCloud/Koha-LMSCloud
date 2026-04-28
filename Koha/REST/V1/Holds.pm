@@ -13,7 +13,7 @@ package Koha::REST::V1::Holds;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -81,7 +81,7 @@ sub add {
         my $pickup_library_id = $body->{pickup_library_id};
         my $item_id           = $body->{item_id};
         my $patron_id         = $body->{patron_id};
-        my $item_type         = $body->{item_type};
+        my $item_type         = $body->{item_type_id};
         my $expiration_date   = $body->{expiration_date};
         my $notes             = $body->{notes};
         my $hold_date         = $body->{hold_date};
@@ -161,16 +161,23 @@ sub add {
                 openapi => { error => 'The supplied pickup location is not valid' }
             ) unless $valid_pickup_location;
 
+            my $can_place_holds = $patron->can_place_holds( { overrides => $overrides } );
+
+            if ( !$can_place_holds ) {
+                my $error_code = $can_place_holds->messages->[0]->message;
+                return $c->render(
+                    status  => 409,
+                    openapi => {
+                        error      => 'Hold cannot be placed. Reason: ' . $error_code,
+                        error_code => $error_code,
+                    }
+                );
+            }
+
             my $can_place_hold =
                 $item
                 ? C4::Reserves::CanItemBeReserved( $patron, $item )
                 : C4::Reserves::CanBookBeReserved( $patron_id, $biblio_id );
-
-            if ( C4::Context->preference('maxreserves')
-                && $patron->holds->count + 1 > C4::Context->preference('maxreserves') )
-            {
-                $can_place_hold->{status} = 'tooManyReserves';
-            }
 
             unless ( $can_place_hold->{status} eq 'OK' ) {
                 return $c->render(
@@ -181,6 +188,11 @@ sub add {
         }
 
         my $priority = C4::Reserves::CalculatePriority($biblio_id);
+
+        my $confirmations = [];
+        if ($can_override) {
+            push @{$confirmations}, 'HOLD_POLICY_OVERRIDE';
+        }
 
         my $hold_id = C4::Reserves::AddReserve(
             {
@@ -196,6 +208,7 @@ sub add {
                 found            => undef,                # TODO: Why not?
                 itemtype         => $item_type,
                 non_priority     => $non_priority,
+                confirmations    => $confirmations,
                 item_group_id    => $item_group_id,
             }
         );
@@ -408,7 +421,7 @@ sub update_priority {
 
     return try {
         my $priority = $c->req->json;
-        C4::Reserves::_FixPriority(
+        C4::Reserves::FixPriority(
             {
                 reserve_id => $hold->id,
                 rank       => $priority
@@ -532,6 +545,121 @@ sub update_pickup_location {
             );
         }
 
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 delete_bulk
+
+Method that handles bulk hold cancellation
+
+=cut
+
+sub delete_bulk {
+    my $c = shift->openapi->valid_input or return;
+
+    my $body                = $c->req->json;
+    my $hold_ids            = ($body) ? $body->{hold_ids}            : undef;
+    my $cancellation_reason = ($body) ? $body->{cancellation_reason} : undef;
+
+    return $c->render_resource_not_found("Hold")
+        unless $hold_ids;
+
+    foreach my $hold_id (@$hold_ids) {
+        my $hold = Koha::Holds->find($hold_id);
+        return $c->render_resource_not_found( "Hold", "id", $hold_id )
+            unless $hold;
+    }
+
+    return try {
+        Koha::Database->new->schema->txn_do(
+            sub {
+                foreach my $hold_id (@$hold_ids) {
+                    my $hold = Koha::Holds->find($hold_id);
+                    $hold->cancel( { cancellation_reason => $cancellation_reason } );
+                }
+                $c->res->headers->location( $c->req->url->to_string );
+                return $c->render(
+                    status  => 204,
+                    openapi => {
+                        hold_ids            => $hold_ids,
+                        cancellation_reason => $cancellation_reason,
+                    }
+                );
+            }
+        );
+    } catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 suspend_bulk
+
+Method that handles bulk hold suspension
+
+=cut
+
+sub suspend_bulk {
+    my $c = shift->openapi->valid_input or return;
+
+    my $body     = $c->req->json;
+    my $end_date = ($body) ? $body->{end_date} : undef;
+    my $hold_ids = ($body) ? $body->{hold_ids} : undef;
+
+    return $c->render_resource_not_found("Hold")
+        unless $hold_ids;
+
+    return try {
+        Koha::Database->new->schema->txn_do(
+            sub {
+                foreach my $hold_id (@$hold_ids) {
+                    my $hold = Koha::Holds->find($hold_id);
+
+                    return $c->render_resource_not_found( "Hold", "id", $hold_id )
+                        unless $hold;
+
+                    $hold->suspend_hold($end_date);
+                    $hold->discard_changes;
+                }
+                $c->res->headers->location( $c->req->url->to_string );
+                return $c->render(
+                    status  => 201,
+                    openapi => {
+                        hold_ids => $hold_ids,
+                        end_date => $end_date,
+                    }
+                );
+            }
+        );
+    } catch {
+        if ( blessed $_ and $_->isa('Koha::Exceptions::Hold::CannotSuspendFound') ) {
+            return $c->render( status => 400, openapi => { error => "$_" } );
+        }
+
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 lowest_priority
+
+Method that handles toggling lowest priority on a hold
+
+=cut
+
+sub lowest_priority {
+    my $c = shift->openapi->valid_input or return;
+
+    my $hold_id = $c->param('hold_id');
+    my $hold    = Koha::Holds->find($hold_id);
+
+    return $c->render_resource_not_found("Hold")
+        unless $hold;
+
+    return try {
+        C4::Reserves::ToggleLowestPriority($hold_id);
+        $hold->discard_changes;
+        return $c->render( status => 200, openapi => $hold_id );
+    } catch {
         $c->unhandled_exception($_);
     };
 }

@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 6;
+use Test::NoWarnings;
+use Test::More tests => 8;
 use Test::Mojo;
 use Test::Warn;
 
@@ -134,11 +135,13 @@ subtest 'list() tests' => sub {
 
     $api_filter = encode_json(
         { 'me.start_date' => { '<=' => output_pref( { dateformat => "rfc3339", dt => dt_from_string } ) } } );
-    $t->get_ok("//$userid:$password@/api/v1/bookings?q=$api_filter")->status_is(200)
+    $t->get_ok("//$userid:$password@/api/v1/bookings?q=$api_filter")
+        ->status_is(200)
         ->json_is( '' => [ $booking_0->to_api ], 'filtering to before today also works' );
 
     # Warn on unsupported query parameter
-    $t->get_ok("//$userid:$password@/api/v1/bookings?booking_blah=blah")->status_is(400)
+    $t->get_ok("//$userid:$password@/api/v1/bookings?booking_blah=blah")
+        ->status_is(400)
         ->json_is( [ { path => '/query/booking_blah', message => 'Malformed query string' } ] );
 
     $schema->storage->txn_rollback;
@@ -175,14 +178,16 @@ subtest 'get() tests' => sub {
     $t->get_ok( "//$unauth_userid:$password@/api/v1/bookings/" . $booking->booking_id )->status_is(403);
 
     # Authorized user tests
-    $t->get_ok( "//$userid:$password@/api/v1/bookings/" . $booking->booking_id )->status_is(200)
+    $t->get_ok( "//$userid:$password@/api/v1/bookings/" . $booking->booking_id )
+        ->status_is(200)
         ->json_is( $booking->to_api );
 
     my $booking_to_delete = $builder->build_object( { class => 'Koha::Bookings' } );
     my $non_existent_id   = $booking_to_delete->id;
     $booking_to_delete->delete;
 
-    $t->get_ok("//$userid:$password@/api/v1/bookings/$non_existent_id")->status_is(404)
+    $t->get_ok("//$userid:$password@/api/v1/bookings/$non_existent_id")
+        ->status_is(404)
         ->json_is( '/error' => 'Booking not found' );
 
     $schema->storage->txn_rollback;
@@ -230,7 +235,7 @@ subtest 'add() tests' => sub {
     my $pickup_library = $builder->build_object( { class => 'Koha::Libraries' } );
     my $booking        = {
         biblio_id         => $biblio->id,
-        item_id           => undef,
+        item_id           => $item1->itemnumber,
         pickup_library_id => $pickup_library->branchcode,
         patron_id         => $patron->id,
         start_date        => output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 2 ) } ),
@@ -243,7 +248,8 @@ subtest 'add() tests' => sub {
     # Authorized attempt to write invalid data
     my $booking_with_invalid_field = { %{$booking}, blah => 'some stuff' };
 
-    $t->post_ok( "//$userid:$password@/api/v1/bookings" => json => $booking_with_invalid_field )->status_is(400)
+    $t->post_ok( "//$userid:$password@/api/v1/bookings" => json => $booking_with_invalid_field )
+        ->status_is(400)
         ->json_is(
         "/errors" => [
             {
@@ -255,8 +261,10 @@ subtest 'add() tests' => sub {
 
     # Authorized attempt to write
     my $booking_id =
-        $t->post_ok( "//$userid:$password@/api/v1/bookings" => json => $booking )->status_is( 201, 'REST3.2.1' )
-        ->header_like( Location => qr|^\/api\/v1\/bookings/\d*|, 'REST3.4.1' )->json_is( '/biblio_id' => $biblio->id )
+        $t->post_ok( "//$userid:$password@/api/v1/bookings" => json => $booking )
+        ->status_is( 201, 'REST3.2.1' )
+        ->header_like( Location => qr|^\/api\/v1\/bookings/\d*|, 'REST3.4.1' )
+        ->json_is( '/biblio_id' => $biblio->id )
         ->tx->res->json->{booking_id};
 
     # Authorized attempt to create with null id
@@ -264,9 +272,13 @@ subtest 'add() tests' => sub {
     $t->post_ok( "//$userid:$password@/api/v1/bookings" => json => $booking )->status_is(400)->json_has('/errors');
 
     # Authorized attempt to create with existing id
+    # Use different dates to avoid triggering clash detection (we want to test duplicate ID handling)
     $booking->{booking_id} = $booking_id;
+    $booking->{start_date} = output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 10 ) } );
+    $booking->{end_date}   = output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 14 ) } );
     warnings_like {
-        $t->post_ok( "//$userid:$password@/api/v1/bookings" => json => $booking )->status_is(409)
+        $t->post_ok( "//$userid:$password@/api/v1/bookings" => json => $booking )
+            ->status_is(409)
             ->json_is( "/error" => "Duplicate booking_id" );
     }
     qr/DBD::mysql::st execute failed: Duplicate entry '(.*?)' for key '(.*\.?)PRIMARY'/;
@@ -326,7 +338,7 @@ subtest 'update() tests' => sub {
 
     # Attempt partial update on a PUT
     my $booking_with_missing_field = {
-        item_id           => undef,
+        item_id           => $item->itemnumber,
         patron_id         => $patron->id,
         pickup_library_id => $pickup_library->branchcode,
         start_date        => output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 2 ) } ),
@@ -334,12 +346,13 @@ subtest 'update() tests' => sub {
     };
 
     $t->put_ok( "//$userid:$password@/api/v1/bookings/$booking_id" => json => $booking_with_missing_field )
-        ->status_is(400)->json_is( "/errors" => [ { message => "Missing property.", path => "/body/biblio_id" } ] );
+        ->status_is(400)
+        ->json_is( "/errors" => [ { message => "Missing property.", path => "/body/biblio_id" } ] );
 
     # Full object update on PUT
     my $booking_with_updated_field = {
         biblio_id         => $biblio->id,
-        item_id           => undef,
+        item_id           => $item->itemnumber,
         pickup_library_id => $pickup_library->branchcode,
         patron_id         => $patron->id,
         start_date        => output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 2 ) } ),
@@ -347,13 +360,14 @@ subtest 'update() tests' => sub {
     };
 
     $t->put_ok( "//$userid:$password@/api/v1/bookings/$booking_id" => json => $booking_with_updated_field )
-        ->status_is(200)->json_is( '/biblio_id' => $biblio->id );
+        ->status_is(200)
+        ->json_is( '/biblio_id' => $biblio->id );
 
     # Authorized attempt to write invalid data
     my $booking_with_invalid_field = {
         blah              => "Booking Blah",
         biblio_id         => $biblio->id,
-        item_id           => undef,
+        item_id           => $item->itemnumber,
         pickup_library_id => $pickup_library->branchcode,
         patron_id         => $patron->id,
         start_date        => output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 2 ) } ),
@@ -361,7 +375,8 @@ subtest 'update() tests' => sub {
     };
 
     $t->put_ok( "//$userid:$password@/api/v1/bookings/$booking_id" => json => $booking_with_invalid_field )
-        ->status_is(400)->json_is(
+        ->status_is(400)
+        ->json_is(
         "/errors" => [
             {
                 message => "Properties not allowed: blah.",
@@ -430,7 +445,8 @@ subtest 'delete() tests' => sub {
     # Unauthorized attempt to delete
     $t->delete_ok("//$unauth_userid:$password@/api/v1/bookings/$booking_id")->status_is(403);
 
-    $t->delete_ok("//$userid:$password@/api/v1/bookings/$booking_id")->status_is( 204, 'REST3.2.4' )
+    $t->delete_ok("//$userid:$password@/api/v1/bookings/$booking_id")
+        ->status_is( 204, 'REST3.2.4' )
         ->content_is( '', 'REST3.3.4' );
 
     $t->delete_ok("//$userid:$password@/api/v1/bookings/$booking_id")->status_is(404);
@@ -490,7 +506,8 @@ subtest 'patch() tests' => sub {
     };
 
     $t->patch_ok( "//$userid:$password@/api/v1/bookings/$booking_id" => json => $booking_with_invalid_field )
-        ->status_is(400)->json_is(
+        ->status_is(400)
+        ->json_is(
         "/errors" => [
             {
                 message => "Properties not allowed: blah.",
@@ -498,6 +515,142 @@ subtest 'patch() tests' => sub {
             }
         ]
         );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'add() with itemtype_id tests' => sub {
+
+    plan tests => 16;
+
+    $schema->storage->txn_begin;
+
+    my $librarian = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 0 }     # no additional permissions
+        }
+    );
+    $builder->build(
+        {
+            source => 'UserPermission',
+            value  => {
+                borrowernumber => $librarian->borrowernumber,
+                module_bit     => 1,
+                code           => 'manage_bookings',
+            },
+        }
+    );
+    my $password = 'thePassword123';
+    $librarian->set_password( { password => $password, skip_validation => 1 } );
+    my $userid = $librarian->userid;
+
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 0 }
+        }
+    );
+
+    $patron->set_password( { password => $password, skip_validation => 1 } );
+
+    # Create itemtype and items
+    my $itemtype = $builder->build_object( { class => 'Koha::ItemTypes' } );
+    my $biblio   = $builder->build_sample_biblio;
+    my $item1    = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->id,
+            bookable     => 1,
+            itype        => $itemtype->itemtype
+        }
+    );
+    my $item2 = $builder->build_sample_item(
+        {
+            biblionumber => $biblio->id,
+            bookable     => 1,
+            itype        => $itemtype->itemtype
+        }
+    );
+
+    my $pickup_library = $builder->build_object( { class => 'Koha::Libraries' } );
+
+    # Test 1: Booking with itemtype_id instead of item_id should work
+    my $booking_with_itemtype = {
+        biblio_id         => $biblio->id,
+        itemtype_id       => $itemtype->itemtype,
+        pickup_library_id => $pickup_library->branchcode,
+        patron_id         => $patron->id,
+        start_date        => output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 2 ) } ),
+        end_date          => output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 6 ) } ),
+    };
+
+    my $tx =
+        $t->post_ok( "//$userid:$password@/api/v1/bookings" => json => $booking_with_itemtype )
+        ->status_is( 201, 'Created booking with itemtype_id' )
+        ->json_has( '/item_id', 'Server assigned an item_id' )
+        ->json_is( '/biblio_id' => $biblio->id );
+
+    my $assigned_item_id = $tx->tx->res->json->{item_id};
+    ok(
+        $assigned_item_id == $item1->itemnumber || $assigned_item_id == $item2->itemnumber,
+        'Assigned item is one of the items of the specified itemtype'
+    );
+
+    # Test 2: Booking with both item_id and itemtype_id should fail
+    my $booking_with_both = {
+        biblio_id         => $biblio->id,
+        item_id           => $item1->itemnumber,
+        itemtype_id       => $itemtype->itemtype,
+        pickup_library_id => $pickup_library->branchcode,
+        patron_id         => $patron->id,
+        start_date        => output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 10 ) } ),
+        end_date          => output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 14 ) } ),
+    };
+
+    $t->post_ok( "//$userid:$password@/api/v1/bookings" => json => $booking_with_both )
+        ->status_is(400)
+        ->json_is( '/error' => 'Cannot specify both item_id and itemtype_id' );
+
+    # Test 3: Booking with neither item_id nor itemtype_id should fail
+    my $booking_with_neither = {
+        biblio_id         => $biblio->id,
+        pickup_library_id => $pickup_library->branchcode,
+        patron_id         => $patron->id,
+        start_date        => output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 20 ) } ),
+        end_date          => output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 24 ) } ),
+    };
+
+    $t->post_ok( "//$userid:$password@/api/v1/bookings" => json => $booking_with_neither )
+        ->status_is(400)
+        ->json_is( '/error' => 'Either item_id or itemtype_id must be provided' );
+
+    # Test 4: Verify optimal selection - book all items, then try to book again
+    # Book item2 for the same period as the first booking
+    my $booking_item2 = {
+        biblio_id         => $biblio->id,
+        item_id           => $item2->itemnumber,
+        pickup_library_id => $pickup_library->branchcode,
+        patron_id         => $patron->id,
+        start_date        => output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 2 ) } ),
+        end_date          => output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 6 ) } ),
+    };
+
+    $t->post_ok( "//$userid:$password@/api/v1/bookings" => json => $booking_item2 )->status_is(201);
+
+    # Now try to create another booking with itemtype_id for the same period
+    # Should fail since both items are booked
+    my $booking_should_fail = {
+        biblio_id         => $biblio->id,
+        itemtype_id       => $itemtype->itemtype,
+        pickup_library_id => $pickup_library->branchcode,
+        patron_id         => $patron->id,
+        start_date        => output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 3 ) } ),
+        end_date          => output_pref( { dateformat => "rfc3339", dt => dt_from_string->add( days => 5 ) } ),
+    };
+
+    $t->post_ok( "//$userid:$password@/api/v1/bookings" => json => $booking_should_fail )
+        ->status_is(400)
+        ->json_is( '/error' => 'Booking would conflict' );
 
     $schema->storage->txn_rollback;
 };

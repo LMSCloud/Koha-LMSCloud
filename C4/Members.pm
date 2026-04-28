@@ -18,9 +18,19 @@ package C4::Members;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(
+        GetBorrowersToExpunge
+
+        IssueSlip
+    );
+}
+
 use C4::Context;
 use Scalar::Util qw( looks_like_number );
 use Date::Calc   qw( check_date Date_to_Days );
@@ -40,16 +50,6 @@ use Koha::Patron::Categories;
 use Locale::Currency::Format 1.28 qw( currency_format FMT_SYMBOL );
 
 our ( @ISA, @EXPORT_OK );
-
-BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
-        GetBorrowersToExpunge
-
-        IssueSlip
-    );
-}
 
 =head1 NAME
 
@@ -251,7 +251,8 @@ sub GetBorrowersToExpunge {
         ? C4::Context->userenv->{branch}
         : ""
         );
-    my $filterpatronlist = $params->{'patron_list_id'};
+    my $filterpatronlist          = $params->{'patron_list_id'};
+    my $without_restriction_types = $params->{'without_restriction_types'};
 
     my $dbh   = C4::Context->dbh;
     my $query = q|
@@ -310,6 +311,19 @@ sub GetBorrowersToExpunge {
     if ($filterdate) {
         $query .= " AND ( latestissue < ? OR latestissue IS NULL ) ";
         push @query_params, $filterdate;
+    }
+    if ( ref($without_restriction_types) ne 'ARRAY' ) {
+        $without_restriction_types = [$without_restriction_types];
+    }
+    if ( @$without_restriction_types > 0 ) {
+        $query .= q|
+            AND NOT EXISTS (
+                SELECT 1
+                FROM borrower_debarments
+                WHERE borrower_debarments.borrowernumber = xxx.borrowernumber
+                    AND borrower_debarments.type IN (|
+            . join( ',', ('?') x @$without_restriction_types ) . "))";
+        push @query_params, @$without_restriction_types;
     }
 
     if ( my $anonymous_patron = C4::Context->preference("AnonymousPatron") ) {

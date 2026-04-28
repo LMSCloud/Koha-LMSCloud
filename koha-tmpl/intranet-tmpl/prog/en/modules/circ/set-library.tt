@@ -7,18 +7,24 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% IF Koha.Preference('UseCirculationDesks') %]
-        [% t("Set library and desk") | html %] &rsaquo;
-    [% ELSE %]
-        [% t("Set library") | html %] &rsaquo;
-    [% END %]
-    [% t("Circulation") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% IF Koha.Preference('UseCirculationDesks') %]
+            [% t("Set library and desk") | html %]
+            &rsaquo;
+        [% ELSE %]
+            [% t("Set library") | html %]
+            &rsaquo;
+        [% END %]
+        [% t("Circulation") | html %]
+        &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
-    .noshow {display: none;}
+    .noshow {
+        display: none;
+    }
 </style>
 </head>
 <body id="circ_set-library" class="circ">
@@ -37,91 +43,146 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-sm-12">
-            <main>
-                <div class="row">
-                    [% IF Koha.Preference('CircSidebar') %]
-                        <div class="col-md-10 order-md-2 order-sm-1">
-                    [% ELSE %]
-                        <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
+[% SET aside = Koha.Preference('CircSidebar') ? 'circ-nav' : '' %]
+[% WRAPPER 'main-container.inc' aside=aside %]
+    <h1>Set library</h1>
+    <form method="post" action="/cgi-bin/koha/circ/set-library.pl" id="set-library-form">
+        [% INCLUDE 'csrf-token.inc' %]
+        <input type="hidden" name="op" value="cud-set-library" />
+        [% IF ( CAN_user_superlibrarian || CAN_user_loggedinlibrary ) %]
+            <fieldset class="rows">
+                <legend>Set library</legend>
+                <ol>
+                    [% IF ( groupselect ) %]
+                        <li
+                            ><label for="branchcategory">Choose library group:</label>
+                            <select name="branchcategory" id="branchcategory">
+                                <option value="*">All library groups</option>
+                                [% FOREACH group IN librarygroups %]
+                                    <option value="[% group.id | html %]">[% group.title | html %]</option>
+                                [% END %]
+                            </select></li
+                        >
                     [% END %]
-                    [% INCLUDE 'messages.inc' %]
-                    <h1>Set library</h1>
-                    <form method="post" action="/cgi-bin/koha/circ/set-library.pl" id="set-library-form">
-                        [% INCLUDE 'csrf-token.inc' %]
-                        <input type="hidden" name="op" value="cud-set-library" />
-                        [% IF ( CAN_user_superlibrarian || CAN_user_loggedinlibrary ) %]
-                            <fieldset class="rows">
-                                <legend>Set library</legend>
-                                <ol>
-                                    <li><label for="set-library-branch">Choose library:</label>
-                                    <select name="branch" id="set-library-branch">
-                                        [% PROCESS options_for_libraries libraries => Branches.all( selected => branch, unfiltered => 1 ) %]
-                                    </select></li>
-                                    [% IF ( groupselect ) %]
-                                    <li><label for="branchcategory">Choose library group:</label>
-                                    <select name="branchcategory" id="branchcategory">
-                                        <option value="*">All library groups</option>
-                                        [% FOREACH group IN librarygroups %]
-                                            <option value="[% group.id | html %]">[% group.title | html %]</option>
-                                        [% END %]
-                                    </select></li>
-                                    [% END %]
-                                </ol>
-                            </fieldset>
-                        [% ELSE %]
-                            <select name="branch" id="set-library-branch" style="visibility:hidden;">
-                                [% PROCESS options_for_libraries libraries => Branches.all( selected => branch ) %]
-                            </select>
-                        [% END %]
+                    <li
+                        ><label for="set-library-branch">Choose library:</label>
+                        <select name="branch" id="set-library-branch">
+                            [% PROCESS options_for_libraries libraries => Branches.all( selected => branch, unfiltered => 1 ) %]
+                        </select></li
+                    >
+                </ol>
+            </fieldset>
+        [% ELSE %]
+            <select name="branch" id="set-library-branch" style="visibility:hidden;">
+                [% PROCESS options_for_libraries libraries => Branches.all( selected => branch ) %]
+            </select>
+        [% END %]
 
-                    [% IF Koha.Preference('UseCirculationDesks') && Desks.all %]
-                        <fieldset class="rows">
-                            <legend>Set desk</legend>
-                            <ol>
-                                <li><label for="set-library-desk_id">Choose desk:</label>
-                                <select name="desk_id" id="set-library-desk_id">
-                                    [% PROCESS options_for_desks desks => Desks.all(), selected => desk_id, branch => branch  %]
-                                </select></li>
-                            </ol>
-                        </fieldset>
+        [% IF Koha.Preference('UseCirculationDesks') && Desks.all %]
+            <fieldset class="rows">
+                <legend>Set desk</legend>
+                <ol>
+                    <li
+                        ><label for="set-library-desk_id">Choose desk:</label>
+                        <select name="desk_id" id="set-library-desk_id">
+                            [% PROCESS options_for_desks desks => Desks.all(), selected => desk_id, branch => branch %]
+                        </select></li
+                    >
+                </ol>
+            </fieldset>
+        [% END %]
+        [% IF Koha.Preference('UseCashRegisters') %]
+            <fieldset class="rows">
+                <legend>Set cash register</legend>
+                <ol>
+                    <li>
+                        <label for="set-library-register_id">Choose cash register:</label>
+                        <select name="register_id" id="set-library-register_id">
+                            <option id="noregister" selected="selected" value="">-- None --</option>
+                            [% PROCESS options_for_registers registers => Registers.all() %]
+                        </select>
+                    </li>
+                </ol>
+            </fieldset>
+        [% END %]
+        <fieldset class="action">
+            <input type="submit" class="btn btn-primary" value="Submit" />
+            <a class="cancel" id="cancel_set_library" href="[% ( referer or '/cgi-bin/koha/mainpage.pl' ) | url %]">Cancel</a>
+        </fieldset>
+        <div class="noshow">
+            <input type="hidden" name="oldreferer" value="[% ( referer or '/cgi-bin/koha/mainpage.pl' ) | url %]" />
+        </div>
+    </form>
+    <!-- /updated -->
+[% END %]
+
+[% MACRO jsinclude BLOCK %]
+    [% IF ( groupselect ) %]
+        <script>
+            var libraries = {};
+            var libcodes = new Array();
+            [% FOREACH branch IN Branches.all( unfiltered => 1 ) %]
+            libraries["[% branch.branchcode FILTER lower | html %]"] = { code: "[% branch.branchcode | html %]", name: "[% branch.branchname | html %]", category: [] };
+            libcodes.push("[% branch.branchcode FILTER lower | html %]");
+            [% END %]
+
+            var categories = {};
+            var selcateg = '[% selgroup | html %]';
+            [% FOREACH group IN librarygroups %]
+                categories["[% group.id | html %]"] = { name: "[% group.title | html %]", libraries: [], sel: false};
+                [% FOREACH lib IN group.children %]
+                    [% IF lib.branchcode %]
+                        libraries["[% lib.branchcode FILTER lower | html %]"]["category"].push("[% group.id FILTER lower | html %]");
+                        categories["[% group.id FILTER lower | html %]"]["libraries"].push("[% lib.branchcode FILTER lower | html %]");
                     [% END %]
-                    [% IF Koha.Preference('UseCashRegisters') %]
-                        <fieldset class="rows">
-                            <legend>Set cash register</legend>
-                            <ol>
-                                <li>
-                                    <label for="set-library-register_id">Choose cash register:</label>
-                                    <select name="register_id" id="set-library-register_id">
-                                        <option id="noregister" selected="selected" value="">-- None --</option>
-                                        [% PROCESS options_for_registers registers => Registers.all() %]
-                                    </select>
-                                </li>
-                            </ol>
-                        </fieldset>
-                    [% END %]
-                        <fieldset class="action">
-                            <input type="submit" class="btn btn-primary" value="Submit" />
-                            <a class="cancel" id="cancel_set_library" href="[% ( referer or '/cgi-bin/koha/mainpage.pl' ) | url %]">Cancel</a>
-                        </fieldset>
-                        <div class="noshow">
-                            <input type="hidden" name="oldreferer" value="[% ( referer or '/cgi-bin/koha/mainpage.pl' ) | url %]" />
-                        </div>
-                    </form>
-                <!-- /updated -->
-                [% IF Koha.Preference('CircSidebar') %]
-                    </div> <!-- /.col-md-10... -->
-                        <div class="col-md-2 order-sm-2 order-md-1">
-                            <aside>
-                                [% INCLUDE 'circ-nav.inc' %]
-                            </aside>
-                        </div> <!-- /.col-md-2 order-sm-2 order-md-1 -->
-                    </div> <!-- /.row -->
                 [% END %]
-        </main>
-    </div> <!-- /.col-sm-12 -->
-</div> <!-- /.row -->
+            [% END %]
+            if ( selcateg != '' && selcateg != '*' ) {
+                categories[selcateg]["sel"] = true;
+            }
+
+            function resetLibrarySelection() {
+                var selgroup = $( "#branchcategory" ).val();
+                var libs = new Array();
+                var libselect = $("#set-library-branch");
+
+                if ( selgroup == '*' ) {
+                    libcodes.forEach(function(library) {
+                        libs.push([libraries[library].code,libraries[library].name]);
+                    });
+                }
+                else {
+                    categories[selgroup]['libraries'].forEach(function(library) {
+                        libs.push([libraries[library].code,libraries[library].name]);
+                    });
+                }
+
+                $('#set-library-branch option[value!="*"]').remove();
+
+                $.each(libs, function(idx, value) {
+                    libselect.append($('<option></option>').val(value[0]).html(value[1]));
+                });
+            }
+
+            $(document).ready(function() {
+                var sel = $('#branchcategory');
+
+                $.each(categories, function(code, category) {
+                    if ( category.libraries.length == 0 ) {
+                        $('#branchcategory option[value="' + code + '"]').remove();
+                    }
+                });
+
+                $('#branchcategory option[value="[% selgroup | html %]"]').attr('selected','selected');
+                resetLibrarySelection();
+                $('#set-library-branch option[value="[% selbranch | html %]"]').attr('selected','selected');
+
+                sel.on('change', function() {
+                    resetLibrarySelection();
+                });
+            });
+        </script>
+    [% END %]
+[% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

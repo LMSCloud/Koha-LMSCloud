@@ -1,9 +1,9 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+use Modern::Perl;
 use File::Spec;
 
+use Test::NoWarnings qw( had_no_warnings );
 use Test::More;
 
 BEGIN {
@@ -52,4 +52,5 @@ eval {
 };
 ok( !$@, 'Destroyed suggestor successfully' );
 
+had_no_warnings;
 done_testing();

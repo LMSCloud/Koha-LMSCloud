@@ -17,17 +17,15 @@ package C4::Items;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
 
 our ( @ISA, @EXPORT_OK );
 
 BEGIN {
-    require Exporter;
-    @ISA = qw(Exporter);
-
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         AddItemFromMarc
         AddItemBatchFromMarc
         ModItemFromMarc
@@ -583,7 +581,7 @@ seen. It is ordered by callnumber then title.
 
 The required minlocation & maxlocation parameters are used to specify a range of item callnumbers
 the datelastseen can be used to specify that you want to see items not seen since a past date only.
-offset & size can be used to retrieve only a part of the whole listing (defaut behaviour)
+offset & size can be used to retrieve only a part of the whole listing (default behaviour)
 $statushash requires a hashref that has the authorized values fieldname (intems.notforloan, etc...) as keys, and an arrayref of statuscodes we are searching for as values.
 
 $iTotalRecords is the number of rows that would have been returned without the $offset, $size limit clause
@@ -838,6 +836,12 @@ sub GetMarcItem {
     return Item2Marc( $item->unblessed, $biblionumber );
 
 }
+
+=head2 Item2Marc
+
+Missing POD for Item2Marc.
+
+=cut
 
 sub Item2Marc {
     my ( $itemrecord, $biblionumber ) = @_;
@@ -1648,7 +1652,7 @@ sub PrepareItemrecordDisplay {
                         my $class = $plugin->noclick ? ' disabled' : '';
                         my $title = $plugin->noclick ? 'No popup'  : 'Tag editor';
                         $subfield_data{marc_value} =
-                            qq[<input type="text" id="$subfield_data{id}" name="field_value" class="input_marceditor" size="50" maxlength="$maxlength" value="$defaultvalue" /><a href="#" id="buttonDot_$subfield_data{id}" class="buttonDot $class" title="$title">...</a>\n]
+                            qq[<input type="text" id="$subfield_data{id}" name="field_value" class="input_marceditor framework_plugin" size="50" maxlength="$maxlength" value="$defaultvalue" data-plugin="$plugin->{name}" /><a href="#" id="buttonDot_$subfield_data{id}" class="buttonDot tag_editor framework_plugin $class" title="$title" data-plugin="$plugin->{name}">...</a>\n]
                             . $plugin->javascript;
                     } else {
                         warn $plugin->errstr;
@@ -1692,6 +1696,12 @@ sub PrepareItemrecordDisplay {
         'iteminformation' => \@loop_data
     };
 }
+
+=head2 ToggleNewStatus
+
+Missing POD for ToggleNewStatus.
+
+=cut
 
 sub ToggleNewStatus {
     my ($params)    = @_;
@@ -1760,7 +1770,17 @@ sub ToggleNewStatus {
                 $item->$field($value);
                 push @{ $report->{$itemnumber} }, $substitution;
             }
-            $item->store unless $report_only;
+            unless ($report_only) {
+                try {
+                    $item->store;
+                } catch {
+                    push @{ $report->{$itemnumber} }, {
+                        field => 'ERROR',
+                        error => 1,
+                        value => $_->error,
+                    }
+                }
+            }
         }
     }
 

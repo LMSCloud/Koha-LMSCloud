@@ -12,10 +12,11 @@
 # A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with Koha; if not, see <http://www.gnu.org/licenses>.
+# with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 11;
+use Test::NoWarnings;
+use Test::More tests => 12;
 use C4::Context;
 
 use C4::Members;
@@ -421,8 +422,8 @@ subtest '1 Issuingrule exist: 1 CO allowed, 1 OSCO allowed, Do a OSCO' => sub {
 
 subtest '1 BranchBorrowerCircRule exist: 1 CO allowed, 1 OSCO allowed' => sub {
 
-    # Note: the same test coul be done for
-    # DefaultBorrowerCircRule, DefaultBranchCircRule, DefaultBranchItemRule ans DefaultCircRule.pm
+    # Note: the same test could be done for
+    # DefaultBorrowerCircRule, DefaultBranchCircRule, DefaultBranchItemRule and DefaultCircRule.pm
 
     plan tests => 18;
     Koha::CirculationRules->set_rules(
@@ -733,7 +734,7 @@ subtest 'General vs specific rules limit quantity correctly' => sub {
         'We are only allowed one from that branch, and have one'
     );
 
-    # Now we make anothe from a different branch
+    # Now we make another from a different branch
     my $item_2 = $builder->build_sample_item(
         {
             itype => $itemtype->{itemtype},

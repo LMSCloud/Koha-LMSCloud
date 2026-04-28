@@ -36,26 +36,44 @@ function LoadIssuesTable() {
     $("#issues-table").show();
     $("#issues-table-actions").show();
     var msg_loading = __("Loading... you may continue scanning.");
+    let renew_column = table_settings_issues_table.columns.find(
+        c => c.columnname == "renew"
+    );
+    let checkin_column = table_settings_issues_table.columns.find(
+        c => c.columnname == "checkin"
+    );
+
     if (!AllowCirculate) {
-        table_settings_issues_table.columns.find(
-            c => c.columnname == "renew"
-        ).is_hidden = 42;
-        table_settings_issues_table.columns.find(
-            c => c.columnname == "checkin"
-        ).is_hidden = 1;
+        renew_column.is_hidden = 1;
+        renew_column.force_visibility = 1;
+    } else {
+        renew_column.is_hidden = 0;
+        checkin_column.is_hidden = 0;
     }
+    renew_column.force_visibility = 1;
+    checkin_column.force_visibility = 1;
+
+    let claims_returned_column = table_settings_issues_table.columns.find(
+        c => c.columnname == "claims_returned"
+    );
     if (!ClaimReturnedLostValue) {
-        table_settings_issues_table.columns.find(
-            c => c.columnname == "claims_returned"
-        ).is_hidden = 1;
+        claims_returned_column.is_hidden = 1;
+    } else {
+        claims_returned_column.is_hidden = 0;
     }
+    claims_returned_column.force_visibility = 1;
+
+    let export_column = table_settings_issues_table.columns.find(
+        c => c.columnname == "export"
+    );
     if (!exports_enabled) {
-        table_settings_issues_table.columns.find(
-            c => c.columnname == "export"
-        ).is_hidden = 1;
+        export_column.is_hidden = 1;
+    } else {
+        export_column.is_hidden = 0;
     }
-    issuesTable = KohaTable(
-        "issues-table",
+    export_column.force_visibility = 1;
+
+    issuesTable = $("#issues-table").kohaTable(
         {
             language: {
                 emptyTable: msg_loading,
@@ -246,16 +264,19 @@ function LoadIssuesTable() {
                         return title;
                     },
                     type: "anti-the",
+                    orderData: [1, 4],
                 },
                 {
                     data: function (oObj) {
                         return oObj.recordtype_description.escapeHtml();
                     },
+                    orderData: [1, 5],
                 },
                 {
                     data: function (oObj) {
                         return oObj.itemtype_description.escapeHtml();
                     },
+                    orderData: [1, 6],
                 },
                 {
                     data: function (oObj) {
@@ -263,11 +284,13 @@ function LoadIssuesTable() {
                             ? oObj.collection.escapeHtml()
                             : "";
                     },
+                    orderData: [1, 7],
                 },
                 {
                     data: function (oObj) {
                         return oObj.location ? oObj.location.escapeHtml() : "";
                     },
+                    orderData: [1, 8],
                 },
                 {
                     data: function (oObj) {
@@ -275,13 +298,14 @@ function LoadIssuesTable() {
                             ? oObj.homebranch.escapeHtml()
                             : "";
                     },
+                    orderData: [1, 9],
                 },
                 {
                     data: "issuedate",
                     visible: false,
                 },
                 {
-                    orderData: 10, // Sort on hidden unformatted issuedate column
+                    orderData: [1, 10], // Sort on hidden unformatted issuedate column
                     data: function (oObj) {
                         return $datetime(oObj.issuedate, {
                             no_tz_adjust: true,
@@ -294,6 +318,7 @@ function LoadIssuesTable() {
                             ? oObj.branchname.escapeHtml()
                             : "";
                     },
+                    orderData: [1, 12],
                 },
                 {
                     data: function (oObj) {
@@ -301,6 +326,7 @@ function LoadIssuesTable() {
                             ? oObj.itemcallnumber.escapeHtml()
                             : "";
                     },
+                    orderData: [1, 13],
                 },
                 {
                     data: function (oObj) {
@@ -308,6 +334,7 @@ function LoadIssuesTable() {
                             ? oObj.copynumber.escapeHtml()
                             : "";
                     },
+                    orderData: [1, 14],
                 },
                 {
                     data: function (oObj) {
@@ -318,6 +345,7 @@ function LoadIssuesTable() {
                             "<span>"
                         );
                     },
+                    orderData: [1, 15],
                     className: "nowrap",
                 },
                 {
@@ -329,6 +357,7 @@ function LoadIssuesTable() {
                             "<span>"
                         );
                     },
+                    orderData: [1, 16],
                     className: "nowrap",
                 },
                 {
@@ -340,6 +369,7 @@ function LoadIssuesTable() {
                             "<span>"
                         );
                     },
+                    orderData: [1, 17],
                     className: "nowrap",
                 },
                 {
@@ -358,7 +388,7 @@ function LoadIssuesTable() {
                                 "<a href='/cgi-bin/koha/recalls/request.pl?biblionumber=" +
                                 oObj.biblionumber +
                                 "'>" +
-                                __("Recalled") +
+                                __("Item recalled by another patron") +
                                 "</a>" +
                                 "</span>";
 
@@ -370,7 +400,7 @@ function LoadIssuesTable() {
                                 "<a href='/cgi-bin/koha/bookings/list.pl?biblionumber=" +
                                 oObj.biblionumber +
                                 "'>" +
-                                __("Booked") +
+                                __("Item booked for another patron") +
                                 "</a>" +
                                 "</span>";
                             span_style = "display: none";
@@ -381,7 +411,7 @@ function LoadIssuesTable() {
                                 "<a href='/cgi-bin/koha/reserve/request.pl?biblionumber=" +
                                 oObj.biblionumber +
                                 "'>" +
-                                __("On hold") +
+                                __("Item on hold for another patron") +
                                 "</a>" +
                                 "</span>";
 
@@ -562,7 +592,7 @@ function LoadIssuesTable() {
                                 "<a href='/cgi-bin/koha/recalls/request.pl?biblionumber=" +
                                 oObj.biblionumber +
                                 "'>" +
-                                __("Recalled") +
+                                __("Item recalled by another patron") +
                                 "</a>"
                             );
                         } else if (oObj.can_renew_error == "on_reserve") {
@@ -570,7 +600,7 @@ function LoadIssuesTable() {
                                 "<a href='/cgi-bin/koha/reserve/request.pl?biblionumber=" +
                                 oObj.biblionumber +
                                 "'>" +
-                                __("On hold") +
+                                __("Item on hold for another patron") +
                                 "</a>"
                             );
                         } else if (oObj.materials) {
@@ -595,7 +625,7 @@ function LoadIssuesTable() {
 
                         if (oObj.return_claim_id) {
                             content =
-                                '<span class="badge bg-info-subtle">' +
+                                '<span class="badge text-bg-info">' +
                                 oObj.return_claim_created_on_formatted +
                                 "</span>";
                         } else if (ClaimReturnedLostValue) {
@@ -653,6 +683,8 @@ function LoadIssuesTable() {
                     borrowernumber
                 ),
             },
+            bKohaAjaxSVC: true,
+            bKohaColumnsUseNames: true,
             rowGroup: {
                 dataSrc: "issued_today",
                 startRender: function (rows, group) {
@@ -702,6 +734,16 @@ function LoadIssuesTable() {
             collision: "none",
         });
     }
+
+    // Disable rowGroup when sorting on due date
+    $("#issues-table").on("order.dt", function () {
+        var order = issuesTable.api().order();
+        if (order[0][0] === 3) {
+            issuesTable.api().rowGroup().disable();
+        } else {
+            issuesTable.api().rowGroup().enable();
+        }
+    });
 }
 
 var loadIssuesTableDelayTimeoutId;
@@ -936,6 +978,7 @@ $(document).ready(function () {
             $("#RenewChecked, #CheckinChecked").prop("disabled", true);
         });
 
+        CheckRenewCheckinBoxes();
         // Prevent form submit
         return false;
     });
@@ -945,9 +988,18 @@ $(document).ready(function () {
         function renew(item_id) {
             var override_limit = $("#override_limit").is(":checked") ? 1 : 0;
 
-            // LMS: on-hold items use a separate due date input (#newonholdduedate)
-            var $cb = $('.renew[value="' + item_id + '"]');
-            var isOnReserve = $cb.length > 0 && $cb.is("[data-on-reserve]");
+            $(this)
+                .parent()
+                .parent()
+                .replaceWith(
+                    "<img id='renew_" +
+                        item_id +
+                        "' src='" +
+                        interface +
+                        "/" +
+                        theme +
+                        "/img/spinner-small.gif' />"
+                );
 
             var params = {
                 item_id,
@@ -962,9 +1014,7 @@ $(document).ready(function () {
                 params.seen = renew_unseen === 1 ? 0 : 1;
             }
 
-            var dueDate = isOnReserve
-                ? $("#newonholdduedate input").val()
-                : $("#newduedate").val();
+            var dueDate = $("#newduedate").val();
 
             if (dueDate && dueDate.length > 0) {
                 params.date_due = dueDate;
@@ -1006,7 +1056,6 @@ $(document).ready(function () {
                         }
                         refresh_table = false;
                     }
-
                     $(id).parent().empty().append(content);
                 },
                 error => {
@@ -1076,730 +1125,25 @@ $(document).ready(function () {
 
     var ymd = flatpickr.formatDate(new Date(), "Y-m-d");
 
-    $("#issues-table").hide();
-    $("#issues-table-actions").hide();
-    $("#issues-table-load-immediately").change(function () {
-        if (this.checked && typeof issuesTable === "undefined") {
-            $("#issues-table-load-now-button").click();
-        }
-        barcodefield.focus();
-    });
-    $("#issues-table-load-now-button").click(function () {
-        LoadIssuesTable();
-        barcodefield.focus();
-        return false;
-    });
-
-    if (Cookies.get("issues-table-load-immediately-" + script) == "true") {
-        LoadIssuesTable();
-        $("#issues-table-load-immediately").prop("checked", true);
-    }
-    $("#issues-table-load-immediately").on("change", function () {
-        Cookies.set(
-            "issues-table-load-immediately-" + script,
-            $(this).is(":checked"),
-            { expires: 365, sameSite: "Lax" }
-        );
-    });
-
-    function RefreshIssuesTable() {
-        var table = $("#issues-table").DataTable();
-        table.ajax.reload();
-    }
-
-    function LoadIssuesTable() {
-        $("#issues-table-loading-message").hide();
-        $("#issues-table").show();
-        $("#issues-table-actions").show();
-
-        var msg_loading = __("Loading... you may continue scanning.");
-        issuesTable = KohaTable(
-            "issues-table",
-            {
-                oLanguage: {
-                    sEmptyTable: msg_loading,
-                    sProcessing: msg_loading,
-                },
-                bAutoWidth: false,
-                dom: '<"table_controls"B>rt',
-                aoColumns: [
-                    {
-                        mDataProp: function (oObj) {
-                            return oObj.sort_order;
-                        },
-                    },
-                    {
-                        mDataProp: function (oObj) {
-                            if (oObj.issued_today) {
-                                return (
-                                    "<strong>" +
-                                    __("Today's checkouts") +
-                                    "</strong>"
-                                );
-                            } else {
-                                return (
-                                    "<strong>" +
-                                    __("Previous checkouts") +
-                                    "</strong>"
-                                );
-                            }
-                        },
-                    },
-                    {
-                        mDataProp: "date_due",
-                        bVisible: false,
-                    },
-                    {
-                        iDataSort: 2, // Sort on hidden unformatted date due column
-                        mDataProp: function (oObj) {
-                            var due = oObj.date_due_formatted;
-                            if (oObj.date_due_overdue) {
-                                due =
-                                    "<span class='overdue'>" + due + "</span>";
-                            }
-
-                            due =
-                                "<span id='date_due_" +
-                                oObj.itemnumber +
-                                "' class='date_due'>" +
-                                due +
-                                "</span>";
-
-                            if (oObj.lost && oObj.claims_returned) {
-                                due +=
-                                    "<span class='lost claims_returned'>" +
-                                    oObj.lost.escapeHtml() +
-                                    "</span>";
-                            } else if (oObj.lost) {
-                                due +=
-                                    "<span class='lost'>" +
-                                    oObj.lost.escapeHtml() +
-                                    "</span>";
-                            }
-
-                            if (oObj.damaged) {
-                                due +=
-                                    "<span class='dmg'>" +
-                                    oObj.damaged.escapeHtml() +
-                                    "</span>";
-                            }
-                            var patron_note =
-                                " <span class='patron_note_" +
-                                oObj.itemnumber +
-                                "'></span>";
-                            due += "<br>" + patron_note;
-
-                            return due;
-                        },
-                    },
-                    {
-                        mDataProp: function (oObj) {
-                            let title =
-                                "<span id='title_" +
-                                oObj.itemnumber +
-                                "' class='strong'><a href='/cgi-bin/koha/catalogue/detail.pl?biblionumber=" +
-                                oObj.biblionumber +
-                                "'>" +
-                                (oObj.title ? oObj.title.escapeHtml() : "");
-
-                            $.each(oObj.subtitle, function (index, value) {
-                                title += " " + value.escapeHtml();
-                            });
-
-                            title +=
-                                " " + oObj.part_number + " " + oObj.part_name;
-
-                            if (oObj.enumchron) {
-                                title +=
-                                    " <span class='item_enumeration'>(" +
-                                    oObj.enumchron.escapeHtml() +
-                                    ")</span>";
-                            }
-
-                            title += "</a></span>";
-
-                            if (oObj.author) {
-                                title +=
-                                    " " +
-                                    __("by _AUTHOR_").replace(
-                                        "_AUTHOR_",
-                                        " " + oObj.author.escapeHtml()
-                                    );
-                            }
-
-                            if (oObj.itemnotes) {
-                                var span_class = "text-muted";
-                                if (
-                                    flatpickr.formatDate(
-                                        new Date(oObj.issuedate),
-                                        "Y-m-d"
-                                    ) == ymd
-                                ) {
-                                    span_class = "circ-hlt";
-                                }
-                                title +=
-                                    "<span class='divider-dash'> - </span><span class='" +
-                                    span_class +
-                                    " item-note-public'>" +
-                                    oObj.itemnotes.escapeHtml() +
-                                    "</span>";
-                            }
-
-                            if (oObj.itemnotes_nonpublic) {
-                                var span_class = "text-danger";
-                                if (
-                                    flatpickr.formatDate(
-                                        new Date(oObj.issuedate),
-                                        "Y-m-d"
-                                    ) == ymd
-                                ) {
-                                    span_class = "circ-hlt";
-                                }
-                                title +=
-                                    "<span class='divider-dash'> - </span><span class='" +
-                                    span_class +
-                                    " item-note-nonpublic'>" +
-                                    oObj.itemnotes_nonpublic.escapeHtml() +
-                                    "</span>";
-                            }
-
-                            var onsite_checkout = "";
-                            if (oObj.onsite_checkout == 1) {
-                                onsite_checkout +=
-                                    " <span class='onsite_checkout'>(" +
-                                    __("On-site checkout") +
-                                    ")</span>";
-                            }
-
-                            if (oObj.recalled == 1) {
-                                title +=
-                                    "<span class='divider-dash'> - </span><span class='circ-hlt item-recalled'>" +
-                                    __(
-                                        "This item has been recalled and the due date updated"
-                                    ) +
-                                    ".</span>";
-                            }
-
-                            title +=
-                                " " +
-                                "<a href='/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=" +
-                                oObj.biblionumber +
-                                "&itemnumber=" +
-                                oObj.itemnumber +
-                                "#" +
-                                oObj.itemnumber +
-                                "'>" +
-                                (oObj.barcode
-                                    ? oObj.barcode.escapeHtml()
-                                    : "") +
-                                "</a>" +
-                                onsite_checkout;
-
-                            return title;
-                        },
-                        sType: "anti-the",
-                    },
-                    {
-                        mDataProp: function (oObj) {
-                            return oObj.recordtype_description.escapeHtml();
-                        },
-                    },
-                    {
-                        mDataProp: function (oObj) {
-                            return oObj.itemtype_description.escapeHtml();
-                        },
-                    },
-                    {
-                        mDataProp: function (oObj) {
-                            return oObj.collection
-                                ? oObj.collection.escapeHtml()
-                                : "";
-                        },
-                    },
-                    {
-                        mDataProp: function (oObj) {
-                            return oObj.location
-                                ? oObj.location.escapeHtml()
-                                : "";
-                        },
-                    },
-                    {
-                        mDataProp: function (oObj) {
-                            return oObj.homebranch
-                                ? oObj.homebranch.escapeHtml()
-                                : "";
-                        },
-                    },
-                    {
-                        mDataProp: "issuedate",
-                        bVisible: false,
-                    },
-                    {
-                        iDataSort: 10, // Sort on hidden unformatted issuedate column
-                        mDataProp: "issuedate_formatted",
-                    },
-                    {
-                        mDataProp: function (oObj) {
-                            return oObj.branchname
-                                ? oObj.branchname.escapeHtml()
-                                : "";
-                        },
-                    },
-                    {
-                        mDataProp: function (oObj) {
-                            return oObj.itemcallnumber
-                                ? oObj.itemcallnumber.escapeHtml()
-                                : "";
-                        },
-                    },
-                    {
-                        mDataProp: function (oObj) {
-                            return oObj.copynumber
-                                ? oObj.copynumber.escapeHtml()
-                                : "";
-                        },
-                    },
-                    {
-                        mDataProp: function (oObj) {
-                            if (!oObj.charge) oObj.charge = 0;
-                            return (
-                                '<span style="text-align: right; display: block;">' +
-                                parseFloat(oObj.charge).format_price() +
-                                "<span>"
-                            );
-                        },
-                        sClass: "nowrap",
-                    },
-                    {
-                        mDataProp: function (oObj) {
-                            if (!oObj.fine) oObj.fine = 0;
-                            return (
-                                '<span style="text-align: right; display: block;">' +
-                                parseFloat(oObj.fine).format_price() +
-                                "<span>"
-                            );
-                        },
-                        sClass: "nowrap",
-                    },
-                    {
-                        mDataProp: function (oObj) {
-                            if (!oObj.price) oObj.price = 0;
-                            return (
-                                '<span style="text-align: right; display: block;">' +
-                                parseFloat(oObj.price).format_price() +
-                                "<span>"
-                            );
-                        },
-                        sClass: "nowrap",
-                    },
-                    {
-                        bSortable: false,
-                        bVisible: AllowCirculate ? true : false,
-                        mDataProp: function (oObj) {
-                            var content = "";
-                            var msg = "";
-                            var span_style = "";
-                            var span_class = "";
-
-                            if (oObj.can_renew) {
-                                // Do nothing
-                            } else if (oObj.can_renew_error == "recalled") {
-                                msg +=
-                                    "<span>" +
-                                    "<a href='/cgi-bin/koha/recalls/request.pl?biblionumber=" +
-                                    oObj.biblionumber +
-                                    "'>" +
-                                    __("Recalled") +
-                                    "</a>" +
-                                    "</span>";
-
-                                span_style = "display: none";
-                                span_class = "renewals-allowed-recalled";
-                            } else if (oObj.can_renew_error == "on_reserve") {
-                                msg +=
-                                    "<span>" +
-                                    "<a href='/cgi-bin/koha/reserve/request.pl?biblionumber=" +
-                                    oObj.biblionumber +
-                                    "'>" +
-                                    __("On hold") +
-                                    "</a>" +
-                                    "</span>";
-
-                                span_style = "display: none";
-                                span_class = "renewals-allowed-on_reserve";
-                            } else if (oObj.can_renew_error == "too_many") {
-                                msg +=
-                                    "<span class='renewals-disabled'>" +
-                                    __("Not renewable") +
-                                    "</span>";
-
-                                span_style = "display: none";
-                                span_class = "renewals-allowed";
-                            } else if (oObj.can_renew_error == "too_unseen") {
-                                msg +=
-                                    "<span>" +
-                                    __("Must be renewed at the library") +
-                                    "</span>";
-                                span_class = "renewals-allowed";
-                            } else if (oObj.can_renew_error == "restriction") {
-                                msg +=
-                                    "<span class='renewals-disabled'>" +
-                                    __("Not allowed: patron restricted") +
-                                    "</span>";
-
-                                span_style = "display: none";
-                                span_class = "renewals-allowed";
-                            } else if (oObj.can_renew_error == "overdue") {
-                                msg +=
-                                    "<span class='renewals-disabled'>" +
-                                    __("Not allowed: overdue") +
-                                    "</span>";
-
-                                span_style = "display: none";
-                                span_class = "renewals-allowed";
-                            } else if (oObj.can_renew_error == "too_soon") {
-                                msg +=
-                                    "<span class='renewals-disabled'>" +
-                                    __("No renewal before %s").format(
-                                        oObj.can_renew_date
-                                    ) +
-                                    "</span>";
-
-                                span_style = "display: none";
-                                span_class = "renewals-allowed";
-                            } else if (
-                                oObj.can_renew_error == "auto_too_soon"
-                            ) {
-                                msg +=
-                                    "<span class='renewals-disabled'>" +
-                                    __("Scheduled for automatic renewal") +
-                                    "</span>";
-
-                                span_style = "display: none";
-                                span_class = "renewals-allowed";
-                            } else if (
-                                oObj.can_renew_error == "auto_too_late"
-                            ) {
-                                msg +=
-                                    "<span class='renewals-disabled'>" +
-                                    __(
-                                        "Can no longer be auto-renewed - number of checkout days exceeded"
-                                    ) +
-                                    "</span>";
-
-                                span_style = "display: none";
-                                span_class = "renewals-allowed";
-                            } else if (
-                                oObj.can_renew_error == "auto_too_much_oweing"
-                            ) {
-                                msg +=
-                                    "<span class='renewals-disabled'>" +
-                                    __(
-                                        "Automatic renewal failed, patron has unpaid fines"
-                                    ) +
-                                    "</span>";
-
-                                span_style = "display: none";
-                                span_class = "renewals-allowed";
-                            } else if (
-                                oObj.can_renew_error == "auto_account_expired"
-                            ) {
-                                msg +=
-                                    "<span class='renewals-disabled'>" +
-                                    __(
-                                        "Automatic renewal failed, account expired"
-                                    ) +
-                                    "</span>";
-
-                                span_style = "display: none";
-                                span_class = "renewals-allowed";
-                            } else if (oObj.can_renew_error == "auto_renew") {
-                                msg +=
-                                    "<span class='renewals-disabled'>" +
-                                    __("Scheduled for automatic renewal") +
-                                    "</span>";
-
-                                span_style = "display: none";
-                                span_class = "renewals-allowed";
-                            } else if (
-                                oObj.can_renew_error == "onsite_checkout"
-                            ) {
-                                // Don't display something if it's an onsite checkout
-                            } else if (
-                                oObj.can_renew_error == "item_denied_renewal"
-                            ) {
-                                content +=
-                                    "<span class='renewals-disabled'>" +
-                                    __("Renewal denied by syspref") +
-                                    "</span>";
-
-                                span_style = "display: none";
-                                span_class = "renewals-allowed";
-                            } else {
-                                msg +=
-                                    "<span class='renewals-disabled'>" +
-                                    oObj.can_renew_error +
-                                    "</span>";
-
-                                span_style = "display: none";
-                                span_class = "renewals-allowed";
-                            }
-
-                            var can_force_renew =
-                                oObj.onsite_checkout == 0 &&
-                                (oObj.can_renew_error != "on_reserve" ||
-                                    (oObj.can_renew_error == "on_reserve" &&
-                                        AllowRenewalOnHoldOverride))
-                                    ? true
-                                    : false;
-                            var can_renew =
-                                oObj.renewals_remaining > 0 &&
-                                (!oObj.can_renew_error ||
-                                    oObj.can_renew_error == "too_unseen");
-                            content += "<span>";
-                            if (can_renew || can_force_renew) {
-                                content +=
-                                    "<span style='padding: 0 1em;'>" +
-                                    oObj.renewals_count +
-                                    "</span>";
-                                content +=
-                                    "<span class='" +
-                                    span_class +
-                                    "' style='" +
-                                    span_style +
-                                    "'>" +
-                                    "<input type='checkbox' ";
-                                if (oObj.date_due_overdue && can_renew) {
-                                    content += "checked='checked' ";
-                                }
-                                if (oObj.can_renew_error == "on_reserve") {
-                                    content += "data-on-reserve ";
-                                }
-                                content +=
-                                    "class='renew' id='renew_" +
-                                    oObj.itemnumber +
-                                    "' name='renew' value='" +
-                                    oObj.itemnumber +
-                                    "'/>" +
-                                    "</span>";
-                            }
-                            content += msg;
-                            if (can_renew || can_force_renew) {
-                                content += "<span class='renewals-info'>(";
-                                content += __(
-                                    "%s of %s renewals remaining"
-                                ).format(
-                                    oObj.renewals_remaining,
-                                    oObj.renewals_allowed
-                                );
-                                if (UnseenRenewals && oObj.unseen_allowed) {
-                                    content += __(
-                                        " and %s of %s unseen renewals remaining"
-                                    ).format(
-                                        oObj.unseen_remaining,
-                                        oObj.unseen_allowed
-                                    );
-                                }
-                                content += ")</span>";
-                            }
-
-                            return content;
-                        },
-                    },
-                    {
-                        bSortable: false,
-                        bVisible: AllowCirculate ? true : false,
-                        mDataProp: function (oObj) {
-                            if (oObj.can_renew_error == "recalled") {
-                                return (
-                                    "<a href='/cgi-bin/koha/recalls/request.pl?biblionumber=" +
-                                    oObj.biblionumber +
-                                    "'>" +
-                                    __("Recalled") +
-                                    "</a>"
-                                );
-                            } else if (oObj.can_renew_error == "on_reserve") {
-                                return (
-                                    "<a href='/cgi-bin/koha/reserve/request.pl?biblionumber=" +
-                                    oObj.biblionumber +
-                                    "'>" +
-                                    __("On hold") +
-                                    "</a>"
-                                );
-                            } else if (oObj.materials) {
-                                return (
-                                    "<input type='checkbox' class='confirm' id='confirm_" +
-                                    oObj.itemnumber +
-                                    "' name='confirm' value='" +
-                                    oObj.itemnumber +
-                                    "' data-materials='" +
-                                    oObj.materials.escapeHtml() +
-                                    "'></input>"
-                                );
-                            } else {
-                                return (
-                                    "<input type='checkbox' class='checkin' id='checkin_" +
-                                    oObj.itemnumber +
-                                    "' name='checkin' value='" +
-                                    oObj.itemnumber +
-                                    "'></input>"
-                                );
-                            }
-                        },
-                    },
-                    {
-                        bVisible: ClaimReturnedLostValue ? true : false,
-                        bSortable: false,
-                        mDataProp: function (oObj) {
-                            let content = "";
-
-                            if (oObj.return_claim_id) {
-                                content =
-                                    '<span class="badge">' +
-                                    oObj.return_claim_created_on_formatted +
-                                    "</span>";
-                            } else if (ClaimReturnedLostValue) {
-                                content =
-                                    '<a class="btn btn-default btn-xs claim-returned-btn" data-itemnumber="' +
-                                    oObj.itemnumber +
-                                    '"><i class="fa fa-exclamation-circle"></i> ' +
-                                    __("Claim returned") +
-                                    "</a>";
-                            } else {
-                                content =
-                                    '<a class="btn btn-default btn-xs" disabled="disabled" title="ClaimReturnedLostValue is not set, this feature is disabled"><i class="fa fa-exclamation-circle"></i> ' +
-                                    __("Claim returned") +
-                                    "</a>";
-                            }
-                            return content;
-                        },
-                    },
-                    {
-                        bVisible: exports_enabled == 1 ? true : false,
-                        bSortable: false,
-                        mDataProp: function (oObj) {
-                            var s =
-                                "<input type='checkbox' name='itemnumbers' value='" +
-                                oObj.itemnumber +
-                                "' style='visibility:hidden;' />";
-
-                            s +=
-                                "<input type='checkbox' class='export' id='export_" +
-                                oObj.biblionumber +
-                                "' name='biblionumbers' value='" +
-                                oObj.biblionumber +
-                                "' />";
-                            return s;
-                        },
-                    },
-                ],
-                fnFooterCallback: function (
-                    nRow,
-                    aaData,
-                    iStart,
-                    iEnd,
-                    aiDisplay
-                ) {
-                    var total_charge = 0;
-                    var total_fine = 0;
-                    var total_price = 0;
-                    for (var i = 0; i < aaData.length; i++) {
-                        total_charge += aaData[i]["charge"] * 1;
-                        total_fine += aaData[i]["fine"] * 1;
-                        total_price += aaData[i]["price"] * 1;
-                    }
-                    $("#totaldue").html(total_charge.format_price());
-                    $("#totalfine").html(total_fine.format_price());
-                    $("#totalprice").html(total_price.format_price());
-                },
-                bPaginate: false,
-                bProcessing: true,
-                bServerSide: false,
-                sAjaxSource: "/cgi-bin/koha/svc/checkouts",
-                fnServerData: function (sSource, aoData, fnCallback) {
-                    aoData.push({
-                        name: "borrowernumber",
-                        value: borrowernumber,
-                    });
-
-                    $.getJSON(sSource, aoData, function (json) {
-                        fnCallback(json);
-                    });
-                },
-                rowGroup: {
-                    dataSrc: "issued_today",
-                    startRender: function (rows, group) {
-                        if (group) {
-                            return __("Today's checkouts");
-                        } else {
-                            return __("Previous checkouts");
-                        }
-                    },
-                },
-                fnInitComplete: function (oSettings, json) {
-                    // Build a summary of checkouts grouped by itemtype
-                    var checkoutsByItype = json.aaData.reduce(function (
-                        obj,
-                        row
-                    ) {
-                        obj[row.type_for_stat] =
-                            (obj[row.type_for_stat] || 0) + 1;
-                        return obj;
-                    }, {});
-                    var ul = $("<ul>");
-                    Object.keys(checkoutsByItype)
-                        .sort()
-                        .forEach(function (itype) {
-                            var li = $("<li>")
-                                .append(
-                                    $("<strong>").html(
-                                        itype || __("No itemtype")
-                                    )
-                                )
-                                .append(": " + checkoutsByItype[itype]);
-                            ul.append(li);
-                        });
-                    $("<details>")
-                        .addClass("checkouts-by-itemtype")
-                        .append(
-                            $("<summary>").html(
-                                __("Number of checkouts by item type")
-                            )
-                        )
-                        .append(ul)
-                        .insertBefore(oSettings.nTableWrapper);
-                },
-            },
-            table_settings_issues_table
-        );
-
-        if ($("#issues-table").length) {
-            $("#issues-table_processing").position({
-                of: $("#issues-table"),
-                collision: "none",
-            });
-        }
-    }
-
     // Don't load divibib issues table unless it is clicked on
     var divibibIssuesTable;
     $("#divibib-issues-tab").click(function () {
         if (!divibibIssuesTable) {
-            divibibIssuesTable = $("#divibib-issues-table").dataTable({
-                oLanguage: {
-                    sEmptyTable: "Benutzer hat nichts ausgeliehen",
+            divibibIssuesTable = $("#divibib-issues-table").kohaTable({
+                language: {
+                    emptyTable: __("Patron has nothing checked out"),
                 },
-                bAutoWidth: false,
-                sDom: "rt",
-                aaSorting: [],
-                aoColumns: [
+                autoWidth: false,
+                dom: "rt",
+                order: [],
+                columns: [
                     {
-                        mDataProp: "date_due",
-                        bVisible: false,
+                        data: "date_due",
+                        visible: false,
                     },
                     {
-                        iDataSort: 1, // Sort on hidden unformatted date due column
-                        mDataProp: function (oObj) {
+                        orderData: 0, // Sort on hidden unformatted date due column
+                        data: function (oObj) {
                             var today = new Date();
                             var due = new Date(oObj.date_due);
                             if (today > due) {
@@ -1814,7 +1158,7 @@ $(document).ready(function () {
                         },
                     },
                     {
-                        mDataProp: function (oObj) {
+                        data: function (oObj) {
                             title =
                                 "<span class='strong'><a href='/cgi-bin/koha/catalogue/detail.pl?biblionumber=" +
                                 oObj.biblionumber +
@@ -1886,34 +1230,27 @@ $(document).ready(function () {
 
                             return title;
                         },
-                        sType: "anti-the",
+                        type: "anti-the",
                     },
-                    { mDataProp: "itemtype_description" },
-                    { mDataProp: "issuedate_formatted" },
-                    { mDataProp: "branchname" },
+                    { data: "itemtype_description" },
+                    { data: "issuedate_formatted" },
+                    { data: "branchname" },
                 ],
-                bPaginate: false,
-                bProcessing: true,
-                bServerSide: false,
-                sAjaxSource: "/cgi-bin/koha/svc/checkoutsOnlineEmedia",
-                fnServerData: function (sSource, aoData, fnCallback) {
-                    aoData.push({
-                        name: "borrowernumber",
-                        value: borrowernumber,
-                    });
-
-                    $.getJSON(sSource, aoData, function (json) {
-                        fnCallback(json);
-                        $("#divibib-issues-tab").text(
-                            divibibIssuesTable
-                                .dataTable()
-                                .api()
-                                .rows()
-                                .count() +
-                                " " +
-                                $("#divibib-issues-tab").text()
-                        );
-                    });
+                paging: false,
+                processing: true,
+                serverSide: false,
+                ajax: {
+                    url:
+                        "/cgi-bin/koha/svc/checkoutsOnlineEmedia?borrowernumber=" +
+                        borrowernumber,
+                },
+                bKohaAjaxSVC: true,
+                initComplete: function () {
+                    $("#divibib-issues-tab").text(
+                        this.api().rows().count() +
+                            " " +
+                            $("#divibib-issues-tab").text()
+                    );
                 },
             });
         }
@@ -1930,8 +1267,7 @@ $(document).ready(function () {
     var relativesIssuesTable;
     $("#relatives-issues-tab").click(function () {
         if (!relativesIssuesTable) {
-            relativesIssuesTable = KohaTable(
-                "relatives-issues-table",
+            relativesIssuesTable = $("#relatives-issues-table").kohaTable(
                 {
                     autoWidth: false,
                     dom: '<"table_controls"B>rt',
@@ -2157,25 +1493,17 @@ $(document).ready(function () {
                             },
                         },
                     ],
-                    bPaginate: false,
-                    bProcessing: true,
-                    bServerSide: false,
-                    sAjaxSource: "/cgi-bin/koha/svc/checkouts",
-                    fnServerData: function (sSource, aoData, fnCallback) {
-                        $.each(
-                            relatives_borrowernumbers,
-                            function (index, value) {
-                                aoData.push({
-                                    name: "borrowernumber",
-                                    value: value,
-                                });
-                            }
-                        );
-
-                        $.getJSON(sSource, aoData, function (json) {
-                            fnCallback(json);
-                        });
+                    paging: false,
+                    processing: true,
+                    serverSide: false,
+                    ajax: {
+                        url: "/cgi-bin/koha/svc/checkouts?%s".format(
+                            relatives_borrowernumbers
+                                .map(b => "borrowernumber=%s".format(b))
+                                .join("&")
+                        ),
                     },
+                    bKohaAjaxSVC: true,
                 },
                 table_settings_relatives_issues_table
             );
@@ -2231,18 +1559,11 @@ $(document).ready(function () {
     }
     function loadReturnClaimsTable() {
         if (!returnClaimsTable) {
-            returnClaimsTable = $("#return-claims-table").dataTable({
+            returnClaimsTable = $("#return-claims-table").kohaTable({
                 autoWidth: false,
                 dom: "rt",
                 order: [],
-                columnDefs: [
-                    {
-                        orderable: false,
-                        searchable: false,
-                        targets: ["NoSort"],
-                    },
-                    { type: "anti-the", targets: ["anti-the"] },
-                ],
+                columnDefs: [{ type: "anti-the", targets: ["anti-the"] }],
                 columns: [
                     {
                         data: "id",
@@ -2306,30 +1627,14 @@ $(document).ready(function () {
                         },
                     },
                     {
-                        mDataProp: "created_on",
-                        bVisible: false,
+                        data: "created_on",
+                        visible: false,
                     },
                     {
                         orderData: 4,
-                        mDataProp: function (oObj) {
+                        data: function (oObj) {
                             if (oObj.created_on) {
                                 return $date(oObj.created_on, {
-                                    no_tz_adjust: true,
-                                });
-                            } else {
-                                return "";
-                            }
-                        },
-                    },
-                    {
-                        mDataProp: "updated_on",
-                        bVisible: false,
-                    },
-                    {
-                        orderData: 6,
-                        mDataProp: function (oObj) {
-                            if (oObj.updated_on) {
-                                return $date(oObj.updated_on, {
                                     no_tz_adjust: true,
                                 });
                             } else {
@@ -2420,34 +1725,8 @@ $(document).ready(function () {
                     url: "/cgi-bin/koha/svc/return_claims?borrowernumber=%s".format(
                         borrowernumber
                     ),
-                    complete: function (json) {
-                        let resolved = json.resolved;
-                        let unresolved = json.unresolved;
-
-                        if (resolved > 0) {
-                            $("#return-claims-count-resolved")
-                                .text(resolved)
-                                .removeClass("bg-info-subtle")
-                                .addClass("text-bg-success");
-                        } else {
-                            $("#return-claims-count-resolved")
-                                .text(resolved)
-                                .removeClass("text-bg-success")
-                                .addClass("bg-info-subtle");
-                        }
-                        if (unresolved > 0) {
-                            $("#return-claims-count-unresolved")
-                                .text(unresolved)
-                                .removeClass("bg-info-subtle")
-                                .addClass("text-bg-warning");
-                        } else {
-                            $("#return-claims-count-unresolved")
-                                .text(unresolved)
-                                .removeClass("text-bg-warning")
-                                .addClass("bg-info-subtle");
-                        }
-                    },
                 },
+                bKohaAjaxSVC: true,
                 search: { search: "is_unresolved" },
                 footerCallback: function (row, data, start, end, display) {
                     var api = this.api();

@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI        qw ( -utf8 );
@@ -23,7 +23,6 @@ use C4::Context;
 use List::MoreUtils qw( any );
 
 my $query = CGI->new;
-my $admin = C4::Context->preference('KohaAdminEmailAddress');
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
         template_name   => 'errors/errorpage.tt',
@@ -33,7 +32,6 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 $template->param(
-    admin => $admin,
     errno => 401,
 );
 my $status = '401 Unauthorized';

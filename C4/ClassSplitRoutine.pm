@@ -15,21 +15,18 @@ package C4::ClassSplitRoutine;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-
-use Class::Factory::Util;
-
-our ( @ISA, @EXPORT_OK );
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         GetSplitRoutineNames
     );
 }
+
+use Class::Factory::Util;
 
 =head1 NAME
 
@@ -59,6 +56,6 @@ sub GetSplitRoutineNames {
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 =cut

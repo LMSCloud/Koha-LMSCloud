@@ -21,7 +21,7 @@ use List::MoreUtils qw( uniq );
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME 
 
@@ -43,13 +43,20 @@ __PACKAGE__->mk_accessors(qw( theme activethemes preferredtheme lang filename ht
 
 Template::Filters->use_rfc3986();
 
+=head2 new
+
+Missing POD for new.
+
+=cut
+
 sub new {
     my $class     = shift;
     my $interface = shift;
     my $filename  = shift;
     my $tmplbase  = shift;
     my $query     = @_ ? shift : undef;
-    my ( $htdocs, $opaccustomdocs ) = ( "", "" );
+    my $htdocs;
+    my $opaccustomdocs;
     if ( $interface ne "intranet" ) {
         $htdocs         = C4::Context->config('opachtdocs');
         $opaccustomdocs = C4::Context->config('opaccustomdocs');
@@ -57,7 +64,6 @@ sub new {
         $htdocs = C4::Context->config('intrahtdocs');
     }
     my ( $theme, $lang, $activethemes ) = themelanguage( $htdocs, $tmplbase, $interface, $query );
-
     my @includes;
     foreach (@$activethemes) {
         if ( defined $opaccustomdocs && -e "$opaccustomdocs" ) {
@@ -109,6 +115,12 @@ sub new {
 
 }
 
+=head2 output
+
+Missing POD for output.
+
+=cut
+
 sub output {
     my $self = shift;
     my $vars = shift;
@@ -147,6 +159,13 @@ sub output {
 }
 
 # wrapper method to allow easier transition from HTML template pro to Template Toolkit
+
+=head2 param
+
+Missing POD for param.
+
+=cut
+
 sub param {
     my $self = shift;
     while (@_) {
@@ -244,6 +263,12 @@ sub badtemplatecheck {
     }
 }
 
+=head2 gettemplate
+
+Missing POD for gettemplate.
+
+=cut
+
 sub gettemplate {
     my ( $tmplbase, $interface, $query ) = @_;
     my ( $htdocs, $theme, $lang, $filename ) = _get_template_file( $tmplbase, $interface, $query );
@@ -311,6 +336,12 @@ sub themelanguage {
     return availablethemes( $htdocs, $tmpl, $interface, $lang );
 }
 
+=head2 availablethemes
+
+Missing POD for availablethemes.
+
+=cut
+
 sub availablethemes {
     my ( $htdocs, $tmpl, $interface, $lang ) = @_;
 
@@ -359,6 +390,12 @@ sub availablethemes {
         return ( $themes[0], $lang, [ uniq(@themes) ] );
     }
 }
+
+=head2 setlanguagecookie
+
+Missing POD for setlanguagecookie.
+
+=cut
 
 sub setlanguagecookie {
     my ( $query, $language, $uri ) = @_;

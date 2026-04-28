@@ -4,6 +4,7 @@ use Modern::Perl;
 use C4::Biblio qw( MungeMarcPrice );
 use Koha::Database;
 use Koha::Acquisition::Currencies;
+use Test::NoWarnings;
 use Test::More;
 
 # work around wide character warnings
@@ -29,7 +30,7 @@ my @prices2test = (
     { string => '5.99 (7.75 CAN)',            expected => '5.99' },
 );
 
-plan tests => 2 * scalar @prices2test;
+plan tests => 1 + 2 * scalar @prices2test;
 
 # set active currency test data
 my $CURRENCY = 'TEST';

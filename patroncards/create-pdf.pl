@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI      qw ( -utf8 );
@@ -51,6 +51,7 @@ my $start_card       = $cgi->param('start_card')     || 1;
 my @label_ids        = $cgi->multi_param('label_id');
 my @borrower_numbers = $cgi->multi_param('borrower_number');
 my $patronlist_id    = $cgi->param('patronlist_id');
+my $order_by         = $cgi->param('order_by') || undef;
 
 my $items    = undef;    # items = cards
 my $new_page = 0;

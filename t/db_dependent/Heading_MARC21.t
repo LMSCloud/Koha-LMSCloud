@@ -6,11 +6,12 @@
 use strict;
 use warnings;
 
-use Test::More tests => 10;
+use Test::NoWarnings;
+use Test::More tests => 11;
 use C4::Context;
 
 BEGIN {
-    use_ok( 'C4::Heading', qw( field new_from_field display_form search_form ) );
+    use_ok( 'C4::Heading', qw( new_from_field ) );
 }
 
 SKIP: {

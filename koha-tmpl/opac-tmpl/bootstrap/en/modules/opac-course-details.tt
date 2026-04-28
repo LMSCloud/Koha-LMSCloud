@@ -24,7 +24,7 @@
 [% INCLUDE 'bodytag.inc' bodyid='opac-course-details' %]
 [% INCLUDE 'masthead.inc' %]
 
-<div class="main">
+<main class="main">
     [% WRAPPER breadcrumbs %]
         [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/opac-course-reserves.pl">Course reserves</a>
@@ -133,12 +133,11 @@
         <!-- / .row -->
     </div>
     <!-- / .container-fluid -->
-</div>
+</main>
 <!-- / .main -->
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
     [% INCLUDE 'datatables.inc' %]
-    [% INCLUDE 'columns_settings.inc' %]
     <script>
         $(document).ready(function() {
             table_settings = [% TablesSettings.GetTableSettings( 'opac', 'course_items', 'course-items-table', 'json' ) | $raw %];

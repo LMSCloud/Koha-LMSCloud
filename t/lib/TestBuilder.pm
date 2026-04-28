@@ -2,10 +2,10 @@ package t::lib::TestBuilder;
 
 use Modern::Perl;
 
-use Koha::Database  qw( schema );
-use C4::Biblio      qw( AddBiblio );
-use Koha::Biblios   qw( _type );
-use Koha::Items     qw( _type );
+use Koha::Database;
+use C4::Biblio qw( AddBiblio );
+use Koha::Biblios;
+use Koha::Items;
 use Koha::DateUtils qw( dt_from_string );
 
 use Bytes::Random::Secure;
@@ -658,9 +658,10 @@ sub _gen_default_values {
             reservefee   => 0,
 
             # Not X, used for statistics
-            category_type           => sub { return [qw( A C S I P )]->[ int( rand(5) ) ] },
-            min_password_length     => undef,
-            require_strong_password => undef,
+            category_type                 => sub { return [qw( A C S I P )]->[ int( rand(5) ) ] },
+            min_password_length           => undef,
+            require_strong_password       => undef,
+            BlockExpiredPatronOpacActions => q{follow_syspref_BlockExpiredPatronOpacActions},
         },
         Branch => {
             pickup_location => 0,
@@ -699,6 +700,9 @@ sub _gen_default_values {
             quantity => 1,
         },
         AuthHeader => {
+            marcxml => '',
+        },
+        DeletedauthHeader => {
             marcxml => '',
         },
         BorrowerAttributeType => {
@@ -812,6 +816,14 @@ if a record with that primary key already exists.
 Given a plural Koha::Object-derived class, it creates a random element, and
 returns the corresponding Koha::Object.
 
+=head2 build_sample_biblio
+
+Missing POD for build_sample_biblio.
+
+=head2 build_sample_item
+
+Missing POD for build_sample_item.
+
 =head2 build_sample_ill_request
 
     my $ill_request = $builder->build_sample_ill_request({ biblio_id => $biblio_id });
@@ -829,6 +841,10 @@ C<$args> is a hashref with the following optional keys:
 =item * C<branchcode> (default: a random branch)
 
 =back
+
+=head2 alt_rand
+
+Missing POD for alt_rand.
 
 =head1 AUTHOR
 
@@ -849,7 +865,7 @@ the Free Software Foundation; either version 3 of the License, or (at your optio
 
 Koha is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with Koha; if not, see <http://www.gnu.org/licenses>.
+You should have received a copy of the GNU General Public License along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =cut
 

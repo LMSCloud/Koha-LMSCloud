@@ -12,7 +12,7 @@
 # A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with Koha; if not, see <http://www.gnu.org/licenses>.
+# with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -22,10 +22,13 @@ use File::Basename;
 use File::Spec;
 use File::Temp                qw( tempdir tempfile );
 use FindBin                   qw($Bin);
+use List::MoreUtils           qw(none);
 use Module::Load::Conditional qw(can_load);
 use Test::MockModule;
-use Test::More tests => 18;
+use Test::NoWarnings;
+use Test::More tests => 20;
 use Test::Warn;
+use Test::Exception;
 
 use C4::Context;
 use Koha::Cache::Memory::Lite;
@@ -186,6 +189,77 @@ subtest 'GetPlugins() tests' => sub {
     @plugins = $plugins->GetPlugins( { metadata => { my_example_tag => 'find_me' }, all => 1 } );
     @names   = map { $_->get_metadata()->{'name'} } @plugins;
     is( scalar @names, 2, "Only two plugins found via a metadata tag" );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'InstallPlugins() tests' => sub {
+
+    plan tests => 8;
+
+    $schema->storage->txn_begin;
+
+    # Temporarily remove any installed plugins data
+    Koha::Plugins::Methods->delete;
+    $schema->resultset('PluginData')->delete;
+
+    # Tests for the exclude parameter
+    # Test the returned plugins of the InstallPlugins subroutine
+    my $excluded_plugins  = [ "Koha::Plugin::Test", "Koha::Plugin::MarcFieldValues" ];
+    my $plugins           = Koha::Plugins->new( { enable_plugins => 1 } );
+    my @installed_plugins = $plugins->InstallPlugins( { exclude => $excluded_plugins } );
+
+    foreach my $excluded_plugin ( @{$excluded_plugins} ) {
+        ok(
+            none { $_ eq $excluded_plugin } ( map { $_->{class} } @installed_plugins ),
+            "Excluded plugin not returned ($excluded_plugin)"
+        );
+    }
+
+    # Test the plugins in the database
+    my @plugins = $plugins->GetPlugins( { all => 1, error => 1 } );
+    foreach my $excluded_plugin ( @{$excluded_plugins} ) {
+        ok(
+            none { $_ eq $excluded_plugin } ( map { $_->{class} } @plugins ),
+            "Excluded plugin not installed ($excluded_plugin)"
+        );
+    }
+
+    # Remove installed plugins data
+    Koha::Plugins::Methods->delete;
+    $schema->resultset('PluginData')->delete;
+
+    # Tests for the include parameter
+    # Test the returned plugins of the InstallPlugins subroutine
+    @installed_plugins =
+        $plugins->InstallPlugins( { include => [ "Koha::Plugin::Test", "Koha::Plugin::MarcFieldValues" ] } );
+
+    my $result = 1;
+    foreach my $plugin_class ( map { $_->{class} } @installed_plugins ) {
+        $result = 0 unless ( "$plugin_class" =~ ":Test\$" || "$plugin_class" =~ ":MarcFieldValues\$" );
+    }
+    ok( $result, "Only included plugins are returned" );
+
+    # Test the plugins in the database
+    @plugins = $plugins->GetPlugins( { all => 1, error => 1 } );
+
+    $result = 1;
+    foreach my $plugin_class ( map { $_->{class} } @plugins ) {
+        $result = 0 unless ( "$plugin_class" =~ ":Test\$" || "$plugin_class" =~ ":MarcFieldValues\$" );
+    }
+    ok( $result, "Only included plugins are installed" );
+
+    # Tests when both include and exclude parameter are used simultaneously
+    throws_ok {
+        $plugins->InstallPlugins( { exclude => ["Koha::Plugin::Test"], include => ["Koha::Plugin::Test"] } );
+    }
+    'Koha::Exceptions::BadParameter';
+
+    # Tests when the plugin to be installled is not found
+    throws_ok {
+        $plugins->InstallPlugins( { include => ["Koha::Plugin::NotfoundPlugin"] } );
+    }
+    'Koha::Exceptions::BadParameter';
 
     $schema->storage->txn_rollback;
 };
@@ -489,20 +563,20 @@ subtest 'Test _version_compare' => sub {
     t::lib::Mocks::mock_config( 'enable_plugins', 1 );
 
     is( Koha::Plugins::Base::_version_compare( '1.1.1',    '2.2.2' ), -1, "1.1.1 is less then 2.2.2" );
-    is( Koha::Plugins::Base::_version_compare( '2.2.2',    '1.1.1' ), 1,  "1.1.1 is greater then 2.2.2" );
-    is( Koha::Plugins::Base::_version_compare( '1.1.1',    '1.1.1' ), 0,  "1.1.1 is equal to 1.1.1" );
-    is( Koha::Plugins::Base::_version_compare( '1.01.001', '1.1.1' ), 0,  "1.01.001 is equal to 1.1.1" );
-    is( Koha::Plugins::Base::_version_compare( '1',        '1.0.0' ), 0,  "1 is equal to 1.0.0" );
-    is( Koha::Plugins::Base::_version_compare( '1.0',      '1.0.0' ), 0,  "1.0 is equal to 1.0.0" );
+    is( Koha::Plugins::Base::_version_compare( '2.2.2',    '1.1.1' ),  1, "1.1.1 is greater then 2.2.2" );
+    is( Koha::Plugins::Base::_version_compare( '1.1.1',    '1.1.1' ),  0, "1.1.1 is equal to 1.1.1" );
+    is( Koha::Plugins::Base::_version_compare( '1.01.001', '1.1.1' ),  0, "1.01.001 is equal to 1.1.1" );
+    is( Koha::Plugins::Base::_version_compare( '1',        '1.0.0' ),  0, "1 is equal to 1.0.0" );
+    is( Koha::Plugins::Base::_version_compare( '1.0',      '1.0.0' ),  0, "1.0 is equal to 1.0.0" );
 
     # OO tests
     my $plugin = Koha::Plugin::Test->new;
     is( $plugin->_version_compare( '1.1.1',    '2.2.2' ), -1, "1.1.1 is less then 2.2.2" );
-    is( $plugin->_version_compare( '2.2.2',    '1.1.1' ), 1,  "1.1.1 is greater then 2.2.2" );
-    is( $plugin->_version_compare( '1.1.1',    '1.1.1' ), 0,  "1.1.1 is equal to 1.1.1" );
-    is( $plugin->_version_compare( '1.01.001', '1.1.1' ), 0,  "1.01.001 is equal to 1.1.1" );
-    is( $plugin->_version_compare( '1',        '1.0.0' ), 0,  "1 is equal to 1.0.0" );
-    is( $plugin->_version_compare( '1.0',      '1.0.0' ), 0,  "1.0 is equal to 1.0.0" );
+    is( $plugin->_version_compare( '2.2.2',    '1.1.1' ),  1, "1.1.1 is greater then 2.2.2" );
+    is( $plugin->_version_compare( '1.1.1',    '1.1.1' ),  0, "1.1.1 is equal to 1.1.1" );
+    is( $plugin->_version_compare( '1.01.001', '1.1.1' ),  0, "1.01.001 is equal to 1.1.1" );
+    is( $plugin->_version_compare( '1',        '1.0.0' ),  0, "1 is equal to 1.0.0" );
+    is( $plugin->_version_compare( '1.0',      '1.0.0' ),  0, "1.0 is equal to 1.0.0" );
 };
 
 subtest 'bundle_path() tests' => sub {

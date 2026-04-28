@@ -438,6 +438,15 @@
         }
     }
 
+    #loggedinuser-menu {
+        .divider-vertical {
+            display: inline;
+            border: 1px solid #EEE;
+            border-right-color: #FCF9FC;
+            margin: 5px 2px;
+        }
+    }
+
     #didyoumean {
         margin: .5em 0;
     }
@@ -458,13 +467,17 @@
         }
     }
 
+    .dropdown-menu {
+        min-width: calc( var( --bs-dropdown-min-width ) + 4rem );
+    }
+
     a {
         &.menu-collapse-toggle {
             &:link,
             &:visited,
             &:hover,
             &:active {
-                color: #727272;
+                color: #666666;
                 cursor: default;
 
                 &::before {
@@ -541,5 +554,10 @@
     .report_a_problem_text,
     .koha_url_text {
         display: inline;
+    }
+
+    #patron-virtual-card {
+        max-width: 500px;
+        min-width: 300px;
     }
 }

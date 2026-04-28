@@ -16,9 +16,60 @@ package C4::Acquisition;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(
+        GetBasket NewBasket ReopenBasket ModBasket
+        GetBasketAsCSV GetBasketGroupAsCSV
+        GetBaskets GetBasketsByBookseller GetBasketsByBasketgroup
+        GetBasketsInfosByBookseller
+
+        GetBasketUsers ModBasketUsers
+        CanUserManageBasket
+
+        ModBasketHeader
+
+        ModBasketgroup NewBasketgroup DelBasketgroup GetBasketgroup CloseBasketgroup
+        GetBasketgroups GetBasketgroupsGeneric GetBasketgroupsNotClosed ReOpenBasketgroup
+
+        GetNotClosedBasketsByBookseller
+
+        ModOrder GetOrder GetOrders GetOrdersByBiblionumber
+        GetOrderFromItemnumber
+        SearchOrders GetHistory GetRecentAcqui
+        ModReceiveOrder CancelReceipt
+        TransferOrder
+        ModItemOrder
+        ModOrderDeliveryNote
+
+        GetInvoices
+        GetInvoice
+        GetInvoiceDetails
+        AddInvoice
+        ModInvoice
+        CloseInvoice
+        ReopenInvoice
+        DelInvoice
+        MergeInvoices
+
+        AddClaim
+        GetBiblioCountByBasketno
+
+        GetOrderUsers
+        ModOrderUsers
+        NotifyOrderUsers
+
+        FillWithDefaultValues
+
+        get_rounded_price
+        get_rounding_sql
+    );
+}
+
 use Carp qw( carp croak );
 use Text::CSV_XS;
 use C4::Context;
@@ -46,55 +97,28 @@ use C4::Koha;
 use MARC::Field;
 use JSON qw( to_json );
 
-our ( @ISA, @EXPORT_OK );
+=head1 NAME
 
-BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
-        GetBasket NewBasket ReopenBasket ModBasket
-        GetBasketAsCSV GetBasketGroupAsCSV
-        GetBasketsByBookseller GetNotClosedBasketsByBookseller GetBasketsByBasketgroup
-        GetBasketsInfosByBookseller GetBaskets
+C4::Acquisition - Koha Acquisition module
 
-        GetBasketUsers ModBasketUsers
-        CanUserManageBasket
+=head1 SYNOPSIS
 
-        ModBasketHeader
+use C4::Acquisition;
 
-        ModBasketgroup NewBasketgroup DelBasketgroup GetBasketgroup GetBasketgroupsNotClosed CloseBasketgroup
-        GetBasketgroups GetBasketgroupsGeneric ReOpenBasketgroup
+=head1 DESCRIPTION
 
-        ModOrder GetOrder GetOrders GetOrdersByBiblionumber
-        GetOrderFromItemnumber
-        SearchOrders GetHistory GetRecentAcqui
-        ModReceiveOrder CancelReceipt ModOrderDeliveryNote
-        TransferOrder
-        ModItemOrder
+The functions in this module deal with acquisitions, managing book
+orders, basket and parcels.
 
-        GetInvoices
-        GetInvoice
-        GetInvoiceDetails
-        AddInvoice
-        ModInvoice
-        CloseInvoice
-        ReopenInvoice
-        DelInvoice
-        MergeInvoices
+=head1 FUNCTIONS
 
-        AddClaim
-        GetBiblioCountByBasketno
+=head2 FUNCTIONS ABOUT BASKETS
 
-        GetOrderUsers
-        ModOrderUsers
-        NotifyOrderUsers
+=head3 GetOrderFromItemnumber
 
-        FillWithDefaultValues
+Missing POD for GetOrderFromItemnumber.
 
-        get_rounded_price
-        get_rounding_sql
-    );
-}
+=cut
 
 sub GetOrderFromItemnumber {
     my ($itemnumber) = @_;
@@ -116,30 +140,13 @@ sub GetOrderFromItemnumber {
 
 }
 
-=head1 NAME
-
-C4::Acquisition - Koha functions for dealing with orders and acquisitions
-
-=head1 SYNOPSIS
-
-use C4::Acquisition;
-
-=head1 DESCRIPTION
-
-The functions in this module deal with acquisitions, managing book
-orders, basket and parcels.
-
-=head1 FUNCTIONS
-
-=head2 FUNCTIONS ABOUT BASKETS
-
 =head3 GetBasket
 
   $aqbasket = &GetBasket($basketnumber);
 
-get all basket informations in aqbasket for a given basket
+get all basket information in aqbasket for a given basket
 
-B<returns:> informations for a given basket returned as a hashref.
+B<returns:> information for a given basket returned as a hashref.
 
 =cut
 
@@ -492,6 +499,12 @@ reopen a basketgroup
 
 =cut
 
+=head2 ReOpenBasketgroup
+
+Missing POD for ReOpenBasketgroup.
+
+=cut
+
 sub ReOpenBasketgroup {
     my ($basketgroupno) = @_;
     my $dbh             = C4::Context->dbh;
@@ -773,7 +786,7 @@ sub GetNotClosedBasketsByBookseller {
     my $baskets = GetBasketsInfosByBookseller($supplierid, $allbaskets);
 
 The optional second parameter allbaskets is a boolean allowing you to
-select all baskets from the supplier; by default only active baskets (open or 
+select all baskets from the supplier; by default only active baskets (open or
 closed but still something to receive) are returned.
 
 Returns in a arrayref of hashref all about booksellers baskets, plus:
@@ -1461,8 +1474,8 @@ sub GetOrder {
   &ModOrder(\%hashref);
 
 Modifies an existing order. Updates the order with order number
-$hashref->{'ordernumber'} and biblionumber $hashref->{'biblionumber'}. All 
-other keys of the hash update the fields with the same name in the aqorders 
+$hashref->{'ordernumber'} and biblionumber $hashref->{'biblionumber'}. All
+other keys of the hash update the fields with the same name in the aqorders
 table of the Koha database.
 
 =cut
@@ -1638,8 +1651,7 @@ sub ModReceiveOrder {
         $dbh->do( $query, undef, @params, $order->{ordernumber} );
 
         delete $order->{ordernumber};
-        $order->{timestamp} =
-            DateTime->now( time_zone => C4::Context->tz() );    # otherwise aqorders.timestamp is not updated
+        $order->{timestamp}        = DateTime->now( time_zone => C4::Context->tz() );
         $order->{budget_id}        = ( $budget_id || $order->{budget_id} );
         $order->{quantity}         = $quantrec;
         $order->{quantityreceived} = $quantrec;
@@ -1702,12 +1714,12 @@ sub ModReceiveOrder {
         | if defined $order->{order_internalnote};
 
         $query .= q|
-            , order_vendornote = ?
-        | if defined $order->{order_vendornote};
-
-        $query .= q|
             , invoice_unitprice = ?, invoice_currency = ?
         |;
+
+        $query .= q|
+            , order_vendornote = ?
+        | if defined $order->{order_vendornote};
 
         $query .= q| where biblionumber=? and ordernumber=?|;
 
@@ -1743,11 +1755,10 @@ sub ModReceiveOrder {
             push @params, $order->{order_internalnote};
         }
 
+        push @params, $order->{invoice_unitprice}, $order->{invoice_currency};
         if ( defined $order->{order_vendornote} ) {
             push @params, $order->{order_vendornote};
         }
-
-        push @params, $order->{invoice_unitprice}, $order->{invoice_currency};
 
         push @params, ( $biblionumber, $order->{ordernumber} );
 
@@ -2248,6 +2259,18 @@ sub TransferOrder {
     foreach my $afv ( $order->additional_field_values->as_list ) {
         Koha::AdditionalFieldValue->new(
             {
+                field_id     => $afv->field_id,
+                record_id    => $newordernumber,
+                record_table => 'aqorders',
+                value        => $afv->value,
+            }
+        )->store;
+    }
+
+    # Copy additional fields values
+    foreach my $afv ( $order->additional_field_values->as_list ) {
+        Koha::AdditionalFieldValue->new(
+            {
                 field_id  => $afv->field_id,
                 record_id => $newordernumber,
                 value     => $afv->value,
@@ -2296,9 +2319,9 @@ sub get_rounded_price {
 
   \@order_loop = GetHistory( %params );
 
-Retreives some acquisition history information
+Retrieves some acquisition history information
 
-params:  
+params:
   title
   author
   name
@@ -2307,7 +2330,7 @@ params:
   from_placed_on
   to_placed_on
   basket                  - search both basket name and number
-  booksellerinvoicenumber 
+  booksellerinvoicenumber
   basketgroupname
   budget
   orderstatus (note that orderstatus '' will retrieve orders
@@ -2825,7 +2848,7 @@ sub GetInvoices {
 
     my $invoice = GetInvoice($invoiceid);
 
-Get informations about invoice with given $invoiceid
+Get information about invoice with given $invoiceid
 
 Return a hash filled with aqinvoices.* fields
 
@@ -2854,9 +2877,9 @@ sub GetInvoice {
 
     my $invoice = GetInvoiceDetails($invoiceid)
 
-Return informations about an invoice + the list of related order lines
+Return information about an invoice + the list of related order lines
 
-Orders informations are in $invoice->{orders} (array ref)
+Orders information are in $invoice->{orders} (array ref)
 
 =cut
 
@@ -3195,6 +3218,12 @@ sub ModOrderUsers {
     }
 }
 
+=head2 NotifyOrderUsers
+
+Missing POD for NotifyOrderUsers.
+
+=cut
+
 sub NotifyOrderUsers {
     my ($ordernumber) = @_;
 
@@ -3287,6 +3316,6 @@ __END__
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 =cut

@@ -13,13 +13,14 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use POSIX qw(strftime);
 
-use Test::More tests => 36;
+use Test::NoWarnings;
+use Test::More tests => 37;
 use Test::MockModule;
 
 use t::lib::TestBuilder;

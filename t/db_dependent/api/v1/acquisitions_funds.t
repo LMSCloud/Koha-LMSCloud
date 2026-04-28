@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 14;
+use Test::NoWarnings;
+use Test::More tests => 15;
 use Test::Mojo;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -80,7 +81,8 @@ $t->get_ok( "//$unauth_userid:$unauth_password@/api/v1/acquisitions/funds?name="
 
 $t->get_ok("//$userid:$password@/api/v1/acquisitions/funds")->status_is(200);
 
-$t->get_ok( "//$userid:$password@/api/v1/acquisitions/funds?name=" . $fund_name )->status_is(200)
+$t->get_ok( "//$userid:$password@/api/v1/acquisitions/funds?name=" . $fund_name )
+    ->status_is(200)
     ->json_like( '/0/name' => qr/$fund_name/ );
 
 $schema->storage->txn_rollback;

@@ -15,7 +15,7 @@ package Koha::Suggestion;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -61,7 +61,7 @@ sub store {
             category         => 'SUGGEST_STATUS',
             authorised_value => $self->STATUS
         }
-    )->count;
+        )->count;
 
     $self->branchcode(undef) if defined $self->branchcode && $self->branchcode eq '';
     unless ( $self->suggesteddate() ) {
@@ -110,10 +110,10 @@ sub store {
 
             C4::Letters::EnqueueLetter(
                 {
-                    letter                 => $letter,
-                    borrowernumber         => $result->suggestedby,
-                    suggestionid           => $result->id,
-                    to_address             => $toaddress,
+                    letter         => $letter,
+                    borrowernumber => undef,        #NEW_SUGGESION notices should not end up in the borrowers notice tab
+                    suggestionid   => $result->id,
+                    to_address     => $toaddress,
                     message_transport_type => 'email',
                 }
             ) or warn "can't enqueue letter $letter";
@@ -292,6 +292,42 @@ sub to_api_mapping {
         total                => 'total_price',
         archived             => 'archived',
     };
+}
+
+=head3 strings_map
+
+Returns a map of column name to string representations including the string.
+
+=cut
+
+sub strings_map {
+    my ( $self, $params ) = @_;
+
+    my $strings = {};
+
+    my $required_strings = {
+        STATUS       => 'SUGGEST_STATUS',
+        itemtype     => 'SUGGEST_FORMAT',
+        patronreason => 'OPAC_SUG',
+    };
+
+    foreach my $key ( keys %$required_strings ) {
+        my $av = Koha::AuthorisedValues->search(
+            { category => $required_strings->{$key}, authorised_value => $self->$key } );
+        my $status_str =
+              $av->count
+            ? $params->{public}
+                ? $av->next->opac_description
+                : $av->next->lib
+            : $self->$key;
+
+        $strings->{$key} = {
+            category => $required_strings->{$key},
+            str      => $status_str,
+            type     => 'av',
+        };
+    }
+    return $strings;
 }
 
 =head1 AUTHOR

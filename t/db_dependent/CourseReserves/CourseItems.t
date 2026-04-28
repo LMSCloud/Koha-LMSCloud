@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -24,7 +24,8 @@ use C4::CourseReserves
 use C4::Context;
 use Koha::Items;
 
-use Test::More tests => 36;
+use Test::NoWarnings;
+use Test::More tests => 37;
 
 BEGIN {
     require_ok('C4::CourseReserves');

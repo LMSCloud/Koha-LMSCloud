@@ -27,16 +27,9 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            [% INCLUDE 'messages.inc' %]
-
-            <div class="alert alert-warning">
-                <h1>Invalid course!</h1>
-            </div>
-        </div>
+[% WRAPPER 'main-container.inc' %]
+    <div class="alert alert-warning">
+        <h1>Invalid course!</h1>
     </div>
-
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+[% END %]
+[% INCLUDE 'intranet-bottom.inc' %]

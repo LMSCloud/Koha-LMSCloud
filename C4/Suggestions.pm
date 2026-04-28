@@ -16,9 +16,28 @@ package C4::Suggestions;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT = qw(
+        ConnectSuggestionAndBiblio
+        DelSuggestion
+        GetSuggestion
+        GetSuggestionByStatus
+        GetSuggestionFromBiblionumber
+        GetSuggestionInfoFromBiblionumber
+        GetSuggestionInfo
+        ModStatus
+        ModSuggestion
+        DelSuggestionsOlderThan
+        GetUnprocessedSuggestions
+        MarcRecordFromNewSuggestion
+    );
+}
+
 use CGI qw ( -utf8 );
 
 use C4::Context;
@@ -28,23 +47,6 @@ use C4::Biblio      qw( GetMarcFromKohaField );
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Suggestions;
 use C4::Log qw(logaction);
-
-use base qw(Exporter);
-
-our @EXPORT = qw(
-    ConnectSuggestionAndBiblio
-    DelSuggestion
-    GetSuggestion
-    GetSuggestionByStatus
-    GetSuggestionFromBiblionumber
-    GetSuggestionInfoFromBiblionumber
-    GetSuggestionInfo
-    ModStatus
-    ModSuggestion
-    DelSuggestionsOlderThan
-    GetUnprocessedSuggestions
-    MarcRecordFromNewSuggestion
-);
 
 =head1 NAME
 
@@ -122,10 +124,10 @@ sub GetSuggestionFromBiblionumber {
 
 =head2 GetSuggestionInfoFromBiblionumber
 
-Get a suggestion and borrower's informations from it's biblionumber.
+Get a suggestion and borrower's information from it's biblionumber.
 
 return :
-all informations (suggestion and borrower) of the suggestion which is related to the biblionumber given.
+all information (suggestion and borrower) of the suggestion which is related to the biblionumber given.
 
 =cut
 
@@ -149,10 +151,10 @@ sub GetSuggestionInfoFromBiblionumber {
 
 =head2 GetSuggestionInfo
 
-Get a suggestion and borrower's informations from it's suggestionid
+Get a suggestion and borrower's information from it's suggestionid
 
 return :
-all informations (suggestion and borrower) of the suggestion which is related to the suggestionid given.
+all information (suggestion and borrower) of the suggestion which is related to the suggestionid given.
 
 =cut
 
@@ -385,6 +387,12 @@ sub DelSuggestionsOlderThan {
     $sth->execute("-$days");
 }
 
+=head2 GetUnprocessedSuggestions
+
+Missing POD for GetUnprocessedSuggestions.
+
+=cut
+
 sub GetUnprocessedSuggestions {
     my ($number_of_days_since_the_last_modification) = @_;
 
@@ -450,7 +458,7 @@ __END__
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 =cut
 

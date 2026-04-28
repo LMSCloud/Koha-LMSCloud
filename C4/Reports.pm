@@ -15,22 +15,20 @@ package C4::Reports;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use CGI qw ( -utf8 );
-
-use C4::Context;
-
-our ( @ISA, @EXPORT_OK );
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         GetDelimiterChoices
     );
 }
+
+use CGI qw ( -utf8 );
+
+use C4::Context;
 
 =head1 NAME
 

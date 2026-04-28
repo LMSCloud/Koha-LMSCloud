@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use File::Basename qw(dirname);
@@ -29,6 +29,8 @@ use Test::Exception;
 use Email::Sender::Failure;
 
 use MARC::Record;
+
+use t::lib::Dates;
 
 use utf8;
 
@@ -163,7 +165,7 @@ is(
 is( $messages->[0]->{status}, 'pending', 'EnqueueLetter stores the status pending correctly' );
 isnt( $messages->[0]->{time_queued}, undef, 'Time queued inserted by default in message_queue table' );
 is(
-    $messages->[0]->{updated_on}, $messages->[0]->{time_queued},
+    t::lib::Dates::compare( $messages->[0]->{updated_on}, $messages->[0]->{time_queued} ), 0,
     'Time status changed equals time queued when created in message_queue table'
 );
 is( $messages->[0]->{failure_code}, '', 'Failure code for successful message correctly empty' );
@@ -223,7 +225,7 @@ isnt(
     $messages->[0]->{updated_on}, $messages->[0]->{time_queued},
     'Time status changed differs from time queued when status changes'
 );
-is( dt_from_string( $messages->[0]->{time_queued} ), $yesterday, 'Time queued remaines inmutable' );
+is( dt_from_string( $messages->[0]->{time_queued} ), $yesterday, 'Time queued remains inmutable' );
 
 # ResendMessage
 my $resent = C4::Letters::ResendMessage( $messages->[0]->{message_id} );
@@ -1148,9 +1150,9 @@ subtest 'Test SMS handling in SendQueuedMessages' => sub {
     my $patron = Koha::Patrons->find($borrowernumber);
     $dbh->do(
         q|
-        INSERT INTO message_queue(borrowernumber, subject, content, message_transport_type, status, letter_code)
-        VALUES (?, 'subject', 'content', 'sms', 'pending', 'just_a_code')
-        |, undef, $borrowernumber
+        INSERT INTO message_queue(borrowernumber, subject, content, message_transport_type, status, letter_code, branchcode)
+        VALUES (?, 'subject', 'content', 'sms', 'pending', 'just_a_code', ?)
+        |, undef, $borrowernumber, $patron->branchcode
     );
     eval { C4::Letters::SendQueuedMessages(); };
     is( $@, '', 'SendQueuedMessages should not explode if the patron does not have a sms provider set' );

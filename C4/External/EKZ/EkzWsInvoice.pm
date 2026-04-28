@@ -15,7 +15,7 @@ package C4::External::EKZ::EkzWsInvoice;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -145,7 +145,7 @@ sub genKohaRecords {
     my $logger                      = Koha::Logger->get( { interface => 'C4::External::EKZ::EkzWsInvoice' } );
     my $exceptionThrown;
 
-    my @enabled_plugins = Koha::Plugins::get_enabled_plugins()
+    my @enabled_plugins = Koha::Plugins->get_enabled_plugins()
         ; # this is a hack to avoid the creation of additional database connections by plugins during our database transaction XXXWH
     my $schema = Koha::Database->schema;
     $schema->storage->txn_begin;
@@ -590,7 +590,8 @@ sub genKohaRecords {
                             . Dumper($orderByParam)
                             . ":" );
                     my $acquisitionImportEkzExemplarIdHits =
-                        Koha::AcquisitionImport::AcquisitionImports->new()->_resultset()
+                        Koha::AcquisitionImport::AcquisitionImports->new()
+                        ->_resultset()
                         ->search( $selParam, $orderByParam );
                     $logger->trace( "genKohaRecords() method2: scalar acquisitionImportEkzExemplarIdHits:"
                             . scalar $acquisitionImportEkzExemplarIdHits

@@ -15,14 +15,21 @@ package C4::Heading;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(
+        new_from_field
+    );
+}
 
 use MARC::Field;
 use C4::Context;
 use Module::Load qw( load );
-use List::Util   qw( none );
+use List::Util   qw( none first );
 
 =head1 NAME
 
@@ -148,7 +155,11 @@ sub authorities {
     my $self         = shift;
     my $skipmetadata = shift;
     my ( $results, $total ) = _search( $self, 'match-heading', $skipmetadata );
-    return $results;
+    if ( C4::Context->preference('LinkerConsiderDiacritics') ) {
+        return $self->_filter_diacritics($results);
+    } else {
+        return $results;
+    }
 }
 
 =head2 valid_heading_subfield
@@ -206,6 +217,25 @@ sub _search {
         push @value,     $thesaurus;
     }
 
+    if ( C4::Context->preference('ConsiderHeadingUse') ) {
+        my $marcflavour = C4::Context->preference('marcflavour');
+        my $biblio_tag  = $self->{'field'}->tag;
+        if ( $marcflavour eq 'MARC21' ) {
+            my $heading_use_search_field =
+                  $biblio_tag =~ /^[127]/ ? 'Heading-use-main-or-added-entry'
+                : $biblio_tag =~ /^6/     ? 'Heading-use-subject-added-entry'
+                : $biblio_tag =~ /^[48]/  ? 'Heading-use-series-added-entry'
+                :                           undef;
+            if ($heading_use_search_field) {
+                push @marclist,  $heading_use_search_field;
+                push @and_or,    'and';
+                push @excluding, '';
+                push @operator,  'is';
+                push @value,     'a';
+            }
+        }
+    }
+
     require Koha::SearchEngine::QueryBuilder;
     require Koha::SearchEngine::Search;
 
@@ -236,8 +266,8 @@ sub _search {
         )
         )
     {
-        pop @value;
-        push @value, 'notdefined';
+        my $thesaurus_idx = first { $marclist[$_] eq 'thesaurus' } 0 .. $#marclist;
+        $value[$thesaurus_idx] = 'notdefined';
         $search_query = $builder->build_authorities_query_compat(
             \@marclist,  \@and_or,
             \@excluding, \@operator, \@value, $self->{'auth_type'},
@@ -247,6 +277,29 @@ sub _search {
     }
     return ( $matched_auths, $total );
 
+}
+
+=head2 _filter_diacritics
+
+=cut
+
+sub _filter_diacritics {
+    my $self                = shift;
+    my $results             = shift;
+    my $exact_matched_auths = [];
+    for my $matched_auth (@$results) {
+        my $auth = Koha::Authorities->find( $matched_auth->{authid} );
+        next unless $auth;
+        my $authrec            = $auth->record;
+        my $auth_tag_to_report = Koha::Authority::Types->find( $self->{auth_type} )->auth_tag_to_report;
+        my $auth_heading_field = $authrec->field($auth_tag_to_report);
+        $auth_heading_field->set_tag( $self->field->tag );
+        my $auth_heading = C4::Heading->new_from_field($auth_heading_field);
+        if ( $auth_heading->search_form eq $self->search_form ) {
+            push @$exact_matched_auths, $matched_auth;
+        }
+    }
+    return $exact_matched_auths;
 }
 
 =head1 INTERNAL FUNCTIONS
@@ -267,7 +320,7 @@ sub _marc_format_handler {
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 Galen Charlton <galen.charlton@liblime.com>
 

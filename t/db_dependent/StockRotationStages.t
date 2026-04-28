@@ -15,14 +15,15 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use Koha::Database;
 use t::lib::TestBuilder;
 
-use Test::More tests => 6;
+use Test::NoWarnings;
+use Test::More tests => 7;
 
 my $schema = Koha::Database->new->schema;
 

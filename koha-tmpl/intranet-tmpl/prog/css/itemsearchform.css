@@ -63,7 +63,7 @@ input[type="text"] {
     padding: .375rem .75rem;
 }
 
-.select2.select2-container.select2-container--default {
-    flex-grow: 1;
-    max-width: 60%;
+#itemsearchform .flatpickr-input {
+    padding-left: 1.5em;
 }
+

@@ -17,6 +17,7 @@ function get_package() {
                 package_id: 1,
             },
         ],
+        notes: "",
         resources_count: 0,
     };
 }
@@ -55,7 +56,7 @@ describe("Dialog operations", () => {
             },
         });
         cy.visit("/cgi-bin/koha/erm/erm.pl");
-        cy.get("#navmenulist").contains("Packages").click();
+        cy.get(".sidebar_menu").contains("Packages").click();
         cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: This is a specific error message"
         );
@@ -64,13 +65,13 @@ describe("Dialog operations", () => {
             statusCode: 500, // No body, in case of Internal Server Error, we get statusText
         });
         cy.visit("/cgi-bin/koha/erm/erm.pl");
-        cy.get("#navmenulist").contains("Packages").click();
+        cy.get(".sidebar_menu").contains("Packages").click();
         cy.get("main div[class='alert alert-warning']").contains(
             "Something went wrong: Error: Internal Server Error"
         );
 
         cy.intercept("GET", "/api/v1/erm/agreements*", []);
-        cy.get("#navmenulist").contains("Agreements").click();
+        cy.get(".sidebar_menu").contains("Agreements").click();
         // Info messages should be cleared when view is changed
         cy.get("main div[class='alert alert-info']").contains(
             "There are no agreements defined"
@@ -83,7 +84,7 @@ describe("Dialog operations", () => {
         cy.intercept("GET", "/api/v1/erm/agreements*", []);
 
         cy.visit("/cgi-bin/koha/erm/eholdings/local/packages/add");
-        cy.get("#package_name").type(erm_package.name);
+        cy.get("#name").type(erm_package.name);
         cy.get("#package_type .vs__search").type(
             erm_package.package_type + "{enter}",
             { force: true }
@@ -100,12 +101,13 @@ describe("Dialog operations", () => {
                 "X-Base-Total-Count": "1",
                 "X-Total-Count": "1",
             },
-        });
+        }).as("get-packages");
         cy.get("#packages_add").contains("Submit").click();
+        cy.wait("@get-packages");
+        cy.get("#packages_list").should("exist");
         cy.get("main div[class='alert alert-info']").contains(
             "Package created"
         );
-        cy.get("#package_list_result").should("exist");
         cy.get("main div[class='alert alert-info']").should("have.length", 1);
 
         cy.intercept("GET", "/api/v1/erm/eholdings/local/titles*", {
@@ -115,8 +117,8 @@ describe("Dialog operations", () => {
                 "X-Base-Total-Count": "1",
                 "X-Total-Count": "1",
             },
-        });
-        cy.get("#navmenulist").contains("Titles").click();
+        }).as("get-titles");
+        cy.get(".sidebar_menu").contains("Titles").click();
         // Info messages should be cleared when view is changed
         cy.get("main div[class='alert alert-info']").should("not.exist");
     });
@@ -170,7 +172,7 @@ describe("Dialog operations", () => {
             .contains("Delete")
             .click();
         cy.get(".alert-warning.confirmation h1").contains(
-            "remove this package"
+            "remove this local package"
         );
         cy.contains("Yes, delete").click();
         cy.get("main div[class='alert alert-info']")

@@ -15,11 +15,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>
+# along with Koha; if not, see <https://www.gnu.org/licenses>
 
 use Modern::Perl;
 
-use Test::More tests => 15;
+use Test::NoWarnings;
+use Test::More tests => 16;
 use Test::Exception;
 use Test::MockModule;
 
@@ -37,6 +38,9 @@ use t::lib::TestBuilder;
 
 my $schema  = Koha::Database->new->schema;
 my $builder = t::lib::TestBuilder->new;
+
+# Disable LMS CashRegister to prevent branchcode FK issues in tests
+t::lib::Mocks::mock_preference( 'ActivateCashRegisterTransactionsOnly', 0 );
 
 subtest 'patron() tests' => sub {
 
@@ -965,7 +969,7 @@ subtest "void() tests" => sub {
     is( $account_payment->credit_type_code,      'PAYMENT', 'Voided payment credit_type_code is still PAYMENT' );
     is( $account_payment->status,                'VOID',    'Voided payment status is VOID' );
     is( $account_payment->amount + 0,            -30,       'Voided payment amount is still -30' );
-    is( $account_payment->amountoutstanding + 0, 0,         'Voided payment amount outstanding is 0' );
+    is( $account_payment->amountoutstanding + 0,  0,        'Voided payment amount outstanding is 0' );
 
     is( $line1->amountoutstanding + 0, 10, 'First fee again has amount outstanding of 10' );
     is( $line2->amountoutstanding + 0, 20, 'Second fee again has amount outstanding of 20' );

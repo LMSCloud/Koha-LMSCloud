@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 #
 #
 #
@@ -172,7 +172,7 @@ if ( $op eq 'cud-process' && $fileID ) {
 
                         unless ( $delim eq "," || $delim eq "\t" ) {
                             warn
-                                "Unrecognized or missing field delimeter. Please verify that you are using either a ',' or a 'tab'";
+                                "Unrecognized or missing field delimiter. Please verify that you are using either a ',' or a 'tab'";
                             $error = 'DELERR';
                             next;
                         } else {

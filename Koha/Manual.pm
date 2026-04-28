@@ -13,7 +13,7 @@ package Koha::Manual;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -57,7 +57,7 @@ Use system preferences 'KohaManualLanguage' and 'KohaManualBaseURL' to properly 
 sub _get_base_url {
     my ($preferred_language) = @_;
 
-    my @available_languages = qw( en ar cs es fr it pt_BR tz zh_TW );
+    my @available_languages = qw( el en ar cs es fr it pt_BR tz zh_TW );
 
     my ($language) = grep {
         my $preferred_short = substr $preferred_language, 0, 2;
@@ -97,9 +97,12 @@ our $mapping = {
     'acqui/orderreceive'                       => '/acquisitions.html#receiving-orders',
     'acqui/parcel'                             => '/acquisitions.html#receiving-orders',
     'acqui/parcels'                            => '/acquisitions.html#receiving-orders',
-    'acqui/supplier'                           => '/acquisitions.html#vendors',
     'acqui/uncertainprice'                     => '/acquisitions.html#create-a-basket',
     'acqui/z3950_search'                       => '/acquisitions.html#create-a-basket',
+    'acquisition/vendors'                      => '/acquisitions.html#vendors',
+    'acquisition/vendors/'                     => '/acquisitions.html#vendors',
+    'acquisition/vendors/add'                  => '/acquisitions.html#vendors',
+    'acquisition/vendors/edit/'                => '/acquisitions.html#vendors',
     'admin/additional-fields'                  => '/administration.html#additional-fields',
     'admin/admin-home'                         => '/administration.html',
     'admin/aqbudgetperiods'                    => '/administration.html#budgets',
@@ -193,6 +196,7 @@ our $mapping = {
     'circ/offline'                             => '/circulation.html#offline-circulation-in-koha',
     'circ/on-site_checkouts'                   => '/circulation.html#pending-on-site-checkouts',
     'circ/overdue'                             => '/circulation.html#overdues',
+    'circ/pendingbookings'                     => '/circulation.html#bookings-to-collect',
     'circ/pendingreserves'                     => '/circulation.html#holds-to-pull',
     'circ/renew'                               => '/circulation.html#renewing',
     'circ/reserveratios'                       => '/circulation.html#hold-ratios',
@@ -362,7 +366,8 @@ sub get_url {
     my $file;
     if (   $url =~ /koha\/(.*)\.pl/
         || $url =~ '/koha/(erm[^?]*)'
-        || $url =~ '/koha/(preservation[^?]*)' )
+        || $url =~ '/koha/(preservation[^?]*)'
+        || $url =~ '/koha/(acquisition/vendors[^?]*)' )
     {
         $file = $1;
     } else {
@@ -370,7 +375,7 @@ sub get_url {
     }
     $file =~ s/[^a-zA-Z0-9_\-\/]*//g;
 
-    if ( $file =~ m|^erm| || $file =~ m|^preservation| ) {
+    if ( $file =~ m|^erm| || $file =~ m|^preservation| || $file =~ m|^acquisition/vendors| ) {
         $file =~ s|\d*+||g;
     }
 

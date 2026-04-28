@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 32;
+use Test::NoWarnings;
+use Test::More tests => 33;
 use Test::Mojo;
 
 use t::lib::TestBuilder;
@@ -105,10 +106,12 @@ my $job_current = $builder->build_object(
 );
 
 {
-    $t->get_ok("//$superlibrarian_userid:$password@/api/v1/jobs")->status_is(200)
+    $t->get_ok("//$superlibrarian_userid:$password@/api/v1/jobs")
+        ->status_is(200)
         ->json_is( [ $job->to_api, $job_current->to_api ] );
 
-    $t->get_ok("//$superlibrarian_userid:$password@/api/v1/jobs?only_current=1")->status_is(200)
+    $t->get_ok("//$superlibrarian_userid:$password@/api/v1/jobs?only_current=1")
+        ->status_is(200)
         ->json_is( [ $job_current->to_api ] );
 
     $t->get_ok("//$librarian_userid:$password@/api/v1/jobs")->status_is(200)->json_is( [] );
@@ -123,7 +126,8 @@ my $job_current = $builder->build_object(
 }
 
 {
-    $t->get_ok( "//$superlibrarian_userid:$password@/api/v1/jobs/" . $job->id )->status_is(200)
+    $t->get_ok( "//$superlibrarian_userid:$password@/api/v1/jobs/" . $job->id )
+        ->status_is(200)
         ->json_is( $job->to_api );
 
     $t->get_ok( "//$librarian_userid:$password@/api/v1/jobs/" . $job->id )->status_is(200)->json_is( $job->to_api );
@@ -134,7 +138,8 @@ my $job_current = $builder->build_object(
 
 {
     $job->delete;
-    $t->get_ok( "//$superlibrarian_userid:$password@/api/v1/jobs/" . $job->id )->status_is(404)
+    $t->get_ok( "//$superlibrarian_userid:$password@/api/v1/jobs/" . $job->id )
+        ->status_is(404)
         ->json_is( '/error' => 'Job not found' );
 }
 
@@ -186,7 +191,9 @@ subtest 'finished jobs' => sub {
 
     $job->finish()->discard_changes();
 
-    $t->get_ok( "//$userid:$password@/api/v1/jobs/" . $job->id )->status_is(200)->json_is( $job->to_api )
+    $t->get_ok( "//$userid:$password@/api/v1/jobs/" . $job->id )
+        ->status_is(200)
+        ->json_is( $job->to_api )
         ->json_is( '/data' => undef );
 
     $schema->storage->txn_rollback;

@@ -6,10 +6,11 @@
 use strict;
 use warnings;
 
-use Test::More tests => 3;
+use Test::NoWarnings;
+use Test::More tests => 4;
 
 BEGIN {
-    use_ok( 'C4::ClassSortRoutine::Generic', qw( get_class_sort_key ) );
+    use_ok('C4::ClassSortRoutine::Generic');
 }
 
 my $cn_class = "My class ";

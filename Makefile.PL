@@ -14,7 +14,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 #
 # Current maintainer MJR http://mjr.towers.org.uk/
 #
@@ -71,7 +71,7 @@ Makefile.PL - Koha packager and installer
 
 =head2 CLEANING UP
 
-	make clean
+    make clean
 
 =head2 CLI PARAMETERS
 
@@ -341,8 +341,8 @@ my $target_map = {
     './members'                                        => 'INTRANET_CGI_DIR',
     './misc'                                           => { target => 'SCRIPT_NONDEV_DIR', trimdir => -1 },
     './misc/bin'                                       => { target => 'SCRIPT_DIR',        trimdir => -1 },
-    './misc/release_notes'                             => { target => 'DOC_DIR',           trimdir => 2 },
-    './misc/translator'                                => { target => 'MISC_DIR',          trimdir => 2 },
+    './misc/release_notes'                             => { target => 'DOC_DIR',           trimdir =>  2 },
+    './misc/translator'                                => { target => 'MISC_DIR',          trimdir =>  2 },
     './misc/koha-install-log'                          => { target => 'MISC_DIR',          trimdir => -1 },
     './misc/installer_devel_notes'                     => 'NONE',
     './opac'                                           => 'OPAC_CGI_DIR',
@@ -363,23 +363,24 @@ my $target_map = {
     './rotating_collections'                           => 'INTRANET_CGI_DIR',
     './serials'                                        => 'INTRANET_CGI_DIR',
     './services'                                       => 'INTRANET_CGI_DIR',
+    './sip2'                                           => 'INTRANET_CGI_DIR',
     './skel'                                           => 'NONE',
     './skel/var/lock/koha'                             => { target => 'LOCK_DIR',       trimdir => -1 },
     './skel/var/log/koha'                              => { target => 'LOG_DIR',        trimdir => -1 },
     './skel/var/spool/koha'                            => { target => 'BACKUP_DIR',     trimdir => -1 },
     './skel/var/run/koha/zebradb'                      => { target => 'ZEBRA_RUN_DIR',  trimdir => -1 },
-    './skel/var/lock/koha/zebradb/authorities'         => { target => 'ZEBRA_LOCK_DIR', trimdir => 6 },
-    './skel/var/lib/koha/zebradb/authorities/key'      => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-    './skel/var/lib/koha/zebradb/authorities/register' => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-    './skel/var/lib/koha/zebradb/authorities/shadow'   => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-    './skel/var/lib/koha/zebradb/authorities/tmp'      => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-    './skel/var/lock/koha/zebradb/biblios'             => { target => 'ZEBRA_LOCK_DIR', trimdir => 6 },
-    './skel/var/lib/koha/zebradb/biblios/key'          => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-    './skel/var/lib/koha/zebradb/biblios/register'     => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-    './skel/var/lib/koha/zebradb/biblios/shadow'       => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-    './skel/var/lib/koha/zebradb/biblios/tmp'          => { target => 'ZEBRA_DATA_DIR', trimdir => 6 },
-    './skel/var/lock/koha/zebradb/rebuild'             => { target => 'ZEBRA_LOCK_DIR', trimdir => 6 },
-    './skel/var/lib/koha/plugins'                      => { target => 'PLUGINS_DIR',    trimdir => 6 },
+    './skel/var/lock/koha/zebradb/authorities'         => { target => 'ZEBRA_LOCK_DIR', trimdir =>  6 },
+    './skel/var/lib/koha/zebradb/authorities/key'      => { target => 'ZEBRA_DATA_DIR', trimdir =>  6 },
+    './skel/var/lib/koha/zebradb/authorities/register' => { target => 'ZEBRA_DATA_DIR', trimdir =>  6 },
+    './skel/var/lib/koha/zebradb/authorities/shadow'   => { target => 'ZEBRA_DATA_DIR', trimdir =>  6 },
+    './skel/var/lib/koha/zebradb/authorities/tmp'      => { target => 'ZEBRA_DATA_DIR', trimdir =>  6 },
+    './skel/var/lock/koha/zebradb/biblios'             => { target => 'ZEBRA_LOCK_DIR', trimdir =>  6 },
+    './skel/var/lib/koha/zebradb/biblios/key'          => { target => 'ZEBRA_DATA_DIR', trimdir =>  6 },
+    './skel/var/lib/koha/zebradb/biblios/register'     => { target => 'ZEBRA_DATA_DIR', trimdir =>  6 },
+    './skel/var/lib/koha/zebradb/biblios/shadow'       => { target => 'ZEBRA_DATA_DIR', trimdir =>  6 },
+    './skel/var/lib/koha/zebradb/biblios/tmp'          => { target => 'ZEBRA_DATA_DIR', trimdir =>  6 },
+    './skel/var/lock/koha/zebradb/rebuild'             => { target => 'ZEBRA_LOCK_DIR', trimdir =>  6 },
+    './skel/var/lib/koha/plugins'                      => { target => 'PLUGINS_DIR',    trimdir =>  6 },
     './sms'                                            => 'INTRANET_CGI_DIR',
     './suggestion'                                     => 'INTRANET_CGI_DIR',
     './svc'                                            => 'INTRANET_CGI_DIR',
@@ -393,20 +394,23 @@ my $target_map = {
     './virtualshelves'                                 => 'INTRANET_CGI_DIR',
 
     # ignore files and directories created by the install itself
-    './pm_to_blib'      => 'NONE',
-    './blib'            => 'NONE',
-    './.github'         => 'NONE',
-    '.prettierrc.js'    => 'NONE',
-    '.sass-lint.yml'    => 'NONE',
-    '.scss-lint.yml'    => 'NONE',
-    'gulpfile.js'       => 'NONE',
-    'package.json'      => 'NONE',
-    'yarn.lock'         => 'NONE',
-    'cypress.config.ts' => 'NONE',
-    'tsconfig.json'     => 'NONE',
-    'webpack.config.js' => 'NONE',
-    'rspack.config.js'  => 'NONE',
-    'eslint.config.mjs' => 'NONE',
+    './pm_to_blib'                               => 'NONE',
+    './blib'                                     => 'NONE',
+    '.git-blame-ignore-revs'                     => 'NONE',
+    './.github'                                  => 'NONE',
+    '.prettierrc.js'                             => 'NONE',
+    '.sass-lint.yml'                             => 'NONE',
+    '.scss-lint.yml'                             => 'NONE',
+    'gulpfile.js'                                => 'NONE',
+    'package.json'                               => 'NONE',
+    'yarn.lock'                                  => 'NONE',
+    'cypress.config.ts'                          => 'NONE',
+    'tsconfig.json'                              => 'NONE',
+    'webpack.config.js'                          => 'NONE',
+    'rspack.config.js'                           => 'NONE',
+    'eslint.config.mjs'                          => 'NONE',
+    '.codespell-ignore'                          => 'NONE',
+    './koha-tmpl/intranet-tmpl/prog/js/vue/dist' => 'NONE',
 };
 
 =head1 CONFIGURATION OPTIONS
@@ -451,7 +455,7 @@ Name of DBMS user account for Koha's database.
 
 =item DB_PASS
 
-Pasword of DMBS user account for Koha's database.
+Password of DMBS user account for Koha's database.
 
 =item ZEBRA_MARC_FORMAT
 
@@ -677,11 +681,8 @@ $file_map->{'koha-tmpl/intranet-tmpl/prog/css/holds.css'}        = 'blib/INTRANE
 $file_map->{'koha-tmpl/intranet-tmpl/prog/css/installer.css'}    = 'blib/INTRANET_TMPL_DIR/prog/css/installer.css';
 $file_map->{'koha-tmpl/intranet-tmpl/prog/css/mainpage.css'}     = 'blib/INTRANET_TMPL_DIR/prog/css/mainpage.css';
 $file_map->{'koha-tmpl/intranet-tmpl/prog/css/staff-global.css'} = 'blib/INTRANET_TMPL_DIR/prog/css/staff-global.css';
-$file_map->{'koha-tmpl/intranet-tmpl/prog/js/vue/dist/erm.js'}   = 'blib/INTRANET_TMPL_DIR/prog/js/vue/dist/erm.js';
-$file_map->{'koha-tmpl/intranet-tmpl/prog/js/vue/dist/preservation.js'} =
-    'blib/INTRANET_TMPL_DIR/prog/js/vue/dist/preservation.js';
-$file_map->{'koha-tmpl/intranet-tmpl/prog/js/vue/dist/admin/record_sources.js'} =
-    'blib/INTRANET_TMPL_DIR/prog/js/vue/dist/admin/record_sources.js';
+
+#NOTE: The 'koha-tmpl/intranet-tmpl/prog/js/vue/dist' directory is now handled in the "top_targets" function
 
 #OPAC_TMPL_DIR
 $file_map->{'koha-tmpl/opac-tmpl/bootstrap/css/opac.css'}      = 'blib/OPAC_TMPL_DIR/bootstrap/css/opac.css';
@@ -1911,11 +1912,27 @@ sub postamble {
 sub top_targets {
     my $inherited = shift->SUPER::top_targets(@_);
     my $compile_step;
-    $compile_step .= "all :: compile_css_js\n";
+
+    #NOTE: Make "all" depend on "compile_css_js" and "move_compiled_js", so that it runs those targets/steps
+    $compile_step .= "all :: compile_css_js move_compiled_js\n";
     $compile_step .= "\t" . '$(NOECHO) $(NOOP)' . "\n";
     $compile_step .= "\n";
+
+    #NOTE: Build CSS and Javascript assets
     $compile_step .= "compile_css_js:\n";
     $compile_step .= "\t" . '$(PERLRUN) build-resources.PL' . "\n";
+    $compile_step .= "\n";
+
+    #NOTE: Make move_compiled_js depend on compile_css_js, so we have our generated Javascript assets
+    #NOTE: Make move_compiled_js depend on pm_to_blib, so we have access to the blib directory
+    #NOTE: Copy the generated vue dist files into the relevant blib
+    $compile_step .= "move_compiled_js: compile_css_js pm_to_blib\n";
+    $compile_step .= "\t" . 'cp -r koha-tmpl/intranet-tmpl/prog/js/vue/dist blib/INTRANET_TMPL_DIR/prog/js/vue/' . "\n";
+    $compile_step .= "\t" . 'mkdir -p blib/OPAC_TMPL_DIR/bootstrap/js/vue/dist/' . "\n";
+    $compile_step .=
+        "\t" . 'cp -r koha-tmpl/opac-tmpl/bootstrap/js/vue/dist/* blib/OPAC_TMPL_DIR/bootstrap/js/vue/dist/' . "\n";
+    $compile_step .= "\n";
+
     my $top_targets = $compile_step . "\n" . $inherited;
     return $top_targets;
 }

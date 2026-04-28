@@ -15,10 +15,35 @@ package C4::Letters;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
 
+BEGIN {
+    our @EXPORT_OK = qw(
+        GetLetters
+        GetLettersAvailableForALibrary
+        GetLetterTemplates
+        GetAdhocNoticeLetters
+        GetPatronLetters
+        DelLetter
+        GetPreparedLetter
+        GetWrappedLetter
+        SendAlerts
+        GetPrintMessages
+        GetQueuedMessages
+        GetMessage
+        GetMessagesById
+        GetMessageTransportTypes
+
+        EnqueueLetter
+        SendQueuedMessages
+        ResendMessage
+    );
+}
+
+use Encode;
 use Carp qw( carp croak );
 use Template;
 use Module::Load::Conditional qw( can_load );
@@ -33,7 +58,6 @@ use Koha::Auth::TwoFactorAuth;
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Email;
 use Koha::Exceptions;
-use Koha::Libraries;
 use Koha::Notice::Messages;
 use Koha::Notice::Templates;
 use Koha::Notice::Util;
@@ -41,36 +65,9 @@ use Koha::Patrons;
 use Koha::SMS::Providers;
 use Koha::SMTP::Servers;
 use Koha::Subscriptions;
-use Koha::Template::Plugin::KohaDates;
+use Koha::Illrequests;
 
 use constant SERIALIZED_EMAIL_CONTENT_TYPE => 'message/rfc822';
-
-our ( @ISA, @EXPORT_OK );
-
-BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
-        GetLetters
-        GetLettersAvailableForALibrary
-        GetLetterTemplates
-        GetAdhocNoticeLetters
-        GetPatronLetters
-        DelLetter
-        GetPreparedLetter
-        GetWrappedLetter
-        SendAlerts
-        GetPrintMessages
-        GetQueuedMessages
-        GetMessage
-        GetMessageTransportTypes
-        GetMessagesById
-
-        EnqueueLetter
-        SendQueuedMessages
-        ResendMessage
-    );
-}
 
 our $domain_limits = {};
 
@@ -84,7 +81,7 @@ C4::Letters - Give functions for Letters management
 
 =head1 DESCRIPTION
 
-  "Letters" is the tool used in Koha to manage informations sent to the patrons and/or the library. This include some cron jobs like
+  "Letters" is the tool used in Koha to manage information sent to the patrons and/or the library. This include some cron jobs like
   late issues, as well as other tasks like sending a mail to users that have subscribed to a "serial issue alert" (= being warned every time a new issue has arrived at the library)
 
   Letters are managed through "alerts" sent by Koha on some events. All "alert" related functions are in this module too.
@@ -92,7 +89,7 @@ C4::Letters - Give functions for Letters management
 =head2 GetLetters([$module])
 
   $letters = &GetLetters($module);
-  returns informations about letters.
+  returns information about letters.
   if needed, $module filters for letters given module
 
   DEPRECATED - You must use Koha::Notice::Templates instead
@@ -107,7 +104,7 @@ sub GetLetters {
     my $branchcode = $filters->{branchcode};
     my $dbh        = C4::Context->dbh;
 
-    # LMSCloud: check if the branch is a bookmobile station
+    # check if the branch is a bookmobile station
     # if yes use letters of the bookmobile the branch
     if ($branchcode) {
         $branchcode = Koha::Libraries->get_effective_branch($branchcode);
@@ -153,7 +150,7 @@ sub GetLetterTemplates {
     my $branchcode = $params->{branchcode} // '';
     my $dbh        = C4::Context->dbh;
 
-    # LMSCloud: check if the branch is a bookmobile station
+    # check if the branch is a bookmobile station
     # if yes use letters of the bookmobile the branch
     if ($branchcode) {
         $branchcode = Koha::Libraries->get_effective_branch($branchcode);
@@ -211,7 +208,7 @@ sub GetLettersAvailableForALibrary {
     my $specific_letters;
     if ($branchcode) {
 
-        # LMSCloud: check if the branch is a bookmobile station
+        # check if the branch is a bookmobile station
         # if yes use letters of the bookmobile the branch
         $branchcode = Koha::Libraries->get_effective_branch($branchcode);
 
@@ -230,9 +227,12 @@ sub GetLettersAvailableForALibrary {
     }
 
     my %letters;
+
+    # set default letters
     for my $l (@$default_letters) {
         $letters{ $l->{code} } = $l;
     }
+
     for my $l (@$specific_letters) {
 
         # Overwrite the default letter with the specific one.
@@ -247,6 +247,57 @@ sub GetLettersAvailableForALibrary {
 
 }
 
+=head2 GetPatronLetters
+
+    my $letters = GetPatronLetters();
+
+    Return an arrayref of letters that are sent to patrons, sorted by name.
+    Only letters of the following modules are provided: circulation, members, reserves, suggestions
+
+=cut
+
+sub GetPatronLetters {
+    my $letters    = GetLetters();
+    my $selletters = [];
+    for my $letter (@$letters) {
+        if ( $letter->{module} =~ /^(circulation|members|reserves|suggestions)$/ ) {
+            push @$selletters, $letter;
+        }
+    }
+    return $selletters;
+}
+
+=head2 GetAdhocNoticeLetters
+
+    my $letters = GetAdhocNoticeLetters();
+
+    Return an arrayref of letters that are admitted to be sent to patrons adhoc.
+    Only letters of the following modules are provided: circulation, members, reserves, suggestions
+    One of the values of the systempreference 'AdhocNoticesLetterCodes' must match the letter ocde
+    to be returned by this function.
+
+=cut
+
+sub GetAdhocNoticeLetters {
+    my $letters      = GetPatronLetters();
+    my $selletters   = [];
+    my $pattern      = C4::Context->preference('AdhocNoticesLetterCodes');
+    my @codepatterns = [];
+    foreach my $codepattern ( split( /\s*\|\s*/, $pattern ) ) {
+        $codepattern =~ s/\*/\.\*/g;
+        $codepattern = '^' . $codepattern . '$';
+        push @codepatterns, $codepattern;
+    }
+    for my $letter (@$letters) {
+        foreach my $codepattern (@codepatterns) {
+            if ( $letter->{code} =~ /$codepattern/ ) {
+                push @$selletters, $letter;
+            }
+        }
+    }
+    return $selletters;
+}
+
 =head2 DelLetter
 
     DelLetter(
@@ -259,7 +310,7 @@ sub GetLettersAvailableForALibrary {
     );
 
     Delete the letter. The mtt parameter is facultative.
-    If not given, all templates mathing the other parameters will be removed.
+    If not given, all templates matching the other parameters will be removed.
 
 =cut
 
@@ -299,7 +350,9 @@ sub DelLetter {
       - claim acquisition orders (claimacquisition)
       - send acquisition orders to the vendor (orderacquisition)
       - notify patrons about newly received serial issues (issue)
-      - notify patrons when their account is created (members)
+
+    Returns undef or { error => 'message } on failure.
+    Returns true on success.
 
     Returns undef or { error => 'message } on failure.
     Returns true on success.
@@ -335,9 +388,7 @@ sub SendAlerts {
             my $email = $patron->notice_email_address or next;
 
             #                    warn "sending issues...";
-            my $userenv = C4::Context->userenv;
-
-            # LMSCloud: bookmobile branch remapping
+            my $userenv    = C4::Context->userenv;
             my $branchcode = Koha::Libraries->get_effective_branch( $patron->library->branchcode );
             my $library    = Koha::Libraries->find($branchcode);
             my $letter     = GetPreparedLetter(
@@ -345,7 +396,7 @@ sub SendAlerts {
                 letter_code => $letter_code,
                 branchcode  => $userenv->{branch},
                 tables      => {
-                    'branches'     => $branchcode,
+                    'branches'     => $library->branchcode,
                     'biblio'       => $biblionumber,
                     'biblioitems'  => $biblionumber,
                     'borrowers'    => $patron->unblessed,
@@ -368,9 +419,7 @@ sub SendAlerts {
             );
 
             if ( $letter->{is_html} ) {
-
-                # LMSCloud: pass isEmail flag to _wrap_html
-                $mail->html_body( _wrap_html( $letter->{content}, "" . $letter->{title}, 1 ) );
+                $mail->html_body( _wrap_html( $letter->{content}, "" . $letter->{title} ) );
             } else {
                 $mail->text_body( $letter->{content} );
             }
@@ -464,7 +513,7 @@ sub SendAlerts {
             $sthorders->execute($basketno);
             $dataorders = $sthorders->fetchall_arrayref( {} );
 
-            # LMSCloud: remove special characters
+            # remove special characters
             foreach my $orderline (@$dataorders) {
                 foreach my $fieldname ( keys %{$orderline} ) {
                     if ( $orderline->{$fieldname} ) {
@@ -483,7 +532,6 @@ sub SendAlerts {
         $sthcontact->execute($booksellerid);
         my $datacontact = $sthcontact->fetchrow_hashref;
 
-        # LMSCloud: delivery/billing branch for substitution
         my $deliverybranch = $dataorders->[0]->{deliveryplace};
         my $billingbranch  = $dataorders->[0]->{billingplace};
 
@@ -499,16 +547,14 @@ sub SendAlerts {
             push @cc, $addlcontact->{email} if ( $addlcontact && $addlcontact->{email} );
         }
 
-        my $userenv = C4::Context->userenv;
-
-        # LMSCloud: bookmobile branch remapping
+        my $userenv    = C4::Context->userenv;
         my $branchcode = Koha::Libraries->get_effective_branch( $userenv->{branch} );
         my $letter     = GetPreparedLetter(
             module      => $type,
             letter_code => $letter_code,
-            branchcode  => $branchcode,
+            branchcode  => $userenv->{branch},
             tables      => {
-                'branches'      => $branchcode,
+                'branches'      => $userenv->{branch},
                 'aqbooksellers' => $booksellerid,
                 'aqcontacts'    => $datacontact,
                 'aqbasket'      => $basketno,
@@ -516,9 +562,7 @@ sub SendAlerts {
             repeat         => $dataorders,
             loops          => \%loops,
             want_librarian => 1,
-
-            # LMSCloud: delivery/billing branch substitution
-            substitute => { deliverybranch => $deliverybranch, billingbranch => $billingbranch },
+            substitute     => { deliverybranch => $deliverybranch, billingbranch => $billingbranch },
         ) or return { error => "no_letter" };
 
         # Remove the order tag
@@ -561,9 +605,7 @@ sub SendAlerts {
         );
 
         if ( $letter->{is_html} ) {
-
-            # LMSCloud: pass isEmail flag to _wrap_html
-            $mail->html_body( _wrap_html( $letter->{content}, "" . $letter->{title}, 1 ) );
+            $mail->html_body( _wrap_html( $letter->{content}, "" . $letter->{title} ) );
         } else {
             $mail->text_body( "" . $letter->{content} );
         }
@@ -637,12 +679,11 @@ sub GetPreparedLetter {
         my $branchcode  = $params{branchcode}             || '';
         my $mtt         = $params{message_transport_type} || 'email';
 
-        # LMSCloud: check if the branch is a bookmobile station
+        # check if the branch is a bookmobile station
         # if yes use letters and data of the bookmobile the branch
         if ($branchcode) {
             $branchcode = Koha::Libraries->get_effective_branch($branchcode);
         }
-
         my $template = Koha::Notice::Templates->find_effective_template(
             {
                 module                 => $module,
@@ -678,6 +719,23 @@ sub GetPreparedLetter {
         $objects->{librarian} = Koha::Patrons->find( C4::Context->userenv->{number} ) if ($userenv);
     }
 
+    # add plugin-generated objects
+    my @plugins = Koha::Plugins->get_enabled_plugins();
+    @plugins = grep { $_->can('notices_content') } @plugins;
+
+    foreach my $plugin (@plugins) {
+        my $namespace = $plugin->get_metadata()->{namespace};
+        if ($namespace) {
+            try {
+                if ( my $content = $plugin->notices_content( \%params ) ) {
+                    $objects->{plugin_content}->{$namespace} = $content;
+                }
+            } catch {
+                next;
+            };
+        }
+    }
+
     # Best guess at language 'default' notice is written for include handling
     if ( $lang eq 'default' ) {
 
@@ -689,28 +747,6 @@ sub GetPreparedLetter {
     $Template::Stash::SCALAR_OPS->{strftime} = sub {
         return Koha::Template::Plugin::KohaDates->strftime(@_);
     };
-
-    $letter->{content} = _process_tt(
-        {
-            content    => $letter->{content},
-            lang       => $lang,
-            loops      => $loops,
-            objects    => $objects,
-            substitute => $substitute,
-            tables     => $tables,
-        }
-    );
-
-    $letter->{title} = _process_tt(
-        {
-            content    => $letter->{title},
-            lang       => $lang,
-            loops      => $loops,
-            objects    => $objects,
-            substitute => $substitute,
-            tables     => $tables,
-        }
-    );
 
     if (%$substitute) {
         while ( my ( $token, $val ) = each %$substitute ) {
@@ -760,6 +796,28 @@ sub GetPreparedLetter {
         }
     }
 
+    $letter->{content} = _process_tt(
+        {
+            content    => $letter->{content},
+            lang       => $lang,
+            loops      => $loops,
+            objects    => $objects,
+            substitute => $substitute,
+            tables     => $tables,
+        }
+    );
+
+    $letter->{title} = _process_tt(
+        {
+            content    => $letter->{title},
+            lang       => $lang,
+            loops      => $loops,
+            objects    => $objects,
+            substitute => $substitute,
+            tables     => $tables,
+        }
+    );
+
     if (%$tables) {
         _substitute_tables( $letter, $tables );
     }
@@ -772,7 +830,7 @@ sub GetPreparedLetter {
                 my $c = $line;
                 $c =~ s/<<count>>/$i/go;
                 foreach my $field ( keys %{$_} ) {
-                    $c =~ s/(<<[^\.]+.$field>>)/$_->{$field}/;
+                    $c =~ s/(<<[^\.]+.$field>>)/($field && $_->{$field}) ? $_->{$field} : ''/e;
                 }
                 $i++;
                 $c;
@@ -811,6 +869,14 @@ sub _substitute_tables {
 
             $values = $sth->fetchrow_hashref;
             $sth->finish();
+
+            if ( $values && $table && ( $table eq 'biblio' || $table eq 'biblioitems' ) ) {
+                my @replfields = ( 'title', 'unititle', 'seriestitle', 'collectiontitle' );
+                foreach my $replfield (@replfields) {
+                    $values->{$replfield} =~ s/(\x{0098}|\x{009c})//g
+                        if ( exists( $values->{$replfield} ) && $values->{$replfield} );
+                }
+            }
         }
 
         _parseletter( $letter, $table, $values );
@@ -830,19 +896,28 @@ sub _parseletter_sth {
     #       broke things for the rest of us. prepare_cached is a better
     #       way to cache statement handles anyway.
     my $query =
-          ( $table eq 'accountlines' )           ? "SELECT * FROM $table WHERE   accountlines_id = ?"
-        : ( $table eq 'biblio' )                 ? "SELECT * FROM $table WHERE   biblionumber = ?"
-        : ( $table eq 'biblioitems' )            ? "SELECT * FROM $table WHERE   biblionumber = ?"
-        : ( $table eq 'tickets' )                ? "SELECT * FROM $table WHERE   id = ?"
-        : ( $table eq 'ticket_updates' )         ? "SELECT * FROM $table WHERE   id = ?"
-        : ( $table eq 'credits' )                ? "SELECT * FROM accountlines WHERE   accountlines_id = ?"
-        : ( $table eq 'debits' )                 ? "SELECT * FROM accountlines WHERE   accountlines_id = ?"
-        : ( $table eq 'items' )                  ? "SELECT * FROM $table WHERE     itemnumber = ?"
+          ( $table eq 'accountlines' ) ? "SELECT * FROM $table WHERE   accountlines_id = ?"
+        : ( $table eq 'biblio' )       ? "SELECT * FROM $table WHERE   biblionumber = ?"
+        : ( $table eq 'biblioitems' )  ? "SELECT * FROM $table WHERE   biblionumber = ?"
+        : ( $table eq 'credits' )      ? "SELECT * FROM accountlines WHERE   accountlines_id = ?"
+        : ( $table eq 'debits' )       ? "SELECT * FROM accountlines WHERE   accountlines_id = ?"
+        : ( $table eq 'items' )
+        ? "SELECT items.*,itemtypes.description AS itemtypename FROM $table LEFT JOIN itemtypes ON items.itype = itemtypes.itemtype WHERE itemnumber = ?"
         : ( $table eq 'issues' )                 ? "SELECT * FROM $table WHERE     itemnumber = ?"
         : ( $table eq 'old_issues' )             ? "SELECT * FROM $table WHERE     issue_id = ?"
         : ( $table eq 'reserves' )               ? "SELECT * FROM $table WHERE borrowernumber = ? and biblionumber = ?"
         : ( $table eq 'borrowers' )              ? "SELECT * FROM $table WHERE borrowernumber = ?"
-        : ( $table eq 'branches' )               ? "SELECT * FROM $table WHERE     branchcode = ?"
+        : ( $table eq 'account' )                ? "SELECT * FROM borrowers WHERE borrowernumber = ?"
+        : ( $table eq 'branches' ) ? "SELECT $table.*, IFNULL(acl.content, '') AS opac_info"
+        . " FROM $table"
+        . " LEFT JOIN additional_contents ac"
+        . " ON ac.category = 'html_customizations'"
+        . " AND ac.location = 'OpacLibraryInfo'"
+        . " AND ac.branchcode = $table.branchcode"
+        . " LEFT JOIN additional_contents_localizations acl"
+        . " ON acl.additional_content_id = ac.id"
+        . " AND acl.lang = 'default'"
+        . " WHERE $table.branchcode = ?"
         : ( $table eq 'suggestions' )            ? "SELECT * FROM $table WHERE   suggestionid = ?"
         : ( $table eq 'aqbooksellers' )          ? "SELECT * FROM $table WHERE             id = ?"
         : ( $table eq 'aqorders' )               ? "SELECT * FROM $table WHERE    ordernumber = ?"
@@ -852,11 +927,14 @@ sub _parseletter_sth {
         : ( $table eq 'borrower_modifications' ) ? "SELECT * FROM $table WHERE verification_token = ?"
         : ( $table eq 'subscription' )           ? "SELECT * FROM $table WHERE subscriptionid = ?"
         : ( $table eq 'serial' )                 ? "SELECT * FROM $table WHERE serialid = ?"
+        : ( $table eq 'illrequests' )            ? "SELECT * FROM $table WHERE illrequest_id = ?"
         : ( $table eq 'problem_reports' )        ? "SELECT * FROM $table WHERE reportid = ?"
         : ( $table eq 'additional_contents' || $table eq 'opac_news' )
         ? "SELECT * FROM additional_contents_localizations WHERE id = ?"
-        : ( $table eq 'recalls' ) ? "SELECT * FROM $table WHERE recall_id = ?"
-        :                           undef;
+        : ( $table eq 'recalls' )        ? "SELECT * FROM $table WHERE recall_id = ?"
+        : ( $table eq 'tickets' )        ? "SELECT * FROM $table WHERE id = ?"
+        : ( $table eq 'ticket_updates' ) ? "SELECT * FROM $table WHERE id = ?"
+        :                                  undef;
     unless ($query) {
         warn "ERROR: No _parseletter_sth query for table '$table'";
         return;    # nothing to get
@@ -895,13 +973,23 @@ sub _parseletter {
         $values->{'waitingdate'} = output_pref( { dt => dt_from_string( $values->{'waitingdate'} ), dateonly => 1 } );
     }
 
-    if ( $letter->{content} && $letter->{content} =~ /<<today>>/ ) {
-        my $todaysdate = output_pref( dt_from_string() );
-        $letter->{content} =~ s/<<today>>/$todaysdate/go;
+    if ( $letter->{content} ) {
+        $letter->{content} =~ s/<<today>>/
+            my $todaysdate = output_pref( DateTime->now() );
+        /eg;
+        $letter->{content} =~ s/<<date\.today>>/
+            my $todaysdate = output_pref( { dt => DateTime->now(), dateonly => 1 } );
+        /eg;
+        $letter->{content} =~ s/<<date\.today([+-])([0-9]+)>>/
+            my $dt = DateTime->now();
+            $dt->add(days => $2) if ($1 eq '+');
+            $dt->subtract(days => $2) if ($1 eq '-');
+            my $todaysdate = output_pref( { dt => $dt, dateonly => 1 });
+        /eg;
     }
 
     while ( my ( $field, $val ) = each %$values ) {
-        $val =~ s/\p{P}$// if $val && $table =~ /biblio/;
+        $val =~ s/\p{Po}$// if $val && $table =~ /biblio/;
 
         #BZ 9886: Assuming that we want to eliminate ISBD punctuation here
         #Therefore adding the test on biblio. This includes biblioitems,
@@ -913,7 +1001,8 @@ sub _parseletter {
         }
 
         # Dates replacement
-        my $replacedby = defined($val) ? $val : '';
+        $val = '' if ( !defined($val) );
+        my $replacedby = $val;
         if (    $replacedby
             and not $replacedby =~ m|9999-12-31|
             and $replacedby =~ m|^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$| )
@@ -925,6 +1014,7 @@ sub _parseletter {
                 : 1
                 ; #$1 refers to the capture group wrapped in parentheses. In this case, that's the hours, minutes, seconds.
             my $re_dateonly_filter = qr{ $field( \s* \| \s* dateonly\s*)?>> }xms;
+            my $isodate            = qr{s*\|s*isodate\s*};
 
             for my $letter_field (qw( title content )) {
                 my $filter_string_used = q{};
@@ -939,6 +1029,8 @@ sub _parseletter {
                 $replacedby_date //= q{};
 
                 if ( $letter->{$letter_field} ) {
+                    $letter->{$letter_field} =~ s/\Q<<$table.$field\E$isodate\Q>>\E/$val/g;
+                    $letter->{$letter_field} =~ s/\Q<<$field\E$isodate\Q>>\E/$val/g;
                     $letter->{$letter_field} =~ s/\Q<<$table.$field$filter_string_used>>\E/$replacedby_date/g;
                     $letter->{$letter_field} =~ s/\Q<<$field$filter_string_used>>\E/$replacedby_date/g;
                 }
@@ -956,7 +1048,7 @@ sub _parseletter {
         }
     }
 
-    if ( $table eq 'borrowers' && $letter->{content} ) {
+    if ( ( $table eq 'borrowers' || $table eq 'account' ) && $letter->{content} ) {
         my $patron = Koha::Patrons->find( $values->{borrowernumber} );
         if ($patron) {
             my $attributes = $patron->extended_attributes;
@@ -965,13 +1057,16 @@ sub _parseletter {
                 my $code = $attribute->code;
                 my $val  = $attribute->description;    # FIXME - we always display intranet description here!
                 $val =~ s/\p{P}(?=$)//g if $val;
-                next unless $val gt '';
+                next unless ( $val && $val gt '' );
                 $attr{$code} ||= [];
                 push @{ $attr{$code} }, $val;
             }
             while ( my ( $code, $val_ar ) = each %attr ) {
                 my $replacefield = "<<borrower-attribute:$code>>";
-                my $replacedby   = join ',', @$val_ar;
+                if ( $table eq 'account' ) {
+                    $replacefield = "<<account-attribute:$code>>";
+                }
+                my $replacedby = join ',', @$val_ar;
                 $letter->{content} =~ s/$replacefield/$replacedby/g;
             }
         }
@@ -1031,6 +1126,19 @@ sub EnqueueLetter {
             if ( $limit && length( $params->{letter}->{content} ) > $limit );
     }
 
+    # message_queue.branchcode is NOT NULL with an FK on branches, so an
+    # enqueue without a branch falls back to the patron's home branch,
+    # then to the session branch
+    my $branchcode = $params->{branchcode};
+    if ( !$branchcode && $params->{borrowernumber} ) {
+        my $patron = Koha::Patrons->find( $params->{borrowernumber} );
+        $branchcode = $patron->branchcode if $patron;
+    }
+    if ( !$branchcode ) {
+        my $userenv = C4::Context->userenv;
+        $branchcode = $userenv->{branch} if $userenv && $userenv->{branch};
+    }
+
     my $message = Koha::Notice::Message->new(
         {
             letter_id              => $params->{letter}->{id} || undef,
@@ -1047,7 +1155,7 @@ sub EnqueueLetter {
             reply_address          => $params->{reply_address},
             content_type           => $params->{letter}->{'content-type'},
             failure_code           => $params->{failure_code} || q{},
-            branchcode             => $params->{branchcode}   || undef,
+            branchcode             => $branchcode,
         }
     )->store();
     return $message->id;
@@ -1092,15 +1200,13 @@ sub SendQueuedMessages {
             }
         );
 
-        if (@plugins) {
-            foreach my $plugin (@plugins) {
-                try {
-                    $plugin->before_send_messages($params);
-                } catch {
-                    warn "$_";
-                    exit 1 if $params->{exit_on_plugin_failure};
-                };
-            }
+        foreach my $plugin (@plugins) {
+            try {
+                $plugin->before_send_messages($params);
+            } catch {
+                warn "$_";
+                exit 1 if $params->{exit_on_plugin_failure};
+            };
         }
     }
 
@@ -1236,8 +1342,6 @@ sub GetPrintMessages {
     );
 }
 
-# LMSCloud: GetMessagesById - retrieve messages by ID array
-
 =head2 GetMessagesById
 
   my $message_list = GetMessagesById( { message_id => \@messageIdList } )
@@ -1256,61 +1360,6 @@ sub GetMessagesById {
     );
 }
 
-# LMSCloud: GetPatronLetters - returns letters for patron notification modules
-
-=head2 GetPatronLetters
-
-    my $letters = GetPatronLetters();
-
-    Return an arrayref of letters that are sent to patrons, sorted by name.
-    Only letters of the following modules are provided: circulation, members, reserves, suggestions
-
-=cut
-
-sub GetPatronLetters {
-    my $letters    = GetLetters();
-    my $selletters = [];
-    for my $letter (@$letters) {
-        if ( $letter->{module} =~ /^(circulation|members|reserves|suggestions)$/ ) {
-            push @$selletters, $letter;
-        }
-    }
-    return $selletters;
-}
-
-# LMSCloud: GetAdhocNoticeLetters - filters letters by AdhocNoticesLetterCodes preference
-
-=head2 GetAdhocNoticeLetters
-
-    my $letters = GetAdhocNoticeLetters();
-
-    Return an arrayref of letters that are admitted to be sent to patrons adhoc.
-    Only letters of the following modules are provided: circulation, members, reserves, suggestions
-    One of the values of the systempreference 'AdhocNoticesLetterCodes' must match the letter code
-    to be returned by this function.
-
-=cut
-
-sub GetAdhocNoticeLetters {
-    my $letters      = GetPatronLetters();
-    my $selletters   = [];
-    my $pattern      = C4::Context->preference('AdhocNoticesLetterCodes');
-    my @codepatterns = [];
-    foreach my $codepattern ( split( /\s*\|\s*/, $pattern ) ) {
-        $codepattern =~ s/\*/\.\*/g;
-        $codepattern = '^' . $codepattern . '$';
-        push @codepatterns, $codepattern;
-    }
-    for my $letter (@$letters) {
-        foreach my $codepattern (@codepatterns) {
-            if ( $letter->{code} =~ /$codepattern/ ) {
-                push @$selletters, $letter;
-            }
-        }
-    }
-    return $selletters;
-}
-
 =head2 GetQueuedMessages ([$hashref])
 
   my $messages = GetQueuedMessage( { borrowernumber => '123', limit => 20 } );
@@ -1326,7 +1375,7 @@ sub GetQueuedMessages {
     my $params = shift;
 
     my $dbh       = C4::Context->dbh();
-    my $statement = << 'ENDSQL';
+    my $statement = <<'ENDSQL';
 SELECT message_id, borrowernumber, subject, content, message_transport_type, status, time_queued, updated_on, failure_code, from_address, to_address, cc_address
 FROM message_queue
 ENDSQL
@@ -1504,7 +1553,6 @@ sub _get_unsent_messages {
         WHERE status = ?
     };
 
-    # LMSCloud: use message_queue branchcode instead of borrowers branchcode if preference is set
     if ( C4::Context->preference('PrintPreferenceBranch') ) {
         $statement =~ s/b\.branchcode/mq\.branchcode/;
     }
@@ -1515,8 +1563,6 @@ sub _get_unsent_messages {
             $statement .= ' AND mq.borrowernumber = ? ';
             push @query_params, $params->{'borrowernumber'};
         }
-
-        # LMSCloud: support message_id as array ref (for GetMessagesById)
         if ( $params->{'message_id'} && ref $params->{'message_id'} eq 'ARRAY' ) {
             my @message_ids = @{ $params->{'message_id'} };
             $statement .= ' AND message_id IN (' . join( ', ', ('?') x @message_ids ) . ')';
@@ -1542,8 +1588,6 @@ sub _get_unsent_messages {
                 push @query_params, @types;
             }
         }
-
-        # LMSCloud: only match scalar message_id (array ref handled above)
         if ( $params->{message_id} && !( ref $params->{'message_id'} eq 'ARRAY' ) ) {
             $statement .= ' AND message_id = ?';
             push @query_params, $params->{message_id};
@@ -1564,7 +1608,7 @@ sub _get_unsent_messages {
 
 sub _send_message_by_email {
     my $message = shift or return;
-    my ( $username, $password, $method, $smtp_transports ) = @_;
+    my ( $username, $password, $method, $smtp_transports, $sendNoBcc ) = @_;
 
     my $patron     = Koha::Patrons->find( $message->{borrowernumber} );
     my $to_address = $message->{'to_address'};
@@ -1640,7 +1684,8 @@ sub _send_message_by_email {
     $patron //= Koha::Patrons->find( $message->{borrowernumber} );    # we might already found him
     if ($patron) {
 
-        # LMSCloud: bookmobile branch remapping
+        # check if the branch is a bookmobile station
+        # if yes use letters of the bookmobile the branch
         my $branchcode = Koha::Libraries->get_effective_branch( $patron->library->branchcode );
 
         $library           = Koha::Libraries->find($branchcode);
@@ -1672,7 +1717,7 @@ sub _send_message_by_email {
         my $params = {
             to => $to_address,
             (
-                C4::Context->preference('NoticeBcc')
+                  ( !$sendNoBcc && C4::Context->preference('NoticeBcc') )
                 ? ( bcc => C4::Context->preference('NoticeBcc') )
                 : ()
             ),
@@ -1746,7 +1791,7 @@ sub _send_message_by_email {
     }
 
     # if initial message address was empty, coming here means that a to address was found and
-    # queue should be updated; same if to address was overriden by Koha::Email->create
+    # queue should be updated; same if to address was overridden by Koha::Email->create
     _update_message_to_address( $message->{'message_id'}, $email->email->header('To') )
         if !$message->{to_address}
         || $message->{to_address} ne $email->email->header('To');
@@ -1783,7 +1828,6 @@ sub _send_message_by_email {
     };
 }
 
-# LMSCloud: smart HTML wrapping with NoticeCSSEmail preference support
 sub _wrap_html {
     my ( $content, $title, $isEmail ) = @_;
 
@@ -1946,6 +1990,7 @@ sub _process_tt {
         {
             EVAL_PERL    => 0,
             ABSOLUTE     => 0,
+            RELATIVE     => 0,
             PLUGIN_BASE  => 'Koha::Template::Plugin',
             COMPILE_EXT  => $use_template_cache ? '.ttc'                                    : '',
             COMPILE_DIR  => $use_template_cache ? C4::Context->config('template_cache_dir') : '',
@@ -2083,17 +2128,11 @@ sub _get_tt_params {
             plural   => 'suggestions',
             pk       => 'suggestionid',
         },
-        tickets => {
-            module   => 'Koha::Tickets',
-            singular => 'ticket',
-            plural   => 'tickets',
-            pk       => 'id',
-        },
-        ticket_updates => {
-            module   => 'Koha::Ticket::Updates',
-            singular => 'ticket_update',
-            plural   => 'ticket_updates',
-            pk       => 'id',
+        illrequests => {
+            module   => 'Koha::Illrequests',
+            singular => 'illrequest',
+            plural   => 'illrequests',
+            pk       => 'illrequest_id',
         },
         issues => {
             module   => 'Koha::Checkouts',
@@ -2130,6 +2169,18 @@ sub _get_tt_params {
             singular => 'train_item',
             plural   => 'train_items',
             pk       => 'train_item_id'
+        },
+        problem_reports => {
+            module   => 'Koha::ProblemReports',
+            singular => 'problemreport',
+            plural   => 'problemreports',
+            pk       => 'reportid'
+        },
+        recalls => {
+            module   => 'Koha::Recalls',
+            singular => 'recall',
+            plural   => 'recalls',
+            pk       => 'recall_id'
         },
     };
 
@@ -2192,7 +2243,7 @@ sub _get_tt_params {
                 my $object;
                 if ( @{ $tables->{$table} } == 1 ) {    # Param is a single key
                     $object = $module->search( { $pk => $tables->{$table} } )->last();
-                } else {                                # Params are mutliple foreign keys
+                } else {                                # Params are multiple foreign keys
                     croak "Multiple foreign keys (table $table) should be passed using an hashref";
                 }
                 $params->{ $config->{$table}->{singular} } = $object;

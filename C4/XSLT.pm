@@ -19,9 +19,20 @@ package C4::XSLT;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
+use Koha::XSLT::Base;
+my $engine;    #XSLT Handler object
+
+BEGIN {
+    our @EXPORT_OK = qw(
+        buildKohaItemsNamespace
+        XSLTParse4Display
+    );
+    $engine = Koha::XSLT::Base->new( { do_not_return_source => 1 } );
+}
 
 use C4::Context;
 use C4::Koha   qw( xml_escape );
@@ -29,23 +40,12 @@ use C4::Biblio qw( GetAuthorisedValueDesc GetFrameworkCode GetMarcStructure );
 use Koha::AuthorisedValues;
 use Koha::ItemTypes;
 use Koha::RecordProcessor;
-use Koha::XSLT::Base;
 use Koha::Libraries;
 use Koha::Recalls;
-
-my $engine;    #XSLT Handler object
-
-our ( @ISA, @EXPORT_OK );
-
-BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
-        buildKohaItemsNamespace
-        XSLTParse4Display
-    );
-    $engine = Koha::XSLT::Base->new( { do_not_return_source => 1 } );
-}
+use Koha::TemplateUtils qw( process_tt );
+use Koha::AdditionalContents;
+use C4::Scrubber;
+use C4::Languages;
 
 =head1 NAME
 
@@ -94,6 +94,12 @@ sub _get_best_default_xslt_filename {
     return $xslfilename;
 }
 
+=head2 get_xslt_sysprefs
+
+Missing POD for get_xslt_sysprefs.
+
+=cut
+
 sub get_xslt_sysprefs {
     my $sysxml = "<sysprefs>\n";
     foreach my $syspref (
@@ -132,6 +138,12 @@ sub get_xslt_sysprefs {
     $sysxml .= "</sysprefs>\n";
     return $sysxml;
 }
+
+=head2 get_xsl_filename
+
+Missing POD for get_xsl_filename.
+
+=cut
 
 sub get_xsl_filename {
     my ($xslsyspref) = @_;
@@ -258,6 +270,46 @@ sub XSLTParse4Display {
             $variables->{OpenURLResolverURL} = $biblio->get_openurl;
         }
     }
+    my $extracontent = '';
+    my $location;
+    my $branch = C4::Context->userenv && C4::Context->userenv->{branch};
+    $branch //= '';
+    my $lang = C4::Languages::getlanguage;
+
+    if ( $xslsyspref eq "XSLTDetailsDisplay" ) {
+        $location = 'StaffDetailPage';
+    } elsif ( $xslsyspref eq "XSLTResultsDisplay" ) {
+        $location = 'StaffResultsPage';
+    } elsif ( $xslsyspref eq "OPACXSLTDetailsDisplay" ) {
+        $location = 'OPACDetailPage';
+    } elsif ( $xslsyspref eq "OPACXSLTResultsDisplay" ) {
+        $location = 'OPACResultsPage';
+    } elsif ( $xslsyspref eq "XSLTListsDisplay" ) {
+        $location = 'StaffListPage';
+    } elsif ( $xslsyspref eq "OPACXSLTListsDisplay" ) {
+        $location = 'OPACListPage';
+    }
+
+    my @record_display_customizations = Koha::AdditionalContents->search_for_display(
+        {
+            category   => 'record_display',
+            location   => $location,
+            lang       => $lang,
+            library_id => $branch,
+        }
+    )->as_list;
+
+    if (@record_display_customizations) {
+        foreach my $customization (@record_display_customizations) {
+            $extracontent .= $customization->content;
+        }
+    }
+
+    if ($extracontent) {
+        my $scrubber               = C4::Scrubber->new('record_display');
+        my $extracontentproccessed = process_tt( $extracontent, { record => $record } );
+        $extracontent = $scrubber->scrub($extracontentproccessed);
+    }
 
     # embed variables
     my $varxml = "<variables>\n";
@@ -280,7 +332,10 @@ sub XSLTParse4Display {
     #If the xslt should fail, we will return undef (old behavior was
     #raw MARC)
     #Note that we did set do_not_return_source at object construction
-    return $engine->transform( $xmlrecord, $xslfilename );    #file or URL
+    my $transformed_xml = $engine->transform( $xmlrecord, $xslfilename );
+
+    my $concatenated_content = $transformed_xml . $extracontent;
+    return $concatenated_content;
 }
 
 =head2 buildKohaItemsNamespace
@@ -312,7 +367,8 @@ sub buildKohaItemsNamespace {
         $items_rs = Koha::Items->new;
     }
 
-    my $items = $items_rs->search( $query, { prefetch => [ 'branchtransfers', 'reserves' ] } );
+    my $items =
+        $items_rs->search( $query, { prefetch => [ 'current_branchtransfers', 'reserves', 'tmp_holdsqueue' ] } );
 
     my $shelflocations = {
         map { $_->{authorised_value} => $_->{opac_description} }
@@ -353,10 +409,10 @@ sub buildKohaItemsNamespace {
         } elsif ( $item->has_pending_hold ) {
             $status    = 'other';
             $substatus = 'Pending hold';
-        } elsif ( $item->holds->waiting->count ) {
+        } elsif ( $item->holds->count && $item->holds->waiting->count ) {
             $status    = 'other';
             $substatus = 'Hold waiting';
-        } elsif ( $item->get_transfer ) {
+        } elsif ( $item->_result->current_branchtransfers->count ) {
             $status    = 'other';
             $substatus = 'In transit';
         } elsif ( $item->damaged && !C4::Context->preference('AllowHoldsOnDamagedItems') ) {
@@ -439,6 +495,6 @@ __END__
 
 Joshua Ferraro <jmf@liblime.com>
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 =cut

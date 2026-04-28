@@ -355,6 +355,12 @@
                     [% END %]
                         [% patron_message.message_date | $KohaDates %]
                         [% Branches.GetName( patron_message.branchcode ) | html %]
+                        -
+                        [% IF patron_message.message_type == 'L' %]
+                            <span>Staff note</span>
+                        [% ELSE %]
+                            <span>OPAC</span>
+                        [% END %]
                         [% IF patron_message.manager_id %]
                             ( <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron_message.manager_id | uri %]">[% patron_message.get_column('manager_firstname') | html %] [% patron_message.get_column('manager_surname') | html %]</a> )
                         [% END %]

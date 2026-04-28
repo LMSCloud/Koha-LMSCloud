@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -36,6 +36,7 @@ use C4::Reports::Guided qw( );
 use C4::Charset         qw( NormalizeString );
 
 use Koha::I18N qw(__);
+use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
 use Koha::Biblios;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Database::Columns;
@@ -139,6 +140,16 @@ for my $authvfield (@$statuses) {
     }
 }
 
+my $report_lost_items;
+if ( defined $input->param('ReportLostItems') && $input->param('ReportLostItems') eq 'on' ) {
+    $report_lost_items = "1";
+}
+
+my $report_items_without_problems;
+if ( defined $input->param('ReportItemsWithoutProblem') && $input->param('ReportItemsWithoutProblem') eq 'on' ) {
+    $report_items_without_problems = "1";
+}
+
 # if there's a list of not for loans types selected use it rather than
 # the full set.
 @notforloans = @{ $staton->{'items.notforloan'} }
@@ -179,6 +190,7 @@ my $results = {};
 my @scanned_items;
 my @errorloop;
 my $moddatecount = 0;
+my @lost_items;
 if ( $op eq 'cud-inventory'
     && ( ( $uploadbarcodes && length($uploadbarcodes) > 0 ) || ( $barcodelist && length($barcodelist) > 0 ) ) )
 {
@@ -244,6 +256,9 @@ if ( $op eq 'cud-inventory'
             }
 
             # Modify date last seen for scanned items, remove lost status
+            if ( $item->unblessed->{itemlost} ) {
+                push @lost_items, $barcode;
+            }
             $item->set( { itemlost => 0, datelastseen => $date_dt } )->store;
             my $item_unblessed = $item->unblessed;
             $moddatecount++;
@@ -255,6 +270,11 @@ if ( $op eq 'cud-inventory'
                     if ($doreturn) {
                         $item_unblessed->{onloan}       = undef;
                         $item_unblessed->{datelastseen} = dt_from_string;
+
+                        # Rebuild the holds queue when item found on shelf
+                        Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
+                            { biblio_ids => [ $item->biblionumber ] } )
+                            if C4::Context->preference('RealTimeHoldsQueue');
                     } else {
                         push @errorloop, { barcode => $barcode, ERR_ONLOAN_NOT_RET => 1 };
                     }
@@ -360,6 +380,16 @@ for ( my $i = 0 ; $i < @scanned_items ; $i++ ) {
         $item->{problems}->{wrongplace} = 1;
         additemtoresults( $item, $results );
     }
+
+    # Report a lost item if asked
+    if ( @lost_items && ( scalar grep { $_ eq $item->{barcode} } @lost_items ) && $report_lost_items ) {
+        $item->{problems}->{lost} = 1;
+        additemtoresults( $item, $results );
+    }
+
+    if ($report_items_without_problems) {
+        additemtoresults( $item, $results );
+    }
 }
 
 # Compare barcodes with inventory list, report no_barcode and not_scanned.
@@ -410,7 +440,7 @@ if ( defined $input->param('CSVexport') && $input->param('CSVexport') eq 'on' ) 
     my $columns = Koha::Database::Columns->columns;
     my @translated_keys;
     for my $key (
-        qw / biblio.title         biblio.author
+        qw / biblio.title    biblio.author
         items.barcode        items.itemnumber
         items.homebranch     items.location   items.ccode
         items.itemcallnumber items.notforloan
@@ -448,8 +478,11 @@ if ( defined $input->param('CSVexport') && $input->param('CSVexport') eq 'on' ) 
                 $errstr .= __("checked out") . ",";
             } elsif ( $key eq 'out_of_order' ) {
                 $errstr .= __("shelved out of order") . ",";
+            } elsif ( $key eq 'lost' ) {
+                $errstr .= __("item was lost");
             }
         }
+
         $errstr =~ s/,$//;
         push @line, $errstr;
         $csv->combine(@line);

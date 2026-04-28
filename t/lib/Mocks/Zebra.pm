@@ -13,7 +13,7 @@ package t::lib::Mocks::Zebra;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Test::More;
@@ -36,6 +36,12 @@ So it will not affect the koha-conf used by plack (and so the UI).
 
 If you pass koha_conf to the constructor the usual zebra db will be used, otherwise a new koha-conf.xml file will be generated
 and the usual zebra db will not be affected. However you must pass $ENV{KOHA_CONF} if you want to test the UI.
+
+=cut
+
+=head2 new
+
+Missing POD for new.
 
 =cut
 
@@ -72,6 +78,13 @@ sub new {
 }
 
 # function that launches the zebra daemon
+
+=head2 launch_zebra
+
+Missing POD for launch_zebra.
+
+=cut
+
 sub launch_zebra {
     my ($self) = @_;
 
@@ -82,11 +95,16 @@ sub launch_zebra {
     my $zebra_pid = fork();
     if ( $zebra_pid == 0 ) {
         exec("zebrasrv -f $koha_conf -v none,request -l $datadir/zebra.log");
-        exit;
     }
     sleep(1);
     $self->{zebra_pid} = $zebra_pid;
 }
+
+=head2 launch_indexer
+
+Missing POD for launch_indexer.
+
+=cut
 
 sub launch_indexer {
     my ($self)        = @_;
@@ -97,11 +115,16 @@ sub launch_indexer {
 
     if ( $indexer_pid == 0 ) {
         exec("$rebuild_zebra -daemon -sleep 5");
-        exit;
     }
     sleep(1);
     $self->{indexer_pid} = $indexer_pid;
 }
+
+=head2 load_records
+
+Missing POD for load_records.
+
+=cut
 
 sub load_records {
     my ( $self, $marc_dir, $marc_format, $record_type, $init ) = @_;
@@ -123,6 +146,12 @@ sub load_records {
         system($cmd);
     }
 }
+
+=head2 load_records_ui
+
+Missing POD for load_records_ui.
+
+=cut
 
 sub load_records_ui {
     my ( $self, $file ) = @_;
@@ -211,6 +240,12 @@ sub load_records_ui {
 
 }
 
+=head2 clean_records
+
+Missing POD for clean_records.
+
+=cut
+
 sub clean_records {
     my ( $self, $batch_id ) = @_;
 
@@ -231,10 +266,16 @@ sub clean_records {
 
 }
 
+=head2 cleanup
+
+Missing POD for cleanup.
+
+=cut
+
 sub cleanup {
     my ($self) = @_;
-    kill 9, $self->{zebra_pid}   if defined $self->{zebra_pid};
-    kill 9, $self->{indexer_pid} if defined $self->{indexer_pid};
+    kill 15, $self->{zebra_pid}   if defined $self->{zebra_pid};
+    kill 15, $self->{indexer_pid} if defined $self->{indexer_pid};
 
     # Clean up the Zebra files since the child process was just shot
     rmtree $self->{datadir};

@@ -1,0 +1,22 @@
+---
+type: object
+properties:
+  permissions:
+    type: object
+    description: List of permissions for the user
+  currencies:
+    type: array
+    description: List of currencies
+  gst_values:
+    type: array
+    description: List of tax rates
+  edifact:
+    type: boolean
+    description: EDIFACT system preference value
+  marc_orders:
+    type: boolean
+    description: MarcOrderingAutomation system preference value
+  erm_module:
+    type: boolean
+    description: ERMModule system preference value
+additionalProperties: false

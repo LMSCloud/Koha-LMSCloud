@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # Script to perform searching
 # Mostly copied from search.pl, see POD there
@@ -361,6 +361,14 @@ if ( $template_type && $template_type eq 'advsearch' ) {
         }
     }
 
+    # Force expanded options if weight_search_submitted is present
+    if ( $cgi->param('weight_search_submitted') ) {
+        $template->param( expanded_options => 1 );
+    }
+
+    # Always pass weight_search_submitted to template for checkbox logic
+    $template->param( weight_search_submitted => scalar $cgi->param('weight_search_submitted') );
+
     output_html_with_http_headers $cgi, $cookie, $template->output;
     exit;
 }
@@ -508,7 +516,9 @@ $offset = 0 if $offset < 0;
 my $page = $cgi->param('page') || 1;
 $offset = ( $page - 1 ) * $results_per_page if $page > 1;
 my $hits;
-my $weight_search = $cgi->param('advsearch') ? $cgi->param('weight_search') || 0 : 1;
+my $weight_search = $cgi->param('weight_search_submitted')
+    ? ( $cgi->param('weight_search') ? 1 : 0 )    # Form was submitted, use actual checkbox value
+    : 1;                                          # Form not submitted
 
 # Define some global variables
 my ( $error, $query, $simple_query, $query_cgi, $query_desc, $limit, $limit_cgi, $limit_desc, $query_type );
@@ -537,9 +547,10 @@ if ( C4::Context->preference('OpacSuppression') ) {
     0,
     $lang,
     {
-        suppress        => $suppress,
-        is_opac         => 1,
-        weighted_fields => $weight_search
+        suppress                => $suppress,
+        is_opac                 => 1,
+        weighted_fields         => $weight_search,
+        weight_search_submitted => $cgi->param('weight_search_submitted')
     }
     );
 
@@ -658,9 +669,10 @@ for ( my $i = 0 ; $i < @servers ; $i++ ) {
                 0,
                 $lang,
                 {
-                    suppress        => $suppress,
-                    is_opac         => 1,
-                    weighted_fields => $weight_search
+                    suppress                => $suppress,
+                    is_opac                 => 1,
+                    weighted_fields         => $weight_search,
+                    weight_search_submitted => $cgi->param('weight_search_submitted')
                 }
                 );
             my $quoted_results_hashref;

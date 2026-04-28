@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -63,6 +63,7 @@ $data->{branchcode}     = $branchcode;
 my $patron = Koha::Patrons->find($borrowernumber);
 my $item   = Koha::Items->find($itemnumber);
 
+my $confirmations;
 ( $data->{renew_okay}, $data->{error} ) =
     CanBookBeRenewed( $patron, $item->checkout, $override_limit );
 
@@ -70,6 +71,13 @@ my $item   = Koha::Items->find($itemnumber);
 if ( $data->{error} && $data->{error} eq 'on_reserve' && C4::Context->preference('AllowRenewalOnHoldOverride') ) {
     $data->{renew_okay} = 1;
     $data->{error}      = undef;
+    push @{$confirmations}, 'ON_RESERVE';
+}
+
+if ( $data->{error} && $data->{error} eq 'too_many' && C4::Context->preference('AllowRenewalLimitOverride') ) {
+    $data->{renew_okay} = 1;
+    $data->{error}      = undef;
+    push @{$confirmations}, 'RENEWAL_LIMIT' if $override_limit;
 }
 
 if ( $data->{renew_okay} || ( $seen && $data->{error} eq 'too_unseen' ) ) {
@@ -80,7 +88,8 @@ if ( $data->{renew_okay} || ( $seen && $data->{error} eq 'too_unseen' ) ) {
                 itemnumber     => $itemnumber,
                 branch         => $branchcode,
                 datedue        => $date_due,
-                seen           => $seen
+                seen           => $seen,
+                confirmations  => $confirmations
             }
         );
         $data->{date_due}   = output_pref( { dt => $date_due, as_due_date => 1 } );

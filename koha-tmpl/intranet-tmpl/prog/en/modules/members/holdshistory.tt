@@ -1,3 +1,4 @@
+[% USE To %]
 [% USE raw %]
 [% USE Asset %]
 [% USE KohaDates %]
@@ -38,343 +39,364 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' aside='circ-menu' %]
 
-                [% INCLUDE 'members-toolbar.inc' %]
-                <h1>Holds history</h1>
+    [% INCLUDE 'members-toolbar.inc' %]
+    <h1>Holds history</h1>
 
-                [% UNLESS Koha.Preference('IntranetReadingHistoryHolds') %]
-                    <div class="alert alert-warning">Staff members are not allowed to access patron's holds history</div>
-                [% ELSIF is_anonymous %]
-                    <div class="alert alert-warning">This is the anonymous patron, so no holds history is displayed.</div>
-                [% ELSE %]
+    [% UNLESS Koha.Preference('IntranetReadingHistoryHolds') %]
+        <div class="alert alert-warning">Staff members are not allowed to access patron's holds history</div>
+    [% ELSIF patron.is_anonymous %]
+        <div class="alert alert-warning">This is the anonymous patron, so no holds history is displayed.</div>
+    [% ELSE %]
+        <div id="holdshistory" class="page-section">
+            <h2 id="current_holds_heading">Current holds</h2>
+            <p
+                ><a href="#past_holds_heading"><i class="fa fa-arrow-down" aria-hidden="true"></i> View past holds</a></p
+            >
+            [% IF patron.holds.count %]
+                <div id="current_holds_filters" data-table-id="table_holdshistory">
+                    <p>
+                        <span class="select_hold_status" id="status_show_all">
+                            <input id="current_show_all" type="checkbox" checked="checked" class="show_all" />
+                            <label for="current_show_all">Show all</label>
+                        </span>
+                        <span class="select_hold_status" id="status_show_pending">
+                            <input id="current_pending_filter" type="checkbox" checked="checked" />
+                            <label for="current_pending_filter">Pending</label>
+                        </span>
+                        <span class="select_hold_status" id="status_show_waiting">
+                            <input id="current_waiting_filter" type="checkbox" checked="checked" />
+                            <label for="current_waiting_filter">Waiting</label>
+                        </span>
+                        <span class="select_hold_status" id="status_show_processing">
+                            <input id="current_processing_filter" type="checkbox" checked="checked" />
+                            <label for="current_processing_filter">Processing</label>
+                        </span>
+                        <span class="select_hold_status" id="status_show_intransit">
+                            <input id="current_transit_filter" type="checkbox" checked="checked" />
+                            <label for="current_transit_filter">In transit</label>
+                        </span>
+                    </p>
+                </div>
+                <table id="table_holdshistory">
+                    <thead>
+                        <tr>
+                            <th data-colname="title" class="anti-the">Title</th>
+                            <th data-colname="author">Author</th>
+                            <th data-colname="barcode">Barcode</th>
+                            <th data-colname="itemcallnumber">Call number</th>
+                            <th data-colname="branch">Library</th>
+                            <th data-colname="reservedate">Hold date</th>
+                            <th data-colname="expirationdate">Expiration date</th>
+                            <th data-colname="waitingdate">Waiting date</th>
+                            <th data-colname="cancellationdate">Cancellation date</th>
+                            <th data-colname="itemtype">Requested item type</th>
+                            <th data-colname="status">Status</th>
+                            <th data-colname="notes">Notes</th>
+                        </tr>
+                    </thead>
+                </table>
+            [% ELSE %]
+                <div class="alert alert-info">This patron has no current holds.</div>
+            [% END %]
 
-                    [% SET show_itemtype_column = Koha.Preference('AllowHoldItemTypeSelection') %]
-
-                    <div id="holdshistory" class="page-section">
-                        <h2 id="current_holds_heading">Current holds</h2>
-                        <p
-                            ><a href="#past_holds_heading"><i class="fa fa-arrow-down" aria-hidden="true"></i> View past holds</a></p
-                        >
-                        [% IF patron.holds.count %]
-                            <div id="current_holds_filters" data-table-id="table_holdshistory">
-                                <p>
-                                    <span class="select_hold_status" id="status_show_all">
-                                        <input id="current_show_all" type="checkbox" checked="checked" class="show_all" />
-                                        <label for="current_show_all">Show all</label>
-                                    </span>
-                                    <span class="select_hold_status" id="status_show_pending">
-                                        <input id="current_pending_filter" type="checkbox" checked="checked" />
-                                        <label for="current_pending_filter">Pending</label>
-                                    </span>
-                                    <span class="select_hold_status" id="status_show_waiting">
-                                        <input id="current_waiting_filter" type="checkbox" checked="checked" />
-                                        <label for="current_waiting_filter">Waiting</label>
-                                    </span>
-                                    <span class="select_hold_status" id="status_show_processing">
-                                        <input id="current_processing_filter" type="checkbox" checked="checked" />
-                                        <label for="current_processing_filter">Processing</label>
-                                    </span>
-                                    <span class="select_hold_status" id="status_show_intransit">
-                                        <input id="current_transit_filter" type="checkbox" checked="checked" />
-                                        <label for="current_transit_filter">In transit</label>
-                                    </span>
-                                </p>
-                            </div>
-                            <table id="table_holdshistory">
-                                <thead>
-                                    <tr>
-                                        <th class="anti-the">Title</th>
-                                        <th>Author</th>
-                                        <th>Barcode</th>
-                                        <th>Call number</th>
-                                        <th>Library</th>
-                                        <th>Hold date</th>
-                                        <th>Expiration date</th>
-                                        <th>Waiting date</th>
-                                        <th>Cancellation date</th>
-                                        [% IF show_itemtype_column %]
-                                            <th>Requested item type</th>
-                                        [% END %]
-                                        <th>Status</th>
-                                        <th>Notes</th>
-                                    </tr>
-                                </thead>
-                            </table>
-                        [% ELSE %]
-                            <div class="alert alert-info">This patron has no current holds.</div>
-                        [% END %]
-
-                        <h2 id="past_holds_heading">Past holds</h2>
-                        <p
-                            ><a href="#current_holds_heading"><i class="fa fa-arrow-up" aria-hidden="true"></i> View current holds</a></p
-                        >
-                        [% IF patron.old_holds.count %]
-                            <div id="old_holds_filters" data-table-id="table_oldholdshistory">
-                                <p>
-                                    <span class="select_hold_status" id="status_show_all_old">
-                                        <input id="old_show_all" type="checkbox" checked="checked" class="show_all" />
-                                        <label for="old_show_all">Show all</label>
-                                    </span>
-                                    <span class="select_hold_status" id="status_show_fulfilled">
-                                        <input id="old_fulfilled_filter" type="checkbox" checked="checked" />
-                                        <label for="old_fulfilled_filter">Fulfilled</label>
-                                    </span>
-                                    <span class="select_hold_status" id="status_show_cancelled">
-                                        <input id="old_cancelled_filter" type="checkbox" checked="checked" />
-                                        <label for="old_cancelled_filter">Cancelled</label>
-                                    </span>
-                                </p>
-                            </div>
-                            <table id="table_oldholdshistory">
-                                <thead>
-                                    <tr>
-                                        <th class="anti-the">Title</th>
-                                        <th>Author</th>
-                                        <th>Barcode</th>
-                                        <th>Call number</th>
-                                        <th>Library</th>
-                                        <th>Hold date</th>
-                                        <th>Expiration date</th>
-                                        <th>Waiting date</th>
-                                        <th>Cancellation date</th>
-                                        [% IF show_itemtype_column %]
-                                            <th>Requested item type</th>
-                                        [% END %]
-                                        <th>Status</th>
-                                        <th>Notes</th>
-                                    </tr>
-                                </thead>
-                            </table>
-                        [% ELSE %]
-                            <div class="alert alert-info">This patron has no past holds.</div>
-                        [% END %]
-                    </div>
-                [% END %]
-            </main>
+            <h2 id="past_holds_heading">Past holds</h2>
+            <p
+                ><a href="#current_holds_heading"><i class="fa fa-arrow-up" aria-hidden="true"></i> View current holds</a></p
+            >
+            [% IF patron.old_holds.count %]
+                <div id="old_holds_filters" data-table-id="table_oldholdshistory">
+                    <p>
+                        <span class="select_hold_status" id="status_show_all_old">
+                            <input id="old_show_all" type="checkbox" checked="checked" class="show_all" />
+                            <label for="old_show_all">Show all</label>
+                        </span>
+                        <span class="select_hold_status" id="status_show_fulfilled">
+                            <input id="old_fulfilled_filter" type="checkbox" checked="checked" />
+                            <label for="old_fulfilled_filter">Fulfilled</label>
+                        </span>
+                        <span class="select_hold_status" id="status_show_cancelled">
+                            <input id="old_cancelled_filter" type="checkbox" checked="checked" />
+                            <label for="old_cancelled_filter">Cancelled</label>
+                        </span>
+                    </p>
+                </div>
+                <table id="table_oldholdshistory">
+                    <thead>
+                        <tr>
+                            <th data-colname="title" class="anti-the">Title</th>
+                            <th data-colname="author">Author</th>
+                            <th data-colname="barcode">Barcode</th>
+                            <th data-colname="itemcallnumber">Call number</th>
+                            <th data-colname="branch">Library</th>
+                            <th data-colname="reservedate">Hold date</th>
+                            <th data-colname="expirationdate">Expiration date</th>
+                            <th data-colname="waitingdate">Waiting date</th>
+                            <th data-colname="cancellationdate">Cancellation date</th>
+                            <th data-colname="itemtype">Requested item type</th>
+                            <th data-colname="status">Status</th>
+                            <th data-colname="notes">Notes</th>
+                        </tr>
+                    </thead>
+                </table>
+            [% ELSE %]
+                <div class="alert alert-info">This patron has no past holds.</div>
+            [% END %]
         </div>
-        <!-- /.col-md-10.order-md-2 -->
+    [% END %]
+[% END %]
 
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'circ-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'str/members-menu.inc' %]
+    [% Asset.js("js/members-menu.js") | $raw %]
+    [% INCLUDE 'js-biblio-format.inc' %]
+    <script>
+        const all_libraries = [% To.json(Branches.all) | $raw %].map(e => {
+                    e["_id"] = e["branchcode"];
+                    e["_str"] = e["branchname"];
+                    return e;
+                });
 
-    [% MACRO jsinclude BLOCK %]
-        [% INCLUDE 'datatables.inc' %]
-        [% INCLUDE 'columns_settings.inc' %]
-        [% INCLUDE 'str/members-menu.inc' %]
-        [% Asset.js("js/members-menu.js") | $raw %]
-        [% INCLUDE 'js-biblio-format.inc' %]
-        <script>
-            $(document).ready(function() {
-                var table_settings = [% TablesSettings.GetTableSettings('members', 'holdshistory', 'holdshistory-table', 'json') | $raw %];
-                [% UNLESS show_itemtype_column %]
-                  //Remove item type column settings
-                  table_settings['columns'] = table_settings['columns'].filter(function(c){return c['columnname'] != 'itemtype';});
-                [% END %]
-                let current_holds_table = build_holds_table("#table_holdshistory");
-                let old_holds_table = build_holds_table("#table_oldholdshistory", 1);
-                function build_holds_table(table_id, old){
-                    let additional_filters = {
-                        "-and": function(){
-                            let statuses = [];
-                            let include_cancelled = false;
-                            if ( table_id == '#table_holdshistory' ) {
-                                if ( $("#current_pending_filter").is(":checked") ) {
-                                    statuses.push(null);
-                                }
-                                if ( $("#current_waiting_filter").is(":checked") ) {
-                                    statuses.push("W");
-                                }
-                                if ( $("#current_processing_filter").is(":checked") ) {
-                                    statuses.push("P");
-                                }
-                                if ( $("#current_transit_filter").is(":checked") ) {
-                                    statuses.push("T");
-                                }
-                            } else {
-                                if ( $("#old_fulfilled_filter").is(":checked") ) {
-                                    statuses.push("F");
-                                }
-                                if ( $("#old_cancelled_filter").is(":checked") ) {
-                                    include_cancelled = true;
+        const all_item_types = [% To.json(ItemTypes.Get) | $raw %].map(e => {
+                    e["_id"] = e["itemtype"];
+                    e["_str"] = e["translated_description"];
+                    return e;
+                });
+
+        var coded_values = {
+            library: new Map(all_libraries.map( l => [l.branchname, l.branchcode] )),
+            item_type: new Map(all_item_types.map( i => [i.translated_description, i.itemtype] )),
+        };
+
+        let filters_options = {
+            item_types: all_item_types,
+            libraries: all_libraries,
+        };
+
+        const show_itemtype_column = [% Koha.Preference('AllowHoldItemTypeSelection') ? 1 : 0 | html %];
+    </script>
+    <script>
+        $(document).ready(function() {
+            var table_settings = [% TablesSettings.GetTableSettings('members', 'holdshistory', 'holdshistory-table', 'json') | $raw %];
+
+            let item_type_column = table_settings.columns.find(c => c.columnname == 'itemtype');
+            if ( !show_itemtype_column ) {
+                item_type_column.is_hidden = 1;
+                item_type_column.cannot_be_toggled = 1;
+            } else {
+                item_type_column.is_hidden = 0;
+            }
+            item_type_column.force_visibility = 1;
+
+            let current_holds_table = build_holds_table("#table_holdshistory");
+            let old_holds_table = build_holds_table("#table_oldholdshistory", 1);
+            function build_holds_table(table_id, old){
+                let additional_filters = {
+                    "-and": function(){
+                        let statuses = [];
+                        let include_cancelled = false;
+                        if ( table_id == '#table_holdshistory' ) {
+                            if ( $("#current_pending_filter").is(":checked") ) {
+                                statuses.push(null);
+                            }
+                            if ( $("#current_waiting_filter").is(":checked") ) {
+                                statuses.push("W");
+                            }
+                            if ( $("#current_processing_filter").is(":checked") ) {
+                                statuses.push("P");
+                            }
+                            if ( $("#current_transit_filter").is(":checked") ) {
+                                statuses.push("T");
+                            }
+                        } else {
+                            if ( $("#old_fulfilled_filter").is(":checked") ) {
+                                statuses.push("F");
+                            }
+                            if ( $("#old_cancelled_filter").is(":checked") ) {
+                                include_cancelled = true;
+                            }
+                        }
+                        if ( include_cancelled ) {
+                            return [{status: statuses}, { cancellation_date: {"<": new Date().toISOString() } } ]; // cancellation_date cannot be in the future. Would be better a 'not null' here however.
+                        } else {
+                            return [{status: statuses}];
+                        }
+                    },
+
+                };
+
+                let table_url = '/api/v1/patrons/[% patron.borrowernumber | uri %]/holds';
+                let table_embeds = ['+strings', 'biblio', 'item', 'pickup_library'];
+                if (old){
+                    table_url += '?old=1';
+                    table_embeds.push('deleted_biblio');
+                }
+                return $(table_id).kohaTable({
+                    ajax: {
+                        url: table_url,
+                    },
+                    order: [],
+                    embed: table_embeds,
+                    columns: [
+                        {
+                            data: "biblio.title:biblio.subtitle:biblio.medium",
+                            searchable: true,
+                            orderable: true,
+                            render: function (data, type, row, meta) {
+                                if( row.biblio ){
+                                    return $biblio_to_html(row.biblio, { link: 1 });
+                                } else {
+                                    return $biblio_to_html(row.deleted_biblio, { link: 0, deleted: 1 });
                                 }
                             }
-                            if ( include_cancelled ) {
-                                return [{status: statuses}, { cancellation_date: {"<": new Date().toISOString() } } ]; // cancellation_date cannot be in the future. Would be better a 'not null' here however.
-                            } else {
-                                return [{status: statuses}];
+                        },
+                        {
+                            data: "biblio.author",
+                            searchable: true,
+                            orderable: true,
+                            render: function (data, type, row, meta) {
+                                let biblio = row.biblio ? row.biblio : row.deleted_biblio;
+                                return biblio ? biblio.author : "";
                             }
                         },
-
-                    };
-
-                    let table_url = '/api/v1/patrons/[% patron.borrowernumber | uri %]/holds';
-                    let table_embeds = ['+strings', 'biblio', 'item', 'pickup_library'];
-                    if (old){
-                        table_url += '?old=1';
-                        table_embeds.push('deleted_biblio');
-                    }
-                    return $(table_id).kohaTable({
-                        ajax: {
-                            url: table_url,
+                        {
+                            data: "item.external_id",
+                            searchable: true,
+                            orderable: true,
+                            render: function (data, type, row, meta) {
+                                return row.item ? row.item.external_id : "";
+                            }
                         },
-                        order: [],
-                        embed: table_embeds,
-                        columns: [
-                            {
-                                data: "biblio.title:biblio.subtitle:biblio.medium",
-                                searchable: true,
-                                orderable: true,
-                                render: function (data, type, row, meta) {
-                                    if( row.biblio ){
-                                        return $biblio_to_html(row.biblio, { link: 1 });
-                                    } else {
-                                        return $biblio_to_html(row.deleted_biblio, { link: 0, deleted: 1 });
-                                    }
-                                }
-                            },
-                            {
-                                data: "biblio.author",
-                                searchable: true,
-                                orderable: true,
-                                render: function (data, type, row, meta) {
-                                    let biblio = row.biblio ? row.biblio : row.deleted_biblio;
-                                    return biblio ? biblio.author : "";
-                                }
-                            },
-                            {
-                                data: "item.external_id",
-                                searchable: true,
-                                orderable: true,
-                                render: function (data, type, row, meta) {
-                                    return row.item ? row.item.external_id : "";
-                                }
-                            },
-                            {
-                                data: "item.callnumber",
-                                searchable: true,
-                                orderable: true,
-                                render: function (data, type, row, meta) {
-                                    return row.item ? row.item.callnumber: "";
-                                }
-                            },
-                            {
-                                data: "pickup_library_id:pickup_library.name",
-                                searchable: true,
-                                orderable: true,
-                                render: function (data, type, row, meta) {
-                                    return row.pickup_library.name;
-                                }
-                            },
-                            {
-                                data: "hold_date",
-                                type: "date",
-                                searchable: true,
-                                orderable: true,
-                                render: function (data, type, row, meta) {
-                                    return $date(row.hold_date);
-                                }
-                            },
-                            {
-                                data: "expiration_date",
-                                type: "date",
-                                searchable: true,
-                                orderable: true,
-                                render: function (data, type, row, meta) {
-                                    return $date(row.expiration_date)
-                                }
-                            },
-                            {
-                                data: "waiting_date",
-                                type: "date",
-                                searchable: true,
-                                orderable: true,
-                                render: function (data, type, row, meta) {
-                                    return $date(row.waiting_date)
-                                }
-                            },
-                            {
-                                data: "cancellation_date",
-                                type: "date",
-                                searchable: true,
-                                orderable: true,
-                                render: function (data, type, row, meta) {
-                                    return $date(row.cancellation_date)
-                                }
-                            },
-                            [% IF show_itemtype_column %]
-                            {
-                                data: "item_type.item_type",
-                                searchable: true,
-                                orderable: true,
-                                render: function (data, type, row, meta) {
-                                    if ( row.item_type ) {
-                                        return row.item_type.item_type;
+                        {
+                            data: "item.callnumber",
+                            searchable: true,
+                            orderable: true,
+                            render: function (data, type, row, meta) {
+                                return row.item ? row.item.callnumber: "";
+                            }
+                        },
+                        {
+                            data: "me.pickup_library_id",
+                            datatype: "coded_value:library",
+                            dataFilter: "libraries",
+                            searchable: true,
+                            orderable: true,
+                            render: function (data, type, row, meta) {
+                                return escape_str(row._strings.pickup_library_id ? row._strings.pickup_library_id.str : row.pickup_library_id);
+                            }
+                        },
+                        {
+                            data: "hold_date",
+                            type: "date",
+                            searchable: true,
+                            orderable: true,
+                            render: function (data, type, row, meta) {
+                                return $date(row.hold_date);
+                            }
+                        },
+                        {
+                            data: "expiration_date",
+                            type: "date",
+                            searchable: true,
+                            orderable: true,
+                            render: function (data, type, row, meta) {
+                                return $date(row.expiration_date)
+                            }
+                        },
+                        {
+                            data: "waiting_date",
+                            type: "date",
+                            searchable: true,
+                            orderable: true,
+                            render: function (data, type, row, meta) {
+                                return $date(row.waiting_date)
+                            }
+                        },
+                        {
+                            data: "cancellation_date",
+                            type: "date",
+                            searchable: true,
+                            orderable: true,
+                            render: function (data, type, row, meta) {
+                                return $date(row.cancellation_date)
+                            }
+                        },
+                        {
+                            data: "item_type_id",
+                            datatype: "coded_value:item_type",
+                            dataFilter: "item_types",
+                            searchable: true,
+                            orderable: true,
+                            render: function (data, type, row, meta) {
+                                [% IF Koha.Preference('AllowHoldItemTypeSelection') %]
+                                    if ( row.item_type_id ) {
+                                        return row._strings.item_type_id ? row._strings.item_type_id.str : row.item_type_id;
                                     } else {
                                         return _("Any item type");
                                     }
-                                }
-                            },
-                            [% END %]
-                            {
-                                data: "status",
-                                searchable: false,
-                                orderable: true,
-                                render: function (data, type, row, meta) {
-                                    if ( row.status == 'F' ) {
-                                        return _("Fulfilled");
-                                    } else if (row.cancellation_date) {
-                                        let r = _("Cancelled");
-                                        if (row.cancellation_reason){
-                                            r += " (%s)".format(row._strings.cancellation_reason.str);
-                                        }
-                                        return r;
-                                    } else if (row.status == 'W') {
-                                        return _("Waiting");
-                                    } else if (row.status == 'P') {
-                                        return _("Processing");
-                                    } else if (row.status == 'T') {
-                                        return _("In transit");
+                                [% ELSE %]
+                                    return "";
+                                [% END %]
+                            }
+                        },
+                        {
+                            data: "status",
+                            searchable: false,
+                            orderable: true,
+                            render: function (data, type, row, meta) {
+                                if ( row.status == 'F' ) {
+                                    return _("Fulfilled");
+                                } else if (row.cancellation_date) {
+                                    let r = _("Cancelled");
+                                    if (row.cancellation_reason){
+                                        r += " (%s)".format(row._strings.cancellation_reason.str);
                                     }
+                                    return r;
+                                } else if (row.status == 'W') {
+                                    return _("Waiting");
+                                } else if (row.status == 'P') {
+                                    return _("Processing");
+                                } else if (row.status == 'T') {
+                                    return _("In transit");
+                                }
 
-                                    return _("Pending");
-                                }
-                            },
-                            {
-                                data: "notes",
-                                searchable: true,
-                                orderable: true,
-                                render: function (data, type, row, meta) {
-                                    return row.notes;
-                                }
-                            },
-                        ],
-                    }, table_settings, true, additional_filters);
-                }
-                $("#current_holds_filters :checkbox, #old_holds_filters :checkbox").on("change", function(e){
-                    e.preventDefault();
-                    let container = $(this).closest("div");
-                    if ( $(this).hasClass("show_all") ) {
-                        if ( $(this).is(":checked") ) {
-                            container.find(":checkbox").prop("checked", true);
-                        }
-                    } else if ( $(this).not(":checked") ) {
-                        container.find(".show_all").prop("checked", false);
+                                return _("Pending");
+                            }
+                        },
+                        {
+                            data: "notes",
+                            searchable: true,
+                            orderable: true,
+                            render: function (data, type, row, meta) {
+                                return row.notes;
+                            }
+                        },
+                    ],
+                    bKohaColumnsUseNames: true,
+                },
+                table_settings,
+                true,
+                additional_filters,
+                filters_options,
+                );
+            }
+            $("#current_holds_filters :checkbox, #old_holds_filters :checkbox").on("change", function(e){
+                e.preventDefault();
+                let container = $(this).closest("div");
+                if ( $(this).hasClass("show_all") ) {
+                    if ( $(this).is(":checked") ) {
+                        container.find(":checkbox").prop("checked", true);
                     }
-                    let table_dt = $("#"+container.data("table-id")).DataTable();
-                    table_dt.draw();
-                });
+                } else if ( $(this).not(":checked") ) {
+                    container.find(".show_all").prop("checked", false);
+                }
+                let table_dt = $("#"+container.data("table-id")).DataTable();
+                table_dt.draw();
             });
-        </script>
-    [% END %]
+        });
+    </script>
+[% END %]
 
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+[% INCLUDE 'intranet-bottom.inc' %]

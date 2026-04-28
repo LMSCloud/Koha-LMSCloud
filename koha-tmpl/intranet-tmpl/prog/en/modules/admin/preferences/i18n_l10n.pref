@@ -62,7 +62,12 @@ I18N/L10N:
               us: US style ([Street number], [Address] - [City], [ZIP/Postal Code], [Country])
               de: German style ([Address] [Street number] - [ZIP/Postal Code] [City] - [Country])
               fr: French style ([Street number] [Address] - [ZIP/Postal Code] [City] - [Country])
-        - "."
+        - .
+    -
+        - Sort facet names using
+        - pref: FacetSortingLocale
+          type: locale-list
+        - locale when <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=FacetOrder">FacetOrder</a> is set to alphabetically using locale. This enables proper Unicode-aware sorting of accented characters and locale-specific alphabetical ordering.
     -
         - pref: TranslateNotices
           choices:

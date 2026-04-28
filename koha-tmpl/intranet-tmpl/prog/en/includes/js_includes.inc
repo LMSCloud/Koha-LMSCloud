@@ -25,6 +25,7 @@
 [% Asset.js("lib/bootstrap/bootstrap.bundle.min.js") | $raw %]
 [% Asset.js("lib/jquery/plugins/jquery.validate.min.js") | $raw %]
 <!-- koha core js -->
+[% Asset.js("js/patron-format.js") | $raw %]
 [% Asset.js("js/staff-global.js") | $raw %]
 [% Asset.js("js/form-submit.js",{'type' => 'module'}) | $raw %]
 [% INCLUDE 'js-date-format.inc' %]
@@ -139,6 +140,7 @@
     var extendedPatronAttributes = "[% Koha.Preference('ExtendedPatronAttributes') | html %]";
     var loggedInLibrary = '[% Branches.GetLoggedInBranchcode | html %]';
     var singleBranchMode = '[% singleBranchMode | html %]';
+    var showPatronFirstnameIfDifferentThanPreferredname = [% Koha.Preference('ShowPatronFirstnameIfDifferentThanPreferredname') ? 1 : 0 | html %];
 </script>
 [% IF ( PatronAutoComplete ) %]
     <script>

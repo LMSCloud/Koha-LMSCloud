@@ -35,87 +35,71 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
-                [% IF !club %]
-                    <div class="alert alert-info">The club you requested does not exist.</div>
-                [% ELSE %]
-                    <h1>Club enrollments for [% club.name | html | $HtmlTags tag="em" %]</h1>
+[% WRAPPER 'main-container.inc' aside="tools-menu" %]
+    [% IF !club %]
+        <div class="alert alert-info">The club you requested does not exist.</div>
+    [% ELSE %]
+        <h1>Club enrollments for [% club.name | html | $HtmlTags tag="em" %]</h1>
 
-                    <div class="page-section">
-                        <table id="enrollments-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Card number</th>
-                                    [% FOREACH club_template_enrollment_field IN club.club_template.club_template_enrollment_fields %]
-                                        <th>[% club_template_enrollment_field.name | html %] </th>
-                                    [% END %]
-                                </tr>
-                            </thead>
+        <div class="page-section">
+            <table id="enrollments-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Card number</th>
+                        [% FOREACH club_template_enrollment_field IN club.club_template.club_template_enrollment_fields %]
+                            <th>[% club_template_enrollment_field.name | html %] </th>
+                        [% END %]
+                    </tr>
+                </thead>
 
-                            <tbody>
-                                [% FOREACH e IN club.club_enrollments %]
-                                    [% SET p = e.patron %]
-                                    <tr>
-                                        <td>
-                                            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% p.id | uri %]">[% p.surname | html %], [% p.firstname | html %]</a>
-                                        </td>
-                                        <td> [% p.cardnumber | html %] </td>
-                                        [% IF club_enrollment_fields %]
-                                            [% FOREACH club_enrollment_field IN club_enrollment_fields %]
-                                                [% IF e.id == club_enrollment_field.club_enrollment_id %]
-                                                    [% FOREACH club_template_enrollment_field IN club.club_template.club_template_enrollment_fields %]
-                                                        [% IF club_enrollment_field.club_template_enrollment_field_id == club_template_enrollment_field.id %]
-                                                            [% IF club_template_enrollment_field.authorised_value_category %]
-                                                                [% FOREACH a IN AuthorisedValues.Get( club_template_enrollment_field.authorised_value_category ) %]
-                                                                    [% IF a.authorised_value == club_enrollment_field.value %]
-                                                                        [% SET club_enrollment_field.value = a.lib %]
-                                                                    [% END %]
-                                                                [% END %]
-                                                            [% END %]
-                                                            <td>[% club_enrollment_field.value | html %]</td>
+                <tbody>
+                    [% FOREACH e IN club.club_enrollments %]
+                        [% SET p = e.patron %]
+                        <tr>
+                            <td>
+                                <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% p.id | uri %]">[% p.surname | html %], [% p.firstname | html %]</a>
+                            </td>
+                            <td> [% p.cardnumber | html %] </td>
+                            [% IF club_enrollment_fields %]
+                                [% FOREACH club_enrollment_field IN club_enrollment_fields %]
+                                    [% IF e.id == club_enrollment_field.club_enrollment_id %]
+                                        [% FOREACH club_template_enrollment_field IN club.club_template.club_template_enrollment_fields %]
+                                            [% IF club_enrollment_field.club_template_enrollment_field_id == club_template_enrollment_field.id %]
+                                                [% IF club_template_enrollment_field.authorised_value_category %]
+                                                    [% FOREACH a IN AuthorisedValues.Get( club_template_enrollment_field.authorised_value_category ) %]
+                                                        [% IF a.authorised_value == club_enrollment_field.value %]
+                                                            [% SET club_enrollment_field.value = a.lib %]
                                                         [% END %]
                                                     [% END %]
                                                 [% END %]
+                                                <td>[% club_enrollment_field.value | html %]</td>
                                             [% END %]
                                         [% END %]
-                                    </tr>
+                                    [% END %]
                                 [% END %]
-                            </tbody>
-                        </table>
-                    </div>
-                    <!-- /.page-section -->
-                [% END %]
-            </main>
+                            [% END %]
+                        </tr>
+                    [% END %]
+                </tbody>
+            </table>
         </div>
-        <!-- /.col-md-10.order-md-2 -->
-
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'tools-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
-
-    [% MACRO jsinclude BLOCK %]
-        [% INCLUDE 'datatables.inc' %]
-        [% Asset.js("js/tools-menu.js") | $raw %]
-        <script>
-            $(document).ready(function () {
-                eTable = $("#enrollments-table").dataTable(
-                    $.extend(true, {}, dataTablesDefaults, {
-                        pagingType: "full",
-                        dom: 'C<"top pager"ilpf><"#filter_c">tr<"bottom pager"ip>',
-                        columnDefs: [{ targets: [-1, -2], orderable: false, searchable: false }],
-                    })
-                );
-            });
-        </script>
+        <!-- /.page-section -->
     [% END %]
+[% END %]
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    [% Asset.js("js/tools-menu.js") | $raw %]
+    <script>
+        $(document).ready(function () {
+            eTable = $("#enrollments-table").kohaTable({
+                pagingType: "full",
+                dom: 'C<"top pager"ilpf><"#filter_c">tr<"bottom pager"ip>',
+            });
+        });
+    </script>
+[% END %]
 
     [% INCLUDE 'intranet-bottom.inc' %]
 </div>

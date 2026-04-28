@@ -147,9 +147,22 @@ __PACKAGE__->belongs_to(
 # DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:zGKQM9bikamF7J64+neesw
 
 
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
+
 sub koha_object_class {
     'Koha::ERM::EUsage::CounterFile';
 }
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
     'Koha::ERM::EUsage::CounterFiles';
 }

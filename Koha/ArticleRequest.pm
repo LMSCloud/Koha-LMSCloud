@@ -15,7 +15,7 @@ package Koha::ArticleRequest;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -269,7 +269,7 @@ sub store {
         $self->created_on( dt_from_string() );
     }
 
-    Koha::Exceptions::ArticleRequest::WrongFormat->throw
+    Koha::Exceptions::ArticleRequest::WrongFormat->throw( format => $self->format )
         unless grep { $_ eq $self->format } @{ C4::Context->multivalue_preference('ArticleRequestsSupportedFormats') };
 
     return $self->SUPER::store;

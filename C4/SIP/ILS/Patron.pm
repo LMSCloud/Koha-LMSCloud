@@ -40,6 +40,12 @@ our $kp;    # koha patron
 
 =cut
 
+=head2 new
+
+Missing POD for new.
+
+=cut
+
 sub new {
     my ( $class, $patron_id ) = @_;
     my $type = ref($class) || $class;
@@ -55,8 +61,7 @@ sub new {
             $patron = Koha::Patrons->find( { userid => $patron_id->{userid} } );
         }
     } else {
-        $patron = Koha::Patrons->find( { cardnumber => $patron_id } )
-            || Koha::Patrons->find( { userid => $patron_id } );
+        $patron = Koha::Patrons->find_by_identifier($patron_id);
     }
 
     unless ($patron) {
@@ -128,7 +133,10 @@ sub new {
     }
 
     # Get currency 3 chars max
-    my $currency = substr Koha::Acquisition::Currencies->get_active->currency, 0, 3;
+    my $currency = Koha::Acquisition::Currencies->get_active;
+    if ($currency) {
+        $currency = substr $currency->currency, 0, 3;
+    }
 
     my $circ_blocked =
         ( C4::Context->preference('OverduesBlockCirc') ne "noblock" && defined $flags->{ODUES}->{itemlist} ) ? 1 : 0;
@@ -304,6 +312,12 @@ If errors are encountered in processing template we log them and return nothing
 
 =cut
 
+=head2 format
+
+Missing POD for format.
+
+=cut
+
 sub format {
     my ( $self, $template ) = @_;
 
@@ -337,6 +351,12 @@ This method checks if number of checkouts of lost items exceeds a threshold (def
 
 =cut
 
+=head2 too_many_lost
+
+Missing POD for too_many_lost.
+
+=cut
+
 sub too_many_lost {
     my ( $self, $server ) = @_;
     my $too_many_lost = 0;
@@ -359,6 +379,12 @@ sub fee_amount {
     return 0;
 }
 
+=head2 fines_amount
+
+Missing POD for fines_amount.
+
+=cut
+
 sub fines_amount {
     my $self = shift;
     return $self->fee_amount;
@@ -368,6 +394,12 @@ sub language {
     my $self = shift;
     return $self->{language} || '000';    # Unspecified
 }
+
+=head2 expired
+
+Missing POD for expired.
+
+=cut
 
 sub expired {
     my $self = shift;
@@ -398,6 +430,13 @@ sub drop_hold {
 # Accessor method for array_ref values, designed to get the "start" and "end" values
 # from the SIP request.  Note those incoming values are 1-indexed, not 0-indexed.
 #
+
+=head2 x_items
+
+Missing POD for x_items.
+
+=cut
+
 sub x_items {
     my $self      = shift;
     my $array_var = shift or return;
@@ -426,6 +465,13 @@ sub x_items {
 #
 # List of outstanding holds placed
 #
+
+=head2 hold_items
+
+Missing POD for hold_items.
+
+=cut
+
 sub hold_items {
     my $self     = shift;
     my $item_arr = $self->x_items( 'hold_items', @_ );
@@ -436,15 +482,33 @@ sub hold_items {
     return $item_arr;
 }
 
+=head2 overdue_items
+
+Missing POD for overdue_items.
+
+=cut
+
 sub overdue_items {
     my $self = shift;
     return $self->x_items( 'overdue_items', @_ );
 }
 
+=head2 charged_items
+
+Missing POD for charged_items.
+
+=cut
+
 sub charged_items {
     my $self = shift;
     return $self->x_items( 'items', @_ );
 }
+
+=head2 fine_items
+
+Missing POD for fine_items.
+
+=cut
 
 sub fine_items {
 
@@ -460,7 +524,8 @@ sub fine_items {
         {
             borrowernumber    => $self->{borrowernumber},
             amountoutstanding => { '>' => '0' },
-        }
+        },
+        { prefetch => { 'itemnumber' => 'biblio' } }
     );
 
     $start = $start ? $start - 1 : 0;
@@ -483,10 +548,22 @@ sub fine_items {
 
 }
 
+=head2 recall_items
+
+Missing POD for recall_items.
+
+=cut
+
 sub recall_items {
     my $self = shift;
     return $self->x_items( 'recall_items', @_ );
 }
+
+=head2 unavail_holds
+
+Missing POD for unavail_holds.
+
+=cut
 
 sub unavail_holds {
     my $self = shift;
@@ -519,25 +596,55 @@ sub enable {
     return $self;
 }
 
+=head2 inet_privileges
+
+Missing POD for inet_privileges.
+
+=cut
+
 sub inet_privileges {
     my $self = shift;
     return $self->{inet} ? 'Y' : 'N';
 }
+
+=head2 excessive_fees
+
+Missing POD for excessive_fees.
+
+=cut
 
 sub excessive_fees {
     my $self = shift;
     return ( $self->fee_amount and $self->fee_amount > $self->fee_limit );
 }
 
+=head2 excessive_fines
+
+Missing POD for excessive_fines.
+
+=cut
+
 sub excessive_fines {
     my $self = shift;
     return $self->excessive_fees;    # excessive_fines is the same thing as excessive_fees for Koha
 }
 
+=head2 holds_blocked_by_excessive_fees
+
+Missing POD for holds_blocked_by_excessive_fees.
+
+=cut
+
 sub holds_blocked_by_excessive_fees {
     my $self = shift;
     return ( $self->fee_amount && $self->fee_amount > C4::Context->preference("maxoutstanding") );
 }
+
+=head2 library_name
+
+Missing POD for library_name.
+
+=cut
 
 sub library_name {
     my $self = shift;
@@ -551,10 +658,22 @@ sub library_name {
 # Messages
 #
 
+=head2 invalid_patron
+
+Missing POD for invalid_patron.
+
+=cut
+
 sub invalid_patron {
     my $self = shift;
     return "Please contact library staff";
 }
+
+=head2 charge_denied
+
+Missing POD for charge_denied.
+
+=cut
 
 sub charge_denied {
     my $self = shift;
@@ -610,6 +729,12 @@ attributes as defined in the sip config
 
 =cut
 
+=head2 build_patron_attributes_string
+
+Missing POD for build_patron_attributes_string.
+
+=cut
+
 sub build_patron_attributes_string {
     my ( $self, $server ) = @_;
 
@@ -641,6 +766,12 @@ sub build_patron_attributes_string {
 =head2 build_custom_field_string
 
 This method builds the part of the sip message for custom patron fields as defined in the sip config
+
+=cut
+
+=head2 build_custom_field_string
+
+Missing POD for build_custom_field_string.
 
 =cut
 
@@ -802,3 +933,215 @@ __END__
     {itemlist}    ref-to-array: list of available items
 
 =cut
+
+
+=head1 NAME
+
+ILS::Patron - Portable Patron status object class for SIP
+
+=head1 DESCRIPTION
+
+A C<ILS::Patron> object holds information about a patron that's
+used by self service terminals to authenticate and authorize a patron,
+and to display information about the patron's borrowing activity.
+
+=head1 SYNOPSIS
+
+    use ILS;
+    use ILS::Patron;
+
+    # Look up patron based on patron_id
+    my $patron = new ILS::Patron $patron_id
+
+    # Basic object access methods
+    $patron_id = $patron->id;
+    $str = $patron->name;
+    $str = $patron->address;
+    $str = $patron->email_addr;
+    $str = $patron->home_phone;
+    $str = $patron->sip_birthdate;
+    $str = $patron->ptype;
+    $str = $patron->language;
+    $str = $patron->password;
+    $str = $patron->check_password($password);
+    $str = $patron->currency;
+    $str = $patron->screen_msg;
+    $str = $patron->print_line;
+
+    # Check patron permissions
+    $bool = $patron->charge_ok;
+    $bool = $patron->renew_ok;
+    $bool = $patron->recall_ok;
+    $bool = $patron->hold_ok;
+    $bool = $patron->card_lost;
+    $bool = $patron->too_many_charged;
+    $bool = $patron->too_many_overdue;
+    $bool = $patron->too_many_renewal;
+    $bool = $patron->too_many_claim_return;
+    $bool = $patron->too_many_lost( $server );
+    $bool = $patron->excessive_fines;
+    $bool = $patron->excessive_fees;
+    $bool = $patron->too_many_billed;
+
+    # Patron borrowing activity
+    $num = $patron->recall_overdue;
+    $num = $patron->fee_amount;
+    $bool = $patron->drop_hold($item_id);
+    @holds = $patron->hold_items($start, $end);
+    @items = $patron->overdue_items($start, $end);
+    @items = $patron->charged_items($start, $end);
+    @items = $patron->fine_items($start, $end);
+    @items = $patron->recall_items($start, $end);
+    @items = $patron->unavail_holds($start, $end);
+
+    # Changing a patron's status
+    $patron->block($card_retained, $blocked_msg);
+    $patron->enable;
+
+=head1 INITIALIZATION
+
+A patron object is created by calling
+
+    $patron = new ILS::Patron $patron_id;
+
+where C<$patron_id> is the patron's barcode as received from the
+self service terminal.  If the patron barcode is not registered,
+then C<new> should return C<undef>.
+
+=head1 BASIC OBJECT ACCESS METHODS
+
+The following functions return the corresponding information
+about the given patron, or C<undef> if the information is
+unavailable.
+
+    $patron_id = $patron-E<gt>id;
+    $str = $patron-E<gt>name;
+    $str = $patron-E<gt>address;
+    $str = $patron-E<gt>email_addr;
+    $str = $patron-E<gt>home_phone;
+
+    $str = $patron-E<gt>screen_msg;
+    $str = $patron-E<gt>print_line;
+
+If there are outstanding display messages associated with the
+patron, then these return the screen message and print line,
+respectively, as with the C<ILS> methods.
+
+There are a few other object access methods that need a bit more
+explication however.
+
+=head2 C<$str = $patron-E<gt>sip_birthdate;>
+
+Returns the patron's birthday formatted according to the SIP
+specification:
+
+    YYYYMMDD    HHMMSS
+
+=head2 C<$str = $patron-E<gt>ptype;>
+
+Returns the "patron type" of the patron.  This is not used by the
+SIP server code, but is passed through to the self service
+terminal (using the non-standard protocol field "PC").  Some self
+service terminals use the patron type in determining what level
+of service to provide (for example, Envisionware computer
+management software can be configured to filter internet access
+based on patron type).
+
+=head2 C<$str = $patron-E<gt>language;>
+
+A three-digit string encoding the patron's preferred language.
+The full list is defined in the SIP specification, but some of
+the important values are:
+
+    000 Unknown (default)
+    001 English
+    002 French
+    008 Spanish
+    011 Canadian French
+    016 Arabic
+    019 Chinese
+    021 North American Spanish
+
+=head2 C<$bool = $patron-E<gt>check_password($password);>
+
+Returns C<true> if C<$patron>'s password is C<$password>.
+
+=head2 C<$str = $patron-E<gt>currency;>
+
+Returns the three character ISO 4217 currency code for the
+patron's preferred currency.
+
+=head1 CHECKING PATRON PERMISSIONS
+
+Most of the methods associated with Patrons are related to
+checking if they're authorized to perform various actions:
+
+    $bool = $patron-E<gt>charge_ok;
+    $bool = $patron-E<gt>renew_ok;
+    $bool = $patron-E<gt>recall_ok;
+    $bool = $patron-E<gt>hold_ok;
+    $bool = $patron-E<gt>card_lost;
+    $bool = $patron-E<gt>recall_overdue;
+    $bool = $patron-E<gt>too_many_charged;
+    $bool = $patron-E<gt>too_many_overdue;
+    $bool = $patron-E<gt>too_many_renewal;
+    $bool = $patron-E<gt>too_many_claim_return;
+    $bool = $patron-E<gt>too_many_lost( $server );
+    $bool = $patron-E<gt>excessive_fines;
+    $bool = $patron-E<gt>excessive_fees;
+    $bool = $patron-E<gt>too_many_billed;
+
+=head1 LISTS OF ITEMS ASSOCIATED WITH THE USER
+
+The C<$patron> object provides a set of methods to find out
+information about various sets that are associated with the
+user.  All these methods take two optional parameters: C<$start>
+and C<$end>, which define a subset of the list of items to be
+returned (C<1> is the first item in the list).  The following
+methods all return a reference to a list of C<$item_id>s:
+
+    $items = $patron-E<gt>hold_items($start, $end);
+    $items = $patron-E<gt>overdue_items($start, $end);
+    $items = $patron-E<gt>charged_items($start, $end);
+    $items = $patron-E<gt>recall_items($start, $end);
+    $items = $patron-E<gt>unavail_holds($start, $end);
+
+It is also possible to retrieve an itemized list of the fines
+outstanding.  This method returns a reference to an itemized list
+of fines:
+
+    $fines = $patron-E<gt>fine_items($start, $end);
+
+=head1 PATRON BORROWING ACTIVITY
+
+=head2 C<$num = $patron-E<gt>fee_amount;>
+
+The total amount of fees and fines owed by the patron.
+
+=head2 C<$bool = $patron-E<gt>drop_hold($item_id);>
+
+Drops the hold that C<$patron> has placed on the item
+C<$item_id>.  Returns C<false> if the patron did not have a hold
+on the item, C<true> otherwise.
+
+
+
+=head1 CHANGING A PATRON'S STATUS
+
+=head2 C<$status = $ils-E<gt>block($card_retained, $blocked_card_msg);>
+
+Block the account of the patron identified by C<$patron_id>.  If
+the self check unit captured the patron's card, then
+C<$card_retained> will be C<true>.  A message indicating why the
+card was retained will be provided by the parameter
+C<$blocked_card_msg>.
+
+This function returns an C<ILS::Patron> object that has been
+updated to indicate that the patron's privileges have been
+blocked, or C<undef> if the patron ID is not valid.
+
+=head2 C<$patron-E<gt>enable;>
+
+Re-enable the patron after she's been blocked.  This is a test
+function and will not normally be called by self-service
+terminals in production.

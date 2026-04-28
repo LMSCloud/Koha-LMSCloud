@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Try::Tiny;
@@ -26,7 +26,8 @@ use C4::Biblio qw( AddBiblio ModBiblio DelBiblio );
 use Koha::Database;
 use Koha::Biblios;
 
-use Test::More tests => 24;
+use Test::NoWarnings;
+use Test::More tests => 25;
 use Test::MockModule;
 
 use Koha::MarcOverlayRules;
@@ -1087,7 +1088,7 @@ subtest 'context option in ModBiblio is handled correctly' => sub {
     DelBiblio($biblionumber);
 };
 
-# Explicityly delete rule to trigger clearing of cache
+# Explicitly delete rule to trigger clearing of cache
 $rule->delete();
 
 $schema->storage->txn_rollback;

@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -89,7 +89,8 @@ get '/dbic_merge_pagination' => sub {
 
 # The tests
 
-use Test::More tests => 2;
+use Test::NoWarnings;
+use Test::More tests => 3;
 use Test::Mojo;
 
 use t::lib::Mocks;
@@ -100,11 +101,14 @@ subtest 'add_pagination_headers() tests' => sub {
 
     my $t = Test::Mojo->new;
 
-    $t->get_ok('/empty')->status_is(200)->header_is( 'X-Total-Count' => undef, 'X-Total-Count is undefined' )
+    $t->get_ok('/empty')
+        ->status_is(200)
+        ->header_is( 'X-Total-Count'      => undef, 'X-Total-Count is undefined' )
         ->header_is( 'X-Base-Total-Count' => undef, 'X-Base-Total-Count is undefined' )
         ->header_is( 'Link'               => undef, 'Link is undefined' );
 
-    $t->get_ok('/pagination_headers?firstname=Jonathan&_page=2&_per_page=3')->status_is(200)
+    $t->get_ok('/pagination_headers?firstname=Jonathan&_page=2&_per_page=3')
+        ->status_is(200)
         ->header_is( 'X-Total-Count'      => 10, 'X-Total-Count correctly set' )
         ->header_is( 'X-Base-Total-Count' => 12, 'X-Base-Total-Count correctly set' )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*_per_page=3.*>; rel="prev",/ )
@@ -120,7 +124,8 @@ subtest 'add_pagination_headers() tests' => sub {
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*_page=4.*>; rel="last"/ )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*firstname=Jonathan.*>; rel="last"/ );
 
-    $t->get_ok('/pagination_headers?firstname=Jonathan&_page=1&_per_page=3')->status_is(200)
+    $t->get_ok('/pagination_headers?firstname=Jonathan&_page=1&_per_page=3')
+        ->status_is(200)
         ->header_is( 'X-Total-Count'      => 10, 'X-Total-Count correctly set' )
         ->header_is( 'X-Base-Total-Count' => 12, 'X-Base-Total-Count correctly set' )
         ->header_unlike( 'Link' => qr/<http:\/\/.*\?.*>; rel="prev",/ )
@@ -134,7 +139,8 @@ subtest 'add_pagination_headers() tests' => sub {
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*_page=4.*>; rel="last"/ )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*firstname=Jonathan.*>; rel="last"/ );
 
-    $t->get_ok('/pagination_headers?firstname=Jonathan&_page=4&_per_page=3')->status_is(200)
+    $t->get_ok('/pagination_headers?firstname=Jonathan&_page=4&_per_page=3')
+        ->status_is(200)
         ->header_is( 'X-Total-Count'      => 10, 'X-Total-Count correctly set' )
         ->header_is( 'X-Base-Total-Count' => 12, 'X-Base-Total-Count correctly set' )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*_per_page=3.*>; rel="prev",/ )
@@ -149,7 +155,8 @@ subtest 'add_pagination_headers() tests' => sub {
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*firstname=Jonathan.*>; rel="last"/ );
 
     t::lib::Mocks::mock_preference( 'RESTdefaultPageSize', 3 );
-    $t->get_ok('/pagination_headers?firstname=Jonathan&_page=2')->status_is(200)
+    $t->get_ok('/pagination_headers?firstname=Jonathan&_page=2')
+        ->status_is(200)
         ->header_is( 'X-Total-Count'      => 10, 'X-Total-Count correctly set' )
         ->header_is( 'X-Base-Total-Count' => 12, 'X-Base-Total-Count correctly set' )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*per_page=3.*>; rel="prev",/ )
@@ -165,7 +172,8 @@ subtest 'add_pagination_headers() tests' => sub {
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*page=4.*>; rel="last"/ )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*firstname=Jonathan.*>; rel="last"/ );
 
-    $t->get_ok('/pagination_headers?firstname=Jonathan&_per_page=3')->status_is(200)
+    $t->get_ok('/pagination_headers?firstname=Jonathan&_per_page=3')
+        ->status_is(200)
         ->header_is( 'X-Total-Count'      => 10, 'X-Total-Count header present, even without page param' )
         ->header_is( 'X-Base-Total-Count' => 12, 'X-Base-Total-Count correctly set' )
         ->header_unlike( 'Link' => qr/<http:\/\/.*\?.*per_page=3.*>; rel="prev",/,         'First page, no previous' )
@@ -181,7 +189,8 @@ subtest 'add_pagination_headers() tests' => sub {
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*page=4.*>; rel="last"/ )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*firstname=Jonathan.*>; rel="last"/ );
 
-    $t->get_ok('/pagination_headers?firstname=Jonathan&_per_page=-1')->status_is(200)
+    $t->get_ok('/pagination_headers?firstname=Jonathan&_per_page=-1')
+        ->status_is(200)
         ->header_is( 'X-Total-Count'      => 10, 'X-Total-Count header present, with per_page=-1' )
         ->header_is( 'X-Base-Total-Count' => 12, 'X-Base-Total-Count correctly set' )
         ->header_unlike( 'Link' => qr/<http:\/\/.*\?.*per_page=-1.*>; rel="prev",/,        'First page, no previous' )
@@ -190,14 +199,16 @@ subtest 'add_pagination_headers() tests' => sub {
         ->header_unlike(
         'Link' => qr/<http:\/\/.*\?.*per_page=-1.*>; rel="next",/,
         'No next page, all resources are fetched'
-    )->header_like( 'Link' => qr/<http:\/\/.*\?.*per_page=-1.*>; rel="first",/ )
+        )
+        ->header_like( 'Link' => qr/<http:\/\/.*\?.*per_page=-1.*>; rel="first",/ )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*page=1.*>; rel="first",/ )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*firstname=Jonathan.*>; rel="first",/ )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*per_page=-1.*>; rel="last"/ )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*page=1.*>; rel="last"/ )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*firstname=Jonathan.*>; rel="last"/ );
 
-    $t->get_ok('/pagination_headers?firstname=Jonathan&_per_page=-1&_page=100')->status_is(200)
+    $t->get_ok('/pagination_headers?firstname=Jonathan&_per_page=-1&_page=100')
+        ->status_is(200)
         ->header_is( 'X-Total-Count'      => 10, 'X-Total-Count header present, with per_page=-1' )
         ->header_is( 'X-Base-Total-Count' => 12, 'X-Base-Total-Count correctly set' )
         ->header_unlike( 'Link' => qr/<http:\/\/.*\?.*per_page=-1.*>; rel="prev",/,        'First page, no previous' )
@@ -206,7 +217,8 @@ subtest 'add_pagination_headers() tests' => sub {
         ->header_unlike(
         'Link' => qr/<http:\/\/.*\?.*per_page=-1.*>; rel="next",/,
         'No next page, all resources are fetched'
-    )->header_like( 'Link' => qr/<http:\/\/.*\?.*per_page=-1.*>; rel="first",/ )
+        )
+        ->header_like( 'Link' => qr/<http:\/\/.*\?.*per_page=-1.*>; rel="first",/ )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*page=1.*>; rel="first",/ )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*firstname=Jonathan.*>; rel="first",/ )
         ->header_like( 'Link' => qr/<http:\/\/.*\?.*per_page=-1.*>; rel="last"/ )
@@ -220,6 +232,7 @@ subtest 'dbic_merge_pagination() tests' => sub {
 
     my $t = Test::Mojo->new;
 
-    $t->get_ok('/dbic_merge_pagination')->status_is(200)
+    $t->get_ok('/dbic_merge_pagination')
+        ->status_is(200)
         ->json_is( { firstname => 'Kyle', surname => 'Hall', page => 1, rows => 3 } );
 };

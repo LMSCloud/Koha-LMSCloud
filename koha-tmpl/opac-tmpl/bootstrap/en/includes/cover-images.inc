@@ -1,5 +1,16 @@
 [% USE raw %]
-<div class="bookcover">
+[% USE Koha %]
+[% USE ItemTypes %]
+<div
+    class="bookcover"
+    data-itemtype="[% SEARCH_RESULT.itemtype | html %]"
+    data-itemtype_description="[% ItemTypes.GetDescription(SEARCH_RESULT.itemtype) | html %]"
+    data-biblionumber="[% SEARCH_RESULT.biblionumber | html %]"
+    data-title="[% SEARCH_RESULT.title | html %]"
+    data-subtitle="[% SEARCH_RESULT.subtitle | html %]"
+    data-author="[% SEARCH_RESULT.author | html %]"
+    data-isbn="[% SEARCH_RESULT.normalized_isbn | html %]"
+>
     <div
         class="cover-slider cover-slides itemtype_[% SEARCH_RESULT.itemtype | html %]"
         data-biblionumber="[% SEARCH_RESULT.biblionumber | html %]"
@@ -14,6 +25,15 @@
                 </a>
                 <div class="hint">Local cover image</div>
             </div>
+        [% END %]
+
+        [% IF ( Koha.Preference('EKZCover') || Koha.Preference('DivibibEnabled') ) %]
+            [% FOREACH myurl IN SEARCH_RESULT.titlecoverurls %]
+                <div class="cover-image ekz-coverimg">
+                    <img src="[% myurl | url %]" class="ekzcover" alt="[% SEARCH_RESULT.title | html %]" />
+                </div>
+                [% LAST %]
+            [% END %]
         [% END %]
 
         [% IF ( OPACAmazonCoverImages && SEARCH_RESULT.normalized_isbn) %]

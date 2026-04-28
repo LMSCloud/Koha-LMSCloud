@@ -9,7 +9,8 @@ use Koha::Items;
 use Koha::Cache::Memory::Lite;
 use Koha::CirculationRules;
 
-use Test::More tests => 13;
+use Test::NoWarnings;
+use Test::More tests => 14;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -485,6 +486,8 @@ subtest 'Check holds availability with different item types' => sub {
 subtest 'Check item checkout availability with ordered item' => sub {
     plan tests => 1;
 
+    t::lib::Mocks::mock_preference( 'EnableHoldsNotForLoanStatus', '-1' );
+
     my $biblio2 = $builder->build_sample_biblio( { itemtype => $itemtype } );
     my $item1   = $builder->build_sample_item(
         {
@@ -519,6 +522,8 @@ subtest 'Check item checkout availability with ordered item' => sub {
 
 subtest 'Check item availability for hold with ordered item' => sub {
     plan tests => 1;
+
+    t::lib::Mocks::mock_preference( 'EnableHoldsNotForLoanStatus', '-1' );
 
     my $biblio2 = $builder->build_sample_biblio( { itemtype => $itemtype } );
     my $item1   = $builder->build_sample_item(

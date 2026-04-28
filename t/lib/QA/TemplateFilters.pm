@@ -274,6 +274,9 @@ and to not duplicate the code.
     * line is the line where the error has been found.
     * line_number is the line number where the error has been found.
 
+=head2 process_tt_block
+
+Missing POD for process_tt_block.
 
 =head1 AUTHORS
 
@@ -292,7 +295,7 @@ the Free Software Foundation; either version 3 of the License, or (at your optio
 
 Koha is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with Koha; if not, see <http://www.gnu.org/licenses>.
+You should have received a copy of the GNU General Public License along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =cut
 

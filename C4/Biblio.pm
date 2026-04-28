@@ -17,17 +17,13 @@ package C4::Biblio;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-
-use vars qw(@ISA @EXPORT_OK);
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-    @ISA = qw(Exporter);
-
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         AddBiblio
         GetBiblioData
         GetISBDView
@@ -63,7 +59,6 @@ BEGIN {
         TransformMarcToKoha
         TransformHtmlToMarc
         TransformHtmlToXml
-        prepare_host_field
         CleanCopyRightOrProtectedDataFromRecord
     );
 
@@ -232,20 +227,21 @@ sub AddBiblio {
 
                 my $biblio = Koha::Biblio->new(
                     {
-                        frameworkcode => $frameworkcode,
-                        author        => $olddata->{author},
-                        title         => $olddata->{title},
-                        subtitle      => $olddata->{subtitle},
-                        medium        => $olddata->{medium},
-                        part_number   => $olddata->{part_number},
-                        part_name     => $olddata->{part_name},
-                        unititle      => $olddata->{unititle},
-                        notes         => $olddata->{notes},
-                        serial        => $olddata->{serial},
-                        seriestitle   => $olddata->{seriestitle},
-                        copyrightdate => $olddata->{copyrightdate},
-                        datecreated   => \'NOW()',
-                        abstract      => $olddata->{abstract},
+                        frameworkcode   => $frameworkcode,
+                        author          => $olddata->{author},
+                        title           => $olddata->{title},
+                        subtitle        => $olddata->{subtitle},
+                        medium          => $olddata->{medium},
+                        part_number     => $olddata->{part_number},
+                        part_name       => $olddata->{part_name},
+                        unititle        => $olddata->{unititle},
+                        notes           => $olddata->{notes},
+                        serial          => $olddata->{serial},
+                        seriestitle     => $olddata->{seriestitle},
+                        copyrightdate   => $olddata->{copyrightdate},
+                        datecreated     => \'NOW()',
+                        abstract        => $olddata->{abstract},
+                        opac_suppressed => $olddata->{opac_suppressed},
                     }
                 )->store;
                 $biblionumber = $biblio->biblionumber;
@@ -373,7 +369,7 @@ task to rebuild the holds queue for the biblio if I<RealTimeHoldsQueue> is enabl
 
 =item C<skip_record_index>
 
-Used when the indexing schedulling will be handled by the caller
+Used when the indexing scheduling will be handled by the caller
 
 =item C<record_source_id>
 
@@ -530,7 +526,7 @@ I<$params> is a hashref containing extra parameters. Valid keys are:
 
 =item B<skip_holds_queue>: used when the holds queue update will be handled by the caller
 
-=item B<skip_record_index>: used when the indexing schedulling will be handled by the caller
+=item B<skip_record_index>: used when the indexing scheduling will be handled by the caller
 
 =back
 =cut
@@ -940,12 +936,12 @@ sub GetISBDView {
     my ( $holdingbrtagf, $holdingbrtagsubf ) = &GetMarcFromKohaField("items.holdingbranch");
     my $tagslib = GetMarcStructure( 1, $itemtype, { unsafe => 1 } );
 
-    my $ISBD = C4::Context->preference($sysprefname);
-    my $bloc = $ISBD;
+    my $ISBD  = C4::Context->preference($sysprefname);
+    my $block = $ISBD;
     my $res;
     my $blocres;
 
-    foreach my $isbdfield ( split( /#/, $bloc ) ) {
+    foreach my $isbdfield ( split( /#/, $block ) ) {
 
         #         $isbdfield= /(.?.?.?)/;
         $isbdfield =~ /(\d\d\d)([^\|])?\|(.*)\|(.*)\|(.*)/;
@@ -984,7 +980,7 @@ sub GetISBDView {
                                 $calculated =~ s#/cgi-bin/koha/[^/]+/([^.]*.pl\?.*)$#opac-$1#g;
                             }
 
-                            # field builded, store the result
+                            # field built, store the result
                             if ( $calculated && !$hasputtextbefore ) {    # put textbefore if not done
                                 $blocres .= $textbefore;
                                 $hasputtextbefore = 1;
@@ -1029,7 +1025,7 @@ sub GetISBDView {
                             }
                         }
 
-                        # field builded, store the result
+                        # field built, store the result
                         if ( $calculated && !$hasputtextbefore ) {    # put textbefore if not done
                             $blocres .= $textbefore;
                             $hasputtextbefore = 1;
@@ -1201,7 +1197,7 @@ The following options are supported:
 
 Pass { unsafe => 1 } do disable cached object cloning,
 and instead get a shared reference, resulting in better
-performance (but care must be taken so that retured object
+performance (but care must be taken so that returned object
 is never modified).
 
 Note: If you call GetMarcSubfieldStructure with unsafe => 1, do not modify or
@@ -1568,7 +1564,7 @@ sub GetAuthorisedValueDesc {
                     Koha::AuthorisedValues->search(
                     { category => $category },
                     { columns  => [ 'authorised_value', 'lib_opac', 'lib' ] }
-                )->as_list
+                    )->as_list
             };
             $cache->set_in_cache( $cache_key, $av_descriptions );
         }
@@ -1876,7 +1872,7 @@ sub GetMarcUrls {
 
                         #  properly, this should be if ind1=4,
                         #  however we will assume http protocol since we're building a link.
-                        $url = 'http://' . $url;
+                        $url = 'https://' . $url;
                     }
                 }
 
@@ -2410,7 +2406,7 @@ sub TransformHtmlToMarc {
             $newfield = 0;
             my $j = $i + 2;
 
-            if ( $tag < 10 ) {    # no code for theses fields
+            if ( $tag < 10 ) {    # no code for this field
                                   # in MARC editor, 000 contains the leader.
                 next if $tag == $biblionumbertagfield;
                 my $fval = $cgi->param( $params[ $j + 1 ] );
@@ -2524,6 +2520,10 @@ sub TransformMarcToKoha {
             # Additional polishing for individual kohafields
             if ( $kohafield =~ /copyrightdate|publicationyear/ ) {
                 $value = _adjust_pubyear($value);
+            } elsif ( $kohafield eq 'biblio.opac_suppressed' ) {
+
+                # this should always be a boolean
+                $value = $value ? 1 : 0;
             }
         }
 
@@ -2757,18 +2757,23 @@ sub _koha_modify_biblio {
                serial = ?,
                seriestitle = ?,
                copyrightdate = ?,
-               abstract = ?
+               abstract = ?,
+               timestamp = current_timestamp(),
+               opac_suppressed = ?
         WHERE  biblionumber = ?
         "
         ;
     my $sth = $dbh->prepare($query);
+
+    # it always needs to be defined
+    $biblio->{opac_suppressed} //= 0;
 
     $sth->execute(
         $frameworkcode,      $biblio->{'author'},      $biblio->{'title'},     $biblio->{'subtitle'},
         $biblio->{'medium'}, $biblio->{'part_number'}, $biblio->{'part_name'}, $biblio->{'unititle'},
         $biblio->{'notes'},  $biblio->{'serial'},      $biblio->{'seriestitle'},
         $biblio->{'copyrightdate'} ? int( $biblio->{'copyrightdate'} ) : undef,
-        $biblio->{'abstract'}, $biblio->{'biblionumber'}
+        $biblio->{'abstract'}, $biblio->{'opac_suppressed'}, $biblio->{'biblionumber'}
     ) if $biblio->{'biblionumber'};
 
     my $cache = Koha::Cache::Memory::Lite->get_instance();
@@ -2825,7 +2830,8 @@ sub _koha_modify_biblioitem_nonmarc {
         cn_sort         = ?,
         totalissues     = ?,
         ean             = ?,
-        agerestriction  = ?
+        agerestriction  = ?,
+        timestamp       = current_timestamp()
         where biblioitemnumber = ?
         ";
     my $sth = $dbh->prepare($query);
@@ -3302,10 +3308,6 @@ sub _after_biblio_action_hooks {
                 biblio    => $biblio,
                 biblio_id => $biblio_id,
             },
-
-            # NOTE: Deprecate these duplicate params for 24.11.00
-            biblio    => $biblio,
-            biblio_id => $biblio_id,
         }
     );
 }
@@ -3409,7 +3411,7 @@ __END__
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 Paul POULAIN paul.poulain@free.fr
 
