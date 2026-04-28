@@ -17,7 +17,7 @@
 # along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 5;
+use Test::More tests => 6;
 use Test::NoWarnings;
 use File::Slurp qw( read_file );
 use YAML::XS;
@@ -102,6 +102,25 @@ subtest 'SIP2 FeeDebit' => sub {
     use_ok('C4::SIP::Sip::Constants');
     C4::SIP::Sip::Constants->import(qw( FEE_DEBIT ));
     is( C4::SIP::Sip::Constants::FEE_DEBIT(), '43', 'FEE_DEBIT constant is defined as message type 43' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'C4::SIP::ILS::Patron::_fee_limit threshold sub' => sub {
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    use_ok('C4::SIP::ILS::Patron');
+
+    t::lib::Mocks::mock_preference( 'noissuescharge', 12 );
+    is( C4::SIP::ILS::Patron::_fee_limit(), 12, 'returns noissuescharge value when set to positive number' );
+
+    t::lib::Mocks::mock_preference( 'noissuescharge', 0 );
+    is( C4::SIP::ILS::Patron::_fee_limit(), 5, 'returns 5 fallback when noissuescharge is 0 (falsy)' );
+
+    t::lib::Mocks::mock_preference( 'noissuescharge', undef );
+    is( C4::SIP::ILS::Patron::_fee_limit(), 5, 'returns 5 fallback when noissuescharge is undef' );
 
     $schema->storage->txn_rollback;
 };

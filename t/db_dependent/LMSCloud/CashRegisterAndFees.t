@@ -19,7 +19,7 @@
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use Test::More tests => 4;
 use Test::NoWarnings;
 
 use Koha::Database;
@@ -112,6 +112,47 @@ subtest 'Cash register management' => sub {
 
         ok( $payment2, 'pay() succeeds with onlinePaymentCashRegisterManagerId parameter' );
     };
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Bookmobile register-clearing primitives' => sub {
+
+    plan tests => 5;
+
+    $schema->storage->txn_begin;
+
+    use_ok('Koha::Cash::Registers');
+
+    ok(
+        defined C4::Context->preference('BookMobileSupportEnabled'),
+        'BookMobileSupportEnabled syspref is accessible (gates branchcategory persistence in set-library.pl)'
+    );
+
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $register = $builder->build_object(
+        {
+            class => 'Koha::Cash::Registers',
+            value => {
+                branch => $library->branchcode,
+                name   => 'Bookmobile-Test-Register',
+            },
+        }
+    );
+
+    my $found = Koha::Cash::Registers->find( $register->id );
+    isa_ok( $found, 'Koha::Cash::Register', 'find($id) returns a Cash::Register object' );
+    is(
+        $found->name,
+        'Bookmobile-Test-Register',
+        '$register->name returns the value stored in session by set-library.pl'
+    );
+
+    is(
+        Koha::Cash::Registers->find(0),
+        undef,
+        'find on a non-existent id returns undef (set-library.pl falls back to clearing session)'
+    );
 
     $schema->storage->txn_rollback;
 };
