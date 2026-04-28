@@ -12,6 +12,13 @@ module.exports = {
             },
         },
         {
+            files: "*.vue",
+            options: {
+                semi: false,
+                tabWidth: 2,
+            },
+        },
+        {
             files: ["*.tt", "*.inc"],
             options: {
                 printWidth: 240,

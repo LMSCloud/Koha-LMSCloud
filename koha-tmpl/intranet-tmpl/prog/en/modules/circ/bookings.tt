@@ -9,10 +9,12 @@
 [% SET footerjs = 1 %]
 
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("Bookings") | html %]
-    &rsaquo; [% t("Circulation") | html %] &rsaquo; [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Bookings") | html %]
+        &rsaquo; [% t("Circulation") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -50,9 +52,7 @@
 
         <!-- Navigation -->
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'circ-nav.inc' %]
-            </aside>
+            <aside> [% INCLUDE 'circ-nav.inc' %] </aside>
         </div>
     </div>
     <!-- /.row -->
@@ -73,29 +73,27 @@
     [%# Process library data for JavaScript %]
     [% SET libraries = Branches.all %]
     <script>
-    var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
+        var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
 
-    // Global filter arrays for column filtering (must be const variables in global scope)
-    const getLibraryOptions = BOOKINGS_LIBRARIES_DATA.map(e => ({
-        '_id': e.branchcode,
-        '_str': e.branchname
-    }));
+        // Global filter arrays for column filtering (must be const variables in global scope)
+        const getLibraryOptions = BOOKINGS_LIBRARIES_DATA.map(e => ({
+            '_id': e.branchcode,
+            '_str': e.branchname
+        }));
 
-    const getStatusOptions = [
-        { '_id': 'pending', '_str': _("Pending") },
-        { '_id': 'active', '_str': _("Active") },
-        { '_id': 'expired', '_str': _("Expired") },
-        { '_id': 'cancelled', '_str': _("Cancelled") },
-        { '_id': 'completed', '_str': _("Completed") }
-    ];
+        const getStatusOptions = [
+            { '_id': 'pending', '_str': _("Pending") },
+            { '_id': 'active', '_str': _("Active") },
+            { '_id': 'expired', '_str': _("Expired") },
+            { '_id': 'cancelled', '_str': _("Cancelled") },
+            { '_id': 'completed', '_str': _("Completed") }
+        ];
 
-    // Initialize empty arrays for dynamic filter options (will be populated from table data)
-    let getLocationOptions = [];
-    let getItemTypeOptions = [];
+        // Initialize empty arrays for dynamic filter options (will be populated from table data)
+        let getLocationOptions = [];
+        let getItemTypeOptions = [];
     </script>
-
     [% Asset.js("js/bookings-common.js", type => "module") | $raw %]
-
     <script>
         let cancel_success = false;
         var bookings_table;

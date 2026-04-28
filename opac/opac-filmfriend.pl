@@ -26,53 +26,53 @@ use C4::External::FilmFriend;
 use JSON;
 
 my $query = CGI->new;
-my ($userid, $cookie, $sessionID) = checkauth( $query, 1, {}, 'opac' );
+my ( $userid, $cookie, $sessionID ) = checkauth( $query, 1, {}, 'opac' );
 
 my $result = undef;
 
 if ( C4::Context->preference('FilmfriendSearchActive') ) {
-    my $search = $query->param('search');
-    my $maxcount = $query->param('maxcount');
-    my $offset = $query->param('offset');
-    my $collection = $query->param('collection');
-    my $objectid = $query->param('objectid');
+    my $search            = $query->param('search');
+    my $maxcount          = $query->param('maxcount');
+    my $offset            = $query->param('offset');
+    my $collection        = $query->param('collection');
+    my $objectid          = $query->param('objectid');
     my $filmfriendService = C4::External::FilmFriend->new();
-    
-    if ( $objectid ) {
-        my $url = $filmfriendService->getAuthLink($userid,$collection,$objectid);
-        
-        if ( $url ) {
+
+    if ($objectid) {
+        my $url = $filmfriendService->getAuthLink( $userid, $collection, $objectid );
+
+        if ($url) {
             print $query->redirect($url);
         } else {
             print $query->redirect("/cgi-bin/koha/errors/404.pl");
         }
         exit;
     }
-    
+
     my $searchWhere = [];
-    $searchWhere = [$collection] if ( $collection );
+    $searchWhere = [$collection] if ($collection);
     if ( !scalar(@$searchWhere) && C4::Context->preference('FilmfriendSearchCollections') ) {
-        $searchWhere =  [];
+        $searchWhere = [];
         my $colls = {};
-        foreach my $collection( split(/\|/,C4::Context->preference('FilmfriendSearchCollections')) ) {
+        foreach my $collection ( split( /\|/, C4::Context->preference('FilmfriendSearchCollections') ) ) {
             $collection =~ s/^\s+//;
             $collection =~ s/\s+$//;
-            if ( ! exists($colls->{$collection}) ) {
+            if ( !exists( $colls->{$collection} ) ) {
                 $colls->{$collection} = 1;
-                push @$searchWhere,$collection;
+                push @$searchWhere, $collection;
             }
         }
     }
-    $searchWhere = ["Movie","Series","Person"] if (! scalar(@$searchWhere) );
-    
-    $result = $filmfriendService->simpleSearch($userid,$search,$searchWhere,$maxcount,$offset);
+    $searchWhere = [ "Movie", "Series", "Person" ] if ( !scalar(@$searchWhere) );
+
+    $result = $filmfriendService->simpleSearch( $userid, $search, $searchWhere, $maxcount, $offset );
 }
 
 my $json_reply = JSON->new->encode( { result => $result } );
 
 binmode STDOUT, ":encoding(UTF-8)";
 print $query->header(
-    -type => 'application/json',
+    -type    => 'application/json',
     -charset => 'UTF-8'
 );
 

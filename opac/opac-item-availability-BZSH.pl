@@ -17,7 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-
 =head1 opac-item-availability-BZSH.pl
 
 The BZSH (Büchereizentrale Schleswig-Holstein) calls this item availability service
@@ -114,20 +113,20 @@ use utf8;
 
 use C4::External::BZSH::ItemAvailabilitySearch_BZSH;
 
-
 my $cgi = new CGI;
 
-my $sel_sigel = $cgi->param("sigel");       # this seems not to be the official ISIL but a so called BZSH-Sigel (library identifier within Schleswig-Holstein)
-my $sel_titel = $cgi->param("TITEL");
+my $sel_sigel = $cgi->param("sigel")
+    ; # this seems not to be the official ISIL but a so called BZSH-Sigel (library identifier within Schleswig-Holstein)
+my $sel_titel  = $cgi->param("TITEL");
 my $sel_srisbn = $cgi->param("SRISBN");
-my $sel_srtit = $cgi->param("SRTIT");       # not used here
-my $sel_sraut = $cgi->param("SRAUT");       # not used here
-my $sel_srkorp = $cgi->param("SRKORP");     # not used here
-my $sel_lang = $cgi->param("LANG");         # optional, not used here
+my $sel_srtit  = $cgi->param("SRTIT");     # not used here
+my $sel_sraut  = $cgi->param("SRAUT");     # not used here
+my $sel_srkorp = $cgi->param("SRKORP");    # not used here
+my $sel_lang   = $cgi->param("LANG");      # optional, not used here
 
-my $best_item_status = 0;                   # default: status 0 / Titel nicht vorhanden / title does not exist
+my $best_item_status  = 0;                 # default: status 0 / Titel nicht vorhanden / title does not exist
 my $best_biblionumber = 0;
-my $best_itemnumber = 0;
+my $best_itemnumber   = 0;
 my $marcrecord;
 
 # Generate the CGI response (text/xml in this case) without using template toolkit.
@@ -145,17 +144,17 @@ sub output_BZSH_xml {
     $options->{expires} = 'now';
 
     $data =~ s/\&amp\;amp\; /\&amp\; /g;
-    binmode(STDOUT, ":utf8");
+    binmode( STDOUT, ":utf8" );
     print $query->header($options), $data;
 }
 
 # Generate an URL for the biblio record in Koha for display in the item availability response.
 sub genPermalink {
     my ($biblionumber) = @_;
-	
+
     my $permalink = '';
-	my $baseurl = C4::Context->preference('OPACBaseURL');
-    
+    my $baseurl   = C4::Context->preference('OPACBaseURL');
+
     if ( length($baseurl) > 0 && length($biblionumber) > 0 ) {
         $permalink = $baseurl . "/bib/" . $biblionumber;
     }
@@ -166,55 +165,63 @@ sub genPermalink {
 # If no hit was found:
 # Try the search for MARC21 category 020 (ISBN) or MARC21 category 024 (Other Standard Identifier, e.g. EAN) if possible.
 my $itemAvailabilitySearch_BZSH = C4::External::BZSH::ItemAvailabilitySearch_BZSH->new($sel_sigel);
-($best_item_status, $best_itemnumber, $best_biblionumber, $marcrecord ) = $itemAvailabilitySearch_BZSH->search_title_with_best_item_status($sel_titel, $sel_srisbn);
-
+( $best_item_status, $best_itemnumber, $best_biblionumber, $marcrecord ) =
+    $itemAvailabilitySearch_BZSH->search_title_with_best_item_status( $sel_titel, $sel_srisbn );
 
 # build the components of the response
-my $BZSH_output_bibldata = '';
-my $BZSH_output_statustext = "Status: Titel nicht vorhanden";
+my $BZSH_output_bibldata    = '';
+my $BZSH_output_statustext  = "Status: Titel nicht vorhanden";
 my $BZSH_output_ruckdattext = "";
-my $BZSH_output_permalink = "";
-my $BZSH_output_statuscode = "0";
+my $BZSH_output_permalink   = "";
+my $BZSH_output_statuscode  = "0";
 my $BZSH_output_ruckdatcode = "";
 
 if ( $best_biblionumber > 0 ) {
-    if ( $marcrecord ) {
+    if ($marcrecord) {
         my $marc_titledata = '';
-        $marc_titledata = $itemAvailabilitySearch_BZSH->genISBDXmlEncoded($marcrecord);    # generate the ISBN output for this title
-        if (length($marc_titledata) > 0) {
+        $marc_titledata =
+            $itemAvailabilitySearch_BZSH->genISBDXmlEncoded($marcrecord);    # generate the ISBN output for this title
+        if ( length($marc_titledata) > 0 ) {
             $BZSH_output_bibldata = "$marc_titledata";
         }
     }
-    $BZSH_output_permalink = sprintf("%s", &genPermalink($best_biblionumber));
+    $BZSH_output_permalink = sprintf( "%s", &genPermalink($best_biblionumber) );
 }
 
-if ( $best_item_status == 1) {
+if ( $best_item_status == 1 ) {
     $BZSH_output_statustext = "Status: nicht entliehen";
     $BZSH_output_statuscode = "1";
-} elsif ( $best_item_status == 2) {
+} elsif ( $best_item_status == 2 ) {
     $BZSH_output_statustext = "Status: ausgeliehen";
     $BZSH_output_statuscode = "2";
-    my $best_item_date_due_year = '';
+    my $best_item_date_due_year  = '';
     my $best_item_date_due_month = '';
-    my $best_item_date_due_day = '';
-    my $best_item_date_due = $itemAvailabilitySearch_BZSH->get_date_due_of_item($best_biblionumber, $best_itemnumber);
+    my $best_item_date_due_day   = '';
+    my $best_item_date_due = $itemAvailabilitySearch_BZSH->get_date_due_of_item( $best_biblionumber, $best_itemnumber );
     if ( length($best_item_date_due) >= 10 ) {
-        $best_item_date_due_year = substr($best_item_date_due,0,4);
-        $best_item_date_due_month = substr($best_item_date_due,5,2);
-        $best_item_date_due_day = substr($best_item_date_due,8,2);
-        if ( length($best_item_date_due_year) == 4 &&  length($best_item_date_due_month) == 2 && length($best_item_date_due_day) == 2 ) {
-            $BZSH_output_ruckdattext = sprintf("Datum voraussichtliche Rückgabe: %02d.%02d.%04d", $best_item_date_due_day, $best_item_date_due_month, $best_item_date_due_year);
-            $BZSH_output_ruckdatcode = sprintf("%04d%02d%02d", $best_item_date_due_year, $best_item_date_due_month, $best_item_date_due_day);
+        $best_item_date_due_year  = substr( $best_item_date_due, 0, 4 );
+        $best_item_date_due_month = substr( $best_item_date_due, 5, 2 );
+        $best_item_date_due_day   = substr( $best_item_date_due, 8, 2 );
+        if (   length($best_item_date_due_year) == 4
+            && length($best_item_date_due_month) == 2
+            && length($best_item_date_due_day) == 2 )
+        {
+            $BZSH_output_ruckdattext = sprintf(
+                "Datum voraussichtliche Rückgabe: %02d.%02d.%04d", $best_item_date_due_day,
+                $best_item_date_due_month,                         $best_item_date_due_year
+            );
+            $BZSH_output_ruckdatcode =
+                sprintf( "%04d%02d%02d", $best_item_date_due_year, $best_item_date_due_month, $best_item_date_due_day );
         }
     }
-} elsif ( $best_item_status == 4) {
+} elsif ( $best_item_status == 4 ) {
     $BZSH_output_statustext = "Status: nicht ausleihbar";
     $BZSH_output_statuscode = "4";
 }
-    
+
 # finally build the response from its components
 my $BZSH_output = sprintf(
-"<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <response>
   <info>
     <pre>
@@ -229,7 +236,8 @@ my $BZSH_output = sprintf(
   <ruckdat>%s</ruckdat>
 </response>
 ",
-    $BZSH_output_bibldata, $BZSH_output_statustext, $BZSH_output_ruckdattext?"\n          " . $BZSH_output_ruckdattext:'',
+    $BZSH_output_bibldata, $BZSH_output_statustext,
+    $BZSH_output_ruckdattext ? "\n          " . $BZSH_output_ruckdattext : '',
     $BZSH_output_permalink,
     $BZSH_output_statuscode,
     $BZSH_output_ruckdatcode

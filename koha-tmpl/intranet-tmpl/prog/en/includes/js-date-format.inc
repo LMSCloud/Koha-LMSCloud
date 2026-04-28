@@ -15,7 +15,6 @@
     dayjs.extend(window.dayjs_plugin_isSameOrBefore);
     dayjs.extend(window.dayjs_plugin_isSameOrAfter);
 </script>
-
 <!-- js-date-format.inc -->
 <script>
     (function() {

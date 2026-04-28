@@ -21,11 +21,11 @@ use Modern::Perl;
 
 use Carp;
 use Data::Dumper qw( Dumper );
-use Try::Tiny qw( catch try );
+use Try::Tiny    qw( catch try );
 
 use C4::Letters;
-use C4::Log qw( logaction );
-use C4::Stats qw( UpdateStats );
+use C4::Log      qw( logaction );
+use C4::Stats    qw( UpdateStats );
 use C4::Overdues qw(GetFine);
 use C4::CashRegisterManagement;
 use C4::Context;
@@ -78,21 +78,26 @@ sub pay {
     my $note          = $params->{note} || q{};
     my $library_id    = $params->{library_id};
     my $lines         = $params->{lines};
-    my $type          = $params->{type} || 'PAYMENT';
+    my $type          = $params->{type}         || 'PAYMENT';
     my $payment_type  = $params->{payment_type} || undef;
     my $cash_register = $params->{cash_register};
     my $item_id       = $params->{item_id};
-    
-    my $withoutCashRegisterManagement = $params->{withoutCashRegisterManagement};
+
+    my $withoutCashRegisterManagement      = $params->{withoutCashRegisterManagement};
     my $onlinePaymentCashRegisterManagerId = $params->{onlinePaymentCashRegisterManagerId} || 0;
 
     my $userenv = C4::Context->userenv;
+
     # LMSCloud: only populate library_id from userenv for CashRegister-relevant
     # payment types. Plain pay() calls without explicit library_id must keep
     # library_id undef to match upstream behavior.
-    if ( !$library_id && $userenv && $userenv->{branch}
-        && $payment_type && $payment_type =~ /^(CASH|SEPA|ONLINE|SIP)/
-        && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
+    if (  !$library_id
+        && $userenv
+        && $userenv->{branch}
+        && $payment_type
+        && $payment_type =~ /^(CASH|SEPA|ONLINE|SIP)/
+        && C4::Context->preference("ActivateCashRegisterTransactionsOnly") )
+    {
         $library_id = $userenv->{branch};
     }
 
@@ -113,7 +118,7 @@ sub pay {
         $manager_id = $onlinePaymentCashRegisterManagerId;
     }
     my $interface = $params ? ( $params->{interface} || C4::Context->interface ) : C4::Context->interface;
-    my $payment = $self->payin_amount(
+    my $payment   = $self->payin_amount(
         {
             interface     => $interface,
             type          => $type,
@@ -132,32 +137,31 @@ sub pay {
 
     # NOTE: Pay historically always applied as much credit as it could to all
     # existing outstanding debits, whether passed specific debits or otherwise.
-    if ( $payment->amountoutstanding < -0.001 || $payment->amountoutstanding > 0.001 ) {    # calculation with MariaDB: -6.40 + 0.30 + 0.30 + 3.30 + 2.50 = -8.88178419700125e-16
-        $payment =
-          $payment->apply(
-            { debits => [ $self->outstanding_debits->as_list ] } );
+    if ( $payment->amountoutstanding < -0.001 || $payment->amountoutstanding > 0.001 )
+    {    # calculation with MariaDB: -6.40 + 0.30 + 0.30 + 3.30 + 2.50 = -8.88178419700125e-16
+        $payment = $payment->apply( { debits => [ $self->outstanding_debits->as_list ] } );
     }
 
-    my $patron = Koha::Patrons->find( $self->{patron_id} );
-    my @account_offsets = $payment->credit_offsets({ type => 'APPLY' })->as_list;
+    my $patron          = Koha::Patrons->find( $self->{patron_id} );
+    my @account_offsets = $payment->credit_offsets( { type => 'APPLY' } )->as_list;
 
-    if ( C4::Context->preference('UseEmailReceipts') ) {        
+    if ( C4::Context->preference('UseEmailReceipts') ) {
         if (
             my $letter = C4::Letters::GetPreparedLetter(
                 module                 => 'circulation',
                 letter_code            => uc("ACCOUNT_$type"),
                 message_transport_type => 'email',
-                lang    => $patron->lang,
-                tables => {
-                    borrowers       => $self->{patron_id},
-                    branches        => $library_id,
+                lang                   => $patron->lang,
+                tables                 => {
+                    borrowers => $self->{patron_id},
+                    branches  => $library_id,
                 },
                 substitute => {
-                    credit => $payment,
+                    credit  => $payment,
                     offsets => \@account_offsets,
                 },
-              )
-          )
+            )
+            )
         {
             C4::Letters::EnqueueLetter(
                 {
@@ -171,7 +175,7 @@ sub pay {
     }
 
     my $renew_outcomes = [];
-    for my $message ( @{$payment->object_messages} ) {
+    for my $message ( @{ $payment->object_messages } ) {
         push @{$renew_outcomes}, $message->payload;
     }
 
@@ -216,20 +220,18 @@ sub add_credit {
     my @mandatory = ( 'interface', 'amount' );
     for my $param (@mandatory) {
         unless ( defined( $params->{$param} ) ) {
-            Koha::Exceptions::MissingParameter->throw(
-                error => "The $param parameter is mandatory" );
+            Koha::Exceptions::MissingParameter->throw( error => "The $param parameter is mandatory" );
         }
     }
 
     # amount should always be passed as a positive value
     my $amount = $params->{amount} * -1;
     unless ( $amount < 0 ) {
-        Koha::Exceptions::Account::AmountNotPositive->throw(
-            error => 'Debit amount passed is not positive' );
+        Koha::Exceptions::Account::AmountNotPositive->throw( error => 'Debit amount passed is not positive' );
     }
 
     my $description   = $params->{description} // q{};
-    my $note          = $params->{note} // q{};
+    my $note          = $params->{note}        // q{};
     my $user_id       = $params->{user_id};
     my $interface     = $params->{interface};
     my $library_id    = $params->{library_id};
@@ -240,17 +242,17 @@ sub add_credit {
     my $issue_id      = $params->{issue_id};
 
     my $old_issue_id;
-    if ( $issue_id ) {
+    if ($issue_id) {
         my $issue = Koha::Checkouts->find($issue_id);
-        unless ( $issue ) {
+        unless ($issue) {
             my $old_issue = Koha::Old::Checkouts->find($issue_id);
-            $issue_id = undef;
+            $issue_id     = undef;
             $old_issue_id = $old_issue->id;
         }
     }
 
     Koha::Exceptions::Account::RegisterRequired->throw()
-      if ( C4::Context->preference("UseCashRegisters")
+        if ( C4::Context->preference("UseCashRegisters")
         && defined($payment_type)
         && ( $payment_type eq 'CASH' || $payment_type eq 'SIP00' )
         && !defined($cash_register) );
@@ -315,7 +317,7 @@ sub add_credit {
                         action  => "add_credit",
                         payload => {
                             type => lc($credit_type),
-                            line => $line->get_from_storage, #TODO Seems unneeded
+                            line => $line->get_from_storage,    #TODO Seems unneeded
                         }
                     }
                 );
@@ -343,12 +345,10 @@ sub add_credit {
                 }
             }
         );
-    }
-    catch {
+    } catch {
         if ( ref($_) eq 'Koha::Exceptions::Object::FKConstraint' ) {
             if ( $_->broken_fk eq 'credit_type_code' ) {
-                Koha::Exceptions::Account::UnrecognisedType->throw(
-                    error => 'Type of credit not recognised' );
+                Koha::Exceptions::Account::UnrecognisedType->throw( error => 'Type of credit not recognised' );
             }
         }
         $_->rethrow;
@@ -392,34 +392,39 @@ sub payin_amount {
     my @mandatory = ( 'interface', 'amount', 'type' );
     for my $param (@mandatory) {
         unless ( defined( $params->{$param} ) ) {
-            Koha::Exceptions::MissingParameter->throw(
-                error => "The $param parameter is mandatory" );
+            Koha::Exceptions::MissingParameter->throw( error => "The $param parameter is mandatory" );
         }
     }
 
     # Check for mandatory register
     Koha::Exceptions::Account::RegisterRequired->throw()
-      if ( C4::Context->preference("UseCashRegisters")
+        if ( C4::Context->preference("UseCashRegisters")
         && defined( $params->{payment_type} )
         && ( $params->{payment_type} eq 'CASH' || $params->{payment_type} eq 'SIP00' )
-        && !defined($params->{cash_register}) );
+        && !defined( $params->{cash_register} ) );
 
     # amount should always be passed as a positive value
     my $amount = $params->{amount};
     unless ( $amount > 0 ) {
-        Koha::Exceptions::Account::AmountNotPositive->throw(
-            error => 'Payin amount passed ($amount) is not positive' );
+        Koha::Exceptions::Account::AmountNotPositive->throw( error => 'Payin amount passed ($amount) is not positive' );
     }
-    
+
     my $cash_register_mngmt = undef;
+
     # Check whether cash registers are activated and mandatory for payment actions.
     # If thats the case than we need to check whether the manager has opened a cash
     # register to use for payments.
-    if ( !$params->{noCashReg} && $params->{payment_type} && $params->{payment_type} =~ /^(CASH|SEPA|ONLINE|SIP)/ && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {
-        $cash_register_mngmt = C4::CashRegisterManagement->new($params->{library_id}, $params->{user_id});
-        
+    if (  !$params->{noCashReg}
+        && $params->{payment_type}
+        && $params->{payment_type} =~ /^(CASH|SEPA|ONLINE|SIP)/
+        && C4::Context->preference("ActivateCashRegisterTransactionsOnly")
+        && $params->{type} eq 'PAYMENT' )
+    {
+        $cash_register_mngmt = C4::CashRegisterManagement->new( $params->{library_id}, $params->{user_id} );
+
         # if there is no open cash register of the manager we return without a doing the payment
-        Koha::Exceptions::Account::RegisterRequired->throw() if (! $cash_register_mngmt->managerHasOpenCashRegister($params->{library_id}, $params->{user_id}) );
+        Koha::Exceptions::Account::RegisterRequired->throw()
+            if ( !$cash_register_mngmt->managerHasOpenCashRegister( $params->{library_id}, $params->{user_id} ) );
     }
 
     my $credit;
@@ -432,28 +437,28 @@ sub payin_amount {
 
             # Offset debts passed first
             if ( exists( $params->{debits} ) ) {
-                $credit = $credit->apply(
-                    {
-                        debits => $params->{debits}
-                    }
-                );
+                $credit = $credit->apply( { debits => $params->{debits} } );
             }
 
             # Offset against remaining balance if AutoReconcile
             if ( C4::Context->preference("AccountAutoReconcile")
                 && $credit->amountoutstanding != 0 )
             {
-                $credit = $credit->apply(
-                    {
-                        debits => [ $self->outstanding_debits->as_list ]
-                    }
-                );
+                $credit = $credit->apply( { debits => [ $self->outstanding_debits->as_list ] } );
             }
-            
+
             # If it is not SIP it is a cash payment and if cash registers are activated as too,
             # the cash payment need to registered for the opened cash register as cash receipt
-            if ( !$params->{noCashReg} && $params->{payment_type} && $params->{payment_type} =~  /^(CASH|SEPA|ONLINE|SIP)/ && C4::Context->preference("ActivateCashRegisterTransactionsOnly") && $params->{type} eq 'PAYMENT' ) {
-                $cash_register_mngmt->registerPayment($params->{library_id}, $params->{user_id}, $params->{amount}, $credit->id());
+            if (  !$params->{noCashReg}
+                && $params->{payment_type}
+                && $params->{payment_type} =~ /^(CASH|SEPA|ONLINE|SIP)/
+                && C4::Context->preference("ActivateCashRegisterTransactionsOnly")
+                && $params->{type} eq 'PAYMENT' )
+            {
+                $cash_register_mngmt->registerPayment(
+                    $params->{library_id}, $params->{user_id}, $params->{amount},
+                    $credit->id()
+                );
             }
         }
     );
@@ -506,14 +511,13 @@ sub add_debit {
     my @mandatory = ( 'interface', 'type', 'amount' );
     for my $param (@mandatory) {
         unless ( defined( $params->{$param} ) ) {
-            Koha::Exceptions::MissingParameter->throw(
-                error => "The $param parameter is mandatory" );
+            Koha::Exceptions::MissingParameter->throw( error => "The $param parameter is mandatory" );
         }
     }
 
     # check for cash register if using cash
     Koha::Exceptions::Account::RegisterRequired->throw()
-      if ( C4::Context->preference("UseCashRegisters")
+        if ( C4::Context->preference("UseCashRegisters")
         && defined( $params->{transaction_type} )
         && ( $params->{transaction_type} eq 'CASH' || $params->{payment_type} eq 'SIP00' )
         && !defined( $params->{cash_register} ) );
@@ -521,12 +525,11 @@ sub add_debit {
     # amount should always be a positive value
     my $amount = $params->{amount};
     unless ( $amount > 0 ) {
-        Koha::Exceptions::Account::AmountNotPositive->throw(
-            error => 'Debit amount passed is not positive' );
+        Koha::Exceptions::Account::AmountNotPositive->throw( error => 'Debit amount passed is not positive' );
     }
 
     my $description      = $params->{description} // q{};
-    my $note             = $params->{note} // q{};
+    my $note             = $params->{note}        // q{};
     my $user_id          = $params->{user_id};
     my $interface        = $params->{interface};
     my $library_id       = $params->{library_id};
@@ -537,15 +540,14 @@ sub add_debit {
     my $issue_id         = $params->{issue_id};
 
     my $old_issue_id;
-    if ( $issue_id ) {
+    if ($issue_id) {
         my $issue = Koha::Checkouts->find($issue_id);
-        unless ( $issue ) {
+        unless ($issue) {
             my $old_issue = Koha::Old::Checkouts->find($issue_id);
-            $issue_id = undef;
+            $issue_id     = undef;
             $old_issue_id = $old_issue->id;
         }
     }
-
 
     my $line;
     my $schema = Koha::Database->new->schema;
@@ -618,14 +620,11 @@ sub add_debit {
                 }
             }
         );
-    }
-    catch {
+    } catch {
         if ( ref($_) eq 'Koha::Exceptions::Object::FKConstraint' ) {
             if ( $_->broken_fk eq 'debit_type_code' ) {
-                Koha::Exceptions::Account::UnrecognisedType->throw(
-                    error => 'Type of debit not recognised' );
-            }
-            else {
+                Koha::Exceptions::Account::UnrecognisedType->throw( error => 'Type of debit not recognised' );
+            } else {
                 $_->rethrow;
             }
         }
@@ -656,51 +655,53 @@ sub payout_amount {
     my ( $self, $params ) = @_;
 
     # Check for mandatory parameters
-    my @mandatory =
-      ( 'interface', 'staff_id', 'branch', 'payout_type', 'amount' );
+    my @mandatory = ( 'interface', 'staff_id', 'branch', 'payout_type', 'amount' );
     for my $param (@mandatory) {
         unless ( defined( $params->{$param} ) ) {
-            Koha::Exceptions::MissingParameter->throw(
-                error => "The $param parameter is mandatory" );
+            Koha::Exceptions::MissingParameter->throw( error => "The $param parameter is mandatory" );
         }
     }
 
     # Check for mandatory register
     Koha::Exceptions::Account::RegisterRequired->throw()
-      if ( C4::Context->preference("UseCashRegisters")
+        if ( C4::Context->preference("UseCashRegisters")
         && ( $params->{payout_type} eq 'CASH' || $params->{payout_type} eq 'SIP00' )
-        && !defined($params->{cash_register}) );
+        && !defined( $params->{cash_register} ) );
 
     # Amount should always be passed as a positive value
     my $amount = $params->{amount};
     unless ( $amount > 0 ) {
-        Koha::Exceptions::Account::AmountNotPositive->throw(
-            error => 'Payout amount passed is not positive' );
+        Koha::Exceptions::Account::AmountNotPositive->throw( error => 'Payout amount passed is not positive' );
     }
 
     # Amount should always be less than or equal to outstanding credit
     my $outstanding = 0;
     my $outstanding_credits =
-      exists( $params->{credits} )
-      ? $params->{credits}
-      : $self->outstanding_credits->as_list;
+        exists( $params->{credits} )
+        ? $params->{credits}
+        : $self->outstanding_credits->as_list;
     for my $credit ( @{$outstanding_credits} ) {
         $outstanding += $credit->amountoutstanding;
     }
     $outstanding = $outstanding * -1;
-    Koha::Exceptions::ParameterTooHigh->throw( error =>
-"Amount to payout ($amount) is higher than amountoutstanding ($outstanding)"
-    ) unless ( $outstanding >= $amount );
-    
+    Koha::Exceptions::ParameterTooHigh->throw(
+        error => "Amount to payout ($amount) is higher than amountoutstanding ($outstanding)" )
+        unless ( $outstanding >= $amount );
+
     my $cash_register_mngmt = undef;
+
     # Check whether cash registers are activated and mandatory for payment actions.
     # If thats the case than we need to check whether the manager has opened a cash
     # register to use for payments.
-    if ( !$params->{noCashReg} && $params->{payout_type} =~ /^(CASH|SEPA|ONLINE|SIP)/ && C4::Context->preference("ActivateCashRegisterTransactionsOnly") ) {
-        $cash_register_mngmt = C4::CashRegisterManagement->new($params->{branch}, $params->{staff_id});
-        
+    if (  !$params->{noCashReg}
+        && $params->{payout_type} =~ /^(CASH|SEPA|ONLINE|SIP)/
+        && C4::Context->preference("ActivateCashRegisterTransactionsOnly") )
+    {
+        $cash_register_mngmt = C4::CashRegisterManagement->new( $params->{branch}, $params->{staff_id} );
+
         # if there is no open cash register of the manager we return without a doing the payment
-        Koha::Exceptions::Account::RegisterRequired->throw() if (! $cash_register_mngmt->managerHasOpenCashRegister($params->{branch}, $params->{staff_id}) );
+        Koha::Exceptions::Account::RegisterRequired->throw()
+            if ( !$cash_register_mngmt->managerHasOpenCashRegister( $params->{branch}, $params->{staff_id} ) );
     }
 
     my $payout;
@@ -731,13 +732,16 @@ sub payout_amount {
 
             # Set payout as paid
             $payout->status('PAID')->store;
-            
+
             # print STDERR "Payíng out credit ",$params->{amount}, " cash_register_mngmt is $cash_register_mngmt\n";
-            
+
             # If it is not SIP it is a cash payment and if cash registers are activated as too,
             # the cash payment need to registered for the opened cash register as cash receipt
-            if ( $cash_register_mngmt ) {    
-                $cash_register_mngmt->registerCreditPayout($params->{branch}, $params->{staff_id}, $params->{amount}, $payout->id);
+            if ($cash_register_mngmt) {
+                $cash_register_mngmt->registerCreditPayout(
+                    $params->{branch}, $params->{staff_id}, $params->{amount},
+                    $payout->id
+                );
             }
         }
     );
@@ -809,12 +813,11 @@ Charges can be set as exempt from non-issue by editing the debit type in the Deb
 sub non_issues_charges {
     my ($self) = @_;
 
-    my @blocking_debit_types = Koha::Account::DebitTypes->search({ restricts_checkouts => 1 }, { columns => 'code' })->get_column('code');
+    my @blocking_debit_types =
+        Koha::Account::DebitTypes->search( { restricts_checkouts => 1 }, { columns => 'code' } )->get_column('code');
 
     return $self->lines->search(
-        {
-            debit_type_code => { -in => \@blocking_debit_types }
-        },
+        { debit_type_code => { -in => \@blocking_debit_types } },
     )->total_outstanding;
 }
 
@@ -835,7 +838,6 @@ sub lines {
     );
 }
 
-
 =head3 credits
 
   my $credits = $self->credits;
@@ -847,11 +849,7 @@ Return all credits for the user
 sub credits {
     my ($self) = @_;
 
-    return Koha::Account::Credits->search(
-        {
-            borrowernumber => $self->{patron_id}
-        }
-    );
+    return Koha::Account::Credits->search( { borrowernumber => $self->{patron_id} } );
 }
 
 =head3 debits
@@ -867,7 +865,7 @@ sub debits {
 
     return Koha::Account::Debits->search(
         {
-            borrowernumber   => $self->{patron_id},
+            borrowernumber => $self->{patron_id},
         }
     );
 }
@@ -887,8 +885,8 @@ sub reconcile_balance {
     my $outstanding_debits  = $self->outstanding_debits;
     my $outstanding_credits = $self->outstanding_credits;
 
-    while (     $outstanding_debits->total_outstanding > 0
-            and my $credit = $outstanding_credits->next )
+    while ( $outstanding_debits->total_outstanding > 0
+        and my $credit = $outstanding_credits->next )
     {
         # there's both outstanding debits and credits
         $credit->apply( { debits => [ $outstanding_debits->as_list ] } );    # applying credit, no special offset

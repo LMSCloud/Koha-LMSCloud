@@ -1,78 +1,78 @@
 <template>
-    <fieldset class="step-block">
-        <legend class="step-header">
-            {{ stepNumber }}.
-            {{ $__("Select Patron") }}
-        </legend>
-        <PatronSearchSelect
-            v-model="selectedPatron"
-            :label="
-                $__('Patron')
-            "
-            :placeholder="
-                $__('Search for a patron')
-            "
-            :set-error="setError"
-        >
-            <template #no-options="{ hasSearched }">
-                {{ hasSearched ? $__("No patrons found.") : $__("Type to search for patrons.") }}
-            </template>
-            <template #spinner>
-                <span class="sr-only">{{ $__("Searching...") }}</span>
-            </template>
-        </PatronSearchSelect>
-    </fieldset>
+  <fieldset class="step-block">
+    <legend class="step-header">
+      {{ stepNumber }}.
+      {{ $__("Select Patron") }}
+    </legend>
+    <PatronSearchSelect
+      v-model="selectedPatron"
+      :label="$__('Patron')"
+      :placeholder="$__('Search for a patron')"
+      :set-error="setError"
+    >
+      <template #no-options="{ hasSearched }">
+        {{
+          hasSearched
+            ? $__("No patrons found.")
+            : $__("Type to search for patrons.")
+        }}
+      </template>
+      <template #spinner>
+        <span class="sr-only">{{ $__("Searching...") }}</span>
+      </template>
+    </PatronSearchSelect>
+  </fieldset>
 </template>
 
 <script>
-import { computed } from "vue";
-import PatronSearchSelect from "./PatronSearchSelect.vue";
-import { $__ } from "../../i18n";
+import { computed } from "vue"
+import PatronSearchSelect from "./PatronSearchSelect.vue"
+import { $__ } from "../../i18n"
 
 export default {
-    name: "BookingPatronStep",
-    components: {
-        PatronSearchSelect,
+  name: "BookingPatronStep",
+  components: {
+    PatronSearchSelect,
+  },
+  props: {
+    stepNumber: {
+      type: Number,
+      required: true,
     },
-    props: {
-        stepNumber: {
-            type: Number,
-            required: true,
-        },
-        modelValue: {
-            type: Object,
-            default: null,
-        },
-        setError: {
-            type: Function,
-            default: null,
-        },
+    modelValue: {
+      type: Object,
+      default: null,
     },
-    emits: ["update:modelValue"],
-    setup(props, { emit }) {
-        const selectedPatron = computed({
-            get: () => props.modelValue,
-            set: (value) => {
-                emit("update:modelValue", value);
-            },
-        });
+    setError: {
+      type: Function,
+      default: null,
+    },
+  },
+  emits: ["update:modelValue"],
+  setup(props, { emit }) {
+    const selectedPatron = computed({
+      get: () => props.modelValue,
+      set: value => {
+        emit("update:modelValue", value)
+      },
+    })
 
-        return {
-            selectedPatron,
-        };
-    },
-};
+    return {
+      selectedPatron,
+    }
+  },
+}
 </script>
 
 <style scoped>
 .step-block {
-    margin-bottom: var(--booking-space-lg);
+  margin-bottom: var(--booking-space-lg);
 }
 
 .step-header {
-    font-weight: 600;
-    font-size: var(--booking-text-lg);
-    margin-bottom: calc(var(--booking-space-lg) * 0.75);
-    color: var(--booking-neutral-600);
+  font-weight: 600;
+  font-size: var(--booking-text-lg);
+  margin-bottom: calc(var(--booking-space-lg) * 0.75);
+  color: var(--booking-neutral-600);
 }
 </style>

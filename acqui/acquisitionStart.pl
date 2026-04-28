@@ -20,7 +20,7 @@
 use Modern::Perl;
 
 use C4::Auth qw(get_template_and_user);
-use CGI qw ( -utf8 );
+use CGI      qw ( -utf8 );
 use C4::Context;
 use C4::Koha;
 use C4::Output qw(output_html_with_http_headers);
@@ -70,8 +70,9 @@ my $filters = {
 };
 
 my $from_placed_on = eval { dt_from_string( scalar $input->param('from') ) } || dt_from_string;
-my $to_placed_on   = eval { dt_from_string( scalar $input->param('to')   ) } || dt_from_string;
+my $to_placed_on   = eval { dt_from_string( scalar $input->param('to') ) }   || dt_from_string;
 unless ( $input->param('from') ) {
+
     # Fill the form with year-1
     $from_placed_on->set_time_zone('floating')->subtract( years => 1 );
 }
@@ -79,18 +80,18 @@ $filters->{from_placed_on} = $from_placed_on;
 $filters->{to_placed_on}   = $to_placed_on;
 
 my $budgetperiods = C4::Budgets::GetBudgetPeriods;
-my $bp_loop = $budgetperiods;
+my $bp_loop       = $budgetperiods;
 for my $bp ( @{$budgetperiods} ) {
     my $hierarchy = C4::Budgets::GetBudgetHierarchy( $$bp{budget_period_id}, undef, undef, 1 );
     for my $budget ( @{$hierarchy} ) {
-        $$budget{budget_display_name} = sprintf("%s", ">" x $$budget{depth} . $$budget{budget_name});
+        $$budget{budget_display_name} = sprintf( "%s", ">" x $$budget{depth} . $$budget{budget_name} );
     }
     $$bp{hierarchy} = $hierarchy;
 }
 
 $template->param(
-    filters     => $filters,
-    bp_loop     => $bp_loop,
+    filters => $filters,
+    bp_loop => $bp_loop,
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

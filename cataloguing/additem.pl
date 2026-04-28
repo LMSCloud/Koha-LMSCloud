@@ -642,12 +642,13 @@ if ( $op eq "cud-additem" ) {
         if ( $newitemlost && $newitemlost ge '1' && !$olditemlost ) {
             LostItem( $item->itemnumber, 'additem' );
         }
+
         # if $newitemlost != 0 and it is an ILL item then update also the ILL backend status
         if ( $newitemlost && !$olditemlost ) {
             if ( C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
                 my ( $itisanillitem, $illrequest ) = ( 0, undef );
                 eval {
-                    ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item->unblessed);
+                    ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem( $item->unblessed );
                     if ( $itisanillitem && $illrequest ) {
                         $illrequest->_backend_capability( "itemLost", $illrequest );
                     }

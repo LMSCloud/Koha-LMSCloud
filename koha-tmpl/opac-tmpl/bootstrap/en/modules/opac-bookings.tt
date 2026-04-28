@@ -12,13 +12,15 @@
 [% SET OpacMySummaryNote = AdditionalContents.get( location => "OpacMySummaryNote", lang => lang, library => branchcode ) %]
 
 [% SET borrower_club_enrollments = logged_in_user.get_club_enrollments %]
-[% SET borrower_enrollable_clubs = logged_in_user.get_enrollable_clubs(1) %] <!-- 1 => OPAC -->
+[% SET borrower_enrollable_clubs = logged_in_user.get_enrollable_clubs(1) %]
+<!-- 1 => OPAC -->
 
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Your library home &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% Asset.css("css/overdrive.css") | $raw %]
-[% BLOCK cssinclude %][% END %]
+[% BLOCK cssinclude %]
+[% END %]
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='opac-user' bodyclass='scrollto' %]
 [% INCLUDE 'masthead.inc' %]
@@ -36,14 +38,13 @@
                 <a href="#" aria-current="page">Your Bookings</a>
             </li>
         </ol>
-    </nav> <!-- /#breadcrumbs -->
+    </nav>
+    <!-- /#breadcrumbs -->
 
     <div class="container-fluid">
         <div class="row">
             <div class="col col-lg-2 order-2 order-lg-1">
-                <div id="navigation">
-                    [% INCLUDE 'navigation.inc' IsPatronPage=1 %]
-                </div>
+                <div id="navigation"> [% INCLUDE 'navigation.inc' IsPatronPage=1 %] </div>
             </div>
             <div class="col-md-12 col-lg-10 order-1 order-lg-2">
                 <div id="userbookings" class="maincontent">
@@ -56,17 +57,23 @@
                                     <a class="nav-link active" id="your-bookings" href="/cgi-bin/koha/opac-bookings.pl?op=list">Your bookings</a>
                                 </li>
                             </ul>
-                        </div> <!-- /.toptabs -->
+                        </div>
+                        <!-- /.toptabs -->
                         <div class="tab-content">
                             [% PROCESS 'bookings-table.inc' %]
                             [% INCLUDE 'modals/booking/cancel.inc' %]
                         </div>
                     [% END %]
-                </div> <!-- /#userdetails -->
-            </div> <!-- /.col-10 -->
-        </div> <!-- /.row -->
-    </div> <!-- /.container-fluid -->
-</div> <!-- /#main -->
+                </div>
+                <!-- /#userdetails -->
+            </div>
+            <!-- /.col-10 -->
+        </div>
+        <!-- /.row -->
+    </div>
+    <!-- /.container-fluid -->
+</div>
+<!-- /#main -->
 
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
@@ -76,13 +83,12 @@
     [% Asset.js("js/modals/booking/cancel.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
     [% INCLUDE 'datatables.inc' %]
-
     <script>
         $(document).ready(() => {
             const dataTable = $("#opac-user-bookings-table");
             const defaultOrder = [
-                [3, 'asc'],
-                [4, 'asc']
+                [3, "asc"],
+                [4, "asc"],
             ];
 
             const parseDateAttribute = value => {
@@ -91,14 +97,14 @@
                 }
 
                 const trimmed = value.trim();
-                const normalized = trimmed.includes('T') ? trimmed : trimmed.replace(' ', 'T');
+                const normalized = trimmed.includes("T") ? trimmed : trimmed.replace(" ", "T");
                 const parsed = new Date(normalized);
 
                 if (!isNaN(parsed.getTime())) {
                     return parsed;
                 }
 
-                const fallback = new Date(trimmed.split(' ')[0]);
+                const fallback = new Date(trimmed.split(" ")[0]);
                 return isNaN(fallback.getTime()) ? null : fallback;
             };
 
@@ -112,33 +118,29 @@
                     return null;
                 }
 
-                return new Date(
-                    dateObject.getFullYear(),
-                    dateObject.getMonth(),
-                    dateObject.getDate()
-                );
+                return new Date(dateObject.getFullYear(), dateObject.getMonth(), dateObject.getDate());
             };
 
             const statusLabelMap = {
                 active: _("Active"),
                 pending: _("Pending"),
                 expired: _("Expired"),
-                new: _("New")
+                new: _("New"),
             };
 
             const statusBadgeClassMap = {
-                active: 'text-bg-primary',
-                pending: 'text-bg-warning',
-                expired: 'text-bg-secondary',
-                new: 'text-bg-info'
+                active: "text-bg-primary",
+                pending: "text-bg-warning",
+                expired: "text-bg-secondary",
+                new: "text-bg-info",
             };
 
             const deriveStatus = (rawStatus, startAttr, endAttr) => {
                 if (!rawStatus) {
-                    return 'unknown';
+                    return "unknown";
                 }
 
-                if (rawStatus !== 'new') {
+                if (rawStatus !== "new") {
                     return rawStatus;
                 }
 
@@ -147,186 +149,195 @@
                 const endDate = normalizeToDateOnly(endAttr);
 
                 if (endDate && today && endDate < today) {
-                    return 'expired';
+                    return "expired";
                 }
 
                 if (startDate && today && startDate > today) {
-                    return 'pending';
+                    return "pending";
                 }
 
                 if (startDate && today) {
                     if (!endDate || endDate >= today) {
-                        return 'active';
+                        return "active";
                     }
                 }
 
                 if (!startDate && endDate && today) {
-                    return endDate < today ? 'expired' : 'active';
+                    return endDate < today ? "expired" : "active";
                 }
 
-                return 'new';
+                return "new";
             };
 
             const updateRowStatus = $row => {
-                const statusCell = $row.find('td.status');
+                const statusCell = $row.find("td.status");
                 if (!statusCell.length) {
-                    return 'unknown';
+                    return "unknown";
                 }
 
-                const rawStatus = statusCell.attr('data-raw-status') || statusCell.attr('data-status') || '';
-                if (rawStatus !== 'new') {
-                    statusCell.attr('data-status', rawStatus || 'unknown');
-                    return rawStatus || 'unknown';
+                const rawStatus = statusCell.attr("data-raw-status") || statusCell.attr("data-status") || "";
+                if (rawStatus !== "new") {
+                    statusCell.attr("data-status", rawStatus || "unknown");
+                    return rawStatus || "unknown";
                 }
 
-                const startAttr = $row.find('td.start-date').attr('data-start-date');
-                const endAttr = $row.find('td.end-date').attr('data-end-date');
+                const startAttr = $row.find("td.start-date").attr("data-start-date");
+                const endAttr = $row.find("td.end-date").attr("data-end-date");
                 const derivedStatus = deriveStatus(rawStatus, startAttr, endAttr);
 
-                statusCell.attr('data-status', derivedStatus);
+                statusCell.attr("data-status", derivedStatus);
 
-                const badge = statusCell.find('.badge').first();
+                const badge = statusCell.find(".badge").first();
                 if (badge.length) {
                     const label = statusLabelMap[derivedStatus] || statusLabelMap.new;
                     const badgeClass = statusBadgeClassMap[derivedStatus] || statusBadgeClassMap.new;
 
-                    badge
-                        .removeClass('text-bg-primary text-bg-secondary text-bg-success text-bg-info text-bg-warning text-bg-danger')
-                        .addClass(badgeClass)
-                        .text(label);
+                    badge.removeClass("text-bg-primary text-bg-secondary text-bg-success text-bg-info text-bg-warning text-bg-danger").addClass(badgeClass).text(label);
                 }
 
                 return derivedStatus;
             };
 
             /* Custom search function for status column using data attributes */
-            $.fn.dataTable.ext.search.push(
-                function(settings, searchData, index, rowData, counter) {
-                    if (settings.nTable.id !== 'opac-user-bookings-table') {
-                        return true;
-                    }
-
-                    const filterValue = $('#status_filter').val() || 'active';
-                    if (filterValue === 'all') {
-                        return true; /* Show all */
-                    }
-
-                    const row = settings.aoData[index].nTr;
-                    const $row = $(row);
-                    const derivedStatus = updateRowStatus($row);
-                    if (filterValue === 'active') {
-                        return derivedStatus === 'active' || derivedStatus === 'pending';
-                    }
-                    return derivedStatus === filterValue;
+            $.fn.dataTable.ext.search.push(function (settings, searchData, index, rowData, counter) {
+                if (settings.nTable.id !== "opac-user-bookings-table") {
+                    return true;
                 }
-            );
 
-            const table = $(dataTable)
-                .dataTable($.extend(true, {}, dataTablesDefaults, {
-                    "sorting": defaultOrder,
-                    "order": defaultOrder,
-                    "dom": '<"top"<"table_entries"><"table_controls"fB<"status_filter_container">>>t<"bottom"ip>',
-                    "paging": true,
-                    "pageLength": 20,
-                    "columnDefs": [{
-                            "targets": ["nosort"],
-                            "sortable": false,
-                            "searchable": false
+                const filterValue = $("#status_filter").val() || "active";
+                if (filterValue === "all") {
+                    return true; /* Show all */
+                }
+
+                const row = settings.aoData[index].nTr;
+                const $row = $(row);
+                const derivedStatus = updateRowStatus($row);
+                if (filterValue === "active") {
+                    return derivedStatus === "active" || derivedStatus === "pending";
+                }
+                return derivedStatus === filterValue;
+            });
+
+            const table = $(dataTable).dataTable(
+                $.extend(true, {}, dataTablesDefaults, {
+                    sorting: defaultOrder,
+                    order: defaultOrder,
+                    dom: '<"top"<"table_entries"><"table_controls"fB<"status_filter_container">>>t<"bottom"ip>',
+                    paging: true,
+                    pageLength: 20,
+                    columnDefs: [
+                        {
+                            targets: ["nosort"],
+                            sortable: false,
+                            searchable: false,
                         },
                         {
-                            "type": "anti-the",
-                            "targets": ["anti-the"]
+                            type: "anti-the",
+                            targets: ["anti-the"],
                         },
                         {
-                            "visible": false,
-                            "targets": ["hidden"]
+                            visible: false,
+                            targets: ["hidden"],
                         },
                         {
-                            "className": 'dtr-control',
-                            "orderable": false,
-                            "targets": -1
-                        }
+                            className: "dtr-control",
+                            orderable: false,
+                            targets: -1,
+                        },
                     ],
-                    "language": {
-                        "search": "_INPUT_",
-                        "searchPlaceholder": _("Search")
+                    language: {
+                        search: "_INPUT_",
+                        searchPlaceholder: _("Search"),
                     },
-                    "autoWidth": false,
-                    "responsive": {
+                    autoWidth: false,
+                    responsive: {
                         details: {
-                            type: 'column',
-                            target: -1
-                        }
+                            type: "column",
+                            target: -1,
+                        },
                     },
                     buttons: [
                         /* Override default button set so that we can extend the options of print and csv */
-                        'clearFilter', 'copy',
+                        "clearFilter",
+                        "copy",
                         {
                             extend: "print",
                             exportOptions: {
                                 /* Print view should show all columns (even invisible ones) unless they are .noExport */
-                                columns: ":not(.noExport)"
-                            }
+                                columns: ":not(.noExport)",
+                            },
                         },
                         {
                             extend: "csv",
                             exportOptions: {
                                 /* CSV export should include all columns (even invisible ones) unless they are .noExport */
-                                columns: ":not(.noExport)"
-                            }
-                        }
+                                columns: ":not(.noExport)",
+                            },
+                        },
                     ],
-                    "initComplete": function(settings, json) {
+                    initComplete: function (settings, json) {
                         const api = this.api();
 
                         /* Add status filter dropdown to controls area */
-                        const statusSelect = $('<select id="status_filter" class="form-control" style="width: auto; display: inline-block; margin-left: 10px;">' +
-                            '<option value="active" selected>' + _("Active and pending") + '</option>' +
-                            '<option value="expired">' + _("Expired") + '</option>' +
-                            '<option value="cancelled">' + _("Cancelled") + '</option>' +
-                            '<option value="completed">' + _("Completed") + '</option>' +
-                            '<option value="all">' + _("All bookings") + '</option>' +
-                            '</select>');
+                        const statusSelect = $(
+                            '<select id="status_filter" class="form-control" style="width: auto; display: inline-block; margin-left: 10px;">' +
+                                '<option value="active" selected>' +
+                                _("Active and pending") +
+                                "</option>" +
+                                '<option value="expired">' +
+                                _("Expired") +
+                                "</option>" +
+                                '<option value="cancelled">' +
+                                _("Cancelled") +
+                                "</option>" +
+                                '<option value="completed">' +
+                                _("Completed") +
+                                "</option>" +
+                                '<option value="all">' +
+                                _("All bookings") +
+                                "</option>" +
+                                "</select>"
+                        );
 
-                        $('.status_filter_container').append(statusSelect);
+                        $(".status_filter_container").append(statusSelect);
 
                         /* Apply filter on change */
-                        statusSelect.on('change', function() {
+                        statusSelect.on("change", function () {
                             api.draw();
                         });
 
                         /* Apply default filter */
                         api.draw();
                     },
-                    "drawCallback": function() {
+                    drawCallback: function () {
                         const apiTable = $(this).DataTable();
-                        apiTable.rows({ page: 'current' }).every(function() {
+                        apiTable.rows({ page: "current" }).every(function () {
                             updateRowStatus($(this.node()));
                         });
 
                         /* Apply Bootstrap pagination classes */
-                        $(this).closest('.dataTables_wrapper').find('.dataTables_paginate').addClass('pagination');
-                        $('.paginate_button').each(function() {
-                            $(this).addClass('page-link');
-                            if (!$(this).parent().hasClass('page-item')) {
+                        $(this).closest(".dataTables_wrapper").find(".dataTables_paginate").addClass("pagination");
+                        $(".paginate_button").each(function () {
+                            $(this).addClass("page-link");
+                            if (!$(this).parent().hasClass("page-item")) {
                                 $(this).wrap('<li class="page-item"></li>');
                             }
-                            if ($(this).hasClass('current')) {
-                                $(this).parent().addClass('active');
+                            if ($(this).hasClass("current")) {
+                                $(this).parent().addClass("active");
                             }
-                            if ($(this).hasClass('disabled')) {
-                                $(this).parent().addClass('disabled');
+                            if ($(this).hasClass("disabled")) {
+                                $(this).parent().addClass("disabled");
                             }
                         });
-                    }
-                }));
+                    },
+                })
+            );
 
             // Initialize combobox for cancellation reason
             $("#cancellation-reason").comboBox({
-                displayProperty: 'name',
+                displayProperty: "name",
                 placeholder: _("Select or type a reason"),
             });
         });
     </script>
-
 [% END %]

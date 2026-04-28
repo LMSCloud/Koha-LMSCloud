@@ -52,14 +52,12 @@ sub get {
     my @biblio_ids = flat(@params);
 
     try {
-        my $coverflow_data
-            = C4::CoverFlowData::GetCoverFlowDataByBiblionumber(@biblio_ids);
+        my $coverflow_data = C4::CoverFlowData::GetCoverFlowDataByBiblionumber(@biblio_ids);
 
         if ( !$coverflow_data ) {
             return $c->render(
                 status  => 404,
-                openapi =>
-                    { error => 'No item(s) with specified biblionumber(s)' },
+                openapi => { error => 'No item(s) with specified biblionumber(s)' },
             );
         }
 
@@ -70,8 +68,7 @@ sub get {
         $coverflow_data->{'items'} = \@item_hashes;
 
         return $c->render( status => 200, openapi => $coverflow_data );
-    }
-    catch {
+    } catch {
         $c->unhandled_exception($_);
     };
 

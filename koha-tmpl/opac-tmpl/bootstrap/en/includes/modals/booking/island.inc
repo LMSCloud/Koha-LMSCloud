@@ -11,7 +11,8 @@
         submit-type="form-submission"
         submit-url="/cgi-bin/koha/opac-bookings.pl"
         show-additional-fields
-        date-range-constraint="[% (Koha.Preference('OPACBookingDateRangeConstraint') || 'issuelength_with_renewals') | html %]" [%# FIXME: issuelength_with_renewals needs to be the db default, don't constrain needs a value %]
+        date-range-constraint="[% (Koha.Preference('OPACBookingDateRangeConstraint') || 'issuelength_with_renewals') | html %]"
+        [%# FIXME: issuelength_with_renewals needs to be the db default, don't constrain needs a value %]
         opac-default-booking-library-enabled="[% Koha.Preference('OPACBookingDefaultLibraryEnabled') | html %]"
         opac-default-booking-library="[% Koha.Preference('OPACBookingDefaultLibrary') | html %]"
     ></booking-modal-island>

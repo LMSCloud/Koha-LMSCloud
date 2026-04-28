@@ -43,9 +43,9 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 BEGIN {
     require Exporter;
-    $VERSION = 3.07.00.049;
-    @ISA = qw(Exporter);
-    @EXPORT = qw();
+    $VERSION   = 3.07.00.049;
+    @ISA       = qw(Exporter);
+    @EXPORT    = qw();
     @EXPORT_OK = qw();
 }
 
@@ -82,53 +82,53 @@ sub new {
 
     my $self = {};
     bless $self, $class;
-    
-    $self->{'traceEnabled'} = 0;
-    $self->{'traceEnabled'} = 1 if (C4::Context->preference('FilmfriendTraceEnabled'));
 
-    $self->{'customerID'}   = C4::Context->preference('FilmfriendCustomerID');
-    $self->{'providerID'}   = C4::Context->preference('FilmfriendProviderID');
-    
-    $self->{'filmFriendBaseURL'}         = 'https://api.tenant.frontend.vod.filmwerte.de/v11';
-    
+    $self->{'traceEnabled'} = 0;
+    $self->{'traceEnabled'} = 1 if ( C4::Context->preference('FilmfriendTraceEnabled') );
+
+    $self->{'customerID'} = C4::Context->preference('FilmfriendCustomerID');
+    $self->{'providerID'} = C4::Context->preference('FilmfriendProviderID');
+
+    $self->{'filmFriendBaseURL'} = 'https://api.tenant.frontend.vod.filmwerte.de/v11';
+
     $self->{'filmFriendTenantGroupIdDE'} = 'fba2f8b5-6a3a-4da3-b555-21613a88d3ef';
     $self->{'filmFriendTenantGroupIdCH'} = 'b9b657d4-48c4-4827-a257-d1b0b44a278a';
     $self->{'filmFriendTenantGroupIdAT'} = '8bd3757f-bb3f-4ffe-9543-3424497ef47d';
-    
+
     $self->{'baseURL'} = 'https://filmfriend.de/de/';
 
     my $file = '/etc/koha/filmfriend.pem';
     if ( -e $file && -f $file ) {
-        open(my $fh, '<:encoding(UTF-8)', $file) or carp "Could not open filmfriend private key file '$file' $!";
+        open( my $fh, '<:encoding(UTF-8)', $file ) or carp "Could not open filmfriend private key file '$file' $!";
         local $/;
         $self->{'privateKey'} = <$fh>;
         close $fh;
     }
-    
+
     my $language = C4::Languages::getlanguage();
     if ( $language =~ /^(de|fr|es|en)/ ) {
         $language = $1;
     } else {
         $language = "en";
     }
-                
+
     my $instanceURL = C4::Context->preference('FilmfriendCustomerURL');
-    if ( $instanceURL ) {
+    if ($instanceURL) {
         $instanceURL =~ s/^\s+//;
         $instanceURL =~ s/\s+$//;
-        if ( $instanceURL ) {
+        if ($instanceURL) {
             $instanceURL = "https://" . $instanceURL if ( $instanceURL !~ /\/\// );
-            my($scheme, $authority, $path, $query, $fragment) =
+            my ( $scheme, $authority, $path, $query, $fragment ) =
                 $instanceURL =~ m|(?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*)(?:\?([^#]*))?(?:#(.*))?|;
-            $scheme = "https" if (! $scheme );
-            $authority = "filmfriend.de" if (! $authority );
+            $scheme      = "https"         if ( !$scheme );
+            $authority   = "filmfriend.de" if ( !$authority );
             $instanceURL = "${scheme}://${authority}${path}";
             $instanceURL .= "/" if ( $instanceURL !~ /\/$/ );
             print "$instanceURL\n";
         }
     }
-    $self->{'baseURL'} = $instanceURL if ( $instanceURL );
-    
+    $self->{'baseURL'} = $instanceURL if ($instanceURL);
+
     $self->{'Link'}->{'Video'}      = $self->{'baseURL'} . 'movies/';
     $self->{'Link'}->{'Movie'}      = $self->{'baseURL'} . 'movies/';
     $self->{'Link'}->{'Person'}     = $self->{'baseURL'} . 'persons/';
@@ -136,51 +136,50 @@ sub new {
     $self->{'Link'}->{'Series'}     = $self->{'baseURL'} . 'series/';
     $self->{'Link'}->{'Season'}     = $self->{'baseURL'} . 'seasons/';
     $self->{'Link'}->{'Episode'}    = $self->{'baseURL'} . 'episodes/';
-    
-    $self->{'languages'} = ['german','english','frenchTitle','italian','spanish'];
-    
-    $self->{'IMDbLink'} = 'https://www.imdb.com/title/';
+
+    $self->{'languages'} = [ 'german', 'english', 'frenchTitle', 'italian', 'spanish' ];
+
+    $self->{'IMDbLink'}          = 'https://www.imdb.com/title/';
     $self->{'MovieDatabaseLink'} = 'https://www.themoviedb.org/movie/';
-    $self->{'FilmPortalLink'} = 'https://www.filmportal.de/film/';
-    
-    
+    $self->{'FilmPortalLink'}    = 'https://www.filmportal.de/film/';
+
     if ( $self->{'customerID'} ) {
-        $self->{'filmFriendSearchURL'} = $self->{'filmFriendBaseURL'}
-                                         . '/' 
-                                         . $self->{'customerID'}
-                                         . '/search?';
+        $self->{'filmFriendSearchURL'} = $self->{'filmFriendBaseURL'} . '/' . $self->{'customerID'} . '/search?';
     } else {
-        my $lang = C4::Languages::getlanguage();
+        my $lang        = C4::Languages::getlanguage();
         my $tenantGroup = C4::Context->preference('FilmfriendTenantGroup');
-        
+
         $self->{'language'} = 'de-DE';
-        
+
         if ( !$tenantGroup && $lang ) {
-            $tenantGroup = 'CH' if ( $lang eq 'de-CH' );
-            $tenantGroup = 'AT' if ( $lang eq 'de-AT' );
-            $tenantGroup = 'DE' if ( $lang eq 'de-DE' );
+            $tenantGroup        = 'CH' if ( $lang eq 'de-CH' );
+            $tenantGroup        = 'AT' if ( $lang eq 'de-AT' );
+            $tenantGroup        = 'DE' if ( $lang eq 'de-DE' );
             $self->{'language'} = $lang;
         }
-        $tenantGroup = 'DE' if (! $tenantGroup );
-        
-        $self->{'filmFriendSearchURL'} = $self->{'filmFriendBaseURL'}
-                                         . '/tenant-groups/' 
-                                         . $self->{'filmFriendTenantGroupId' . $tenantGroup}
-                                         . '/search?';
+        $tenantGroup = 'DE' if ( !$tenantGroup );
+
+        $self->{'filmFriendSearchURL'} =
+              $self->{'filmFriendBaseURL'}
+            . '/tenant-groups/'
+            . $self->{ 'filmFriendTenantGroupId' . $tenantGroup }
+            . '/search?';
     }
-    
+
     my @header = ( 'Accept' => 'application/json', 'Accept-Language' => "$language" );
-    
+
     $self->{'requestHeader'} = \@header;
-    $self->{'scrubber'} = C4::Scrubber->new();
-    
-    $self->{'useFields'}->{Video} = [ qw{ id filmfriendLink filmportalId title colorTechnology country genre category actors audio subtitle duration regie releaseYear originalTitle thumbnail thumbnails cover synopsis isActive runtime genres aspectRatio production fsk kind categories IMDbLinkLink FilmPortalLink MovieDatabaseLink furtherTitles description} ];
+    $self->{'scrubber'}      = C4::Scrubber->new();
+
+    $self->{'useFields'}->{Video} = [
+        qw{ id filmfriendLink filmportalId title colorTechnology country genre category actors audio subtitle duration regie releaseYear originalTitle thumbnail thumbnails cover synopsis isActive runtime genres aspectRatio production fsk kind categories IMDbLinkLink FilmPortalLink MovieDatabaseLink furtherTitles description}
+    ];
     $self->{'useFields'}->{Movie} = $self->{'useFields'}->{Video};
-    
+
     my $ua = LWP::UserAgent->new;
     $ua->timeout(3);
     $ua->env_proxy;
-    
+
     $self->{'ua'} = $ua;
 
     return $self;
@@ -193,19 +192,19 @@ Get the login token.
 =cut
 
 sub getLoginToken {
-    my $self     = shift;
-    my $user     = shift;
-    my $fsk      = shift;
-    
+    my $self = shift;
+    my $user = shift;
+    my $fsk  = shift;
+
     my $loginToken = undef;
-    
+
     if ( $self && $self->{'providerID'} && $self->{'privateKey'} ) {
 
         my $claims = {
-            sub         => $user,
-            provider    => $self->{'providerID'},
-            exp         => time() + 3600,
-            fsk         => $fsk
+            sub      => $user,
+            provider => $self->{'providerID'},
+            exp      => time() + 3600,
+            fsk      => $fsk
         };
 
         $loginToken = Mojo::JWT->new(
@@ -219,27 +218,27 @@ sub getLoginToken {
 }
 
 sub getAuthLink {
-    my $self = shift;
-    my $userid = shift;
+    my $self       = shift;
+    my $userid     = shift;
     my $collection = shift;
     my $objectID   = shift;
-    
-    if ( $userid ) {
-        my $patron = Koha::Patrons->find({ userid => $userid } );
-        if ( $patron ) {
+
+    if ($userid) {
+        my $patron = Koha::Patrons->find( { userid => $userid } );
+        if ($patron) {
             my $patronStatus = C4::External::DivibibPatronStatus->new();
-            my $pStatus = $patronStatus->getPatronStatus( $patron );
-            
+            my $pStatus      = $patronStatus->getPatronStatus($patron);
+
             if ( $pStatus && $pStatus->{status} eq '3' ) {
-                my $loginToken = $self->getLoginToken($userid,$pStatus->{fsk});
-                
-                if ( $loginToken ) {
-                    return $self->getLink($collection,$objectID,1,$loginToken);
+                my $loginToken = $self->getLoginToken( $userid, $pStatus->{fsk} );
+
+                if ($loginToken) {
+                    return $self->getLink( $collection, $objectID, 1, $loginToken );
                 }
             }
         }
     }
-    
+
     return undef;
 }
 
@@ -255,22 +254,26 @@ sub getLink {
     my $objectID   = shift;
     my $withAuth   = shift;
     my $loginToken = shift;
-    
+
     my $url;
-    
+
     if ( !$withAuth ) {
         $url = $self->{'Link'}->{$collection} . uri_escape_utf8($objectID);
-    }
-    elsif ( !$loginToken ) {
-        $url = '/cgi-bin/koha/opac-filmfriend.pl?collection=' . uri_escape_utf8($collection) . '&objectid=' . uri_escape_utf8($objectID);
-    } 
-    else {
-        $url = $self->{'Link'}->{$collection} . uri_escape_utf8($objectID).
-               '?login_token=' . uri_escape_utf8($loginToken);
+    } elsif ( !$loginToken ) {
+        $url =
+              '/cgi-bin/koha/opac-filmfriend.pl?collection='
+            . uri_escape_utf8($collection)
+            . '&objectid='
+            . uri_escape_utf8($objectID);
+    } else {
+        $url =
+              $self->{'Link'}->{$collection}
+            . uri_escape_utf8($objectID)
+            . '?login_token='
+            . uri_escape_utf8($loginToken);
     }
     return $url;
 }
-
 
 =head2 simpleSearch
 
@@ -279,129 +282,122 @@ In case of an HTTP error it returns undef.
 
 =cut
 
-
 sub simpleSearch {
-    my $self = shift;
-    my $userid = shift;
-    my $searchtext = shift;
+    my $self        = shift;
+    my $userid      = shift;
+    my $searchtext  = shift;
     my $searchtypes = shift;
-    my $maxcount = shift;
-    my $offset = shift;
+    my $maxcount    = shift;
+    my $offset      = shift;
 
-    my $withAuth=0;
-    
+    my $withAuth = 0;
+
     return undef unless ( C4::Context->preference('FilmfriendSearchActive') );
 
     $searchtext = $self->normalizeSearchRequest($searchtext);
-    
-    return undef if (! $searchtext );
+
+    return undef if ( !$searchtext );
 
     my $patronFsk;
-    if ( $userid ) {
-        my $patron = Koha::Patrons->find({ userid => $userid } );
-        if ( $patron ) {
+    if ($userid) {
+        my $patron = Koha::Patrons->find( { userid => $userid } );
+        if ($patron) {
             my $patronStatus = C4::External::DivibibPatronStatus->new();
-            my $pStatus = $patronStatus->getPatronStatus( $patron );
-            
+            my $pStatus      = $patronStatus->getPatronStatus($patron);
+
             if ( $pStatus && $pStatus->{status} eq '3' ) {
                 $withAuth = 1;
-                
+
                 $patronFsk = $pStatus->{fsk};
             }
         }
     }
-    
-    $offset = 0 if (!$offset);
-    $maxcount = 0 if (!$maxcount);
-    $searchtypes = [ "Movie" ]  if (!$searchtypes);
-    $searchtypes = [ $searchtypes ] if ( !reftype($searchtypes) || reftype($searchtypes) ne 'ARRAY' );
-    
+
+    $offset      = 0              if ( !$offset );
+    $maxcount    = 0              if ( !$maxcount );
+    $searchtypes = ["Movie"]      if ( !$searchtypes );
+    $searchtypes = [$searchtypes] if ( !reftype($searchtypes) || reftype($searchtypes) ne 'ARRAY' );
+
     my $results = [];
-    
-    foreach my $searchtype ( @$searchtypes ) {
-    
+
+    foreach my $searchtype (@$searchtypes) {
+
         my $url = $self->{'filmFriendSearchURL'};
-        
-        my $orderBy = "Score";
+
+        my $orderBy       = "Score";
         my $sortDirection = "Descending";
-        
+
         if ( $searchtype eq 'Movie' ) {
             $url .= 'kinds=Movie';
-        }
-        elsif ( $searchtype eq 'Episode' ) {
+        } elsif ( $searchtype eq 'Episode' ) {
             $url .= 'kinds=Episode';
-        }
-        elsif ( $searchtype eq 'SportsVideo' ) {
+        } elsif ( $searchtype eq 'SportsVideo' ) {
             $url .= 'kinds=SportsVideo';
-        }
-        elsif ( $searchtype eq 'Season' ) {
+        } elsif ( $searchtype eq 'Season' ) {
             $url .= 'kinds=Season';
-        }
-        elsif ( $searchtype eq 'Series' ) {
+        } elsif ( $searchtype eq 'Series' ) {
             $url .= 'kinds=Series';
-            $orderBy = "Title";
+            $orderBy       = "Title";
             $sortDirection = "Ascending";
-        }
-        elsif ( $searchtype eq 'Person' ) {
+        } elsif ( $searchtype eq 'Person' ) {
             $url .= 'kinds=Person';
-            $orderBy = "Title";
+            $orderBy       = "Title";
             $sortDirection = "Ascending";
-        }
-        elsif ( $searchtype eq 'Collection' ) {
+        } elsif ( $searchtype eq 'Collection' ) {
             $url .= 'kinds=Collection';
-            $orderBy = "Title";
+            $orderBy       = "Title";
             $sortDirection = "Ascending";
-        }
-        else {
+        } else {
             next;
         }
-         
-        $url .= '&search='. uri_escape_utf8($searchtext);
+
+        $url .= '&search=' . uri_escape_utf8($searchtext);
         $url .= '&mode=All';
-        
-        if ( $maxcount ) {
+
+        if ($maxcount) {
             $url .= '&take=' . $maxcount;
-        }
-        else {
+        } else {
             $url .= '&take=0';
         }
-        
-        if ( $offset ) {
+
+        if ($offset) {
             $url .= '&skip=' . $offset;
         }
-        
 
         $url .= "&orderBy=$orderBy";
         $url .= "&sortDirection=$sortDirection";
         $url .= '&totalCount=true';
         $url .= '&includeDetails=true';
-        
-        my @header = @{$self->{'requestHeader'}};
-        
+
+        my @header = @{ $self->{'requestHeader'} };
+
         carp "C4::External::FilmFriend->simpleSearch() with URL $url" if ( $self->{'traceEnabled'} );
-        
-        my $response = $self->{'ua'}->get($url,@header);
-        
+
+        my $response = $self->{'ua'}->get( $url, @header );
+
         if ( $self->{'traceEnabled'} ) {
             $Data::Dumper::Indent = 2;
             carp "C4::External::FilmFriend->simpleSearch(): filmfriend response: " . Dumper($response);
         }
-        
+
         if ( defined($response) && $response->is_success ) {
-            
+
             my $json = JSON->new->utf8->allow_nonref;
-            
-            my $data = $self->sanitizeResultStructure( $self->scrubData($json->decode( $response->content )), $withAuth, $searchtype, $offset, $patronFsk);
-            $data->{searchType} = $searchtype;
-            $data->{search} = $searchtext;
-            $data->{searchUrl} = $url;
+
+            my $data = $self->sanitizeResultStructure(
+                $self->scrubData( $json->decode( $response->content ) ), $withAuth,
+                $searchtype, $offset, $patronFsk
+            );
+            $data->{searchType}         = $searchtype;
+            $data->{search}             = $searchtext;
+            $data->{searchUrl}          = $url;
             $data->{searchAtFilmFriend} = $self->{'baseURL'} . 'search?search=' . uri_escape_utf8($searchtext);
-            
-            push @$results, $data if ($data->{numFound} > 0);
+
+            push @$results, $data if ( $data->{numFound} > 0 );
         }
 
     }
-    
+
     if ( $self->{'traceEnabled'} ) {
         $Data::Dumper::Indent = 2;
         carp "C4::External::FilmFriend->simpleSearch(): result: " . Dumper($results);
@@ -411,23 +407,22 @@ sub simpleSearch {
 }
 
 sub scrubData {
-    my $self       = shift;
-    my $data       = shift;
-    
+    my $self = shift;
+    my $data = shift;
+
     if ( reftype($data) ) {
         if ( reftype($data) eq 'ARRAY' ) {
-            foreach my $ref( @$data ) {
+            foreach my $ref (@$data) {
                 $self->scrubData($ref);
             }
-        }
-        elsif ( reftype($data) eq 'HASH' ) {
-            foreach my $key( keys %$data ) {
-                if ( reftype($data->{$key}) ) {
-                    if ( reftype($data->{$key}) eq 'ARRAY' || reftype($data->{$key}) eq 'HASH' ) {
-                        $self->scrubData($data->{$key});
+        } elsif ( reftype($data) eq 'HASH' ) {
+            foreach my $key ( keys %$data ) {
+                if ( reftype( $data->{$key} ) ) {
+                    if ( reftype( $data->{$key} ) eq 'ARRAY' || reftype( $data->{$key} ) eq 'HASH' ) {
+                        $self->scrubData( $data->{$key} );
                     }
                 } else {
-                    $data->{$key} = $self->{'scrubber'}->scrub($data->{$key});
+                    $data->{$key} = $self->{'scrubber'}->scrub( $data->{$key} );
                 }
             }
         }
@@ -442,243 +437,282 @@ sub sanitizeResultStructure {
     my $searchtype = shift;
     my $offset     = shift;
     my $patronFsk  = shift;
-    
+
     my $result = {};
-    
-    if ( $data && exists($data->{'results'}) ) {
-        
+
+    if ( $data && exists( $data->{'results'} ) ) {
+
         $result->{start} = 0;
         $result->{start} += $offset;
-        
+
         $result->{numFound} = 0;
-        $result->{numFound} += $self->{'scrubber'}->scrub($data->{'totalCount'}) if ( exists($data->{'totalCount'}) );
-        
-        $result->{hits} = 0;
+        $result->{numFound} += $self->{'scrubber'}->scrub( $data->{'totalCount'} )
+            if ( exists( $data->{'totalCount'} ) );
+
+        $result->{hits}    = 0;
         $result->{hitList} = [];
-        
-        if ( exists($data->{'results'}) && reftype($data->{'results'}) && reftype($data->{'results'}) eq 'ARRAY') {
-            
-            foreach my $hit ( @{$data->{'results'}} ) {   
+
+        if ( exists( $data->{'results'} ) && reftype( $data->{'results'} ) && reftype( $data->{'results'} ) eq 'ARRAY' )
+        {
+
+            foreach my $hit ( @{ $data->{'results'} } ) {
                 my $hitType = $hit->{kind};
-                
+
                 if ( $hitType && $hitType ne 'Person' ) {
-                    
+
                     $hit = $hit->{result} if ( $hit->{result} );
-                    
-                    $hitType = $hit->{kind} if ( exists($hit->{kind}) && $hit->{kind} );
+
+                    $hitType = $hit->{kind} if ( exists( $hit->{kind} ) && $hit->{kind} );
                     my $hitentry = $hitType;
                     $hitentry =~ s/^(.)(.*)$/lc($1).$2/es;
-                    
+
                     $hit = $hit->{$hitentry} if ( $hit->{$hitentry} );
-                    
-                    $hit->{actors}= [];
-                    $hit->{regie}= []; 
-                    
-                    if ( exists($hit->{imdbId}) && $hit->{imdbId}) {
+
+                    $hit->{actors} = [];
+                    $hit->{regie}  = [];
+
+                    if ( exists( $hit->{imdbId} ) && $hit->{imdbId} ) {
                         $hit->{IMDbLinkLink} = $hit->{imdbUrl};
                     }
-                    if ( exists($hit->{filmportalUrl}) && $hit->{filmportalUrl}) {
+                    if ( exists( $hit->{filmportalUrl} ) && $hit->{filmportalUrl} ) {
                         $hit->{FilmPortalLink} = $hit->{filmportalUrl};
                     }
-                    if ( exists($hit->{tmdbId}) && $hit->{tmdbId}) {
+                    if ( exists( $hit->{tmdbId} ) && $hit->{tmdbId} ) {
                         $hit->{MovieDatabaseLink} = $hit->{tmdbUrl};
                     }
-                    
-                    if ( exists($hit->{ageRatings}) && reftype($hit->{ageRatings}) && reftype($hit->{ageRatings}) eq 'ARRAY') {
-                        $self->setListElement($hit->{ageRatings},'minimumAge',$hit,'fskList');
-                        if ( exists($hit->{fskList}) ) {
+
+                    if (   exists( $hit->{ageRatings} )
+                        && reftype( $hit->{ageRatings} )
+                        && reftype( $hit->{ageRatings} ) eq 'ARRAY' )
+                    {
+                        $self->setListElement( $hit->{ageRatings}, 'minimumAge', $hit, 'fskList' );
+                        if ( exists( $hit->{fskList} ) ) {
                             $hit->{fsk} = $hit->{fskList}->[0];
                         }
                     }
+
                     #if ( exists($hit->{ageRatings}) && exists($hit->{ageRatings}->[0]->{name}) && $hit->{ageRatings}->[0]->{name} =~ /^Fsk([0-9]+)/ ) {
                     #    $hit->{fsk} = $1;
                     #}
-                    
-                    if ( $hitType eq 'Season' && exists($hit->{series}) ) {
-                        $hit->{seriestitle} = $hit->{series}->{title} if ( exists($hit->{series}->{title}) );
-                        
-                        if ( exists($hit->{seriestitle}) && $hit->{seriestitle} && exists($hit->{seasonNumber}) && $hit->{seasonNumber}) {
+
+                    if ( $hitType eq 'Season' && exists( $hit->{series} ) ) {
+                        $hit->{seriestitle} = $hit->{series}->{title} if ( exists( $hit->{series}->{title} ) );
+
+                        if (   exists( $hit->{seriestitle} )
+                            && $hit->{seriestitle}
+                            && exists( $hit->{seasonNumber} )
+                            && $hit->{seasonNumber} )
+                        {
                             if ( $self->{'language'} =~ /^de/ ) {
                                 $hit->{seriestitle} .= ', Staffel ' . $hit->{seasonNumber};
-                            }
-                            elsif ( $self->{'language'} =~ /^fr/ ) {
+                            } elsif ( $self->{'language'} =~ /^fr/ ) {
                                 $hit->{seriestitle} .= ', Saison ' . $hit->{seasonNumber};
-                            }
-                            else {
+                            } else {
                                 $hit->{seriestitle} .= ', Season ' . $hit->{seasonNumber};
                             }
                         }
-                        
-                        if ( exists($hit->{seriestitle}) && $hit->{seriestitle} ) {
-                            if ( exists($hit->{title}) &&  $hit->{title} ) {
+
+                        if ( exists( $hit->{seriestitle} ) && $hit->{seriestitle} ) {
+                            if ( exists( $hit->{title} ) && $hit->{title} ) {
                                 $hit->{title} = $hit->{seriestitle} . ': ' . $hit->{title};
-                            }
-                            else {
+                            } else {
                                 $hit->{title} = $hit->{seriestitle};
                             }
                         }
-                        
-                        if ( exists($hit->{series}->{genres}) && reftype($hit->{series}->{genres}) && reftype($hit->{series}->{genres}) eq 'ARRAY') {
-                            $self->setListElement($hit->{series}->{genres},'name',$hit,'genre');
+
+                        if (   exists( $hit->{series}->{genres} )
+                            && reftype( $hit->{series}->{genres} )
+                            && reftype( $hit->{series}->{genres} ) eq 'ARRAY' )
+                        {
+                            $self->setListElement( $hit->{series}->{genres}, 'name', $hit, 'genre' );
                         }
-                        if ( exists($hit->{series}->{categories}) && reftype($hit->{series}->{categories}) && reftype($hit->{series}->{categories}) eq 'ARRAY') {
-                            $self->setListElement($hit->{series}->{categories},'name',$hit,'category');
+                        if (   exists( $hit->{series}->{categories} )
+                            && reftype( $hit->{series}->{categories} )
+                            && reftype( $hit->{series}->{categories} ) eq 'ARRAY' )
+                        {
+                            $self->setListElement( $hit->{series}->{categories}, 'name', $hit, 'category' );
                         }
                     }
 
-                    
-                    
-                    if ( $hitType eq 'Episode' && exists($hit->{season}) && exists($hit->{season}->{series}) ) {
-                        if ( exists($hit->{season}->{releaseDate}) && $hit->{season}->{releaseDate} =~ /^([0-9]{4})-/ ) {
+                    if ( $hitType eq 'Episode' && exists( $hit->{season} ) && exists( $hit->{season}->{series} ) ) {
+                        if ( exists( $hit->{season}->{releaseDate} )
+                            && $hit->{season}->{releaseDate} =~ /^([0-9]{4})-/ )
+                        {
                             $hit->{releaseYear} = $1;
                         }
-                        if ( exists($hit->{season}->{motionPictureContentRating}) && $hit->{season}->{motionPictureContentRating} =~ /^Fsk([0-9]+)/ ) {
+                        if ( exists( $hit->{season}->{motionPictureContentRating} )
+                            && $hit->{season}->{motionPictureContentRating} =~ /^Fsk([0-9]+)/ )
+                        {
                             $hit->{fsk} = $1;
                         }
-                        $hit->{seriestitle} = $hit->{season}->{series}->{title} if ( exists($hit->{season}->{series}->{title}) );
-                        
-                        if ( exists($hit->{seriestitle}) && $hit->{seriestitle} && exists($hit->{season}->{seasonNumber}) && $hit->{season}->{seasonNumber}) {
+                        $hit->{seriestitle} = $hit->{season}->{series}->{title}
+                            if ( exists( $hit->{season}->{series}->{title} ) );
+
+                        if (   exists( $hit->{seriestitle} )
+                            && $hit->{seriestitle}
+                            && exists( $hit->{season}->{seasonNumber} )
+                            && $hit->{season}->{seasonNumber} )
+                        {
                             if ( $self->{'language'} =~ /^de/ ) {
                                 $hit->{seriestitle} .= ', Staffel ' . $hit->{season}->{seasonNumber};
-                            }
-                            elsif ( $self->{'language'} =~ /^fr/ ) {
+                            } elsif ( $self->{'language'} =~ /^fr/ ) {
                                 $hit->{seriestitle} .= ', Saison ' . $hit->{season}->{seasonNumber};
-                            }
-                            else {
+                            } else {
                                 $hit->{seriestitle} .= ', Season ' . $hit->{season}->{seasonNumber};
                             }
-                            if ( exists($hit->{episodeNumber}) && $hit->{episodeNumber} ) {
+                            if ( exists( $hit->{episodeNumber} ) && $hit->{episodeNumber} ) {
                                 if ( $self->{'language'} =~ /^de/ ) {
                                     $hit->{seriestitle} .= ', Folge ' . $hit->{episodeNumber};
-                                }
-                                elsif ( $self->{'language'} =~ /^fr/ ) {
+                                } elsif ( $self->{'language'} =~ /^fr/ ) {
                                     $hit->{seriestitle} .= ', Èpisode ' . $hit->{episodeNumber};
-                                }
-                                else {
+                                } else {
                                     $hit->{seriestitle} .= ', Episode ' . $hit->{season}->{seasonNumber};
                                 }
                             }
                         }
-                        if ( exists($hit->{seriestitle}) && $hit->{seriestitle} ) {
-                            if ( exists($hit->{title}) &&  $hit->{title} ) {
+                        if ( exists( $hit->{seriestitle} ) && $hit->{seriestitle} ) {
+                            if ( exists( $hit->{title} ) && $hit->{title} ) {
                                 $hit->{title} = $hit->{seriestitle} . ': ' . $hit->{title};
-                            }
-                            else {
+                            } else {
                                 $hit->{title} = $hit->{seriestitle};
                             }
                         }
-                        
-                        if ( exists($hit->{season}->{series}->{genres}) && reftype($hit->{season}->{series}->{genres}) && reftype($hit->{season}->{series}->{genres}) eq 'ARRAY') {
-                            $self->setListElement($hit->{season}->{series}->{genres},'name',$hit,'genre');
+
+                        if (   exists( $hit->{season}->{series}->{genres} )
+                            && reftype( $hit->{season}->{series}->{genres} )
+                            && reftype( $hit->{season}->{series}->{genres} ) eq 'ARRAY' )
+                        {
+                            $self->setListElement( $hit->{season}->{series}->{genres}, 'name', $hit, 'genre' );
                         }
-                        if ( exists($hit->{season}->{series}->{categories}) && reftype($hit->{season}->{series}->{categories}) && reftype($hit->{season}->{series}->{categories}) eq 'ARRAY') {
-                            $self->setListElement($hit->{season}->{series}->{categories},'name',$hit,'category');
+                        if (   exists( $hit->{season}->{series}->{categories} )
+                            && reftype( $hit->{season}->{series}->{categories} )
+                            && reftype( $hit->{season}->{series}->{categories} ) eq 'ARRAY' )
+                        {
+                            $self->setListElement( $hit->{season}->{series}->{categories}, 'name', $hit, 'category' );
                         }
                     }
-                    
-                    if ( exists($hit->{id}) && $hit->{id}) {
+
+                    if ( exists( $hit->{id} ) && $hit->{id} ) {
                         my $useAuth = $withAuth;
-                        if ( $patronFsk && exists($hit->{fsk}) && $patronFsk < $hit->{fsk} ) {
+                        if ( $patronFsk && exists( $hit->{fsk} ) && $patronFsk < $hit->{fsk} ) {
                             $useAuth = 0;
                         }
-                        $hit->{filmfriendLink} = $self->getLink($hitType,$hit->{id},$useAuth);
+                        $hit->{filmfriendLink} = $self->getLink( $hitType, $hit->{id}, $useAuth );
                     }
-                    
-                    if ( exists($hit->{synopsis}) && $hit->{synopsis}) {
+
+                    if ( exists( $hit->{synopsis} ) && $hit->{synopsis} ) {
                         $hit->{Synopsis} = $hit->{synopsis};
                     }
-                    
-                    if ( exists($hit->{teaser}) && $hit->{teaser}) {
+
+                    if ( exists( $hit->{teaser} ) && $hit->{teaser} ) {
                         $hit->{Teaser} = $hit->{teaser};
                     }
-                    
-                    if ( exists($hit->{productionCountries}) && reftype($hit->{productionCountries}) && reftype($hit->{productionCountries}) eq 'ARRAY' ) {
-                        $self->setListElement($hit->{productionCountries},'name',$hit,'production');
+
+                    if (   exists( $hit->{productionCountries} )
+                        && reftype( $hit->{productionCountries} )
+                        && reftype( $hit->{productionCountries} ) eq 'ARRAY' )
+                    {
+                        $self->setListElement( $hit->{productionCountries}, 'name', $hit, 'production' );
                     }
-                    if ( exists($hit->{genres}) && reftype($hit->{genres}) && reftype($hit->{genres}) eq 'ARRAY') {
-                        $self->setListElement($hit->{genres},'name',$hit,'genre');
+                    if ( exists( $hit->{genres} ) && reftype( $hit->{genres} ) && reftype( $hit->{genres} ) eq 'ARRAY' )
+                    {
+                        $self->setListElement( $hit->{genres}, 'name', $hit, 'genre' );
                     }
-                    if ( exists($hit->{categories}) && reftype($hit->{categories}) && reftype($hit->{categories}) eq 'ARRAY') {
-                        $self->setListElement($hit->{categories},'name',$hit,'category');
+                    if (   exists( $hit->{categories} )
+                        && reftype( $hit->{categories} )
+                        && reftype( $hit->{categories} ) eq 'ARRAY' )
+                    {
+                        $self->setListElement( $hit->{categories}, 'name', $hit, 'category' );
                     }
-                    if ( exists($hit->{audioLanguages}) && reftype($hit->{audioLanguages}) && reftype($hit->{audioLanguages}) eq 'ARRAY' ) {
-                        $self->setListElement($hit->{audioLanguages},'name',$hit,'audio');
+                    if (   exists( $hit->{audioLanguages} )
+                        && reftype( $hit->{audioLanguages} )
+                        && reftype( $hit->{audioLanguages} ) eq 'ARRAY' )
+                    {
+                        $self->setListElement( $hit->{audioLanguages}, 'name', $hit, 'audio' );
                     }
-                    if ( exists($hit->{subtitleLanguages}) && reftype($hit->{subtitleLanguages}) && reftype($hit->{subtitleLanguages}) eq 'ARRAY' ) {
-                        $self->setListElement($hit->{subtitleLanguages},'name',$hit,'subtitle');
+                    if (   exists( $hit->{subtitleLanguages} )
+                        && reftype( $hit->{subtitleLanguages} )
+                        && reftype( $hit->{subtitleLanguages} ) eq 'ARRAY' )
+                    {
+                        $self->setListElement( $hit->{subtitleLanguages}, 'name', $hit, 'subtitle' );
                     }
-                    if ( exists($hit->{releaseDate}) && $hit->{releaseDate} =~ /^([0-9]{4})-/ ) {
+                    if ( exists( $hit->{releaseDate} ) && $hit->{releaseDate} =~ /^([0-9]{4})-/ ) {
                         $hit->{releaseYear} = $1;
                     }
-                    if ( exists($hit->{artworkUris}) && reftype($hit->{artworkUris}) && reftype($hit->{artworkUris}) eq 'ARRAY' ) {
-                        COVER: foreach my $artwork(@{$hit->{artworkUris}}) {
-                            if ( exists($artwork->{kind}) && $artwork->{kind} eq 'CoverPortrait' ) {
-                                if ( exists($artwork->{thumbnail}) && $artwork->{thumbnail} ) {
-                                    $hit->{thumbnail} = $artwork->{thumbnail} if ( !exists($hit->{thumbnail}) );
-                                    $hit->{cover} = $artwork->{thumbnail};
+                    if (   exists( $hit->{artworkUris} )
+                        && reftype( $hit->{artworkUris} )
+                        && reftype( $hit->{artworkUris} ) eq 'ARRAY' )
+                    {
+                    COVER: foreach my $artwork ( @{ $hit->{artworkUris} } ) {
+                            if ( exists( $artwork->{kind} ) && $artwork->{kind} eq 'CoverPortrait' ) {
+                                if ( exists( $artwork->{thumbnail} ) && $artwork->{thumbnail} ) {
+                                    $hit->{thumbnail} = $artwork->{thumbnail} if ( !exists( $hit->{thumbnail} ) );
+                                    $hit->{cover}     = $artwork->{thumbnail};
                                     last COVER;
                                 }
-                                if ( exists($artwork->{resolution1x}) && $artwork->{resolution1x} ) {
-                                    $hit->{thumbnail} = $artwork->{thumbnail} if ( !exists($hit->{thumbnail}) );
-                                    $hit->{cover} = $artwork->{resolution1x};
+                                if ( exists( $artwork->{resolution1x} ) && $artwork->{resolution1x} ) {
+                                    $hit->{thumbnail} = $artwork->{thumbnail} if ( !exists( $hit->{thumbnail} ) );
+                                    $hit->{cover}     = $artwork->{resolution1x};
                                     last COVER;
                                 }
                             }
                         }
-                        foreach my $artwork(@{$hit->{artworkUris}}) {
-                            if ( exists($artwork->{kind}) && $artwork->{kind} eq 'Thumbnail' ) {
-                                if ( exists($artwork->{thumbnail}) && $artwork->{thumbnail} ) {
-                                    $hit->{thumbnail} = $artwork->{thumbnail} if ( !exists($hit->{thumbnail}) );
-                                    $hit->{thumbnails} = [] if ( !exists($hit->{thumbnails}) );
+                        foreach my $artwork ( @{ $hit->{artworkUris} } ) {
+                            if ( exists( $artwork->{kind} ) && $artwork->{kind} eq 'Thumbnail' ) {
+                                if ( exists( $artwork->{thumbnail} ) && $artwork->{thumbnail} ) {
+                                    $hit->{thumbnail}  = $artwork->{thumbnail} if ( !exists( $hit->{thumbnail} ) );
+                                    $hit->{thumbnails} = []                    if ( !exists( $hit->{thumbnails} ) );
                                     push @{ $hit->{thumbnails} }, $artwork->{thumbnail1x};
-                                }
-                                elsif ( exists($artwork->{resolution1x}) && $artwork->{resolution1x} ) {
-                                    $hit->{thumbnail} = $artwork->{resolution1x}  if ( !exists($hit->{thumbnail}) );
-                                    $hit->{thumbnails} = [] if ( !exists($hit->{thumbnails}) );
+                                } elsif ( exists( $artwork->{resolution1x} ) && $artwork->{resolution1x} ) {
+                                    $hit->{thumbnail}  = $artwork->{resolution1x} if ( !exists( $hit->{thumbnail} ) );
+                                    $hit->{thumbnails} = []                       if ( !exists( $hit->{thumbnails} ) );
                                     push @{ $hit->{thumbnails} }, $artwork->{thumbnail1x};
                                 }
                             }
                         }
                     }
-                    if ( exists($hit->{participants}) && reftype($hit->{participants}) && reftype($hit->{participants}) eq 'ARRAY' ) {
-                        foreach my $person(@{$hit->{participants}}) {
-                            if ( exists($person->{person}->{id}) && $person->{person}->{id}) {
-                                $person->{filmfriendLink}= $self->getLink('Person',$person->{person}->{id},$withAuth);
+                    if (   exists( $hit->{participants} )
+                        && reftype( $hit->{participants} )
+                        && reftype( $hit->{participants} ) eq 'ARRAY' )
+                    {
+                        foreach my $person ( @{ $hit->{participants} } ) {
+                            if ( exists( $person->{person}->{id} ) && $person->{person}->{id} ) {
+                                $person->{filmfriendLink} =
+                                    $self->getLink( 'Person', $person->{person}->{id}, $withAuth );
                             }
-                            if ( exists($person->{kind}) && $person->{kind} ) {
+                            if ( exists( $person->{kind} ) && $person->{kind} ) {
                                 if ( $person->{kind} eq 'Actor' ) {
-                                    push @{$hit->{actors}}, $person;
+                                    push @{ $hit->{actors} }, $person;
                                 }
                                 if ( $person->{kind} eq 'Director' ) {
-                                    push @{$hit->{regie}}, $person;
+                                    push @{ $hit->{regie} }, $person;
                                 }
                             }
                         }
                     }
-                }
-                elsif ( $hitType && $hitType eq 'Person' ) {
+                } elsif ( $hitType && $hitType eq 'Person' ) {
                     $hit = $hit->{result} if ( $hit->{result} );
-                    
+
                     my $hitentry = 'person';
                     $hit = $hit->{$hitentry} if ( $hit->{$hitentry} );
                     $hit->{kind} = 'Person';
-                    
+
                     $hit->{name} = $hit->{lastName};
-                    if ( exists($hit->{firstName}) && $hit->{firstName}) {
+                    if ( exists( $hit->{firstName} ) && $hit->{firstName} ) {
                         $hit->{name} = $hit->{firstName} . ' ' . $hit->{name};
                     }
-                    
-                    if ( exists($hit->{id}) && $hit->{id}) {
-                        $hit->{filmfriendLink}= $self->getLink($hitType,$hit->{id},$withAuth);
+
+                    if ( exists( $hit->{id} ) && $hit->{id} ) {
+                        $hit->{filmfriendLink} = $self->getLink( $hitType, $hit->{id}, $withAuth );
                     }
-                    
+
                     $hit->{description} = $hit->{biography};
                 }
-                if ( exists($hit->{runtime}) && $hit->{runtime}) {
-                    my $mins = POSIX::ceil($hit->{runtime}/60);
+                if ( exists( $hit->{runtime} ) && $hit->{runtime} ) {
+                    my $mins = POSIX::ceil( $hit->{runtime} / 60 );
                     if ( $mins >= 60 ) {
-                        my $hours = POSIX::floor($mins/60);
-                        $mins = $mins%60;
+                        my $hours = POSIX::floor( $mins / 60 );
+                        $mins = $mins % 60;
                         if ( $mins > 0 ) {
                             $hit->{duration} = "${hours}h ${mins}min";
                         } else {
@@ -688,7 +722,7 @@ sub sanitizeResultStructure {
                         $hit->{duration} = "${mins}min";
                     }
                 }
-                if ( $hitType && exists($self->{'useFields'}->{$hitType}) ) {
+                if ( $hitType && exists( $self->{'useFields'}->{$hitType} ) ) {
                     my $newhit = {};
                     foreach my $key ( @{ $self->{'useFields'}->{$hitType} } ) {
                         $newhit->{$key} = $hit->{$key};
@@ -696,32 +730,32 @@ sub sanitizeResultStructure {
                     $hit = $newhit;
                 }
                 $result->{hits}++;
-                push(@{$result->{hitList}},$hit);
+                push( @{ $result->{hitList} }, $hit );
             }
         }
     }
     return $result;
 }
-           
+
 sub setListElement {
     my $self        = shift;
     my $elemGet     = shift;
     my $elemGetName = shift;
     my $elemSet     = shift;
     my $elemSetName = shift;
-    
+
     my $ret = 0;
-    return $ret if ( !$elemGet || !$elemSet);
-    
+    return $ret if ( !$elemGet || !$elemSet );
+
     if ( reftype($elemGet) && reftype($elemGet) eq 'ARRAY' ) {
-        foreach my $elem( @{$elemGet}) {
-            if ( exists($elem->{$elemGetName}) ) {
+        foreach my $elem ( @{$elemGet} ) {
+            if ( exists( $elem->{$elemGetName} ) ) {
                 my $value = $elem->{$elemGetName};
-                if ( $value ) {
-                    if ( !exists($elemSet->{$elemSetName}) ) {
+                if ($value) {
+                    if ( !exists( $elemSet->{$elemSetName} ) ) {
                         $elemSet->{$elemSetName} = [];
                     }
-                    push @{$elemSet->{$elemSetName}}, $value;
+                    push @{ $elemSet->{$elemSetName} }, $value;
                     $ret = 1;
                 }
             }
@@ -732,22 +766,23 @@ sub setListElement {
 }
 
 sub normalizeSearchRequest {
-    my $self = shift;
+    my $self   = shift;
     my $search = shift;
-    
+
     if ( defined($search) ) {
-        
+
         $search =~ s/&quot;//g;
         $search =~ s/(\x{0098}|\x{009c}|\x{00ac})//g;
-        $search =~ s/(,\s*)?(homebranch|itype|mc-itype|ccode|mc-ccode|mc-loc|location|datelastborrowed|acqdate|callnum|age|anta|antc|ff7-00|yr|barcode|bib-level|rcn|aud)(,(wrdl|phr|ext|rtrn|ltrn|st-date-normalized|ge|le|st-numeric))*\s*[:=]\s*(["']+[\w&\.\- ]+["']+|[\w&\.\-]+)(\s+(and|or))?//ig;
-        
+        $search =~
+            s/(,\s*)?(homebranch|itype|mc-itype|ccode|mc-ccode|mc-loc|location|datelastborrowed|acqdate|callnum|age|anta|antc|ff7-00|yr|barcode|bib-level|rcn|aud)(,(wrdl|phr|ext|rtrn|ltrn|st-date-normalized|ge|le|st-numeric))*\s*[:=]\s*(["']+[\w&\.\- ]+["']+|[\w&\.\-]+)(\s+(and|or))?//ig;
+
         if ( $search =~ /(sys|lcn)[A-Za-z0-9,-]*[:=]/i ) {
             return '';
         }
-        
+
         $search =~ s/(,\s*)?branch\s*[:=]\s*[\w+\.\-]+(\s+[\w+\.\-]+(?![:]))*//ig;
         $search =~ s/[A-Za-z0-9,-]+\s*[:=]\s*//ig;
-        
+
         $search =~ s/^\s*[0-9-\/]+\s*$//;
         $search =~ s/, / /g;
         $search =~ s/\(\s*\)//g;
@@ -760,7 +795,7 @@ sub normalizeSearchRequest {
         $search =~ s/\s+$//g;
         $search =~ s/^["']([^"']+)["']$/$1/g;
     }
-    
+
     return $search;
 }
 

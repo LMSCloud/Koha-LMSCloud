@@ -20,19 +20,21 @@
 use Modern::Perl;
 use Data::Dumper;
 
-use CGI qw ( -utf8 );
-use C4::Auth qw( get_template_and_user );
+use CGI        qw ( -utf8 );
+use C4::Auth   qw( get_template_and_user );
 use C4::Output qw( output_html_with_http_headers );
 use C4::Members;
 
 use Koha::Patron::Categories;
 
 my $input = new CGI;
+
 #print STDERR "ill::illBorrower_search input:", Dumper($input), ":\n";
 my $searchmember = $input->param('searchmember');
 
 my ( $template, $loggedinuser, $cookie, $staff_flags ) = get_template_and_user(
-    {   template_name   => "ill/illBorrower_search.tt",
+    {
+        template_name   => "ill/illBorrower_search.tt",
         query           => $input,
         type            => "intranet",
         authnotrequired => 0,
@@ -42,11 +44,11 @@ my ( $template, $loggedinuser, $cookie, $staff_flags ) = get_template_and_user(
 
 my $patron_categories = Koha::Patron::Categories->search_with_library_limits;
 $template->param(
-    columns => ['cardnumber', 'name-address', 'dateofbirth', 'branch', 'category', 'action' ],
+    columns             => [ 'cardnumber', 'name-address', 'dateofbirth', 'branch', 'category', 'action' ],
     default_sort_column => 'name-address',
-    selection_type => 'select',
-    categories => $patron_categories,
-    searchmember => $searchmember,
+    selection_type      => 'select',
+    categories          => $patron_categories,
+    searchmember        => $searchmember,
 );
 
 output_html_with_http_headers( $input, $cookie, $template->output );

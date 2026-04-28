@@ -17,7 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-
 =head1 opac-antolin.pl
 
 Antolin is a German initiative for kids and teenager encouraging them to read books, build knowlege about the books.
@@ -41,9 +40,9 @@ In order to keep the catalogue data up-to-date, its necessary to run the script 
 
 use Modern::Perl;
 
-use C4::Auth qw( get_template_and_user );
+use C4::Auth   qw( get_template_and_user );
 use C4::Output qw( output_html_with_http_headers );
-use CGI qw ( -utf8 );
+use CGI        qw ( -utf8 );
 
 my $query = new CGI;
 

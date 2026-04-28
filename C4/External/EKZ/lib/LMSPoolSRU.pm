@@ -32,174 +32,175 @@ our $VERSION = '0.01';
 
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
-use constant LMSPOOLURL => 'http://127.0.0.1:4900/biblios?version=1.1&operation=searchRetrieve&query=%QUERY%&maximumRecords=1&recordSchema=marcxml';
+use constant LMSPOOLURL =>
+    'http://127.0.0.1:4900/biblios?version=1.1&operation=searchRetrieve&query=%QUERY%&maximumRecords=1&recordSchema=marcxml';
 
 BEGIN {
     require Exporter;
     $VERSION = 1.00.00.000;
-    @ISA = qw(Exporter);
-    @EXPORT = qw(LMSPOOLURL);
+    @ISA     = qw(Exporter);
+    @EXPORT  = qw(LMSPOOLURL);
 }
 
 sub new {
-	my $class = shift;
-	my $self  = bless { @_ }, $class;
+    my $class = shift;
+    my $self  = bless {@_}, $class;
 
-	$self->{'url'} = LMSPOOLURL;
-	
-	my $ua = LWP::UserAgent->new;
-	$ua->timeout(10);
-	$ua->env_proxy;
+    $self->{'url'} = LMSPOOLURL;
 
-	$self->{'ua'} = $ua;
+    my $ua = LWP::UserAgent->new;
+    $ua->timeout(10);
+    $ua->env_proxy;
 
-	return $self;
+    $self->{'ua'} = $ua;
+
+    return $self;
 }
 
 sub getbyId {
-	my $self = shift;
-	my $idlist   = shift;
-	
-	my $result = { 
-			'count'        => 0, 
-			'records'      => []
-		};
-	
-	my $chk = 0;
-	my $qstring = '';
-	foreach my $id (@$idlist) {
-		$chk++;
-		$qstring .= ' or ' if ( $qstring ne '');
-		$qstring .= 'rec.cn="' . $id . '"';
-	}
-	
-	if ( $chk>0 ) {
-		my $url = $self->{'url'};
-		
-		$url =~ s/%QUERY%/uri_escape_utf8(${qstring})/eg;
-		
-		$self->doQuery($url,$result);
-	}
-	return $result;
+    my $self   = shift;
+    my $idlist = shift;
+
+    my $result = {
+        'count'   => 0,
+        'records' => []
+    };
+
+    my $chk     = 0;
+    my $qstring = '';
+    foreach my $id (@$idlist) {
+        $chk++;
+        $qstring .= ' or ' if ( $qstring ne '' );
+        $qstring .= 'rec.cn="' . $id . '"';
+    }
+
+    if ( $chk > 0 ) {
+        my $url = $self->{'url'};
+
+        $url =~ s/%QUERY%/uri_escape_utf8(${qstring})/eg;
+
+        $self->doQuery( $url, $result );
+    }
+    return $result;
 }
 
 sub getbyISBN {
-	my $self = shift;
-	my $isbnlist   = shift;
-	my %searchedisbn = ();
-	
-	my $result = { 
-			'count'        => 0, 
-			'records'      => []
-		};
-	
-	foreach my $isbn (@$isbnlist) {
-		
-		my $url = $self->{'url'};
-		my $isbnlong = undef;
-		my $isbnshort = undef;
-		my $isbnlongdash = undef;
-		my $isbnshortdash = undef;
-		
-		eval {
-			my $isbn13 = Business::ISBN->new($isbn);
-			if ( defined($isbn13) ) {
-				$isbnlong = $isbn13->as_string([]);
-				$isbnlongdash = $isbn13->as_string();
-				$isbnshort = $isbn13->as_isbn10->as_string([]);
-				$isbnshortdash = $isbn13->as_isbn10->as_string();
-			}
-		};
-		
-		my $chk = 0;
-		my $qstring = '';
-		if ( defined($isbnlong) && (! exists($searchedisbn{$isbnlong}) ) ) {
-			$chk++;
-			$searchedisbn{$isbnlong} = 1;
-			$qstring .= ' or ' if ( $qstring ne '');
-			$qstring .= 'dc.isbn="'.$isbnlong.'"';
-			if ( defined($isbnlongdash) ) { 
-				$qstring .= ' or ' if ( $qstring ne '');
-				$qstring .= 'dc.isbn="'.$isbnlongdash.'"';
-			}
-		}
-		if ( defined($isbnshort) && (! exists($searchedisbn{$isbnshort}) ) ) {
-			$chk++;
-			$searchedisbn{$isbnshort} = 1;
-			$qstring .= ' or ' if ( $qstring ne '');
-			$qstring .= 'dc.isbn="'.$isbnshort.'"';
-			if ( defined($isbnshortdash) ) { 
-				$qstring .= ' or ' if ( $qstring ne '');
-				$qstring .= 'dc.isbn="'.$isbnshortdash.'"';
-			}
-		}
-			
-		if ( $chk == 0 ) {
-			next;
-		}	
-		
-		$url =~ s/%QUERY%/uri_escape_utf8(${qstring})/eg;
-		
-		$self->doQuery($url,$result);
-	}
-	return $result;
+    my $self         = shift;
+    my $isbnlist     = shift;
+    my %searchedisbn = ();
+
+    my $result = {
+        'count'   => 0,
+        'records' => []
+    };
+
+    foreach my $isbn (@$isbnlist) {
+
+        my $url           = $self->{'url'};
+        my $isbnlong      = undef;
+        my $isbnshort     = undef;
+        my $isbnlongdash  = undef;
+        my $isbnshortdash = undef;
+
+        eval {
+            my $isbn13 = Business::ISBN->new($isbn);
+            if ( defined($isbn13) ) {
+                $isbnlong      = $isbn13->as_string( [] );
+                $isbnlongdash  = $isbn13->as_string();
+                $isbnshort     = $isbn13->as_isbn10->as_string( [] );
+                $isbnshortdash = $isbn13->as_isbn10->as_string();
+            }
+        };
+
+        my $chk     = 0;
+        my $qstring = '';
+        if ( defined($isbnlong) && ( !exists( $searchedisbn{$isbnlong} ) ) ) {
+            $chk++;
+            $searchedisbn{$isbnlong} = 1;
+            $qstring .= ' or ' if ( $qstring ne '' );
+            $qstring .= 'dc.isbn="' . $isbnlong . '"';
+            if ( defined($isbnlongdash) ) {
+                $qstring .= ' or ' if ( $qstring ne '' );
+                $qstring .= 'dc.isbn="' . $isbnlongdash . '"';
+            }
+        }
+        if ( defined($isbnshort) && ( !exists( $searchedisbn{$isbnshort} ) ) ) {
+            $chk++;
+            $searchedisbn{$isbnshort} = 1;
+            $qstring .= ' or ' if ( $qstring ne '' );
+            $qstring .= 'dc.isbn="' . $isbnshort . '"';
+            if ( defined($isbnshortdash) ) {
+                $qstring .= ' or ' if ( $qstring ne '' );
+                $qstring .= 'dc.isbn="' . $isbnshortdash . '"';
+            }
+        }
+
+        if ( $chk == 0 ) {
+            next;
+        }
+
+        $url =~ s/%QUERY%/uri_escape_utf8(${qstring})/eg;
+
+        $self->doQuery( $url, $result );
+    }
+    return $result;
 }
 
 # search strings from $idlist in MARC fields 20, 22, 24 (ISBN, ISSN, ISMN and EAN)
 sub getbyIdentifierStandard {
-	my $self = shift;
-	my $idlist   = shift;
-	
-	my $result = { 
-			'count'        => 0, 
-			'records'      => []
-		};
-	
-	my $chk = 0;
-	my $qstring = '';
-	foreach my $id (@$idlist) {
-		$chk++;
-		$qstring .= ' or ' if ( $qstring ne '');
-		$qstring .= 'dc.identifier="' . $id . '"';
-	}
-	
-	if ( $chk>0 ) {
-		my $url = $self->{'url'};
-		
-		$url =~ s/%QUERY%/uri_escape_utf8(${qstring})/eg;
-		
-		$self->doQuery($url,$result);
-	}
-	return $result;
+    my $self   = shift;
+    my $idlist = shift;
+
+    my $result = {
+        'count'   => 0,
+        'records' => []
+    };
+
+    my $chk     = 0;
+    my $qstring = '';
+    foreach my $id (@$idlist) {
+        $chk++;
+        $qstring .= ' or ' if ( $qstring ne '' );
+        $qstring .= 'dc.identifier="' . $id . '"';
+    }
+
+    if ( $chk > 0 ) {
+        my $url = $self->{'url'};
+
+        $url =~ s/%QUERY%/uri_escape_utf8(${qstring})/eg;
+
+        $self->doQuery( $url, $result );
+    }
+    return $result;
 }
 
 sub doQuery {
-	my $self = shift;
-	my $url = shift;
-	my $result = shift;
-	
-	my $response = $self->{'ua'}->get($url);
+    my $self   = shift;
+    my $url    = shift;
+    my $result = shift;
 
-	if ($response->is_success) {
-		my $parser = XML::LibXML->new;
-		my $dom = $parser->parse_string($response->content);
+    my $response = $self->{'ua'}->get($url);
 
-		my $root = $dom->documentElement();
-		my $nsURI = $root->namespaceURI();
-		$root->setNamespace($nsURI, 'x');    
-		my $res = $root->findnodes('x:records/x:record/x:recordData');
+    if ( $response->is_success ) {
+        my $parser = XML::LibXML->new;
+        my $dom    = $parser->parse_string( $response->content );
 
-		foreach my $record ( $res->get_nodelist() ) {
-			foreach my $child ( $record->childNodes() ) {
-				if ( $child->nodeName eq 'record' ) {
-					$result->{'count'} += 1;
-					push @{$result->{'records'}}, MARC::Record->new_from_xml( $child->toString(), "UTF-8", "MARC21" );
-				}
-			}
-		}
-	}
-	
-	return $result;
+        my $root  = $dom->documentElement();
+        my $nsURI = $root->namespaceURI();
+        $root->setNamespace( $nsURI, 'x' );
+        my $res = $root->findnodes('x:records/x:record/x:recordData');
+
+        foreach my $record ( $res->get_nodelist() ) {
+            foreach my $child ( $record->childNodes() ) {
+                if ( $child->nodeName eq 'record' ) {
+                    $result->{'count'} += 1;
+                    push @{ $result->{'records'} }, MARC::Record->new_from_xml( $child->toString(), "UTF-8", "MARC21" );
+                }
+            }
+        }
+    }
+
+    return $result;
 }
 
 1;

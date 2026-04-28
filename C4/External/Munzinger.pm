@@ -38,9 +38,9 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 BEGIN {
     require Exporter;
-    $VERSION = 2.00;
-    @ISA = qw(Exporter);
-    @EXPORT = qw();
+    $VERSION   = 2.00;
+    @ISA       = qw(Exporter);
+    @EXPORT    = qw();
     @EXPORT_OK = qw();
 }
 
@@ -79,44 +79,46 @@ sub new {
 
     my $self = {};
     bless $self, $class;
-    
-    $self->{'search'} = "https://online.munzinger.de/metasearch/xml/simple";
+
+    $self->{'search'}    = "https://online.munzinger.de/metasearch/xml/simple";
     $self->{'allsearch'} = "https://online.munzinger.de/search/katalog/query-simple?";
 
     my $ua = LWP::UserAgent->new;
     $ua->timeout(10);
     $ua->env_proxy;
-    
+
     $self->{'ua'} = $ua;
-    
+
     my %config = ();
-    
+
     my $file = '/etc/koha/munzinger.key';
     if ( -e $file && -f $file ) {
-        open(my $fh, '<:encoding(UTF-8)', $file) or carp "Could not open Munzinger configuration file '$file' $!";
+        open( my $fh, '<:encoding(UTF-8)', $file ) or carp "Could not open Munzinger configuration file '$file' $!";
         while (<$fh>) {
-            next if /^#/; # skip line if it starts with a hash
-            chomp; # remove \n 
-            my($name,$val) = split '=', $_, 2; #split line into two values, on an = sign
-            $val =~ s/^\s+//; $val =~ s/\s+$//;
-            $name =~ s/^\s+//; $name =~ s/\s+$//;
-            next unless ($val && $name); # make sure the value is set
+            next if /^#/;                             # skip line if it starts with a hash
+            chomp;                                    # remove \n
+            my ( $name, $val ) = split '=', $_, 2;    #split line into two values, on an = sign
+            $val  =~ s/^\s+//;
+            $val  =~ s/\s+$//;
+            $name =~ s/^\s+//;
+            $name =~ s/\s+$//;
+            next unless ( $val && $name );            # make sure the value is set
             $config{$name} = $val;
         }
         close $fh;
     }
-    
-    carp "salt value not defined in Munzinger config '$file'" if (! exists($config{'salt'}) );
-    
-    $self->{'salt'} = $config{'salt'} if ( exists($config{'salt'}) );
+
+    carp "salt value not defined in Munzinger config '$file'" if ( !exists( $config{'salt'} ) );
+
+    $self->{'salt'}     = $config{'salt'} if ( exists( $config{'salt'} ) );
     $self->{'portalid'} = C4::Context->preference('MunzingerPortalID');
-    
+
     $self->{'conf_ok'} = 0;
-    $self->{'conf_ok'} = 1 if ( exists($self->{'salt'}) && exists($self->{'portalid'}) );
-    
+    $self->{'conf_ok'} = 1 if ( exists( $self->{'salt'} ) && exists( $self->{'portalid'} ) );
+
     $self->{'trace'} = 0;
-    $self->{'trace'} = 1 if (C4::Context->preference('MunzingerTraceEnabled'));
-    
+    $self->{'trace'} = 1 if ( C4::Context->preference('MunzingerTraceEnabled') );
+
     $self->{'scrubber'} = C4::Scrubber->new('munzinger');
 
     return $self;
@@ -133,40 +135,39 @@ Ask Munzinger to provide the related data.
 =cut
 
 sub encryptKey {
-    my $self = shift;
+    my $self   = shift;
     my $userid = shift;
-    
-    my $user = 'dummy';
+
+    my $user         = 'dummy';
     my $munzingerKey = '';
-    
-    if ( $userid ) {
-        my $patron = Koha::Patrons->find({ userid => $userid } );
+
+    if ($userid) {
+        my $patron       = Koha::Patrons->find( { userid => $userid } );
         my $patronStatus = C4::External::DivibibPatronStatus->new();
-        my $pStatus = $patronStatus->getPatronStatus( $patron );
-            
+        my $pStatus      = $patronStatus->getPatronStatus($patron);
+
         if ( $pStatus && $pStatus->{status} eq '3' ) {
             $user = $patron->cardnumber;
         }
     }
-    
-    my $time = time;
-    my $key = $self->{'salt'} . ':' . $self->{'portalid'} . ':' . $time . ':' . $user;
-    
-    my $requestkey = sha512_hex($key);
-    
-    my $parameters = { 
-                        ifmtoken  => $requestkey, 
-                        portalid  => $self->{'portalid'},
-                        timestamp => $time,
-                        user      => $user
-                     };
-                     
-    carp "C4::External::Munzinger->encryptKey() key (salt:portalid:time:userid): $key" if ( $self->{trace} );
-    carp "C4::External::Munzinger->encryptKey() SHA512 key: $requestkey" if ( $self->{trace} );
-    
-    return ($parameters,$requestkey,$key);
-}
 
+    my $time = time;
+    my $key  = $self->{'salt'} . ':' . $self->{'portalid'} . ':' . $time . ':' . $user;
+
+    my $requestkey = sha512_hex($key);
+
+    my $parameters = {
+        ifmtoken  => $requestkey,
+        portalid  => $self->{'portalid'},
+        timestamp => $time,
+        user      => $user
+    };
+
+    carp "C4::External::Munzinger->encryptKey() key (salt:portalid:time:userid): $key" if ( $self->{trace} );
+    carp "C4::External::Munzinger->encryptKey() SHA512 key: $requestkey"               if ( $self->{trace} );
+
+    return ( $parameters, $requestkey, $key );
+}
 
 =head2 simpleSearch
 
@@ -175,86 +176,98 @@ In case of an HTTP error it returns undef.
 
 =cut
 
-
 sub simpleSearch {
-    my $self = shift;
-    my $userid = shift;
-    my $searchtext = shift;
+    my $self        = shift;
+    my $userid      = shift;
+    my $searchtext  = shift;
     my $publication = shift;
-    my $maxcount = shift || 20;
-    my $offset = shift || 0;
-    
-    return undef if (! $self->{'conf_ok'} );
-    
+    my $maxcount    = shift || 20;
+    my $offset      = shift || 0;
+
+    return undef if ( !$self->{'conf_ok'} );
+
     $searchtext = $self->normalizeSearchRequest($searchtext);
-    
-    return undef if (! $searchtext );
-    
-    my ($parameters,$requestkey,$munzingerKey) = $self->encryptKey($userid);
+
+    return undef if ( !$searchtext );
+
+    my ( $parameters, $requestkey, $munzingerKey ) = $self->encryptKey($userid);
 
     my $authenticationParametersAdd = '';
     if ( $parameters->{user} ne 'dummy' ) {
-        foreach my $parameter (sort keys %$parameters) {
+        foreach my $parameter ( sort keys %$parameters ) {
             if ( $parameter ne 'portalid' ) {
-                $authenticationParametersAdd .= '&' . uri_escape_utf8($parameter) . '=' . uri_escape_utf8($parameters->{$parameter});
+                $authenticationParametersAdd .=
+                    '&' . uri_escape_utf8($parameter) . '=' . uri_escape_utf8( $parameters->{$parameter} );
             }
         }
     }
-    
+
     $parameters->{text} = $searchtext;
-    
+
     my $url = $self->{'search'};
-    if ( $publication ) {
+    if ($publication) {
         if ( $maxcount && $maxcount > 1000 ) {
             $maxcount = 1000;
         }
-        if ( $offset ) {
-            $parameters->{start} = $offset+1;
+        if ($offset) {
+            $parameters->{start} = $offset + 1;
         }
         $parameters->{scope} = $publication;
-        $parameters->{hits} = 'all';
-        $parameters->{size} = $maxcount;
+        $parameters->{hits}  = 'all';
+        $parameters->{size}  = $maxcount;
     }
-    
+
     my $linkadd = '';
-    
-    carp "C4::External::Munzinger->simpleSearch() sending request to url: $url\nwith parameters:" . Dumper($parameters) if ( $self->{trace} );
-    my $response = $self->{'ua'}->post($url,$parameters);
-    
+
+    carp "C4::External::Munzinger->simpleSearch() sending request to url: $url\nwith parameters:" . Dumper($parameters)
+        if ( $self->{trace} );
+    my $response = $self->{'ua'}->post( $url, $parameters );
+
     carp "C4::External::Munzinger->simpleSearch() returns status: " . $response->status_line if ( $self->{trace} );
-    carp "C4::External::Munzinger->simpleSearch() returns content: " . $response->content if ( $self->{trace} );
-    
-    if ( defined($response) && $response->is_success ) {  
-        my $respstruct = XMLin( $response->content, KeyAttr => { hit => 'count' }, ForceArray=> qr/^(hitlist|hit)$/, KeepRoot => 1 );
-        
+    carp "C4::External::Munzinger->simpleSearch() returns content: " . $response->content    if ( $self->{trace} );
+
+    if ( defined($response) && $response->is_success ) {
+        my $respstruct = XMLin(
+            $response->content, KeyAttr => { hit => 'count' }, ForceArray => qr/^(hitlist|hit)$/,
+            KeepRoot => 1
+        );
+
         $respstruct->{'authenticationParameters'} = $authenticationParametersAdd;
-        $respstruct->{'searchmunzinger'}  = $self->{'allsearch'} . "stichwort=" . uri_escape_utf8($searchtext) . "&portalid=" . $self->{'portalid'} . $authenticationParametersAdd;
-        
+        $respstruct->{'searchmunzinger'} =
+              $self->{'allsearch'}
+            . "stichwort="
+            . uri_escape_utf8($searchtext)
+            . "&portalid="
+            . $self->{'portalid'}
+            . $authenticationParametersAdd;
+
         return $respstruct;
-    }
-    else {
-        carp "C4::External::Munzinger->simpleSearch() with URL $url returned with HTTP error code " . $response->error_as_HTML if ($self->{trace});   
+    } else {
+        carp "C4::External::Munzinger->simpleSearch() with URL $url returned with HTTP error code "
+            . $response->error_as_HTML
+            if ( $self->{trace} );
     }
     return undef;
 }
 
 sub normalizeSearchRequest {
-    my $self = shift;
+    my $self   = shift;
     my $search = shift;
-    
+
     if ( defined($search) ) {
-        
+
         $search =~ s/&quot;//g;
         $search =~ s/(\x{0098}|\x{009c}|\x{00ac})//g;
-        $search =~ s/(,\s*)?(homebranch|itype|mc-itype|ccode|mc-ccode|mc-loc|location|datelastborrowed|acqdate|callnum|age|anta|antc|ff7-00|yr|barcode|bib-level|rcn|aud)(,(wrdl|phr|ext|rtrn|ltrn|st-date-normalized|ge|le|st-numeric))*\s*[:=]\s*(["']+[\w&\.\- ]+["']+|[\w&\.\-]+)(\s+(and|or))?//ig;
-        
+        $search =~
+            s/(,\s*)?(homebranch|itype|mc-itype|ccode|mc-ccode|mc-loc|location|datelastborrowed|acqdate|callnum|age|anta|antc|ff7-00|yr|barcode|bib-level|rcn|aud)(,(wrdl|phr|ext|rtrn|ltrn|st-date-normalized|ge|le|st-numeric))*\s*[:=]\s*(["']+[\w&\.\- ]+["']+|[\w&\.\-]+)(\s+(and|or))?//ig;
+
         if ( $search =~ /(sys|lcn)[A-Za-z0-9,-]*[:=]/i ) {
             return '';
         }
-        
+
         $search =~ s/(,\s*)?branch\s*[:=]\s*[\w+\.\-]+(\s+[\w+\.\-]+(?![:]))*//ig;
         $search =~ s/[A-Za-z0-9,-]+\s*[:=]\s*//ig;
-        
+
         $search =~ s/^\s*[0-9-\/]+\s*$//;
         $search =~ s/, / /g;
         $search =~ s/\(\s*\)//g;
@@ -267,7 +280,7 @@ sub normalizeSearchRequest {
         $search =~ s/\s+$//g;
         $search =~ s/^["']([^"']+)["']$/$1/g;
     }
-    
+
     return $search;
 }
 
@@ -339,65 +352,72 @@ Execute a simple search and return the as new data structure grouping the result
 =cut
 
 sub getCategorySummary {
-    my $self = shift;
-    my $userid = shift;
-    my $searchtext = shift;
+    my $self        = shift;
+    my $userid      = shift;
+    my $searchtext  = shift;
     my $publication = shift;
-    my $maxcount = shift;
-    my $offset = shift || 0;
-    
+    my $maxcount    = shift;
+    my $offset      = shift || 0;
+
     my $categories = { categorycount => 0, hitcount => 0, categories => [] };
-    
+
     my $result;
     my $authlinkAdd = '';
-    
-    $result = $self->simpleSearch($userid,$searchtext,$publication,$maxcount,$offset) if ( defined($searchtext) );
-    
-    if ( defined($result) && exists($result->{'hitlists'} ) ) {
+
+    $result = $self->simpleSearch( $userid, $searchtext, $publication, $maxcount, $offset ) if ( defined($searchtext) );
+
+    if ( defined($result) && exists( $result->{'hitlists'} ) ) {
         $categories->{'searchmunzinger'} = $result->{'searchmunzinger'};
         $authlinkAdd = $result->{'authenticationParameters'};
-        
+
         $result = $result->{'hitlists'};
     }
-    
-    if ( defined($result) && exists($result->{'hitlist'}) ) {
-        my @categhits = @{$result->{'hitlist'}};
-        
+
+    if ( defined($result) && exists( $result->{'hitlist'} ) ) {
+        my @categhits = @{ $result->{'hitlist'} };
+
         foreach my $categhit (@categhits) {
-            if ( defined($categhit->{publikation}) && defined($categhit->{id}) && defined($categhit->{totalCount}) ) {
-                
-                my $categentry = { id => $self->{'scrubber'}->scrub($categhit->{id}), name => $self->{'scrubber'}->scrub($categhit->{publikation}), count => $categhit->{totalCount}+0, offset => $offset+0, hits => [] };
+            if (   defined( $categhit->{publikation} )
+                && defined( $categhit->{id} )
+                && defined( $categhit->{totalCount} ) )
+            {
+
+                my $categentry = {
+                    id    => $self->{'scrubber'}->scrub( $categhit->{id} ),
+                    name  => $self->{'scrubber'}->scrub( $categhit->{publikation} ),
+                    count => $categhit->{totalCount} + 0, offset => $offset + 0, hits => []
+                };
 
                 my $hitcount = 0;
-                if ( defined($categhit->{hit}) && reftype($categhit->{hit}) eq 'HASH' ) {
-                    my @keys = sort { $a <=> $b } keys %{$categhit->{hit}};
-                    foreach my $hit( @keys ) {
-                        my $link    = $self->{'scrubber'}->scrub($categhit->{hit}->{$hit}->{url}) . $authlinkAdd;
-                        my $title   = $self->{'scrubber'}->scrub($categhit->{hit}->{$hit}->{title}) || '';
-                        my $date    = $self->{'scrubber'}->scrub($categhit->{hit}->{$hit}->{date}) || '';
-                        my $text    = $self->{'scrubber'}->scrub($categhit->{hit}->{$hit}->{teaser}) || '';
-                        my $top     = $self->{'scrubber'}->scrub($categhit->{hit}->{$hit}->{top}) || "false";
-                        my $words   = $self->{'scrubber'}->scrub($categhit->{hit}->{$hit}->{words}) || '';
-                        push @{$categentry->{hits}}, {
-                                                         link  => $link,
-                                                         title => $title,
-                                                         date  => $date,
-                                                         text  => $text,
-                                                         top   => $top,
-                                                         words => $words
-                                                     };
+                if ( defined( $categhit->{hit} ) && reftype( $categhit->{hit} ) eq 'HASH' ) {
+                    my @keys = sort { $a <=> $b } keys %{ $categhit->{hit} };
+                    foreach my $hit (@keys) {
+                        my $link  = $self->{'scrubber'}->scrub( $categhit->{hit}->{$hit}->{url} ) . $authlinkAdd;
+                        my $title = $self->{'scrubber'}->scrub( $categhit->{hit}->{$hit}->{title} )  || '';
+                        my $date  = $self->{'scrubber'}->scrub( $categhit->{hit}->{$hit}->{date} )   || '';
+                        my $text  = $self->{'scrubber'}->scrub( $categhit->{hit}->{$hit}->{teaser} ) || '';
+                        my $top   = $self->{'scrubber'}->scrub( $categhit->{hit}->{$hit}->{top} )    || "false";
+                        my $words = $self->{'scrubber'}->scrub( $categhit->{hit}->{$hit}->{words} )  || '';
+                        push @{ $categentry->{hits} }, {
+                            link  => $link,
+                            title => $title,
+                            date  => $date,
+                            text  => $text,
+                            top   => $top,
+                            words => $words
+                        };
                         $hitcount++;
                     }
                 }
-                push(@{$categories->{categories}}, $categentry);
+                push( @{ $categories->{categories} }, $categentry );
                 $categories->{categorycount} += 1;
-                $categories->{hitcount} += $categhit->{totalCount};
+                $categories->{hitcount}      += $categhit->{totalCount};
             }
         }
     }
-    
+
     return $categories;
-    
+
 }
 
 1;

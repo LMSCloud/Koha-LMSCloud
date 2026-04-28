@@ -42,23 +42,23 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 );
 
 my $borrower;
-my $errors = [];
-my $opacRenewCardDisplay = 1;
+my $errors                 = [];
+my $opacRenewCardDisplay   = 1;
 my $opacRenewCardPermitted = 0;
-my $card_renewed = 0;
-my $enrolment_fee = 0.0;
-my $enrolment_period = undef;
+my $card_renewed           = 0;
+my $enrolment_fee          = 0.0;
+my $enrolment_period       = undef;
 
 # get borrower information ....
-my $patron = Koha::Patrons->find( $borrowernumber );
+my $patron = Koha::Patrons->find($borrowernumber);
 
 if ( !$patron ) {
     $opacRenewCardDisplay = 0;
 } else {
     $borrower = $patron->unblessed;
     my $category = $patron->category();
-    if ( $category ) {
-        $enrolment_fee = $category->enrolmentfee();
+    if ($category) {
+        $enrolment_fee    = $category->enrolmentfee();
         $enrolment_period = $category->enrolmentperiod();
     }
 
@@ -68,22 +68,21 @@ if ( !$patron ) {
     $errors = $patron->opac_account_renewal_permitted();
 
     if ( @$errors == 0 ) {    # all checks passed, no error
-        if ( $query->param('submitState') eq 'submitted' &&
-             ( $query->param('enrolment_fee_accepted') || $enrolment_fee == 0.0 )
-           ) {
+        if ( $query->param('submitState') eq 'submitted'
+            && ( $query->param('enrolment_fee_accepted') || $enrolment_fee == 0.0 ) )
+        {
             # Patron has checked agreement text and submitted renewal.
             my $dateexpiry = $patron->renew_account();    # same re-reregistration function as in staff interface
-            $patron = Koha::Patrons->find( $borrowernumber );
+            $patron   = Koha::Patrons->find($borrowernumber);
             $borrower = $patron->unblessed;
 
-            if ( $dateexpiry ) {
+            if ($dateexpiry) {
                 $card_renewed = 1;
-            }
-            else {
+            } else {
                 $errors->[0] = 'CardRenewalFailed';
             }
-        } 
-        else {
+        } else {
+
             # Called empty; display library card data and ask if the card should be renewed.
             $opacRenewCardPermitted = 1;
         }
@@ -91,15 +90,15 @@ if ( !$patron ) {
 }
 
 $template->param(
-    renewcardview => 1,
-    BORROWER_INFO => $borrower,
-    enrolment_fee => $enrolment_fee,
-    enrolment_period => $enrolment_period,
-    opacRenewCardDisplay => $opacRenewCardDisplay,
-    opacRenewCardPermitted => $opacRenewCardPermitted,
+    renewcardview                 => 1,
+    BORROWER_INFO                 => $borrower,
+    enrolment_fee                 => $enrolment_fee,
+    enrolment_period              => $enrolment_period,
+    opacRenewCardDisplay          => $opacRenewCardDisplay,
+    opacRenewCardPermitted        => $opacRenewCardPermitted,
     opacRenewCardConfirmationText => C4::Context->preference("OpacRenewCardConfirmationText"),
-    card_renewed => $card_renewed,
-    errors => $errors
+    card_renewed                  => $card_renewed,
+    errors                        => $errors
 );
 
 output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

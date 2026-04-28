@@ -45,29 +45,30 @@ use Koha::Template::Plugin::KohaDates;
 
 use constant SERIALIZED_EMAIL_CONTENT_TYPE => 'message/rfc822';
 
-our (@ISA, @EXPORT_OK);
+our ( @ISA, @EXPORT_OK );
+
 BEGIN {
     require Exporter;
-    @ISA = qw(Exporter);
+    @ISA       = qw(Exporter);
     @EXPORT_OK = qw(
-      GetLetters
-      GetLettersAvailableForALibrary
-      GetLetterTemplates
-      GetAdhocNoticeLetters
-      GetPatronLetters
-      DelLetter
-      GetPreparedLetter
-      GetWrappedLetter
-      SendAlerts
-      GetPrintMessages
-      GetQueuedMessages
-      GetMessage
-      GetMessageTransportTypes
-      GetMessagesById
+        GetLetters
+        GetLettersAvailableForALibrary
+        GetLetterTemplates
+        GetAdhocNoticeLetters
+        GetPatronLetters
+        DelLetter
+        GetPreparedLetter
+        GetWrappedLetter
+        SendAlerts
+        GetPrintMessages
+        GetQueuedMessages
+        GetMessage
+        GetMessageTransportTypes
+        GetMessagesById
 
-      EnqueueLetter
-      SendQueuedMessages
-      ResendMessage
+        EnqueueLetter
+        SendQueuedMessages
+        ResendMessage
     );
 }
 
@@ -100,11 +101,11 @@ C4::Letters - Give functions for Letters management
 =cut
 
 sub GetLetters {
-    my ($filters) = @_;
-    my $module    = $filters->{module};
-    my $code      = $filters->{code};
+    my ($filters)  = @_;
+    my $module     = $filters->{module};
+    my $code       = $filters->{code};
     my $branchcode = $filters->{branchcode};
-    my $dbh       = C4::Context->dbh;
+    my $dbh        = C4::Context->dbh;
 
     # LMSCloud: check if the branch is a bookmobile station
     # if yes use letters of the bookmobile the branch
@@ -112,18 +113,18 @@ sub GetLetters {
         $branchcode = Koha::Libraries->get_effective_branch($branchcode);
     }
 
-    my $letters   = $dbh->selectall_arrayref(
+    my $letters = $dbh->selectall_arrayref(
         q|
             SELECT code, module, name
             FROM letter
             WHERE 1
         |
-          . ( $module ? q| AND module = ?| : q|| )
-          . ( $code   ? q| AND code = ?|   : q|| )
-          . ( defined $branchcode   ? q| AND branchcode = ?|   : q|| )
-          . q| GROUP BY code, module, name ORDER BY name|, { Slice => {} }
-        , ( $module ? $module : () )
-        , ( $code ? $code : () )
+            . ( $module             ? q| AND module = ?|     : q|| )
+            . ( $code               ? q| AND code = ?|       : q|| )
+            . ( defined $branchcode ? q| AND branchcode = ?| : q|| )
+            . q| GROUP BY code, module, name ORDER BY name|, { Slice => {} }
+        , ( $module             ? $module     : () )
+        , ( $code               ? $code       : () )
         , ( defined $branchcode ? $branchcode : () )
     );
 
@@ -145,12 +146,12 @@ sub GetLetters {
 =cut
 
 sub GetLetterTemplates {
-    my ( $params ) = @_;
+    my ($params) = @_;
 
-    my $module    = $params->{module};
-    my $code      = $params->{code};
+    my $module     = $params->{module};
+    my $code       = $params->{code};
     my $branchcode = $params->{branchcode} // '';
-    my $dbh       = C4::Context->dbh;
+    my $dbh        = C4::Context->dbh;
 
     # LMSCloud: check if the branch is a bookmobile station
     # if yes use letters of the bookmobile the branch
@@ -201,14 +202,15 @@ sub GetLettersAvailableForALibrary {
             FROM letter
             WHERE 1
         |
-          . q| AND branchcode = ''|
-          . ( $module ? q| AND module = ?| : q|| )
-          . q| ORDER BY name|, { Slice => {} }
+            . q| AND branchcode = ''|
+            . ( $module ? q| AND module = ?| : q|| )
+            . q| ORDER BY name|, { Slice => {} }
         , ( $module ? $module : () )
     );
 
     my $specific_letters;
     if ($branchcode) {
+
         # LMSCloud: check if the branch is a bookmobile station
         # if yes use letters of the bookmobile the branch
         $branchcode = Koha::Libraries->get_effective_branch($branchcode);
@@ -219,9 +221,9 @@ sub GetLettersAvailableForALibrary {
                 FROM letter
                 WHERE 1
             |
-              . q| AND branchcode = ?|
-              . ( $module ? q| AND module = ?| : q|| )
-              . q| ORDER BY name|, { Slice => {} }
+                . q| AND branchcode = ?|
+                . ( $module ? q| AND module = ?| : q|| )
+                . q| ORDER BY name|, { Slice => {} }
             , $branchcode
             , ( $module ? $module : () )
         );
@@ -232,13 +234,16 @@ sub GetLettersAvailableForALibrary {
         $letters{ $l->{code} } = $l;
     }
     for my $l (@$specific_letters) {
+
         # Overwrite the default letter with the specific one.
         $letters{ $l->{code} } = $l;
     }
 
-    return [ map { $letters{$_} }
-          sort { $letters{$a}->{name} cmp $letters{$b}->{name} }
-          keys %letters ];
+    return [
+        map  { $letters{$_} }
+        sort { $letters{$a}->{name} cmp $letters{$b}->{name} }
+            keys %letters
+    ];
 
 }
 
@@ -266,15 +271,16 @@ sub DelLetter {
     my $mtt        = $params->{mtt};
     my $lang       = $params->{lang};
     my $dbh        = C4::Context->dbh;
-    $dbh->do(q|
+    $dbh->do(
+        q|
         DELETE FROM letter
         WHERE branchcode = ?
           AND module = ?
           AND code = ?
     |
-    . ( $mtt ? q| AND message_transport_type = ?| : q|| )
-    . ( $lang? q| AND lang = ?| : q|| )
-    , undef, $branchcode, $module, $code, ( $mtt ? $mtt : () ), ( $lang ? $lang : () ) );
+            . ( $mtt ? q| AND message_transport_type = ?| : q|| ) . ( $lang ? q| AND lang = ?| : q|| ), undef,
+        $branchcode, $module, $code, ( $mtt ? $mtt : () ), ( $lang ? $lang : () )
+    );
 }
 
 =head2 SendAlerts
@@ -309,45 +315,42 @@ sub SendAlerts {
 
         # prepare the letter...
         # search the subscriptionid
-        my $sth =
-          $dbh->prepare(
-            "SELECT subscriptionid FROM serial WHERE serialid=?");
+        my $sth = $dbh->prepare("SELECT subscriptionid FROM serial WHERE serialid=?");
         $sth->execute($externalid);
         my ($subscriptionid) = $sth->fetchrow
-          or warn( "No subscription for '$externalid'" ),
-             return;
+            or warn("No subscription for '$externalid'"),
+            return;
 
         # search the biblionumber
-        $sth =
-          $dbh->prepare(
-            "SELECT biblionumber FROM subscription WHERE subscriptionid=?");
+        $sth = $dbh->prepare("SELECT biblionumber FROM subscription WHERE subscriptionid=?");
         $sth->execute($subscriptionid);
         my ($biblionumber) = $sth->fetchrow
-          or warn( "No biblionumber for '$subscriptionid'" ),
-             return;
+            or warn("No biblionumber for '$subscriptionid'"),
+            return;
 
         # find the list of subscribers to notify
-        my $subscription = Koha::Subscriptions->find( $subscriptionid );
-        my $subscribers = $subscription->subscribers;
+        my $subscription = Koha::Subscriptions->find($subscriptionid);
+        my $subscribers  = $subscription->subscribers;
         while ( my $patron = $subscribers->next ) {
             my $email = $patron->notice_email_address or next;
 
-#                    warn "sending issues...";
+            #                    warn "sending issues...";
             my $userenv = C4::Context->userenv;
+
             # LMSCloud: bookmobile branch remapping
             my $branchcode = Koha::Libraries->get_effective_branch( $patron->library->branchcode );
-            my $library = Koha::Libraries->find( $branchcode );
-            my $letter = GetPreparedLetter (
-                module => 'serial',
+            my $library    = Koha::Libraries->find($branchcode);
+            my $letter     = GetPreparedLetter(
+                module      => 'serial',
                 letter_code => $letter_code,
-                branchcode => $userenv->{branch},
-                tables => {
-                    'branches'    => $branchcode,
-                    'biblio'      => $biblionumber,
-                    'biblioitems' => $biblionumber,
-                    'borrowers'   => $patron->unblessed,
+                branchcode  => $userenv->{branch},
+                tables      => {
+                    'branches'     => $branchcode,
+                    'biblio'       => $biblionumber,
+                    'biblioitems'  => $biblionumber,
+                    'borrowers'    => $patron->unblessed,
                     'subscription' => $subscriptionid,
-                    'serial' => $externalid,
+                    'serial'       => $externalid,
                 },
                 want_librarian => 1,
             ) or return;
@@ -365,17 +368,17 @@ sub SendAlerts {
             );
 
             if ( $letter->{is_html} ) {
+
                 # LMSCloud: pass isEmail flag to _wrap_html
                 $mail->html_body( _wrap_html( $letter->{content}, "" . $letter->{title}, 1 ) );
-            }
-            else {
+            } else {
                 $mail->text_body( $letter->{content} );
             }
 
             my $success = try {
-                $mail->send_or_die({ transport => $library->smtp_server->transport });
-            }
-            catch {
+                $mail->send_or_die( { transport => $library->smtp_server->transport } );
+            } catch {
+
                 # We expect ref($_) eq 'Email::Sender::Failure'
                 $error = $_->message;
 
@@ -386,8 +389,7 @@ sub SendAlerts {
             return { error => $error }
                 unless $success;
         }
-    }
-    elsif ( $type eq 'claimacquisition' or $type eq 'claimissues' or $type eq 'orderacquisition' ) {
+    } elsif ( $type eq 'claimacquisition' or $type eq 'claimissues' or $type eq 'orderacquisition' ) {
 
         # prepare the letter...
         my $strsth;
@@ -396,7 +398,7 @@ sub SendAlerts {
         my $action;
         my $basketno;
         my %loops;
-        if ( $type eq 'claimacquisition') {
+        if ( $type eq 'claimacquisition' ) {
             $strsth = qq{
             SELECT aqorders.*,aqbasket.*,biblio.*,biblioitems.*
             FROM aqorders
@@ -406,18 +408,18 @@ sub SendAlerts {
             WHERE aqorders.ordernumber IN (
             };
 
-            if (!@$externalid){
+            if ( !@$externalid ) {
                 carp "No order selected";
                 return { error => "no_order_selected" };
             }
             $strsth .= join( ",", ('?') x @$externalid ) . ")";
-            $action = "ACQUISITION CLAIM";
+            $action    = "ACQUISITION CLAIM";
             $sthorders = $dbh->prepare($strsth);
-            $sthorders->execute( @$externalid );
+            $sthorders->execute(@$externalid);
             $dataorders = $sthorders->fetchall_arrayref( {} );
         }
 
-        if ($type eq 'claimissues') {
+        if ( $type eq 'claimissues' ) {
             $strsth = qq{
             SELECT serial.*,subscription.*, biblio.*, biblioitems.*, aqbooksellers.*,
             aqbooksellers.id AS booksellerid
@@ -429,21 +431,21 @@ sub SendAlerts {
             WHERE serial.serialid IN (
             };
 
-            if (!@$externalid){
+            if ( !@$externalid ) {
                 carp "No issues selected";
                 return { error => "no_issues_selected" };
             }
 
             $strsth .= join( ",", ('?') x @$externalid ) . ")";
-            $action = "SERIAL CLAIM";
+            $action    = "SERIAL CLAIM";
             $sthorders = $dbh->prepare($strsth);
-            $sthorders->execute( @$externalid );
+            $sthorders->execute(@$externalid);
             $dataorders = $sthorders->fetchall_arrayref( {} );
         }
 
-        if ( $type eq 'orderacquisition') {
+        if ( $type eq 'orderacquisition' ) {
             $basketno = $externalid;
-            $strsth = qq{
+            $strsth   = qq{
             SELECT aqorders.*,aqbasket.*,biblio.*,biblioitems.*
             FROM aqorders
             LEFT JOIN aqbasket ON aqbasket.basketno=aqorders.basketno
@@ -453,34 +455,32 @@ sub SendAlerts {
             AND orderstatus IN ('new','ordered')
             };
 
-            unless ( $basketno ) {
+            unless ($basketno) {
                 carp "No basketnumber given";
                 return { error => "no_basketno" };
             }
-            $action = "ACQUISITION ORDER";
+            $action    = "ACQUISITION ORDER";
             $sthorders = $dbh->prepare($strsth);
             $sthorders->execute($basketno);
             $dataorders = $sthorders->fetchall_arrayref( {} );
 
             # LMSCloud: remove special characters
-            foreach my $orderline ( @$dataorders ) {
-                foreach my $fieldname ( keys %{ $orderline } ) {
-                    if ( $orderline->{$fieldname} ){
-                        $orderline->{$fieldname} =~ s/['\\]//gi ;
+            foreach my $orderline (@$dataorders) {
+                foreach my $fieldname ( keys %{$orderline} ) {
+                    if ( $orderline->{$fieldname} ) {
+                        $orderline->{$fieldname} =~ s/['\\]//gi;
                     }
                 }
             }
-            %loops = (
-                aqorders => [ map { $_->{ordernumber} } @$dataorders ]
-            );
+            %loops = ( aqorders => [ map { $_->{ordernumber} } @$dataorders ] );
         }
 
         my $booksellerid = $dataorders->[0]->{booksellerid};
-        my $addressee =  $type eq 'claimacquisition' || $type eq 'orderacquisition' ? 'acqprimary' : 'serialsprimary';
+        my $addressee    = $type eq 'claimacquisition' || $type eq 'orderacquisition' ? 'acqprimary' : 'serialsprimary';
 
         my $sthcontact =
-          $dbh->prepare("SELECT * FROM aqcontacts WHERE booksellerid=? AND $type=1 ORDER BY $addressee DESC");
-        $sthcontact->execute( $booksellerid );
+            $dbh->prepare("SELECT * FROM aqcontacts WHERE booksellerid=? AND $type=1 ORDER BY $addressee DESC");
+        $sthcontact->execute($booksellerid);
         my $datacontact = $sthcontact->fetchrow_hashref;
 
         # LMSCloud: delivery/billing branch for substitution
@@ -489,32 +489,34 @@ sub SendAlerts {
 
         my @email;
         my @cc;
-        push @email, $datacontact->{email}           if ( $datacontact && $datacontact->{email} );
+        push @email, $datacontact->{email} if ( $datacontact && $datacontact->{email} );
         unless (@email) {
             warn "Bookseller $booksellerid without emails";
             return { error => "no_email" };
         }
         my $addlcontact;
-        while ($addlcontact = $sthcontact->fetchrow_hashref) {
+        while ( $addlcontact = $sthcontact->fetchrow_hashref ) {
             push @cc, $addlcontact->{email} if ( $addlcontact && $addlcontact->{email} );
         }
 
         my $userenv = C4::Context->userenv;
+
         # LMSCloud: bookmobile branch remapping
         my $branchcode = Koha::Libraries->get_effective_branch( $userenv->{branch} );
-        my $letter = GetPreparedLetter (
-            module => $type,
+        my $letter     = GetPreparedLetter(
+            module      => $type,
             letter_code => $letter_code,
-            branchcode => $branchcode,
-            tables => {
+            branchcode  => $branchcode,
+            tables      => {
                 'branches'      => $branchcode,
                 'aqbooksellers' => $booksellerid,
                 'aqcontacts'    => $datacontact,
                 'aqbasket'      => $basketno,
             },
-            repeat => $dataorders,
-            loops => \%loops,
+            repeat         => $dataorders,
+            loops          => \%loops,
             want_librarian => 1,
+
             # LMSCloud: delivery/billing branch substitution
             substitute => { deliverybranch => $deliverybranch, billingbranch => $billingbranch },
         ) or return { error => "no_letter" };
@@ -524,7 +526,7 @@ sub SendAlerts {
 
         # ... then send mail
         my $library = Koha::Libraries->find( $userenv->{branch} );
-        my $mail = Koha::Email->create(
+        my $mail    = Koha::Email->create(
             {
                 to => join( ',', @email ),
                 cc => join( ',', @cc ),
@@ -559,17 +561,17 @@ sub SendAlerts {
         );
 
         if ( $letter->{is_html} ) {
+
             # LMSCloud: pass isEmail flag to _wrap_html
             $mail->html_body( _wrap_html( $letter->{content}, "" . $letter->{title}, 1 ) );
-        }
-        else {
+        } else {
             $mail->text_body( "" . $letter->{content} );
         }
 
         my $success = try {
-            $mail->send_or_die({ transport => $library->smtp_server->transport });
-        }
-        catch {
+            $mail->send_or_die( { transport => $library->smtp_server->transport } );
+        } catch {
+
             # We expect ref($_) eq 'Email::Sender::Failure'
             $error = $_->message;
 
@@ -580,18 +582,13 @@ sub SendAlerts {
         return { error => $error }
             unless $success;
 
-        my $log_object = $action eq 'ACQUISITION ORDER' ? $externalid : undef;
-        my $module = $action eq 'ACQUISITION ORDER' ? 'ACQUISITIONS' : 'CLAIMS';
+        my $log_object = $action eq 'ACQUISITION ORDER' ? $externalid    : undef;
+        my $module     = $action eq 'ACQUISITION ORDER' ? 'ACQUISITIONS' : 'CLAIMS';
         logaction(
             $module,
             $action,
             $log_object,
-            "To="
-                . join( ',', @email )
-                . " Title="
-                . $letter->{title}
-                . " Content="
-                . $letter->{content}
+            "To=" . join( ',', @email ) . " Title=" . $letter->{title} . " Content=" . $letter->{content}
         ) if C4::Context->preference("ClaimsLog");
     }
 
@@ -634,10 +631,10 @@ sub GetPreparedLetter {
     my $letter = $params{letter};
     my $lang   = $params{lang} || 'default';
 
-    unless ( $letter ) {
-        my $module      = $params{module} or croak "No module";
+    unless ($letter) {
+        my $module      = $params{module}      or croak "No module";
         my $letter_code = $params{letter_code} or croak "No letter_code";
-        my $branchcode  = $params{branchcode} || '';
+        my $branchcode  = $params{branchcode}             || '';
         my $mtt         = $params{message_transport_type} || 'email';
 
         # LMSCloud: check if the branch is a bookmobile station
@@ -656,7 +653,7 @@ sub GetPreparedLetter {
             }
         );
 
-        unless ( $template ) {
+        unless ($template) {
             warn( "No $module $letter_code letter transported by " . $mtt );
             return;
         }
@@ -666,15 +663,16 @@ sub GetPreparedLetter {
     }
     $lang = $letter->{'lang'};
 
-    my $objects = $params{objects} || {};
-    my $tables = $params{tables} || {};
+    my $objects    = $params{objects}    || {};
+    my $tables     = $params{tables}     || {};
     my $substitute = $params{substitute} || {};
-    my $loops  = $params{loops} || {}; # loops is not supported for historical notices syntax
-    my $repeat = $params{repeat};
+    my $loops      = $params{loops}      || {};    # loops is not supported for historical notices syntax
+    my $repeat     = $params{repeat};
     %$tables || %$substitute || $repeat || %$loops || %$objects
-      or carp( "ERROR: nothing to substitute - all of 'objects', 'tables', 'loops' and 'substitute' are empty" ),
-         return;
+        or carp("ERROR: nothing to substitute - all of 'objects', 'tables', 'loops' and 'substitute' are empty"),
+        return;
     my $want_librarian = $params{want_librarian};
+
     if ($want_librarian) {
         my $userenv = C4::Context->userenv;
         $objects->{librarian} = Koha::Patrons->find( C4::Context->userenv->{number} ) if ($userenv);
@@ -715,21 +713,22 @@ sub GetPreparedLetter {
     );
 
     if (%$substitute) {
-        while ( my ($token, $val) = each %$substitute ) {
+        while ( my ( $token, $val ) = each %$substitute ) {
             $val //= q{};
             if ( $token eq 'items.content' ) {
                 $val =~ s|\n|<br/>|g if $letter->{is_html};
             }
 
-            $letter->{title} =~ s/<<$token>>/$val/g;
+            $letter->{title}   =~ s/<<$token>>/$val/g;
             $letter->{content} =~ s/<<$token>>/$val/g;
-       }
+        }
     }
 
     my $OPACBaseURL = C4::Context->preference('OPACBaseURL');
     $letter->{content} =~ s/<<OPACBaseURL>>/$OPACBaseURL/go;
 
     if ($want_librarian) {
+
         # parsing librarian name
         my $userenv = C4::Context->userenv;
         $letter->{content} =~ s/<<LibrarianFirstname>>/$userenv->{firstname}/go;
@@ -737,10 +736,10 @@ sub GetPreparedLetter {
         $letter->{content} =~ s/<<LibrarianEmailaddress>>/$userenv->{emailaddress}/go;
     }
 
-    my ($repeat_no_enclosing_tags, $repeat_enclosing_tags);
+    my ( $repeat_no_enclosing_tags, $repeat_enclosing_tags );
 
     if ($repeat) {
-        if (ref ($repeat) eq 'ARRAY' ) {
+        if ( ref($repeat) eq 'ARRAY' ) {
             $repeat_no_enclosing_tags = $repeat;
         } else {
             $repeat_enclosing_tags = $repeat;
@@ -748,10 +747,10 @@ sub GetPreparedLetter {
     }
 
     if ($repeat_enclosing_tags) {
-        while ( my ($tag, $tag_tables) = each %$repeat_enclosing_tags ) {
+        while ( my ( $tag, $tag_tables ) = each %$repeat_enclosing_tags ) {
             if ( $letter->{content} =~ m!<$tag>(.*)</$tag>!s ) {
                 my $subcontent = $1;
-                my @lines = map {
+                my @lines      = map {
                     my %subletter = ( title => '', content => $subcontent );
                     _substitute_tables( \%subletter, $_ );
                     $subletter{content};
@@ -767,8 +766,8 @@ sub GetPreparedLetter {
 
     if ($repeat_no_enclosing_tags) {
         if ( $letter->{content} =~ m/[^\n]*<<.*>>[^\n]*/so ) {
-            my $line = $&;
-            my $i = 1;
+            my $line  = $&;
+            my $i     = 1;
             my @lines = map {
                 my $c = $line;
                 $c =~ s/<<count>>/$i/go;
@@ -784,7 +783,7 @@ sub GetPreparedLetter {
         }
     }
 
-    $letter->{content} =~ s/<<\S*>>//go; #remove any stragglers
+    $letter->{content} =~ s/<<\S*>>//go;    #remove any stragglers
 
     Koha::Plugins->call( 'transform_prepared_letter', { letter => $letter, params => \%params } );
 
@@ -793,19 +792,19 @@ sub GetPreparedLetter {
 
 sub _substitute_tables {
     my ( $letter, $tables ) = @_;
-    while ( my ($table, $param) = each %$tables ) {
+    while ( my ( $table, $param ) = each %$tables ) {
         next unless $param;
 
         my $ref = ref $param;
 
         my $values;
-        if ($ref && $ref eq 'HASH') {
+        if ( $ref && $ref eq 'HASH' ) {
             $values = $param;
-        }
-        else {
+        } else {
             my $sth = _parseletter_sth($table);
             unless ($sth) {
-                warn "_parseletter_sth('$table') failed to return a valid sth.  No substitution will be done for that table.";
+                warn
+                    "_parseletter_sth('$table') failed to return a valid sth.  No substitution will be done for that table.";
                 return;
             }
             $sth->execute( $ref ? @$param : $param );
@@ -814,7 +813,7 @@ sub _substitute_tables {
             $sth->finish();
         }
 
-        _parseletter ( $letter, $table, $values );
+        _parseletter( $letter, $table, $values );
     }
 }
 
@@ -825,42 +824,44 @@ sub _parseletter_sth {
         carp "ERROR: _parseletter_sth() called without argument (table)";
         return;
     }
+
     # NOTE: we used to check whether we had a statement handle cached in
     #       a %handles module-level variable. This was a dumb move and
     #       broke things for the rest of us. prepare_cached is a better
     #       way to cache statement handles anyway.
-    my $query = 
-    ($table eq 'accountlines' )    ? "SELECT * FROM $table WHERE   accountlines_id = ?"                               :
-    ($table eq 'biblio'       )    ? "SELECT * FROM $table WHERE   biblionumber = ?"                                  :
-    ($table eq 'biblioitems'  )    ? "SELECT * FROM $table WHERE   biblionumber = ?"                                  :
-    ($table eq 'tickets'      )    ? "SELECT * FROM $table WHERE   id = ?"                                            :
-    ($table eq 'ticket_updates' )  ? "SELECT * FROM $table WHERE   id = ?"                                            :
-    ($table eq 'credits'      )    ? "SELECT * FROM accountlines WHERE   accountlines_id = ?"                         :
-    ($table eq 'debits'       )    ? "SELECT * FROM accountlines WHERE   accountlines_id = ?"                         :
-    ($table eq 'items'        )    ? "SELECT * FROM $table WHERE     itemnumber = ?"                                  :
-    ($table eq 'issues'       )    ? "SELECT * FROM $table WHERE     itemnumber = ?"                                  :
-    ($table eq 'old_issues'   )    ? "SELECT * FROM $table WHERE     issue_id = ?"  :
-    ($table eq 'reserves'     )    ? "SELECT * FROM $table WHERE borrowernumber = ? and biblionumber = ?"             :
-    ($table eq 'borrowers'    )    ? "SELECT * FROM $table WHERE borrowernumber = ?"                                  :
-    ($table eq 'branches'     )    ? "SELECT * FROM $table WHERE     branchcode = ?"                                  :
-    ($table eq 'suggestions'  )    ? "SELECT * FROM $table WHERE   suggestionid = ?"                                  :
-    ($table eq 'aqbooksellers')    ? "SELECT * FROM $table WHERE             id = ?"                                  :
-    ($table eq 'aqorders'     )    ? "SELECT * FROM $table WHERE    ordernumber = ?"                                  :
-    ($table eq 'aqbasket'     )    ? "SELECT * FROM $table WHERE       basketno = ?"                                  :
-    ($table eq 'illrequests'  )    ? "SELECT * FROM $table WHERE  illrequest_id = ?"                                  :
-    ($table eq 'article_requests') ? "SELECT * FROM $table WHERE             id = ?"                                  :
-    ($table eq 'borrower_modifications') ? "SELECT * FROM $table WHERE verification_token = ?" :
-    ($table eq 'subscription') ? "SELECT * FROM $table WHERE subscriptionid = ?" :
-    ($table eq 'serial') ? "SELECT * FROM $table WHERE serialid = ?" :
-    ($table eq 'problem_reports') ? "SELECT * FROM $table WHERE reportid = ?" :
-    ($table eq 'additional_contents' || $table eq 'opac_news') ? "SELECT * FROM additional_contents_localizations WHERE id = ?" :
-    ($table eq 'recalls') ? "SELECT * FROM $table WHERE recall_id = ?" :
-    undef ;
+    my $query =
+          ( $table eq 'accountlines' )           ? "SELECT * FROM $table WHERE   accountlines_id = ?"
+        : ( $table eq 'biblio' )                 ? "SELECT * FROM $table WHERE   biblionumber = ?"
+        : ( $table eq 'biblioitems' )            ? "SELECT * FROM $table WHERE   biblionumber = ?"
+        : ( $table eq 'tickets' )                ? "SELECT * FROM $table WHERE   id = ?"
+        : ( $table eq 'ticket_updates' )         ? "SELECT * FROM $table WHERE   id = ?"
+        : ( $table eq 'credits' )                ? "SELECT * FROM accountlines WHERE   accountlines_id = ?"
+        : ( $table eq 'debits' )                 ? "SELECT * FROM accountlines WHERE   accountlines_id = ?"
+        : ( $table eq 'items' )                  ? "SELECT * FROM $table WHERE     itemnumber = ?"
+        : ( $table eq 'issues' )                 ? "SELECT * FROM $table WHERE     itemnumber = ?"
+        : ( $table eq 'old_issues' )             ? "SELECT * FROM $table WHERE     issue_id = ?"
+        : ( $table eq 'reserves' )               ? "SELECT * FROM $table WHERE borrowernumber = ? and biblionumber = ?"
+        : ( $table eq 'borrowers' )              ? "SELECT * FROM $table WHERE borrowernumber = ?"
+        : ( $table eq 'branches' )               ? "SELECT * FROM $table WHERE     branchcode = ?"
+        : ( $table eq 'suggestions' )            ? "SELECT * FROM $table WHERE   suggestionid = ?"
+        : ( $table eq 'aqbooksellers' )          ? "SELECT * FROM $table WHERE             id = ?"
+        : ( $table eq 'aqorders' )               ? "SELECT * FROM $table WHERE    ordernumber = ?"
+        : ( $table eq 'aqbasket' )               ? "SELECT * FROM $table WHERE       basketno = ?"
+        : ( $table eq 'illrequests' )            ? "SELECT * FROM $table WHERE  illrequest_id = ?"
+        : ( $table eq 'article_requests' )       ? "SELECT * FROM $table WHERE             id = ?"
+        : ( $table eq 'borrower_modifications' ) ? "SELECT * FROM $table WHERE verification_token = ?"
+        : ( $table eq 'subscription' )           ? "SELECT * FROM $table WHERE subscriptionid = ?"
+        : ( $table eq 'serial' )                 ? "SELECT * FROM $table WHERE serialid = ?"
+        : ( $table eq 'problem_reports' )        ? "SELECT * FROM $table WHERE reportid = ?"
+        : ( $table eq 'additional_contents' || $table eq 'opac_news' )
+        ? "SELECT * FROM additional_contents_localizations WHERE id = ?"
+        : ( $table eq 'recalls' ) ? "SELECT * FROM $table WHERE recall_id = ?"
+        :                           undef;
     unless ($query) {
         warn "ERROR: No _parseletter_sth query for table '$table'";
-        return;     # nothing to get
+        return;    # nothing to get
     }
-    unless ($sth = C4::Context->dbh->prepare_cached($query)) {
+    unless ( $sth = C4::Context->dbh->prepare_cached($query) ) {
         warn "ERROR: Failed to prepare query: '$query'";
         return;
     }
@@ -883,86 +884,92 @@ sub _parseletter {
 
     # Work on a local copy of $values_in (passed by reference) to avoid side effects
     # in callers ( by changing / formatting values )
-    my $values = $values_in ? { %$values_in } : {};
+    my $values = $values_in ? {%$values_in} : {};
 
     # FIXME Dates formatting must be done in notice's templates
-    if ( $table eq 'borrowers' && $values->{'dateexpiry'} ){
-        $values->{'dateexpiry'} = output_pref({ dt => dt_from_string( $values->{'dateexpiry'} ), dateonly => 1 });
+    if ( $table eq 'borrowers' && $values->{'dateexpiry'} ) {
+        $values->{'dateexpiry'} = output_pref( { dt => dt_from_string( $values->{'dateexpiry'} ), dateonly => 1 } );
     }
 
     if ( $table eq 'reserves' && $values->{'waitingdate'} ) {
-        $values->{'waitingdate'} = output_pref({ dt => dt_from_string( $values->{'waitingdate'} ), dateonly => 1 });
+        $values->{'waitingdate'} = output_pref( { dt => dt_from_string( $values->{'waitingdate'} ), dateonly => 1 } );
     }
 
-    if ($letter->{content} && $letter->{content} =~ /<<today>>/) {
+    if ( $letter->{content} && $letter->{content} =~ /<<today>>/ ) {
         my $todaysdate = output_pref( dt_from_string() );
         $letter->{content} =~ s/<<today>>/$todaysdate/go;
     }
 
-    while ( my ($field, $val) = each %$values ) {
-        $val =~ s/\p{P}$// if $val && $table=~/biblio/;
-            #BZ 9886: Assuming that we want to eliminate ISBD punctuation here
-            #Therefore adding the test on biblio. This includes biblioitems,
-            #but excludes items. Removed unneeded global and lookahead.
+    while ( my ( $field, $val ) = each %$values ) {
+        $val =~ s/\p{P}$// if $val && $table =~ /biblio/;
 
-        if ( $table=~/^borrowers$/ && $field=~/^streettype$/ ) {
-            my $av = Koha::AuthorisedValues->search({ category => 'ROADTYPE', authorised_value => $val });
+        #BZ 9886: Assuming that we want to eliminate ISBD punctuation here
+        #Therefore adding the test on biblio. This includes biblioitems,
+        #but excludes items. Removed unneeded global and lookahead.
+
+        if ( $table =~ /^borrowers$/ && $field =~ /^streettype$/ ) {
+            my $av = Koha::AuthorisedValues->search( { category => 'ROADTYPE', authorised_value => $val } );
             $val = $av->count ? $av->next->lib : '';
         }
 
         # Dates replacement
-        my $replacedby   = defined ($val) ? $val : '';
+        my $replacedby = defined($val) ? $val : '';
         if (    $replacedby
             and not $replacedby =~ m|9999-12-31|
             and $replacedby =~ m|^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}:\d{2})?$| )
         {
             # If the value is XXXX-YY-ZZ[ AA:BB:CC] we assume it is a date
-            my $dateonly = defined $1 ? 0 : 1; #$1 refers to the capture group wrapped in parentheses. In this case, that's the hours, minutes, seconds.
+            my $dateonly =
+                defined $1
+                ? 0
+                : 1
+                ; #$1 refers to the capture group wrapped in parentheses. In this case, that's the hours, minutes, seconds.
             my $re_dateonly_filter = qr{ $field( \s* \| \s* dateonly\s*)?>> }xms;
 
-            for my $letter_field ( qw( title content ) ) {
+            for my $letter_field (qw( title content )) {
                 my $filter_string_used = q{};
-                if ( $letter->{ $letter_field } =~ $re_dateonly_filter ) {
+                if ( $letter->{$letter_field} =~ $re_dateonly_filter ) {
+
                     # We overwrite $dateonly if the filter exists and we have a time in the datetime
                     $filter_string_used = $1 || q{};
-                    $dateonly = $1 unless $dateonly;
+                    $dateonly           = $1 unless $dateonly;
                 }
-                my $replacedby_date = eval {
-                    output_pref({ dt => scalar dt_from_string( $replacedby ), dateonly => $dateonly });
-                };
+                my $replacedby_date =
+                    eval { output_pref( { dt => scalar dt_from_string($replacedby), dateonly => $dateonly } ); };
                 $replacedby_date //= q{};
 
-                if ( $letter->{ $letter_field } ) {
-                    $letter->{ $letter_field } =~ s/\Q<<$table.$field$filter_string_used>>\E/$replacedby_date/g;
-                    $letter->{ $letter_field } =~ s/\Q<<$field$filter_string_used>>\E/$replacedby_date/g;
+                if ( $letter->{$letter_field} ) {
+                    $letter->{$letter_field} =~ s/\Q<<$table.$field$filter_string_used>>\E/$replacedby_date/g;
+                    $letter->{$letter_field} =~ s/\Q<<$field$filter_string_used>>\E/$replacedby_date/g;
                 }
             }
         }
+
         # Other fields replacement
         else {
-            for my $letter_field ( qw( title content ) ) {
-                if ( $letter->{ $letter_field } ) {
-                    $letter->{ $letter_field }   =~ s/<<$table.$field>>/$replacedby/g;
-                    $letter->{ $letter_field }   =~ s/<<$field>>/$replacedby/g;
+            for my $letter_field (qw( title content )) {
+                if ( $letter->{$letter_field} ) {
+                    $letter->{$letter_field} =~ s/<<$table.$field>>/$replacedby/g;
+                    $letter->{$letter_field} =~ s/<<$field>>/$replacedby/g;
                 }
             }
         }
     }
 
-    if ($table eq 'borrowers' && $letter->{content}) {
+    if ( $table eq 'borrowers' && $letter->{content} ) {
         my $patron = Koha::Patrons->find( $values->{borrowernumber} );
-        if ( $patron ) {
+        if ($patron) {
             my $attributes = $patron->extended_attributes;
             my %attr;
             while ( my $attribute = $attributes->next ) {
                 my $code = $attribute->code;
-                my $val  = $attribute->description; # FIXME - we always display intranet description here!
+                my $val  = $attribute->description;    # FIXME - we always display intranet description here!
                 $val =~ s/\p{P}(?=$)//g if $val;
                 next unless $val gt '';
                 $attr{$code} ||= [];
                 push @{ $attr{$code} }, $val;
             }
-            while ( my ($code, $val_ar) = each %attr ) {
+            while ( my ( $code, $val_ar ) = each %attr ) {
                 my $replacefield = "<<borrower-attribute:$code>>";
                 my $replacedby   = join ',', @$val_ar;
                 $letter->{content} =~ s/$replacefield/$replacedby/g;
@@ -997,11 +1004,12 @@ sub EnqueueLetter {
     my $params = shift or return;
 
     return unless exists $params->{'letter'};
-#   return unless exists $params->{'borrowernumber'};
+
+    #   return unless exists $params->{'borrowernumber'};
     return unless exists $params->{'message_transport_type'};
 
     my $content = $params->{letter}->{content};
-    $content =~ s/\s+//g if(defined $content);
+    $content =~ s/\s+//g if ( defined $content );
     if ( not defined $content or $content eq '' ) {
         Koha::Logger->get->info("Trying to add an empty message to the message queue");
         return;
@@ -1010,7 +1018,8 @@ sub EnqueueLetter {
     # If we have any attachments we should encode then into the body.
     if ( $params->{'attachments'} ) {
         $params->{'letter'} = _add_attachments(
-            {   letter      => $params->{'letter'},
+            {
+                letter      => $params->{'letter'},
                 attachments => $params->{'attachments'},
             }
         );
@@ -1029,7 +1038,7 @@ sub EnqueueLetter {
             subject                => $params->{letter}->{title},
             content                => $params->{letter}->{content},
             metadata               => $params->{letter}->{metadata} || q{},
-            letter_code            => $params->{letter}->{code} || q{},
+            letter_code            => $params->{letter}->{code}     || q{},
             message_transport_type => $params->{message_transport_type},
             status                 => 'pending',
             time_queued            => dt_from_string(),
@@ -1038,7 +1047,7 @@ sub EnqueueLetter {
             reply_address          => $params->{reply_address},
             content_type           => $params->{letter}->{'content-type'},
             failure_code           => $params->{failure_code} || q{},
-            branchcode             => $params->{branchcode} || undef,
+            branchcode             => $params->{branchcode}   || undef,
         }
     )->store();
     return $message->id;
@@ -1070,16 +1079,18 @@ Returns number of messages sent.
 
 sub SendQueuedMessages {
     my $params = shift;
-    my $limit = $params->{limit};
-    my $where = $params->{where};
+    my $limit  = $params->{limit};
+    my $where  = $params->{where};
 
     Koha::Exceptions::BadParameter->throw("Parameter message_id cannot be empty if passed.")
         if ( exists( $params->{message_id} ) && !$params->{message_id} );
 
     if ( C4::Context->config("enable_plugins") ) {
-        my @plugins = Koha::Plugins->new->GetPlugins({
-            method => 'before_send_messages',
-        });
+        my @plugins = Koha::Plugins->new->GetPlugins(
+            {
+                method => 'before_send_messages',
+            }
+        );
 
         if (@plugins) {
             foreach my $plugin (@plugins) {
@@ -1095,21 +1106,29 @@ sub SendQueuedMessages {
 
     my $smtp_transports = {};
 
-    my $count_messages = 0;
-    my $unsent_messages = Koha::Notice::Messages->search({
-        status  => 'pending',
-        $params->{message_id} ? ( message_id => $params->{message_id} ) : (),
-        $params->{borrowernumber} ? ( borrowernumber => $params->{borrowernumber} ) : (),
-        # Check for scalar or array in letter_code and type
-        ref($params->{letter_code}) && @{$params->{letter_code}} ? ( letter_code => $params->{letter_code} ) : (),
-        !ref($params->{letter_code}) && $params->{letter_code} ? ( letter_code => $params->{letter_code} ) : (),
-        ref($params->{type}) && @{$params->{type}} ? ( message_transport_type => $params->{type} ) : (), #TODO Existing inconsistency
-        !ref($params->{type}) && $params->{type} ? ( message_transport_type => $params->{type} ) : (), #TODO Existing inconsistency
-    });
+    my $count_messages  = 0;
+    my $unsent_messages = Koha::Notice::Messages->search(
+        {
+            status => 'pending',
+            $params->{message_id}     ? ( message_id     => $params->{message_id} )     : (),
+            $params->{borrowernumber} ? ( borrowernumber => $params->{borrowernumber} ) : (),
+
+            # Check for scalar or array in letter_code and type
+            ref( $params->{letter_code} )
+                && @{ $params->{letter_code} } ? ( letter_code => $params->{letter_code} ) : (),
+            !ref( $params->{letter_code} ) && $params->{letter_code} ? ( letter_code => $params->{letter_code} ) : (),
+            ref( $params->{type} )
+                && @{ $params->{type} }
+            ? ( message_transport_type => $params->{type} )
+            : (),    #TODO Existing inconsistency
+            !ref( $params->{type} )
+                && $params->{type} ? ( message_transport_type => $params->{type} ) : (),    #TODO Existing inconsistency
+        }
+    );
     $unsent_messages = $unsent_messages->search( \$where ) if $where;
 
-    $domain_limits = Koha::Notice::Util->load_domain_limits; # (re)initialize per run
-    while( ( my $message_object = $unsent_messages->next ) && ( !$limit || $count_messages < $limit ) ) {
+    $domain_limits = Koha::Notice::Util->load_domain_limits;    # (re)initialize per run
+    while ( ( my $message_object = $unsent_messages->next ) && ( !$limit || $count_messages < $limit ) ) {
         my $message = $message_object->unblessed;
 
         # If this fails the database is unwritable and we won't manage to send a message that continues to be marked 'pending'
@@ -1117,45 +1136,55 @@ sub SendQueuedMessages {
         return unless $message_object->store;
 
         # warn Data::Dumper->Dump( [ $message ], [ 'message' ] );
-        warn sprintf( 'Processing %s message to patron: %s',
-                      $message->{'message_transport_type'},
-                      $message->{'borrowernumber'} || 'Admin' )
-          if $params->{'verbose'};
+        warn sprintf(
+            'Processing %s message to patron: %s',
+            $message->{'message_transport_type'},
+            $message->{'borrowernumber'} || 'Admin'
+        ) if $params->{'verbose'};
+
         # This is just begging for subclassing
-        next if ( lc($message->{'message_transport_type'}) eq 'rss' );
+        next if ( lc( $message->{'message_transport_type'} ) eq 'rss' );
         if ( lc( $message->{'message_transport_type'} ) eq 'email' ) {
-            my $rv = _send_message_by_email( $message, $params->{'username'}, $params->{'password'}, $params->{'method'}, $smtp_transports );
+            my $rv = _send_message_by_email(
+                $message, $params->{'username'}, $params->{'password'}, $params->{'method'},
+                $smtp_transports
+            );
             $count_messages++ if $rv;
-        }
-        elsif ( lc( $message->{'message_transport_type'} ) eq 'sms' ) {
+        } elsif ( lc( $message->{'message_transport_type'} ) eq 'sms' ) {
             if ( C4::Context->preference('SMSSendDriver') eq 'Email' ) {
-                my $patron = Koha::Patrons->find( $message->{borrowernumber} );
+                my $patron       = Koha::Patrons->find( $message->{borrowernumber} );
                 my $sms_provider = Koha::SMS::Providers->find( $patron->sms_provider_id );
-                unless ( $sms_provider ) {
-                    warn sprintf( "Patron %s has no sms provider id set!", $message->{'borrowernumber'} ) if $params->{'verbose'};
+                unless ($sms_provider) {
+                    warn sprintf( "Patron %s has no sms provider id set!", $message->{'borrowernumber'} )
+                        if $params->{'verbose'};
                     _set_message_status( { message_id => $message->{'message_id'}, status => 'failed' } );
                     next;
                 }
                 unless ( $patron->smsalertnumber ) {
                     _set_message_status( { message_id => $message->{'message_id'}, status => 'failed' } );
-                    warn sprintf( "No smsalertnumber found for patron %s!", $message->{'borrowernumber'} ) if $params->{'verbose'};
+                    warn sprintf( "No smsalertnumber found for patron %s!", $message->{'borrowernumber'} )
+                        if $params->{'verbose'};
                     next;
                 }
-                $message->{to_address}  = $patron->smsalertnumber; #Sometime this is set to email - sms should always use smsalertnumber
+                $message->{to_address} =
+                    $patron->smsalertnumber;    #Sometime this is set to email - sms should always use smsalertnumber
                 $message->{to_address} .= '@' . $sms_provider->domain();
 
                 # Check for possible from_address override
                 my $from_address = C4::Context->preference('EmailSMSSendDriverFromAddress');
-                if ($from_address && $message->{from_address} ne $from_address) {
+                if ( $from_address && $message->{from_address} ne $from_address ) {
                     $message->{from_address} = $from_address;
-                    _update_message_from_address($message->{'message_id'}, $message->{from_address});
+                    _update_message_from_address( $message->{'message_id'}, $message->{from_address} );
                 }
 
-                _update_message_to_address($message->{'message_id'}, $message->{to_address});
-                my $rv = _send_message_by_email( $message, $params->{'username'}, $params->{'password'}, $params->{'method'} );
+                _update_message_to_address( $message->{'message_id'}, $message->{to_address} );
+                my $rv = _send_message_by_email(
+                    $message, $params->{'username'}, $params->{'password'},
+                    $params->{'method'}
+                );
                 $count_messages++ if $rv;
             } else {
-                my $rv = _send_message_by_sms( $message );
+                my $rv = _send_message_by_sms($message);
                 $count_messages++ if $rv;
             }
         }
@@ -1177,10 +1206,14 @@ sub GetRSSMessages {
     return unless $params;
     return unless ref $params;
     return unless $params->{'borrowernumber'};
-    
-    return _get_unsent_messages( { message_transport_type => 'rss',
-                                   limit                  => $params->{'limit'},
-                                   borrowernumber         => $params->{'borrowernumber'}, } );
+
+    return _get_unsent_messages(
+        {
+            message_transport_type => 'rss',
+            limit                  => $params->{'limit'},
+            borrowernumber         => $params->{'borrowernumber'},
+        }
+    );
 }
 
 =head2 GetPrintMessages
@@ -1195,12 +1228,16 @@ person).
 sub GetPrintMessages {
     my $params = shift || {};
 
-    return _get_unsent_messages( { message_transport_type => 'print',
-                                   borrowernumber         => $params->{'borrowernumber'},
-                                 } );
+    return _get_unsent_messages(
+        {
+            message_transport_type => 'print',
+            borrowernumber         => $params->{'borrowernumber'},
+        }
+    );
 }
 
 # LMSCloud: GetMessagesById - retrieve messages by ID array
+
 =head2 GetMessagesById
 
   my $message_list = GetMessagesById( { message_id => \@messageIdList } )
@@ -1212,11 +1249,15 @@ Returns a arrayref of all queued print messages by message id.
 sub GetMessagesById {
     my $params = shift || {};
 
-    return _get_unsent_messages( { message_id         => $params->{'message_id'},
-                                 } );
+    return _get_unsent_messages(
+        {
+            message_id => $params->{'message_id'},
+        }
+    );
 }
 
 # LMSCloud: GetPatronLetters - returns letters for patron notification modules
+
 =head2 GetPatronLetters
 
     my $letters = GetPatronLetters();
@@ -1227,9 +1268,9 @@ sub GetMessagesById {
 =cut
 
 sub GetPatronLetters {
-    my $letters = GetLetters();
+    my $letters    = GetLetters();
     my $selletters = [];
-    for my $letter ( @$letters ) {
+    for my $letter (@$letters) {
         if ( $letter->{module} =~ /^(circulation|members|reserves|suggestions)$/ ) {
             push @$selletters, $letter;
         }
@@ -1238,6 +1279,7 @@ sub GetPatronLetters {
 }
 
 # LMSCloud: GetAdhocNoticeLetters - filters letters by AdhocNoticesLetterCodes preference
+
 =head2 GetAdhocNoticeLetters
 
     my $letters = GetAdhocNoticeLetters();
@@ -1250,17 +1292,17 @@ sub GetPatronLetters {
 =cut
 
 sub GetAdhocNoticeLetters {
-    my $letters = GetPatronLetters();
-    my $selletters = [];
-    my $pattern = C4::Context->preference('AdhocNoticesLetterCodes');
+    my $letters      = GetPatronLetters();
+    my $selletters   = [];
+    my $pattern      = C4::Context->preference('AdhocNoticesLetterCodes');
     my @codepatterns = [];
-    foreach my $codepattern (split(/\s*\|\s*/,$pattern)) {
+    foreach my $codepattern ( split( /\s*\|\s*/, $pattern ) ) {
         $codepattern =~ s/\*/\.\*/g;
         $codepattern = '^' . $codepattern . '$';
         push @codepatterns, $codepattern;
     }
-    for my $letter ( @$letters ) {
-        foreach my $codepattern(@codepatterns) {
+    for my $letter (@$letters) {
+        foreach my $codepattern (@codepatterns) {
             if ( $letter->{code} =~ /$codepattern/ ) {
                 push @$selletters, $letter;
             }
@@ -1283,7 +1325,7 @@ Return is an arrayref of hashes, each has represents a message in the message qu
 sub GetQueuedMessages {
     my $params = shift;
 
-    my $dbh = C4::Context->dbh();
+    my $dbh       = C4::Context->dbh();
     my $statement = << 'ENDSQL';
 SELECT message_id, borrowernumber, subject, content, message_transport_type, status, time_queued, updated_on, failure_code, from_address, to_address, cc_address
 FROM message_queue
@@ -1296,7 +1338,7 @@ ENDSQL
         push @query_params, $params->{'borrowernumber'};
     }
 
-    if ( @whereclauses ) {
+    if (@whereclauses) {
         $statement .= ' WHERE ' . join( 'AND', @whereclauses );
     }
 
@@ -1305,9 +1347,9 @@ ENDSQL
         push @query_params, $params->{'limit'};
     }
 
-    my $sth = $dbh->prepare( $statement );
-    my $result = $sth->execute( @query_params );
-    return $sth->fetchall_arrayref({});
+    my $sth    = $dbh->prepare($statement);
+    my $result = $sth->execute(@query_params);
+    return $sth->fetchall_arrayref( {} );
 }
 
 =head2 GetMessageTransportTypes
@@ -1319,12 +1361,12 @@ ENDSQL
 =cut
 
 sub GetMessageTransportTypes {
-    my $dbh = C4::Context->dbh();
-    my $mtts = $dbh->selectcol_arrayref("
+    my $dbh  = C4::Context->dbh();
+    my $mtts = $dbh->selectcol_arrayref( "
         SELECT message_transport_type
         FROM message_transport_types
         ORDER BY message_transport_type
-    ");
+    " );
     return $mtts;
 }
 
@@ -1335,14 +1377,16 @@ sub GetMessageTransportTypes {
 =cut
 
 sub GetMessage {
-    my ( $message_id ) = @_;
+    my ($message_id) = @_;
     return unless $message_id;
     my $dbh = C4::Context->dbh;
-    return $dbh->selectrow_hashref(q|
+    return $dbh->selectrow_hashref(
+        q|
         SELECT message_id, borrowernumber, subject, content, metadata, letter_code, message_transport_type, status, time_queued, updated_on, to_address, from_address, reply_address, content_type, failure_code
         FROM message_queue
         WHERE message_id = ?
-    |, {}, $message_id );
+    |, {}, $message_id
+    );
 }
 
 =head2 ResendMessage
@@ -1362,18 +1406,22 @@ sub ResendMessage {
     my $message_id = shift;
     return unless $message_id;
 
-    my $message = GetMessage( $message_id );
+    my $message = GetMessage($message_id);
     return unless $message;
     my $rv = 0;
     if ( $message->{status} ne 'pending' ) {
-        $rv = C4::Letters::_set_message_status({
-            message_id => $message_id,
-            status => 'pending',
-        });
-        $rv = $rv > 0? 1: 0;
+        $rv = C4::Letters::_set_message_status(
+            {
+                message_id => $message_id,
+                status     => 'pending',
+            }
+        );
+        $rv = $rv > 0 ? 1 : 0;
+
         # Clear destination email address to force address update
-        _update_message_to_address( $message_id, undef ) if $rv &&
-            $message->{message_transport_type} eq 'email';
+        _update_message_to_address( $message_id, undef )
+            if $rv
+            && $message->{message_transport_type} eq 'email';
     }
     return $rv;
 }
@@ -1400,7 +1448,7 @@ sub ResendMessage {
 sub _add_attachments {
     my $params = shift;
 
-    my $letter = $params->{letter};
+    my $letter      = $params->{letter};
     my $attachments = $params->{attachments};
     return $letter unless @$attachments;
 
@@ -1408,12 +1456,11 @@ sub _add_attachments {
 
     if ( $letter->{is_html} ) {
         $message->html_body( _wrap_html( $letter->{content}, $letter->{title} ) );
-    }
-    else {
+    } else {
         $message->text_body( $letter->{content} );
     }
 
-    foreach my $attachment ( @$attachments ) {
+    foreach my $attachment (@$attachments) {
         $message->attach(
             Encode::encode( "UTF-8", $attachment->{content} ),
             content_type => $attachment->{type} || 'application/octet-stream',
@@ -1423,7 +1470,7 @@ sub _add_attachments {
     }
 
     $letter->{'content-type'} = SERIALIZED_EMAIL_CONTENT_TYPE;
-    $letter->{content} = $message->as_string;
+    $letter->{content}        = $message->as_string;
 
     return $letter;
 
@@ -1449,7 +1496,7 @@ sub _add_attachments {
 sub _get_unsent_messages {
     my $params = shift;
 
-    my $dbh = C4::Context->dbh();
+    my $dbh       = C4::Context->dbh();
     my $statement = qq{
         SELECT mq.message_id, mq.borrowernumber, mq.subject, mq.content, mq.message_transport_type, mq.status, mq.time_queued, mq.from_address, mq.reply_address, mq.to_address, mq.content_type, b.branchcode, mq.letter_code, mq.failure_code, mq.letter_id
         FROM message_queue mq
@@ -1468,30 +1515,36 @@ sub _get_unsent_messages {
             $statement .= ' AND mq.borrowernumber = ? ';
             push @query_params, $params->{'borrowernumber'};
         }
+
         # LMSCloud: support message_id as array ref (for GetMessagesById)
-        if ( $params->{'message_id'} && ref $params->{'message_id'} eq 'ARRAY') {
-            my @message_ids = @{$params->{'message_id'}};
-            $statement .= ' AND message_id IN (' . join(', ', ('?') x @message_ids) . ')';
+        if ( $params->{'message_id'} && ref $params->{'message_id'} eq 'ARRAY' ) {
+            my @message_ids = @{ $params->{'message_id'} };
+            $statement .= ' AND message_id IN (' . join( ', ', ('?') x @message_ids ) . ')';
             push @query_params, @message_ids;
         }
         if ( $params->{'letter_code'} ) {
-            my @letter_codes = ref $params->{'letter_code'} eq "ARRAY" ? @{$params->{'letter_code'}} : $params->{'letter_code'};
-            if ( @letter_codes ) {
+            my @letter_codes =
+                ref $params->{'letter_code'} eq "ARRAY" ? @{ $params->{'letter_code'} } : $params->{'letter_code'};
+            if (@letter_codes) {
                 my $q = join( ",", ("?") x @letter_codes );
                 $statement .= " AND mq.letter_code IN ( $q ) ";
                 push @query_params, @letter_codes;
             }
         }
         if ( $params->{'message_transport_type'} ) {
-            my @types = ref $params->{'message_transport_type'} eq "ARRAY" ? @{$params->{'message_transport_type'}} : $params->{'message_transport_type'};
-            if ( @types ) {
+            my @types =
+                ref $params->{'message_transport_type'} eq "ARRAY"
+                ? @{ $params->{'message_transport_type'} }
+                : $params->{'message_transport_type'};
+            if (@types) {
                 my $q = join( ",", ("?") x @types );
                 $statement .= " AND message_transport_type IN ( $q ) ";
                 push @query_params, @types;
             }
         }
+
         # LMSCloud: only match scalar message_id (array ref handled above)
-        if ( $params->{message_id} && !(ref $params->{'message_id'} eq 'ARRAY') ) {
+        if ( $params->{message_id} && !( ref $params->{'message_id'} eq 'ARRAY' ) ) {
             $statement .= ' AND message_id = ?';
             push @query_params, $params->{message_id};
         }
@@ -1504,21 +1557,22 @@ sub _get_unsent_messages {
         }
     }
 
-    my $sth = $dbh->prepare( $statement );
-    my $result = $sth->execute( @query_params );
-    return $sth->fetchall_arrayref({});
+    my $sth    = $dbh->prepare($statement);
+    my $result = $sth->execute(@query_params);
+    return $sth->fetchall_arrayref( {} );
 }
 
 sub _send_message_by_email {
     my $message = shift or return;
     my ( $username, $password, $method, $smtp_transports ) = @_;
 
-    my $patron = Koha::Patrons->find( $message->{borrowernumber} );
+    my $patron     = Koha::Patrons->find( $message->{borrowernumber} );
     my $to_address = $message->{'to_address'};
     my $cc_address;
     my @guarantor_address;
     my $count_guarantor_address;
-    if (C4::Context->preference('RedirectGuaranteeEmail') && $patron) {
+    if ( C4::Context->preference('RedirectGuaranteeEmail') && $patron ) {
+
         # Get guarantor addresses
         my $guarantor_relationships = $patron->guarantor_relationships;
         my @guarantors              = $guarantor_relationships->guarantors->as_list;
@@ -1529,7 +1583,7 @@ sub _send_message_by_email {
         $count_guarantor_address = scalar @guarantor_address;
     }
     unless ($to_address) {
-        if (!$patron) {
+        if ( !$patron ) {
             warn "FAIL: No 'to_address' and INVALID borrowernumber ($message->{borrowernumber})";
             _set_message_status(
                 {
@@ -1543,8 +1597,9 @@ sub _send_message_by_email {
         if ($patron) {
             $to_address = $patron->notice_email_address;
         }
-        if (!$to_address && !$count_guarantor_address) {
-            warn "FAIL: No 'to_address', email address or guarantors email address for borrowernumber ($message->{borrowernumber})";
+        if ( !$to_address && !$count_guarantor_address ) {
+            warn
+                "FAIL: No 'to_address', email address or guarantors email address for borrowernumber ($message->{borrowernumber})";
             _set_message_status(
                 {
                     message_id   => $message->{'message_id'},
@@ -1561,8 +1616,10 @@ sub _send_message_by_email {
 
     $cc_address = join( ',', @guarantor_address );
     _update_message_cc_address( $message->{'message_id'}, $cc_address );
+
     # Skip this message if we exceed domain limits in this run
-    if( Koha::Notice::Util->exceeds_limit({ to => $to_address, limits => $domain_limits }) ) {
+    if ( Koha::Notice::Util->exceeds_limit( { to => $to_address, limits => $domain_limits } ) ) {
+
         # Save the to_address if you delay the message so that we dont need to look it up again
         _update_message_to_address( $message->{'message_id'}, $to_address )
             if !$message->{to_address};
@@ -1571,21 +1628,22 @@ sub _send_message_by_email {
 
     my $subject = $message->{'subject'};
 
-    my $content = $message->{'content'};
+    my $content      = $message->{'content'};
     my $content_type = $message->{'content_type'} || 'text/plain; charset="UTF-8"';
-    my $is_html = $content_type =~ m/html/io;
+    my $is_html      = $content_type =~ m/html/io;
 
-    my $branch_email = undef;
-    my $branch_replyto = undef;
+    my $branch_email      = undef;
+    my $branch_replyto    = undef;
     my $branch_returnpath = undef;
     my $library;
 
-    $patron //= Koha::Patrons->find( $message->{borrowernumber} ); # we might already found him
+    $patron //= Koha::Patrons->find( $message->{borrowernumber} );    # we might already found him
     if ($patron) {
-        # LMSCloud: bookmobile branch remapping
-        my $branchcode = Koha::Libraries->get_effective_branch($patron->library->branchcode);
 
-        $library           = Koha::Libraries->find( $branchcode );
+        # LMSCloud: bookmobile branch remapping
+        my $branchcode = Koha::Libraries->get_effective_branch( $patron->library->branchcode );
+
+        $library           = Koha::Libraries->find($branchcode);
         $branch_email      = $library->from_email_address;
         $branch_replyto    = $library->branchreplyto;
         $branch_returnpath = $library->branchreturnpath;
@@ -1594,10 +1652,10 @@ sub _send_message_by_email {
     # NOTE: Patron may not be defined above so branch_email may be undefined still
     # so we need to fallback to KohaAdminEmailAddress as a last resort.
     my $from_address =
-         $message->{'from_address'}
-      || $branch_email
-      || C4::Context->preference('KohaAdminEmailAddress');
-    if( !$from_address ) {
+           $message->{'from_address'}
+        || $branch_email
+        || C4::Context->preference('KohaAdminEmailAddress');
+    if ( !$from_address ) {
         _set_message_status(
             {
                 message_id   => $message->{'message_id'},
@@ -1606,7 +1664,7 @@ sub _send_message_by_email {
             }
         );
         return;
-    };
+    }
     my $email;
 
     try {
@@ -1649,14 +1707,13 @@ sub _send_message_by_email {
                 $email->text_body($content);
             }
         }
-    }
-    catch {
+    } catch {
         if ( ref($_) eq 'Koha::Exceptions::BadParameter' ) {
             _set_message_status(
                 {
                     message_id   => $message->{'message_id'},
                     status       => 'failed',
-                    failure_code => "INVALID_EMAIL:".$_->parameter
+                    failure_code => "INVALID_EMAIL:" . $_->parameter
                 }
             );
         } else {
@@ -1673,14 +1730,13 @@ sub _send_message_by_email {
     return unless $email;
 
     my $smtp_server;
-    if ( $library ) {
+    if ($library) {
         $smtp_server = $library->smtp_server;
-    }
-    else {
+    } else {
         $smtp_server = Koha::SMTP::Servers->get_default;
     }
 
-    if ( $username ) {
+    if ($username) {
         $smtp_server->set(
             {
                 sasl_username => $username,
@@ -1689,11 +1745,11 @@ sub _send_message_by_email {
         );
     }
 
-# if initial message address was empty, coming here means that a to address was found and
-# queue should be updated; same if to address was overriden by Koha::Email->create
+    # if initial message address was empty, coming here means that a to address was found and
+    # queue should be updated; same if to address was overriden by Koha::Email->create
     _update_message_to_address( $message->{'message_id'}, $email->email->header('To') )
-      if !$message->{to_address}
-      || $message->{to_address} ne $email->email->header('To');
+        if !$message->{to_address}
+        || $message->{to_address} ne $email->email->header('To');
 
     $smtp_transports->{ $smtp_server->id // 'default' } ||= $smtp_server->transport;
     my $smtp_transport = $smtp_transports->{ $smtp_server->id // 'default' };
@@ -1703,22 +1759,21 @@ sub _send_message_by_email {
         || $message->{from_address} ne $email->email->header('From');
 
     try {
-        $email->send_or_die({ transport => $smtp_transport });
+        $email->send_or_die( { transport => $smtp_transport } );
 
         _set_message_status(
             {
-                message_id => $message->{'message_id'},
-                status     => 'sent',
+                message_id   => $message->{'message_id'},
+                status       => 'sent',
                 failure_code => ''
             }
         );
         return 1;
-    }
-    catch {
+    } catch {
         _set_message_status(
             {
-                message_id => $message->{'message_id'},
-                status     => 'failed',
+                message_id   => $message->{'message_id'},
+                status       => 'failed',
                 failure_code => 'SENDMAIL'
             }
         );
@@ -1730,36 +1785,39 @@ sub _send_message_by_email {
 
 # LMSCloud: smart HTML wrapping with NoticeCSSEmail preference support
 sub _wrap_html {
-    my ($content, $title, $isEmail ) = @_;
+    my ( $content, $title, $isEmail ) = @_;
 
     my $css = C4::Context->preference("NoticeCSSEmail");
-    $css = C4::Context->preference("NoticeCSSEmail") if (! $isEmail );
+    $css = C4::Context->preference("NoticeCSSEmail") if ( !$isEmail );
 
-    $css = qq{<link rel="stylesheet" type="text/css" href="$css">} if ( $css );
+    $css = qq{<link rel="stylesheet" type="text/css" href="$css">} if ($css);
 
-    if ( $content !~  /<\/body>/ && $content !~  /<body/ ) {
-        $content = "<body>\n" . $content ."</body>\n";
+    if ( $content !~ /<\/body>/ && $content !~ /<body/ ) {
+        $content = "<body>\n" . $content . "</body>\n";
     }
-    if ( $content !~  /<\/head>/ && $content !~  /<head/ ) {
-        my $head = "<head>\n<title>$title</title>\n" .
-                   '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />' ."\n";
-        $head .= "$css\n" if ( $css );
+    if ( $content !~ /<\/head>/ && $content !~ /<head/ ) {
+        my $head = "<head>\n<title>$title</title>\n"
+            . '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />' . "\n";
+        $head .= "$css\n" if ($css);
         $head .= "</head>\n";
         $content = $head . $content;
     }
-    if ( $content !~  /<\/html>/ && $content !~ /<html/ ) {
-        $content = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"' . "\n" .
-                   '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">' . "\n" .
-                   '<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">' . "\n$content\n</html>\n";
+    if ( $content !~ /<\/html>/ && $content !~ /<html/ ) {
+        $content =
+              '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"' . "\n"
+            . '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">' . "\n"
+            . '<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">'
+            . "\n$content\n</html>\n";
     }
 
     return $content;
 }
 
 sub _is_duplicate {
-    my ( $message ) = @_;
-    my $dbh = C4::Context->dbh;
-    my $count = $dbh->selectrow_array(q|
+    my ($message) = @_;
+    my $dbh       = C4::Context->dbh;
+    my $count     = $dbh->selectrow_array(
+        q|
         SELECT COUNT(*)
         FROM message_queue
         WHERE message_transport_type = ?
@@ -1768,23 +1826,28 @@ sub _is_duplicate {
         AND CAST(updated_on AS date) = CAST(NOW() AS date)
         AND status="sent"
         AND content = ?
-    |, {}, $message->{message_transport_type}, $message->{borrowernumber}, $message->{letter_code}, $message->{content} );
+    |, {}, $message->{message_transport_type}, $message->{borrowernumber}, $message->{letter_code}, $message->{content}
+    );
     return $count;
 }
 
 sub _send_message_by_sms {
     my $message = shift or return;
-    my $patron = Koha::Patrons->find( $message->{borrowernumber} );
-    _update_message_to_address($message->{message_id}, $patron->smsalertnumber) if $patron;
+    my $patron  = Koha::Patrons->find( $message->{borrowernumber} );
+    _update_message_to_address( $message->{message_id}, $patron->smsalertnumber ) if $patron;
 
     unless ( $patron and $patron->smsalertnumber ) {
-        _set_message_status( { message_id => $message->{'message_id'},
-                               status     => 'failed',
-                               failure_code => 'MISSING_SMS' } );
+        _set_message_status(
+            {
+                message_id   => $message->{'message_id'},
+                status       => 'failed',
+                failure_code => 'MISSING_SMS'
+            }
+        );
         return;
     }
 
-    if ( _is_duplicate( $message ) ) {
+    if ( _is_duplicate($message) ) {
         _set_message_status(
             {
                 message_id   => $message->{'message_id'},
@@ -1810,8 +1873,7 @@ sub _send_message_by_sms {
                 failure_code => ''
             }
         );
-    }
-    else {
+    } else {
         _set_message_status(
             {
                 message_id   => $message->{'message_id'},
@@ -1825,41 +1887,43 @@ sub _send_message_by_sms {
 }
 
 sub _update_message_to_address {
-    my ($id, $to)= @_;
+    my ( $id, $to ) = @_;
     my $dbh = C4::Context->dbh();
-    $dbh->do('UPDATE message_queue SET to_address=? WHERE message_id=?',undef,($to,$id));
+    $dbh->do( 'UPDATE message_queue SET to_address=? WHERE message_id=?', undef, ( $to, $id ) );
 }
 
 sub _update_message_from_address {
-    my ($message_id, $from_address) = @_;
+    my ( $message_id, $from_address ) = @_;
     my $dbh = C4::Context->dbh();
-    $dbh->do('UPDATE message_queue SET from_address = ? WHERE message_id = ?', undef, ($from_address, $message_id));
+    $dbh->do( 'UPDATE message_queue SET from_address = ? WHERE message_id = ?', undef, ( $from_address, $message_id ) );
 }
 
 sub _update_message_cc_address {
-    my ($message_id, $cc_address) = @_;
+    my ( $message_id, $cc_address ) = @_;
     my $dbh = C4::Context->dbh();
-    $dbh->do('UPDATE message_queue SET cc_address = ? WHERE message_id = ?', undef, ($cc_address, $message_id));
+    $dbh->do( 'UPDATE message_queue SET cc_address = ? WHERE message_id = ?', undef, ( $cc_address, $message_id ) );
 }
 
 sub _set_message_status {
     my $params = shift or return;
 
-    foreach my $required_parameter ( qw( message_id status ) ) {
-        return unless exists $params->{ $required_parameter };
+    foreach my $required_parameter (qw( message_id status )) {
+        return unless exists $params->{$required_parameter};
     }
 
-    my $dbh = C4::Context->dbh();
+    my $dbh       = C4::Context->dbh();
     my $statement = 'UPDATE message_queue SET status= ?, failure_code= ? WHERE message_id = ?';
-    my $sth = $dbh->prepare( $statement );
-    my $result = $sth->execute( $params->{'status'},
-                                $params->{'failure_code'} || '',
-                                $params->{'message_id'} );
+    my $sth       = $dbh->prepare($statement);
+    my $result    = $sth->execute(
+        $params->{'status'},
+        $params->{'failure_code'} || '',
+        $params->{'message_id'}
+    );
     return $result;
 }
 
 sub _process_tt {
-    my ( $params ) = @_;
+    my ($params) = @_;
 
     my $content    = $params->{content};
     my $tables     = $params->{tables};
@@ -1867,10 +1931,10 @@ sub _process_tt {
     my $objects    = $params->{objects}    || {};
     my $substitute = $params->{substitute} || {};
     my $lang       = $params->{lang} // 'en';
-    my ($theme, $availablethemes);
+    my ( $theme, $availablethemes );
 
     my $htdocs = C4::Context->config('intrahtdocs');
-    ($theme, $lang, $availablethemes)= C4::Templates::availablethemes( $htdocs, 'about.tt', 'intranet', $lang);
+    ( $theme, $lang, $availablethemes ) = C4::Templates::availablethemes( $htdocs, 'about.tt', 'intranet', $lang );
     my @includes;
     foreach (@$availablethemes) {
         push @includes, "$htdocs/$_/$lang/includes";
@@ -1883,7 +1947,7 @@ sub _process_tt {
             EVAL_PERL    => 0,
             ABSOLUTE     => 0,
             PLUGIN_BASE  => 'Koha::Template::Plugin',
-            COMPILE_EXT  => $use_template_cache ? '.ttc' : '',
+            COMPILE_EXT  => $use_template_cache ? '.ttc'                                    : '',
             COMPILE_DIR  => $use_template_cache ? C4::Context->config('template_cache_dir') : '',
             INCLUDE_PATH => \@includes,
             FILTERS      => {},
@@ -1891,9 +1955,10 @@ sub _process_tt {
         }
     ) or die Template->error();
 
-    my $tt_params = { %{ _get_tt_params( $tables ) }, %{ _get_tt_params( $loops, 'is_a_loop' ) }, %$substitute, %$objects };
+    my $tt_params =
+        { %{ _get_tt_params($tables) }, %{ _get_tt_params( $loops, 'is_a_loop' ) }, %$substitute, %$objects };
 
-    $content = add_tt_filters( $content );
+    $content = add_tt_filters($content);
     $content = qq|[% USE KohaDates %][% USE Remove_MARC_punctuation %]$content|;
 
     my $output;
@@ -1901,8 +1966,7 @@ sub _process_tt {
     $schema->txn_begin;
     my $processed = try {
         $template->process( \$content, $tt_params, \$output );
-    }
-    finally {
+    } finally {
         $schema->txn_rollback;
     };
     croak "ERROR PROCESSING TEMPLATE: " . $template->error() unless $processed;
@@ -1911,7 +1975,7 @@ sub _process_tt {
 }
 
 sub _get_tt_params {
-    my ($tables, $is_a_loop) = @_;
+    my ( $tables, $is_a_loop ) = @_;
 
     my $params;
     $is_a_loop ||= 0;
@@ -1960,16 +2024,16 @@ sub _get_tt_params {
             pk       => 'branchcode',
         },
         credits => {
-            module => 'Koha::Account::Lines',
+            module   => 'Koha::Account::Lines',
             singular => 'credit',
-            plural => 'credits',
-            pk => 'accountlines_id',
+            plural   => 'credits',
+            pk       => 'accountlines_id',
         },
         debits => {
-            module => 'Koha::Account::Lines',
+            module   => 'Koha::Account::Lines',
             singular => 'debit',
-            plural => 'debits',
-            pk => 'accountlines_id',
+            plural   => 'debits',
+            pk       => 'accountlines_id',
         },
         items => {
             module   => 'Koha::Items',
@@ -2073,19 +2137,20 @@ sub _get_tt_params {
     foreach my $table ( keys %$tables ) {
         next unless $config->{$table};
 
-        my $ref = ref( $tables->{$table} ) || q{};
+        my $ref    = ref( $tables->{$table} ) || q{};
         my $module = $config->{$table}->{module};
 
         if ( can_load( modules => { $module => undef } ) ) {
             my $pk = $config->{$table}->{pk};
             my $fk = $config->{$table}->{fk};
 
-            if ( $is_a_loop ) {
+            if ($is_a_loop) {
                 my $values = $tables->{$table} || [];
-                unless ( ref( $values ) eq 'ARRAY' ) {
+                unless ( ref($values) eq 'ARRAY' ) {
                     croak "ERROR processing table $table. Wrong API call.";
                 }
                 my $key = $pk ? $pk : $fk;
+
                 # $key does not come from user input
                 my $objects = $module->search(
                     { $key => $values },
@@ -2099,49 +2164,45 @@ sub _get_tt_params {
                         ? (
                             order_by => \[
                                 sprintf "field(%s, %s)", $key,
-                                join(',', map { $dbh->quote($_) } @$values )
+                                join( ',', map { $dbh->quote($_) } @$values )
                             ]
                             )
                         : ()
                     }
                 );
                 $params->{ $config->{$table}->{plural} } = $objects;
-            }
-            elsif ( $ref eq q{} || $ref eq 'HASH' ) {
+            } elsif ( $ref eq q{} || $ref eq 'HASH' ) {
                 my $id = ref $ref eq 'HASH' ? $tables->{$table}->{$pk} : $tables->{$table};
                 my $object;
-                if ( $fk ) { # Using a foreign key for lookup
-                    if ( ref( $fk ) eq 'ARRAY' ) { # Foreign key is multi-column
+                if ($fk) {    # Using a foreign key for lookup
+                    if ( ref($fk) eq 'ARRAY' ) {    # Foreign key is multi-column
                         my $search;
-                        foreach my $key ( @$fk ) {
+                        foreach my $key (@$fk) {
                             $search->{$key} = $id->{$key};
                         }
-                        $object = $module->search( $search )->last();
-                    } else { # Foreign key is single column
+                        $object = $module->search($search)->last();
+                    } else {                        # Foreign key is single column
                         $object = $module->search( { $fk => $id } )->last();
                     }
-                } else { # using the table's primary key for lookup
+                } else {    # using the table's primary key for lookup
                     $object = $module->find($id);
                 }
                 $params->{ $config->{$table}->{singular} } = $object;
-            }
-            else {    # $ref eq 'ARRAY'
+            } else {    # $ref eq 'ARRAY'
                 my $object;
                 if ( @{ $tables->{$table} } == 1 ) {    # Param is a single key
                     $object = $module->search( { $pk => $tables->{$table} } )->last();
-                }
-                else {                                  # Params are mutliple foreign keys
+                } else {                                # Params are mutliple foreign keys
                     croak "Multiple foreign keys (table $table) should be passed using an hashref";
                 }
                 $params->{ $config->{$table}->{singular} } = $object;
             }
-        }
-        else {
+        } else {
             croak "ERROR LOADING MODULE $module: $Module::Load::Conditional::ERROR";
         }
     }
 
-    $params->{today} = output_pref({ dt => dt_from_string, dateformat => 'iso' });
+    $params->{today} = output_pref( { dt => dt_from_string, dateformat => 'iso' } );
 
     return $params;
 }
@@ -2157,7 +2218,7 @@ For now we only add the Remove_MARC_punctuation TT filter to biblio and biblioit
 =cut
 
 sub add_tt_filters {
-    my ( $content ) = @_;
+    my ($content) = @_;
     $content =~ s|\[%\s*biblio\.(.*?)\s*%\]|[% biblio.$1 \| \$Remove_MARC_punctuation %]|gxms;
     $content =~ s|\[%\s*biblioitem\.(.*?)\s*%\]|[% biblioitem.$1 \| \$Remove_MARC_punctuation %]|gxms;
     return $content;
@@ -2178,21 +2239,18 @@ are formatted following the current setup.
 =cut
 
 sub get_item_content {
-    my ( $params ) = @_;
-    my $item = $params->{item};
-    my $dateonly = $params->{dateonly} || 0;
+    my ($params)            = @_;
+    my $item                = $params->{item};
+    my $dateonly            = $params->{dateonly}            || 0;
     my $item_content_fields = $params->{item_content_fields} || [];
 
     return unless $item;
 
     my @item_info = map {
         $_ =~ /^date|date$/
-          ? eval {
-            output_pref(
-                { dt => dt_from_string( $item->{$_} ), dateonly => $dateonly } );
-          }
-          : $item->{$_}
-          || ''
+            ? eval { output_pref( { dt => dt_from_string( $item->{$_} ), dateonly => $dateonly } ); }
+            : $item->{$_}
+            || ''
     } @$item_content_fields;
     return join( "\t", @item_info ) . "\n";
 }

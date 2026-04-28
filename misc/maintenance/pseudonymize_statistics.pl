@@ -54,7 +54,6 @@ my $statistics = Koha::Statistics->search(
 );
 print $statistics->count() . " statistics found\n" if $verbose;
 
-
 my $existing_pseudo_stats = Koha::PseudonymizedTransactions->search( { datetime => { '<=' => $before } } )->count;
 
 if ( $statistics->count && $existing_pseudo_stats ) {

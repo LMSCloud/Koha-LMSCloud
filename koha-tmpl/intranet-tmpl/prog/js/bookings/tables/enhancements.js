@@ -205,9 +205,18 @@ export function enhanceBookingTableFilters(
 
     // Select enhancements based on options
     const enhancements = [];
-    if (enableDateRange) enhancements.push({ type: "dateRange", handler: enhanceDateRangeFilters });
-    if (enableStatus) enhancements.push({ type: "status", handler: enhanceStatusFilter });
-    if (enableQuickToggles) enhancements.push({ type: "quickToggles", handler: enhanceQuickToggles });
+    if (enableDateRange)
+        enhancements.push({
+            type: "dateRange",
+            handler: enhanceDateRangeFilters,
+        });
+    if (enableStatus)
+        enhancements.push({ type: "status", handler: enhanceStatusFilter });
+    if (enableQuickToggles)
+        enhancements.push({
+            type: "quickToggles",
+            handler: enhanceQuickToggles,
+        });
 
     enhancements.forEach(enhancement => {
         try {

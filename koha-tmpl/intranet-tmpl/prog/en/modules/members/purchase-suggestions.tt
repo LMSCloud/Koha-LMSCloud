@@ -2,16 +2,18 @@
 [% USE Asset %]
 [% USE Koha %]
 [% USE KohaDates %]
-[% USE AuthorisedValues  %]
+[% USE AuthorisedValues %]
 [% USE Branches %]
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("Purchase suggestions for") | html %] [% INCLUDE 'patron-title.inc' no_html = 1 %] &rsaquo;
-    [% t("Patrons") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Purchase suggestions for") | html %]
+        [% INCLUDE 'patron-title.inc' no_html = 1 %]
+        &rsaquo; [% t("Patrons") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -45,7 +47,12 @@
 
                 <div id="toolbar" class="btn-toolbar">
                     [% IF CAN_user_suggestions_suggestions_create %]
-                        <a class="btn btn-default" id="newsuggestion" href="/cgi-bin/koha/suggestion/suggestion.pl?op=add_form&amp;suggestedby=[% patron.borrowernumber | html %]&amp;redirect=purchase_suggestions&amp;borrowernumber=[% patron.borrowernumber | html %]"><i class="fa fa-plus"></i> New purchase suggestion</a>
+                        <a
+                            class="btn btn-default"
+                            id="newsuggestion"
+                            href="/cgi-bin/koha/suggestion/suggestion.pl?op=add_form&amp;suggestedby=[% patron.borrowernumber | html %]&amp;redirect=purchase_suggestions&amp;borrowernumber=[% patron.borrowernumber | html %]"
+                            ><i class="fa fa-plus"></i> New purchase suggestion</a
+                        >
                     [% END %]
                 </div>
 
@@ -54,13 +61,13 @@
                         <table id="suggestions">
                             <thead>
                                 <tr>
-                                <th>Summary</th>
-                                <th>Note</th>
-                                <th>Non-public note</th>
-                                <th>Managed by</th>
-                                <th>Managed on</th>
-                                <th>Suggested on</th>
-                                <th>Status</th>
+                                    <th>Summary</th>
+                                    <th>Note</th>
+                                    <th>Non-public note</th>
+                                    <th>Managed by</th>
+                                    <th>Managed on</th>
+                                    <th>Suggested on</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
 
@@ -79,32 +86,30 @@
                                             </p>
                                             <p>
                                                 [% IF ( s.author ) %][% s.author | html %],[% END %]
-                                                [% IF ( s.copyrightdate ) %] - [% s.copyrightdate | html %],[% END %]
-                                                [% IF ( s.publishercode ) %] - [% s.publishercode | html %][% END %]
+                                                [% IF ( s.copyrightdate ) %]- [% s.copyrightdate | html %],[% END %]
+                                                [% IF ( s.publishercode ) %]- [% s.publishercode | html %][% END %]
                                                 [% IF ( s.place ) %]([% s.place | html %])[% END %]
-                                                [% IF ( s.collectiontitle ) %] , [% s.collectiontitle | html %][% END %]
-                                                [% IF ( s.itemtype ) %] - [% s.itemtype | html %][% END %]
+                                                [% IF ( s.collectiontitle ) %], [% s.collectiontitle | html %][% END %]
+                                                [% IF ( s.itemtype ) %]- [% s.itemtype | html %][% END %]
                                             </p>
                                         </td>
-                                        <td>[% s.note | html %]
-                                        <td>[% s.staff_note | html %]
-                                        <td>
-                                            [% INCLUDE 'patron-title.inc' patron => s.manager %]
-                                        </td>
-                                        <td data-order="[% s.manageddate | html %]">
-                                            [% s.manageddate | $KohaDates %]
-                                        </td>
-                                        <td data-order="[% s.suggesteddate | html %]">
-                                            [% s.suggesteddate | $KohaDates %]
-                                        </td>
+                                        <td>[% s.note | html %] </td><td>[% s.staff_note | html %] </td><td> [% INCLUDE 'patron-title.inc' patron => s.manager %] </td>
+                                        <td data-order="[% s.manageddate | html %]"> [% s.manageddate | $KohaDates %] </td>
+                                        <td data-order="[% s.suggesteddate | html %]"> [% s.suggesteddate | $KohaDates %] </td>
                                         <td>
                                             [% SWITCH s.STATUS %]
-                                            [% CASE "ASKED" %]<span>Requested</span>
-                                            [% CASE "CHECKED" %]<span>Checked by the library</span>
-                                            [% CASE "ACCEPTED" %]<span>Accepted by the library</span>
-                                            [% CASE "ORDERED" %]<span>Ordered by the library</span>
-                                            [% CASE "REJECTED" %]<span>Suggestion declined<span>
-                                            [% CASE "AVAILABLE" %]<span>Available in the library</span>
+                                            [% CASE "ASKED" %]
+                                                <span>Requested</span>
+                                            [% CASE "CHECKED" %]
+                                                <span>Checked by the library</span>
+                                            [% CASE "ACCEPTED" %]
+                                                <span>Accepted by the library</span>
+                                            [% CASE "ORDERED" %]
+                                                <span>Ordered by the library</span>
+                                            [% CASE "REJECTED" %]
+                                                <span>Suggestion declined<span> </span></span>
+                                            [% CASE "AVAILABLE" %]
+                                                <span>Available in the library</span>
                                             [% CASE %]
                                                 [% SET status_description = AuthorisedValues.GetByCode('SUGGEST_STATUS', s.STATUS) %]
                                                 [% IF status_description %]
@@ -119,37 +124,41 @@
                                 [% END %]
                             </tbody>
                         </table>
-                </div> <!-- /.page-section -->
+                    </div>
+                    <!-- /.page-section -->
                 [% ELSE %]
                     <div class="alert alert-info">
                         <p>This patron has not submitted any purchase suggestions</p>
                     </div>
                 [% END %]
-
             </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'circ-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-     </div> <!-- /.row -->
+            <aside> [% INCLUDE 'circ-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
-[% MACRO jsinclude BLOCK %]
-    [% INCLUDE 'str/members-menu.inc' %]
-    [% Asset.js("js/members-menu.js") | $raw %]
-    [% INCLUDE 'datatables.inc' %]
-    <script>
-        $(document).ready(function() {
-            $("#suggestions").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "paginate": false,
-                "searching": false,
-                "info": false,
-                "dom": 't'
-            } ));
-        });
-    </script>
-[% END %]
+    [% MACRO jsinclude BLOCK %]
+        [% INCLUDE 'str/members-menu.inc' %]
+        [% Asset.js("js/members-menu.js") | $raw %]
+        [% INCLUDE 'datatables.inc' %]
+        <script>
+            $(document).ready(function () {
+                $("#suggestions").dataTable(
+                    $.extend(true, {}, dataTablesDefaults, {
+                        paginate: false,
+                        searching: false,
+                        info: false,
+                        dom: "t",
+                    })
+                );
+            });
+        </script>
+    [% END %]
 
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

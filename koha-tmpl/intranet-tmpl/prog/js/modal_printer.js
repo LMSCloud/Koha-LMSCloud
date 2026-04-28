@@ -1,9 +1,8 @@
-$(document).ready(function() {
-
+$(document).ready(function () {
     function modalPrint() {
-        let title = $('.modal-dialog.focused .modal-title').html();
-        let contents = $('.modal-dialog.focused .modal-body').html();
-        let win = window.open('','');
+        let title = $(".modal-dialog.focused .modal-title").html();
+        let contents = $(".modal-dialog.focused .modal-body").html();
+        let win = window.open("", "");
         win.document.write(`
             <style>
                 table {
@@ -38,9 +37,9 @@ $(document).ready(function() {
                     text-align: left;
                 }
             </style>
-        `)
-        win.document.write( title );
-        win.document.write( contents );
+        `);
+        win.document.write(title);
+        win.document.write(contents);
         win.document.close();
         win.addEventListener("afterprint", function () {
             win.addEventListener("focus", function () {
@@ -52,18 +51,20 @@ $(document).ready(function() {
     }
 
     // Set focused on printable modals on open and autoprint if required
-    $('.modal.printable').on('shown.bs.modal', function() {
-        $('.modal-dialog', this).addClass('focused');
+    $(".modal.printable")
+        .on("shown.bs.modal", function () {
+            $(".modal-dialog", this).addClass("focused");
 
-        if ($(this).hasClass('autoprint')) {
-            modalPrint();
-        }
-    }).on('hidden.bs.modal', function() {
-        $('.modal-dialog', this).removeClass('focused');
-    });
+            if ($(this).hasClass("autoprint")) {
+                modalPrint();
+            }
+        })
+        .on("hidden.bs.modal", function () {
+            $(".modal-dialog", this).removeClass("focused");
+        });
 
     // Trigger print on button click
-    $('.printModal').click(function() {
+    $(".printModal").click(function () {
         modalPrint();
     });
 });

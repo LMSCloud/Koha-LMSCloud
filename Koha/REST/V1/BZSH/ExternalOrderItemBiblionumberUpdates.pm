@@ -48,15 +48,14 @@ Uses a proprietary table which is filled by a trigger on the items table.
 =cut
 
 sub getExternalOrderItemBiblionumberUpdates {
-    
-    my $argvalue = shift;
-    my $c = $argvalue->openapi->valid_input or return;
 
-    return try {		
-        my ($responsecode, $changes, $count) = &handleExternalOrderItemBiblionumberUpdates($c);
+    my $argvalue = shift;
+    my $c        = $argvalue->openapi->valid_input or return;
+
+    return try {
+        my ( $responsecode, $changes, $count ) = &handleExternalOrderItemBiblionumberUpdates($c);
         return $c->render( status => $responsecode, openapi => { count_changes => $count, changes => $changes } );
-    }
-    catch {
+    } catch {
         unless ( blessed $_ && $_->can('rethrow') ) {
             return $c->render(
                 status  => 500,
@@ -72,21 +71,21 @@ sub getExternalOrderItemBiblionumberUpdates {
 
 sub handleExternalOrderItemBiblionumberUpdates {
     my $params = shift;
-    
-    my $respcode = '200';
-    my $changes = [];
+
+    my $respcode    = '200';
+    my $changes     = [];
     my $resultcount = 0;
-    
-	my $changes_since = $params->param('changes_since');
-	if ( $changes_since ) {
-		my $changes_from;
-		eval { $changes_from = DateTime::Format::W3CDTF->new()->parse_datetime($changes_since); };
-		$changes_since = DateTime::Format::MySQL->format_datetime($changes_from) if ($changes_from);
-	}
-	
-	my $dbh = C4::Context->dbh;
-	
-	my $select = qq{
+
+    my $changes_since = $params->param('changes_since');
+    if ($changes_since) {
+        my $changes_from;
+        eval { $changes_from = DateTime::Format::W3CDTF->new()->parse_datetime($changes_since); };
+        $changes_since = DateTime::Format::MySQL->format_datetime($changes_from) if ($changes_from);
+    }
+
+    my $dbh = C4::Context->dbh;
+
+    my $select = qq{
         SELECT upd.biblionumber_old AS biblionumber_old,
                upd.biblionumber_new AS biblionumber,
                upd.external_order_id AS external_order_id,
@@ -95,36 +94,36 @@ sub handleExternalOrderItemBiblionumberUpdates {
         FROM   bzsh_item_biblio_update upd
                JOIN external_order ord ON (upd.external_order_id = ord.external_order_id)
         };
-    if ( $changes_since ) {
-		$select .= ' WHERE upd.created >= ? '
-	}
-	$select .= 'ORDER BY upd.created';
-	
-	my $pagesize   = $params->{'_per_page'};
-	my $pagenumber = $params->{'_page'};
-	
-	if ( $pagesize ) {
-		$pagenumber = 1 if (! $pagenumber);
-		my $offset = $pagesize * ($pagenumber - 1);
-		$select .= " LIMIT $offset, $pagesize";
-	}
-	
-	my $sth = $dbh->prepare($select);
-	if ( $changes_since ) {
-		$sth->execute($changes_since);
-	} else {
-		$sth->execute();
-	}
-    
-	while ( my $change = $sth->fetchrow_hashref ) {
-		my $dt = DateTime::Format::MySQL->parse_datetime($change->{change_time});
-		$change->{change_time} = DateTime::Format::W3CDTF->new()->format_datetime($dt);
-		push @$changes, $change;
-		$resultcount++;
-	}
-	$sth->finish();
+    if ($changes_since) {
+        $select .= ' WHERE upd.created >= ? ';
+    }
+    $select .= 'ORDER BY upd.created';
 
-    return ($respcode,$changes,$resultcount);
+    my $pagesize   = $params->{'_per_page'};
+    my $pagenumber = $params->{'_page'};
+
+    if ($pagesize) {
+        $pagenumber = 1 if ( !$pagenumber );
+        my $offset = $pagesize * ( $pagenumber - 1 );
+        $select .= " LIMIT $offset, $pagesize";
+    }
+
+    my $sth = $dbh->prepare($select);
+    if ($changes_since) {
+        $sth->execute($changes_since);
+    } else {
+        $sth->execute();
+    }
+
+    while ( my $change = $sth->fetchrow_hashref ) {
+        my $dt = DateTime::Format::MySQL->parse_datetime( $change->{change_time} );
+        $change->{change_time} = DateTime::Format::W3CDTF->new()->format_datetime($dt);
+        push @$changes, $change;
+        $resultcount++;
+    }
+    $sth->finish();
+
+    return ( $respcode, $changes, $resultcount );
 }
 
 1;

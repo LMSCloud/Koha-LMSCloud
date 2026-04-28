@@ -15,7 +15,7 @@ ButtonsShim.export_format_spreadsheet = {
             stripHtml: true,
             stripNewlines: true,
             trim: true,
-            escapeExcelFormula: true
+            escapeExcelFormula: true,
         });
         return str;
     },
@@ -24,20 +24,20 @@ ButtonsShim.export_format_spreadsheet = {
 ButtonsShim._stripHtml = function (input) {
     var _max_str_len = Math.pow(2, 28);
     var _re_html = /<([^>]*>)/g;
-    if (! input || typeof input !== 'string') {
+    if (!input || typeof input !== "string") {
         return input;
     }
     // Irrelevant check to workaround CodeQL's false positive on the regex
     if (input.length > _max_str_len) {
-        throw new Error('Exceeded max str len');
+        throw new Error("Exceeded max str len");
     }
     var previous;
-    input = input.replace(_re_html, ''); // Complete tags
+    input = input.replace(_re_html, ""); // Complete tags
     // Safety for incomplete script tag - use do / while to ensure that
     // we get all instances
     do {
         previous = input;
-        input = input.replace(/<script/i, '');
+        input = input.replace(/<script/i, "");
     } while (input !== previous);
     return previous;
 };
@@ -45,11 +45,10 @@ ButtonsShim._stripHtml = function (input) {
 ButtonsShim.stripHtml = function (mixed) {
     var type = typeof mixed;
 
-    if (type === 'function') {
+    if (type === "function") {
         ButtonsShim._stripHtml = mixed;
         return;
-    }
-    else if (type === 'string') {
+    } else if (type === "string") {
         return ButtonsShim._stripHtml(mixed);
     }
     return mixed;
@@ -58,7 +57,10 @@ ButtonsShim.stripHtmlScript = function (input) {
     var previous;
     do {
         previous = input;
-        input = input.replace(/<script\b[^<]*(?:(?!<\/script[^>]*>)<[^<]*)*<\/script[^>]*>/gi, '');
+        input = input.replace(
+            /<script\b[^<]*(?:(?!<\/script[^>]*>)<[^<]*)*<\/script[^>]*>/gi,
+            ""
+        );
     } while (input !== previous);
     return input;
 };
@@ -66,17 +68,25 @@ ButtonsShim.stripHtmlComments = function (input) {
     var previous;
     do {
         previous = input;
-        input = input.replace(/(<!--.*?--!?>)|(<!--[\S\s]+?--!?>)|(<!--[\S\s]*?$)/g, '');
+        input = input.replace(
+            /(<!--.*?--!?>)|(<!--[\S\s]+?--!?>)|(<!--[\S\s]*?$)/g,
+            ""
+        );
     } while (input !== previous);
     return input;
 };
 ButtonsShim.stripData = function (str, config) {
     // If the input is an HTML element, we can use the HTML from it (HTML might be stripped below).
-    if (str !== null && typeof str === 'object' && str.nodeName && str.nodeType) {
+    if (
+        str !== null &&
+        typeof str === "object" &&
+        str.nodeName &&
+        str.nodeType
+    ) {
         str = str.innerHTML;
     }
 
-    if (typeof str !== 'string') {
+    if (typeof str !== "string") {
         return str;
     }
 
@@ -98,7 +108,7 @@ ButtonsShim.stripData = function (str, config) {
     }
 
     if (!config || config.stripNewlines) {
-        str = str.replace(/\n/g, ' ');
+        str = str.replace(/\n/g, " ");
     }
 
     // Prevent Excel from running a formula

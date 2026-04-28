@@ -22,7 +22,7 @@ use warnings;
 use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
-use C4::Auth qw( get_template_and_user );
+use C4::Auth   qw( get_template_and_user );
 use C4::Koha;
 use C4::Circulation qw( SetDueDateOfItems );
 use Koha::Libraries;
@@ -31,7 +31,7 @@ use Koha::Checkouts;
 use Koha::DateUtils qw ( output_pref dt_from_string );
 
 my $input = new CGI;
-my $dbh = C4::Context->dbh;
+my $dbh   = C4::Context->dbh;
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
@@ -46,9 +46,9 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my $branch = $input->param('branch');
 $branch =
-    defined $branch                                                    ? $branch
-  : Koha::Libraries->search->count() == 1                              ? undef
-  :                                                                      undef;
+      defined $branch                       ? $branch
+    : Koha::Libraries->search->count() == 1 ? undef
+    :                                         undef;
 $branch ||= q{};
 $branch = q{} if $branch eq 'NO_LIBRARY_SET';
 
@@ -57,9 +57,9 @@ $op ||= q{};
 $op =~ s/^cud-//;
 
 my @duedates;
-my $founddates=0;
+my $founddates = 0;
 
-my $selectedgroup  = $input->param('groupselect') || '*';
+my $selectedgroup  = $input->param('groupselect')  || '*';
 my $selectedbranch = $input->param('branchselect') || '*';
 
 ########################################
@@ -70,27 +70,28 @@ $groupselect = '' if ( defined($groupselect) and $groupselect eq '*' );
 my $branchselect = $input->param('branchselect');
 $branchselect = '' if ( defined($branchselect) and $branchselect eq '*' );
 
-my @errors = ();
+my @errors       = ();
 my $itemschanged = 0;
-    
-if ($op eq 'update' ) {
-    my $duedates = $input->param('duedates');
-    my $getdate = $input->param('newduedate');
-    my $parsedate = eval { dt_from_string( $getdate ) };
+
+if ( $op eq 'update' ) {
+    my $duedates   = $input->param('duedates');
+    my $getdate    = $input->param('newduedate');
+    my $parsedate  = eval { dt_from_string($getdate) };
     my $newduedate = undef;
-    $newduedate = output_pref ( { dt => $parsedate, dateonly => 1, dateformat => 'iso' } ) if ( $parsedate );
-    
+    $newduedate = output_pref( { dt => $parsedate, dateonly => 1, dateformat => 'iso' } ) if ($parsedate);
+
     my $paramgrpoup = $input->param('groupselect');
     my $parambranch = $input->param('branchselect');
-    
-    foreach my $currentDueDate( split(/\r\n/,$duedates) ) {
-        my ($cnt,$error) = SetDueDateOfItems( 
-                { 
-                    currentDueDate => $currentDueDate, 
-                    newDueDate => $newduedate, 
-                    libraryCategory => $paramgrpoup,
-                    branchcode => $parambranch
-                });
+
+    foreach my $currentDueDate ( split( /\r\n/, $duedates ) ) {
+        my ( $cnt, $error ) = SetDueDateOfItems(
+            {
+                currentDueDate  => $currentDueDate,
+                newDueDate      => $newduedate,
+                libraryCategory => $paramgrpoup,
+                branchcode      => $parambranch
+            }
+        );
         $itemschanged += $cnt;
         if ( defined($error) && $error ne '' ) {
             push @errors, { errorcode => $error, currentDueDate => $currentDueDate, newDueDate => $newduedate };
@@ -98,8 +99,9 @@ if ($op eq 'update' ) {
     }
     $op = 'select';
 }
-if ($op eq 'select') {
-    my $datedues = Koha::Checkouts->get_issue_dates_and_branches({ categorycode => $groupselect, branchcode => $branchselect });
+if ( $op eq 'select' ) {
+    my $datedues =
+        Koha::Checkouts->get_issue_dates_and_branches( { categorycode => $groupselect, branchcode => $branchselect } );
     foreach my $duedate ( sort { $a cmp $b } keys %$datedues ) {
         push @duedates, [ $duedate, $datedues->{$duedate} ];
     }
@@ -112,21 +114,20 @@ if ($op eq 'select') {
 my @search_groups = Koha::Library::Groups->get_search_groups( { interface => 'staff' } )->as_list;
 @search_groups = sort { $a->title cmp $b->title } @search_groups;
 
-
 ########################################
 #  Set template paramater
 ########################################
 $template->param(
-                        branch => $branch,
-                        librarygroups => \@search_groups,
-                        duedates => \@duedates,
-                        founddates => $founddates,
-                        selectedgroup => $selectedgroup,
-                        selectedbranch => $selectedbranch,
-                        processerrors => \@errors,
-                        itemschanged => $itemschanged,
-                        action => $op
-                        
+    branch         => $branch,
+    librarygroups  => \@search_groups,
+    duedates       => \@duedates,
+    founddates     => $founddates,
+    selectedgroup  => $selectedgroup,
+    selectedbranch => $selectedbranch,
+    processerrors  => \@errors,
+    itemschanged   => $itemschanged,
+    action         => $op
+
 );
 output_html_with_http_headers $input, $cookie, $template->output;
 

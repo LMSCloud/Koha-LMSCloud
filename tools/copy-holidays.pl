@@ -27,39 +27,38 @@ use C4::Calendar;
 
 use Koha::DateUtils qw( dt_from_string output_pref );
 
-my $input               = CGI->new;
-my $dbh                 = C4::Context->dbh();
+my $input = CGI->new;
+my $dbh   = C4::Context->dbh();
 
-checkauth($input, 0, {tools=> 'edit_calendar'}, 'intranet');
+checkauth( $input, 0, { tools => 'edit_calendar' }, 'intranet' );
 
-my $branchcode             = $input->param('branchcode');
-my $branchgroup            = $input->param('branchgroup');
-my $from_branchcode        = $input->param('from_branchcode');
-my $limitcopydaterange     = $input->param('limitcopydaterange');
-my $limitcopydeletebefore  = $input->param('limitcopydeletebefore');
-my $datefrom               = $input->param('datefrom');
-my $dateto                 = $input->param('dateto');
+my $branchcode            = $input->param('branchcode');
+my $branchgroup           = $input->param('branchgroup');
+my $from_branchcode       = $input->param('from_branchcode');
+my $limitcopydaterange    = $input->param('limitcopydaterange');
+my $limitcopydeletebefore = $input->param('limitcopydeletebefore');
+my $datefrom              = $input->param('datefrom');
+my $dateto                = $input->param('dateto');
 
-if ( $limitcopydaterange ) {
-    $datefrom = eval { output_pref({ dt => dt_from_string( $datefrom ), dateformat => 'iso', dateonly => 1 } ); };
-    $dateto = eval { output_pref({ dt => dt_from_string( $dateto ), dateformat => 'iso', dateonly => 1 } ); };
-    
+if ($limitcopydaterange) {
+    $datefrom = eval { output_pref( { dt => dt_from_string($datefrom), dateformat => 'iso', dateonly => 1 } ); };
+    $dateto   = eval { output_pref( { dt => dt_from_string($dateto),   dateformat => 'iso', dateonly => 1 } ); };
+
     if ( $datefrom && $dateto ) {
         if ( $branchgroup && $from_branchcode ) {
-            C4::Calendar->new(branchcode => $from_branchcode)->copy_to_group_special($branchgroup,$datefrom,$dateto,$limitcopydeletebefore);
-        }
-        elsif ( $branchcode && $from_branchcode  ) {
-            C4::Calendar->new(branchcode => $from_branchcode)->copy_to_branch_special($branchcode,$datefrom,$dateto,$limitcopydeletebefore);
+            C4::Calendar->new( branchcode => $from_branchcode )
+                ->copy_to_group_special( $branchgroup, $datefrom, $dateto, $limitcopydeletebefore );
+        } elsif ( $branchcode && $from_branchcode ) {
+            C4::Calendar->new( branchcode => $from_branchcode )
+                ->copy_to_branch_special( $branchcode, $datefrom, $dateto, $limitcopydeletebefore );
         }
     }
-}
-else {
+} else {
     if ( $branchgroup && $from_branchcode ) {
-        C4::Calendar->new(branchcode => $from_branchcode)->copy_to_group($branchgroup);
-    }
-    elsif ( $branchcode && $from_branchcode  ) {
-        C4::Calendar->new(branchcode => $from_branchcode)->copy_to_branch($branchcode);
+        C4::Calendar->new( branchcode => $from_branchcode )->copy_to_group($branchgroup);
+    } elsif ( $branchcode && $from_branchcode ) {
+        C4::Calendar->new( branchcode => $from_branchcode )->copy_to_branch($branchcode);
     }
 }
 
-print $input->redirect("/cgi-bin/koha/tools/holidays.pl?branch=".($branchcode || $from_branchcode));
+print $input->redirect( "/cgi-bin/koha/tools/holidays.pl?branch=" . ( $branchcode || $from_branchcode ) );

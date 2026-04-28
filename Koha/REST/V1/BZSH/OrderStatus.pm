@@ -46,15 +46,14 @@ Controller function that handles delivers status of externally ordered material.
 =cut
 
 sub getOrderItemStatus {
-    
+
     my $argvalue = shift;
-    my $c = $argvalue->openapi->valid_input or return;
+    my $c        = $argvalue->openapi->valid_input or return;
 
     return try {
-        my ($responsecode, $orderItems, $count) = &handleBZSHOrderStatusRequest($c);
+        my ( $responsecode, $orderItems, $count ) = &handleBZSHOrderStatusRequest($c);
         return $c->render( status => $responsecode, openapi => { count_items => $count, order_items => $orderItems } );
-    }
-    catch {
+    } catch {
         unless ( blessed $_ && $_->can('rethrow') ) {
             return $c->render(
                 status  => 500,
@@ -68,74 +67,76 @@ sub getOrderItemStatus {
     };
 }
 
-    
 sub handleBZSHOrderStatusRequest {
     my $orderItemStatusRequestRarams = shift;
-    
-    my $respcode = '200';
-    my $orderItems = [];
+
+    my $respcode    = '200';
+    my $orderItems  = [];
     my $resultcount = 0;
 
     # check biblionumbers
     my $biblionumbers = {};
-    my $params = $orderItemStatusRequestRarams->every_param('biblionumber');
+    my $params        = $orderItemStatusRequestRarams->every_param('biblionumber');
     if ( $params && scalar(@$params) ) {
-        foreach my $biblionumber( @$params ) {
+        foreach my $biblionumber (@$params) {
             $biblionumbers->{$biblionumber} = 1;
         }
     }
-    
+
     # check external_order_id
     my $externalOrderIds = {};
     $params = $orderItemStatusRequestRarams->every_param('external_order_id');
     if ( $params && scalar(@$params) ) {
-        foreach my $externalOrderId ( @$params ) {
+        foreach my $externalOrderId (@$params) {
             $externalOrderIds->{$externalOrderId} = 1;
         }
     }
-    
+
     # check library_id
     my $branchcodes = {};
     $params = $orderItemStatusRequestRarams->every_param('library_id');
     if ( $params && scalar(@$params) ) {
-        foreach my $branchcode ( @$params ) {
+        foreach my $branchcode (@$params) {
             $branchcodes->{$branchcode} = 1;
         }
     }
-    
+
     # check order_status_code
     my $orderStatusCodes = {};
     $params = $orderItemStatusRequestRarams->every_param('order_status_code');
     if ( $params && scalar(@$params) ) {
-        foreach my $orderStatusCode ( @$params ) {
+        foreach my $orderStatusCode (@$params) {
             $orderStatusCodes->{$orderStatusCode} = 1;
         }
     }
-    
+
     # get sort parameter values
     my $sortParams = [];
     $params = $orderItemStatusRequestRarams->every_param('_order_by');
     if ( $params && scalar(@$params) ) {
-        foreach my $sortParam ( @$params ) {
-            if ( $sortParam =~ /^\s*(biblionumber|library_id|external_order_id|order_status_code|order_status_text|date_last_changed|copies)(\s+(ASC|DESC))?\s*$/i ) {
-                my $sortField = lc($1);
+        foreach my $sortParam (@$params) {
+            if ( $sortParam =~
+                /^\s*(biblionumber|library_id|external_order_id|order_status_code|order_status_text|date_last_changed|copies)(\s+(ASC|DESC))?\s*$/i
+                )
+            {
+                my $sortField     = lc($1);
                 my $sortDirection = 'ASC';
                 $sortDirection = uc($3) if ($3);
-                
+
                 push @$sortParams, "$sortField $sortDirection";
             }
         }
     }
-    
+
     # print STDERR Dumper($biblionumbers,$externalOrderIds,$branchcodes);
-    
-    my @biblionumberList =  keys %$biblionumbers;
+
+    my @biblionumberList    = keys %$biblionumbers;
     my @externalOrderIdList = keys %$externalOrderIds;
-    my @branchcodeList = keys %$branchcodes;
-    my @orderStatusList = keys %$orderStatusCodes;
+    my @branchcodeList      = keys %$branchcodes;
+    my @orderStatusList     = keys %$orderStatusCodes;
 
     my $dbh = C4::Context->dbh;
-    
+
     my $select = qq{
         SELECT i.biblionumber AS biblionumber,
                i.homebranch AS library_id,
@@ -152,30 +153,30 @@ sub handleBZSHOrderStatusRequest {
     my @addselect = ();
     my @addparameter;
     if ( scalar(@biblionumberList) ) {
-        push @addselect, "i.biblionumber IN (" . join(",", map { ($_) x scalar(@biblionumberList) } ("?")) . ")";
+        push @addselect,    "i.biblionumber IN (" . join( ",", map { ($_) x scalar(@biblionumberList) } ("?") ) . ")";
         push @addparameter, @biblionumberList;
     }
     if ( scalar(@externalOrderIdList) ) {
-        push @addselect, "i.stocknumber IN (" . join(",", map { ($_) x scalar(@externalOrderIdList) } ("?")) . ")";
+        push @addselect,    "i.stocknumber IN (" . join( ",", map { ($_) x scalar(@externalOrderIdList) } ("?") ) . ")";
         push @addparameter, @externalOrderIdList;
     }
     if ( scalar(@branchcodeList) ) {
-        push @addselect, "i.homebranch IN (" . join(",", map { ($_) x scalar(@branchcodeList) } ("?")) . ")";
+        push @addselect,    "i.homebranch IN (" . join( ",", map { ($_) x scalar(@branchcodeList) } ("?") ) . ")";
         push @addparameter, @branchcodeList;
     }
-    
-    my @addselectdel = @addselect;
+
+    my @addselectdel    = @addselect;
     my @addparameterdel = @addparameter;
     if ( scalar(@orderStatusList) ) {
-        push @addselect, "i.notforloan IN (" . join(",", map { ($_) x scalar(@orderStatusList) } ("?")) . ")";
+        push @addselect,    "i.notforloan IN (" . join( ",", map { ($_) x scalar(@orderStatusList) } ("?") ) . ")";
         push @addparameter, @orderStatusList;
     }
-    
+
     if ( scalar(@addselect) ) {
-        $select .= " WHERE " . join(" AND ",@addselect);
+        $select .= " WHERE " . join( " AND ", @addselect );
         $select .= " GROUP BY i.biblionumber, i.homebranch, i.stocknumber, i.notforloan, v.lib_opac, DATE(i.timestamp)";
-        
-        if ( scalar(@orderStatusList)==0 || ( grep $_ eq '-1', @orderStatusList ) ) {
+
+        if ( scalar(@orderStatusList) == 0 || ( grep $_ eq '-1', @orderStatusList ) ) {
             $select .= qq{
                 UNION ALL
                 SELECT i.biblionumber AS biblionumber,
@@ -191,33 +192,33 @@ sub handleBZSHOrderStatusRequest {
                        LEFT JOIN authorised_values v ON (v.category = 'NOT_LOAN' AND v.authorised_value = '-1' )
                 WHERE  r.orderstatus = 'cancelled'
                 };
-            $select .= " AND " . join(" AND ",@addselectdel) if ( scalar(@addselectdel) );
+            $select .= " AND " . join( " AND ", @addselectdel ) if ( scalar(@addselectdel) );
             $select .= " GROUP BY i.biblionumber, i.homebranch, i.stocknumber, v.lib_opac, DATE(i.timestamp)";
             push @addparameter, @addparameterdel;
         }
-        
-        $select .= " ORDER BY " . join(", ",@$sortParams) if ( scalar(@$sortParams) );
-        
+
+        $select .= " ORDER BY " . join( ", ", @$sortParams ) if ( scalar(@$sortParams) );
+
         my $pagesize   = $orderItemStatusRequestRarams->param('_per_page');
         my $pagenumber = $orderItemStatusRequestRarams->param('_page');
-        
-        if ( $pagesize ) {
-            $pagenumber = 1 if (! $pagenumber);
-            my $offset = $pagesize * ($pagenumber - 1);
+
+        if ($pagesize) {
+            $pagenumber = 1 if ( !$pagenumber );
+            my $offset = $pagesize * ( $pagenumber - 1 );
             $select .= " LIMIT $offset, $pagesize";
         }
-        
+
         my $sth = $dbh->prepare($select);
         $sth->execute(@addparameter);
-        
+
         while ( my $itemline = $sth->fetchrow_hashref ) {
             push @$orderItems, $itemline;
             $resultcount++;
         }
         $sth->finish();
     }
-    
-    return ($respcode,$orderItems,$resultcount);
+
+    return ( $respcode, $orderItems, $resultcount );
 }
 
 1;

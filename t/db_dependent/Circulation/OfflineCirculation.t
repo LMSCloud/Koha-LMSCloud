@@ -24,10 +24,10 @@ use Test::Warn;
 use t::lib::Mocks;
 use t::lib::TestBuilder;
 
-use C4::Biblio qw( AddBiblio );
+use C4::Biblio      qw( AddBiblio );
 use C4::Circulation qw( AddOfflineOperation ProcessOfflineOperation GetOfflineOperation ProcessOfflineIssue );
 use C4::Context;
-use C4::Reserves qw( AddReserve );
+use C4::Reserves    qw( AddReserve );
 use Koha::DateUtils qw( dt_from_string );
 
 use MARC::Record;
@@ -85,10 +85,10 @@ subtest "Bug 34529: Offline circulation should be able to accept userid as well 
     );
 
     my ( $message, $checkout ) = ProcessOfflineIssue(
-            {
-                cardnumber => $borrower1->{cardnumber},
-                barcode    => $item1->barcode
-            }
+        {
+            cardnumber => $borrower1->{cardnumber},
+            barcode    => $item1->barcode
+        }
     );
 
     is(

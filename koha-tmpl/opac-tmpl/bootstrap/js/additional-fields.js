@@ -1091,4 +1091,4 @@ const AdditionalFields = (function () {
     };
 })();
 
-window["AdditionalFields"] = AdditionalFields; 
+window["AdditionalFields"] = AdditionalFields;

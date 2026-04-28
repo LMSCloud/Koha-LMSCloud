@@ -20,7 +20,7 @@ package Koha::Z3950Responder;
 use Modern::Perl;
 
 use C4::Biblio qw( GetMarcFromKohaField );
-use C4::Koha qw( GetAuthorisedValues );
+use C4::Koha   qw( GetAuthorisedValues );
 
 use Koha::Caches;
 use Koha::Logger;
@@ -67,36 +67,38 @@ service. Uses a Session class for the actual functionality.
 sub new {
     my ( $class, $config ) = @_;
 
-    my ($item_tag, $itemnumber_subfield) = GetMarcFromKohaField( "items.itemnumber" );
+    my ( $item_tag, $itemnumber_subfield ) = GetMarcFromKohaField("items.itemnumber");
 
     # We hardcode the strings for English so SOMETHING will work if the authorized value doesn't exist.
     my $status_strings = {
-        AVAILABLE => 'Available',
-        CHECKED_OUT => 'Checked Out',
-        LOST => 'Lost',
+        AVAILABLE    => 'Available',
+        CHECKED_OUT  => 'Checked Out',
+        LOST         => 'Lost',
         NOT_FOR_LOAN => 'Not for Loan',
-        DAMAGED => 'Damaged',
-        WITHDRAWN => 'Withdrawn',
-        IN_TRANSIT => 'In Transit',
-        ON_HOLD => 'On Hold',
+        DAMAGED      => 'Damaged',
+        WITHDRAWN    => 'Withdrawn',
+        IN_TRANSIT   => 'In Transit',
+        ON_HOLD      => 'On Hold',
     };
 
-    foreach my $val ( @{ GetAuthorisedValues( 'Z3950_STATUS' ) } ) {
+    foreach my $val ( @{ GetAuthorisedValues('Z3950_STATUS') } ) {
         $status_strings->{ $val->{authorised_value} } = $val->{lib};
     }
 
     my $self = {
         %$config,
-        item_tag => $item_tag,
+        item_tag            => $item_tag,
         itemnumber_subfield => $itemnumber_subfield,
-        status_strings => $status_strings,
+        status_strings      => $status_strings,
     };
 
     # If requested, turn on debugging.
     if ( $self->{debug} ) {
+
         # Turn on single-process mode.
         unshift @{ $self->{yaz_options} }, '-S';
     } else {
+
         # Turn off Yaz's built-in logging apart from fatal errors (can be turned back on if desired).
         unshift @{ $self->{yaz_options} }, '-v', 'none,fatal';
     }
@@ -112,13 +114,13 @@ sub new {
     $self->{num_to_prefetch} //= 20;
 
     $self->{server} = Net::Z3950::SimpleServer->new(
-        INIT => sub { $self->init_handler(@_) },
+        INIT   => sub { $self->init_handler(@_) },
         SEARCH => sub { $self->search_handler(@_) },
-        FETCH => sub { $self->fetch_handler(@_) },
-        CLOSE => sub { $self->close_handler(@_) },
+        FETCH  => sub { $self->fetch_handler(@_) },
+        CLOSE  => sub { $self->close_handler(@_) },
     );
-    
-    $self->{logger} = Koha::Logger->get({ interface => 'z3950' });
+
+    $self->{logger} = Koha::Logger->get( { interface => 'z3950' } );
     if ( $self->{debug} ) {
         $self->{logger}->debug_to_screen();
     }
@@ -136,9 +138,9 @@ fatal error occurs.
 =cut
 
 sub start {
-    my ( $self ) = @_;
+    my ($self) = @_;
 
-    $self->{server}->launch_server( 'Koha::Z3950Responder', @{ $self->{yaz_options} } )
+    $self->{server}->launch_server( 'Koha::Z3950Responder', @{ $self->{yaz_options} } );
 }
 
 =head2 CALLBACKS
@@ -154,12 +156,13 @@ Callback that is called when a new connection is initialized
 =cut
 
 sub init_handler {
+
     # Called when the client first connects.
     my ( $self, $args ) = @_;
-    
-    if ( exists($self->{configfile}) ) {
-        my $config = Koha::Config->read_from_file($self->{configfile});
-        
+
+    if ( exists( $self->{configfile} ) ) {
+        my $config = Koha::Config->read_from_file( $self->{configfile} );
+
         # Check whether validsers are defined in a permissions section of the
         # the configuration file.
         # If the file does not contain a substructure:
@@ -169,29 +172,29 @@ sub init_handler {
         #           </validusers>
         #       </permission>
         # users are not checked at all.
-        if ( $config && exists($config->{permissions}->{validusers}->{user}) ) {
-            
+        if ( $config && exists( $config->{permissions}->{validusers}->{user} ) ) {
+
             # check whether user/password data is provided
-            if ( exists($args->{USER}) ) {
+            if ( exists( $args->{USER} ) ) {
                 my $user = $args->{USER};
                 my $pass = $args->{PASS};
-                
+
                 my $msg = "Z3950 user: user($user)\n";
                 $self->{logger}->debug("[$args->{PEER_NAME}] $msg");
                 my $checkuser = $config->{permissions}->{validusers}->{user};
-                my $invalid = 'invaliduser';
-                my $reftype = ref($checkuser);
+                my $invalid   = 'invaliduser';
+                my $reftype   = ref($checkuser);
                 if ( $reftype && $reftype eq 'HASH' ) {
-                    $checkuser = [ $checkuser ];
+                    $checkuser = [$checkuser];
                 }
                 $reftype = ref($checkuser);
                 if ( $reftype && $reftype eq 'ARRAY' ) {
-                    foreach my $checkuser( @$checkuser ) {
-                        if ( exists($checkuser->{username}) && exists($checkuser->{password}) ) {
+                    foreach my $checkuser (@$checkuser) {
+                        if ( exists( $checkuser->{username} ) && exists( $checkuser->{password} ) ) {
                             if ( $checkuser->{username} eq $user ) {
                                 $invalid = 'invalidpassword';
                                 if ( $checkuser->{password} eq $pass ) {
-                                    $invalid = ''
+                                    $invalid = '';
                                 }
                             }
                         }
@@ -202,15 +205,13 @@ sub init_handler {
                     ( $args->{ERR_CODE}, $args->{ERR_STR} ) = ( 1010, $msg );
                     $self->{logger}->error("    returning authentication error 1011: $msg");
                     return;
-                }
-                elsif ( $invalid eq 'invalidpassword' ) {
+                } elsif ( $invalid eq 'invalidpassword' ) {
                     $msg = "Bad Userid and/or Password";
                     ( $args->{ERR_CODE}, $args->{ERR_STR} ) = ( 1011, $msg );
                     $self->{logger}->error("    returning authentication error 1011: $msg");
                     return;
                 }
-            }
-            else {
+            } else {
                 my $msg = "Bad Userid";
                 ( $args->{ERR_CODE}, $args->{ERR_STR} ) = ( 1010, $msg );
                 $self->{logger}->error("    returning authentication error 1011: $msg");
@@ -221,24 +222,28 @@ sub init_handler {
 
     # This holds all of the per-connection state.
     my $session;
-    if (C4::Context->preference('SearchEngine') eq 'Zebra') {
+    if ( C4::Context->preference('SearchEngine') eq 'Zebra' ) {
         use Koha::Z3950Responder::ZebraSession;
-        $session = Koha::Z3950Responder::ZebraSession->new({
-            server => $self,
-            peer => $args->{PEER_NAME},
-        });
+        $session = Koha::Z3950Responder::ZebraSession->new(
+            {
+                server => $self,
+                peer   => $args->{PEER_NAME},
+            }
+        );
     } else {
         use Koha::Z3950Responder::GenericSession;
-        $session = Koha::Z3950Responder::GenericSession->new({
-            server => $self,
-            peer => $args->{PEER_NAME}
-        });
+        $session = Koha::Z3950Responder::GenericSession->new(
+            {
+                server => $self,
+                peer   => $args->{PEER_NAME}
+            }
+        );
     }
 
     $args->{HANDLE} = $session;
 
     $args->{IMP_NAME} = "Koha";
-    $args->{IMP_VER} = Koha::version;
+    $args->{IMP_VER}  = Koha::version;
 }
 
 =head3 search_handler
@@ -251,6 +256,7 @@ sub search_handler {
     my ( $self, $args ) = @_;
 
     my $SearchEngine = C4::Context->preference('SearchEngine');
+
     # Flushing L1 to make sure the search will be processed using the correct data
     Koha::Caches->flush_L1_caches();
     $self->init_handler($args)
@@ -268,7 +274,7 @@ Callback that is called when records are requested
 sub fetch_handler {
     my ( $self, $args ) = @_;
 
-    $args->{HANDLE}->fetch_handler( $args );
+    $args->{HANDLE}->fetch_handler($args);
 }
 
 =head3 close_handler
@@ -280,7 +286,7 @@ Callback that is called when a session is terminated
 sub close_handler {
     my ( $self, $args ) = @_;
 
-    $args->{HANDLE}->close_handler( $args );
+    $args->{HANDLE}->close_handler($args);
 }
 
 1;

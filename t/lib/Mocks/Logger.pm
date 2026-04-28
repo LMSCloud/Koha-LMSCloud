@@ -46,7 +46,7 @@ sub new {
     my ( $class, $params ) = @_;
 
     my $mocked_logger_class = Test::MockModule->new("Koha::Logger");
-    my $mocked_logger = Test::MockObject->new();
+    my $mocked_logger       = Test::MockObject->new();
 
     $mocked_logger_class->mock(
         'get',
@@ -56,7 +56,8 @@ sub new {
     );
 
     my $self = $class->SUPER::new(
-        {   logger => $mocked_logger_class,
+        {
+            logger => $mocked_logger_class,
             debug  => [],
             error  => [],
             info   => [],
@@ -67,7 +68,7 @@ sub new {
     );
     bless $self, $class;
 
-    foreach my $level (levels()) {
+    foreach my $level ( levels() ) {
         $mocked_logger->mock(
             $level,
             sub {
@@ -117,7 +118,9 @@ Method for testing a message was written to the 'debug' log level.
 =cut
 
 sub debug_is {
-    my ( $self, $expect, $name ) = @_; $self->generic_is( 'debug', $expect, $name ); return $self;
+    my ( $self, $expect, $name ) = @_;
+    $self->generic_is( 'debug', $expect, $name );
+    return $self;
 }
 
 =head3 error_is
@@ -129,7 +132,9 @@ Method for testing a message was written to the 'error' log level.
 =cut
 
 sub error_is {
-    my ( $self, $expect, $name ) = @_; $self->generic_is( 'error', $expect, $name ); return $self;
+    my ( $self, $expect, $name ) = @_;
+    $self->generic_is( 'error', $expect, $name );
+    return $self;
 }
 
 =head3 fatal_is
@@ -141,7 +146,9 @@ Method for testing a message was written to the 'fatal' log level.
 =cut
 
 sub fatal_is {
-    my ( $self, $expect, $name ) = @_; $self->generic_is( 'fatal', $expect, $name ); return $self;
+    my ( $self, $expect, $name ) = @_;
+    $self->generic_is( 'fatal', $expect, $name );
+    return $self;
 }
 
 =head3 info_is
@@ -153,7 +160,9 @@ Method for testing a message was written to the 'info' log level.
 =cut
 
 sub info_is {
-    my ( $self, $expect, $name ) = @_; $self->generic_is( 'info', $expect, $name ); return $self;
+    my ( $self, $expect, $name ) = @_;
+    $self->generic_is( 'info', $expect, $name );
+    return $self;
 }
 
 =head3 trace_is
@@ -165,7 +174,9 @@ Method for testing a message was written to the 'trace' log level.
 =cut
 
 sub trace_is {
-    my ( $self, $expect, $name ) = @_; $self->generic_is( 'trace', $expect, $name ); return $self;
+    my ( $self, $expect, $name ) = @_;
+    $self->generic_is( 'trace', $expect, $name );
+    return $self;
 }
 
 =head3 warn_is
@@ -177,7 +188,9 @@ Method for testing a message was written to the 'warn' log level.
 =cut
 
 sub warn_is {
-    my ( $self, $expect, $name ) = @_; $self->generic_is( 'warn', $expect, $name ); return $self;
+    my ( $self, $expect, $name ) = @_;
+    $self->generic_is( 'warn', $expect, $name );
+    return $self;
 }
 
 =head3 debug_like
@@ -189,7 +202,9 @@ Method for testing a message matching a regex was written to the 'debug' log lev
 =cut
 
 sub debug_like {
-    my ( $self, $expect, $name ) = @_; $self->generic_like( 'debug', $expect, $name ); return $self;
+    my ( $self, $expect, $name ) = @_;
+    $self->generic_like( 'debug', $expect, $name );
+    return $self;
 }
 
 =head3 error_like
@@ -201,7 +216,9 @@ Method for testing a message matching a regex was written to the 'error' log lev
 =cut
 
 sub error_like {
-    my ( $self, $expect, $name ) = @_; $self->generic_like( 'error', $expect, $name ); return $self;
+    my ( $self, $expect, $name ) = @_;
+    $self->generic_like( 'error', $expect, $name );
+    return $self;
 }
 
 =head3 fatal_like
@@ -213,7 +230,9 @@ Method for testing a message matching a regex was written to the 'fatal' log lev
 =cut
 
 sub fatal_like {
-    my ( $self, $expect, $name ) = @_; $self->generic_like( 'fatal', $expect, $name ); return $self;
+    my ( $self, $expect, $name ) = @_;
+    $self->generic_like( 'fatal', $expect, $name );
+    return $self;
 }
 
 =head3 info_like
@@ -225,7 +244,9 @@ Method for testing a message matching a regex was written to the 'info' log leve
 =cut
 
 sub info_like {
-    my ( $self, $expect, $name ) = @_; $self->generic_like( 'info', $expect, $name ); return $self;
+    my ( $self, $expect, $name ) = @_;
+    $self->generic_like( 'info', $expect, $name );
+    return $self;
 }
 
 =head3 trace_like
@@ -237,7 +258,9 @@ Method for testing a message matching a regex was written to the 'trace' log lev
 =cut
 
 sub trace_like {
-    my ( $self, $expect, $name ) = @_; $self->generic_like( 'trace', $expect, $name ); return $self;
+    my ( $self, $expect, $name ) = @_;
+    $self->generic_like( 'trace', $expect, $name );
+    return $self;
 }
 
 =head3 warn_like
@@ -249,7 +272,9 @@ Method for testing a message matching a regex was written to the 'warn' log leve
 =cut
 
 sub warn_like {
-    my ( $self, $expect, $name ) = @_; $self->generic_like( 'warn', $expect, $name ); return $self;
+    my ( $self, $expect, $name ) = @_;
+    $self->generic_like( 'warn', $expect, $name );
+    return $self;
 }
 
 =head3 count
@@ -264,10 +289,10 @@ can be passed to restrict the count to the passed level.
 sub count {
     my ( $self, $level ) = @_;
 
-    unless ( $level ) {
+    unless ($level) {
         my $sum = 0;
 
-        map { $sum += scalar @{$self->{$_}} } levels();
+        map { $sum += scalar @{ $self->{$_} } } levels();
 
         return $sum;
     }
@@ -289,11 +314,10 @@ pollution.
 sub clear {
     my ( $self, $level ) = @_;
 
-    if ( $level ) {
+    if ($level) {
         $self->{$level} = [];
-    }
-    else {
-        foreach my $l (levels()) {
+    } else {
+        foreach my $l ( levels() ) {
             $self->{$l} = [];
         }
     }

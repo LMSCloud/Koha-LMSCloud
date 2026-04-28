@@ -71,8 +71,9 @@ sub new {
 
     my $bibtipCatalog = C4::Context->preference('BibtipCatalog');
 
-    $self->{'ua'}  = $ua;
-    $self->{'url'} = 'https://recommender.bibtip.de/recommender/vector_recs/apiv1/' . $bibtipCatalog . '/vector_reclist.json';
+    $self->{'ua'} = $ua;
+    $self->{'url'} =
+        'https://recommender.bibtip.de/recommender/vector_recs/apiv1/' . $bibtipCatalog . '/vector_reclist.json';
 
     $self->{'requestHeader'} = [ 'Accept' => 'application/json' ];
 
@@ -99,7 +100,11 @@ sub getPatronSpecificRecommendations {
     return $result unless ( defined($response) && $response->is_success );
 
     my $data = JSON->new->decode( $response->content );
-    unless ( $data && exists( $data->{recommended_nds} ) && $data->{recommended_nds} && scalar( @{ $data->{recommended_nds} } ) ) {
+    unless ( $data
+        && exists( $data->{recommended_nds} )
+        && $data->{recommended_nds}
+        && scalar( @{ $data->{recommended_nds} } ) )
+    {
         carp "C4::External::BibtipRecommendations => Invalid response from Bibtip API";
         return $result;
     }
@@ -112,7 +117,10 @@ sub getPatronSpecificRecommendations {
     }
     my $coverFlowData = GetCoverFlowDataByBiblionumber( @{$bibnumbers} );
     if ( ref($coverFlowData) eq 'ARRAY' ) {
-        carp sprintf( "C4::External::BibtipRecommendations => Unexpected response from GetCoverFlowDataByBiblionumber: %s", $coverFlowData );
+        carp sprintf(
+            "C4::External::BibtipRecommendations => Unexpected response from GetCoverFlowDataByBiblionumber: %s",
+            $coverFlowData
+        );
         return $result;
     }
 

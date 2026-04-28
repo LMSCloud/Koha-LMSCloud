@@ -190,6 +190,7 @@ use Modern::Perl;
 use Getopt::Long;
 use Pod::Usage;
 use Data::Dumper;
+
 BEGIN {
     # find Koha's Perl modules
     # test carefully before changing this
@@ -200,89 +201,104 @@ BEGIN {
 use C4::Log;
 use Koha::SEPAPayment;
 
-binmode( STDIN, ":utf8" );
+binmode( STDIN,  ":utf8" );
 binmode( STDOUT, ":utf8" );
 binmode( STDERR, ":utf8" );
 
 # These are defaults for command line options.
-my $confirm;                              # -c: Confirm that the user has read and configured this script.
-my $nomail;                               # -n: No mail. Will not send any emails.
-my $verbose = 0;                          # -v: verbose
-my $debug = 0;                            # -d: debug (extra verbose)
-my $help = 0;
-my $man = 0;
-my $action = 'renewalsepaDirectDebit';
-my $expiryAfterDays = 0;
-my $expiryBeforeDays = 14;
+my $confirm;    # -c: Confirm that the user has read and configured this script.
+my $nomail;     # -n: No mail. Will not send any emails.
+my $verbose                  = 0;                          # -v: verbose
+my $debug                    = 0;                          # -d: debug (extra verbose)
+my $help                     = 0;
+my $man                      = 0;
+my $action                   = 'renewalsepaDirectDebit';
+my $expiryAfterDays          = 0;
+my $expiryBeforeDays         = 14;
 my $sepaDirectDebitDelayDays = 14;
 my ( $branch, $lettercode );
 
-
 # main
 GetOptions(
-    'help|?'                => \$help,
-    'man'                   => \$man,
-    'c'                     => \$confirm,
-    'n'                     => \$nomail,
-    'v'                     => \$verbose,
-    'd'                     => \$debug,
-    'action:s'              => \$action,
-    'branch:s'              => \$branch,
-    'expiryAfterDays:i'     => \$expiryAfterDays,
-    'expiryBeforeDays:i'    => \$expiryBeforeDays,
-    'lettercode:s'          => \$lettercode,
+    'help|?'                     => \$help,
+    'man'                        => \$man,
+    'c'                          => \$confirm,
+    'n'                          => \$nomail,
+    'v'                          => \$verbose,
+    'd'                          => \$debug,
+    'action:s'                   => \$action,
+    'branch:s'                   => \$branch,
+    'expiryAfterDays:i'          => \$expiryAfterDays,
+    'expiryBeforeDays:i'         => \$expiryBeforeDays,
+    'lettercode:s'               => \$lettercode,
     'sepaDirectDebitDelayDays:i' => \$sepaDirectDebitDelayDays,
 ) or pod2usage(2);
 
 pod2usage( -verbose => 2 ) if $man;
-pod2usage(1) if $help || !$confirm;
+pod2usage(1)               if $help || !$confirm;
 
-warn 'membership_renewal_SEPA.pl: Trying to renew upcoming membership expiries and/or create SEPA direct debits for patrons with activated SEPA direct debit.' if $verbose;
-warn "membership_renewal_SEPA.pl" . 
-    ": action:" . (defined($action)?$action:'undef') . 
-    ": expiryAfterDays:" . (defined($expiryAfterDays)?$expiryAfterDays:'undef') . 
-    ": expiryBeforeDays:" . (defined($expiryBeforeDays)?$expiryBeforeDays:'undef') . 
-    ": sepaDirectDebitDelayDays:" . (defined($sepaDirectDebitDelayDays)?$sepaDirectDebitDelayDays:'undef') . 
-    ": branch:" . (defined($branch)?$branch:'undef') . 
-    ": lettercode:" . (defined($lettercode)?$lettercode:'undef') . 
-    ":" if $verbose;
+warn
+    'membership_renewal_SEPA.pl: Trying to renew upcoming membership expiries and/or create SEPA direct debits for patrons with activated SEPA direct debit.'
+    if $verbose;
+warn "membership_renewal_SEPA.pl"
+    . ": action:"
+    . ( defined($action) ? $action : 'undef' )
+    . ": expiryAfterDays:"
+    . ( defined($expiryAfterDays) ? $expiryAfterDays : 'undef' )
+    . ": expiryBeforeDays:"
+    . ( defined($expiryBeforeDays) ? $expiryBeforeDays : 'undef' )
+    . ": sepaDirectDebitDelayDays:"
+    . ( defined($sepaDirectDebitDelayDays) ? $sepaDirectDebitDelayDays : 'undef' )
+    . ": branch:"
+    . ( defined($branch) ? $branch : 'undef' )
+    . ": lettercode:"
+    . ( defined($lettercode) ? $lettercode : 'undef' ) . ":"
+    if $verbose;
 
 cronlogaction();
 
-my $sepaPayment = Koha::SEPAPayment->new( $debug?2:($verbose?1:0), $lettercode, $nomail );
+my $sepaPayment = Koha::SEPAPayment->new( $debug ? 2 : ( $verbose ? 1 : 0 ), $lettercode, $nomail );
 
 # check if the SEPA direct debit configuration of the library is OK
 my $configError = $sepaPayment->getErrorMsg();
-if( $configError ) {
+if ($configError) {
+
     #If at least one essential system preference for SEPA direct debit is not set, we will exit.
     warn "Exiting membership_renewal_SEPA.pl. Error: $configError\n";
     exit;
 }
 
-if ( index($action, 'renewal') >= 0 ) {
+if ( index( $action, 'renewal' ) >= 0 ) {
+
     # action: renew membership and insert enrolment fee as required
     warn "membership_renewal_SEPA.pl: Trying to renew membership for patrons with SEPA direct debit." if $verbose;
     my ( $renewMembershipCount, $renewedMembershipCount ) = $sepaPayment->renewMembershipForSepaDirectDebitPatrons(
         {
             ( $branch ? ( 'me.branchcode' => $branch ) : () ),
-            expiryAfterDays => $expiryAfterDays,
+            expiryAfterDays  => $expiryAfterDays,
             expiryBeforeDays => $expiryBeforeDays,
         }
     );
-    warn 'membership_renewal_SEPA.pl: sepaPayment->renewMembershipForSepaDirectDebitPatrons() tried to renew ' . $renewMembershipCount . ' soon expiring memberships, renewed ' . $renewedMembershipCount . '.' if $verbose;
+    warn 'membership_renewal_SEPA.pl: sepaPayment->renewMembershipForSepaDirectDebitPatrons() tried to renew '
+        . $renewMembershipCount
+        . ' soon expiring memberships, renewed '
+        . $renewedMembershipCount . '.'
+        if $verbose;
 }
 
-if ( index($action, 'sepaDirectDebit') >= 0 ) {
+if ( index( $action, 'sepaDirectDebit' ) >= 0 ) {
+
     # action: 'pay' enrolment fee via SEPA direct debit and create the corresponding XML file that can be transferred manually to the library's bank.
-    warn 'membership_renewal_SEPA.pl: Trying to pay open fees for membership renewals for patrons with activated SEPA direct debit.' if $verbose;
+    warn
+        'membership_renewal_SEPA.pl: Trying to pay open fees for membership renewals for patrons with activated SEPA direct debit.'
+        if $verbose;
     my $success = $sepaPayment->paySelectedFeesForSepaDirectDebitPatrons(
         {
             ( $branch ? ( 'branchcode' => $branch ) : () ),
             sepaDirectDebitDelayDays => $sepaDirectDebitDelayDays,
         }
     );
-    warn "membership_renewal_SEPA.pl: sepaPayment->paySelectedFeesForSepaDirectDebitPatrons() success:$success:" if $verbose;
+    warn "membership_renewal_SEPA.pl: sepaPayment->paySelectedFeesForSepaDirectDebitPatrons() success:$success:"
+        if $verbose;
 }
-
-
 

@@ -22,7 +22,7 @@ use warnings;
 use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
-use C4::Auth qw( get_template_and_user );
+use C4::Auth   qw( get_template_and_user );
 use C4::Koha;
 use Koha::Libraries;
 use C4::CashRegisterManagement;
@@ -42,9 +42,9 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 
 my $branch = $input->param('branch');
 $branch =
-    defined $branch                                                    ? $branch
-  : Koha::Libraries->search->count() == 1                              ? undef
-  :                                                                      undef;
+      defined $branch                       ? $branch
+    : Koha::Libraries->search->count() == 1 ? undef
+    :                                         undef;
 $branch ||= q{};
 $branch = q{} if $branch eq 'NO_LIBRARY_SET';
 
@@ -58,46 +58,45 @@ my $action = '';
 # load all staff data that is involved with cash registers
 ###########################################################
 
-my $cashmanagement = C4::CashRegisterManagement->new($branch, $loggedinuser);
+my $cashmanagement = C4::CashRegisterManagement->new( $branch, $loggedinuser );
 
-my $cash_register=undef;
-my @enabled_staff = ();
-my %staff_enabled = ();
+my $cash_register    = undef;
+my @enabled_staff    = ();
+my %staff_enabled    = ();
 my $cash_register_id = undef;
 
 if ( $op eq 'new' ) {
     $action = 'edit';
-}
-elsif ( $op eq 'edit' ) {
-    $action = 'edit';
-    $cash_register_id = $input->param('cash_register_id') ;
-}
-elsif ( $op eq 'save' ) {
+} elsif ( $op eq 'edit' ) {
+    $action           = 'edit';
+    $cash_register_id = $input->param('cash_register_id');
+} elsif ( $op eq 'save' ) {
     $action = '';
 
-    $cash_register_id = $input->param('cash_register_id') ;
-    my $cash_register_name = $input->param('cash_register_name') ;
-    my $cash_register_branchcode = $input->param('cash_register_branchcode') ;
-    my $cash_register_no_branch_restriction = $input->param('cash_register_no_branch_restriction') ;
-    
+    $cash_register_id = $input->param('cash_register_id');
+    my $cash_register_name                  = $input->param('cash_register_name');
+    my $cash_register_branchcode            = $input->param('cash_register_branchcode');
+    my $cash_register_no_branch_restriction = $input->param('cash_register_no_branch_restriction');
+
     my $params = {};
-    $params->{name}                    = $cash_register_name if ( defined($cash_register_name) );
-    $params->{branchcode}              = $cash_register_branchcode if ( defined($cash_register_branchcode));
-    $params->{no_branch_restriction}   = ($cash_register_no_branch_restriction ? 1 : 0);
-    
+    $params->{name}                  = $cash_register_name       if ( defined($cash_register_name) );
+    $params->{branchcode}            = $cash_register_branchcode if ( defined($cash_register_branchcode) );
+    $params->{no_branch_restriction} = ( $cash_register_no_branch_restriction ? 1 : 0 );
+
     my $manager_list = $input->param('cash_register_manager_list') || '';
-    
+
     $cash_register = $cashmanagement->saveCashRegister(
-        $params, 
-        $manager_list, 
-        $cash_register_id);
+        $params,
+        $manager_list,
+        $cash_register_id
+    );
     $cash_register_id = $cash_register->id();
-    
+
     print $input->redirect("/cgi-bin/koha/tools/cash-register-management.pl");
 }
 
-if ( $cash_register_id ) {
-    $template->param( %{$cashmanagement->loadCashRegister($cash_register_id)});
+if ($cash_register_id) {
+    $template->param( %{ $cashmanagement->loadCashRegister($cash_register_id) } );
     @enabled_staff = $cashmanagement->getEnabledStaff($cash_register_id);
 }
 
@@ -117,10 +116,10 @@ if ( $action ne 'edit' ) {
 #  Set template paramater
 ########################################
 $template->param(
-                        branch => $branch,
-                        permitted_staff => \@permitted_staff,
-                        enabled_staff => \@enabled_staff,
-                        action => $action
+    branch          => $branch,
+    permitted_staff => \@permitted_staff,
+    enabled_staff   => \@enabled_staff,
+    action          => $action
 );
 output_html_with_http_headers $input, $cookie, $template->output;
 

@@ -10,11 +10,12 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("Lost items") | html %] &rsaquo;
-    [% t("Reports") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Lost items") | html %]
+        &rsaquo; [% t("Reports") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -49,235 +50,233 @@
             <main>
                 [% INCLUDE 'messages.inc' %]
 
+                <h1>Lost items</h1>
 
-<h1>Lost items</h1>
+                [% IF ( get_items ) %]
 
-[% IF ( get_items ) %]
-
-    [% IF items.count %]
-        [% IF csv_profiles.count %]
-            <div class="lostitems-table_table_controls">
-                | <a href="#" class="SelectAll"><i class="fa fa-check"></i> Select all</a> |
-                <a href="#" class="ClearAll"><i class="fa fa-times"></i> Clear all</a>
-                <span class="itemselection_actions">
-                    | Actions:
-                    <a class="itemselection_action_export"><i class="fa fa-download"></i> Export selected items</a>
-                    Using the following CSV profile:
-                    <select name="csv_profile_id" id="csv_profile_id">
-                        [% FOREACH csv_profile IN csv_profiles %]
-                            <option value="[% csv_profile.export_format_id | html %]">
-                                [% csv_profile.profile | html %]
-                            </option>
-                        [% END %]
-                    </select>
-                </span>
-            </div>
-        [% ELSE %]
-            <div class="alert alert-info">
-                [% IF ( CAN_user_tools_manage_csv_profiles ) %]
-                    <span>To enable the export of selected items, <a href="/cgi-bin/koha/tools/csv-profiles.pl">create a CSV profile</a> of the type "SQL" with usage option "Export lost items in report."</span>
-                [% ELSE %]
-                    <span>To enable the export of selected items, your administrator must create a CSV profile of the type "SQL" with usage option "Export lost items in report."</span>
-                [% END %]
-            </div>
-            <div class="lostitems-table_table_controls">
-            </div>
-        [% END %]
-
-            <div class="page-section">
-        <table id="lostitems-table">
-            <thead>
-                <tr>
-                    [% IF csv_profiles.count %]
-                        <th class="NoSort"></th>
-                    [% END %]
-                    <th class="anti-the">Title</th>
-                    <th>Author</th>
-                    <th>Lost status</th>
-                    <th>Lost on</th>
-                    <th>Barcode</th>
-                    <th>Call number</th>
-                    <th>Date last seen</th>
-                    <th>Price</th>
-                    <th>Rep.price</th>
-                    <th>Library</th>
-                    <th>Item type</th>
-                    <th>Collection</th>
-                    <th>Current library</th>
-                    <th>Location</th>
-                    <th>Not for loan status</th>
-                    <th>Notes</th>
-                </tr>
-            </thead>
-            <tbody>
-                [% FOREACH item IN items %]
-                    <tr>
+                    [% IF items.count %]
                         [% IF csv_profiles.count %]
-                            <td style="text-align:center;vertical-align:middle">
-                                <input type="checkbox" value="[% item.itemnumber | html %]" name="itemnumber" />
-                            </td>
+                            <div class="lostitems-table_table_controls">
+                                | <a href="#" class="SelectAll"><i class="fa fa-check"></i> Select all</a> |
+                                <a href="#" class="ClearAll"><i class="fa fa-times"></i> Clear all</a>
+                                <span class="itemselection_actions">
+                                    | Actions:
+                                    <a class="itemselection_action_export"><i class="fa fa-download"></i> Export selected items</a>
+                                    Using the following CSV profile:
+                                    <select name="csv_profile_id" id="csv_profile_id">
+                                        [% FOREACH csv_profile IN csv_profiles %]
+                                            <option value="[% csv_profile.export_format_id | html %]"> [% csv_profile.profile | html %] </option>
+                                        [% END %]
+                                    </select>
+                                </span>
+                            </div>
+                        [% ELSE %]
+                            <div class="alert alert-info">
+                                [% IF ( CAN_user_tools_manage_csv_profiles ) %]
+                                    <span>To enable the export of selected items, <a href="/cgi-bin/koha/tools/csv-profiles.pl">create a CSV profile</a> of the type "SQL" with usage option "Export lost items in report."</span>
+                                [% ELSE %]
+                                    <span>To enable the export of selected items, your administrator must create a CSV profile of the type "SQL" with usage option "Export lost items in report."</span>
+                                [% END %]
+                            </div>
+                            <div class="lostitems-table_table_controls"> </div>
                         [% END %]
-                        <td>
-                            <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% item.biblionumber | uri %]">[% item.biblio.title | html %]</a>
-                        </td>
-                        <td>[% item.biblio.author | html %]</td>
-                        <td>[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.itemlost', authorised_value => item.itemlost ) | html %]
-                        <td data-order="[% item.itemlost_on | html %]">[% item.itemlost_on | $KohaDates %]</td>
-                        <td>
-                            <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% item.biblionumber | uri %]">[% item.barcode | html %]</a>
-                        </td>
-                        <td>[% item.itemcallnumber | html %]</td>
-                        <td data-order="[% item.datelastseen | html %]">[% item.datelastseen | $KohaDates with_hours => 1 %]</td>
-                        <td>[% item.price | $Price %]</td>
-                        <td>[% item.replacementprice | $Price %]</td>
-                        <td>[% Branches.GetName(item.homebranch) | html %]</td>
-                        <td>[% ItemTypes.GetDescription(item.effective_itemtype) | html %]</td>
-                        <td>[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => item.ccode ) | html %]</td>
-                        <td>[% Branches.GetName(item.holdingbranch) | html %]</td>
-                        <td>[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => item.location ) | html %]</td>
-                        <td>[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.notforloan', authorised_value => item.notforloan ) | html %]
-                        <td>[% item.itemnotes | $raw %]</td>
-                    </tr>
-                [% END %]
-            </tbody>
-        </table>
-            </div>
-            <!-- /.page-section -->
-    [% END %]
-	[% ELSE %]
-	
-	<form name="f" action="/cgi-bin/koha/reports/itemslost.pl" method="get">
-    <fieldset class="rows">
-        <ol>
 
-	<li><label for="barcodefilter">Barcode: </label><input type="text" name="barcodefilter" id="barcodefilter" size="6" /></li>
-	<li><label for="branchfilter">Library: </label><select name="branchfilter" id="branchfilter">
-                <option value="">All</option>
-                [% PROCESS options_for_libraries libraries => Branches.all() %]
-            </select></li>
-    <li><label for="itemtypesfilter">Item type: </label><select name="itemtypesfilter" id="itemtypesfilter">
-                <option value="">All</option>
-                [% FOREACH itemtype IN itemtypes %]
-                    <option value="[% itemtype.itemtype | html %]">[% itemtype.translated_description | html %]</option>
-                [% END %]
-            </select></li>
-
-    <li>
-        <label for="loststatusfilter">Lost status: </label>
-        <select name="loststatusfilter" id="loststatusfilter">
-            <option value="">All</option>
-            [% FOREACH l IN AuthorisedValues.GetDescriptionsByKohaField( kohafield => 'items.itemlost') %]
-                [% IF l.authorised_value == lostfilter %]
-                    <option value="[% l.authorised_value | html %]" selected="selected">[% l.lib | html %]</option>
+                        <div class="page-section">
+                            <table id="lostitems-table">
+                                <thead>
+                                    <tr>
+                                        [% IF csv_profiles.count %]
+                                            <th class="NoSort"></th>
+                                        [% END %]
+                                        <th class="anti-the">Title</th>
+                                        <th>Author</th>
+                                        <th>Lost status</th>
+                                        <th>Lost on</th>
+                                        <th>Barcode</th>
+                                        <th>Call number</th>
+                                        <th>Date last seen</th>
+                                        <th>Price</th>
+                                        <th>Rep.price</th>
+                                        <th>Library</th>
+                                        <th>Item type</th>
+                                        <th>Collection</th>
+                                        <th>Current library</th>
+                                        <th>Location</th>
+                                        <th>Not for loan status</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    [% FOREACH item IN items %]
+                                        <tr>
+                                            [% IF csv_profiles.count %]
+                                                <td style="text-align:center;vertical-align:middle">
+                                                    <input type="checkbox" value="[% item.itemnumber | html %]" name="itemnumber" />
+                                                </td>
+                                            [% END %]
+                                            <td>
+                                                <a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% item.biblionumber | uri %]">[% item.biblio.title | html %]</a>
+                                            </td>
+                                            <td>[% item.biblio.author | html %]</td>
+                                            <td>[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.itemlost', authorised_value => item.itemlost ) | html %] </td
+                                            ><td data-order="[% item.itemlost_on | html %]">[% item.itemlost_on | $KohaDates %]</td>
+                                            <td>
+                                                <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% item.biblionumber | uri %]">[% item.barcode | html %]</a>
+                                            </td>
+                                            <td>[% item.itemcallnumber | html %]</td>
+                                            <td data-order="[% item.datelastseen | html %]">[% item.datelastseen | $KohaDates with_hours => 1 %]</td>
+                                            <td>[% item.price | $Price %]</td>
+                                            <td>[% item.replacementprice | $Price %]</td>
+                                            <td>[% Branches.GetName(item.homebranch) | html %]</td>
+                                            <td>[% ItemTypes.GetDescription(item.effective_itemtype) | html %]</td>
+                                            <td>[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => item.ccode ) | html %]</td>
+                                            <td>[% Branches.GetName(item.holdingbranch) | html %]</td>
+                                            <td>[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => item.location ) | html %]</td>
+                                            <td>[% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.notforloan', authorised_value => item.notforloan ) | html %] </td><td>[% item.itemnotes | $raw %]</td>
+                                        </tr>
+                                    [% END %]
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- /.page-section -->
+                    [% END %]
                 [% ELSE %]
-                    <option value="[% l.authorised_value | html %]">[% l.lib | html %]</option>
+                    <form name="f" action="/cgi-bin/koha/reports/itemslost.pl" method="get">
+                        <fieldset class="rows">
+                            <ol>
+                                <li><label for="barcodefilter">Barcode: </label><input type="text" name="barcodefilter" id="barcodefilter" size="6" /></li>
+                                <li
+                                    ><label for="branchfilter">Library: </label
+                                    ><select name="branchfilter" id="branchfilter">
+                                        <option value="">All</option>
+                                        [% PROCESS options_for_libraries libraries => Branches.all() %]
+                                    </select></li
+                                >
+                                <li
+                                    ><label for="itemtypesfilter">Item type: </label
+                                    ><select name="itemtypesfilter" id="itemtypesfilter">
+                                        <option value="">All</option>
+                                        [% FOREACH itemtype IN itemtypes %]
+                                            <option value="[% itemtype.itemtype | html %]">[% itemtype.translated_description | html %]</option>
+                                        [% END %]
+                                    </select></li
+                                >
+
+                                <li>
+                                    <label for="loststatusfilter">Lost status: </label>
+                                    <select name="loststatusfilter" id="loststatusfilter">
+                                        <option value="">All</option>
+                                        [% FOREACH l IN AuthorisedValues.GetDescriptionsByKohaField( kohafield => 'items.itemlost') %]
+                                            [% IF l.authorised_value == lostfilter %]
+                                                <option value="[% l.authorised_value | html %]" selected="selected">[% l.lib | html %]</option>
+                                            [% ELSE %]
+                                                <option value="[% l.authorised_value | html %]">[% l.lib | html %]</option>
+                                            [% END %]
+                                        [% END %]
+                                    </select>
+                                </li>
+
+                                <li>
+                                    <label for="notforloanfilter">Not for loan: </label>
+                                    <select name="notforloanfilter" id="notforloanfilter">
+                                        <option value="">All</option>
+                                        [% FOREACH n IN AuthorisedValues.GetDescriptionsByKohaField( kohafield => 'items.notforloan') %]
+                                            [% IF n.authorised_value == notforloanfilter %]
+                                                <option value="[% n.authorised_value | html %]" selected="selected">[% n.lib | html %]</option>
+                                            [% ELSE %]
+                                                <option value="[% n.authorised_value | html %]">[% n.lib | html %]</option>
+                                            [% END %]
+                                        [% END %]
+                                    </select>
+                                </li>
+                            </ol></fieldset
+                        >
+                        <fieldset class="action"> <input type="submit" class="btn btn-primary" value="Submit" /> <input type="hidden" name="get_items" value="1" /></fieldset>
+                    </form>
                 [% END %]
-            [% END %]
-        </select>
-    </li>
-
-    <li>
-        <label for="notforloanfilter">Not for loan: </label>
-        <select name="notforloanfilter" id="notforloanfilter">
-            <option value="">All</option>
-            [% FOREACH n IN AuthorisedValues.GetDescriptionsByKohaField( kohafield => 'items.notforloan') %]
-                [% IF n.authorised_value == notforloanfilter %]
-                    <option value="[% n.authorised_value | html %]" selected="selected">[% n.lib | html %]</option>
-                [% ELSE %]
-                    <option value="[% n.authorised_value | html %]">[% n.lib | html %]</option>
-                [% END %]
-            [% END %]
-        </select>
-    </li>
-
-</ol></fieldset>
-<fieldset class="action">    <input type="submit" class="btn btn-primary" value="Submit" />
-    <input type="hidden" name="get_items" value="1" /></fieldset>
-</form>
-	
-	[% END %]
-
             </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'reports-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-     </div> <!-- /.row -->
+            <aside> [% INCLUDE 'reports-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
-[% MACRO jsinclude BLOCK %]
-    [% INCLUDE 'datatables.inc' %]
-    [% INCLUDE 'columns_settings.inc' %]
-    <script>
-        $(document).ready(function() {
-            var table_settings = [% TablesSettings.GetTableSettings( 'reports', 'lostitems', 'lostitems-table', 'json' ) | $raw %];
-            [% IF csv_profiles.count %]
-                // Add the first (checkbox) column if it is displayed
-                table_settings['columns'].unshift({cannot_be_modified: 1, cannot_be_toggled: 1, columnname: 'itemnumber', is_hidden: 0});
-            [% END %]
+    [% MACRO jsinclude BLOCK %]
+        [% INCLUDE 'datatables.inc' %]
+        [% INCLUDE 'columns_settings.inc' %]
+        <script>
+            $(document).ready(function() {
+                var table_settings = [% TablesSettings.GetTableSettings( 'reports', 'lostitems', 'lostitems-table', 'json' ) | $raw %];
+                [% IF csv_profiles.count %]
+                    // Add the first (checkbox) column if it is displayed
+                    table_settings['columns'].unshift({cannot_be_modified: 1, cannot_be_toggled: 1, columnname: 'itemnumber', is_hidden: 0});
+                [% END %]
 
-            var lostitems_table = KohaTable("lostitems-table", {
-                "order": [],
-                "columnDefs": [
-                    { "orderable": false, "searchable":  false, "targets": [ 'NoSort' ] }
-                ],
-                "autoWidth": false,
-                "paginate": false,
-            }, table_settings, 'with_filters');
+                var lostitems_table = KohaTable("lostitems-table", {
+                    "order": [],
+                    "columnDefs": [
+                        { "orderable": false, "searchable":  false, "targets": [ 'NoSort' ] }
+                    ],
+                    "autoWidth": false,
+                    "paginate": false,
+                }, table_settings, 'with_filters');
 
-            function itemSelectionBuildExportLink() {
-                var itemnumbers = new Array();
-                $("input[name='itemnumber'][type='checkbox']:checked").each(function() {
-                    itemnumbers.push($(this).val());
-                });
-                if (itemnumbers.length > 0) {
-                    var csv_profile_id = $("#csv_profile_id  option:selected").val();
-                    var url = '/cgi-bin/koha/reports/itemslost.pl?op=export&csv_profile_id='+csv_profile_id;
-                    url += '&itemnumber=' + itemnumbers.join('&itemnumber=');
-                    $('a.itemselection_action_export').attr('href', url);
-                } else {
-                    return false;
+                function itemSelectionBuildExportLink() {
+                    var itemnumbers = new Array();
+                    $("input[name='itemnumber'][type='checkbox']:checked").each(function() {
+                        itemnumbers.push($(this).val());
+                    });
+                    if (itemnumbers.length > 0) {
+                        var csv_profile_id = $("#csv_profile_id  option:selected").val();
+                        var url = '/cgi-bin/koha/reports/itemslost.pl?op=export&csv_profile_id='+csv_profile_id;
+                        url += '&itemnumber=' + itemnumbers.join('&itemnumber=');
+                        $('a.itemselection_action_export').attr('href', url);
+                    } else {
+                        return false;
+                    }
+                    return true;
                 }
-                return true;
-            }
 
-            function itemSelectionBuildActionLinks() {
-                var export_link_ok = itemSelectionBuildExportLink();
-                if (export_link_ok) {
-                    $('.itemselection_actions').show();
-                } else {
-                    $('.itemselection_actions').hide();
+                function itemSelectionBuildActionLinks() {
+                    var export_link_ok = itemSelectionBuildExportLink();
+                    if (export_link_ok) {
+                        $('.itemselection_actions').show();
+                    } else {
+                        $('.itemselection_actions').hide();
+                    }
                 }
-            }
 
-            itemSelectionBuildActionLinks();
-
-            $("input[name='itemnumber'][type='checkbox']").change(function() {
                 itemSelectionBuildActionLinks();
-            });
-            $("#csv_profile_id").change(function() {
-                itemSelectionBuildActionLinks();
-            });
 
-            $(".SelectAll").on("click",function(e){
-                e.preventDefault();
-                $("#lostitems-table input:checkbox").each(function(){
-                    $(this).prop("checked", true);
+                $("input[name='itemnumber'][type='checkbox']").change(function() {
+                    itemSelectionBuildActionLinks();
                 });
-                itemSelectionBuildActionLinks();
-            });
-
-            $(".ClearAll").on("click",function(e){
-                e.preventDefault();
-                $("#lostitems-table input:checkbox").each(function(){
-                    $(this).prop("checked", false);
+                $("#csv_profile_id").change(function() {
+                    itemSelectionBuildActionLinks();
                 });
-                itemSelectionBuildActionLinks();
-            });
-        });
-    </script>
-[% END %]
 
-[% INCLUDE 'intranet-bottom.inc' %]
+                $(".SelectAll").on("click",function(e){
+                    e.preventDefault();
+                    $("#lostitems-table input:checkbox").each(function(){
+                        $(this).prop("checked", true);
+                    });
+                    itemSelectionBuildActionLinks();
+                });
+
+                $(".ClearAll").on("click",function(e){
+                    e.preventDefault();
+                    $("#lostitems-table input:checkbox").each(function(){
+                        $(this).prop("checked", false);
+                    });
+                    itemSelectionBuildActionLinks();
+                });
+            });
+        </script>
+    [% END %]
+
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

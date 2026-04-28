@@ -42,8 +42,8 @@ my $query = CGI->new();
 my @divibibIDs = ();
 
 my $reqId = $query->param('divibibID');
-foreach my $splitId( split /\s+/, $reqId  ) {
-    if ( $splitId ) {
+foreach my $splitId ( split /\s+/, $reqId ) {
+    if ($splitId) {
         push @divibibIDs, $splitId;
     }
 }
@@ -52,19 +52,18 @@ my $divibibService = C4::Divibib::NCIPService->new();
 
 my @js_reply = ();
 
-foreach my $divibibID ( @divibibIDs ) {
-    my ($result, $resultOk, $resultError, $resultErrorCode) = $divibibService->lookupItem($divibibID);
+foreach my $divibibID (@divibibIDs) {
+    my ( $result, $resultOk, $resultError, $resultErrorCode ) = $divibibService->lookupItem($divibibID);
 
     push @js_reply, {
-                        result        => $result,
-                        resultOk      => $resultOk,
-                        resultError   => $resultError,
-                      };
+        result      => $result,
+        resultOk    => $resultOk,
+        resultError => $resultError,
+    };
 }
 
 my $json_reply = JSON->new->encode( { titles => \@js_reply } );
 
 output_ajax_with_http_headers( $query, $json_reply );
 exit;
-
 

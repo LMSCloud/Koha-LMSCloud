@@ -45,23 +45,17 @@ sub coverhtml {
     my @items = @_;
 
     my $preferences = {
-        'OPACLocalCoverImages' =>
-            C4::Context->preference('OPACLocalCoverImages'),
-        'OPACAmazonCoverImages' =>
-            C4::Context->preference('OPACAmazonCoverImages'),
-        'SyndeticsEnabled'     => C4::Context->preference('SyndeticsEnabled'),
-        'SyndeticsCoverImages' =>
-            C4::Context->preference('SyndeticsCoverImages'),
-        'SyndeticsClientCode' =>
-            C4::Context->preference('SyndeticsClientCode'),
-        'GoogleJackets'      => C4::Context->preference('GoogleJackets'),
-        'BakerTaylorEnabled' => C4::Context->preference('BakerTaylorEnabled'),
-        'OpacCoce'           => C4::Context->preference('OpacCoce'),
-        'CoceProviders'      => C4::Context->preference('CoceProviders'),
-        'OPACCustomCoverImages' =>
-            C4::Context->preference('OPACCustomCoverImages'),
-        'CustomCoverImagesUrl' =>
-            C4::Context->preference('CustomCoverImagesUrl'),
+        'OPACLocalCoverImages'  => C4::Context->preference('OPACLocalCoverImages'),
+        'OPACAmazonCoverImages' => C4::Context->preference('OPACAmazonCoverImages'),
+        'SyndeticsEnabled'      => C4::Context->preference('SyndeticsEnabled'),
+        'SyndeticsCoverImages'  => C4::Context->preference('SyndeticsCoverImages'),
+        'SyndeticsClientCode'   => C4::Context->preference('SyndeticsClientCode'),
+        'GoogleJackets'         => C4::Context->preference('GoogleJackets'),
+        'BakerTaylorEnabled'    => C4::Context->preference('BakerTaylorEnabled'),
+        'OpacCoce'              => C4::Context->preference('OpacCoce'),
+        'CoceProviders'         => C4::Context->preference('CoceProviders'),
+        'OPACCustomCoverImages' => C4::Context->preference('OPACCustomCoverImages'),
+        'CustomCoverImagesUrl'  => C4::Context->preference('CustomCoverImagesUrl'),
     };
 
     my $index = 0;
@@ -72,10 +66,10 @@ sub coverhtml {
         my $coverhtml;
         my $item_coverurl = $item->{'coverurl'};
 
-        if (!$item_coverurl
-            && ((      $preferences->{'OPACLocalCoverImages'}
-                    && $item->{'local_image_count'} > 0
-                )
+        if (
+            !$item_coverurl
+            && (
+                   ( $preferences->{'OPACLocalCoverImages'} && $item->{'local_image_count'} > 0 )
                 || $preferences->{'OPACAmazonCoverImages'}
                 || (   $preferences->{'SyndeticsEnabled'}
                     && $preferences->{'SyndeticsCoverImages'} )
@@ -90,26 +84,23 @@ sub coverhtml {
         {
             if ( $item->{'title'} ) {
                 $image_title = $item->{'title'};
-            }
-            else {
+            } else {
                 $image_title = $item->{'biblionumber'};
             }
 
             if (   $preferences->{'OPACLocalCoverImages'}
                 && $item->{'local_image_count'} > 0 )
             {
-                $coverhtml
-                    = qq{<div title="$image_title" class="$item->{'biblionumber'} thumbnail-shelfbrowser" id="local-thumbnail-shelf-$item->{'biblionumber'}"></div>};
+                $coverhtml =
+                    qq{<div title="$image_title" class="$item->{'biblionumber'} thumbnail-shelfbrowser" id="local-thumbnail-shelf-$item->{'biblionumber'}"></div>};
             }
 
             if ( $preferences->{'OPACAmazonCoverImages'} ) {
                 if ( $item->{'browser_normalized_isbn'} ) {
-                    $coverhtml
-                        = qq{<img src="https://images-na.ssl-images-amazon.com/images/P/$item->{'browser_normalized_isbn'}.01.MZZZZZZZ.jpg" alt="" />};
-                }
-                else {
-                    $coverhtml
-                        = q{<span class="no-image">No cover image available</span>};
+                    $coverhtml =
+                        qq{<img src="https://images-na.ssl-images-amazon.com/images/P/$item->{'browser_normalized_isbn'}.01.MZZZZZZZ.jpg" alt="" />};
+                } else {
+                    $coverhtml = q{<span class="no-image">No cover image available</span>};
                 }
             }
 
@@ -119,15 +110,13 @@ sub coverhtml {
                         || $item->{'browser_normalized_upc'}
                         || $item->{'browser_normalized_oclc'} )
                     {
-                        $coverhtml
-                            = qq{<img src="https://secure.syndetics.com/index.aspx?isbn=$item->{'browser_normalized_isbn'}/SC.GIF&amp;client=$preferences->{'SyndeticsClientCode'}};
+                        $coverhtml =
+                            qq{<img src="https://secure.syndetics.com/index.aspx?isbn=$item->{'browser_normalized_isbn'}/SC.GIF&amp;client=$preferences->{'SyndeticsClientCode'}};
                         if ( $item->{'browser_normalized_upc'} ) {
-                            $coverhtml
-                                .= qq{&amp;upc=$item->{'browser_normalized_upc'}};
+                            $coverhtml .= qq{&amp;upc=$item->{'browser_normalized_upc'}};
                         }
                         if ( $item->{'browser_normalized_oclc'} ) {
-                            $coverhtml
-                                .= qq{&amp;oclc=$item->{'browser_normalized_oclc'}};
+                            $coverhtml .= qq{&amp;oclc=$item->{'browser_normalized_oclc'}};
                         }
                         $coverhtml .= q{&amp;type=xw10" alt="" />};
                     }
@@ -136,57 +125,48 @@ sub coverhtml {
 
             if ( $preferences->{'GoogleJackets'} ) {
                 if ( $item->{'browser_normalized_isbn'} ) {
-                    $coverhtml
-                        = qq{<div title="$image_title" class="$item->{'browser_normalized_isbn'}" id="gbs-thumbnail-preview$index"></div>}
-                        ;
-                }
-                else {
-                    $coverhtml
-                        = q{<span class="no-image">No cover image available</span>};
+                    $coverhtml =
+                        qq{<div title="$image_title" class="$item->{'browser_normalized_isbn'}" id="gbs-thumbnail-preview$index"></div>};
+                } else {
+                    $coverhtml = q{<span class="no-image">No cover image available</span>};
                 }
             }
 
             if (   $preferences->{'OpacCoce'}
                 && $preferences->{'CoceProviders'} )
             {
-                my $coce_id = ( $item->{'browser_normalized_ean'}
-                        || $item->{'browser_normalized_isbn'} );
-                $coverhtml
-                    = qq{<div title="$image_title" class="$coce_id" id="coce-thumbnail-preview-$coce_id"></div>};
+                my $coce_id =
+                    ( $item->{'browser_normalized_ean'} || $item->{'browser_normalized_isbn'} );
+                $coverhtml = qq{<div title="$image_title" class="$coce_id" id="coce-thumbnail-preview-$coce_id"></div>};
             }
 
             if ( $preferences->{'BakerTaylorEnabled'} ) {
-                my $baker_taylor_id = ( $item->{'browser_normalized_upc'}
-                        || $item->{'browser_normalized_isbn'} );
+                my $baker_taylor_id =
+                    ( $item->{'browser_normalized_upc'} || $item->{'browser_normalized_isbn'} );
                 my $baker_taylor_image_url = image_url();
-                my $baker_taylor_src
-                    = $baker_taylor_image_url . $baker_taylor_id;
+                my $baker_taylor_src       = $baker_taylor_image_url . $baker_taylor_id;
                 if ($baker_taylor_id) {
-                    $coverhtml
-                        = qq{<img alt="See Baker &amp; Taylor" src="$baker_taylor_src" />};
-                }
-                else {
-                    $coverhtml
-                        = q{<span class="no-image">No cover image available</span>};
+                    $coverhtml = qq{<img alt="See Baker &amp; Taylor" src="$baker_taylor_src" />};
+                } else {
+                    $coverhtml = q{<span class="no-image">No cover image available</span>};
                 }
             }
 
             if (   $preferences->{'OPACCustomCoverImages'}
                 && $preferences->{'CustomCoverImagesUrl'} )
             {
-                my $custom_cover_image_url
-                    = $preferences->{'CustomCoverImagesUrl'};
+                my $custom_cover_image_url = $preferences->{'CustomCoverImagesUrl'};
                 if ($custom_cover_image_url) {
-                    $coverhtml
-                        = qq{<span class="custom_cover_image"><img alt="Cover image" src="$custom_cover_image_url" /></span>};
+                    $coverhtml =
+                        qq{<span class="custom_cover_image"><img alt="Cover image" src="$custom_cover_image_url" /></span>};
                 }
             }
         }
 
-      # Add the property coverhtml to our objects and push onto results array.
+        # Add the property coverhtml to our objects and push onto results array.
         $item->{'coverhtml'} = $coverhtml;
 
-       # This index is needed for the loop count used in GoogleJackets markup.
+        # This index is needed for the loop count used in GoogleJackets markup.
         $index += 1;
     }
 

@@ -5,12 +5,12 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("Clone circulation and fine rules") | html %] &rsaquo;
-    [% t("Circulation and fine rules") | html %] &rsaquo;
-    [% t("Administration") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Clone circulation and fine rules") | html %]
+        &rsaquo; [% t("Circulation and fine rules") | html %] &rsaquo; [% t("Administration") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="admin_clone-rules" class="admin">
@@ -38,9 +38,9 @@
             <main>
                 [% INCLUDE 'messages.inc' %]
 
-                <h1>Cloning circulation and fine rules
-                    [% IF frombranch == "*" %] from standard rules[% ELSIF frombranch %] from "[% Branches.GetName( frombranch ) | html %]"[% END %]
-                    [% IF tobranch %] to "[% Branches.GetName( tobranch ) | html %]"[% END %]
+                <h1
+                    >Cloning circulation and fine rules [% IF frombranch == "*" %]from standard rules[% ELSIF frombranch %]from "[% Branches.GetName( frombranch ) | html %]"[% END %]
+                    [% IF tobranch %]to "[% Branches.GetName( tobranch ) | html %]"[% END %]
                 </h1>
 
                 [% IF ( error ) %]
@@ -50,17 +50,19 @@
                 [% END %]
                 <a href="/cgi-bin/koha/admin/smart-rules.pl">Return to circulation and fine rules</a>
             </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'admin-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-     </div> <!-- /.row -->
+            <aside> [% INCLUDE 'admin-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
-[% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/admin-menu.js") | $raw %]
-[% END %]
+    [% MACRO jsinclude BLOCK %]
+        [% Asset.js("js/admin-menu.js") | $raw %]
+    [% END %]
 
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

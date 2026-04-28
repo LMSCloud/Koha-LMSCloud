@@ -27,7 +27,7 @@ use t::lib::TestBuilder;
 use t::lib::Mocks;
 
 my $builder = t::lib::TestBuilder->new;
-my $schema = Koha::Database->new->schema;
+my $schema  = Koha::Database->new->schema;
 
 subtest 'filter_by_visible() tests' => sub {
 
@@ -35,23 +35,22 @@ subtest 'filter_by_visible() tests' => sub {
 
     $schema->storage->txn_begin;
 
-    my $req = $builder->build_object({ class => 'Koha::Illrequests', value => { status => 'REQ', biblio_id => undef } });
-    my $chk = $builder->build_object({ class => 'Koha::Illrequests', value => { status => 'CHK', biblio_id => undef } });
-    my $ret = $builder->build_object({ class => 'Koha::Illrequests', value => { status => 'RET', biblio_id => undef } });
+    my $req =
+        $builder->build_object( { class => 'Koha::Illrequests', value => { status => 'REQ', biblio_id => undef } } );
+    my $chk =
+        $builder->build_object( { class => 'Koha::Illrequests', value => { status => 'CHK', biblio_id => undef } } );
+    my $ret =
+        $builder->build_object( { class => 'Koha::Illrequests', value => { status => 'RET', biblio_id => undef } } );
 
-    my $reqs_rs = Koha::Illrequests->search(
-        {
-            illrequest_id => [ $req->id, $chk->id, $ret->id ]
-        }
-    );
+    my $reqs_rs = Koha::Illrequests->search( { illrequest_id => [ $req->id, $chk->id, $ret->id ] } );
 
     is( $reqs_rs->count, 3, 'Count is correct' );
 
-    t::lib::Mocks::mock_preference('ILLHiddenRequestStatuses', '');
+    t::lib::Mocks::mock_preference( 'ILLHiddenRequestStatuses', '' );
 
     is( $reqs_rs->filter_by_visible->count, 3, 'No hidden statuses, same count' );
 
-    t::lib::Mocks::mock_preference('ILLHiddenRequestStatuses', 'CHK|RET');
+    t::lib::Mocks::mock_preference( 'ILLHiddenRequestStatuses', 'CHK|RET' );
 
     my $filtered_reqs = $reqs_rs->filter_by_visible;
 

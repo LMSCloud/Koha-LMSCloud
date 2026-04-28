@@ -68,26 +68,26 @@ This returns a list of search expressions.
 =cut
 
 sub find {
-    my ($self, $request) = @_;
+    my ( $self, $request ) = @_;
 
     my @result;
     my %uniqResult;
-    my ($query,$count) = $self->_build_query($request);
+    my ( $query, $count ) = $self->_build_query($request);
 
-    if ( $query ) {
+    if ($query) {
         my $elasticsearch = $self->get_elasticsearch();
-        my $results = $elasticsearch->search(
+        my $results       = $elasticsearch->search(
             index => $self->index_name,
-            body => $query
+            body  => $query
         );
         if ( defined $results->{suggest} ) {
-            foreach my $suggestion(keys %{$results->{suggest}}) {
+            foreach my $suggestion ( keys %{ $results->{suggest} } ) {
                 if ( $suggestion =~ /_phrase$/ ) {
                     my $options = $results->{suggest}{$suggestion}[0]{options};
-                    foreach my $option(@$options) {
+                    foreach my $option (@$options) {
                         if ( $option->{collate_match} ) {
                             my $suggtext = $option->{text};
-                            if (! ( exists($uniqResult{$suggtext}) && $uniqResult{$suggtext} > $option->{score} ) ) {
+                            if ( !( exists( $uniqResult{$suggtext} ) && $uniqResult{$suggtext} > $option->{score} ) ) {
                                 $uniqResult{$suggtext} = $option->{score};
                             }
                         }
@@ -95,7 +95,7 @@ sub find {
                 }
             }
         }
-        foreach my $option(reverse sort { $uniqResult{$a} <=> $uniqResult{$b} } keys(%uniqResult)) {
+        foreach my $option ( reverse sort { $uniqResult{$a} <=> $uniqResult{$b} } keys(%uniqResult) ) {
             push @result, $option;
             last if scalar(@result) >= $count;
         }
@@ -119,35 +119,39 @@ Default are all fields indexed by type string_plus.
 
 sub _build_query {
     my ( $self, $request ) = @_;
-    
-    return undef if (! defined $request);
-    return undef if (! reftype($request) eq 'HASH' );
-    
+
+    return undef if ( !defined $request );
+    return undef if ( !reftype($request) eq 'HASH' );
+
     my $searchstring = $request->{text};
-    return undef if (! defined $searchstring);
-    
+    return undef if ( !defined $searchstring );
+
     my $count = 4;
-    
-    if ( defined $request->{count} && $request->{count} =~ /^[0-9]+$/ && $request->{count} > 0 && $request->{count} < 20 ) {
+
+    if (   defined $request->{count}
+        && $request->{count} =~ /^[0-9]+$/
+        && $request->{count} > 0
+        && $request->{count} < 20 )
+    {
         $count = $request->{count};
     }
-    
+
     my $field = $request->{field};
     my @fields;
-    
-    if (!defined $field || $field =~ /^\s*$/)  {
-        
+
+    if ( !defined $field || $field =~ /^\s*$/ ) {
+
         # Default DidYouMean fields are
         # @fields = ('title','author','subject','title-series');
-        
+
         # But let's read alle fields indexed with type string_plus.
-        # string_plus indexed fields should contain a trigram and 
+        # string_plus indexed fields should contain a trigram and
         # reverse index which are necessary to build suggestions.
-        
+
         @fields = $self->SUPER::get_didyoumean_fields();
     }
-    
-    if ( $field ) {
+
+    if ($field) {
         my $index_params = Koha::SearchEngine::Elasticsearch::QueryBuilder->get_index_field_convert();
         if ( exists( $index_params->{$field} ) ) {
             $fields[0] = $index_params->{$field};
@@ -155,56 +159,49 @@ sub _build_query {
             $fields[0] = $field;
         }
     }
-    
+
     my $mappings = $self->get_elasticsearch_mappings();
     my @suggestionfields;
-    for $field(@fields) {
-        push @suggestionfields, $field if ( exists($mappings->{properties}->{$field}) );
+    for $field (@fields) {
+        push @suggestionfields, $field if ( exists( $mappings->{properties}->{$field} ) );
     }
-    
+
     my $query = {
         size    => 1,
         suggest => { text => $searchstring }
     };
-    foreach $field(@suggestionfields) {
-        $query->{suggest}->{"${field}_phrase"} =
-            {
-                phrase => {
-                    field => "${field}.trigram",
-                    size  => 5,
-                    gram_size => 3,
-                    direct_generator => [ 
-                        {
-                            field => "${field}.reverse",
-                            pre_filter => "reverse",
-                            post_filter => "reverse",
-                            suggest_mode => "popular",
-                            min_doc_freq => 1
-                        },
-                        {
-                            field => "${field}.trigram",
-                            suggest_mode => "popular",
-                            min_doc_freq => 1
-                        } 
-                    ],
-                    highlight => {
-                        pre_tag => "<em>",
-                        post_tag => "</em>"
+    foreach $field (@suggestionfields) {
+        $query->{suggest}->{"${field}_phrase"} = {
+            phrase => {
+                field            => "${field}.trigram",
+                size             => 5,
+                gram_size        => 3,
+                direct_generator => [
+                    {
+                        field        => "${field}.reverse",
+                        pre_filter   => "reverse",
+                        post_filter  => "reverse",
+                        suggest_mode => "popular",
+                        min_doc_freq => 1
                     },
-                    collate => {
-                        query => { 
-                            source => {
-                                match_phrase => {
-                                    "${field}" => '{{suggestion}}'
-                                }
-                            }
-                        },
-                        prune => JSON::true
+                    {
+                        field        => "${field}.trigram",
+                        suggest_mode => "popular",
+                        min_doc_freq => 1
                     }
+                ],
+                highlight => {
+                    pre_tag  => "<em>",
+                    post_tag => "</em>"
+                },
+                collate => {
+                    query => { source => { match_phrase => { "${field}" => '{{suggestion}}' } } },
+                    prune => JSON::true
                 }
-            };
+            }
+        };
     }
-    return ($query,$count);
+    return ( $query, $count );
 }
 
 1;

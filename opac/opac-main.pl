@@ -17,11 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-
 use Modern::Perl;
 use CGI qw ( -utf8 );
 use DateTime;
-use C4::Auth qw( get_template_and_user );
+use C4::Auth   qw( get_template_and_user );
 use C4::Output qw( output_html_with_http_headers );
 use Koha::Quotes;
 use C4::Members;
@@ -43,74 +42,82 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 );
 
 sub getCurrentDateMinusXMonth {
-        my ($minusmonth) = @_;
-        
-        my $dt = DateTime->now;
-        $dt->add( months => -$minusmonth );
-        return $dt->ymd;
+    my ($minusmonth) = @_;
+
+    my $dt = DateTime->now;
+    $dt->add( months => -$minusmonth );
+    return $dt->ymd;
 }
-my $newAcquisitionMonthes = $input->param("monthesback") || C4::Context->preference("OpacSelectNewAcquisitionsMonthes") || 12;
+my $newAcquisitionMonthes =
+    $input->param("monthesback") || C4::Context->preference("OpacSelectNewAcquisitionsMonthes") || 12;
 my $firstDateOfNew = getCurrentDateMinusXMonth($newAcquisitionMonthes);
 
 my $casAuthentication = C4::Context->preference('casAuthentication');
 $template->param(
-    casAuthentication   => $casAuthentication,
-    first_date_of_new   => $firstDateOfNew,
+    casAuthentication => $casAuthentication,
+    first_date_of_new => $firstDateOfNew,
 );
 
 my $homebranch = $ENV{OPAC_BRANCH_DEFAULT};
-if (C4::Context->userenv) {
+if ( C4::Context->userenv ) {
     $homebranch = C4::Context->userenv->{'branch'};
 }
-if (defined $input->param('branch') and length $input->param('branch')) {
+if ( defined $input->param('branch') and length $input->param('branch') ) {
     $homebranch = $input->param('branch');
+} elsif ( C4::Context->userenv and defined $input->param('branch') and length $input->param('branch') == 0 ) {
+    $homebranch = "";
 }
-elsif (C4::Context->userenv and defined $input->param('branch') and length $input->param('branch') == 0 ){
-   $homebranch = "";
-}
-
 
 my $news_id = $input->param('news_id');
 $template->param( news_id => $news_id );
 
 # For dashboard
-my $patron = Koha::Patrons->find( $borrowernumber );
+my $patron = Koha::Patrons->find($borrowernumber);
 
-if ( $patron ) {
-    my $checkouts = Koha::Checkouts->search({ borrowernumber => $borrowernumber })->count;
+if ($patron) {
+    my $checkouts = Koha::Checkouts->search( { borrowernumber => $borrowernumber } )->count;
     my ( $overdues_count, $overdues ) = checkoverdues($borrowernumber);
-    my $holds_pending = Koha::Holds->search({ borrowernumber => $borrowernumber, found => undef })->count;
-    my $holds_waiting = Koha::Holds->search({ borrowernumber => $borrowernumber })->waiting->count;
+    my $holds_pending   = Koha::Holds->search( { borrowernumber => $borrowernumber, found => undef } )->count;
+    my $holds_waiting   = Koha::Holds->search( { borrowernumber => $borrowernumber } )->waiting->count;
     my $patron_messages = Koha::Patron::Messages->search(
-            {
-                borrowernumber => $borrowernumber,
-                message_type => 'B',
-            });
-    my $patron_note = $patron->opacnote;
-    my $total = $patron->account->balance;
+        {
+            borrowernumber => $borrowernumber,
+            message_type   => 'B',
+        }
+    );
+    my $patron_note    = $patron->opacnote;
+    my $total          = $patron->account->balance;
     my $saving_display = C4::Context->preference('OPACShowSavings');
-    my $savings = 0;
+    my $savings        = 0;
     if ( $saving_display =~ /summary/ ) {
         $savings = $patron->get_savings;
     }
-    if  ( $checkouts > 0 || $overdues_count > 0 || $holds_pending > 0 || $holds_waiting > 0 || $total > 0 || $patron_note || $patron_messages->count || $savings > 0 ) {
+    if (   $checkouts > 0
+        || $overdues_count > 0
+        || $holds_pending > 0
+        || $holds_waiting > 0
+        || $total > 0
+        || $patron_note
+        || $patron_messages->count
+        || $savings > 0 )
+    {
         $template->param(
-            dashboard_info => 1,
-            checkouts           => $checkouts,
-            overdues            => $overdues_count,
-            holds_pending       => $holds_pending,
-            holds_waiting       => $holds_waiting,
-            total_owing         => $total,
-            patron_messages     => $patron_messages,
-            opacnote            => $patron_note,
-            savings             => $savings,
+            dashboard_info  => 1,
+            checkouts       => $checkouts,
+            overdues        => $overdues_count,
+            holds_pending   => $holds_pending,
+            holds_waiting   => $holds_waiting,
+            total_owing     => $total,
+            patron_messages => $patron_messages,
+            opacnote        => $patron_note,
+            savings         => $savings,
         );
     }
 }
 
 $template->param( branchcode => $homebranch ) if $homebranch;
 $template->param(
-    daily_quote         => Koha::Quotes->get_daily_quote(),
+    daily_quote => Koha::Quotes->get_daily_quote(),
 );
 
 output_html_with_http_headers $input, $cookie, $template->output;

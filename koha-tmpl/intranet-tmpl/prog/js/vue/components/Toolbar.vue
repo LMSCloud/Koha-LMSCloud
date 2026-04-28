@@ -1,11 +1,11 @@
 <template>
-    <div id="toolbar" class="btn-toolbar">
-        <slot />
-    </div>
+  <div id="toolbar" class="btn-toolbar">
+    <slot />
+  </div>
 </template>
 
 <script>
 export default {
-    name: "Toolbar",
+  name: "Toolbar",
 }
 </script>

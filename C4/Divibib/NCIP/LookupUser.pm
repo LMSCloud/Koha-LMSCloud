@@ -33,9 +33,9 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 BEGIN {
     require Exporter;
     our $VERSION = 3.07.00.049;
-    @ISA = qw(Exporter);
+    @ISA    = qw(Exporter);
     @EXPORT = qw(
-        
+
     );
 }
 
@@ -62,233 +62,233 @@ The command delivers the XML request data and parses the XML repsonse data.
 sub new {
     my $class = shift;
     my ( $borrowernumber, $withAccoutData ) = @_;
-    if (! $withAccoutData ) {
+    if ( !$withAccoutData ) {
         $withAccoutData = 0;
     }
 
     my $self = { 'withAccountData' => $withAccoutData };
     bless $self, $class;
-    
+
     my $command = {
-            'ncip:version'       => '2.0',
-            'xmlns:ncip'         => 'http://www.niso.org/2008/ncip',
-            'xmlns:xsi'           => 'http://www.w3.org/2001/XMLSchema-instance',
-            'xsi:schemaLocation' => 'http://www.niso.org/2008/ncip http://www.niso.org/schemas/ncip/v2_0/ncip_v2_0.xsd'
-        };
-        
-    my $borrower = Koha::Patrons->find( $borrowernumber );
+        'ncip:version'       => '2.0',
+        'xmlns:ncip'         => 'http://www.niso.org/2008/ncip',
+        'xmlns:xsi'          => 'http://www.w3.org/2001/XMLSchema-instance',
+        'xsi:schemaLocation' => 'http://www.niso.org/2008/ncip http://www.niso.org/schemas/ncip/v2_0/ncip_v2_0.xsd'
+    };
+
+    my $borrower = Koha::Patrons->find($borrowernumber);
+
     # if we did not find the borrowernumber
     # let's check whether the borrower userid is used instead
-    if (! $borrower ) { 
-        $borrower = Koha::Patrons->find({ userid => $borrowernumber} );
+    if ( !$borrower ) {
+        $borrower = Koha::Patrons->find( { userid => $borrowernumber } );
     }
-    
-    if ( $borrower ) {
+
+    if ($borrower) {
         $borrower = $borrower->unblessed;
     }
-    
-    die "borrower not found" unless (  $borrower );
 
-    if ( $borrower ) {
+    die "borrower not found" unless ($borrower);
+
+    if ($borrower) {
         my $agency = C4::Context->preference("DivibibAgencyId");
-        if ( $agency ) {
-            my @agencies = split(",",$agency);
+        if ($agency) {
+            my @agencies = split( ",", $agency );
             $agency = $agencies[0];
-            for (my $i=1; $i<=$#agencies; $i++) {
-                my @agencysplit = split("=",$agencies[$i]);
+            for ( my $i = 1 ; $i <= $#agencies ; $i++ ) {
+                my @agencysplit = split( "=", $agencies[$i] );
                 if ( scalar(@agencysplit) == 2 && $borrower->{'branchcode'} eq $agencysplit[1] ) {
                     $agency = $agencysplit[0];
                 }
             }
         }
         $command->{'LookupUser'} = {
-                'AuthenticationInput' => [
-                     {
-                        'AuthenticationInputData'      =>  [ $borrowernumber ],
-                        'AuthenticationDataFormatType' =>  [ 'text' ] ,
-                        'AuthenticationInputType'      =>  [ 'UserId' ]
-                     },
-                     {
-                        'AuthenticationInputData'      =>  [ $borrower->{'cardnumber'} ],
-                        'AuthenticationDataFormatType' =>  [ 'text' ],
-                        'AuthenticationInputType'      =>  [ 'CardId' ]
-                     },
-                     {
-                        'AuthenticationInputData'      =>  [ $borrower->{'dateofbirth'}.'T00:00:00' ],
-                        'AuthenticationDataFormatType' =>  [ 'text' ],
-                        'AuthenticationInputType'      =>  [ 'DateOfBirth' ]
-                     },
-                     {
-                        'AuthenticationInputData'      =>  [ $borrower->{'password'} ],
-                        'AuthenticationDataFormatType' =>  [ 'text' ],
-                        'AuthenticationInputType'      =>  [ 'Password' ]
-                     }
-                 ],
-                 'LoanedItemsDesired' => [ 'true' ],
-                 'RequestedItemsDesired' => [ 'true' ],
-                 'Ext' => {
-                         'AgencyId' => [ $agency ],
-                         'Language' => [ 'de' ]
-                      }
-             };
-          if (! $withAccoutData ) {
-              delete $command->{'LookupUser'}->{'LoanedItemsDesired'};
-              delete $command->{'LookupUser'}->{'RequestedItemsDesired'};
-          }
-     }
-     
-     $self->{'cmd'} = $command;
-     
-     $self->_initResponse();
-     
-     return $self;
+            'AuthenticationInput' => [
+                {
+                    'AuthenticationInputData'      => [$borrowernumber],
+                    'AuthenticationDataFormatType' => ['text'],
+                    'AuthenticationInputType'      => ['UserId']
+                },
+                {
+                    'AuthenticationInputData'      => [ $borrower->{'cardnumber'} ],
+                    'AuthenticationDataFormatType' => ['text'],
+                    'AuthenticationInputType'      => ['CardId']
+                },
+                {
+                    'AuthenticationInputData'      => [ $borrower->{'dateofbirth'} . 'T00:00:00' ],
+                    'AuthenticationDataFormatType' => ['text'],
+                    'AuthenticationInputType'      => ['DateOfBirth']
+                },
+                {
+                    'AuthenticationInputData'      => [ $borrower->{'password'} ],
+                    'AuthenticationDataFormatType' => ['text'],
+                    'AuthenticationInputType'      => ['Password']
+                }
+            ],
+            'LoanedItemsDesired'    => ['true'],
+            'RequestedItemsDesired' => ['true'],
+            'Ext'                   => {
+                'AgencyId' => [$agency],
+                'Language' => ['de']
+            }
+        };
+        if ( !$withAccoutData ) {
+            delete $command->{'LookupUser'}->{'LoanedItemsDesired'};
+            delete $command->{'LookupUser'}->{'RequestedItemsDesired'};
+        }
+    }
+
+    $self->{'cmd'} = $command;
+
+    $self->_initResponse();
+
+    return $self;
 }
 
 sub getXML {
     my $self = shift;
-    
+
     return XMLout( $self->{'cmd'}, RootName => 'NCIPMessage' );
 }
 
 sub _initResponse {
     my $self = shift;
-    
-    $self->{'response'} = {
-             'UserId' => '',
-             'CardId' => '',
-             'TransactionId' => '',
-             'URL' => '',
-             'ErrorMessages' => ''
-         };
 
-    $self->{'responseOk'} = 0;
+    $self->{'response'} = {
+        'UserId'        => '',
+        'CardId'        => '',
+        'TransactionId' => '',
+        'URL'           => '',
+        'ErrorMessages' => ''
+    };
+
+    $self->{'responseOk'}    = 0;
     $self->{'responseError'} = '';
 }
 
 sub responseError {
     my $self = shift;
-    my ($errorMessage,$code) = @_;
-    
+    my ( $errorMessage, $code ) = @_;
+
     $self->_initResponse();
-    
-    $self->{'responseOk'} = 0;
-    $self->{'responseError'} = $errorMessage;
+
+    $self->{'responseOk'}        = 0;
+    $self->{'responseError'}     = $errorMessage;
     $self->{'responseErrorCode'} = $code;
 }
 
 sub getResponse {
     my $self = shift;
-    
+
     return $self->{'response'};
 }
 
 sub getResponseOk {
     my $self = shift;
-    
+
     return $self->{'responseOk'};
 }
 
 sub getResponseError {
     my $self = shift;
-    
+
     return $self->{'responseError'};
 }
 
 sub getResponseErrorCode {
     my $self = shift;
-    
+
     return $self->{'responseErrorCode'};
 }
 
 sub parseResponse {
     my $self = shift;
-    
+
     my $dvbresponse = shift;
-    
+
     $self->_initResponse();
-    
+
     my $response = XMLin( $dvbresponse, ForceArray => [ 'LoanedItem', 'RequestedItem' ] );
-    
+
     return unless ($response);
-    
+
     $self->{'responseOk'} = 1;
-    
-    if ( exists($response->{'LookupUserResponse'}) && 
-         exists($response->{'LookupUserResponse'}->{'UserId'}) &&
-	 exists($response->{'LookupUserResponse'}->{'UserId'}->{'UserIdentifierType'}) &&
-	 reftype($response->{'LookupUserResponse'}->{'UserId'}->{'UserIdentifierType'}) eq 'ARRAY' &&
-	 exists($response->{'LookupUserResponse'}->{'UserId'}->{'UserIdentifierValue'}) &&
-	 reftype($response->{'LookupUserResponse'}->{'UserId'}->{'UserIdentifierValue'}) eq 'ARRAY'
-	 ) 
+
+    if (   exists( $response->{'LookupUserResponse'} )
+        && exists( $response->{'LookupUserResponse'}->{'UserId'} )
+        && exists( $response->{'LookupUserResponse'}->{'UserId'}->{'UserIdentifierType'} )
+        && reftype( $response->{'LookupUserResponse'}->{'UserId'}->{'UserIdentifierType'} ) eq 'ARRAY'
+        && exists( $response->{'LookupUserResponse'}->{'UserId'}->{'UserIdentifierValue'} )
+        && reftype( $response->{'LookupUserResponse'}->{'UserId'}->{'UserIdentifierValue'} ) eq 'ARRAY' )
     {
-         # read attributes
-         my $fnames  = $response->{'LookupUserResponse'}->{'UserId'}->{'UserIdentifierType'};
-         my $fvalues = $response->{'LookupUserResponse'}->{'UserId'}->{'UserIdentifierValue'};
-         my $i = 0;
-         foreach ( @$fnames ) {
-             if ( exists($fvalues->[$i]) ) {
-                 $self->{'response'}->{$_} = $fvalues->[$i++];
-                 $self->{'response'}->{$_} =~ s/^\s+|\s+$//g;
-             }
-         }
-    }
-    else {
+        # read attributes
+        my $fnames  = $response->{'LookupUserResponse'}->{'UserId'}->{'UserIdentifierType'};
+        my $fvalues = $response->{'LookupUserResponse'}->{'UserId'}->{'UserIdentifierValue'};
+        my $i       = 0;
+        foreach (@$fnames) {
+            if ( exists( $fvalues->[$i] ) ) {
+                $self->{'response'}->{$_} = $fvalues->[ $i++ ];
+                $self->{'response'}->{$_} =~ s/^\s+|\s+$//g;
+            }
+        }
+    } else {
         $self->{'responseOk'} = 0;
     }
-    
-    if ( exists($response->{'LookupUserResponse'}) && 
-         exists($response->{'LookupUserResponse'}->{'Ext'}) &&
-         exists($response->{'LookupUserResponse'}->{'Ext'}->{'Locality'}) )
+
+    if (   exists( $response->{'LookupUserResponse'} )
+        && exists( $response->{'LookupUserResponse'}->{'Ext'} )
+        && exists( $response->{'LookupUserResponse'}->{'Ext'}->{'Locality'} ) )
     {
         $self->{'response'}->{'URL'} = $response->{'LookupUserResponse'}->{'Ext'}->{'Locality'};
         $self->{'response'}->{'URL'} =~ s/^\s+|\s+$//g;
-    }
-    else {
+    } else {
         $self->{'responseOk'} = 0;
     }
-    
-    if ( exists($response->{'LookupUserResponse'}) && 
-         exists($response->{'LookupUserResponse'}->{'Ext'}) &&
-         exists($response->{'LookupUserResponse'}->{'Ext'}->{'BlockOrTrap'}) )
+
+    if (   exists( $response->{'LookupUserResponse'} )
+        && exists( $response->{'LookupUserResponse'}->{'Ext'} )
+        && exists( $response->{'LookupUserResponse'}->{'Ext'}->{'BlockOrTrap'} ) )
     {
         $self->{'response'}->{'ErrorMessages'} = $response->{'LookupUserResponse'}->{'Ext'}->{'BlockOrTrap'};
         $self->{'response'}->{'ErrorMessages'} =~ s/^\s+|\s+$//g;
         $self->{'responseOk'} = 0;
     }
-    
-    if ( exists($response->{'LookupUserResponse'}) && 
-         exists($response->{'LookupUserResponse'}->{'LoanedItemsCount'}) ) 
+
+    if (   exists( $response->{'LookupUserResponse'} )
+        && exists( $response->{'LookupUserResponse'}->{'LoanedItemsCount'} ) )
     {
-        $self->{'response'}->{'LoanedItemsCount'} = $response->{'LookupUserResponse'}->{'LoanedItemsCount'}->{'LoanedItemCountValue'};
-        
-        if ( exists($response->{'LookupUserResponse'}->{'LoanedItem'}) ) {
-            $self->{'response'}->{'LoanedItems'} = restructureItemData($response->{'LookupUserResponse'}->{'LoanedItem'});
+        $self->{'response'}->{'LoanedItemsCount'} =
+            $response->{'LookupUserResponse'}->{'LoanedItemsCount'}->{'LoanedItemCountValue'};
+
+        if ( exists( $response->{'LookupUserResponse'}->{'LoanedItem'} ) ) {
+            $self->{'response'}->{'LoanedItems'} =
+                restructureItemData( $response->{'LookupUserResponse'}->{'LoanedItem'} );
         }
-    }
-    elsif ( $self->{'withAccountData'} == 1 )  {
+    } elsif ( $self->{'withAccountData'} == 1 ) {
         $self->{'response'}->{'LoanedItemsCount'} = 0;
     }
-   
-    if ( exists($response->{'LookupUserResponse'}) && 
-         exists($response->{'LookupUserResponse'}->{'RequestedItemsCount'}) ) 
+
+    if (   exists( $response->{'LookupUserResponse'} )
+        && exists( $response->{'LookupUserResponse'}->{'RequestedItemsCount'} ) )
     {
-         $self->{'response'}->{'RequestedItemsCount'} = $response->{'LookupUserResponse'}->{'RequestedItemsCount'}->{'RequestedItemCountValue'};
-        
-        if ( exists($response->{'LookupUserResponse'}->{'RequestedItem'}) ) {
-            $self->{'response'}->{'RequestedItems'} = restructureItemData($response->{'LookupUserResponse'}->{'RequestedItem'});
+        $self->{'response'}->{'RequestedItemsCount'} =
+            $response->{'LookupUserResponse'}->{'RequestedItemsCount'}->{'RequestedItemCountValue'};
+
+        if ( exists( $response->{'LookupUserResponse'}->{'RequestedItem'} ) ) {
+            $self->{'response'}->{'RequestedItems'} =
+                restructureItemData( $response->{'LookupUserResponse'}->{'RequestedItem'} );
         }
-    }
-    elsif ( $self->{'withAccountData'} == 1 )  {
+    } elsif ( $self->{'withAccountData'} == 1 ) {
         $self->{'response'}->{'RequestedItemsCount'} = 0;
     }
-    
-    
-    if ( exists($response->{'LookupUserResponse'}) && 
-         exists($response->{'LookupUserResponse'}->{'Problem'}) ) 
+
+    if (   exists( $response->{'LookupUserResponse'} )
+        && exists( $response->{'LookupUserResponse'}->{'Problem'} ) )
     {
         $self->responseError(
-                $response->{'LookupUserResponse'}->{'Problem'}->{'ProblemDetail'},
-                $response->{'LookupUserResponse'}->{'Problem'}->{'ProblemType'});
+            $response->{'LookupUserResponse'}->{'Problem'}->{'ProblemDetail'},
+            $response->{'LookupUserResponse'}->{'Problem'}->{'ProblemType'}
+        );
     }
 }
 
@@ -297,9 +297,9 @@ sub restructureItemData {
     foreach my $item (@$items) {
         my $fnames  = $item->{'Ext'}->{'ItemIdentifierType'};
         my $fvalues = $item->{'Ext'}->{'ItemIdentifierValue'};
-        my $i = 0;
-        foreach ( @$fnames ) {
-            if ( exists($fvalues->[$i]) ) {
+        my $i       = 0;
+        foreach (@$fnames) {
+            if ( exists( $fvalues->[$i] ) ) {
                 if ( $_ eq 'ISBN' ) {
                     $item->{'Ext'}->{'BibliographicDescription'}->{$_} = $fvalues->[$i];
                 }
@@ -309,17 +309,17 @@ sub restructureItemData {
             }
             $i++;
         }
-        delete($item->{'Ext'}->{'ItemIdentifierType'});
-        delete($item->{'Ext'}->{'ItemIdentifierValue'});
-        foreach my $key(keys %{$item->{'Ext'}}) {
+        delete( $item->{'Ext'}->{'ItemIdentifierType'} );
+        delete( $item->{'Ext'}->{'ItemIdentifierValue'} );
+        foreach my $key ( keys %{ $item->{'Ext'} } ) {
             $item->{$key} = $item->{'Ext'}->{$key};
         }
-        delete($item->{'Ext'});
+        delete( $item->{'Ext'} );
         my $id = $item->{'ItemId'}->{'ItemIdentifierValue'};
-        delete($item->{'ItemId'});
+        delete( $item->{'ItemId'} );
         $item->{'ItemId'} = $id;
     }
     return $items;
 }
-    
+
 1;

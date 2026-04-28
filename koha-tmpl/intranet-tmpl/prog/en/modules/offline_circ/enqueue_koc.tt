@@ -2,11 +2,12 @@
 [% USE Koha %]
 [% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("Add offline circulations to queue") | html %] &rsaquo;
-    [% t("Circulation") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Add offline circulations to queue") | html %]
+        &rsaquo; [% t("Circulation") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="ocirc_enqueue_koc" class="circ ocirc">
@@ -37,7 +38,7 @@
                 [% FOREACH message IN messages %]
                     [% IF ( message.message ) %]
                         [% IF ( message.ERROR_file_version ) %]
-                            <div class="alert alert-warning"><p>Warning: This file is version [% message.upload_version | html %], but I only know how to import version [% message.current_version | html %]. I'll try my best.</div>
+                            <div class="alert alert-warning"><p>Warning: This file is version [% message.upload_version | html %], but I only know how to import version [% message.current_version | html %]. I'll try my best.</p></div>
                         [% END %]
                     [% END %]
                 [% END %]
@@ -45,8 +46,10 @@
                 <p><a href="process_koc.pl">Upload another KOC file</a></p>
 
                 <p><a href="list.pl">View pending offline circulation actions</a></p>
-            </div> <!-- /.page-section -->
+            </div>
+            <!-- /.page-section -->
         </div>
     </div>
 
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

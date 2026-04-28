@@ -6,11 +6,12 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("Patron clubs") | html %] &rsaquo;
-    [% t("Tools") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Patron clubs") | html %]
+        &rsaquo; [% t("Tools") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 
 </head>
@@ -102,19 +103,18 @@
                                         <td>[% Branches.GetName( t.branchcode ) | html %]</td>
                                         <td class="actions">
                                             [% IF CAN_user_clubs_edit_templates %]
-                                                <a class="btn btn-xs btn-default" style="white-space:nowrap"  href="/cgi-bin/koha/clubs/templates-add-modify.pl?id=[% t.id | html %]">
+                                                <a class="btn btn-xs btn-default" style="white-space:nowrap" href="/cgi-bin/koha/clubs/templates-add-modify.pl?id=[% t.id | html %]">
                                                     <i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit
                                                 </a>
-                                                <a class="btn btn-xs btn-default delete_template" href="#" data-id="[% t.id | html %]" data-name="[% t.name | html %]">
-                                                    <i class="fa fa-trash-can"></i> Delete
-                                                </a>
+                                                <a class="btn btn-xs btn-default delete_template" href="#" data-id="[% t.id | html %]" data-name="[% t.name | html %]"> <i class="fa fa-trash-can"></i> Delete </a>
                                             [% END %]
                                         </td>
                                     </tr>
                                 [% END %]
                             </tbody>
                         </table>
-                    </div> <!-- /.page-section -->
+                    </div>
+                    <!-- /.page-section -->
                 [% ELSE %]
                     <div class="alert alert-info">No club templates defined.</div>
                 [% END %]
@@ -139,9 +139,8 @@
                 [% END %]
 
                 [% IF clubs.count %]
-                    <div class="page-section">
-                        [% INCLUDE 'clubs-table.inc' %]
-                    </div> <!-- /.page-section -->
+                    <div class="page-section"> [% INCLUDE 'clubs-table.inc' %] </div>
+                    <!-- /.page-section -->
                 [% ELSE %]
                     [% IF club_templates.count %]
                         <div class="alert alert-info">No clubs defined.</div>
@@ -149,104 +148,105 @@
                         <div class="alert alert-info">No clubs defined. A club template must be defined before a club can be defined.</div>
                     [% END %]
                 [% END %]
-
             </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'tools-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-     </div> <!-- /.row -->
+            <aside> [% INCLUDE 'tools-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
-[% MACRO jsinclude BLOCK %]
-    [% INCLUDE 'datatables.inc' %]
-    [% Asset.js("js/tools-menu.js") | $raw %]
-    <script>
-        $(document).ready(function() {
-            tTable = $('#club-templates-table').dataTable($.extend(true, {}, dataTablesDefaults, {
-                "pagingType": "full",
-                "dom": 'C<"top pager"ilpf><"#filter_c">tr<"bottom pager"ip>',
-                "columnDefs": [
-                    { "targets": [ -1 ], "orderable": false, "searchable":  false },
-                ]
-            } ));
+    [% MACRO jsinclude BLOCK %]
+        [% INCLUDE 'datatables.inc' %]
+        [% Asset.js("js/tools-menu.js") | $raw %]
+        <script>
+            $(document).ready(function () {
+                tTable = $("#club-templates-table").dataTable(
+                    $.extend(true, {}, dataTablesDefaults, {
+                        pagingType: "full",
+                        dom: 'C<"top pager"ilpf><"#filter_c">tr<"bottom pager"ip>',
+                        columnDefs: [{ targets: [-1], orderable: false, searchable: false }],
+                    })
+                );
 
-            cTable = $('#clubs-table').dataTable($.extend(true, {}, dataTablesDefaults, {
-                "pagingType": "full",
-                "dom": 'C<"top pager"ilpf><"#filter_c">tr<"bottom pager"ip>',
-                "columnDefs": [
-                    { "targets": [ -1 ], "orderable": false, "searchable":  false },
-                ]
-            } ));
+                cTable = $("#clubs-table").dataTable(
+                    $.extend(true, {}, dataTablesDefaults, {
+                        pagingType: "full",
+                        dom: 'C<"top pager"ilpf><"#filter_c">tr<"bottom pager"ip>',
+                        columnDefs: [{ targets: [-1], orderable: false, searchable: false }],
+                    })
+                );
 
-            $("body").on("click", ".delete_club", function(e){
-                e.preventDefault();
-                var club_id = $(this).data("id");
-                var club_name = $(this).data("name");
-                ConfirmDeleteClub( club_id, club_name );
+                $("body").on("click", ".delete_club", function (e) {
+                    e.preventDefault();
+                    var club_id = $(this).data("id");
+                    var club_name = $(this).data("name");
+                    ConfirmDeleteClub(club_id, club_name);
+                });
+
+                $("body").on("click", ".delete_template", function (e) {
+                    e.preventDefault();
+                    var template_id = $(this).data("id");
+                    var template_name = $(this).data("name");
+                    ConfirmDeleteTemplate(template_id, template_name);
+                });
+
+                $("body").on("click", ".club_hold_search", function (e) {
+                    e.preventDefault;
+                    var club_id = $(this).data("id");
+                    SearchToHold(club_id);
+                });
             });
 
-            $("body").on("click", ".delete_template", function(e){
-                e.preventDefault();
-                var template_id = $(this).data("id");
-                var template_name = $(this).data("name");
-                ConfirmDeleteTemplate( template_id, template_name );
-            });
-
-            $("body").on("click", ".club_hold_search", function(e){
-                e.preventDefault;
-                var club_id = $(this).data("id");
-                SearchToHold( club_id );
-            });
-        });
-
-        function ConfirmDeleteTemplate( id, name ) {
-            if ( confirm( _("Are you sure you want to delete the club template %s? This will delete all clubs using this template and cancel patron enrollments" ).format(name) ) ) {
-                const client = APIClient.club;
-                client.templates.delete(id).then(
-                    success => {
-                        if ( success.success ) {
-                            location.reload();
-                        } else {
+            function ConfirmDeleteTemplate(id, name) {
+                if (confirm(_("Are you sure you want to delete the club template %s? This will delete all clubs using this template and cancel patron enrollments").format(name))) {
+                    const client = APIClient.club;
+                    client.templates.delete(id).then(
+                        success => {
+                            if (success.success) {
+                                location.reload();
+                            } else {
+                                alert(_("Unable to delete template!"));
+                            }
+                        },
+                        error => {
+                            console.warn("Something wrong happened: %s".format(error));
                             alert(_("Unable to delete template!"));
                         }
-                    },
-                    error => {
-                        console.warn("Something wrong happened: %s".format(error));
-                        alert(_("Unable to delete template!"));
-                    }
-                );
+                    );
+                }
             }
-        }
 
-        function ConfirmDeleteClub( id, name ) {
-            if ( confirm( _("Are you sure you want to delete the club %s? This will cancel all patron enrollments in this club." ).format(name) ) ) {
-                const client = APIClient.club;
-                client.clubs.delete(id).then(
-                    success => {
-                        if ( success.success ) {
-                            location.reload();
-                        } else {
+            function ConfirmDeleteClub(id, name) {
+                if (confirm(_("Are you sure you want to delete the club %s? This will cancel all patron enrollments in this club.").format(name))) {
+                    const client = APIClient.club;
+                    client.clubs.delete(id).then(
+                        success => {
+                            if (success.success) {
+                                location.reload();
+                            } else {
+                                alert(_("Unable to delete club!"));
+                            }
+                        },
+                        error => {
+                            console.warn("Something wrong happened: %s".format(error));
                             alert(_("Unable to delete club!"));
                         }
-                    },
-                    error => {
-                        console.warn("Something wrong happened: %s".format(error));
-                        alert(_("Unable to delete club!"));
-                    }
-                );
+                    );
+                }
             }
-        }
 
-        function SearchToHold(club_id) {
-            var date = new Date();
-            date.setTime(date.getTime() + (10 * 60 * 1000));
-            Cookies.set("holdforclub", club_id, { path: "/", expires: date, sameSite: 'Lax'  });
-            location.href="/cgi-bin/koha/catalogue/search.pl";
-        }
-    </script>
-[% END %]
+            function SearchToHold(club_id) {
+                var date = new Date();
+                date.setTime(date.getTime() + 10 * 60 * 1000);
+                Cookies.set("holdforclub", club_id, { path: "/", expires: date, sameSite: "Lax" });
+                location.href = "/cgi-bin/koha/catalogue/search.pl";
+            }
+        </script>
+    [% END %]
 
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

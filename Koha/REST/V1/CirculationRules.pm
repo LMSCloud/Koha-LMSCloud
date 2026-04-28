@@ -96,16 +96,20 @@ sub _calculate_circulation_dates {
         return {};
     }
 
-    my $test_item = Koha::Item->new({
-        itype         => $item_type,
-        homebranch    => $branchcode,
-        holdingbranch => $branchcode,
-    });
+    my $test_item = Koha::Item->new(
+        {
+            itype         => $item_type,
+            homebranch    => $branchcode,
+            holdingbranch => $branchcode,
+        }
+    );
 
-    my $test_patron = Koha::Patron->new({
-        categorycode => $patron_category,
-        branchcode   => $branchcode,
-    });
+    my $test_patron = Koha::Patron->new(
+        {
+            categorycode => $patron_category,
+            branchcode   => $branchcode,
+        }
+    );
 
     my $circ_branch      = _GetCircControlBranch( $test_item, $test_patron );
     my $effective_branch = $circ_branch || $branchcode;
@@ -154,7 +158,7 @@ sub _calculate_circulation_dates {
         Dayweek  => sub { return _add_days_with_calendar( @_, $effective_branch, 'Dayweek' ); },
     };
 
-    my $handler  = $daysmode_handlers->{$daysmode} // $daysmode_handlers->{Days};
+    my $handler = $daysmode_handlers->{$daysmode} // $daysmode_handlers->{Days};
     $due_date    = $handler->( $due_date, $renewal_days );
     $period_days = $start_dt->delta_days($due_date)->in_units('days');
 
@@ -287,9 +291,10 @@ sub list_rules {
             }
 
             if ( $calculate_dates && $effective ) {
+
                 # Fallback to 'issuelength_with_renewals' to match frontend behavior in island.inc
                 # The frontend template uses the same fallback when the preference is empty,
-                # ensuring consistent display of booking period constraints and the actual 
+                # ensuring consistent display of booking period constraints and the actual
                 # calculated due date shown in the calendar.
                 my $date_range_constraint =
                     C4::Context->preference('BookingDateRangeConstraint') || 'issuelength_with_renewals';
@@ -417,6 +422,7 @@ sub list_rules_public {
         }
 
         if ($calculate_dates) {
+
             # Fallback to 'issuelength_with_renewals' to match frontend behavior in opac-booking.inc
             # See staff interface comment above for rationale.
             my $date_range_constraint =

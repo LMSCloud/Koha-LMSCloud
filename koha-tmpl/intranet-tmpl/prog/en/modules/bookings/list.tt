@@ -8,20 +8,20 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("Bookings") | html %] &rsaquo;
-    [% INCLUDE 'biblio-title-head.inc' %] &rsaquo;
-    [% t("Catalog") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Bookings") | html %]
+        &rsaquo; [% INCLUDE 'biblio-title-head.inc' %] &rsaquo; [% t("Catalog") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
-    <style>
-        #bookings-timeline .vis-item.vis-range {
-            &.cancelled {
-               background: rgba(128, 128, 128, 0.3);
-            }
+<style>
+    #bookings-timeline .vis-item.vis-range {
+        &.cancelled {
+            background: rgba(128, 128, 128, 0.3);
         }
-    </style>
+    }
+</style>
 </head>
 
 <body id="circ_request" class="catalog">
@@ -53,7 +53,8 @@
                     [% INCLUDE 'cat-toolbar.inc' %]
                     <h1>Bookings for [% INCLUDE 'biblio-title-head.inc' %]</h1>
                     <div class="page-section bg-white p-3">
-                        [% INCLUDE 'bookings-timeline.inc'
+                        [%
+                            INCLUDE 'bookings-timeline.inc'
                             timeline_id = 'bookings-timeline'
                             loading_id = 'bookings-timeline-loading'
                             show_filters = 0
@@ -65,128 +66,128 @@
                     </div>
                 </div>
             </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'biblio-view-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-    </div> <!-- /.row -->
+            <aside> [% INCLUDE 'biblio-view-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
     [% INCLUDE modals/cancel_booking.inc %]
 
     [% MACRO jsinclude BLOCK %]
-    [% Asset.js("lib/vis-timeline/vis-timeline-graph2d.min.js") | $raw %]
-    [% INCLUDE 'datatables.inc' %]
-    [% INCLUDE 'columns_settings.inc' %]
-    [% INCLUDE 'calendar.inc' %]
-    [% INCLUDE 'select2.inc' %]
-    [% INCLUDE 'js-patron-format.inc' %]
-    [% INCLUDE 'js-date-format.inc' %]
-    [% Asset.js("lib/dayjs/plugin/isSameOrAfter.js") | $raw %]
-    [% Asset.js("lib/dayjs/plugin/isSameOrBefore.js") | $raw %]
-    <script>
-        dayjs.extend(window.dayjs_plugin_isSameOrAfter);
-    </script>
-    <script>
-        dayjs.extend(window.dayjs_plugin_isSameOrBefore);
-    </script>
-    [% Asset.js("js/additional-fields.js") | $raw %]
-    [% Asset.js("js/cancel_booking_modal.js") | $raw %]
-    [% Asset.js("js/convert_to_checkout_modal.js") | $raw %]
-    [% Asset.js("js/combobox.js") | $raw %]
-    [% Asset.js("js/bookings-timeline.js") | $raw %]
+        [% Asset.js("lib/vis-timeline/vis-timeline-graph2d.min.js") | $raw %]
+        [% INCLUDE 'datatables.inc' %]
+        [% INCLUDE 'columns_settings.inc' %]
+        [% INCLUDE 'calendar.inc' %]
+        [% INCLUDE 'select2.inc' %]
+        [% INCLUDE 'js-patron-format.inc' %]
+        [% INCLUDE 'js-date-format.inc' %]
+        [% Asset.js("lib/dayjs/plugin/isSameOrAfter.js") | $raw %]
+        [% Asset.js("lib/dayjs/plugin/isSameOrBefore.js") | $raw %]
+        <script>
+            dayjs.extend(window.dayjs_plugin_isSameOrAfter);
+        </script>
+        <script>
+            dayjs.extend(window.dayjs_plugin_isSameOrBefore);
+        </script>
+        [% Asset.js("js/additional-fields.js") | $raw %]
+        [% Asset.js("js/cancel_booking_modal.js") | $raw %]
+        [% Asset.js("js/convert_to_checkout_modal.js") | $raw %]
+        [% Asset.js("js/combobox.js") | $raw %]
+        [% Asset.js("js/bookings-timeline.js") | $raw %]
 
-    [%# Process library data for JavaScript %]
-    [% SET libraries = Branches.all %]
-    <script>
-    var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
-    </script>
+        [%# Process library data for JavaScript %]
+        [% SET libraries = Branches.all %]
+        <script>
+            var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
+        </script>
+        [% Asset.js("js/bookings-common.js", type => "module") | $raw %]
+        <script>
+            var cancel_success = 0;
+            var update_success = 0;
+            var bookings_table;
+            var timeline;
+            let biblionumber = "[% biblionumber | uri %]";
+            var BIBLIO_TITLE = "[% biblio.title | html %]";
 
-    [% Asset.js("js/bookings-common.js", type => "module") | $raw %]
+            // Set global variables for timeline permissions
+            var CAN_user_circulate_manage_bookings = [% IF CAN_user_circulate_manage_bookings %]true[% ELSE %]false[% END %];
 
-<script>
-    var cancel_success = 0;
-    var update_success = 0;
-    var bookings_table;
-    var timeline;
-    let biblionumber = "[% biblionumber | uri %]";
-    var BIBLIO_TITLE = "[% biblio.title | html %]";
+            $(document).ready(function(){
+                // Initialize extended attributes
+                initializeBookingExtendedAttributes().then(({ extended_attribute_types, authorised_values }) => {
+                    // Get table settings
+                    let table_settings = [% TablesSettings.GetTableSettings( 'catalogue', 'detail', 'bookings', 'json' ) | $raw %];
 
-    // Set global variables for timeline permissions
-    var CAN_user_circulate_manage_bookings = [% IF CAN_user_circulate_manage_bookings %]true[% ELSE %]false[% END %];
+                    // Initialize the table using unified function
+                    bookings_table = createBiblioBookingsTable('#bookings_table', table_settings, biblionumber, {
+                        quickTogglesEnabled: true,
+                        extended_attribute_types: extended_attribute_types,
+                        authorised_values: authorised_values,
+                        columnOptions: {
+                            showActions: true,
+                            showStatus: true,
+                            showCreationDate: false,
+                            showBookingDates: false,
+                            showStartEndDates: true,
+                            showPickupLibrary: true,
+                            showBiblioTitle: false,
+                            showItemData: true,
+                            showCallnumber: false,
+                            showLocation: false,
+                            showHoldingLibrary: false,
+                            showItemType: false,
+                            patronOptions: { display_cardnumber: true, url: true }
+                        }
+                    });
 
-    $(document).ready(function(){
-        // Initialize extended attributes
-        initializeBookingExtendedAttributes().then(({ extended_attribute_types, authorised_values }) => {
-            // Get table settings
-            let table_settings = [% TablesSettings.GetTableSettings( 'catalogue', 'detail', 'bookings', 'json' ) | $raw %];
+                    // Initialize timeline
+                    // Show loading indicator
+                    $('#bookings-timeline-loading').show();
 
-            // Initialize the table using unified function
-            bookings_table = createBiblioBookingsTable('#bookings_table', table_settings, biblionumber, {
-                quickTogglesEnabled: true,
-                extended_attribute_types: extended_attribute_types,
-                authorised_values: authorised_values,
-                columnOptions: {
-                    showActions: true,
-                    showStatus: true,
-                    showCreationDate: false,
-                    showBookingDates: false,
-                    showStartEndDates: true,
-                    showPickupLibrary: true,
-                    showBiblioTitle: false,
-                    showItemData: true,
-                    showCallnumber: false,
-                    showLocation: false,
-                    showHoldingLibrary: false,
-                    showItemType: false,
-                    patronOptions: { display_cardnumber: true, url: true }
-                }
-            });
+                    Promise.all([
+                        fetch(`/api/v1/biblios/${biblionumber}/items?bookable=1`).then(response => {
+                            if (!response.ok) throw new Error('Network response was not ok');
+                            return response.json();
+                        }),
+                        fetch(`/api/v1/biblios/${biblionumber}/bookings?_per_page=-1`, {
+                            headers: { 'x-koha-embed': ['patron', 'extended_attributes'] }
+                        }).then(response => {
+                            if (!response.ok) throw new Error('Network response was not ok');
+                            return response.json();
+                        }),
+                        fetch(`/api/v1/biblios/${biblionumber}/checkouts?_per_page=-1`, {
+                            headers: { 'x-koha-embed': ['patron'] }
+                        }).then(response => {
+                            if (!response.ok) throw new Error('Network response was not ok');
+                            return response.json();
+                        })
+                    ]).then(([items, bookings, checkouts]) => {
+                        timeline = window.BookingsTimeline.init({
+                            containerId: 'bookings-timeline',
+                            bookings: bookings,
+                            bookableItems: items,
+                            checkouts: checkouts
+                        });
+                    }).catch(error => {
+                        // Hide loading indicator on error
+                        $('#bookings-timeline-loading').hide();
+                        console.log("Fetch failed", error);
+                    });
 
-            // Initialize timeline
-            // Show loading indicator
-            $('#bookings-timeline-loading').show();
-
-            Promise.all([
-                fetch(`/api/v1/biblios/${biblionumber}/items?bookable=1`).then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                }),
-                fetch(`/api/v1/biblios/${biblionumber}/bookings?_per_page=-1`, {
-                    headers: { 'x-koha-embed': ['patron', 'extended_attributes'] }
-                }).then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                }),
-                fetch(`/api/v1/biblios/${biblionumber}/checkouts?_per_page=-1`, {
-                    headers: { 'x-koha-embed': ['patron'] }
-                }).then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-            ]).then(([items, bookings, checkouts]) => {
-                timeline = window.BookingsTimeline.init({
-                    containerId: 'bookings-timeline',
-                    bookings: bookings,
-                    bookableItems: items,
-                    checkouts: checkouts
+                    // Initialize combobox for cancellation reason
+                    $("#cancellation-reason").comboBox({
+                        displayProperty: 'name',
+                        placeholder: _("Select or type a reason"),
+                    });
                 });
-            }).catch(error => {
-                // Hide loading indicator on error
-                $('#bookings-timeline-loading').hide();
-                console.log("Fetch failed", error);
             });
+        </script>
+    [% END %]
 
-            // Initialize combobox for cancellation reason
-            $("#cancellation-reason").comboBox({
-                displayProperty: 'name',
-                placeholder: _("Select or type a reason"),
-            });
-        });
-    });
-</script>
-[% END %]
-
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

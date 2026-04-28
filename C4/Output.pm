@@ -21,7 +21,6 @@ package C4::Output;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-
 # NOTE: I'm pretty sure this module is deprecated in favor of
 # templates.
 
@@ -38,12 +37,12 @@ use Koha::Token;
 
 use utf8;
 
-our (@ISA, @EXPORT_OK);
+our ( @ISA, @EXPORT_OK );
 
 BEGIN {
     require Exporter;
 
-    @ISA    = qw(Exporter);
+    @ISA       = qw(Exporter);
     @EXPORT_OK = qw(
         is_ajax
         ajax_fail
@@ -81,10 +80,10 @@ This function returns HTML, without any language dependency.
 =cut
 
 sub pagination_bar {
-    my $base_url = (@_ ? shift : return);
-    my $nb_pages       = (@_) ? shift : 1;
-    my $current_page   = (@_) ? shift : undef;	# delay default until later
-    my $startfrom_name = (@_) ? shift : 'page';
+    my $base_url              = ( @_ ? shift : return );
+    my $nb_pages              = (@_) ? shift : 1;
+    my $current_page          = (@_) ? shift : undef;    # delay default until later
+    my $startfrom_name        = (@_) ? shift : 'page';
     my $additional_parameters = shift || {};
 
     $base_url = HTML::Entities::encode($base_url);
@@ -95,16 +94,16 @@ sub pagination_bar {
     # how many pages to show before and after the current page?
     my $pages_around = 2;
 
-	my $delim = qr/\&(?:amp;)?|;/;		# "non memory" cluster: no backreference
-	$base_url =~ s/$delim*\b$startfrom_name=(\d+)//g; # remove previous pagination var
-    unless (defined $current_page and $current_page > 0 and $current_page <= $nb_pages) {
-        $current_page = ($1) ? $1 : 1;	# pull current page from param in URL, else default to 1
+    my $delim = qr/\&(?:amp;)?|;/;                       # "non memory" cluster: no backreference
+    $base_url =~ s/$delim*\b$startfrom_name=(\d+)//g;    # remove previous pagination var
+    unless ( defined $current_page and $current_page > 0 and $current_page <= $nb_pages ) {
+        $current_page = ($1) ? $1 : 1;                   # pull current page from param in URL, else default to 1
     }
-	$base_url =~ s/($delim)+/$1/g;	# compress duplicate delims
-	$base_url =~ s/$delim;//g;		# remove empties
-	$base_url =~ s/$delim$//;		# remove trailing delim
+    $base_url =~ s/($delim)+/$1/g;                       # compress duplicate delims
+    $base_url =~ s/$delim;//g;                           # remove empties
+    $base_url =~ s/$delim$//;                            # remove trailing delim
 
-    my $url = $base_url . (($base_url =~ m/$delim/ or $base_url =~ m/\?/) ? '&amp;' : '?' ) . $startfrom_name . '=';
+    my $url = $base_url . ( ( $base_url =~ m/$delim/ or $base_url =~ m/\?/ ) ? '&amp;' : '?' ) . $startfrom_name . '=';
     my $url_suffix = '';
     while ( my ( $k, $v ) = each %$additional_parameters ) {
         $url_suffix .= '&amp;' . URI::Escape::uri_escape_utf8($k) . '=' . URI::Escape::uri_escape_utf8($v);
@@ -117,17 +116,9 @@ sub pagination_bar {
         # link to first page?
         if ( $current_page > 1 ) {
             $pagination_bar .=
-                "\n" . '&nbsp;'
-              . '<a href="'
-              . $url
-              . '1'
-              . $url_suffix
-              . '"rel="start">'
-              . '&lt;&lt;' . '</a>';
-        }
-        else {
-            $pagination_bar .=
-              "\n" . '&nbsp;<span class="inactive">&lt;&lt;</span>';
+                "\n" . '&nbsp;' . '<a href="' . $url . '1' . $url_suffix . '"rel="start">' . '&lt;&lt;' . '</a>';
+        } else {
+            $pagination_bar .= "\n" . '&nbsp;<span class="inactive">&lt;&lt;</span>';
         }
 
         # link on previous page ?
@@ -135,16 +126,9 @@ sub pagination_bar {
             my $previous = $current_page - 1;
 
             $pagination_bar .=
-                "\n" . '&nbsp;'
-              . '<a href="'
-              . $url
-              . $previous
-              . $url_suffix
-              . '" rel="prev">' . '&lt;' . '</a>';
-        }
-        else {
-            $pagination_bar .=
-              "\n" . '&nbsp;<span class="inactive">&lt;</span>';
+                "\n" . '&nbsp;' . '<a href="' . $url . $previous . $url_suffix . '" rel="prev">' . '&lt;' . '</a>';
+        } else {
+            $pagination_bar .= "\n" . '&nbsp;<span class="inactive">&lt;</span>';
         }
 
         my $min_to_display      = $current_page - $pages_around;
@@ -157,31 +141,25 @@ sub pagination_bar {
                 or $page_number == $nb_pages
                 or (    $page_number >= $min_to_display
                     and $page_number <= $max_to_display )
-              )
+                )
             {
                 if ( defined $last_displayed_page
                     and $last_displayed_page != $page_number - 1 )
                 {
-                    $pagination_bar .=
-                      "\n" . '&nbsp;<span class="inactive">...</span>';
+                    $pagination_bar .= "\n" . '&nbsp;<span class="inactive">...</span>';
                 }
 
                 if ( $page_number == $current_page ) {
+                    $pagination_bar .= "\n" . '&nbsp;' . '<span class="currentPage">' . $page_number . '</span>';
+                } else {
                     $pagination_bar .=
-                        "\n" . '&nbsp;'
-                      . '<span class="currentPage">'
-                      . $page_number
-                      . '</span>';
-                }
-                else {
-                    $pagination_bar .=
-                        "\n" . '&nbsp;'
-                      . '<a href="'
-                      . $url
-                      . $page_number
-                      . $url_suffix
-                      . '">'
-                      . $page_number . '</a>';
+                          "\n"
+                        . '&nbsp;'
+                        . '<a href="'
+                        . $url
+                        . $page_number
+                        . $url_suffix . '">'
+                        . $page_number . '</a>';
                 }
                 $last_displayed_page = $page_number;
             }
@@ -191,31 +169,18 @@ sub pagination_bar {
         if ( $current_page < $nb_pages ) {
             my $next = $current_page + 1;
 
-            $pagination_bar .= "\n"
-              . '&nbsp;<a href="'
-              . $url
-              . $next
-              . $url_suffix
-              . '" rel="next">' . '&gt;' . '</a>';
-        }
-        else {
             $pagination_bar .=
-              "\n" . '&nbsp;<span class="inactive">&gt;</span>';
+                "\n" . '&nbsp;<a href="' . $url . $next . $url_suffix . '" rel="next">' . '&gt;' . '</a>';
+        } else {
+            $pagination_bar .= "\n" . '&nbsp;<span class="inactive">&gt;</span>';
         }
 
         # link to last page?
         if ( $current_page != $nb_pages ) {
-            $pagination_bar .= "\n"
-              . '&nbsp;<a href="'
-              . $url
-              . $nb_pages
-              . $url_suffix
-              . '" rel="last">'
-              . '&gt;&gt;' . '</a>';
-        }
-        else {
             $pagination_bar .=
-              "\n" . '&nbsp;<span class="inactive">&gt;&gt;</span>';
+                "\n" . '&nbsp;<a href="' . $url . $nb_pages . $url_suffix . '" rel="last">' . '&gt;&gt;' . '</a>';
+        } else {
+            $pagination_bar .= "\n" . '&nbsp;<span class="inactive">&gt;&gt;</span>';
         }
     }
 
@@ -254,22 +219,23 @@ sub output_with_http_headers {
         'json' => 'application/json',
         'xml'  => 'text/xml',
         'zip'  => 'application/zip',
+
         # NOTE: not using application/atom+xml or application/rss+xml because of
         # Internet Explorer 6; see bug 2078.
-        'rss'  => 'text/xml',
-        'atom' => 'text/xml',
-        'csv' => 'text/x-csv',
-        'txt'  => 'text/plain',
+        'rss'                   => 'text/xml',
+        'atom'                  => 'text/xml',
+        'csv'                   => 'text/x-csv',
+        'txt'                   => 'text/plain',
         'opensearchdescription' => 'application/opensearchdescription+xml',
     );
 
     die "Unknown content type '$content_type'" if ( !defined( $content_type_map{$content_type} ) );
     my $cache_policy = 'no-cache';
     $cache_policy .= ', no-store, max-age=0' if $extra_options->{force_no_caching};
-    
+
     my $characterset = 'UTF-8';
-    $characterset = uc($extra_options->{encoding}) if ( $extra_options->{encoding} );
-    
+    $characterset = uc( $extra_options->{encoding} ) if ( $extra_options->{encoding} );
+
     my $options = {
         type              => $content_type_map{$content_type},
         status            => $status,
@@ -277,22 +243,22 @@ sub output_with_http_headers {
         'Cache-Control'   => $cache_policy,
         'X-Frame-Options' => 'SAMEORIGIN',
     };
-    $options->{charset} = $characterset if ( $content_type ne 'zip' );
-    $options->{expires} = 'now' if $extra_options->{force_no_caching};
-    $options->{attachment} = $extra_options->{filename} if $extra_options->{filename};
+    $options->{charset}                       = $characterset              if ( $content_type ne 'zip' );
+    $options->{expires}                       = 'now'                      if $extra_options->{force_no_caching};
+    $options->{attachment}                    = $extra_options->{filename} if $extra_options->{filename};
     $options->{'Access-Control-Allow-Origin'} = C4::Context->preference('AccessControlAllowOrigin')
         if C4::Context->preference('AccessControlAllowOrigin');
 
     $options->{cookie} = $cookie if $cookie;
-    if ($content_type eq 'html') {  # guaranteed to be one of the content_type_map keys, else we'd have died
-        $options->{'Content-Style-Type' } = 'text/css';
+    if ( $content_type eq 'html' ) {    # guaranteed to be one of the content_type_map keys, else we'd have died
+        $options->{'Content-Style-Type'}  = 'text/css';
         $options->{'Content-Script-Type'} = 'text/javascript';
     }
 
     # We can't encode here, that will double encode our templates, and xslt
     # We need to fix the encoding as it comes out of the database, or when we pass the variables to templates
 
-    if ( $content_type ne 'zip' && !($extra_options->{no_encoding}) ) {
+    if ( $content_type ne 'zip' && !( $extra_options->{no_encoding} ) ) {
         $data =~ s/\&amp\;amp\; /\&amp\; /g;
     }
     print $query->header($options), $data;
@@ -302,7 +268,6 @@ sub output_html_with_http_headers {
     my ( $query, $cookie, $data, $status, $extra_options ) = @_;
     output_with_http_headers( $query, $cookie, $data, 'html', $status, $extra_options );
 }
-
 
 sub output_ajax_with_http_headers {
     my ( $query, $js ) = @_;
@@ -352,27 +317,24 @@ sub output_and_exit_if_error {
             my $current_patron = $params->{current_patron};
             if ( not $current_patron ) {
                 $error = 'unknown_patron';
-            }
-            elsif ( not $logged_in_user->can_see_patron_infos($current_patron) )
-            {
+            } elsif ( not $logged_in_user->can_see_patron_infos($current_patron) ) {
                 $error = 'cannot_see_patron_infos';
             }
-        }
-        elsif ( $params->{module} eq 'cataloguing' ) {
+        } elsif ( $params->{module} eq 'cataloguing' ) {
+
             # We are testing the record to avoid additem to fetch the Koha::Biblio
             # But in the long term we will want to get a biblio in parameter
             $error = 'unknown_biblio' unless $params->{record};
         }
-    }
-    elsif ( $params and exists $params->{check} ) {
+    } elsif ( $params and exists $params->{check} ) {
         if ( $params->{check} eq 'csrf_token' ) {
             $error = 'wrong_csrf_token'
-              unless Koha::Token->new->check_csrf(
+                unless Koha::Token->new->check_csrf(
                 {
                     session_id => scalar $query->cookie('CGISESSID'),
                     token      => scalar $query->param('csrf_token'),
                 }
-              );
+                );
         }
     }
     output_and_exit( $query, $cookie, $template, $error ) if $error;
@@ -391,7 +353,7 @@ sub output_and_exit_if_error {
 sub output_and_exit {
     my ( $query, $cookie, $template, $error ) = @_;
     $template->param( blocking_error => $error );
-    output_html_with_http_headers ( $query, $cookie, $template->output );
+    output_html_with_http_headers( $query, $cookie, $template->output );
     exit;
 }
 
@@ -406,7 +368,7 @@ sub output_error {
         }
     );
     my $admin = C4::Context->preference('KohaAdminEmailAddress');
-    $template->param (
+    $template->param(
         admin => $admin,
         errno => $error,
     );
@@ -414,18 +376,18 @@ sub output_error {
 }
 
 sub parametrized_url {
-    my $url = shift || ''; # ie page.pl?ln={LANG}
-    my $vars = shift || {}; # ie { LANG => en }
-    my $ret = $url;
-    while ( my ($key,$val) = each %$vars) {
+    my $url  = shift || '';    # ie page.pl?ln={LANG}
+    my $vars = shift || {};    # ie { LANG => en }
+    my $ret  = $url;
+    while ( my ( $key, $val ) = each %$vars ) {
         my $val_url = URI::Escape::uri_escape_utf8( $val // q{} );
         $ret =~ s/\{$key\}/$val_url/g;
     }
-    $ret =~ s/\{[^\{]*\}//g; # remove remaining vars
+    $ret =~ s/\{[^\{]*\}//g;    # remove remaining vars
     return $ret;
 }
 
-END { }    # module clean-up code here (global destructor)
+END { }                         # module clean-up code here (global destructor)
 
 1;
 __END__

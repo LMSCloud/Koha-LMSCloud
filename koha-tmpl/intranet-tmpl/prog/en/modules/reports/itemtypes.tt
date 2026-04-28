@@ -6,11 +6,12 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("Catalog by item types") | html %] &rsaquo;
-    [% t("Reports") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Catalog by item types") | html %]
+        &rsaquo; [% t("Reports") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 [% IF ( do_it ) %]
 [% END %]
@@ -47,80 +48,83 @@
             <main>
                 [% INCLUDE 'messages.inc' %]
 
-
-[% IF ( do_it ) %]
-[% FOREACH mainloo IN mainloop %]
-    <h1>Reports on item types [% IF branch %] held at [% Branches.GetName( branch ) | html %][% END %]</h1>
-            <div class="page-section">
-	<table id="itemtypest">
-		<thead>
-		<tr>
-			<th>Item type</th>
-			<th>Count</th>
-		</tr>
-		</thead>
-		<tfoot>
-			<tr>
-				<th>TOTAL</th>
-				<th>[% mainloo.total | html %]</th>
-			</tr>
-		</tfoot>
-		<tbody>
-			[% FOREACH loopitemtyp IN mainloo.loopitemtype %]
-				<tr>
-                    <td>[% ItemTypes.GetDescription( loopitemtyp.itemtype ) | html %]</td>
-					<td>[% loopitemtyp.count | html %]</td>
-				</tr>
-			[% END %]
-		</tbody>
-	</table>
-            </div>
-            <!-- /.page-section -->
-[% END %]
-[% ELSE %]
-        <h1>View a count of items held at your library grouped by item type</h1>
-        <form method="get" action="/cgi-bin/koha/reports/catalog_by_itemtype.pl">
-          <fieldset class="rows">
-            <ol>
-              <li>
-                <label for="value">Select a library:</label>
-                <select name="value" id="value">
-                  <option value=""></option>
-                  [% PROCESS options_for_libraries libraries => Branches.all() %]
-                </select>
-                <div class="hint">Select none to see all libraries</div>
-              </li>
-            </ol>
-          </fieldset>
-          <fieldset class="action"><input type="submit" class="btn btn-primary" value="Submit" />
-            <input type="hidden" name="report_name" value="[% report_name | html %]" />
-            <input type="hidden" name="do_it" value="1" />
-          </fieldset>
-        </form>
-[% END %]
-
+                [% IF ( do_it ) %]
+                    [% FOREACH mainloo IN mainloop %]
+                        <h1>Reports on item types [% IF branch %]held at [% Branches.GetName( branch ) | html %][% END %]</h1>
+                        <div class="page-section">
+                            <table id="itemtypest">
+                                <thead>
+                                    <tr>
+                                        <th>Item type</th>
+                                        <th>Count</th>
+                                    </tr>
+                                </thead>
+                                <tfoot>
+                                    <tr>
+                                        <th>TOTAL</th>
+                                        <th>[% mainloo.total | html %]</th>
+                                    </tr>
+                                </tfoot>
+                                <tbody>
+                                    [% FOREACH loopitemtyp IN mainloo.loopitemtype %]
+                                        <tr>
+                                            <td>[% ItemTypes.GetDescription( loopitemtyp.itemtype ) | html %]</td>
+                                            <td>[% loopitemtyp.count | html %]</td>
+                                        </tr>
+                                    [% END %]
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- /.page-section -->
+                    [% END %]
+                [% ELSE %]
+                    <h1>View a count of items held at your library grouped by item type</h1>
+                    <form method="get" action="/cgi-bin/koha/reports/catalog_by_itemtype.pl">
+                        <fieldset class="rows">
+                            <ol>
+                                <li>
+                                    <label for="value">Select a library:</label>
+                                    <select name="value" id="value">
+                                        <option value=""></option>
+                                        [% PROCESS options_for_libraries libraries => Branches.all() %]
+                                    </select>
+                                    <div class="hint">Select none to see all libraries</div>
+                                </li>
+                            </ol>
+                        </fieldset>
+                        <fieldset class="action"
+                            ><input type="submit" class="btn btn-primary" value="Submit" />
+                            <input type="hidden" name="report_name" value="[% report_name | html %]" />
+                            <input type="hidden" name="do_it" value="1" />
+                        </fieldset>
+                    </form>
+                [% END %]
             </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'reports-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-     </div> <!-- /.row -->
+            <aside> [% INCLUDE 'reports-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
-[% MACRO jsinclude BLOCK %]
-    [% IF ( do_it ) %]
-        [% INCLUDE 'datatables.inc' %]
-        <script>
-            $(document).ready(function(){
-                $("#itemtypest").dataTable($.extend(true, {}, dataTablesDefaults, {
-                    "dom": 't',
-                    "paginate": false
-                }));
-            });
-        </script>
+    [% MACRO jsinclude BLOCK %]
+        [% IF ( do_it ) %]
+            [% INCLUDE 'datatables.inc' %]
+            <script>
+                $(document).ready(function () {
+                    $("#itemtypest").dataTable(
+                        $.extend(true, {}, dataTablesDefaults, {
+                            dom: "t",
+                            paginate: false,
+                        })
+                    );
+                });
+            </script>
+        [% END %]
     [% END %]
-[% END %]
 
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

@@ -29,26 +29,30 @@ sub NAME {
 }
 
 sub get_suggestions {
-    my ($self, $query) = @_;
-    
+    my ( $self, $query ) = @_;
+
     my @results;
-    
-    if ( C4::Context->preference('SearchEngine') eq 'Elasticsearch' && $query && defined $query->{'search'} && $query->{'search'} !~ /[:=]/ ) {
+
+    if (   C4::Context->preference('SearchEngine') eq 'Elasticsearch'
+        && $query
+        && defined $query->{'search'}
+        && $query->{'search'} !~ /[:=]/ )
+    {
         my $didyoumean = Koha::SearchEngine::Elasticsearch::DidYouMean->new( { index => 'biblios' } );
-        my @resultlist  = $didyoumean->find(
+        my @resultlist = $didyoumean->find(
             {
-                'text' => $query->{'search'},
+                'text'  => $query->{'search'},
                 'count' => 4
             }
         );
         my $scoresub = 0;
-        foreach my $label(@resultlist) {
+        foreach my $label (@resultlist) {
             push @results,
-            {
+                {
                 'search'  => $label,
                 relevance => 100 + $scoresub++,
-                label => $label
-            };
+                label     => $label
+                };
         }
     }
     return \@results;

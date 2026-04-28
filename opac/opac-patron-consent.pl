@@ -20,21 +20,23 @@
 use Modern::Perl;
 use CGI qw/-utf8/;
 
-use C4::Auth qw( get_template_and_user );
-use C4::Output qw( output_html_with_http_headers );
+use C4::Auth        qw( get_template_and_user );
+use C4::Output      qw( output_html_with_http_headers );
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Exceptions::Patron;
 use Koha::Patrons;
 
 my $query = CGI->new;
-my $op = $query->param('op') // q{};
-my $vars = $query->Vars;
+my $op    = $query->param('op') // q{};
+my $vars  = $query->Vars;
 
-my ( $template, $borrowernumber, $cookie ) = get_template_and_user({
-    template_name   => "opac-patron-consent.tt",
-    query           => $query,
-    type            => "opac",
-});
+my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
+    {
+        template_name => "opac-patron-consent.tt",
+        query         => $query,
+        type          => "opac",
+    }
+);
 
 my $patron = Koha::Patrons->find($borrowernumber)
     or Koha::Exceptions::Patron->throw("Patron id $borrowernumber not found");
@@ -42,7 +44,7 @@ my $patron = Koha::Patrons->find($borrowernumber)
 # Get consent types and values
 my @consents;
 my $consent_types = Koha::Patron::Consents->available_types;
-foreach my $consent_type ( sort keys %$consent_types) {
+foreach my $consent_type ( sort keys %$consent_types ) {
     push @consents, $patron->consent($consent_type);
 }
 
@@ -68,7 +70,7 @@ if ( $op && $op eq 'cud-save' ) {
 }
 
 # If user refused GDPR consent and we enforce GDPR, logout (when saving)
-if( $needs_redirect ) {
+if ($needs_redirect) {
     print $query->redirect('/cgi-bin/koha/opac-main.pl?logout.x=1');
     exit;
 }

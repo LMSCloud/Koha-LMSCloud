@@ -8,47 +8,47 @@
 [% INCLUDE 'doc-head-close.inc' %]
 
 <style>
-.downloadfilelist .listitem {
-    margin:4px;
-    padding: 2px;
-    width: 335px;
-    border: 1px solid gray;
-    background-color: whitesmoke;
-}
+    .downloadfilelist .listitem {
+        margin: 4px;
+        padding: 2px;
+        width: 335px;
+        border: 1px solid gray;
+        background-color: whitesmoke;
+    }
 
-.downloaddatelist .listitem:hover, .downloadfilelist .listitem:hover {
-    border: 3px solid gray;
-}
+    .downloaddatelist .listitem:hover,
+    .downloadfilelist .listitem:hover {
+        border: 3px solid gray;
+    }
 
-.downloaddatelist .selectedlistitem {
-    border: 3px solid gray !important;
-    background-color: honeydew !important;
-}
+    .downloaddatelist .selectedlistitem {
+        border: 3px solid gray !important;
+        background-color: honeydew !important;
+    }
 
-.downloaddatelist .listitem {
-    margin:4px;
-    padding: 2px;
-    width: 120px;
-    border: 1px solid gray;
-    background-color: whitesmoke;
-}
+    .downloaddatelist .listitem {
+        margin: 4px;
+        padding: 2px;
+        width: 120px;
+        border: 1px solid gray;
+        background-color: whitesmoke;
+    }
 
-.downloaddatelist {
-    padding: 2px;
-    height: 300px;
-    overflow: auto;
-    width: 165px;
-    border: 1px solid #000;
-}
+    .downloaddatelist {
+        padding: 2px;
+        height: 300px;
+        overflow: auto;
+        width: 165px;
+        border: 1px solid #000;
+    }
 
-.downloadfilelist {
-	padding: 2px;
-	height: 300px;
-	overflow: auto;
-	width: 350px;
-	border: 1px solid #000;
-}
-
+    .downloadfilelist {
+        padding: 2px;
+        height: 300px;
+        overflow: auto;
+        width: 350px;
+        border: 1px solid #000;
+    }
 </style>
 </head>
 <body id="download-files" class="tools">
@@ -67,80 +67,75 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-    <div class="main container-fluid">
-        <div class="row">
-            <div class="col-md-10 order-md-2 order-sm-1">
-                <main>
-                    <h1>
-                        Download batch prints
-                    </h1>
-                    <div class="help">
-                        
-                    </div>
-                    
-                    <form method="post" action="/cgi-bin/koha/tools/download-files.pl" target="_new" name="downloadfile" enctype="multipart/form-data">
-			[% INCLUDE 'csrf-token.inc' %]
-			<input type="hidden" name="filename" value="">
-			<input type="hidden" name="op" value="cud-download">
-                        <div class="row">
-                            <div class="col-sm-4"> 
-                                <fieldset class="brief" id="downloaddates">
-                                    <legend>Date</legend>
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-md-10 order-md-2 order-sm-1">
+            <main>
+                <h1> Download batch prints </h1>
+                <div class="help"> </div>
 
-                                    <label for="datelist">Select date </label>
-                                    <div class="downloaddatelist" id="datelist">
-					[% i=-1 %][% FOREACH dir IN dirlist %]
+                <form method="post" action="/cgi-bin/koha/tools/download-files.pl" target="_new" name="downloadfile" enctype="multipart/form-data">
+                    [% INCLUDE 'csrf-token.inc' %]
+                    <input type="hidden" name="filename" value="" />
+                    <input type="hidden" name="op" value="cud-download" />
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <fieldset class="brief" id="downloaddates">
+                                <legend>Date</legend>
+
+                                <label for="datelist">Select date </label>
+                                <div class="downloaddatelist" id="datelist">
+                                    [% i=-1 %][% FOREACH dir IN dirlist %]
                                         [% SET i = i + 1 %]<a href="javascript:showfiles([% i | uri %])"><div class="listitem">[% dir.displaydate | html %]</div></a>
-                                        [% END %]
-                                    </div>
-
-                                </fieldset>
-                            </div>
-                            <div class="col-sm-8">
-                                <fieldset class="brief" id="downloadffiles">
-                                    <legend>Files</legend>
-                                    
-                                    <label for="filelist">Select file </label>
-                                    <div class="downloadfilelist" id="filelist">
-                                    </div>
-                                </fieldset>
-                            </div>
+                                    [% END %]
+                                </div>
+                            </fieldset>
                         </div>
-                    </form>
+                        <div class="col-sm-8">
+                            <fieldset class="brief" id="downloadffiles">
+                                <legend>Files</legend>
 
+                                <label for="filelist">Select file </label>
+                                <div class="downloadfilelist" id="filelist"> </div>
+                            </fieldset>
+                        </div>
+                    </div>
+                </form>
             </main>
-        </div> <!-- /.col-md-10.order-md-2.order-sm-1 -->
+        </div>
+        <!-- /.col-md-10.order-md-2.order-sm-1 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'tools-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-sm-2.order-md-1 -->
-    </div> <!-- /.row -->
+            <aside> [% INCLUDE 'tools-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-sm-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
-[% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/tools-menu.js") | $raw %]
-    <script type="text/javascript">
-        var dirs = new Array;
-        [% FOREACH dir IN dirlist %]
-        dirs.push( { displaydate: "[% dir.displaydate | html %]", sortdate: "[% dir.sortdate | html %]", files: ["[% dir.files.join('","') | html %]"]} );
-        [% END %]
+    [% MACRO jsinclude BLOCK %]
+        [% Asset.js("js/tools-menu.js") | $raw %]
+        <script type="text/javascript">
+            var dirs = new Array;
+            [% FOREACH dir IN dirlist %]
+            dirs.push( { displaydate: "[% dir.displaydate | html %]", sortdate: "[% dir.sortdate | html %]", files: ["[% dir.files.join('","') | html %]"]} );
+            [% END %]
 
-        function showfiles(index) {
-            var filelist = $("#filelist");
-            $(filelist).empty();
-            for (var k=0; k < dirs[index].files.length; k++) {
-                $('<a href="javascript:downloadfile(\'' + dirs[index].files[k] + '\',\'' + dirs[index].sortdate + '\')"><div class="listitem">' + dirs[index].files[k] + '</div>').appendTo(filelist);
+            function showfiles(index) {
+                var filelist = $("#filelist");
+                $(filelist).empty();
+                for (var k=0; k < dirs[index].files.length; k++) {
+                    $('<a href="javascript:downloadfile(\'' + dirs[index].files[k] + '\',\'' + dirs[index].sortdate + '\')"><div class="listitem">' + dirs[index].files[k] + '</div>').appendTo(filelist);
+                }
+                $("#datelist .selectedlistitem").removeClass("selectedlistitem");
+                $("#datelist .listitem").eq(index).addClass("selectedlistitem");
             }
-            $("#datelist .selectedlistitem").removeClass("selectedlistitem");
-            $("#datelist .listitem").eq(index).addClass("selectedlistitem");
-        }
 
-        function downloadfile(filename, date) {
-            document.downloadfile.elements['filename'].value=filename;
-            document.downloadfile.submit();
-        }
-    </script>
-[% END %]
-    
-[% INCLUDE 'intranet-bottom.inc' %]
+            function downloadfile(filename, date) {
+                document.downloadfile.elements['filename'].value=filename;
+                document.downloadfile.submit();
+            }
+        </script>
+    [% END %]
+
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

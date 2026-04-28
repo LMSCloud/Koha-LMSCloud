@@ -65,22 +65,21 @@ use CGI qw ( -utf8 );
 use Data::Dumper;
 
 use Koha::DateUtils;
-use C4::Auth qw( get_template_and_user );
+use C4::Auth   qw( get_template_and_user );
 use C4::Output qw( output_html_with_http_headers );
 use C4::AggregatedStatistics;
 use C4::AggregatedStatistics::AggregatedStatisticsFactory;
 
-
 my $debug = 1;
 
 my $html_output_done = 0;
-our $input = new CGI;
-our $script_name  = '/cgi-bin/koha/reports/aggregated_statistics.pl';
-our $op = $input->param('op') || '';
+our $input       = new CGI;
+our $script_name = '/cgi-bin/koha/reports/aggregated_statistics.pl';
+our $op          = $input->param('op') || '';
 $op =~ s/^cud-//;
 
-our $aggregatedstatistics = C4::AggregatedStatistics::AggregatedStatisticsFactory->getAggregatedStatisticsClass(scalar $input->param('statisticstype'),$input);    # creat instance of class derived from AggregatedStatisticsBase
-
+our $aggregatedstatistics = C4::AggregatedStatistics::AggregatedStatisticsFactory->getAggregatedStatisticsClass(
+    scalar $input->param('statisticstype'), $input );    # creat instance of class derived from AggregatedStatisticsBase
 
 our ( $template, $borrowernumber, $cookie, $staffflags ) = get_template_and_user(
     {
@@ -88,122 +87,121 @@ our ( $template, $borrowernumber, $cookie, $staffflags ) = get_template_and_user
         query           => $input,
         type            => 'intranet',
         authnotrequired => 0,
-        flagsrequired   => {reports => '*'},
+        flagsrequired   => { reports => '*' },
         debug           => 1,
     }
 );
 
-print STDERR "aggregated_statistics::main statisticstype:$aggregatedstatistics->{'statisticstype'}: statisticstypedesignation:$aggregatedstatistics->{'statisticstypedesignation'}: id:$aggregatedstatistics->{'id'}: name:$aggregatedstatistics->{'name'}: description:$aggregatedstatistics->{'description'}: startdate:$aggregatedstatistics->{'startdate'}: enddate:$aggregatedstatistics->{'enddate'}: op:$aggregatedstatistics->{'op'}:\n" if $debug;
+print STDERR
+    "aggregated_statistics::main statisticstype:$aggregatedstatistics->{'statisticstype'}: statisticstypedesignation:$aggregatedstatistics->{'statisticstypedesignation'}: id:$aggregatedstatistics->{'id'}: name:$aggregatedstatistics->{'name'}: description:$aggregatedstatistics->{'description'}: startdate:$aggregatedstatistics->{'startdate'}: enddate:$aggregatedstatistics->{'enddate'}: op:$aggregatedstatistics->{'op'}:\n"
+    if $debug;
 
 $template->param(
-	script_name => $script_name,
-	action => $script_name,
-	id => $aggregatedstatistics->{'id'},
+    script_name    => $script_name,
+    action         => $script_name,
+    id             => $aggregatedstatistics->{'id'},
     statisticstype => $aggregatedstatistics->{'statisticstype'},
-	name => $aggregatedstatistics->{'name'},
-	description => $aggregatedstatistics->{'description'},
-	startdate => $aggregatedstatistics->{'startdate'},
-	enddate => $aggregatedstatistics->{'enddate'}
+    name           => $aggregatedstatistics->{'name'},
+    description    => $aggregatedstatistics->{'description'},
+    startdate      => $aggregatedstatistics->{'startdate'},
+    enddate        => $aggregatedstatistics->{'enddate'}
 );
 
 if ( $op eq 'add_validate' or $op eq 'copy_validate' ) {
     add_validate();
+
     # we return to the default screen for the next operation
     $op = q{};
 }
 
-if ($op eq 'copy_form') {
+if ( $op eq 'copy_form' ) {
     add_form();
     $template->param(
         copying => 1,
-        modify => 0,
+        modify  => 0,
     );
-}
-elsif ( $op eq 'add_form' ) {
+} elsif ( $op eq 'add_form' ) {
     add_form();
-}
-elsif ( $op eq 'delete_confirm' ) {
+} elsif ( $op eq 'delete_confirm' ) {
     delete_confirm();
-}
-elsif ( $op eq 'delete_confirmed' ) {
+} elsif ( $op eq 'delete_confirmed' ) {
     delete_confirmed();
+
     # next operation is to return to default screen
     $op = q{};
-}
-elsif ( $op eq 'eval_form' ) {
+} elsif ( $op eq 'eval_form' ) {
+
     # show form triggered by 'edit' button - evaluate subclass functionality
     $html_output_done = eval_form();
-}
-elsif ( $op eq 'dcv_calc' ) {
+} elsif ( $op eq 'dcv_calc' ) {
+
     # derived class values - calculate
     if ( $aggregatedstatistics->supports('dcv_calc') ) {
         $aggregatedstatistics->dcv_calc($input);
     }
+
     # handle form - evaluate subclass functionality
     $html_output_done = eval_form();
-}
-elsif ( $op eq 'dcv_save' ) {
+} elsif ( $op eq 'dcv_save' ) {
+
     # derived class values - save into database
     if ( $aggregatedstatistics->supports('dcv_save') ) {
         $aggregatedstatistics->dcv_save($input);
     }
+
     # handle form - evaluate subclass functionality
     $html_output_done = eval_form();
-}
-elsif ( $op eq 'dcv_del' ) {
+} elsif ( $op eq 'dcv_del' ) {
+
     # derived class values - delete from database
     if ( $aggregatedstatistics->supports('dcv_del') ) {
         $aggregatedstatistics->dcv_del($input);
     }
+
     # handle form - evaluate subclass functionality
     $html_output_done = eval_form();
-}
-else {
-    default_display($aggregatedstatistics->{'statisticstype'});
+} else {
+    default_display( $aggregatedstatistics->{'statisticstype'} );
 }
 
 if ( !$html_output_done ) {
+
     # do this as last step because delete_confirmed resets params
     if ($op) {
-        $template->param($op => 1);
+        $template->param( $op => 1 );
     } else {
-        $template->param(no_op_set => 1);
+        $template->param( no_op_set => 1 );
     }
 
     output_html_with_http_headers $input, $cookie, $template->output;
 }
-
-
 
 # prepare the form for adding / editing / copying an aggregated_statistics record
 sub add_form {
 
     my $found = $aggregatedstatistics->add_form($input);
 
-    if ( $found ) {
+    if ($found) {
         $template->param(
-            modify => 1,
-            id => $aggregatedstatistics->{'id'},
-            statisticstype => $aggregatedstatistics->{'statisticstype'},
+            modify                    => 1,
+            id                        => $aggregatedstatistics->{'id'},
+            statisticstype            => $aggregatedstatistics->{'statisticstype'},
             statisticstypedesignation => $aggregatedstatistics->{'statisticstypedesignation'},
-            name => $aggregatedstatistics->{'name'},
-            description => $aggregatedstatistics->{'description'},
-            startdate => $aggregatedstatistics->{'startdate'},
-            enddate => $aggregatedstatistics->{'enddate'}
+            name                      => $aggregatedstatistics->{'name'},
+            description               => $aggregatedstatistics->{'description'},
+            startdate                 => $aggregatedstatistics->{'startdate'},
+            enddate                   => $aggregatedstatistics->{'enddate'}
         );
-    }
-    else { # create new record
+    } else {    # create new record
         $template->param(
-            adding => 1,
-            id => $aggregatedstatistics->{'id'},
-            statisticstype => $aggregatedstatistics->{'statisticstype'},
+            adding                    => 1,
+            id                        => $aggregatedstatistics->{'id'},
+            statisticstype            => $aggregatedstatistics->{'statisticstype'},
             statisticstypedesignation => $aggregatedstatistics->{'statisticstypedesignation'}
         );
     }
 
-    $template->param(
-        additionalparameters => $aggregatedstatistics->getadditionalparameters()
-    );
+    $template->param( additionalparameters => $aggregatedstatistics->getadditionalparameters() );
 }
 
 # evaluate the form for adding / editing / copying an aggregated_statistics record
@@ -212,7 +210,7 @@ sub add_validate {
     my $aggregatedStatistics = $aggregatedstatistics->add_validate($input);
 
     # set up default display
-    default_display($aggregatedStatistics->{'statisticstype'});
+    default_display( $aggregatedStatistics->{'statisticstype'} );
 }
 
 # prepare the form for deleting an aggregated_statistics record
@@ -221,12 +219,12 @@ sub delete_confirm {
 
     if ($found) {
         my $hit = {
-            id => $aggregatedstatistics->{'id'},
-            type => $aggregatedstatistics->{'statisticstype'},
-            name => $aggregatedstatistics->{'name'},
+            id          => $aggregatedstatistics->{'id'},
+            type        => $aggregatedstatistics->{'statisticstype'},
+            name        => $aggregatedstatistics->{'name'},
             description => $aggregatedstatistics->{'description'},
-            startdate => $aggregatedstatistics->{'startdate'},
-            enddate => $aggregatedstatistics->{'enddate'}
+            startdate   => $aggregatedstatistics->{'startdate'},
+            enddate     => $aggregatedstatistics->{'enddate'}
         };
         $template->param(
             hit => $hit,
@@ -239,7 +237,7 @@ sub delete_confirmed {
     $aggregatedstatistics->delete();
 
     # setup default display for screen
-    default_display($aggregatedstatistics->{'statisticstype'});
+    default_display( $aggregatedstatistics->{'statisticstype'} );
 }
 
 # prepare the form for evaluating / editing the specific statistics (e.g. DBS)
@@ -248,12 +246,13 @@ sub eval_form {
 
     # the evaluation depends on statisticstype
     if ( $aggregatedstatistics->supports('eval_form') ) {
-        $aggregatedstatistics->eval_form($script_name, $input);
+        $aggregatedstatistics->eval_form( $script_name, $input );
         $ret_html_output_done = 1;
     } else {
+
         # not implemented for remaining statistics types, so avoid HTTP error 500:
-        default_display($aggregatedstatistics->{'statisticstype'});
-        $op = q{}; # next operation is to return to default screen
+        default_display( $aggregatedstatistics->{'statisticstype'} );
+        $op = q{};    # next operation is to return to default screen
     }
     return $ret_html_output_done;
 }
@@ -265,26 +264,28 @@ sub default_display {
         my $statisticstypes = C4::AggregatedStatistics::AggregatedStatisticsFactory->getAggregatedStatisticsTypes();
         $preselected_statisticstype = $statisticstypes->[0];    # take the first entry as default statisticstype
     }
-    my $aggregatedstatistics = C4::AggregatedStatistics::AggregatedStatisticsFactory->getAggregatedStatisticsClass($preselected_statisticstype,$input);
+    my $aggregatedstatistics = C4::AggregatedStatistics::AggregatedStatisticsFactory->getAggregatedStatisticsClass(
+        $preselected_statisticstype, $input );
     my $results = $aggregatedstatistics->readAll();
 
     my $ags_hits = [];
-    foreach my $row (@{$results}) {
+    foreach my $row ( @{$results} ) {
         push @{$ags_hits}, $row;
     }
 
     my $statisticstypeloop = [];
-    my $statisticstypes = C4::AggregatedStatistics::AggregatedStatisticsFactory->getAggregatedStatisticsTypes();
-    foreach my $agstype (@{$statisticstypes}) {
+    my $statisticstypes    = C4::AggregatedStatistics::AggregatedStatisticsFactory->getAggregatedStatisticsTypes();
+    foreach my $agstype ( @{$statisticstypes} ) {
         push @{$statisticstypeloop}, {
             type        => $agstype,
-            designation => C4::AggregatedStatistics::AggregatedStatisticsFactory->getAggregatedStatisticsTypeDesignation($agstype),
-            selected    => $preselected_statisticstype && ( $agstype eq $preselected_statisticstype )
+            designation =>
+                C4::AggregatedStatistics::AggregatedStatisticsFactory->getAggregatedStatisticsTypeDesignation($agstype),
+            selected => $preselected_statisticstype && ( $agstype eq $preselected_statisticstype )
         };
     }
 
     $template->param(
-        hits => $ags_hits,
+        hits               => $ags_hits,
         statisticstypeloop => $statisticstypeloop
     );
 }

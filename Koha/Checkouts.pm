@@ -20,7 +20,6 @@ package Koha::Checkouts;
 
 use Modern::Perl;
 
-
 use C4::Context;
 use C4::Circulation qw( AddReturn );
 use Koha::Checkout;
@@ -30,7 +29,6 @@ use Koha::DateUtils qw( dt_from_string );
 use Koha::DateUtils qw( output_pref );
 
 use base qw(Koha::Objects);
-
 
 =head1 NAME
 
@@ -51,49 +49,54 @@ returns a hash reference with due dates if items containing information of branc
 =cut
 
 sub get_issue_dates_and_branches {
-    my ($self,$params) = @_;
-    
-    my ($selectbranch,$selectgroup,$result,$where) = ('','',{},{});
-    
-    $selectbranch = $params->{branchcode} if ( defined($params) && defined($params->{branchcode}) );
-    $selectgroup = $params->{categorycode} if ( defined($params) && defined($params->{categorycode}) );
+    my ( $self, $params ) = @_;
 
-    if ( $selectbranch ) {
+    my ( $selectbranch, $selectgroup, $result, $where ) = ( '', '', {}, {} );
+
+    $selectbranch = $params->{branchcode}   if ( defined($params) && defined( $params->{branchcode} ) );
+    $selectgroup  = $params->{categorycode} if ( defined($params) && defined( $params->{categorycode} ) );
+
+    if ($selectbranch) {
         $where = { branchcode => $selectbranch };
-    }
-    elsif ( $selectgroup ) {
-        my $schema = Koha::Database->new->schema;
-        my $inside_rs = $schema->resultset('LibraryGroup')->search({ parent_id => $selectgroup });
+    } elsif ($selectgroup) {
+        my $schema    = Koha::Database->new->schema;
+        my $inside_rs = $schema->resultset('LibraryGroup')->search( { parent_id => $selectgroup } );
         $where = { branchcode => { IN => $inside_rs->get_column('branchcode')->as_query } };
     }
 
-    my $today_iso = output_pref( { dt => dt_from_string, dateonly => 1, dateformat => 'iso' });
-    foreach my $issue($self->search($where, 
-        {
-            group_by => [ 
-                { DATE => 'date_due' },
-                'branchcode'
-            ],
-            select => [
-              'branchcode',
-              { count => '*' },
-              { DATE => 'date_due' }
-            ],
-            as => [qw/
-              branchcode
-              count
-              date_due
-            /]
-        })->as_list) 
+    my $today_iso = output_pref( { dt => dt_from_string, dateonly => 1, dateformat => 'iso' } );
+    foreach my $issue (
+        $self->search(
+            $where,
+            {
+                group_by => [
+                    { DATE => 'date_due' },
+                    'branchcode'
+                ],
+                select => [
+                    'branchcode',
+                    { count => '*' },
+                    { DATE  => 'date_due' }
+                ],
+                as => [
+                    qw/
+                        branchcode
+                        count
+                        date_due
+                        /
+                ]
+            }
+        )->as_list
+        )
     {
         my $found = $issue->unblessed();
-        
+
         if ( $found->{date_due} ge $today_iso ) {
-            $result->{$found->{date_due}}->{count} += $found->{count};
-            $result->{$found->{date_due}}->{branchcode}->{$found->{branchcode}} = $found->{count};
+            $result->{ $found->{date_due} }->{count} += $found->{count};
+            $result->{ $found->{date_due} }->{branchcode}->{ $found->{branchcode} } = $found->{count};
         }
     }
-    
+
     return $result;
 }
 
@@ -111,30 +114,29 @@ select issues that due on a specific date
 =cut
 
 sub get_issue_due_on_selected_date {
-    my ($self,$params) = @_;
-    
-    my ($selectbranch,$selectgroup,$where) = ('','',{});
-    
-    my $result = undef;
-    
-    $selectbranch = $params->{branchcode} if ( defined($params) && defined($params->{branchcode}) );
-    $selectgroup = $params->{categorycode} if ( defined($params) && defined($params->{categorycode}) );
-    
-    return undef if (! defined($params->{datedue}) );
+    my ( $self, $params ) = @_;
 
-    if ( $selectbranch ) {
+    my ( $selectbranch, $selectgroup, $where ) = ( '', '', {} );
+
+    my $result = undef;
+
+    $selectbranch = $params->{branchcode}   if ( defined($params) && defined( $params->{branchcode} ) );
+    $selectgroup  = $params->{categorycode} if ( defined($params) && defined( $params->{categorycode} ) );
+
+    return undef if ( !defined( $params->{datedue} ) );
+
+    if ($selectbranch) {
         $where = { branchcode => $selectbranch };
-    }
-    elsif ( $selectgroup ) {
-        my $schema = Koha::Database->new->schema;
-        my $inside_rs = $schema->resultset('LibraryGroup')->search({ parent_id => $selectgroup });
+    } elsif ($selectgroup) {
+        my $schema    = Koha::Database->new->schema;
+        my $inside_rs = $schema->resultset('LibraryGroup')->search( { parent_id => $selectgroup } );
         $where = { branchcode => { IN => $inside_rs->get_column('branchcode')->as_query } };
     }
-    
-    $where->{ date_due } = { 'like' => $params->{datedue} . '%' };
+
+    $where->{date_due} = { 'like' => $params->{datedue} . '%' };
 
     $result = $self->search($where);
-    
+
     return $result;
 }
 
@@ -207,7 +209,6 @@ sub automatic_checkin {
         }
     }
 }
-
 
 =head3 type
 

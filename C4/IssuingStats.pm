@@ -26,10 +26,10 @@ use vars qw(@ISA @EXPORT);
 
 BEGIN {
     require Exporter;
-        @ISA    = qw(Exporter);
-        @EXPORT = qw(
-            GetIssuingStats
-        );
+    @ISA    = qw(Exporter);
+    @EXPORT = qw(
+        GetIssuingStats
+    );
 }
 
 =head1 NAME
@@ -101,23 +101,23 @@ sub GetIssuingStats {
     my $biblionumbers = shift;
     my $years         = shift;
     my $ignoreTypes   = shift;
-    
-    return [] if (! $biblionumbers || ! scalar(@$biblionumbers) );
-    return [] if (! $years || $years !~ /^[0-9]+$/ || $years <= 0 );
-    
+
+    return [] if ( !$biblionumbers || !scalar(@$biblionumbers) );
+    return [] if ( !$years || $years !~ /^[0-9]+$/ || $years <= 0 );
+
     my @seltypes;
     my @selparams;
     my $seladd = '';
     my $result = {};
 
-    my $bibliosel = join(',',@$biblionumbers);
-    
+    my $bibliosel = join( ',', @$biblionumbers );
+
     if ( $ignoreTypes && scalar(@$ignoreTypes) ) {
         foreach my $itype (@$ignoreTypes) {
-            push @selparams,'?';
-            push @seltypes,$itype;
+            push @selparams, '?';
+            push @seltypes,  $itype;
         }
-        $seladd = ' AND i.itype NOT IN (' . join(',', @selparams) . ') ';
+        $seladd = ' AND i.itype NOT IN (' . join( ',', @selparams ) . ') ';
     }
 
     my $select = qq{SELECT i.biblionumber AS biblionumber,
@@ -140,59 +140,77 @@ sub GetIssuingStats {
                     FROM   items i
                     WHERE  i.biblionumber IN ($bibliosel) $seladd
                     ORDER BY 1,2,3};
-                    
+
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare($select);
 
-    $sth->execute(@seltypes,@seltypes);
+    $sth->execute( @seltypes, @seltypes );
 
-    while (my $stat = $sth->fetchrow_hashref ) {
+    while ( my $stat = $sth->fetchrow_hashref ) {
         if ( $stat->{year} == 0 ) {
-            $result->{$stat->{biblionumber}}->{items}->{$stat->{itemnumber}} = { sumIssues => $stat->{cnt}, yearAccession => $stat->{yearacc}, stats => {} };
-            $result->{$stat->{biblionumber}}->{sumIssues} += $stat->{cnt};
+            $result->{ $stat->{biblionumber} }->{items}->{ $stat->{itemnumber} } =
+                { sumIssues => $stat->{cnt}, yearAccession => $stat->{yearacc}, stats => {} };
+            $result->{ $stat->{biblionumber} }->{sumIssues} += $stat->{cnt};
         } else {
-            $result->{$stat->{biblionumber}}->{items}->{$stat->{itemnumber}}->{stats}->{$stat->{year}}->{sumIssues} = $stat->{cnt} + 0;
-            $result->{$stat->{biblionumber}}->{stats}->{$stat->{year}}->{sumIssues} += $stat->{cnt} + 0;
+            $result->{ $stat->{biblionumber} }->{items}->{ $stat->{itemnumber} }->{stats}->{ $stat->{year} }
+                ->{sumIssues} = $stat->{cnt} + 0;
+            $result->{ $stat->{biblionumber} }->{stats}->{ $stat->{year} }->{sumIssues} += $stat->{cnt} + 0;
         }
     }
 
     $sth->finish;
 
     my @years;
-    my $currYear = DateTime->now(time_zone => 'local')->year;
+    my $currYear = DateTime->now( time_zone => 'local' )->year;
 
-    for (my $i=0; $i < $years; $i++) {
-        push @years, $currYear-$i;
+    for ( my $i = 0 ; $i < $years ; $i++ ) {
+        push @years, $currYear - $i;
     }
 
     # Array to store the reponse JSON
     my $response = [];
 
-    foreach my $biblionumber(sort { $a <=> $b } keys %$result) {
-        foreach my $itemnumber(sort { $a <=> $b } keys %{$result->{$biblionumber}->{items}} ) {
-            foreach my $year(@years) {
-                if ( $year && defined($result->{$biblionumber}->{items}->{$itemnumber}->{yearAccession}) && $year >= $result->{$biblionumber}->{items}->{$itemnumber}->{yearAccession} ) {
+    foreach my $biblionumber ( sort { $a <=> $b } keys %$result ) {
+        foreach my $itemnumber ( sort { $a <=> $b } keys %{ $result->{$biblionumber}->{items} } ) {
+            foreach my $year (@years) {
+                if (   $year
+                    && defined( $result->{$biblionumber}->{items}->{$itemnumber}->{yearAccession} )
+                    && $year >= $result->{$biblionumber}->{items}->{$itemnumber}->{yearAccession} )
+                {
                     $result->{$biblionumber}->{items}->{$itemnumber}->{stats}->{$year}->{sumIssues} += 0;
                     $result->{$biblionumber}->{stats}->{$year}->{sumIssues} += 0;
                 }
             }
         }
-        my $bibresult = { biblionumber => $biblionumber, issuestats => [], sumIssues => $result->{$biblionumber}->{sumIssues}, items => [] };
-        foreach my $year(@years) {
+        my $bibresult = {
+            biblionumber => $biblionumber, issuestats => [], sumIssues => $result->{$biblionumber}->{sumIssues},
+            items        => []
+        };
+        foreach my $year (@years) {
             $result->{$biblionumber}->{stats}->{$year}->{sumIssues} += 0;
-            push @{$bibresult->{issuestats}}, { 'year' => $year, 'sumIssues' => $result->{$biblionumber}->{stats}->{$year}->{sumIssues} };
+            push @{ $bibresult->{issuestats} },
+                { 'year' => $year, 'sumIssues' => $result->{$biblionumber}->{stats}->{$year}->{sumIssues} };
         }
-        foreach my $itemnumber(sort { $a <=> $b } keys %{$result->{$biblionumber}->{items}} ) {
+        foreach my $itemnumber ( sort { $a <=> $b } keys %{ $result->{$biblionumber}->{items} } ) {
             my $itemstats = [];
-            foreach my $year(@years) {
+            foreach my $year (@years) {
                 $result->{$biblionumber}->{items}->{$itemnumber}->{stats}->{$year}->{sumIssues} += 0;
-                push @$itemstats, { 'year' => $year, 'sumIssues' => $result->{$biblionumber}->{items}->{$itemnumber}->{stats}->{$year}->{sumIssues} };
+                push @$itemstats,
+                    {
+                    'year'      => $year,
+                    'sumIssues' => $result->{$biblionumber}->{items}->{$itemnumber}->{stats}->{$year}->{sumIssues}
+                    };
             }
             $result->{$biblionumber}->{items}->{$itemnumber}->{sumIssues} += 0;
-            push @{$bibresult->{items}}, { itemnumber => $itemnumber, issuestats => $itemstats, sumIssues => $result->{$biblionumber}->{items}->{$itemnumber}->{sumIssues} };
+            push @{ $bibresult->{items} },
+                {
+                itemnumber => $itemnumber, issuestats => $itemstats,
+                sumIssues  => $result->{$biblionumber}->{items}->{$itemnumber}->{sumIssues}
+                };
         }
         push @$response, $bibresult;
     }
+
     # carp Dumper($response);
     return $response;
 }

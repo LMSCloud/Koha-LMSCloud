@@ -15,15 +15,14 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
 
-use C4::Auth qw( get_template_and_user );
-use C4::Biblio qw( GetXmlBiblio );
+use C4::Auth                  qw( get_template_and_user );
+use C4::Biblio                qw( GetXmlBiblio );
 use C4::External::BakerTaylor qw( image_url link_url );
-use C4::Koha qw( GetNormalizedUPC GetNormalizedOCLCNumber );
+use C4::Koha                  qw( GetNormalizedUPC GetNormalizedOCLCNumber );
 use MARC::Record;
 use XML::Simple;
 
@@ -35,39 +34,34 @@ use Koha::ItemTypes;
 my $query = CGI->new;
 
 # if opacreadinghistory is disabled, leave immediately
-if ( ! C4::Context->preference('opacreadinghistory') ) {
+if ( !C4::Context->preference('opacreadinghistory') ) {
     print $query->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
 }
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
-        template_name   => "opac-readingrecord.tt",
-        query           => $query,
-        type            => "opac",
+        template_name => "opac-readingrecord.tt",
+        query         => $query,
+        type          => "opac",
     }
 );
 
-my $patron = Koha::Patrons->find( $borrowernumber );
-my @itemtypes = Koha::ItemTypes->search_with_localization->as_list;
-my %item_types = map {
-    $_->itemtype => $_
-} @itemtypes;
-$template->param(item_types => \%item_types);
+my $patron     = Koha::Patrons->find($borrowernumber);
+my @itemtypes  = Koha::ItemTypes->search_with_localization->as_list;
+my %item_types = map { $_->itemtype => $_ } @itemtypes;
+$template->param( item_types => \%item_types );
 
 # get the record
 my $order = $query->param('order') || '';
 if ( $order eq 'title' ) {
     $template->param( orderbytitle => 1 );
-}
-elsif ( $order eq 'author' ) {
+} elsif ( $order eq 'author' ) {
     $template->param( orderbyauthor => 1 );
-}
-else {
+} else {
     $order = { -desc => "date_due" };
     $template->param( orderbydate => 1 );
 }
-
 
 my $limit = $query->param('limit');
 $limit //= '';
@@ -95,20 +89,20 @@ my $old_checkouts = [
     )->as_list
 ];
 
-if (C4::Context->preference('BakerTaylorEnabled')) {
-	$template->param(
-		JacketImages=>1,
-		BakerTaylorEnabled  => 1,
-		BakerTaylorImageURL => &image_url(),
-		BakerTaylorLinkURL  => &link_url(),
-		BakerTaylorBookstoreURL => C4::Context->preference('BakerTaylorBookstoreURL'),
-	);
+if ( C4::Context->preference('BakerTaylorEnabled') ) {
+    $template->param(
+        JacketImages            => 1,
+        BakerTaylorEnabled      => 1,
+        BakerTaylorImageURL     => &image_url(),
+        BakerTaylorLinkURL      => &link_url(),
+        BakerTaylorBookstoreURL => C4::Context->preference('BakerTaylorBookstoreURL'),
+    );
 }
 
-for(qw(AmazonCoverImages GoogleJackets)) { # BakerTaylorEnabled handled above
-	C4::Context->preference($_) or next;
-	$template->param($_=>1);
-	$template->param(JacketImages=>1);
+for (qw(AmazonCoverImages GoogleJackets)) {    # BakerTaylorEnabled handled above
+    C4::Context->preference($_) or next;
+    $template->param( $_           => 1 );
+    $template->param( JacketImages => 1 );
 }
 
 my $saving_display = C4::Context->preference('OPACShowSavings');
@@ -149,8 +143,8 @@ if ( C4::Context->preference("EKZCover") || C4::Context->preference("DivibibEnab
 }
 
 $template->param(
-    checkouts => $checkouts,
-    old_checkouts => $old_checkouts,
+    checkouts      => $checkouts,
+    old_checkouts  => $old_checkouts,
     titlecoverurls => \%titlecoverurls,
     limit          => $limit,
     readingrecview => 1,

@@ -11,17 +11,17 @@
                 <div class="modal-body">
                     <div id="booking_result"></div>
                     <fieldset class="brief">
-                        <input type="hidden" name="biblio_id" id="booking_id">
-                        <input type="hidden" name="biblio_id" id="booking_biblio_id">
-                        <input type="hidden" name="start_date" id="booking_start_date">
-                        <input type="hidden" name="end_date" id="booking_end_date">
+                        <input type="hidden" name="biblio_id" id="booking_id" />
+                        <input type="hidden" name="biblio_id" id="booking_biblio_id" />
+                        <input type="hidden" name="start_date" id="booking_start_date" />
+                        <input type="hidden" name="end_date" id="booking_end_date" />
                         <ol>
                             <li>
                                 <label class="required" for="booking_patron_id">Patron: </label>
                                 <select name="booking_patron_id" id="booking_patron_id" required="required">
                                     <option></option>
                                     [% IF patron %]
-                                    <option value="[% borrowernumber | uri %]" selected="selected">[% patron.firstname | html %] [% patron.surname | html %] ([% patron.cardnumber | html %] )</option>
+                                        <option value="[% borrowernumber | uri %]" selected="selected">[% patron.firstname | html %] [% patron.surname | html %] ([% patron.cardnumber | html %] )</option>
                                     [% END %]
                                 </select>
                                 <div class="hint">Enter patron card number or partial name</div>
@@ -33,10 +33,9 @@
                             </li>
                             <li>
                                 <label for="booking_itemtype">Itemtype: </label>
-                                <select id="booking_itemtype" name="booking_itemtype" disabled="disabled">
-                                </select>
-                            <li>
-                            <label for="booking_item_id">Item: </label>
+                                <select id="booking_itemtype" name="booking_itemtype" disabled="disabled"> </select> </li
+                            ><li>
+                                <label for="booking_item_id">Item: </label>
                                 <select name="booking_item_id" id="booking_item_id" disabled="true">
                                     <option value="0">Any item</option>
                                 </select>
@@ -44,7 +43,7 @@
                             <li>
                                 <div id="period_fields">
                                     <label class="required" for="period">Booking dates: </label>
-                                    <input type="text" id="period" name="period" class="flatpickr" data-flatpickr-futuredate="true" data-flatpickr-disable-shortcuts="true" required="required" disabled="true" autocomplete="off">
+                                    <input type="text" id="period" name="period" class="flatpickr" data-flatpickr-futuredate="true" data-flatpickr-disable-shortcuts="true" required="required" disabled="true" autocomplete="off" />
                                     <span class="required">Required</span>
                                 </div>
                                 <div class="hint">Select the booking start and end date</div>
@@ -52,12 +51,17 @@
                         </ol>
                     </fieldset>
                     <fieldset class="brief" id="booking_extended_attributes"></fieldset>
-                </div> <!-- /.modal-body -->
+                </div>
+                <!-- /.modal-body -->
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-primary">Submit</button>
                     <button type="button" class="btn btn-default" data-bs-dismiss="modal" aria-hidden="true">Cancel</button>
-                </div> <!-- /.modal-footer -->
-            </div> <!-- /.modal-content -->
-        </div> <!-- /.modal-dialog -->
+                </div>
+                <!-- /.modal-footer -->
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
     </form>
-</div> <!-- /#placeBookingModal -->
+</div>
+<!-- /#placeBookingModal -->

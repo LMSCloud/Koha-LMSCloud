@@ -19,12 +19,11 @@ use Test::More tests => 6;
 use Test::Mojo;
 use Data::Dumper;
 
-
 use PPI;
 use FindBin();
 use IPC::Cmd        qw(can_run);
 use List::MoreUtils qw(any);
-use File::Slurp qw(read_file);
+use File::Slurp     qw(read_file);
 
 use Koha::Database;
 
@@ -177,7 +176,7 @@ subtest '400 response tests' => sub {
 };
 
 subtest 'POST (201) have location header' => sub {
-    my @files = `git ls-files 'Koha/REST/V1/**/*.pm'`;
+    my @files      = `git ls-files 'Koha/REST/V1/**/*.pm'`;
     my $exceptions = {
         'Koha/REST/V1/Auth/Password.pm'              => [qw(validate)],
         'Koha/REST/V1/ERM/EHoldings/Titles/Local.pm' => [qw(import_from_list import_from_kbart_file)],
@@ -203,7 +202,7 @@ subtest 'POST (201) have location header' => sub {
             } elsif ( $content =~ /\$c->res->headers->location\(.*?\);/ ) {
                 if ( $content !~ /return\s+\$c->render\s*\(\s*status\s*=>\s*201,/ ) {
                     fail("$file:$name has the location header without 201");
-        } else {
+                } else {
                     fail("$file:$name has the location header and 201, but other statements should be between them");
                 }
             } elsif ( $content !~ /status\s*=>\s*201/s ) {

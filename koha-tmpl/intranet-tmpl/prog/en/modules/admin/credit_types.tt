@@ -6,20 +6,23 @@
 [% SET footerjs = 1 %]
 [% PROCESS 'accounts.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% IF op =='add_form' %]
-       [% IF credit_type.code %]
-           [% tx("Modify credit type '{credit_type}'", {credit_type = credit_type.code }) | html %] &rsaquo;
-       [% ELSE %]
-           [% t("New credit type") | html %] &rsaquo;
-       [% END %]
-       [% t("Credit types") | html %]
-    [% ELSE %]
-       [% t("Credit types") | html %]
-    [% END %] &rsaquo;
-    [% t("Administration") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% IF op =='add_form' %]
+            [% IF credit_type.code %]
+                [% tx("Modify credit type '{credit_type}'", {credit_type = credit_type.code }) | html %]
+                &rsaquo;
+            [% ELSE %]
+                [% t("New credit type") | html %]
+                &rsaquo;
+            [% END %]
+            [% t("Credit types") | html %]
+        [% ELSE %]
+            [% t("Credit types") | html %]
+        [% END %]
+        &rsaquo; [% t("Administration") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -45,7 +48,6 @@
                     <span>New credit type</span>
                 [% END %]
             [% END %]
-
         [% ELSE %]
             [% WRAPPER breadcrumb_item bc_active= 1 %]
                 <span>Credit types</span>
@@ -61,20 +63,20 @@
                 [% INCLUDE 'messages.inc' %]
 
                 [% FOREACH m IN messages %]
-                <div class="alert alert-[% m.type | html %]">
-                    [% SWITCH m.code %]
-                    [% CASE 'success_on_saving' %]
-                        <span>Credit type saved successfully.</span>
-                    [% CASE 'error_on_saving' %]
-                        <span>An error occurred when saving this credit type.</span>
-                    [% CASE 'success_on_archive' %]
-                        <span>Credit type archived successfully.</span>
-                    [% CASE 'success_on_restore' %]
-                        <span>Credit type restored successfully.</span>
-                    [% CASE %]
-                        <span>[% m.code | html %]</span>
-                    [% END %]
-                </div>
+                    <div class="alert alert-[% m.type | html %]">
+                        [% SWITCH m.code %]
+                        [% CASE 'success_on_saving' %]
+                            <span>Credit type saved successfully.</span>
+                        [% CASE 'error_on_saving' %]
+                            <span>An error occurred when saving this credit type.</span>
+                        [% CASE 'success_on_archive' %]
+                            <span>Credit type archived successfully.</span>
+                        [% CASE 'success_on_restore' %]
+                            <span>Credit type restored successfully.</span>
+                        [% CASE %]
+                            <span>[% m.code | html %]</span>
+                        [% END %]
+                    </div>
                 [% END %]
 
                 [% IF op == 'add_form' %]
@@ -95,7 +97,7 @@
                                         <strong>[% credit_type.code | html %]</strong>
                                         <input type="hidden" name="code" value="[% code | html %]" />
                                     [% ELSE %]
-                                    <input type="text" name="code" id="code" size="80" maxlength="64" class="required focus" required="required"><span class="required">Required. Maximum length is 64 letters</span>
+                                        <input type="text" name="code" id="code" size="80" maxlength="64" class="required focus" required="required" /><span class="required">Required. Maximum length is 64 letters</span>
                                     [% END %]
                                 </li>
                                 <li>
@@ -103,7 +105,8 @@
                                     [% IF credit_type && credit_type.is_system %]
                                         <span>[%- PROCESS credit_type_description credit_type = credit_type -%]</span>
                                     [% ELSE %]
-                                        <input type="text" name="description" id="description" required="required" class="required" size="80" maxlength="100" value="[% credit_type.description | html %]" /> <span class="required">Required</span>
+                                        <input type="text" name="description" id="description" required="required" class="required" size="80" maxlength="100" value="[% credit_type.description | html %]" />
+                                        <span class="required">Required</span>
                                     [% END %]
                                 </li>
                                 <li>
@@ -133,11 +136,11 @@
                                         <select id="branches" name="branches" multiple size="10">
                                             <option value="">All libraries</option>
                                             [% FOREACH branch IN branches_loop %]
-                                            [% IF ( branch.selected ) %]
-                                            <option selected="selected" value="[% branch.branchcode | html %]">[% branch.branchname | html %]</option>
-                                            [% ELSE %]
-                                            <option value="[% branch.branchcode | html %]">[% branch.branchname | html %]</option>
-                                            [% END %]
+                                                [% IF ( branch.selected ) %]
+                                                    <option selected="selected" value="[% branch.branchcode | html %]">[% branch.branchname | html %]</option>
+                                                [% ELSE %]
+                                                    <option value="[% branch.branchcode | html %]">[% branch.branchname | html %]</option>
+                                                [% END %]
                                             [% END %]
                                         </select>
                                         <div class="hint">Select 'All libraries' if this credit type should be available at all libraries. Otherwise select libraries you want to associate credit type with.</div>
@@ -174,56 +177,59 @@
                                 </thead>
                                 <tbody>
                                     [% FOREACH credit_type IN credit_types %]
-                                    <tr>
-                                        <td>[% credit_type.archived | html %]</td>
-                                        <td>[% credit_type.is_system | html %]</td>
-                                        <td>[% credit_type.code | html %]</td>
-                                        <td>[%- PROCESS credit_type_description credit_type = credit_type -%]</td>
-                                        <td>[% IF credit_type.can_be_added_manually %]Manual credit[% END %]</td>
-                                        <td>[% IF credit_type.credit_number_enabled %]Yes[% ELSE %]No[% END %]</td>
-                                        <td>
-                                            [% IF credit_type.library_limits.count > 0 %]
-                                                [% library_limits_str = "" %]
-                                                [% FOREACH library IN credit_type.library_limits %]
-                                                    [%- IF loop.first -%]
-                                                    [% library_limits_str = library.branchname _ " (" _ library.branchcode _ ")" %]
-                                                    [% ELSE %]
-                                                    [% library_limits_str = library_limits_str _ "\n" _ library.branchname _ " (" _ library.branchcode _ ")" %]
+                                        <tr>
+                                            <td>[% credit_type.archived | html %]</td>
+                                            <td>[% credit_type.is_system | html %]</td>
+                                            <td>[% credit_type.code | html %]</td>
+                                            <td>[%- PROCESS credit_type_description credit_type = credit_type -%]</td>
+                                            <td>[% IF credit_type.can_be_added_manually %]Manual credit[% END %]</td>
+                                            <td>[% IF credit_type.credit_number_enabled %]Yes[% ELSE %]No[% END %]</td>
+                                            <td>
+                                                [% IF credit_type.library_limits.count > 0 %]
+                                                    [% library_limits_str = "" %]
+                                                    [% FOREACH library IN credit_type.library_limits %]
+                                                        [%- IF loop.first -%]
+                                                            [% library_limits_str = library.branchname _ " (" _ library.branchcode _ ")" %]
+                                                        [% ELSE %]
+                                                            [% library_limits_str = library_limits_str _ "\n" _ library.branchname _ " (" _ library.branchcode _ ")" %]
+                                                        [% END %]
                                                     [% END %]
+                                                    <span class="library_limitation" title="[% library_limits_str | html %]">
+                                                        [% limits_count = credit_type.library_limits.count %]
+                                                        [% tnx('{count} library limitation', '{count} library limitations', limits_count, { count => limits_count }) %]
+                                                    </span>
+                                                [% ELSE %]
+                                                    <span>No library limitation</span>
                                                 [% END %]
-                                                <span class="library_limitation" title="[% library_limits_str | html %]">
-                                                    [% limits_count = credit_type.library_limits.count %]
-                                                    [% tnx('{count} library limitation', '{count} library limitations', limits_count, { count => limits_count }) %]
-                                            [% ELSE %]
-                                                <span>No library limitation</span>
-                                            [% END %]
-                                        </td>
-                                        <td class="actions">
-                                            [% IF !credit_type.archived %]
-                                                <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/credit_types.pl?op=add_form&amp;code=[% credit_type.code | uri %]&type=credit"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
-                                            [% END %]
-                                            [% IF !credit_type.is_system && !credit_type.archived %]
-                                                <form id="archive_[% credit_type.code | html %]" method="post" action="/cgi-bin/koha/admin/credit_types.pl">
-                                                    [% INCLUDE 'csrf-token.inc' %]
-                                                    <input type="hidden" name="op" value="cud-archive" />
-                                                    <input type="hidden" name="code" value="[% credit_type.code | html %]" />
-                                                    <button type="submit" class="btn btn-default btn-xs archive_button" href="#" data-code="[% credit_type.code | html %]"><i class="fa fa-archive"></i> Archive</button>
-                                                </form>
-                                            [% END %]
-                                            [% IF !credit_type.is_system && credit_type.archived %]
-                                                <form id="unarchive_[% credit_type.code | html %]" method="post" action="/cgi-bin/koha/admin/credit_types.pl">
-                                                    [% INCLUDE 'csrf-token.inc' %]
-                                                    <input type="hidden" name="op" value="cud-unarchive" />
-                                                    <input type="hidden" name="code" value="[% credit_type.code | html %]" />
-                                                    <button type="submit" class="btn btn-default btn-xs unarchive_button" href="#" data-code="[% credit_type.code | html %]"><i class="fa fa-undo"></i> Restore</button>
-                                                </form>
-                                            [% END %]
-                                        </td>
-                                    </tr>
+                                            </td>
+                                            <td class="actions">
+                                                [% IF !credit_type.archived %]
+                                                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/admin/credit_types.pl?op=add_form&amp;code=[% credit_type.code | uri %]&type=credit"
+                                                        ><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a
+                                                    >
+                                                [% END %]
+                                                [% IF !credit_type.is_system && !credit_type.archived %]
+                                                    <form id="archive_[% credit_type.code | html %]" method="post" action="/cgi-bin/koha/admin/credit_types.pl">
+                                                        [% INCLUDE 'csrf-token.inc' %]
+                                                        <input type="hidden" name="op" value="cud-archive" />
+                                                        <input type="hidden" name="code" value="[% credit_type.code | html %]" />
+                                                        <button type="submit" class="btn btn-default btn-xs archive_button" href="#" data-code="[% credit_type.code | html %]"><i class="fa fa-archive"></i> Archive</button>
+                                                    </form>
+                                                [% END %]
+                                                [% IF !credit_type.is_system && credit_type.archived %]
+                                                    <form id="unarchive_[% credit_type.code | html %]" method="post" action="/cgi-bin/koha/admin/credit_types.pl">
+                                                        [% INCLUDE 'csrf-token.inc' %]
+                                                        <input type="hidden" name="op" value="cud-unarchive" />
+                                                        <input type="hidden" name="code" value="[% credit_type.code | html %]" />
+                                                        <button type="submit" class="btn btn-default btn-xs unarchive_button" href="#" data-code="[% credit_type.code | html %]"><i class="fa fa-undo"></i> Restore</button>
+                                                    </form>
+                                                [% END %]
+                                            </td>
+                                        </tr>
                                     [% END %]
                                 </tbody>
-                            </table>
-                        </div><!-- /.page-section -->
+                            </table> </div
+                        ><!-- /.page-section -->
                     [% ELSE %]
                         <div class="alert alert-info">
                             There are no account credit types defined.
@@ -232,52 +238,58 @@
                     [% END %]
                 [% END %]
             </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'admin-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-    </div> <!-- /.row -->
+            <aside> [% INCLUDE 'admin-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
-[% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/admin-menu.js") | $raw %]
-    [% INCLUDE 'datatables.inc' %]
+    [% MACRO jsinclude BLOCK %]
+        [% Asset.js("js/admin-menu.js") | $raw %]
+        [% INCLUDE 'datatables.inc' %]
+        <script>
+            $(document).ready(function () {
+                var txtActivefilter = _("Filter system credit types");
+                var txtInactivefilter = _("Show all credit types");
+                var table_credit_types = $("#table_credit_types").dataTable(
+                    $.extend(true, {}, dataTablesDefaults, {
+                        columnDefs: [
+                            { targets: [-1], orderable: false, searchable: false },
+                            { targets: [0, 1], orderable: false, visible: false },
+                        ],
+                        order: [
+                            [0, "asc"],
+                            [2, "asc"],
+                        ],
+                        dom: 'C<"top pager"ilpfB><"#filter_s">tr<"bottom pager"ip>',
+                        pageLength: 20,
+                        pagingType: "full_numbers",
+                    })
+                );
+                $("#filter_s").html('<p><a href="#" id="filter_system"><i class="fa fa-filter"></i> ' + txtActivefilter + "</a>");
+                $("#filter_system").click(function (e) {
+                    e.preventDefault();
+                    if ($(this).hasClass("filtered")) {
+                        var filteredValue = "";
+                        $(this).html('<i class="fa fa-filter"></i> ' + txtActivefilter);
+                    } else {
+                        // Not filtered. Let's do it!
+                        var filteredValue = "0";
+                        $(this).html('<i class="fa fa-filter"></i> ' + txtInactivefilter);
+                    }
+                    table_credit_types.DataTable().columns(1).search(filteredValue, false, false).draw();
+                    $(this).toggleClass("filtered");
+                });
 
-    <script>
-        $(document).ready(function() {
-            var txtActivefilter = _("Filter system credit types");
-            var txtInactivefilter = _("Show all credit types");
-            var table_credit_types = $("#table_credit_types").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "columnDefs": [
-                    { "targets": [ -1 ], "orderable": false, "searchable":  false },
-                    { "targets": [ 0, 1 ], "orderable": false, "visible": false },
-                ],
-                "order": [[ 0, "asc" ],[ 2, "asc" ]],
-                "dom": 'C<"top pager"ilpfB><"#filter_s">tr<"bottom pager"ip>',
-                "pageLength": 20,
-                "pagingType": "full_numbers"
-            }));
-            $("#filter_s").html('<p><a href="#" id="filter_system"><i class="fa fa-filter"></i> '+txtActivefilter+'</a>');
-            $('#filter_system').click(function(e) {
-                e.preventDefault();
-                if ($(this).hasClass('filtered')) {
-                    var filteredValue = '';
-                    $(this).html('<i class="fa fa-filter"></i> '+txtActivefilter);
-                } else { // Not filtered. Let's do it!
-                    var filteredValue = '0';
-                    $(this).html('<i class="fa fa-filter"></i> '+txtInactivefilter);
-                }
-                table_credit_types.DataTable().columns(1).search(filteredValue, false, false).draw();
-                $(this).toggleClass('filtered');
+                //Start filtered
+                $("#filter_system").click();
             });
+        </script>
+    [% END %]
 
-            //Start filtered
-            $('#filter_system').click();
-
-        });
-    </script>
-[% END %]
-
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

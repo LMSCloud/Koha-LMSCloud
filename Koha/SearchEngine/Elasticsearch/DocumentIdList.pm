@@ -53,60 +53,57 @@ This returns a list of docuemnt IDs.
 =cut
 
 sub getIDList {
-    my ($self, $request) = @_;
+    my ( $self, $request ) = @_;
 
     my $IDList = {};
-    my $count = 0;
+    my $count  = 0;
+
     # get the document count
     my $elasticsearch = $self->get_elasticsearch();
-    my $result = $elasticsearch->count(
-        index => $self->index_name
-    );
-    
-    
-    if ( defined $result && defined($result->{count}) ) {
+    my $result        = $elasticsearch->count( index => $self->index_name );
+
+    if ( defined $result && defined( $result->{count} ) ) {
         $count = $result->{count} + 0;
-        
+
         my $IDsFound = 0;
-        my $lastID = undef;
-        my $size = 10000;
+        my $lastID   = undef;
+        my $size     = 10000;
         my $continue = $count;
-        
+
         while ( $continue > 0 ) {
-            
+
             my $query = {
-                            index => $self->index_name,
-                            body => {
-                                size => $size,
-                                fields => [ ],
-                                query => {
-                                    match_all => {}
-                                },
-                                sort => [ { "biblioitemnumber__sort" => "asc" } ],
-                                _source => \0
-                            }
-                        };
-            
-            if ( $lastID ) {
-                $query->{body}->{search_after} = [ $lastID ];
+                index => $self->index_name,
+                body  => {
+                    size    => $size,
+                    fields  => [],
+                    query   => { match_all => {} },
+                    sort    => [ { "biblioitemnumber__sort" => "asc" } ],
+                    _source => \0
+                }
+            };
+
+            if ($lastID) {
+                $query->{body}->{search_after} = [$lastID];
             }
-            
+
             # now search retrieve all document IDs
             $result = $elasticsearch->search($query);
             if ( defined $result && defined $result->{hits} && $result->{hits}->{hits} ) {
                 my $hits = $result->{hits}->{hits};
-                foreach my $hit(@$hits) {
-                    $IDList->{$hit->{_id}} = 1;
+                foreach my $hit (@$hits) {
+                    $IDList->{ $hit->{_id} } = 1;
                     $IDsFound++;
                     $lastID = $hit->{sort}->[0];
                 }
+
                 # print Dumper($result);
             }
-            
+
             $continue -= $size;
         }
     }
-    
+
     # print scalar(keys %$IDList), " IDs of $count found\n";
 
     return sort { $a =~ /^[0-9]+$/ && $b =~ /^[0-9]+$/ ? $a <=> $b : $a cmp $b } keys %$IDList;

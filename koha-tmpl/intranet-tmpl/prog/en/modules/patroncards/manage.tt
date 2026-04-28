@@ -4,70 +4,85 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% BLOCK translate_card_element %]
-[%-  SWITCH element -%]
-[%-  CASE 'layout'    -%][% t('layout') | html %]
-[%-  CASE 'Layouts'   -%][% t('Patron card layouts') | html %]
-[%-  CASE 'template'  -%][% t('template') | html %]
-[%-  CASE 'Templates' -%][% t('Patron card templates') | html %]
-[%-  CASE 'profile'   -%][% t('profile') | html %]
-[%-  CASE 'Profiles'  -%][% t('Patron card printer profiles') | html %]
-[%-  CASE 'batch'     -%][% t('batch') | html %]
-[%-  CASE 'Batches'   -%][% t('Patron card batches') | html %]
-[%-  CASE 'Actions'   -%][% t('Actions') | html %]
-[%-  END -%]
+    [%- SWITCH element -%]
+
+    [%- CASE 'layout' -%]
+        [% t('layout') | html %]
+    [%- CASE 'Layouts' -%]
+        [% t('Patron card layouts') | html %]
+    [%- CASE 'template' -%]
+        [% t('template') | html %]
+    [%- CASE 'Templates' -%]
+        [% t('Patron card templates') | html %]
+    [%- CASE 'profile' -%]
+        [% t('profile') | html %]
+    [%- CASE 'Profiles' -%]
+        [% t('Patron card printer profiles') | html %]
+    [%- CASE 'batch' -%]
+        [% t('batch') | html %]
+    [%- CASE 'Batches' -%]
+        [% t('Patron card batches') | html %]
+    [%- CASE 'Actions' -%]
+        [% t('Actions') | html %]
+    [%- END -%]
 [% END %]
 [% BLOCK translate_card_elements %]
-[%-  SWITCH element -%]
-[%-  CASE 'layout'    -%]<span>layouts</span>
-[%-  CASE 'template'  -%]<span>templates</span>
-[%-  CASE 'profile'   -%]<span>profiles</span>
-[%-  CASE 'batch'     -%]<span>batches</span>
-[%-  END -%]
+    [%- SWITCH element -%]
+
+    [%- CASE 'layout' -%]
+        <span>layouts</span>
+    [%- CASE 'template' -%]
+        <span>templates</span>
+    [%- CASE 'profile' -%]
+        <span>profiles</span>
+    [%- CASE 'batch' -%]
+        <span>batches</span>
+    [%- END -%]
 [% END %]
 
-    [% INCLUDE 'doc-head-open.inc' %]
-    <title>[% FILTER collapse %]
-        [% PROCESS translate_card_element element=card_element_title %] &rsaquo;
-        [% t("Patron card creator") | html %] &rsaquo;
-        [% t("Tools") | html %] &rsaquo;
-        [% t("Koha") | html %]
-    [% END %]</title>
-    [% INCLUDE 'doc-head-close.inc' %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title
+    >[% FILTER collapse %]
+        [% PROCESS translate_card_element element=card_element_title %]
+        &rsaquo; [% t("Patron card creator") | html %] &rsaquo; [% t("Tools") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
+[% INCLUDE 'doc-head-close.inc' %]
 </head>
 
 <body id="pcard_manage" class="tools pcard">
-    [% WRAPPER 'header.inc' %]
+[% WRAPPER 'header.inc' %]
     [% INCLUDE 'cat-search.inc' %]
 [% END %]
 
-    [% WRAPPER 'sub-header.inc' %]
-        [% WRAPPER breadcrumbs %]
-            [% WRAPPER breadcrumb_item %]
-                <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
-            [% END %]
-            [% WRAPPER breadcrumb_item %]
-                <a href="/cgi-bin/koha/patroncards/home.pl">Patron card creator</a>
-            [% END %]
-            [% WRAPPER breadcrumb_item bc_active= 1 %]
-                [% PROCESS translate_card_element element=card_element_title %]
-            [% END %]
-        [% END #/ WRAPPER breadcrumbs %]
-    [% END #/ WRAPPER sub-header.inc %]
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/patroncards/home.pl">Patron card creator</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            [% PROCESS translate_card_element element=card_element_title %]
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
-    <div class="main container-fluid">
-        <div class="row">
-            <div class="col-md-10 order-md-2 order-sm-1">
-                <main>
-                    [% INCLUDE 'messages.inc' %]
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-md-10 order-md-2 order-sm-1">
+            <main>
+                [% INCLUDE 'messages.inc' %]
 
-                    [% INCLUDE 'patroncards-toolbar.inc' %]
+                [% INCLUDE 'patroncards-toolbar.inc' %]
 
-                    <h1>[% PROCESS translate_card_element element=card_element_title %]</h1>
+                <h1>[% PROCESS translate_card_element element=card_element_title %]</h1>
 
-                    [% INCLUDE 'patroncards-errors.inc' %]
-                        <div id="manage-patroncards-layouts">
-                            [% IF ( table_loop ) %]
-                            <form method="get" name="layouts" action="/cgi-bin/koha/manage.pl?card_element=[% card_element | html %]">
+                [% INCLUDE 'patroncards-errors.inc' %]
+                <div id="manage-patroncards-layouts">
+                    [% IF ( table_loop ) %]
+                        <form method="get" name="layouts" action="/cgi-bin/koha/manage.pl?card_element=[% card_element | html %]">
                             <div class="page-section">
                                 <table>
                                     [% FOREACH table_loo IN table_loop %]
@@ -75,20 +90,34 @@
                                             <tr>
                                                 [% FOREACH header_field IN table_loo.header_fields %]
                                                     [% SWITCH header_field.field_label -%]
-                                                        [%-  CASE 'Layout ID'     -%]<th>Layout ID</th>
-                                                        [%-  CASE 'Layout'        -%]<th>Layout</th>
-                                                        [%-  CASE 'Action'        -%]<th>Action</th>
-                                                        [%-  CASE 'Actions'       -%]<th class="noExport">Actions</th>
-                                                        [%-  CASE 'Select'        -%][% IF ( print ) %]<th>Select</th>[% END %]
-                                                        [%-  CASE 'Template ID'   -%]<th>Template ID</th>
-                                                        [%-  CASE 'Template Name' -%]<th>Template name</th>
-                                                        [%-  CASE 'Description'   -%]<th>Description</th>
-                                                        [%-  CASE 'Profile ID'    -%]<th>Profile ID</th>
-                                                        [%-  CASE 'Printer Name'  -%]<th>Printer name</th>
-                                                        [%-  CASE 'Paper Bin'     -%]<th>Paper bin</th>
-                                                        [%-  CASE 'Batch ID'      -%]<th>Batch ID</th>
-                                                        [%-  CASE 'Patron Count'  -%]<th>Patron count</th>
-                                                        [%-  CASE                 -%]<th>[% header_field.field_label | html %]</th>
+                                                    [%- CASE 'Layout ID' -%]
+                                                        <th>Layout ID</th>
+                                                    [%- CASE 'Layout' -%]
+                                                        <th>Layout</th>
+                                                    [%- CASE 'Action' -%]
+                                                        <th>Action</th>
+                                                    [%- CASE 'Actions' -%]
+                                                        <th class="noExport">Actions</th>
+                                                    [%- CASE 'Select' -%]
+                                                        [% IF ( print ) %]<th>Select</th>[% END %]
+                                                    [%- CASE 'Template ID' -%]
+                                                        <th>Template ID</th>
+                                                    [%- CASE 'Template Name' -%]
+                                                        <th>Template name</th>
+                                                    [%- CASE 'Description' -%]
+                                                        <th>Description</th>
+                                                    [%- CASE 'Profile ID' -%]
+                                                        <th>Profile ID</th>
+                                                    [%- CASE 'Printer Name' -%]
+                                                        <th>Printer name</th>
+                                                    [%- CASE 'Paper Bin' -%]
+                                                        <th>Paper bin</th>
+                                                    [%- CASE 'Batch ID' -%]
+                                                        <th>Batch ID</th>
+                                                    [%- CASE 'Patron Count' -%]
+                                                        <th>Patron count</th>
+                                                    [%- CASE -%]
+                                                        <th>[% header_field.field_label | html %]</th>
                                                     [% END -%]
                                                 [% END %]
                                             </tr>
@@ -97,9 +126,13 @@
                                                 [% FOREACH text_field IN table_loo.text_fields %]
                                                     [% IF ( text_field.select_field ) %]
                                                         <td>
-                                                            <a class="btn btn-default btn-xs" href="/cgi-bin/koha/patroncards/edit-[% card_element | html %].pl?op=edit_form&element_id=[% text_field.field_value | html %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+                                                            <a class="btn btn-default btn-xs" href="/cgi-bin/koha/patroncards/edit-[% card_element | html %].pl?op=edit_form&element_id=[% text_field.field_value | html %]"
+                                                                ><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a
+                                                            >
                                                             [% IF ( print ) %]
-                                                                <a class="btn btn-default btn-xs export" data-batch-id="[% text_field.field_value |url %]" href="/cgi-bin/koha/patroncards/print.pl?batch_id=[% text_field.field_value |url %]"><i class="fa-solid fa-share-from-square"></i> Export</a>
+                                                                <a class="btn btn-default btn-xs export" data-batch-id="[% text_field.field_value |url %]" href="/cgi-bin/koha/patroncards/print.pl?batch_id=[% text_field.field_value |url %]"
+                                                                    ><i class="fa-solid fa-share-from-square"></i> Export</a
+                                                                >
                                                             [% END %]
                                                             <a class="btn btn-default btn-xs delete" href="#" data-element-id="[% text_field.field_value | html %]"><i class="fa fa-trash-can"></i> Delete</a>
                                                         </td>
@@ -116,7 +149,8 @@
                                         [% END %]
                                     [% END %]
                                 </table>
-                            </div> <!-- /.page-section -->
+                            </div>
+                            <!-- /.page-section -->
                             [% IF ( print ) %]
                                 <fieldset class="action">
                                     <input class="btn btn-primary" type="button" id="print" value="Export selected batches" />
@@ -124,192 +158,193 @@
                             [% END %]
 
                             [% IF patron_lists %]
-                            <fieldset class="rows">
-                                <legend>Export by patron list</legend>
-                                <ol>
-                                    <li>
-                                        <label for="patron_list_id">Patron list: </label>
-                                        <select id="patron_list_id" name="patron_list_id">
-                                            <option value=""></option>
-                                            [% FOREACH pl IN patron_lists %]
-                                                <option value="[% pl.patron_list_id | html %]">[% pl.name | html %]</option>
-                                            [% END %]
-                                        </select>
-                                    </li>
-                                </ol>
-                            </fieldset>
-                            <fieldset class="action">
-                                <input class="btn btn-primary" type="button" id="printlist" value="Export from patron list" />
-                            </fieldset>
+                                <fieldset class="rows">
+                                    <legend>Export by patron list</legend>
+                                    <ol>
+                                        <li>
+                                            <label for="patron_list_id">Patron list: </label>
+                                            <select id="patron_list_id" name="patron_list_id">
+                                                <option value=""></option>
+                                                [% FOREACH pl IN patron_lists %]
+                                                    <option value="[% pl.patron_list_id | html %]">[% pl.name | html %]</option>
+                                                [% END %]
+                                            </select>
+                                        </li>
+                                    </ol>
+                                </fieldset>
+                                <fieldset class="action">
+                                    <input class="btn btn-primary" type="button" id="printlist" value="Export from patron list" />
+                                </fieldset>
                             [% END %]
-                            </form>
-                            <form id="manage_form" method="post" action="/cgi-bin/koha/patroncards/manage.pl">
-                                [% INCLUDE 'csrf-token.inc' %]
-                                <input type="hidden" name="op" value="cud-" />
-                            </form>
-
-                            [% ELSE %]
+                        </form>
+                        <form id="manage_form" method="post" action="/cgi-bin/koha/patroncards/manage.pl">
+                            [% INCLUDE 'csrf-token.inc' %]
+                            <input type="hidden" name="op" value="cud-" />
+                        </form>
+                    [% ELSE %]
                         <div class="alert alert-info">
                             <h4>There are no [% PROCESS translate_card_element element=card_element_title %] currently available.</h4>
-                            <p>Use the toolbar above to create a new [% PROCESS translate_card_element element=card_element %].</p></div>
-                            [% END %]
-                        </div>
-
+                            <p>Use the toolbar above to create a new [% PROCESS translate_card_element element=card_element %].</p></div
+                        >
+                    [% END %]
+                </div>
             </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'tools-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-     </div> <!-- /.row -->
+            <aside> [% INCLUDE 'tools-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
-[% MACRO jsinclude BLOCK %]
-    [% INCLUDE 'greybox.inc' %]
-    <script>
-        function DeleteConfirm() {
-            var element_ids = selected_layouts("delete");
+    [% MACRO jsinclude BLOCK %]
+        [% INCLUDE 'greybox.inc' %]
+        <script>
+            function DeleteConfirm() {
+                var element_ids = selected_layouts("delete");
 
-            var msg;
-            if (element_ids.length > 1) {
-                msg = _("Are you sure you want to delete %s %s?").format(element_ids.length, "[% PROCESS translate_card_elements element=card_element %]");
-            } else if (element_ids.length == 1) {
-                msg = _("Are you sure you want to delete %s %s?").format("[% PROCESS translate_card_element element=card_element %]", element_ids[0]);
-            }
-
-            if (msg && confirm(msg)) {
-                var elements = "";
-                for (var i = 0; i < element_ids.length; i++) {
-                    if (element_ids[i] > -1) {
-                        elements += element_ids[i] + ","
-                    }
-                    else {
-                        return;     // no layout selected
-                    }
+                var msg;
+                if (element_ids.length > 1) {
+                    msg = _("Are you sure you want to delete %s %s?").format(element_ids.length, "[% PROCESS translate_card_elements element=card_element %]");
+                } else if (element_ids.length == 1) {
+                    msg = _("Are you sure you want to delete %s %s?").format("[% PROCESS translate_card_element element=card_element %]", element_ids[0]);
                 }
 
-                window.location = "/cgi-bin/koha/patroncards/manage.pl?op=delete&card_element=[% card_element | html %]&element_id=" + elements;
-            }
-            else {
-                return; // abort delete
-            }
+                if (msg && confirm(msg)) {
+                    var elements = "";
+                    for (var i = 0; i < element_ids.length; i++) {
+                        if (element_ids[i] > -1) {
+                            elements += element_ids[i] + ","
+                        }
+                        else {
+                            return;     // no layout selected
+                        }
+                    }
 
-        };
+                    window.location = "/cgi-bin/koha/patroncards/manage.pl?op=delete&card_element=[% card_element | html %]&element_id=" + elements;
+                }
+                else {
+                    return; // abort delete
+                }
 
-        function Edit() {
-            var element_id = selected_layouts("edit");
-            if (element_id>-1) {
-                window.location = "/cgi-bin/koha/patroncards/edit-[% card_element | html %].pl?op=edit&element_id=" + element_id;
-            }
-            else {
-                return;     // no layout selected
             };
-        };
-        function Xport() {
-            batches= new Array;
-            if(document.layouts.action.length > 0) {
-                for (var i=0; i < document.layouts.action.length; i++) {
-                    if (document.layouts.action[i].checked) {
-                        batches.push("batch_id=" +  document.layouts.action[i].value);
-                    }
+
+            function Edit() {
+                var element_id = selected_layouts("edit");
+                if (element_id>-1) {
+                    window.location = "/cgi-bin/koha/patroncards/edit-[% card_element | html %].pl?op=edit&element_id=" + element_id;
                 }
-                if (batches.length < 1) {
+                else {
+                    return;     // no layout selected
+                };
+            };
+            function Xport() {
+                batches= new Array;
+                if(document.layouts.action.length > 0) {
+                    for (var i=0; i < document.layouts.action.length; i++) {
+                        if (document.layouts.action[i].checked) {
+                            batches.push("batch_id=" +  document.layouts.action[i].value);
+                        }
+                    }
+                    if (batches.length < 1) {
+                        alert(_("Please select at least one batch to export."));
+                        return;     // no batch selected
+                    }
+                    getstr = batches.join("&");
+                }
+                else if (document.layouts.action.checked) {
+                    getstr = "batch_id="+document.layouts.action.value;
+                }
+                else {
                     alert(_("Please select at least one batch to export."));
                     return;     // no batch selected
                 }
-                getstr = batches.join("&");
-            }
-            else if (document.layouts.action.checked) {
-                getstr = "batch_id="+document.layouts.action.value;
-            }
-            else {
-                alert(_("Please select at least one batch to export."));
-                return;     // no batch selected
-            }
-            return GB_showCenter(_("Export patron cards"), "/cgi-bin/koha/patroncards/print.pl?" + getstr, 400, 800);
-        };
+                return GB_showCenter(_("Export patron cards"), "/cgi-bin/koha/patroncards/print.pl?" + getstr, 400, 800);
+            };
 
-        function XportPatronlist() {
-            if ( patron_list_id.value.length < 1 ) {
-                alert(_("Please select a patron list."));
-                return;     // no patron list selected
-            }
-            getstr = 'patronlist_id='+patron_list_id.value;
-            return GB_showCenter(_("Export patron cards from list"), "/cgi-bin/koha/patroncards/print.pl?" + getstr, 700, 800);
-        };
-
-        function selected_layout(op) {
-            if (document.layouts.action.length) {
-                var selected = new Array();
-                for (i=0;i<document.layouts.action.length;i++){
-                    if (document.layouts.action[i].checked){
-                        selected.push(i);
-                    }
-                };
-                if (selected.length == 1 || (op == "delete" && selected.length >= 1)) {
-                    if (op == "delete") {
-                        var selectedDelete = new Array;
-                        for (i = 0; i < selected.length; i++) {
-                            selectedDelete.push(document.layouts.action[selected[i]].value);
-                        }
-                        return(selectedDelete);
-                    } else {
-                        // op == 'edit' returns only the object and not list
-                        return(document.layouts.action[selected[0]].value);
-                    }
+            function XportPatronlist() {
+                if ( patron_list_id.value.length < 1 ) {
+                    alert(_("Please select a patron list."));
+                    return;     // no patron list selected
                 }
-                else if (selected.length < 1) {
-                    if (op == "edit") {
-                        alert(_("Please select one %s to %s.").format("[% PROCESS translate_card_element element=card_element %]", op));
-                    } else {
-                        alert(_("Please select at least one %s to %s.").format("[% PROCESS translate_card_element element=card_element %]", op));
+                getstr = 'patronlist_id='+patron_list_id.value;
+                return GB_showCenter(_("Export patron cards from list"), "/cgi-bin/koha/patroncards/print.pl?" + getstr, 700, 800);
+            };
+
+            function selected_layout(op) {
+                if (document.layouts.action.length) {
+                    var selected = new Array();
+                    for (i=0;i<document.layouts.action.length;i++){
+                        if (document.layouts.action[i].checked){
+                            selected.push(i);
+                        }
+                    };
+                    if (selected.length == 1 || (op == "delete" && selected.length >= 1)) {
+                        if (op == "delete") {
+                            var selectedDelete = new Array;
+                            for (i = 0; i < selected.length; i++) {
+                                selectedDelete.push(document.layouts.action[selected[i]].value);
+                            }
+                            return(selectedDelete);
+                        } else {
+                            // op == 'edit' returns only the object and not list
+                            return(document.layouts.action[selected[0]].value);
+                        }
                     }
-                    return (-1);
+                    else if (selected.length < 1) {
+                        if (op == "edit") {
+                            alert(_("Please select one %s to %s.").format("[% PROCESS translate_card_element element=card_element %]", op));
+                        } else {
+                            alert(_("Please select at least one %s to %s.").format("[% PROCESS translate_card_element element=card_element %]", op));
+                        }
+                        return (-1);
+                    }
+                    else {
+                        alert(_("Please select only one %s to %s.").format("[% PROCESS translate_card_element element=card_element %]", op));
+                        return (-1);
+                    }
                 }
                 else {
-                    alert(_("Please select only one %s to %s.").format("[% PROCESS translate_card_element element=card_element %]", op));
-                    return (-1);
-                }
-            }
-            else {
-                if (document.layouts.action.checked){
-                    return([document.layouts.action.value]);
-                }
+                    if (document.layouts.action.checked){
+                        return([document.layouts.action.value]);
+                    }
+                };
+                alert(_("Please select a %s.").format("[% PROCESS translate_card_element element=card_element %]"));
+                return (-1);
             };
-            alert(_("Please select a %s.").format("[% PROCESS translate_card_element element=card_element %]"));
-            return (-1);
-        };
 
-        $(document).ready(function() {
-            $("#edit").click(function(){
-                Edit();
-                return false;
+            $(document).ready(function() {
+                $("#edit").click(function(){
+                    Edit();
+                    return false;
+                });
+                $("#print").click(function(){
+                    Xport();
+                    return false;
+                });
+                $("#printlist").click(function(){
+                    XportPatronlist();
+                    return false;
+                });
+                $(".delete").on("click", function(){
+                    if( confirmDelete( _("Are you sure you want to delete this?") ) ) {
+                        $('#manage_form input[name="op"]').val('cud-delete');
+                        $('#manage_form').append( '<input type="hidden" name="card_element" value="[% card_element | html %]" />' );
+                        var id = $(this).data('element-id');
+                        $('#manage_form').append( '<input type="hidden" name="element_id" value="' + id + '" />' );
+                        $('#manage_form').submit();
+                    }
+                });
+                $(".export").on("click", function(e){
+                    e.preventDefault();
+                    var batch_id = $(this).data("batch-id");
+                    GB_showCenter( _("Export single batch"),'/cgi-bin/koha/patroncards/print.pl?batch_id='+batch_id, 400, 800);
+                });
             });
-            $("#print").click(function(){
-                Xport();
-                return false;
-            });
-            $("#printlist").click(function(){
-                XportPatronlist();
-                return false;
-            });
-            $(".delete").on("click", function(){
-                if( confirmDelete( _("Are you sure you want to delete this?") ) ) {
-                    $('#manage_form input[name="op"]').val('cud-delete');
-                    $('#manage_form').append( '<input type="hidden" name="card_element" value="[% card_element | html %]" />' );
-                    var id = $(this).data('element-id');
-                    $('#manage_form').append( '<input type="hidden" name="element_id" value="' + id + '" />' );
-                    $('#manage_form').submit();
-                }
-            });
-            $(".export").on("click", function(e){
-                e.preventDefault();
-                var batch_id = $(this).data("batch-id");
-                GB_showCenter( _("Export single batch"),'/cgi-bin/koha/patroncards/print.pl?batch_id='+batch_id, 400, 800);
-            });
-        });
-    </script>
-[% END %]
+        </script>
+    [% END %]
 
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

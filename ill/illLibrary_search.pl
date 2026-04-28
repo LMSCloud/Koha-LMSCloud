@@ -19,8 +19,8 @@
 
 use Modern::Perl;
 
-use CGI qw ( -utf8 );
-use C4::Auth qw( get_template_and_user );
+use CGI        qw ( -utf8 );
+use C4::Auth   qw( get_template_and_user );
 use C4::Output qw( output_html_with_http_headers );
 use C4::Members;
 
@@ -28,23 +28,26 @@ use Koha::Patron::Categories;
 
 my $input = new CGI;
 
-my $patrontype = ($input->param('patrontype') || 'owni');
-my @illPatronCategories = split(/,/,$input->param('illcategories'));
+my $patrontype              = ( $input->param('patrontype') || 'owni' );
+my @illPatronCategories     = split( /,/, $input->param('illcategories') );
 my $kohaIllPatronCategories = [];
 foreach my $catcode (@illPatronCategories) {
-    my $rs = Koha::Patron::Categories->search({categorycode => $catcode});
+    my $rs = Koha::Patron::Categories->search( { categorycode => $catcode } );
     if ( my $categoryres = $rs->next ) {
-        push @$kohaIllPatronCategories, { categorycode => $categoryres->categorycode, description => $categoryres->description };
+        push @$kohaIllPatronCategories,
+            { categorycode => $categoryres->categorycode, description => $categoryres->description };
     }
 }
-my $searchmember = $input->param('searchmember');
-my @attribute_type_codes = ( 'Sigel' );
+my $searchmember         = $input->param('searchmember');
+my @attribute_type_codes = ('Sigel');
 if ( C4::Context->preference('ExtendedPatronAttributes') ) {
-    push @attribute_type_codes, @{[ Koha::Patron::Attribute::Types->search( { staff_searchable => 1 } )->get_column('code') ]};
+    push @attribute_type_codes,
+        @{ [ Koha::Patron::Attribute::Types->search( { staff_searchable => 1 } )->get_column('code') ] };
 }
 
 my ( $template, $loggedinuser, $cookie, $staff_flags ) = get_template_and_user(
-    {   template_name   => "ill/illLibrary_search.tt",
+    {
+        template_name   => "ill/illLibrary_search.tt",
         query           => $input,
         type            => "intranet",
         authnotrequired => 0,
@@ -53,13 +56,13 @@ my ( $template, $loggedinuser, $cookie, $staff_flags ) = get_template_and_user(
 );
 
 $template->param(
-    columns => ['cardnumber', 'name', 'city', 'extended_attribute_SIGEL', 'category', 'action' ],
-    default_sort_column => 'name',
-    selection_type => 'select',
+    columns              => [ 'cardnumber', 'name', 'city', 'extended_attribute_SIGEL', 'category', 'action' ],
+    default_sort_column  => 'name',
+    selection_type       => 'select',
     ill_patronclass_lmsc => 'ILL_library',
-    ill_patrontype_lmsc => $patrontype,
-    categories => $kohaIllPatronCategories,
-    searchmember => $searchmember,
+    ill_patrontype_lmsc  => $patrontype,
+    categories           => $kohaIllPatronCategories,
+    searchmember         => $searchmember,
     attribute_type_codes => \@attribute_type_codes,
 );
 

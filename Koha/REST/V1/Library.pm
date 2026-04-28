@@ -47,8 +47,7 @@ sub list {
         my $libraries_set = Koha::Libraries->new;
         my $libraries     = $c->objects->search( $libraries_set, \&_to_model, \&_to_api );
         return $c->render( status => 200, openapi => $libraries );
-    }
-    catch {
+    } catch {
         unless ( blessed $_ && $_->can('rethrow') ) {
             return $c->render(
                 status  => 500,
@@ -72,11 +71,13 @@ sub get {
     my $c = shift->openapi->valid_input or return;
 
     my $library_id = $c->validation->param('library_id');
-    my $library = Koha::Libraries->find( $library_id );
+    my $library    = Koha::Libraries->find($library_id);
 
     unless ($library) {
-        return $c->render( status  => 404,
-                           openapi => { error => "Library not found" } );
+        return $c->render(
+            status  => 404,
+            openapi => { error => "Library not found" }
+        );
     }
 
     return $c->render(
@@ -103,8 +104,7 @@ sub add {
             status  => 201,
             openapi => $library->to_api
         );
-    }
-    catch {
+    } catch {
         unless ( blessed $_ && $_->can('rethrow') ) {
             return $c->render(
                 status  => 500,
@@ -116,8 +116,7 @@ sub add {
                 status  => 409,
                 openapi => { error => $_->error, conflict => $_->duplicate_id }
             );
-        }
-        else {
+        } else {
             return $c->render(
                 status  => 500,
                 openapi => { error => "$_" }
@@ -152,8 +151,7 @@ sub update {
             status  => 200,
             openapi => $library->to_api
         );
-    }
-    catch {
+    } catch {
         unless ( blessed $_ && $_->can('rethrow') ) {
             return $c->render(
                 status  => 500,
@@ -178,7 +176,7 @@ sub delete {
 
     my $c = shift->openapi->valid_input or return;
 
-    my $library = Koha::Libraries->find( $c->validation->param( 'library_id' ) );
+    my $library = Koha::Libraries->find( $c->validation->param('library_id') );
 
     if ( not defined $library ) {
         return $c->render( status => 404, openapi => { error => "Library not found" } );
@@ -186,9 +184,8 @@ sub delete {
 
     return try {
         $library->delete;
-        return $c->render( status => 204, openapi => '');
-    }
-    catch {
+        return $c->render( status => 204, openapi => '' );
+    } catch {
         unless ( blessed $_ && $_->can('rethrow') ) {
             return $c->render(
                 status  => 500,
@@ -214,19 +211,18 @@ sub _to_api {
     my $library = shift;
 
     # Rename attributes
-    foreach my $column ( keys %{ $Koha::REST::V1::Library::to_api_mapping } ) {
+    foreach my $column ( keys %{$Koha::REST::V1::Library::to_api_mapping} ) {
         my $mapped_column = $Koha::REST::V1::Library::to_api_mapping->{$column};
-        if (    exists $library->{ $column }
-             && defined $mapped_column )
+        if ( exists $library->{$column}
+            && defined $mapped_column )
         {
             # key /= undef
-            $library->{ $mapped_column } = delete $library->{ $column };
-        }
-        elsif (    exists $library->{ $column }
-                && !defined $mapped_column )
+            $library->{$mapped_column} = delete $library->{$column};
+        } elsif ( exists $library->{$column}
+            && !defined $mapped_column )
         {
             # key == undef => to be deleted
-            delete $library->{ $column };
+            delete $library->{$column};
         }
     }
 
@@ -243,19 +239,18 @@ attribute names.
 sub _to_model {
     my $library = shift;
 
-    foreach my $attribute ( keys %{ $Koha::REST::V1::Library::to_model_mapping } ) {
+    foreach my $attribute ( keys %{$Koha::REST::V1::Library::to_model_mapping} ) {
         my $mapped_attribute = $Koha::REST::V1::Library::to_model_mapping->{$attribute};
-        if (    exists $library->{ $attribute }
-             && defined $mapped_attribute )
+        if ( exists $library->{$attribute}
+            && defined $mapped_attribute )
         {
             # key /= undef
-            $library->{ $mapped_attribute } = delete $library->{ $attribute };
-        }
-        elsif (    exists $library->{ $attribute }
-                && !defined $mapped_attribute )
+            $library->{$mapped_attribute} = delete $library->{$attribute};
+        } elsif ( exists $library->{$attribute}
+            && !defined $mapped_attribute )
         {
             # key == undef => to be deleted
-            delete $library->{ $attribute };
+            delete $library->{$attribute};
         }
     }
 
@@ -265,7 +260,6 @@ sub _to_model {
 
     return $library;
 }
-
 
 =head2 Global variables
 

@@ -5,12 +5,12 @@ use C4::Context;
 use Koha::Virtualshelves;
 
 sub search {
-    my ( $params ) = @_;
+    my ($params)  = @_;
     my $shelfname = $params->{shelfname};
-    my $count = $params->{count};
-    my $owner = $params->{owner};
-    my $sortby = $params->{sortby};
-    my $public = $params->{public} // 1;
+    my $count     = $params->{count};
+    my $owner     = $params->{owner};
+    my $sortby    = $params->{sortby};
+    my $public    = $params->{public} // 1;
     $public = $public ? 1 : 0;
     my $order_by = $params->{order_by};
     my $start    = $params->{start};
@@ -20,7 +20,7 @@ sub search {
     # to prevent private lists lack
     my $loggedinuser = C4::Context->userenv->{'number'} || 0;
 
-    my ($recordsTotal, $recordsFiltered);
+    my ( $recordsTotal, $recordsFiltered );
 
     my $dbh = C4::Context->dbh;
 
@@ -43,13 +43,14 @@ sub search {
     |;
 
     my @args;
+
     # private
     if ( !$public ) {
         my $join_vs = q|
             LEFT JOIN virtualshelfshares sh ON sh.shelfnumber = vs.shelfnumber
             AND sh.borrowernumber = ?
         |;
-        $from .= $join_vs;
+        $from       .= $join_vs;
         $from_total .= $join_vs;
         push @args, $loggedinuser;
 
@@ -59,7 +60,7 @@ sub search {
 
     if ( defined $shelfname and $shelfname ne '' ) {
         push @where_strs, 'shelfname LIKE ?';
-        push @args, "%$shelfname%";
+        push @args,       "%$shelfname%";
     }
     if ( defined $owner and $owner ne '' ) {
         $owner =~ s/^\s+|\s+$//g;    # Trim leading/trailing spaces
@@ -78,11 +79,11 @@ sub search {
     }
     if ( defined $sortby and $sortby ne '' ) {
         push @where_strs, 'sortfield = ?';
-        push @args, $sortby;
+        push @args,       $sortby;
     }
 
     push @where_strs, 'public = ?';
-    push @args, $public;
+    push @args,       $public;
 
     if ( !$public ) {
         push @where_strs, '(vs.owner = ? OR sh.borrowernumber = ?)';
@@ -90,8 +91,7 @@ sub search {
     }
 
     my $where;
-    $where = " WHERE " . join (" AND ", @where_strs) if @where_strs;
-
+    $where = " WHERE " . join( " AND ", @where_strs ) if @where_strs;
 
     if ($order_by) {
         $order_by =~ s|shelfnumber|vs.shelfnumber|;
@@ -108,8 +108,10 @@ sub search {
     }
 
     my $limit;
+
     # If length == -1, we want to display all shelves
     if ( $length > -1 ) {
+
         # In order to avoid sql injection
         $start  =~ s/\D//g;
         $length =~ s/\D//g;
@@ -125,34 +127,34 @@ sub search {
         " ",
         $select,
         $from,
-        ($where ? $where : ""),
+        ( $where ? $where : "" ),
         $group_by,
-        ($order_by ? $order_by : ""),
-        ($limit ? $limit : "")
+        ( $order_by ? $order_by : "" ),
+        ( $limit    ? $limit    : "" )
     );
     my $shelves = $dbh->selectall_arrayref( $query, { Slice => {} }, @args );
 
     # Get the recordsFiltered DataTable variable
-    $query = "SELECT COUNT(vs.shelfnumber) " . $from_total . ($where ? $where : "");
+    $query = "SELECT COUNT(vs.shelfnumber) " . $from_total . ( $where ? $where : "" );
     ($recordsFiltered) = $dbh->selectrow_array( $query, undef, @args );
 
     # Get the recordsTotal DataTable variable
     $query = q|SELECT COUNT(vs.shelfnumber)| . $from_total . q| WHERE public = ?|;
     $query .= q| AND (vs.owner = ? OR sh.borrowernumber = ?)| if !$public;
-    @args = !$public ? ( $loggedinuser, $public, $loggedinuser, $loggedinuser ) : ( $public );
-    ( $recordsTotal ) = $dbh->selectrow_array( $query, undef, @args );
+    @args = !$public ? ( $loggedinuser, $public, $loggedinuser, $loggedinuser ) : ($public);
+    ($recordsTotal) = $dbh->selectrow_array( $query, undef, @args );
 
-    for my $shelf ( @$shelves ) {
+    for my $shelf (@$shelves) {
         my $s = Koha::Virtualshelves->find( $shelf->{shelfnumber} );
-        $shelf->{can_manage_shelf} = $s->can_be_managed( $loggedinuser );
-        $shelf->{can_delete_shelf} = $s->can_be_deleted( $loggedinuser );
-        $shelf->{is_shared} = $s->is_shared;
+        $shelf->{can_manage_shelf} = $s->can_be_managed($loggedinuser);
+        $shelf->{can_delete_shelf} = $s->can_be_deleted($loggedinuser);
+        $shelf->{is_shared}        = $s->is_shared;
     }
     return {
-        recordsTotal => $recordsTotal,
+        recordsTotal    => $recordsTotal,
         recordsFiltered => $recordsFiltered,
-        shelves => $shelves,
-    }
+        shelves         => $shelves,
+    };
 }
 
 1;

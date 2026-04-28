@@ -27,7 +27,7 @@ sub all {
     my $selected = $params->{selected};
 
     my $letters = GetPatronLetters();
-    for my $letter ( @$letters ) {
+    for my $letter (@$letters) {
         if ( $selected && $letter->{code} eq $selected ) {
             $letter->{selected} = 1;
         }

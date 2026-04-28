@@ -38,9 +38,9 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 
 BEGIN {
     require Exporter;
-    $VERSION = 3.07.00.049;
-    @ISA = qw(Exporter);
-    @EXPORT = qw();
+    $VERSION   = 3.07.00.049;
+    @ISA       = qw(Exporter);
+    @EXPORT    = qw();
     @EXPORT_OK = qw();
 }
 
@@ -77,46 +77,47 @@ sub new {
 
     my $self = {};
     bless $self, $class;
-    
+
     $self->{'brockhausDomain'} = C4::Context->preference('BrockhausDomain');
-    $self->{'brockhausDomain'} = 'brockhaus.de' if ( ! $self->{'brockhausDomain'} );
-    
-    $self->{'customerID'}   = C4::Context->preference('BrockhausCustomerID');
+    $self->{'brockhausDomain'} = 'brockhaus.de' if ( !$self->{'brockhausDomain'} );
+
+    $self->{'customerID'}      = C4::Context->preference('BrockhausCustomerID');
     $self->{'librarySelectID'} = C4::Context->preference('BrockhausLibrarySelectID');
-    
-    $self->{'brockhausSearchURL'} = 'https://api2.' .  $self->{'brockhausDomain'} . '/search?';
-    
-    $self->{'brockhausAccessURL'} = 'https://' . $self->{'brockhausDomain'} . '/ecs';
+
+    $self->{'brockhausSearchURL'} = 'https://api2.' . $self->{'brockhausDomain'} . '/search?';
+
+    $self->{'brockhausAccessURL'}      = 'https://' . $self->{'brockhausDomain'} . '/ecs';
     $self->{'brockhausAccessURLChild'} = 'https://' . $self->{'brockhausDomain'} . '/junior/ecs';
-    
+
     $self->{'searchAtBrockhausURL'} = 'https://brockhaus.de/search/?';
     if ( $self->{'librarySelectID'} ) {
         $self->{'searchAtBrockhausURL'} .= 'select=' . $self->{'librarySelectID'} . '&';
     }
-    
+
     if ( $self->{'customerID'} ) {
-        $self->{'brockhausAccessURLAuth'} = 'https://' . $self->{'brockhausDomain'} . '/portal/user/' . $self->{'customerID'} . '?url=/ecs';
-        $self->{'brockhausAccessURLAuthChild'} = 'https://' . $self->{'brockhausDomain'} . '/portal/user/' . $self->{'customerID'} . '?url=/junior/ecs';
+        $self->{'brockhausAccessURLAuth'} =
+            'https://' . $self->{'brockhausDomain'} . '/portal/user/' . $self->{'customerID'} . '?url=/ecs';
+        $self->{'brockhausAccessURLAuthChild'} =
+            'https://' . $self->{'brockhausDomain'} . '/portal/user/' . $self->{'customerID'} . '?url=/junior/ecs';
     } else {
-        $self->{'brockhausAccessURLAuth'} = $self->{'brockhausAccessURL'};
+        $self->{'brockhausAccessURLAuth'}      = $self->{'brockhausAccessURL'};
         $self->{'brockhausAccessURLAuthChild'} = $self->{'brockhausAccessURLChild'};
     }
-    
+
     my @header = ( 'Accept' => 'application/json' );
-    
+
     $self->{'requestHeader'} = \@header;
-    
+
     $self->{'scrubber'} = C4::Scrubber->new();
-    
+
     my $ua = LWP::UserAgent->new;
     $ua->timeout(3);
     $ua->env_proxy;
-    
+
     $self->{'ua'} = $ua;
 
     return $self;
 }
-
 
 =head2 simpleSearch
 
@@ -125,88 +126,88 @@ In case of an HTTP error it returns undef.
 
 =cut
 
-
 sub simpleSearch {
-    my $self = shift;
-    my $userid = shift;
-    my $searchtext = shift;
+    my $self        = shift;
+    my $userid      = shift;
+    my $searchtext  = shift;
     my $searchtypes = shift;
-    my $maxcount = shift;
-    my $offset = shift;
+    my $maxcount    = shift;
+    my $offset      = shift;
 
     return undef unless ( C4::Context->preference('BrockhausSearchActive') );
-    
+
     $searchtext = $self->normalizeSearchRequest($searchtext);
-    
-    return undef if (! $searchtext );
-    
+
+    return undef if ( !$searchtext );
+
     my $user;
-    if ( $userid ) {
-        my $patron = Koha::Patrons->find({ userid => $userid } );
-        if ( $patron ) {
+    if ($userid) {
+        my $patron = Koha::Patrons->find( { userid => $userid } );
+        if ($patron) {
             my $patronStatus = C4::External::DivibibPatronStatus->new();
-            my $pStatus = $patronStatus->getPatronStatus( $patron );
+            my $pStatus      = $patronStatus->getPatronStatus($patron);
             if ( $pStatus && $pStatus->{status} eq '3' ) {
                 $user = $patron->cardnumber;
             }
         }
     }
-    
-    $offset = 0 if (!$offset);
-    $maxcount = 0 if (!$maxcount);
-    $searchtypes = [ "ecs" ]  if (!$searchtypes);
-    $searchtypes = [ $searchtypes ] if ( reftype($searchtypes) ne 'ARRAY' );
- 
+
+    $offset      = 0              if ( !$offset );
+    $maxcount    = 0              if ( !$maxcount );
+    $searchtypes = ["ecs"]        if ( !$searchtypes );
+    $searchtypes = [$searchtypes] if ( reftype($searchtypes) ne 'ARRAY' );
+
     my $results = [];
- 
-    foreach my $searchtype ( @$searchtypes ) {
-    
+
+    foreach my $searchtype (@$searchtypes) {
+
         my $url = $self->{'brockhausSearchURL'};
-        $url .= 'q='. uri_escape_utf8($searchtext) . '&src=' . uri_escape($searchtype) . '&grouped=1';
-        
-        if ( $maxcount ) {
+        $url .= 'q=' . uri_escape_utf8($searchtext) . '&src=' . uri_escape($searchtype) . '&grouped=1';
+
+        if ($maxcount) {
             $url .= '&size=' . $maxcount;
-        }
-        else {
+        } else {
             $url .= '&size=0';
         }
-        
-        if ( $offset ) {
+
+        if ($offset) {
             $url .= '&offset=' . $offset;
         }
-        
-        my @header = @{$self->{'requestHeader'}};
-        
+
+        my @header = @{ $self->{'requestHeader'} };
+
         # print "Brockhaus URL => $url\n";
-        
-        my $response = $self->{'ua'}->get($url,@header);
-        
+
+        my $response = $self->{'ua'}->get( $url, @header );
+
         if ( defined($response) && $response->is_success ) {
-            
+
             my $json = JSON->new->utf8->allow_nonref;
-            my $data = $self->sanitizeResultStructure($json->decode( $response->content ), $user, $searchtype);
+            my $data = $self->sanitizeResultStructure( $json->decode( $response->content ), $user, $searchtype );
             $data->{searchType} = $searchtype;
             my $collection = 'enzy';
             if ( $searchtype =~ /julex/ ) {
                 $collection = 'julex';
-            }
-            elsif ( $searchtype =~ /kilex/ ) {
+            } elsif ( $searchtype =~ /kilex/ ) {
                 $collection = 'kilex';
             }
-            $data->{searchAtBrockhaus} = $self->{'searchAtBrockhausURL'} . 't=' . $collection . '&q=' .uri_escape_utf8($searchtext);
-            
-            carp "C4::External::Brockhaus->simpleSearch() with URL $url" if (C4::Context->preference('BrockhausTraceEnabled'));
-            
+            $data->{searchAtBrockhaus} =
+                $self->{'searchAtBrockhausURL'} . 't=' . $collection . '&q=' . uri_escape_utf8($searchtext);
+
+            carp "C4::External::Brockhaus->simpleSearch() with URL $url"
+                if ( C4::Context->preference('BrockhausTraceEnabled') );
+
             # if ( defined($respstruct->{error}) ) {
-                # carp "C4::External::Brockhaus->simpleSearch() with URL $url returned with error result. Error id " . $respstruct->{error}->{id} . ": " . $respstruct->{error}->{content} if (C4::Context->preference('BrockhausTraceEnabled')); 
+            # carp "C4::External::Brockhaus->simpleSearch() with URL $url returned with error result. Error id " . $respstruct->{error}->{id} . ": " . $respstruct->{error}->{content} if (C4::Context->preference('BrockhausTraceEnabled'));
             # }
 
-            carp Dumper($data) if (C4::Context->preference('BrockhausTraceEnabled'));
-            
-            push @$results, $data if ($data->{numFound} > 0);
-        }
-        else {
-            carp "C4::External::Brockhaus->simpleSearch() with URL $url returned with HTTP error code " . $response->error_as_HTML if (C4::Context->preference('BrockhausTraceEnabled'));   
+            carp Dumper($data) if ( C4::Context->preference('BrockhausTraceEnabled') );
+
+            push @$results, $data if ( $data->{numFound} > 0 );
+        } else {
+            carp "C4::External::Brockhaus->simpleSearch() with URL $url returned with HTTP error code "
+                . $response->error_as_HTML
+                if ( C4::Context->preference('BrockhausTraceEnabled') );
         }
     }
     return $results;
@@ -217,33 +218,33 @@ sub sanitizeResultStructure {
     my $data       = shift;
     my $user       = shift;
     my $searchtype = shift;
-    
-    my $result = {};
+
+    my $result        = {};
     my @checkelements = qw(title thumbnail type subtype summary url);
-    
-    if ( $data && exists($data->{'result'}) ) {
+
+    if ( $data && exists( $data->{'result'} ) ) {
         $data = $data->{'result'};
-        
+
         $result->{start} = 0;
-        $result->{start} += $self->{'scrubber'}->scrub($data->{'start'}) if ( exists($data->{'start'}) );
-        
+        $result->{start} += $self->{'scrubber'}->scrub( $data->{'start'} ) if ( exists( $data->{'start'} ) );
+
         $result->{numFound} = 0;
-        $result->{numFound} += $self->{'scrubber'}->scrub($data->{'numFound'}) if ( exists($data->{'numFound'}) );
-        
-        $result->{hits} = 0;
+        $result->{numFound} += $self->{'scrubber'}->scrub( $data->{'numFound'} ) if ( exists( $data->{'numFound'} ) );
+
+        $result->{hits}    = 0;
         $result->{hitList} = [];
-        
-        if ( exists($data->{'document'}) &&  reftype($data->{'document'}) eq 'ARRAY') {
-            foreach my $hit ( @{$data->{'document'}} ) {
+
+        if ( exists( $data->{'document'} ) && reftype( $data->{'document'} ) eq 'ARRAY' ) {
+            foreach my $hit ( @{ $data->{'document'} } ) {
                 my $entry = {};
-                foreach my $elem(@checkelements) {
-                    if ( exists($hit->{$elem}) ) {
-                        my $elemData = $self->{'scrubber'}->scrub($hit->{$elem});
-                        $entry->{$elem} = $elemData if ( $elemData );
+                foreach my $elem (@checkelements) {
+                    if ( exists( $hit->{$elem} ) ) {
+                        my $elemData = $self->{'scrubber'}->scrub( $hit->{$elem} );
+                        $entry->{$elem} = $elemData if ($elemData);
                     }
                 }
-                if ( exists($entry->{title}) && exists($entry->{url}) ) {
-                    if ( $user ) {
+                if ( exists( $entry->{title} ) && exists( $entry->{url} ) ) {
+                    if ($user) {
                         if ( $searchtype =~ /kilex/ ) {
                             $entry->{url} = $self->{'brockhausAccessURLAuthChild'} . $entry->{url};
                         } else {
@@ -257,7 +258,7 @@ sub sanitizeResultStructure {
                         }
                     }
                     $result->{hits}++;
-                    push(@{$result->{hitList}},$entry);
+                    push( @{ $result->{hitList} }, $entry );
                 }
             }
         }
@@ -266,22 +267,23 @@ sub sanitizeResultStructure {
 }
 
 sub normalizeSearchRequest {
-    my $self = shift;
+    my $self   = shift;
     my $search = shift;
-    
+
     if ( defined($search) ) {
-        
+
         $search =~ s/&quot;//g;
         $search =~ s/(\x{0098}|\x{009c}|\x{00ac})//g;
-        $search =~ s/(,\s*)?(homebranch|itype|mc-itype|ccode|mc-ccode|mc-loc|location|datelastborrowed|acqdate|callnum|age|anta|antc|ff7-00|yr|barcode|bib-level|rcn|aud)(,(wrdl|phr|ext|rtrn|ltrn|st-date-normalized|ge|le|st-numeric))*\s*[:=]\s*(["']+[\w&\.\- ]+["']+|[\w&\.\-]+)(\s+(and|or))?//ig;
-        
+        $search =~
+            s/(,\s*)?(homebranch|itype|mc-itype|ccode|mc-ccode|mc-loc|location|datelastborrowed|acqdate|callnum|age|anta|antc|ff7-00|yr|barcode|bib-level|rcn|aud)(,(wrdl|phr|ext|rtrn|ltrn|st-date-normalized|ge|le|st-numeric))*\s*[:=]\s*(["']+[\w&\.\- ]+["']+|[\w&\.\-]+)(\s+(and|or))?//ig;
+
         if ( $search =~ /(sys|lcn)[A-Za-z0-9,-]*[:=]/i ) {
             return '';
         }
-        
+
         $search =~ s/(,\s*)?branch\s*[:=]\s*[\w+\.\-]+(\s+[\w+\.\-]+(?![:]))*//ig;
         $search =~ s/[A-Za-z0-9,-]+\s*[:=]\s*//ig;
-        
+
         $search =~ s/^\s*[0-9-\/]+\s*$//;
         $search =~ s/, / /g;
         $search =~ s/\(\s*\)//g;
@@ -294,7 +296,7 @@ sub normalizeSearchRequest {
         $search =~ s/\s+$//g;
         $search =~ s/^["']([^"']+)["']$/$1/g;
     }
-    
+
     return $search;
 }
 

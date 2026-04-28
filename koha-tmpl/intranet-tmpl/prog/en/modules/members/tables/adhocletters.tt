@@ -1,13 +1,5 @@
-{
-    "letters": [
-        [% FOREACH letter IN letters %]
-            {
-                "module": "[% letter.module | html %]",
-                "code": "[% letter.code | html %]",
-                "name": "[% letter.name | html %]",
-                "branchcode": "[% letter.branchcode | html %]"
-            }[% UNLESS loop.last %],[% END %]
-        [% END %]
-    ]
-}
-
+{ "letters": [
+[% FOREACH letter IN letters %]
+    { "module": "[% letter.module | html %]", "code": "[% letter.code | html %]", "name": "[% letter.name | html %]", "branchcode": "[% letter.branchcode | html %]" }[% UNLESS loop.last %],[% END %]
+[% END %]
+] }

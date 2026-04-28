@@ -119,10 +119,18 @@ export type AvailabilityResult = {
  * - Inner key: item id as string
  * - Value: set of reasons for unavailability on that day
  */
-export type UnavailableByDate = Record<string, Record<string, Set<UnavailabilityReason>>>;
+export type UnavailableByDate = Record<
+    string,
+    Record<string, Set<UnavailabilityReason>>
+>;
 
 /** Enumerates reasons an item is not bookable on a specific date. */
-export type UnavailabilityReason = "booking" | "checkout" | "lead" | "trail" | string;
+export type UnavailabilityReason =
+    | "booking"
+    | "checkout"
+    | "lead"
+    | "trail"
+    | string;
 
 /** Disable function for Flatpickr */
 export type DisableFn = (date: Date) => boolean;
@@ -160,10 +168,7 @@ export type BookingStoreLike = {
 
 /** Store actions used by composables to interact with backend. */
 export type BookingStoreActions = {
-    fetchPickupLocations: (
-        biblionumber: Id,
-        patronId: Id
-    ) => Promise<unknown>;
+    fetchPickupLocations: (biblionumber: Id, patronId: Id) => Promise<unknown>;
     invalidateCalculatedDue: () => void;
     fetchCirculationRules: (
         params: Record<string, unknown>
@@ -184,7 +189,7 @@ export type ExternalDependencies = {
 };
 
 /** Generic Ref-like helper for accepting either Vue Ref or plain `{ value }`. */
-export type RefLike<T> = import('vue').Ref<T> | { value: T };
+export type RefLike<T> = import("vue").Ref<T> | { value: T };
 
 /** Minimal patron shape used by composables. */
 export type PatronLike = {
@@ -196,18 +201,18 @@ export type PatronLike = {
 
 /** Options object for `useDerivedItemType` composable. */
 export type DerivedItemTypeOptions = {
-    bookingItemtypeId: import('vue').Ref<string | null | undefined>;
-    bookingItemId: import('vue').Ref<string | number | null | undefined>;
-    constrainedItemTypes: import('vue').Ref<Array<ItemType>>;
-    bookableItems: import('vue').Ref<Array<BookableItem>>;
+    bookingItemtypeId: import("vue").Ref<string | null | undefined>;
+    bookingItemId: import("vue").Ref<string | number | null | undefined>;
+    constrainedItemTypes: import("vue").Ref<Array<ItemType>>;
+    bookableItems: import("vue").Ref<Array<BookableItem>>;
 };
 
 /** Options object for `useDefaultPickup` composable. */
 export type DefaultPickupOptions = {
-    bookingPickupLibraryId: import('vue').Ref<string | null | undefined>;
-    bookingPatron: import('vue').Ref<PatronLike | null>;
-    pickupLocations: import('vue').Ref<Array<PickupLocation>>;
-    bookableItems: import('vue').Ref<Array<BookableItem>>;
+    bookingPickupLibraryId: import("vue").Ref<string | null | undefined>;
+    bookingPatron: import("vue").Ref<PatronLike | null>;
+    pickupLocations: import("vue").Ref<Array<PickupLocation>>;
+    bookableItems: import("vue").Ref<Array<BookableItem>>;
     opacDefaultBookingLibraryEnabled?: boolean | string | number;
     opacDefaultBookingLibrary?: string;
 };
@@ -219,7 +224,7 @@ export type ErrorStateResult = {
     error: { message: string; code: string | null };
     setError: (message: string, code?: string) => void;
     clear: () => void;
-    hasError: import('vue').ComputedRef<boolean>;
+    hasError: import("vue").ComputedRef<boolean>;
 };
 
 /** Options for calendar `createOnChange` handler. */
@@ -239,9 +244,10 @@ export type RulesParams = {
 };
 
 /** Flatpickr instance augmented with a cache for constraint highlighting. */
-export type FlatpickrInstanceWithHighlighting = import('flatpickr/dist/types/instance').Instance & {
-    _constraintHighlighting?: ConstraintHighlighting | null;
-};
+export type FlatpickrInstanceWithHighlighting =
+    import("flatpickr/dist/types/instance").Instance & {
+        _constraintHighlighting?: ConstraintHighlighting | null;
+    };
 
 /** Convenience alias for stores passed to fetchers. */
 export type StoreWithActions = BookingStoreLike & BookingStoreActions;

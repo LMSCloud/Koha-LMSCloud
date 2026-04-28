@@ -53,9 +53,7 @@ sub get {
     my $quantity = $c->validation->param('quantity');
 
     try {
-        my $nearby_items
-            = C4::CoverFlowData::GetCoverFlowDataOfNearbyItemsByItemNumber(
-            $item_id, $quantity || 3 );
+        my $nearby_items = C4::CoverFlowData::GetCoverFlowDataOfNearbyItemsByItemNumber( $item_id, $quantity || 3 );
 
         if ( !$nearby_items ) {
             return $c->render(
@@ -71,8 +69,7 @@ sub get {
         $nearby_items->{'items'} = \@item_hashes;
 
         return $c->render( status => 200, openapi => $nearby_items );
-    }
-    catch {
+    } catch {
         $c->unhandled_exception($_);
     };
 

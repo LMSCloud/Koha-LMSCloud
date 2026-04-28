@@ -56,21 +56,20 @@ sub object_class {
 =head3 upd_or_ins
 
 =cut
-                                           
+
 sub upd_or_ins {
-    my ($self, $selparam, $updparam, $insparam) = @_;
+    my ( $self, $selparam, $updparam, $insparam ) = @_;
 
     my $rs = $self->_resultset();
 
-    my $hit = $rs->find( $selparam );
+    my $hit = $rs->find($selparam);
     if ( defined $hit ) {
-        $hit->update( $updparam );
-    } else
-    {
+        $hit->update($updparam);
+    } else {
         $hit = $self->_resultset()->create($insparam);
     }
     $self->{id} = $hit->{_column_data}->{id};
-    $self = Koha::AcquisitionImport::AcquisitionImports->_new_from_dbic( $hit );
+    $self = Koha::AcquisitionImport::AcquisitionImports->_new_from_dbic($hit);
 
     return $self;
 }

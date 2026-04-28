@@ -24,7 +24,7 @@ use List::MoreUtils qw( any );
 
 use C4::Context qw(preference);
 use C4::Letters qw( GetPreparedLetter EnqueueLetter );
-use C4::Log qw( logaction );
+use C4::Log     qw( logaction );
 use C4::Reserves;
 
 use Koha::AuthorisedValues;
@@ -70,15 +70,14 @@ sub age {
     my $today = dt_from_string;
     my $age;
 
-    if ( $use_calendar ) {
+    if ($use_calendar) {
         my $calendar = Koha::Calendar->new( branchcode => $self->branchcode );
         $age = $calendar->days_between( dt_from_string( $self->reservedate ), $today );
-    }
-    else {
+    } else {
         $age = $today->delta_days( dt_from_string( $self->reservedate ) );
     }
 
-    $age = $age->in_units( 'days' );
+    $age = $age->in_units('days');
 
     return $age;
 }
@@ -99,20 +98,13 @@ sub suspend_hold {
     if ( $self->is_found ) {    # We can't suspend found holds
         if ( $self->is_waiting ) {
             Koha::Exceptions::Hold::CannotSuspendFound->throw( status => 'W' );
-        }
-        elsif ( $self->is_in_transit ) {
+        } elsif ( $self->is_in_transit ) {
             Koha::Exceptions::Hold::CannotSuspendFound->throw( status => 'T' );
-        }
-        elsif ( $self->is_in_processing ) {
+        } elsif ( $self->is_in_processing ) {
             Koha::Exceptions::Hold::CannotSuspendFound->throw( status => 'P' );
-        }
-        else {
+        } else {
             Koha::Exceptions::Hold::CannotSuspendFound->throw(
-                      'Unhandled data exception on found hold (id='
-                    . $self->id
-                    . ', found='
-                    . $self->found
-                    . ')' );
+                'Unhandled data exception on found hold (id=' . $self->id . ', found=' . $self->found . ')' );
         }
     }
 
@@ -131,11 +123,8 @@ sub suspend_hold {
     logaction( 'HOLDS', 'SUSPEND', $self->reserve_id, $self, undef, $original )
         if C4::Context->preference('HoldsLog');
 
-    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
-        {
-            biblio_ids => [ $self->biblionumber ]
-        }
-    ) if C4::Context->preference('RealTimeHoldsQueue');
+    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue( { biblio_ids => [ $self->biblionumber ] } )
+        if C4::Context->preference('RealTimeHoldsQueue');
 
     return $self;
 }
@@ -147,12 +136,12 @@ my $hold = $hold->resume();
 =cut
 
 sub resume {
-    my ( $self ) = @_;
+    my ($self) = @_;
 
     my $original = C4::Context->preference('HoldsLog') ? $self->unblessed : undef;
 
     $self->suspend(0);
-    $self->suspend_until( undef );
+    $self->suspend_until(undef);
 
     $self->store();
 
@@ -167,11 +156,8 @@ sub resume {
     logaction( 'HOLDS', 'RESUME', $self->reserve_id, $self, undef, $original )
         if C4::Context->preference('HoldsLog');
 
-    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
-        {
-            biblio_ids => [ $self->biblionumber ]
-        }
-    ) if C4::Context->preference('RealTimeHoldsQueue');
+    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue( { biblio_ids => [ $self->biblionumber ] } )
+        if C4::Context->preference('RealTimeHoldsQueue');
 
     return $self;
 }
@@ -183,7 +169,7 @@ $hold->delete();
 =cut
 
 sub delete {
-    my ( $self ) = @_;
+    my ($self) = @_;
 
     my $deleted = $self->SUPER::delete($self);
 
@@ -198,7 +184,7 @@ sub delete {
 =cut
 
 sub set_transfer {
-    my ( $self ) = @_;
+    my ($self) = @_;
 
     $self->priority(0);
     $self->found('T');
@@ -232,7 +218,7 @@ sub set_waiting {
         desk_id => $desk_id,
     };
 
-    my $max_pickup_delay = C4::Context->preference("ReservesMaxPickUpDelay");
+    my $max_pickup_delay   = C4::Context->preference("ReservesMaxPickUpDelay");
     my $cancel_on_holidays = C4::Context->preference('ExpireReservesOnHolidays');
 
     my $rule = Koha::CirculationRules->get_effective_rule(
@@ -249,7 +235,7 @@ sub set_waiting {
         $max_pickup_delay = $rule->rule_value;
     }
 
-    my $new_expiration_date = dt_from_string($self->waitingdate)->clone->add( days => $max_pickup_delay );
+    my $new_expiration_date = dt_from_string( $self->waitingdate )->clone->add( days => $max_pickup_delay );
 
     if ( C4::Context->preference("ExcludeHolidaysFromMaxPickUpDelay") ) {
         my $itemtype = $self->item ? $self->item->effective_itemtype : $self->biblio->itemtype;
@@ -262,7 +248,7 @@ sub set_waiting {
         );
         my $calendar = Koha::Calendar->new( branchcode => $self->branchcode, days_mode => $daysmode );
 
-        $new_expiration_date = $calendar->days_forward( dt_from_string($self->waitingdate), $max_pickup_delay );
+        $new_expiration_date = $calendar->days_forward( dt_from_string( $self->waitingdate ), $max_pickup_delay );
     }
 
     # If patron's requested expiration date is prior to the
@@ -271,12 +257,11 @@ sub set_waiting {
         my $requested_expiration = dt_from_string( $self->patron_expiration_date );
 
         my $cmp =
-          $requested_expiration
-          ? DateTime->compare( $requested_expiration, $new_expiration_date )
-          : 0;
+            $requested_expiration
+            ? DateTime->compare( $requested_expiration, $new_expiration_date )
+            : 0;
 
-        $new_expiration_date =
-          $cmp == -1 ? $requested_expiration : $new_expiration_date;
+        $new_expiration_date = $cmp == -1 ? $requested_expiration : $new_expiration_date;
     }
 
     $values->{expirationdate} = $new_expiration_date->ymd;
@@ -314,11 +299,10 @@ sub is_pickup_location_valid {
 
     my $pickup_locations;
 
-    if ( $self->itemnumber ) { # item-level
-        $pickup_locations = $self->item->pickup_locations({ patron => $self->patron });
-    }
-    else { # biblio-level
-        $pickup_locations = $self->biblio->pickup_locations({ patron => $self->patron });
+    if ( $self->itemnumber ) {    # item-level
+        $pickup_locations = $self->item->pickup_locations( { patron => $self->patron } );
+    } else {                      # biblio-level
+        $pickup_locations = $self->biblio->pickup_locations( { patron => $self->patron } );
     }
 
     return any { $_->branchcode eq $params->{library_id} } $pickup_locations->as_list;
@@ -347,17 +331,12 @@ sub set_pickup_location {
     Koha::Exceptions::MissingParameter->throw('The library_id parameter is mandatory')
         unless $params->{library_id};
 
-    if (
-        $params->{force}
-        || $self->is_pickup_location_valid(
-            { library_id => $params->{library_id} }
-        )
-      )
+    if (   $params->{force}
+        || $self->is_pickup_location_valid( { library_id => $params->{library_id} } ) )
     {
         # all good, set the new pickup location
         $self->branchcode( $params->{library_id} )->store;
-    }
-    else {
+    } else {
         Koha::Exceptions::Hold::InvalidPickupLocation->throw;
     }
 
@@ -373,7 +352,7 @@ Mark the hold as in processing.
 =cut
 
 sub set_processing {
-    my ( $self ) = @_;
+    my ($self) = @_;
 
     $self->priority(0);
     $self->found('P');
@@ -458,7 +437,7 @@ sub is_cancelable_from_opac {
     my ($self) = @_;
 
     return 1 unless $self->is_found();
-    return 0; # if ->is_in_transit or if ->is_waiting or ->is_in_processing
+    return 0;    # if ->is_in_transit or if ->is_waiting or ->is_in_processing
 }
 
 =head3 cancellation_requestable_from_opac
@@ -484,15 +463,15 @@ values:
 =cut
 
 sub cancellation_requestable_from_opac {
-    my ( $self ) = @_;
+    my ($self) = @_;
 
     Koha::Exceptions::InvalidStatus->throw( invalid_status => 'hold_not_waiting' )
-      unless $self->is_waiting;
+        unless $self->is_waiting;
 
     my $item = $self->item;
 
     Koha::Exceptions::InvalidStatus->throw( invalid_status => 'no_item_linked' )
-      unless $item;
+        unless $item;
 
     my $patron = $self->patron;
 
@@ -607,7 +586,7 @@ Returns the related Koha::Desk object for this Hold
 =cut
 
 sub desk {
-    my $self = shift;
+    my $self    = shift;
     my $desk_rs = $self->_result->desk;
     return unless $desk_rs;
     return Koha::Desk->_new_from_dbic($desk_rs);
@@ -633,7 +612,7 @@ my $bool = $hold->is_suspended();
 =cut
 
 sub is_suspended {
-    my ( $self ) = @_;
+    my ($self) = @_;
 
     return $self->suspend();
 }
@@ -651,7 +630,8 @@ sub add_cancellation_request {
     my ( $self, $params ) = @_;
 
     my $request = Koha::Hold::CancellationRequest->new(
-        {   hold_id      => $self->id,
+        {
+            hold_id => $self->id,
             ( $params->{creation_date} ? ( creation_date => $params->{creation_date} ) : () ),
         }
     )->store;
@@ -719,7 +699,7 @@ sub cancel {
         sub {
             my $patron = $self->patron;
 
-            $self->cancellationdate( dt_from_string->strftime( '%Y-%m-%d %H:%M:%S' ) );
+            $self->cancellationdate( dt_from_string->strftime('%Y-%m-%d %H:%M:%S') );
             $self->priority(0);
             $self->cancellation_reason( $params->{cancellation_reason} );
             $self->store();
@@ -746,7 +726,7 @@ sub cancel {
                     message_transport_type => 'email',
                     branchcode             => $self->borrower->branchcode,
                     lang                   => $self->borrower->lang,
-                    tables => {
+                    tables                 => {
                         branches    => $self->borrower->branchcode,
                         borrowers   => $self->borrowernumber,
                         items       => $self->itemnumber,
@@ -759,7 +739,7 @@ sub cancel {
                 if ($letter) {
                     C4::Letters::EnqueueLetter(
                         {
-                            letter                   => $letter,
+                            letter                 => $letter,
                             borrowernumber         => $self->borrowernumber,
                             message_transport_type => 'email',
                             branchcode             => $self->borrower->branchcode
@@ -782,15 +762,14 @@ sub cancel {
             $old_me->anonymize
                 if $patron->privacy == 2;
 
-            $self->SUPER::delete(); # Do not add a DELETE log
-            # now fix the priority on the others....
-            C4::Reserves::_FixPriority({ biblionumber => $self->biblionumber });
+            $self->SUPER::delete();    # Do not add a DELETE log
+                                       # now fix the priority on the others....
+            C4::Reserves::_FixPriority( { biblionumber => $self->biblionumber } );
 
             # and, if desired, charge a cancel fee
             my $charge = C4::Context->preference("ExpireReservesMaxPickUpDelayCharge");
             if ( $charge && $params->{'charge_cancel_fee'} ) {
-                my $account =
-                  Koha::Account->new( { patron_id => $self->borrowernumber } );
+                my $account = Koha::Account->new( { patron_id => $self->borrowernumber } );
                 $account->add_debit(
                     {
                         amount     => $charge,
@@ -807,10 +786,9 @@ sub cancel {
                 if C4::Context->preference('HoldsLog');
 
             Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
-                {
-                    biblio_ids => [ $old_me->biblionumber ]
-                }
-            ) unless $params->{skip_holds_queue} or !C4::Context->preference('RealTimeHoldsQueue');
+                { biblio_ids => [ $old_me->biblionumber ] } )
+                unless $params->{skip_holds_queue}
+                or !C4::Context->preference('RealTimeHoldsQueue');
         }
     );
 
@@ -819,8 +797,12 @@ sub cancel {
         if ($next_hold) {
             my $is_transfer = $self->branchcode ne $next_hold->{branchcode};
 
-            C4::Reserves::ModReserveAffect( $self->itemnumber, $self->borrowernumber, $is_transfer, $next_hold->{reserve_id}, $self->desk_id, $autofill_next );
-            C4::Items::ModItemTransfer( $self->itemnumber, $self->branchcode, $next_hold->{branchcode}, "Reserve" ) if $is_transfer;
+            C4::Reserves::ModReserveAffect(
+                $self->itemnumber,        $self->borrowernumber, $is_transfer,
+                $next_hold->{reserve_id}, $self->desk_id,        $autofill_next
+            );
+            C4::Items::ModItemTransfer( $self->itemnumber, $self->branchcode, $next_hold->{branchcode}, "Reserve" )
+                if $is_transfer;
         }
     }
 
@@ -847,9 +829,9 @@ sub fill {
 
             $self->set(
                 {
-                    found    => 'F',
-                    priority => 0,
-                    timestamp => dt_from_string->strftime( '%Y-%m-%d %H:%M:%S' ),
+                    found     => 'F',
+                    priority  => 0,
+                    timestamp => dt_from_string->strftime('%Y-%m-%d %H:%M:%S'),
                     $params->{item_id} ? ( itemnumber => $params->{item_id} ) : (),
                 }
             );
@@ -868,38 +850,41 @@ sub fill {
             $old_me->anonymize
                 if $patron->privacy == 2;
 
-            $self->SUPER::delete(); # Do not add a DELETE log
+            $self->SUPER::delete();    # Do not add a DELETE log
 
             # now fix the priority on the others....
-            C4::Reserves::_FixPriority({ biblionumber => $self->biblionumber });
+            C4::Reserves::_FixPriority( { biblionumber => $self->biblionumber } );
 
             if ( C4::Context->preference('HoldFeeMode') eq 'any_time_is_collected' ) {
+
                 # LMSCLoud: check if it is an ILL item and if an (additional) hold fee is acceptable for the involved ILL backend
                 my $reservefee_acceptable = 1;
                 my ( $itisanillitem, $illrequest ) = ( 0, undef );
-                if ( $self->itemnumber && C4::Context->preference("IllModule") ) {    # check if the ILL module is activated at all
+                if ( $self->itemnumber && C4::Context->preference("IllModule") )
+                {    # check if the ILL module is activated at all
                     eval {
-                        my $kohaItem = Koha::Items->find($self->itemnumber);
-                        if ( $kohaItem ) {
-                            ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($kohaItem->unblessed);
+                        my $kohaItem = Koha::Items->find( $self->itemnumber );
+                        if ($kohaItem) {
+                            ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem( $kohaItem->unblessed );
                             if ( $itisanillitem && $illrequest ) {
-                                $reservefee_acceptable = $illrequest->_backend_capability( "isReserveFeeAcceptable", $illrequest );
+                                $reservefee_acceptable =
+                                    $illrequest->_backend_capability( "isReserveFeeAcceptable", $illrequest );
                             }
                         }
                     };
                 }
-                if ( $reservefee_acceptable ) {
+                if ($reservefee_acceptable) {
                     my $fee = $patron->category->reservefee // 0;
                     if ( $fee > 0 ) {
                         $patron->account->add_debit(
                             {
-                                amount       => $fee,
-                                description  => $self->biblio->title,
-                                user_id      => C4::Context->userenv ? C4::Context->userenv->{'number'} : undef,
-                                library_id   => C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef,
-                                interface    => C4::Context->interface,
-                                type         => 'RESERVE',
-                                item_id      => $self->itemnumber
+                                amount      => $fee,
+                                description => $self->biblio->title,
+                                user_id     => C4::Context->userenv ? C4::Context->userenv->{'number'} : undef,
+                                library_id  => C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef,
+                                interface   => C4::Context->interface,
+                                type        => 'RESERVE',
+                                item_id     => $self->itemnumber
                             }
                         );
                     }
@@ -910,10 +895,8 @@ sub fill {
                 if C4::Context->preference('HoldsLog');
 
             Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
-                {
-                    biblio_ids => [ $old_me->biblionumber ]
-                }
-            ) if C4::Context->preference('RealTimeHoldsQueue');
+                { biblio_ids => [ $old_me->biblionumber ] } )
+                if C4::Context->preference('RealTimeHoldsQueue');
         }
     );
     return $self;
@@ -967,26 +950,23 @@ expirationdate for holds.
 =cut
 
 sub store {
-    my ($self, $params) = @_;
+    my ( $self, $params ) = @_;
 
     my $hold_reverted = $params->{hold_reverted} // 0;
 
     Koha::Exceptions::Hold::MissingPickupLocation->throw() unless $self->branchcode;
 
     if ( !$self->in_storage ) {
-        if ( ! $self->expirationdate && $self->patron_expiration_date ) {
-            $self->expirationdate($self->patron_expiration_date);
+        if ( !$self->expirationdate && $self->patron_expiration_date ) {
+            $self->expirationdate( $self->patron_expiration_date );
         }
 
-        if (
-            C4::Context->preference('DefaultHoldExpirationdate')
-                && !$self->expirationdate
-          )
+        if ( C4::Context->preference('DefaultHoldExpirationdate')
+            && !$self->expirationdate )
         {
             $self->_set_default_expirationdate;
         }
-    }
-    else {
+    } else {
 
         my %updated_columns = $self->_result->get_dirty_columns;
         return $self->SUPER::store unless %updated_columns;
@@ -1016,12 +996,10 @@ sub store {
 sub _set_default_expirationdate {
     my $self = shift;
 
-    my $period = C4::Context->preference('DefaultHoldExpirationdatePeriod') || 0;
-    my $timeunit =
-      C4::Context->preference('DefaultHoldExpirationdateUnitOfTime') || 'days';
+    my $period   = C4::Context->preference('DefaultHoldExpirationdatePeriod')     || 0;
+    my $timeunit = C4::Context->preference('DefaultHoldExpirationdateUnitOfTime') || 'days';
 
-    $self->expirationdate(
-        dt_from_string( $self->reservedate )->add( $timeunit => $period ) );
+    $self->expirationdate( dt_from_string( $self->reservedate )->add( $timeunit => $period ) );
 }
 
 =head3 _move_to_old
@@ -1036,7 +1014,7 @@ sub _move_to_old {
     my ($self) = @_;
     my $hold_infos = $self->unblessed;
     require Koha::Old::Hold;
-    return Koha::Old::Hold->new( $hold_infos )->store;
+    return Koha::Old::Hold->new($hold_infos)->store;
 }
 
 =head3 to_api_mapping
@@ -1083,10 +1061,10 @@ sub can_update_pickup_location_opac {
     my ($self) = @_;
 
     my @statuses = split /,/, C4::Context->preference("OPACAllowUserToChangeBranch");
-    foreach my $status ( @statuses ){
-        return 1 if ($status eq 'pending' && !$self->is_found && !$self->is_suspended );
-        return 1 if ($status eq 'intransit' && $self->is_in_transit);
-        return 1 if ($status eq 'suspended' && $self->is_suspended);
+    foreach my $status (@statuses) {
+        return 1 if ( $status eq 'pending'   && !$self->is_found && !$self->is_suspended );
+        return 1 if ( $status eq 'intransit' && $self->is_in_transit );
+        return 1 if ( $status eq 'suspended' && $self->is_suspended );
     }
     return 0;
 }

@@ -17,7 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-
 use Modern::Perl;
 
 use CGI qw ( -utf8 );
@@ -31,7 +30,7 @@ use Koha::Patrons;
 my $query = CGI->new;
 
 # if opacreadinghistory is disabled, leave immediately
-if ( ! C4::Context->preference('opacreadinghistory') ) {
+if ( !C4::Context->preference('opacreadinghistory') ) {
     print $query->redirect("/cgi-bin/koha/errors/404.pl");
     exit;
 }
@@ -46,15 +45,13 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
-if ( $borrowernumber ) {
-    my $borrower = Koha::Patrons->find( $borrowernumber );
-    my $privacy = $borrower->privacy();
+if ($borrowernumber) {
+    my $borrower = Koha::Patrons->find($borrowernumber);
+    my $privacy  = $borrower->privacy();
 
     $template->param( privacy => $privacy );
 }
 
-$template->param(
-    recommendationview => 1
-);
+$template->param( recommendationview => 1 );
 
 output_html_with_http_headers $query, $cookie, $template->output, undef, { force_no_caching => 1 };

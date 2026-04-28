@@ -14,7 +14,7 @@
 // ***********************************************************
 
 // Import commands.js using ES2015 syntax:
-import './commands';
+import "./commands";
 
 // Alternatively you can use CommonJS syntax:
 // require('./commands')
@@ -52,7 +52,7 @@ cy.get_title = () => {
                 package: {
                     content_type: "",
                     package_id: 1,
-                    name: "first package name"
+                    name: "first package name",
                 },
                 package_id: 1,
                 resource_id: 2,
@@ -60,30 +60,30 @@ cy.get_title = () => {
                     biblio_id: 439,
                     title_id: 1,
                 },
-                title_id: 1
-            }
+                title_id: 1,
+            },
         ],
         title_id: 1,
-        title_url: "title url"
-      };
-}
+        title_url: "title url",
+    };
+};
 
 cy.get_agreements_to_relate = () => {
     return [
         {
             agreement_id: 2,
             description: "a second agreement",
-            name: "second agreement name"
+            name: "second agreement name",
         },
         {
             agreement_id: 3,
             description: "a third agreement",
-            name: "third agreement name"
+            name: "third agreement name",
         },
         {
             agreement_id: 4,
             description: "a fourth agreement",
-            name: "fourth agreement name"
+            name: "fourth agreement name",
         },
-    ]
-}
+    ];
+};

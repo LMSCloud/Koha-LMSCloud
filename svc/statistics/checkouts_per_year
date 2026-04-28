@@ -19,17 +19,17 @@
 
 use Modern::Perl;
 
-use CGI qw ( -utf8 );
-use C4::Auth qw/check_cookie_auth/;
+use CGI              qw ( -utf8 );
+use C4::Auth         qw/check_cookie_auth/;
 use C4::IssuingStats qw/GetIssuingStats/;
-use JSON qw/to_json/;
+use JSON             qw/to_json/;
 
 my $input = new CGI;
 
-my ( $auth_status, $sessionID ) =
-        check_cookie_auth(
-            $input->cookie('CGISESSID'),
-            { catalogue => '*' } );
+my ( $auth_status, $sessionID ) = check_cookie_auth(
+    $input->cookie('CGISESSID'),
+    { catalogue => '*' }
+);
 
 if ( $auth_status ne "ok" ) {
     exit 0;
@@ -43,29 +43,29 @@ my $yearcnt = 3;
 my $yearsel = $input->param('years');
 $yearcnt = $yearsel if ( $yearsel && $yearsel =~ /^[0-9]+$/ );
 
-foreach my $bibnum(@bibnums) {
-    foreach my $biblionumber(split(/,/,$bibnum)) {
+foreach my $bibnum (@bibnums) {
+    foreach my $biblionumber ( split( /,/, $bibnum ) ) {
         $biblionumber =~ s/^\s+|\s+$//g;
-        push(@biblionumbers,$biblionumber) if ( $biblionumber =~ /^[0-9]+$/ );
+        push( @biblionumbers, $biblionumber ) if ( $biblionumber =~ /^[0-9]+$/ );
     }
 }
 
 my @seltypes;
-foreach my $seltype(@ignoreItypes) {
-    foreach my $selitype(split(/,/,$seltype)) {
+foreach my $seltype (@ignoreItypes) {
+    foreach my $selitype ( split( /,/, $seltype ) ) {
         $selitype =~ s/^\s+|\s+$//g;
-        if ( $selitype ) {
-            push(@seltypes,$selitype);
+        if ($selitype) {
+            push( @seltypes, $selitype );
         }
     }
 }
 
-my $response = GetIssuingStats(\@biblionumbers,$yearcnt,\@seltypes);
+my $response = GetIssuingStats( \@biblionumbers, $yearcnt, \@seltypes );
 
 binmode STDOUT, ":encoding(UTF-8)";
 print $input->header(
-    -type => 'application/json',
+    -type    => 'application/json',
     -charset => 'UTF-8'
 );
 
-print to_json( $response );
+print to_json($response);

@@ -17,13 +17,11 @@ package C4::AggregatedStatistics;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-
 use strict;
 use warnings;
 
 use utf8;
 use Data::Dumper;
-
 
 use Modern::Perl;
 use C4::Context;
@@ -31,7 +29,6 @@ use Koha::AggregatedStatistics::AggregatedStatistic;
 use Koha::AggregatedStatistics::AggregatedStatistics;
 use Koha::AggregatedStatistics::AggregatedStatisticsParameters;
 use Koha::AggregatedStatistics::AggregatedStatisticsValues;
-
 
 use vars qw(@ISA @EXPORT);
 
@@ -88,19 +85,17 @@ B<returns:> AggregatedStatistics object containing the values of the new / updat
 
 sub CreateAggregatedStatistics {
     my ($param) = @_;
-  
+
     my $selParam;
     my $updParam;
-    if ( defined($param->{'id'}) && length($param->{'id'}) > 0 ) {
-        $selParam = {
-            id => $param->{'id'}
-        };
+    if ( defined( $param->{'id'} ) && length( $param->{'id'} ) > 0 ) {
+        $selParam = { id => $param->{'id'} };
         $updParam = {
-            type => $param->{'type'},
-            name => $param->{'name'},
+            type        => $param->{'type'},
+            name        => $param->{'name'},
             description => $param->{'description'},
-            startdate => $param->{'startdate'},
-            enddate => $param->{'enddate'}
+            startdate   => $param->{'startdate'},
+            enddate     => $param->{'enddate'}
         };
     } else {
         $selParam = {
@@ -109,21 +104,22 @@ sub CreateAggregatedStatistics {
         };
         $updParam = {
             description => $param->{'description'},
-            startdate => $param->{'startdate'},
-            enddate => $param->{'enddate'}
+            startdate   => $param->{'startdate'},
+            enddate     => $param->{'enddate'}
         };
     }
     my $insParam = {
+
         #id => 0, # AUTO
-        type => $param->{'type'},
-        name => $param->{'name'},
+        type        => $param->{'type'},
+        name        => $param->{'name'},
         description => $param->{'description'},
-        startdate => $param->{'startdate'},
-        enddate => $param->{'enddate'}
+        startdate   => $param->{'startdate'},
+        enddate     => $param->{'enddate'}
     };
     my $aggregatedStatistics = Koha::AggregatedStatistics::AggregatedStatistics->new();
-    my $res = $aggregatedStatistics->upd_or_ins($selParam, $updParam, $insParam);
-    
+    my $res                  = $aggregatedStatistics->upd_or_ins( $selParam, $updParam, $insParam );
+
     return $res;
 }
 
@@ -146,22 +142,20 @@ B<returns:> AggregatedStatistics object containing the found records from table 
 =cut
 
 sub GetAggregatedStatistics {
-    my ($param) = @_;
-    my $selParam = {};
+    my ($param)      = @_;
+    my $selParam     = {};
     my $orderByParam = { order_by => { -desc => 'id' } };
 
-    if ( defined($param->{'id'}) ) {
-        $selParam = {
-            id => $param->{'id'}
-        };
+    if ( defined( $param->{'id'} ) ) {
+        $selParam = { id => $param->{'id'} };
     } else {
-        $selParam->{'type'} = $param->{'type'} if defined($param->{'type'});
-        $selParam->{'name'} = $param->{'name'} if defined($param->{'name'});
-        $selParam->{'startdate'} = $param->{'startdate'} if defined($param->{'startdate'});
-        $selParam->{'enddate'} = $param->{'enddate'} if defined($param->{'enddate'});
+        $selParam->{'type'}      = $param->{'type'}      if defined( $param->{'type'} );
+        $selParam->{'name'}      = $param->{'name'}      if defined( $param->{'name'} );
+        $selParam->{'startdate'} = $param->{'startdate'} if defined( $param->{'startdate'} );
+        $selParam->{'enddate'}   = $param->{'enddate'}   if defined( $param->{'enddate'} );
     }
     my $aggregatedStatistics = Koha::AggregatedStatistics::AggregatedStatistics->new();
-    my $res = $aggregatedStatistics->search($selParam, $orderByParam);
+    my $res                  = $aggregatedStatistics->search( $selParam, $orderByParam );
     return $res;
 }
 
@@ -185,9 +179,13 @@ sub DelAggregatedStatistics {
     my ($param) = @_;
 
     my $aggregatedStatistics = &GetAggregatedStatistics($param);
-print STDERR "AggregatedStatistics::DelAggregatedStatistics() read aggregated_statistics records countXXXX:", $aggregatedStatistics->_resultset()+0, ":\n" if $debugIt;
-    if ( $aggregatedStatistics->_resultset()+0 == 1 ) {
-print STDERR "AggregatedStatistics::DelAggregatedStatistics() read aggregated_statistics record id:", $aggregatedStatistics->_resultset()->first()->get_column('id'), ":\n" if $debugIt;
+    print STDERR "AggregatedStatistics::DelAggregatedStatistics() read aggregated_statistics records countXXXX:",
+        $aggregatedStatistics->_resultset() + 0, ":\n"
+        if $debugIt;
+    if ( $aggregatedStatistics->_resultset() + 0 == 1 ) {
+        print STDERR "AggregatedStatistics::DelAggregatedStatistics() read aggregated_statistics record id:",
+            $aggregatedStatistics->_resultset()->first()->get_column('id'), ":\n"
+            if $debugIt;
         my $id = $aggregatedStatistics->_resultset()->first()->get_column('id');
         my $res;
 
@@ -197,20 +195,28 @@ print STDERR "AggregatedStatistics::DelAggregatedStatistics() read aggregated_st
         # delete the linked aggregated_statistics_values records
         DelAggregatedStatisticsValues( { statistics_id => $id } );
 
-
         # delete the linked aggregated_statistics record (anchor)
-        my $selParam = {
-            id => $id
-        };
-print STDERR "AggregatedStatistics::DelAggregatedStatistics() read aggregated_statistics_parameters records by calling Koha::AggregatedStatistics::AggregatedStatistics->new\n" if $debugIt;
+        my $selParam = { id => $id };
+        print STDERR
+            "AggregatedStatistics::DelAggregatedStatistics() read aggregated_statistics_parameters records by calling Koha::AggregatedStatistics::AggregatedStatistics->new\n"
+            if $debugIt;
         my $aggregatedStatistics = Koha::AggregatedStatistics::AggregatedStatistics->new();
-print STDERR "AggregatedStatistics::DelAggregatedStatistics() aggregatedStatistics:", Dumper($aggregatedStatistics), ":\n" if $debugIt;
-print STDERR "AggregatedStatistics::DelAggregatedStatistics() read aggregated_statistics records by calling Koha::AggregatedStatistics::AggregatedStatistics->search \nselParam:", Dumper($selParam), ":\n" if $debugIt;
+        print STDERR "AggregatedStatistics::DelAggregatedStatistics() aggregatedStatistics:",
+            Dumper($aggregatedStatistics), ":\n"
+            if $debugIt;
+        print STDERR
+            "AggregatedStatistics::DelAggregatedStatistics() read aggregated_statistics records by calling Koha::AggregatedStatistics::AggregatedStatistics->search \nselParam:",
+            Dumper($selParam), ":\n"
+            if $debugIt;
         my $resAS = $aggregatedStatistics->search($selParam);
-print STDERR "AggregatedStatistics::DelAggregatedStatistics() read aggregated_statistics records count:", $resAS->_resultset()+0, ":\n" if $debugIt;
-print STDERR "AggregatedStatistics::DelAggregatedStatistics() delete aggregated_statistics record by calling resAS->_resultset()->delete_all \n" if $debugIt;
+        print STDERR "AggregatedStatistics::DelAggregatedStatistics() read aggregated_statistics records count:",
+            $resAS->_resultset() + 0, ":\n"
+            if $debugIt;
+        print STDERR
+            "AggregatedStatistics::DelAggregatedStatistics() delete aggregated_statistics record by calling resAS->_resultset()->delete_all \n"
+            if $debugIt;
         $res = $resAS->_resultset()->delete_all();
-        
+
     }
 }
 
@@ -231,24 +237,28 @@ sub UpdAggregatedStatisticsParameters {
     my ($param) = @_;
     my $res;
 
-    if ( length($param->{'statistics_id'}) and length($param->{'name'}) and defined($param->{'value'}) ) {
+    if ( length( $param->{'statistics_id'} ) and length( $param->{'name'} ) and defined( $param->{'value'} ) ) {
         my $selParam = {
             'statistics_id' => $param->{'statistics_id'},
-            'name' => $param->{'name'}
+            'name'          => $param->{'name'}
         };
-        my $updParam = {
-            'value' => $param->{'value'}
-        };
+        my $updParam = { 'value' => $param->{'value'} };
         my $insParam = {
             'statistics_id' => $param->{'statistics_id'},
-            'name' => $param->{'name'},
-            'value' => $param->{'value'}
+            'name'          => $param->{'name'},
+            'value'         => $param->{'value'}
         };
- 
-print STDERR "AggregatedStatistics::UpdAggregatedStatisticsParameters() update or insert aggregated_statistics_parameters record calling Koha::AggregatedStatistics::AggregatedStatisticsParameters->new()->upd_or_ins(selParam, updParam, insParam) \nselParam:", Dumper($selParam), ": updParam:", Dumper($updParam), ": insParam:", Dumper($insParam), ":\n" if $debugIt;
+
+        print STDERR
+            "AggregatedStatistics::UpdAggregatedStatisticsParameters() update or insert aggregated_statistics_parameters record calling Koha::AggregatedStatistics::AggregatedStatisticsParameters->new()->upd_or_ins(selParam, updParam, insParam) \nselParam:",
+            Dumper($selParam), ": updParam:", Dumper($updParam), ": insParam:", Dumper($insParam), ":\n"
+            if $debugIt;
         my $aggregatedStatisticsParameters = Koha::AggregatedStatistics::AggregatedStatisticsParameters->new();
-        my $res = $aggregatedStatisticsParameters->upd_or_ins($selParam, $updParam, $insParam);   # TODO: evaluate $res
-print STDERR "AggregatedStatistics::UpdAggregatedStatisticsParameters() insert aggregated_statistics_parameters record res:", Dumper($res->_resultset()->{_column_data}), ":\n" if $debugIt;
+        my $res = $aggregatedStatisticsParameters->upd_or_ins( $selParam, $updParam, $insParam );  # TODO: evaluate $res
+        print STDERR
+            "AggregatedStatistics::UpdAggregatedStatisticsParameters() insert aggregated_statistics_parameters record res:",
+            Dumper( $res->_resultset()->{_column_data} ), ":\n"
+            if $debugIt;
     }
     return $res;
 }
@@ -275,7 +285,7 @@ sub GetAggregatedStatisticsParameters {
     my ($selParam) = @_;
     my $res;
 
-    if ( defined($selParam->{'statistics_id'}) ) {
+    if ( defined( $selParam->{'statistics_id'} ) ) {
         my $aggregatedStatisticsParameters = Koha::AggregatedStatistics::AggregatedStatisticsParameters->new();
 
         $res = $aggregatedStatisticsParameters->search($selParam);
@@ -306,9 +316,9 @@ sub DelAggregatedStatisticsParameters {
     my ($selParam) = @_;
     my $res;
 
-    if ( length($selParam->{'statistics_id'}) > 0 ) {
+    if ( length( $selParam->{'statistics_id'} ) > 0 ) {
         my $aggregatedStatisticsParameters = Koha::AggregatedStatistics::AggregatedStatisticsParameters->new();
-        my $resASP = $aggregatedStatisticsParameters->search($selParam);
+        my $resASP                         = $aggregatedStatisticsParameters->search($selParam);
         $res = $resASP->_resultset()->delete_all();
 
     }
@@ -331,23 +341,23 @@ B<returns:> AggregatedStatisticsValues object containing the values of the new /
 
 sub UpdAggregatedStatisticsValues {
     my ($param) = @_;
- 
+
     my $selParam = {
         statistics_id => $param->{'statistics_id'},
-        name => $param->{'name'}
+        name          => $param->{'name'}
     };
     my $updParam = {
         value => $param->{'value'},
-        type => $param->{'type'}
+        type  => $param->{'type'}
     };
     my $insParam = {
         statistics_id => $param->{'statistics_id'},
-        name => $param->{'name'},
-        value => $param->{'value'},
-        type => $param->{'type'}
+        name          => $param->{'name'},
+        value         => $param->{'value'},
+        type          => $param->{'type'}
     };
     my $aggregatedStatisticsValues = Koha::AggregatedStatistics::AggregatedStatisticsValues->new();
-    my $res = $aggregatedStatisticsValues->upd_or_ins($selParam, $updParam, $insParam);   # TODO: evaluate $res
+    my $res = $aggregatedStatisticsValues->upd_or_ins( $selParam, $updParam, $insParam );    # TODO: evaluate $res
 
     return $res;
 }
@@ -374,7 +384,7 @@ sub GetAggregatedStatisticsValues {
     my ($selParam) = @_;
     my $res;
 
-    if ( defined($selParam->{'statistics_id'}) ) {
+    if ( defined( $selParam->{'statistics_id'} ) ) {
         my $aggregatedStatisticsValues = Koha::AggregatedStatistics::AggregatedStatisticsValues->new();
         $res = $aggregatedStatisticsValues->search($selParam);
     }
@@ -404,9 +414,9 @@ sub DelAggregatedStatisticsValues {
     my ($selParam) = @_;
     my $res;
 
-    if ( length($selParam->{'statistics_id'}) > 0 ) {
+    if ( length( $selParam->{'statistics_id'} ) > 0 ) {
         my $aggregatedStatisticsValues = Koha::AggregatedStatistics::AggregatedStatisticsValues->new();
-        my $resASV = $aggregatedStatisticsValues->search($selParam);
+        my $resASV                     = $aggregatedStatisticsValues->search($selParam);
         $res = $resASV->_resultset()->delete_all();
 
     }

@@ -27,11 +27,11 @@ use Koha::BackgroundJob::PseudonymizeStatistic;
 
 use base qw(Koha::Object);
 
-our @allowed_accounts_types       = qw( writeoff payment );
-our @allowed_circulation_types    = qw( renew issue localuse return onsite_checkout recall item_found item_lost );
-our @allowed_authentication_types = qw( auth-ext );
-our @mandatory_accounts_keys      = qw( type branch borrowernumber value );    # note that amount is mapped to value
-our @mandatory_circulation_keys   = qw( type branch borrowernumber itemnumber ccode itemtype );
+our @allowed_accounts_types        = qw( writeoff payment );
+our @allowed_circulation_types     = qw( renew issue localuse return onsite_checkout recall item_found item_lost );
+our @allowed_authentication_types  = qw( auth-ext );
+our @mandatory_accounts_keys       = qw( type branch borrowernumber value );    # note that amount is mapped to value
+our @mandatory_circulation_keys    = qw( type branch borrowernumber itemnumber ccode itemtype );
 our @mandatory_authentication_keys = qw( type branch borrowernumber other );
 
 =head1 NAME
@@ -95,7 +95,7 @@ sub new {
           $category eq 'circulation'    ? @mandatory_circulation_keys
         : $category eq 'authentication' ? @mandatory_authentication_keys
         :                                 @mandatory_accounts_keys;
-    my @missing        = map { exists $params->{$_} ? () : $_ } @mandatory_keys;
+    my @missing = map { exists $params->{$_} ? () : $_ } @mandatory_keys;
     Koha::Exceptions::MissingParameter->throw( parameter => join( ',', @missing ) ) if @missing;
 
     my $datetime = $params->{datetime} ? $params->{datetime} : dt_from_string();
@@ -142,7 +142,7 @@ sub store {
 =cut
 
 sub item {
-    my ( $self ) = @_;
+    my ($self) = @_;
     return Koha::Items->find( $self->itemnumber );
 }
 

@@ -4,7 +4,9 @@ import "flatpickr/dist/types/instance";
 declare module "flatpickr/dist/types/instance" {
     interface Instance {
         /** Koha Bookings: cached constraint highlighting for re-application after navigation */
-        _constraintHighlighting?: import('./bookings').ConstraintHighlighting | null;
+        _constraintHighlighting?:
+            | import("./bookings").ConstraintHighlighting
+            | null;
         /** Koha Bookings: cached loan boundary timestamps for bold styling */
         _loanBoundaryTimes?: Set<number>;
     }

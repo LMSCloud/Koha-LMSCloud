@@ -20,7 +20,7 @@
 use Modern::Perl;
 use CGI qw ( -utf8 );
 
-use C4::Auth qw( get_template_and_user );
+use C4::Auth   qw( get_template_and_user );
 use C4::Output qw( output_html_with_http_headers );
 use Koha::AuthorisedValues;
 
@@ -42,7 +42,7 @@ The separator is empty by default
 =cut
 
 my $builder = sub {
-    my ( $params ) = @_;
+    my ($params) = @_;
     my $res = qq{
     <script>
         function Click$params->{id}() {
@@ -68,46 +68,50 @@ my $builder = sub {
 };
 
 my $launcher = sub {
-    my ( $params ) = @_;
-    my $input = $params->{cgi};
-    my $code = $input->param('code');
+    my ($params) = @_;
+    my $input    = $params->{cgi};
+    my $code     = $input->param('code');
 
     my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
-        {   template_name   => "cataloguing/value_builder/ajax.tt",
-            query           => $input,
-            type            => "intranet",
-            flagsrequired   => { editcatalogue => '*' },
-            debug           => 1,
+        {
+            template_name => "cataloguing/value_builder/ajax.tt",
+            query         => $input,
+            type          => "intranet",
+            flagsrequired => { editcatalogue => '*' },
+            debug         => 1,
         }
     );
 
-    # If a prefix is submited, we look for the lib value of the found authorised record with this prefix, and return it incremented lib value. 
+    # If a prefix is submited, we look for the lib value of the found authorised record with this prefix, and return it incremented lib value.
     # The number of positions and the separator can specified in lib_opac using the syntax <COUNT NUMBER POSITIONS>|<SEPARATOR>
     $code =~ s/ *$//g;
-    if ( $code ) {
-        my $av = Koha::AuthorisedValues->find({
-            'category' => 'NUMBER_GENERATOR_PREFIX',
-            'authorised_value' => $code
-        });
-        if ( $av ) {
-			my $posANDsep = $av->lib_opac;
-			my $positions = 6;
-			my $separator = '';
-			
-            $av->lib($av->lib + 1);
+    if ($code) {
+        my $av = Koha::AuthorisedValues->find(
+            {
+                'category'         => 'NUMBER_GENERATOR_PREFIX',
+                'authorised_value' => $code
+            }
+        );
+        if ($av) {
+            my $posANDsep = $av->lib_opac;
+            my $positions = 6;
+            my $separator = '';
+
+            $av->lib( $av->lib + 1 );
             $av->store;
-            
-            if ( $posANDsep ) {
-				if ( $posANDsep =~ /^([0-9]+)(\|(.+))?$/ ) {
-					$positions = $1 if ( $1 );
-					$separator = $3 if ( $3 );
-				}
-			}
-            
-            $template->param( return => $code . $separator . sprintf("%0${positions}s", ( $av->lib ) ), );
+
+            if ($posANDsep) {
+                if ( $posANDsep =~ /^([0-9]+)(\|(.+))?$/ ) {
+                    $positions = $1 if ($1);
+                    $separator = $3 if ($3);
+                }
+            }
+
+            $template->param( return => $code . $separator . sprintf( "%0${positions}s", ( $av->lib ) ), );
         } else {
             $template->param( return => $code );
         }
+
         # The user entered a custom value, we don't touch it, this could be handled in js
     } else {
         $template->param( return => $code );

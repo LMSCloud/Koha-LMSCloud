@@ -6,11 +6,12 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("OverDrive library authnames") | html %] &rsaquo;
-    [% t("Administration") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("OverDrive library authnames") | html %]
+        &rsaquo; [% t("Administration") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -52,15 +53,15 @@
                             </thead>
                             <tbody>
                                 [% FOREACH b IN branches %]
-                                <tr>
-                                    <td>
-                                        [% Branches.GetName( b.branchcode ) | html %]
-                                        <input type="hidden" name="branchcode" value="[% b.branchcode | html %]" />
-                                    </td>
-                                    <td>
-                                        <input type="text" name="authname" value="[% b.authname | html %]" />
-                                    </td>
-                                </tr>
+                                    <tr>
+                                        <td>
+                                            [% Branches.GetName( b.branchcode ) | html %]
+                                            <input type="hidden" name="branchcode" value="[% b.branchcode | html %]" />
+                                        </td>
+                                        <td>
+                                            <input type="text" name="authname" value="[% b.authname | html %]" />
+                                        </td>
+                                    </tr>
                                 [% END %]
                             </tbody>
                         </table>
@@ -70,28 +71,30 @@
                     </div>
                 </form>
             </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'admin-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-    </div> <!-- /.row -->
+            <aside> [% INCLUDE 'admin-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
-[% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/admin-menu.js") | $raw %]
-    [% INCLUDE 'datatables.inc' %]
-    <script>
-        $(document).ready(function() {
-            $("#od_info").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "columnDefs": [
-                    { "targets": [ -1 ], "orderable": false, "searchable":  false },
-                ],
-                "pagingType": "full"
-            }));
-        });
-    </script>
-[% END %]
+    [% MACRO jsinclude BLOCK %]
+        [% Asset.js("js/admin-menu.js") | $raw %]
+        [% INCLUDE 'datatables.inc' %]
+        <script>
+            $(document).ready(function () {
+                $("#od_info").dataTable(
+                    $.extend(true, {}, dataTablesDefaults, {
+                        columnDefs: [{ targets: [-1], orderable: false, searchable: false }],
+                        pagingType: "full",
+                    })
+                );
+            });
+        </script>
+    [% END %]
 
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

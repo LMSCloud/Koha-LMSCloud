@@ -10,7 +10,7 @@
                 </div>
                 <div class="modal-body overflow-visible">
                     <div id="cancel_booking_result"></div>
-                    <input type="hidden" name="booking_id" id="cancel_booking_id"  />
+                    <input type="hidden" name="booking_id" id="cancel_booking_id" />
                     <input type="hidden" name="op" value="cud-cancel" />
                     [% INCLUDE 'csrf-token.inc' %]
                     <p>Are you sure you want to cancel this booking?</p>

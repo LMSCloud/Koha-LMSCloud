@@ -98,9 +98,11 @@ sub process {
     };
     my @messages;
     my $schema = Koha::Database->new->schema;
-    my ( @deleted_itemnumbers, @not_deleted_itemnumbers,
+    my (
+        @deleted_itemnumbers,   @not_deleted_itemnumbers,
         @deleted_biblionumbers, @updated_biblionumbers,
-        @biblionumbers );
+        @biblionumbers
+    );
 
     try {
         my $schema = Koha::Database->new->schema;
@@ -112,21 +114,21 @@ sub process {
 
                     my $item = Koha::Items->find($record_id) || next;
 
-                    my $return = $item->safe_delete({ skip_record_index => 1, skip_holds_queue => 1 });
-                    unless ( $return ) {
+                    my $return = $item->safe_delete( { skip_record_index => 1, skip_holds_queue => 1 } );
+                    unless ($return) {
 
                         # FIXME Do we need to rollback the whole transaction if a deletion failed?
                         push @not_deleted_itemnumbers, $item->itemnumber;
                         push @messages,
-                          {
+                            {
                             type         => 'error',
                             code         => 'item_not_deleted',
                             itemnumber   => $item->itemnumber,
                             biblionumber => $item->biblionumber,
                             barcode      => $item->barcode,
                             title        => $item->biblio->title,
-                            reason       => @{$return->messages}[0]->message,
-                          };
+                            reason       => @{ $return->messages }[0]->message,
+                            };
 
                         next;
                     }
@@ -139,22 +141,21 @@ sub process {
                 }
             }
         );
-    }
-    catch {
+    } catch {
 
         warn $_;
 
         push @messages,
-          {
+            {
             type  => 'error',
             code  => 'unknown',
             error => $_,
-          };
+            };
 
         die "Something terrible has happened!"
-          if ( $_ =~ /Rollback failed/ );    # Rollback failed
-          
-        @deleted_itemnumbers = ();
+            if ( $_ =~ /Rollback failed/ );    # Rollback failed
+
+        @deleted_itemnumbers     = ();
         @not_deleted_itemnumbers = @record_ids;
     };
     try {
@@ -162,11 +163,12 @@ sub process {
             sub {
                 # If there are no items left, delete the biblio
                 for my $biblionumber ( uniq @biblionumbers ) {
-                    my $items_count =
-                      Koha::Biblios->find($biblionumber)->items->count;
+                    my $items_count = Koha::Biblios->find($biblionumber)->items->count;
                     if ( $delete_biblios && $items_count == 0 ) {
-                        my $error = C4::Biblio::DelBiblio( $biblionumber,
-                            { skip_record_index => 1, skip_holds_queue => 1 } );
+                        my $error = C4::Biblio::DelBiblio(
+                            $biblionumber,
+                            { skip_record_index => 1, skip_holds_queue => 1 }
+                        );
                         unless ($error) {
                             push @deleted_biblionumbers, $biblionumber;
                         }
@@ -176,50 +178,45 @@ sub process {
                 }
             }
         );
-    }
-    catch {
+    } catch {
 
         warn $_;
 
         push @messages,
-          {
+            {
             type  => 'error',
             code  => 'unknown',
             error => $_,
-          };
+            };
 
         die "Something terrible has happened!"
-          if ( $_ =~ /Rollback failed/ );    # Rollback failed
+            if ( $_ =~ /Rollback failed/ );    # Rollback failed
 
         @deleted_biblionumbers = ();
         @updated_biblionumbers = ();
     };
     if (@deleted_biblionumbers) {
-        my $indexer = Koha::SearchEngine::Indexer->new(
-            { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+        my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
 
-        $indexer->index_records( \@deleted_biblionumbers,
-            'recordDelete', "biblioserver", undef );
+        $indexer->index_records(
+            \@deleted_biblionumbers,
+            'recordDelete', "biblioserver", undef
+        );
 
-        Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
-            {
-                biblio_ids => \@deleted_biblionumbers
-            }
-        ) if C4::Context->preference('RealTimeHoldsQueue');
+        Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue( { biblio_ids => \@deleted_biblionumbers } )
+            if C4::Context->preference('RealTimeHoldsQueue');
     }
 
     if (@updated_biblionumbers) {
-        my $indexer = Koha::SearchEngine::Indexer->new(
-            { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+        my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
 
-        $indexer->index_records( \@updated_biblionumbers,
-            'specialUpdate', "biblioserver", undef );
+        $indexer->index_records(
+            \@updated_biblionumbers,
+            'specialUpdate', "biblioserver", undef
+        );
 
-        Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
-            {
-                biblio_ids => \@updated_biblionumbers
-            }
-        ) if C4::Context->preference('RealTimeHoldsQueue');
+        Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue( { biblio_ids => \@updated_biblionumbers } )
+            if C4::Context->preference('RealTimeHoldsQueue');
     }
 
     $report->{deleted_itemnumbers}     = \@deleted_itemnumbers;
@@ -228,9 +225,9 @@ sub process {
 
     my $data = $self->decoded_data;
     $data->{messages} = \@messages;
-    $data->{report} = $report;
+    $data->{report}   = $report;
 
-    $self->finish( $data );
+    $self->finish($data);
 }
 
 =head3 enqueue
@@ -252,7 +249,7 @@ sub enqueue {
     # TODO Raise exception instead
     return unless exists $args->{record_ids};
 
-    my @record_ids = @{ $args->{record_ids} };
+    my @record_ids     = @{ $args->{record_ids} };
     my $delete_biblios = $args->{delete_biblios} || 0;
 
     $self->SUPER::enqueue(

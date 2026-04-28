@@ -7,23 +7,23 @@
 <body id="rda_field_selector_body" class="cat" style="padding:1em;">
 <h3>Selection of values of RDA field [% rdafield | html %]</h3>
 <form name="f_pop" action="">
-<table>
-	<tr>
-		<td><label for="f1">Select: </label></td>
-		<td>
-            <select name="rdaathvalselect" id="rdaathvalselect">
-            [% FOREACH authval IN authvalues %]
-			[% IF ( authval.authname == currval ) %]
-				<option value="[% authval.authvalue | html %];;;[% authval.rdaname | html %];;;[% authval.authname | html %]" selected="selected">[% authval.authvalue | html %] - [% authval.authname | html %]</option>
-			[% ELSE %]
-				<option value="[% authval.authvalue | html %];;;[% authval.rdaname | html %];;;[% authval.authname | html %]">[% authval.authvalue | html %] - [% authval.authname | html %]</option>
-			[% END %]
-			[% END %]
-			</select>
-		</td>
-    </tr>
-</table>
-<fieldset class="action"><input id="setrdavalue" type="button" value="OK" /> <a href="#" class="cancel close">Cancel</a></fieldset>
+    <table>
+        <tr>
+            <td><label for="f1">Select: </label></td>
+            <td>
+                <select name="rdaathvalselect" id="rdaathvalselect">
+                    [% FOREACH authval IN authvalues %]
+                        [% IF ( authval.authname == currval ) %]
+                            <option value="[% authval.authvalue | html %];;;[% authval.rdaname | html %];;;[% authval.authname | html %]" selected="selected">[% authval.authvalue | html %] - [% authval.authname | html %]</option>
+                        [% ELSE %]
+                            <option value="[% authval.authvalue | html %];;;[% authval.rdaname | html %];;;[% authval.authname | html %]">[% authval.authvalue | html %] - [% authval.authname | html %]</option>
+                        [% END %]
+                    [% END %]
+                </select>
+            </td>
+        </tr>
+    </table>
+    <fieldset class="action"><input id="setrdavalue" type="button" value="OK" /> <a href="#" class="cancel close">Cancel</a></fieldset>
 </form>
 
 [% MACRO jsinclude BLOCK %]
@@ -34,12 +34,12 @@
             value = words[0];
             var rdatype = words[1];
             var fullname = words[2];
-            
+
             var doc   = opener.document;
             var field1 = $(doc).find("#[% subfield_a | html %]");
             var field2 = $(doc).find("#[% subfield_a | html %]").parents("li.tag").find("input[id^=[% subfield_b | html %]]");
             var field3 = $(doc).find("#[% subfield_a | html %]").parents("li.tag").find("input[id^=[% subfield_2 | html %]]");
-            
+
             console.log(value,fullname,rdatype,field1,field2,field3);
             if ( field1 ) {
                 field1.val(fullname);

@@ -5,11 +5,12 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("EDIFACT messages") | html %] &rsaquo;
-    [% t("Acquisitions") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("EDIFACT messages") | html %]
+        &rsaquo; [% t("Acquisitions") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -35,157 +36,156 @@
             <main>
                 [% INCLUDE 'messages.inc' %]
 
+                <h1>EDIFACT messages</h1>
+                <div id="acqui_edifactmsgs" class="page-section">
+                    <table id="edi_msgs"></table>
 
-<h1>EDIFACT messages</h1>
-<div id="acqui_edifactmsgs" class="page-section">
+                    <!-- Modal to display EDIFACT messages -->
+                    <div class="modal" id="EDI_modal" tabindex="-1" role="dialog" aria-labelledby="EDI_modal_label" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h1 class="modal-title" id="EDI_modal_label">EDIFACT message</h1>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div id="loading"> <img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" alt="" /> Loading </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-default" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- /#acqui_edifactmsgs -->
+            </main>
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
-<table id="edi_msgs"></table>
-
-<!-- Modal to display EDIFACT messages -->
-<div class="modal" id="EDI_modal" tabindex="-1" role="dialog" aria-labelledby="EDI_modal_label" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title" id="EDI_modal_label">EDIFACT message</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="loading"> <img src="[% interface | html %]/[% theme | html %]/img/spinner-small.gif" alt="" /> Loading </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-default" data-bs-dismiss="modal">Close</button>
-            </div>
+        <div class="col-md-2 order-sm-2 order-md-1">
+            <aside> [% INCLUDE 'acquisitions-menu.inc' %] </aside>
         </div>
     </div>
-</div>
+    <!-- /.row -->
 
-</div> <!-- /#acqui_edifactmsgs -->
-</main>
-</div> <!-- /.col-md-10.order-md-2 -->
+    [% MACRO jsinclude BLOCK %]
+        [% Asset.js("js/acquisitions-menu.js") | $raw %]
+        [% INCLUDE 'datatables.inc' %]
+        <script>
+            $(document).ready(function() {
+                let edi_msgs_table_url = '/api/v1/acquisitions/edifiles?';
 
-    <div class="col-md-2 order-sm-2 order-md-1">
-        <aside>
-            [% INCLUDE 'acquisitions-menu.inc' %]
-        </aside>
-    </div>
-</div> <!-- /.row -->
-
-[% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/acquisitions-menu.js") | $raw %]
-    [% INCLUDE 'datatables.inc' %]
-    <script>
-        $(document).ready(function() {
-            let edi_msgs_table_url = '/api/v1/acquisitions/edifiles?';
-
-            var edi_msgs_table = $("#edi_msgs").kohaTable({
-                "ajax": {
-                    "url": edi_msgs_table_url
-                },
-                "embed": [
-                    "vendor",
-                    "basket"
-                ],
-                "order": [[ 1, "desc" ]],
-                "columns": [
-                    {
-                        "data": "type",
-                        "title": _("Type"),
-                        "searchable": true,
-                        "orderable": true
+                var edi_msgs_table = $("#edi_msgs").kohaTable({
+                    "ajax": {
+                        "url": edi_msgs_table_url
                     },
-                    {
-                        "data": "transfer_date",
-                        "title": _("Transferred"),
-                        "searchable": true,
-                        "orderable": true,
-                        "render": function(data, type, row, meta) {
-                            return $date(row.transfer_date);
-                        }
-                    },
-                    {
-                        "data": "status",
-                        "title": _("Status"),
-                        "searchable": true,
-                        "orderable": true
-                    },
-                    {
-                        "data": "vendor.name",
-                        "title": _("Vendor"),
-                        "searchable": true,
-                        "orderable": true,
-                        "render": function(data, type, row, meta) {
-                            let link;
-                            if ( row.vendor ) {
-                               link = '<a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid='+row.vendor_id+'">'+row.vendor.name+'</a>';
-                            } else {
-                               link = '<a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid='+row.vendor_id+'">'+row.vendor_id+'</a>';
+                    "embed": [
+                        "vendor",
+                        "basket"
+                    ],
+                    "order": [[ 1, "desc" ]],
+                    "columns": [
+                        {
+                            "data": "type",
+                            "title": _("Type"),
+                            "searchable": true,
+                            "orderable": true
+                        },
+                        {
+                            "data": "transfer_date",
+                            "title": _("Transferred"),
+                            "searchable": true,
+                            "orderable": true,
+                            "render": function(data, type, row, meta) {
+                                return $date(row.transfer_date);
                             }
-                            return link;
-                        }
-                    },
-                    {
-                        "data": "basket_id:type",
-                        "title": _("Details"),
-                        "searchable": false,
-                        "orderable": true,
-                        "render": function(data, type, row, meta) {
-                            let rendered = '';
-                            if ( row.type == 'QUOTE' || row.type == 'ORDERS' ) {
-                                if ( row.basket_id ) {
-                                    rendered = '<a href="/cgi-bin/koha/acqui/basket.pl?basketno='+row.basket_id+'">'+_("Basket")+': '+row.basket_id+'</a>';
+                        },
+                        {
+                            "data": "status",
+                            "title": _("Status"),
+                            "searchable": true,
+                            "orderable": true
+                        },
+                        {
+                            "data": "vendor.name",
+                            "title": _("Vendor"),
+                            "searchable": true,
+                            "orderable": true,
+                            "render": function(data, type, row, meta) {
+                                let link;
+                                if ( row.vendor ) {
+                                   link = '<a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid='+row.vendor_id+'">'+row.vendor.name+'</a>';
+                                } else {
+                                   link = '<a href="/cgi-bin/koha/acqui/supplier.pl?booksellerid='+row.vendor_id+'">'+row.vendor_id+'</a>';
                                 }
-                            } else {
-                                rendered = '<a href="/cgi-bin/koha/acqui/invoices.pl?message_id='+row.id+'&op=do_search">'+_("Invoices")+'</a>';
+                                return link;
                             }
-                            return rendered;
-                        }
-                    },
-                    {
-                        "data": "filename",
-                        "title": _("Filename"),
-                        "searchable": true,
-                        "orderable": true
-                    },
-                    {
-                        "title": _("Actions"),
-                        "className": "actions",
-                        "searchable": false,
-                        "orderable": false,
-                        "render": function(data, type, row, meta) {
-                            var result = '<a class="btn btn-default btn-xs view_message" target="_blank" href="/cgi-bin/koha/acqui/edimsg.pl?id='+encodeURIComponent(row.id)+'"><i class="fa fa-search"></i> '+_("View message")+'</a> ';
-                            result += '<form action="/cgi-bin/koha/acqui/edifactmsgs.pl" method="post"><input type="hidden" name="message_id" value="'+encodeURIComponent(row.id)+'" />';
-                            result += '<input type="hidden" name="csrf_token" value="' + $('meta[name="csrf-token"]').attr('content').trim() + '" />';
-                            result += '<input type="hidden" name="op" value="cud-delete" /><button type="submit" class="btn btn-default btn-xs delete_msg"><i class="fa fa-trash-can"></i> '+_("Delete")+'</button> ';
-                            if ( row.status == 'new' ) {
-                                result += '<a class="btn btn-default btn-xs import_msg" href="/cgi-bin/koha/acqui/edifactmsgs.pl?op=import&amp;message_id='+encodeURIComponent(row.id)+'"><i class="fa fa-cog"></i> '+_("Import")+'</a> ';
+                        },
+                        {
+                            "data": "basket_id:type",
+                            "title": _("Details"),
+                            "searchable": false,
+                            "orderable": true,
+                            "render": function(data, type, row, meta) {
+                                let rendered = '';
+                                if ( row.type == 'QUOTE' || row.type == 'ORDERS' ) {
+                                    if ( row.basket_id ) {
+                                        rendered = '<a href="/cgi-bin/koha/acqui/basket.pl?basketno='+row.basket_id+'">'+_("Basket")+': '+row.basket_id+'</a>';
+                                    }
+                                } else {
+                                    rendered = '<a href="/cgi-bin/koha/acqui/invoices.pl?message_id='+row.id+'&op=do_search">'+_("Invoices")+'</a>';
+                                }
+                                return rendered;
                             }
-                            return result;
+                        },
+                        {
+                            "data": "filename",
+                            "title": _("Filename"),
+                            "searchable": true,
+                            "orderable": true
+                        },
+                        {
+                            "title": _("Actions"),
+                            "className": "actions",
+                            "searchable": false,
+                            "orderable": false,
+                            "render": function(data, type, row, meta) {
+                                var result = '<a class="btn btn-default btn-xs view_message" target="_blank" href="/cgi-bin/koha/acqui/edimsg.pl?id='+encodeURIComponent(row.id)+'"><i class="fa fa-search"></i> '+_("View message")+'</a> ';
+                                result += '<form action="/cgi-bin/koha/acqui/edifactmsgs.pl" method="post"><input type="hidden" name="message_id" value="'+encodeURIComponent(row.id)+'" />';
+                                result += '<input type="hidden" name="csrf_token" value="' + $('meta[name="csrf-token"]').attr('content').trim() + '" />';
+                                result += '<input type="hidden" name="op" value="cud-delete" /><button type="submit" class="btn btn-default btn-xs delete_msg"><i class="fa fa-trash-can"></i> '+_("Delete")+'</button> ';
+                                if ( row.status == 'new' ) {
+                                    result += '<a class="btn btn-default btn-xs import_msg" href="/cgi-bin/koha/acqui/edifactmsgs.pl?op=import&amp;message_id='+encodeURIComponent(row.id)+'"><i class="fa fa-cog"></i> '+_("Import")+'</a> ';
+                                }
+                                return result;
+                            }
                         }
-                    }
-                ]
-            }, 0, 0);
+                    ]
+                }, 0, 0);
 
-            var EDIModal = $("#EDI_modal");
-            var EDIModalBody = $("#EDI_modal .modal-body");
+                var EDIModal = $("#EDI_modal");
+                var EDIModalBody = $("#EDI_modal .modal-body");
 
-            $("body").on("click", ".view_message", function(e){
-                e.preventDefault();
-                var page = $(this).attr("href");
-                EDIModalBody.load(page + " #edimsg");
-                EDIModal.modal("show");
+                $("body").on("click", ".view_message", function(e){
+                    e.preventDefault();
+                    var page = $(this).attr("href");
+                    EDIModalBody.load(page + " #edimsg");
+                    EDIModal.modal("show");
+                });
+                EDIModal.on("click",".btn-close",function(e){
+                    e.preventDefault();
+                    EDIModal.modal("hide");
+                });
+                EDIModal.on("hidden.bs.modal", function(){
+                    EDIModalBody.html("<div id=\"loading\"><img src=\"[% interface | html %]/[% theme | html %]/img/spinner-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
+                });
+                $("body").on("click", ".delete_msg" ,function(){
+                    return confirm(_("Are you sure you want to delete this message?"));
+                });
             });
-            EDIModal.on("click",".btn-close",function(e){
-                e.preventDefault();
-                EDIModal.modal("hide");
-            });
-            EDIModal.on("hidden.bs.modal", function(){
-                EDIModalBody.html("<div id=\"loading\"><img src=\"[% interface | html %]/[% theme | html %]/img/spinner-small.gif\" alt=\"\" /> "+_("Loading")+"</div>");
-            });
-            $("body").on("click", ".delete_msg" ,function(){
-                return confirm(_("Are you sure you want to delete this message?"));
-            });
-        });
-    </script>
-[% END %]
+        </script>
+    [% END %]
 
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

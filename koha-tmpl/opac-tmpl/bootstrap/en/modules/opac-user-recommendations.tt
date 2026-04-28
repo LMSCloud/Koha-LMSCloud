@@ -4,7 +4,12 @@
 <title>Recommendations &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %]
-<style>ul.ui-tabs-nav li a, ul.ui-tabs-nav li span.a  { padding:0.6em 1em; }</style>
+    <style>
+        ul.ui-tabs-nav li a,
+        ul.ui-tabs-nav li span.a {
+            padding: 0.6em 1em;
+        }
+    </style>
 [% END %]
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='opac-user-recommendations' %]
@@ -28,119 +33,118 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col col-lg-2 order-2 order-lg-1">
-                <div id="navigation">
-                    [% INCLUDE 'navigation.inc' IsPatronPage=1 %]
-                </div>
+                <div id="navigation"> [% INCLUDE 'navigation.inc' IsPatronPage=1 %] </div>
             </div>
             <div class="col-md-12 col-lg-10 order-1 order-lg-2">
                 <div id="userdetails" class="maincontent">
-
                     <h1>Recommendations</h1>
-                    
+
                     <p>Based on your checkout history we recommend ...</p>
 
                     <div class="recs-container-main mb-3">
                         [% IF (privacy != 2) %]
                             <div id="lmscoverflow"></div>
                             <div id="nothingFound" class="d-none">
-                                Sorry, we currently have no recommendations for you.<br>
+                                Sorry, we currently have no recommendations for you.<br />
                                 Reasons might be that your checkout history is too short or the service has no data for your read books.
                             </div>
                         [% ELSE %]
-                            <div class="recs-container-heading">
-                                Sorry, there are no recommendations for you.
-                            </div>
+                            <div class="recs-container-heading"> Sorry, there are no recommendations for you. </div>
                             <div class="no-recs">
-                                <p>To be able to generate recommendations from your checkout history, 
-                                you need to select and save the option "Forever" or "Default" in the menu under 
-                                the <a href="/cgi-bin/koha/opac-privacy.pl">privacy options</a> in the setting 
-                                for saving your checkout history.</p>
-                                
-                                <p>If there are no media in your checkout history yet, unfortunately no 
-                                recommendations can be generated.</p>
+                                <p
+                                    >To be able to generate recommendations from your checkout history, you need to select and save the option "Forever" or "Default" in the menu under the
+                                    <a href="/cgi-bin/koha/opac-privacy.pl">privacy options</a> in the setting for saving your checkout history.</p
+                                >
+
+                                <p>If there are no media in your checkout history yet, unfortunately no recommendations can be generated.</p>
                             </div>
                         [% END %]
                     </div>
 
-[% INCLUDE 'opac-bottom.inc' %]
-[% BLOCK jsinclude %]
-[% INCLUDE 'datatables.inc' %]
+                    [% INCLUDE 'opac-bottom.inc' %]
+                    [% BLOCK jsinclude %]
+                        [% INCLUDE 'datatables.inc' %]
 
-[% Asset.js("js/LMSCoverFlow.js") | $raw %]
-<script>
-    const { createLcfInstance, externalSources } = LMSCoverFlow;
-    const lmscoverflow = createLcfInstance();
-    
-    const fetchItemData = async (endpoint) => {
-        const url = endpoint;
-        let options = {
-            method: 'GET',
-            mode: 'cors',
-            cache: 'no-cache',
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            redirect: 'follow'
-        }
+                        [% Asset.js("js/LMSCoverFlow.js") | $raw %]
+                        <script>
+                            const { createLcfInstance, externalSources } = LMSCoverFlow;
+                            const lmscoverflow = createLcfInstance();
 
-        const response = await fetch(url, options);
-        return response.json();
-    }
+                            const fetchItemData = async (endpoint) => {
+                                const url = endpoint;
+                                let options = {
+                                    method: 'GET',
+                                    mode: 'cors',
+                                    cache: 'no-cache',
+                                    credentials: 'same-origin',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    redirect: 'follow'
+                                }
 
-    const renderRecommendations = ({ result, externalSources }) => {
-        if ( result.items.length === 0 || !Array.isArray(result.items) ) {
-            document.getElementById('nothingFound').classList.toggle("d-none");
-            return;
-        }
+                                const response = await fetch(url, options);
+                                return response.json();
+                            }
 
-        result.items = result.items.map((item) => {
-            return { ...item, referenceToDetailsView: `/cgi-bin/koha/opac-detail.pl?biblionumber=${item.biblionumber}` }
-        });
+                            const renderRecommendations = ({ result, externalSources }) => {
+                                if ( result.items.length === 0 || !Array.isArray(result.items) ) {
+                                    document.getElementById('nothingFound').classList.toggle("d-none");
+                                    return;
+                                }
 
-        lmscoverflow.setGlobals(
-            {
-                coverImageFallbackHeight: 210,
-                coverFlowContext: 'grid',
-            },
-            result.items,
-            'lmscoverflow',
-            externalSources || undefined
-        );
-        lmscoverflow.render();
-    }
+                                result.items = result.items.map((item) => {
+                                    return { ...item, referenceToDetailsView: `/cgi-bin/koha/opac-detail.pl?biblionumber=${item.biblionumber}` }
+                                });
 
-    const recommendations = fetchItemData('/cgi-bin/koha/svc/user-recommendations?count=20');
-    [% IF ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) %]
-        externalSources.subscribe((isLoaded) => {
-            if (isLoaded) {
-                KOHA.coce.getURL('[% Koha.Preference('CoceHost') | html %]', '[% Koha.Preference('CoceProviders') | html %]',[% covernewwindow | html %]);
-            }
-        });
-        recommendations.then(result => renderRecommendations({result, externalSources}));
+                                lmscoverflow.setGlobals(
+                                    {
+                                        coverImageFallbackHeight: 210,
+                                        coverFlowContext: 'grid',
+                                    },
+                                    result.items,
+                                    'lmscoverflow',
+                                    externalSources || undefined
+                                );
+                                lmscoverflow.render();
+                            }
 
-    [% ELSIF ( OpenLibraryCovers ) %]
-        externalSources.subscribe((isLoaded) => {
-            if (isLoaded) {
-                KOHA.OpenLibrary.GetCoverFromIsbn();
-            }
-        });
-        recommendations.then(result => renderRecommendations({result, externalSources}));
+                            const recommendations = fetchItemData('/cgi-bin/koha/svc/user-recommendations?count=20');
+                            [% IF ( Koha.Preference('OpacCoce') && Koha.Preference('CoceProviders') ) %]
+                                externalSources.subscribe((isLoaded) => {
+                                    if (isLoaded) {
+                                        KOHA.coce.getURL('[% Koha.Preference('CoceHost') | html %]', '[% Koha.Preference('CoceProviders') | html %]',[% covernewwindow | html %]);
+                                    }
+                                });
+                                recommendations.then(result => renderRecommendations({result, externalSources}));
 
-    [% ELSIF ( GoogleJackets ) %]
-        externalSources.subscribe((isLoaded) => {
-            if (isLoaded) {
-                KOHA.Google.GetCoverFromIsbn([% covernewwindow | html %]); 
-            }
-        });
-        recommendations.then(result => renderRecommendations({result, externalSources}));
-    [% ELSIF ( Koha.Preference('EKZCover') ) %]
-        externalSources.info = 'ekz';
-        recommendations.then(result => renderRecommendations({result, externalSources}));
+                            [% ELSIF ( OpenLibraryCovers ) %]
+                                externalSources.subscribe((isLoaded) => {
+                                    if (isLoaded) {
+                                        KOHA.OpenLibrary.GetCoverFromIsbn();
+                                    }
+                                });
+                                recommendations.then(result => renderRecommendations({result, externalSources}));
 
-    [% ELSE %]
-        recommendations.then(result => renderRecommendations({result}));
-        
-    [% END %]
-</script>
-[% END %]
+                            [% ELSIF ( GoogleJackets ) %]
+                                externalSources.subscribe((isLoaded) => {
+                                    if (isLoaded) {
+                                        KOHA.Google.GetCoverFromIsbn([% covernewwindow | html %]);
+                                    }
+                                });
+                                recommendations.then(result => renderRecommendations({result, externalSources}));
+                            [% ELSIF ( Koha.Preference('EKZCover') ) %]
+                                externalSources.info = 'ekz';
+                                recommendations.then(result => renderRecommendations({result, externalSources}));
+
+                            [% ELSE %]
+                                recommendations.then(result => renderRecommendations({result}));
+
+                            [% END %]
+                        </script>
+                    [% END %]
+                </div></div
+            ></div
+        ></div
+    ></div
+>

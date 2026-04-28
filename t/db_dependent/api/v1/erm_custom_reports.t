@@ -30,7 +30,7 @@ use Koha::ERM::EUsage::SushiCounter;
 use Koha::ERM::EUsage::MonthlyUsages;
 use Koha::ERM::EUsage::YearlyUsages;
 
-use JSON qw( decode_json );
+use JSON           qw( decode_json );
 use File::Basename qw( dirname );
 use File::Slurp;
 
@@ -404,7 +404,7 @@ subtest "provider_rollup_report" => sub {
     $schema->storage->txn_rollback;
 };
 
-my $sushi_response_file_51_TR_J1      = dirname(__FILE__) . "/../../data/erm/eusage/COUNTER_5.1/TR_J1.json";
+my $sushi_response_file_51_TR_J1    = dirname(__FILE__) . "/../../data/erm/eusage/COUNTER_5.1/TR_J1.json";
 my $sushi_counter_51_response_TR_J1 = decode_json( read_file($sushi_response_file_51_TR_J1) );
 my $sushi_counter_51_TR_J1 = Koha::ERM::EUsage::SushiCounter->new( { response => $sushi_counter_51_response_TR_J1 } );
 
@@ -436,7 +436,7 @@ subtest "5.1 monthly_report" => sub {
 
     # Run a harvest to populate the database with data
     my $usage_data_provider = $builder->build_object( { class => 'Koha::ERM::EUsage::UsageDataProviders' } );
-    my $counter_file = $sushi_counter_51_TR_J1->get_COUNTER_from_SUSHI;
+    my $counter_file        = $sushi_counter_51_TR_J1->get_COUNTER_from_SUSHI;
 
     $usage_data_provider->counter_files(
         [
@@ -535,7 +535,7 @@ subtest "5.1 yearly_report" => sub {
 
     # Run a harvest to populate the database with data
     my $usage_data_provider = $builder->build_object( { class => 'Koha::ERM::EUsage::UsageDataProviders' } );
-    my $counter_file = $sushi_counter_51_TR_J1->get_COUNTER_from_SUSHI;
+    my $counter_file        = $sushi_counter_51_TR_J1->get_COUNTER_from_SUSHI;
 
     $usage_data_provider->counter_files(
         [
@@ -625,7 +625,7 @@ subtest "5.1 metric_types_report" => sub {
 
     # Run a harvest to populate the database with data
     my $usage_data_provider = $builder->build_object( { class => 'Koha::ERM::EUsage::UsageDataProviders' } );
-    my $counter_file = $sushi_counter_51_TR_J1->get_COUNTER_from_SUSHI;
+    my $counter_file        = $sushi_counter_51_TR_J1->get_COUNTER_from_SUSHI;
 
     $usage_data_provider->counter_files(
         [
@@ -721,7 +721,7 @@ subtest "5.1 provider_rollup_report" => sub {
 
     # Run a harvest to populate the database with data
     my $usage_data_provider = $builder->build_object( { class => 'Koha::ERM::EUsage::UsageDataProviders' } );
-    my $counter_file = $sushi_counter_51_TR_J1->get_COUNTER_from_SUSHI;
+    my $counter_file        = $sushi_counter_51_TR_J1->get_COUNTER_from_SUSHI;
 
     $usage_data_provider->counter_files(
         [

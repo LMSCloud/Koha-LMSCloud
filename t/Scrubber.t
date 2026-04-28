@@ -33,7 +33,7 @@ subtest 'new() constructor tests' => sub {
 
     my $scrubber;
     lives_ok { $scrubber = C4::Scrubber->new() } 'Constructor with no parameters succeeds';
-isa_ok($scrubber, 'HTML::Scrubber', 'Constructor returns HTML::Scrubber object');
+    isa_ok( $scrubber, 'HTML::Scrubber', 'Constructor returns HTML::Scrubber object' );
 
     lives_ok { $scrubber = C4::Scrubber->new('default') } 'Constructor with default type succeeds';
     isa_ok( $scrubber, 'HTML::Scrubber', 'Constructor with default type returns HTML::Scrubber object' );

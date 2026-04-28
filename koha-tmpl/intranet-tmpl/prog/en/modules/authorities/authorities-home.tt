@@ -5,10 +5,12 @@
 [% USE Branches %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("Authorities") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Authorities") | html %]
+        &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -37,15 +39,14 @@
 
             [%- SET StaffAuthoritiesHome = AdditionalContents.get( location => "StaffAuthoritiesHome", lang => lang, library => Branches.GetLoggedInBranchcode ) -%]
             [%- FOREACH block IN StaffAuthoritiesHome.content -%]
-            <div class="page-section">
-                [%- block.content | $raw -%]
-            </div>
+                <div class="page-section"> [%- block.content | $raw -%] </div>
             [%- END -%]
         </div>
     </div>
 
-[% MACRO jsinclude BLOCK %]
-    [% INCLUDE 'authorities_js.inc' %]
-[% END %]
+    [% MACRO jsinclude BLOCK %]
+        [% INCLUDE 'authorities_js.inc' %]
+    [% END %]
 
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

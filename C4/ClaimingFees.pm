@@ -31,7 +31,7 @@ use Koha::Account::Lines;
 use Koha::Account::Offset;
 use Koha::DateUtils qw( output_pref dt_from_string );
 use Koha::Notice::Templates;
-use C4::Log; # logaction
+use C4::Log;    # logaction
 use C4::Letters;
 use C4::Overdues qw( GetFine );
 use Koha::Acquisition::Currencies;
@@ -43,7 +43,6 @@ BEGIN {
     @ISA    = qw(Exporter);
     @EXPORT = qw();
 }
-
 
 =head1 NAME
 
@@ -106,32 +105,30 @@ rules of the instance are read.
 Returns a reference to the object.
 
 =cut
+
 sub new {
     my $class = shift;
-    my $self  = bless { @_ }, $class;
-    
-    
+    my $self  = bless {@_}, $class;
+
     # read the claiming rules for further processing
-    my $claimingrules = Koha::ClaimingRules->search({});
-    
+    my $claimingrules = Koha::ClaimingRules->search( {} );
+
     my $rules = {};
-    
+
     my $rules_count = 0;
-    
+
     # assign a hash of hashes of hashes for fast checks whether a claiming rule first or not
     while ( my $rule = $claimingrules->next() ) {
-        $rules->{$rule->branchcode()}->{$rule->categorycode()}->{$rule->itemtype()} = $rule;
+        $rules->{ $rule->branchcode() }->{ $rule->categorycode() }->{ $rule->itemtype() } = $rule;
         $rules_count++;
     }
-    
+
     # leave it with the object data
-    $self->{'rules'} = $rules;
+    $self->{'rules'}       = $rules;
     $self->{'rules_count'} = $rules_count;
 
     return $self;
 }
-
-
 
 =head2 checkForClaimingRules
 
@@ -143,7 +140,7 @@ Returns whether there are claiming fee rules defined. Returns 0 for no and 1 for
 
 sub checkForClaimingRules {
     my $self = shift;
-    
+
     return 1 if ( $self->{'rules_count'} > 0 );
     return 0;
 }
@@ -159,12 +156,13 @@ borrower type, item type and branchcode.
 
 sub getFittingClaimingRule {
     my ( $self, $borrowertype, $itemtype, $branchcode ) = @_;
-    
+
     return undef if ( $self->{'rules_count'} == 0 );
-    
-    my $rules =  $self->{'rules'};
-    
+
+    my $rules = $self->{'rules'};
+
     my @chkrules;
+
     # We create an array of checks to process in order to find the best fitting rule.
     # A more specific rule fits better than a general rule.
     #
@@ -178,24 +176,25 @@ sub getFittingClaimingRule {
     # default (all libraries), all patron types, same item type
     # default (all libraries), all patron types, all item types
 
-    foreach my $x ( ($branchcode,'*') ) {
-        foreach my $y ( ($borrowertype,'*') ) {
-            foreach my $z ( ($itemtype,'*') ) {
-                push @chkrules, [$x,$y,$z];
+    foreach my $x ( ( $branchcode, '*' ) ) {
+        foreach my $y ( ( $borrowertype, '*' ) ) {
+            foreach my $z ( ( $itemtype, '*' ) ) {
+                push @chkrules, [ $x, $y, $z ];
             }
         }
     }
-    
+
     # Now we process the checks against the hash that we have build during object initialization
     foreach my $chkrule (@chkrules) {
-        if (    exists( $rules->{$chkrule->[0]}) &&  # compare the library
-		exists( $rules->{$chkrule->[0]}->{$chkrule->[1]}) &&  # compare type 
-		exists( $rules->{$chkrule->[0]}->{$chkrule->[1]}->{$chkrule->[2]} ) # compare item type
-	)
-	{
-	    # if found return the rule
-	    return $rules->{$chkrule->[0]}->{$chkrule->[1]}->{$chkrule->[2]};
-	}
+        if (
+            exists( $rules->{ $chkrule->[0] } ) &&                                       # compare the library
+            exists( $rules->{ $chkrule->[0] }->{ $chkrule->[1] } ) &&                    # compare type
+            exists( $rules->{ $chkrule->[0] }->{ $chkrule->[1] }->{ $chkrule->[2] } )    # compare item type
+            )
+        {
+            # if found return the rule
+            return $rules->{ $chkrule->[0] }->{ $chkrule->[1] }->{ $chkrule->[2] };
+        }
     }
     return undef;
 }
@@ -221,7 +220,7 @@ the following data:
 =cut
 
 sub AddClaimFee {
-    my ($self,$params) = @_;
+    my ( $self, $params ) = @_;
 
     my $issue_id       = $params->{issue_id};
     my $itemnum        = $params->{itemnumber};
@@ -234,43 +233,46 @@ sub AddClaimFee {
 
     # $debug and warn "AddClaimFee({ itemnumber => $itemnum, borrowernumber => $borrowernumber, type => $type, due => $due, issue_id => $issue_id})";
 
-    unless ( $issue_id ) {
+    unless ($issue_id) {
         carp("No issue_id passed in!");
         return;
     }
-    
+
     my $overdues = Koha::Account::Lines->search(
         {
-            borrowernumber    => $borrowernumber,
-            debit_type_code   => [ 'OVERDUE','CLAIM_LEVEL_1','CLAIM_LEVEL_2','CLAIM_LEVEL_3','CLAIM_LEVEL_4','CLAIM_LEVEL_5' ],
+            borrowernumber  => $borrowernumber,
+            debit_type_code =>
+                [ 'OVERDUE', 'CLAIM_LEVEL_1', 'CLAIM_LEVEL_2', 'CLAIM_LEVEL_3', 'CLAIM_LEVEL_4', 'CLAIM_LEVEL_5' ],
             amountoutstanding => { '<>' => 0 }
         }
     );
-    
+
     my $accountline;
     my $total_amount = 0.00;
+
     # Cycle through the fines and
     # - find line that relates to the requested $itemnum
     # - accumulate fines for other items
     # so we can update $itemnum fine taking in account fine caps
-    while (my $overdue = $overdues->next) {
+    while ( my $overdue = $overdues->next ) {
         $total_amount += $overdue->amountoutstanding;
     }
 
-    if (my $maxfine = C4::Context->preference('MaxFine')) {
-        if ($total_amount + $amount > $maxfine) {
+    if ( my $maxfine = C4::Context->preference('MaxFine') ) {
+        if ( $total_amount + $amount > $maxfine ) {
             my $new_amount = $maxfine - $total_amount;
             return if $new_amount <= 0.00;
-            warn "Reducing fine for item $itemnum borrower $borrowernumber from $amount to $new_amount - MaxFine reached";
+            warn
+                "Reducing fine for item $itemnum borrower $borrowernumber from $amount to $new_amount - MaxFine reached";
             $amount = $new_amount;
         }
     }
 
-    if ( $amount ) { # Don't add new fines with an amount of 0
-        
+    if ($amount) {    # Don't add new fines with an amount of 0
+
         my $desc = $self->GetClaimingFeeDescription($params);
 
-        my $account = Koha::Account->new({ patron_id => $borrowernumber });
+        my $account     = Koha::Account->new( { patron_id => $borrowernumber } );
         my $accountline = $account->add_debit(
             {
                 amount      => $amount,
@@ -279,7 +281,7 @@ sub AddClaimFee {
                 user_id     => undef,
                 interface   => C4::Context->interface,
                 library_id  => $branchcode,
-                type        => 'CLAIM_LEVEL'.$level,
+                type        => 'CLAIM_LEVEL' . $level,
                 item_id     => $itemnum,
                 issue_id    => $issue_id,
             }
@@ -287,10 +289,10 @@ sub AddClaimFee {
 
         # logging action
         &logaction(
-        "FINES",
-            'CLAIM_LEVEL'.$level,
+            "FINES",
+            'CLAIM_LEVEL' . $level,
             $borrowernumber,
-            "due=".$due."  amount=".$amount." itemnumber=".$itemnum
+            "due=" . $due . "  amount=" . $amount . " itemnumber=" . $itemnum
         ) if C4::Context->preference("FinesLog");
     }
 }
@@ -331,105 +333,108 @@ If no letter template is defined, a simple description consisting of title and d
 =cut
 
 sub GetClaimingFeeDescription {
-    my ($self,$params) = @_;
-    
+    my ( $self, $params ) = @_;
+
     my $branchcode = $params->{branchcode};
-    
-    # Let's check whether the library has configured a letter template 
+
+    # Let's check whether the library has configured a letter template
     # to format a fancy fines description that we add with the claim fee
-    my $letter_code = 'FINESMSG_ODUE_CLAIM'.$params->{'claimlevel'};
-    my $template = Koha::Notice::Templates->find_effective_template(
+    my $letter_code = 'FINESMSG_ODUE_CLAIM' . $params->{'claimlevel'};
+    my $template    = Koha::Notice::Templates->find_effective_template(
+        {
+            module                 => 'fines',
+            code                   => $letter_code,
+            branchcode             => $branchcode,
+            message_transport_type => 'email'
+        }
+    );
+    my $letter_exists = ($template) ? 1 : 0;
+
+    if ( $letter_exists == 0 ) {
+        $letter_code = 'FINESMSG_ODUE_CLAIM';
+        $template    = Koha::Notice::Templates->find_effective_template(
             {
                 module                 => 'fines',
                 code                   => $letter_code,
                 branchcode             => $branchcode,
                 message_transport_type => 'email'
             }
-    );
-    my $letter_exists = ($template) ? 1 : 0;
-    
-    if ( $letter_exists == 0 ) {
-        $letter_code = 'FINESMSG_ODUE_CLAIM';
-        $template = Koha::Notice::Templates->find_effective_template(
-				{
-					module                 => 'fines',
-					code                   => $letter_code,
-					branchcode             => $branchcode,
-					message_transport_type => 'email'
-				}
-		);
-		$letter_exists = ($template) ? 1 : 0;
+        );
+        $letter_exists = ($template) ? 1 : 0;
     }
 
-    if ( $letter_exists ) {
+    if ($letter_exists) {
         my $substitute = $params->{'substitute'} || {};
-        $substitute->{today} ||= output_pref( { dt => dt_from_string, dateonly => 1} );
+        $substitute->{today} ||= output_pref( { dt => dt_from_string, dateonly => 1 } );
         $substitute->{overduedays} = $params->{due_since_days};
         $substitute->{claimlevel}  = $params->{claimlevel};
-        
+
         my $active_currency = Koha::Acquisition::Currencies->get_active;
 
         my $currency_format;
         $currency_format = $active_currency->currency if defined($active_currency);
-        
-        $substitute->{'claimfee'} = currency_format($currency_format, $params->{amount}, FMT_SYMBOL);
-        # if active currency isn't correct ISO code fallback to sprintf
-        $substitute->{'claimfee'} = sprintf('%.2f', $params->{amount}) unless $substitute->{'claimfee'};
 
-        my ($biblionumber,$itemnumber) = '';
+        $substitute->{'claimfee'} = currency_format( $currency_format, $params->{amount}, FMT_SYMBOL );
+
+        # if active currency isn't correct ISO code fallback to sprintf
+        $substitute->{'claimfee'} = sprintf( '%.2f', $params->{amount} ) unless $substitute->{'claimfee'};
+
+        my ( $biblionumber, $itemnumber ) = '';
         my @item_tables;
         if ( my $i = $params->{'items'} ) {
             my $item_format = '';
             foreach my $item (@$i) {
-                my $fine = GetFine($item->{'itemnumber'}, $params->{'borrowernumber'}) + $params->{amount};
-                
-                $item->{'fine'} = currency_format($currency_format, $fine, FMT_SYMBOL);
+                my $fine = GetFine( $item->{'itemnumber'}, $params->{'borrowernumber'} ) + $params->{amount};
+
+                $item->{'fine'} = currency_format( $currency_format, $fine, FMT_SYMBOL );
+
                 # if active currency isn't correct ISO code fallback to sprintf
-                $item->{'fine'} = sprintf('%.2f', $fine) unless $item->{'fine'};
-                
+                $item->{'fine'} = sprintf( '%.2f', $fine ) unless $item->{'fine'};
+
                 push @item_tables, {
-                    'biblio' => $item->{'biblionumber'},
+                    'biblio'      => $item->{'biblionumber'},
                     'biblioitems' => $item->{'biblionumber'},
-                    'items' => $item,
-                    'issues' => $item->{'itemnumber'}
+                    'items'       => $item,
+                    'issues'      => $item->{'itemnumber'}
                 };
                 $biblionumber = $item->{'biblionumber'};
-                $itemnumber = $item->{'itemnumber'};
-                
+                $itemnumber   = $item->{'itemnumber'};
+
             }
         }
-        
+
         my %tables = ( 'borrowers' => $params->{'borrowernumber'} );
         if ( my $p = $params->{'branchcode'} ) {
-            $tables{'branches'} = $p;
-            $tables{'biblio'} = $biblionumber;
-            $tables{'items'} = $itemnumber;
+            $tables{'branches'}    = $p;
+            $tables{'biblio'}      = $biblionumber;
+            $tables{'items'}       = $itemnumber;
             $tables{'biblioitems'} = $biblionumber;
         }
 
-        my $letter = C4::Letters::GetPreparedLetter (
-            module => 'fines',
-            letter_code => $letter_code,
-            branchcode => $params->{'branchcode'},
-            tables => \%tables,
-            substitute => $substitute,
-            repeat => { item => \@item_tables },
+        my $letter = C4::Letters::GetPreparedLetter(
+            module                 => 'fines',
+            letter_code            => $letter_code,
+            branchcode             => $params->{'branchcode'},
+            tables                 => \%tables,
+            substitute             => $substitute,
+            repeat                 => { item => \@item_tables },
             message_transport_type => 'email'
         );
         return $letter->{'content'};
     }
+
     # no letter is defined, we use the default message
     else {
         my $dbh = C4::Context->dbh;
         my $sth = $dbh->prepare(
             "SELECT title FROM biblio LEFT JOIN items ON biblio.biblionumber=items.biblionumber WHERE items.itemnumber=?"
         );
-        $sth->execute($params->{itemnumber});
+        $sth->execute( $params->{itemnumber} );
         my $title = $sth->fetchrow;
         $sth->finish();
 
         my $desc = "$title, " . $params->{due};
-        
+
         return $desc;
     }
 }

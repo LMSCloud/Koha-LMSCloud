@@ -86,29 +86,29 @@ This returns a list of availale completion terms.
 =cut
 
 sub complete {
-    my ($self, $request) = @_;
+    my ( $self, $request ) = @_;
 
     my @result;
     my %uniqResult;
-    my ($query,$count) = $self->_build_query($request);
+    my ( $query, $count ) = $self->_build_query($request);
 
-    if ( $query ) {
+    if ($query) {
         my $elasticsearch = $self->get_elasticsearch();
-        my $results = $elasticsearch->search(
+        my $results       = $elasticsearch->search(
             index => $self->index_name,
-            body => $query
+            body  => $query
         );
         if ( defined $results->{suggest} ) {
-            foreach my $suggestion(keys %{$results->{suggest}}) {
+            foreach my $suggestion ( keys %{ $results->{suggest} } ) {
                 if ( $suggestion =~ /_suggestion$/ ) {
                     my $options = $results->{suggest}{$suggestion}[0]{options};
-                    foreach my $option(@$options) {
-                        push @result, $option->{text} if ( ++$uniqResult{$option->{text}} == 1 );
+                    foreach my $option (@$options) {
+                        push @result, $option->{text} if ( ++$uniqResult{ $option->{text} } == 1 );
                     }
                 }
             }
         }
-        @result = sort { lc(NFD($a)) cmp lc(NFD($b)) } @result;
+        @result = sort { lc( NFD($a) ) cmp lc( NFD($b) ) } @result;
         if ( scalar(@result) > $count ) {
             splice @result, $count;
         }
@@ -128,24 +128,31 @@ for elasticsearch to use.
 
 sub _build_query {
     my ( $self, $request ) = @_;
-    
-    return undef if (! defined $request);
-    return undef if (! reftype($request) eq 'HASH' );
-    
+
+    return undef if ( !defined $request );
+    return undef if ( !reftype($request) eq 'HASH' );
+
     my $searchstring = $request->{text};
-    return undef if (! defined $searchstring);
-    
+    return undef if ( !defined $searchstring );
+
     my $count = 20;
-    
-    if ( defined $request->{count} && $request->{count} =~ /^[0-9]+$/ && $request->{count} > 0 && $request->{count} < 1000 ) {
+
+    if (   defined $request->{count}
+        && $request->{count} =~ /^[0-9]+$/
+        && $request->{count} > 0
+        && $request->{count} < 1000 )
+    {
         $count = $request->{count};
     }
-    
+
     my $field = $request->{field};
     my @fields;
-    @fields = grep { $_ =~ s/^\s+|\s+$//; $_ } split(/,/,C4::Context->preference('ElasticsearchDefaultAutoCompleteIndexFields')) if (!defined $field || $field =~ /^\s*$/);
-    
-    if ( $field ) {
+    @fields =
+        grep { $_ =~ s/^\s+|\s+$//; $_ }
+        split( /,/, C4::Context->preference('ElasticsearchDefaultAutoCompleteIndexFields') )
+        if ( !defined $field || $field =~ /^\s*$/ );
+
+    if ($field) {
         my $index_params = Koha::SearchEngine::Elasticsearch::QueryBuilder->get_index_field_convert();
         if ( exists( $index_params->{$field} ) ) {
             $fields[0] = $index_params->{$field};
@@ -153,35 +160,36 @@ sub _build_query {
             $fields[0] = $field;
         }
     }
-    
+
     # Default fields are 'title,author,subject,title-series,local-classification'
-    if (! scalar(@fields) ) {
-        @fields = ('title','author','subject','title-series','local-classification');
+    if ( !scalar(@fields) ) {
+        @fields = ( 'title', 'author', 'subject', 'title-series', 'local-classification' );
     }
-    
+
     my $mappings = $self->get_elasticsearch_mappings();
     my @suggestionfields;
-    for $field(@fields) {
-        push @suggestionfields, $field if ( exists($mappings->{properties}->{$field}) && exists($mappings->{properties}->{"${field}__suggestion"}) );
+    for $field (@fields) {
+        push @suggestionfields, $field
+            if ( exists( $mappings->{properties}->{$field} )
+            && exists( $mappings->{properties}->{"${field}__suggestion"} ) );
     }
-    
+
     my $query = {
-        _source => ["title-cover","author-title"],
+        _source => [ "title-cover", "author-title" ],
         size    => 1,
         suggest => {}
     };
-    foreach $field(@suggestionfields) {
-        $query->{suggest}->{"${field}_suggestion"} =
-            {
-                prefix => $searchstring,
-                completion => {
-                    field           => "${field}__suggestion",
-                    size            => $count,
-                    skip_duplicates => JSON::true
-                }
-            };
+    foreach $field (@suggestionfields) {
+        $query->{suggest}->{"${field}_suggestion"} = {
+            prefix     => $searchstring,
+            completion => {
+                field           => "${field}__suggestion",
+                size            => $count,
+                skip_duplicates => JSON::true
+            }
+        };
     }
-    return ($query,$count);
+    return ( $query, $count );
 }
 
 1;

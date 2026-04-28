@@ -3,8 +3,9 @@ use Koha::Installer::Output qw(say_warning say_success say_info);
 
 return {
     bug_number  => "",
-    description => "Adds new system preference PaymentsPatronCategories to enable the payment function in OPAC based on patron category.",
-    up          => sub {
+    description =>
+        "Adds new system preference PaymentsPatronCategories to enable the payment function in OPAC based on patron category.",
+    up => sub {
         my ($args) = @_;
         my ( $dbh, $out ) = @$args{qw(dbh out)};
 

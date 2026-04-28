@@ -170,12 +170,13 @@ sub get_string_width_by_params {
     my ( $class, $args ) = @_;
 
     if ( !defined $class->{'align'} ) {
-        Koha::Exceptions::MissingParameter->throw(
-            'image is undefined as parameter in get_string_width_by_params');
+        Koha::Exceptions::MissingParameter->throw('image is undefined as parameter in get_string_width_by_params');
     }
 
-    $class->{'align'}->set_font( $class->{'font'}->{'name'},
-        $args->{'fontsize'} || $class->{'font'}->{'size'} );
+    $class->{'align'}->set_font(
+        $class->{'font'}->{'name'},
+        $args->{'fontsize'} || $class->{'font'}->{'size'}
+    );
     $class->{'align'}->set_text( $args->{'string'} );
 
     return $class->{'align'}->get('width');
@@ -204,15 +205,14 @@ sub trim_string {
     }
 
     # Check if the new line fits into the box.
-    my $new_string_width
-        = $class->get_string_width_by_params( { string => $new_line } );
+    my $new_string_width = $class->get_string_width_by_params( { string => $new_line } );
 
     # If it does, return the new line and handle the leftovers.
     if ( $new_string_width <= $class->{'dimensions'}->{'content_width'} ) {
         return $new_line;
     }
 
-# If a single word is bigger than the box, we have to prevent an infinite loop.
+    # If a single word is bigger than the box, we have to prevent an infinite loop.
     if ( $new_string_width > $class->{'dimensions'}->{'content_width'}
         && scalar @words == 1 )
     {
@@ -226,8 +226,7 @@ sub trim_string {
 sub format_string {
     my ( $class, $args ) = @_;
 
-    my $string_width = $class->get_string_width_by_params(
-        { string => $args->{'string'} } );
+    my $string_width = $class->get_string_width_by_params( { string => $args->{'string'} } );
 
     if ( $string_width <= $class->{'dimensions'}->{'content_width'} ) {
         return $args->{'string'};
@@ -260,11 +259,9 @@ sub format_string {
             $leftover_words .= "$word ";
         }
 
-        my $new_string_width = $class->get_string_width_by_params(
-            { string => $leftover_words } );
+        my $new_string_width = $class->get_string_width_by_params( { string => $leftover_words } );
 
-        if ( $new_string_width <= $class->{'dimensions'}->{'content_width'} )
-        {
+        if ( $new_string_width <= $class->{'dimensions'}->{'content_width'} ) {
             $formatted_string .= "$leftover_words\n";
             $leftover_words = EMPTY;
         }
@@ -285,11 +282,9 @@ sub format_string {
 sub draw_text {
     my ( $class, $args ) = @_;
 
-    my $result_string
-        = $class->format_string( { string => $args->{'content_string'}, } );
+    my $result_string = $class->format_string( { string => $args->{'content_string'}, } );
 
-    my $new_image_width
-        = $class->get_string_width_by_params( { string => $result_string, } );
+    my $new_image_width = $class->get_string_width_by_params( { string => $result_string, } );
 
     my $new_fontsize = 0;
 
@@ -297,10 +292,10 @@ sub draw_text {
         if ( !$new_fontsize ) {
             $new_fontsize = $class->{'font'}->{'size'} - 2;
         }
-        $class->{'align'}
-            ->set_font( $class->{'font'}->{'name'}, $new_fontsize );
+        $class->{'align'}->set_font( $class->{'font'}->{'name'}, $new_fontsize );
         $new_image_width = $class->get_string_width_by_params(
-            {   fontsize => $new_fontsize,
+            {
+                fontsize => $new_fontsize,
                 string   => $result_string
             }
         );
@@ -314,10 +309,7 @@ sub draw_text {
         $class->{'align'}->set_text($line);
         $class->{'align'}->draw(
             $class->{'positions'}->{'horizontal_center'},
-            $args->{'vertical_position'} + $index * (
-                $class->{'font'}->{'size'}
-                    + ( $class->{'font'}->{'size'} / 2 )
-            ),
+            $args->{'vertical_position'} + $index * ( $class->{'font'}->{'size'} + ( $class->{'font'}->{'size'} / 2 ) ),
             0
         );
         $index++;
@@ -331,7 +323,8 @@ sub render_image {
 
     if ( $class->{'first_line'}->{'string'} ) {
         $class->draw_text(
-            {   content_string    => $class->{'first_line'}->{'string'},
+            {
+                content_string    => $class->{'first_line'}->{'string'},
                 vertical_position => $class->{'positions'}->{'vertical_top'},
             }
 
@@ -340,7 +333,8 @@ sub render_image {
 
     if ( $class->{'second_line'}->{'string'} ) {
         $class->draw_text(
-            {   content_string    => $class->{'second_line'}->{'string'},
+            {
+                content_string    => $class->{'second_line'}->{'string'},
                 vertical_position => !$class->{'first_line'}->{'string'}
                 ? $class->{'positions'}->{'vertical_top'}
                 : $class->{'positions'}->{'vertical_bottom'},

@@ -7,14 +7,19 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% title_in_title = INCLUDE 'biblio-title-head.inc' %]
-    [% tx("Item details for {title}", { title = title_in_title }) | html %] &rsaquo;
-    [% t("Catalog") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% title_in_title = INCLUDE 'biblio-title-head.inc' %]
+        [% tx("Item details for {title}", { title = title_in_title }) | html %]
+        &rsaquo; [% t("Catalog") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
-<style>.listgroup .rows{margin-left:1em;}</style>
+<style>
+    .listgroup .rows {
+        margin-left: 1em;
+    }
+</style>
 </head>
 <body id="catalog_moredetail" class="catalog">
 [% USE KohaDates %]
@@ -49,7 +54,7 @@
                     <div class="page-section clearfix">
                         <h2>[% title | html %]</h2>
                         [% IF ( subtitle ) %]
-                            <h4>[% FOREACH subtitl IN subtitle %] [% subtitl | html %][% END %]</h4>
+                            <h4>[% FOREACH subtitl IN subtitle %][% subtitl | html %][% END %]</h4>
                         [% END %]
                         [% IF ( author ) %]
                             <h4>by [% author | html %]</h4>
@@ -87,13 +92,19 @@
                                             <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% biblionumber | uri %]&amp;showallitems=1">Show all items</a>
                                         [% END %]
                                     </li>
-                                </ol> <!-- /.bibliodetails -->
-                            </div> <!-- /.rows -->
-                        </div> <!-- /.listgroup -->
-                    </div> <!-- /.page-section -->
+                                </ol>
+                                <!-- /.bibliodetails -->
+                            </div>
+                            <!-- /.rows -->
+                        </div>
+                        <!-- /.listgroup -->
+                    </div>
+                    <!-- /.page-section -->
 
                     [% IF ( ONLY_ONE ) %]
-                        <div class="alert alert-info">You are only viewing one item.  <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% biblionumber | uri %]&amp;bi=[% biblioitemnumber | uri %]#item[% itemnumber | uri %]">View all</a></div>
+                        <div class="alert alert-info"
+                            >You are only viewing one item. <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% biblionumber | uri %]&amp;bi=[% biblioitemnumber | uri %]#item[% itemnumber | uri %]">View all</a></div
+                        >
                     [% END %]
 
                     [% IF updated_exclude_from_local_holds_priority.defined %]
@@ -114,15 +125,15 @@
                                 [% SET not_for_loan_description = AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.notforloan', authorised_value => item.notforloan ) %]
                             [% END %]
                             <div class="listgroup">
-                                <h3 id="item[% ITEM_DAT.itemnumber | html %]">
-                                    Barcode [% ITEM_DAT.barcode | html %]  [% IF not_for_loan %][% not_for_loan_description | html %] [% END %]
-                                </h3>
+                                <h3 id="item[% ITEM_DAT.itemnumber | html %]"> Barcode [% ITEM_DAT.barcode | html %] [% IF not_for_loan %][% not_for_loan_description | html %][% END %] </h3>
 
                                 <h4>
                                     Item information
                                     [% UNLESS ( ITEM_DAT.nomod ) %]
                                         [% IF ( CAN_user_editcatalogue_edit_items ) %]
-                                            <a href="/cgi-bin/koha/cataloguing/additem.pl?op=edititem&amp;biblionumber=[% ITEM_DAT.biblionumber | uri %]&amp;itemnumber=[% ITEM_DAT.itemnumber | uri %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit item</a>
+                                            <a href="/cgi-bin/koha/cataloguing/additem.pl?op=edititem&amp;biblionumber=[% ITEM_DAT.biblionumber | uri %]&amp;itemnumber=[% ITEM_DAT.itemnumber | uri %]"
+                                                ><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit item</a
+                                            >
                                         [% END %]
                                     [% END %]
                                 </h4>
@@ -152,9 +163,12 @@
                                         [% IF ITEM_DAT.materials %]
                                             <li class="materials"><span class="label">Materials specified:</span> [% ITEM_DAT.materials | html %]</li>
                                         [% END %]
-                                    </ol> <!-- /.bibliodetails -->
-                                    </div> <!-- /.rows -->
-                            </div> <!-- /.listgroup -->
+                                    </ol>
+                                    <!-- /.bibliodetails -->
+                                </div>
+                                <!-- /.rows -->
+                            </div>
+                            <!-- /.listgroup -->
 
                             <div class="listgroup">
                                 <h4>
@@ -195,8 +209,8 @@
                                         [% IF ITEM_DAT.object.checkout.renewals_count %]
                                             <li class="renewals_count">
                                                 <span class="label">Current renewals:</span>
-                                                [% ITEM_DAT.object.checkout.renewals_count | html %]
-                                                    [ <a class="checkout_renewals_view" data-renewals="[% ITEM_DAT.object.checkout.renewals_count | html | html %]" data-issueid="[% ITEM_DAT.object.checkout.id | html %]" href="#">View</a> ]
+                                                [% ITEM_DAT.object.checkout.renewals_count | html %] [
+                                                <a class="checkout_renewals_view" data-renewals="[% ITEM_DAT.object.checkout.renewals_count | html | html %]" data-issueid="[% ITEM_DAT.object.checkout.id | html %]" href="#">View</a> ]
                                             </li>
                                         [% END %]
                                         [% IF itemlostloop %]
@@ -211,16 +225,18 @@
                                                         <input type="hidden" name="itemnumber" value="[% ITEM_DAT.itemnumber | html %]" />
 
                                                         <select name="itemlost">
-                                                        <option value="">Choose</option>
-                                                        [% FOREACH itemlostloo IN itemlostloop %]
-                                                            [% IF itemlostloo.authorised_value == ITEM_DAT.itemlost %]
-                                                                <option value="[% itemlostloo.authorised_value | html %]" selected="selected">[% itemlostloo.lib | html %]</option>
-                                                            [% ELSIF ClaimReturnedLostValue && itemlostloo.authorised_value == ClaimReturnedLostValue #Filter claims returned status from pulldown %]
-                                                                <option value="[% itemlostloo.authorised_value | html %]" disabled="disabled" title="Return claims must be processed from the patron details page">[% itemlostloo.lib | html %]</option>
-                                                            [% ELSE %]
-                                                                <option value="[% itemlostloo.authorised_value | html %]">[% itemlostloo.lib | html %]</option>
+                                                            <option value="">Choose</option>
+                                                            [% FOREACH itemlostloo IN itemlostloop %]
+                                                                [% IF itemlostloo.authorised_value == ITEM_DAT.itemlost %]
+                                                                    <option value="[% itemlostloo.authorised_value | html %]" selected="selected">[% itemlostloo.lib | html %]</option>
+                                                                [% ELSIF ClaimReturnedLostValue && itemlostloo.authorised_value == ClaimReturnedLostValue #Filter claims returned status from pulldown %]
+                                                                    <option value="[% itemlostloo.authorised_value | html %]" disabled="disabled" title="Return claims must be processed from the patron details page"
+                                                                        >[% itemlostloo.lib | html %]</option
+                                                                    >
+                                                                [% ELSE %]
+                                                                    <option value="[% itemlostloo.authorised_value | html %]">[% itemlostloo.lib | html %]</option>
+                                                                [% END %]
                                                             [% END %]
-                                                        [% END %]
                                                         </select>
                                                         <input type="hidden" name="withdrawn" value="[% ITEM_DAT.withdrawn | html %]" />
                                                         <input type="hidden" name="damaged" value="[% ITEM_DAT.damaged | html %]" />
@@ -253,7 +269,7 @@
                                                         <input type="hidden" name="biblionumber" value="[% ITEM_DAT.biblionumber | html %]" />
                                                         <input type="hidden" name="biblioitemnumber" value="[% ITEM_DAT.biblioitemnumber | html %]" />
                                                         <input type="hidden" name="itemnumber" value="[% ITEM_DAT.itemnumber | html %]" />
-                                                        <select name="damaged" >
+                                                        <select name="damaged">
                                                             <option value="">Choose</option>
                                                             [% FOREACH itemdamagedloo IN itemdamagedloop %]
                                                                 [% IF itemdamagedloo.authorised_value == ITEM_DAT.damaged %]
@@ -288,7 +304,7 @@
                                                         <input type="hidden" name="biblionumber" value="[% ITEM_DAT.biblionumber | html %]" />
                                                         <input type="hidden" name="biblioitemnumber" value="[% ITEM_DAT.biblioitemnumber | html %]" />
                                                         <input type="hidden" name="itemnumber" value="[% ITEM_DAT.itemnumber | html %]" />
-                                                        <select name="withdrawn" >
+                                                        <select name="withdrawn">
                                                             <option value="">Choose</option>
                                                             [% FOREACH itemwithdrawn IN itemwithdrawnloop %]
                                                                 [% IF itemwithdrawn.authorised_value == ITEM_DAT.withdrawn %]
@@ -313,10 +329,12 @@
                                                 <li><span class="label">Withdrawn on:</span>[% ITEM_DAT.withdrawn_on | $KohaDates %]</li>
                                             [% END %]
                                         [% END %]
-
-                                </ol> <!-- /.bibliodetails -->
-                                    </div> <!-- /.rows -->
-                            </div> <!-- /.listgroup -->
+                                    </ol>
+                                    <!-- /.bibliodetails -->
+                                </div>
+                                <!-- /.rows -->
+                            </div>
+                            <!-- /.listgroup -->
 
                             <div class="listgroup">
                                 <h4>Priority</h4>
@@ -343,9 +361,7 @@
                                             </form>
                                         </li>
                                         <li class="bookable">
-                                            <span class="label">
-                                                Bookable:
-                                            </span>
+                                            <span class="label"> Bookable: </span>
                                             [% IF ( CAN_user_circulate ) %]
                                                 <form action="updateitem.pl" method="post">
                                                     [% INCLUDE 'csrf-token.inc' %]
@@ -353,38 +369,39 @@
                                                     <input type="hidden" name="biblioitemnumber" value="[% ITEM_DAT.biblioitemnumber | html %]" />
                                                     <input type="hidden" name="itemnumber" value="[% ITEM_DAT.itemnumber | html %]" />
                                                     <select name="bookable">
-                                                    [% IF ITEM_DAT.bookable == 1 %]
-                                                        <option value="">Follow item type</option>
-                                                        <option value="1" selected="selected">Yes</option>
-                                                        <option value="0">No</option>
-                                                    [% ELSIF ITEM_DAT.bookable == 0 %]
-                                                        <option value="">Follow item type</option>
-                                                        <option value="1">Yes</option>
-                                                        <option value="0" selected="selected">No</option>
-                                                    [% ELSE %]
-                                                        <option value="" selected="selected">Follow item type</option>
-                                                        <option value="1">Yes</option>
-                                                        <option value="0">No</option>
-                                                    [% END %]
+                                                        [% IF ITEM_DAT.bookable == 1 %]
+                                                            <option value="">Follow item type</option>
+                                                            <option value="1" selected="selected">Yes</option>
+                                                            <option value="0">No</option>
+                                                        [% ELSIF ITEM_DAT.bookable == 0 %]
+                                                            <option value="">Follow item type</option>
+                                                            <option value="1">Yes</option>
+                                                            <option value="0" selected="selected">No</option>
+                                                        [% ELSE %]
+                                                            <option value="" selected="selected">Follow item type</option>
+                                                            <option value="1">Yes</option>
+                                                            <option value="0">No</option>
+                                                        [% END %]
                                                     </select>
                                                     <input type="hidden" name="op" value="cud-set_bookable" />
                                                     <input type="submit" name="submit" class="btn btn-primary btn-xs" value="Update" />
                                                 </form>
                                             [% ELSE %]
-                                                [% IF ITEM_DAT.bookable == 1 %] Yes [% ELSIF ITEM_DAT.bookable == 0 %] No [% ELSE %] Follow item type [% END %]
+                                                [% IF ITEM_DAT.bookable == 1 %]Yes[% ELSIF ITEM_DAT.bookable == 0 %]No[% ELSE %]Follow item type[% END %]
                                             [% END %]
                                             <span class="hint"> Item type bookable: [% IF ITEM_DAT.effective_itemtype.bookable == 1 %]Yes[% ELSE %]No[% END %]</span>
                                         </li>
-
-                                    </ol> <!-- /.bibliodetails -->
-                                    </div> <!-- /.rows -->
-                            </div> <!-- /.listgroup -->
+                                    </ol>
+                                    <!-- /.bibliodetails -->
+                                </div>
+                                <!-- /.rows -->
+                            </div>
+                            <!-- /.listgroup -->
 
                             <div class="listgroup">
                                 <h4>History</h4>
                                 <div class="rows">
                                     <ol class="bibliodetails">
-
                                         [% IF ITEM_DAT.basketno %]
                                             <li class="order_info">
                                                 <span class="label">Order date:</span>
@@ -432,7 +449,7 @@
                                             <span class="label">Last seen:</span>
                                             [% IF ( ITEM_DAT.datelastseen ) %]
                                                 [% ITEM_DAT.datelastseen | $KohaDates with_hours => 1 %]
-                                            [%END %]
+                                            [% END %]
                                         </li>
                                         <li class="datelastborrowed">
                                             <span class="label">Last borrowed:</span>
@@ -474,7 +491,8 @@
                                         <li class="itemnotes">
                                             <span class="label">Public note:</span>
                                             [% IF ( CAN_user_editcatalogue_edit_items ) %]
-                                                <form class="inline" action="updateitem.pl" method="post"><input type="hidden" name="biblionumber" value="[% ITEM_DAT.biblionumber | html %]" />
+                                                <form class="inline" action="updateitem.pl" method="post"
+                                                    ><input type="hidden" name="biblionumber" value="[% ITEM_DAT.biblionumber | html %]" />
                                                     [% INCLUDE 'csrf-token.inc' %]
                                                     <input type="hidden" name="biblioitemnumber" value="[% ITEM_DAT.biblioitemnumber | html %]" /><input type="hidden" name="itemnumber" value="[% ITEM_DAT.itemnumber | html %]" />
                                                     <input type="hidden" name="op" value="cud-set_public_note" />
@@ -488,61 +506,74 @@
                                         <li class="itemnotes_nonpublic">
                                             <span class="label">Non-public note:</span>
                                             [% IF ( CAN_user_editcatalogue_edit_items ) %]
-                                                <form class="inline" action="updateitem.pl" method="post"><input type="hidden" name="biblionumber" value="[% ITEM_DAT.biblionumber | html %]" />
+                                                <form class="inline" action="updateitem.pl" method="post"
+                                                    ><input type="hidden" name="biblionumber" value="[% ITEM_DAT.biblionumber | html %]" />
                                                     [% INCLUDE 'csrf-token.inc' %]
                                                     <input type="hidden" name="biblioitemnumber" value="[% ITEM_DAT.biblioitemnumber | html %]" /><input type="hidden" name="itemnumber" value="[% ITEM_DAT.itemnumber | html %]" />
                                                     <input type="hidden" name="op" value="cud-set_non_public_note" />
-                                                    <textarea name="itemnotes_nonpublic" rows="2" cols="30">[% ITEM_DAT.itemnotes_nonpublic | html %]</textarea><input type="submit" name="submit" class="btn btn-primary btn-xs" value="Update" />
+                                                    <textarea name="itemnotes_nonpublic" rows="2" cols="30">[% ITEM_DAT.itemnotes_nonpublic | html %]</textarea
+                                                    ><input type="submit" name="submit" class="btn btn-primary btn-xs" value="Update" />
                                                 </form>
                                             [% ELSE %]
                                                 [% ITEM_DAT.itemnotes_nonpublic | html %]
                                             [% END %]
                                         </li>
-                                    </ol> <!-- /.bibliodetails -->
-                                    </div> <!-- /.rows -->
-                            </div> <!-- /.listgroup -->
-                        </div> <!-- /.page-section -->
+                                    </ol>
+                                    <!-- /.bibliodetails -->
+                                </div>
+                                <!-- /.rows -->
+                            </div>
+                            <!-- /.listgroup -->
+                        </div>
+                        <!-- /.page-section -->
                     [% END # /FOREACH ITEM_DAT %]
-                </div> <!-- /#catalogue_detail_biblio -->
+                </div>
+                <!-- /#catalogue_detail_biblio -->
             </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'biblio-view-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-     </div> <!-- /.row -->
+            <aside> [% INCLUDE 'biblio-view-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
-[% IF ( Koha.Preference('CatalogConcerns') ) %]
-[% INCLUDE 'modals/add_catalog_concern.inc' %]
-[% END %]
-
-[% MACRO jsinclude BLOCK %]
-    [% INCLUDE 'catalog-strings.inc' %]
-    [% INCLUDE 'modals/checkout_renewals.inc' %]
-    [% INCLUDE 'js-date-format.inc' %]
-    [% Asset.js("lib/dayjs/plugin/isSameOrAfter.js") | $raw %]
-    [% Asset.js("lib/dayjs/plugin/isSameOrBefore.js") | $raw %]
-    <script>dayjs.extend(window.dayjs_plugin_isSameOrAfter)</script>
-    <script>dayjs.extend(window.dayjs_plugin_isSameOrBefore)</script>
-    [% INCLUDE 'js-patron-format.inc' %]
-    [% INCLUDE 'calendar.inc' %]
-    [% INCLUDE 'select2.inc' %]
-    [% Asset.js("js/catalog.js") | $raw %]
-    [% Asset.js("js/modals/place_booking.js") | $raw %]
-    [% Asset.js("js/browser.js") | $raw %]
-    [% Asset.js("js/checkout_renewals_modal.js") | $raw %]
     [% IF ( Koha.Preference('CatalogConcerns') ) %]
-        <script>
-            /* Set a variable needed by add_catalog_concern.js */
-            var logged_in_user_borrowernumber = "[% logged_in_user.borrowernumber | html %]";
-        </script>
-        [% Asset.js("js/modals/add_catalog_concern.js") | $raw %]
+        [% INCLUDE 'modals/add_catalog_concern.inc' %]
     [% END %]
-    <script>
-        var browser = KOHA.browser('[% searchid | html %]', parseInt('[% biblionumber | html %]', 10));
-        browser.show();
-    </script>
-[% END %]
-[% INCLUDE 'intranet-bottom.inc' %]
+
+    [% MACRO jsinclude BLOCK %]
+        [% INCLUDE 'catalog-strings.inc' %]
+        [% INCLUDE 'modals/checkout_renewals.inc' %]
+        [% INCLUDE 'js-date-format.inc' %]
+        [% Asset.js("lib/dayjs/plugin/isSameOrAfter.js") | $raw %]
+        [% Asset.js("lib/dayjs/plugin/isSameOrBefore.js") | $raw %]
+        <script>
+            dayjs.extend(window.dayjs_plugin_isSameOrAfter);
+        </script>
+        <script>
+            dayjs.extend(window.dayjs_plugin_isSameOrBefore);
+        </script>
+        [% INCLUDE 'js-patron-format.inc' %]
+        [% INCLUDE 'calendar.inc' %]
+        [% INCLUDE 'select2.inc' %]
+        [% Asset.js("js/catalog.js") | $raw %]
+        [% Asset.js("js/modals/place_booking.js") | $raw %]
+        [% Asset.js("js/browser.js") | $raw %]
+        [% Asset.js("js/checkout_renewals_modal.js") | $raw %]
+        [% IF ( Koha.Preference('CatalogConcerns') ) %]
+            <script>
+                /* Set a variable needed by add_catalog_concern.js */
+                var logged_in_user_borrowernumber = "[% logged_in_user.borrowernumber | html %]";
+            </script>
+            [% Asset.js("js/modals/add_catalog_concern.js") | $raw %]
+        [% END %]
+        <script>
+            var browser = KOHA.browser('[% searchid | html %]', parseInt('[% biblionumber | html %]', 10));
+            browser.show();
+        </script>
+    [% END %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

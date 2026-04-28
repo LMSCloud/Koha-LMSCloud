@@ -59,7 +59,8 @@ sub get {
 
     try {
         my $cover_generator = Koha::CoverGenerator->new(
-            {   first_line  => $first_line,
+            {
+                first_line  => $first_line,
                 second_line => $second_line,
                 font        => FONT,
                 font_path   => FONT_PATH,
@@ -83,8 +84,7 @@ sub get {
             status  => 200,
             openapi => "data:image/png;base64,$generated_cover_image_source"
         );
-    }
-    catch {
+    } catch {
         $c->unhandled_exception($_);
     };
 

@@ -65,12 +65,12 @@ use Koha::SearchEngine;
 use Koha::SearchEngine::Indexer;
 
 my $help;
-my $batch_size = 10;
+my $batch_size        = 10;
 my $not_found_retries = {};
-my $max_retries = $ENV{MAX_RETRIES} || 10;
+my $max_retries       = $ENV{MAX_RETRIES} || 10;
 
 GetOptions(
-    'h|help' => \$help,
+    'h|help'         => \$help,
     'b|batch_size=s' => \$batch_size
 ) || pod2usage(1);
 
@@ -78,22 +78,23 @@ pod2usage(0) if $help;
 
 warn "Not using Elasticsearch" unless C4::Context->preference('SearchEngine') eq 'Elasticsearch';
 
-my $logger = Koha::Logger->get({ interface =>  'worker' });
+my $logger = Koha::Logger->get( { interface => 'worker' } );
 
 my $notification_method = C4::Context->preference('JobsNotificationMethod') // 'STOMP';
 
 my ( $conn, $error );
 if ( $notification_method eq 'STOMP' ) {
-try {
-    $conn = Koha::BackgroundJob->connect;
-} catch {
+    try {
+        $conn = Koha::BackgroundJob->connect;
+    } catch {
         $error = sprintf "Cannot connect to the message broker, the jobs will be processed anyway (%s)", $_;
-};
+    };
     $error ||= "Cannot connect to the message broker, the jobs will be processed anyway" unless $conn;
     warn $error if $error;
 }
 
-if ( $conn ) {
+if ($conn) {
+
     # FIXME cf note in Koha::BackgroundJob about $namespace
     my $namespace = C4::Context->config('memcached_namespace');
     $conn->subscribe(
@@ -113,20 +114,21 @@ my @jobs = ();
 
 while (1) {
 
-    if ( $conn ) {
+    if ($conn) {
         my $frame = $conn->receive_frame;
         if ( !defined $frame ) {
+
             # maybe log connection problems
             next;    # will reconnect automatically
         }
 
         my $args = try {
             my $command      = $frame->command;
-            my $body = $frame->body;
+            my $body         = $frame->body;
             my $content_type = $frame->content_type;
             if ( $command && $command eq 'MESSAGE' ) {
                 if ( $content_type && $content_type eq 'application/json' ) {
-            decode_json($body); # TODO Should this be from_json? Check utf8 flag.
+                    decode_json($body);    # TODO Should this be from_json? Check utf8 flag.
                 } else {
 
                     #TODO: This is a fallback for older enqueued messages which are missing the content-type header
@@ -143,12 +145,13 @@ while (1) {
                 exit 1;
             }
         } catch {
-            Koha::Logger->get({ interface => 'worker' })->warn(sprintf "Frame not processed - %s", $_);
+            Koha::Logger->get( { interface => 'worker' } )->warn( sprintf "Frame not processed - %s", $_ );
             return;
         };
 
-        unless ( $args ) {
-            Koha::Logger->get({ interface => 'worker' })->warn(sprintf "Frame does not have correct args, ignoring it");
+        unless ($args) {
+            Koha::Logger->get( { interface => 'worker' } )
+                ->warn( sprintf "Frame does not have correct args, ignoring it" );
             $conn->nack( { frame => $frame, requeue => 'false' } );
             next;
         }
@@ -210,13 +213,16 @@ sub commit {
     my @bib_records;
     my @auth_records;
 
-    my $jobs = Koha::BackgroundJobs->search( { id => [ map { $_->id } @jobs ] });
+    my $jobs = Koha::BackgroundJobs->search( { id => [ map { $_->id } @jobs ] } );
+
     # Start
-    $jobs->update({
-        progress => 0,
-        status => 'started',
-        started_on => \'NOW()',
-    });
+    $jobs->update(
+        {
+            progress   => 0,
+            status     => 'started',
+            started_on => \'NOW()',
+        }
+    );
 
     for my $job (@jobs) {
         my $args = try {
@@ -256,9 +262,11 @@ sub commit {
     }
 
     # Finish
-    $jobs->update({
-        progress => 1,
-        status => 'finished',
-        ended_on => \'NOW()',
-    });
+    $jobs->update(
+        {
+            progress => 1,
+            status   => 'finished',
+            ended_on => \'NOW()',
+        }
+    );
 }

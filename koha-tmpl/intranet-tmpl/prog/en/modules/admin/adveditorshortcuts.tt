@@ -4,18 +4,19 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("Advanced editor shortcuts") | html %] &rsaquo;
-    [% t("Administration") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Advanced editor shortcuts") | html %]
+        &rsaquo; [% t("Administration") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="adveditor_shortcuts" class="admin">
-    [% WRAPPER 'header.inc' %]
+[% WRAPPER 'header.inc' %]
     [% INCLUDE 'prefs-admin-search.inc' %]
 [% END %]
-    [% PROCESS 'keyboard_shortcuts.inc' %]
+[% PROCESS 'keyboard_shortcuts.inc' %]
 
 [% WRAPPER 'sub-header.inc' %]
     [% WRAPPER breadcrumbs %]
@@ -47,42 +48,45 @@
                     <form id="adveditor_shortcuts" method="post" action="/cgi-bin/koha/admin/adveditorshortcuts.pl">
                         [% INCLUDE 'csrf-token.inc' %]
                         <fieldset>
-                        <input type=hidden name="op" value="cud-save" />
+                            <input type="hidden" name="op" value="cud-save" />
 
-                        <table id="adv_editor_keyboard_shortcuts">
-                            <thead>
-                                <th>Description</th>
-                                <th>Shortcut keys</th>
-                            </thead>
-                            <tbody>
-                               [% FOREACH shortcut IN shortcuts %]
-                            <tr>
-                                <td><label for="shortcut_keys">[% PROCESS keyboard_shortcut_descriptions shortcut_name=shortcut.shortcut_name %]</label></td>
-                                <td>
-                                    <input type="hidden" name="shortcut_name" value="[% shortcut.shortcut_name | html %]">
-                                    <input type="text" name="shortcut_keys" value="[% shortcut.shortcut_keys | html %]">
-                               </td>
-                            </tr>
-                       [% END %]
-                       </table>
-                       </fieldset>
-                       <fieldset class="action"><input type="submit" class="btn btn-primary" value="Save shortcuts"></fieldset>
-                   </form>
-               [% ELSE %]
-                   <p>Enable the advanced cataloging editor ( EnableAdvancedCatalogingEditor system preference) to define keyboard shortcuts</p>
-               [% END %]
-           </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
+                            <table id="adv_editor_keyboard_shortcuts">
+                                <thead>
+                                    <th>Description</th>
+                                    <th>Shortcut keys</th>
+                                </thead>
+                                <tbody>
+                                    [% FOREACH shortcut IN shortcuts %]
+                                        <tr>
+                                            <td><label for="shortcut_keys">[% PROCESS keyboard_shortcut_descriptions shortcut_name=shortcut.shortcut_name %]</label></td>
+                                            <td>
+                                                <input type="hidden" name="shortcut_name" value="[% shortcut.shortcut_name | html %]" />
+                                                <input type="text" name="shortcut_keys" value="[% shortcut.shortcut_keys | html %]" />
+                                            </td>
+                                        </tr>
+                                    [% END %]
+                                </tbody></table
+                            >
+                        </fieldset>
+                        <fieldset class="action"><input type="submit" class="btn btn-primary" value="Save shortcuts" /></fieldset>
+                    </form>
+                [% ELSE %]
+                    <p>Enable the advanced cataloging editor ( EnableAdvancedCatalogingEditor system preference) to define keyboard shortcuts</p>
+                [% END %]
+            </main>
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'admin-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-    </div> <!-- /.row -->
+            <aside> [% INCLUDE 'admin-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
-[% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/tools-menu.js") | $raw %]
-[% END %]
+    [% MACRO jsinclude BLOCK %]
+        [% Asset.js("js/tools-menu.js") | $raw %]
+    [% END %]
 
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

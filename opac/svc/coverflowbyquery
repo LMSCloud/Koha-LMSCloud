@@ -28,16 +28,15 @@ use Modern::Perl;
 use CGI qw ( -utf8 );
 
 use C4::Context;
-use C4::Auth qw( get_template_and_user );
-use C4::Output qw( output_with_http_headers );
+use C4::Auth          qw( get_template_and_user );
+use C4::Output        qw( output_with_http_headers );
 use C4::CoverFlowData qw(GetCoverFlowDataByQueryString);
-
 
 my @bibids;
 
-my $cgi = CGI->new;
-my $query = $cgi->param('query');
-my $offset = $cgi->param('offset');
+my $cgi      = CGI->new;
+my $query    = $cgi->param('query');
+my $offset   = $cgi->param('offset');
 my $maxcount = $cgi->param('maxcount');
 
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
@@ -49,14 +48,14 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
-my $coverdata = GetCoverFlowDataByQueryString($query,$offset,$maxcount);
+my $coverdata = GetCoverFlowDataByQueryString( $query, $offset, $maxcount );
 
 $template->param(
-    count => (exists($coverdata->{count}) ? $coverdata->{count} : 0),
-    totalcount => (exists($coverdata->{totalcount}) ? $coverdata->{totalcount} : 0),
-    offset => (exists($coverdata->{totalcount}) ? $coverdata->{offset} : 0),
-    query => (exists($coverdata->{totalcount}) ? $coverdata->{query} : 0),
-    items => (exists($coverdata->{items}) ? $coverdata->{items} : ()),
+    count      => ( exists( $coverdata->{count} )      ? $coverdata->{count}      : 0 ),
+    totalcount => ( exists( $coverdata->{totalcount} ) ? $coverdata->{totalcount} : 0 ),
+    offset     => ( exists( $coverdata->{totalcount} ) ? $coverdata->{offset}     : 0 ),
+    query      => ( exists( $coverdata->{totalcount} ) ? $coverdata->{query}      : 0 ),
+    items      => ( exists( $coverdata->{items} )      ? $coverdata->{items}      : () ),
 );
 
 output_with_http_headers $cgi, $cookie, $template->output, 'json';

@@ -2,11 +2,13 @@
 [% USE Koha %]
 [% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("Invalid course") | html %]
-    [% t("Course reserves") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Invalid course") | html %]
+        [% t("Course reserves") | html %]
+        &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 <body id="courses_invalid_course" class="course">
 
@@ -33,8 +35,8 @@
             <div class="alert alert-warning">
                 <h1>Invalid course!</h1>
             </div>
-
         </div>
     </div>
 
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

@@ -53,10 +53,10 @@
                     <li><a href="/cgi-bin/koha/rotating_collections/rotatingCollections.pl">Rotating collections</a></li>
                 [% END %]
                 [% IF ( CAN_user_tools_cash_register_manage ) %]
-	                <li><a href="/cgi-bin/koha/tools/cash-register-management.pl">Cash register management</a></li>
+                    <li><a href="/cgi-bin/koha/tools/cash-register-management.pl">Cash register management</a></li>
                 [% END %]
                 [% IF ( CAN_user_tools_duedate_update ) %]
-	                <li><a href="/cgi-bin/koha/tools/duedate_change.pl">Update due-dates</a></li>
+                    <li><a href="/cgi-bin/koha/tools/duedate_change.pl">Update due-dates</a></li>
                 [% END %]
                 [% IF ( CAN_user_parameters_manage_auth_values ) %]
                     <li><a href="/cgi-bin/koha/tools/batchModificationOfAuthorizedValues.pl">Authorised values batch update</a></li>
@@ -114,5 +114,7 @@
                 <li><a href="/cgi-bin/koha/pos/register.pl">Transaction history for [% Registers.session_register_name | html %]</a></li>
             </ul>
         [% END %]
-    </div> <!-- /#navmenulist -->
-</div> <!-- /#navmenu -->
+    </div>
+    <!-- /#navmenulist -->
+</div>
+<!-- /#navmenu -->

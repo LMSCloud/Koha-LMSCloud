@@ -22,7 +22,7 @@ use warnings;
 
 use utf8;
 use Exporter;
-our @ISA = qw(Exporter);
+our @ISA    = qw(Exporter);
 our @EXPORT = qw(authenticate);
 use Digest::MD5 qw(md5_base64);
 
@@ -31,18 +31,17 @@ use Koha::AuthUtils qw( hash_password );
 use Koha::Logger;
 use Koha::Patrons;
 
-
 sub authenticate {
-    my ($userid, $pw) = @_;
+    my ( $userid, $pw ) = @_;
     my $authenticated = 0;
-    my $dbh = C4::Context->dbh;
+    my $dbh           = C4::Context->dbh;
 
     my $patron = Koha::Patrons->search( { userid => $userid } )->next();
     if ( defined($patron) && &checkpw( $dbh, $patron->borrowernumber(), $pw ) ) {
         $authenticated = 1;
     }
-    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ' });
-    $logger->debug("authenticate() returns authenticated:" . $authenticated . ":");
+    my $logger = Koha::Logger->get( { interface => 'C4::External::EKZ' } );
+    $logger->debug( "authenticate() returns authenticated:" . $authenticated . ":" );
     return $authenticated;
 }
 
@@ -56,8 +55,8 @@ sub checkpw {
     if ( $sth->rows ) {
         my $hash;
         my ($stored_hash) = $sth->fetchrow;
-        if ( substr($stored_hash,0,2) eq '$2') {
-            $hash = Koha::AuthUtils::hash_password($pw, $stored_hash);
+        if ( substr( $stored_hash, 0, 2 ) eq '$2' ) {
+            $hash = Koha::AuthUtils::hash_password( $pw, $stored_hash );
         } else {
             $hash = md5_base64($pw);
         }
@@ -70,17 +69,20 @@ sub checkpw {
 
 sub ekzLocalServicesEnabled {
     my $ekzLocalServicesEnabled = C4::Context->preference('ekzLocalServicesEnabled');
-    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ' });
-    $logger->debug("ekzLocalServicesEnabled() returns ekzLocalServicesEnabled:" . (defined($ekzLocalServicesEnabled) ? $ekzLocalServicesEnabled : 'undef') . ":");
+    my $logger                  = Koha::Logger->get( { interface => 'C4::External::EKZ' } );
+    $logger->debug( "ekzLocalServicesEnabled() returns ekzLocalServicesEnabled:"
+            . ( defined($ekzLocalServicesEnabled) ? $ekzLocalServicesEnabled : 'undef' )
+            . ":" );
 
     return $ekzLocalServicesEnabled;
 }
 
 sub kohaInstanceName {
-    my $kohaInstanceName = substr(C4::Context->config('database'),5);  # Regrettably the Koha instance name is not configured, so we take database name (e.g. 'koha_wallenheim') and cut away the leading part 'koha_'.
-    my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ' });
+    my $kohaInstanceName = substr( C4::Context->config('database'), 5 )
+        ; # Regrettably the Koha instance name is not configured, so we take database name (e.g. 'koha_wallenheim') and cut away the leading part 'koha_'.
+    my $logger = Koha::Logger->get( { interface => 'C4::External::EKZ' } );
 
-    $logger->debug("kohaInstanceName() returns kohaInstanceName:" . $kohaInstanceName . ":");
+    $logger->debug( "kohaInstanceName() returns kohaInstanceName:" . $kohaInstanceName . ":" );
     return $kohaInstanceName;
 }
 

@@ -30,9 +30,9 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 BEGIN {
     require Exporter;
     our $VERSION = 3.07.00.049;
-    @ISA = qw(Exporter);
+    @ISA    = qw(Exporter);
     @EXPORT = qw(
-        
+
     );
 }
 
@@ -55,37 +55,39 @@ and a required language to deliver the status of an item.
 =cut
 
 sub new {
-    my $class = shift;
+    my $class  = shift;
     my $itemId = shift;
-    
-    my $self  = bless { }, $class;
+
+    my $self = bless {}, $class;
 
     my $command = {
-            'ncip:version'       => '2.0',
-            'xmlns:ncip'         => 'http://www.niso.org/2008/ncip',
-            'xmlns:xsi'           => 'http://www.w3.org/2001/XMLSchema-instance',
-            'xsi:schemaLocation' => 'http://www.niso.org/2008/ncip http://www.niso.org/schemas/ncip/v2_0/ncip_v2_0.xsd'
-        };
+        'ncip:version'       => '2.0',
+        'xmlns:ncip'         => 'http://www.niso.org/2008/ncip',
+        'xmlns:xsi'          => 'http://www.w3.org/2001/XMLSchema-instance',
+        'xsi:schemaLocation' => 'http://www.niso.org/2008/ncip http://www.niso.org/schemas/ncip/v2_0/ncip_v2_0.xsd'
+    };
 
     my $agency = C4::Context->preference("DivibibAgencyId");
-    if ( $agency ) {
-        my @agencies = split(",",$agency);
+    if ($agency) {
+        my @agencies = split( ",", $agency );
         $agency = $agencies[0];
     }
-    
+
     $command->{'LookupItem'} = {
-        'ItemId' => [ { 'ItemIdentifierValue' => [ $itemId ] } ],
-	,
-	'Ext' => [ {
-			'AgencyId' => [ $agency ],
-			'Language' => [ 'de' ]
-			} ]
+        'ItemId' => [ { 'ItemIdentifierValue' => [$itemId] } ],
+        ,
+        'Ext' => [
+            {
+                'AgencyId' => [$agency],
+                'Language' => ['de']
+            }
+        ]
     };
-        
+
     $self->{'cmd'} = $command;
-    
+
     $self->{'itemId'} = $itemId;
-    
+
     $self->_initResponse();
 
     return $self;
@@ -93,135 +95,136 @@ sub new {
 
 sub getXML {
     my $self = shift;
-    
+
     return XMLout( $self->{'cmd'}, RootName => 'NCIPMessage', ValueAttr => {} );
 }
 
 sub _initResponse {
     my $self = shift;
-    
-    $self->{'response'} = {
-             'ItemId' => $self->{'itemId'},
-             'ItemType' => '',
-             'BibliographicDescription' => {},
-             'Available' => 0,
-             'DateAvailable' => '',
-             'Reservable' => 0,
-             'ErrorMessages' => ''
-         };
 
-    $self->{'responseOk'} = 0;
+    $self->{'response'} = {
+        'ItemId'                   => $self->{'itemId'},
+        'ItemType'                 => '',
+        'BibliographicDescription' => {},
+        'Available'                => 0,
+        'DateAvailable'            => '',
+        'Reservable'               => 0,
+        'ErrorMessages'            => ''
+    };
+
+    $self->{'responseOk'}    = 0;
     $self->{'responseError'} = '';
 }
 
 sub responseError {
     my $self = shift;
-    my ($errorMessage,$code) = @_;
-    
+    my ( $errorMessage, $code ) = @_;
+
     $self->_initResponse();
-    
-    $self->{'responseOk'} = 0;
-    $self->{'responseError'} = $errorMessage;
+
+    $self->{'responseOk'}        = 0;
+    $self->{'responseError'}     = $errorMessage;
     $self->{'responseErrorCode'} = $code;
 }
 
 sub getResponse {
     my $self = shift;
-    
+
     return $self->{'response'};
 }
 
 sub getResponseOk {
     my $self = shift;
-    
+
     return $self->{'responseOk'};
 }
 
 sub getResponseError {
     my $self = shift;
-    
+
     return $self->{'responseError'};
 }
 
 sub getResponseErrorCode {
     my $self = shift;
-    
+
     return $self->{'responseErrorCode'};
 }
 
 sub parseResponse {
     my $self = shift;
-    
+
     $self->_initResponse();
-    
-    my $response = XMLin( shift, ForceArray => [ ] );
-    
+
+    my $response = XMLin( shift, ForceArray => [] );
+
     return unless ($response);
-    
+
     $self->{'responseOk'} = 1;
-    
-    if ( exists($response->{'LookupItemResponse'}) && 
-         exists($response->{'LookupItemResponse'}->{'Problem'}) ) 
+
+    if (   exists( $response->{'LookupItemResponse'} )
+        && exists( $response->{'LookupItemResponse'}->{'Problem'} ) )
     {
         $self->responseError(
-                $response->{'LookupItemResponse'}->{'Problem'}->{'ProblemDetail'},
-                $response->{'LookupItemResponse'}->{'Problem'}->{'ProblemType'});
-    }
-    else {
-        if ( exists($response->{'LookupItemResponse'}) && 
-            exists($response->{'LookupItemResponse'}->{'ItemId'}) )
+            $response->{'LookupItemResponse'}->{'Problem'}->{'ProblemDetail'},
+            $response->{'LookupItemResponse'}->{'Problem'}->{'ProblemType'}
+        );
+    } else {
+        if (   exists( $response->{'LookupItemResponse'} )
+            && exists( $response->{'LookupItemResponse'}->{'ItemId'} ) )
         {
             $self->{'response'}->{'ItemId'} = $response->{'LookupItemResponse'}->{'ItemId'}->{'ItemIdentifierValue'};
         }
-    
-        if ( exists($response->{'LookupItemResponse'}) && 
-            exists($response->{'LookupItemResponse'}->{'Ext'}) )
+
+        if (   exists( $response->{'LookupItemResponse'} )
+            && exists( $response->{'LookupItemResponse'}->{'Ext'} ) )
         {
-            if ( exists($response->{'LookupItemResponse'}->{'Ext'}->{'BibliographicDescription'} ) )
-            {
-                $self->{'response'}->{'ItemType'} = $response->{'LookupItemResponse'}->{'Ext'}->{'BibliographicDescription'}->{'MediumType'};
-                $self->{'response'}->{'BibliographicDescription'}->{'Title'} = $response->{'LookupItemResponse'}->{'Ext'}->{'BibliographicDescription'}->{'Title'};
-                $self->{'response'}->{'BibliographicDescription'}->{'Author'} = $response->{'LookupItemResponse'}->{'Ext'}->{'BibliographicDescription'}->{'Author'};
-                $self->{'response'}->{'BibliographicDescription'}->{'Publisher'} = $response->{'LookupItemResponse'}->{'Ext'}->{'BibliographicDescription'}->{'Publisher'};
-                $self->{'response'}->{'BibliographicDescription'}->{'PublicationDate'} = $response->{'LookupItemResponse'}->{'Ext'}->{'BibliographicDescription'}->{'PublicationDate'};
-                $self->{'response'}->{'BibliographicDescription'}->{'MediumType'} = $response->{'LookupItemResponse'}->{'Ext'}->{'BibliographicDescription'}->{'MediumType'};
+            if ( exists( $response->{'LookupItemResponse'}->{'Ext'}->{'BibliographicDescription'} ) ) {
+                $self->{'response'}->{'ItemType'} =
+                    $response->{'LookupItemResponse'}->{'Ext'}->{'BibliographicDescription'}->{'MediumType'};
+                $self->{'response'}->{'BibliographicDescription'}->{'Title'} =
+                    $response->{'LookupItemResponse'}->{'Ext'}->{'BibliographicDescription'}->{'Title'};
+                $self->{'response'}->{'BibliographicDescription'}->{'Author'} =
+                    $response->{'LookupItemResponse'}->{'Ext'}->{'BibliographicDescription'}->{'Author'};
+                $self->{'response'}->{'BibliographicDescription'}->{'Publisher'} =
+                    $response->{'LookupItemResponse'}->{'Ext'}->{'BibliographicDescription'}->{'Publisher'};
+                $self->{'response'}->{'BibliographicDescription'}->{'PublicationDate'} =
+                    $response->{'LookupItemResponse'}->{'Ext'}->{'BibliographicDescription'}->{'PublicationDate'};
+                $self->{'response'}->{'BibliographicDescription'}->{'MediumType'} =
+                    $response->{'LookupItemResponse'}->{'Ext'}->{'BibliographicDescription'}->{'MediumType'};
             }
-            if ( exists($response->{'LookupItemResponse'}->{'Ext'}->{'DateAvailable'})  &&
-                $response->{'LookupItemResponse'}->{'Ext'}->{'DateAvailable'} =~ /^(\d\d\d\d-\d\d-\d\d)/
-            )
+            if ( exists( $response->{'LookupItemResponse'}->{'Ext'}->{'DateAvailable'} )
+                && $response->{'LookupItemResponse'}->{'Ext'}->{'DateAvailable'} =~ /^(\d\d\d\d-\d\d-\d\d)/ )
             {
                 $self->{'response'}->{'DateAvailable'} = $1;
             }
-            if ( exists($response->{'LookupItemResponse'}->{'Ext'}->{'ItemIdentifierType'}) &&
-                reftype($response->{'LookupItemResponse'}->{'Ext'}->{'ItemIdentifierType'}) eq 'ARRAY' &&
-                exists($response->{'LookupItemResponse'}->{'Ext'}->{'ItemIdentifierValue'}) &&
-                reftype($response->{'LookupItemResponse'}->{'Ext'}->{'ItemIdentifierValue'}) eq 'ARRAY' )
+            if (   exists( $response->{'LookupItemResponse'}->{'Ext'}->{'ItemIdentifierType'} )
+                && reftype( $response->{'LookupItemResponse'}->{'Ext'}->{'ItemIdentifierType'} ) eq 'ARRAY'
+                && exists( $response->{'LookupItemResponse'}->{'Ext'}->{'ItemIdentifierValue'} )
+                && reftype( $response->{'LookupItemResponse'}->{'Ext'}->{'ItemIdentifierValue'} ) eq 'ARRAY' )
             {
                 # read attributes
                 my $fnames  = $response->{'LookupItemResponse'}->{'Ext'}->{'ItemIdentifierType'};
                 my $fvalues = $response->{'LookupItemResponse'}->{'Ext'}->{'ItemIdentifierValue'};
-            
+
                 my $i = 0;
-                foreach ( @$fnames ) {
-                    if ( exists($fvalues->[$i]) && ref($fvalues->[$i]) ne 'HASH' ) {
+                foreach (@$fnames) {
+                    if ( exists( $fvalues->[$i] ) && ref( $fvalues->[$i] ) ne 'HASH' ) {
                         my $val = $fvalues->[$i];
                         $val =~ s/^\s+|\s+$//g;
-                        if ( $val eq 'true' && ($_ eq 'Available' || $_ eq 'Reservable') ) {
+                        if ( $val eq 'true' && ( $_ eq 'Available' || $_ eq 'Reservable' ) ) {
                             $self->{'response'}->{$_} = 1;
-                        }
-                        elsif ($_ eq 'ISBN' ) {
+                        } elsif ( $_ eq 'ISBN' ) {
                             $self->{'response'}->{'BibliographicDescription'}->{'ISBN'} = $val;
-                        }
-                        elsif ( ($_ eq 'StateCode' || $_ eq 'StateMessage') ) {
+                        } elsif ( ( $_ eq 'StateCode' || $_ eq 'StateMessage' ) ) {
                             $self->{'response'}->{$_} = $val;
                         }
                     }
                     $i++;
                 }
             }
-        }
-        else {
-            $self->responseError('Incomplete item data','0');
+        } else {
+            $self->responseError( 'Incomplete item data', '0' );
         }
     }
 

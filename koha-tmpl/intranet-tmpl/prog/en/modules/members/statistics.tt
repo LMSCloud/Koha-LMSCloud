@@ -6,13 +6,15 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% UNLESS blocking_error %]
-        [% t("Statistics for") | html %] [% INCLUDE 'patron-title.inc' no_html = 1 %]
-    [% END %] &rsaquo;
-    [% t("Patrons") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% UNLESS blocking_error %]
+            [% t("Statistics for") | html %]
+            [% INCLUDE 'patron-title.inc' no_html = 1 %]
+        [% END %]
+        &rsaquo; [% t("Patrons") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -41,85 +43,89 @@
             <main>
                 [% INCLUDE 'messages.inc' %]
 
-        [% INCLUDE 'members-toolbar.inc' %]
+                [% INCLUDE 'members-toolbar.inc' %]
 
-            <h1>Statistics for [% INCLUDE 'patron-title.inc' %]</h1>
-            [% IF ( datas.size ) %]
-                <div class="page-section">
-                    <table id="statistics">
-                    <thead>
-                        <tr>
-                        [% FOREACH cn IN column_names %]
-                            <th>
-                                [% SWITCH cn %]
-                                [% CASE 'itype' %]
-                                    <span>Item type</span>
-                                [% CASE 'ccode' %]
-                                    <span>Collection</span>
-                                [% CASE 'location' %]
-                                    <span>Shelving location</span>
-                                [% CASE 'homebranch' %]
-                                    <span>Home library</span>
-                                [% CASE 'holdingbranch' %]
-                                    <span>Holding library</span>
-                                [% CASE %]
-                                    <span>[% cn | html %]</span>
+                <h1>Statistics for [% INCLUDE 'patron-title.inc' %]</h1>
+                [% IF ( datas.size ) %]
+                    <div class="page-section">
+                        <table id="statistics">
+                            <thead>
+                                <tr>
+                                    [% FOREACH cn IN column_names %]
+                                        <th>
+                                            [% SWITCH cn %]
+                                            [% CASE 'itype' %]
+                                                <span>Item type</span>
+                                            [% CASE 'ccode' %]
+                                                <span>Collection</span>
+                                            [% CASE 'location' %]
+                                                <span>Shelving location</span>
+                                            [% CASE 'homebranch' %]
+                                                <span>Home library</span>
+                                            [% CASE 'holdingbranch' %]
+                                                <span>Holding library</span>
+                                            [% CASE %]
+                                                <span>[% cn | html %]</span>
+                                            [% END %]
+                                        </th>
+                                    [% END %]
+                                    <th>Total checkouts as of yesterday</th>
+                                    <th>Today's checkouts</th>
+                                    <th>Today's checkins</th>
+                                    <th>Total checkouts</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                [% FOREACH r IN datas %]
+                                    <tr>
+                                        [% FOREACH c IN r %]
+                                            <td>[% c | html %]</td>
+                                        [% END %]
+                                    </tr>
                                 [% END %]
-                            </th>
-                        [% END %]
-                        <th>Total checkouts as of yesterday</th>
-                        <th>Today's checkouts</th>
-                        <th>Today's checkins</th>
-                        <th>Total checkouts</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        [% FOREACH r IN datas %]
-                            <tr>
-                                [% FOREACH c IN r %]
-                                    <td>[% c | html %]</td>
-                                [% END %]
-                            </tr>
-                        [% END %]
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="[% column_names.size | html %]">TOTAL</td>
-                            <td>[% count_total_precedent_state | html %]</td>
-                            <td>[% count_total_issues | html %]</td>
-                            <td>[% count_total_issues_returned | html %]</td>
-                            <td>[% count_total_actual_state | html %]</td>
-                        </tr>
-                    </tfoot>
-                    </table>
-                </div> <!-- /.page-section -->
-            [% ELSE %]
-                <div class="alert alert-info">There are no statistics for this patron.</div>
-            [% END %]
-
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="[% column_names.size | html %]">TOTAL</td>
+                                    <td>[% count_total_precedent_state | html %]</td>
+                                    <td>[% count_total_issues | html %]</td>
+                                    <td>[% count_total_issues_returned | html %]</td>
+                                    <td>[% count_total_actual_state | html %]</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <!-- /.page-section -->
+                [% ELSE %]
+                    <div class="alert alert-info">There are no statistics for this patron.</div>
+                [% END %]
             </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'circ-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-     </div> <!-- /.row -->
+            <aside> [% INCLUDE 'circ-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
-[% MACRO jsinclude BLOCK %]
-    [% INCLUDE 'str/members-menu.inc' %]
-    [% Asset.js("js/members-menu.js") | $raw %]
-    [% INCLUDE 'datatables.inc' %]
-    <script>
-        $(document).ready(function() {
-            $("#statistics").dataTable($.extend(true, {}, dataTablesDefaults, {
-                "dom": 't',
-                "paginate": false
-            }));
-        });
-    </script>
-[% END %]
+    [% MACRO jsinclude BLOCK %]
+        [% INCLUDE 'str/members-menu.inc' %]
+        [% Asset.js("js/members-menu.js") | $raw %]
+        [% INCLUDE 'datatables.inc' %]
+        <script>
+            $(document).ready(function () {
+                $("#statistics").dataTable(
+                    $.extend(true, {}, dataTablesDefaults, {
+                        dom: "t",
+                        paginate: false,
+                    })
+                );
+            });
+        </script>
+    [% END %]
 
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

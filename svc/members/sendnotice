@@ -21,13 +21,12 @@ use Modern::Perl;
 use CGI;
 $CGI::LIST_CONTEXT_WARN = 0;
 
-use C4::Auth qw( get_template_and_user haspermission get_user_subpermissions );
-use C4::Output qw( output_with_http_headers );
-use C4::Letters qw ( GetMessagesById );
+use C4::Auth     qw( get_template_and_user haspermission get_user_subpermissions );
+use C4::Output   qw( output_with_http_headers );
+use C4::Letters  qw ( GetMessagesById );
 use C4::Overdues qw ( GetFine );
 use C4::Context;
 use C4::NoticeFees;
-
 
 use Koha::AdditionalContents;
 use Koha::Acquisition::Currencies;
@@ -38,29 +37,30 @@ use Locale::Currency::Format 1.28;
 use Koha::Notice::Templates;
 use File::Spec;
 
-
 my $input = new CGI;
 
-my ($template, $user, $cookie) = get_template_and_user({
-    template_name   => "members/tables/sendnotice.tt",
-    query           => $input,
-    type            => "intranet",
-    authnotrequired => 0,
-    flagsrequired   => { circulate => 'send_adhoc_notices' }
-});
+my ( $template, $user, $cookie ) = get_template_and_user(
+    {
+        template_name   => "members/tables/sendnotice.tt",
+        query           => $input,
+        type            => "intranet",
+        authnotrequired => 0,
+        flagsrequired   => { circulate => 'send_adhoc_notices' }
+    }
+);
 
 my @borrowers = $input->param('borrowernumbers[]');
-my $params = {
-        borrowernumbers => \@borrowers,
-        lettercode      => scalar $input->param('use_letter'),
-        prefer_email    => scalar $input->param('use_email'),
-        no_notice_fees  => scalar $input->param('no_notice_fees'),
-        no_email_bcc    => scalar $input->param('no_email_bcc')
-    };
+my $params    = {
+    borrowernumbers => \@borrowers,
+    lettercode      => scalar $input->param('use_letter'),
+    prefer_email    => scalar $input->param('use_email'),
+    no_notice_fees  => scalar $input->param('no_notice_fees'),
+    no_email_bcc    => scalar $input->param('no_email_bcc')
+};
 
 my $result = { letters => 0, letter_created => 0, letter_printed => 0, letter_mailed => 0, printedfile => '' };
 
-$result = SendAdhocNotices($params) if ( scalar(@borrowers) <= 100 || ! $params->{prefer_email} );
+$result = SendAdhocNotices($params) if ( scalar(@borrowers) <= 100 || !$params->{prefer_email} );
 
 $template->param(
     letters        => $result->{letters},
@@ -74,40 +74,40 @@ output_with_http_headers $input, $cookie, $template->output, 'json';
 
 sub SendAdhocNotices {
     my $params = shift;
-    
+
     my @borrowernumbers;
     my $lettercode;
     my $prefer_email;
     my $no_notice_fees = '';
     my $no_email_bcc   = 0;
-    
-    @borrowernumbers = @{$params->{borrowernumbers}} if ( $params->{borrowernumbers} );
-    $lettercode      = $params->{lettercode} if ( $params->{lettercode} );
-    $prefer_email    = $params->{prefer_email} if ( $params->{prefer_email} );
-    $no_notice_fees  = $params->{no_notice_fees} if ( $params->{no_notice_fees} );
-    $no_email_bcc    = $params->{no_email_bcc} if ( $params->{no_email_bcc} );
 
-    my $letters = [];
+    @borrowernumbers = @{ $params->{borrowernumbers} } if ( $params->{borrowernumbers} );
+    $lettercode      = $params->{lettercode}           if ( $params->{lettercode} );
+    $prefer_email    = $params->{prefer_email}         if ( $params->{prefer_email} );
+    $no_notice_fees  = $params->{no_notice_fees}       if ( $params->{no_notice_fees} );
+    $no_email_bcc    = $params->{no_email_bcc}         if ( $params->{no_email_bcc} );
+
+    my $letters        = [];
     my $letter_created = 0;
-    my $letter_printed  = 0;
+    my $letter_printed = 0;
     my $letter_mailed  = 0;
     my $printfilename  = '';
-    my @printmessages = ();
-    my @emailmessages = ();
-    my $today = output_pref( { dt => dt_from_string(), dateonly => 0, dateformat => 'iso' } );
-    
+    my @printmessages  = ();
+    my @emailmessages  = ();
+    my $today          = output_pref( { dt => dt_from_string(), dateonly => 0, dateformat => 'iso' } );
+
     my $printNoticesMaxLines = C4::Context->preference('PrintNoticesMaxLines');
-    
+
     # Initialize the objects to charge notice fees if necessary.
     # The new function reads the configuration of notice fee rules.
     # We use the object later to check whether a notice fee needs to be
     # charged for sending an ovderdue letter.
     my $noticeFees = C4::NoticeFees->new() if ( $no_notice_fees ne 'yes' );
-    
-    if ($lettercode) {    
 
-        my $dbh = C4::Context->dbh();
-        my $branchcode = Koha::Libraries->get_effective_branch(C4::Context::mybranch());
+    if ($lettercode) {
+
+        my $dbh             = C4::Context->dbh();
+        my $branchcode      = Koha::Libraries->get_effective_branch( C4::Context::mybranch() );
         my $lettertemplates = C4::Letters::GetAdhocNoticeLetters();
         my $module;
         foreach my $lettertemplate (@$lettertemplates) {
@@ -119,83 +119,89 @@ sub SendAdhocNotices {
         my $active_currency = Koha::Acquisition::Currencies->get_active;
         my $currency_format;
         $currency_format = $active_currency->currency if defined($active_currency);
-        
+
         my $library             = Koha::Libraries->find($branchcode);
         my $admin_email_address = $library->branchemail;
-        
+
         $lettertemplates = {};
-        my @transferTypes = ('email','print');
-        for my $transfer(@transferTypes) {
-			my $template = Koha::Notice::Templates->find_effective_template(
-				{
-					module                 => $module,
-					code                   => $lettercode,
-					branchcode             => $branchcode,
-					message_transport_type => $transfer
-				}
-			);
-			my $letter;
-			$letter = $template->unblessed if ($template);
+        my @transferTypes = ( 'email', 'print' );
+        for my $transfer (@transferTypes) {
+            my $template = Koha::Notice::Templates->find_effective_template(
+                {
+                    module                 => $module,
+                    code                   => $lettercode,
+                    branchcode             => $branchcode,
+                    message_transport_type => $transfer
+                }
+            );
+            my $letter;
+            $letter = $template->unblessed if ($template);
             if ( $letter && $letter->{'content'} ) {
-                $lettertemplates->{$transfer}->{'letter'} = $letter;
-                $lettertemplates->{$transfer}->{'readItems'}    = ( $letter->{'content'} =~ /(<item>.*<\/item>)/s || $letter->{'content'} =~ /(<checkedout>.*<\/checkedout>)/s ) ? 1 : 0;
-                $lettertemplates->{$transfer}->{'readOverdues'} = ( $letter->{'content'} =~ /(<overdue>.*<\/overdue>)/s ) ? 1 : 0;
-                $lettertemplates->{$transfer}->{'readNews'}     = ( $letter->{'content'} =~ /(<news>.*<\/news>)/s ) ? 1 : 0;
-                $lettertemplates->{$transfer}->{'transportType'}  = $transfer;
+                $lettertemplates->{$transfer}->{'letter'}    = $letter;
+                $lettertemplates->{$transfer}->{'readItems'} = ( $letter->{'content'} =~ /(<item>.*<\/item>)/s
+                        || $letter->{'content'} =~ /(<checkedout>.*<\/checkedout>)/s ) ? 1 : 0;
+                $lettertemplates->{$transfer}->{'readOverdues'} =
+                    ( $letter->{'content'} =~ /(<overdue>.*<\/overdue>)/s ) ? 1 : 0;
+                $lettertemplates->{$transfer}->{'readNews'} = ( $letter->{'content'} =~ /(<news>.*<\/news>)/s ) ? 1 : 0;
+                $lettertemplates->{$transfer}->{'transportType'} = $transfer;
             }
         }
-        $lettertemplates->{'print'} = $lettertemplates->{'email'} if ( !exists($lettertemplates->{'print'}) && exists($lettertemplates->{'email'} ) );
-        $lettertemplates->{'email'} = $lettertemplates->{'print'} if ( !exists($lettertemplates->{'email'}) && exists($lettertemplates->{'print'} ) );
-        
+        $lettertemplates->{'print'} = $lettertemplates->{'email'}
+            if ( !exists( $lettertemplates->{'print'} ) && exists( $lettertemplates->{'email'} ) );
+        $lettertemplates->{'email'} = $lettertemplates->{'print'}
+            if ( !exists( $lettertemplates->{'email'} ) && exists( $lettertemplates->{'print'} ) );
 
-        foreach my $borrowernumber(@borrowernumbers) {
-            
-            my $patron = Koha::Patrons->find( $borrowernumber );
-            
+        foreach my $borrowernumber (@borrowernumbers) {
+
+            my $patron = Koha::Patrons->find($borrowernumber);
+
             my $transport_type = 'print';
-            my $notice_email = '';
+            my $notice_email   = '';
             if ( $prefer_email && $prefer_email eq 'yes' ) {
                 $notice_email = $patron->notice_email_address;
-                if ( $notice_email ) {
+                if ($notice_email) {
                     $transport_type = 'email';
                 }
             }
-            
+
             my $overdue_count = $patron->has_overdues();
             my $issue_count   = $patron->checkout_count();
             my $total_fines   = $patron->get_account_balance();
-    
-            $total_fines = 0.0 if (! $total_fines );
-            
+
+            $total_fines = 0.0 if ( !$total_fines );
+
             my $substitute = { bib => $library->branchname, 'count' => 1 };
-            $substitute->{total_fines} = currency_format($currency_format, "$total_fines", FMT_SYMBOL);
-            $substitute->{total_fines} = sprintf('%.2f', $total_fines) unless $substitute->{total_fines};
+            $substitute->{total_fines}   = currency_format( $currency_format, "$total_fines", FMT_SYMBOL );
+            $substitute->{total_fines}   = sprintf( '%.2f', $total_fines ) unless $substitute->{total_fines};
             $substitute->{overdue_count} = $overdue_count;
-            $substitute->{today} = output_pref( { dt => dt_from_string, dateonly => 1} );
-            $substitute->{issue_count} = $issue_count;
-            
-            $overdue_count = $patron->has_family_overdues();
-            $issue_count   = $patron->family_checkout_count();
-            $total_fines   = $patron->get_family_account_balance();
-            $substitute->{family_total_fines} = currency_format($currency_format, "$total_fines", FMT_SYMBOL);
-            $substitute->{family_total_fines} = sprintf('%.2f', $total_fines) unless $substitute->{family_total_fines};
+            $substitute->{today}         = output_pref( { dt => dt_from_string, dateonly => 1 } );
+            $substitute->{issue_count}   = $issue_count;
+
+            $overdue_count                    = $patron->has_family_overdues();
+            $issue_count                      = $patron->family_checkout_count();
+            $total_fines                      = $patron->get_family_account_balance();
+            $substitute->{family_total_fines} = currency_format( $currency_format, "$total_fines", FMT_SYMBOL );
+            $substitute->{family_total_fines} = sprintf( '%.2f', $total_fines )
+                unless $substitute->{family_total_fines};
             $substitute->{family_overdue_count} = $overdue_count;
-            $substitute->{family_issue_count} = $issue_count;
-            
-            if ( exists($lettertemplates->{$transport_type}) ) {
+            $substitute->{family_issue_count}   = $issue_count;
+
+            if ( exists( $lettertemplates->{$transport_type} ) ) {
+
                 # get fines
 
                 my $readItems    = $lettertemplates->{$transport_type}->{'readItems'};
                 my $readOverdues = $lettertemplates->{$transport_type}->{'readOverdues'};
                 my $readNews     = $lettertemplates->{$transport_type}->{'readNews'};
-                
+
                 my $repeat = {};
-                
+
                 my @items;
                 if ( $readItems || $readOverdues ) {
-                    
-                    # Select all items of the user 
-                    my $select = "SELECT biblio.*, items.*, itemtypes.description AS itemtypename, issues.*, biblioitems.itemtype, branchname, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode as issuebranch
+
+                    # Select all items of the user
+                    my $select =
+                        "SELECT biblio.*, items.*, itemtypes.description AS itemtypename, issues.*, biblioitems.itemtype, branchname, IFNULL(claim_level,0) as claim_level, IFNULL(DATE(claim_time),'0000-00-00') as claim_date, issues.branchcode as issuebranch
                                     FROM items 
                                     LEFT JOIN itemtypes ON items.itype = itemtypes.itemtype,
                                     biblio, biblioitems, branches b, issues
@@ -215,154 +221,166 @@ sub SendAdhocNotices {
                                                  AND c.family_card = 1
                                            )
                                         )";
-                     
+
                     $select =~ s/\s*\n\s*/ /;
-                    my $selectitems = $dbh->prepare( $select );
-                    $selectitems->execute($borrowernumber,$borrowernumber); #,$branchcode,$branchcode);
-                    
+                    my $selectitems = $dbh->prepare($select);
+                    $selectitems->execute( $borrowernumber, $borrowernumber );    #,$branchcode,$branchcode);
+
                     my @item_tables;
                     my @overdue_tables;
                     my $fines_sum = 0.0;
                     my $itemcount = 0;
                     while ( my $iteminfo = $selectitems->fetchrow_hashref() ) {
-                        
-                        my $fine = GetFine($iteminfo->{'itemnumber'}, $iteminfo->{'borrowernumber'});
-                        $iteminfo->{'fine'} = currency_format($currency_format, "$fine", FMT_SYMBOL);
+
+                        my $fine = GetFine( $iteminfo->{'itemnumber'}, $iteminfo->{'borrowernumber'} );
+                        $iteminfo->{'fine'} = currency_format( $currency_format, "$fine", FMT_SYMBOL );
+
                         # if active currency isn't correct ISO code fallback to sprintf
-                        $iteminfo->{'fine'} = sprintf('%.2f', $fine) unless $iteminfo->{'fine'};
+                        $iteminfo->{'fine'} = sprintf( '%.2f', $fine ) unless $iteminfo->{'fine'};
                         $fines_sum += $fine;
                         push @items, $iteminfo;
-                        
+
                         push @item_tables, {
-                            'biblio' => $iteminfo->{'biblionumber'},
+                            'biblio'      => $iteminfo->{'biblionumber'},
                             'biblioitems' => $iteminfo->{'biblionumber'},
-                            'items' => $iteminfo,
-                            'issues' => $iteminfo->{'itemnumber'},
-                        } if ( $readItems );
-                        
+                            'items'       => $iteminfo,
+                            'issues'      => $iteminfo->{'itemnumber'},
+                        } if ($readItems);
+
                         if ( $readOverdues && $today gt $iteminfo->{'date_due'} ) {
                             push @overdue_tables, {
-                                'biblio' => $iteminfo->{'biblionumber'},
+                                'biblio'      => $iteminfo->{'biblionumber'},
                                 'biblioitems' => $iteminfo->{'biblionumber'},
-                                'items' => $iteminfo,
-                                'issues' => $iteminfo->{'itemnumber'},
+                                'items'       => $iteminfo,
+                                'issues'      => $iteminfo->{'itemnumber'},
                             };
                         }
-                        
+
                         $itemcount++;
-                        last if ( $printNoticesMaxLines && $transport_type eq 'print' && $itemcount > $printNoticesMaxLines );
+                        last
+                            if ( $printNoticesMaxLines
+                            && $transport_type eq 'print'
+                            && $itemcount > $printNoticesMaxLines );
                     }
                     $selectitems->finish();
-                    
-                    $substitute->{fines} = currency_format($currency_format, "$fines_sum", FMT_SYMBOL);
-                    $substitute->{fines} = sprintf('%.2f', $fines_sum) unless $substitute->{fines};
-            
-                    $repeat->{item} = \@item_tables if ( $readItems );
-                    $repeat->{checkedout} = \@item_tables if ( $readItems );
-                    $repeat->{overdue} = \@overdue_tables if ( $readOverdues );
-                    
-                    if ( $readNews ) {
-						my $news = Koha::AdditionalContents->search_for_display(
-							{
-								category   => 'news',
-								location   => 'slip',
-								lang       => $patron->lang,
-								library_id => $branchcode,
-							}
-						);
-						my @news;
-						while ( my $n = $news->next ) {
-							my $all = $n->unblessed_all_relateds;
 
-							# FIXME We keep newdate and timestamp for backward compatibility (from GetNewsToDisplay)
-							# But we should remove them and adjust the existing templates in a db rev
-							# FIXME This must be formatted in the notice template
-							my $published_on_dt = output_pref({ dt => dt_from_string( $all->{published_on} ), dateonly => 1 });
-							$all->{newdate} = $published_on_dt;
-							$all->{timestamp} = $published_on_dt;
+                    $substitute->{fines} = currency_format( $currency_format, "$fines_sum", FMT_SYMBOL );
+                    $substitute->{fines} = sprintf( '%.2f', $fines_sum ) unless $substitute->{fines};
 
-							push @news, {
-								additional_contents => $all,
-							};
-						}
+                    $repeat->{item}       = \@item_tables    if ($readItems);
+                    $repeat->{checkedout} = \@item_tables    if ($readItems);
+                    $repeat->{overdue}    = \@overdue_tables if ($readOverdues);
+
+                    if ($readNews) {
+                        my $news = Koha::AdditionalContents->search_for_display(
+                            {
+                                category   => 'news',
+                                location   => 'slip',
+                                lang       => $patron->lang,
+                                library_id => $branchcode,
+                            }
+                        );
+                        my @news;
+                        while ( my $n = $news->next ) {
+                            my $all = $n->unblessed_all_relateds;
+
+                            # FIXME We keep newdate and timestamp for backward compatibility (from GetNewsToDisplay)
+                            # But we should remove them and adjust the existing templates in a db rev
+                            # FIXME This must be formatted in the notice template
+                            my $published_on_dt =
+                                output_pref( { dt => dt_from_string( $all->{published_on} ), dateonly => 1 } );
+                            $all->{newdate}   = $published_on_dt;
+                            $all->{timestamp} = $published_on_dt;
+
+                            push @news, {
+                                additional_contents => $all,
+                            };
+                        }
                         $repeat->{news} = \@news;
                     }
                 }
-                
-                if ( $no_notice_fees ne 'yes' && $noticeFees->checkForNoticeFeeRules() == 1) {
+
+                if ( $no_notice_fees ne 'yes' && $noticeFees->checkForNoticeFeeRules() == 1 ) {
+
                     #check whether there is a matching notice fee rule
-                    
-                    my $noticeFeeRule = $noticeFees->getNoticeFeeRule($branchcode, $patron->categorycode, $transport_type, $lettercode );
-                    
-                    if ( $noticeFeeRule ) {
+
+                    my $noticeFeeRule = $noticeFees->getNoticeFeeRule(
+                        $branchcode, $patron->categorycode, $transport_type,
+                        $lettercode
+                    );
+
+                    if ($noticeFeeRule) {
                         my $fee = $noticeFeeRule->notice_fee();
 
                         if ( $fee && $fee > 0.0 ) {
+
                             # Bad for the patron, staff has assigned a notice fee for sending the notification
-                             $noticeFees->AddNoticeFee( 
+                            $noticeFees->AddNoticeFee(
                                 {
                                     borrowernumber => $borrowernumber,
                                     amount         => $fee,
                                     letter_code    => $lettercode,
                                     letter_date    => output_pref( { dt => dt_from_string, dateonly => 1 } ),
                                     branchcode     => $branchcode,
-                                    
+
                                     # these are parameters that we need for fancy message printig
-                                    substitute     => $substitute,
-                                    items          => \@items
+                                    substitute => $substitute,
+                                    items      => \@items
                                 }
-                             );
+                            );
                         }
                     }
                 }
-                
+
                 my %tables = ( 'borrowers' => $borrowernumber, 'branches' => $branchcode );
-                
-                
-                my $prepared_letter = C4::Letters::GetPreparedLetter (
-                    module => $module,
-                    letter_code => $lettercode,
-                    branchcode => $branchcode,
-                    tables => \%tables,
-                    substitute => $substitute,
-                    repeat => $repeat,
+
+                my $prepared_letter = C4::Letters::GetPreparedLetter(
+                    module                 => $module,
+                    letter_code            => $lettercode,
+                    branchcode             => $branchcode,
+                    tables                 => \%tables,
+                    substitute             => $substitute,
+                    repeat                 => $repeat,
                     message_transport_type => $lettertemplates->{$transport_type}->{'transportType'},
                 );
-                
+
                 # check whether there is a need to print items
                 # use Data::Dumper;
                 # print STDERR "repeat: ", Dumper($repeat);
-                
+
                 my $message_id = C4::Letters::EnqueueLetter(
-                                            {   letter                 => $prepared_letter,
-                                                borrowernumber         => $borrowernumber,
-                                                message_transport_type => $transport_type,
-                                                from_address           => $admin_email_address,
-                                                to_address             => $notice_email,
-                                                branchcode             => $branchcode
-                                            }
-                                        );
+                    {
+                        letter                 => $prepared_letter,
+                        borrowernumber         => $borrowernumber,
+                        message_transport_type => $transport_type,
+                        from_address           => $admin_email_address,
+                        to_address             => $notice_email,
+                        branchcode             => $branchcode
+                    }
+                );
 
                 # as we want to create an ouput file for printing, lets collect the message_ids of prepared data
-                push(@printmessages,$message_id) if ( $transport_type eq 'print' );
-                push(@emailmessages,$message_id) if ( $transport_type eq 'email' );
-                push @$letters, { borrowernumber => $borrowernumber, lettertype => $transport_type, message_id => $message_id };
+                push( @printmessages, $message_id ) if ( $transport_type eq 'print' );
+                push( @emailmessages, $message_id ) if ( $transport_type eq 'email' );
+                push @$letters,
+                    { borrowernumber => $borrowernumber, lettertype => $transport_type, message_id => $message_id };
                 $letter_created++;
             }
         }
     }
-    
+
     $letter_printed = scalar @printmessages;
-    $letter_mailed = scalar @emailmessages;
-    
-    if ( $letter_printed ) {
+    $letter_mailed  = scalar @emailmessages;
+
+    if ($letter_printed) {
         $printfilename = CreatePrintOutput( { lettercode => $lettercode, printmessages => \@printmessages } );
     }
-    if ( $letter_mailed ) {
-        SendMailMessages( { lettercode => $lettercode, emailmessages => \@emailmessages, noEmailBcc => $no_email_bcc } );
+    if ($letter_mailed) {
+        SendMailMessages(
+            { lettercode => $lettercode, emailmessages => \@emailmessages, noEmailBcc => $no_email_bcc } );
     }
-    
-    return  {
+
+    return {
         letters        => $letters,
         letter_created => $letter_created,
         letter_printed => $letter_printed,
@@ -373,59 +391,62 @@ sub SendAdhocNotices {
 
 sub SendMailMessages {
     my $params = shift;
-    
+
     my @messageIDs;
-    
+
     my $sendNoBcc = undef;
-    $sendNoBcc = 1 if ( exists($params->{noEmailBcc}) && $params->{noEmailBcc} );
-    
-    @messageIDs = @{$params->{emailmessages}} if ( $params->{emailmessages} );
+    $sendNoBcc = 1 if ( exists( $params->{noEmailBcc} ) && $params->{noEmailBcc} );
+
+    @messageIDs = @{ $params->{emailmessages} } if ( $params->{emailmessages} );
     my $lettercode = $params->{lettercode} if ( $params->{lettercode} );
 
     my @messages = @{ GetMessagesById( { message_id => \@messageIDs } ) };
-    
-    foreach my $message ( @messages ) {
+
+    foreach my $message (@messages) {
         C4::Letters::_send_message_by_email( $message, undef, undef, undef, $sendNoBcc );
     }
 }
 
 sub CreatePrintOutput {
     my $params = shift;
-    
+
     my @messageIDs;
-    @messageIDs = @{$params->{printmessages}} if ( $params->{printmessages} );
+    @messageIDs = @{ $params->{printmessages} } if ( $params->{printmessages} );
     my $lettercode = $params->{lettercode} if ( $params->{lettercode} );
-    
+
     my @messages = @{ GetMessagesById( { message_id => \@messageIDs } ) };
-    
+
     foreach my $message (@messages) {
         $message->{'content'} =~ s/\r//g;
+
         # $message->{'content'} =~ s/\n/<br \/>/g  if ( $message->{'content_type'} !~ /^text\/html/ );
         $message->{'is_html'} = 0;
         $message->{'is_html'} = 1 if ( $message->{'content_type'} =~ /html/ );
     }
-    
+
     my $printfilename = 'Adhoc';
-    $printfilename .= '_' . $lettercode if ( $lettercode );
-    
-    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime;
-    $printfilename .= sprintf("_%04d-%02d-%02d_%02d-%02d-%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
+    $printfilename .= '_' . $lettercode if ($lettercode);
+
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime;
+    $printfilename .= sprintf( "_%04d-%02d-%02d_%02d-%02d-%02d", $year + 1900, $mon + 1, $mday, $hour, $min, $sec );
     $printfilename .= ".html";
-    
+
     my $outputdir = C4::Context->config('outputdownloaddir');
     $outputdir = File::Spec->catpath( "", $outputdir, "batchprint" );
     my $generatefilename = File::Spec->catdir( $outputdir, $printfilename );
-    
-    Generate_html({
-                messages => \@messages,
-                filepath => $generatefilename,
-            });
-    
-    foreach my $message ( @messages ) {
+
+    Generate_html(
+        {
+            messages => \@messages,
+            filepath => $generatefilename,
+        }
+    );
+
+    foreach my $message (@messages) {
         C4::Letters::_set_message_status(
             {
                 message_id => $message->{'message_id'},
-                status => 'sent'
+                status     => 'sent'
             }
         );
     }
@@ -434,13 +455,14 @@ sub CreatePrintOutput {
 }
 
 sub Generate_html {
-    my ( $params ) = @_;
+    my ($params) = @_;
     my $messages = $params->{messages};
     my $filepath = $params->{filepath};
 
-    my $template =
-      C4::Templates::gettemplate( 'batch/print-notices.tt', 'intranet',
-        new CGI );
+    my $template = C4::Templates::gettemplate(
+        'batch/print-notices.tt', 'intranet',
+        new CGI
+    );
 
     my $today_syspref = output_pref( { dt => dt_from_string, dateonly => 1 } );
     $template->param(

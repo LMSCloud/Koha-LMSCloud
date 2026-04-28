@@ -40,14 +40,14 @@ This script calls C4::Reserves::CancelExpiredReserves which will find and cancel
 
 use Modern::Perl;
 use Getopt::Long qw( GetOptions );
-use Pod::Usage qw( pod2usage );
+use Pod::Usage   qw( pod2usage );
 
 use Koha::Script -cron;
 use C4::Reserves;
 use C4::Log qw( cronlogaction );
 
 # The following two lines are a hack to prevent problems with transactions and
-# plugins that use own databases access classes that are loaded using a new 
+# plugins that use own databases access classes that are loaded using a new
 # database connection while performing a transaction / here in Koha::Hold->cancel
 use Koha::Plugins;
 my @enabled_plugins = Koha::Plugins::get_enabled_plugins();
@@ -71,8 +71,8 @@ Optionally adds a reason for cancellation (which will trigger a notice to be sen
 my $help = 0;
 my $reason;
 
-my $command_line_options = join(" ",@ARGV);
-cronlogaction({ info => $command_line_options });
+my $command_line_options = join( " ", @ARGV );
+cronlogaction( { info => $command_line_options } );
 
 GetOptions(
     'help|?'   => \$help,
@@ -82,4 +82,4 @@ pod2usage(1) if $help;
 
 C4::Reserves::CancelExpiredReserves($reason);
 
-cronlogaction({ action => 'End', info => "COMPLETED" });
+cronlogaction( { action => 'End', info => "COMPLETED" } );

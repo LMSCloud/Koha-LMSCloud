@@ -4,15 +4,17 @@
 [% USE Registers %]
 [% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("Tools") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Tools") | html %]
+        &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="tools_tools-home" class="tools">
 [% WRAPPER 'header.inc' %]
-[% INCLUDE 'cat-search.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
 [% END %]
 
 [% WRAPPER 'sub-header.inc' %]
@@ -63,7 +65,7 @@
                             <dt><a href="/cgi-bin/koha/tools/letter.pl">Notices and slips</a></dt>
                             <dd>Define notices (print and email notification messages for overdues, etc.)</dd>
                         [% END %]
-                        
+
                         [% IF ( CAN_user_tools_edit_notice_fee_rules  ) %]
                             <dt><a href="/cgi-bin/koha/tools/notice-fee-rules.pl">Notice fee rules</a></dt>
                             <dd>Define notice fee rules (charge patrons for sending notifications)</dd>
@@ -113,23 +115,24 @@
                             <dt><a href="/cgi-bin/koha/rotating_collections/rotatingCollections.pl">Rotating collections</a></dt>
                             <dd>Manage rotating collections</dd>
                         [% END %]
-                        
+
                         [% IF ( CAN_user_tools_cash_register_manage ) %]
                             <dt><a href="/cgi-bin/koha/tools/cash-register-management.pl">Cash register management</a></dt>
-	                        <dd>Manage cash registers (define cash registers and authorized staff)</dd>
+                            <dd>Manage cash registers (define cash registers and authorized staff)</dd>
                         [% END %]
-    
+
                         [% IF ( CAN_user_tools_duedate_update ) %]
                             <dt><a href="/cgi-bin/koha/tools/duedate_change.pl">Update due-dates</a></dt>
-	                        <dd>Update due-dates of checked-out items</dd>
+                            <dd>Update due-dates of checked-out items</dd>
                         [% END %]
-                        
+
                         [% IF ( CAN_user_parameters_manage_auth_values ) %]
                             <dt><a href="/cgi-bin/koha/tools/batchModificationOfAuthorizedValues.pl">Authorised values batch update</a></dt>
-	                        <dd>Authorised values batch update with CSV data</dd>
+                            <dd>Authorised values batch update with CSV data</dd>
                         [% END %]
                     </dl>
-                </div> <!-- /.col-sm-6 -->
+                </div>
+                <!-- /.col-sm-6 -->
 
                 <div class="col-sm-6">
                     [% IF ( CAN_user_tools_edit_calendar || CAN_user_tools_manage_csv_profiles || CAN_user_tools_view_system_logs || CAN_user_tools_edit_additional_contents  || CAN_user_tools_schedule_tasks || CAN_user_tools_edit_quotes || ( plugins_enabled && CAN_user_plugins_tool )  || CAN_user_tools_upload_general_files || CAN_user_tools_run_batch_programs || CAN_user_tools_download_batchprint_files || CAN_user_tools_access_files ) %]
@@ -177,13 +180,13 @@
                             <dd>
                                 Use tool plugins
                                 <ul>
-                                [% FOREACH plugin IN tool_plugins %]
-                                    <li class="plugin_link">
-                                        <a href="/cgi-bin/koha/plugins/run.pl?class=[% plugin.class | uri %]&method=tool">
-                                            <span class="plugin_name">[% plugin.metadata.name | html %]</span>
-                                        </a>
-                                    </li>
-                                [% END %]
+                                    [% FOREACH plugin IN tool_plugins %]
+                                        <li class="plugin_link">
+                                            <a href="/cgi-bin/koha/plugins/run.pl?class=[% plugin.class | uri %]&method=tool">
+                                                <span class="plugin_name">[% plugin.metadata.name | html %]</span>
+                                            </a>
+                                        </li>
+                                    [% END %]
                                 </ul>
                             </dd>
                         [% END %]
@@ -192,12 +195,12 @@
                             <dt><a href="/cgi-bin/koha/tools/upload.pl">Uploads</a></dt>
                             <dd>Upload any type of file, manage uploads</dd>
                         [% END %]
-                        
+
                         [% IF ( CAN_user_tools_run_batch_programs ) %]
                             <dt><a href="/cgi-bin/koha/tools/runBatchJob.pl">Batch program</a></dt>
                             <dd>Run batch programs</dd>
                         [% END %]
-                        
+
                         [% IF ( CAN_user_tools_download_batchprint_files ) %]
                             <dt><a href="/cgi-bin/koha/tools/download-files.pl">Download</a></dt>
                             <dd>Download batch print files</dd>
@@ -215,19 +218,23 @@
                     </dl>
 
                     [% IF ( Koha.Preference('UseCashRegisters') && ( CAN_user_cash_management_cashup || CAN_user_cash_management_anonymous_refund ) ) %]
-                    <h3>Cash management</h3>
-                    <dl>
-                        <dt><a href="/cgi-bin/koha/pos/registers.pl">Cash summary for [% Branches.GetLoggedInBranchname | html %]</a></dt>
-                        <dd>View cash takings for the current library</dd>
+                        <h3>Cash management</h3>
+                        <dl>
+                            <dt><a href="/cgi-bin/koha/pos/registers.pl">Cash summary for [% Branches.GetLoggedInBranchname | html %]</a></dt>
+                            <dd>View cash takings for the current library</dd>
 
-                        <dt><a href="/cgi-bin/koha/pos/register.pl">Transaction history for [% Registers.session_register_name | html %]</a></dt>
-                        <dd>View transaction history for the current cash register</dd>
-                    </dl>
+                            <dt><a href="/cgi-bin/koha/pos/register.pl">Transaction history for [% Registers.session_register_name | html %]</a></dt>
+                            <dd>View transaction history for the current cash register</dd>
+                        </dl>
                     [% END %]
+                </div>
+                <!-- /.col-sm-6 -->
+            </div>
+            <!-- /.row -->
+        </div>
+        <!-- /.col-md-10 -->
+    </div>
+    <!-- /.row -->
 
-                </div> <!-- /.col-sm-6 -->
-            </div> <!-- /.row -->
-        </div> <!-- /.col-md-10 -->
-    </div> <!-- /.row -->
-
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

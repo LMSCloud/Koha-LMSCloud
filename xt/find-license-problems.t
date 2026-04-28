@@ -35,7 +35,7 @@ my @files = map {
         || $name =~ m{xt/find-license-problems|xt/fix-old-fsf-address|misc/translator/po2json}
         || $name =~ m[t/mock_templates/intranet-tmpl/prog]
         || !-f $name )
-        ? $_
+    ? $_
         : ()
 } `git ls-tree -r HEAD --name-only`;    # only files part of git
 
@@ -43,13 +43,15 @@ plan tests => scalar(@files) + 1;
 
 foreach my $name (@files) {
     open( my $fh, '<', $name ) || die "cannot open file $name $!";
-    my ( $hasgpl, $hasv3, $hasorlater, $haslinktolicense,
-        $hasfranklinst, $is_not_us ) = (0)x7;
+    my (
+        $hasgpl,        $hasv3, $hasorlater, $haslinktolicense,
+        $hasfranklinst, $is_not_us
+    ) = (0) x 7;
     while ( my $line = <$fh> ) {
-        $hasgpl       = 1 if ( $line =~ /GNU General Public License/ );
-        $hasv3        = 1 if ( $line =~ /either version 3/ );
-        $hasorlater   = 1
-          if ( $line =~ /any later version/
+        $hasgpl     = 1 if ( $line =~ /GNU General Public License/ );
+        $hasv3      = 1 if ( $line =~ /either version 3/ );
+        $hasorlater = 1
+            if ( $line =~ /any later version/
             || $line =~ /at your option/ );
         $haslinktolicense = 1 if $line =~ m|https?://www\.gnu\.org/licenses|;
         $hasfranklinst    = 1 if ( $line =~ /51 Franklin Street/ );

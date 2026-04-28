@@ -22,7 +22,7 @@ use Data::Dumper;
 
 use CGI;
 
-use C4::Auth qw( get_template_and_user );
+use C4::Auth   qw( get_template_and_user );
 use C4::Output qw( output_and_exit output_html_with_http_headers );
 use Koha::Notice::Templates;
 use Koha::AuthorisedValues;
@@ -35,9 +35,9 @@ use Koha::ILL::Request::Workflow::TypeDisclaimer;
 use Koha::Libraries;
 use Koha::Plugins;
 
-use Try::Tiny qw( catch try );
+use Try::Tiny   qw( catch try );
 use URI::Escape qw( uri_escape_utf8 );
-use JSON qw( encode_json );
+use JSON        qw( encode_json );
 
 our $cgi = CGI->new;
 my $illRequests = Koha::ILL::Requests->new;
@@ -55,17 +55,19 @@ unless ( C4::Context->preference('ILLModule') ) {
 
 my $op = Koha::ILL::Request->get_op_param_deprecation( 'intranet', $params );
 
-my ( $template, $patronnumber, $cookie ) = get_template_and_user( {
-    template_name => 'ill/ill-requests.tt',
-    query         => $cgi,
-    type          => 'intranet',
-    flagsrequired => { ill => '*' },
-} );
+my ( $template, $patronnumber, $cookie ) = get_template_and_user(
+    {
+        template_name => 'ill/ill-requests.tt',
+        query         => $cgi,
+        type          => 'intranet',
+        flagsrequired => { ill => '*' },
+    }
+);
 
 # Are we able to actually work?
-my $cfg = Koha::ILL::Request::Config->new;
-my $backends = $cfg->available_backends;
-my $has_branch = $cfg->has_branch;
+my $cfg                = Koha::ILL::Request::Config->new;
+my $backends           = $cfg->available_backends;
+my $has_branch         = $cfg->has_branch;
 my $backends_available = ( scalar @{$backends} > 0 );
 $template->param(
     backends_available => $backends_available,
@@ -79,101 +81,97 @@ if ( grep( /FreeForm/, @{$backends} ) ) {
     );
 }
 
-if ( $backends_available ) {
+if ($backends_available) {
+
     # Establish what metadata enrichment plugins we have available
     my $enrichment_services = get_metadata_enrichment();
-    if (scalar @{$enrichment_services} > 0) {
-        $template->param(
-            metadata_enrichment_services => encode_json($enrichment_services)
-        );
+    if ( scalar @{$enrichment_services} > 0 ) {
+        $template->param( metadata_enrichment_services => encode_json($enrichment_services) );
     }
+
     # Establish whether we have any availability services that can provide availability
     # for the batch identifier types we support
     my $batch_availability_services = get_ill_availability($enrichment_services);
-    if (scalar @{$batch_availability_services} > 0) {
-        $template->param(
-            batch_availability_services => encode_json($batch_availability_services)
-        );
+    if ( scalar @{$batch_availability_services} > 0 ) {
+        $template->param( batch_availability_services => encode_json($batch_availability_services) );
     }
 
     if ( $op eq 'illview' ) {
+
         # View the details of an ILL
-        my $request = Koha::Illrequests->find($params->{illrequest_id});
-        if ( ! $request ) { redirect_to_list(); }
+        my $request = Koha::Illrequests->find( $params->{illrequest_id} );
+        if ( !$request ) { redirect_to_list(); }
 
         # Get the details for notices that can be sent from here
         my $notices = Koha::Notice::Templates->search(
             {
                 module => 'ill',
-                code => { -in => [ 'ILL_PICKUP_READY' ,'ILL_REQUEST_UNAVAIL' ] },
+                code   => { -in => [ 'ILL_PICKUP_READY', 'ILL_REQUEST_UNAVAIL' ] },
             },
             {
-                columns => [ qw/code name/ ],
+                columns  => [qw/code name/],
                 distinct => 1
             }
         )->unblessed;
 
         $template->param(
-            notices    => $notices,
-            request    => $request,
-            request_orderidlink => $request->_backend_capability( "getLink",  [ $request, 'orderid'] ),
-            csrf_token => Koha::Token->new->generate_csrf({
-                session_id => scalar $cgi->cookie('CGISESSID'),
-            }),
-            ( $params->{tran_error} ?
-                ( tran_error => $params->{tran_error} ) : () ),
-            ( $params->{tran_success} ?
-                ( tran_success => $params->{tran_success} ) : () ),
+            notices             => $notices,
+            request             => $request,
+            request_orderidlink => $request->_backend_capability( "getLink", [ $request, 'orderid' ] ),
+            csrf_token          => Koha::Token->new->generate_csrf(
+                {
+                    session_id => scalar $cgi->cookie('CGISESSID'),
+                }
+            ),
+            ( $params->{tran_error}   ? ( tran_error   => $params->{tran_error} )   : () ),
+            ( $params->{tran_success} ? ( tran_success => $params->{tran_success} ) : () ),
         );
 
         output_and_exit( $cgi, $cookie, $template, 'unknown_ill_request' ) if !$request;
 
         my $backend_result = $request->backend_illview($params);
         $template->param(
-            whole      => $backend_result,
+            whole => $backend_result,
         ) if $backend_result;
 
-
     } elsif ( $op eq 'cud-create' ) {
+
         # Load the ILL backend
         my $request = Koha::ILL::Request->new->load_backend( $params->{backend} );
 
         # Before request creation operations - Preparation
-        my $availability =
-          Koha::ILL::Request::Workflow::Availability->new( $params, 'staff' );
-        my $type_disclaimer =
-        Koha::ILL::Request::Workflow::TypeDisclaimer->new( $params, 'staff' );
+        my $availability    = Koha::ILL::Request::Workflow::Availability->new( $params, 'staff' );
+        my $type_disclaimer = Koha::ILL::Request::Workflow::TypeDisclaimer->new( $params, 'staff' );
 
         # ILLCheckAvailability operation
-        if ($availability->show_availability($request)) {
+        if ( $availability->show_availability($request) ) {
             $op = 'availability';
-            $template->param(
-                $availability->availability_template_params($params)
-            )
-        # ILLModuleDisclaimerByType operation
-        } elsif ( $type_disclaimer->show_type_disclaimer($request)) {
+            $template->param( $availability->availability_template_params($params) )
+
+            # ILLModuleDisclaimerByType operation
+        } elsif ( $type_disclaimer->show_type_disclaimer($request) ) {
             $op = 'typedisclaimer';
-            $template->param(
-                $type_disclaimer->type_disclaimer_template_params($params)
-            );
-        # Ready to create ILL request
+            $template->param( $type_disclaimer->type_disclaimer_template_params($params) );
+
+            # Ready to create ILL request
         } else {
             my $backend_result = $request->backend_create($params);
 
             # After creation actions
             if ( $params->{type_disclaimer_submitted} && $request->illrequest_id ) {
-                $type_disclaimer->after_request_created($params, $request);
+                $type_disclaimer->after_request_created( $params, $request );
             }
 
             $template->param(
-                whole     => $backend_result,
-                request   => $request
+                whole   => $backend_result,
+                request => $request
             );
-            redirect_user($backend_result, $request);
+            redirect_user( $backend_result, $request );
         }
     } elsif ( $op eq 'migrate' ) {
+
         # We're in the process of migrating a request
-        my $request = Koha::ILL::Requests->find($params->{illrequest_id});
+        my $request = Koha::ILL::Requests->find( $params->{illrequest_id} );
         my $backend_result;
         if ( $params->{backend} ) {
             $backend_result = $request->backend_migrate($params);
@@ -183,16 +181,16 @@ if ( $backends_available ) {
                     request => $request
                 );
             } else {
+
                 # Backend failure, redirect back to illview
                 print $cgi->redirect( '/cgi-bin/koha/ill/ill-requests.pl'
-                      . '?op=illview'
-                      . '&illrequest_id='
-                      . $request->id
-                      . '&error=migrate_target' );
+                        . '?op=illview'
+                        . '&illrequest_id='
+                        . $request->id
+                        . '&error=migrate_target' );
                 exit;
             }
-        }
-        else {
+        } else {
             $backend_result = $request->backend_migrate($params);
             $template->param(
                 whole   => $backend_result,
@@ -202,10 +200,11 @@ if ( $backends_available ) {
         redirect_user( $backend_result, $request );
 
     } elsif ( $op eq 'confirm' ) {
+
         # Backend 'confirm' method
         # confirm requires a specific request, so first, find it.
-        my $request = Koha::Illrequests->find($params->{illrequest_id});
-        if ( ! $request ) { redirect_to_list(); }
+        my $request = Koha::Illrequests->find( $params->{illrequest_id} );
+        if ( !$request ) { redirect_to_list(); }
         my $backend_result = $request->backend_confirm($params);
         $template->param(
             whole   => $backend_result,
@@ -213,13 +212,14 @@ if ( $backends_available ) {
         );
 
         # handle special commit rules & update type
-        redirect_user($backend_result, $request);
+        redirect_user( $backend_result, $request );
 
     } elsif ( $op eq 'cud-cancel' ) {
+
         # Backend 'cancel' method
         # cancel requires a specific request, so first, find it.
-        my $request = Koha::Illrequests->find($params->{illrequest_id});
-        if ( ! $request ) { redirect_to_list(); }
+        my $request = Koha::Illrequests->find( $params->{illrequest_id} );
+        if ( !$request ) { redirect_to_list(); }
         my $backend_result = $request->backend_cancel($params);
         $template->param(
             whole   => $backend_result,
@@ -227,43 +227,48 @@ if ( $backends_available ) {
         );
 
         # handle special commit rules & update type
-        redirect_user($backend_result, $request);
+        redirect_user( $backend_result, $request );
 
     } elsif ( $op eq 'cud-edit_action' ) {
         $op =~ s/^cud-//;
+
         # Handle edits to the Illrequest object.
         # (not the Illrequestattributes)
         # We simulate the API for backend requests for uniformity.
         # So, init:
-        my $request = Koha::Illrequests->find($params->{illrequest_id});
-        if ( ! $request ) { redirect_to_list(); }
+        my $request = Koha::Illrequests->find( $params->{illrequest_id} );
+        if ( !$request ) { redirect_to_list(); }
         if ( !$params->{stage} ) {
             my $backend_result = {
                 error   => 0,
                 status  => '',
                 message => '',
-                op  => 'edit_action',
+                op      => 'edit_action',
                 stage   => 'init',
                 next    => '',
                 value   => {}
             };
             $template->param(
-                whole          => $backend_result,
-                request        => $request,
-                batches        => $batches
+                whole   => $backend_result,
+                request => $request,
+                batches => $batches
             );
         } else {
+
             # Commit:
             # Save the changes
-            $request->borrowernumber($params->{borrowernumber}) if $params->{borrowernumber};    # empty borrowernumber would result in 'Broken FK constraint' error
-            $request->biblio_id($params->{biblio_id}) if $params->{biblio_id};    # empty biblio_id / biblio_id = 0 would destroy consistency
-            $request->branchcode($params->{branchcode});
-            $request->price_paid($params->{price_paid});
-            $request->notesopac($params->{notesopac});
-            $request->notesstaff($params->{notesstaff});
-            my $alias = (length $params->{status_alias} > 0) ?
-                $params->{status_alias} :
-                "-1";
+            $request->borrowernumber( $params->{borrowernumber} )
+                if $params->{borrowernumber};    # empty borrowernumber would result in 'Broken FK constraint' error
+            $request->biblio_id( $params->{biblio_id} )
+                if $params->{biblio_id};         # empty biblio_id / biblio_id = 0 would destroy consistency
+            $request->branchcode( $params->{branchcode} );
+            $request->price_paid( $params->{price_paid} );
+            $request->notesopac( $params->{notesopac} );
+            $request->notesstaff( $params->{notesstaff} );
+            my $alias =
+                ( length $params->{status_alias} > 0 )
+                ? $params->{status_alias}
+                : "-1";
             $request->status_alias($alias);
             $request->store;
             my $backend_result = {
@@ -275,66 +280,65 @@ if ( $backends_available ) {
                 next    => 'illlist',
                 value   => {}
             };
-            handle_commit_maybe($backend_result, $request);
+            handle_commit_maybe( $backend_result, $request );
         }
 
     } elsif ( $op eq 'moderate_action' ) {
+
         # Moderate action is required for an ILL submodule / syspref.
         # Currently still needs to be implemented.
         redirect_to_list();
 
-    } elsif ( $op eq 'delete_confirm') {
-        my $request = Koha::Illrequests->find($params->{illrequest_id});
-        if ( ! $request ) { redirect_to_list(); }
+    } elsif ( $op eq 'delete_confirm' ) {
+        my $request = Koha::Illrequests->find( $params->{illrequest_id} );
+        if ( !$request ) { redirect_to_list(); }
 
-        $template->param(
-            request => $request
-        );
+        $template->param( request => $request );
 
     } elsif ( $op eq 'cud-delete' ) {
 
         # Check if the request is confirmed, if not, redirect
         # to the confirmation view
-        if ($params->{confirmed}) {
+        if ( $params->{confirmed} ) {
+
             # We simply delete the request...
             my $req = Koha::Illrequests->find( $params->{illrequest_id} );
-            if ( $req ) {
+            if ($req) {
                 $req->delete;
             }
+
             # ... then return to list view.
             redirect_to_list();
         } else {
             print $cgi->redirect(
-                "/cgi-bin/koha/ill/ill-requests.pl?" .
-                "op=delete_confirm&illrequest_id=" .
-                $params->{illrequest_id});
+                "/cgi-bin/koha/ill/ill-requests.pl?" . "op=delete_confirm&illrequest_id=" . $params->{illrequest_id} );
             exit;
         }
 
     } elsif ( $op eq 'mark_completed' ) {
-        my $request = Koha::Illrequests->find($params->{illrequest_id});
-        if ( ! $request ) { redirect_to_list(); }
+        my $request = Koha::Illrequests->find( $params->{illrequest_id} );
+        if ( !$request ) { redirect_to_list(); }
         my $backend_result = $request->mark_completed($params);
         $template->param(
-            whole => $backend_result,
+            whole   => $backend_result,
             request => $request,
         );
 
         # handle special commit rules & update type
-        redirect_user($backend_result, $request);
+        redirect_user( $backend_result, $request );
 
     } elsif ( $op eq 'cud-generic_confirm' ) {
         $op =~ s/^cud-//;
         my $backend_result;
         my $request;
         try {
-            $request = Koha::Illrequests->find($params->{illrequest_id});
-            if ( ! $request ) { redirect_to_list(); }
+            $request = Koha::Illrequests->find( $params->{illrequest_id} );
+            if ( !$request ) { redirect_to_list(); }
             $params->{current_branchcode} = C4::Context->mybranch;
             $backend_result = $request->generic_confirm($params);
 
             $template->param(
-                whole => $backend_result,
+                whole   => $backend_result,
                 request => $request,
             );
 
@@ -344,153 +348,142 @@ if ( $backends_available ) {
                 my $availability = Koha::ILL::Request::Workflow::Availability->new(
                     {
                         name => 'ILL availability - z39.50',
-                        %{$request->metadata}
+                        %{ $request->metadata }
                     },
                     'partners'
                 );
                 my $services = $availability->get_services();
+
                 # Only pass availability searching stuff to the template if
                 # appropriate
                 if ( scalar @{$services} > 0 ) {
-                    my $metadata = $availability->prep_metadata($request->metadata);
-                    $template->param( metadata => $metadata );
-                    $template->param(
-                        services_json => scalar encode_json($services)
-                    );
-                    $template->param( services => $services );
+                    my $metadata = $availability->prep_metadata( $request->metadata );
+                    $template->param( metadata      => $metadata );
+                    $template->param( services_json => scalar encode_json($services) );
+                    $template->param( services      => $services );
                 }
             }
 
             $template->param( error => $params->{error} )
                 if $params->{error};
-        }
-        catch {
+        } catch {
             my $error;
             if ( ref($_) eq 'Koha::Exceptions::Ill::NoTargetEmail' ) {
                 $error = 'no_target_email';
-            }
-            elsif ( ref($_) eq 'Koha::Exceptions::Ill::NoLibraryEmail' ) {
+            } elsif ( ref($_) eq 'Koha::Exceptions::Ill::NoLibraryEmail' ) {
                 $error = 'no_library_email';
-            }
-            else {
+            } else {
                 $error = 'unknown_error';
             }
-            print $cgi->redirect(
-                "/cgi-bin/koha/ill/ill-requests.pl?" .
-                "op=generic_confirm&illrequest_id=" .
-                $params->{illrequest_id} .
-                "&error=$error" );
+            print $cgi->redirect( "/cgi-bin/koha/ill/ill-requests.pl?"
+                    . "op=generic_confirm&illrequest_id="
+                    . $params->{illrequest_id}
+                    . "&error=$error" );
             exit;
         };
 
         # handle special commit rules & update type
-        redirect_user($backend_result, $request);
-    } elsif ( $op eq 'cud-check_out') {
+        redirect_user( $backend_result, $request );
+    } elsif ( $op eq 'cud-check_out' ) {
         $op =~ s/^cud-//;
-        my $request = Koha::ILL::Requests->find($params->{illrequest_id});
+        my $request        = Koha::ILL::Requests->find( $params->{illrequest_id} );
         my $backend_result = $request->check_out($params);
         $template->param(
             params  => $params,
             whole   => $backend_result,
             request => $request
         );
-    } elsif ( $op eq 'illlist') {
+    } elsif ( $op eq 'illlist' ) {
 
         # If we receive a pre-filter, make it available to the template
-        my $possible_filters = ['borrowernumber', 'backend'];
-        my $active_filters = {};
-        foreach my $filter(@{$possible_filters}) {
-            if ($params->{$filter}) {
+        my $possible_filters = [ 'borrowernumber', 'backend' ];
+        my $active_filters   = {};
+        foreach my $filter ( @{$possible_filters} ) {
+            if ( $params->{$filter} ) {
+
                 # We shouldn't need to escape $filter here since we're using
                 # a whitelist, but just to be sure...
-                $active_filters->{uri_escape_utf8($filter)} =
-                    uri_escape_utf8(scalar $params->{$filter});
+                $active_filters->{ uri_escape_utf8($filter) } =
+                    uri_escape_utf8( scalar $params->{$filter} );
             }
         }
         my @tpl_arr = ();
-        if (keys %{$active_filters}) {
-            foreach my $key (keys %{$active_filters}) {
+        if ( keys %{$active_filters} ) {
+            foreach my $key ( keys %{$active_filters} ) {
                 push @tpl_arr, $key . "=" . $active_filters->{$key};
             }
         }
         if ( $params->{infilter} ) {
-            $template->param(
-                infilter => $params->{infilter}
-            );
+            $template->param( infilter => $params->{infilter} );
         } else {    # no customer is interested in searching ALL illrequests by default, so we search ALL OPEN
-            if ( ! $params->{hitname} ) {
+            if ( !$params->{hitname} ) {
                 $params->{infilter} = 'status,-not_in,COMP,QUEUED';
-                $template->param(
-                    infilter => $params->{infilter}
-                );
+                $template->param( infilter => $params->{infilter} );
                 $params->{hitname} = 'Details for all open requests';
             }
         }
         if ( $params->{hitname} ) {
-            $template->param(
-                hitname => $params->{hitname}
-            );
+            $template->param( hitname => $params->{hitname} );
         }
-        $template->param(
-            prefilters => join("&", @tpl_arr)
-        );
+        $template->param( prefilters => join( "&", @tpl_arr ) );
 
-        if ($active_filters->{batch_id}) {
+        if ( $active_filters->{batch_id} ) {
             my $batch_id = $active_filters->{batch_id};
             if ($batch_id) {
                 my $batch = Koha::ILL::Batches->find($batch_id);
-                $template->param(
-                    batch => $batch
-                );
+                $template->param( batch => $batch );
             }
         }
 
         $template->param( table_actions => encode_json( Koha::ILL::Request->get_staff_table_actions ) );
     } elsif ( $op eq "cud-save_comment" ) {
-        my $comment = Koha::ILL::Comment->new({
-            illrequest_id  => scalar $params->{illrequest_id},
-            borrowernumber => $patronnumber,
-            comment        => scalar $params->{comment},
-        });
-        $comment->store();
-        # Redirect to view the whole request
-        print $cgi->redirect("/cgi-bin/koha/ill/ill-requests.pl?op=illview&illrequest_id=".
-            scalar $params->{illrequest_id}
+        my $comment = Koha::ILL::Comment->new(
+            {
+                illrequest_id  => scalar $params->{illrequest_id},
+                borrowernumber => $patronnumber,
+                comment        => scalar $params->{comment},
+            }
         );
+        $comment->store();
+
+        # Redirect to view the whole request
+        print $cgi->redirect(
+            "/cgi-bin/koha/ill/ill-requests.pl?op=illview&illrequest_id=" . scalar $params->{illrequest_id} );
         exit;
 
     } elsif ( $op eq "send_notice" ) {
         my $illrequest_id = $params->{illrequest_id};
-        my $request = Koha::ILL::Requests->find($illrequest_id);
-        my $ret = $request->send_patron_notice($params->{notice_code});
-        my $append = '';
-        if ($ret->{result} && scalar @{$ret->{result}->{success}} > 0) {
-            $append .= '&tran_success=' . join(',', @{$ret->{result}->{success}});
+        my $request       = Koha::ILL::Requests->find($illrequest_id);
+        my $ret           = $request->send_patron_notice( $params->{notice_code} );
+        my $append        = '';
+        if ( $ret->{result} && scalar @{ $ret->{result}->{success} } > 0 ) {
+            $append .= '&tran_success=' . join( ',', @{ $ret->{result}->{success} } );
         }
-        if ($ret->{result} && scalar @{$ret->{result}->{fail}} > 0) {
+        if ( $ret->{result} && scalar @{ $ret->{result}->{fail} } > 0 ) {
             $append .= '&tran_fail=' . join( ',', @{ $ret->{result}->{fail} } );
         }
+
         # Redirect to view the whole request
         print $cgi->redirect(
-            "/cgi-bin/koha/ill/ill-requests.pl?op=illview&illrequest_id=".
-            scalar $params->{illrequest_id} . $append
-        );
+            "/cgi-bin/koha/ill/ill-requests.pl?op=illview&illrequest_id=" . scalar $params->{illrequest_id} . $append );
         exit;
     } elsif ( $op eq "batch_list" ) {
+
         # Do not remove, it prevents us falling through to the 'else'
     } elsif ( $op eq "batch_create" ) {
+
         # Do not remove, it prevents us falling through to the 'else'
     } else {
-        my $request = Koha::Illrequests->find($params->{illrequest_id});
-        if ( ! $request ) { redirect_to_list(); }
-        my $backend_result = $request->custom_capability($op, $params);
+        my $request = Koha::Illrequests->find( $params->{illrequest_id} );
+        if ( !$request ) { redirect_to_list(); }
+        my $backend_result = $request->custom_capability( $op, $params );
         $template->param(
-            whole => $backend_result,
+            whole   => $backend_result,
             request => $request,
         );
 
         # handle special commit rules & update type
-        redirect_user($backend_result, $request);
+        redirect_user( $backend_result, $request );
     }
 }
 
@@ -511,23 +504,20 @@ sub redirect_user {
         if ( $backend_result->{next} eq 'illview' ) {
 
             # Redirect to a view of the newly created request
-            print $cgi->redirect( '/cgi-bin/koha/ill/ill-requests.pl'
-                  . '?op=illview'
-                  . '&illrequest_id='
-                  . $request->id );
+            print $cgi->redirect(
+                '/cgi-bin/koha/ill/ill-requests.pl' . '?op=illview' . '&illrequest_id=' . $request->id );
             exit;
-        }
-        elsif ( $backend_result->{next} eq 'emigrate' ) {
+        } elsif ( $backend_result->{next} eq 'emigrate' ) {
 
             # Redirect to a view of the newly created request
             print $cgi->redirect( '/cgi-bin/koha/ill/ill-requests.pl'
-                  . '?op=migrate'
-                  . '&stage=emigrate'
-                  . '&illrequest_id='
-                  . $request->id );
+                    . '?op=migrate'
+                    . '&stage=emigrate'
+                    . '&illrequest_id='
+                    . $request->id );
             exit;
-        }
-        else {
+        } else {
+
             # Redirect to a requests list view
             redirect_to_list();
         }
@@ -535,17 +525,18 @@ sub redirect_user {
 }
 
 sub redirect_to_list {
-    print $cgi->redirect('/cgi-bin/koha/ill/ill-requests.pl?infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests');
+    print $cgi->redirect(
+        '/cgi-bin/koha/ill/ill-requests.pl?infilter=status,-not_in,COMP,QUEUED&hitname=Details for all open requests');
     exit;
 }
 
 # Do any of the available backends provide batch requesting
 sub have_batch_backends {
-    my ( $backends ) = @_;
+    my ($backends) = @_;
 
     my @have_batch = ();
 
-    foreach my $backend(@{$backends}) {
+    foreach my $backend ( @{$backends} ) {
         my $can_batch = can_batch($backend);
         if ($can_batch) {
             push @have_batch, $backend;
@@ -557,21 +548,19 @@ sub have_batch_backends {
 # Does a given backend provide batch requests
 # FIXME: This should be moved to Koha::Illbackend
 sub can_batch {
-    my ( $backend ) = @_;
-    my $request = Koha::ILL::Request->new->load_backend( $backend );
-    return $request->_backend_capability( 'provides_batch_requests' );
+    my ($backend) = @_;
+    my $request = Koha::ILL::Request->new->load_backend($backend);
+    return $request->_backend_capability('provides_batch_requests');
 }
 
 # Get available metadata enrichment plugins
 sub get_metadata_enrichment {
     return [] unless C4::Context->config("enable_plugins");
-    my @candidates = Koha::Plugins->new()->GetPlugins({
-        method => 'provides_api'
-    });
-    my @services = ();
-    foreach my $plugin(@candidates) {
+    my @candidates = Koha::Plugins->new()->GetPlugins( { method => 'provides_api' } );
+    my @services   = ();
+    foreach my $plugin (@candidates) {
         my $supported = $plugin->provides_api();
-        if ($supported->{type} eq 'search') {
+        if ( $supported->{type} eq 'search' ) {
             push @services, $supported;
         }
     }
@@ -581,11 +570,11 @@ sub get_metadata_enrichment {
 # Get ILL availability plugins that can help us with the batch identifier types
 # we support
 sub get_ill_availability {
-    my ( $services ) = @_;
+    my ($services) = @_;
 
     my $id_types = {};
-    foreach my $service(@{$services}) {
-        foreach my $id_supported(keys %{$service->{identifiers_supported}}) {
+    foreach my $service ( @{$services} ) {
+        foreach my $id_supported ( keys %{ $service->{identifiers_supported} } ) {
             $id_types->{$id_supported} = 1;
         }
     }

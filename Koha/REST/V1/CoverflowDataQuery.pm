@@ -47,20 +47,18 @@ sub flat(@) {
 }
 
 sub get {
-    my $c          = shift->openapi->valid_input or return;
-    my $query      = $c->validation->param('query');
-    my $offset     = $c->validation->param('offset');
-    my $maxcount   = $c->validation->param('maxcount');
+    my $c        = shift->openapi->valid_input or return;
+    my $query    = $c->validation->param('query');
+    my $offset   = $c->validation->param('offset');
+    my $maxcount = $c->validation->param('maxcount');
 
     try {
-        my $coverflow_data
-            = C4::CoverFlowData::GetCoverFlowDataByQueryString($query, $offset, $maxcount);
+        my $coverflow_data = C4::CoverFlowData::GetCoverFlowDataByQueryString( $query, $offset, $maxcount );
 
         if ( !$coverflow_data ) {
             return $c->render(
                 status  => 404,
-                openapi =>
-                    { error => 'No item(s) returned from specified query' },
+                openapi => { error => 'No item(s) returned from specified query' },
             );
         }
 
@@ -71,8 +69,7 @@ sub get {
         $coverflow_data->{'items'} = \@item_hashes;
 
         return $c->render( status => 200, openapi => $coverflow_data );
-    }
-    catch {
+    } catch {
         $c->unhandled_exception($_);
     };
 

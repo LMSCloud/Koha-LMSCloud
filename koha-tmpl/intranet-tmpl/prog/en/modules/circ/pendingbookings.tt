@@ -8,11 +8,12 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("Bookings to collect") | html %] &rsaquo;
-    [% t("Circulation") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Bookings to collect") | html %]
+        &rsaquo; [% t("Circulation") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -32,84 +33,82 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-    <div class="main container-fluid">
-        <div class="row">
-
-            <!-- Results -->
-            <div class="col-md-10 order-md-2 order-sm1">
-                <main>
-                    [% INCLUDE 'messages.inc' %]
-                    <h1>Items required for bookings between <span id="from_date">[% from | $KohaDates %]</span> and <span id="to_date">[% to | $KohaDates %]</span></h1>
-                    <h2>Reported on [% todaysdate | $KohaDates %]</h2>
-                    <p>The following items have not been collected for bookings. Please retrieve them
-                        and check them in.</p>
-                    <div id="searchresults">
-                        <table id="bookingst"></table>
-                    </div>
-                </main>
-            </div>
-
-            <!-- Filters & Navigation -->
-            <div class="col-md-2 order-sm-2 order-md-1">
-                <aside>
-                    <form id="bookingsf">
-                        <fieldset class="brief">
-                            <h4>Refine results</h4>
-                            <ol>
-                                <li>
-                                    <label for="holding_library">Holding library:</label>
-                                    <select name="holding_library" id="holding_library">
-                                        [% SET libraries = Branches.all( only_from_group => 1 ) %]
-                                        [% IF libraries.size != 1 %]
-                                            <option value="">Any</option>
-                                        [% END %]
-                                        [% FOREACH l IN libraries %]
-                                            [% IF (l.branchcode == branchcode) %]
-                                                <option value="[% l.branchcode | html %]" selected="selected">[% l.branchname | html %]</option>
-                                            [% ELSE %]
-                                                <option value="[% l.branchcode | html %]">[% l.branchname | html %]</option>
-                                            [% END %]
-                                        [% END %]
-                                    </select>
-                                </li>
-                                <li>
-                                    <label for="pickup_library">Pickup library:</label>
-                                    <select name="pickup_library" id="pickup_library">
-                                        [% SET libraries = Branches.all( only_from_group => 1 ) %]
-                                        [% IF libraries.size != 1 %]
-                                            <option value="">Any</option>
-                                        [% END %]
-                                        [% FOREACH l IN libraries %]
-                                            [% IF (l.branchcode == branchcode) %]
-                                                <option value="[% l.branchcode | html %]" selected="selected">[% l.branchname | html %]</option>
-                                            [% ELSE %]
-                                                <option value="[% l.branchcode | html %]">[% l.branchname | html %]</option>
-                                            [% END %]
-                                        [% END %]
-                                    </select>
-                                </li>
-                                <li>
-                                    <label for="from">Starts after: </label>
-                                    <input type="text" size="10" id="from" name="from" value="[% from | html %]" class="flatpickr" data-date_to="to"/>
-                                </li>
-                                <li>
-                                    <label for="to">Starts before: </label>
-                                    <input type="text" size="10" id="to" name="to" value="[% to | html %]" class="flatpickr"/>
-                                </li>
-                            </ol>
-                        </fieldset>
-                        <fieldset class="action">
-                            <input type="submit" name="run_report" value="Submit" class="btn btn-primary" />
-                        </fieldset>
-                    </form>
-
-                    [% INCLUDE 'circ-nav.inc' %]
-                </aside>
-            </div>
+<div class="main container-fluid">
+    <div class="row">
+        <!-- Results -->
+        <div class="col-md-10 order-md-2 order-sm1">
+            <main>
+                [% INCLUDE 'messages.inc' %]
+                <h1>Items required for bookings between <span id="from_date">[% from | $KohaDates %]</span> and <span id="to_date">[% to | $KohaDates %]</span></h1>
+                <h2>Reported on [% todaysdate | $KohaDates %]</h2>
+                <p>The following items have not been collected for bookings. Please retrieve them and check them in.</p>
+                <div id="searchresults">
+                    <table id="bookingst"></table>
+                </div>
+            </main>
         </div>
-        <!-- /.row -->
 
-        [% MACRO jsinclude BLOCK %]
+        <!-- Filters & Navigation -->
+        <div class="col-md-2 order-sm-2 order-md-1">
+            <aside>
+                <form id="bookingsf">
+                    <fieldset class="brief">
+                        <h4>Refine results</h4>
+                        <ol>
+                            <li>
+                                <label for="holding_library">Holding library:</label>
+                                <select name="holding_library" id="holding_library">
+                                    [% SET libraries = Branches.all( only_from_group => 1 ) %]
+                                    [% IF libraries.size != 1 %]
+                                        <option value="">Any</option>
+                                    [% END %]
+                                    [% FOREACH l IN libraries %]
+                                        [% IF (l.branchcode == branchcode) %]
+                                            <option value="[% l.branchcode | html %]" selected="selected">[% l.branchname | html %]</option>
+                                        [% ELSE %]
+                                            <option value="[% l.branchcode | html %]">[% l.branchname | html %]</option>
+                                        [% END %]
+                                    [% END %]
+                                </select>
+                            </li>
+                            <li>
+                                <label for="pickup_library">Pickup library:</label>
+                                <select name="pickup_library" id="pickup_library">
+                                    [% SET libraries = Branches.all( only_from_group => 1 ) %]
+                                    [% IF libraries.size != 1 %]
+                                        <option value="">Any</option>
+                                    [% END %]
+                                    [% FOREACH l IN libraries %]
+                                        [% IF (l.branchcode == branchcode) %]
+                                            <option value="[% l.branchcode | html %]" selected="selected">[% l.branchname | html %]</option>
+                                        [% ELSE %]
+                                            <option value="[% l.branchcode | html %]">[% l.branchname | html %]</option>
+                                        [% END %]
+                                    [% END %]
+                                </select>
+                            </li>
+                            <li>
+                                <label for="from">Starts after: </label>
+                                <input type="text" size="10" id="from" name="from" value="[% from | html %]" class="flatpickr" data-date_to="to" />
+                            </li>
+                            <li>
+                                <label for="to">Starts before: </label>
+                                <input type="text" size="10" id="to" name="to" value="[% to | html %]" class="flatpickr" />
+                            </li>
+                        </ol>
+                    </fieldset>
+                    <fieldset class="action">
+                        <input type="submit" name="run_report" value="Submit" class="btn btn-primary" />
+                    </fieldset>
+                </form>
+
+                [% INCLUDE 'circ-nav.inc' %]
+            </aside>
+        </div>
+    </div>
+    <!-- /.row -->
+
+    [% MACRO jsinclude BLOCK %]
         [% INCLUDE 'calendar.inc' %]
         [% INCLUDE 'datatables.inc' %]
         [% INCLUDE 'columns_settings.inc' %]
@@ -124,9 +123,7 @@
         <script>
             var BOOKINGS_LIBRARIES_DATA = [% To.json(libraries) | $raw %];
         </script>
-
         [% Asset.js("js/bookings-common.js", type => "module") | $raw %]
-
         <script>
             $(document).ready(function() {
                 $("#helper").off("click").on("click", function(e) {
@@ -162,5 +159,6 @@
                 });
             });
         </script>
-        [% END %]
-        [% INCLUDE 'intranet-bottom.inc' %]
+    [% END %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

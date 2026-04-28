@@ -8,7 +8,7 @@ const createBaseConfig = (isOpac = false) => ({
     resolve: {
         alias: {
             // Use Vue 3.5 for islands
-            "vue": path.resolve(__dirname, "node_modules/vue-3.5"),
+            vue: path.resolve(__dirname, "node_modules/vue-3.5"),
             "@fetch": path.resolve(
                 __dirname,
                 "koha-tmpl/intranet-tmpl/prog/js/fetch"

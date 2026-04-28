@@ -76,13 +76,12 @@ subtest 'anonymize() tests' => sub {
 
     t::lib::Mocks::mock_preference( 'AnonymousPatron', undef );
 
-    throws_ok
-        { $checkout_1->anonymize; }
-        'Koha::Exceptions::SysPref::NotSet',
+    throws_ok { $checkout_1->anonymize; }
+    'Koha::Exceptions::SysPref::NotSet',
         'Exception thrown because AnonymousPatron not set';
 
-    is( $@->syspref, 'AnonymousPatron', 'syspref parameter is correctly passed' );
-    is( $patron->old_checkouts->count, 2, 'No changes, patron has 2 linked completed checkouts' );
+    is( $@->syspref,                   'AnonymousPatron', 'syspref parameter is correctly passed' );
+    is( $patron->old_checkouts->count, 2,                 'No changes, patron has 2 linked completed checkouts' );
 
     is(
         $checkout_2->borrowernumber, $patron->id,
@@ -90,8 +89,7 @@ subtest 'anonymize() tests' => sub {
     );
     is( $checkout_2->renewals->count, 2, 'Checkout 2 has 2 renewals' );
 
-    my $anonymous_patron =
-      $builder->build_object( { class => 'Koha::Patrons' } );
+    my $anonymous_patron = $builder->build_object( { class => 'Koha::Patrons' } );
     t::lib::Mocks::mock_preference( 'AnonymousPatron', $anonymous_patron->id );
 
     # anonymize second checkout
@@ -129,7 +127,7 @@ subtest 'deleteitem() tests' => sub {
     my $item_to_del = $checkout_3->item;
     $item_to_del->delete;
     $checkout_3->discard_changes();
-    is( $checkout_3->item, undef, "Item is deleted");
+    is( $checkout_3->item, undef, "Item is deleted" );
 
     $schema->storage->txn_rollback;
 };

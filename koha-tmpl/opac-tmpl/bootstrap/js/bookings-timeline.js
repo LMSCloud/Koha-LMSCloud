@@ -1,10 +1,16 @@
 (() => {
     // Timeline item styles
     const TIMELINE_STYLES = {
-        checkout: 'background-color: var(--bookings-timeline-bg-checkout); color: var(--bookings-timeline-text-checkout); font-weight: bold;'
+        checkout:
+            "background-color: var(--bookings-timeline-bg-checkout); color: var(--bookings-timeline-text-checkout); font-weight: bold;",
     };
 
-    function processBookingsData(loggedInUser, bookings, bookableItems, checkouts = []) {
+    function processBookingsData(
+        loggedInUser,
+        bookings,
+        bookableItems,
+        checkouts = []
+    ) {
         const visSetItems = new vis.DataSet([
             { id: 0, content: __("Record level") },
             ...bookableItems.map(bookableItem => ({
@@ -27,12 +33,10 @@
                 start: dayjs(booking.start_date).toDate(),
                 end: dayjs(booking.end_date).toDate(),
                 extended_attributes: booking.extended_attributes,
-                content: !isActive
-                    ? `<s>${patronContent}</s>`
-                    : patronContent,
+                content: !isActive ? `<s>${patronContent}</s>` : patronContent,
                 type: "range",
                 group: booking.item_id ?? 0,
-                editable: loggedInUser == booking.patron_id
+                editable: loggedInUser == booking.patron_id,
             };
         });
 
@@ -44,16 +48,21 @@
                 id: `checkout-${checkout.item_id}-${checkout.checkout_date}`,
                 content: `<span class="checkout-label font-weight-bold">${patronContent}</span>`,
                 start: dayjs(checkout.checkout_date).toDate(),
-                end: checkout.due_date ? dayjs(checkout.due_date).toDate() : dayjs().add(1, 'year').toDate(),
+                end: checkout.due_date
+                    ? dayjs(checkout.due_date).toDate()
+                    : dayjs().add(1, "year").toDate(),
                 type: "range",
                 group: checkout.item_id,
-                className: 'checkout',
+                className: "checkout",
                 style: TIMELINE_STYLES.checkout,
-                editable: false
+                editable: false,
             };
         });
 
-        const visSetBookings = new vis.DataSet([...bookingItems, ...checkoutItems]);
+        const visSetBookings = new vis.DataSet([
+            ...bookingItems,
+            ...checkoutItems,
+        ]);
 
         return { visSetItems, visSetBookings };
     }
@@ -167,7 +176,7 @@
         bookings,
         bookableItems,
         checkouts = [],
-        visTimelineOptions
+        visTimelineOptions,
     }) {
         const container = document.getElementById(containerId);
         const loadingIndicator = document.getElementById(loadingIndicatorId);
@@ -219,7 +228,7 @@
         bookings,
         bookableItems,
         checkouts = [],
-        visTimelineOptions = {}
+        visTimelineOptions = {},
     }) {
         return {
             init: () => {
@@ -242,7 +251,7 @@
                     bookings,
                     bookableItems,
                     checkouts,
-                    visTimelineOptions
+                    visTimelineOptions,
                 });
             },
         };

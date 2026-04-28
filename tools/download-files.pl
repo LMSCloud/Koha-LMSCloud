@@ -22,10 +22,10 @@ use warnings;
 use CGI qw ( -utf8 );
 use C4::Context;
 use C4::Output qw( output_html_with_http_headers output_with_http_headers );
-use C4::Auth qw( get_template_and_user );
+use C4::Auth   qw( get_template_and_user );
 use C4::Koha;
 use Koha::DateUtils qw( dt_from_string output_pref );
-use POSIX qw( strftime );
+use POSIX           qw( strftime );
 use File::stat;
 use File::Spec;
 
@@ -43,13 +43,12 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     }
 );
 
-
 my $branch = $input->param('branch');
 $branch =
-    defined $branch                                                    ? $branch
-  : C4::Context->preference('DefaultToLoggedInLibraryOverdueTriggers') ? C4::Context::mybranch()
-  : Koha::Libraries->search->count() == 1                              ? undef
-  :                                                                      undef;
+      defined $branch                                                    ? $branch
+    : C4::Context->preference('DefaultToLoggedInLibraryOverdueTriggers') ? C4::Context::mybranch()
+    : Koha::Libraries->search->count() == 1                              ? undef
+    :                                                                      undef;
 $branch ||= q{};
 $branch = q{} if $branch eq 'NO_LIBRARY_SET';
 
@@ -63,20 +62,21 @@ $op =~ s/^cud-//;
 if ( $op eq 'download' ) {
     my $content;
     my $filename = $input->param('filename');
-    my $fullname = File::Spec->catfile( $outputdir, $filename);
-    
+    my $fullname = File::Spec->catfile( $outputdir, $filename );
+
     my $extraoptions = {};
-    my $charset = `file -i -b $fullname`;
-    my $encoding = 'UTF-8';
-    
+    my $charset      = `file -i -b $fullname`;
+    my $encoding     = 'UTF-8';
+
     if ( $charset =~ /charset=([^\s]+)/ ) {
-	$charset = $1;
+        $charset = $1;
         if ( $charset !~ /utf-8/i ) {
+
             # $extraoptions->{encoding} = $charset;
             $encoding = $charset;
         }
     }
-    
+
     {
         local $/ = undef;
         my $enc = ":encoding($encoding)";
@@ -84,64 +84,63 @@ if ( $op eq 'download' ) {
             $extraoptions->{encoding} = 'binary';
             $enc = ':raw';
         }
-        open(my $fh, "<$enc", $fullname);
+        open( my $fh, "<$enc", $fullname );
         $content = <$fh>;
         close $fh;
     }
-    if ( $content eq '') {
-        $content = "<html><head><title>No content</title></head><body>The requested file $filename has no content.</body></html>";
+    if ( $content eq '' ) {
+        $content =
+            "<html><head><title>No content</title></head><body>The requested file $filename has no content.</body></html>";
     }
     my $content_type = 'html';
-    $content_type = 'csv' if ( $filename =~ /\.csv$/i );
+    $content_type = 'csv'  if ( $filename =~ /\.csv$/i );
     $content_type = 'json' if ( $filename =~ /\.json$/i );
-    $content_type = 'xml' if ( $filename =~ /\.xml$/i );
-    $content_type = 'zip' if ( $filename =~ /\.zip$/i );
-    $content_type = 'txt' if ( $filename =~ /\.txt$/i );
+    $content_type = 'xml'  if ( $filename =~ /\.xml$/i );
+    $content_type = 'zip'  if ( $filename =~ /\.zip$/i );
+    $content_type = 'txt'  if ( $filename =~ /\.txt$/i );
 
-    if ( $content_type ne 'html' ) {                    # otherwise Firefox would open its download dialog even with content_type 'html' instead of showing the html content
+    if ( $content_type ne 'html' )
+    { # otherwise Firefox would open its download dialog even with content_type 'html' instead of showing the html content
         $extraoptions = { filename => $filename };
     }
-    
 
     output_with_http_headers $input, $cookie, $content, $content_type, '200 OK', $extraoptions;
     exit 0;
 }
 
 my $files = {};
-if ( -e "$outputdir") {
-	opendir(my $dh, $outputdir);
-	while (my $filename = readdir $dh) {
-		my $fullname = File::Spec->catfile( $outputdir, $filename);
-		if ( -f $fullname && -r $fullname ) {
-			my $stat_epoch = stat($fullname)->mtime;
-			my $sortdate = strftime('%Y-%m-%d', localtime( $stat_epoch ) );
-            my $formatdate = output_pref({dt => dt_from_string( $sortdate ), dateonly => 1 });
-            if (! exists($files->{$formatdate}) ) {
-                $files->{$formatdate} = { sortdate => $sortdate, files => []};
+if ( -e "$outputdir" ) {
+    opendir( my $dh, $outputdir );
+    while ( my $filename = readdir $dh ) {
+        my $fullname = File::Spec->catfile( $outputdir, $filename );
+        if ( -f $fullname && -r $fullname ) {
+            my $stat_epoch = stat($fullname)->mtime;
+            my $sortdate   = strftime( '%Y-%m-%d', localtime($stat_epoch) );
+            my $formatdate = output_pref( { dt => dt_from_string($sortdate), dateonly => 1 } );
+            if ( !exists( $files->{$formatdate} ) ) {
+                $files->{$formatdate} = { sortdate => $sortdate, files => [] };
             }
-            push @{$files->{$formatdate}->{files}}, $filename;
-		}
-	}
-	closedir $dh;
+            push @{ $files->{$formatdate}->{files} }, $filename;
+        }
+    }
+    closedir $dh;
 }
 
 my @dirlist;
-foreach my $date (sort {$files->{$b}->{sortdate} cmp $files->{$a}->{sortdate}} keys %$files) {
+foreach my $date ( sort { $files->{$b}->{sortdate} cmp $files->{$a}->{sortdate} } keys %$files ) {
     push @dirlist, { displaydate => $date, sortdate => $files->{$date}->{sortdate}, files => [] };
     my $index = $#dirlist;
-    foreach my $file ( sort { $a cmp $b } @{$files->{$date}->{files}} ) {
-            push @{$dirlist[$index]->{files}}, $file;
+    foreach my $file ( sort { $a cmp $b } @{ $files->{$date}->{files} } ) {
+        push @{ $dirlist[$index]->{files} }, $file;
     }
 }
-
 
 ########################################
 #  Set template paramater
 ########################################
 $template->param(
-                        dirlist => \@dirlist,
-                        branch => $branch,
+    dirlist => \@dirlist,
+    branch  => $branch,
 );
-
 
 output_html_with_http_headers $input, $cookie, $template->output;

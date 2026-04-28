@@ -30,7 +30,7 @@ use strict;
 use warnings;
 
 use CGI qw ( -utf8 );
-use CGI::Cookie;  # need to check cookies before having CGI parse the POST request
+use CGI::Cookie;    # need to check cookies before having CGI parse the POST request
 
 use C4::Auth qw(check_cookie_auth);
 use C4::Context;
@@ -41,55 +41,54 @@ use JSON;
 
 my $is_ajax = is_ajax();
 
-my ($query, $auth_status);
+my ( $query, $auth_status );
 if ($is_ajax) {
     ( $query, $auth_status ) = &ajax_auth_cgi( {} );
-}
-else {
+} else {
     $auth_status = 'unauthorized';
-    $query = CGI->new();
+    $query       = CGI->new();
 }
 
 my @js_reply = ();
 my $json_reply;
-    
+
 if ( $auth_status eq 'ok' ) {
-    my $isLoan=0;
-    
-    my @divibibIDs = ();
+    my $isLoan = 0;
+
+    my @divibibIDs   = ();
     my $loggedinuser = C4::Context->userenv->{'number'};
 
     foreach my $reqId ( $query->param('divibibID') ) {
-	foreach my $splitId( split /\s+/, $reqId  ) {
-	    if ( $splitId ) {
-               push @divibibIDs, $splitId;
+        foreach my $splitId ( split /\s+/, $reqId ) {
+            if ($splitId) {
+                push @divibibIDs, $splitId;
             }
         }
     }
 
     my $action = $query->param('action');
-    
+
     if ( $action eq 'loan' ) {
         $isLoan = 1;
     }
 
     my $divibibService = C4::Divibib::NCIPService->new();
 
-    foreach my $divibibID ( @divibibIDs ) {
-        my ($result, $resultOk, $resultError, $resultErrorCode) = $divibibService->requestItem($loggedinuser, $divibibID, $isLoan);
+    foreach my $divibibID (@divibibIDs) {
+        my ( $result, $resultOk, $resultError, $resultErrorCode ) =
+            $divibibService->requestItem( $loggedinuser, $divibibID, $isLoan );
 
         push @js_reply, {
-                            result           => $result,
-                            resultOk         => $resultOk,
-                            resultError      => $resultError,
-                            resultErrorCode  => $resultErrorCode
-                          };
+            result          => $result,
+            resultOk        => $resultOk,
+            resultError     => $resultError,
+            resultErrorCode => $resultErrorCode
+        };
     }
 
     $json_reply = JSON->new->utf8->encode( { titles => \@js_reply } );
-    
-}
-else {
+
+} else {
     $json_reply = JSON->new->utf8->encode( { error => "No valid user session status: " . $auth_status } );
 }
 
@@ -102,8 +101,7 @@ sub ajax_auth_cgi {
     my $needed_flags = shift;
     my %cookies      = CGI::Cookie->fetch;
     my $input        = CGI->new;
-    my $sessid = $cookies{'CGISESSID'}->value || $input->param('CGISESSID');
-    my ( $auth_status, $auth_sessid ) =
-      check_cookie_auth( $sessid, $needed_flags );
+    my $sessid       = $cookies{'CGISESSID'}->value || $input->param('CGISESSID');
+    my ( $auth_status, $auth_sessid ) = check_cookie_auth( $sessid, $needed_flags );
     return $input, $auth_status;
 }

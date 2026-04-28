@@ -47,7 +47,6 @@
     [% END %]
 [% END %]
 
-
 [% IF item.notforloan %]
     [% SET itemavailable = 0 %]
     <span class="item-status notforloan">Not for loan</span>

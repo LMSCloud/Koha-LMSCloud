@@ -76,7 +76,8 @@
         [% END %]
 
         [% SET enrollments = patron.get_club_enrollments %]
-        [% SET enrollable  = patron.get_enrollable_clubs(0) %] <!-- 0 => not OPAC -->
+        [% SET enrollable  = patron.get_enrollable_clubs(0) %]
+        <!-- 0 => not OPAC -->
         [% IF CAN_user_clubs && ( enrollable.count || enrollments.count ) %]
             [% WRAPPER tab_item tabname= "clubs" %]
                 <span>Clubs ([% enrollments.count | html %]/[% enrollable.count | html %])</span>
@@ -89,7 +90,6 @@
             [% END %]
         [% END %]
     [% END # /WRAPPER tabs_nav %]
-
 
     [% WRAPPER tab_panels %]
         [% WRAPPER tab_panel tabname="checkouts" bt_active= 1 %]
@@ -215,7 +215,7 @@
 
                                 [% IF Koha.Preference('AutoResumeSuspendedHolds') %]
                                     <label for="suspend_until">until</label>
-                                    <input type="text" size="10" id="suspend_until" name="suspend_until" class="flatpickr" data-flatpickr-futuredate="true"/>
+                                    <input type="text" size="10" id="suspend_until" name="suspend_until" class="flatpickr" data-flatpickr-futuredate="true" />
                                     <span class="hint">Specify date on which to resume [% INCLUDE 'date-format.inc' %]: </span>
                                 [% END %]
                             </fieldset>
@@ -232,7 +232,6 @@
                             </fieldset>
                         </form>
                     [% END # IF SuspendHoldsIntranet %]
-
                 [% ELSE %]
                     <p>Patron has nothing on hold.</p>
                 [% END %]
@@ -265,7 +264,6 @@
                 [% INCLUDE 'patron-article-requests.inc' %]
             [% END %]
         [% END # /tab_panel# %]
-
     [% END # /WRAPPER tab_panels %]
 [% END # /WRAPPER tabs %]
 <!-- /patron-detail-tabs.inc -->

@@ -84,7 +84,7 @@ export function $dateFn() {
 export function $biblioToHtmlFn() {
     /** @type {any} */
     const w = window;
-    return w["$biblio_to_html"] || ((b) => (b && b.title) || "");
+    return w["$biblio_to_html"] || (b => (b && b.title) || "");
 }
 
 /**
@@ -96,8 +96,7 @@ export function $patronToHtmlFn() {
     const w = window;
     return (
         w["$patron_to_html"] ||
-        ((p) =>
-            p ? [p.firstname, p.surname].filter(Boolean).join(" ") : "")
+        (p => (p ? [p.firstname, p.surname].filter(Boolean).join(" ") : ""))
     );
 }
 
@@ -166,7 +165,9 @@ export function buildDateRangeInput($th, inputId) {
     const html =
         '<input type="text" id="' +
         inputId +
-        '" placeholder="' + __("Select date range") + '" />';
+        '" placeholder="' +
+        __("Select date range") +
+        '" />';
     $th.html(html);
     return $("#" + inputId);
 }

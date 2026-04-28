@@ -31,7 +31,7 @@ use warnings;
 use utf8;
 
 use CGI qw ( -utf8 );
-use CGI::Cookie;  # need to check cookies before having CGI parse the POST request
+use CGI::Cookie;    # need to check cookies before having CGI parse the POST request
 
 use MARC::File::XML;
 use MARC::File::USMARC;
@@ -45,20 +45,18 @@ use C4::Charset;
 use C4::Koha;
 use URI::Escape;
 
-
 use JSON;
 
 my $is_ajax = 1;
-my $query = CGI->new();
-
+my $query   = CGI->new();
 
 my @js_reply = ();
 my $json_reply;
-    
+
 my @bibids = ();
 
 if ( $query && $query->param('bibid') ) {
-    foreach my $splitId( split /(\s+|,)/, $query->param('bibid')  ) {
+    foreach my $splitId ( split /(\s+|,)/, $query->param('bibid') ) {
         if ( $splitId =~ /^\d+$/ ) {
             push @bibids, $splitId;
         }
@@ -66,127 +64,130 @@ if ( $query && $query->param('bibid') ) {
 }
 
 if ( @bibids > 0 ) {
-    my $dbh            = C4::Context->dbh;
-    my $sth            = $dbh->prepare("SELECT i.biblioitemnumber AS biblioitemnumber, i.biblionumber AS biblionumber, m.metadata AS metadata, b.frameworkcode AS frameworkcode FROM biblioitems i, biblio b, biblio_metadata m WHERE m.biblionumber = i.biblionumber AND i.biblionumber = b.biblionumber AND i.biblionumber IN (" . join(",",@bibids) . ')');
-    my $count          = 0;
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare(
+        "SELECT i.biblioitemnumber AS biblioitemnumber, i.biblionumber AS biblionumber, m.metadata AS metadata, b.frameworkcode AS frameworkcode FROM biblioitems i, biblio b, biblio_metadata m WHERE m.biblionumber = i.biblionumber AND i.biblionumber = b.biblionumber AND i.biblionumber IN ("
+            . join( ",", @bibids )
+            . ')' );
+    my $count = 0;
 
     $sth->execute();
     while ( my $data = $sth->fetchrow_hashref ) {
-        
-        my $biblionumber = $data->{'biblionumber'};
+
+        my $biblionumber     = $data->{'biblionumber'};
         my $biblioitemnumber = $data->{'biblioitemnumber'};
-        my $marcxml = StripNonXmlChars( $data->{'metadata'} );
-        my $frameworkcode = $data->{'frameworkcode'};
-        
+        my $marcxml          = StripNonXmlChars( $data->{'metadata'} );
+        my $frameworkcode    = $data->{'frameworkcode'};
+
         MARC::File::XML->default_record_format( C4::Context->preference('marcflavour') );
         my $record = MARC::Record->new();
 
         if ($marcxml) {
-            my $Koharecord = eval {
-                MARC::Record::new_from_xml( $marcxml, "utf8", C4::Context->preference('marcflavour') );
-            };
-            if ($@) { warn " problem with :$biblionumber : $@ \n$marcxml";  next }
-        
-            my $field = $Koharecord->field('245');
+            my $Koharecord =
+                eval { MARC::Record::new_from_xml( $marcxml, "utf8", C4::Context->preference('marcflavour') ); };
+            if ($@) { warn " problem with :$biblionumber : $@ \n$marcxml"; next }
+
+            my $field      = $Koharecord->field('245');
             my $titleblock = "";
-            my $title = "";
-            my $author = "";
-        
-            if ( $field ) {
+            my $title      = "";
+            my $author     = "";
+
+            if ($field) {
                 $title = $field->subfield('a');
                 my $subtitle = $field->subfield('b');
                 $author = $field->subfield('c');
-		
+
                 $titleblock = $title;
-                
-                if ( $subtitle ) {
+
+                if ($subtitle) {
                     $titleblock .= ': ' . $subtitle;
                 }
-                if ( $author ) {
+                if ($author) {
                     $titleblock .= ' / ' . $author;
                 }
                 if ( $titleblock !~ /\.$/ ) {
                     $titleblock .= '.';
                 }
             }
-		
+
             $field = $Koharecord->field('250');
-            if ( $field ) {
+            if ($field) {
                 my $edition = $field->subfield('a');
-		
-                if ( $edition ) {
+
+                if ($edition) {
                     $titleblock .= ' - ' . $edition;
                     if ( $titleblock !~ /\.$/ ) {
                         $titleblock .= '.';
-                    } 
+                    }
                 }
             }
-		
+
             $field = $Koharecord->field('260');
-            if ( $field ) {
-                my $location = $field->subfield('a');
+            if ($field) {
+                my $location  = $field->subfield('a');
                 my $publisher = $field->subfield('b');
-                my $year = $field->subfield('c');
-		
+                my $year      = $field->subfield('c');
+
                 my $publisherblock = $location;
-                    if ( $publisherblock && ( defined($publisher) || defined($year) )) {
-                        $publisherblock .= ': ';
+                if ( $publisherblock && ( defined($publisher) || defined($year) ) ) {
+                    $publisherblock .= ': ';
+                }
+                if ($publisher) {
+                    $publisherblock .= $publisher;
+                }
+                if ($year) {
+                    if ($publisherblock) {
+                        $publisherblock .= ', ';
                     }
-                    if ( $publisher ) {
-                        $publisherblock .=  $publisher;
+                    $publisherblock .= $year;
+                }
+                if ($publisherblock) {
+                    $titleblock .= ' - ' . $publisherblock;
+                    if ( $titleblock !~ /\.$/ ) {
+                        $titleblock .= '.';
                     }
-                    if ( $year ) {
-                        if ( $publisherblock ) {
-                            $publisherblock .= ', ';
-                        }
-                        $publisherblock .=  $year;
-                    }
-                    if ( $publisherblock ) {
-                        $titleblock .= ' - ' . $publisherblock;
-                        if ( $titleblock !~ /\.$/ ) {
-                            $titleblock .= '.';
-                        }
-                    }
+                }
             }
-            $title =~ s/[\x{0098}\x{009c}]//g if ($title);
-            $author =~ s/[\x{0098}\x{009c}]//g if ($author);
+            $title      =~ s/[\x{0098}\x{009c}]//g if ($title);
+            $author     =~ s/[\x{0098}\x{009c}]//g if ($author);
             $titleblock =~ s/[\x{0098}\x{009c}]//g if ($titleblock);
-		
-		
+
             my $identifier = '';
             $field = $Koharecord->field('020');
-            if ( $field ) {
+            if ($field) {
                 my $isbn = $field->subfield('a');
-                $identifier = $isbn if ( $isbn );
+                $identifier = $isbn if ($isbn);
             }
             $field = $Koharecord->field('024');
             if ( $field && $identifier eq '' ) {
                 my $ean = $field->subfield('a');
-                $identifier = $ean if ( $ean );
+                $identifier = $ean if ($ean);
             }
-		
+
             my $coverurl = '';
             foreach my $field ( $Koharecord->field('856') ) {
                 if ( $field->subfield('q') && $field->subfield('q') =~ /cover/i && $field->subfield('u') ) {
-                    next if ($field->subfield('n') && $field->subfield('n') =~ /^(Wikipedia|Antolin)$/i );
+                    next if ( $field->subfield('n') && $field->subfield('n') =~ /^(Wikipedia|Antolin)$/i );
                     $coverurl = $field->subfield('u');
                     $coverurl =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
                     $coverurl =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
                     last;
                 }
             }
-            
+
             if ( $coverurl eq '' ) {
-                $coverurl = 'https://cover.lmscloud.net/gencover?ti=' . uri_escape_utf8($title) .'&au=' . uri_escape_utf8($author) ;
+                $coverurl =
+                      'https://cover.lmscloud.net/gencover?ti='
+                    . uri_escape_utf8($title) . '&au='
+                    . uri_escape_utf8($author);
             }
 
-        
             push @js_reply, {
-                            id             => $biblioitemnumber,
-                            title          => $titleblock,
-                            identifier     => $identifier,
-                            coverurl       => $coverurl
-                          };
+                id         => $biblioitemnumber,
+                title      => $titleblock,
+                identifier => $identifier,
+                coverurl   => $coverurl
+            };
         }
     }
 }

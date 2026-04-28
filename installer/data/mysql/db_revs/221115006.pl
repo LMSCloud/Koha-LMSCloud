@@ -1,12 +1,12 @@
 use Modern::Perl;
 
 return {
-    bug_number => "",
+    bug_number  => "",
     description => "UPDATE default system preferences to LMSCloud Koha standard.",
-    up => sub {
+    up          => sub {
         my ($args) = @_;
-        my ($dbh) = @$args{qw(dbh)};
-        
+        my ($dbh)  = @$args{qw(dbh)};
+
         $dbh->do(q{UPDATE systempreferences set value = '0' WHERE variable = 'TranslateNotices'});
         $dbh->do(q{UPDATE systempreferences set value = '1' WHERE variable = 'showLastPatron'});
         $dbh->do(q{UPDATE systempreferences set value = '50' WHERE variable = 'numReturnedItemsToShow'});

@@ -1,6 +1,5 @@
 package C4::AggregatedStatistics::AggregatedStatisticsFactory;
 
-
 # Copyright 2018 (C) LMSCLoud GmbH
 #
 # This file is part of Koha.
@@ -18,7 +17,6 @@ package C4::AggregatedStatistics::AggregatedStatisticsFactory;
 # with Koha; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-
 # This script inserts / updates records in DB tables authorised_values and insertinto_marc_subfield_structure
 # that are required for the aggregated statistics type 'DBS'.
 # 'DBS' evaluates the field items.coded_location_qualifier in some sql select statements.
@@ -29,31 +27,29 @@ use Data::Dumper;
 use C4::AggregatedStatistics::DBS;
 use C4::AggregatedStatistics::VGWort;
 
-
 my $debug = 1;
-
 
 # build array of aggregated statistics types (currently this is 'DBS' only; can be extended in the future, even by "select distinct type from aggregated_statistics" etc.)
 my $statisticstypesdesignations = [
-    { 'type' => 'DBS', 'designation' => 'Deutsche Bibliotheksstatistik' },
+    { 'type' => 'DBS',    'designation' => 'Deutsche Bibliotheksstatistik' },
     { 'type' => 'VGWort', 'designation' => 'VG-WORT-Export' }
 ];
-    
+
 # lists type names of aggregated statistics that are supported (these are used as values for database table field aggregated_statistics.type)
 sub getAggregatedStatisticsTypes {
     my ($class) = @_;
 
     my @statisticstypeloop = ();
     foreach my $statisticstypesdesignation ( @{$statisticstypesdesignations} ) {
-        push @statisticstypeloop, $statisticstypesdesignation->{'type'};   
+        push @statisticstypeloop, $statisticstypesdesignation->{'type'};
     }
 
     return \@statisticstypeloop;
 }
 
 sub getAggregatedStatisticsTypeDesignation {
-    my ($class, $statisticstype) = @_;
-    my $designation = 'not defined';   
+    my ( $class, $statisticstype ) = @_;
+    my $designation = 'not defined';
 
     foreach my $statisticstypesdesignation ( @{$statisticstypesdesignations} ) {
         if ( $statisticstypesdesignation->{'type'} eq $statisticstype ) {
@@ -65,13 +61,15 @@ sub getAggregatedStatisticsTypeDesignation {
 
 # produce an object of the required type $agstype
 sub getAggregatedStatisticsClass {
-    my ($class, $agstype, $input) = @_;
-    my $newObject;    
+    my ( $class, $agstype, $input ) = @_;
+    my $newObject;
 
     if ( $agstype eq 'DBS' ) {
-        $newObject = C4::AggregatedStatistics::DBS->new($input,$class->getAggregatedStatisticsTypeDesignation('DBS'));
+        $newObject =
+            C4::AggregatedStatistics::DBS->new( $input, $class->getAggregatedStatisticsTypeDesignation('DBS') );
     } elsif ( $agstype eq 'VGWort' ) {
-        $newObject = C4::AggregatedStatistics::VGWort->new($input,$class->getAggregatedStatisticsTypeDesignation('VGWort'));
+        $newObject =
+            C4::AggregatedStatistics::VGWort->new( $input, $class->getAggregatedStatisticsTypeDesignation('VGWort') );
     }
 
     return $newObject;

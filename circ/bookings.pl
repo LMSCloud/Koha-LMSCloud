@@ -40,7 +40,7 @@ my ( $template, $borrowernumber, $cookie, $flags ) = get_template_and_user(
 
 my $today     = dt_from_string();
 my $startdate = $today->truncate( to => 'day' );
-my $enddate   = $startdate->clone->add( days => 30 ); # Show a month by default
+my $enddate   = $startdate->clone->add( days => 30 );    # Show a month by default
 my $branchcode =
     defined( $input->param('library') ) ? $input->param('library') : C4::Context->userenv->{'branch'};
 
@@ -51,4 +51,4 @@ $template->param(
     branchcode => $branchcode
 );
 
-output_html_with_http_headers $input, $cookie, $template->output; 
+output_html_with_http_headers $input, $cookie, $template->output;

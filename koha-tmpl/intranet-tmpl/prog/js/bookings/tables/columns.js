@@ -264,7 +264,9 @@ export function getBookingTableColumns(
             orderable: true,
             /** @type {(data:any, type:any, row:any)=>any} */
             render: function (_data, _type, row) {
-                return row.biblio ? $biblioToHtmlFn()(row.biblio, { link: linkBiblio }) : "";
+                return row.biblio
+                    ? $biblioToHtmlFn()(row.biblio, { link: linkBiblio })
+                    : "";
             },
         });
     }
@@ -460,7 +462,9 @@ export function getBookingTableColumns(
             /** @type {(data:any, type:any, row:any)=>any} */
             render: function (_data, _type, row) {
                 if (!canManageBookings()) return "";
-                const isReadOnly = ["cancelled", "completed"].includes(row.status);
+                const isReadOnly = ["cancelled", "completed"].includes(
+                    row.status
+                );
                 if (isReadOnly) return "";
                 const ext = (row.extended_attributes || [])
                     .filter(
@@ -504,9 +508,12 @@ export function getBookingTableColumns(
                 }
                 if (showConvertToCheckoutAction) {
                     const patronName = row.patron
-                        ? [row.patron.firstname, row.patron.surname].filter(Boolean).join(" ")
+                        ? [row.patron.firstname, row.patron.surname]
+                              .filter(Boolean)
+                              .join(" ")
                         : "";
-                    const biblioTitle = row.biblio?.title || window.BIBLIO_TITLE || "";
+                    const biblioTitle =
+                        row.biblio?.title || window.BIBLIO_TITLE || "";
                     html += `
                         <button type="button" class="btn btn-default btn-xs convert-to-checkout-action"
                             data-bs-toggle="modal"

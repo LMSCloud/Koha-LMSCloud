@@ -18,7 +18,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use strict;
-use warnings; 
+use warnings;
 
 use C4::Context;
 
@@ -26,7 +26,7 @@ my $sth = C4::Context->dbh;
 
 $sth->do("alter table overduerules convert to character set utf8 collate utf8_unicode_ci");
 
-$sth->do("
+$sth->do( "
     INSERT INTO overdue_issues (issue_id,claim_level,claim_time) 
     SELECT i.issue_id, 1, TIMESTAMP(DATE_ADD(i.date_due,INTERVAL o.delay1 DAY))
     FROM issues i, overduerules o, categories c, borrowers b
@@ -48,9 +48,9 @@ $sth->do("
          AND NOT EXISTS (SELECT 1 FROM overduerules WHERE o.categorycode = b.categorycode AND o.branchcode = i.branchcode)
          AND o.delay1         > 0
          AND DATE_ADD(i.date_due,INTERVAL o.delay1 DAY) <= CURDATE()
-") or die "DB ERROR: " . $sth->errstr . "\n";
+" ) or die "DB ERROR: " . $sth->errstr . "\n";
 
-$sth->do("
+$sth->do( "
     INSERT INTO overdue_issues (issue_id,claim_level,claim_time) 
     SELECT i.issue_id, 2, TIMESTAMP(DATE_ADD(i.date_due,INTERVAL o.delay2 DAY))
     FROM issues i, overduerules o, categories c, borrowers b
@@ -72,9 +72,9 @@ $sth->do("
          AND NOT EXISTS (SELECT 1 FROM overduerules WHERE o.categorycode = b.categorycode AND o.branchcode = i.branchcode)
          AND o.delay2         > 0
          AND DATE_ADD(i.date_due,INTERVAL o.delay2 DAY) <= CURDATE()
-") or die "DB ERROR: " . $sth->errstr . "\n";
+" ) or die "DB ERROR: " . $sth->errstr . "\n";
 
-$sth->do("
+$sth->do( "
     INSERT INTO overdue_issues (issue_id,claim_level,claim_time) 
     SELECT i.issue_id, 3, TIMESTAMP(DATE_ADD(i.date_due,INTERVAL o.delay3 DAY))
     FROM issues i, overduerules o, categories c, borrowers b
@@ -96,9 +96,9 @@ $sth->do("
          AND NOT EXISTS (SELECT 1 FROM overduerules WHERE o.categorycode = b.categorycode AND o.branchcode = i.branchcode)
          AND o.delay3         > 0
          AND DATE_ADD(i.date_due,INTERVAL o.delay3 DAY) <= CURDATE()
-") or die "DB ERROR: " . $sth->errstr . "\n";
+" ) or die "DB ERROR: " . $sth->errstr . "\n";
 
-$sth->do("
+$sth->do( "
     INSERT INTO overdue_issues (issue_id,claim_level,claim_time) 
     SELECT i.issue_id, 4, TIMESTAMP(DATE_ADD(i.date_due,INTERVAL o.delay4 DAY))
     FROM issues i, overduerules o, categories c, borrowers b
@@ -120,9 +120,9 @@ $sth->do("
          AND NOT EXISTS (SELECT 1 FROM overduerules WHERE o.categorycode = b.categorycode AND o.branchcode = i.branchcode)
          AND o.delay4         > 0
          AND DATE_ADD(i.date_due,INTERVAL o.delay4 DAY) <= CURDATE()
-") or die "DB ERROR: " . $sth->errstr . "\n";
+" ) or die "DB ERROR: " . $sth->errstr . "\n";
 
-$sth->do("
+$sth->do( "
     INSERT INTO overdue_issues (issue_id,claim_level,claim_time) 
     SELECT i.issue_id, 5, TIMESTAMP(DATE_ADD(i.date_due,INTERVAL o.delay5 DAY))
     FROM issues i, overduerules o, categories c, borrowers b
@@ -144,6 +144,5 @@ $sth->do("
          AND NOT EXISTS (SELECT 1 FROM overduerules WHERE o.categorycode = b.categorycode AND o.branchcode = i.branchcode)
          AND o.delay5         > 0
          AND DATE_ADD(i.date_due,INTERVAL o.delay5 DAY) <= CURDATE()
-") or die "DB ERROR: " . $sth->errstr . "\n";
-
+" ) or die "DB ERROR: " . $sth->errstr . "\n";
 

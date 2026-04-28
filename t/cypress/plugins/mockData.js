@@ -1,12 +1,17 @@
 const { faker } = require("@faker-js/faker");
 const { readYamlFile } = require("./../plugins/readYamlFile.js");
-const fs = require('fs');
+const fs = require("fs");
 
 const generateMockData = (type, properties) => {
     switch (type) {
         case "string":
-            if(properties?.maxLength){
-                return faker.string.alpha({ length: { min: properties.minLength || 1, max: properties.maxLength } })
+            if (properties?.maxLength) {
+                return faker.string.alpha({
+                    length: {
+                        min: properties.minLength || 1,
+                        max: properties.maxLength,
+                    },
+                });
             }
             return faker.lorem.words(3);
         case "integer":

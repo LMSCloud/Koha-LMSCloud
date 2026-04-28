@@ -2,8 +2,10 @@
     // Timeline item styles
     // Using inline styles because vis-timeline's CSS has higher specificity than utility classes
     const TIMELINE_STYLES = {
-        cancelled: 'background-color: var(--bookings-timeline-bg-cancelled); color: var(--bookings-timeline-text-cancelled); text-decoration: line-through;',
-        checkout: 'background-color: var(--bookings-timeline-bg-checkout); color: var(--bookings-timeline-text-checkout); font-weight: bold;'
+        cancelled:
+            "background-color: var(--bookings-timeline-bg-cancelled); color: var(--bookings-timeline-text-cancelled); text-decoration: line-through;",
+        checkout:
+            "background-color: var(--bookings-timeline-bg-checkout); color: var(--bookings-timeline-text-checkout); font-weight: bold;",
     };
 
     function processBookingsData(bookings, bookableItems, checkouts = []) {
@@ -20,11 +22,14 @@
             const isActive = ["new", "pending", "active"].includes(
                 booking.status
             );
-            
-            const patronContent  = booking.patron
-                ? $patron_to_html(booking.patron, { display_cardnumber: true, url: true })
+
+            const patronContent = booking.patron
+                ? $patron_to_html(booking.patron, {
+                      display_cardnumber: true,
+                      url: true,
+                  })
                 : __("Unknown patron");
-            
+
             return {
                 id: booking.booking_id,
                 booking: booking.booking_id,
@@ -33,37 +38,46 @@
                 start: dayjs(booking.start_date).toDate(),
                 end: dayjs(booking.end_date).toDate(),
                 extended_attributes: booking.extended_attributes,
-                content: !isActive
-                    ? `<s>${patronContent}</s>`
-                    : patronContent,
+                content: !isActive ? `<s>${patronContent}</s>` : patronContent,
                 type: "range",
                 group: booking.item_id ?? 0,
-                className: booking.status === 'cancelled' ? 'cancelled' : '',
-                style: booking.status === 'cancelled' ? TIMELINE_STYLES.cancelled : '',
-                editable: booking.status !== 'cancelled'
+                className: booking.status === "cancelled" ? "cancelled" : "",
+                style:
+                    booking.status === "cancelled"
+                        ? TIMELINE_STYLES.cancelled
+                        : "",
+                editable: booking.status !== "cancelled",
             };
         });
 
         // Process checkouts
         const checkoutItems = checkouts.map(checkout => {
             const patronContent = checkout.patron
-                ? $patron_to_html(checkout.patron, { display_cardnumber: true, url: true })
+                ? $patron_to_html(checkout.patron, {
+                      display_cardnumber: true,
+                      url: true,
+                  })
                 : __("Unknown patron");
-            
+
             return {
                 id: `checkout-${checkout.checkout_id}`,
                 content: `<span class="checkout-label font-weight-bold">${__("Checkout")}: ${patronContent}</span>`,
                 start: dayjs(checkout.checkout_date).toDate(),
-                end: checkout.due_date ? dayjs(checkout.due_date).toDate() : dayjs().add(1, 'year').toDate(),
+                end: checkout.due_date
+                    ? dayjs(checkout.due_date).toDate()
+                    : dayjs().add(1, "year").toDate(),
                 type: "range",
                 group: checkout.item_id,
-                className: 'checkout',
+                className: "checkout",
                 style: TIMELINE_STYLES.checkout,
-                editable: false
+                editable: false,
             };
         });
 
-        const visSetBookings = new vis.DataSet([...bookingItems, ...checkoutItems]);
+        const visSetBookings = new vis.DataSet([
+            ...bookingItems,
+            ...checkoutItems,
+        ]);
 
         return { visSetItems, visSetBookings };
     }
@@ -80,7 +94,7 @@
     function makeHandleOnMoving(visSetBookings) {
         return function (item, callback) {
             // Don't allow moving checkout items
-            if (item.id && item.id.toString().startsWith('checkout-')) {
+            if (item.id && item.id.toString().startsWith("checkout-")) {
                 callback(null);
                 return;
             }
@@ -130,11 +144,11 @@
             island.open = true;
 
             const handleModalClose = () => {
-                island.removeEventListener('close', handleModalClose);
+                island.removeEventListener("close", handleModalClose);
                 callback(data);
             };
 
-            island.addEventListener('close', handleModalClose);
+            island.addEventListener("close", handleModalClose);
         };
     }
 
@@ -193,15 +207,10 @@
         );
     }
 
-    function init({
-        containerId,
-        bookings,
-        bookableItems,
-        checkouts = []
-    }) {
+    function init({ containerId, bookings, bookableItems, checkouts = [] }) {
         const container = document.getElementById(containerId);
-        const loadingEl = document.getElementById('bookings-timeline-loading');
-        
+        const loadingEl = document.getElementById("bookings-timeline-loading");
+
         const { visSetItems, visSetBookings } = processBookingsData(
             bookings,
             bookableItems,
@@ -216,7 +225,7 @@
             editable: {
                 remove: window.CAN_user_circulate_manage_bookings,
                 updateTime: window.CAN_user_circulate_manage_bookings,
-                updateGroup: false
+                updateGroup: false,
             },
             verticalScroll: true,
             orientation: {
@@ -226,15 +235,17 @@
             timeAxis: { scale: "day", step: 1 },
             dataAttributes: ["booking"],
             autoResize: false,
-            onInitialDrawComplete: function() {
+            onInitialDrawComplete: function () {
                 if (loadingEl) {
-                    loadingEl.style.display = 'none';
+                    loadingEl.style.display = "none";
                 }
             },
             snap: handleSnap,
             onMoving: handleOnMoving,
             onMove: handleOnMove,
-            onRemove: window.CAN_user_circulate_manage_bookings ? handleOnRemove : undefined,
+            onRemove: window.CAN_user_circulate_manage_bookings
+                ? handleOnRemove
+                : undefined,
         };
 
         const timeline = new vis.Timeline(
@@ -246,9 +257,9 @@
 
         return timeline;
     }
-    
+
     // Expose the init function to the global scope
     window.BookingsTimeline = {
-        init: init
+        init: init,
     };
-})(); 
+})();

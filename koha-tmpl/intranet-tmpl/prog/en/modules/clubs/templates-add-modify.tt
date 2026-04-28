@@ -6,21 +6,22 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% IF club_template %]
-        [% tx("Modify club template {club_template}", { club_template = club_template.name }) | html %] &rsaquo;
-    [% ELSE %]
-        [% t("New club template") | html %]
-    [% END %] &rsaquo;
-    [% t("Patron clubs") | html %] &rsaquo;
-    [% t("Tools") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% IF club_template %]
+            [% tx("Modify club template {club_template}", { club_template = club_template.name }) | html %]
+            &rsaquo;
+        [% ELSE %]
+            [% t("New club template") | html %]
+        [% END %]
+        &rsaquo; [% t("Patron clubs") | html %] &rsaquo; [% t("Tools") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 <style>
     .club-field,
     .enrollment-field {
-        border-top: 1px solid #DDD;
+        border-top: 1px solid #ddd;
     }
 </style>
 </head>
@@ -65,12 +66,11 @@
                     [% END %]
                 </h1>
 
-
                 <fieldset class="rows">
                     <ol>
                         <li>
                             <label class="required" for="name">Name:</label>
-                            <input id="club-template-name" name="name" type="text" value="[% club_template.name | html %]" required="required"/>
+                            <input id="club-template-name" name="name" type="text" value="[% club_template.name | html %]" required="required" />
                             <span class="required">Required</span>
                         </li>
 
@@ -107,7 +107,6 @@
                             </select>
                             <div class="hint">If set, only librarians logged in with this branch will be able to modify this club template.</div>
                         </li>
-
                     </ol>
                 </fieldset>
 
@@ -146,9 +145,7 @@
                         [% END %]
                     </div>
                     <fieldset class="action">
-                        <a href="#" class="add_club_field">
-                            <i class="fa fa-plus"></i> Add new field
-                        </a>
+                        <a href="#" class="add_club_field"> <i class="fa fa-plus"></i> Add new field </a>
                     </fieldset>
                 </fieldset>
 
@@ -191,9 +188,7 @@
                         [% END %]
                     </div>
                     <fieldset class="action">
-                        <a href="#" class="add_enrollment_field">
-                            <i class="fa fa-plus"></i> Add new field
-                        </a>
+                        <a href="#" class="add_enrollment_field"> <i class="fa fa-plus"></i> Add new field </a>
                     </fieldset>
                 </fieldset>
 
@@ -203,87 +198,89 @@
                     <a href="clubs.pl" class="cancel">Cancel</a>
                 </fieldset>
             </form>
+        </div>
+        <!-- /.col-md-8 .offset-md-2 -->
+    </div>
+    <!-- /.row -->
 
-        </div> <!-- /.col-md-8 .offset-md-2 -->
-    </div> <!-- /.row -->
+    <div id="new-field-template" class="club-field" style="display:none">
+        <h4 style="margin-left:1em;">New club field</h4>
+        <input type="hidden" name="club_template_field_id" value="" />
+        <ol class="clearfix">
+            <li>
+                <label for="club_template_field_name">Name:</label>
+                <input type="text" name="club_template_field_name" />
+            </li>
 
+            <li>
+                <label for="club_template_field_description">Description:</label>
+                <input type="text" name="club_template_field_description" />
+            </li>
 
-<div id="new-field-template" class="club-field" style="display:none">
-    <h4 style="margin-left:1em;">New club field</h4>
-    <input type="hidden" name="club_template_field_id" value="" />
-    <ol class="clearfix">
+            <li>
+                <label for="club_template_field_authorised_value_category">Authorised value category:</label>
+                <select name="club_template_field_authorised_value_category">
+                    <option value=""></option>
+                    [% PROCESS options_for_authorised_value_categories authorised_value_categories => AuthorisedValues.GetCategories() %]
+                </select>
+            </li>
+        </ol>
+        <fieldset class="action"
+            ><a href="#" class="delete_club_field"><i class="fa fa-trash-can"></i> Delete field</a></fieldset
+        >
+        <hr />
+    </div>
 
-        <li>
-            <label for="club_template_field_name">Name:</label>
-            <input type="text" name="club_template_field_name" />
-        </li>
+    <div id="new-enrollment-field-template" class="enrollment-field" style="display:none">
+        <h4 style="margin-left:1em;">New enrollment field</h4>
+        <input type="hidden" name="club_template_enrollment_field_id" value="" />
+        <ol class="clearfix">
+            <li>
+                <label for="club_template_enrollment_field_name">Name:</label>
+                <input type="text" name="club_template_enrollment_field_name" />
+            </li>
 
-        <li>
-            <label for="club_template_field_description">Description:</label>
-            <input type="text" name="club_template_field_description" />
-        </li>
+            <li>
+                <label for="club_template_enrollment_field_description">Description:</label>
+                <input type="text" name="club_template_enrollment_field_description" />
+            </li>
 
-        <li>
-            <label for="club_template_field_authorised_value_category">Authorised value category:</label>
-            <select name="club_template_field_authorised_value_category">
-                <option value=""></option>
-                [% PROCESS options_for_authorised_value_categories authorised_value_categories => AuthorisedValues.GetCategories() %]
-            </select>
-        </li>
-    </ol>
-    <fieldset class="action"><a href="#" class="delete_club_field"><i class="fa fa-trash-can"></i> Delete field</a></fieldset>
-    <hr/>
+            <li>
+                <label for="club_template_enrollment_field_authorised_value_category">Authorised value category:</label>
+                <select name="club_template_enrollment_field_authorised_value_category">
+                    <option value=""></option>
+                    [% PROCESS options_for_authorised_value_categories authorised_value_categories => AuthorisedValues.GetCategories() %]
+                </select>
+            </li>
+        </ol>
+        <fieldset class="action"
+            ><a href="#" class="delete_enrollment_field"><i class="fa fa-trash-can"></i> Delete field</a></fieldset
+        >
+    </div>
+
+    [% MACRO jsinclude BLOCK %]
+        <script>
+            $("body").on("click", ".add_club_field", function (e) {
+                e.preventDefault();
+                $("#new-field-template").clone().attr("id", "").show().appendTo("#club-template-fields");
+            });
+
+            $("body").on("click", ".delete_club_field", function (e) {
+                e.preventDefault();
+                $(this).parent().parent().remove();
+            });
+
+            $("body").on("click", ".delete_enrollment_field", function (e) {
+                e.preventDefault();
+                $(this).parent().parent().remove();
+            });
+
+            $("body").on("click", ".add_enrollment_field", function (e) {
+                e.preventDefault();
+                $("#new-enrollment-field-template").clone().attr("id", "").show().appendTo("#club-template-enrollment-fields");
+            });
+        </script>
+    [% END %]
+
+    [% INCLUDE 'intranet-bottom.inc' %]
 </div>
-
-<div id="new-enrollment-field-template" class="enrollment-field" style="display:none">
-    <h4 style="margin-left:1em;">New enrollment field</h4>
-    <input type="hidden" name="club_template_enrollment_field_id" value="" />
-    <ol class="clearfix">
-
-        <li>
-            <label for="club_template_enrollment_field_name">Name:</label>
-            <input type="text" name="club_template_enrollment_field_name" />
-        </li>
-
-        <li>
-            <label for="club_template_enrollment_field_description">Description:</label>
-            <input type="text" name="club_template_enrollment_field_description" />
-        </li>
-
-        <li>
-            <label for="club_template_enrollment_field_authorised_value_category">Authorised value category:</label>
-            <select name="club_template_enrollment_field_authorised_value_category">
-                <option value=""></option>
-                [% PROCESS options_for_authorised_value_categories authorised_value_categories => AuthorisedValues.GetCategories() %]
-            </select>
-        </li>
-    </ol>
-    <fieldset class="action"><a href="#" class="delete_enrollment_field"><i class="fa fa-trash-can"></i> Delete field</a></fieldset>
-</div>
-
-
-[% MACRO jsinclude BLOCK %]
-    <script>
-        $("body").on("click", ".add_club_field", function(e){
-            e.preventDefault();
-            $("#new-field-template").clone().attr("id","").show().appendTo("#club-template-fields");
-        });
-
-        $("body").on("click", ".delete_club_field", function(e){
-            e.preventDefault();
-            $(this).parent().parent().remove();
-        });
-
-        $("body").on("click", ".delete_enrollment_field", function(e){
-            e.preventDefault();
-            $(this).parent().parent().remove();
-        });
-
-        $("body").on("click", ".add_enrollment_field", function(e){
-            e.preventDefault();
-            $('#new-enrollment-field-template').clone().attr('id','').show().appendTo('#club-template-enrollment-fields');
-        });
-    </script>
-[% END %]
-
-[% INCLUDE 'intranet-bottom.inc' %]

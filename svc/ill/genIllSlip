@@ -23,45 +23,55 @@ use Data::Dumper;
 $CGI::LIST_CONTEXT_WARN = 0;
 use File::Spec qw( catdir catpath);
 
-use C4::Auth qw( get_template_and_user );
+use C4::Auth    qw( get_template_and_user );
 use C4::Context qw( config dbh mybranch preference );
-use C4::Letters qw( EnqueueLetter GetMessagesById GetPreparedLetter );    # also using not exported functions  _send_message_by_email _set_message_status
+use C4::Letters qw( EnqueueLetter GetMessagesById GetPreparedLetter )
+    ;    # also using not exported functions  _send_message_by_email _set_message_status
 use C4::Members;
-use C4::Output qw( output_with_http_headers );
-use C4::Templates qw( gettemplate );
+use C4::Output                    qw( output_with_http_headers );
+use C4::Templates                 qw( gettemplate );
 use Koha::Acquisition::Currencies qw( get_active );
-use Koha::DateUtils qw( output_pref dt_from_string );
+use Koha::DateUtils               qw( output_pref dt_from_string );
 use Koha::Libraries;
 use Koha::Notice::Templates qw( find_effective_template );
 
 my $input = new CGI;
 
-my @borrowers = $input->param('borrowernumbers[]');
+my @borrowers       = $input->param('borrowernumbers[]');
 my $selectslipprint = scalar $input->param('selectslipprint');
-my $templatenameSinglePrint = scalar $input->param('templatenameSinglePrint') ? scalar $input->param('templatenameSinglePrint') : 'ill/print_ILL_slips.tt';
-my $templatenameMultiplePrint = scalar $input->param('templatenameMultiplePrint') ? scalar $input->param('templatenameMultiplePrint') : 'ill/ILLZKSHA_slips.tt';
+my $templatenameSinglePrint =
+      scalar $input->param('templatenameSinglePrint')
+    ? scalar $input->param('templatenameSinglePrint')
+    : 'ill/print_ILL_slips.tt';
+my $templatenameMultiplePrint =
+      scalar $input->param('templatenameMultiplePrint')
+    ? scalar $input->param('templatenameMultiplePrint')
+    : 'ill/ILLZKSHA_slips.tt';
 
-my ($template, $user, $cookie) = C4::Auth::get_template_and_user({
-    template_name   => "ill/sendIllSlip.tt",
-    query           => $input,
-    type            => "intranet",
-    authnotrequired => 0,
-    flagsrequired   => { ill => '*' }
-});
-
+my ( $template, $user, $cookie ) = C4::Auth::get_template_and_user(
+    {
+        template_name   => "ill/sendIllSlip.tt",
+        query           => $input,
+        type            => "intranet",
+        authnotrequired => 0,
+        flagsrequired   => { ill => '*' }
+    }
+);
 
 if ( $selectslipprint == 1 ) {
+
     # create the batch output file containing the slip
-    my $filenameid = sprintf("_%s", $user);
-    my $params = {
-        borrowernumbers => \@borrowers,
-        lettercode      => scalar $input->param('use_letter'),
-        illrequestid    => scalar $input->param('illrequestid'),
-        itemnumber      => scalar $input->param('itemnumber'),
-        issuesitemnumber=> scalar $input->param('issuesitemnumber'),
-        filenameid      => $filenameid,
-        templatename    => $templatenameSinglePrint,
+    my $filenameid = sprintf( "_%s", $user );
+    my $params     = {
+        borrowernumbers  => \@borrowers,
+        lettercode       => scalar $input->param('use_letter'),
+        illrequestid     => scalar $input->param('illrequestid'),
+        itemnumber       => scalar $input->param('itemnumber'),
+        issuesitemnumber => scalar $input->param('issuesitemnumber'),
+        filenameid       => $filenameid,
+        templatename     => $templatenameSinglePrint,
     };
+
     # generate a single slip
     my $result = &genIllSlip($params);
 
@@ -78,48 +88,56 @@ if ( $selectslipprint == 1 ) {
     C4::Output::output_with_http_headers $input, $cookie, $template->output, 'json';
 
 } else {
+
     # create one batch output file for each slip
     # and the summary print file containing an iframe for each slip
     my @illrequestsOrdered = $input->param('illrequestsOrdered[]');
-    my @generatedSlips = ();
-    my $filenr = 0;
-    foreach my $illrequestIdOrdered ( @illrequestsOrdered ) {
+    my @generatedSlips     = ();
+    my $filenr             = 0;
+    foreach my $illrequestIdOrdered (@illrequestsOrdered) {
+
         # create a batch output file containing one slip
         $filenr += 1;
-        my $filenameid = sprintf("_%s_%03d", $user, $filenr);
-        my $params = {
-            lettercode      => scalar $input->param('use_letter'),
-            illrequestid    => $illrequestIdOrdered,
-            filenameid      => $filenameid,
-            templatename    => $templatenameSinglePrint,
+        my $filenameid = sprintf( "_%s_%03d", $user, $filenr );
+        my $params     = {
+            lettercode   => scalar $input->param('use_letter'),
+            illrequestid => $illrequestIdOrdered,
+            filenameid   => $filenameid,
+            templatename => $templatenameSinglePrint,
         };
         my $result = &genIllSlip($params);
-        
+
         push @generatedSlips, { illrequestid => $illrequestIdOrdered, filename => $result->{printedfile} };
-        
+
     }
 
     # create a summary batch output file that contains a file link within an iframe for each slip
     my $replacefunction = sub {
         my ($str) = @_;
-        if ( $$str ) {
+        if ($$str) {
             $$str =~ s/body\{display:none !important;\}/body\{display:initial !important;\}/g;
         } else {
             $$str = '';
         }
         return $$str;
     };
-    my $filenameid = sprintf("_%s_%03d", $user, 0);
+    my $filenameid = sprintf( "_%s_%03d", $user, 0 );
+
     # generate a set of slips
-    my $printfilename = &CreatePrintOutput( { lettercode => scalar $input->param('use_letter'), generatedSlips => \@generatedSlips, filenameid => $filenameid, templatename => $templatenameMultiplePrint, modtemplateoutput => $replacefunction } );
+    my $printfilename = &CreatePrintOutput(
+        {
+            lettercode        => scalar $input->param('use_letter'), generatedSlips => \@generatedSlips,
+            filenameid        => $filenameid,                        templatename   => $templatenameMultiplePrint,
+            modtemplateoutput => $replacefunction
+        }
+    );
 
     my $result = {};
-    $result->{letters} = [];
+    $result->{letters}        = [];
     $result->{letter_created} = 1;
     $result->{letter_printed} = 1;
-    $result->{letter_mailed} = 0;
-    $result->{printedfile} = $printfilename;
-
+    $result->{letter_mailed}  = 0;
+    $result->{printedfile}    = $printfilename;
 
     # generate the response for the ajax call
     $template->param(
@@ -136,80 +154,86 @@ if ( $selectslipprint == 1 ) {
 
 sub genIllSlip {
     my $params = shift;
-    
+
     my @borrowernumbers;
     my $lettercode;
     my $illrequestid = 0;
-    my $filenameid = '';
+    my $filenameid   = '';
     my $templatename = '';
-    
-    @borrowernumbers = @{$params->{borrowernumbers}} if ( $params->{borrowernumbers} );
-    $lettercode      = $params->{lettercode} if ( $params->{lettercode} );
-    $illrequestid    = $params->{illrequestid} if ( $params->{illrequestid} );
-    $filenameid      = $params->{filenameid} if ( $params->{filenameid} );
-    $templatename    = $params->{templatename} if ( $params->{templatename} );
 
-    my $letters = [];
+    @borrowernumbers = @{ $params->{borrowernumbers} } if ( $params->{borrowernumbers} );
+    $lettercode      = $params->{lettercode}           if ( $params->{lettercode} );
+    $illrequestid    = $params->{illrequestid}         if ( $params->{illrequestid} );
+    $filenameid      = $params->{filenameid}           if ( $params->{filenameid} );
+    $templatename    = $params->{templatename}         if ( $params->{templatename} );
+
+    my $letters        = [];
     my $letter_created = 0;
-    my $letter_printed  = 0;
+    my $letter_printed = 0;
     my $letter_mailed  = 0;
     my $printfilename  = '';
-    my @printmessages = ();
-    my @emailmessages = ();
-    my $today = Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string(), dateonly => 0, dateformat => 'iso' } );
-    
-    if ($lettercode) {    
+    my @printmessages  = ();
+    my @emailmessages  = ();
+    my $today =
+        Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string(), dateonly => 0, dateformat => 'iso' } );
 
-        my $dbh = C4::Context->dbh();
-        my $branchcode = C4::Context::mybranch();
+    if ($lettercode) {
+
+        my $dbh             = C4::Context->dbh();
+        my $branchcode      = C4::Context::mybranch();
         my $lettertemplates = {};
-        my $module = 'circulation';
+        my $module          = 'circulation';
 
         my $active_currency = Koha::Acquisition::Currencies->get_active;
         my $currency_format;
         $currency_format = $active_currency->currency if defined($active_currency);
-        
+
         my $library             = Koha::Libraries->find($branchcode);
         my $admin_email_address = $library->branchemail;
-        
-        
+
         my @transferTypes = ('print');
         for my $transfer (@transferTypes) {
-			my $template = Koha::Notice::Templates->find_effective_template(
-				{
-					module                 => $module,
-					code                   => $lettercode,
-					branchcode             => $branchcode,
-					message_transport_type => $transfer
-				}
-			);
-			my $letter;
-			$letter = $template->unblessed if ($template);
+            my $template = Koha::Notice::Templates->find_effective_template(
+                {
+                    module                 => $module,
+                    code                   => $lettercode,
+                    branchcode             => $branchcode,
+                    message_transport_type => $transfer
+                }
+            );
+            my $letter;
+            $letter = $template->unblessed if ($template);
             if ( $letter && $letter->{'content'} ) {
-                $lettertemplates->{$transfer}->{'letter'} = $letter;
-                $lettertemplates->{$transfer}->{'transportType'}  = $transfer;
+                $lettertemplates->{$transfer}->{'letter'}        = $letter;
+                $lettertemplates->{$transfer}->{'transportType'} = $transfer;
             }
         }
-        $lettertemplates->{'print'} = $lettertemplates->{'email'} if ( !exists($lettertemplates->{'print'}) && exists($lettertemplates->{'email'} ) );
-        $lettertemplates->{'email'} = $lettertemplates->{'print'} if ( !exists($lettertemplates->{'email'}) && exists($lettertemplates->{'print'} ) );
-        
+        $lettertemplates->{'print'} = $lettertemplates->{'email'}
+            if ( !exists( $lettertemplates->{'print'} ) && exists( $lettertemplates->{'email'} ) );
+        $lettertemplates->{'email'} = $lettertemplates->{'print'}
+            if ( !exists( $lettertemplates->{'email'} ) && exists( $lettertemplates->{'print'} ) );
 
-        my $illrequest = Koha::Illrequests->find({ illrequest_id => $illrequestid });
-        if ( $illrequest ) {
+        my $illrequest = Koha::Illrequests->find( { illrequest_id => $illrequestid } );
+        if ($illrequest) {
             my $transport_type = 'print';
-            
+
             my $substitute = { bib => $library->branchname, 'count' => 1 };
-            $substitute->{today} = Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string, dateonly => 1} );
+            $substitute->{today} =
+                Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string, dateonly => 1 } );
 
-            if ( exists($lettertemplates->{$transport_type}) ) {
-                my $repeat = {};
+            if ( exists( $lettertemplates->{$transport_type} ) ) {
+                my $repeat         = {};
                 my $borrowernumber = $illrequest->borrowernumber();
-                my $biblionumber = $illrequest->biblio_id();
+                my $biblionumber   = $illrequest->biblio_id();
 
-                my $fieldResults = $illrequest->illrequestattributes->search( {  } );    # no selection, find all illrequestattributes having this illrequest_id
-                my $illreqattr = { map { ( $_->type => $_->value ) } ($fieldResults->as_list) };
-                
-                my %tables = ( 'biblio' => $biblionumber, 'biblioitems' => $biblionumber, 'borrowers' => $borrowernumber, 'branches' => $branchcode, 'illrequests' => $illrequestid, 'illrequestattributes' => $illreqattr );
+                my $fieldResults = $illrequest->illrequestattributes->search( {} )
+                    ;    # no selection, find all illrequestattributes having this illrequest_id
+                my $illreqattr = { map { ( $_->type => $_->value ) } ( $fieldResults->as_list ) };
+
+                my %tables = (
+                    'biblio'   => $biblionumber, 'biblioitems' => $biblionumber, 'borrowers' => $borrowernumber,
+                    'branches' => $branchcode,   'illrequests' => $illrequestid, 'illrequestattributes' => $illreqattr
+                );
                 if ( $params->{itemnumber} ) {
                     $tables{'items'} = $params->{itemnumber};
                 }
@@ -219,47 +243,54 @@ sub genIllSlip {
                 if ( $borrowernumbers[1] ) {
                     $tables{'account'} = $borrowernumbers[1];
                 }
-                
-                my $prepared_letter = C4::Letters::GetPreparedLetter (
-                    module => $module,
-                    letter_code => $lettercode,
-                    branchcode => $branchcode,
-                    tables => \%tables,
-                    substitute => $substitute,
-                    repeat => $repeat,
+
+                my $prepared_letter = C4::Letters::GetPreparedLetter(
+                    module                 => $module,
+                    letter_code            => $lettercode,
+                    branchcode             => $branchcode,
+                    tables                 => \%tables,
+                    substitute             => $substitute,
+                    repeat                 => $repeat,
                     message_transport_type => $lettertemplates->{$transport_type}->{'transportType'},
                 );
-                
+
                 my $message_id = C4::Letters::EnqueueLetter(
-                                            {   letter                 => $prepared_letter,
-                                                borrowernumber         => $borrowernumber,
-                                                message_transport_type => $transport_type,
-                                                from_address           => $admin_email_address,
-                                                to_address             => '',
-                                                branchcode             => $branchcode
-                                            }
-                                        );
+                    {
+                        letter                 => $prepared_letter,
+                        borrowernumber         => $borrowernumber,
+                        message_transport_type => $transport_type,
+                        from_address           => $admin_email_address,
+                        to_address             => '',
+                        branchcode             => $branchcode
+                    }
+                );
 
                 # as we want to create an ouput file for printing, lets collect the message_ids of prepared data
-                push(@printmessages,$message_id) if ( $transport_type eq 'print' );
-                push(@emailmessages,$message_id) if ( $transport_type eq 'email' );
-                push @$letters, { borrowernumber => $borrowernumber, lettertype => $transport_type, message_id => $message_id };
+                push( @printmessages, $message_id ) if ( $transport_type eq 'print' );
+                push( @emailmessages, $message_id ) if ( $transport_type eq 'email' );
+                push @$letters,
+                    { borrowernumber => $borrowernumber, lettertype => $transport_type, message_id => $message_id };
                 $letter_created++;
             }
         }
     }
-    
+
     $letter_printed = scalar @printmessages;
-    $letter_mailed = scalar @emailmessages;
-    
-    if ( $letter_printed ) {
-        $printfilename = &CreatePrintOutput( { lettercode => $lettercode, printmessages => \@printmessages, filenameid => $filenameid, templatename => $templatename } );
+    $letter_mailed  = scalar @emailmessages;
+
+    if ($letter_printed) {
+        $printfilename = &CreatePrintOutput(
+            {
+                lettercode   => $lettercode, printmessages => \@printmessages, filenameid => $filenameid,
+                templatename => $templatename
+            }
+        );
     }
-    if ( $letter_mailed ) {
+    if ($letter_mailed) {
         &SendMailMessages( { lettercode => $lettercode, emailmessages => \@emailmessages } );
     }
 
-    return  {
+    return {
         letters        => $letters,
         letter_created => $letter_created,
         letter_printed => $letter_printed,
@@ -268,67 +299,67 @@ sub genIllSlip {
     };
 }
 
-
 sub SendMailMessages {
     my $params = shift;
-    
+
     my @messageIDs;
-    @messageIDs = @{$params->{emailmessages}} if ( $params->{emailmessages} );
+    @messageIDs = @{ $params->{emailmessages} } if ( $params->{emailmessages} );
     my $lettercode = $params->{lettercode} if ( $params->{lettercode} );
 
     my @messages = @{ C4::Letters::GetMessagesById( { message_id => \@messageIDs } ) };
-    
-    foreach my $message ( @messages ) {
-        C4::Letters::_send_message_by_email( $message );
+
+    foreach my $message (@messages) {
+        C4::Letters::_send_message_by_email($message);
     }
 }
 
 sub CreatePrintOutput {
     my $params = shift;
-    
+
     my @messageIDs;        # must be set for single slip print
-    @messageIDs = @{$params->{printmessages}} if ( $params->{printmessages} );
+    @messageIDs = @{ $params->{printmessages} } if ( $params->{printmessages} );
     my @generatedSlips;    # must be set for summary print
-    @generatedSlips = @{$params->{generatedSlips}} if ( $params->{generatedSlips} );
-    my $lettercode = $params->{lettercode} if ( $params->{lettercode} );
+    @generatedSlips = @{ $params->{generatedSlips} } if ( $params->{generatedSlips} );
+    my $lettercode        = $params->{lettercode}        if ( $params->{lettercode} );
     my $modtemplateoutput = $params->{modtemplateoutput} if ( $params->{modtemplateoutput} );
-    
+
     my @messages = ();
-    if ( @messageIDs ) {
+    if (@messageIDs) {
         @messages = @{ C4::Letters::GetMessagesById( { message_id => \@messageIDs } ) };
-        
+
         foreach my $message (@messages) {
             $message->{'content'} =~ s/\r//g;
-            $message->{'content'} =~ s/\n/<br \/>/g  if ( $message->{'content_type'} !~ /^text\/html/ );
+            $message->{'content'} =~ s/\n/<br \/>/g if ( $message->{'content_type'} !~ /^text\/html/ );
         }
     }
-    
+
     my $printfilename = 'Adhoc';
-    $printfilename .= '_' . $lettercode if ( $lettercode );
-    
-    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime;
-    $printfilename .= sprintf("_%04d-%02d-%02d_%02d-%02d-%02d",$year+1900,$mon+1,$mday,$hour,$min,$sec);
+    $printfilename .= '_' . $lettercode if ($lettercode);
+
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime;
+    $printfilename .= sprintf( "_%04d-%02d-%02d_%02d-%02d-%02d", $year + 1900, $mon + 1, $mday, $hour, $min, $sec );
     $printfilename .= $params->{filenameid};
     $printfilename .= ".html";
-    
+
     my $outputdir = C4::Context->config('outputdownloaddir');
     $outputdir = File::Spec->catpath( "", $outputdir, "batchprint" );
     my $generatefilename = File::Spec->catdir( $outputdir, $printfilename );
-    
+
     &Generate_html(
-        {   messages => \@messages,
-            generatedSlips => \@generatedSlips,
-            filepath => $generatefilename,
-            templatename => $params->{templatename},
+        {
+            messages          => \@messages,
+            generatedSlips    => \@generatedSlips,
+            filepath          => $generatefilename,
+            templatename      => $params->{templatename},
             modtemplateoutput => $modtemplateoutput,
         }
     );
-    
-    foreach my $message ( @messages ) {
+
+    foreach my $message (@messages) {
         C4::Letters::_set_message_status(
             {
                 message_id => $message->{'message_id'},
-                status => 'sent'
+                status     => 'sent'
             }
         );
     }
@@ -337,28 +368,29 @@ sub CreatePrintOutput {
 }
 
 sub Generate_html {
-    my ( $params ) = @_;
-    my $messages = $params->{messages};                # must be set for single slip print
-    my $generatedSlips = $params->{generatedSlips};    # must be set for summary print
-    my $filepath = $params->{filepath};
-    my $templatename = $params->{templatename};
+    my ($params)          = @_;
+    my $messages          = $params->{messages};            # must be set for single slip print
+    my $generatedSlips    = $params->{generatedSlips};      # must be set for summary print
+    my $filepath          = $params->{filepath};
+    my $templatename      = $params->{templatename};
     my $modtemplateoutput = $params->{modtemplateoutput};
 
-    my $template =
-      C4::Templates::gettemplate( $templatename, 'intranet',
-        new CGI );
+    my $template = C4::Templates::gettemplate(
+        $templatename, 'intranet',
+        new CGI
+    );
 
     my $today_syspref = Koha::DateUtils::output_pref( { dt => Koha::DateUtils::dt_from_string, dateonly => 1 } );
 
     $template->param(
-        stylesheet => C4::Context->preference("NoticeCSS"),
-        today      => $today_syspref,
-        messages   => $messages,               # set in case of single slip print
-        generatedSlips => $generatedSlips,     # set in case of summary print
+        stylesheet     => C4::Context->preference("NoticeCSS"),
+        today          => $today_syspref,
+        messages       => $messages,                              # set in case of single slip print
+        generatedSlips => $generatedSlips,                        # set in case of summary print
     );
     my $template_output = $template->output;
-    if ( $modtemplateoutput ) {
-        &$modtemplateoutput(\$template_output);
+    if ($modtemplateoutput) {
+        &$modtemplateoutput( \$template_output );
     }
 
     open my $OUTPUT, '>encoding(utf-8)', $filepath

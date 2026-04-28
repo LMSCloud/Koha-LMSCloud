@@ -11,25 +11,29 @@ return {
         my $added = 0;
 
         eval {
-            $dbh->do(q{
+            $dbh->do(
+                q{
                 INSERT IGNORE INTO systempreferences
                     (variable, value, options, explanation, type)
                 VALUES
                     ('OPACBookingDefaultLibraryEnabled', '0', NULL,
                      'Enable overriding OPAC default booking pickup library with a fixed branch', 'YesNo')
-            });
+            }
+            );
             $added++;
             1;
         } or do { say_failure( $out, "Failed adding 'OPACBookingDefaultLibraryEnabled'" ) };
 
         eval {
-            $dbh->do(q{
+            $dbh->do(
+                q{
                 INSERT IGNORE INTO systempreferences
                     (variable, value, options, explanation, type)
                 VALUES
                     ('OPACBookingDefaultLibrary', '', NULL,
                      'Branchcode to use as default booking pickup library in OPAC when override is enabled', 'Free')
-            });
+            }
+            );
             $added++;
             1;
         } or do { say_failure( $out, "Failed adding 'OPACBookingDefaultLibrary'" ) };
@@ -41,5 +45,4 @@ return {
         }
     },
 };
-
 

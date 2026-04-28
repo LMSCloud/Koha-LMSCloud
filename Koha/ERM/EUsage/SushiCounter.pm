@@ -239,7 +239,7 @@ sub _COUNTER_platform_report_row {
     return (
         [
             $platform_row->{Platform} || "", $metric_type,
-            $total_usage, @{$monthly_usages}
+            $total_usage,                    @{$monthly_usages}
         ]
     );
 }

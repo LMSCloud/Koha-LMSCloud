@@ -115,52 +115,50 @@ use Koha::Schema::Result::OldIllrequest;
 use Koha::Schema::Result::OldIllrequestattribute;
 use Koha::Schema::Result::OldIllcomment;
 
-
-
 binmode( STDOUT, ':encoding(UTF-8)' );
 
 # These are defaults for command line options.
-my $confirm;                                                        # -c: Confirm that the user has read and configured this script.
-my $backend;                                                        # -b: name of ILL backend to be archived
-my $mindays = 6;                                                    # -m: Minimum age (in days)
-my $verbose = 0;                                                    # -v: verbose
-my $debug = 0;                                                      # -d: debug
-my $testWithRollback = 0;                                           # -r: test run with database transaction rollback
+my $confirm;                 # -c: Confirm that the user has read and configured this script.
+my $backend;                 # -b: name of ILL backend to be archived
+my $mindays          = 6;    # -m: Minimum age (in days)
+my $verbose          = 0;    # -v: verbose
+my $debug            = 0;    # -d: debug
+my $testWithRollback = 0;    # -r: test run with database transaction rollback
 
-my $help    = 0;
-my $man     = 0;
+my $help = 0;
+my $man  = 0;
 
 GetOptions(
-            'help|?' => \$help,
-            'man' => \$man,
-            'c' => \$confirm,
-            'b:s' => \$backend,
-            'm:i' => \$mindays,
-            'v' => \$verbose,
-            'd' => \$debug,
-            'r' => \$testWithRollback,
-       ) or pod2usage(2);
+    'help|?' => \$help,
+    'man'    => \$man,
+    'c'      => \$confirm,
+    'b:s'    => \$backend,
+    'm:i'    => \$mindays,
+    'v'      => \$verbose,
+    'd'      => \$debug,
+    'r'      => \$testWithRollback,
+) or pod2usage(2);
 
-pod2usage(1) if $help;
+pod2usage(1)               if $help;
 pod2usage( -verbose => 2 ) if $man;
 
-if ( ! $confirm ||
-     ! $backend ||
-     $mindays < 7
-   ) {
-     pod2usage(1);
+if (   !$confirm
+    || !$backend
+    || $mindays < 7 )
+{
+    pod2usage(1);
 }
 
-
 sub archive_illrequests {
-    my ($backend, $mindays, $verbose, $debug, $testWithRollback) = @_;
-    my $ret = 0;
-    my $dbh = C4::Context->dbh;
+    my ( $backend, $mindays, $verbose, $debug, $testWithRollback ) = @_;
+    my $ret    = 0;
+    my $dbh    = C4::Context->dbh;
     my $schema = Koha::Database->new->schema;
 
     warn dt_from_string . " archive_illrequests() START testWithRollback:" . Dumper($testWithRollback) if $debug;
-    if ($testWithRollback ) {
-        warn dt_from_string . " archive_illrequests() test run with rollback! Transaction will be started now." if $debug;
+    if ($testWithRollback) {
+        warn dt_from_string . " archive_illrequests() test run with rollback! Transaction will be started now."
+            if $debug;
         $schema->storage->txn_begin;
     }
 
@@ -168,61 +166,87 @@ sub archive_illrequests {
     my $backends = Koha::Illrequest::Config->new->available_backends;
     warn dt_from_string . " archive_illrequests() backends:" . Dumper($backends) if $debug;
     my $backends_available = ( scalar @{$backends} > 0 );
-    my $illmodule = C4::Context->preference('ILLModule');
+    my $illmodule          = C4::Context->preference('ILLModule');
 
-    if ( !($illmodule && $backends_available) ) {
-        warn dt_from_string . " archive_illrequests(): ILLModule or ILLbackends not available. C4::Context->preference('ILLModule'):$illmodule: backends_available:$backends_available:";
+    if ( !( $illmodule && $backends_available ) ) {
+        warn dt_from_string
+            . " archive_illrequests(): ILLModule or ILLbackends not available. C4::Context->preference('ILLModule'):$illmodule: backends_available:$backends_available:";
     }
 
-    my $thresholddate = output_pref( { dt => dt_from_string->add( days => -$mindays ), dateonly => 1, dateformat => 'dmydot' } );
+    my $thresholddate =
+        output_pref( { dt => dt_from_string->add( days => -$mindays ), dateonly => 1, dateformat => 'dmydot' } );
     my $seldate;
     my $sqlformattedDate;
-    if ( $thresholddate ) {
-        $seldate = eval { dt_from_string( $thresholddate ) };
-        $sqlformattedDate = output_pref( { dt => $seldate, dateonly => 1, dateformat => 'iso' } ) if ( $seldate );
+    if ($thresholddate) {
+        $seldate          = eval { dt_from_string($thresholddate) };
+        $sqlformattedDate = output_pref( { dt => $seldate, dateonly => 1, dateformat => 'iso' } ) if ($seldate);
     }
-    warn dt_from_string . " archive_illrequests() sqlformattedDate:$sqlformattedDate:" if ($verbose || $debug);
+    warn dt_from_string . " archive_illrequests() sqlformattedDate:$sqlformattedDate:" if ( $verbose || $debug );
 
-
-    my $countSelectedIllRequests = 0;
-    my $countCopiedIllRequests = 0;
+    my $countSelectedIllRequests    = 0;
+    my $countCopiedIllRequests      = 0;
     my $countTransferredIllRequests = 0;
 
-    if ( ! defined $sqlformattedDate ) {
+    if ( !defined $sqlformattedDate ) {
         warn dt_from_string . " archive_illrequests() threshhold date is not valid (thresholddate:$thresholddate)";
     } elsif ( $seldate->add( days => 7 ) > DateTime->now() ) {
-        warn dt_from_string . " archive_illrequests() threshhold date has to be at least 7 days in the past (thresholddate:$thresholddate)";
-    } elsif ( ! $backend ) {
+        warn dt_from_string
+            . " archive_illrequests() threshhold date has to be at least 7 days in the past (thresholddate:$thresholddate)";
+    } elsif ( !$backend ) {
         warn dt_from_string . " archive_illrequests() invalid backend name (backend:$backend)";
     } else {
         my $illrequests = Koha::Illrequests->new();
         my $illrequests_rs;
         if ( $backend eq 'allillbackends' ) {
-            $illrequests_rs = $illrequests->_resultset()->search( { -and => [ status => 'COMP', completed => { '>' => '1900-01-01' }, completed => { '<' => $sqlformattedDate} ] },  { order_by => ['illrequest_id'] } );
+            $illrequests_rs = $illrequests->_resultset()->search(
+                {
+                    -and => [
+                        status    => 'COMP', completed => { '>' => '1900-01-01' },
+                        completed => { '<' => $sqlformattedDate }
+                    ]
+                },
+                { order_by => ['illrequest_id'] }
+            );
         } else {
-            $illrequests_rs = $illrequests->_resultset()->search( { -and => [ status => 'COMP', completed => { '>' => '1900-01-01' }, completed => { '<' => $sqlformattedDate}, backend => $backend ] },  { order_by => ['illrequest_id'] } );
+            $illrequests_rs = $illrequests->_resultset()->search(
+                {
+                    -and => [
+                        status    => 'COMP', completed => { '>' => '1900-01-01' },
+                        completed => { '<' => $sqlformattedDate }, backend => $backend
+                    ]
+                },
+                { order_by => ['illrequest_id'] }
+            );
         }
-        if ( ! $illrequests_rs ) {
+        if ( !$illrequests_rs ) {
             warn dt_from_string . " archive_illrequests() error during ILL record selection - no records found";
         } else {
             $ret = 1;
             my @selectedIllRequests = $illrequests_rs->all();
             warn dt_from_string . " archive_illrequests() count illrequest_rs:" . @selectedIllRequests if $debug;
             $countSelectedIllRequests = scalar @selectedIllRequests;
-            warn dt_from_string . " archive_illrequests() Found $countSelectedIllRequests ILL requests for transferring to storage table." if ($verbose || $debug);
-            ILLREQUEST: foreach my $selectedIllRequest (@selectedIllRequests) {
+            warn dt_from_string
+                . " archive_illrequests() Found $countSelectedIllRequests ILL requests for transferring to storage table."
+                if ( $verbose || $debug );
+        ILLREQUEST: foreach my $selectedIllRequest (@selectedIllRequests) {
 
+                warn dt_from_string
+                    . " archive_illrequests() next to-be-archived selectedIllRequest:"
+                    . Dumper( $selectedIllRequest->{_column_data} )
+                    if $debug;
 
-                warn dt_from_string . " archive_illrequests() next to-be-archived selectedIllRequest:" . Dumper($selectedIllRequest->{_column_data}) if $debug;
                 # archive the illrequests record
                 # This line was correct until version 21.05 (included), but regrettably also was active in version 22.11 from start (oct. 2024) until end of march 2025:
                 # biblio_id => $selectedIllRequest->biblio_id(),
                 #
                 # transitional hack:
-                my $biblionumber = $selectedIllRequest->biblio_id();    # Not correct for passive backends (ILLZKSHP, PFL, ILLSLNPKoha); in most cases correct for active backends (ILLZKSHA, ILLALV, ILLSLNPA).
-                if ( ! $biblionumber ) {
-                    $biblionumber = $selectedIllRequest->deleted_biblio_id();    # Correct for passive backends (ILLZKSHP, PFL, ILLSLNPKoha) and in case of manual deletion of biblio data.
+                my $biblionumber = $selectedIllRequest->biblio_id()
+                    ; # Not correct for passive backends (ILLZKSHP, PFL, ILLSLNPKoha); in most cases correct for active backends (ILLZKSHA, ILLALV, ILLSLNPA).
+                if ( !$biblionumber ) {
+                    $biblionumber = $selectedIllRequest->deleted_biblio_id()
+                        ; # Correct for passive backends (ILLZKSHP, PFL, ILLSLNPKoha) and in case of manual deletion of biblio data.
                 }
+
                 # biblio_id => $biblionumber,
                 #
                 # Reason:
@@ -234,26 +258,29 @@ sub archive_illrequests {
                 # But in reality also a manual deletion of biblio data of a medium used for active ILL (ILLZKSHA, ILLALV, ILLSLNPA) may have happened before archiving.
                 # TODO: The real solution of this issue is planned for merge with version 24.11.
                 my $old_illrequestsRecord = {
-                    illrequest_id => $selectedIllRequest->illrequest_id(),
+                    illrequest_id  => $selectedIllRequest->illrequest_id(),
                     borrowernumber => $selectedIllRequest->{_column_data}->{borrowernumber},
-                    biblio_id => $biblionumber,
-                    branchcode => $selectedIllRequest->{_column_data}->{branchcode},
-                    status => $selectedIllRequest->status(),
-                    status_alias => $selectedIllRequest->status_alias(),
-                    placed => $selectedIllRequest->placed(),
-                    replied => $selectedIllRequest->replied(),
-                    updated => $selectedIllRequest->updated(),
-                    completed => $selectedIllRequest->completed(),
-                    medium => $selectedIllRequest->medium(),
-                    accessurl => $selectedIllRequest->accessurl(),
-                    cost => $selectedIllRequest->cost(),
-                    price_paid => $selectedIllRequest->price_paid(),
-                    notesopac => $selectedIllRequest->notesopac(),
-                    notesstaff => $selectedIllRequest->notesstaff(),
-                    orderid => $selectedIllRequest->orderid(),
-                    backend => $selectedIllRequest->backend(),
+                    biblio_id      => $biblionumber,
+                    branchcode     => $selectedIllRequest->{_column_data}->{branchcode},
+                    status         => $selectedIllRequest->status(),
+                    status_alias   => $selectedIllRequest->status_alias(),
+                    placed         => $selectedIllRequest->placed(),
+                    replied        => $selectedIllRequest->replied(),
+                    updated        => $selectedIllRequest->updated(),
+                    completed      => $selectedIllRequest->completed(),
+                    medium         => $selectedIllRequest->medium(),
+                    accessurl      => $selectedIllRequest->accessurl(),
+                    cost           => $selectedIllRequest->cost(),
+                    price_paid     => $selectedIllRequest->price_paid(),
+                    notesopac      => $selectedIllRequest->notesopac(),
+                    notesstaff     => $selectedIllRequest->notesstaff(),
+                    orderid        => $selectedIllRequest->orderid(),
+                    backend        => $selectedIllRequest->backend(),
                 };
-                warn dt_from_string . " archive_illrequests() next old_illrequestsRecord:" . Dumper($old_illrequestsRecord) if $debug;
+                warn dt_from_string
+                    . " archive_illrequests() next old_illrequestsRecord:"
+                    . Dumper($old_illrequestsRecord)
+                    if $debug;
 
                 my $old_illrequests = $schema->resultset('OldIllrequest');
                 my $old_illrequests_rs;
@@ -264,44 +291,63 @@ sub archive_illrequests {
                 my $old_illcomments = $schema->resultset('OldIllcomment');
                 my $old_illcomments_rs;
 
-
                 # Being cautious, we try to delete from old_illcomments, old_illrequestattributes, old_illrequests before inserting.
                 # Although it should not be necessary if all went well in the past.
                 try {
                     # delete from table old_illcomments the correlated records if already existing
-                    $old_illcomments_rs = $old_illcomments->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
-                    warn dt_from_string . " archive_illrequests() old_illcomments_rs->count:" . $old_illcomments_rs->count() if $debug;
+                    $old_illcomments_rs =
+                        $old_illcomments->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
+                    warn dt_from_string
+                        . " archive_illrequests() old_illcomments_rs->count:"
+                        . $old_illcomments_rs->count()
+                        if $debug;
 
                     if ( $old_illcomments_rs->count() > 0 ) {
-                        warn dt_from_string . " archive_illrequests() old_illcomments_rs now will be deleted." if $debug;
+                        warn dt_from_string . " archive_illrequests() old_illcomments_rs now will be deleted."
+                            if $debug;
                         $old_illcomments_rs->delete();
                     }
 
                     # delete from table old_illrequestattributes the correlated records if already existing
-                    $old_illrequestattributes_rs = $old_illrequestattributes->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
-                    warn dt_from_string . " archive_illrequests() old_illrequestattributes_rs->count:" . $old_illrequestattributes_rs->count() if $debug;
+                    $old_illrequestattributes_rs =
+                        $old_illrequestattributes->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
+                    warn dt_from_string
+                        . " archive_illrequests() old_illrequestattributes_rs->count:"
+                        . $old_illrequestattributes_rs->count()
+                        if $debug;
 
                     if ( $old_illrequestattributes_rs->count() > 0 ) {
-                        warn dt_from_string . " archive_illrequests() old_illrequestattributes_rs now will be deleted." if $debug;
+                        warn dt_from_string . " archive_illrequests() old_illrequestattributes_rs now will be deleted."
+                            if $debug;
                         $old_illrequestattributes_rs->delete();
                     }
 
                     # delete from table old_illrequests the copy of the record if already existing
-                    $old_illrequests_rs = $old_illrequests->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
-                    warn dt_from_string . " archive_illrequests() old_illrequests_rs->count:" . $old_illrequests_rs->count() if $debug;
+                    $old_illrequests_rs =
+                        $old_illrequests->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
+                    warn dt_from_string
+                        . " archive_illrequests() old_illrequests_rs->count:"
+                        . $old_illrequests_rs->count()
+                        if $debug;
                     if ( $old_illrequests_rs->count() > 0 ) {
-                        warn dt_from_string . " archive_illrequests() old_illrequests_rs now will be deleted." if $debug;
+                        warn dt_from_string . " archive_illrequests() old_illrequests_rs now will be deleted."
+                            if $debug;
                         $old_illrequests_rs->delete();
                     }
 
                     # insert copied record into old_illrequests
-                    warn dt_from_string . " archive_illrequests() old_illrequests record now will be inserted. (illrequest_id:" . $old_illrequestsRecord->{illrequest_id} . ":)" if ($verbose || $debug);
+                    warn dt_from_string
+                        . " archive_illrequests() old_illrequests record now will be inserted. (illrequest_id:"
+                        . $old_illrequestsRecord->{illrequest_id} . ":)"
+                        if ( $verbose || $debug );
                     $old_illrequests_rs = $old_illrequests->create($old_illrequestsRecord);
-                }
-                catch {
+                } catch {
                     my $exception = $_;
-                    warn dt_from_string . " archive_illrequests() trying to create old_illrequests record, catched exception:" . Dumper($exception);
-                    if (ref($exception) eq 'DBIx::Class::Exception') {
+                    warn dt_from_string
+                        . " archive_illrequests() trying to create old_illrequests record, catched exception:"
+                        . Dumper($exception);
+                    if ( ref($exception) eq 'DBIx::Class::Exception' ) {
+
                         # 'Copy'-action failed, so we do not delete illrequests record and correlated illrequestattributes records.
                         # trying our luck with next illrequest, not deleting illreq
                         next ILLREQUEST;
@@ -310,33 +356,49 @@ sub archive_illrequests {
                     }
                 };
 
-
                 # archive all correlated illcomments records
                 my $illcomments = Koha::Illcomments->new();
-                my $illcomments_rs = $illcomments->_resultset()->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
+                my $illcomments_rs =
+                    $illcomments->_resultset()->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
 
-                if ( $illcomments_rs ) {
+                if ($illcomments_rs) {
                     my @selectedIllcomments = $illcomments_rs->all();
                     foreach my $selectedIllcomment (@selectedIllcomments) {
 
                         my $old_illcommentsRecord = {
-                            illcomment_id => $selectedIllcomment->illcomment_id(),
-                            illrequest_id => $selectedIllcomment->illrequest_id(),
+                            illcomment_id  => $selectedIllcomment->illcomment_id(),
+                            illrequest_id  => $selectedIllcomment->illrequest_id(),
                             borrowernumber => $selectedIllcomment->{_column_data}->{borrowernumber},
-                            comment => $selectedIllcomment->comment(),
-                            timestamp => $selectedIllcomment->timestamp(),
+                            comment        => $selectedIllcomment->comment(),
+                            timestamp      => $selectedIllcomment->timestamp(),
                         };
-                        warn dt_from_string . " archive_illrequests() next old_illcommentsRecord:" . Dumper($old_illcommentsRecord) if $debug;
+                        warn dt_from_string
+                            . " archive_illrequests() next old_illcommentsRecord:"
+                            . Dumper($old_illcommentsRecord)
+                            if $debug;
 
                         try {
                             # insert copied record into old_illcomments
-                            warn dt_from_string . " archive_illrequests() old_illcomments record now will be inserted. (illrequest_id:" . $old_illcommentsRecord->{illrequest_id} . ": illcomment_id:" . $old_illcommentsRecord->{illcomment_id} . ": borrowernumber:" . $old_illcommentsRecord->{borrowernumber} . ": comment:" . $old_illcommentsRecord->{comment} . ": timestamp:" . $old_illcommentsRecord->{timestamp} . ":)" if ($verbose || $debug);
+                            warn dt_from_string
+                                . " archive_illrequests() old_illcomments record now will be inserted. (illrequest_id:"
+                                . $old_illcommentsRecord->{illrequest_id}
+                                . ": illcomment_id:"
+                                . $old_illcommentsRecord->{illcomment_id}
+                                . ": borrowernumber:"
+                                . $old_illcommentsRecord->{borrowernumber}
+                                . ": comment:"
+                                . $old_illcommentsRecord->{comment}
+                                . ": timestamp:"
+                                . $old_illcommentsRecord->{timestamp} . ":)"
+                                if ( $verbose || $debug );
                             $old_illcomments_rs = $old_illcomments->create($old_illcommentsRecord);
-                        }
-                        catch {
+                        } catch {
                             my $exception = $_;
-                            warn dt_from_string . " archive_illrequests() trying to create old_illcomments record, catched exception:" . Dumper($exception);
-                            if (ref($exception) eq 'DBIx::Class::Exception') {
+                            warn dt_from_string
+                                . " archive_illrequests() trying to create old_illcomments record, catched exception:"
+                                . Dumper($exception);
+                            if ( ref($exception) eq 'DBIx::Class::Exception' ) {
+
                                 # 'Copy'-action failed, so we do not delete illrequests record and correlated illrequestattributes and illcomments records.
                                 # trying our luck with next illrequest
                                 next ILLREQUEST;
@@ -348,11 +410,13 @@ sub archive_illrequests {
                 }
 
                 # archive all correlated illrequestattributes records
-                my $illrequestattributes = Koha::Illrequestattributes->new();
-                my $illrequestattributes_rs = $illrequestattributes->_resultset()->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
-                
-                if ( ! $illrequestattributes_rs ) {
-                    warn dt_from_string . " archive_illrequests() error during ILL attributes record selection - no records found";
+                my $illrequestattributes    = Koha::Illrequestattributes->new();
+                my $illrequestattributes_rs = $illrequestattributes->_resultset()
+                    ->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
+
+                if ( !$illrequestattributes_rs ) {
+                    warn dt_from_string
+                        . " archive_illrequests() error during ILL attributes record selection - no records found";
                     last ILLREQUEST;
                 }
                 my @selectedIllRequestattributes = $illrequestattributes_rs->all();
@@ -360,21 +424,36 @@ sub archive_illrequests {
 
                     my $old_illrequestattributesRecord = {
                         illrequest_id => $selectedIllRequestattribute->illrequest_id(),
-                        type => $selectedIllRequestattribute->type(),
-                        value => $selectedIllRequestattribute->value(),
-                        readonly => $selectedIllRequestattribute->readonly(),
+                        type          => $selectedIllRequestattribute->type(),
+                        value         => $selectedIllRequestattribute->value(),
+                        readonly      => $selectedIllRequestattribute->readonly(),
                     };
-                    warn dt_from_string . " archive_illrequests() next old_illrequestattributesRecord:" . Dumper($old_illrequestattributesRecord) if $debug;
+                    warn dt_from_string
+                        . " archive_illrequests() next old_illrequestattributesRecord:"
+                        . Dumper($old_illrequestattributesRecord)
+                        if $debug;
 
                     try {
                         # insert copied record into old_illrequestattributes
-                        warn dt_from_string . " archive_illrequests() old_illrequestattributes record now will be inserted. (illrequest_id:" . $old_illrequestattributesRecord->{illrequest_id} . ": type:" . $old_illrequestattributesRecord->{type} . ": value:" . $old_illrequestattributesRecord->{value} . ": readonly:" . $old_illrequestattributesRecord->{readonly} . ":)" if ($verbose || $debug);
-                        $old_illrequestattributes_rs = $old_illrequestattributes->create($old_illrequestattributesRecord);
-                    }
-                    catch {
+                        warn dt_from_string
+                            . " archive_illrequests() old_illrequestattributes record now will be inserted. (illrequest_id:"
+                            . $old_illrequestattributesRecord->{illrequest_id}
+                            . ": type:"
+                            . $old_illrequestattributesRecord->{type}
+                            . ": value:"
+                            . $old_illrequestattributesRecord->{value}
+                            . ": readonly:"
+                            . $old_illrequestattributesRecord->{readonly} . ":)"
+                            if ( $verbose || $debug );
+                        $old_illrequestattributes_rs =
+                            $old_illrequestattributes->create($old_illrequestattributesRecord);
+                    } catch {
                         my $exception = $_;
-                        warn dt_from_string . " archive_illrequests() trying to create old_illrequestattributes record, catched exception:" . Dumper($exception);
-                        if (ref($exception) eq 'DBIx::Class::Exception') {
+                        warn dt_from_string
+                            . " archive_illrequests() trying to create old_illrequestattributes record, catched exception:"
+                            . Dumper($exception);
+                        if ( ref($exception) eq 'DBIx::Class::Exception' ) {
+
                             # 'Copy'-action failed, so we do not delete illrequests record and correlated illrequestattributes records.
                             # trying our luck with next illrequest
                             next ILLREQUEST;
@@ -385,39 +464,60 @@ sub archive_illrequests {
                 }
 
                 # So far no exception has been thrown during handling the current $selectedIllRequest.
-                # Successfully copied the illrequests record to database table old_illrequests, 
-                # the correlated illrequestattributes records to database table old_illrequestattributes, 
+                # Successfully copied the illrequests record to database table old_illrequests,
+                # the correlated illrequestattributes records to database table old_illrequestattributes,
                 # and the correlated illcomments records to database table old_illcomments.
                 $countCopiedIllRequests += 1;
-
 
                 # So now the correlated illcomments records, the correlated illrequestattributes records and the current illrequests record itself can be deleted.
                 $schema->storage->txn_begin;
                 try {
                     # delete correlated records from illcomments
-                    $illcomments_rs = $illcomments->_resultset()->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
-                    warn dt_from_string . " archive_illrequests() trying to delete illcomments records (illrequest_id:" . $selectedIllRequest->illrequest_id() . "); count:" . $illcomments_rs->count() if ($verbose || $debug);
+                    $illcomments_rs =
+                        $illcomments->_resultset()->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
+                    warn dt_from_string
+                        . " archive_illrequests() trying to delete illcomments records (illrequest_id:"
+                        . $selectedIllRequest->illrequest_id()
+                        . "); count:"
+                        . $illcomments_rs->count()
+                        if ( $verbose || $debug );
                     if ( $illcomments_rs->count() > 0 ) {
                         $illcomments_rs->delete();
                     }
 
                     # delete correlated records from illrequestattributes
-                    $illrequestattributes_rs = $illrequestattributes->_resultset()->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
-                    warn dt_from_string . " archive_illrequests() trying to delete illrequestattributes records (illrequest_id:" . $selectedIllRequest->illrequest_id() . "); count:" . $illrequestattributes_rs->count() if ($verbose || $debug);
+                    $illrequestattributes_rs = $illrequestattributes->_resultset()
+                        ->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
+                    warn dt_from_string
+                        . " archive_illrequests() trying to delete illrequestattributes records (illrequest_id:"
+                        . $selectedIllRequest->illrequest_id()
+                        . "); count:"
+                        . $illrequestattributes_rs->count()
+                        if ( $verbose || $debug );
                     if ( $illrequestattributes_rs->count() > 0 ) {
                         $illrequestattributes_rs->delete();
                     }
-                    
+
                     # delete the record from illrequests
-                    $illrequests_rs = $illrequests->_resultset()->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
-                    warn dt_from_string . " archive_illrequests() trying to delete illrequests record (illrequest_id:" . $selectedIllRequest->illrequest_id() . "); count:" . $illrequests_rs->count() if ($verbose || $debug);
+                    $illrequests_rs =
+                        $illrequests->_resultset()->search( { illrequest_id => $selectedIllRequest->illrequest_id() } );
+                    warn dt_from_string
+                        . " archive_illrequests() trying to delete illrequests record (illrequest_id:"
+                        . $selectedIllRequest->illrequest_id()
+                        . "); count:"
+                        . $illrequests_rs->count()
+                        if ( $verbose || $debug );
                     $illrequests_rs->delete();
-                }
-                catch {
+                } catch {
                     my $exception = $_;
-                    warn dt_from_string . " archive_illrequests() trying to delete illrequests and illrequestattributes records (illrequest_id:" . $selectedIllRequest->illrequest_id() . "), catched exception:" . Dumper($exception);
+                    warn dt_from_string
+                        . " archive_illrequests() trying to delete illrequests and illrequestattributes records (illrequest_id:"
+                        . $selectedIllRequest->illrequest_id()
+                        . "), catched exception:"
+                        . Dumper($exception);
                     $schema->storage->txn_rollback;
-                    if (ref($exception) eq 'DBIx::Class::Exception') {
+                    if ( ref($exception) eq 'DBIx::Class::Exception' ) {
+
                         # trying our luck with next illrequest
                         next ILLREQUEST;
                     } else {
@@ -429,27 +529,28 @@ sub archive_illrequests {
 
             }
         }
-        warn dt_from_string . " archive_illrequests() $countSelectedIllRequests ILL requests have been found for archiving.";
-        warn dt_from_string . " archive_illrequests() $countCopiedIllRequests ILL requests have been copied to storage tables.";
-        warn dt_from_string . " archive_illrequests() $countTransferredIllRequests ILL requests have been deleted from original tables.";
+        warn dt_from_string
+            . " archive_illrequests() $countSelectedIllRequests ILL requests have been found for archiving.";
+        warn dt_from_string
+            . " archive_illrequests() $countCopiedIllRequests ILL requests have been copied to storage tables.";
+        warn dt_from_string
+            . " archive_illrequests() $countTransferredIllRequests ILL requests have been deleted from original tables.";
     }
 
-    if ($testWithRollback ) {
+    if ($testWithRollback) {
         $schema->storage->txn_rollback;
-        warn dt_from_string . " archive_illrequests() test run with rollback! Transaction has been rolled back now." if $debug;
+        warn dt_from_string . " archive_illrequests() test run with rollback! Transaction has been rolled back now."
+            if $debug;
     }
     return $ret;
 }
 
-
 cronlogaction();
 
-warn dt_from_string . " archive_illrequests.pl: starting with args backend:$backend: mindays:$mindays: verbose:$verbose: debug:$debug: testWithRollback:$testWithRollback:";
+warn dt_from_string
+    . " archive_illrequests.pl: starting with args backend:$backend: mindays:$mindays: verbose:$verbose: debug:$debug: testWithRollback:$testWithRollback:";
 
-my $ret = &archive_illrequests($backend, $mindays, $verbose, $debug, $testWithRollback);
+my $ret = &archive_illrequests( $backend, $mindays, $verbose, $debug, $testWithRollback );
 
-warn dt_from_string . " archive_illrequests.pl: END ret:$ret:" if ($verbose || $debug);
-
-
-
+warn dt_from_string . " archive_illrequests.pl: END ret:$ret:" if ( $verbose || $debug );
 

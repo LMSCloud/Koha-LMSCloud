@@ -77,7 +77,9 @@ export function getBookingsFilterOptions(
     const manager = BookingTableFilterManager.getInstance(tableId);
     /** @typedef {{ getLibraryOptions?: any[]; getStatusOptions?: any[] }} FilterOptions */
     /** @type {FilterOptions} */
-    const options = /** @type {any} */ (manager.initializeFilterOptions(variant));
+    const options = /** @type {any} */ (
+        manager.initializeFilterOptions(variant)
+    );
 
     // Ensure global arrays are populated for _dt_add_filters compatibility
     // This handles cases where this function is called before createBookingsTable
@@ -197,7 +199,11 @@ export function createAdditionalFilters(variant = "default", options = {}) {
     switch (variant) {
         case "pending":
             return {
-                "me.start_date": createDateFilter(fromSelector, toSelector, variant),
+                "me.start_date": createDateFilter(
+                    fromSelector,
+                    toSelector,
+                    variant
+                ),
                 // Server field names must match API
                 "item.home_library_id": function () {
                     let library = $(holdingLibrarySelector)

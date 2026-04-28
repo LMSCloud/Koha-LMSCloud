@@ -2,12 +2,12 @@
 [% USE Koha %]
 [% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("Alert subscribers") | html %] &rsaquo;
-    [% bibliotitle | html %] &rsaquo;
-    [% t("Serials") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Alert subscribers") | html %]
+        &rsaquo; [% bibliotitle | html %] &rsaquo; [% t("Serials") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body id="ser_viewalerts" class="ser">
@@ -36,38 +36,37 @@
                 [% INCLUDE 'messages.inc' %]
 
                 <h1>Alert subscribers for <em>[% bibliotitle | html %]</em></h1>
-                <p>
-                    <span class="label">Subscription:</span> <a href="subscription-detail.pl?subscriptionid=[% subscriptionid | uri %]">[% bibliotitle | html %] #[% subscriptionid | html %]</a>
-                </p>
+                <p> <span class="label">Subscription:</span> <a href="subscription-detail.pl?subscriptionid=[% subscriptionid | uri %]">[% bibliotitle | html %] #[% subscriptionid | html %]</a> </p>
 
                 <div class="page-section">
-
                     [% IF subscribers.count %]
                         <table>
                             <tr>
                                 <th>Patron name</th>
                             </tr>
                             [% FOREACH subscriber IN subscribers %]
-                            <tr>
-                                <td>
-                                    <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% subscriber.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' patron=subscriber %]</a>
-                                </td>
-                            </tr>
+                                <tr>
+                                    <td>
+                                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% subscriber.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' patron=subscriber %]</a>
+                                    </td>
+                                </tr>
                             [% END %]
                         </table>
                     [% ELSE %]
                         <p>There are no patrons subscribed to this subscription serial alert.</p>
                     [% END %]
-                </div> <!-- /.page-section -->
-
+                </div>
+                <!-- /.page-section -->
             </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'serials-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-     </div> <!-- /.row -->
+            <aside> [% INCLUDE 'serials-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

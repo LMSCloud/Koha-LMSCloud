@@ -27,8 +27,7 @@ use Koha::NoticeFeeRules;
 use Koha::Account;
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Notice::Templates;
-use C4::Log; # logaction
-
+use C4::Log;    # logaction
 
 =head1 NAME
 
@@ -154,32 +153,33 @@ rules of the instance are read.
 Returns a reference to the object.
 
 =cut
+
 sub new {
     my $class = shift;
-    my $self  = bless { @_ }, $class;
-    
-    
+    my $self  = bless {@_}, $class;
+
     # read the notice fee rules for further processing
-    my $noticeFeeRules = Koha::NoticeFeeRules->search({});
-    
+    my $noticeFeeRules = Koha::NoticeFeeRules->search( {} );
+
     my $rules = {};
-    
+
     my $rules_count = 0;
-    
+
     # assign a hash for fast checks whether a notice fee matches or not
     while ( my $rule = $noticeFeeRules->next() ) {
-        $rules->{ $rule->branchcode() . "#\t#" . $rule->categorycode() . "#\t#" . $rule->letter_code() . "#\t#" . $rule->message_transport_type() } = $rule;
+        $rules->{ $rule->branchcode() . "#\t#"
+                . $rule->categorycode() . "#\t#"
+                . $rule->letter_code() . "#\t#"
+                . $rule->message_transport_type() } = $rule;
         $rules_count++;
     }
-    
+
     # leave it with the object data
-    $self->{'rules'} = $rules;
+    $self->{'rules'}       = $rules;
     $self->{'rules_count'} = $rules_count;
 
     return $self;
 }
-
-
 
 =head2 checkForNoticeFeeRules
 
@@ -191,7 +191,7 @@ Returns whether there are notice fee rules defined. Returns 0 for no and 1 for y
 
 sub checkForNoticeFeeRules {
     my $self = shift;
-    
+
     return 1 if ( $self->{'rules_count'} > 0 );
     return 0;
 }
@@ -206,31 +206,31 @@ branch code, patron category code, message transport type,  letter code.
 =cut
 
 sub getNoticeFeeRule {
-    my ($self,$branchcode, $categorycode, $message_transport_type, $letter_code ) = @_;
-    
-    return undef if ( $self->{'rules_count'} == 0 );
-    
-    my $rules =  $self->{'rules'};
+    my ( $self, $branchcode, $categorycode, $message_transport_type, $letter_code ) = @_;
 
-    foreach my $v (_getTestList($branchcode)) {
-        foreach my $w (_getTestList($categorycode)) {
-            foreach my $x (_getTestList($letter_code)) {
-                foreach my $y (_getTestList($message_transport_type)) {
-                    if (exists( $rules->{"$v#\t#$w#\t#$x#\t#$y"}) ) {
+    return undef if ( $self->{'rules_count'} == 0 );
+
+    my $rules = $self->{'rules'};
+
+    foreach my $v ( _getTestList($branchcode) ) {
+        foreach my $w ( _getTestList($categorycode) ) {
+            foreach my $x ( _getTestList($letter_code) ) {
+                foreach my $y ( _getTestList($message_transport_type) ) {
+                    if ( exists( $rules->{"$v#\t#$w#\t#$x#\t#$y"} ) ) {
                         return $rules->{"$v#\t#$w#\t#$x#\t#$y"};
                     }
                 }
             }
         }
     }
-    
+
     return undef;
 }
 
 sub _getTestList {
-    my $val = shift;
+    my $val  = shift;
     my @list = ('*');
-    unshift(@list, $val) if ($val && $val ne '*');
+    unshift( @list, $val ) if ( $val && $val ne '*' );
     return @list;
 }
 
@@ -254,30 +254,28 @@ the following data:
 =cut
 
 sub AddNoticeFee {
-    my ($self,$params) = @_;
-
+    my ( $self, $params ) = @_;
 
     my $borrowernumber = $params->{borrowernumber};
     my $amount         = $params->{amount};
     my $letter_date    = $params->{letter_date};
     my $branchcode     = $params->{branchcode};
 
-    unless ( $borrowernumber ) {
+    unless ($borrowernumber) {
         carp("No borrower number passed in!");
         return;
     }
 
+    if ($amount) {    # Don't add new fines with an amount of 0.00
 
-    if ( $amount ) { # Don't add new fines with an amount of 0.00
-        
-        my $description='';
-        if ( exists($params->{"notice_fee_description"}) && $params->{"notice_fee_description"} ) {
-            $description  = $params->{"notice_fee_description"};
+        my $description = '';
+        if ( exists( $params->{"notice_fee_description"} ) && $params->{"notice_fee_description"} ) {
+            $description = $params->{"notice_fee_description"};
         } else {
             $description = $self->GetNoticeFeeDescription($params);
         }
 
-        my $account = Koha::Account->new({ patron_id => $borrowernumber });
+        my $account     = Koha::Account->new( { patron_id => $borrowernumber } );
         my $accountline = $account->add_debit(
             {
                 amount      => $amount,
@@ -294,13 +292,12 @@ sub AddNoticeFee {
 
         # logging action
         &logaction(
-        "FINES",
+            "FINES",
             'NOTIFICATION',
             $borrowernumber,
-            "letter_date=".$letter_date." description=".$description." amount=".$amount
+            "letter_date=" . $letter_date . " description=" . $description . " amount=" . $amount
         ) if C4::Context->preference("FinesLog");
-    }
-    else {
+    } else {
         warn "Charging notice fee for borrower $borrowernumber with $amount is not supported";
     }
 }
@@ -340,122 +337,120 @@ If no letter template is defined, a simple description consisting of the letter 
 =cut
 
 sub GetNoticeFeeDescription {
-    my ($self,$params) = @_;
-    
+    my ( $self, $params ) = @_;
+
     my $branchcode = $params->{branchcode};
-    
-    # Let's check whether the library has configured a letter template 
+
+    # Let's check whether the library has configured a letter template
     # to format a fancy fines description that we add with the claim fee
-    my $letter_code = 'FINESMSG_NOTF';
+    my $letter_code   = 'FINESMSG_NOTF';
     my $letter_exists = 0;
-    
+
     # if it is a overdue claim we support to format messages depending on the calim lebvel
     if ( $params->{'claimlevel'} ) {
-		my $template = Koha::Notice::Templates->find_effective_template(
-			{
-				module                 => 'fines',
-				code                   => $letter_code . '_CLAIM'.$params->{'claimlevel'},
-				branchcode             => $branchcode,
-				message_transport_type => 'email'
-			}
-		);
-		$letter_exists = ($template) ? 1 : 0;
-        $letter_code = $letter_code . '_CLAIM'.$params->{'claimlevel'} if ($letter_exists);
-        if (! $letter_exists ) {
-			$template = Koha::Notice::Templates->find_effective_template(
-				{
-					module                 => 'fines',
-					code                   => $letter_code . '_CLAIM',
-					branchcode             => $branchcode,
-					message_transport_type => 'email'
-				}
-			);
-            $letter_exists = ($template) ? 1 : 0;
-            $letter_code = $letter_code . '_CLAIM' if ($letter_exists);
-        }
-    }
-    elsif ( $params->{'letter_code'} ) {
-		my $template = Koha::Notice::Templates->find_effective_template(
-			{
-				module                 => 'fines',
-				code                   => $letter_code . '_' . $params->{'letter_code'},
-				branchcode             => $branchcode,
-				message_transport_type => 'email'
-			}
-		);
+        my $template = Koha::Notice::Templates->find_effective_template(
+            {
+                module                 => 'fines',
+                code                   => $letter_code . '_CLAIM' . $params->{'claimlevel'},
+                branchcode             => $branchcode,
+                message_transport_type => 'email'
+            }
+        );
         $letter_exists = ($template) ? 1 : 0;
-        $letter_code = $letter_code . '_' . $params->{'letter_code'} if ($letter_exists);
+        $letter_code   = $letter_code . '_CLAIM' . $params->{'claimlevel'} if ($letter_exists);
+        if ( !$letter_exists ) {
+            $template = Koha::Notice::Templates->find_effective_template(
+                {
+                    module                 => 'fines',
+                    code                   => $letter_code . '_CLAIM',
+                    branchcode             => $branchcode,
+                    message_transport_type => 'email'
+                }
+            );
+            $letter_exists = ($template) ? 1 : 0;
+            $letter_code   = $letter_code . '_CLAIM' if ($letter_exists);
+        }
+    } elsif ( $params->{'letter_code'} ) {
+        my $template = Koha::Notice::Templates->find_effective_template(
+            {
+                module                 => 'fines',
+                code                   => $letter_code . '_' . $params->{'letter_code'},
+                branchcode             => $branchcode,
+                message_transport_type => 'email'
+            }
+        );
+        $letter_exists = ($template) ? 1 : 0;
+        $letter_code   = $letter_code . '_' . $params->{'letter_code'} if ($letter_exists);
     }
-    if (! $letter_exists ) {
-		my $template = Koha::Notice::Templates->find_effective_template(
-			{
-				module                 => 'fines',
-				code                   => $letter_code,
-				branchcode             => $branchcode,
-				message_transport_type => 'email'
-			}
-		);
+    if ( !$letter_exists ) {
+        my $template = Koha::Notice::Templates->find_effective_template(
+            {
+                module                 => 'fines',
+                code                   => $letter_code,
+                branchcode             => $branchcode,
+                message_transport_type => 'email'
+            }
+        );
         $letter_exists = ($template) ? 1 : 0;
     }
 
-    if ( $letter_exists ) {
+    if ($letter_exists) {
         my $substitute = $params->{'substitute'} || {};
-        $substitute->{today} ||= output_pref( { dt => dt_from_string, dateonly => 1} );
-        $substitute->{claimlevel}  = $params->{claimlevel} if ( $params->{'claimlevel'} );
-        
+        $substitute->{today} ||= output_pref( { dt => dt_from_string, dateonly => 1 } );
+        $substitute->{claimlevel} = $params->{claimlevel} if ( $params->{'claimlevel'} );
+
         my $active_currency = Koha::Acquisition::Currencies->get_active;
 
         my $currency_format;
         $currency_format = $active_currency->currency if defined($active_currency);
-        
-        $substitute->{'noticefee'} = currency_format($currency_format, $params->{amount}, FMT_SYMBOL);
+
+        $substitute->{'noticefee'} = currency_format( $currency_format, $params->{amount}, FMT_SYMBOL );
+
         # if active currency isn't correct ISO code fallback to sprintf
-        $substitute->{'noticefee'} = sprintf('%.2f', $params->{amount}) unless $substitute->{'noticefee'};
+        $substitute->{'noticefee'} = sprintf( '%.2f', $params->{amount} ) unless $substitute->{'noticefee'};
 
-
-        
         my %tables = ();
-        
+
         if ( $params->{'tables'} ) {
-            %tables = %{$params->{'tables'}};
-        }
-        else {
+            %tables = %{ $params->{'tables'} };
+        } else {
             %tables = ( 'borrowers' => $params->{'borrowernumber'} );
             if ( my $p = $params->{'branchcode'} ) {
                 $tables{'branches'} = $p;
             }
         }
-        
-        my $itemcount=0;
+
+        my $itemcount = 0;
         my @item_tables;
         if ( my $i = $params->{'items'} ) {
             foreach my $item (@$i) {
                 push @item_tables, {
-                    'biblio' => $item->{'biblionumber'},
+                    'biblio'      => $item->{'biblionumber'},
                     'biblioitems' => $item->{'biblionumber'},
-                    'items' => $item,
-                    'issues' => $item->{'itemnumber'},
+                    'items'       => $item,
+                    'issues'      => $item->{'itemnumber'},
                 };
                 $itemcount++;
             }
         }
         $substitute->{'itemcount'} = $itemcount;
 
-       my $letter = C4::Letters::GetPreparedLetter (
-            module => 'fines',
-            letter_code => $letter_code,
-            branchcode => $params->{'branchcode'},
-            tables => \%tables,
-            substitute => $substitute,
-            repeat => { item => \@item_tables },
+        my $letter = C4::Letters::GetPreparedLetter(
+            module                 => 'fines',
+            letter_code            => $letter_code,
+            branchcode             => $params->{'branchcode'},
+            tables                 => \%tables,
+            substitute             => $substitute,
+            repeat                 => { item => \@item_tables },
             message_transport_type => 'email'
         );
         return $letter->{'content'};
     }
+
     # no letter is defined, we use the default message
     else {
         my $desc = $params->{letter_date};
-        
+
         return $desc;
     }
 }

@@ -1,45 +1,45 @@
-$(document).ready(function() {
+$(document).ready(function () {
     // Display the modal containing request supplier metadata
-    $('#ill-request-display-log').on('click', function(e) {
+    $("#ill-request-display-log").on("click", function (e) {
         e.preventDefault();
-        $('#requestLog').modal("show");
+        $("#requestLog").modal("show");
     });
 
     // Toggle request attributes in Illview
-    $('#toggle_requestattributes').on('click', function(e) {
+    $("#toggle_requestattributes").on("click", function (e) {
         e.preventDefault();
-        $('#requestattributes').toggleClass('content_hidden');
+        $("#requestattributes").toggleClass("content_hidden");
     });
 
     // Toggle new comment form in Illview
-    $('#toggle_addcomment').on('click', function(e) {
+    $("#toggle_addcomment").on("click", function (e) {
         e.preventDefault();
-        $('#addcomment').toggleClass('content_hidden');
+        $("#addcomment").toggleClass("content_hidden");
     });
 
     // Filter partner list
     // Record the list of all options
-    var ill_partner_options = $('#partners > option');
-    $('#partner_filter').keyup(function() {
-        var needle = $('#partner_filter').val();
-        var regex = new RegExp(needle, 'i');
+    var ill_partner_options = $("#partners > option");
+    $("#partner_filter").keyup(function () {
+        var needle = $("#partner_filter").val();
+        var regex = new RegExp(needle, "i");
         var filtered = [];
-        ill_partner_options.each(function() {
+        ill_partner_options.each(function () {
             if (
                 needle.length == 0 ||
-                $(this).is(':selected') ||
+                $(this).is(":selected") ||
                 $(this).text().match(regex)
             ) {
                 filtered.push($(this));
             }
         });
-        $('#partners').empty().append(filtered);
+        $("#partners").empty().append(filtered);
     });
 
     // Display the modal containing request supplier metadata
-    $('#ill-request-display-metadata').on('click', function(e) {
+    $("#ill-request-display-metadata").on("click", function (e) {
         e.preventDefault();
-        $('#dataPreview').modal("show");
+        $("#dataPreview").modal("show");
     });
 
     function display_extended_attribute(row, type) {
@@ -47,15 +47,14 @@ $(document).ready(function() {
     }
 
     function get_extended_attribute(row, type) {
-        var ret = '';
-        var arr = $.grep(row.extended_attributes, ( x => x.type === type ));
+        var ret = "";
+        var arr = $.grep(row.extended_attributes, x => x.type === type);
         if (arr.length > 0) {
             ret = arr[0].value;
         }
 
         return ret;
     }
-
 
     // standard Koha:
     // At the moment, the only prefilter possible is borrowernumber
@@ -64,52 +63,51 @@ $(document).ready(function() {
     // see ill/ill-requests.pl and members/ill-requests.pl
     // Get any prefilters, e.g. "backend=ILLALV" (or e.g. "borrowernumber=1215")
     let additional_prefilters = {};
-    if(prefilters){
+    if (prefilters) {
         let prefilters_array = prefilters.split("&");
-        prefilters_array.forEach((prefilter) => {
+        prefilters_array.forEach(prefilter => {
             let prefilter_split = prefilter.split("=");
-            additional_prefilters[prefilter_split[0]] = prefilter_split[1]
+            additional_prefilters[prefilter_split[0]] = prefilter_split[1];
         });
     }
 
     // The so called 'infilter' supports SQL patterns: "AND ... IN ( ... )"  and  "AND ... NOT IN ( ... )"
     // Get any infilter, e.g. "status,-not_in,COMP,QUEUED"
     let additional_infilter = {};
-    if(infilter){
+    if (infilter) {
         let infilter_array = infilter.split(";");
-        infilter_array.forEach((infilt) => {
+        infilter_array.forEach(infilt => {
             let infilt_split = infilt.split(",");
             let len = infilt_split.length;
-            let valslist  = new String;
-            for ( let i=2; i < len; i += 1 ) {
-                if ( valslist.length > 0 ) {
+            let valslist = new String();
+            for (let i = 2; i < len; i += 1) {
+                if (valslist.length > 0) {
                     valslist += ",";
                 }
                 valslist += infilt_split[i];
             }
-            additional_infilter[infilt_split[0]] = [ infilt_split[1],valslist ];
+            additional_infilter[infilt_split[0]] = [infilt_split[1], valslist];
         });
     }
 
-    let borrower_prefilter = additional_prefilters['borrowernumber'] || null;
+    let borrower_prefilter = additional_prefilters["borrowernumber"] || null;
 
     // Here we create the filter / select argument for calling function kohaTable() of datatables.js
     let additional_filters = {
-        "me.backend": function(){
+        "me.backend": function () {
             let backend = $("#illfilter_backend").val();
             if (!backend) return "";
-            return { "=": backend  }
+            return { "=": backend };
         },
-        "me.branchcode": function(){
+        "me.branchcode": function () {
             let branchcode = $("#illfilter_branchname").val();
             if (!branchcode) return "";
-            return { "=": branchcode }
+            return { "=": branchcode };
         },
-        "me.borrowernumber": function(){
+        "me.borrowernumber": function () {
             return borrower_prefilter ? { "=": borrower_prefilter } : "";
         },
-        "-or": function(){
-
+        "-or": function () {
             // LMSCloud did not see any reason for 'or-ing' some filter conditions (especially if the implementation does not work correctly).
             // So this filter elements (illfilter_patron and illfilter_status at the moment) have been moved to the "-and" section.
             return "";
@@ -124,65 +122,73 @@ $(document).ready(function() {
 
             if (!patron && !status) return "";
 
-            if(patron){
-                const patron_search_fields = "me.borrowernumber,patron.cardnumber,patron.firstname,patron.surname";
-                patron_search_fields.split(',').forEach(function(attr){
+            if (patron) {
+                const patron_search_fields =
+                    "me.borrowernumber,patron.cardnumber,patron.firstname,patron.surname";
+                patron_search_fields.split(",").forEach(function (attr) {
                     let operator = "=";
                     let patron_data = patron;
-                    if ( attr != "me.borrowernumber" && attr != "patron.cardnumber") {
+                    if (
+                        attr != "me.borrowernumber" &&
+                        attr != "patron.cardnumber"
+                    ) {
                         operator = "like";
                         patron_data = "%" + patron + "%";
                     }
                     patron_sub_or.push({
-                        [attr]:{[operator]: patron_data }
+                        [attr]: { [operator]: patron_data },
                     });
                 });
                 subquery_and.push(patron_sub_or);
             }
 
-            if(status){
+            if (status) {
                 const status_search_fields = "me.status,me.status_av";
-                status_search_fields.split(',').forEach(function(attr){
+                status_search_fields.split(",").forEach(function (attr) {
                     status_sub_or.push({
-                        [attr]:{"=": status }
+                        [attr]: { "=": status },
                     });
                 });
                 subquery_and.push(status_sub_or);
             }
 
-            filters.push({"-and": subquery_and});
+            filters.push({ "-and": subquery_and });
 
             return filters;
         },
-        "me.placed": function(){
+        "me.placed": function () {
             //if ( Object.keys(additional_prefilters).length ) return "";    # This is used in standard Koha to suppress selection for 'placed' if selecting by borrowernumber. LMSCloud had to replace that by:
             if (borrower_prefilter) return "";
-            let placed_start = $('#illfilter_dateplaced_start').get(0)._flatpickr.selectedDates[0];
-            let placed_end = $('#illfilter_dateplaced_end').get(0)._flatpickr.selectedDates[0];
+            let placed_start = $("#illfilter_dateplaced_start").get(0)
+                ._flatpickr.selectedDates[0];
+            let placed_end = $("#illfilter_dateplaced_end").get(0)._flatpickr
+                .selectedDates[0];
             if (!placed_start && !placed_end) return "";
-            if (placed_end) placed_end.setHours(23,59,59,999);    // correction by LMSCloud
+            if (placed_end) placed_end.setHours(23, 59, 59, 999); // correction by LMSCloud
             return {
-                ...(placed_start && {">=": placed_start}),
-                ...(placed_end && {"<=": placed_end})
-            }
+                ...(placed_start && { ">=": placed_start }),
+                ...(placed_end && { "<=": placed_end }),
+            };
         },
-        "me.updated": function(){
+        "me.updated": function () {
             //if (Object.keys(additional_prefilters).length) return "";    # This is used in standard Koha to suppress selection for 'updated' if selecting by borrowernumber. LMSCloud had to replace that by:
             if (borrower_prefilter) return "";
-            let updated_start = $('#illfilter_datemodified_start').get(0)._flatpickr.selectedDates[0];
-            let updated_end = $('#illfilter_datemodified_end').get(0)._flatpickr.selectedDates[0];
+            let updated_start = $("#illfilter_datemodified_start").get(0)
+                ._flatpickr.selectedDates[0];
+            let updated_end = $("#illfilter_datemodified_end").get(0)._flatpickr
+                .selectedDates[0];
             if (!updated_start && !updated_end) return "";
             // set selected datetime hours and minutes to the end of the day
             // to grab any request updated during that day
             let updated_end_value = new Date(updated_end);
-            updated_end_value.setHours(updated_end_value.getHours()+23);
-            updated_end_value.setMinutes(updated_end_value.getMinutes()+59);
+            updated_end_value.setHours(updated_end_value.getHours() + 23);
+            updated_end_value.setMinutes(updated_end_value.getMinutes() + 59);
             return {
-                ...(updated_start && {">=": updated_start}),
-                ...(updated_end && {"<=": updated_end_value})
-            }
+                ...(updated_start && { ">=": updated_start }),
+                ...(updated_end && { "<=": updated_end_value }),
+            };
         },
-        "-and": function(){
+        "-and": function () {
             let keyword = $("#illfilter_keyword").val();
             // standard Koha:
             // if (!keyword) return "";
@@ -191,14 +197,15 @@ $(document).ready(function() {
             let filters = [];
             let subquery_or = [];
             let subquery_and = [];
-            let subquery_combined = [];    // LMSCloud's aim: generate a select condition kind of logic '((subquery_or) AND (subquery_and))' as subquery for the outermost AND-select-condition
+            let subquery_combined = []; // LMSCloud's aim: generate a select condition kind of logic '((subquery_or) AND (subquery_and))' as subquery for the outermost AND-select-condition
 
             if (keyword) {
-                const search_fields = "me.illrequest_id,me.borrowernumber,me.biblio_id,me.due_date,me.branchcode,library.name,me.status,me.status_alias,me.placed,me.replied,me.updated,me.completed,me.medium,me.accessurl,me.cost,me.price_paid,me.notesopac,me.notesstaff,me.orderid,me.backend,patron.firstname,patron.surname";
+                const search_fields =
+                    "me.illrequest_id,me.borrowernumber,me.biblio_id,me.due_date,me.branchcode,library.name,me.status,me.status_alias,me.placed,me.replied,me.updated,me.completed,me.medium,me.accessurl,me.cost,me.price_paid,me.notesopac,me.notesstaff,me.orderid,me.backend,patron.firstname,patron.surname";
                 let sub_or = [];
-                search_fields.split(',').forEach(function(attr){
+                search_fields.split(",").forEach(function (attr) {
                     sub_or.push({
-                            [attr]:{"like":"%" + keyword + "%"}
+                        [attr]: { like: "%" + keyword + "%" },
                     });
                 });
                 subquery_or.push(sub_or);
@@ -206,44 +213,49 @@ $(document).ready(function() {
                 // standard Koha:
                 //const extended_attributes = "title,type,author,article_title,pages,issue,volume,year";
                 // LMSCloud Koha:
-                const extended_attributes = "title,type,author,article_title,pages,issue,volume,year,Titel,Verfasser,publyear,VerlagJahrSonst,ochk_Bearbeiter,ochk_BearbeitetAm,illPartnerLibraryIsil,sendingIllLibraryIsil,BestelltVonSigel,BestelltBeiSigel";
+                const extended_attributes =
+                    "title,type,author,article_title,pages,issue,volume,year,Titel,Verfasser,publyear,VerlagJahrSonst,ochk_Bearbeiter,ochk_BearbeitetAm,illPartnerLibraryIsil,sendingIllLibraryIsil,BestelltVonSigel,BestelltBeiSigel";
 
                 let extended_sub_or = [];
                 extended_sub_or.push({
-                    "extended_attributes.type": extended_attributes.split(','),
-                    "extended_attributes.value":{"like":"%" + keyword + "%"}
+                    "extended_attributes.type": extended_attributes.split(","),
+                    "extended_attributes.value": { like: "%" + keyword + "%" },
                 });
                 subquery_or.push(extended_sub_or);
-                subquery_combined.push(subquery_or);    // if arrived here, we know that subquery_or has elements, so no need for checking if subquery_or.length > 0
+                subquery_combined.push(subquery_or); // if arrived here, we know that subquery_or has elements, so no need for checking if subquery_or.length > 0
             }
 
             // LMSCloud: Moved patron and status filter from the "-or" to this "-and" section and adapted as required
             let patron = $("#illfilter_patron").val();
             let status = $("#illfilter_status").val();
 
-            if(patron){
+            if (patron) {
                 let patron_sub_or = [];
-                const patron_search_fields = "me.borrowernumber,patron.cardnumber,patron.firstname,patron.surname";
-                patron_search_fields.split(',').forEach(function(attr){
+                const patron_search_fields =
+                    "me.borrowernumber,patron.cardnumber,patron.firstname,patron.surname";
+                patron_search_fields.split(",").forEach(function (attr) {
                     let operator = "=";
                     let patron_data = patron;
-                    if ( attr != "me.borrowernumber" && attr != "patron.cardnumber") {
+                    if (
+                        attr != "me.borrowernumber" &&
+                        attr != "patron.cardnumber"
+                    ) {
                         operator = "like";
                         patron_data = "%" + patron + "%";
                     }
                     patron_sub_or.push({
-                        [attr]:{[operator]: patron_data }
+                        [attr]: { [operator]: patron_data },
                     });
                 });
                 subquery_and.push(patron_sub_or);
             }
 
-            if(status){
+            if (status) {
                 let status_sub_or = [];
                 const status_search_fields = "me.status,me.status_av";
-                status_search_fields.split(',').forEach(function(attr){
+                status_search_fields.split(",").forEach(function (attr) {
                     status_sub_or.push({
-                        [attr]:{"=": status }
+                        [attr]: { "=": status },
                     });
                 });
                 subquery_and.push(status_sub_or);
@@ -253,11 +265,13 @@ $(document).ready(function() {
             let additional_prefilter_sub_and = [];
             for (let additional_prefilter_key in additional_prefilters) {
                 additional_prefilter_sub_and.push({
-                        ["me." + additional_prefilter_key]:{"=":additional_prefilters[additional_prefilter_key]}
+                    ["me." + additional_prefilter_key]: {
+                        "=": additional_prefilters[additional_prefilter_key],
+                    },
                 });
             }
-            if (additional_prefilter_sub_and.length > 0 ) {
-                subquery_and.push({"-and": additional_prefilter_sub_and});
+            if (additional_prefilter_sub_and.length > 0) {
+                subquery_and.push({ "-and": additional_prefilter_sub_and });
             }
 
             // added by LMSCloud: add infilter, supporting SQL patterns: "AND ... IN ( ... )"  and  "AND ... NOT IN ( ... )"
@@ -270,34 +284,39 @@ $(document).ready(function() {
             //   in the next Koha version the ill-list-table.js or datatables.js implementation is again reworked from scratch.
             let additional_infilter_sub = [];
             for (let additional_infilt_key in additional_infilter) {
-                let vals = additional_infilter[additional_infilt_key][1].split(",");
-                if ( vals[0] ) {
-                    if ( additional_infilter[additional_infilt_key][0] === "-not_in" ) {
+                let vals =
+                    additional_infilter[additional_infilt_key][1].split(",");
+                if (vals[0]) {
+                    if (
+                        additional_infilter[additional_infilt_key][0] ===
+                        "-not_in"
+                    ) {
                         additional_infilter_sub.push({
-                            ["me." + additional_infilt_key]:{"!=":vals[0]}
+                            ["me." + additional_infilt_key]: { "!=": vals[0] },
                         });
                     }
-                    if ( additional_infilter[additional_infilt_key][0] === "-in" ) {
+                    if (
+                        additional_infilter[additional_infilt_key][0] === "-in"
+                    ) {
                         additional_infilter_sub.push({
-                            ["me." + additional_infilt_key]:{"=":vals[0]}
+                            ["me." + additional_infilt_key]: { "=": vals[0] },
                         });
                     }
                 }
             }
-            if (additional_infilter_sub.length > 0 ) {
-                subquery_and.push({"-and": additional_infilter_sub});
+            if (additional_infilter_sub.length > 0) {
+                subquery_and.push({ "-and": additional_infilter_sub });
             }
 
-            if ( subquery_and.length > 0 ) {
-                subquery_combined.push({"-and": subquery_and});
+            if (subquery_and.length > 0) {
+                subquery_combined.push({ "-and": subquery_and });
             }
-            if ( subquery_combined.length > 0 ) {
-                filters.push({"-and": subquery_combined});
+            if (subquery_combined.length > 0) {
+                filters.push({ "-and": subquery_combined });
                 return filters;
             }
-            return '';    // no subquery was generated in this "-and" section
-        }
-
+            return ""; // no subquery was generated in this "-and" section
+        },
     };
 
     let table_id = "#ill-requests";
@@ -305,266 +324,295 @@ $(document).ready(function() {
         table_id += "-patron-" + borrower_prefilter;
     }
 
-    var ill_requests_table = $(table_id).kohaTable({
-        "ajax": {
-            "url": '/api/v1/ill/requests'
-        },
-        "order": [[ 16, "desc" ]],    // LMSCloud: default sort is illrequests.updated descending (called 'timestamp' here)
-        "embed": [
-            '+strings',
-            'biblio',
-            'comments+count',
-            'extended_attributes',
-            'library',
-            'id_prefix',
-            'patron'
-        ],
-        "stateSave": true, // remember state on page reload
-        "columns": [
-            {
-                "data": "ill_request_id",    // according to to_api_mapping this is illrequests.illrequest_id
-                "searchable": true,
-                "orderable": true,
-                "render": function( data, type, row, meta ) {
-                    return '<a href="/cgi-bin/koha/ill/ill-requests.pl?' +
-                            'method=illview&amp;illrequest_id=' +
+    var ill_requests_table = $(table_id).kohaTable(
+        {
+            ajax: {
+                url: "/api/v1/ill/requests",
+            },
+            order: [[16, "desc"]], // LMSCloud: default sort is illrequests.updated descending (called 'timestamp' here)
+            embed: [
+                "+strings",
+                "biblio",
+                "comments+count",
+                "extended_attributes",
+                "library",
+                "id_prefix",
+                "patron",
+            ],
+            stateSave: true, // remember state on page reload
+            columns: [
+                {
+                    data: "ill_request_id", // according to to_api_mapping this is illrequests.illrequest_id
+                    searchable: true,
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        return (
+                            '<a href="/cgi-bin/koha/ill/ill-requests.pl?' +
+                            "method=illview&amp;illrequest_id=" +
                             encodeURIComponent(data) +
-                            '">' + escape_str(row.id_prefix) + escape_str(data) + '</a>';
-                }
-            },
-            {
-                "data": "", // author (derived from illrequestattributes)
-                "orderable": false,
-                "render": function(data, type, row, meta) {
-                    return display_extended_attribute(row, 'author');
-                }
-            },
-            {
-                "data": "", // title (derived from illrequestattributes)
-                "orderable": false,
-                "render": function(data, type, row, meta) {
-                    return display_extended_attribute(row, 'title');
-                }
-            },
-            {
-                "data": "", // article_title (derived from illrequestattributes)
-                "orderable": false,
-                "render": function(data, type, row, meta) {
-                    return display_extended_attribute(row, 'article_title');
-                }
-            },
-            {
-                "data": "", // issue (derived from illrequestattributes)
-                "orderable": false,
-                "render": function(data, type, row, meta) {
-                    return display_extended_attribute(row, 'issue');
-                }
-            },
-            {
-                "data": "", // volume (derived from illrequestattributes)
-                "orderable": false,
-                "render": function(data, type, row, meta) {
-                    return display_extended_attribute(row, 'volume');
-                }
-            },
-            {
-                "data": "",  // year (derived from illrequestattributes)
-                "orderable": false,
-                "render": function(data, type, row, meta) {
-                    return display_extended_attribute(row, 'year');
-                }
-            },
-            {
-                "data": "", // pages (derived from illrequestattributes)
-                "orderable": false,
-                "render": function(data, type, row, meta) {
-                    return display_extended_attribute(row, 'pages');
-                }
-            },
-            {
-                // standard Koha:
-                // "data": "", // type (derived from illrequestattributes)
-                // "orderable": false,
-                // "render": function(data, type, row, meta) {
-                //     return display_extended_attribute(row, 'type');
-                // }
+                            '">' +
+                            escape_str(row.id_prefix) +
+                            escape_str(data) +
+                            "</a>"
+                        );
+                    },
+                },
+                {
+                    data: "", // author (derived from illrequestattributes)
+                    orderable: false,
+                    render: function (data, type, row, meta) {
+                        return display_extended_attribute(row, "author");
+                    },
+                },
+                {
+                    data: "", // title (derived from illrequestattributes)
+                    orderable: false,
+                    render: function (data, type, row, meta) {
+                        return display_extended_attribute(row, "title");
+                    },
+                },
+                {
+                    data: "", // article_title (derived from illrequestattributes)
+                    orderable: false,
+                    render: function (data, type, row, meta) {
+                        return display_extended_attribute(row, "article_title");
+                    },
+                },
+                {
+                    data: "", // issue (derived from illrequestattributes)
+                    orderable: false,
+                    render: function (data, type, row, meta) {
+                        return display_extended_attribute(row, "issue");
+                    },
+                },
+                {
+                    data: "", // volume (derived from illrequestattributes)
+                    orderable: false,
+                    render: function (data, type, row, meta) {
+                        return display_extended_attribute(row, "volume");
+                    },
+                },
+                {
+                    data: "", // year (derived from illrequestattributes)
+                    orderable: false,
+                    render: function (data, type, row, meta) {
+                        return display_extended_attribute(row, "year");
+                    },
+                },
+                {
+                    data: "", // pages (derived from illrequestattributes)
+                    orderable: false,
+                    render: function (data, type, row, meta) {
+                        return display_extended_attribute(row, "pages");
+                    },
+                },
+                {
+                    // standard Koha:
+                    // "data": "", // type (derived from illrequestattributes)
+                    // "orderable": false,
+                    // "render": function(data, type, row, meta) {
+                    //     return display_extended_attribute(row, 'type');
+                    // }
 
-                // LMSCloud Koha:
-                "data": "medium",
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return escape_str(mediumTypeToDesignation(row.medium,''));
-                }
-            },
+                    // LMSCloud Koha:
+                    data: "medium",
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        return escape_str(
+                            mediumTypeToDesignation(row.medium, "")
+                        );
+                    },
+                },
 
-            {
-                "data": "",  // ISIL (derived from illrequestattributes)
-                "orderable": false,
-                "render": function(data, type, row, meta) {
-                    let isil = get_extended_attribute(row, 'isil');
-                    if ( isil.length < 1 ) {
-                        isil = get_extended_attribute(row, 'isilFallback');
-                        if ( isil.length > 0 ) isil += '.';    // mark it as second choice
-                    }
-                    return escape_str(isil);
-                }
-            },
+                {
+                    data: "", // ISIL (derived from illrequestattributes)
+                    orderable: false,
+                    render: function (data, type, row, meta) {
+                        let isil = get_extended_attribute(row, "isil");
+                        if (isil.length < 1) {
+                            isil = get_extended_attribute(row, "isilFallback");
+                            if (isil.length > 0) isil += "."; // mark it as second choice
+                        }
+                        return escape_str(isil);
+                    },
+                },
 
-            {
-                "data": "ill_backend_request_id",    // according to to_api_mapping this is illrequests.orderid
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return escape_str(data);
-                }
-            },
-            {
-                // standard Koha:
-                //"data": "patron.firstname:patron.surname:patron.cardnumber",
-                // LMSCloud Koha:
-                "data": "patron.surname:patron.firstname:patron.cardnumber",
-                "render": function(data, type, row, meta) {
-                    return (row.patron) ? $patron_to_html( row.patron, { display_cardnumber: true, url: true } ) : '';
-                }
-            },
-            {
-                "data": "biblio_id",
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    if ( data === null ) {
-                        return "";
-                    }
-                    return $biblio_to_html(row.biblio, { biblio_id_only: 0, link: 1 });
-                }
-            },
-            {
-                "data": "library.name",
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return escape_str(data);
-                }
-            },
-            {
-                "data": "status",
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    let status_label = row._strings.status_av ?    // according to to_api_mapping status_av is illrequests.status_alias
-                        row._strings.status_av.str ?
-                            row._strings.status_av.str :
-                            row._strings.status_av.code :
+                {
+                    data: "ill_backend_request_id", // according to to_api_mapping this is illrequests.orderid
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        return escape_str(data);
+                    },
+                },
+                {
+                    // standard Koha:
+                    //"data": "patron.firstname:patron.surname:patron.cardnumber",
+                    // LMSCloud Koha:
+                    data: "patron.surname:patron.firstname:patron.cardnumber",
+                    render: function (data, type, row, meta) {
+                        return row.patron
+                            ? $patron_to_html(row.patron, {
+                                  display_cardnumber: true,
+                                  url: true,
+                              })
+                            : "";
+                    },
+                },
+                {
+                    data: "biblio_id",
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        if (data === null) {
+                            return "";
+                        }
+                        return $biblio_to_html(row.biblio, {
+                            biblio_id_only: 0,
+                            link: 1,
+                        });
+                    },
+                },
+                {
+                    data: "library.name",
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        return escape_str(data);
+                    },
+                },
+                {
+                    data: "status",
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        let status_label = row._strings.status_av // according to to_api_mapping status_av is illrequests.status_alias
+                            ? row._strings.status_av.str
+                                ? row._strings.status_av.str
+                                : row._strings.status_av.code
+                            : // standard Koha:
+                              //row._strings.status.str
+                              // LMSCloud Koha:
+                              translateStatusName(row._strings.status.str);
+                        return escape_str(status_label);
+                    },
+                },
+                {
+                    data: "requested_date", // according to to_api_mapping this is illrequests.placed
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        return $date(data);
+                    },
+                },
+                {
+                    data: "timestamp", // according to to_api_mapping this is illrequests.updated
+                    orderable: true,
+                    render: function (data, type, row, meta) {
                         // standard Koha:
-                        //row._strings.status.str
+                        //return $date(data);
                         // LMSCloud Koha:
-                        translateStatusName(row._strings.status.str);
-                    return escape_str(status_label);
-                }
-            },
-            {
-                "data": "requested_date",    // according to to_api_mapping this is illrequests.placed
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return $date(data);
-                }
-            },
-            {
-                "data": "timestamp",    // according to to_api_mapping this is illrequests.updated
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    // standard Koha:
-                    //return $date(data);
-                    // LMSCloud Koha:
-                    return $datetime(data);
-                }
-            },
-            {
-                "data": "replied_date",    // according to to_api_mapping this is illrequests.replied
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return $date(data);
-                }
-            },
-            {
-                "data": "completed_date",    // according to to_api_mapping this is illrequests.completed
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return $date(data);
-                }
-            },
-            {
-                "data": "access_url",    // according to to_api_mapping this is illrequests.accessurl
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return escape_str(data);
-                }
-            },
-            {
-                "data": "cost",
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return escape_str(data);
-                }
-            },
-            {
-                "data": "paid_price",    // according to to_api_mapping this is illrequests.price_paid
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return escape_str(data);
-                }
-            },
-            {
-                "data": "comments_count",    // constructed in api?
-                "orderable": true,
-                "searchable": false,
-                "render": function(data, type, row, meta) {
-                    return escape_str(data);
-                }
-            },
-            {
-                "data": "opac_notes",    // according to to_api_mapping this is illrequests.notesopac
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return escape_str(data);
-                }
-            },
-            {
-                "data": "staff_notes",    // according to to_api_mapping this is illrequests.notesstaff
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    return escape_str(data);
-                }
-            },
-            {
-                "data": "ill_backend_id",    // according to to_api_mapping this is illrequests.backend
-                "orderable": true,
-                "render": function(data, type, row, meta) {
-                    // standard Koha:
-                    //return escape_str(data);
-                    // LMSCloud Koha:
-                    return escape_str(backendNameToDesignation(row.ill_backend_id));
-                }
-            },
-            {
-                "data": "", // checkedBy/ochk_Bearbeiter (derived from illrequestattributes)
-                "orderable": false,
-                "render": function(data, type, row, meta) {
-                    return display_extended_attribute(row, 'ochk_Bearbeiter') + display_extended_attribute(row, 'checkedBy')
-                }
-            },
-            {
-                "data": "ill_request_id",    // according to to_api_mapping this is illrequests.illrequest_id, used here for the 'action' link (illview)
-                "orderable": false,
-                "searchable": false,
-                "render": function( data, type, row, meta ) {
-                    return '<a class="btn btn-default btn-sm" ' +
+                        return $datetime(data);
+                    },
+                },
+                {
+                    data: "replied_date", // according to to_api_mapping this is illrequests.replied
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        return $date(data);
+                    },
+                },
+                {
+                    data: "completed_date", // according to to_api_mapping this is illrequests.completed
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        return $date(data);
+                    },
+                },
+                {
+                    data: "access_url", // according to to_api_mapping this is illrequests.accessurl
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        return escape_str(data);
+                    },
+                },
+                {
+                    data: "cost",
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        return escape_str(data);
+                    },
+                },
+                {
+                    data: "paid_price", // according to to_api_mapping this is illrequests.price_paid
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        return escape_str(data);
+                    },
+                },
+                {
+                    data: "comments_count", // constructed in api?
+                    orderable: true,
+                    searchable: false,
+                    render: function (data, type, row, meta) {
+                        return escape_str(data);
+                    },
+                },
+                {
+                    data: "opac_notes", // according to to_api_mapping this is illrequests.notesopac
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        return escape_str(data);
+                    },
+                },
+                {
+                    data: "staff_notes", // according to to_api_mapping this is illrequests.notesstaff
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        return escape_str(data);
+                    },
+                },
+                {
+                    data: "ill_backend_id", // according to to_api_mapping this is illrequests.backend
+                    orderable: true,
+                    render: function (data, type, row, meta) {
+                        // standard Koha:
+                        //return escape_str(data);
+                        // LMSCloud Koha:
+                        return escape_str(
+                            backendNameToDesignation(row.ill_backend_id)
+                        );
+                    },
+                },
+                {
+                    data: "", // checkedBy/ochk_Bearbeiter (derived from illrequestattributes)
+                    orderable: false,
+                    render: function (data, type, row, meta) {
+                        return (
+                            display_extended_attribute(row, "ochk_Bearbeiter") +
+                            display_extended_attribute(row, "checkedBy")
+                        );
+                    },
+                },
+                {
+                    data: "ill_request_id", // according to to_api_mapping this is illrequests.illrequest_id, used here for the 'action' link (illview)
+                    orderable: false,
+                    searchable: false,
+                    render: function (data, type, row, meta) {
+                        return (
+                            '<a class="btn btn-default btn-sm" ' +
                             'href="/cgi-bin/koha/ill/ill-requests.pl?' +
-                            'method=illview&amp;illrequest_id=' +
+                            "method=illview&amp;illrequest_id=" +
                             encodeURIComponent(data) +
-                            '">' + ill_manage + '</a>';
-                }
-            }
-        ]
-    }, table_settings, null, additional_filters);
+                            '">' +
+                            ill_manage +
+                            "</a>"
+                        );
+                    },
+                },
+            ],
+        },
+        table_settings,
+        null,
+        additional_filters
+    );
 
-    $("#illfilter_form").on('submit', filter);
+    $("#illfilter_form").on("submit", filter);
 
     function redrawTable() {
         let table_dt = ill_requests_table.DataTable();
@@ -583,15 +631,23 @@ $(document).ready(function() {
             "illfilter_patron",
             "illfilter_keyword",
         ];
-        filters.forEach((filter) => {
-            $("#"+filter).val("");
+        filters.forEach(filter => {
+            $("#" + filter).val("");
         });
 
         //Clear flatpickr date filters
-        $('#illfilter_form > fieldset > ol > li:nth-child(4) > span > a').click();
-        $('#illfilter_form > fieldset > ol > li:nth-child(5) > span > a').click();
-        $('#illfilter_form > fieldset > ol > li:nth-child(6) > span > a').click();
-        $('#illfilter_form > fieldset > ol > li:nth-child(7) > span > a').click();
+        $(
+            "#illfilter_form > fieldset > ol > li:nth-child(4) > span > a"
+        ).click();
+        $(
+            "#illfilter_form > fieldset > ol > li:nth-child(5) > span > a"
+        ).click();
+        $(
+            "#illfilter_form > fieldset > ol > li:nth-child(6) > span > a"
+        ).click();
+        $(
+            "#illfilter_form > fieldset > ol > li:nth-child(7) > span > a"
+        ).click();
 
         disableStatusFilter();
 
@@ -601,27 +657,32 @@ $(document).ready(function() {
     function populateStatusFilter(backend) {
         $.ajax({
             type: "GET",
-            url: "/api/v1/ill/backends/"+backend,
+            url: "/api/v1/ill/backends/" + backend,
             headers: {
-                'x-koha-embed': 'statuses+strings'
+                "x-koha-embed": "statuses+strings",
             },
-            success: function(response){
+            success: function (response) {
                 let statuses = response.statuses;
                 // LMSCloud Koha:
-                statuses.forEach(function(status) {
+                statuses.forEach(function (status) {
                     status.str = translateStatusName(status.str);
                 });
 
-                $('#illfilter_status').append(
-                    '<option value="">'+ill_all_statuses+'</option>'
+                $("#illfilter_status").append(
+                    '<option value="">' + ill_all_statuses + "</option>"
                 );
-                statuses.sort((a, b) => a.str.localeCompare(b.str)).forEach(function(status) {
-                    $('#illfilter_status').append(
-                        '<option value="' + status.code  +
-                        '">' + status.str +  '</option>'
-                    );
-                });
-            }
+                statuses
+                    .sort((a, b) => a.str.localeCompare(b.str))
+                    .forEach(function (status) {
+                        $("#illfilter_status").append(
+                            '<option value="' +
+                                status.code +
+                                '">' +
+                                status.str +
+                                "</option>"
+                        );
+                    });
+            },
         });
     }
 
@@ -629,34 +690,43 @@ $(document).ready(function() {
         $.ajax({
             type: "GET",
             url: "/api/v1/ill/backends",
-            success: function(backends){
-                backends.sort((a, b) => a.ill_backend_id.localeCompare(b.ill_backend_id)).forEach(function(backend) {
-                    $('#illfilter_backend').append(
-                        '<option value="' + backend.ill_backend_id  +
-                        // standard Koha:
-                        //'">' + backend.ill_backend_id +  '</option>'
-                        // LMSCloud Koha:
-                        '">' + backendNameToDesignation(backend.ill_backend_id) +  '</option>'
-                    );
-                });
-            }
+            success: function (backends) {
+                backends
+                    .sort((a, b) =>
+                        a.ill_backend_id.localeCompare(b.ill_backend_id)
+                    )
+                    .forEach(function (backend) {
+                        $("#illfilter_backend").append(
+                            '<option value="' +
+                                backend.ill_backend_id +
+                                // standard Koha:
+                                //'">' + backend.ill_backend_id +  '</option>'
+                                // LMSCloud Koha:
+                                '">' +
+                                backendNameToDesignation(
+                                    backend.ill_backend_id
+                                ) +
+                                "</option>"
+                        );
+                    });
+            },
         });
     }
 
     function disableStatusFilter() {
-        $('#illfilter_status').children().remove();
-        $("#illfilter_status").attr('title', ill_manage_select_backend_first);
-        $('#illfilter_status').prop("disabled", true);
+        $("#illfilter_status").children().remove();
+        $("#illfilter_status").attr("title", ill_manage_select_backend_first);
+        $("#illfilter_status").prop("disabled", true);
     }
 
     function enableStatusFilter() {
-        $('#illfilter_status').children().remove();
-        $("#illfilter_status").attr('title', '');
-        $('#illfilter_status').prop("disabled", false);
+        $("#illfilter_status").children().remove();
+        $("#illfilter_status").attr("title", "");
+        $("#illfilter_status").prop("disabled", false);
     }
 
-    $('#illfilter_backend').change(function() {
-        var selected_backend = $('#illfilter_backend option:selected').val();
+    $("#illfilter_backend").change(function () {
+        var selected_backend = $("#illfilter_backend option:selected").val();
         if (selected_backend && selected_backend.length > 0) {
             populateStatusFilter(selected_backend);
             enableStatusFilter();
@@ -669,8 +739,7 @@ $(document).ready(function() {
     populateBackendFilter();
 
     // Clear all filters
-    $('.clear_search').click(function() {
+    $(".clear_search").click(function () {
         clearSearch();
     });
-
 });

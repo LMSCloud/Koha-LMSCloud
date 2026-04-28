@@ -30,9 +30,9 @@ sub isDueDateOverdue {
     my ( $self, $duedate ) = @_;
     my $dt = DateTime->now( time_zone => C4::Context->tz );
     my $is_overdue =
-      DateTime->compare( dt_from_string( $duedate, 'sql' ), $dt ) == -1
-      ? 1
-      : 0;
+        DateTime->compare( dt_from_string( $duedate, 'sql' ), $dt ) == -1
+        ? 1
+        : 0;
     return $is_overdue;
 }
 

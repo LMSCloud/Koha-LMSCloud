@@ -19,7 +19,6 @@ package C4::Koha;
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-
 use Modern::Perl;
 
 use C4::Context;
@@ -31,33 +30,34 @@ use Business::ISBN;
 use Business::ISSN;
 use autouse 'Data::cselectall_arrayref' => qw(Dumper);
 
-our (@ISA, @EXPORT_OK);
+our ( @ISA, @EXPORT_OK );
+
 BEGIN {
     require Exporter;
     @ISA       = qw(Exporter);
     @EXPORT_OK = qw(
-      GetItemTypesCategorized
-      getallthemes
-      getFacets
-      getImageSets
-      getnbpages
-      getitemtypeimagedir
-      getitemtypeimagesrc
-      getitemtypeimagelocation
-      GetAuthorisedValues
-      GetNormalizedUPC
-      GetNormalizedISBN
-      GetNormalizedISBN13
-      GetNormalizedEAN
-      GetNormalizedOCLCNumber
-      xml_escape
+        GetItemTypesCategorized
+        getallthemes
+        getFacets
+        getImageSets
+        getnbpages
+        getitemtypeimagedir
+        getitemtypeimagesrc
+        getitemtypeimagelocation
+        GetAuthorisedValues
+        GetNormalizedUPC
+        GetNormalizedISBN
+        GetNormalizedISBN13
+        GetNormalizedEAN
+        GetNormalizedOCLCNumber
+        xml_escape
 
-      GetVariationsOfISBN
-      GetVariationsOfISBNs
-      NormalizeISBN
-      GetVariationsOfISSN
-      GetVariationsOfISSNs
-      NormalizeISSN
+        GetVariationsOfISBN
+        GetVariationsOfISBNs
+        NormalizeISBN
+        GetVariationsOfISSN
+        GetVariationsOfISSNs
+        NormalizeISSN
 
     );
 }
@@ -89,7 +89,8 @@ The categories must be part of Authorized Values (ITEMTYPECAT)
 =cut
 
 sub GetItemTypesCategorized {
-    my $dbh   = C4::Context->dbh;
+    my $dbh = C4::Context->dbh;
+
     # Order is important, so that partially hidden (some items are not visible in OPAC) search
     # categories will be visible. hideinopac=0 must be last.
     my $query = q|
@@ -113,7 +114,7 @@ sub GetItemTypesCategorized {
         WHERE searchcategory > '' and hideinopac=0
         AND category = 'ITEMTYPECAT'
         |;
-return ($dbh->selectall_hashref($query,'itemtype'));
+    return ( $dbh->selectall_hashref( $query, 'itemtype' ) );
 }
 
 =head2 getitemtypeimagedir
@@ -127,34 +128,34 @@ returns the full path to the appropriate directory containing images.
 =cut
 
 sub getitemtypeimagedir {
-	my $src = shift || 'opac';
-	if ($src eq 'intranet') {
-		return C4::Context->config('intrahtdocs') . '/' .C4::Context->preference('template') . '/img/itemtypeimg';
-	} else {
-		return C4::Context->config('opachtdocs') . '/' . C4::Context->preference('opacthemes') . '/itemtypeimg';
-	}
+    my $src = shift || 'opac';
+    if ( $src eq 'intranet' ) {
+        return C4::Context->config('intrahtdocs') . '/' . C4::Context->preference('template') . '/img/itemtypeimg';
+    } else {
+        return C4::Context->config('opachtdocs') . '/' . C4::Context->preference('opacthemes') . '/itemtypeimg';
+    }
 }
 
 sub getitemtypeimagesrc {
-	my $src = shift || 'opac';
-	if ($src eq 'intranet') {
-		return '/intranet-tmpl' . '/' .	C4::Context->preference('template') . '/img/itemtypeimg';
-	} else {
-		return '/opac-tmpl' . '/' . C4::Context->preference('opacthemes') . '/itemtypeimg';
-	}
+    my $src = shift || 'opac';
+    if ( $src eq 'intranet' ) {
+        return '/intranet-tmpl' . '/' . C4::Context->preference('template') . '/img/itemtypeimg';
+    } else {
+        return '/opac-tmpl' . '/' . C4::Context->preference('opacthemes') . '/itemtypeimg';
+    }
 }
 
 sub getitemtypeimagelocation {
-	my ( $src, $image ) = @_;
+    my ( $src, $image ) = @_;
 
-	return '' if ( !$image );
+    return '' if ( !$image );
     require URI::Split;
 
-	my $scheme = ( URI::Split::uri_split( $image ) )[0];
+    my $scheme = ( URI::Split::uri_split($image) )[0];
 
-	return $image if ( $scheme );
+    return $image if ($scheme);
 
-	return getitemtypeimagesrc( $src ) . '/' . $image;
+    return getitemtypeimagesrc($src) . '/' . $image;
 }
 
 =head3 _getImagesFromDirectory
@@ -177,8 +178,8 @@ sub _getImagesFromDirectory {
     return unless defined $directoryname;
     return unless -d $directoryname;
 
-    if ( opendir ( my $dh, $directoryname ) ) {
-        my @images = grep { /\.(gif|png)$/i } readdir( $dh );
+    if ( opendir( my $dh, $directoryname ) ) {
+        my @images = grep { /\.(gif|png)$/i } readdir($dh);
         closedir $dh;
         @images = sort(@images);
         return @images;
@@ -207,8 +208,8 @@ sub _getSubdirectoryNames {
     return unless defined $directoryname;
     return unless -d $directoryname;
 
-    if ( opendir ( my $dh, $directoryname ) ) {
-        my @directories = grep { -d File::Spec->catfile( $directoryname, $_ ) && ! ( /^\./ ) } readdir( $dh );
+    if ( opendir( my $dh, $directoryname ) ) {
+        my @directories = grep { -d File::Spec->catfile( $directoryname, $_ ) && !(/^\./) } readdir($dh);
         closedir $dh;
         return @directories;
     } else {
@@ -237,37 +238,45 @@ each image is represented by a hashref like this:
 =cut
 
 sub getImageSets {
-    my %params = @_;
+    my %params  = @_;
     my $checked = $params{'checked'} || '';
 
-    my $paths = { staff => { filesystem => getitemtypeimagedir('intranet'),
-                             url        => getitemtypeimagesrc('intranet'),
-                        },
-                  opac => { filesystem => getitemtypeimagedir('opac'),
-                             url       => getitemtypeimagesrc('opac'),
-                        }
-                  };
-
-    my @imagesets = (); # list of hasrefs of image set data to pass to template
-    my @subdirectories = _getSubdirectoryNames( $paths->{'staff'}{'filesystem'} );
-    foreach my $imagesubdir ( @subdirectories ) {
-        my @imagelist     = (); # hashrefs of image info
-        my @imagenames = _getImagesFromDirectory( File::Spec->catfile( $paths->{'staff'}{'filesystem'}, $imagesubdir ) );
-        my $imagesetactive = 0;
-        foreach my $thisimage ( @imagenames ) {
-            push( @imagelist,
-                  { KohaImage     => "$imagesubdir/$thisimage",
-                    StaffImageUrl => join( '/', $paths->{'staff'}{'url'}, $imagesubdir, $thisimage ),
-                    OpacImageUrl  => join( '/', $paths->{'opac'}{'url'}, $imagesubdir, $thisimage ),
-                    checked       => "$imagesubdir/$thisimage" eq $checked ? 1 : 0,
-               }
-             );
-             $imagesetactive = 1 if "$imagesubdir/$thisimage" eq $checked;
+    my $paths = {
+        staff => {
+            filesystem => getitemtypeimagedir('intranet'),
+            url        => getitemtypeimagesrc('intranet'),
+        },
+        opac => {
+            filesystem => getitemtypeimagedir('opac'),
+            url        => getitemtypeimagesrc('opac'),
         }
-        push @imagesets, { imagesetname => $imagesubdir,
-                           imagesetactive => $imagesetactive,
-                           images       => \@imagelist };
-        
+    };
+
+    my @imagesets      = ();    # list of hasrefs of image set data to pass to template
+    my @subdirectories = _getSubdirectoryNames( $paths->{'staff'}{'filesystem'} );
+    foreach my $imagesubdir (@subdirectories) {
+        my @imagelist = ();     # hashrefs of image info
+        my @imagenames =
+            _getImagesFromDirectory( File::Spec->catfile( $paths->{'staff'}{'filesystem'}, $imagesubdir ) );
+        my $imagesetactive = 0;
+        foreach my $thisimage (@imagenames) {
+            push(
+                @imagelist,
+                {
+                    KohaImage     => "$imagesubdir/$thisimage",
+                    StaffImageUrl => join( '/', $paths->{'staff'}{'url'}, $imagesubdir, $thisimage ),
+                    OpacImageUrl  => join( '/', $paths->{'opac'}{'url'},  $imagesubdir, $thisimage ),
+                    checked       => "$imagesubdir/$thisimage" eq $checked ? 1 : 0,
+                }
+            );
+            $imagesetactive = 1 if "$imagesubdir/$thisimage" eq $checked;
+        }
+        push @imagesets, {
+            imagesetname   => $imagesubdir,
+            imagesetactive => $imagesetactive,
+            images         => \@imagelist
+        };
+
     }
     return \@imagesets;
 }
@@ -300,8 +309,7 @@ sub getallthemes {
     my @themes;
     if ( $type eq 'intranet' ) {
         $htdocs = C4::Context->config('intrahtdocs');
-    }
-    else {
+    } else {
         $htdocs = C4::Context->config('opachtdocs');
     }
     my $dir_h;
@@ -322,58 +330,57 @@ sub getFacets {
             {
                 idx   => 'su-to',
                 label => 'Topics',
-                tags  => [ qw/ 600ab 601ab 602a 604at 605a 606ax 610a / ],
+                tags  => [qw/ 600ab 601ab 602a 604at 605a 606ax 610a /],
                 sep   => ' - ',
             },
             {
                 idx   => 'su-geo',
                 label => 'Places',
-                tags  => [ qw/ 607a / ],
+                tags  => [qw/ 607a /],
                 sep   => ' - ',
             },
             {
                 idx   => 'au',
                 label => 'Authors',
-                tags  => [ qw/ 700ab 701ab 702ab / ],
+                tags  => [qw/ 700ab 701ab 702ab /],
                 sep   => C4::Context->preference("UNIMARCAuthorsFacetsSeparator"),
             },
             {
                 idx   => 'se',
                 label => 'Series',
-                tags  => [ qw/ 225a / ],
+                tags  => [qw/ 225a /],
                 sep   => ', ',
             },
             {
-                idx  => 'location',
+                idx   => 'location',
                 label => 'Location',
-                tags        => [ qw/ 995e / ],
+                tags  => [qw/ 995e /],
             },
             {
-                idx => 'ccode',
+                idx   => 'ccode',
                 label => 'Collections',
-                tags => [ qw / 099t 955h / ],
+                tags  => [qw / 099t 955h /],
             }
-            ];
+        ];
 
-            unless ( Koha::Libraries->search->count == 1 )
+        unless ( Koha::Libraries->search->count == 1 ) {
+            my $DisplayLibraryFacets = C4::Context->preference('DisplayLibraryFacets');
+            if (   $DisplayLibraryFacets eq 'both'
+                || $DisplayLibraryFacets eq 'holding' )
             {
-                my $DisplayLibraryFacets = C4::Context->preference('DisplayLibraryFacets');
-                if (   $DisplayLibraryFacets eq 'both'
-                    || $DisplayLibraryFacets eq 'holding' )
-                {
-                    push(
-                        @$facets,
-                        {
-                            idx   => 'holdingbranch',
-                            label => 'Holding libraries',
-                            tags  => [qw / 995c /],
-                        }
-                    );
-                }
+                push(
+                    @$facets,
+                    {
+                        idx   => 'holdingbranch',
+                        label => 'Holding libraries',
+                        tags  => [qw / 995c /],
+                    }
+                );
+            }
 
-                if (   $DisplayLibraryFacets eq 'both'
-                    || $DisplayLibraryFacets eq 'home' )
-                {
+            if (   $DisplayLibraryFacets eq 'both'
+                || $DisplayLibraryFacets eq 'home' )
+            {
                 push(
                     @$facets,
                     {
@@ -382,17 +389,17 @@ sub getFacets {
                         tags  => [qw / 995b /],
                     }
                 );
-                }
             }
-    }
-    else {
+        }
+    } else {
         $facets = [
             {
                 idx   => 'su-to',
                 label => 'Topics',
-                tags  => [ qw/ 650a / ],
+                tags  => [qw/ 650a /],
                 sep   => '--',
             },
+
             #        {
             #        idx   => 'su-na',
             #        label => 'People and Organizations',
@@ -402,76 +409,75 @@ sub getFacets {
             {
                 idx   => 'su-geo',
                 label => 'Places',
-                tags  => [ qw/ 651a / ],
+                tags  => [qw/ 651a /],
                 sep   => '--',
             },
             {
                 idx   => 'su-ut',
                 label => 'Titles',
-                tags  => [ qw/ 630a / ],
+                tags  => [qw/ 630a /],
                 sep   => '--',
             },
             {
                 idx   => 'au',
                 label => 'Authors',
-                tags  => [ qw/ 100a 110a 700a / ],
+                tags  => [qw/ 100a 110a 700a /],
                 sep   => ', ',
             },
             {
                 idx   => 'se',
                 label => 'Series',
-                tags  => [ qw/ 440a 490a / ],
+                tags  => [qw/ 440a 490a /],
                 sep   => ', ',
             },
             {
                 idx   => 'itype',
                 label => 'Item types',
-                tags  => [ qw/ 952y 942c / ],
+                tags  => [qw/ 952y 942c /],
                 sep   => ', ',
             },
             {
-                idx => 'location',
+                idx   => 'location',
                 label => 'Location',
-                tags => [ qw / 952c / ],
+                tags  => [qw / 952c /],
             },
             {
                 idx   => 'sbg',
                 label => 'Genres',
-                tags  => [ qw/ 072a / ],
+                tags  => [qw/ 072a /],
                 sep   => ', ',
             },
             {
                 idx   => 'publyear',
                 label => 'Years',
-                tags  => [ qw/ 260c 264c / ],
+                tags  => [qw/ 260c 264c /],
                 sep   => ', ',
             },
             {
-                idx => 'ccode',
+                idx   => 'ccode',
                 label => 'Collections',
-                tags => [ qw / 9528 / ],
+                tags  => [qw / 9528 /],
             }
-            ];
+        ];
 
-            unless ( Koha::Libraries->search->count == 1 )
+        unless ( Koha::Libraries->search->count == 1 ) {
+            my $DisplayLibraryFacets = C4::Context->preference('DisplayLibraryFacets');
+            if (   $DisplayLibraryFacets eq 'both'
+                || $DisplayLibraryFacets eq 'holding' )
             {
-                my $DisplayLibraryFacets = C4::Context->preference('DisplayLibraryFacets');
-                if (   $DisplayLibraryFacets eq 'both'
-                    || $DisplayLibraryFacets eq 'holding' )
-                {
-                    push(
-                        @$facets,
-                        {
-                            idx   => 'holdingbranch',
-                            label => 'Holding libraries',
-                            tags  => [qw / 952b /],
-                        }
-                    );
-                }
+                push(
+                    @$facets,
+                    {
+                        idx   => 'holdingbranch',
+                        label => 'Holding libraries',
+                        tags  => [qw / 952b /],
+                    }
+                );
+            }
 
-                if (   $DisplayLibraryFacets eq 'both'
-                    || $DisplayLibraryFacets eq 'home' )
-                {
+            if (   $DisplayLibraryFacets eq 'both'
+                || $DisplayLibraryFacets eq 'home' )
+            {
                 push(
                     @$facets,
                     {
@@ -480,8 +486,8 @@ sub getFacets {
                         tags  => [qw / 952a /],
                     }
                 );
-                }
             }
+        }
     }
     return $facets;
 }
@@ -499,19 +505,18 @@ C<$opac> If set to a true value, displays OPAC descriptions rather than normal o
 =cut
 
 sub GetAuthorisedValues {
-    my $category = shift // '';  # optional parameter
-    my $opac = shift ? 1 : 0;  # normalise to be safe
+    my $category = shift // '';      # optional parameter
+    my $opac     = shift ? 1 : 0;    # normalise to be safe
 
     # Is this cached already?
     my $branch_limit = C4::Context::mybranch();
-    my $cache_key =
-      "AuthorisedValues-$category-$opac-$branch_limit";
-    my $cache  = Koha::Caches->get_instance();
-    my $result = $cache->get_from_cache($cache_key);
+    my $cache_key    = "AuthorisedValues-$category-$opac-$branch_limit";
+    my $cache        = Koha::Caches->get_instance();
+    my $result       = $cache->get_from_cache($cache_key);
     return $result if $result;
 
     my @results;
-    my $dbh      = C4::Context->dbh;
+    my $dbh   = C4::Context->dbh;
     my $query = qq{
         SELECT DISTINCT av.*
         FROM authorised_values av
@@ -521,27 +526,30 @@ sub GetAuthorisedValues {
     } if $branch_limit;
     my @where_strings;
     my @where_args;
-    if($category) {
+
+    if ($category) {
         push @where_strings, "category = ?";
-        push @where_args, $category;
+        push @where_args,    $category;
     }
-    if($branch_limit) {
+    if ($branch_limit) {
         push @where_strings, "( branchcode = ? OR branchcode IS NULL )";
-        push @where_args, $branch_limit;
+        push @where_args,    $branch_limit;
     }
-    if(@where_strings > 0) {
-        $query .= " WHERE " . join(" AND ", @where_strings);
+    if ( @where_strings > 0 ) {
+        $query .= " WHERE " . join( " AND ", @where_strings );
     }
-    $query .= ' ORDER BY category, ' . (
-                $opac ? 'COALESCE(lib_opac, lib)'
-                      : 'lib, lib_opac'
-              );
+    $query .= ' ORDER BY category, '
+        . (
+        $opac
+        ? 'COALESCE(lib_opac, lib)'
+        : 'lib, lib_opac'
+        );
 
     my $sth = $dbh->prepare($query);
 
-    $sth->execute( @where_args );
-    while (my $data=$sth->fetchrow_hashref) {
-        if ($opac && $data->{lib_opac}) {
+    $sth->execute(@where_args);
+    while ( my $data = $sth->fetchrow_hashref ) {
+        if ( $opac && $data->{lib_opac} ) {
             $data->{lib} = $data->{lib_opac};
         }
         push @results, $data;
@@ -583,9 +591,9 @@ MARC field, replacing any blanks with '#'.
 =cut
 
 sub display_marc_indicators {
-    my $field = shift;
+    my $field      = shift;
     my $indicators = '';
-    if ($field && $field->tag() >= 10) {
+    if ( $field && $field->tag() >= 10 ) {
         $indicators = $field->indicator(1) . $field->indicator(2);
         $indicators =~ s/ /#/g;
     }
@@ -593,27 +601,26 @@ sub display_marc_indicators {
 }
 
 sub GetNormalizedUPC {
-    my ($marcrecord,$marcflavour) = @_;
+    my ( $marcrecord, $marcflavour ) = @_;
 
     $marcflavour ||= C4::Context->preference('marcflavour');
 
     return unless $marcrecord;
-    if ($marcflavour eq 'UNIMARC') {
+    if ( $marcflavour eq 'UNIMARC' ) {
         my @fields = $marcrecord->field('072');
         foreach my $field (@fields) {
-            my $upc = _normalize_match_point($field->subfield('a'));
+            my $upc = _normalize_match_point( $field->subfield('a') );
             if ($upc) {
                 return $upc;
             }
         }
 
-    }
-    else { # assume marc21 if not unimarc
+    } else {    # assume marc21 if not unimarc
         my @fields = $marcrecord->field('024');
         foreach my $field (@fields) {
             my $indicator = $field->indicator(1);
-            my $upc = _normalize_match_point($field->subfield('a'));
-            if ($upc && $indicator eq '1' ) {
+            my $upc       = _normalize_match_point( $field->subfield('a') );
+            if ( $upc && $indicator eq '1' ) {
                 return $upc;
             }
         }
@@ -623,44 +630,41 @@ sub GetNormalizedUPC {
 # Normalizes and returns the first valid ISBN found in the record
 # ISBN13 are converted into ISBN10. This is required to get some book cover images.
 sub GetNormalizedISBN {
-    my ($isbn,$marcrecord,$marcflavour,$asIsbn13) = @_;
+    my ( $isbn, $marcrecord, $marcflavour, $asIsbn13 ) = @_;
     if ($isbn) {
+
         # Koha attempts to store multiple ISBNs in biblioitems.isbn, separated by " | "
         # anything after " | " should be removed, along with the delimiter
-        ($isbn) = split(/\|/, $isbn );
-        if ( $asIsbn13 ) {
+        ($isbn) = split( /\|/, $isbn );
+        if ($asIsbn13) {
             return _isbn_cleanup13($isbn);
-        }
-        else {
+        } else {
             return _isbn_cleanup($isbn);
         }
     }
 
     return unless $marcrecord;
 
-    if ($marcflavour eq 'UNIMARC') {
+    if ( $marcflavour eq 'UNIMARC' ) {
         my @fields = $marcrecord->field('010');
         foreach my $field (@fields) {
             my $isbn = $field->subfield('a');
             if ($isbn) {
-                if ( $asIsbn13 ) {
+                if ($asIsbn13) {
                     return _isbn_cleanup13($isbn);
-                }
-                else {
+                } else {
                     return _isbn_cleanup($isbn);
                 }
             }
         }
-    }
-    else { # assume marc21 if not unimarc
+    } else {    # assume marc21 if not unimarc
         my @fields = $marcrecord->field('020');
         foreach my $field (@fields) {
             $isbn = $field->subfield('a');
             if ($isbn) {
-                if ( $asIsbn13 ) {
+                if ($asIsbn13) {
                     return _isbn_cleanup13($isbn);
-                }
-                else {
+                } else {
                     return _isbn_cleanup($isbn);
                 }
             }
@@ -669,30 +673,29 @@ sub GetNormalizedISBN {
 }
 
 sub GetNormalizedISBN13 {
-    my ($isbn,$marcrecord,$marcflavour) = @_;
-    return &GetNormalizedISBN($isbn,$marcrecord,$marcflavour,1);
+    my ( $isbn, $marcrecord, $marcflavour ) = @_;
+    return &GetNormalizedISBN( $isbn, $marcrecord, $marcflavour, 1 );
 }
 
 sub GetNormalizedEAN {
-    my ($marcrecord,$marcflavour) = @_;
+    my ( $marcrecord, $marcflavour ) = @_;
 
     return unless $marcrecord;
 
-    if ($marcflavour eq 'UNIMARC') {
+    if ( $marcflavour eq 'UNIMARC' ) {
         my @fields = $marcrecord->field('073');
         foreach my $field (@fields) {
-            my $ean = _normalize_match_point($field->subfield('a'));
-            if ( $ean ) {
+            my $ean = _normalize_match_point( $field->subfield('a') );
+            if ($ean) {
                 return $ean;
             }
         }
-    }
-    else { # assume marc21 if not unimarc
+    } else {    # assume marc21 if not unimarc
         my @fields = $marcrecord->field('024');
         foreach my $field (@fields) {
             my $indicator = $field->indicator(1);
-            my $ean = _normalize_match_point($field->subfield('a'));
-            if ( $ean && $indicator eq '3'  ) {
+            my $ean       = _normalize_match_point( $field->subfield('a') );
+            if ( $ean && $indicator eq '3' ) {
                 return $ean;
             }
         }
@@ -700,28 +703,29 @@ sub GetNormalizedEAN {
 }
 
 sub GetNormalizedOCLCNumber {
-    my ($marcrecord,$marcflavour) = @_;
+    my ( $marcrecord, $marcflavour ) = @_;
     return unless $marcrecord;
 
     $marcflavour ||= C4::Context->preference('marcflavour');
 
-    if ($marcflavour ne 'UNIMARC' ) {
+    if ( $marcflavour ne 'UNIMARC' ) {
         my @fields = $marcrecord->field('035');
         foreach my $field (@fields) {
             my $oclc = $field->subfield('a');
-            if ($oclc && $oclc =~ /OCoLC/) {
+            if ( $oclc && $oclc =~ /OCoLC/ ) {
                 $oclc =~ s/\(OCoLC\)//;
                 return $oclc;
             }
         }
     } else {
+
         # TODO for UNIMARC
     }
 }
 
 sub _normalize_match_point {
     my $match_point = shift;
-    (my $normalized_match_point) = $match_point =~ /([\d-]*[X]*)/;
+    ( my $normalized_match_point ) = $match_point =~ /([\d-]*[X]*)/;
     $normalized_match_point =~ s/-//g;
 
     return $normalized_match_point;
@@ -771,9 +775,9 @@ sub _isbn_cleanup13 {
 sub NormalizeISBN {
     my ($params) = @_;
 
-    my $string        = $params->{isbn};
-    my $strip_hyphens = $params->{strip_hyphens};
-    my $format        = $params->{format} || q{};
+    my $string         = $params->{isbn};
+    my $strip_hyphens  = $params->{strip_hyphens};
+    my $format         = $params->{format} || q{};
     my $return_invalid = $params->{return_invalid};
 
     return unless $string;
@@ -783,9 +787,8 @@ sub NormalizeISBN {
     if ( $isbn && $isbn->is_valid() ) {
 
         if ( $format eq 'ISBN-10' ) {
-        $isbn = $isbn->as_isbn10();
-        }
-        elsif ( $format eq 'ISBN-13' ) {
+            $isbn = $isbn->as_isbn10();
+        } elsif ( $format eq 'ISBN-13' ) {
             $isbn = $isbn->as_isbn13();
         }
         return unless $isbn;
@@ -797,7 +800,7 @@ sub NormalizeISBN {
         }
 
         return $string;
-    } elsif ( $return_invalid ) {
+    } elsif ($return_invalid) {
         return $string;
     }
 
@@ -823,11 +826,11 @@ sub GetVariationsOfISBN {
 
     my @isbns;
 
-    push( @isbns, NormalizeISBN({ isbn => $isbn, return_invalid => 1 }) );
-    push( @isbns, NormalizeISBN({ isbn => $isbn, format => 'ISBN-10' }) );
-    push( @isbns, NormalizeISBN({ isbn => $isbn, format => 'ISBN-13' }) );
-    push( @isbns, NormalizeISBN({ isbn => $isbn, format => 'ISBN-10', strip_hyphens => 1 }) );
-    push( @isbns, NormalizeISBN({ isbn => $isbn, format => 'ISBN-13', strip_hyphens => 1 }) );
+    push( @isbns, NormalizeISBN( { isbn => $isbn, return_invalid => 1 } ) );
+    push( @isbns, NormalizeISBN( { isbn => $isbn, format         => 'ISBN-10' } ) );
+    push( @isbns, NormalizeISBN( { isbn => $isbn, format         => 'ISBN-13' } ) );
+    push( @isbns, NormalizeISBN( { isbn => $isbn, format         => 'ISBN-10', strip_hyphens => 1 } ) );
+    push( @isbns, NormalizeISBN( { isbn => $isbn, format         => 'ISBN-13', strip_hyphens => 1 } ) );
 
     # Strip out any "empty" strings from the array
     @isbns = grep { defined($_) && $_ =~ /\S/ } @isbns;
@@ -851,7 +854,7 @@ sub GetVariationsOfISBN {
 sub GetVariationsOfISBNs {
     my (@isbns) = @_;
 
-    @isbns = map { GetVariationsOfISBN( $_ ) } @isbns;
+    @isbns = map { GetVariationsOfISBN($_) } @isbns;
 
     return wantarray ? @isbns : join( " | ", @isbns );
 }
@@ -874,17 +877,16 @@ sub GetVariationsOfISBNs {
 sub NormalizeISSN {
     my ($params) = @_;
 
-    my $string        = $params->{issn};
-    my $strip_hyphen  = $params->{strip_hyphen};
+    my $string       = $params->{issn};
+    my $strip_hyphen = $params->{strip_hyphen};
 
     my $issn = Business::ISSN->new($string);
 
-    if ( $issn && $issn->is_valid ){
+    if ( $issn && $issn->is_valid ) {
 
         if ($strip_hyphen) {
             $string = $issn->_issn;
-        }
-        else {
+        } else {
             $string = $issn->as_string;
         }
         return $string;
@@ -905,16 +907,16 @@ sub NormalizeISSN {
 =cut
 
 sub GetVariationsOfISSN {
-    my ( $issn ) = @_;
+    my ($issn) = @_;
 
     return unless $issn;
 
     my @issns;
-    my $str = NormalizeISSN({ issn => $issn });
-    if( $str ) {
+    my $str = NormalizeISSN( { issn => $issn } );
+    if ($str) {
         push @issns, $str;
-        push @issns, NormalizeISSN({ issn => $issn, strip_hyphen => 1 });
-    }  else {
+        push @issns, NormalizeISSN( { issn => $issn, strip_hyphen => 1 } );
+    } else {
         push @issns, $issn;
     }
 
@@ -939,7 +941,7 @@ sub GetVariationsOfISSN {
 sub GetVariationsOfISSNs {
     my (@issns) = @_;
 
-    @issns = map { GetVariationsOfISSN( $_ ) } @issns;
+    @issns = map { GetVariationsOfISSN($_) } @issns;
 
     return wantarray ? @issns : join( " | ", @issns );
 }

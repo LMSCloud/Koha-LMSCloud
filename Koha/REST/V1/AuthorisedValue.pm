@@ -1,4 +1,4 @@
-package Koha::REST::V1::AuthorisedValue;	
+package Koha::REST::V1::AuthorisedValue;
 
 # This file is part of Koha.
 #
@@ -29,8 +29,7 @@ sub list {
         my $authvalues_set = Koha::AuthorisedValues->new;
         my $authvalues     = $c->objects->search( $authvalues_set, \&_to_model, \&_to_api );
         return $c->render( status => 200, openapi => $authvalues );
-    }
-    catch {
+    } catch {
         unless ( blessed $_ && $_->can('rethrow') ) {
             return $c->render(
                 status  => 500,
@@ -55,19 +54,18 @@ sub _to_api {
     my $authorised_value = shift;
 
     # Rename attributes
-    foreach my $column ( keys %{ $Koha::REST::V1::AuthorisedValue::to_api_mapping } ) {
+    foreach my $column ( keys %{$Koha::REST::V1::AuthorisedValue::to_api_mapping} ) {
         my $mapped_column = $Koha::REST::V1::AuthorisedValue::to_api_mapping->{$column};
-        if (    exists $authorised_value->{ $column }
-             && defined $mapped_column )
+        if ( exists $authorised_value->{$column}
+            && defined $mapped_column )
         {
             # key /= undef
-            $authorised_value->{ $mapped_column } = delete $authorised_value->{ $column };
-        }
-        elsif (    exists $authorised_value->{ $column }
-                && !defined $mapped_column )
+            $authorised_value->{$mapped_column} = delete $authorised_value->{$column};
+        } elsif ( exists $authorised_value->{$column}
+            && !defined $mapped_column )
         {
             # key == undef => to be deleted
-            delete $authorised_value->{ $column };
+            delete $authorised_value->{$column};
         }
     }
 
@@ -84,25 +82,23 @@ attribute names.
 sub _to_model {
     my $authorised_value = shift;
 
-    foreach my $attribute ( keys %{ $Koha::REST::V1::AuthorisedValue::to_model_mapping } ) {
+    foreach my $attribute ( keys %{$Koha::REST::V1::AuthorisedValue::to_model_mapping} ) {
         my $mapped_attribute = $Koha::REST::V1::AuthorisedValue::to_model_mapping->{$attribute};
-        if (    exists $authorised_value->{ $attribute }
-             && defined $mapped_attribute )
+        if ( exists $authorised_value->{$attribute}
+            && defined $mapped_attribute )
         {
             # key /= undef
-            $authorised_value->{ $mapped_attribute } = delete $authorised_value->{ $attribute };
-        }
-        elsif (    exists $authorised_value->{ $attribute }
-                && !defined $mapped_attribute )
+            $authorised_value->{$mapped_attribute} = delete $authorised_value->{$attribute};
+        } elsif ( exists $authorised_value->{$attribute}
+            && !defined $mapped_attribute )
         {
             # key == undef => to be deleted
-            delete $authorised_value->{ $attribute };
+            delete $authorised_value->{$attribute};
         }
     }
 
     return $authorised_value;
 }
-
 
 =head2 Global variables
 

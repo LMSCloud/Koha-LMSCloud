@@ -62,7 +62,7 @@ sub new {
     my @columns = $schema->source('Aqorder')->columns;
 
     my $values =
-      { map { exists $params->{$_} ? ( $_ => $params->{$_} ) : () } @columns };
+        { map { exists $params->{$_} ? ( $_ => $params->{$_} ) : () } @columns };
     return $self->SUPER::new($values);
 }
 
@@ -75,33 +75,36 @@ Overloaded I<store> method for backwards compatibility.
 sub store {
     my ($self) = @_;
 
-    my $schema  = Koha::Database->new->schema;
+    my $schema = Koha::Database->new->schema;
+
     # Override quantity for standing orders
     $self->quantity(1) if ( $self->basketno && $schema->resultset('Aqbasket')->find( $self->basketno )->is_standing );
 
     # if these parameters are missing, we can't continue
     for my $key (qw( basketno quantity biblionumber budget_id )) {
-        next if $key eq 'biblionumber' && ($self->orderstatus // q{}) eq 'cancelled'; # cancelled order might have biblionumber NULL
+        next
+            if $key eq 'biblionumber'
+            && ( $self->orderstatus // q{} ) eq 'cancelled';    # cancelled order might have biblionumber NULL
         croak "Cannot insert order: Mandatory parameter $key is missing"
-          unless $self->$key;
+            unless $self->$key;
     }
 
-    if (not defined $self->{created_by}) {
+    if ( not defined $self->{created_by} ) {
         my $userenv = C4::Context->userenv;
         if ($userenv) {
-            $self->created_by($userenv->{number});
+            $self->created_by( $userenv->{number} );
         }
     }
 
-    $self->quantityreceived(0) unless $self->quantityreceived;
+    $self->quantityreceived(0)       unless $self->quantityreceived;
     $self->entrydate(dt_from_string) unless $self->entrydate;
 
     $self->ordernumber(undef) unless $self->ordernumber;
-    $self = $self->SUPER::store( $self );
+    $self = $self->SUPER::store($self);
 
     unless ( $self->parent_ordernumber ) {
         $self->set( { parent_ordernumber => $self->ordernumber } );
-        $self = $self->SUPER::store( $self );
+        $self = $self->SUPER::store($self);
     }
 
     return $self;
@@ -128,20 +131,16 @@ so the caller can take appropriate actions.
 =cut
 
 sub cancel {
-    my ($self, $params) = @_;
+    my ( $self, $params ) = @_;
 
-    my $delete_biblio = $params->{delete_biblio};
-    my $reason        = $params->{reason};
-    my $delete_biblio_really = 0;    # LMSCloud hotfix
+    my $delete_biblio        = $params->{delete_biblio};
+    my $reason               = $params->{reason};
+    my $delete_biblio_really = 0;                          # LMSCloud hotfix
 
     my $biblio = $self->biblio;
     if ( $biblio and $delete_biblio ) {
-        if (
-            $biblio->uncancelled_orders->search(
-                { ordernumber => { '!=' => $self->ordernumber } }
-            )->count == 0
-            and $biblio->subscriptions->count == 0
-            )
+        if (    $biblio->uncancelled_orders->search( { ordernumber => { '!=' => $self->ordernumber } } )->count == 0
+            and $biblio->subscriptions->count == 0 )
         {
             $delete_biblio_really = 1;
         }
@@ -150,19 +149,20 @@ sub cancel {
     # Delete the related items
     my $items = $self->items;
     while ( my $item = $items->next ) {
-        my $deleted = $item->safe_delete( { skip_record_index => $delete_biblio_really } );    # LMSCloud: skip_record_index for avoiding a time-lagged insert of the biblio in the ES index by a background job after the biblio's deletion
-        unless ( $deleted ) {
+        my $deleted = $item->safe_delete( { skip_record_index => $delete_biblio_really } )
+            ; # LMSCloud: skip_record_index for avoiding a time-lagged insert of the biblio in the ES index by a background job after the biblio's deletion
+        unless ($deleted) {
             $self->add_message(
                 {
                     message => 'error_delitem',
-                    payload => { item => $item, reason => @{$deleted->messages}[0]->message }
+                    payload => { item => $item, reason => @{ $deleted->messages }[0]->message }
                 }
             );
         }
     }
 
     # If ordered from a suggestion, revert the suggestion status to ACCEPTED
-    my $suggestion = Koha::Suggestions->find({ biblionumber => $self->biblionumber, status => "ORDERED" });
+    my $suggestion = Koha::Suggestions->find( { biblionumber => $self->biblionumber, status => "ORDERED" } );
     if ( $suggestion and $suggestion->id ) {
         ModSuggestion(
             {
@@ -175,13 +175,9 @@ sub cancel {
 
     $biblio = $self->biblio;
     if ( $biblio and $delete_biblio ) {
-        if (
-            $biblio->uncancelled_orders->search(
-                { ordernumber => { '!=' => $self->ordernumber } }
-            )->count == 0
+        if (    $biblio->uncancelled_orders->search( { ordernumber => { '!=' => $self->ordernumber } } )->count == 0
             and $biblio->subscriptions->count == 0
-            and $biblio->items->count == 0
-            )
+            and $biblio->items->count == 0 )
         {
 
             my $error = DelBiblio( $biblio->id );
@@ -191,22 +187,18 @@ sub cancel {
                     payload => { biblio => $biblio, reason => $error }
                 }
             ) if $error;
-            $self->biblionumber(undef) unless $error; # constraint cleared biblionumber in db already
-        }
-        else {
+            $self->biblionumber(undef) unless $error;    # constraint cleared biblionumber in db already
+        } else {
 
             my $message;
 
-            if ( $biblio->uncancelled_orders->search(
-                { ordernumber => { '!=' => $self->ordernumber } }
-            )->count > 0 ) {
+            if ( $biblio->uncancelled_orders->search( { ordernumber => { '!=' => $self->ordernumber } } )->count > 0 ) {
                 $message = 'error_delbiblio_uncancelled_orders';
-            }
-            elsif ( $biblio->subscriptions->count > 0 ) {
+            } elsif ( $biblio->subscriptions->count > 0 ) {
                 $message = 'error_delbiblio_subscriptions';
-            }
-            else { # $biblio->items->count > 0
+            } else {                                     # $biblio->items->count > 0
                 $message = 'error_delbiblio_items';
+
                 # LMSCloud: Something went wrong while deleting the items, we can not delete the biblio although we should.
                 # So we have to update the ES index now because we have avoided it before, beeing too optimistic.
                 my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
@@ -243,28 +235,30 @@ Link an item to this order.
 =cut
 
 sub add_item {
-    my ( $self, $itemnumber )  = @_;
+    my ( $self, $itemnumber ) = @_;
 
     my $schema = Koha::Database->new->schema;
-    my $rs = $schema->resultset('AqordersItem');
-    $rs->create({ ordernumber => $self->ordernumber, itemnumber => $itemnumber });
+    my $rs     = $schema->resultset('AqordersItem');
+    $rs->create( { ordernumber => $self->ordernumber, itemnumber => $itemnumber } );
 }
 
 sub search_order_by_item {
-    my ( $self, $itemnumber )  = @_;
+    my ( $self, $itemnumber ) = @_;
     my $schema = Koha::Database->new->schema;
-    my $rs = $schema->resultset('AqordersItem');
+    my $rs     = $schema->resultset('AqordersItem');
     my $aqorder;
-    my $aqordersitem = $rs->find({ itemnumber => $itemnumber });
+    my $aqordersitem = $rs->find( { itemnumber => $itemnumber } );
 
-    if ( $aqordersitem ) {
+    if ($aqordersitem) {
+
         # progressive form:
         #$aqorder = $aqordersitem->ordernumber();    # Since 18.05 the function 'ordernumber()' is not a field accessor any more, but it is the belongs-to method.
 
         # conservative form:
-        my $ordernumber = $aqordersitem->get_column('ordernumber');    # Since 18.05 the function 'ordernumber()' is not a field accessor any more, but it is the belongs-to method. So we use get_column('ordernumber') to access the field.
+        my $ordernumber = $aqordersitem->get_column('ordernumber')
+            ; # Since 18.05 the function 'ordernumber()' is not a field accessor any more, but it is the belongs-to method. So we use get_column('ordernumber') to access the field.
         my $rs = $schema->resultset('Aqorder');
-        $aqorder = $rs->find({ ordernumber => $ordernumber });
+        $aqorder = $rs->find( { ordernumber => $ordernumber } );
     }
 
     return $aqorder;
@@ -280,9 +274,9 @@ to the order.
 =cut
 
 sub basket {
-    my ( $self )  = @_;
+    my ($self) = @_;
     my $basket_rs = $self->_result->basket;
-    return Koha::Acquisition::Basket->_new_from_dbic( $basket_rs );
+    return Koha::Acquisition::Basket->_new_from_dbic($basket_rs);
 }
 
 =head3 fund
@@ -295,9 +289,9 @@ associated to the order.
 =cut
 
 sub fund {
-    my ( $self )  = @_;
+    my ($self) = @_;
     my $fund_rs = $self->_result->fund;
-    return Koha::Acquisition::Fund->_new_from_dbic( $fund_rs );
+    return Koha::Acquisition::Fund->_new_from_dbic($fund_rs);
 }
 
 =head3 invoice
@@ -312,10 +306,10 @@ It returns B<undef> if no linked invoice is found.
 =cut
 
 sub invoice {
-    my ( $self )  = @_;
+    my ($self) = @_;
     my $invoice_rs = $self->_result->invoice;
     return unless $invoice_rs;
-    return Koha::Acquisition::Invoice->_new_from_dbic( $invoice_rs );
+    return Koha::Acquisition::Invoice->_new_from_dbic($invoice_rs);
 }
 
 =head3 subscription
@@ -330,10 +324,10 @@ It returns B<undef> if no linked subscription is found.
 =cut
 
 sub subscription {
-    my ( $self )  = @_;
+    my ($self) = @_;
     my $subscription_rs = $self->_result->subscription;
     return unless $subscription_rs;
-    return Koha::Subscription->_new_from_dbic( $subscription_rs );
+    return Koha::Subscription->_new_from_dbic($subscription_rs);
 }
 
 =head3 current_item_level_holds
@@ -356,13 +350,7 @@ sub current_item_level_holds {
         return Koha::Holds->new->empty;
     }
 
-    return $biblio->current_holds->search(
-        {
-            itemnumber => {
-                -in => \@item_numbers
-            }
-        }
-    );
+    return $biblio->current_holds->search( { itemnumber => { -in => \@item_numbers } } );
 }
 
 =head3 items
@@ -374,12 +362,13 @@ Returns the items associated to the order.
 =cut
 
 sub items {
-    my ( $self )  = @_;
+    my ($self) = @_;
+
     # aqorders_items is not a join table
     # There is no FK on items (may have been deleted)
-    my $items_rs = $self->_result->aqorders_items;
-    my @itemnumbers = $items_rs->get_column( 'itemnumber' )->all;
-    return Koha::Items->search({ itemnumber => \@itemnumbers });
+    my $items_rs    = $self->_result->aqorders_items;
+    my @itemnumbers = $items_rs->get_column('itemnumber')->all;
+    return Koha::Items->search( { itemnumber => \@itemnumbers } );
 }
 
 =head3 biblio
@@ -391,10 +380,10 @@ Returns the bibliographic record associated to the order
 =cut
 
 sub biblio {
-    my ( $self ) = @_;
-    my $biblio_rs= $self->_result->biblio;
+    my ($self) = @_;
+    my $biblio_rs = $self->_result->biblio;
     return unless $biblio_rs;
-    return Koha::Biblio->_new_from_dbic( $biblio_rs );
+    return Koha::Biblio->_new_from_dbic($biblio_rs);
 }
 
 =head3 claims
@@ -406,9 +395,9 @@ Return the claims history for this order
 =cut
 
 sub claims {
-    my ( $self ) = @_;
+    my ($self) = @_;
     my $claims_rs = $self->_result->aqorders_claims;
-    return Koha::Acquisition::Order::Claims->_new_from_dbic( $claims_rs );
+    return Koha::Acquisition::Order::Claims->_new_from_dbic($claims_rs);
 }
 
 =head3 claim
@@ -420,8 +409,8 @@ Do claim for this order
 =cut
 
 sub claim {
-    my ( $self ) = @_;
-    my $claim_rs = $self->_result->create_related('aqorders_claims', {});
+    my ($self) = @_;
+    my $claim_rs = $self->_result->create_related( 'aqorders_claims', {} );
     return Koha::Acquisition::Order::Claim->_new_from_dbic($claim_rs);
 }
 
@@ -434,7 +423,7 @@ This is the equivalent of $order->claims->count. Keeping it for retrocompatibilt
 =cut
 
 sub claims_count {
-    my ( $self ) = @_;
+    my ($self) = @_;
     return $self->claims->count;
 }
 
@@ -447,7 +436,7 @@ This is the equivalent of $order->claims->last->claimed_on. Keeping it for retro
 =cut
 
 sub claimed_date {
-    my ( $self ) = @_;
+    my ($self) = @_;
     my $last_claim = $self->claims->last;
     return unless $last_claim;
     return $last_claim->claimed_on;
@@ -462,10 +451,10 @@ Retrieves patron that created this order.
 =cut
 
 sub creator {
-    my ( $self )  = @_;
+    my ($self) = @_;
     my $creator_rs = $self->_result->creator;
     return unless $creator_rs;
-    return Koha::Patron->_new_from_dbic( $creator_rs );
+    return Koha::Patron->_new_from_dbic($creator_rs);
 }
 
 =head3 duplicate_to
@@ -495,7 +484,7 @@ sub duplicate_to {
                 cancellationreason
                 parent_ordernumber
                 )
-              )
+                )
             {
                 undef $order_info->{$field};
             }
@@ -508,11 +497,12 @@ sub duplicate_to {
 
             my $userenv = C4::Context->userenv;
             $order_info->{created_by} = $userenv->{number};
-            $order_info->{basketno} = $basket->basketno;
+            $order_info->{basketno}   = $basket->basketno;
 
             $new_order = Koha::Acquisition::Order->new($order_info)->store;
 
-            if ( ! $self->subscriptionid && $self->basket->effective_create_items eq 'ordering') { # Do copy items if not a subscription order AND if items are created on ordering
+            if ( !$self->subscriptionid && $self->basket->effective_create_items eq 'ordering' )
+            {    # Do copy items if not a subscription order AND if items are created on ordering
                 my $items = $self->items;
                 while ( my ($item) = $items->next ) {
                     my $item_info = $item->unblessed;
@@ -554,45 +544,56 @@ sub populate_with_prices_for_ordering {
     $discount /= 100 if $discount > 1;
 
     if ( $bookseller->listincgst ) {
+
         # The user entered the prices tax included
-        $self->unitprice($self->unitprice + 0);
-        $self->unitprice_tax_included($self->unitprice);
-        $self->rrp_tax_included($self->rrp);
+        $self->unitprice( $self->unitprice + 0 );
+        $self->unitprice_tax_included( $self->unitprice );
+        $self->rrp_tax_included( $self->rrp );
 
         # price tax excluded = price tax included / ( 1 + tax rate )
         $self->unitprice_tax_excluded( $self->unitprice_tax_included / ( 1 + $self->tax_rate_on_ordering ) );
         $self->rrp_tax_excluded( $self->rrp_tax_included / ( 1 + $self->tax_rate_on_ordering ) );
 
         # ecost tax included = rrp tax included  ( 1 - discount )
-        $self->ecost_tax_included($self->rrp_tax_included * ( 1 - $discount ));
+        $self->ecost_tax_included( $self->rrp_tax_included * ( 1 - $discount ) );
 
         # ecost tax excluded = rrp tax excluded * ( 1 - discount )
-        $self->ecost_tax_excluded($self->rrp_tax_excluded * ( 1 - $discount ));
+        $self->ecost_tax_excluded( $self->rrp_tax_excluded * ( 1 - $discount ) );
 
         # tax value = quantity * ecost tax excluded * tax rate
         # we should use the unitprice if included
-        my $cost_tax_included = $self->unitprice_tax_included == 0 ? $self->ecost_tax_included : $self->unitprice_tax_included;
-        my $cost_tax_excluded = $self->unitprice_tax_excluded == 0 ? $self->ecost_tax_excluded : $self->unitprice_tax_excluded;
-        $self->tax_value_on_ordering( ( C4::Acquisition::get_rounded_price($cost_tax_included) - C4::Acquisition::get_rounded_price($cost_tax_excluded) ) * $self->quantity );
+        my $cost_tax_included =
+            $self->unitprice_tax_included == 0 ? $self->ecost_tax_included : $self->unitprice_tax_included;
+        my $cost_tax_excluded =
+            $self->unitprice_tax_excluded == 0 ? $self->ecost_tax_excluded : $self->unitprice_tax_excluded;
+        $self->tax_value_on_ordering(
+            (
+                C4::Acquisition::get_rounded_price($cost_tax_included) -
+                    C4::Acquisition::get_rounded_price($cost_tax_excluded)
+            ) * $self->quantity
+        );
     } else {
+
         # The user entered the prices tax excluded
-        $self->unitprice_tax_excluded($self->unitprice);
-        $self->rrp_tax_excluded($self->rrp);
+        $self->unitprice_tax_excluded( $self->unitprice );
+        $self->rrp_tax_excluded( $self->rrp );
 
         # price tax included = price tax excluded * ( 1 - tax rate )
-        $self->unitprice_tax_included($self->unitprice_tax_excluded * ( 1 + $self->tax_rate_on_ordering ));
-        $self->rrp_tax_included($self->rrp_tax_excluded * ( 1 + $self->tax_rate_on_ordering ));
+        $self->unitprice_tax_included( $self->unitprice_tax_excluded * ( 1 + $self->tax_rate_on_ordering ) );
+        $self->rrp_tax_included( $self->rrp_tax_excluded * ( 1 + $self->tax_rate_on_ordering ) );
 
         # ecost tax excluded = rrp tax excluded * ( 1 - discount )
-        $self->ecost_tax_excluded($self->rrp_tax_excluded * ( 1 - $discount ));
+        $self->ecost_tax_excluded( $self->rrp_tax_excluded * ( 1 - $discount ) );
 
         # ecost tax included = rrp tax excluded * ( 1 + tax rate ) * ( 1 - discount ) = ecost tax excluded * ( 1 + tax rate )
-        $self->ecost_tax_included($self->ecost_tax_excluded * ( 1 + $self->tax_rate_on_ordering ));
+        $self->ecost_tax_included( $self->ecost_tax_excluded * ( 1 + $self->tax_rate_on_ordering ) );
 
         # tax value = quantity * ecost tax included * tax rate
         # we should use the unitprice if included
-        my $cost_tax_excluded = $self->unitprice_tax_excluded == 0 ? $self->ecost_tax_excluded : $self->unitprice_tax_excluded;
-        $self->tax_value_on_ordering($self->quantity * C4::Acquisition::get_rounded_price($cost_tax_excluded) * $self->tax_rate_on_ordering);
+        my $cost_tax_excluded =
+            $self->unitprice_tax_excluded == 0 ? $self->ecost_tax_excluded : $self->unitprice_tax_excluded;
+        $self->tax_value_on_ordering(
+            $self->quantity * C4::Acquisition::get_rounded_price($cost_tax_excluded) * $self->tax_rate_on_ordering );
     }
 }
 
@@ -623,35 +624,41 @@ sub populate_with_prices_for_receiving {
     my $discount = $self->discount || 0;
     $discount /= 100 if $discount > 1;
 
-    if ($bookseller->invoiceincgst) {
+    if ( $bookseller->invoiceincgst ) {
+
         # Trick for unitprice. If the unit price rounded value is the same as the ecost rounded value
         # we need to keep the exact ecost value
-        if ( Koha::Number::Price->new( $self->unitprice )->round == Koha::Number::Price->new( $self->ecost_tax_included )->round ) {
-            $self->unitprice($self->ecost_tax_included);
+        if ( Koha::Number::Price->new( $self->unitprice )->round ==
+            Koha::Number::Price->new( $self->ecost_tax_included )->round )
+        {
+            $self->unitprice( $self->ecost_tax_included );
         }
 
         # The user entered the unit price tax included
-        $self->unitprice_tax_included($self->unitprice);
+        $self->unitprice_tax_included( $self->unitprice );
 
         # unit price tax excluded = unit price tax included / ( 1 + tax rate )
-        $self->unitprice_tax_excluded($self->unitprice_tax_included / ( 1 + $self->tax_rate_on_receiving ));
+        $self->unitprice_tax_excluded( $self->unitprice_tax_included / ( 1 + $self->tax_rate_on_receiving ) );
     } else {
+
         # Trick for unitprice. If the unit price rounded value is the same as the ecost rounded value
         # we need to keep the exact ecost value
-        if ( Koha::Number::Price->new($self->unitprice)->round == Koha::Number::Price->new($self->ecost_tax_excluded)->round ) {
-            $self->unitprice($self->ecost_tax_excluded);
+        if ( Koha::Number::Price->new( $self->unitprice )->round ==
+            Koha::Number::Price->new( $self->ecost_tax_excluded )->round )
+        {
+            $self->unitprice( $self->ecost_tax_excluded );
         }
 
         # The user entered the unit price tax excluded
-        $self->unitprice_tax_excluded($self->unitprice);
-
+        $self->unitprice_tax_excluded( $self->unitprice );
 
         # unit price tax included = unit price tax included * ( 1 + tax rate )
-        $self->unitprice_tax_included($self->unitprice_tax_excluded * ( 1 + $self->tax_rate_on_receiving ));
+        $self->unitprice_tax_included( $self->unitprice_tax_excluded * ( 1 + $self->tax_rate_on_receiving ) );
     }
 
     # tax value = quantity * unit price tax excluded * tax rate
-    $self->tax_value_on_receiving($self->quantity * C4::Acquisition::get_rounded_price($self->unitprice_tax_excluded) * $self->tax_rate_on_receiving);
+    $self->tax_value_on_receiving( $self->quantity *
+            C4::Acquisition::get_rounded_price( $self->unitprice_tax_excluded ) * $self->tax_rate_on_receiving );
 }
 
 =head3 to_api_mapping
@@ -667,7 +674,7 @@ sub to_api_mapping {
         biblionumber                  => 'biblio_id',
         deleted_biblionumber          => 'deleted_biblio_id',
         budget_id                     => 'fund_id',
-        budgetdate                    => undef,                    # unused
+        budgetdate                    => undef,                       # unused
         cancellationreason            => 'cancellation_reason',
         claimed_date                  => 'last_claim_date',
         datecancellationprinted       => 'cancellation_date',
@@ -676,7 +683,7 @@ sub to_api_mapping {
         entrydate                     => 'entry_date',
         freight                       => 'shipping_cost',
         invoiceid                     => 'invoice_id',
-        line_item_id                  => undef,                    # EDIFACT related
+        line_item_id                  => undef,                       # EDIFACT related
         listprice                     => 'list_price',
         order_internalnote            => 'internal_note',
         order_vendornote              => 'vendor_note',
@@ -690,11 +697,11 @@ sub to_api_mapping {
         sort2                         => 'statistics_2',
         sort2_authcat                 => 'statistics_2_authcat',
         subscriptionid                => 'subscription_id',
-        suppliers_reference_number    => undef,                    # EDIFACT related
-        suppliers_reference_qualifier => undef,                    # EDIFACT related
-        suppliers_report              => undef,                    # EDIFACT related
-        tax_rate_bak                  => undef,                    # unused
-        tax_value_bak                 => undef,                    # unused
+        suppliers_reference_number    => undef,                       # EDIFACT related
+        suppliers_reference_qualifier => undef,                       # EDIFACT related
+        suppliers_report              => undef,                       # EDIFACT related
+        tax_rate_bak                  => undef,                       # unused
+        tax_value_bak                 => undef,                       # unused
         uncertainprice                => 'uncertain_price',
         unitprice                     => 'unit_price',
         unitprice_tax_excluded        => 'unit_price_tax_excluded',

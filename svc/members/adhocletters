@@ -20,20 +20,22 @@
 use Modern::Perl;
 use CGI;
 
-use C4::Auth qw( get_template_and_user haspermission get_user_subpermissions );
-use C4::Output qw( output_with_http_headers );
+use C4::Auth        qw( get_template_and_user haspermission get_user_subpermissions );
+use C4::Output      qw( output_with_http_headers );
 use Koha::DateUtils qw( output_pref dt_from_string );
-use C4::Letters qw( GetAdhocNoticeLetters );
+use C4::Letters     qw( GetAdhocNoticeLetters );
 
 my $input = new CGI;
 
-my ($template, $user, $cookie) = get_template_and_user({
-    template_name   => "members/tables/adhocletters.tt",
-    query           => $input,
-    type            => "intranet",
-    authnotrequired => 0,
-    flagsrequired   => { circulate => 'send_adhoc_notices' }
-});
+my ( $template, $user, $cookie ) = get_template_and_user(
+    {
+        template_name   => "members/tables/adhocletters.tt",
+        query           => $input,
+        type            => "intranet",
+        authnotrequired => 0,
+        flagsrequired   => { circulate => 'send_adhoc_notices' }
+    }
+);
 
 my $letters = [];
 $letters = GetAdhocNoticeLetters();

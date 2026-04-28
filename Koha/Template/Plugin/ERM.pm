@@ -27,9 +27,11 @@ use Koha::ERM::EHoldings::Titles;
 sub getAToZList {
     my ( $self, $params ) = @_;
     my $searchParams = $params || {};
-    my @titles = Koha::ERM::EHoldings::Titles->search($params)->as_list();
-	@titles = sort { lc($a->publication_title ? $a->publication_title : "") cmp lc($b->publication_title ? $b->publication_title : "") }
-    return \@titles;
+    my @titles       = Koha::ERM::EHoldings::Titles->search($params)->as_list();
+    @titles = sort {
+        lc( $a->publication_title     ? $a->publication_title : "" ) cmp
+            lc( $b->publication_title ? $b->publication_title : "" )
+    } return \@titles;
 }
 
 1;

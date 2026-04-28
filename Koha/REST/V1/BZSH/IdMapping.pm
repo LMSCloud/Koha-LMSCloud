@@ -45,16 +45,15 @@ to update local catalog requests.
 =cut
 
 sub add {
-    
-    my $argvalue = shift;
-    my $c = $argvalue->openapi->valid_input or return;
-    my $apiparams = $c->req->json; # $c->validation->param('body');
+
+    my $argvalue  = shift;
+    my $c         = $argvalue->openapi->valid_input or return;
+    my $apiparams = $c->req->json;                               # $c->validation->param('body');
 
     return try {
-        my ($responsecode, $responsetext) = &handleBZSHIdMappingRequest($apiparams);
-        return $c->render( status => $responsecode, openapi => { process_info => $responsetext }  );
-    }
-    catch {
+        my ( $responsecode, $responsetext ) = &handleBZSHIdMappingRequest($apiparams);
+        return $c->render( status => $responsecode, openapi => { process_info => $responsetext } );
+    } catch {
         unless ( blessed $_ && $_->can('rethrow') ) {
             return $c->render(
                 status  => 500,
@@ -66,8 +65,7 @@ sub add {
                 status  => 409,
                 openapi => { error => $_->error, conflict => $_->duplicate_id }
             );
-        }
-        else {
+        } else {
             return $c->render(
                 status  => 500,
                 openapi => { error => "Something went wrong, check Koha logs for details." }
@@ -76,77 +74,76 @@ sub add {
     };
 }
 
-    
 sub handleBZSHIdMappingRequest {
     my $mappings = shift;
 
     my $respcode = '552';
     my $resptext = 'No mapping request received';
 
-    if ( $mappings ) {
+    if ($mappings) {
         my $mapcount = 0;
-        
+
         # print STDERR Dumper($mappings);
-        
-        foreach my $mapping(@$mappings) {
-            my ($biblionumber,$bzshid);
-            
-            if ( exists($mapping->{localId}) ) {
+
+        foreach my $mapping (@$mappings) {
+            my ( $biblionumber, $bzshid );
+
+            if ( exists( $mapping->{localId} ) ) {
                 $biblionumber = $mapping->{localId};
             }
-            
-            if ( exists($mapping->{bzshId}) ) {
+
+            if ( exists( $mapping->{bzshId} ) ) {
                 $bzshid = $mapping->{bzshId};
             }
-            
+
             if ( $biblionumber && $bzshid ) {
                 my $record;
-                
+
                 eval {
-                    my $biblio = Koha::Biblios->find( $biblionumber );
+                    my $biblio = Koha::Biblios->find($biblionumber);
                     $record = $biblio->metadata->record if ($biblio);
                 };
-                
+
                 if ( !$record ) {
-                     warn 'handleBZSHIdMappingRequest: unable to read biblio record '.$biblionumber.' : '.$@;
-                     next;
+                    warn 'handleBZSHIdMappingRequest: unable to read biblio record ' . $biblionumber . ' : ' . $@;
+                    next;
                 }
-                if ( $record ) {
+                if ($record) {
                     my $changed = 0;
-                    my $found = 0; 
-                    
-                    foreach my $field( $record->field("998") ) {
+                    my $found   = 0;
+
+                    foreach my $field ( $record->field("998") ) {
                         my $fieldval = $field->subfield('a');
-                        my $i1 = $field->indicator(1);
-                        my $i2 = $field->indicator(2);
+                        my $i1       = $field->indicator(1);
+                        my $i2       = $field->indicator(2);
                         if ( $i1 eq 'i' && $i2 eq ' ' ) {
                             $found = 1;
-                            if ( (!$fieldval) || $fieldval ne $bzshid ) {
+                            if ( ( !$fieldval ) || $fieldval ne $bzshid ) {
                                 $field->update( 'a' => $bzshid );
                                 $changed = 1;
                             }
                         }
                     }
-                    
-                    if ( !$found ) {    
-                        $record->insert_fields_ordered(MARC::Field->new(998, 'i', ' ', 'a' => $bzshid));
+
+                    if ( !$found ) {
+                        $record->insert_fields_ordered( MARC::Field->new( 998, 'i', ' ', 'a' => $bzshid ) );
                         $changed = 1;
                     }
-                    
-                    if ( $changed ) {
+
+                    if ($changed) {
                         $mapcount++;
-                        ModBiblio($record, $biblionumber, GetFrameworkCode($biblionumber));
+                        ModBiblio( $record, $biblionumber, GetFrameworkCode($biblionumber) );
                     }
                 }
             }
         }
-        
+
         $respcode = '201';
         $resptext = "$mapcount BZSH-ID mappings updated.";
     }
-    
+
     # return $c->render( status => 200, openapi => _to_api( $patron->TO_JSON ) );
-    return ($respcode,$resptext);
+    return ( $respcode, $resptext );
 }
 
 1;

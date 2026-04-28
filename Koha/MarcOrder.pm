@@ -391,8 +391,8 @@ sub add_biblio_from_import_record {
 
     my $marcrecord   = $import_record->get_marc_record || die "Couldn't translate MARC information";
     my $matches      = $import_record->get_import_record_matches( { chosen => 1 } );
-    my $match        = $matches->count ? $matches->next             : undef;
-    my $biblionumber = $match          ? $match->candidate_match_id : 0;
+    my $match        = $matches->count ? $matches->next                     : undef;
+    my $biblionumber = $match          ? $match->candidate_match_id         : 0;
     my $biblio       = $biblionumber   ? Koha::Biblios->find($biblionumber) : undef;
 
     if ($biblio) {

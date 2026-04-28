@@ -1,0 +1,9 @@
+# Templates that emit JSON containing HTML attribute strings — prettier
+# converts single-quoted HTML attrs to double quotes and breaks the
+# surrounding JSON string. Keep these out of the tidy pass.
+koha-tmpl/intranet-tmpl/prog/en/modules/virtualshelves/tables/shelves_results.tt
+
+# Body tag uses [%no-spaces%] TT directives inside the <body> tag, which
+# xt/tt_valid.t's parser only accepts in that form. Prettier normalizes
+# the spacing and makes the test fail.
+koha-tmpl/opac-tmpl/bootstrap/en/includes/bodytag.inc

@@ -17,7 +17,6 @@ package Koha::Notice::Templates;
 
 use Modern::Perl;
 
-
 use Koha::Database;
 
 use Koha::Notice::Template;
@@ -58,24 +57,24 @@ lang will default to "default" if not passed.
 sub find_effective_template {
     my ( $self, $params ) = @_;
 
-    $params = { %$params }; # don't modify original
+    $params = {%$params};    # don't modify original
 
     $params->{lang} = 'default'
-      unless C4::Context->preference('TranslateNotices') && $params->{lang};
+        unless C4::Context->preference('TranslateNotices') && $params->{lang};
 
     my $only_my_library = C4::Context->only_my_library;
     if ( $only_my_library and $params->{branchcode} ) {
         $params->{branchcode} = C4::Context::mybranch();
     }
-    
+
     # check if the branch is a bookmobile station
-    # if yes use letters of the bookmobile the branch 
-    if ( $params->{branchcode} ) { 
-        $params->{branchcode} = Koha::Libraries->get_effective_branch($params->{branchcode});
+    # if yes use letters of the bookmobile the branch
+    if ( $params->{branchcode} ) {
+        $params->{branchcode} = Koha::Libraries->get_effective_branch( $params->{branchcode} );
     }
-    
+
     $params->{branchcode} //= '';
-    $params->{branchcode} = [$params->{branchcode}, ''];
+    $params->{branchcode} = [ $params->{branchcode}, '' ];
 
     my $template = $self->SUPER::search( $params, { order_by => { -desc => 'branchcode' } } );
 

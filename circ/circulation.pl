@@ -560,10 +560,10 @@ if ( @$barcodes && $op eq 'cud-checkout' ) {
 
                 # LMSCloud: save issue details for template since ILL auto-return
                 # may delete the issues record before template rendering
-                if ( $issue ) {
+                if ($issue) {
                     $template_params->{issue_item_biblio_title_saved} = $issue->item->biblio->title;
-                    $template_params->{issue_item_barcode_saved} = $issue->item->barcode;
-                    $template_params->{issue_date_due_saved} = $issue->date_due;
+                    $template_params->{issue_item_barcode_saved}      = $issue->item->barcode;
+                    $template_params->{issue_date_due_saved}          = $issue->date_due;
                 }
 
                 $session->clear('auto_renew');
@@ -799,7 +799,7 @@ if ( C4::Context->preference("ExportCircHistory") ) {
 }
 
 # LMSCloud: Check cash register status
-my $checkCashRegisterOk = passCashRegisterCheck($branch,$loggedinuser);
+my $checkCashRegisterOk = passCashRegisterCheck( $branch, $loggedinuser );
 
 my ( $has_modifications, $patron_lists_count );
 if ($patron) {
@@ -809,7 +809,7 @@ if ($patron) {
 $template->param(
     debt_confirmed          => $debt_confirmed,
     SpecifyDueDate          => $duedatespec_allow,
-    checkCashRegisterFailed => (! $checkCashRegisterOk),
+    checkCashRegisterFailed => ( !$checkCashRegisterOk ),
     PatronAutoComplete      => C4::Context->preference("PatronAutoComplete"),
     today_due_date_and_time => dt_from_string()->set( hour => 23 )->set( minute => 59 ),
     restriction_types       => scalar Koha::Patron::Restriction::Types->search(),
@@ -825,16 +825,17 @@ $template->param(
 # LMSCloud: Auto-return ILL items that don't need shipping back
 if ( scalar @issuesDone > 0 ) {
     @issuesDone = ();
-    foreach my $item ( @itemsFound ) {
+    foreach my $item (@itemsFound) {
         my ( $itisanillitem, $illrequest ) = ( 0, undef );
         if ( C4::Context->preference("IllModule") ) {
             eval {
-                ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem($item->unblessed);
+                ( $itisanillitem, $illrequest ) = Koha::Illrequest->checkIfIllItem( $item->unblessed );
                 if ( $itisanillitem && $illrequest ) {
                     eval {
-                        my $shippingBackRequired = $illrequest->_backend_capability( "isShippingBackRequired", $illrequest );
-                        if ( ! $shippingBackRequired ) {
-                            C4::Circulation::AddReturn($item->unblessed->{barcode}, C4::Context->userenv->{'branch'});
+                        my $shippingBackRequired =
+                            $illrequest->_backend_capability( "isShippingBackRequired", $illrequest );
+                        if ( !$shippingBackRequired ) {
+                            C4::Circulation::AddReturn( $item->unblessed->{barcode}, C4::Context->userenv->{'branch'} );
                         }
                     };
                 }

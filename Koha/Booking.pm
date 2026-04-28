@@ -123,6 +123,7 @@ sub old_checkout {
     return unless $old_checkout_rs;
     return Koha::Old::Checkout->_new_from_dbic($old_checkout_rs);
 }
+
 =head3 store
 
 Booking specific store method to catch booking clashes and ensure we have an item assigned
@@ -160,7 +161,6 @@ sub store {
                 value     => $self->biblio_id,
             ) unless ( $self->biblio );
 
-
             # Skip clash detection when transitioning to a final status.
             # During checkout C4::Circulation sets status to 'completed'
             # and calls ->store; the clash checks are irrelevant at that
@@ -188,6 +188,7 @@ sub store {
                     }
                     );
             }
+
             # FIXME: We should be able to combine the above two functions into one
 
             # Assign item at booking time
@@ -388,7 +389,7 @@ sub _is_final_status_transition {
     return 0 unless $self->in_storage;
 
     my %updated_columns = $self->_result->get_dirty_columns;
-    my $new_status = $updated_columns{'status'};
+    my $new_status      = $updated_columns{'status'};
 
     return 0 unless $new_status;
     return 1 if any { $_ eq $new_status } qw( cancelled completed );
@@ -500,6 +501,7 @@ sub _check_date_range_constraints {
 
     return;
 }
+
 =head3 _send_notice
 
     $self->_send_notice();

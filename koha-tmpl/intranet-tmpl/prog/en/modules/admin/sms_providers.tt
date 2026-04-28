@@ -4,11 +4,12 @@
 [% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% FILTER collapse %]
-    [% t("SMS cellular providers") | html %] &rsaquo;
-    [% t("Administration") | html %] &rsaquo;
-    [% t("Koha") | html %]
-[% END %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("SMS cellular providers") | html %]
+        &rsaquo; [% t("Administration") | html %] &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -59,9 +60,7 @@
                                         <td id="domain_[% p.id | html %]">[% p.domain | html %]</td>
                                         <td id="patrons_using_[% p.id | html %]">[% p.patrons_using | html %]</td>
                                         <td class="actions">
-                                            <a class="btn btn-default btn-xs edit" href="#" id="edit_[% p.id | html %]" data-providerid="[% p.id | html %]">
-                                                <i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit
-                                            </a>
+                                            <a class="btn btn-default btn-xs edit" href="#" id="edit_[% p.id | html %]" data-providerid="[% p.id | html %]"> <i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit </a>
                                             <a class="btn btn-default btn-xs delete" href="#" data-providerid="[% p.id | html %]" data-patrons_using="[% p.patrons_using | html %]" id="delete_[% p.id | html %]">
                                                 <i class="fa fa-trash-can"></i> Delete
                                             </a>
@@ -70,13 +69,10 @@
                                 [% END %]
                             </tbody>
                         </table>
-                    </div> <!-- /.page-section -->
-                [% ELSE %]
-
-                    <div class="alert alert-info">
-                        There are no SMS cellular providers defined.
                     </div>
-
+                    <!-- /.page-section -->
+                [% ELSE %]
+                    <div class="alert alert-info"> There are no SMS cellular providers defined. </div>
                 [% END %]
 
                 <div id="sms_add_form">
@@ -94,7 +90,7 @@
                                 </li>
                                 <li>
                                     <label for="domain" class="required">Domain: </label>
-                                    <input type="text" id="domain" name="domain" required="required" size="40"/>
+                                    <input type="text" id="domain" name="domain" required="required" size="40" />
                                     <span class="required">Required</span>
                                 </li>
                             </ol>
@@ -106,19 +102,20 @@
                         </fieldset>
                     </form>
                 </div>
-
             </main>
-        </div> <!-- /.col-md-10.order-md-2 -->
+        </div>
+        <!-- /.col-md-10.order-md-2 -->
 
         <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'admin-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-md-1 -->
-     </div> <!-- /.row -->
+            <aside> [% INCLUDE 'admin-menu.inc' %] </aside>
+        </div>
+        <!-- /.col-md-2.order-md-1 -->
+    </div>
+    <!-- /.row -->
 
-[% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/admin-menu.js") | $raw %]
-    [% Asset.js("js/sms_providers.js") | $raw %]
-[% END %]
-[% INCLUDE 'intranet-bottom.inc' %]
+    [% MACRO jsinclude BLOCK %]
+        [% Asset.js("js/admin-menu.js") | $raw %]
+        [% Asset.js("js/sms_providers.js") | $raw %]
+    [% END %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

@@ -129,8 +129,7 @@ sub get_string_width_based_on_params {
 
     if ( !defined $args->{'image'} ) {
         Koha::Exceptions::MissingParameter->throw(
-            'image is undefined as parameter in get_string_width_based_on_params'
-        );
+            'image is undefined as parameter in get_string_width_based_on_params');
     }
 
     $args->{'image'}->set_font( $args->{'font'}, $args->{'fontsize'} );
@@ -163,7 +162,8 @@ sub trim_string {
 
     # Check if the new line fits into the box.
     my $new_string_width = get_string_width_based_on_params(
-        {   image    => $args->{'image'},
+        {
+            image    => $args->{'image'},
             font     => $args->{'font'},
             fontsize => $args->{'fontsize'},
             string   => $new_line
@@ -175,15 +175,15 @@ sub trim_string {
         return $new_line;
     }
 
-# If a single word is bigger than the box, we have to prevent an infinite loop.
-    if ( $new_string_width > $args->{'content_width'} && scalar @words == 1 )
-    {
+    # If a single word is bigger than the box, we have to prevent an infinite loop.
+    if ( $new_string_width > $args->{'content_width'} && scalar @words == 1 ) {
         return $new_line;
     }
 
     # If it doesn't, repeat the process until it does.
     return trim_string(
-        {   image         => $args->{'image'},
+        {
+            image         => $args->{'image'},
             font          => $args->{'font'},
             fontsize      => $args->{'fontsize'},
             string        => $new_line,
@@ -198,7 +198,8 @@ sub check_string_overflows_box {
     my $content_width = $args->{'box_width'} - $args->{'padding'};
 
     my $string_width = get_string_width_based_on_params(
-        {   image    => $args->{'image'},
+        {
+            image    => $args->{'image'},
             font     => $args->{'font'},
             fontsize => $args->{'fontsize'},
             string   => $args->{'string'}
@@ -213,7 +214,8 @@ sub check_string_overflows_box {
     my $formatted_string = EMPTY;
 
     $return_value = trim_string(
-        {   image         => $args->{'image'},
+        {
+            image         => $args->{'image'},
             font          => $args->{'font'},
             fontsize      => $args->{'fontsize'},
             string        => $args->{'string'},
@@ -233,7 +235,8 @@ sub check_string_overflows_box {
     while ( !$leftover_words eq EMPTY ) {
         $return_value = EMPTY;
         $return_value = trim_string(
-            {   image         => $args->{'image'},
+            {
+                image         => $args->{'image'},
                 font          => $args->{'font'},
                 fontsize      => $args->{'fontsize'},
                 string        => $leftover_words,
@@ -251,7 +254,8 @@ sub check_string_overflows_box {
         }
 
         my $new_string_width = get_string_width_based_on_params(
-            {   image    => $args->{'image'},
+            {
+                image    => $args->{'image'},
                 font     => $args->{'font'},
                 fontsize => $args->{'fontsize'},
                 string   => $leftover_words
@@ -282,7 +286,8 @@ sub draw_text {
     my $content_width = $args->{'width'} - $args->{'padding'};
 
     my $result_string = check_string_overflows_box(
-        {   box_width => $args->{'width'},
+        {
+            box_width => $args->{'width'},
             string    => $args->{'content_string'},
             image     => $args->{'image'},
             font      => $args->{'font'},
@@ -293,7 +298,8 @@ sub draw_text {
     );
 
     my $new_image_width = get_string_width_based_on_params(
-        {   image    => $args->{'image'},
+        {
+            image    => $args->{'image'},
             font     => $args->{'font'},
             fontsize => $args->{'fontsize'},
             string   => $result_string
@@ -308,7 +314,8 @@ sub draw_text {
         }
         $args->{'image'}->set_font( $args->{'font'}, $new_fontsize );
         $new_image_width = get_string_width_based_on_params(
-            {   image    => $args->{'image'},
+            {
+                image    => $args->{'image'},
                 font     => $args->{'font'},
                 fontsize => $new_fontsize,
                 string   => $result_string
@@ -324,9 +331,7 @@ sub draw_text {
         $args->{'image'}->set_text($line);
         $args->{'image'}->draw(
             $args->{'horizontal_center'},
-            $args->{'vertical_position'}
-                + $index
-                * ( $args->{'fontsize'} + ( $args->{'fontsize'} / 2 ) ),
+            $args->{'vertical_position'} + $index * ( $args->{'fontsize'} + ( $args->{'fontsize'} / 2 ) ),
             0
         );
         $index++;
@@ -358,7 +363,8 @@ sub render_image {
 
     if ( $args->{'first_line'} ) {
         draw_text(
-            {   image             => $align,
+            {
+                image             => $align,
                 content_string    => $args->{'first_line'},
                 font              => $args->{'font'},
                 horizontal_center => $horizontal_center,
@@ -374,7 +380,8 @@ sub render_image {
 
     if ( $args->{'second_line'} ) {
         draw_text(
-            {   image             => $align,
+            {
+                image             => $align,
                 content_string    => $args->{'second_line'},
                 font              => $args->{'font'},
                 horizontal_center => $horizontal_center,

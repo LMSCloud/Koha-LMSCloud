@@ -92,7 +92,11 @@ import { BookingTableFilterManager } from "./BookingTableFilterManager.js";
  * @param {CreateBookingsTableOptions} [options={}] - Configuration options
  * @returns {any} KohaTable instance
  */
-export function createBookingsTable(tableElement, tableSettings, /** @type {CreateBookingsTableOptions} */ options = {}) {
+export function createBookingsTable(
+    tableElement,
+    tableSettings,
+    /** @type {CreateBookingsTableOptions} */ options = {}
+) {
     const {
         variant = "default",
         url,
@@ -173,12 +177,19 @@ export function createBookingsTable(tableElement, tableSettings, /** @type {Crea
         // Reorder tableSettings.columns to match actual column order for correct visibility handling
         if (tableSettings && tableSettings.columns) {
             const settingsMap = new Map(
-                tableSettings.columns.map((/** @type {any} */ c) => [c.columnname, c])
+                tableSettings.columns.map((/** @type {any} */ c) => [
+                    c.columnname,
+                    c,
+                ])
             );
             // Handle column name aliases (e.g., pickup_library_id -> pickup_library)
             const aliasMap = { pickup_library_id: "pickup_library" };
             tableSettings.columns = columns
-                .map(col => settingsMap.get(col.name) || settingsMap.get(aliasMap[col.name]))
+                .map(
+                    col =>
+                        settingsMap.get(col.name) ||
+                        settingsMap.get(aliasMap[col.name])
+                )
                 .filter(Boolean);
         }
     }
@@ -186,11 +197,14 @@ export function createBookingsTable(tableElement, tableSettings, /** @type {Crea
     // Compute whether column filters should be enabled (allow explicit override)
     const columnFiltersFlag =
         typeof (/** @type {any} */ (options).columnFiltersEnabled) === "boolean"
-            ? ((/** @type {any} */ (options).columnFiltersEnabled) ? 1 : 0)
+            ? /** @type {any} */ (options).columnFiltersEnabled
+                ? 1
+                : 0
             : getBookingsColumnFilterFlag(variant);
 
     // Prepare filter options with column-specific assignments
-    let finalFilterOptions = columnFiltersFlag === 1 ? getBookingsFilterOptions(variant) : {};
+    let finalFilterOptions =
+        columnFiltersFlag === 1 ? getBookingsFilterOptions(variant) : {};
 
     // Create headers with data-filter attributes before kohaTable initialization
     /** @type {any} */
@@ -204,22 +218,26 @@ export function createBookingsTable(tableElement, tableSettings, /** @type {Crea
     }
 
     // Generate unique table ID for filter manager
-    const tableId = /** @type {string} */ ($root.attr("id") || ("bookings-table-" + Date.now()));
+    const tableId = /** @type {string} */ (
+        $root.attr("id") || "bookings-table-" + Date.now()
+    );
     const filterManager = BookingTableFilterManager.getInstance(tableId);
 
     // Apply default quick toggle filters before first draw so initial load hides expired/cancelled
-    if ((/** @type {any} */ (options)).quickTogglesEnabled) {
+    if (/** @type {any} */ (options).quickTogglesEnabled) {
         applyDefaultQuickToggleFilters(additionalFilters);
     }
 
     // Set up default status filter for 'default' variant
-    if (variant === 'default' && columnFiltersFlag === 1) {
-        additionalFilters["-and"] = function() {
+    if (variant === "default" && columnFiltersFlag === 1) {
+        additionalFilters["-and"] = function () {
             const nowIso = new Date().toISOString();
-            return { "-and": [
-                { "me.status": "new" },
-                { "me.end_date": { ">=": nowIso } },
-            ]};
+            return {
+                "-and": [
+                    { "me.status": "new" },
+                    { "me.end_date": { ">=": nowIso } },
+                ],
+            };
         };
     }
 
@@ -238,16 +256,27 @@ export function createBookingsTable(tableElement, tableSettings, /** @type {Crea
     );
 
     // Use proper DataTables events instead of setTimeout
-    if (columnFiltersFlag === 1 || (/** @type {any} */ (options).quickTogglesEnabled)) {
+    if (
+        columnFiltersFlag === 1 ||
+        /** @type {any} */ (options).quickTogglesEnabled
+    ) {
         const dataTable = kohaTable.DataTable();
 
         // Compute and expose status column metadata via data attributes on the table element
         const statusMeta = getStatusColumnMeta(tableSettings);
         try {
-            $root.attr('data-status-hidden-default', statusMeta.isHidden ? '1' : '0');
-            $root.attr('data-status-cannot-toggle', statusMeta.cannotBeToggled ? '1' : '0');
-            $root.attr('data-bookings-variant', variant);
-        } catch (e) { /* ignore */ }
+            $root.attr(
+                "data-status-hidden-default",
+                statusMeta.isHidden ? "1" : "0"
+            );
+            $root.attr(
+                "data-status-cannot-toggle",
+                statusMeta.cannotBeToggled ? "1" : "0"
+            );
+            $root.attr("data-bookings-variant", variant);
+        } catch (e) {
+            /* ignore */
+        }
 
         wireEnhancements(
             dataTable,
@@ -259,9 +288,12 @@ export function createBookingsTable(tableElement, tableSettings, /** @type {Crea
                 // Only enable column-based date/status enhancements when column filters are on
                 dateRange: columnFiltersFlag === 1,
                 // Only enable status enhancement if the status column exists and is user-toggleable
-                status: columnFiltersFlag === 1 && isStatusColumnToggleable(tableSettings),
+                status:
+                    columnFiltersFlag === 1 &&
+                    isStatusColumnToggleable(tableSettings),
                 // Quick toggles are explicitly controlled
-                quickToggles: /** @type {any} */ (options).quickTogglesEnabled === true,
+                quickToggles:
+                    /** @type {any} */ (options).quickTogglesEnabled === true,
             }
         );
     }
@@ -274,12 +306,14 @@ export function createBookingsTable(tableElement, tableSettings, /** @type {Crea
     function isStatusColumnToggleable(tableSettings) {
         try {
             const cols = (tableSettings && tableSettings.columns) || [];
-            const statusCol = cols.find((/** @type {any} */ c) => c.columnname === 'status');
+            const statusCol = cols.find(
+                (/** @type {any} */ c) => c.columnname === "status"
+            );
             if (!statusCol) return false; // no status column configured
             // cannot_be_toggled === "0" means user can toggle; "1" means fixed
-            const canToggle = String(statusCol.cannot_be_toggled) === '0';
+            const canToggle = String(statusCol.cannot_be_toggled) === "0";
             // If it is hidden by default, treat as not eligible for our enhancement toggling
-            const isHidden = String(statusCol.is_hidden) === '1';
+            const isHidden = String(statusCol.is_hidden) === "1";
             return canToggle && !isHidden;
         } catch (e) {
             return false;
@@ -294,13 +328,31 @@ export function createBookingsTable(tableElement, tableSettings, /** @type {Crea
     function getStatusColumnMeta(tableSettings) {
         try {
             const cols = (tableSettings && tableSettings.columns) || [];
-            const statusCol = cols.find((/** @type {any} */ c) => c.columnname === 'status');
-            if (!statusCol) return { exists: false, isHidden: false, cannotBeToggled: false, canToggle: false };
-            const isHidden = String(statusCol.is_hidden) === '1';
-            const cannotBeToggled = String(statusCol.cannot_be_toggled) === '1';
-            return { exists: true, isHidden, cannotBeToggled, canToggle: !cannotBeToggled };
+            const statusCol = cols.find(
+                (/** @type {any} */ c) => c.columnname === "status"
+            );
+            if (!statusCol)
+                return {
+                    exists: false,
+                    isHidden: false,
+                    cannotBeToggled: false,
+                    canToggle: false,
+                };
+            const isHidden = String(statusCol.is_hidden) === "1";
+            const cannotBeToggled = String(statusCol.cannot_be_toggled) === "1";
+            return {
+                exists: true,
+                isHidden,
+                cannotBeToggled,
+                canToggle: !cannotBeToggled,
+            };
         } catch (e) {
-            return { exists: false, isHidden: false, cannotBeToggled: false, canToggle: false };
+            return {
+                exists: false,
+                isHidden: false,
+                cannotBeToggled: false,
+                canToggle: false,
+            };
         }
     }
 
@@ -437,8 +489,10 @@ function wireEnhancements(
     enhancementOptions
 ) {
     // Allow quick toggles even if custom enhancements are disabled for the variant
-    const wantQuickToggles = enhancementOptions && enhancementOptions.quickToggles === true;
-    if (!isFeatureEnabled(variant, "customEnhancements") && !wantQuickToggles) return;
+    const wantQuickToggles =
+        enhancementOptions && enhancementOptions.quickToggles === true;
+    if (!isFeatureEnabled(variant, "customEnhancements") && !wantQuickToggles)
+        return;
     dataTable.on("init.dt", function () {
         enhanceBookingTableFilters(
             dataTable,

@@ -26,19 +26,18 @@ use Data::Dumper;
 
 use C4::External::EKZ::lib::EkzWsConfig;
 use C4::External::EKZ::lib::EkzWebServices;
-use C4::External::EKZ::EkzWsDeliveryNote qw( readLSFromEkzWsLieferscheinList readLSFromEkzWsLieferscheinDetail genKohaRecords );
+use C4::External::EKZ::EkzWsDeliveryNote
+    qw( readLSFromEkzWsLieferscheinList readLSFromEkzWsLieferscheinDetail genKohaRecords );
 use Koha::Logger;
 
-
-binmode( STDIN, ":utf8" );
+binmode( STDIN,  ":utf8" );
 binmode( STDOUT, ":utf8" );
 binmode( STDERR, ":utf8" );
-
 
 my $lastRunDate;
 my $yesterdayDate;
 
-my $testMode = 0;    # 0 or 1 or 2
+my $testMode       = 0;    # 0 or 1 or 2
 my $genKohaRecords = 1;    # 0 or 1
 my $result;
 my $lieferscheinDetailElement = '';    # for storing the LieferscheinDetailElement of the SOAP response body
@@ -49,42 +48,65 @@ my $lieferscheinDetailElement = '';    # for storing the LieferscheinDetailEleme
 # than the Zebra or Elasticsearch index works, and therefore the local title search would (incorrectly) return no hit.
 my $createdTitleRecords = {};
 
-# The hash %{$updatedTitleRecords} stores the biblionumbers of titles that have been overwritten in this run of ekzWsDeliveryNote.pl 
-# based on system preferences 'ekzWebServicesOverwriteCatalogDataOnDelivery' and 'ekzWebServicesOverwriteCatalogDataKeepFields' or 
+# The hash %{$updatedTitleRecords} stores the biblionumbers of titles that have been overwritten in this run of ekzWsDeliveryNote.pl
+# based on system preferences 'ekzWebServicesOverwriteCatalogDataOnDelivery' and 'ekzWebServicesOverwriteCatalogDataKeepFields' or
 # whose items have been updated.
 my $updatedTitleRecords = {};
 
-my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-my $startTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d",1900+$year,1+$mon,$mday,$hour,$min,$sec);
-my $logger = Koha::Logger->get({ interface => 'C4::External::EKZ' });
+my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime(time);
+my $startTime = sprintf( "%04d-%02d-%02d at %02d:%02d:%02d", 1900 + $year, 1 + $mon, $mday, $hour, $min, $sec );
+my $logger    = Koha::Logger->get( { interface => 'C4::External::EKZ' } );
 
 $logger->info("ekzWsDeliveryNote.pl START starttime:$startTime:");
 
-$lastRunDate = C4::External::EKZ::lib::EkzWebServices::getLastRunDate('LieferscheinDetail', 'E');    # value for 'von' / 'from', required in european form dd.mm.yyyy
+$lastRunDate = C4::External::EKZ::lib::EkzWebServices::getLastRunDate( 'LieferscheinDetail', 'E' )
+    ;    # value for 'von' / 'from', required in european form dd.mm.yyyy
 if ( !defined($lastRunDate) || length($lastRunDate) == 0 ) {
-    $lastRunDate = `date +%d.%m.%C%y`;    # this will result in an empty hit list, because !($lastRunDate <= $yesterdayDate)
+    $lastRunDate =
+        `date +%d.%m.%C%y`;    # this will result in an empty hit list, because !($lastRunDate <= $yesterdayDate)
     chomp($lastRunDate);
 }
-$yesterdayDate = `date -d "1 day ago" +%d.%m.%C%y`;                                                  # value for 'bis' / 'until', required in european form dd.mm.yyyy
+$yesterdayDate = `date -d "1 day ago" +%d.%m.%C%y`;    # value for 'bis' / 'until', required in european form dd.mm.yyyy
 chomp($yesterdayDate);
 $logger->info("ekzWsDeliveryNote.pl modified lastRunDate:$lastRunDate: yesterdayDate:$yesterdayDate:");
 
 if ( $testMode == 1 ) {
+
     # some libraries use different ekz Kundennummer for different branches, so we have to call the delivery note synchronization for each of these.
     my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWsConfig->new()->getEkzCustomerNumbers();
-    foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
+    foreach my $ekzCustomerNumber ( sort @ekzCustomerNumbers ) {
         my $von = "01.08.2016";
-        $logger->info("ekzWsDeliveryNote.pl read lieferscheinList von:$von: by calling readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$von,undef,undef)");
-        my $lsList = &readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$von,undef,undef);
+        $logger->info(
+            "ekzWsDeliveryNote.pl read lieferscheinList von:$von: by calling readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$von,undef,undef)"
+        );
+        my $lsList = &readLSFromEkzWsLieferscheinList( $ekzCustomerNumber, $von, undef, undef );
 
-        foreach my $lieferschein ( @{$lsList->{'lieferscheinRecords'}} ) {
-            $logger->info("ekzWsDeliveryNote.pl read delivery note via id:" . $lieferschein->{id} . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber," . $lieferschein->{id} . ",undef,\\\$lieferscheinDetailElement)");
-            my $result = &readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,$lieferschein->{id},undef,\$lieferscheinDetailElement);
-            $logger->debug("ekzWsDeliveryNote.pl Dumper(\$result->{'lieferscheinRecords'}->[0]):" . Dumper($result->{'lieferscheinRecords'}->[0]) . ":");
+        foreach my $lieferschein ( @{ $lsList->{'lieferscheinRecords'} } ) {
+            $logger->info( "ekzWsDeliveryNote.pl read delivery note via id:"
+                    . $lieferschein->{id}
+                    . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,"
+                    . $lieferschein->{id}
+                    . ",undef,\\\$lieferscheinDetailElement)" );
+            my $result = &readLSFromEkzWsLieferscheinDetail(
+                $ekzCustomerNumber, $lieferschein->{id}, undef,
+                \$lieferscheinDetailElement
+            );
+            $logger->debug( "ekzWsDeliveryNote.pl Dumper(\$result->{'lieferscheinRecords'}->[0]):"
+                    . Dumper( $result->{'lieferscheinRecords'}->[0] )
+                    . ":" );
 
-            $logger->info("ekzWsDeliveryNote.pl read delivery note via lieferscheinnummer:" . $lieferschein->{nummer} . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef," . $lieferschein->{nummer} . ",\\\$lieferscheinDetailElement)");
-            $result = &readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,$lieferschein->{nummer},\$lieferscheinDetailElement);
-            $logger->debug("ekzWsDeliveryNote.pl Dumper(\$result->{'lieferscheinRecords'}->[0]):" . Dumper($result->{'lieferscheinRecords'}->[0]) . ":");
+            $logger->info( "ekzWsDeliveryNote.pl read delivery note via lieferscheinnummer:"
+                    . $lieferschein->{nummer}
+                    . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,"
+                    . $lieferschein->{nummer}
+                    . ",\\\$lieferscheinDetailElement)" );
+            $result = &readLSFromEkzWsLieferscheinDetail(
+                $ekzCustomerNumber, undef, $lieferschein->{nummer},
+                \$lieferscheinDetailElement
+            );
+            $logger->debug( "ekzWsDeliveryNote.pl Dumper(\$result->{'lieferscheinRecords'}->[0]):"
+                    . Dumper( $result->{'lieferscheinRecords'}->[0] )
+                    . ":" );
         }
     }
 }
@@ -94,50 +116,77 @@ if ( $testMode == 2 ) {
 
     # some libraries use different ekz Kundennummer for different branches, so we have to call the delivery note synchronization for each of these.
     my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWsConfig->new()->getEkzCustomerNumbers();
-    foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
+    foreach my $ekzCustomerNumber ( sort @ekzCustomerNumbers ) {
         try {
             if ( $ekzCustomerNumber ne '1109403' ) {
                 next;
             }
 
             my $von = "01.01.2020";
-            $logger->info("ekzWsDeliveryNote.pl read lieferscheinList von:$von: by calling readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$von,undef,undef)");
-            my $lsList = &readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$von,undef,undef);
+            $logger->info(
+                "ekzWsDeliveryNote.pl read lieferscheinList von:$von: by calling readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$von,undef,undef)"
+            );
+            my $lsList = &readLSFromEkzWsLieferscheinList( $ekzCustomerNumber, $von, undef, undef );
 
-            foreach my $lieferschein ( @{$lsList->{'lieferscheinRecords'}} ) {
+            foreach my $lieferschein ( @{ $lsList->{'lieferscheinRecords'} } ) {
                 try {
-                    $logger->info("ekzWsDeliveryNote.pl lieferschein->{id}:" . $lieferschein->{id} . ": lieferschein->{nummer}:" . $lieferschein->{nummer} . ":");
+                    $logger->info( "ekzWsDeliveryNote.pl lieferschein->{id}:"
+                            . $lieferschein->{id}
+                            . ": lieferschein->{nummer}:"
+                            . $lieferschein->{nummer}
+                            . ":" );
                     if ( $lieferschein->{id} ne '1883889' ) {
                         next;
                     }
 
                     # search by lieferschein-id (seems to work)
-                    $logger->info("ekzWsDeliveryNote.pl read delivery note via id:" . $lieferschein->{id} . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber," . $lieferschein->{id} . ",\\\$lieferscheinDetailElement)");
-                    my $result = &readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,$lieferschein->{id},undef,\$lieferscheinDetailElement);    # read *complete* info (i.e. all titles) of the delivery note
-                    $logger->debug("ekzWsDeliveryNote.pl Dumper(\$result->{'lieferscheinRecords'}->[0]):" . Dumper($result->{'lieferscheinRecords'}->[0]) . ":");
+                    $logger->info( "ekzWsDeliveryNote.pl read delivery note via id:"
+                            . $lieferschein->{id}
+                            . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,"
+                            . $lieferschein->{id}
+                            . ",\\\$lieferscheinDetailElement)" );
+                    my $result = &readLSFromEkzWsLieferscheinDetail(
+                        $ekzCustomerNumber, $lieferschein->{id}, undef,
+                        \$lieferscheinDetailElement
+                    );    # read *complete* info (i.e. all titles) of the delivery note
+                    $logger->debug( "ekzWsDeliveryNote.pl Dumper(\$result->{'lieferscheinRecords'}->[0]):"
+                            . Dumper( $result->{'lieferscheinRecords'}->[0] )
+                            . ":" );
 
-#                    # search by lieferschein-Nummer (seems not to work stable)
-#                    $logger->info("ekzWsDeliveryNote.pl read delivery note via lieferscheinnummer:" . $lieferschein->{nummer} . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef," . $lieferschein->{nummer} . ",\\\$lieferscheinDetailElement)");
-#                    $result = &readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,$lieferschein->{nummer},\$lieferscheinDetailElement);
-#                    $logger->debug("ekzWsDeliveryNote.pl Dumper(\$result->{'lieferscheinRecords'}->[0]):" . Dumper($result->{'lieferscheinRecords'}->[0]) . ":");
+                    #                    # search by lieferschein-Nummer (seems not to work stable)
+                    #                    $logger->info("ekzWsDeliveryNote.pl read delivery note via lieferscheinnummer:" . $lieferschein->{nummer} . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef," . $lieferschein->{nummer} . ",\\\$lieferscheinDetailElement)");
+                    #                    $result = &readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,$lieferschein->{nummer},\$lieferscheinDetailElement);
+                    #                    $logger->debug("ekzWsDeliveryNote.pl Dumper(\$result->{'lieferscheinRecords'}->[0]):" . Dumper($result->{'lieferscheinRecords'}->[0]) . ":");
 
-                    if ( $genKohaRecords ) {
+                    if ($genKohaRecords) {
                         if ( $result->{'lieferscheinCount'} > 0 ) {
-                            if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $lieferscheinDetailElement,$result->{'lieferscheinRecords'}->[0], $createdTitleRecords, $updatedTitleRecords) ) {
+                            if (
+                                &genKohaRecords(
+                                    $ekzCustomerNumber, $result->{'messageID'}, $lieferscheinDetailElement,
+                                    $result->{'lieferscheinRecords'}->[0], $createdTitleRecords, $updatedTitleRecords
+                                )
+                                )
+                            {
                                 $res = 1;
                             }
                         }
                     }
-                }
-                catch {
+                } catch {
                     my $exceptionThrown = $_;
-                    $logger->info("ekzWsDeliveryNote.pl caught exception in loop lieferscheinnummer:" . $lieferschein->{nummer} . ": exceptionThrown:" . Dumper($exceptionThrown) . ":");
-                } # continue work with next delivery note
+                    $logger->info( "ekzWsDeliveryNote.pl caught exception in loop lieferscheinnummer:"
+                            . $lieferschein->{nummer}
+                            . ": exceptionThrown:"
+                            . Dumper($exceptionThrown)
+                            . ":" );
+                }    # continue work with next delivery note
             }
-        }
-        catch {
+        } catch {
             my $exceptionThrown = $_;
-            $logger->info("ekzWsDeliveryNote.pl caught exception in loop ekzCustomerNumber:" . $ekzCustomerNumber . ": exceptionThrown:" . Dumper($exceptionThrown) . ":");
+            $logger->info( "ekzWsDeliveryNote.pl caught exception in loop ekzCustomerNumber:"
+                    . $ekzCustomerNumber
+                    . ": exceptionThrown:"
+                    . Dumper($exceptionThrown)
+                    . ":" );
         }
     }
 }
@@ -148,43 +197,69 @@ if ( $testMode == 0 ) {
 
     # some libraries use different ekz Kundennummer for different branches, so we have to call the delivery note synchronization for each of these.
     my @ekzCustomerNumbers = C4::External::EKZ::lib::EkzWebServices->new()->getEkzCustomerNumbers();
-    foreach my $ekzCustomerNumber (sort @ekzCustomerNumbers) {
+    foreach my $ekzCustomerNumber ( sort @ekzCustomerNumbers ) {
         try {
             # read all new delivery notes since $lastRunDate until including yesterday
-            $logger->info("ekzWsDeliveryNote.pl read delivery notes from lastRunDate:$lastRunDate to yesterdayDate:$yesterdayDate: by calling readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef)");
-            my $lsList = &readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef);
+            $logger->info(
+                "ekzWsDeliveryNote.pl read delivery notes from lastRunDate:$lastRunDate to yesterdayDate:$yesterdayDate: by calling readLSFromEkzWsLieferscheinList ($ekzCustomerNumber,$lastRunDate,$yesterdayDate,undef)"
+            );
+            my $lsList = &readLSFromEkzWsLieferscheinList( $ekzCustomerNumber, $lastRunDate, $yesterdayDate, undef );
 
-            foreach my $lieferschein ( @{$lsList->{'lieferscheinRecords'}} ) {
+            foreach my $lieferschein ( @{ $lsList->{'lieferscheinRecords'} } ) {
                 try {
-                    $logger->info("ekzWsDeliveryNote.pl read delivery note via lieferscheinnummer:" . $lieferschein->{nummer} . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef," . $lieferschein->{nummer} . ",\\\$lieferscheinDetailElement)");
-                    $result = &readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,$lieferschein->{nummer},\$lieferscheinDetailElement);    # read *complete* info (i.e. all titles) of the delivery note
+                    $logger->info( "ekzWsDeliveryNote.pl read delivery note via lieferscheinnummer:"
+                            . $lieferschein->{nummer}
+                            . ": by calling readLSFromEkzWsLieferscheinDetail($ekzCustomerNumber,undef,"
+                            . $lieferschein->{nummer}
+                            . ",\\\$lieferscheinDetailElement)" );
+                    $result = &readLSFromEkzWsLieferscheinDetail(
+                        $ekzCustomerNumber, undef, $lieferschein->{nummer},
+                        \$lieferscheinDetailElement
+                    );    # read *complete* info (i.e. all titles) of the delivery note
 
-                    $logger->debug("ekzWsDeliveryNote.pl Dumper(\$result->{'lieferscheinRecords'}->[0]):" . Dumper($result->{'lieferscheinRecords'}->[0]) . ":");
-                    if ( $genKohaRecords ) {
+                    $logger->debug( "ekzWsDeliveryNote.pl Dumper(\$result->{'lieferscheinRecords'}->[0]):"
+                            . Dumper( $result->{'lieferscheinRecords'}->[0] )
+                            . ":" );
+                    if ($genKohaRecords) {
                         if ( $result->{'lieferscheinCount'} > 0 ) {
-                            if ( &genKohaRecords($ekzCustomerNumber, $result->{'messageID'}, $lieferscheinDetailElement,$result->{'lieferscheinRecords'}->[0], $createdTitleRecords, $updatedTitleRecords) ) {
+                            if (
+                                &genKohaRecords(
+                                    $ekzCustomerNumber, $result->{'messageID'}, $lieferscheinDetailElement,
+                                    $result->{'lieferscheinRecords'}->[0], $createdTitleRecords, $updatedTitleRecords
+                                )
+                                )
+                            {
                                 $res = 1;
                             }
                         }
                     }
-                }
-                catch {
+                } catch {
                     my $exceptionThrown = $_;
-                    $logger->info("ekzWsDeliveryNote.pl caught exception in loop lieferscheinnummer:" . $lieferschein->{nummer} . ": exceptionThrown:" . Dumper($exceptionThrown) . ":");
+                    $logger->info( "ekzWsDeliveryNote.pl caught exception in loop lieferscheinnummer:"
+                            . $lieferschein->{nummer}
+                            . ": exceptionThrown:"
+                            . Dumper($exceptionThrown)
+                            . ":" );
                 }
             }
-        }
-        catch {
+        } catch {
             my $exceptionThrown = $_;
-            $logger->info("ekzWsDeliveryNote.pl caught exception in loop ekzCustomerNumber:" . $ekzCustomerNumber . ": exceptionThrown:" . Dumper($exceptionThrown) . ":");
+            $logger->info( "ekzWsDeliveryNote.pl caught exception in loop ekzCustomerNumber:"
+                    . $ekzCustomerNumber
+                    . ": exceptionThrown:"
+                    . Dumper($exceptionThrown)
+                    . ":" );
         }
     }
     if ( $res == 1 ) {
-        C4::External::EKZ::lib::EkzWebServices::setLastRunDate('LieferscheinDetail', DateTime->now(time_zone => 'local'));
+        C4::External::EKZ::lib::EkzWebServices::setLastRunDate(
+            'LieferscheinDetail',
+            DateTime->now( time_zone => 'local' )
+        );
     }
 
 }
 
-($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-my $endTime = sprintf("%04d-%02d-%02d at %02d:%02d:%02d",1900+$year,1+$mon,$mday,$hour,$min,$sec);
+( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime(time);
+my $endTime = sprintf( "%04d-%02d-%02d at %02d:%02d:%02d", 1900 + $year, 1 + $mon, $mday, $hour, $min, $sec );
 $logger->info("ekzWsDeliveryNote.pl END endTime:$endTime:");

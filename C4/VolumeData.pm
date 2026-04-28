@@ -33,10 +33,10 @@ use vars qw(@ISA @EXPORT);
 
 BEGIN {
     require Exporter;
-        @ISA    = qw(Exporter);
-        @EXPORT = qw(
-            GetVolumeData
-        );
+    @ISA    = qw(Exporter);
+    @EXPORT = qw(
+        GetVolumeData
+    );
 }
 
 =head1 NAME
@@ -77,145 +77,159 @@ environment.
 =cut
 
 sub GetVolumeData {
-    my $refnumber = shift;
-    my $biblionumber = shift;
-    my $linkedRecords = shift;
+    my $refnumber       = shift;
+    my $biblionumber    = shift;
+    my $linkedRecords   = shift;
     my $institutionCode = shift;
-    my $lang = shift;
-    
-    $lang = C4::Languages::getlanguage() if (! $lang );
+    my $lang            = shift;
+
+    $lang = C4::Languages::getlanguage() if ( !$lang );
 
     my $marcOrgCode = $institutionCode || C4::Context->preference('MARCOrgCode') || '';
 
-    my $searchstring = "rcn:($refnumber)"; # not (bib-level:a or bib-level:b)";
-    $searchstring .= " AND cna:($marcOrgCode)" if ( $marcOrgCode );
+    my $searchstring = "rcn:($refnumber)";    # not (bib-level:a or bib-level:b)";
+    $searchstring .= " AND cna:($marcOrgCode)" if ($marcOrgCode);
 
-    my ($error,$volumes) = SearchVolumeData($searchstring,$lang,'opacvolume');
-    return ($error,$volumes,undef) if ($error);
-    
+    my ( $error, $volumes ) = SearchVolumeData( $searchstring, $lang, 'opacvolume' );
+    return ( $error, $volumes, undef ) if ($error);
+
     my $linkedRecordData = [];
-    
+
     # print STDERR "linkedRecords = @$linkedRecords\n";
     if ( $linkedRecords && scalar(@$linkedRecords) > 0 ) {
         $searchstring = '';
-        foreach my $linknumber(@$linkedRecords) {
-            $searchstring .= ' OR ' if ( $searchstring ne '');
+        foreach my $linknumber (@$linkedRecords) {
+            $searchstring .= ' OR ' if ( $searchstring ne '' );
             $searchstring .= "Control-number:($linknumber)";
         }
-        $searchstring = "cna:($marcOrgCode) AND ( " . $searchstring . " )" if ( $searchstring && $marcOrgCode);
-        ($error,$linkedRecordData) = SearchVolumeData($searchstring,$lang,'opac',$biblionumber);
-        
+        $searchstring = "cna:($marcOrgCode) AND ( " . $searchstring . " )" if ( $searchstring && $marcOrgCode );
+        ( $error, $linkedRecordData ) = SearchVolumeData( $searchstring, $lang, 'opac', $biblionumber );
+
         # print STDERR $searchstring,"\n";
     }
-    return ($error,$volumes,$linkedRecordData);
+    return ( $error, $volumes, $linkedRecordData );
 }
 
 sub SearchVolumeData {
-    my $searchstring = shift;
-    my $lang         = shift;
-    my $view         = shift;
-    my $refbiblionumber = shift; 
-    
-    my $searchengine = C4::Context->preference("SearchEngine");
-    my ($builder, $searcher);
+    my $searchstring    = shift;
+    my $lang            = shift;
+    my $view            = shift;
+    my $refbiblionumber = shift;
 
-    $builder  = Koha::SearchEngine::QueryBuilder->new({index => 'biblios'});
-    $searcher = Koha::SearchEngine::Search->new({index => 'biblios'});
+    my $searchengine = C4::Context->preference("SearchEngine");
+    my ( $builder, $searcher );
+
+    $builder  = Koha::SearchEngine::QueryBuilder->new( { index => 'biblios' } );
+    $searcher = Koha::SearchEngine::Search->new( { index => 'biblios' } );
 
     my @servers  = ("biblioserver");
     my @operands = ($searchstring);
-    
+
     my $scan             = undef;
     my $results_per_page = 1000;
-    my $offset           =  0;
+    my $offset           = 0;
     my $expanded_facet   = '';
 
     # Get itemtype with Koha 18.05
     my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
 
     # Build a query
-    my ($error,$query,$simple_query,$query_cgi,$query_desc,$limit,$limit_cgi,$limit_desc,$query_type) = 
-            $builder->build_query_compat(
-                [], # no operators
-                \@operands,
-                [], # no indexes
-                [], # no limits,
-                [], # no sort_by, 
-                0, 
-                $lang, 
-                {});
-    return ($error, undef) if ($error);
+    my ( $error, $query, $simple_query, $query_cgi, $query_desc, $limit, $limit_cgi, $limit_desc, $query_type ) =
+        $builder->build_query_compat(
+        [],    # no operators
+        \@operands,
+        [],    # no indexes
+        [],    # no limits,
+        [],    # no sort_by,
+        0,
+        $lang,
+        {}
+        );
+    return ( $error, undef ) if ($error);
 
     # search the data
-    my ($results_hashref, $facets);
-    ($error, $results_hashref, $facets) = 
-            $searcher->search_compat(
-                $query,
-                $simple_query,
-                [], # no sort_by,
-                \@servers,
-                $results_per_page,
-                $offset,
-                $expanded_facet,
-                undef,
-                $itemtypes,
-                $query_type,
-                $scan,
-                1);
-    
-    return ($error, undef) if ($error);
-    
+    my ( $results_hashref, $facets );
+    ( $error, $results_hashref, $facets ) = $searcher->search_compat(
+        $query,
+        $simple_query,
+        [],    # no sort_by,
+        \@servers,
+        $results_per_page,
+        $offset,
+        $expanded_facet,
+        undef,
+        $itemtypes,
+        $query_type,
+        $scan,
+        1
+    );
+
+    return ( $error, undef ) if ($error);
+
     my $records = {};
-    
+
     my $userecords = [];
-    foreach my $marcdata(@{$results_hashref->{$servers[0]}->{"RECORDS"}}) {
-        my $marcrecord = C4::Search::new_record_from_zebra('biblioserver', $marcdata);
-        if ( my $biblionumber = $marcrecord->subfield('999','c') ) {
+    foreach my $marcdata ( @{ $results_hashref->{ $servers[0] }->{"RECORDS"} } ) {
+        my $marcrecord = C4::Search::new_record_from_zebra( 'biblioserver', $marcdata );
+        if ( my $biblionumber = $marcrecord->subfield( '999', 'c' ) ) {
             if ( $refbiblionumber != $biblionumber ) {
                 push @$userecords, $marcdata;
-                $records->{$biblionumber} = [[$marcrecord->subfield('245','a') || undef,$marcrecord->subfield('245','p') || undef,$marcrecord->subfield('245','n') || undef]];
-                for (my $i=0; $i<=2; $i++) {
+                $records->{$biblionumber} = [
+                    [
+                        $marcrecord->subfield( '245', 'a' ) || undef, $marcrecord->subfield( '245', 'p' ) || undef,
+                        $marcrecord->subfield( '245', 'n' ) || undef
+                    ]
+                ];
+                for ( my $i = 0 ; $i <= 2 ; $i++ ) {
                     $records->{$biblionumber}->[1]->[$i] = undef;
                     if ( $records->{$biblionumber}->[0]->[$i] ) {
-                        $records->{$biblionumber}->[1]->[$i] = normalizeSortData($records->{$biblionumber}->[0]->[$i]);
+                        $records->{$biblionumber}->[1]->[$i] =
+                            normalizeSortData( $records->{$biblionumber}->[0]->[$i] );
                     }
                 }
             }
         }
     }
-    $results_hashref->{$servers[0]}->{"RECORDS"} = $userecords;
-    
+    $results_hashref->{ $servers[0] }->{"RECORDS"} = $userecords;
+
     my $sortnum = 0;
-    foreach my $biblionumber(  sort {  sortVolumeWords($records->{$a}->[1]->[0],$records->{$b}->[1]->[0]) || 
-                                       sortVolumeWords($records->{$a}->[1]->[2],$records->{$b}->[1]->[2]) || 
-                                       sortVolumeWords($records->{$a}->[1]->[1],$records->{$b}->[1]->[1]) } keys %$records ) 
+    foreach my $biblionumber (
+        sort {
+                   sortVolumeWords( $records->{$a}->[1]->[0], $records->{$b}->[1]->[0] )
+                || sortVolumeWords( $records->{$a}->[1]->[2], $records->{$b}->[1]->[2] )
+                || sortVolumeWords( $records->{$a}->[1]->[1], $records->{$b}->[1]->[1] )
+        } keys %$records
+        )
     {
         $records->{$biblionumber}->[2] = ++$sortnum;
     }
 
     # get the data
     my @results = ();
-    for (my $i=0;$i<@servers;$i++) {
+    for ( my $i = 0 ; $i < @servers ; $i++ ) {
         my $server = $servers[$i];
-        my $hits = $results_hashref->{$server}->{"hits"};
-        push @results, sort { $records->{$a->{biblionumber}}->[2] <=>  $records->{$b->{biblionumber}}->[2] } 
-            searchResults( { interface => 'opac',  view => $view }, $query_desc, $hits, $results_per_page, $offset, $scan, $results_hashref->{$server}->{"RECORDS"});
+        my $hits   = $results_hashref->{$server}->{"hits"};
+        push @results,
+            sort { $records->{ $a->{biblionumber} }->[2] <=> $records->{ $b->{biblionumber} }->[2] } searchResults(
+            { interface => 'opac', view => $view }, $query_desc, $hits, $results_per_page, $offset,
+            $scan, $results_hashref->{$server}->{"RECORDS"}
+            );
     }
-    
+
     $sortnum = 0;
-    foreach my $res( @results ) {
+    foreach my $res (@results) {
         $res->{result_number} = ++$sortnum;
         $res->{sortvolume}    = $records->{ $res->{biblionumber} }->[0]->[2];
         $res->{sortpart}      = $records->{ $res->{biblionumber} }->[0]->[1];
         $res->{sorttitle}     = $records->{ $res->{biblionumber} }->[0]->[0];
     }
-    
-    return ($error, \@results) 
+
+    return ( $error, \@results );
 }
 
 sub normalizeSortData {
     my $s = shift;
-    $s = NFD($s); 
+    $s = NFD($s);
     $s =~ s/\r\n\t/ /g;
     $s =~ s/\pM//g;
     $s =~ s/\([^\(\)]+\)/ /g;
@@ -225,33 +239,29 @@ sub normalizeSortData {
     return uc($s);
 }
 
-
 sub sortVolumeWords {
     my $a = shift;
     my $b = shift;
-    
+
     return 0  if ( !defined($a) && !defined($b) );
     return -1 if ( !defined($a) );
     return 1  if ( !defined($b) );
-    
+
     my @awords = $a =~ /(\w+(?:'\w+)*)/g;
     my @bwords = $b =~ /(\w+(?:'\w+)*)/g;
-    
+
     my $res = 0;
-    my $k = $#awords;
-    $k = $#bwords if ($#bwords > $k);
-    
-    for (my $i = 0; $i <= $k && $res==0; $i++) {
-        if ($i > $#awords) {
+    my $k   = $#awords;
+    $k = $#bwords if ( $#bwords > $k );
+
+    for ( my $i = 0 ; $i <= $k && $res == 0 ; $i++ ) {
+        if ( $i > $#awords ) {
             $res = -1;
-        }
-        elsif ($i > $#bwords) {
-            $res =  1;
-        }
-        elsif ( $awords[$i] =~ /^[0-9]+$/ && $bwords[$i] =~ /^[0-9]+$/ ) {
+        } elsif ( $i > $#bwords ) {
+            $res = 1;
+        } elsif ( $awords[$i] =~ /^[0-9]+$/ && $bwords[$i] =~ /^[0-9]+$/ ) {
             $res = $awords[$i] <=> $bwords[$i];
-        }
-        else {
+        } else {
             $res = $awords[$i] cmp $bwords[$i];
         }
     }

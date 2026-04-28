@@ -31,14 +31,15 @@ use Koha::Libraries;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
 
-our (@ISA, @EXPORT_OK);
+our ( @ISA, @EXPORT_OK );
+
 BEGIN {
     require Exporter;
     @ISA       = qw(Exporter);
     @EXPORT_OK = qw(
-      GetCoverFlowDataOfNearbyItemsByItemNumber
-      GetCoverFlowDataByBiblionumber
-      GetCoverFlowDataByQueryString
+        GetCoverFlowDataOfNearbyItemsByItemNumber
+        GetCoverFlowDataByBiblionumber
+        GetCoverFlowDataByQueryString
     );
 }
 
@@ -113,35 +114,40 @@ This will throw an exception if something went wrong.
 =cut
 
 sub GetCoverFlowDataOfNearbyItemsByItemNumber {
-    my ( $itemnumber, $num_each_side, $gap) = @_;
+    my ( $itemnumber, $num_each_side, $gap ) = @_;
     $num_each_side ||= 3;
-    $gap ||= (2 * $num_each_side)+1; # Should be > $num_each_side
+    $gap           ||= ( 2 * $num_each_side ) + 1;    # Should be > $num_each_side
     croak 'BAD CALL in C4::ShelfBrowser::GetNearbyItems, gap should be > num_each_side'
         if $gap <= $num_each_side;
 
-    my $dbh         = C4::Context->dbh;
+    my $dbh = C4::Context->dbh;
 
     my $sth_get_item_details = $dbh->prepare('SELECT cn_sort,homebranch,location,ccode FROM items WHERE itemnumber=?');
     $sth_get_item_details->execute($itemnumber);
     my $item_details_result = $sth_get_item_details->fetchrow_hashref();
-    croak "Unable to find item '$itemnumber' for shelf browser" if (!$sth_get_item_details);
+    croak "Unable to find item '$itemnumber' for shelf browser" if ( !$sth_get_item_details );
     my $start_cn_sort = $item_details_result->{'cn_sort'};
 
-    my ($start_homebranch, $start_location, $start_ccode);
-    if (C4::Context->preference('ShelfBrowserUsesHomeBranch') && 
-    	defined($item_details_result->{'homebranch'})) {
-        $start_homebranch->{code} = $item_details_result->{'homebranch'};
-        $start_homebranch->{description} = Koha::Libraries->find($item_details_result->{'homebranch'})->branchname;
+    my ( $start_homebranch, $start_location, $start_ccode );
+    if ( C4::Context->preference('ShelfBrowserUsesHomeBranch')
+        && defined( $item_details_result->{'homebranch'} ) )
+    {
+        $start_homebranch->{code}        = $item_details_result->{'homebranch'};
+        $start_homebranch->{description} = Koha::Libraries->find( $item_details_result->{'homebranch'} )->branchname;
     }
-    if (C4::Context->preference('ShelfBrowserUsesLocation') && 
-    	defined($item_details_result->{'location'})) {
+    if ( C4::Context->preference('ShelfBrowserUsesLocation')
+        && defined( $item_details_result->{'location'} ) )
+    {
         $start_location->{code} = $item_details_result->{'location'};
-        $start_location->{description} = GetAuthorisedValueDesc(q{}, q{}, $item_details_result->{'location'}, q{}, q{}, 'LOC', 'opac');
+        $start_location->{description} =
+            GetAuthorisedValueDesc( q{}, q{}, $item_details_result->{'location'}, q{}, q{}, 'LOC', 'opac' );
     }
-    if (C4::Context->preference('ShelfBrowserUsesCcode') && 
-    	defined($item_details_result->{'ccode'})) {
+    if ( C4::Context->preference('ShelfBrowserUsesCcode')
+        && defined( $item_details_result->{'ccode'} ) )
+    {
         $start_ccode->{code} = $item_details_result->{'ccode'};
-        $start_ccode->{description} = GetAuthorisedValueDesc(q{}, q{}, $item_details_result->{'ccode'}, q{}, q{}, 'CCODE', 'opac');
+        $start_ccode->{description} =
+            GetAuthorisedValueDesc( q{}, q{}, $item_details_result->{'ccode'}, q{}, q{}, 'CCODE', 'opac' );
     }
 
     # Build the query for previous and next items
@@ -159,18 +165,19 @@ sub GetCoverFlowDataOfNearbyItemsByItemNumber {
     };
     my @params;
     my $query_cond;
-    push @params, ($start_cn_sort, $itemnumber, $start_cn_sort);
+    push @params, ( $start_cn_sort, $itemnumber, $start_cn_sort );
+
     if ($start_homebranch) {
-    	$query_cond .= 'AND homebranch = ? ';
-    	push @params, $start_homebranch->{code};
+        $query_cond .= 'AND homebranch = ? ';
+        push @params, $start_homebranch->{code};
     }
     if ($start_location) {
-    	$query_cond .= 'AND location = ? ';
-    	push @params, $start_location->{code};
+        $query_cond .= 'AND location = ? ';
+        push @params, $start_location->{code};
     }
     if ($start_ccode) {
-    	$query_cond .= 'AND ccode = ? ';
-    	push @params, $start_ccode->{code};
+        $query_cond .= 'AND ccode = ? ';
+        push @params, $start_ccode->{code};
     }
 
     my @prev_items = @{
@@ -196,17 +203,15 @@ sub GetCoverFlowDataOfNearbyItemsByItemNumber {
 
     $next_item = undef
         if not $next_item
-            or ( $next_item->{itemnumber} == $items[-1]->{itemnumber}
-                and ( @prev_items or @next_items <= 1 )
-            );
+        or ( $next_item->{itemnumber} == $items[-1]->{itemnumber}
+        and ( @prev_items or @next_items <= 1 ) );
     $prev_item = undef
         if not $prev_item
-            or ( $prev_item->{itemnumber} == $items[0]->{itemnumber}
-                and ( @next_items or @prev_items <= 1 )
-            );
+        or ( $prev_item->{itemnumber} == $items[0]->{itemnumber}
+        and ( @next_items or @prev_items <= 1 ) );
 
     # populate the items
-    @items = GetCatalogueData( @items );
+    @items = GetCatalogueData(@items);
 
     return {
         items               => \@items,
@@ -224,65 +229,67 @@ sub GetCoverFlowDataByBiblionumber {
     my @biblist;
 
     foreach my $biblionumber (@biblios) {
-        push @biblist, { biblionumber => $biblionumber }
+        push @biblist, { biblionumber => $biblionumber };
     }
 
     # populate catalogue record data
-    @biblist = GetCatalogueData( @biblist );
-    
+    @biblist = GetCatalogueData(@biblist);
+
     return {
-        items  => \@biblist,
-        count  => scalar(@biblist),
+        items => \@biblist,
+        count => scalar(@biblist),
     };
 }
 
 sub GetCoverFlowDataByQueryString {
-    my ($query,$offset,$maxcount) = @_;
-    $offset = 0 if (! $offset);
-    $maxcount = 20 if (! $maxcount);
+    my ( $query, $offset, $maxcount ) = @_;
+    $offset   = 0  if ( !$offset );
+    $maxcount = 20 if ( !$maxcount );
 
-    my $searcher = Koha::SearchEngine::Search->new({index => $Koha::SearchEngine::BIBLIOS_INDEX});
-    my ( $error, $searchresults, $totalcount ) = $searcher->simple_search_compat($query,$offset,$maxcount);
+    my $searcher = Koha::SearchEngine::Search->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+    my ( $error, $searchresults, $totalcount ) = $searcher->simple_search_compat( $query, $offset, $maxcount );
     my @results;
     my @biblist;
-    if (!defined $error) {
-        foreach my $resultrecord (@{$searchresults}) {
-            my $bibdata = TransformMarcToKoha( { record => C4::Search::new_record_from_zebra('biblioserver',$resultrecord) } );
+    if ( !defined $error ) {
+        foreach my $resultrecord ( @{$searchresults} ) {
+            my $bibdata =
+                TransformMarcToKoha( { record => C4::Search::new_record_from_zebra( 'biblioserver', $resultrecord ) } );
 
             if ($bibdata) {
                 push @results, { biblionumber => $bibdata->{'biblionumber'} };
             }
         }
+
         # populate catalogue record data
-        @biblist = GetCatalogueData( @results );
-    
+        @biblist = GetCatalogueData(@results);
+
         return {
-            items  => \@biblist,
-            count  => scalar(@biblist),
+            items      => \@biblist,
+            count      => scalar(@biblist),
             totalcount => $totalcount,
-            offset => $offset,
-            query => $query
+            offset     => $offset,
+            query      => $query
         };
     }
     return {
-        items  => \@biblist,
-        count  => 0,
+        items      => \@biblist,
+        count      => 0,
         totalcount => 0,
-        offset => $offset,
-        query => $query
+        offset     => $offset,
+        query      => $query
     };
 }
 
 # Populate an item list with titel data and upc, oclc and isbn normalized.
 sub GetCatalogueData {
-    my @items = @_;
+    my @items       = @_;
     my $marcflavour = C4::Context->preference('marcflavour');
     my @valid_items;
-    for my $item ( @items ) {
+    for my $item (@items) {
         my $biblio = Koha::Biblios->find( $item->{biblionumber} );
         next unless defined $biblio;
-        next if ( $biblio->hidden_in_opac({ rules => C4::Context->yaml_preference('OpacHiddenItems') }) );
-        
+        next if ( $biblio->hidden_in_opac( { rules => C4::Context->yaml_preference('OpacHiddenItems') } ) );
+
         $item->{local_image_count} = 0;
         my $cover_images = $biblio->cover_images;
         if ( $cover_images->count ) {
@@ -292,143 +299,146 @@ sub GetCatalogueData {
         $item->{biblio_object} = $biblio;
         $item->{biblionumber}  = $biblio->biblionumber;
         $item->{title}         = $biblio->title;
-        $item->{title} =~ s/[\x{0098}\x{009c}]//g if ($item->{title});
-        $item->{subtitle}      = $biblio->subtitle;
-        $item->{subtitle} =~ s/[\x{0098}\x{009c}]//g if ($item->{subtitle});
-        $item->{medium}        = $biblio->medium;
-        $item->{part_number}   = $biblio->part_number;
-        $item->{part_name}     = $biblio->part_name;
+        $item->{title} =~ s/[\x{0098}\x{009c}]//g if ( $item->{title} );
+        $item->{subtitle} = $biblio->subtitle;
+        $item->{subtitle} =~ s/[\x{0098}\x{009c}]//g if ( $item->{subtitle} );
+        $item->{medium}      = $biblio->medium;
+        $item->{part_number} = $biblio->part_number;
+        $item->{part_name}   = $biblio->part_name;
         my $record = $biblio ? $biblio->metadata->record : undef;
 
-		if ( $record ) {
-			$item->{'browser_normalized_upc'}  = GetNormalizedUPC($record,$marcflavour);
-			$item->{'browser_normalized_oclc'} = GetNormalizedOCLCNumber($record,$marcflavour);
-			$item->{'browser_normalized_isbn'} = GetNormalizedISBN(undef,$record,$marcflavour);
-			$item->{'browser_normalized_ean'}  = GetNormalizedEAN($record,$marcflavour);
+        if ($record) {
+            $item->{'browser_normalized_upc'}  = GetNormalizedUPC( $record, $marcflavour );
+            $item->{'browser_normalized_oclc'} = GetNormalizedOCLCNumber( $record, $marcflavour );
+            $item->{'browser_normalized_isbn'} = GetNormalizedISBN( undef, $record, $marcflavour );
+            $item->{'browser_normalized_ean'}  = GetNormalizedEAN( $record, $marcflavour );
 
-			if (C4::Context->preference('OpacSuppression')) {
-				my $opacsuppressionfield = '942';
-				my $opacsuppressionfieldvalue = $record->field($opacsuppressionfield);
-				if ( $opacsuppressionfieldvalue &&
-					$opacsuppressionfieldvalue->subfield("n") &&
-					$opacsuppressionfieldvalue->subfield("n") == 1) 
-				{
-					next;
-				}
-			}
-			my $field = $record->field('245');
-			my $titleblock = q{};
-			my $title = q{};
-			my $author = q{};
-		
-			if ( $field ) {
-				$title = $field->subfield('a');
-				my $subtitle = $field->subfield('b');
-				$author = $field->subfield('c');
-		
-				$titleblock = $title;
-				
-				if ( $subtitle ) {
-					$titleblock .= ': ' . $subtitle;
-				}
-				$author =~ s/^\s*\/\s*// if ($author);
-				if ( $author ) {
-					$titleblock .= ' / ' . $author;
-				}
-				if ( $titleblock !~ /\.$/ ) {
-					$titleblock .= '.';
-				}
-			}
-			
-			$field = $record->field('250');
-			my $edition;
-			if ( $field ) {
-				$edition = $field->subfield('a');
-		
-				if ( $edition ) {
-					$titleblock .= ' - ' . $edition;
-					if ( $titleblock !~ /\.$/ ) {
-						$titleblock .= '.';
-					} 
-				}
-			}
-			
-			$field = $record->field('260');
-			$field = $record->field('264') if (! $field);
-			my $year;
-			my $location;
-			my $publisher;
-			if ( $field ) {
-				$location = $field->subfield('a');
-				$publisher = $field->subfield('b');
-				$year = $field->subfield('c');
-		
-				my $publisherblock = $location;
-				if ( $publisherblock && ( defined $publisher || defined $year )) {
-					$publisherblock .= ': ';
-				}
-				if ( $publisher ) {
-					$publisherblock .=  $publisher;
-				}
-				if ( $year ) {
-					if ( $publisherblock ) {
-						$publisherblock .= ', ';
-					}
-					$publisherblock .=  $year;
-				}
-				if ( $publisherblock ) {
-					$titleblock .= ' - ' . $publisherblock;
-					if ( $titleblock !~ /\.$/ ) {
-						$titleblock .= '.';
-					}
-				}
-			}
-			$title =~ s/[\x{0098}\x{009c}]//g if ($title);
-			$author =~ s/[\x{0098}\x{009c}]//g if ($author);
-			$titleblock =~ s/[\x{0098}\x{009c}]//g if ($titleblock);
-			
-			
-			my $identifier = q{};
-			$field = $record->field('020');
-			if ( $field ) {
-				my $isbn = $field->subfield('a');
-				$identifier = $isbn if ( $isbn );
-			}
-			$field = $record->field('024');
-			if ( $field && $identifier eq q{} ) {
-				my $ean = $field->subfield('a');
-				$identifier = $ean if ( $ean );
-			}
-			
-			my $coverurl = q{};
-			foreach my $field ( $record->field('856') ) {
-				if ( $field->subfield('q') && $field->subfield('q') =~ /cover/i && $field->subfield('u') ) {
-					next if ($field->subfield('n') && $field->subfield('n') =~ /^(Wikipedia|Antolin)$/i );
-					my $val = $field->subfield('u');
-					next if (! $val);
-					next if ( $val =~ /\.ekz\.de/ && !C4::Context->preference('EKZCover') );
-					next if ( $val =~ /\.onleihe\.de/ && !C4::Context->preference('DivibibEnabled') );
-					$coverurl = $val;
-					$coverurl =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
-					$coverurl =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
-					last;
-				}
-			}
-				
-			my $generic_coverurl = '/api/v1/public/generated_cover?title=' . uri_escape_utf8($title) .'&author=' . uri_escape_utf8($author) ;
+            if ( C4::Context->preference('OpacSuppression') ) {
+                my $opacsuppressionfield      = '942';
+                my $opacsuppressionfieldvalue = $record->field($opacsuppressionfield);
+                if (   $opacsuppressionfieldvalue
+                    && $opacsuppressionfieldvalue->subfield("n")
+                    && $opacsuppressionfieldvalue->subfield("n") == 1 )
+                {
+                    next;
+                }
+            }
+            my $field      = $record->field('245');
+            my $titleblock = q{};
+            my $title      = q{};
+            my $author     = q{};
 
-			$item->{'titleblock'} = $titleblock;
-			$item->{'coverurl'}   = $coverurl;
-			$item->{'gencover'}   = $generic_coverurl;
-			$item->{'identifier'} = $identifier;
-			$item->{'author'}     = $author;
-			$item->{'year'}       = $year;
-			$item->{'edition'}    = $edition;
-			$item->{'place'}      = $location;
-			$item->{'publisher'}  = $publisher;
+            if ($field) {
+                $title = $field->subfield('a');
+                my $subtitle = $field->subfield('b');
+                $author = $field->subfield('c');
 
-			push @valid_items, $item;
-		}
+                $titleblock = $title;
+
+                if ($subtitle) {
+                    $titleblock .= ': ' . $subtitle;
+                }
+                $author =~ s/^\s*\/\s*// if ($author);
+                if ($author) {
+                    $titleblock .= ' / ' . $author;
+                }
+                if ( $titleblock !~ /\.$/ ) {
+                    $titleblock .= '.';
+                }
+            }
+
+            $field = $record->field('250');
+            my $edition;
+            if ($field) {
+                $edition = $field->subfield('a');
+
+                if ($edition) {
+                    $titleblock .= ' - ' . $edition;
+                    if ( $titleblock !~ /\.$/ ) {
+                        $titleblock .= '.';
+                    }
+                }
+            }
+
+            $field = $record->field('260');
+            $field = $record->field('264') if ( !$field );
+            my $year;
+            my $location;
+            my $publisher;
+            if ($field) {
+                $location  = $field->subfield('a');
+                $publisher = $field->subfield('b');
+                $year      = $field->subfield('c');
+
+                my $publisherblock = $location;
+                if ( $publisherblock && ( defined $publisher || defined $year ) ) {
+                    $publisherblock .= ': ';
+                }
+                if ($publisher) {
+                    $publisherblock .= $publisher;
+                }
+                if ($year) {
+                    if ($publisherblock) {
+                        $publisherblock .= ', ';
+                    }
+                    $publisherblock .= $year;
+                }
+                if ($publisherblock) {
+                    $titleblock .= ' - ' . $publisherblock;
+                    if ( $titleblock !~ /\.$/ ) {
+                        $titleblock .= '.';
+                    }
+                }
+            }
+            $title      =~ s/[\x{0098}\x{009c}]//g if ($title);
+            $author     =~ s/[\x{0098}\x{009c}]//g if ($author);
+            $titleblock =~ s/[\x{0098}\x{009c}]//g if ($titleblock);
+
+            my $identifier = q{};
+            $field = $record->field('020');
+            if ($field) {
+                my $isbn = $field->subfield('a');
+                $identifier = $isbn if ($isbn);
+            }
+            $field = $record->field('024');
+            if ( $field && $identifier eq q{} ) {
+                my $ean = $field->subfield('a');
+                $identifier = $ean if ($ean);
+            }
+
+            my $coverurl = q{};
+            foreach my $field ( $record->field('856') ) {
+                if ( $field->subfield('q') && $field->subfield('q') =~ /cover/i && $field->subfield('u') ) {
+                    next if ( $field->subfield('n') && $field->subfield('n') =~ /^(Wikipedia|Antolin)$/i );
+                    my $val = $field->subfield('u');
+                    next if ( !$val );
+                    next if ( $val =~ /\.ekz\.de/     && !C4::Context->preference('EKZCover') );
+                    next if ( $val =~ /\.onleihe\.de/ && !C4::Context->preference('DivibibEnabled') );
+                    $coverurl = $val;
+                    $coverurl =~ s#http:\/\/cover\.ekz\.de#https://cover.ekz.de#;
+                    $coverurl =~ s#http:\/\/www\.onleihe\.de#https://www.onleihe.de#;
+                    last;
+                }
+            }
+
+            my $generic_coverurl =
+                  '/api/v1/public/generated_cover?title='
+                . uri_escape_utf8($title)
+                . '&author='
+                . uri_escape_utf8($author);
+
+            $item->{'titleblock'} = $titleblock;
+            $item->{'coverurl'}   = $coverurl;
+            $item->{'gencover'}   = $generic_coverurl;
+            $item->{'identifier'} = $identifier;
+            $item->{'author'}     = $author;
+            $item->{'year'}       = $year;
+            $item->{'edition'}    = $edition;
+            $item->{'place'}      = $location;
+            $item->{'publisher'}  = $publisher;
+
+            push @valid_items, $item;
+        }
     }
     return @valid_items;
 }

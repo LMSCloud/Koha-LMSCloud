@@ -26,53 +26,50 @@ use C4::External::Brockhaus;
 use JSON;
 
 my $query = CGI->new;
-my ($userid, $cookie, $sessionID) = checkauth( $query, 1, {}, 'opac' );
+my ( $userid, $cookie, $sessionID ) = checkauth( $query, 1, {}, 'opac' );
 
 my $result = undef;
 
 if ( C4::Context->preference('BrockhausSearchActive') ) {
-    my $search = $query->param('search');
-    my $maxcount = $query->param('maxcount');
-    my $offset = $query->param('offset');
-    my $collection = $query->param('collection');
+    my $search           = $query->param('search');
+    my $maxcount         = $query->param('maxcount');
+    my $offset           = $query->param('offset');
+    my $collection       = $query->param('collection');
     my $brockhausService = C4::External::Brockhaus->new();
-    
+
     my $searchWhere = [];
-    $searchWhere = [$collection] if ( $collection );
+    $searchWhere = [$collection] if ($collection);
     if ( !scalar(@$searchWhere) && C4::Context->preference('BrockhausSearchCollections') ) {
-        $searchWhere =  [];
+        $searchWhere = [];
         my $colls = {};
-        foreach my $collection( split(/\|/,C4::Context->preference('BrockhausSearchCollections')) ) {
+        foreach my $collection ( split( /\|/, C4::Context->preference('BrockhausSearchCollections') ) ) {
             $collection =~ s/^\s+//;
             $collection =~ s/\s+$//;
             if ( $collection =~ /enzy/i ) {
                 $collection = 'ecs.enzy';
-            }
-            elsif ( $collection =~ /julex/i ) {
+            } elsif ( $collection =~ /julex/i ) {
                 $collection = 'ecs.julex';
-            }
-            elsif ( $collection =~ /kilex/i ) {
+            } elsif ( $collection =~ /kilex/i ) {
                 $collection = 'ecs.kilex';
-            }
-            elsif ( $collection =~ /ecs/i ) {
+            } elsif ( $collection =~ /ecs/i ) {
                 $collection = 'ecs';
             }
-            if ( ! exists($colls->{$collection}) ) {
+            if ( !exists( $colls->{$collection} ) ) {
                 $colls->{$collection} = 1;
-                push @$searchWhere,$collection;
+                push @$searchWhere, $collection;
             }
         }
-        $searchWhere = ["ecs"] if (! scalar(@$searchWhere) );
+        $searchWhere = ["ecs"] if ( !scalar(@$searchWhere) );
     }
-    
-    $result = $brockhausService->simpleSearch($userid,$search,$searchWhere,$maxcount,$offset);
+
+    $result = $brockhausService->simpleSearch( $userid, $search, $searchWhere, $maxcount, $offset );
 }
 
 my $json_reply = JSON->new->encode( { result => $result } );
 
 binmode STDOUT, ":encoding(UTF-8)";
 print $query->header(
-    -type => 'application/json',
+    -type    => 'application/json',
     -charset => 'UTF-8'
 );
 

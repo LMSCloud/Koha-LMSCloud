@@ -15,248 +15,348 @@
 // You should have received a copy of the GNU General Public License
 // along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-var brockhausData = new Object;
+var brockhausData = new Object();
 var origResultHeaderBrockhaus;
 var prevPageTextBrockhaus;
 var nextPageTextBrockhaus;
 var maxHitCountBrockhaus;
 
-function getBrockhausFacet(query_desc,maxHitCount,prevPageText,nextPageText) {
+function getBrockhausFacet(
+    query_desc,
+    maxHitCount,
+    prevPageText,
+    nextPageText
+) {
     if (!origResultHeaderBrockhaus) {
-        origResultHeaderBrockhaus = $('#numresults').html();
+        origResultHeaderBrockhaus = $("#numresults").html();
     }
     prevPageTextBrockhaus = prevPageText;
     nextPageTextBrockhaus = nextPageText;
-    maxHitCountBrockhaus  = maxHitCount;
+    maxHitCountBrockhaus = maxHitCount;
     $.ajax({
-    url: "/cgi-bin/koha/opac-brockhaus.pl",
+        url: "/cgi-bin/koha/opac-brockhaus.pl",
         method: "POST",
         cache: false,
-        data: { 'search' : query_desc, 'maxcount' : 0 },
+        data: { search: query_desc, maxcount: 0 },
         dataType: "json",
-        success: function(data) {
-            if ( data && data.result && data.result.length > 0 ) {
-                showBrockhausFacetEntries(data.result,query_desc);
+        success: function (data) {
+            if (data && data.result && data.result.length > 0) {
+                showBrockhausFacetEntries(data.result, query_desc);
             }
         },
         error: function (data1, data2, data3) {
             console.log("Error reading Brockhaus hits:", data1, data2, data3);
-        }
-   });
+        },
+    });
 }
 function getBrockhausResult(facetID, offset) {
-    var query_desc = brockhausData['query'];
-    var collection = brockhausData['results'][facetID].searchType;
+    var query_desc = brockhausData["query"];
+    var collection = brockhausData["results"][facetID].searchType;
     $.ajax({
-    url: "/cgi-bin/koha/opac-brockhaus.pl",
+        url: "/cgi-bin/koha/opac-brockhaus.pl",
         method: "POST",
         cache: false,
-        data: { 'search' : query_desc, 'maxcount' : maxHitCountBrockhaus, 'offset' : offset, 'collection' : collection  },
+        data: {
+            search: query_desc,
+            maxcount: maxHitCountBrockhaus,
+            offset: offset,
+            collection: collection,
+        },
         dataType: "json",
-        success: function(data) {
-            if ( data && data.result && data.result.length > 0 ) {
-                brockhausData['results'][facetID] = data.result[0];
-                setBrockhausCollectionName(brockhausData['results'],facetID);
+        success: function (data) {
+            if (data && data.result && data.result.length > 0) {
+                brockhausData["results"][facetID] = data.result[0];
+                setBrockhausCollectionName(brockhausData["results"], facetID);
                 showBrockhausResult(facetID);
             }
         },
         error: function (data1, data2, data3) {
             console.log("Error reading Brockhaus hits:", data1, data2, data3);
-        }
-   });
+        },
+    });
 }
-function showBrockhausFacetEntries(facetData,query) {
-    if ( facetData.length > 0 ) {
+function showBrockhausFacetEntries(facetData, query) {
+    if (facetData.length > 0) {
         var listElement = document.createElement("ul");
         var foundHits = 0;
-        for (var i=0; i<facetData.length; i++) {
-            if ( facetData[i].searchType ) {
+        for (var i = 0; i < facetData.length; i++) {
+            if (facetData[i].searchType) {
                 var facetElement = document.createElement("li");
-                var spanElement  = document.createElement("span");
-                spanElement.setAttribute('class','facet-label');
-                var hrefElement  = document.createElement("a");
-                var facetElementName = setBrockhausCollectionName(facetData,i);
+                var spanElement = document.createElement("span");
+                spanElement.setAttribute("class", "facet-label");
+                var hrefElement = document.createElement("a");
+                var facetElementName = setBrockhausCollectionName(facetData, i);
                 // hrefElement.setAttribute('href','javascript:showBrockhausResult('+i+',' + maxHitCountBrockhaus + ')');
-                hrefElement.setAttribute('href','javascript:getBrockhausResult('+i+',0)');
+                hrefElement.setAttribute(
+                    "href",
+                    "javascript:getBrockhausResult(" + i + ",0)"
+                );
                 hrefElement.textContent = facetElementName;
                 spanElement.appendChild(hrefElement);
                 facetElement.appendChild(spanElement);
-                spanElement  = document.createElement("span");
-                spanElement.innerHTML = '&#160;';
+                spanElement = document.createElement("span");
+                spanElement.innerHTML = "&#160;";
                 facetElement.appendChild(spanElement);
-                spanElement  = document.createElement("span");
-                spanElement.setAttribute('class','facet-count');
+                spanElement = document.createElement("span");
+                spanElement.setAttribute("class", "facet-count");
                 spanElement.textContent = "(" + facetData[i].numFound + ")";
                 facetElement.appendChild(spanElement);
                 listElement.appendChild(facetElement);
                 foundHits += facetData[i].numFound;
             }
         }
-        $('#brockhaus-facet ul').html(listElement.innerHTML);
-        $('#brockhaus-count').text(foundHits);
-        $('#brockhaus-facet').css("display","block");
-        $('#encyclopedia-facets').css("display","block");
-        
-        brockhausData['results'] = facetData;
-        brockhausData['query'] = query;
+        $("#brockhaus-facet ul").html(listElement.innerHTML);
+        $("#brockhaus-count").text(foundHits);
+        $("#brockhaus-facet").css("display", "block");
+        $("#encyclopedia-facets").css("display", "block");
+
+        brockhausData["results"] = facetData;
+        brockhausData["query"] = query;
     }
 }
 
-function setBrockhausCollectionName(facetData, i)  {
+function setBrockhausCollectionName(facetData, i) {
     var facetElementName;
-    if ( facetData[i].searchType == "ecs.enzy" ) {
+    if (facetData[i].searchType == "ecs.enzy") {
         facetElementName = "Enzyklopädie";
-    }
-    else if ( facetData[i].searchType == "ecs.julex" ) {
+    } else if (facetData[i].searchType == "ecs.julex") {
         facetElementName = "Schullexikon";
-    }
-    else if ( facetData[i].searchType == "ecs" ) {
+    } else if (facetData[i].searchType == "ecs") {
         facetElementName = "Enzyklopädie und Schullexikon";
-    }
-    else if ( facetData[i].searchType == "ecs.kilex" ) {
+    } else if (facetData[i].searchType == "ecs.kilex") {
         facetElementName = "Kinderlexikon";
     }
-    facetData[i]['name'] = facetElementName;
-    
+    facetData[i]["name"] = facetElementName;
+
     return facetElementName;
 }
 
 function showBrockhausResult(facetID) {
     var pagination = getBrockhausPagination(facetID, maxHitCountBrockhaus);
-    var content = '';
+    var content = "";
 
-    for (var i=0; i<brockhausData.results[facetID].hitList.length;i++) {
-        content += generateBrockhausEntry(facetID,i);
+    for (var i = 0; i < brockhausData.results[facetID].hitList.length; i++) {
+        content += generateBrockhausEntry(facetID, i);
     }
 
-    if ( $("#userresults").css("display") != "none" ){
-        $('#encyclopediaresults').toggle();
-        $('#userresults').toggle();
-        $('#overdrive-results').toggle();
+    if ($("#userresults").css("display") != "none") {
+        $("#encyclopediaresults").toggle();
+        $("#userresults").toggle();
+        $("#overdrive-results").toggle();
     }
-    $('#encyclopediahits').html(content);
-    if ( pagination.length == 0 ) {
-        $('#encyclopediaheader').html('<strong><span class="encyclopediasource"></span></strong>');
+    $("#encyclopediahits").html(content);
+    if (pagination.length == 0) {
+        $("#encyclopediaheader").html(
+            '<strong><span class="encyclopediasource"></span></strong>'
+        );
     } else {
-        $('#encyclopediaheader').html('<div class="container-fluid"><div class="row"><div class="col-sm-6"><strong><span class="encyclopediasource"></span></strong></div>' + pagination + '</div></div>');
+        $("#encyclopediaheader").html(
+            '<div class="container-fluid"><div class="row"><div class="col-sm-6"><strong><span class="encyclopediasource"></span></strong></div>' +
+                pagination +
+                "</div></div>"
+        );
     }
-    $('.encyclopediasource').html(brockhausData.results[facetID].name);
-    
-    $('.encyclopediaprovider').html(' <a class="external-offer-link" href="' + brockhausData.results[facetID].searchAtBrockhaus + '" target="_blank">' + 'Brockhaus</a> ' );
-    $('.encyclopediasearchhitcount').html(' ' + brockhausData.results[facetID].numFound + ' ');
-    
-    if ( $('.onlyAdditionalOfferFacets').length > 0 )
-        $('#numresultsAdditionalOffers').html($('#encyclopedianumresults').html());
-    else
-        $('#numresults').html($('#encyclopedianumresults').html());
-    $('#showCatalogHitList').attr("href", "javascript:showCatalogHitListBrockhaus()");
+    $(".encyclopediasource").html(brockhausData.results[facetID].name);
+
+    $(".encyclopediaprovider").html(
+        ' <a class="external-offer-link" href="' +
+            brockhausData.results[facetID].searchAtBrockhaus +
+            '" target="_blank">' +
+            "Brockhaus</a> "
+    );
+    $(".encyclopediasearchhitcount").html(
+        " " + brockhausData.results[facetID].numFound + " "
+    );
+
+    if ($(".onlyAdditionalOfferFacets").length > 0)
+        $("#numresultsAdditionalOffers").html(
+            $("#encyclopedianumresults").html()
+        );
+    else $("#numresults").html($("#encyclopedianumresults").html());
+    $("#showCatalogHitList").attr(
+        "href",
+        "javascript:showCatalogHitListBrockhaus()"
+    );
 }
 
 function getBrockhausPagination(facetID, maxHitCount) {
-    var paginationText = '';
-    if ( brockhausData.results[facetID].numFound <= maxHitCount ) {
+    var paginationText = "";
+    if (brockhausData.results[facetID].numFound <= maxHitCount) {
         return paginationText;
     }
-    paginationText = '<div class="col-sm-6"><div id="top-pages" class="right-align"><nav class="pagination pagination-sm noprint"><ul class="pagination">';
-    
+    paginationText =
+        '<div class="col-sm-6"><div id="top-pages" class="right-align"><nav class="pagination pagination-sm noprint"><ul class="pagination">';
+
     var offset = brockhausData.results[facetID].start;
     var results_per_page = maxHitCount;
     var total = brockhausData.results[facetID].numFound;
-    
+
     var current_page = offset / results_per_page + 1;
     var last_page = Math.floor(total / results_per_page);
-    if ( ( total % results_per_page ) > 0 ) {
+    if (total % results_per_page > 0) {
         last_page = last_page + 1;
     }
     var last_page_offset = (last_page - 1) * results_per_page;
     var prev_page_offset = offset - results_per_page;
     var next_page_offset = offset + results_per_page;
-    if ( prev_page_offset > 0 && last_page > 2 ) {
-        paginationText += '<li class="page-item"><a href="javascript:getBrockhausResult(' + facetID + ',' + prev_page_offset + ')" class="page-link">' + prevPageTextBrockhaus + '</a></li>';
+    if (prev_page_offset > 0 && last_page > 2) {
+        paginationText +=
+            '<li class="page-item"><a href="javascript:getBrockhausResult(' +
+            facetID +
+            "," +
+            prev_page_offset +
+            ')" class="page-link">' +
+            prevPageTextBrockhaus +
+            "</a></li>";
     }
-    if ( current_page > 1 ) {
-        paginationText += '<li class="page-item"><a href="javascript:getBrockhausResult(' + facetID + ',0)" class="page-link">1</a></li>';
-        if ( current_page > 2 ) {
-            paginationText += '<li class="page-item"><a href="#" style="pointer-events: none;cursor: default;" class="page-link">...</a></li>';
+    if (current_page > 1) {
+        paginationText +=
+            '<li class="page-item"><a href="javascript:getBrockhausResult(' +
+            facetID +
+            ',0)" class="page-link">1</a></li>';
+        if (current_page > 2) {
+            paginationText +=
+                '<li class="page-item"><a href="#" style="pointer-events: none;cursor: default;" class="page-link">...</a></li>';
         }
-        if ( current_page > 2 && current_page == last_page ) {
-             paginationText += '<li class="page-item"><a href="javascript:getBrockhausResult(' + facetID + ',' + prev_page_offset + ')" class="page-link">' + (last_page - 1) + '</a></li>';
+        if (current_page > 2 && current_page == last_page) {
+            paginationText +=
+                '<li class="page-item"><a href="javascript:getBrockhausResult(' +
+                facetID +
+                "," +
+                prev_page_offset +
+                ')" class="page-link">' +
+                (last_page - 1) +
+                "</a></li>";
         }
-        paginationText += '<li class="page-item active"><a href="#" class="page-link">' + current_page + '</a></li>';
-    }
-    else {
-        paginationText += '<li class="page-item active"><a href="#" class="page-link">' + current_page + '</a></li>';
-        if ( last_page >= 2 ) {
-            paginationText += '<li class="page-item"><a href="javascript:getBrockhausResult(' + facetID + ',' + results_per_page + ')" class="page-link">2</a></li>';
+        paginationText +=
+            '<li class="page-item active"><a href="#" class="page-link">' +
+            current_page +
+            "</a></li>";
+    } else {
+        paginationText +=
+            '<li class="page-item active"><a href="#" class="page-link">' +
+            current_page +
+            "</a></li>";
+        if (last_page >= 2) {
+            paginationText +=
+                '<li class="page-item"><a href="javascript:getBrockhausResult(' +
+                facetID +
+                "," +
+                results_per_page +
+                ')" class="page-link">2</a></li>';
         }
     }
-    if ( ( ( current_page + 1 ) < last_page && current_page > 2 ) || ( last_page > 2 && current_page < 3 ) ) {
-        paginationText += '<li class="page-item"><a href="#" style="pointer-events: none;cursor: default;" class="page-link">...</a></li>';
+    if (
+        (current_page + 1 < last_page && current_page > 2) ||
+        (last_page > 2 && current_page < 3)
+    ) {
+        paginationText +=
+            '<li class="page-item"><a href="#" style="pointer-events: none;cursor: default;" class="page-link">...</a></li>';
     }
-    if ( last_page > 2 && current_page < last_page ) {
-        paginationText += '<li class="page-item"><a href="javascript:getBrockhausResult(' + facetID + ',' + last_page_offset + ')" class="page-link">' + last_page + '</a></li>&nbsp;';
-        paginationText += '<li class="page-item"><a href="javascript:getBrockhausResult(' + facetID + ',' + next_page_offset + ')" class="page-link">' + nextPageTextBrockhaus + '</a></li>';
+    if (last_page > 2 && current_page < last_page) {
+        paginationText +=
+            '<li class="page-item"><a href="javascript:getBrockhausResult(' +
+            facetID +
+            "," +
+            last_page_offset +
+            ')" class="page-link">' +
+            last_page +
+            "</a></li>&nbsp;";
+        paginationText +=
+            '<li class="page-item"><a href="javascript:getBrockhausResult(' +
+            facetID +
+            "," +
+            next_page_offset +
+            ')" class="page-link">' +
+            nextPageTextBrockhaus +
+            "</a></li>";
     }
-    
-    paginationText += '<ul></nav></div></div>';
-    
+
+    paginationText += "<ul></nav></div></div>";
+
     return paginationText;
 }
 function showCatalogHitListBrockhaus() {
-    if ( $("#userresults").css("display") == "none" ){
-        $('#numresults').html(origResultHeaderBrockhaus);
-        $('#userresults').toggle();
-        $('#encyclopediaresults').toggle();
-        $('#overdrive-results').toggle();
+    if ($("#userresults").css("display") == "none") {
+        $("#numresults").html(origResultHeaderBrockhaus);
+        $("#userresults").toggle();
+        $("#encyclopediaresults").toggle();
+        $("#overdrive-results").toggle();
     }
 }
-function generateBrockhausEntry(facetID,entryID) {
+function generateBrockhausEntry(facetID, entryID) {
     var rowElement = document.createElement("tr");
     var colElement = document.createElement("td");
-    colElement.setAttribute('class','bibliocol');
+    colElement.setAttribute("class", "bibliocol");
     var divElement = document.createElement("div");
-    divElement.setAttribute('class','coverimages');
+    divElement.setAttribute("class", "coverimages");
     var linkElement = document.createElement("a");
-    linkElement.setAttribute('class','p1');
-    linkElement.setAttribute('target','_blank');
-    linkElement.setAttribute('href',brockhausData.results[facetID].hitList[entryID].url);
-    linkElement.setAttribute('alt',brockhausData.results[facetID].hitList[entryID].title);
-    linkElement.setAttribute('title',brockhausData.results[facetID].hitList[entryID].title);
-    if ( brockhausData.results[facetID].hitList[entryID].thumbnail ) {
+    linkElement.setAttribute("class", "p1");
+    linkElement.setAttribute("target", "_blank");
+    linkElement.setAttribute(
+        "href",
+        brockhausData.results[facetID].hitList[entryID].url
+    );
+    linkElement.setAttribute(
+        "alt",
+        brockhausData.results[facetID].hitList[entryID].title
+    );
+    linkElement.setAttribute(
+        "title",
+        brockhausData.results[facetID].hitList[entryID].title
+    );
+    if (brockhausData.results[facetID].hitList[entryID].thumbnail) {
         var imageElement = document.createElement("img");
-        imageElement.setAttribute('width','170');
-        imageElement.setAttribute('src',brockhausData.results[facetID].hitList[entryID].thumbnail);
+        imageElement.setAttribute("width", "170");
+        imageElement.setAttribute(
+            "src",
+            brockhausData.results[facetID].hitList[entryID].thumbnail
+        );
         linkElement.appendChild(imageElement);
     } else {
         var divImageElement = document.createElement("div");
-        divImageElement.setAttribute('class','bro-logo');
-        divImageElement.setAttribute('style','border:1px solid silver; width:170px; height:60px; opacity:60%; margin:0px; overflow:hidden; text-align:center');
+        divImageElement.setAttribute("class", "bro-logo");
+        divImageElement.setAttribute(
+            "style",
+            "border:1px solid silver; width:170px; height:60px; opacity:60%; margin:0px; overflow:hidden; text-align:center"
+        );
         var imageElement = document.createElement("img");
-        imageElement.setAttribute('src','https://www.brockhaus.de/logo/brockhaus_logo_pos_250x250.png');
-        imageElement.setAttribute('alt','Brockhaus Logo');
-        imageElement.setAttribute('style','width:80px; position:relative; top:-10px');
+        imageElement.setAttribute(
+            "src",
+            "https://www.brockhaus.de/logo/brockhaus_logo_pos_250x250.png"
+        );
+        imageElement.setAttribute("alt", "Brockhaus Logo");
+        imageElement.setAttribute(
+            "style",
+            "width:80px; position:relative; top:-10px"
+        );
         divImageElement.appendChild(imageElement);
         linkElement.appendChild(divImageElement);
     }
     divElement.appendChild(linkElement);
     colElement.appendChild(divElement);
     rowElement.appendChild(colElement);
-    
+
     colElement = document.createElement("td");
-    colElement.setAttribute('class','bibliocol');
+    colElement.setAttribute("class", "bibliocol");
     var txtElement = document.createElement("a");
-    txtElement.setAttribute('class','title external-offer-link');
-    txtElement.setAttribute('target','_blank');
-    txtElement.setAttribute('href',brockhausData.results[facetID].hitList[entryID].url);
-    txtElement.textContent = brockhausData.results[facetID].hitList[entryID].title;
+    txtElement.setAttribute("class", "title external-offer-link");
+    txtElement.setAttribute("target", "_blank");
+    txtElement.setAttribute(
+        "href",
+        brockhausData.results[facetID].hitList[entryID].url
+    );
+    txtElement.textContent =
+        brockhausData.results[facetID].hitList[entryID].title;
     colElement.appendChild(txtElement);
-    if ( brockhausData.results[facetID].hitList[entryID].summary ) {
+    if (brockhausData.results[facetID].hitList[entryID].summary) {
         txtElement = document.createElement("span");
-        txtElement.setAttribute('class','results_summary summary');
-        txtElement.setAttribute('style','font-size: 100%');
-        txtElement.innerHTML = brockhausData.results[facetID].hitList[entryID].summary;
+        txtElement.setAttribute("class", "results_summary summary");
+        txtElement.setAttribute("style", "font-size: 100%");
+        txtElement.innerHTML =
+            brockhausData.results[facetID].hitList[entryID].summary;
         colElement.appendChild(txtElement);
     }
     rowElement.appendChild(colElement);
-    return '<tr>' + rowElement.innerHTML + '</tr>';
+    return "<tr>" + rowElement.innerHTML + "</tr>";
 }

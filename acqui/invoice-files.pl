@@ -30,23 +30,23 @@ Manage files associated with invoice
 use Modern::Perl;
 
 use CGI;
-use C4::Auth qw( get_template_and_user );
-use C4::Output qw( output_html_with_http_headers );
+use C4::Auth        qw( get_template_and_user );
+use C4::Output      qw( output_html_with_http_headers );
 use C4::Acquisition qw( GetInvoice GetInvoiceDetails );
 use Koha::Misc::Files;
 
 my $input = CGI->new;
 my ( $template, $loggedinuser, $cookie, $flags ) = get_template_and_user(
     {
-        template_name   => 'acqui/invoice-files.tt',
-        query           => $input,
-        type            => 'intranet',
-        flagsrequired   => { 'acquisition' => '*' },
+        template_name => 'acqui/invoice-files.tt',
+        query         => $input,
+        type          => 'intranet',
+        flagsrequired => { 'acquisition' => '*' },
     }
 );
 
 my $invoiceid = $input->param('invoiceid') // '';
-my $op = $input->param('op') // '';
+my $op        = $input->param('op')        // '';
 my %errors;
 
 my $mf = Koha::Misc::Files->new( tabletag => 'aqinvoices', recordid => $invoiceid );
@@ -54,25 +54,24 @@ defined($mf) || do { $op = 'none'; $errors{'invalid_parameter'} = 1; };
 
 if ( $op eq 'download' ) {
     my $file_id = $input->param('file_id');
-    my $file = $mf->GetFile( id => $file_id );
+    my $file    = $mf->GetFile( id => $file_id );
 
     my $fname = $file->{'file_name'};
     my $ftype = $file->{'file_type'};
-        print $input->header(
-            -type       => $file->{'file_type'},
-            -charset    => 'utf-8',
-            -attachment => $file->{'file_name'}
-        );
+    print $input->header(
+        -type       => $file->{'file_type'},
+        -charset    => 'utf-8',
+        -attachment => $file->{'file_name'}
+    );
     print $file->{'file_content'};
-}
-else {
+} else {
     my $details = GetInvoiceDetails($invoiceid);
     $template->param(
-        invoiceid        => $details->{'invoiceid'},
-        invoicenumber    => $details->{'invoicenumber'},
-        suppliername     => $details->{'suppliername'},
-        booksellerid     => $details->{'booksellerid'},
-        datereceived     => $details->{'datereceived'},
+        invoiceid     => $details->{'invoiceid'},
+        invoicenumber => $details->{'invoicenumber'},
+        suppliername  => $details->{'suppliername'},
+        booksellerid  => $details->{'booksellerid'},
+        datereceived  => $details->{'datereceived'},
     );
 
     if ( $op eq 'cud-upload' ) {
@@ -85,18 +84,17 @@ else {
             $errors{'empty_upload'} = 1 if ( -z $uploaded_file );
             unless (%errors) {
                 my $file_content = do { local $/; <$uploaded_file>; };
-                if ($mimetype =~ /^application\/(force-download|unknown)$/i && $filename =~ /\.pdf$/i) {
+                if ( $mimetype =~ /^application\/(force-download|unknown)$/i && $filename =~ /\.pdf$/i ) {
                     $mimetype = 'application/pdf';
                 }
                 $mf->AddFile(
-                    name    => $filename,
-                    type    => $mimetype,
-                    content => $file_content,
+                    name        => $filename,
+                    type        => $mimetype,
+                    content     => $file_content,
                     description => scalar $input->param('description')
                 );
             }
-        }
-        else {
+        } else {
             $errors{'no_file'} = 1;
         }
     } elsif ( $op eq 'cud-delete' ) {
@@ -104,7 +102,7 @@ else {
     }
 
     $template->param(
-        files => (defined($mf)? $mf->GetFilesInfo(): undef),
+        files  => ( defined($mf) ? $mf->GetFilesInfo() : undef ),
         errors => \%errors
     );
     output_html_with_http_headers $input, $cookie, $template->output;

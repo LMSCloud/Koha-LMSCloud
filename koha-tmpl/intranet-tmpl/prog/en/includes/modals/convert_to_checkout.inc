@@ -11,9 +11,9 @@
                 </div>
                 <div class="modal-body">
                     <div id="convert_to_checkout_result"></div>
-                    <input type="hidden" name="borrowernumber" id="convert_borrowernumber">
-                    <input type="hidden" name="barcode" id="convert_barcode">
-                    <input type="hidden" name="duedatespec" id="convert_duedatespec">
+                    <input type="hidden" name="borrowernumber" id="convert_borrowernumber" />
+                    <input type="hidden" name="barcode" id="convert_barcode" />
+                    <input type="hidden" name="duedatespec" id="convert_duedatespec" />
                     <p>Are you sure you want to convert this booking to a checkout?</p>
                     <dl>
                         <dt>Title</dt>
@@ -25,12 +25,17 @@
                         <dt>Due date</dt>
                         <dd id="convert_due_date"></dd>
                     </dl>
-                </div> <!-- /.modal-body -->
+                </div>
+                <!-- /.modal-body -->
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-primary">Confirm checkout</button>
                     <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
-                </div> <!-- /.modal-footer -->
-            </div> <!-- /.modal-content -->
-        </div> <!-- /.modal-dialog -->
+                </div>
+                <!-- /.modal-footer -->
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
     </form>
-</div> <!-- /#convertToCheckoutModal -->
+</div>
+<!-- /#convertToCheckoutModal -->

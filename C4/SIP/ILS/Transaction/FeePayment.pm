@@ -41,7 +41,7 @@ sub new {
         $self->{_permitted}->{$_} = $fields{$_};    # overlaying _permitted
     }
 
-    @{$self}{ keys %fields } = values %fields;    # copying defaults into object
+    @{$self}{ keys %fields } = values %fields;      # copying defaults into object
     return bless $self, $class;
 }
 
@@ -66,26 +66,26 @@ sub pay {
 
     my $withoutCashRegisterManagement = checkOpenedCashRegisterIfConfigured();
 
-    siplog("LOG_DEBUG", "pay fee: borrowernumber %d, sip_type %s, amount %f, withoutCashRegisterManagement = %d",$borrowernumber, $amt, $sip_type, $withoutCashRegisterManagement);
+    siplog(
+        "LOG_DEBUG",     "pay fee: borrowernumber %d, sip_type %s, amount %f, withoutCashRegisterManagement = %d",
+        $borrowernumber, $amt, $sip_type, $withoutCashRegisterManagement
+    );
 
     my $pay_options = {
-        amount        => $amt,
-        type          => $type,
-        payment_type  => 'SIP' . $sip_type,
-        interface     => C4::Context->interface,
-        cash_register => $register_id,
+        amount                        => $amt,
+        type                          => $type,
+        payment_type                  => 'SIP' . $sip_type,
+        interface                     => C4::Context->interface,
+        cash_register                 => $register_id,
         withoutCashRegisterManagement => $withoutCashRegisterManagement,
     };
 
     if ($fee_id) {
         my $fee = Koha::Account::Lines->find($fee_id);
-        if ( $fee ) {
+        if ($fee) {
             $pay_options->{lines} = [$fee];
-        }
-        else {
-            return {
-                ok => 0
-            };
+        } else {
+            return { ok => 0 };
         }
     }
 
@@ -94,14 +94,12 @@ sub pay {
     my $error;
     try {
         $pay_response = $account->pay($pay_options);
-    }
-    catch {
+    } catch {
         $ok = 0;
 
         if ( ref($_) =~ /^Koha::Exceptions/ ) {
             $error = $_->description;
-        }
-        else {
+        } else {
             $_->rethrow;
         }
     };
@@ -115,37 +113,42 @@ sub pay {
 
 sub checkOpenedCashRegisterIfConfigured {
     my $withoutCashRegisterManagement = 1;
-    
-    my $cashregname = C4::Context->preference('SIPCashRegisterName');
-    my $branch      = C4::Context->userenv->{branch};
-    my $manager_id  = C4::Context->userenv->{number};
+
+    my $cashregname                      = C4::Context->preference('SIPCashRegisterName');
+    my $branch                           = C4::Context->userenv->{branch};
+    my $manager_id                       = C4::Context->userenv->{number};
     my $retWithoutCashRegisterManagement = 1;
-    
-    if ( $cashregname ) {
-        
-        my $cashRegisterMngmt = C4::CashRegisterManagement->new($branch, $manager_id);
+
+    if ($cashregname) {
+
+        my $cashRegisterMngmt  = C4::CashRegisterManagement->new( $branch, $manager_id );
         my $openedCashRegister = $cashRegisterMngmt->getOpenedCashRegisterByManagerID($manager_id);
-        
-        siplog("LOG_DEBUG", "sip pay fee: use cash register %s (current status open: %d)",$cashregname,($openedCashRegister ? 1 : 0));
-        
-        if ( $openedCashRegister ) {
+
+        siplog(
+            "LOG_DEBUG", "sip pay fee: use cash register %s (current status open: %d)", $cashregname,
+            ( $openedCashRegister ? 1 : 0 )
+        );
+
+        if ($openedCashRegister) {
             if ( $openedCashRegister->{'cash_register_name'} ne $cashregname ) {
-                $cashRegisterMngmt->closeCashRegister($openedCashRegister->{'cash_register_id'}, $manager_id);
+                $cashRegisterMngmt->closeCashRegister( $openedCashRegister->{'cash_register_id'}, $manager_id );
                 $openedCashRegister = undef;
-            }
-            else {
+            } else {
                 $withoutCashRegisterManagement = 0;
             }
         }
-        if (! $openedCashRegister ) {
+        if ( !$openedCashRegister ) {
             my $cashRegisterId = $cashRegisterMngmt->readCashRegisterIdByName($cashregname);
-            if ( defined $cashRegisterId && $cashRegisterMngmt->canOpenCashRegister($cashRegisterId, $manager_id) ) {
-                $openedCashRegister = $cashRegisterMngmt->openCashRegister($cashRegisterId, $manager_id);
+            if ( defined $cashRegisterId && $cashRegisterMngmt->canOpenCashRegister( $cashRegisterId, $manager_id ) ) {
+                $openedCashRegister            = $cashRegisterMngmt->openCashRegister( $cashRegisterId, $manager_id );
                 $withoutCashRegisterManagement = 0 if ($openedCashRegister);
             }
         }
-        if (! $openedCashRegister ) {
-            siplog("LOG_ERROR", "Cannot open cash register '%s' for manager id '%s' of branch '%s' for SIP payment.", $cashregname, $manager_id, $branch);
+        if ( !$openedCashRegister ) {
+            siplog(
+                "LOG_ERROR",  "Cannot open cash register '%s' for manager id '%s' of branch '%s' for SIP payment.",
+                $cashregname, $manager_id, $branch
+            );
         }
     }
     return $withoutCashRegisterManagement;

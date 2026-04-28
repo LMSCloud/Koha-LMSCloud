@@ -288,8 +288,8 @@ if ($verbose) {
 }
 if ($doit) {
     my $params = { category => $tocat };
-    $params->{removeGuarantors} = 1 if ( $reldel );
-    $actually_updated = $target_patrons->update_category_to( $params );
+    $params->{removeGuarantors} = 1 if ($reldel);
+    $actually_updated = $target_patrons->update_category_to($params);
 }
 
 $verbose and print "$patrons_found found, $actually_updated updated\n";

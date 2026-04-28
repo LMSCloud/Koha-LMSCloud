@@ -24,7 +24,7 @@ use Koha::Calendar;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Libraries;
 use Scalar::Util qw( blessed );
-use Try::Tiny qw( catch try );
+use Try::Tiny    qw( catch try );
 
 =head1 NAME
 
@@ -48,8 +48,7 @@ sub list {
     return try {
         my $libraries = $c->objects->search( Koha::Libraries->new );
         return $c->render( status => 200, openapi => $libraries );
-    }
-    catch {
+    } catch {
         $c->unhandled_exception($_);
     };
 }
@@ -96,8 +95,7 @@ sub add {
             status  => 201,
             openapi => $c->objects->to_api($library),
         );
-    }
-    catch {
+    } catch {
         if ( blessed $_ && $_->isa('Koha::Exceptions::Object::DuplicateID') ) {
             return $c->render(
                 status  => 409,
@@ -125,14 +123,13 @@ sub update {
 
     return try {
         my $params = $c->req->json;
-        $library->set_from_api( $params );
+        $library->set_from_api($params);
         $library->store();
         return $c->render(
             status  => 200,
             openapi => $c->objects->to_api($library),
         );
-    }
-    catch {
+    } catch {
         $c->unhandled_exception($_);
     };
 }
@@ -147,7 +144,7 @@ sub delete {
 
     my $c = shift->openapi->valid_input or return;
 
-    my $library = Koha::Libraries->find( $c->param( 'library_id' ) );
+    my $library = Koha::Libraries->find( $c->param('library_id') );
 
     return $c->render_resource_not_found("Library")
         unless $library;
@@ -155,8 +152,7 @@ sub delete {
     return try {
         $library->delete;
         return $c->render_resource_deleted;
-    }
-    catch {
+    } catch {
         $c->unhandled_exception($_);
     };
 }
@@ -210,8 +206,7 @@ sub list_holidays {
             status  => 200,
             openapi => $holidays
         );
-    }
-    catch {
+    } catch {
         $c->unhandled_exception($_);
     };
 }

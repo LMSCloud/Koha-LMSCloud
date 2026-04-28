@@ -171,9 +171,9 @@ if ( $op eq 'cud-order' ) {
 
         my $vars = $input->Vars;
         my @vars_loop;
-        foreach (keys %$vars) {
+        foreach ( keys %$vars ) {
             push @vars_loop, {
-                name => $_,
+                name   => $_,
                 values => [ $input->multi_param($_) ],
             };
         }

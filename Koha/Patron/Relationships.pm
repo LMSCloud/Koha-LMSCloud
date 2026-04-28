@@ -48,20 +48,21 @@ sub guarantors {
     my $rs = $self->_resultset();
 
     my @guarantor_ids = $rs->get_column('guarantor_id')->all();
+
     # Guarantors may not have a guarantor_id, strip out undefs
     @guarantor_ids = grep { defined $_ } @guarantor_ids;
-    @guarantor_ids = uniq( @guarantor_ids );
+    @guarantor_ids = uniq(@guarantor_ids);
 
     return Koha::Patrons->search( { borrowernumber => \@guarantor_ids } );
 }
 
 sub hasFamilyCardRelationship {
     my ($self) = @_;
-    
+
     my @guarantors = $self->guarantors()->as_list;
-    
-    foreach my $guarantor(@guarantors) {
-        return 1 if ($guarantor->is_family_card);
+
+    foreach my $guarantor (@guarantors) {
+        return 1 if ( $guarantor->is_family_card );
     }
     return undef;
 }
@@ -82,9 +83,7 @@ sub guarantees {
 
     return Koha::Patrons->search(
         { borrowernumber => \@guarantee_ids },
-        {
-            order_by => { -asc => [ 'surname', 'firstname' ] }
-        },
+        { order_by       => { -asc => [ 'surname', 'firstname' ] } },
     );
 }
 

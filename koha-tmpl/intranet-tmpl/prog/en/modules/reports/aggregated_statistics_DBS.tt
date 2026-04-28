@@ -31,22 +31,20 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-
 <div class="main container-fluid">
     <div class="row">
         <div class="col-sm-12">
             <main>
-
                 <h1>[% statisticstypedesignation | html %] [% name | html %]</h1>
 
                 <div class="page-section">
                     <h4>Report period: [% startdate | $KohaDates %] - [% enddate | $KohaDates %]</h4>
-                    <h4>Library group:[% IF ( selectedgroup == "*" ) %] All library groups[% ELSE %] [% selectedgroupname | html %][% END %]</h4>
-                    <h4>Library:[% IF ( selectedbranch == "*" ) %] All libraries[% ELSE %] [% selectedbranchname | html %][% END %]</h4>
+                    <h4>Library group:[% IF ( selectedgroup == "*" ) %]All library groups[% ELSE %][% selectedgroupname | html %][% END %]</h4>
+                    <h4>Library:[% IF ( selectedbranch == "*" ) %]All libraries[% ELSE %][% selectedbranchname | html %][% END %]</h4>
 
                     <div>The fields marked with <b style="font-size: 125%">*</b> will be overwritten by values selected from Koha when clicking on button 'Recalculate'.</div>
                 </div>
-                
+
                 <div id="toolbar" class="btn-toolbar">
                     <div class="btn-group">
                         <button class="btn btn-default btn-xs" id="DBScalc" name="DBScalc"><i class="fa fa-calculator"></i> Recalculate</button>
@@ -60,13 +58,13 @@
                     <div class="btn-group">
                         <button class="btn btn-default btn-xs dropdown-toggle" data-bs-toggle="dropdown" id="DBSdownload" name="DBSdownload"><i class="fa fa-download"></i> Download <span class="caret"></span></button>
                         <ul class="dropdown-menu">
-                            <li><a id="DBSdownload_csv" >Comma separated text</a></li>
-                            <li><a id="DBSdownload_tab" >Tab separated text</a></li>
-                            <li><a id="DBSdownload_dbs_base_questionaire" >DBS base questionaire</a></li>
-                            <li><a id="DBSdownload_dbs_incl_patients_lib" > + patients' libraries</a></li>
-                            <li><a id="DBSdownload_dbs_incl_mobile_lib" > + mobile libraries</a></li>
-                            <li><a id="DBSdownload_dbs_incl_music_lib" > + music libraries</a></li>
-                            <li><a id="DBSdownload_dbs_incl_school_lib" > + school libraries</a></li>
+                            <li><a id="DBSdownload_csv">Comma separated text</a></li>
+                            <li><a id="DBSdownload_tab">Tab separated text</a></li>
+                            <li><a id="DBSdownload_dbs_base_questionaire">DBS base questionaire</a></li>
+                            <li><a id="DBSdownload_dbs_incl_patients_lib"> + patients' libraries</a></li>
+                            <li><a id="DBSdownload_dbs_incl_mobile_lib"> + mobile libraries</a></li>
+                            <li><a id="DBSdownload_dbs_incl_music_lib"> + music libraries</a></li>
+                            <li><a id="DBSdownload_dbs_incl_school_lib"> + school libraries</a></li>
                         </ul>
                     </div>
                 </div>
@@ -86,7 +84,7 @@
                         <thead>
                             <tr>
                                 <th class="NoSort" colspan="2">1. ALLGEMEINE ANGABEN</th>
-                                <th class="NoSort">Berichtszeitraum: <br>[% startdate | $KohaDates %] - [% enddate | $KohaDates %]</th>
+                                <th class="NoSort">Berichtszeitraum: <br />[% startdate | $KohaDates %] - [% enddate | $KohaDates %]</th>
                             </tr>
                         </thead>
 
@@ -144,7 +142,14 @@
                                 <td>6</td>
                                 <td>Publikumsfläche gesamt (m²)</td>
                                 <td>
-                                    <input type="text" id="st_gen_publicarea" name="st_gen_publicarea" value="[% st.gen_publicarea | $Price %]"  oninput="floatInput(document.DBS_edit.st_gen_publicarea,2)"  onchange="moneyFormat(document.DBS_edit.st_gen_publicarea)" />
+                                    <input
+                                        type="text"
+                                        id="st_gen_publicarea"
+                                        name="st_gen_publicarea"
+                                        value="[% st.gen_publicarea | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_gen_publicarea,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_gen_publicarea)"
+                                    />
                                 </td>
                             </tr>
 
@@ -152,7 +157,14 @@
                                 <td>6.1</td>
                                 <td>... darunter: Publikumsfläche der Hauptstelle (m²)</td>
                                 <td>
-                                    <input type="text" id="st_gen_publicarea_central" name="st_gen_publicarea_central" value="[% st.gen_publicarea_central | $Price %]"  oninput="floatInput(document.DBS_edit.st_gen_publicarea_central,2)"  onchange="moneyFormat(document.DBS_edit.st_gen_publicarea_central)" />
+                                    <input
+                                        type="text"
+                                        id="st_gen_publicarea_central"
+                                        name="st_gen_publicarea_central"
+                                        value="[% st.gen_publicarea_central | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_gen_publicarea_central,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_gen_publicarea_central)"
+                                    />
                                 </td>
                             </tr>
 
@@ -160,7 +172,14 @@
                                 <td>7</td>
                                 <td>Jahresöffnungsstunden mit Bibliothekspersonal</td>
                                 <td>
-                                    <input type="text" id="st_gen_openinghours_year" name="st_gen_openinghours_year" value="[% st.gen_openinghours_year | $Price %]"  oninput="floatInput(document.DBS_edit.st_gen_openinghours_year,2)"  onchange="moneyFormat(document.DBS_edit.st_gen_openinghours_year)" />
+                                    <input
+                                        type="text"
+                                        id="st_gen_openinghours_year"
+                                        name="st_gen_openinghours_year"
+                                        value="[% st.gen_openinghours_year | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_gen_openinghours_year,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_gen_openinghours_year)"
+                                    />
                                 </td>
                             </tr>
 
@@ -168,7 +187,14 @@
                                 <td>7.1</td>
                                 <td>Jahresöffnungsstunden für Open Library (servicefreie Zeit)</td>
                                 <td>
-                                    <input type="text" id="st_gen_openinghours_year_open_library" name="st_gen_openinghours_year_open_library" value="[% st.gen_openinghours_year_open_library | $Price %]"  oninput="floatInput(document.DBS_edit.st_gen_openinghours_year_open_library,2)"  onchange="moneyFormat(document.DBS_edit.st_gen_openinghours_year_open_library)" />
+                                    <input
+                                        type="text"
+                                        id="st_gen_openinghours_year_open_library"
+                                        name="st_gen_openinghours_year_open_library"
+                                        value="[% st.gen_openinghours_year_open_library | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_gen_openinghours_year_open_library,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_gen_openinghours_year_open_library)"
+                                    />
                                 </td>
                             </tr>
 
@@ -189,7 +215,14 @@
                                 <td>8</td>
                                 <td>Wochenöffnungsstunden mit Bibliothekspersonal</td>
                                 <td>
-                                    <input type="text" id="st_gen_openinghours_week" name="st_gen_openinghours_week" value="[% st.gen_openinghours_week | $Price %]"  oninput="floatInput(document.DBS_edit.st_gen_openinghours_week,2)"  onchange="moneyFormat(document.DBS_edit.st_gen_openinghours_week)" />
+                                    <input
+                                        type="text"
+                                        id="st_gen_openinghours_week"
+                                        name="st_gen_openinghours_week"
+                                        value="[% st.gen_openinghours_week | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_gen_openinghours_week,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_gen_openinghours_week)"
+                                    />
                                 </td>
                             </tr>
 
@@ -197,15 +230,21 @@
                                 <td>8.1</td>
                                 <td>Wochenöffnungsstunden für Open Library (servicefreie Zeit)</td>
                                 <td>
-                                    <input type="text" id="st_gen_openinghours_week_open_library" name="st_gen_openinghours_week_open_library" value="[% st.gen_openinghours_week_open_library | $Price %]"  oninput="floatInput(document.DBS_edit.st_gen_openinghours_week_open_library,2)"  onchange="moneyFormat(document.DBS_edit.st_gen_openinghours_week_open_library)" />
+                                    <input
+                                        type="text"
+                                        id="st_gen_openinghours_week_open_library"
+                                        name="st_gen_openinghours_week_open_library"
+                                        value="[% st.gen_openinghours_week_open_library | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_gen_openinghours_week_open_library,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_gen_openinghours_week_open_library)"
+                                    />
                                 </td>
                             </tr>
                         </tbody>
 
-
                         <thead>
                             <tr>
-                                <th  colspan="2">2. BESUCHE</th>
+                                <th colspan="2">2. BESUCHE</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -214,17 +253,13 @@
                             <tr>
                                 <td>9</td>
                                 <td>Aktive Benutzer</td>
-                                <td>
-                                    <input type="number" id="st_pat_active" name="st_pat_active" min="0" size="12" maxlength="12" value="[% st.pat_active | html %]" /> <b style="font-size: 125%">*</b> (obsolet)
-                                </td>
+                                <td> <input type="number" id="st_pat_active" name="st_pat_active" min="0" size="12" maxlength="12" value="[% st.pat_active | html %]" /> <b style="font-size: 125%">*</b> (obsolet) </td>
                             </tr>
 
                             <tr>
                                 <td>10.1</td>
                                 <td>... darunter: Aktive Benutzer bis einschl. 12 Jahre</td>
-                                <td>
-                                    <input type="number" id="st_pat_active_to_12" name="st_pat_active_to_12" min="0" size="12" maxlength="12" value="[% st.pat_active_to_12 | html %]" /> <b style="font-size: 125%">*</b> (obsolet)
-                                </td>
+                                <td> <input type="number" id="st_pat_active_to_12" name="st_pat_active_to_12" min="0" size="12" maxlength="12" value="[% st.pat_active_to_12 | html %]" /> <b style="font-size: 125%">*</b> (obsolet) </td>
                             </tr>
 
                             <tr>
@@ -247,7 +282,8 @@
                                 <td>11</td>
                                 <td>Neuanmeldungen</td>
                                 <td>
-                                    <input type="number" id="st_pat_new_registrations" name="st_pat_new_registrations" min="0" size="12" maxlength="12" value="[% st.pat_new_registrations | html %]" /> <b style="font-size: 125%">*</b> (obsolet)
+                                    <input type="number" id="st_pat_new_registrations" name="st_pat_new_registrations" min="0" size="12" maxlength="12" value="[% st.pat_new_registrations | html %]" />
+                                    <b style="font-size: 125%">*</b> (obsolet)
                                 </td>
                             </tr>
 
@@ -262,12 +298,9 @@
                             <tr>
                                 <td>12.1</td>
                                 <td>Virtuelle Besuche (visits) - Eingabe gesperrt</td>
-                                <td>
-                                    <input type="number" id="st_pat_visits_virt" name="st_pat_visits_virt" min="0" size="12" maxlength="12" value="[% st.pat_visits_virt | html %]" disabled /> (obsolet)
-                                </td>
+                                <td> <input type="number" id="st_pat_visits_virt" name="st_pat_visits_virt" min="0" size="12" maxlength="12" value="[% st.pat_visits_virt | html %]" disabled /> (obsolet) </td>
                             </tr>
                         </tbody>
-
 
                         <thead>
                             <tr>
@@ -281,90 +314,68 @@
                                 <!-- row index 020 -->
                                 <td>13</td>
                                 <td>Medien insgesamt - physischer Bestand</td>
-                                <td>
-                                    <input type="number" id="st_med_tot_phys_stock" name="st_med_tot_phys_stock" min="0" size="12" maxlength="12" value="[% st.med_tot_phys_stock | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_med_tot_phys_stock" name="st_med_tot_phys_stock" min="0" size="12" maxlength="12" value="[% st.med_tot_phys_stock | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>14</td>
                                 <td>Medien insgesamt - Entleihungen</td>
-                                <td>
-                                    <input type="number" id="st_med_tot_issues" name="st_med_tot_issues" min="0" size="12" maxlength="12" value="[% st.med_tot_issues | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_med_tot_issues" name="st_med_tot_issues" min="0" size="12" maxlength="12" value="[% st.med_tot_issues | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>14.1</td>
                                 <td>Physische Medien insgesamt - Entleihungen</td>
-                                <td>
-                                    <input type="number" id="st_med_phys_issues" name="st_med_phys_issues" min="0" size="12" maxlength="12" value="[% st.med_phys_issues | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_med_phys_issues" name="st_med_phys_issues" min="0" size="12" maxlength="12" value="[% st.med_phys_issues | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>15</td>
                                 <td>Medien in Freihandaufstellung insges. - Bestand</td>
-                                <td>
-                                    <input type="number" id="st_med_openaccess_stock" name="st_med_openaccess_stock" min="0" size="12" maxlength="12" value="[% st.med_openaccess_stock | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_med_openaccess_stock" name="st_med_openaccess_stock" min="0" size="12" maxlength="12" value="[% st.med_openaccess_stock | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>16</td>
                                 <td>Medien in Freihandaufstellung bzw. im 'direkten Zugriff' insges. - Entleihungen</td>
-                                <td>
-                                    <input type="number" id="st_med_openaccess_issues" name="st_med_openaccess_issues" min="0" size="12" maxlength="12" value="[% st.med_openaccess_issues | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_med_openaccess_issues" name="st_med_openaccess_issues" min="0" size="12" maxlength="12" value="[% st.med_openaccess_issues | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>17</td>
                                 <td>Magazinbestand - Printmedien und Non-Print-Medien in physischen Einheiten</td>
-                                <td>
-                                    <input type="number" id="st_med_stack_stock" name="st_med_stack_stock" min="0" size="12" maxlength="12" value="[% st.med_stack_stock | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_med_stack_stock" name="st_med_stack_stock" min="0" size="12" maxlength="12" value="[% st.med_stack_stock | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>18</td>
                                 <td>Printmedien insgesamt - Bestand</td>
-                                <td>
-                                    <input type="number" id="st_med_print_stock" name="st_med_print_stock" min="0" size="12" maxlength="12" value="[% st.med_print_stock | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_med_print_stock" name="st_med_print_stock" min="0" size="12" maxlength="12" value="[% st.med_print_stock | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>19</td>
                                 <td>Printmedien insgesamt - Entleihungen</td>
-                                <td>
-                                    <input type="number" id="st_med_print_issues" name="st_med_print_issues" min="0" size="12" maxlength="12" value="[% st.med_print_issues | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_med_print_issues" name="st_med_print_issues" min="0" size="12" maxlength="12" value="[% st.med_print_issues | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>24</td>
                                 <td>... darunter: Kinder- und Jugendliteratur - Bestand</td>
-                                <td>
-                                    <input type="number" id="st_med_juvenile_stock" name="st_med_juvenile_stock" min="0" size="12" maxlength="12" value="[% st.med_juvenile_stock | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_med_juvenile_stock" name="st_med_juvenile_stock" min="0" size="12" maxlength="12" value="[% st.med_juvenile_stock | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>25</td>
                                 <td>... darunter: Kinder- und Jugendliteratur - Entleihungen</td>
-                                <td>
-                                    <input type="number" id="st_med_juvenile_issues" name="st_med_juvenile_issues" min="0" size="12" maxlength="12" value="[% st.med_juvenile_issues | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_med_juvenile_issues" name="st_med_juvenile_issues" min="0" size="12" maxlength="12" value="[% st.med_juvenile_issues | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <!-- row index 030 -->
                                 <td>28</td>
                                 <td>Non-Prints und Sonstiges - Bestand</td>
-                                <td>
-                                    <input type="number" id="st_med_nonbook_tot_stock" name="st_med_nonbook_tot_stock" min="0" size="12" maxlength="12" value="[% st.med_nonbook_tot_stock | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_med_nonbook_tot_stock" name="st_med_nonbook_tot_stock" min="0" size="12" maxlength="12" value="[% st.med_nonbook_tot_stock | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
@@ -402,9 +413,7 @@
                             <tr>
                                 <td>36</td>
                                 <td>Zugang an Medieneinheiten</td>
-                                <td>
-                                    <input type="number" id="st_med_access_units" name="st_med_access_units" min="0" size="12" maxlength="12" value="[% st.med_access_units | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_med_access_units" name="st_med_access_units" min="0" size="12" maxlength="12" value="[% st.med_access_units | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
@@ -427,16 +436,15 @@
                                 <td>38.1</td>
                                 <td>Nutzung lizenzierter virtueller Plattformen (Anzahl der Logins)</td>
                                 <td>
-                                    <input type="number" id="st_med_database_login_cnt" name="st_med_database_login_cnt" min="0" size="12" maxlength="12" value="[% st.med_database_login_cnt | html %]" /> <b style="font-size: 125%">*</b> (obsolet)
+                                    <input type="number" id="st_med_database_login_cnt" name="st_med_database_login_cnt" min="0" size="12" maxlength="12" value="[% st.med_database_login_cnt | html %]" />
+                                    <b style="font-size: 125%">*</b> (obsolet)
                                 </td>
                             </tr>
 
                             <tr>
                                 <td>38.2</td>
                                 <td>Die Authentifizierung wird über Single-Sign-On vorgenommen</td>
-                                <td>
-                                    <input disabled type="checkbox" id="st_med_database_authsso_yn" name="st_med_database_authsso_yn" value="1" checked="checked" /> (obsolet)
-                                </td>
+                                <td> <input disabled type="checkbox" id="st_med_database_authsso_yn" name="st_med_database_authsso_yn" value="1" checked="checked" /> (obsolet) </td>
                             </tr>
 
                             <tr>
@@ -493,7 +501,6 @@
                             </tr>
                         </tbody>
 
-
                         <thead>
                             <tr>
                                 <th colspan="2">4. AUSGABEN, FINANZEN</th>
@@ -506,7 +513,14 @@
                                 <td>49</td>
                                 <td>Ausgaben insgesamt</td>
                                 <td>
-                                    <input type="text" id="st_fin_current_expenses_tot" name="st_fin_current_expenses_tot" value="[% st.fin_current_expenses_tot | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_current_expenses_tot,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_current_expenses_tot)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_current_expenses_tot"
+                                        name="st_fin_current_expenses_tot"
+                                        value="[% st.fin_current_expenses_tot | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_current_expenses_tot,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_current_expenses_tot)"
+                                    />
                                 </td>
                             </tr>
 
@@ -514,7 +528,14 @@
                                 <td>50</td>
                                 <td>... davon: Ausgaben für Erwerbung (inkl. Einband und Lizenzen)</td>
                                 <td>
-                                    <input type="text" id="st_fin_cur_exp_acquisitions" name="st_fin_cur_exp_acquisitions" value="[% st.fin_cur_exp_acquisitions | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_cur_exp_acquisitions,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_acquisitions)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_cur_exp_acquisitions"
+                                        name="st_fin_cur_exp_acquisitions"
+                                        value="[% st.fin_cur_exp_acquisitions | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_cur_exp_acquisitions,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_acquisitions)"
+                                    />
                                 </td>
                             </tr>
 
@@ -522,7 +543,14 @@
                                 <td>50.1</td>
                                 <td>... darunter: Ausgaben für virtuelle Medien (Lizenzen)</td>
                                 <td>
-                                    <input type="text" id="st_fin_cur_exp_acq_licences" name="st_fin_cur_exp_acq_licences" value="[% st.fin_cur_exp_acq_licences | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_cur_exp_acq_licences,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_acq_licences)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_cur_exp_acq_licences"
+                                        name="st_fin_cur_exp_acq_licences"
+                                        value="[% st.fin_cur_exp_acq_licences | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_cur_exp_acq_licences,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_acq_licences)"
+                                    />
                                 </td>
                             </tr>
 
@@ -530,7 +558,14 @@
                                 <td>51</td>
                                 <td>... davon: Ausgaben für Personal</td>
                                 <td>
-                                    <input type="text" id="st_fin_cur_exp_staff" name="st_fin_cur_exp_staff" value="[% st.fin_cur_exp_staff | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_cur_exp_staff,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_staff)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_cur_exp_staff"
+                                        name="st_fin_cur_exp_staff"
+                                        value="[% st.fin_cur_exp_staff | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_cur_exp_staff,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_staff)"
+                                    />
                                 </td>
                             </tr>
 
@@ -538,7 +573,14 @@
                                 <td>52</td>
                                 <td>... davon: sonstige laufende Ausgaben (inklusive Portalkosten)</td>
                                 <td>
-                                    <input type="text" id="st_fin_cur_exp_other" name="st_fin_cur_exp_other" value="[% st.fin_cur_exp_other | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_cur_exp_other,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_other)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_cur_exp_other"
+                                        name="st_fin_cur_exp_other"
+                                        value="[% st.fin_cur_exp_other | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_cur_exp_other,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_cur_exp_other)"
+                                    />
                                 </td>
                             </tr>
 
@@ -547,7 +589,14 @@
                                 <td>53</td>
                                 <td>Einmalige Investitionen</td>
                                 <td>
-                                    <input type="text" id="st_fin_singulary_investments" name="st_fin_singulary_investments" value="[% st.fin_singulary_investments | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_singulary_investments,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_singulary_investments)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_singulary_investments"
+                                        name="st_fin_singulary_investments"
+                                        value="[% st.fin_singulary_investments | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_singulary_investments,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_singulary_investments)"
+                                    />
                                 </td>
                             </tr>
 
@@ -555,7 +604,14 @@
                                 <td>54</td>
                                 <td>Gesamtausgaben</td>
                                 <td>
-                                    <input type="text" id="st_fin_expenses_tot" name="st_fin_expenses_tot" value="[% st.fin_expenses_tot | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_expenses_tot,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_expenses_tot)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_expenses_tot"
+                                        name="st_fin_expenses_tot"
+                                        value="[% st.fin_expenses_tot | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_expenses_tot,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_expenses_tot)"
+                                    />
                                 </td>
                             </tr>
 
@@ -563,7 +619,14 @@
                                 <td>55</td>
                                 <td>Ausgaben des Trägers für die Bibliothek</td>
                                 <td>
-                                    <input type="text" id="st_fin_costunit_expenses" name="st_fin_costunit_expenses" value="[% st.fin_costunit_expenses | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_costunit_expenses,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_costunit_expenses)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_costunit_expenses"
+                                        name="st_fin_costunit_expenses"
+                                        value="[% st.fin_costunit_expenses | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_costunit_expenses,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_costunit_expenses)"
+                                    />
                                 </td>
                             </tr>
 
@@ -571,7 +634,14 @@
                                 <td>56</td>
                                 <td>Drittmittel insgesamt</td>
                                 <td>
-                                    <input type="text" id="st_fin_external_funds_tot" name="st_fin_external_funds_tot" value="[% st.fin_external_funds_tot | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_external_funds_tot,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_external_funds_tot)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_external_funds_tot"
+                                        name="st_fin_external_funds_tot"
+                                        value="[% st.fin_external_funds_tot | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_external_funds_tot,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_external_funds_tot)"
+                                    />
                                 </td>
                             </tr>
 
@@ -579,7 +649,14 @@
                                 <td>57</td>
                                 <td>... davon: Europäische Union</td>
                                 <td>
-                                    <input type="text" id="st_fin_ext_funds_EU" name="st_fin_ext_funds_EU" value="[% st.fin_ext_funds_EU | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_ext_funds_EU,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_EU)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_ext_funds_EU"
+                                        name="st_fin_ext_funds_EU"
+                                        value="[% st.fin_ext_funds_EU | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_ext_funds_EU,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_EU)"
+                                    />
                                 </td>
                             </tr>
 
@@ -587,7 +664,14 @@
                                 <td>58</td>
                                 <td>... davon: Bund</td>
                                 <td>
-                                    <input type="text" id="st_fin_ext_funds_national" name="st_fin_ext_funds_national" value="[% st.fin_ext_funds_national | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_ext_funds_national,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_national)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_ext_funds_national"
+                                        name="st_fin_ext_funds_national"
+                                        value="[% st.fin_ext_funds_national | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_ext_funds_national,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_national)"
+                                    />
                                 </td>
                             </tr>
 
@@ -595,7 +679,14 @@
                                 <td>59</td>
                                 <td>... davon: Land</td>
                                 <td>
-                                    <input type="text" id="st_fin_ext_funds_fedstate" name="st_fin_ext_funds_fedstate" value="[% st.fin_ext_funds_fedstate | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_ext_funds_fedstate,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_fedstate)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_ext_funds_fedstate"
+                                        name="st_fin_ext_funds_fedstate"
+                                        value="[% st.fin_ext_funds_fedstate | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_ext_funds_fedstate,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_fedstate)"
+                                    />
                                 </td>
                             </tr>
 
@@ -603,7 +694,14 @@
                                 <td>60</td>
                                 <td>... davon: Landkreis</td>
                                 <td>
-                                    <input type="text" id="st_fin_ext_funds_communal" name="st_fin_ext_funds_communal" value="[% st.fin_ext_funds_communal | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_ext_funds_communal,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_communal)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_ext_funds_communal"
+                                        name="st_fin_ext_funds_communal"
+                                        value="[% st.fin_ext_funds_communal | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_ext_funds_communal,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_communal)"
+                                    />
                                 </td>
                             </tr>
 
@@ -611,7 +709,14 @@
                                 <td>61</td>
                                 <td>... davon: Bistum/Landeskirche</td>
                                 <td>
-                                    <input type="text" id="st_fin_ext_funds_church" name="st_fin_ext_funds_church" value="[% st.fin_ext_funds_church | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_ext_funds_church,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_church)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_ext_funds_church"
+                                        name="st_fin_ext_funds_church"
+                                        value="[% st.fin_ext_funds_church | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_ext_funds_church,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_church)"
+                                    />
                                 </td>
                             </tr>
 
@@ -619,7 +724,14 @@
                                 <td>62</td>
                                 <td>... davon: Sonstige</td>
                                 <td>
-                                    <input type="text" id="st_fin_ext_funds_other" name="st_fin_ext_funds_other" value="[% st.fin_ext_funds_other | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_ext_funds_other,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_other)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_ext_funds_other"
+                                        name="st_fin_ext_funds_other"
+                                        value="[% st.fin_ext_funds_other | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_ext_funds_other,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_ext_funds_other)"
+                                    />
                                 </td>
                             </tr>
 
@@ -628,7 +740,14 @@
                                 <td>63</td>
                                 <td>Eigene Einnahmen</td>
                                 <td>
-                                    <input type="text" id="st_fin_lib_revenue" name="st_fin_lib_revenue" value="[% st.fin_lib_revenue | $Price %]"  oninput="floatInput(document.DBS_edit.st_fin_lib_revenue,2)"  onchange="moneyFormat(document.DBS_edit.st_fin_lib_revenue)" />
+                                    <input
+                                        type="text"
+                                        id="st_fin_lib_revenue"
+                                        name="st_fin_lib_revenue"
+                                        value="[% st.fin_lib_revenue | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_fin_lib_revenue,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_fin_lib_revenue)"
+                                    />
                                 </td>
                             </tr>
 
@@ -645,7 +764,6 @@
                             </tr>
                         </tbody>
 
-
                         <thead>
                             <tr>
                                 <th colspan="2">5. PERSONAL</th>
@@ -658,7 +776,14 @@
                                 <td>66</td>
                                 <td>Stellen laut Stellenplan</td>
                                 <td>
-                                    <input type="text" id="st_stf_staff_scheme_appointments" name="st_stf_staff_scheme_appointments" value="[% st.stf_staff_scheme_appointments | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_staff_scheme_appointments,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_staff_scheme_appointments)" />
+                                    <input
+                                        type="text"
+                                        id="st_stf_staff_scheme_appointments"
+                                        name="st_stf_staff_scheme_appointments"
+                                        value="[% st.stf_staff_scheme_appointments | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_stf_staff_scheme_appointments,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_stf_staff_scheme_appointments)"
+                                    />
                                 </td>
                             </tr>
 
@@ -674,7 +799,14 @@
                                 <td>68</td>
                                 <td>Personalkapazität aller Beschäftigten (VZÄ)</td>
                                 <td>
-                                    <input type="text" id="st_stf_capacity_FTE" name="st_stf_capacity_FTE" value="[% st.stf_capacity_FTE | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_capacity_FTE,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_capacity_FTE)" />
+                                    <input
+                                        type="text"
+                                        id="st_stf_capacity_FTE"
+                                        name="st_stf_capacity_FTE"
+                                        value="[% st.stf_capacity_FTE | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_stf_capacity_FTE,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_stf_capacity_FTE)"
+                                    />
                                 </td>
                             </tr>
 
@@ -682,7 +814,14 @@
                                 <td>69</td>
                                 <td>... davon: Fachbibliothekare (VZÄ)</td>
                                 <td>
-                                    <input type="text" id="st_stf_cap_FTE_librarians" name="st_stf_cap_FTE_librarians" value="[% st.stf_cap_FTE_librarians | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_librarians,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_librarians)" />
+                                    <input
+                                        type="text"
+                                        id="st_stf_cap_FTE_librarians"
+                                        name="st_stf_cap_FTE_librarians"
+                                        value="[% st.stf_cap_FTE_librarians | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_librarians,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_librarians)"
+                                    />
                                 </td>
                             </tr>
 
@@ -690,7 +829,14 @@
                                 <td>70</td>
                                 <td>... davon: Fachangestellte/Bibliotheksassist. (VZÄ)</td>
                                 <td>
-                                    <input type="text" id="st_stf_cap_FTE_assistants" name="st_stf_cap_FTE_assistants" value="[% st.stf_cap_FTE_assistants | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_assistants,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_assistants)" />
+                                    <input
+                                        type="text"
+                                        id="st_stf_cap_FTE_assistants"
+                                        name="st_stf_cap_FTE_assistants"
+                                        value="[% st.stf_cap_FTE_assistants | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_assistants,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_assistants)"
+                                    />
                                 </td>
                             </tr>
 
@@ -698,7 +844,14 @@
                                 <td>72</td>
                                 <td>... davon: Mitarb. aus Förderprogrammen (VZÄ)</td>
                                 <td>
-                                    <input type="text" id="st_stf_cap_FTE_promotional" name="st_stf_cap_FTE_promotional" value="[% st.stf_cap_FTE_promotional | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_promotional,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_promotional)" />
+                                    <input
+                                        type="text"
+                                        id="st_stf_cap_FTE_promotional"
+                                        name="st_stf_cap_FTE_promotional"
+                                        value="[% st.stf_cap_FTE_promotional | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_promotional,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_promotional)"
+                                    />
                                 </td>
                             </tr>
 
@@ -706,7 +859,14 @@
                                 <td>74</td>
                                 <td>... davon: sonstiges Personal (VZÄ)</td>
                                 <td>
-                                    <input type="text" id="st_stf_cap_FTE_others" name="st_stf_cap_FTE_others" value="[% st.stf_cap_FTE_others | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_others,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_others)" />
+                                    <input
+                                        type="text"
+                                        id="st_stf_cap_FTE_others"
+                                        name="st_stf_cap_FTE_others"
+                                        value="[% st.stf_cap_FTE_others | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_others,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_others)"
+                                    />
                                 </td>
                             </tr>
 
@@ -723,7 +883,14 @@
                                 <td>76</td>
                                 <td>Personalkapazität des ehrenamtl. Personals (VZÄ)</td>
                                 <td>
-                                    <input type="text" id="st_stf_cap_FTE_honorary" name="st_stf_cap_FTE_honorary" value="[% st.stf_cap_FTE_honorary | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_honorary,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_honorary)" />
+                                    <input
+                                        type="text"
+                                        id="st_stf_cap_FTE_honorary"
+                                        name="st_stf_cap_FTE_honorary"
+                                        value="[% st.stf_cap_FTE_honorary | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_stf_cap_FTE_honorary,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_stf_cap_FTE_honorary)"
+                                    />
                                 </td>
                             </tr>
 
@@ -739,15 +906,21 @@
                                 <td>78</td>
                                 <td>Fortbildungsstunden der Mitarbeiter</td>
                                 <td>
-                                    <input type="text" id="st_stf_advanced_training_hrs" name="st_stf_advanced_training_hrs" value="[% st.stf_advanced_training_hrs | $Price %]"  oninput="floatInput(document.DBS_edit.st_stf_advanced_training_hrs,2)"  onchange="moneyFormat(document.DBS_edit.st_stf_advanced_training_hrs)" />
+                                    <input
+                                        type="text"
+                                        id="st_stf_advanced_training_hrs"
+                                        name="st_stf_advanced_training_hrs"
+                                        value="[% st.stf_advanced_training_hrs | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_stf_advanced_training_hrs,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_stf_advanced_training_hrs)"
+                                    />
                                 </td>
                             </tr>
                         </tbody>
 
-
                         <thead>
                             <tr>
-                                <th  colspan="2">6. SERVICE, DIENSTLEISTUNGEN</th>
+                                <th colspan="2">6. SERVICE, DIENSTLEISTUNGEN</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -1023,7 +1196,7 @@
                                     [% END %]
                                 </td>
                             </tr>
-                            
+
                             <tr>
                                 <!-- row index 150 -->
                                 <td>150</td>
@@ -1041,15 +1214,14 @@
                                 <td>199</td>
                                 <td>Anmerkungen</td>
                                 <td>
-                                    <textarea id="st_srv_remarks" name="st_srv_remarks" cols="20" rows="3" >[% st.srv_remarks | html %]</textarea>
+                                    <textarea id="st_srv_remarks" name="st_srv_remarks" cols="20" rows="3">[% st.srv_remarks | html %]</textarea>
                                 </td>
                             </tr>
                         </tbody>
 
-
                         <thead>
                             <tr>
-                                <th  colspan="2">7. PATIENTENBIBLIOTHEKEN</th>
+                                <th colspan="2">7. PATIENTENBIBLIOTHEKEN</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -1115,7 +1287,14 @@
                                 <td>206</td>
                                 <td>Anzahl der wöchentlichen Wagenausleihstunden</td>
                                 <td>
-                                    <input type="text" id="st_ptl_trolley_service_hrs" name="st_ptl_trolley_service_hrs" value="[% st.ptl_trolley_service_hrs | $Price %]"  oninput="floatInput(document.DBS_edit.st_ptl_trolley_service_hrs,2)"  onchange="moneyFormat(document.DBS_edit.st_ptl_trolley_service_hrs)" />
+                                    <input
+                                        type="text"
+                                        id="st_ptl_trolley_service_hrs"
+                                        name="st_ptl_trolley_service_hrs"
+                                        value="[% st.ptl_trolley_service_hrs | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_ptl_trolley_service_hrs,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_ptl_trolley_service_hrs)"
+                                    />
                                 </td>
                             </tr>
 
@@ -1169,10 +1348,9 @@
                             </tr>
                         </tbody>
 
-
                         <thead>
                             <tr>
-                                <th  colspan="2">8. FAHRBIBLIOTHEKEN</th>
+                                <th colspan="2">8. FAHRBIBLIOTHEKEN</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -1218,31 +1396,33 @@
                                 <td>304</td>
                                 <td>Öffnungsstunden pro Woche</td>
                                 <td>
-                                    <input type="text" id="st_mol_openinghours_week" name="st_mol_openinghours_week" value="[% st.mol_openinghours_week | $Price %]"  oninput="floatInput(document.DBS_edit.st_mol_openinghours_week,2)"  onchange="moneyFormat(document.DBS_edit.st_mol_openinghours_week)" />
+                                    <input
+                                        type="text"
+                                        id="st_mol_openinghours_week"
+                                        name="st_mol_openinghours_week"
+                                        value="[% st.mol_openinghours_week | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_mol_openinghours_week,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_mol_openinghours_week)"
+                                    />
                                 </td>
                             </tr>
 
                             <tr>
                                 <td>305</td>
                                 <td>Bestand in Medieneinh. insges.</td>
-                                <td>
-                                    <input type="number" id="st_mol_stock_media_units" name="st_mol_stock_media_units" min="0" size="12" maxlength="12" value="[% st.mol_stock_media_units | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mol_stock_media_units" name="st_mol_stock_media_units" min="0" size="12" maxlength="12" value="[% st.mol_stock_media_units | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>307</td>
                                 <td>Entleihungen in Medieneinheiten insgesamt</td>
-                                <td>
-                                    <input type="number" id="st_mol_media_unit_issues" name="st_mol_media_unit_issues" min="0" size="12" maxlength="12" value="[% st.mol_media_unit_issues | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mol_media_unit_issues" name="st_mol_media_unit_issues" min="0" size="12" maxlength="12" value="[% st.mol_media_unit_issues | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
                         </tbody>
 
-
                         <thead>
                             <tr>
-                                <th  colspan="2">9. MUSIKBIBLIOTHEKEN / MUSIKABTEILUNGEN</th>
+                                <th colspan="2">9. MUSIKBIBLIOTHEKEN / MUSIKABTEILUNGEN</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -1252,17 +1432,13 @@
                                 <!-- row index 120 -->
                                 <td>400</td>
                                 <td>Noten - Bestand</td>
-                                <td>
-                                    <input type="number" id="st_mus_sheetmusic_stock" name="st_mus_sheetmusic_stock" min="0" size="12" maxlength="12" value="[% st.mus_sheetmusic_stock | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_sheetmusic_stock" name="st_mus_sheetmusic_stock" min="0" size="12" maxlength="12" value="[% st.mus_sheetmusic_stock | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>401</td>
                                 <td>Noten - Entleihungen</td>
-                                <td>
-                                    <input type="number" id="st_mus_sheetmusic_issues" name="st_mus_sheetmusic_issues" min="0" size="12" maxlength="12" value="[% st.mus_sheetmusic_issues | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_sheetmusic_issues" name="st_mus_sheetmusic_issues" min="0" size="12" maxlength="12" value="[% st.mus_sheetmusic_issues | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
@@ -1284,90 +1460,68 @@
                             <tr>
                                 <td>404</td>
                                 <td>Musik-CDs - Bestand</td>
-                                <td>
-                                    <input type="number" id="st_mus_cd_stock" name="st_mus_cd_stock" min="0" size="12" maxlength="12" value="[% st.mus_cd_stock | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_cd_stock" name="st_mus_cd_stock" min="0" size="12" maxlength="12" value="[% st.mus_cd_stock | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>405</td>
                                 <td>Musik-CDs - Entleihungen</td>
-                                <td>
-                                    <input type="number" id="st_mus_cd_issues" name="st_mus_cd_issues" min="0" size="12" maxlength="12" value="[% st.mus_cd_issues | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_cd_issues" name="st_mus_cd_issues" min="0" size="12" maxlength="12" value="[% st.mus_cd_issues | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>406</td>
                                 <td>Musik-Kassetten - Bestand</td>
-                                <td>
-                                    <input type="number" id="st_mus_cassette_stock" name="st_mus_cassette_stock" min="0" size="12" maxlength="12" value="[% st.mus_cassette_stock | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_cassette_stock" name="st_mus_cassette_stock" min="0" size="12" maxlength="12" value="[% st.mus_cassette_stock | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>407</td>
                                 <td>Musik-Kassetten - Entleihungen</td>
-                                <td>
-                                    <input type="number" id="st_mus_cassette_issues" name="st_mus_cassette_issues" min="0" size="12" maxlength="12" value="[% st.mus_cassette_issues | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_cassette_issues" name="st_mus_cassette_issues" min="0" size="12" maxlength="12" value="[% st.mus_cassette_issues | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>408</td>
                                 <td>Schallplatten (Vinyl) - Bestand</td>
-                                <td>
-                                    <input type="number" id="st_mus_record_stock" name="st_mus_record_stock" min="0" size="12" maxlength="12" value="[% st.mus_record_stock | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_record_stock" name="st_mus_record_stock" min="0" size="12" maxlength="12" value="[% st.mus_record_stock | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>409</td>
                                 <td>Schallplatten (Vinyl) - Entleihungen</td>
-                                <td>
-                                    <input type="number" id="st_mus_record_issues" name="st_mus_record_issues" min="0" size="12" maxlength="12" value="[% st.mus_record_issues | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_record_issues" name="st_mus_record_issues" min="0" size="12" maxlength="12" value="[% st.mus_record_issues | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <!-- row index 130 -->
                                 <td>410</td>
                                 <td>Musik-Videos (VHS) - Bestand</td>
-                                <td>
-                                    <input type="number" id="st_mus_VHS_stock" name="st_mus_VHS_stock" min="0" size="12" maxlength="12" value="[% st.mus_VHS_stock | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_VHS_stock" name="st_mus_VHS_stock" min="0" size="12" maxlength="12" value="[% st.mus_VHS_stock | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>411</td>
                                 <td>Musik-Videos (VHS) - Entleihungen</td>
-                                <td>
-                                    <input type="number" id="st_mus_VHS_issues" name="st_mus_VHS_issues" min="0" size="12" maxlength="12" value="[% st.mus_VHS_issues | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_VHS_issues" name="st_mus_VHS_issues" min="0" size="12" maxlength="12" value="[% st.mus_VHS_issues | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>412</td>
                                 <td>Musik-DVDs - Bestand</td>
-                                <td>
-                                    <input type="number" id="st_mus_DVD_stock" name="st_mus_DVD_stock" min="0" size="12" maxlength="12" value="[% st.mus_DVD_stock | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_DVD_stock" name="st_mus_DVD_stock" min="0" size="12" maxlength="12" value="[% st.mus_DVD_stock | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>413</td>
                                 <td>Musik-DVDs - Entleihungen</td>
-                                <td>
-                                    <input type="number" id="st_mus_DVD_issues" name="st_mus_DVD_issues" min="0" size="12" maxlength="12" value="[% st.mus_DVD_issues | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_DVD_issues" name="st_mus_DVD_issues" min="0" size="12" maxlength="12" value="[% st.mus_DVD_issues | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>414</td>
                                 <td>Musik-Zeitschriften - Bestand</td>
-                                <td>
-                                    <input type="number" id="st_mus_periodicals_stock" name="st_mus_periodicals_stock" min="0" size="12" maxlength="12" value="[% st.mus_periodicals_stock | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_periodicals_stock" name="st_mus_periodicals_stock" min="0" size="12" maxlength="12" value="[% st.mus_periodicals_stock | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
@@ -1381,33 +1535,25 @@
                             <tr>
                                 <td>416</td>
                                 <td>Sonstige - Bestand</td>
-                                <td>
-                                    <input type="number" id="st_mus_other_stock" name="st_mus_other_stock" min="0" size="12" maxlength="12" value="[% st.mus_other_stock | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_other_stock" name="st_mus_other_stock" min="0" size="12" maxlength="12" value="[% st.mus_other_stock | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>417</td>
                                 <td>Sonstige - Entleihungen</td>
-                                <td>
-                                    <input type="number" id="st_mus_other_issues" name="st_mus_other_issues" min="0" size="12" maxlength="12" value="[% st.mus_other_issues | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_other_issues" name="st_mus_other_issues" min="0" size="12" maxlength="12" value="[% st.mus_other_issues | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>418</td>
                                 <td>BESTAND insgesamt (Summe 400,...,416)</td>
-                                <td>
-                                    <input type="number" id="st_mus_stock_tot" name="st_mus_stock_tot" min="0" size="12" maxlength="12" value="[% st.mus_stock_tot | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_stock_tot" name="st_mus_stock_tot" min="0" size="12" maxlength="12" value="[% st.mus_stock_tot | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>419</td>
                                 <td>ENTLEIHUNGEN insgesamt (Summe 401,...,417)</td>
-                                <td>
-                                    <input type="number" id="st_mus_issues_tot" name="st_mus_issues_tot" min="0" size="12" maxlength="12" value="[% st.mus_issues_tot | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_mus_issues_tot" name="st_mus_issues_tot" min="0" size="12" maxlength="12" value="[% st.mus_issues_tot | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
@@ -1423,15 +1569,21 @@
                                 <td>421</td>
                                 <td>Ausgaben für Erwerbung</td>
                                 <td>
-                                    <input type="text" id="st_mus_acq_expenses" name="st_mus_acq_expenses" value="[% st.mus_acq_expenses | $Price %]"  oninput="floatInput(document.DBS_edit.st_mus_acq_expenses,2)"  onchange="moneyFormat(document.DBS_edit.st_mus_acq_expenses)" />
+                                    <input
+                                        type="text"
+                                        id="st_mus_acq_expenses"
+                                        name="st_mus_acq_expenses"
+                                        value="[% st.mus_acq_expenses | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_mus_acq_expenses,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_mus_acq_expenses)"
+                                    />
                                 </td>
                             </tr>
                         </tbody>
 
-
                         <thead>
                             <tr>
-                                <th  colspan="2">10. SCHULBIBLIOTHEKEN</th>
+                                <th colspan="2">10. SCHULBIBLIOTHEKEN</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -1529,9 +1681,7 @@
                             <tr>
                                 <td>511</td>
                                 <td>Printmedien insgesamt - Bestand</td>
-                                <td>
-                                    <input type="number" id="st_slb_print_stock_tot" name="st_slb_print_stock_tot" min="0" size="12" maxlength="12" value="[% st.slb_print_stock_tot | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_slb_print_stock_tot" name="st_slb_print_stock_tot" min="0" size="12" maxlength="12" value="[% st.slb_print_stock_tot | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
@@ -1545,17 +1695,13 @@
                             <tr>
                                 <td>513</td>
                                 <td>Printmedien insgesamt - Entleihungen</td>
-                                <td>
-                                    <input type="number" id="st_slb_print_issues_tot" name="st_slb_print_issues_tot" min="0" size="12" maxlength="12" value="[% st.slb_print_issues_tot | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_slb_print_issues_tot" name="st_slb_print_issues_tot" min="0" size="12" maxlength="12" value="[% st.slb_print_issues_tot | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
                                 <td>514</td>
                                 <td>Non-Prints und Sonstiges - Bestand</td>
-                                <td>
-                                    <input type="number" id="st_slb_nonbook_stock_tot" name="st_slb_nonbook_stock_tot" min="0" size="12" maxlength="12" value="[% st.slb_nonbook_stock_tot | html %]" /> <b style="font-size: 125%">*</b>
-                                </td>
+                                <td> <input type="number" id="st_slb_nonbook_stock_tot" name="st_slb_nonbook_stock_tot" min="0" size="12" maxlength="12" value="[% st.slb_nonbook_stock_tot | html %]" /> <b style="font-size: 125%">*</b> </td>
                             </tr>
 
                             <tr>
@@ -1611,7 +1757,14 @@
                                 <td>520</td>
                                 <td>... darunter: Beschäftigte mit bibliotheksfachlicher Ausbildung (VZÄ)</td>
                                 <td>
-                                    <input type="text" id="st_slb_stf_lib_qualif_fte" name="st_slb_stf_lib_qualif_fte" value="[% st.slb_stf_lib_qualif_fte | $Price %]"  oninput="floatInput(document.DBS_edit.st_slb_stf_lib_qualif_fte,2)"  onchange="moneyFormat(document.DBS_edit.st_slb_stf_lib_qualif_fte)" />
+                                    <input
+                                        type="text"
+                                        id="st_slb_stf_lib_qualif_fte"
+                                        name="st_slb_stf_lib_qualif_fte"
+                                        value="[% st.slb_stf_lib_qualif_fte | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_slb_stf_lib_qualif_fte,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_slb_stf_lib_qualif_fte)"
+                                    />
                                 </td>
                             </tr>
 
@@ -1619,7 +1772,14 @@
                                 <td>521</td>
                                 <td>... darunter: Beschäftigte mit pädagogischer Ausbildung (VZÄ)</td>
                                 <td>
-                                    <input type="text" id="st_slb_stf_educ_qualif_fte" name="st_slb_stf_educ_qualif_fte" value="[% st.slb_stf_educ_qualif_fte | $Price %]"  oninput="floatInput(document.DBS_edit.st_slb_stf_educ_qualif_fte,2)"  onchange="moneyFormat(document.DBS_edit.st_slb_stf_educ_qualif_fte)" />
+                                    <input
+                                        type="text"
+                                        id="st_slb_stf_educ_qualif_fte"
+                                        name="st_slb_stf_educ_qualif_fte"
+                                        value="[% st.slb_stf_educ_qualif_fte | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_slb_stf_educ_qualif_fte,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_slb_stf_educ_qualif_fte)"
+                                    />
                                 </td>
                             </tr>
 
@@ -1676,15 +1836,21 @@
                                 <td>528</td>
                                 <td>Ausgaben für Erwerbung (inkl. Einband und Lizenzen)</td>
                                 <td>
-                                    <input type="text" id="st_slb_expenses_tot" name="st_slb_expenses_tot" value="[% st.slb_expenses_tot | $Price %]"  oninput="floatInput(document.DBS_edit.st_slb_expenses_tot,2)"  onchange="moneyFormat(document.DBS_edit.st_slb_expenses_tot)" />
+                                    <input
+                                        type="text"
+                                        id="st_slb_expenses_tot"
+                                        name="st_slb_expenses_tot"
+                                        value="[% st.slb_expenses_tot | $Price %]"
+                                        oninput="floatInput(document.DBS_edit.st_slb_expenses_tot,2)"
+                                        onchange="moneyFormat(document.DBS_edit.st_slb_expenses_tot)"
+                                    />
                                 </td>
                             </tr>
                         </tbody>
 
-
                         <thead>
                             <tr>
-                                <th  colspan="2">11. SCHULBIBLIOTHEKARISCHE DIENSTLEISTUNGEN FÜR VERBUND-SCHULBIBLIOTHEKEN</th>
+                                <th colspan="2">11. SCHULBIBLIOTHEKARISCHE DIENSTLEISTUNGEN FÜR VERBUND-SCHULBIBLIOTHEKEN</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -1783,300 +1949,296 @@
                                 </td>
                             </tr>
                         </tbody>
-
-
                     </table>
                 </form>
             </main>
         </div>
     </div>
 
-[% MACRO jsinclude BLOCK %]
-    [% INCLUDE 'datatables.inc' %]
-    [% INCLUDE 'format_price.inc' %]
+    [% MACRO jsinclude BLOCK %]
+        [% INCLUDE 'datatables.inc' %]
+        [% INCLUDE 'format_price.inc' %]
+        <script type="text/javascript">
+            $(document).ready(function() {
 
-    <script type="text/javascript">
+                $('#DBScalc').click(function() {
+                    $('#op').val("cud-dcv_calc");    // calculate derived class values for display
+                    $("#DBS_edit").submit();
+                    return true;
+                });
 
-        $(document).ready(function() {
+                $('#DBSdel').on("click", function() {
+                    var statname = DBSdel.getAttribute("statname");
+                    var deleteIt = confirm(_("Are you sure you want to reset all entries of statistics %s?").format(statname) );
+                    if (!deleteIt) {
+                        return false;
+                    }
+                    $('#op').val("cud-dcv_del");    // delete derived class values from database
+                    $("#DBS_edit").submit();
+                    return true;
+                });
 
-            $('#DBScalc').click(function() {
-                $('#op').val("cud-dcv_calc");    // calculate derived class values for display
-                $("#DBS_edit").submit();
-                return true;
+                $('#DBSsave').click(function() {
+                    $('#op').val("cud-dcv_save");    // store derived class values into database
+                    $("#DBS_edit").submit();
+                    return true;
+                });
+
+                $('#DBSdownload_csv').click(function() {
+                    exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs.csv', 'csv');
+                });
+
+                $('#DBSdownload_tab').click(function() {
+                    exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs.tab', 'tab');
+                });
+
+                $('#DBSdownload_dbs_base_questionaire').click(function() {
+                    exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs_base_questionaire.csv', 'dbs_base_questionaire');
+                });
+
+                $('#DBSdownload_dbs_incl_patients_lib').click(function() {
+                    exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs_incl_patients_lib.csv', 'dbs_incl_patients_lib');
+                });
+
+                $('#DBSdownload_dbs_incl_mobile_lib').click(function() {
+                    exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs_incl_mobile_lib.csv', 'dbs_incl_mobile_lib');
+                });
+
+                $('#DBSdownload_dbs_incl_music_lib').click(function() {
+                    exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs_incl_music_lib.csv', 'dbs_incl_music_lib');
+                });
+
+                $('#DBSdownload_dbs_incl_school_lib').click(function() {
+                    exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs_incl_school_lib.csv', 'dbs_incl_school_lib');
+                });
+
             });
 
-            $('#DBSdel').on("click", function() {
-                var statname = DBSdel.getAttribute("statname");
-                var deleteIt = confirm(_("Are you sure you want to reset all entries of statistics %s?").format(statname) );
-                if (!deleteIt) {
-                    return false;
+            function getcolvalues(j, col) {
+                var $col = $(col),
+                text = $col.text();
+                var $myinput = $col.find('input');
+                var type = $myinput.attr('type'),
+                    inpval = $myinput.val();
+
+                if ( type == "checkbox" ) {
+                    var ischecked = $myinput.prop('checked');
+                    if ( ischecked ) {
+                        text = 'ja';
+                    } else {
+                        text = 'nein';
+                    }
+                } else if ( ! (inpval === undefined) ) {
+                    text = inpval;
                 }
-                $('#op').val("cud-dcv_del");    // delete derived class values from database
-                $("#DBS_edit").submit();
-                return true;
-            });
 
-            $('#DBSsave').click(function() {
-                $('#op').val("cud-dcv_save");    // store derived class values into database
-                $("#DBS_edit").submit();
-                return true;
-            });
+                return text.replace(/"/g, '""'); // escape double quotes
+            }
 
-            $('#DBSdownload_csv').click(function() {
-                exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs.csv', 'csv');
-            });
+            function exportTableToCSV($table, filename, format) {
+                var $rows = $table.find('tr:has(td)');
 
-            $('#DBSdownload_tab').click(function() {
-                exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs.tab', 'tab');
-            });
+                // Temporary delimiter characters unlikely to be typed in by keyboard.
+                // This is to avoid accidentally splitting the actual contents.
+                tmpColDelim = String.fromCharCode(11); // vertical tab character
+                tmpRowDelim = String.fromCharCode(0); // null character
 
-            $('#DBSdownload_dbs_base_questionaire').click(function() {
-                exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs_base_questionaire.csv', 'dbs_base_questionaire');
-            });
-
-            $('#DBSdownload_dbs_incl_patients_lib').click(function() {
-                exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs_incl_patients_lib.csv', 'dbs_incl_patients_lib');
-            });
-
-            $('#DBSdownload_dbs_incl_mobile_lib').click(function() {
-                exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs_incl_mobile_lib.csv', 'dbs_incl_mobile_lib');
-            });
-
-            $('#DBSdownload_dbs_incl_music_lib').click(function() {
-                exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs_incl_music_lib.csv', 'dbs_incl_music_lib');
-            });
-
-            $('#DBSdownload_dbs_incl_school_lib').click(function() {
-                exportTableToCSV.call(this, $('#dbs_values_table'), 'export_dbs_incl_school_lib.csv', 'dbs_incl_school_lib');
-            });
-
-        });
-
-        function getcolvalues(j, col) {
-            var $col = $(col),
-            text = $col.text();
-            var $myinput = $col.find('input');
-            var type = $myinput.attr('type'),
-                inpval = $myinput.val();
-
-            if ( type == "checkbox" ) {
-                var ischecked = $myinput.prop('checked');
-                if ( ischecked ) {
-                    text = 'ja';
+                // actual delimiter characters for CSV format
+                rowDelim = '\r\n';
+                if ( format == "tab" ) {
+                    colDelim = '\t';
+                } else if ( format == "dbs_base_questionaire" ||
+                            format == "dbs_incl_patients_lib" ||
+                            format == "dbs_incl_mobile_lib" ||
+                            format == "dbs_incl_music_lib" ||
+                            format == "dbs_incl_school_lib" ) {
+                    colDelim = ';';
                 } else {
-                    text = 'nein';
-                }
-            } else if ( ! (inpval === undefined) ) {
-                text = inpval;
-            }
-
-            return text.replace(/"/g, '""'); // escape double quotes
-        }
-
-        function exportTableToCSV($table, filename, format) {
-            var $rows = $table.find('tr:has(td)');
-
-            // Temporary delimiter characters unlikely to be typed in by keyboard.
-            // This is to avoid accidentally splitting the actual contents.
-            tmpColDelim = String.fromCharCode(11); // vertical tab character
-            tmpRowDelim = String.fromCharCode(0); // null character
-
-            // actual delimiter characters for CSV format
-            rowDelim = '\r\n';
-            if ( format == "tab" ) {
-                colDelim = '\t';
-            } else if ( format == "dbs_base_questionaire" || 
-                        format == "dbs_incl_patients_lib" || 
-                        format == "dbs_incl_mobile_lib" || 
-                        format == "dbs_incl_music_lib" || 
-                        format == "dbs_incl_school_lib" ) {
-                colDelim = ';';
-            } else {
-                [% SET kohaColDelimiter = Koha.Preference('delimiter') %]
-                [% IF kohaColDelimiter == "" %][% SET kohaColDelimiter = "," %][% END %]
-                [% IF kohaColDelimiter == "tabulation" %][% SET kohaColDelimiter = "\t" %][% END %]
-                [% IF kohaColDelimiter == "\\" %][% SET kohaColDelimiter = "\\\\" %][% END %]
-                colDelim = '[% kohaColDelimiter | html %]';
-            }
-
-            // Grab text from table into CSV formatted string
-            csv = '';
-            if ( format == "csv" || format == "tab" ) {
-                var row_array = $rows.map(
-                    function(i, row) {
-                        var $row = $(row);
-                        var $cols = $row.find('td');
-
-                        return $cols.map(getcolvalues).get().join(tmpColDelim);
-                    }
-                );
-
-                csv = '"DBS-Rubrik"' + colDelim + '"Bezeichnung"' + colDelim + '"Wert"' + rowDelim;
-                csv += '"' + row_array.get().join(tmpRowDelim)
-                        .split(tmpRowDelim).join('"' + rowDelim + '"')
-                        .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
-
-                // Data URI
-                csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
-            }
-
-
-            if ( format == "dbs_base_questionaire" ||
-                 format == "dbs_incl_patients_lib" ||
-                 format == "dbs_incl_mobile_lib" ||
-                 format == "dbs_incl_music_lib" ||
-                 format == "dbs_incl_school_lib" ) {
-                var values = $rows.map(
-                    function(i, row) {
-                        var $row = $(row);
-                        var $cols = $row.find('td');
-
-                        return $cols.map(getcolvalues).get()[2];
-                    }
-                );
-
-                // until DBS 2020: default length (all fields) corresponds to dbs_incl_music_lib (136 fields (columns))
-                //     length dbs_base_questionaire: 96 fields (index 0 - 95)
-                //     length dbs_incl_patients_lib: 107 fields (index 0 - 106)
-                //     length dbs_incl_mobile_lib: 114 fields (index 0 - 113)
-                //     length dbs_incl_music_lib: 136 fields (index 0 - 135)
-                //  if ( format == "dbs_base_questionaire" ) {
-                //      values = values.slice(0,96);
-                //  } else if ( format == "dbs_incl_patients_lib" ) {
-                //      values = values.slice(0,107);
-                //  } else if ( format == "dbs_incl_mobile_lib" ) {
-                //      values = values.slice(0,114);
-                //  }
-                //  csv += '"' + values.get().join(tmpColDelim)
-                //          .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
-
-                // since DBS 2021:
-                //     old fields, dropped for export: query 9, 10.1, 10.2, 11 (index: 13, 14, 15, 17)
-                //     added fields, dropped for export: query 10.3 (index: 16)
-                //     added fields (base questionaire): query 7.2, 93, 93.1, 94.2, 99.2 (index: 10, 85, 86, 88, 95 )
-                //     added fields (chapter 10, school libraries): query 500, 501, 502, ..., 529 (index: 142, 143, 144, ..., 171 )
-                //     added fields (chapter 11, services for associated school libraries): query 550, 551, 552, ..., 557 (index: 172, 173, 174, ..., 179 )
-                //     default length total (all fields): 180
-                //     length dbs_base_questionaire: 97 (index 0 - 101, but not exported: index 13-17)
-                //     length dbs_incl_patients_lib: 108 fields (index 0 - 112, but not exported: index 13-17)
-                //     length dbs_incl_mobile_lib: 115 fields (index 0 - 119, but not exported: index 13-17)
-                //     length dbs_incl_music_lib: 137 fields (index 0 - 141, but not exported: index 13-17)
-                //     length dbs_incl_school_lib: 175 fields (index 0 - 179, but not exported: index 13-17)
-
-                // since DBS 2022:
-                //     old fields, dropped for export: query 38.1, 38.2 (index at this time: 39, 40)
-                //     added fields (base questionaire): query 36.1 (index: 37 )
-                //     default length total (all fields): 181
-                //     length dbs_base_questionaire: 96 (index 0 - 102, but not exported: index 13-17, 39-40)
-                //     length dbs_incl_patients_lib: 107 fields (index 0 - 113, but not exported: index 13-17, 39-40)
-                //     length dbs_incl_mobile_lib: 114 fields (index 0 - 120, but not exported: index 13-17, 39-40)
-                //     length dbs_incl_music_lib: 136 fields (index 0 - 142, but not exported: index 13-17, 39-40)
-                //     length dbs_incl_school_lib: 174 fields (index 0 - 180, but not exported: index 13-17, 39-40)
-
-                // since DBS 2023:
-                //     old fields, dropped from display and for export: query 34.2, 529 (index at this time: 34, 172)
-                //     (So the earlier index of var 'values' 35-171 now becomes 34-170, and 173-180 becomes 171-178.), 
-
-                // since DBS 2024:
-                //     added fields (base questionaire): query 38.3 (index at this time: 33 )
-
-                var valuesNew = (values.slice(0,13).get()) . concat(values.slice(18,38).get()) . concat(values.slice(40,180).get());
-                if ( format == "dbs_base_questionaire" ) {
-                    valuesNew = valuesNew.slice(0,96);    // index 0..95 corresponds to index 0..102 of var 'values', but excluding index 13-17,38-39,  of var 'values')
-                } else if ( format == "dbs_incl_patients_lib" ) {
-                    valuesNew = valuesNew.slice(0,107);    // index 0..106 corresponds to index 0..113 of var 'values', but excluding index 13-17,38-39 of var 'values')
-                } else if ( format == "dbs_incl_mobile_lib" ) {
-                    valuesNew = valuesNew.slice(0,114);    // index 0-113 corresponds to index 0 - 120 of var 'values', but excluding index 13-17,38-39 of var 'values')
-                } else if ( format == "dbs_incl_music_lib" ) {
-                    valuesNew = valuesNew.slice(0,136);    // index 0-135 corresponds to index 0 - 142 of var 'values', but excluding index 13-17,38-39 of var 'values')
-                } else if ( format == "dbs_incl_school_lib" ) {
-                    // valuesNew needs not be sliced, because in this case valuesNew == valuesNew.slice(0,173) already
-                    //valuesNew = valuesNew.slice(0,173);    // index 0-172 corresponds to index 0 - 179 of var 'values', but excluding index 13-17,38-39 of var 'values')
+                    [% SET kohaColDelimiter = Koha.Preference('delimiter') %]
+                    [% IF kohaColDelimiter == "" %][% SET kohaColDelimiter = "," %][% END %]
+                    [% IF kohaColDelimiter == "tabulation" %][% SET kohaColDelimiter = "\t" %][% END %]
+                    [% IF kohaColDelimiter == "\\" %][% SET kohaColDelimiter = "\\\\" %][% END %]
+                    colDelim = '[% kohaColDelimiter | html %]';
                 }
 
-                csv += '"' + valuesNew.join(tmpColDelim)
-                        .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
+                // Grab text from table into CSV formatted string
+                csv = '';
+                if ( format == "csv" || format == "tab" ) {
+                    var row_array = $rows.map(
+                        function(i, row) {
+                            var $row = $(row);
+                            var $cols = $row.find('td');
 
-                // Data URI (we export using UTF-8 encoding; converting to the required charset ISO-8859-1 has to be done in Excel / LibreOfficeCalc / etc.)
-                csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
-            }
+                            return $cols.map(getcolvalues).get().join(tmpColDelim);
+                        }
+                    );
 
-            $(this).attr({
-                'download': filename,
-                'href': csvData,
-                'target': '_blank'
-            });
-        }
+                    csv = '"DBS-Rubrik"' + colDelim + '"Bezeichnung"' + colDelim + '"Wert"' + rowDelim;
+                    csv += '"' + row_array.get().join(tmpRowDelim)
+                            .split(tmpRowDelim).join('"' + rowDelim + '"')
+                            .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
 
-        function floatInput(floatAsText,decimalplaces) {
-            // Not accepting more than 1 decimal separator ("." or ",") and 2 ciphers after the integer part of the input in money amount field.
-            var len = floatAsText.value.length;
-            var decSepPos = floatAsText.value.indexOf(".");
-            var decSepPos2 = floatAsText.value.indexOf(",");
-            if ( decSepPos2 >= 0 && (decSepPos2 < decSepPos || decSepPos < 0) ) {  
-                decSepPos = decSepPos2;
-            }
-            if ( decSepPos >= 0 && len > decSepPos + 1 + decimalplaces ) {
-                floatAsText.value = floatAsText.value.substr(0, decSepPos + 1 + decimalplaces);
-            }
-        }
-
-        function moneyNormalize(textObj) {
-            var amountNew = parseFloat(textObj.value.replace(",","."));
-            if ( isNaN(amountNew) ) {
-                amountNew = 0.0;
-            }
-            textObj.value = parseFloat(amountNew);
-        }
-
-        function moneyFormat(textObj) {
-            var newValue = textObj.value.replace(",",".");
-            var decAmount = "";
-            var dolAmount = "";
-            var decFlag   = false;
-            var aChar     = "";
-
-            for(i=0; i < newValue.length; i++) {
-                aChar = newValue.substring(i, i+1);
-                if (aChar >= "0" && aChar <= "9") {
-                    if(decFlag) {
-                        decAmount = "" + decAmount + aChar;
-                    }
-                    else {
-                        dolAmount = "" + dolAmount + aChar;
-                    }
+                    // Data URI
+                    csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
                 }
-                if (aChar == ".") {
-                    if (decFlag) {
-                        break;
+
+
+                if ( format == "dbs_base_questionaire" ||
+                     format == "dbs_incl_patients_lib" ||
+                     format == "dbs_incl_mobile_lib" ||
+                     format == "dbs_incl_music_lib" ||
+                     format == "dbs_incl_school_lib" ) {
+                    var values = $rows.map(
+                        function(i, row) {
+                            var $row = $(row);
+                            var $cols = $row.find('td');
+
+                            return $cols.map(getcolvalues).get()[2];
+                        }
+                    );
+
+                    // until DBS 2020: default length (all fields) corresponds to dbs_incl_music_lib (136 fields (columns))
+                    //     length dbs_base_questionaire: 96 fields (index 0 - 95)
+                    //     length dbs_incl_patients_lib: 107 fields (index 0 - 106)
+                    //     length dbs_incl_mobile_lib: 114 fields (index 0 - 113)
+                    //     length dbs_incl_music_lib: 136 fields (index 0 - 135)
+                    //  if ( format == "dbs_base_questionaire" ) {
+                    //      values = values.slice(0,96);
+                    //  } else if ( format == "dbs_incl_patients_lib" ) {
+                    //      values = values.slice(0,107);
+                    //  } else if ( format == "dbs_incl_mobile_lib" ) {
+                    //      values = values.slice(0,114);
+                    //  }
+                    //  csv += '"' + values.get().join(tmpColDelim)
+                    //          .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
+
+                    // since DBS 2021:
+                    //     old fields, dropped for export: query 9, 10.1, 10.2, 11 (index: 13, 14, 15, 17)
+                    //     added fields, dropped for export: query 10.3 (index: 16)
+                    //     added fields (base questionaire): query 7.2, 93, 93.1, 94.2, 99.2 (index: 10, 85, 86, 88, 95 )
+                    //     added fields (chapter 10, school libraries): query 500, 501, 502, ..., 529 (index: 142, 143, 144, ..., 171 )
+                    //     added fields (chapter 11, services for associated school libraries): query 550, 551, 552, ..., 557 (index: 172, 173, 174, ..., 179 )
+                    //     default length total (all fields): 180
+                    //     length dbs_base_questionaire: 97 (index 0 - 101, but not exported: index 13-17)
+                    //     length dbs_incl_patients_lib: 108 fields (index 0 - 112, but not exported: index 13-17)
+                    //     length dbs_incl_mobile_lib: 115 fields (index 0 - 119, but not exported: index 13-17)
+                    //     length dbs_incl_music_lib: 137 fields (index 0 - 141, but not exported: index 13-17)
+                    //     length dbs_incl_school_lib: 175 fields (index 0 - 179, but not exported: index 13-17)
+
+                    // since DBS 2022:
+                    //     old fields, dropped for export: query 38.1, 38.2 (index at this time: 39, 40)
+                    //     added fields (base questionaire): query 36.1 (index: 37 )
+                    //     default length total (all fields): 181
+                    //     length dbs_base_questionaire: 96 (index 0 - 102, but not exported: index 13-17, 39-40)
+                    //     length dbs_incl_patients_lib: 107 fields (index 0 - 113, but not exported: index 13-17, 39-40)
+                    //     length dbs_incl_mobile_lib: 114 fields (index 0 - 120, but not exported: index 13-17, 39-40)
+                    //     length dbs_incl_music_lib: 136 fields (index 0 - 142, but not exported: index 13-17, 39-40)
+                    //     length dbs_incl_school_lib: 174 fields (index 0 - 180, but not exported: index 13-17, 39-40)
+
+                    // since DBS 2023:
+                    //     old fields, dropped from display and for export: query 34.2, 529 (index at this time: 34, 172)
+                    //     (So the earlier index of var 'values' 35-171 now becomes 34-170, and 173-180 becomes 171-178.),
+
+                    // since DBS 2024:
+                    //     added fields (base questionaire): query 38.3 (index at this time: 33 )
+
+                    var valuesNew = (values.slice(0,13).get()) . concat(values.slice(18,38).get()) . concat(values.slice(40,180).get());
+                    if ( format == "dbs_base_questionaire" ) {
+                        valuesNew = valuesNew.slice(0,96);    // index 0..95 corresponds to index 0..102 of var 'values', but excluding index 13-17,38-39,  of var 'values')
+                    } else if ( format == "dbs_incl_patients_lib" ) {
+                        valuesNew = valuesNew.slice(0,107);    // index 0..106 corresponds to index 0..113 of var 'values', but excluding index 13-17,38-39 of var 'values')
+                    } else if ( format == "dbs_incl_mobile_lib" ) {
+                        valuesNew = valuesNew.slice(0,114);    // index 0-113 corresponds to index 0 - 120 of var 'values', but excluding index 13-17,38-39 of var 'values')
+                    } else if ( format == "dbs_incl_music_lib" ) {
+                        valuesNew = valuesNew.slice(0,136);    // index 0-135 corresponds to index 0 - 142 of var 'values', but excluding index 13-17,38-39 of var 'values')
+                    } else if ( format == "dbs_incl_school_lib" ) {
+                        // valuesNew needs not be sliced, because in this case valuesNew == valuesNew.slice(0,173) already
+                        //valuesNew = valuesNew.slice(0,173);    // index 0-172 corresponds to index 0 - 179 of var 'values', but excluding index 13-17,38-39 of var 'values')
                     }
-                    decFlag = true;
+
+                    csv += '"' + valuesNew.join(tmpColDelim)
+                            .split(tmpColDelim).join('"' + colDelim + '"') + '"' + rowDelim;
+
+                    // Data URI (we export using UTF-8 encoding; converting to the required charset ISO-8859-1 has to be done in Excel / LibreOfficeCalc / etc.)
+                    csvData = 'data:application/csv;charset=utf-8,' + encodeURIComponent(csv);
+                }
+
+                $(this).attr({
+                    'download': filename,
+                    'href': csvData,
+                    'target': '_blank'
+                });
+            }
+
+            function floatInput(floatAsText,decimalplaces) {
+                // Not accepting more than 1 decimal separator ("." or ",") and 2 ciphers after the integer part of the input in money amount field.
+                var len = floatAsText.value.length;
+                var decSepPos = floatAsText.value.indexOf(".");
+                var decSepPos2 = floatAsText.value.indexOf(",");
+                if ( decSepPos2 >= 0 && (decSepPos2 < decSepPos || decSepPos < 0) ) {
+                    decSepPos = decSepPos2;
+                }
+                if ( decSepPos >= 0 && len > decSepPos + 1 + decimalplaces ) {
+                    floatAsText.value = floatAsText.value.substr(0, decSepPos + 1 + decimalplaces);
                 }
             }
 
-            if (dolAmount == "") {
-                dolAmount = "0";
-            }
-            // Strip leading 0s
-            if (dolAmount.length > 1) {
-                while(dolAmount.length > 1 && dolAmount.substring(0,1) == "0") {
-                    dolAmount = dolAmount.substring(1,dolAmount.length);
+            function moneyNormalize(textObj) {
+                var amountNew = parseFloat(textObj.value.replace(",","."));
+                if ( isNaN(amountNew) ) {
+                    amountNew = 0.0;
                 }
-            }
-            if (decAmount.length > 2) {
-                decAmount = decAmount.substring(0,2);
-            }
-            // Pad right side
-            if (decAmount.length == 1) {
-                decAmount = decAmount + "0";
-            }
-            if (decAmount.length == 0) {
-            decAmount = decAmount + "00";
+                textObj.value = parseFloat(amountNew);
             }
 
-            textObj.value = parseFloat(parseFloat(dolAmount + "." + decAmount).toFixed(2)).format_price();
-        }
+            function moneyFormat(textObj) {
+                var newValue = textObj.value.replace(",",".");
+                var decAmount = "";
+                var dolAmount = "";
+                var decFlag   = false;
+                var aChar     = "";
 
-    </script>
-[% END %]
-[% INCLUDE 'intranet-bottom.inc' %]
+                for(i=0; i < newValue.length; i++) {
+                    aChar = newValue.substring(i, i+1);
+                    if (aChar >= "0" && aChar <= "9") {
+                        if(decFlag) {
+                            decAmount = "" + decAmount + aChar;
+                        }
+                        else {
+                            dolAmount = "" + dolAmount + aChar;
+                        }
+                    }
+                    if (aChar == ".") {
+                        if (decFlag) {
+                            break;
+                        }
+                        decFlag = true;
+                    }
+                }
+
+                if (dolAmount == "") {
+                    dolAmount = "0";
+                }
+                // Strip leading 0s
+                if (dolAmount.length > 1) {
+                    while(dolAmount.length > 1 && dolAmount.substring(0,1) == "0") {
+                        dolAmount = dolAmount.substring(1,dolAmount.length);
+                    }
+                }
+                if (decAmount.length > 2) {
+                    decAmount = decAmount.substring(0,2);
+                }
+                // Pad right side
+                if (decAmount.length == 1) {
+                    decAmount = decAmount + "0";
+                }
+                if (decAmount.length == 0) {
+                decAmount = decAmount + "00";
+                }
+
+                textObj.value = parseFloat(parseFloat(dolAmount + "." + decAmount).toFixed(2)).format_price();
+            }
+        </script>
+    [% END %]
+    [% INCLUDE 'intranet-bottom.inc' %]
+</div>

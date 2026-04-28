@@ -11,23 +11,18 @@
         </div>
         <table class="table table-striped">
             <tbody>
-            [% FOREACH Volume IN VolumeData %]
-                <tr>
-                    <td class="bibliocol" style="">
-                        <div class="detail_volume_volname">
-                            [% IF (Volume.sortvolume) %][% Volume.sortvolume | html %][% END %][% IF (Volume.sortpart) %][% IF (Volume.sortvolume) %], [% END %][% Volume.sortpart | html %][% END %]
-                        </div>
-                    
-                    </td>
-                    <td>
-                        <div class="detail_volume_bibdata">
-                            [% Volume.XSLTResultsRecord | $raw %]
-                        </div>
-                    </td>
-                </tr>
-            [% END %]
-            <tbody>
-        </table>
+                [% FOREACH Volume IN VolumeData %]
+                    <tr>
+                        <td class="bibliocol" style="">
+                            <div class="detail_volume_volname"> [% IF (Volume.sortvolume) %][% Volume.sortvolume | html %][% END %][% IF (Volume.sortpart) %][% IF (Volume.sortvolume) %],[% END %][% Volume.sortpart | html %][% END %] </div>
+                        </td>
+                        <td>
+                            <div class="detail_volume_bibdata"> [% Volume.XSLTResultsRecord | $raw %] </div>
+                        </td>
+                    </tr>
+                [% END %] </tbody
+            ><tbody> </tbody
+        ></table>
     </div>
 [% END %]
 [% IF (LinkedRecordData && LinkedRecordData.size > 0 ) %]
@@ -47,16 +42,14 @@
         </div>
         <table class="table table-striped">
             <tbody>
-            [% FOREACH Volume IN LinkedRecordData %]
-                <tr>
-                    <td>
-                        <div class="detail_linked_record_bibdata">
-                            [% Volume.XSLTResultsRecord | $raw %]
-                        </div>
-                    </td>
-                </tr>
-            [% END %]
-            <tbody>
-        </table>
+                [% FOREACH Volume IN LinkedRecordData %]
+                    <tr>
+                        <td>
+                            <div class="detail_linked_record_bibdata"> [% Volume.XSLTResultsRecord | $raw %] </div>
+                        </td>
+                    </tr>
+                [% END %] </tbody
+            ><tbody> </tbody
+        ></table>
     </div>
 [% END %]

@@ -26,12 +26,11 @@ use C4::External::EKZ::BudgetCheckElement;
 use C4::External::EKZ::DublettenCheckElement;
 use C4::External::EKZ::BestellInfoElement;
 
-
 # special response element name required because the ekz web services are not perfecly SOAP conform
 sub getResponseName {
     my ($requestName) = @_;
     my $responseName = "BestellsystemWSDLDummyResponseName";
-    
+
     if ( defined $requestName ) {
         if ( $requestName eq "BudgetCheckElement" ) {
             $responseName = "BudgetCheckResultElement";

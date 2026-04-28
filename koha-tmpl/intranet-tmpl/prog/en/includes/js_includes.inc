@@ -7,12 +7,12 @@
 [%# Prevent XFS attacks -%]
 [% UNLESS popup %]
     <script>
-       if (self === top) {
-           var antiClickjack = document.getElementById("antiClickjack");
-           antiClickjack.parentNode.removeChild(antiClickjack);
-       } else {
-           top.location = self.location;
-       }
+        if (self === top) {
+            var antiClickjack = document.getElementById("antiClickjack");
+            antiClickjack.parentNode.removeChild(antiClickjack);
+        } else {
+            top.location = self.location;
+        }
     </script>
 [% END %]
 
@@ -35,7 +35,7 @@
 [% IF ( IntranetUserJS ) %]
     <!-- js_includes.inc: IntranetUserJS -->
     <script>
-    [% IntranetUserJS | $raw %]
+        [% IntranetUserJS | $raw %]
     </script>
     <!-- / js_includes.inc: IntranetUserJS -->
 [% END %]
@@ -70,70 +70,69 @@
 [% END %]
 
 [% IF ( Koha.Preference('RFIDWebService') &&  Koha.Preference('RFIDWebServiceURL') ) %]
-[% Asset.js("js/rfidwebservice.js") | $raw %]
-[% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
-[% INCLUDE 'rfid-web-service-messages.inc' %]
-    <script type="text/javascript">
-        $(document).ready(function(){
-            var rfidMessageProvider;
-            if (typeof RFIDWebServiceMessageProvider !== 'undefined') {
-                rfidMessageProvider = RFIDWebServiceMessageProvider;
-            }
-            RFIDWebService.Init('[% Koha.Preference('RFIDWebServiceURL') | html %]', rfidMessageProvider, '[% Koha.Preference('RFIDWebServiceCheckoutBlocker') | html %]', '[% Koha.Preference('RFIDWebServiceCheckinBlocker') | html %]'[% IF (Koha.Preference('RFIDWebServiceActionKey')) %], [% Koha.Preference('RFIDWebServiceActionKey') | html %][% END %]);
-        });
-    </script>
-[% ELSE %]
-    <script type="text/javascript">
-        $(document).ready(function(){
-            RFIDWebService.ClearRFIDWebServiceSession();
-        });
-    </script>
-[% END %]
+    [% Asset.js("js/rfidwebservice.js") | $raw %]
+    [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+        [% INCLUDE 'rfid-web-service-messages.inc' %]
+        <script type="text/javascript">
+            $(document).ready(function(){
+                var rfidMessageProvider;
+                if (typeof RFIDWebServiceMessageProvider !== 'undefined') {
+                    rfidMessageProvider = RFIDWebServiceMessageProvider;
+                }
+                RFIDWebService.Init('[% Koha.Preference('RFIDWebServiceURL') | html %]', rfidMessageProvider, '[% Koha.Preference('RFIDWebServiceCheckoutBlocker') | html %]', '[% Koha.Preference('RFIDWebServiceCheckinBlocker') | html %]'[% IF (Koha.Preference('RFIDWebServiceActionKey')) %], [% Koha.Preference('RFIDWebServiceActionKey') | html %][% END %]);
+            });
+        </script>
+    [% ELSE %]
+        <script type="text/javascript">
+            $(document).ready(function () {
+                RFIDWebService.ClearRFIDWebServiceSession();
+            });
+        </script>
+    [% END %]
 [% END %]
 
 [% IF ( Koha.Preference('SearchEngine') == 'Elasticsearch' && Koha.Preference('IntranetCatalogSearchAutoComplete') ) %]
     <script type="text/javascript">
-    $(document).ready(function(){
-        $( "#catalog_search #search-form" ).autocomplete({
-            source: function(request, response) {
-                if ( request.term.match(/[:=]/) ) {
-                    response([]);
-                    return;
-                }
-                var index = '';
-                if ( $('#idx') ) {
-                    index = $( "#idx" ).val();
-                    if ( index ) {
-                        index = index.replace(/,.*$/,'');
-                        if ( index == 'kw' ) {
-                            index = '';
+        $(document).ready(function () {
+            $("#catalog_search #search-form").autocomplete({
+                source: function (request, response) {
+                    if (request.term.match(/[:=]/)) {
+                        response([]);
+                        return;
+                    }
+                    var index = "";
+                    if ($("#idx")) {
+                        index = $("#idx").val();
+                        if (index) {
+                            index = index.replace(/,.*$/, "");
+                            if (index == "kw") {
+                                index = "";
+                            }
                         }
                     }
-                }
-                $.ajax({
-                    url: "/cgi-bin/koha/svc/catsearch-autocomplete",
-                    dataType: "json",
-                    data: {
-                        text : request.term,
-                        field : index,
-                        count : 20
-                    },
-                    success: function(data) {
-                        response( data.suggestions );
-                    }
-                });
-            },
-            minLength: 3,
-            delay: 300,
-            select: function( event, ui ) {
-                $('#catalog_search #search-form').val(ui.item.value);
-                $("#cat-search-block").submit();
-            }
+                    $.ajax({
+                        url: "/cgi-bin/koha/svc/catsearch-autocomplete",
+                        dataType: "json",
+                        data: {
+                            text: request.term,
+                            field: index,
+                            count: 20,
+                        },
+                        success: function (data) {
+                            response(data.suggestions);
+                        },
+                    });
+                },
+                minLength: 3,
+                delay: 300,
+                select: function (event, ui) {
+                    $("#catalog_search #search-form").val(ui.item.value);
+                    $("#cat-search-block").submit();
+                },
+            });
         });
-    });
     </script>
 [% END %]
-
 <script>
     var defaultPatronSearchFields = "[% Koha.Preference('DefaultPatronSearchFields') || 'firstname|preferred_name|middle_name|surname|othernames|cardnumber|userid' | html %]";
     var defaultPatronSearchMethod = "[% Koha.Preference('DefaultPatronSearchMethod') || 'contains' | html %]";
@@ -143,18 +142,18 @@
 </script>
 [% IF ( PatronAutoComplete ) %]
     <script>
-    // PatronAutoComplete
-    var loggedInClass = "";
-    $(document).ready(function(){
-        [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
-            if ( $("#findborrower").length ) {
-                patron_autocomplete($("#findborrower"), { 'link-to': 'circ' });
+        // PatronAutoComplete
+        var loggedInClass = "";
+        $(document).ready(function(){
+            [% IF ( CAN_user_circulate_circulate_remaining_permissions ) %]
+                if ( $("#findborrower").length ) {
+                    patron_autocomplete($("#findborrower"), { 'link-to': 'circ' });
+                }
+            [% END %]
+            if ( $("#searchmember").length ) {
+                patron_autocomplete($("#searchmember"), { 'link-to': 'patron' });
             }
-        [% END %]
-        if ( $("#searchmember").length ) {
-            patron_autocomplete($("#searchmember"), { 'link-to': 'patron' });
-        }
-    });
+        });
     </script>
 [% END %]
 

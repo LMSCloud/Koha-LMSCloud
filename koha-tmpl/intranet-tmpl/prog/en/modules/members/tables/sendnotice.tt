@@ -1,16 +1,5 @@
-{
-    "letter_created": [% letter_created | html %],
-    "letter_printed": [% letter_printed | html %],
-    "letter_mailed": [% letter_mailed | html %],
-    "printedfile": "[% printedfile | html %]",
-    "letter": [
-        [% FOREACH letter IN letters %]
-            {
-                "borrowernumber": [% letter.borrowernumber | html %],
-                "lettertype": "[% letter.lettertype | html %]",
-                "message_id": "[% letter.message_id | html %]"
-            }[% UNLESS loop.last %],[% END %]
-        [% END %]
-    ]
-}
-
+{ "letter_created": [% letter_created | html %], "letter_printed": [% letter_printed | html %], "letter_mailed": [% letter_mailed | html %], "printedfile": "[% printedfile | html %]", "letter": [
+[% FOREACH letter IN letters %]
+    { "borrowernumber": [% letter.borrowernumber | html %], "lettertype": "[% letter.lettertype | html %]", "message_id": "[% letter.message_id | html %]" }[% UNLESS loop.last %],[% END %]
+[% END %]
+] }

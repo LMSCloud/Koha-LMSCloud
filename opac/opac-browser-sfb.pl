@@ -17,7 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-
 =head1 opac-browser-sfb.pl
 
 The script is used to read a classification values of the browser table if used to store
@@ -102,11 +101,11 @@ Add sysc, sysn and sysp as available index names.
 
 use Modern::Perl;
 
-use C4::Auth qw( get_template_and_user );;
+use C4::Auth qw( get_template_and_user );
 use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
-use CGI qw ( -utf8 );
-use C4::Koha;       # use getitemtypeinfo
+use CGI        qw ( -utf8 );
+use C4::Koha;    # use getitemtypeinfo
 
 my $query = new CGI;
 
@@ -124,17 +123,17 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 );
 
 # the level of browser to display
-my $level = $query->param('level') || 0;
+my $level  = $query->param('level') || 0;
 my $filter = $query->param('filter');
 my $prefix = $query->param('prefixed');
-my ($countEntries,$countFolders,$youthcount,$adultcount,$childcount,$musiccount,$levelEntries)=(0,0,0,0,0,0,0);
+my ( $countEntries, $countFolders, $youthcount, $adultcount, $childcount, $musiccount, $levelEntries ) =
+    ( 0, 0, 0, 0, 0, 0, 0 );
 
 $filter = '' unless defined $filter;
-$level++; # the level passed is the level of the PREVIOUS list, not the current one. Thus the ++
+$level++;    # the level passed is the level of the PREVIOUS list, not the current one. Thus the ++
 
 # build this level loop
 my $sth;
-
 
 my @level_loop;
 my @level_entries_loop;
@@ -145,15 +144,15 @@ my @adult_loop;
 my @music_loop;
 my $myentry;
 
-my $i=0;
+my $i = 0;
 
 if ( $filter ne '' ) {
-     $sth = $dbh->prepare("SELECT * FROM browser WHERE parent = ? ORDER BY prefix, classval, startrange, description");
+    $sth = $dbh->prepare("SELECT * FROM browser WHERE parent = ? ORDER BY prefix, classval, startrange, description");
     $sth->execute($filter);
-    
-    while (my $line = $sth->fetchrow_hashref) {
+
+    while ( my $line = $sth->fetchrow_hashref ) {
         $line->{'browse_classification'} = $line->{'classification'};
-        if ( defined($line->{'classification'}) ) {
+        if ( defined( $line->{'classification'} ) ) {
             $line->{'classification'} =~ s/^[CZMNYS]:\s*//;
         }
         $line->{'search'} = createSearchString($line);
@@ -164,53 +163,53 @@ if ( $filter ne '' ) {
         push @level_loop, $line;
         $levelEntries++;
     }
-    
+
     $sth = $dbh->prepare("SELECT * FROM browser WHERE classification = ?");
     $sth->execute($filter);
-    while (my $line = $sth->fetchrow_hashref) {
+    while ( my $line = $sth->fetchrow_hashref ) {
         $line->{'browse_classification'} = $line->{'classification'};
-        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined( $line->{'classification'} ) );
         $line->{'search'} = createSearchString($line);
         $myentry = $line;
     }
 }
 
-if ($level == 1) {
+if ( $level == 1 ) {
     $sth = $dbh->prepare("SELECT * FROM browser WHERE level=1 AND classification rlike '^C[:]' ORDER BY description");
     $sth->execute();
-    while (my $line = $sth->fetchrow_hashref) {
+    while ( my $line = $sth->fetchrow_hashref ) {
         $line->{'browse_classification'} = $line->{'classification'};
-        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined( $line->{'classification'} ) );
         $line->{'search'} = createSearchString($line);
         push @child_loop, $line;
         $childcount++;
     }
-	
+
     $sth = $dbh->prepare("SELECT * FROM browser WHERE level=1 AND classification rlike '^Y[:]' ORDER BY description");
     $sth->execute();
-    while (my $line = $sth->fetchrow_hashref) {
+    while ( my $line = $sth->fetchrow_hashref ) {
         $line->{'browse_classification'} = $line->{'classification'};
-        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined( $line->{'classification'} ) );
         $line->{'search'} = createSearchString($line);
         push @youth_loop, $line;
         $youthcount++;
     }
-    
+
     $sth = $dbh->prepare("SELECT * FROM browser WHERE level=1 AND classification rlike '^S[:]' ORDER BY description");
     $sth->execute();
-    while (my $line = $sth->fetchrow_hashref) {
+    while ( my $line = $sth->fetchrow_hashref ) {
         $line->{'browse_classification'} = $line->{'classification'};
-        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined( $line->{'classification'} ) );
         $line->{'search'} = createSearchString($line);
         push @adult_loop, $line;
         $adultcount++;
     }
-    
+
     $sth = $dbh->prepare("SELECT * FROM browser WHERE level=1 AND classification rlike '^N[:]' ORDER BY description");
     $sth->execute();
-    while (my $line = $sth->fetchrow_hashref) {
+    while ( my $line = $sth->fetchrow_hashref ) {
         $line->{'browse_classification'} = $line->{'classification'};
-        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined($line->{'classification'}) );
+        $line->{'classification'} =~ s/^[CZMNYS]:\s*// if ( defined( $line->{'classification'} ) );
         $line->{'search'} = createSearchString($line);
         push @music_loop, $line;
         $musiccount++;
@@ -222,26 +221,26 @@ my $have_hierarchy = 0;
 # now rebuild hierarchy loop
 # $filter =~ s/\.//g;
 my @hierarchy_loop;
-if ($filter eq '' and $level == 1) {
+if ( $filter eq '' and $level == 1 ) {
+
     # we're starting from the top
     $have_hierarchy = 1 if @level_loop;
-} 
-else {
+} else {
     my %washere;
-    $sth = $dbh->prepare("SELECT * FROM browser WHERE classification = ? ORDER BY prefix, classval, startrange, description");
+    $sth = $dbh->prepare(
+        "SELECT * FROM browser WHERE classification = ? ORDER BY prefix, classval, startrange, description");
     my $val = $filter;
-    while (length($val)>0) {
+    while ( length($val) > 0 ) {
         $sth->execute($val);
         my $line = $sth->fetchrow_hashref;
-        if ( $line ) {
+        if ($line) {
             $val = $line->{'parent'};
-            last if ( exists($washere{$val}) );
+            last if ( exists( $washere{$val} ) );
             $line->{'search'} = createSearchString($line);
             unshift @hierarchy_loop, $line;
             last if ( $line->{'level'} eq '1' );
             $washere{$val} = 1;
-        }
-        else {
+        } else {
             last;
         }
     }
@@ -249,52 +248,51 @@ else {
 }
 
 $template->param(
-    LEVEL_LOOP => \@level_loop,
+    LEVEL_LOOP         => \@level_loop,
     LEVEL_ENTRIES_LOOP => \@level_entries_loop,
-    LEVEL_FOLDER_LOOP => \@level_folder_loop,
-    YOUTH_LOOP => \@youth_loop,
-    CHILD_LOOP => \@child_loop,
-    ADULT_LOOP => \@adult_loop,
-    MUSIC_LOOP => \@music_loop,
-    HIERARCHY_LOOP => \@hierarchy_loop,
-    ENTRY_COUNT => $countEntries,
-    FOLDER_COUNT => $countFolders,
-    YOUTH_COUNT => $youthcount,
-    CHILD_COUNT => $childcount,
-    ADULT_COUNT => $adultcount,
-    MUSIC_COUNT => $musiccount,
-    LEVEL_COUNT => $levelEntries,
-    LOOP_COUNT => scalar(@level_loop),
-    LEVEL => $level,
-    have_hierarchy => $have_hierarchy,
-    MYENTRY => $myentry,
-    PREFIXED => $prefix
+    LEVEL_FOLDER_LOOP  => \@level_folder_loop,
+    YOUTH_LOOP         => \@youth_loop,
+    CHILD_LOOP         => \@child_loop,
+    ADULT_LOOP         => \@adult_loop,
+    MUSIC_LOOP         => \@music_loop,
+    HIERARCHY_LOOP     => \@hierarchy_loop,
+    ENTRY_COUNT        => $countEntries,
+    FOLDER_COUNT       => $countFolders,
+    YOUTH_COUNT        => $youthcount,
+    CHILD_COUNT        => $childcount,
+    ADULT_COUNT        => $adultcount,
+    MUSIC_COUNT        => $musiccount,
+    LEVEL_COUNT        => $levelEntries,
+    LOOP_COUNT         => scalar(@level_loop),
+    LEVEL              => $level,
+    have_hierarchy     => $have_hierarchy,
+    MYENTRY            => $myentry,
+    PREFIXED           => $prefix
 );
 
 sub createSearchString {
-    my $class = shift;
+    my $class  = shift;
     my $search = '';
-    
+
     if ( $class->{prefix} && $class->{prefix} eq 'JUGMUS' ) {
         if ( $class->{level} && $class->{level} == 1 ) {
             $search .= 'su:(Jugend Musiziert) and su:(Grad*)';
-        }
-        elsif ( $class->{level} && $class->{level} =~ /^(3|4)$/ && $class->{classval} ) {
+        } elsif ( $class->{level} && $class->{level} =~ /^(3|4)$/ && $class->{classval} ) {
             $search .= 'su:(Jugend Musiziert ' . $class->{classval} . ')';
         }
         return $search;
     }
-    
+
     my $classval = $class->{classification};
     $classval =~ s/ /\\ /g;
-    
+
     if ( $class->{prefix} && $class->{prefix} eq 'NOTEN' && $class->{classification} ) {
         my $sval = $class->{classification};
         $sval =~ s/^(NOTEN \/ [A-Y])([^O]?)/$1.'O'.($2 ? $2 : '')/e;
         $search .= 'sys.phrase:(' . $classval . '*)';
-        if ( $sval ne $class->{classification}) {
+        if ( $sval ne $class->{classification} ) {
             $sval =~ s/ /\\ /g;
-            $search .= ' OR sys.phrase:(' . $sval . '*)' ;
+            $search .= ' OR sys.phrase:(' . $sval . '*)';
         }
         return $search;
     }
@@ -302,7 +300,7 @@ sub createSearchString {
         $search .= 'sys.phrase:(' . $classval . '*)';
         return $search;
     }
-    
+
     if ( $class->{classification} =~ /,[0-9]$/ ) {
         $search .= 'sys.phrase:(' . $classval . '*)';
         return $search;
@@ -313,19 +311,18 @@ sub createSearchString {
         $search .= ' AND ' if ( $search ne '' );
         $search .= 'sys.phrase:(' . $pref . '*)';
     }
-    
+
     if ( $class->{classval} ) {
         $search .= ' AND ' if ( $search ne '' );
         $search .= 'sysc:(' . $class->{classval} . ')';
     }
-    
+
     if ( $class->{startrange} && $class->{endrange} ) {
         $search .= ' AND ' if ( $search ne '' );
-        $search .= 'sysn:(>=' . $class->{startrange} . ') AND sysn:(<=' . $class->{endrange}. ')';
-    }
-    elsif ( $class->{startrange} ) {
+        $search .= 'sysn:(>=' . $class->{startrange} . ') AND sysn:(<=' . $class->{endrange} . ')';
+    } elsif ( $class->{startrange} ) {
         $search .= ' AND ' if ( $search ne '' );
-        $search .= 'sysn:(' . $class->{startrange}. ')';
+        $search .= 'sysn:(' . $class->{startrange} . ')';
     }
     if ( $class->{exclude} ) {
         $search .= $class->{exclude};

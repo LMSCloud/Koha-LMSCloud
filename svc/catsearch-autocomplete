@@ -50,7 +50,7 @@ Number of suggestions to display. Defaults to 20.
 =cut
 
 use Modern::Perl;
-use JSON qw( encode_json to_json);
+use JSON     qw( encode_json to_json);
 use C4::Auth qw(check_cookie_auth haspermission get_session);
 use C4::Context;
 use C4::Output;
@@ -60,9 +60,9 @@ use Koha::SearchEngine::Elasticsearch::AutoComplete;
 our $cgi = CGI->new;
 binmode STDOUT, ':encoding(UTF-8)';
 
-my $text = $cgi->param('text');
+my $text  = $cgi->param('text');
 my $field = $cgi->param('field');
-my $count  = $cgi->param('count');
+my $count = $cgi->param('count');
 
 my ( $auth_status, $sessionID ) = check_cookie_auth( $cgi->cookie('CGISESSID'), { catalogue => 1 } );
 if ( $auth_status ne "ok" ) {
@@ -71,11 +71,10 @@ if ( $auth_status ne "ok" ) {
 
 my @resultlist;
 if ( C4::Context->preference("SearchEngine") eq 'Elasticsearch' ) {
-    my $complete =
-        Koha::SearchEngine::Elasticsearch::AutoComplete->new( { index => 'biblios' } );
-    my @result  = $complete->complete(
+    my $complete = Koha::SearchEngine::Elasticsearch::AutoComplete->new( { index => 'biblios' } );
+    my @result   = $complete->complete(
         {
-            text => $text,
+            text  => $text,
             field => $field,
             count => $count
         }
@@ -84,7 +83,7 @@ if ( C4::Context->preference("SearchEngine") eq 'Elasticsearch' ) {
         my $label = $option;
         $option =~ s/["*()~\/\-+;|]/ /g;
         $option =~ s/\?/\\?/g;
-        if ($option =~ /\b(not|and|or)\b/i ) {
+        if ( $option =~ /\b(not|and|or)\b/i ) {
             $option = '"' . $option . '"';
         }
         push @resultlist, { label => $label, value => $option };

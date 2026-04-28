@@ -17,7 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
-
 =head1 opac-browser-sys-generic.pl
 
 The script is used to read a classification values of the browser table if used to store
@@ -31,7 +30,7 @@ use warnings;
 use C4::Auth qw( get_template_and_user );
 use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
-use CGI qw ( -utf8 );
+use CGI        qw ( -utf8 );
 
 my $query = new CGI;
 
@@ -49,124 +48,122 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 );
 
 # the level of browser to display
-my $level = $query->param('level') || 0;
+my $level        = $query->param('level')  || 0;
 my $parentfilter = $query->param('parent') || '';
-my $filter = $query->param('filter');
-my $entries = [];
+my $filter       = $query->param('filter');
+my $entries      = [];
 
 $filter = '' unless defined $filter;
-$level++; # the level passed is the level of the PREVIOUS list, not the current one. Thus the ++
+$level++;    # the level passed is the level of the PREVIOUS list, not the current one. Thus the ++
 
 # build this level loop
 my $sth;
 
-my $i=0;
+my $i = 0;
 
 if ( $filter ne '' ) {
-	my @level_entries_loop;
+    my @level_entries_loop;
     my @level_folder_loop;
     my @level_loop;
     my @hierarchy_loop;
-    
+
     $sth = $dbh->prepare("SELECT * FROM browser WHERE parent = ? ORDER BY description");
-    $sth->execute(($parentfilter ? "$parentfilter | $filter" : "$filter"));
-    
-    while (my $line = $sth->fetchrow_hashref) {
+    $sth->execute( ( $parentfilter ? "$parentfilter | $filter" : "$filter" ) );
+
+    while ( my $line = $sth->fetchrow_hashref ) {
         $line->{'browse_classification'} = $line->{'classification'};
-        $line->{'search'} = createSearchString($line);
+        $line->{'search'}                = createSearchString($line);
         push @level_entries_loop, $line if $line->{endnode};
-        push @level_folder_loop, $line if !$line->{endnode};
-        push @level_loop, $line;
+        push @level_folder_loop,  $line if !$line->{endnode};
+        push @level_loop,         $line;
     }
-    
+
     my $myentry;
     $sth = $dbh->prepare("SELECT * FROM browser WHERE description = ? AND parent = ? AND level = ?");
-    $sth->execute($filter,$parentfilter,$level);
-    while (my $line = $sth->fetchrow_hashref) {
+    $sth->execute( $filter, $parentfilter, $level );
+    while ( my $line = $sth->fetchrow_hashref ) {
         $line->{'browse_classification'} = $line->{'classification'};
-        $line->{'search'} = createSearchString($line);
-        $myentry = $line;
+        $line->{'search'}                = createSearchString($line);
+        $myentry                         = $line;
     }
 
     my %washere;
     $sth = $dbh->prepare("SELECT * FROM browser WHERE description = ? AND parent = ? ORDER BY description");
-    my $sthnull = $dbh->prepare("SELECT * FROM browser WHERE description = ? AND (parent = '' OR parent IS NULL) ORDER BY description");
-    my $val = $filter;
+    my $sthnull = $dbh->prepare(
+        "SELECT * FROM browser WHERE description = ? AND (parent = '' OR parent IS NULL) ORDER BY description");
+    my $val     = $filter;
     my $pfilter = $parentfilter;
-    while ( $val ) {
-		my $line;
-		if ( $pfilter ) {
-			$sth->execute($val,$pfilter);
-			$line = $sth->fetchrow_hashref;
-		} else {
-			$sthnull->execute($val);
-			$line = $sthnull->fetchrow_hashref;
-		}
-        if ( $line ) {
-			$line->{'browse_classification'} = $line->{'classification'};
+    while ($val) {
+        my $line;
+        if ($pfilter) {
+            $sth->execute( $val, $pfilter );
+            $line = $sth->fetchrow_hashref;
+        } else {
+            $sthnull->execute($val);
+            $line = $sthnull->fetchrow_hashref;
+        }
+        if ($line) {
+            $line->{'browse_classification'} = $line->{'classification'};
             $val = $line->{'parent'};
-            last if ( exists($washere{$val}) );
+            last if ( exists( $washere{$val} ) );
             $line->{'search'} = createSearchString($line);
             unshift @hierarchy_loop, $line;
             last if ( $line->{'level'} eq '1' );
             $washere{$val} = 1;
-			
-			last if (! $val);
-			my @hierarchy = split(/ \| /,$val);
-            $val = shift @hierarchy;
-            $pfilter = join(" | ",@hierarchy);
-        }
-        else {
+
+            last if ( !$val );
+            my @hierarchy = split( / \| /, $val );
+            $val     = shift @hierarchy;
+            $pfilter = join( " | ", @hierarchy );
+        } else {
             last;
         }
     }
-    
+
     $template->param(
-			LEVEL_LOOP => \@level_loop,
-			LEVEL_ENTRIES_LOOP => \@level_entries_loop,
-			LEVEL_FOLDER_LOOP => \@level_folder_loop,
-			LEVEL => $level,
-			FILTER => $filter,
-			HIERARCHY_LOOP => \@hierarchy_loop,
-			MYENTRY => $myentry,
-		);
-}
-else {
-	my $systree = [];
-	my $parents = {};
+        LEVEL_LOOP         => \@level_loop,
+        LEVEL_ENTRIES_LOOP => \@level_entries_loop,
+        LEVEL_FOLDER_LOOP  => \@level_folder_loop,
+        LEVEL              => $level,
+        FILTER             => $filter,
+        HIERARCHY_LOOP     => \@hierarchy_loop,
+        MYENTRY            => $myentry,
+    );
+} else {
+    my $systree = [];
+    my $parents = {};
     $sth = $dbh->prepare("SELECT * FROM browser ORDER BY level, description");
     $sth->execute();
-    while (my $line = $sth->fetchrow_hashref) {
+    while ( my $line = $sth->fetchrow_hashref ) {
         $line->{'browse_classification'} = $line->{'classification'};
-        $line->{'search'} = createSearchString($line);
-        
+        $line->{'search'}                = createSearchString($line);
+
         my $level = 1;
-        $level = $line->{level} if ( $line->{level} ); 
+        $level = $line->{level} if ( $line->{level} );
         if ( $level == 1 ) {
-			$parents->{$line->{description}} = $line;
-			push @$systree, $line;
-		}
-		else {
-			if ( exists($parents->{$line->{parent}}) ) {
-				my $parent = $parents->{$line->{parent}};
-				if ( ! exists($parent->{childs}) ) {
-					$parent->{childs} = [];
-				}
-				push @{$parent->{childs}}, $line;
-				$parents->{$line->{parent} . ' | ' . $line->{description} } = $line;
-			}
-		}
+            $parents->{ $line->{description} } = $line;
+            push @$systree, $line;
+        } else {
+            if ( exists( $parents->{ $line->{parent} } ) ) {
+                my $parent = $parents->{ $line->{parent} };
+                if ( !exists( $parent->{childs} ) ) {
+                    $parent->{childs} = [];
+                }
+                push @{ $parent->{childs} }, $line;
+                $parents->{ $line->{parent} . ' | ' . $line->{description} } = $line;
+            }
+        }
     }
     $template->param(
-				LEVEL_LOOP => $systree,
-				LEVEL => $level
-			);
+        LEVEL_LOOP => $systree,
+        LEVEL      => $level
+    );
 }
 
 sub createSearchString {
-    my $class = shift;
+    my $class  = shift;
     my $search = '';
-    
+
     if ( $class->{classification} ) {
         my $searchval = $class->{classification};
         $searchval =~ s/ /\\ /g;

@@ -27,15 +27,14 @@ use HTML::Scrubber;
 use C4::Context;
 
 my %scrubbertypes = (
-    default => {},    # place holder, default settings are below as fallbacks in call to constructor
-    comment => { allow => [qw( br b i em big small strong )], },
-    note    => { allow => [qw[ br b i em big small strong u hr span div p ol ul li dl dt dd ]] },
+    default   => {},    # place holder, default settings are below as fallbacks in call to constructor
+    comment   => { allow => [qw( br b i em big small strong )], },
+    note      => { allow => [qw[ br b i em big small strong u hr span div p ol ul li dl dt dd ]] },
     munzinger => { allow => [qw( span )], rules => [ span => { class => 1 } ] },
 );
 
-
 sub new {
-    shift; # ignore our class we are wrapper
+    shift;              # ignore our class we are wrapper
     my $type = (@_) ? shift : 'default';
     $type = 'default' if !defined $type;
     if ( !exists $scrubbertypes{$type} ) {
@@ -51,7 +50,6 @@ sub new {
     );
     return $scrubber;
 }
-
 
 1;
 __END__

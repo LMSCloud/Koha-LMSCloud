@@ -69,26 +69,20 @@ subtest 'get_string_width_based_on_params() tests' => sub {
         }
     };
 
-    my $string_basic_width
-        = C4::CoverGen::get_string_width_based_on_params(
-        $test_cases->{'basic'} );
+    my $string_basic_width = C4::CoverGen::get_string_width_based_on_params( $test_cases->{'basic'} );
 
     ok( $string_basic_width == 24, 'basic string produces correct width' );
 
-    my $string_long_width
-        = C4::CoverGen::get_string_width_based_on_params(
-        $test_cases->{'long'} );
+    my $string_long_width = C4::CoverGen::get_string_width_based_on_params( $test_cases->{'long'} );
 
     ok( $string_long_width == 720, 'long string produces correct width' );
 
     try {
-        my $string_missing_image
-            = C4::CoverGen::get_string_width_based_on_params(
-            $test_cases->{'missing_image'} );
+        my $string_missing_image = C4::CoverGen::get_string_width_based_on_params( $test_cases->{'missing_image'} );
         ok( 0, 'image parameter is set' );
-    }
-    catch {
-        is( ref($_),
+    } catch {
+        is(
+            ref($_),
             'Koha::Exceptions::MissingParameter',
             'image parameter is undefined'
         );

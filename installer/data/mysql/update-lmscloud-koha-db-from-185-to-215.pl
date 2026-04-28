@@ -6,6 +6,7 @@ use utf8;
 use Carp;
 use DBI;
 use Getopt::Long;
+
 # Koha modules
 use C4::Context;
 use Koha::Config;
@@ -27,11 +28,11 @@ use Text::Diff qw(diff);
 use URI::Escape;
 use Try::Tiny;
 
-BEGIN{ $| = 1; }
+BEGIN { $| = 1; }
 
-binmode(STDIN, ":utf8");
-binmode(STDERR, ":utf8");
-binmode(STDOUT, ":utf8");
+binmode( STDIN,  ":utf8" );
+binmode( STDERR, ":utf8" );
+binmode( STDOUT, ":utf8" );
 
 my $instance = getInstanceName();
 
@@ -58,8 +59,6 @@ updateMarcMappings();
 
 &migrateIllbackends();
 
-
-
 ############################################################################
 #
 #
@@ -70,7 +69,7 @@ updateMarcMappings();
 
 sub getInstanceName {
     my $conf_fname = Koha::Config->guess_koha_conf;
-    my $config = Koha::Config->read_from_file($conf_fname);
+    my $config     = Koha::Config->read_from_file($conf_fname);
     if ( $conf_fname =~ m|^/etc/koha/sites/([^/]+)/| ) {
         return $1;
     }
@@ -78,103 +77,114 @@ sub getInstanceName {
 }
 
 sub updateKohaConfig {
-    my $instance = shift;
+    my $instance   = shift;
     my $conf_fname = Koha::Config->guess_koha_conf;
-    my $config = Koha::Config->read_from_file($conf_fname);
-    
+    my $config     = Koha::Config->read_from_file($conf_fname);
+
     my $changed = 0;
     my $configtext;
     {
-        local( $/ ); # undefine the record seperator
-        open(my $rh,'<:encoding(UTF-8)', $conf_fname) or croak "Error opening $conf_fname: $!";
+        local ($/);    # undefine the record seperator
+        open( my $rh, '<:encoding(UTF-8)', $conf_fname ) or croak "Error opening $conf_fname: $!";
         $configtext = <$rh>;
         close $rh;
     }
-    
+
     if ( exists( $config->{listen}->{publicserver}->{content} ) ) {
         if ( $config->{listen}->{publicserver}->{content} =~ /^\s*tcp:([^:]+):([0-9]+)\s*$/i ) {
-            my $host = $1;
-            my $port = $2;
+            my $host         = $1;
+            my $port         = $2;
             my $listenConfig = $config->{listen}->{publicserver}->{content};
-            
+
             print "Configuring Z3950Responder from Zebra config: host ($host), port ($port)\n";
-            
-            $configtext =~ s/(\r?\n)(<listen\s+id="publicserver"[^>]*>.+?(?=\<\/listen>)<\/listen>)(\r?\n)/$1<!--$1$2$3-->$3/is;
+
+            $configtext =~
+                s/(\r?\n)(<listen\s+id="publicserver"[^>]*>.+?(?=\<\/listen>)<\/listen>)(\r?\n)/$1<!--$1$2$3-->$3/is;
             $changed = 1;
-            
+
             if ( exists( $config->{server}->{publicserver} ) ) {
-                $configtext =~ s/(\r?\n)(<server\s+id="publicserver"[^>]*>.+?(?=\<\/server>)<\/server>)(\r?\n)/$1<!--$1$2$3-->$3/is;
+                $configtext =~
+                    s/(\r?\n)(<server\s+id="publicserver"[^>]*>.+?(?=\<\/server>)<\/server>)(\r?\n)/$1<!--$1$2$3-->$3/is;
             }
             if ( exists( $config->{serverinfo}->{publicserver} ) ) {
-                $configtext =~ s/(\r?\n)(<serverinfo\s+id="publicserver"[^>]*>.+?(?=\<\/serverinfo>)<\/serverinfo>)(\r?\n)/$1<!--$1$2$3-->$3/is;
+                $configtext =~
+                    s/(\r?\n)(<serverinfo\s+id="publicserver"[^>]*>.+?(?=\<\/serverinfo>)<\/serverinfo>)(\r?\n)/$1<!--$1$2$3-->$3/is;
             }
-            
+
             my $needpermissions = 1;
-            my $permissionadd = '';
+            my $permissionadd   = '';
             if ( exists( $config->{server}->{publicserver}->{config} ) ) {
                 my $publicserverconfig = $config->{server}->{publicserver}->{config};
                 my $serverconfigtext;
                 {
-                    local( $/ ); # undefine the record seperator
-                    open(my $rh,'<:encoding(UTF-8)', $publicserverconfig) or carp "Error opening $publicserverconfig: $!";
+                    local ($/);    # undefine the record seperator
+                    open( my $rh, '<:encoding(UTF-8)', $publicserverconfig )
+                        or carp "Error opening $publicserverconfig: $!";
                     $serverconfigtext = <$rh>;
                     close $rh;
                 }
                 my @permusers;
-                if ( $serverconfigtext ) {
+                if ($serverconfigtext) {
                     my $passwords = '';
                     if ( $serverconfigtext =~ /^passwd\s*:\s*(.+)$/m ) {
                         my $passwdfile = $1;
-                        local( $/ ); # undefine the record seperator
-                        open(my $rh,'<:encoding(UTF-8)', $passwdfile) or carp "Error opening $passwdfile: $!";
+                        local ($/);    # undefine the record seperator
+                        open( my $rh, '<:encoding(UTF-8)', $passwdfile ) or carp "Error opening $passwdfile: $!";
                         $passwords = <$rh>;
                         close $rh;
                     }
                     while ( $serverconfigtext =~ /^perm.([^: ]+)\s*:\s*([a-z]+)/mg ) {
-                        my $permuser = $1;
+                        my $permuser  = $1;
                         my $permvalue = $2;
-                        my $permpass = '';
-                        
+                        my $permpass  = '';
+
                         if ( $passwords =~ /^$permuser\s*:\s*(.+)$/m ) {
                             $permpass = $1;
                         }
                         if ( $permuser =~ /^anonymous$/ && $permvalue =~ /a/ && $permvalue =~ /r/ ) {
                             $needpermissions = 0;
                         }
-                        push @permusers, {username => $permuser, password => $permpass} if ($permuser !~ /^anonymous$/);
+                        push @permusers, { username => $permuser, password => $permpass }
+                            if ( $permuser !~ /^anonymous$/ );
                     }
                 }
-                
+
                 $permissionadd = "  <permissions>\n    <validusers>\n";
-                foreach my $permuser(@permusers) {
-                    $permissionadd .= '      <user username="'. xmlEncode($permuser->{username}) .'" password="' . xmlEncode($permuser->{password}) .'"/>' ."\n";
+                foreach my $permuser (@permusers) {
+                    $permissionadd .=
+                          '      <user username="'
+                        . xmlEncode( $permuser->{username} )
+                        . '" password="'
+                        . xmlEncode( $permuser->{password} ) . '"/>' . "\n";
                 }
                 $permissionadd .= "    </validusers>\n  </permissions>\n";
             }
-            
+
             # now activate the new config
             system("koha-z3950-responder --enable $instance");
-            
+
             # update config
             my $responderConfig = "/etc/koha/sites/$instance/z3950/config.xml";
             if ( -f $responderConfig ) {
                 my $responderConfigText;
                 {
-                    local( $/ ); # undefine the record seperator
-                    open(my $rh,'<:encoding(UTF-8)', $responderConfig) or carp "Error opening $responderConfig: $!";
+                    local ($/);    # undefine the record seperator
+                    open( my $rh, '<:encoding(UTF-8)', $responderConfig ) or carp "Error opening $responderConfig: $!";
                     $responderConfigText = <$rh>;
                     close $rh;
                 }
-                if ( $responderConfigText ) {
-                    $responderConfigText =~ s/(<listen\s+id="public"[^>]*>).+?(?=\<\/listen>)(<\/listen>)/$1$listenConfig$2/is;
+                if ($responderConfigText) {
+                    $responderConfigText =~
+                        s/(<listen\s+id="public"[^>]*>).+?(?=\<\/listen>)(<\/listen>)/$1$listenConfig$2/is;
                     if ( $needpermissions && $permissionadd && $responderConfigText !~ /<permissions>/ ) {
                         $responderConfigText =~ s/(<\/server>\s*\r?\n)/$1$permissionadd/is;
                     }
                     {
-                        my $backupfile = "$responderConfig.backup-".getLoggingTime();
-                        copy($responderConfig,$backupfile);
+                        my $backupfile = "$responderConfig.backup-" . getLoggingTime();
+                        copy( $responderConfig, $backupfile );
                         print "Backup Z3950Responder config $responderConfig as $backupfile\n";
-                        open(my $fh,'>:encoding(UTF-8)', $responderConfig) or carp "Error opening $responderConfig: $!";
+                        open( my $fh, '>:encoding(UTF-8)', $responderConfig )
+                            or carp "Error opening $responderConfig: $!";
                         print $fh $responderConfigText;
                         close $fh;
                         print "Updated Z3950Responder config $responderConfig\n";
@@ -183,197 +193,221 @@ sub updateKohaConfig {
             }
         }
     }
-    if (! exists( $config->{config}->{tls} ) ) {
+    if ( !exists( $config->{config}->{tls} ) ) {
         if ( exists( $config->{config}->{pass} ) ) {
-            my $add =  ' <tls>__DB_USE_TLS__</tls>' . "\n" . 
-                       ' <ca>__DB_TLS_CA_CERTIFICATE__</ca>' . "\n" . 
-                       ' <cert>__DB_TLS_CLIENT_CERTIFICATE__</cert>' . "\n" . 
-                       ' <key>__DB_TLS_CLIENT_KEY__</key>' . "\n";
+            my $add =
+                  ' <tls>__DB_USE_TLS__</tls>' . "\n"
+                . ' <ca>__DB_TLS_CA_CERTIFICATE__</ca>' . "\n"
+                . ' <cert>__DB_TLS_CLIENT_CERTIFICATE__</cert>' . "\n"
+                . ' <key>__DB_TLS_CLIENT_KEY__</key>' . "\n";
             $configtext =~ s/(\r?\n *<pass>.+?(?=\<\/pass>)<\/pass> *\r?\n)/$1$add/is;
             $changed = 1;
         }
     }
-    if (! exists( $config->{config}->{mana_config} ) ) {
+    if ( !exists( $config->{config}->{mana_config} ) ) {
         if ( exists( $config->{config}->{backupdir} ) ) {
-            my $add =  ' <!-- URL of the mana KB server -->' . "\n" . 
-                       ' <!-- alternative value http://mana-test.koha-community.org to query the test server -->' . "\n" . 
-                       ' <mana_config>https://mana-kb.koha-community.org</mana_config>' . "\n";
+            my $add =
+                  ' <!-- URL of the mana KB server -->' . "\n"
+                . ' <!-- alternative value http://mana-test.koha-community.org to query the test server -->' . "\n"
+                . ' <mana_config>https://mana-kb.koha-community.org</mana_config>' . "\n";
             $configtext =~ s/(\r?\n *<backupdir>.+?(?=\<\/backupdir>)<\/backupdir> *\r?\n)/$1$add/is;
             $changed = 1;
         }
     }
-    if (! exists( $config->{config}->{lockdir} ) ) {
+    if ( !exists( $config->{config}->{lockdir} ) ) {
         if ( exists( $config->{config}->{zebra_lockdir} ) ) {
-            my $add =  ' <lockdir>/var/lock/koha/' . $instance . '</lockdir>' . "\n";
+            my $add = ' <lockdir>/var/lock/koha/' . $instance . '</lockdir>' . "\n";
             $configtext =~ s/(\r?\n *<zebra_lockdir>.+?(?=\<\/zebra_lockdir>)<\/zebra_lockdir> *\r?\n)/$1$add/is;
             $changed = 1;
         }
     }
-    if (! exists( $config->{config}->{zebra_max_record_size} ) ) {
+    if ( !exists( $config->{config}->{zebra_max_record_size} ) ) {
         if ( exists( $config->{config}->{use_zebra_facets} ) ) {
-            my $add =  ' <zebra_max_record_size>1024</zebra_max_record_size>' . "\n";
-            $configtext =~ s/(\r?\n *<use_zebra_facets>.+?(?=\<\/use_zebra_facets>)<\/use_zebra_facets> *\r?\n)/$1$add/is;
+            my $add = ' <zebra_max_record_size>1024</zebra_max_record_size>' . "\n";
+            $configtext =~
+                s/(\r?\n *<use_zebra_facets>.+?(?=\<\/use_zebra_facets>)<\/use_zebra_facets> *\r?\n)/$1$add/is;
             $changed = 1;
         }
     }
-    if (! exists( $config->{config}->{access_dirs} ) && $configtext !~ /<access_dirs>/ ) {
+    if ( !exists( $config->{config}->{access_dirs} ) && $configtext !~ /<access_dirs>/ ) {
         if ( exists( $config->{config}->{api_secret_passphrase} ) ) {
-            my $add =  "\n" .
-                       ' <!-- Accessible directory from the staff interface, uncomment the following line and define a valid path to let the intranet user access it-->' . "\n" .
-                       ' <!--' . "\n" . 
-                       ' <access_dirs>' . "\n" . 
-                       '     <access_dir></access_dir>' . "\n" . 
-                       '     <access_dir></access_dir>' . "\n" . 
-                       ' </access_dirs>' . "\n" . 
-                       '  -->' . "\n\n";
-            $configtext =~ s/(\r?\n *<api_secret_passphrase>.+?(?=\<\/api_secret_passphrase>)<\/api_secret_passphrase> *\r?\n)/$1$add/is;
+            my $add = "\n"
+                . ' <!-- Accessible directory from the staff interface, uncomment the following line and define a valid path to let the intranet user access it-->'
+                . "\n"
+                . ' <!--' . "\n"
+                . ' <access_dirs>' . "\n"
+                . '     <access_dir></access_dir>' . "\n"
+                . '     <access_dir></access_dir>' . "\n"
+                . ' </access_dirs>' . "\n" . '  -->' . "\n\n";
+            $configtext =~
+                s/(\r?\n *<api_secret_passphrase>.+?(?=\<\/api_secret_passphrase>)<\/api_secret_passphrase> *\r?\n)/$1$add/is;
             $changed = 1;
         }
     }
-    if (! exists( $config->{config}->{sms_send_config} ) ) {
+    if ( !exists( $config->{config}->{sms_send_config} ) ) {
         if ( exists( $config->{config}->{ttf} ) ) {
-            my $add =  ' <!-- Path to the config file for SMS::Send -->' . "\n" .
-                       ' <sms_send_config>/etc/koha/sites/' . $instance . '/sms_send/</sms_send_config>' . "\n";
+            my $add =
+                  ' <!-- Path to the config file for SMS::Send -->' . "\n"
+                . ' <sms_send_config>/etc/koha/sites/'
+                . $instance
+                . '/sms_send/</sms_send_config>' . "\n";
             $configtext =~ s/(\r?\n *<ttf>.+?(?=\<\/ttf>)<\/ttf> *\r?\n)/$1$add/is;
             $changed = 1;
         }
     }
-    if (! exists( $config->{config}->{elasticsearch} ) ) {
+    if ( !exists( $config->{config}->{elasticsearch} ) ) {
         if ( exists( $config->{config}->{plack_workers} ) ) {
-            my $add =  ' <!-- Configuration for X-Forwarded-For -->' . "\n" . 
-                       ' <!--' . "\n" . 
-                       ' <koha_trusted_proxies>1.2.3.4 2.3.4.5 3.4.5.6</koha_trusted_proxies>' . "\n" . 
-                       ' -->' . "\n" .
-                       "\n" . 
-                       ' <!-- Elasticsearch Configuration -->' . "\n" .
-                       ' <elasticsearch>' . "\n" .
-                       '     <server>127.0.0.1:9200</server> <!-- may be repeated to include all servers on your cluster -->' . "\n" .
-                       '     <index_name>koha_' . $instance . '</index_name> <!-- should be unique amongst all the indices on your cluster. _biblios and _authorities will be appended. -->' . "\n" .
-                       "\n" .
-                       '     <!-- See https://metacpan.org/pod/Search::Elasticsearch#cxn_pool -->' . "\n" .
-                       '     <cxn_pool>Static</cxn_pool>' . "\n" .
-                       '     <!-- See https://metacpan.org/pod/Search::Elasticsearch#trace_to -->' . "\n" .
-                       '     <!-- <trace_to>Stderr</trace_to> -->' . "\n" .
-                       ' </elasticsearch>' . "\n" .
-                       ' <!-- Uncomment the following line if you want to override the Elasticsearch default index settings -->' . "\n" .
-                       ' <!-- <elasticsearch_index_config>/etc/koha/sites/' . $instance . '/searchengine/elasticsearch/index_config.yaml</elasticsearch_index_config> -->' . "\n" .
-                       ' <!-- Uncomment the following line if you want to override the Elasticsearch default field settings -->' . "\n" .
-                       ' <!-- <elasticsearch_field_config>/etc/koha/sites/' . $instance . '/searchengine/elasticsearch/field_config.yaml</elasticsearch_field_config> -->' . "\n" .
-                       ' <!-- Uncomment the following line if you want to override the Elasticsearch index default settings.' . "\n" .
-                       '      Note that any changes made to the mappings file only take effect if you reset the mappings in' . "\n" .
-                       '      by visiting /cgi-bin/koha/admin/searchengine/elasticsearch/mappings.pl?op=reset&i_know_what_i_am_doing=1&reset_fields=1.' . "\n" .
-                       '      Resetting mappings will override any changes made in the Search engine configuration UI.' . "\n" .
-                       ' -->' . "\n" .
-                       ' <!-- <elasticsearch_index_mappings>/etc/koha/sites/' . $instance . '/searchengine/elasticsearch/mappings.yaml</elasticsearch_index_mappings> -->' . "\n" .
-                       "\n\n";
+            my $add =
+                  ' <!-- Configuration for X-Forwarded-For -->' . "\n" . ' <!--' . "\n"
+                . ' <koha_trusted_proxies>1.2.3.4 2.3.4.5 3.4.5.6</koha_trusted_proxies>' . "\n" . ' -->' . "\n" . "\n"
+                . ' <!-- Elasticsearch Configuration -->' . "\n"
+                . ' <elasticsearch>' . "\n"
+                . '     <server>127.0.0.1:9200</server> <!-- may be repeated to include all servers on your cluster -->'
+                . "\n"
+                . '     <index_name>koha_'
+                . $instance
+                . '</index_name> <!-- should be unique amongst all the indices on your cluster. _biblios and _authorities will be appended. -->'
+                . "\n"
+                . "\n"
+                . '     <!-- See https://metacpan.org/pod/Search::Elasticsearch#cxn_pool -->' . "\n"
+                . '     <cxn_pool>Static</cxn_pool>' . "\n"
+                . '     <!-- See https://metacpan.org/pod/Search::Elasticsearch#trace_to -->' . "\n"
+                . '     <!-- <trace_to>Stderr</trace_to> -->' . "\n"
+                . ' </elasticsearch>' . "\n"
+                . ' <!-- Uncomment the following line if you want to override the Elasticsearch default index settings -->'
+                . "\n"
+                . ' <!-- <elasticsearch_index_config>/etc/koha/sites/'
+                . $instance
+                . '/searchengine/elasticsearch/index_config.yaml</elasticsearch_index_config> -->' . "\n"
+                . ' <!-- Uncomment the following line if you want to override the Elasticsearch default field settings -->'
+                . "\n"
+                . ' <!-- <elasticsearch_field_config>/etc/koha/sites/'
+                . $instance
+                . '/searchengine/elasticsearch/field_config.yaml</elasticsearch_field_config> -->' . "\n"
+                . ' <!-- Uncomment the following line if you want to override the Elasticsearch index default settings.'
+                . "\n"
+                . '      Note that any changes made to the mappings file only take effect if you reset the mappings in'
+                . "\n"
+                . '      by visiting /cgi-bin/koha/admin/searchengine/elasticsearch/mappings.pl?op=reset&i_know_what_i_am_doing=1&reset_fields=1.'
+                . "\n"
+                . '      Resetting mappings will override any changes made in the Search engine configuration UI.'
+                . "\n"
+                . ' -->' . "\n"
+                . ' <!-- <elasticsearch_index_mappings>/etc/koha/sites/'
+                . $instance
+                . '/searchengine/elasticsearch/mappings.yaml</elasticsearch_index_mappings> -->' . "\n" . "\n\n";
             $configtext =~ s/(\r?\n *<plack_workers>.+?(?=\<\/plack_workers>)<\/plack_workers> *\r?\n)/$1$add/is;
             $changed = 1;
         }
-    }
-    elsif ( $configtext !~ /<!-- Elasticsearch Configuration -->/ ) {
-        my $add =  "\n" .
-                   ' <!-- Configuration for X-Forwarded-For -->' . "\n" . 
-                   ' <!--' . "\n" . 
-                   ' <koha_trusted_proxies>1.2.3.4 2.3.4.5 3.4.5.6</koha_trusted_proxies>' . "\n" . 
-                   ' -->' . "\n" .
-                   "\n" . 
-                   ' <!-- Elasticsearch Configuration -->';
+    } elsif ( $configtext !~ /<!-- Elasticsearch Configuration -->/ ) {
+        my $add = "\n"
+            . ' <!-- Configuration for X-Forwarded-For -->' . "\n" . ' <!--' . "\n"
+            . ' <koha_trusted_proxies>1.2.3.4 2.3.4.5 3.4.5.6</koha_trusted_proxies>' . "\n" . ' -->' . "\n" . "\n"
+            . ' <!-- Elasticsearch Configuration -->';
         $configtext =~ s/(\r?\n *<elasticsearch>.+?(?=\<\/elasticsearch>)<\/elasticsearch> *\r?\n)/$add$1/is;
         if ( exists( $config->{config}->{elasticsearch}->{server} ) ) {
-            $configtext =~ s/<server>localhost:9200<\/server>/'<server>127.0.0.1:9200<\/server> <!-- may be repeated to include all servers on your cluster -->'/se;
+            $configtext =~
+                s/<server>localhost:9200<\/server>/'<server>127.0.0.1:9200<\/server> <!-- may be repeated to include all servers on your cluster -->'/se;
         }
-        $add = "\n\n" .
-               '     <!-- See https://metacpan.org/pod/Search::Elasticsearch#cxn_pool -->';
+        $add = "\n\n" . '     <!-- See https://metacpan.org/pod/Search::Elasticsearch#cxn_pool -->';
         $configtext =~ s/(\r?\n *<cxn_pool>.+?(?=\<\/cxn_pool>)<\/cxn_pool> *\r?\n)/$add$1/is;
-        $add = "\n" .
-               '     <!-- See https://metacpan.org/pod/Search::Elasticsearch#trace_to -->';
+        $add = "\n" . '     <!-- See https://metacpan.org/pod/Search::Elasticsearch#trace_to -->';
         $configtext =~ s/(\r?\n *<trace_to>.+?(?=\<\/trace_to>)<\/trace_to> *\r?\n)/$add$1/is;
         $configtext =~ s/(\r?\n *<!-- <trace_to>.+?(?=\<\/trace_to>)<\/trace_to> --> *\r?\n)/$add$1/is;
         $configtext =~ s/(\r?\n *<!-- <log_to>Stderr<\/log_to> --> *\r?\n)/\n/is;
-        $add = ' <!-- Uncomment the following line if you want to override the Elasticsearch default index settings -->' . "\n" .
-               ' <!-- <elasticsearch_index_config>/etc/koha/sites/' . $instance . '/searchengine/elasticsearch/index_config.yaml</elasticsearch_index_config> -->' . "\n" .
-               ' <!-- Uncomment the following line if you want to override the Elasticsearch default field settings -->' . "\n" .
-               ' <!-- <elasticsearch_field_config>/etc/koha/sites/' . $instance . '/searchengine/elasticsearch/field_config.yaml</elasticsearch_field_config> -->' . "\n" .
-               ' <!-- Uncomment the following line if you want to override the Elasticsearch index default settings.' . "\n" .
-               '      Note that any changes made to the mappings file only take effect if you reset the mappings in' . "\n" .
-               '      by visiting /cgi-bin/koha/admin/searchengine/elasticsearch/mappings.pl?op=reset&i_know_what_i_am_doing=1&reset_fields=1.' . "\n" .
-               '      Resetting mappings will override any changes made in the Search engine configuration UI.' . "\n" .
-               ' -->' . "\n" .
-               ' <!-- <elasticsearch_index_mappings>/etc/koha/sites/' . $instance . '/searchengine/elasticsearch/mappings.yaml</elasticsearch_index_mappings> -->' . "\n" .
-               "\n";
+        $add =
+              ' <!-- Uncomment the following line if you want to override the Elasticsearch default index settings -->'
+            . "\n"
+            . ' <!-- <elasticsearch_index_config>/etc/koha/sites/'
+            . $instance
+            . '/searchengine/elasticsearch/index_config.yaml</elasticsearch_index_config> -->' . "\n"
+            . ' <!-- Uncomment the following line if you want to override the Elasticsearch default field settings -->'
+            . "\n"
+            . ' <!-- <elasticsearch_field_config>/etc/koha/sites/'
+            . $instance
+            . '/searchengine/elasticsearch/field_config.yaml</elasticsearch_field_config> -->' . "\n"
+            . ' <!-- Uncomment the following line if you want to override the Elasticsearch index default settings.'
+            . "\n"
+            . '      Note that any changes made to the mappings file only take effect if you reset the mappings in'
+            . "\n"
+            . '      by visiting /cgi-bin/koha/admin/searchengine/elasticsearch/mappings.pl?op=reset&i_know_what_i_am_doing=1&reset_fields=1.'
+            . "\n"
+            . '      Resetting mappings will override any changes made in the Search engine configuration UI.' . "\n"
+            . ' -->' . "\n"
+            . ' <!-- <elasticsearch_index_mappings>/etc/koha/sites/'
+            . $instance
+            . '/searchengine/elasticsearch/mappings.yaml</elasticsearch_index_mappings> -->' . "\n" . "\n";
         $configtext =~ s/(\r?\n *<elasticsearch>.+?(?=\<\/elasticsearch>)<\/elasticsearch> *\r?\n)/$1$add/is;
         $changed = 1;
     }
     if ( exists( $config->{config}->{timezone} ) && $config->{config}->{timezone} eq '' ) {
         $configtext =~ s/<timezone><\/timezone>/'<timezone>Europe\/Berlin<\/timezone>'/se;
     }
-    if (! exists( $config->{config}->{bcrypt_settings} ) ) {
+    if ( !exists( $config->{config}->{bcrypt_settings} ) ) {
         if ( exists( $config->{config}->{timezone} ) ) {
-            my $brypt_settings=`htpasswd -bnBC 10 "" password | tr -d ':\n' | sed 's/\$2y/\$2a/'`;
-            my $add =  "\n" .
-                       ' <!-- This is the bcrypt settings used to generate anonymized content -->' . "\n" .
-                       ' <bcrypt_settings>' . xmlEncode($brypt_settings) . '</bcrypt_settings>' . "\n" .
-                       '       ' . "\n" .                
-                       ' <!-- flag for development purposes' . "\n" .
-                       '      dev_install is used to adjust some paths specific to dev installations' . "\n" .
-                       '      strict_sql_modes should not be used in a production environment' . "\n" .
-                       '      developers use it to catch bugs related to strict SQL modes -->' . "\n" .
-                       ' <dev_install>0</dev_install>' . "\n" .
-                       ' <strict_sql_modes>0</strict_sql_modes>' . "\n" .
-                       ' <plugin_repos>' . "\n" .
-                       '    <!--' . "\n" .
-                       '    <repo>' . "\n" .
-                       '        <name>ByWater Solutions</name>' . "\n" .
-                       '        <org_name>bywatersolutions</org_name>' . "\n" .
-                       '        <service>github</service>' . "\n" .
-                       '    </repo>' . "\n" .
-                       '    <repo>' . "\n" .
-                       '        <name>Theke Solutions</name>' . "\n" .
-                       '        <org_name>thekesolutions</org_name>' . "\n" .
-                       '        <service>gitlab</service>' . "\n" .
-                       '    </repo>' . "\n" .
-                       '    <repo>' . "\n" .
-                       '        <name>PTFS Europe</name>' . "\n" .
-                       '        <org_name>ptfs-europe</org_name>' . "\n" .
-                       '        <service>github</service>' . "\n" .
-                       '    </repo>' . "\n" .
-                       '    -->' . "\n" .
-                       ' </plugin_repos>' . "\n" .
-                       "\n" .
-                       ' <koha_xslt_security>' . "\n" .
-                       ' <!-- Uncomment the following entry ONLY when you explicitly want the XSLT' . "\n" .
-                       '      parser to expand entities like <!ENTITY secret SYSTEM "/etc/secrets">.' . "\n" .
-                       '      This is unsafe and therefore NOT recommended!' . "\n" .
-                       '     <expand_entities_unsafe>1</expand_entities_unsafe>' . "\n" .
-                       ' -->' . "\n" .
-                       ' </koha_xslt_security>' . "\n" .
-                       "\n" .
-                       ' <smtp_server>' . "\n" .
-                       '    <host>localhost</host>' . "\n" .
-                       '    <port>25</port>' . "\n" .
-                       '    <timeout>120</timeout>' . "\n" .
-                       '    <ssl_mode>disabled</ssl_mode>' . "\n" .
-                       '    <user_name></user_name>' . "\n" .
-                       '    <password></password>' . "\n" .
-                       '    <debug>0</debug>' . "\n" .
-                       ' </smtp_server>' . "\n" .
-                       "\n" .
-                       ' <message_broker>' . "\n" .
-                       '   <hostname>localhost</hostname>' . "\n" .
-                       '   <port>61613</port>' . "\n" .
-                       '   <username>guest</username>' . "\n" .
-                       '   <password>guest</password>' . "\n" .
-                       '   <vhost></vhost>' . "\n" .
-                       ' </message_broker>' . "\n";
+            my $brypt_settings = `htpasswd -bnBC 10 "" password | tr -d ':\n' | sed 's/\$2y/\$2a/'`;
+            my $add            = "\n"
+                . ' <!-- This is the bcrypt settings used to generate anonymized content -->' . "\n"
+                . ' <bcrypt_settings>'
+                . xmlEncode($brypt_settings)
+                . '</bcrypt_settings>' . "\n"
+                . '       ' . "\n"
+                . ' <!-- flag for development purposes' . "\n"
+                . '      dev_install is used to adjust some paths specific to dev installations' . "\n"
+                . '      strict_sql_modes should not be used in a production environment' . "\n"
+                . '      developers use it to catch bugs related to strict SQL modes -->' . "\n"
+                . ' <dev_install>0</dev_install>' . "\n"
+                . ' <strict_sql_modes>0</strict_sql_modes>' . "\n"
+                . ' <plugin_repos>' . "\n"
+                . '    <!--' . "\n"
+                . '    <repo>' . "\n"
+                . '        <name>ByWater Solutions</name>' . "\n"
+                . '        <org_name>bywatersolutions</org_name>' . "\n"
+                . '        <service>github</service>' . "\n"
+                . '    </repo>' . "\n"
+                . '    <repo>' . "\n"
+                . '        <name>Theke Solutions</name>' . "\n"
+                . '        <org_name>thekesolutions</org_name>' . "\n"
+                . '        <service>gitlab</service>' . "\n"
+                . '    </repo>' . "\n"
+                . '    <repo>' . "\n"
+                . '        <name>PTFS Europe</name>' . "\n"
+                . '        <org_name>ptfs-europe</org_name>' . "\n"
+                . '        <service>github</service>' . "\n"
+                . '    </repo>' . "\n"
+                . '    -->' . "\n"
+                . ' </plugin_repos>' . "\n" . "\n"
+                . ' <koha_xslt_security>' . "\n"
+                . ' <!-- Uncomment the following entry ONLY when you explicitly want the XSLT' . "\n"
+                . '      parser to expand entities like <!ENTITY secret SYSTEM "/etc/secrets">.' . "\n"
+                . '      This is unsafe and therefore NOT recommended!' . "\n"
+                . '     <expand_entities_unsafe>1</expand_entities_unsafe>' . "\n" . ' -->' . "\n"
+                . ' </koha_xslt_security>' . "\n" . "\n"
+                . ' <smtp_server>' . "\n"
+                . '    <host>localhost</host>' . "\n"
+                . '    <port>25</port>' . "\n"
+                . '    <timeout>120</timeout>' . "\n"
+                . '    <ssl_mode>disabled</ssl_mode>' . "\n"
+                . '    <user_name></user_name>' . "\n"
+                . '    <password></password>' . "\n"
+                . '    <debug>0</debug>' . "\n"
+                . ' </smtp_server>' . "\n" . "\n"
+                . ' <message_broker>' . "\n"
+                . '   <hostname>localhost</hostname>' . "\n"
+                . '   <port>61613</port>' . "\n"
+                . '   <username>guest</username>' . "\n"
+                . '   <password>guest</password>' . "\n"
+                . '   <vhost></vhost>' . "\n"
+                . ' </message_broker>' . "\n";
             $configtext =~ s/(\r?\n *<timezone>.*?(?=\<\/timezone>)<\/timezone> *\r?\n)/$1$add/is;
             $changed = 1;
         }
     }
-    if ( $changed ) {
-        my $backupfile = "$conf_fname.backup-".getLoggingTime();
-        copy($conf_fname,"$conf_fname.backup-".getLoggingTime());
+    if ($changed) {
+        my $backupfile = "$conf_fname.backup-" . getLoggingTime();
+        copy( $conf_fname, "$conf_fname.backup-" . getLoggingTime() );
         print "Backup Koha instance configuration file  $conf_fname as $backupfile\n";
-        open(my $fh,'>:encoding(UTF-8)', $conf_fname) or carp "Error opening $conf_fname: $!";
+        open( my $fh, '>:encoding(UTF-8)', $conf_fname ) or carp "Error opening $conf_fname: $!";
         print $fh $configtext;
         close $fh;
         print "Updated Koha instance configuration file $conf_fname.\n";
@@ -381,9 +415,11 @@ sub updateKohaConfig {
 }
 
 sub getLoggingTime {
-    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
-    my $timestamp = sprintf ( "%04d-%02d-%02d-%02d-%02d-%02d",
-                                   $year+1900,$mon+1,$mday,$hour,$min,$sec);
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) = localtime(time);
+    my $timestamp = sprintf(
+        "%04d-%02d-%02d-%02d-%02d-%02d",
+        $year + 1900, $mon + 1, $mday, $hour, $min, $sec
+    );
     return $timestamp;
 }
 
@@ -399,7 +435,8 @@ sub xmlEncode {
 
 sub updateHiddenColumnsSettings {
     my $dbh = C4::Context->dbh;
-    $dbh->do( q{
+    $dbh->do(
+        q{
        INSERT IGNORE INTO `columns_settings` VALUES 
        ('acqui','basket','orders','actual_cost_tax_excluded',0,1),
        ('acqui','basket','orders','actual_cost_tax_included',0,1),
@@ -908,156 +945,162 @@ sub updateHiddenColumnsSettings {
        ('serials','subscription-detail','orders','receive_date',0,0),
        ('serials','subscription-detail','orders','spent',0,0),
        ('serials','subscription-detail','orders','status',0,0)
-    });
-    
-    my $sth = $dbh->prepare("UPDATE columns_settings SET is_hidden = 1 WHERE module = ? AND page = ? AND tablename = ? AND columnname = ?");
-    
-    $sth->execute('acqui','basket','orders','actual_cost_tax_excluded');
-    $sth->execute('acqui','basket','orders','actual_cost_tax_included');
-    $sth->execute('acqui','basket','orders','recommended_retail_price_tax_excluded');
-    $sth->execute('acqui','basket','orders','recommended_retail_price_tax_included');
-    $sth->execute('acqui','basket','orders','replacement_price');
-    $sth->execute('acqui','basket','orders','supplier_report');
-    $sth->execute('acqui','basket','orders','total_tax_included');
-    
-    $sth->execute('acqui','lateorders','late_orders','budget');
-    
-    $sth->execute('acqui','lateorders','suggestions','lastmodificationdate');
-    $sth->execute('acqui','lateorders','suggestions','library_fund');
-    $sth->execute('acqui','lateorders','suggestions','managed_on');
-    
-    $sth->execute('catalogue','detail','acquisitiondetails-table','subscription');
-    $sth->execute('catalogue','detail','acquisitiondetails-table','subscription_callnumber'); 
-    
-    $sth->execute('catalogue','detail','holdings_table','holdings_copynumber');
-    $sth->execute('catalogue','detail','holdings_table','holdings_course_reserves');
-    $sth->execute('catalogue','detail','holdings_table','holdings_dateaccessioned');
-    $sth->execute('catalogue','detail','holdings_table','holdings_lastseen');
-    $sth->execute('catalogue','detail','holdings_table','holdings_uri');
-    $sth->execute('catalogue','detail','holdings_table','holdings_usedin');
-    $sth->execute('catalogue','detail','holdings_table','holdings_usedin_col');
-    
-    $sth->execute('catalogue','detail','otherholdings_table','otherholdings_copynumber');
-    $sth->execute('catalogue','detail','otherholdings_table','otherholdings_course_reserves');
-    $sth->execute('catalogue','detail','otherholdings_table','otherholdings_dateaccessioned');
-    $sth->execute('catalogue','detail','otherholdings_table','otherholdings_lastseen');
-    $sth->execute('catalogue','detail','otherholdings_table','otherholdings_uri');
-    $sth->execute('catalogue','detail','otherholdings_table','otherholdings_usedin');
-    $sth->execute('catalogue','detail','otherholdings_table','otherholdings_usedin_col');
-    
-    $sth->execute('cataloguing','additem','itemst','booksellerid');
-    $sth->execute('cataloguing','additem','itemst','cn_source');
-    $sth->execute('cataloguing','additem','itemst','coded_location_qualifier');
-    $sth->execute('cataloguing','additem','itemst','copynumber');
-    $sth->execute('cataloguing','additem','itemst','datelastborrowed');
-    $sth->execute('cataloguing','additem','itemst','datelastseen');
-    $sth->execute('cataloguing','additem','itemst','onloan');
-    $sth->execute('cataloguing','additem','itemst','price');
-    $sth->execute('cataloguing','additem','itemst','replacementpricedate');
-    $sth->execute('cataloguing','additem','itemst','restricted');
-    $sth->execute('cataloguing','additem','itemst','stack');
-    $sth->execute('cataloguing','additem','itemst','stocknumber');
-    $sth->execute('cataloguing','additem','itemst','timestamp'); 
-    $sth->execute('cataloguing','additem','itemst','uri');
-    $sth->execute('cataloguing','additem','itemst','withdrawn');
-    $sth->execute('cataloguing','additem','itemst','damaged');
-    
-    $sth->execute('cataloguing','z3950_search','resultst','lccn');
-    
-    $sth->execute('circ','circulation','issues-table','checkin');
-    $sth->execute('circ','circulation','issues-table','checkout_on_unformatted');
-    $sth->execute('circ','circulation','issues-table','collection');
-    $sth->execute('circ','circulation','issues-table','copynumber');
-    $sth->execute('circ','circulation','issues-table','due_date_unformatted');
-    $sth->execute('circ','circulation','issues-table','record_type');
-    $sth->execute('circ','circulation','issues-table','sort_order');
-    $sth->execute('circ','circulation','issues-table','todays_or_previous_checkouts');
-    
-    $sth->execute('circ','circulation','table_borrowers','phone');
-    
-    $sth->execute('circ','holds_awaiting_pickup','holdso','copy_number');
-    $sth->execute('circ','holds_awaiting_pickup','holdso','date_hold_placed');
+    }
+    );
 
-    $sth->execute('circ','holds_awaiting_pickup','holdst','copy_number');
-    $sth->execute('circ','holds_awaiting_pickup','holdst','date_hold_placed');
-    
-    $sth->execute('circ','overdues','circ-overdues','item_type');
-    $sth->execute('circ','overdues','circ-overdues','patron_category');
-    $sth->execute('circ','overdues','circ-overdues','patron_library');
-    $sth->execute('circ','overdues','circ-overdues','price');
-    
-    $sth->execute('circ','returns','checkedintable','ccode');
-    $sth->execute('circ','returns','checkedintable','dateaccessioned');
-    $sth->execute('circ','returns','checkedintable','itype');
-    $sth->execute('circ','returns','checkedintable','location');
-    
-    $sth->execute('circ','view_holdsqueue','holds-table','copynumber');
-    
-    $sth->execute('members','fines','account-fines','checked_out_from');
-    $sth->execute('members','fines','account-fines','date_due');
-    $sth->execute('members','fines','account-fines','home_library');
-    $sth->execute('members','fines','account-fines','issuedate');
-    $sth->execute('members','fines','account-fines','returndate');
-    $sth->execute('members','fines','account-fines','timestamp');
-    
-    $sth->execute('members','holdshistory','holdshistory-table','cancellationdate');
-    $sth->execute('members','holdshistory','holdshistory-table','waitingdate');
-    
-    $sth->execute('members','moremember','issues-table','checkin');
-    $sth->execute('members','moremember','issues-table','checkout_on_unformatted');
-    $sth->execute('members','moremember','issues-table','collection');
-    $sth->execute('members','moremember','issues-table','copynumber');
-    $sth->execute('members','moremember','issues-table','due_date_unformatted');
-    $sth->execute('members','moremember','issues-table','sort_order');
-    $sth->execute('members','moremember','issues-table','todays_or_previous_checkouts');
-    
-    $sth->execute('members','pay','pay-fines-table','checked_out_from');
-    $sth->execute('members','pay','pay-fines-table','date_due');
-    $sth->execute('members','pay','pay-fines-table','issuedate');
-    $sth->execute('members','pay','pay-fines-table','returndate');
-    
-    $sth->execute('opac','biblio-detail','holdingst','item_copy');
-    $sth->execute('opac','biblio-detail','holdingst','item_coursereserves');
-    $sth->execute('opac','biblio-detail','holdingst','item_holds');
-    $sth->execute('opac','biblio-detail','holdingst','item_shelving_location');
-    $sth->execute('opac','biblio-detail','holdingst','item_url');
-    
-    $sth->execute('opac','biblio-detail','subscriptionst','serial_publisheddate');
-    
-    $sth->execute('reports','lostitems','lostitems-table','datelastseen');
-    $sth->execute('reports','lostitems','lostitems-table','price');
-    
-    $sth->execute('reports','saved-sql','table_reports','cache_expiry');
-    $sth->execute('reports','saved-sql','table_reports','creation_date');
-    $sth->execute('reports','saved-sql','table_reports','json_url');
-    $sth->execute('reports','saved-sql','table_reports','last_run');
-    $sth->execute('reports','saved-sql','table_reports','public');
-    $sth->execute('reports','saved-sql','table_reports','saved_results');
-    $sth->execute('reports','saved-sql','table_reports','type');
-    
-    $sth->execute('illrequests','ill-requests','ill-requests','metadata_article_title');
-    $sth->execute('illrequests','ill-requests','ill-requests','metadata_issue');
-    $sth->execute('illrequests','ill-requests','ill-requests','metadata_volume');
-    $sth->execute('illrequests','ill-requests','ill-requests','metadata_year');
-    $sth->execute('illrequests','ill-requests','ill-requests','metadata_pages');
-    $sth->execute('illrequests','ill-requests','ill-requests','replied');
-    $sth->execute('illrequests','ill-requests','ill-requests','completed_formatted');
-    $sth->execute('illrequests','ill-requests','ill-requests','accessurl');
-    $sth->execute('illrequests','ill-requests','ill-requests','cost');
-    $sth->execute('illrequests','ill-requests','ill-requests','comments');
-    $sth->execute('illrequests','ill-requests','ill-requests','notesopac');
-    $sth->execute('illrequests','ill-requests','ill-requests','notesstaff');
-    $sth->execute('illrequests','ill-requests','ill-requests','metadata_checkedBy');
-    
+    my $sth = $dbh->prepare(
+        "UPDATE columns_settings SET is_hidden = 1 WHERE module = ? AND page = ? AND tablename = ? AND columnname = ?");
+
+    $sth->execute( 'acqui', 'basket', 'orders', 'actual_cost_tax_excluded' );
+    $sth->execute( 'acqui', 'basket', 'orders', 'actual_cost_tax_included' );
+    $sth->execute( 'acqui', 'basket', 'orders', 'recommended_retail_price_tax_excluded' );
+    $sth->execute( 'acqui', 'basket', 'orders', 'recommended_retail_price_tax_included' );
+    $sth->execute( 'acqui', 'basket', 'orders', 'replacement_price' );
+    $sth->execute( 'acqui', 'basket', 'orders', 'supplier_report' );
+    $sth->execute( 'acqui', 'basket', 'orders', 'total_tax_included' );
+
+    $sth->execute( 'acqui', 'lateorders', 'late_orders', 'budget' );
+
+    $sth->execute( 'acqui', 'lateorders', 'suggestions', 'lastmodificationdate' );
+    $sth->execute( 'acqui', 'lateorders', 'suggestions', 'library_fund' );
+    $sth->execute( 'acqui', 'lateorders', 'suggestions', 'managed_on' );
+
+    $sth->execute( 'catalogue', 'detail', 'acquisitiondetails-table', 'subscription' );
+    $sth->execute( 'catalogue', 'detail', 'acquisitiondetails-table', 'subscription_callnumber' );
+
+    $sth->execute( 'catalogue', 'detail', 'holdings_table', 'holdings_copynumber' );
+    $sth->execute( 'catalogue', 'detail', 'holdings_table', 'holdings_course_reserves' );
+    $sth->execute( 'catalogue', 'detail', 'holdings_table', 'holdings_dateaccessioned' );
+    $sth->execute( 'catalogue', 'detail', 'holdings_table', 'holdings_lastseen' );
+    $sth->execute( 'catalogue', 'detail', 'holdings_table', 'holdings_uri' );
+    $sth->execute( 'catalogue', 'detail', 'holdings_table', 'holdings_usedin' );
+    $sth->execute( 'catalogue', 'detail', 'holdings_table', 'holdings_usedin_col' );
+
+    $sth->execute( 'catalogue', 'detail', 'otherholdings_table', 'otherholdings_copynumber' );
+    $sth->execute( 'catalogue', 'detail', 'otherholdings_table', 'otherholdings_course_reserves' );
+    $sth->execute( 'catalogue', 'detail', 'otherholdings_table', 'otherholdings_dateaccessioned' );
+    $sth->execute( 'catalogue', 'detail', 'otherholdings_table', 'otherholdings_lastseen' );
+    $sth->execute( 'catalogue', 'detail', 'otherholdings_table', 'otherholdings_uri' );
+    $sth->execute( 'catalogue', 'detail', 'otherholdings_table', 'otherholdings_usedin' );
+    $sth->execute( 'catalogue', 'detail', 'otherholdings_table', 'otherholdings_usedin_col' );
+
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'booksellerid' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'cn_source' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'coded_location_qualifier' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'copynumber' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'datelastborrowed' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'datelastseen' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'onloan' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'price' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'replacementpricedate' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'restricted' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'stack' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'stocknumber' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'timestamp' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'uri' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'withdrawn' );
+    $sth->execute( 'cataloguing', 'additem', 'itemst', 'damaged' );
+
+    $sth->execute( 'cataloguing', 'z3950_search', 'resultst', 'lccn' );
+
+    $sth->execute( 'circ', 'circulation', 'issues-table', 'checkin' );
+    $sth->execute( 'circ', 'circulation', 'issues-table', 'checkout_on_unformatted' );
+    $sth->execute( 'circ', 'circulation', 'issues-table', 'collection' );
+    $sth->execute( 'circ', 'circulation', 'issues-table', 'copynumber' );
+    $sth->execute( 'circ', 'circulation', 'issues-table', 'due_date_unformatted' );
+    $sth->execute( 'circ', 'circulation', 'issues-table', 'record_type' );
+    $sth->execute( 'circ', 'circulation', 'issues-table', 'sort_order' );
+    $sth->execute( 'circ', 'circulation', 'issues-table', 'todays_or_previous_checkouts' );
+
+    $sth->execute( 'circ', 'circulation', 'table_borrowers', 'phone' );
+
+    $sth->execute( 'circ', 'holds_awaiting_pickup', 'holdso', 'copy_number' );
+    $sth->execute( 'circ', 'holds_awaiting_pickup', 'holdso', 'date_hold_placed' );
+
+    $sth->execute( 'circ', 'holds_awaiting_pickup', 'holdst', 'copy_number' );
+    $sth->execute( 'circ', 'holds_awaiting_pickup', 'holdst', 'date_hold_placed' );
+
+    $sth->execute( 'circ', 'overdues', 'circ-overdues', 'item_type' );
+    $sth->execute( 'circ', 'overdues', 'circ-overdues', 'patron_category' );
+    $sth->execute( 'circ', 'overdues', 'circ-overdues', 'patron_library' );
+    $sth->execute( 'circ', 'overdues', 'circ-overdues', 'price' );
+
+    $sth->execute( 'circ', 'returns', 'checkedintable', 'ccode' );
+    $sth->execute( 'circ', 'returns', 'checkedintable', 'dateaccessioned' );
+    $sth->execute( 'circ', 'returns', 'checkedintable', 'itype' );
+    $sth->execute( 'circ', 'returns', 'checkedintable', 'location' );
+
+    $sth->execute( 'circ', 'view_holdsqueue', 'holds-table', 'copynumber' );
+
+    $sth->execute( 'members', 'fines', 'account-fines', 'checked_out_from' );
+    $sth->execute( 'members', 'fines', 'account-fines', 'date_due' );
+    $sth->execute( 'members', 'fines', 'account-fines', 'home_library' );
+    $sth->execute( 'members', 'fines', 'account-fines', 'issuedate' );
+    $sth->execute( 'members', 'fines', 'account-fines', 'returndate' );
+    $sth->execute( 'members', 'fines', 'account-fines', 'timestamp' );
+
+    $sth->execute( 'members', 'holdshistory', 'holdshistory-table', 'cancellationdate' );
+    $sth->execute( 'members', 'holdshistory', 'holdshistory-table', 'waitingdate' );
+
+    $sth->execute( 'members', 'moremember', 'issues-table', 'checkin' );
+    $sth->execute( 'members', 'moremember', 'issues-table', 'checkout_on_unformatted' );
+    $sth->execute( 'members', 'moremember', 'issues-table', 'collection' );
+    $sth->execute( 'members', 'moremember', 'issues-table', 'copynumber' );
+    $sth->execute( 'members', 'moremember', 'issues-table', 'due_date_unformatted' );
+    $sth->execute( 'members', 'moremember', 'issues-table', 'sort_order' );
+    $sth->execute( 'members', 'moremember', 'issues-table', 'todays_or_previous_checkouts' );
+
+    $sth->execute( 'members', 'pay', 'pay-fines-table', 'checked_out_from' );
+    $sth->execute( 'members', 'pay', 'pay-fines-table', 'date_due' );
+    $sth->execute( 'members', 'pay', 'pay-fines-table', 'issuedate' );
+    $sth->execute( 'members', 'pay', 'pay-fines-table', 'returndate' );
+
+    $sth->execute( 'opac', 'biblio-detail', 'holdingst', 'item_copy' );
+    $sth->execute( 'opac', 'biblio-detail', 'holdingst', 'item_coursereserves' );
+    $sth->execute( 'opac', 'biblio-detail', 'holdingst', 'item_holds' );
+    $sth->execute( 'opac', 'biblio-detail', 'holdingst', 'item_shelving_location' );
+    $sth->execute( 'opac', 'biblio-detail', 'holdingst', 'item_url' );
+
+    $sth->execute( 'opac', 'biblio-detail', 'subscriptionst', 'serial_publisheddate' );
+
+    $sth->execute( 'reports', 'lostitems', 'lostitems-table', 'datelastseen' );
+    $sth->execute( 'reports', 'lostitems', 'lostitems-table', 'price' );
+
+    $sth->execute( 'reports', 'saved-sql', 'table_reports', 'cache_expiry' );
+    $sth->execute( 'reports', 'saved-sql', 'table_reports', 'creation_date' );
+    $sth->execute( 'reports', 'saved-sql', 'table_reports', 'json_url' );
+    $sth->execute( 'reports', 'saved-sql', 'table_reports', 'last_run' );
+    $sth->execute( 'reports', 'saved-sql', 'table_reports', 'public' );
+    $sth->execute( 'reports', 'saved-sql', 'table_reports', 'saved_results' );
+    $sth->execute( 'reports', 'saved-sql', 'table_reports', 'type' );
+
+    $sth->execute( 'illrequests', 'ill-requests', 'ill-requests', 'metadata_article_title' );
+    $sth->execute( 'illrequests', 'ill-requests', 'ill-requests', 'metadata_issue' );
+    $sth->execute( 'illrequests', 'ill-requests', 'ill-requests', 'metadata_volume' );
+    $sth->execute( 'illrequests', 'ill-requests', 'ill-requests', 'metadata_year' );
+    $sth->execute( 'illrequests', 'ill-requests', 'ill-requests', 'metadata_pages' );
+    $sth->execute( 'illrequests', 'ill-requests', 'ill-requests', 'replied' );
+    $sth->execute( 'illrequests', 'ill-requests', 'ill-requests', 'completed_formatted' );
+    $sth->execute( 'illrequests', 'ill-requests', 'ill-requests', 'accessurl' );
+    $sth->execute( 'illrequests', 'ill-requests', 'ill-requests', 'cost' );
+    $sth->execute( 'illrequests', 'ill-requests', 'ill-requests', 'comments' );
+    $sth->execute( 'illrequests', 'ill-requests', 'ill-requests', 'notesopac' );
+    $sth->execute( 'illrequests', 'ill-requests', 'ill-requests', 'notesstaff' );
+    $sth->execute( 'illrequests', 'ill-requests', 'ill-requests', 'metadata_checkedBy' );
+
     $sth->finish();
-    
+
     print "Default column settings of hidden UI table columns updated.\n";
 }
 
 sub updateSimpleVariables {
     my $dbh = C4::Context->dbh;
-    $dbh->do("UPDATE systempreferences SET value='' WHERE variable='OpacAdditionalStylesheet' AND value='/webcustom/css/opac-lmscloud.css'");
-    $dbh->do("UPDATE systempreferences SET value='1' WHERE variable IN ('AcquisitionLog','AuthFailureLog','AuthoritiesLog','AuthSuccessLog','BorrowersLog','CataloguingLog','ClaimsLog','CronjobLog','DivibibLog','FinesLog','HoldsLog','IllLog','IssueLog','NewsLog','NoticesLog','RenewalLog','ReportsLog','ReturnLog','SubscriptionLog')");
+    $dbh->do(
+        "UPDATE systempreferences SET value='' WHERE variable='OpacAdditionalStylesheet' AND value='/webcustom/css/opac-lmscloud.css'"
+    );
+    $dbh->do(
+        "UPDATE systempreferences SET value='1' WHERE variable IN ('AcquisitionLog','AuthFailureLog','AuthoritiesLog','AuthSuccessLog','BorrowersLog','CataloguingLog','ClaimsLog','CronjobLog','DivibibLog','FinesLog','HoldsLog','IllLog','IssueLog','NewsLog','NoticesLog','RenewalLog','ReportsLog','ReturnLog','SubscriptionLog')"
+    );
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='Mana' and value='2'");
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='UsageStats' and value='2'");
     $dbh->do("UPDATE systempreferences SET value='Elasticsearch' WHERE variable='SearchEngine'");
@@ -1066,26 +1109,38 @@ sub updateSimpleVariables {
     $dbh->do("UPDATE systempreferences SET value='0' WHERE variable='QueryFuzzy'");
     $dbh->do("UPDATE systempreferences SET value='relevance' WHERE variable='defaultSortField'");
     $dbh->do("UPDATE systempreferences SET value='dsc' WHERE variable='defaultSortOrder'");
-    $dbh->do("UPDATE systempreferences SET value='NOT homebranch:eBib' WHERE variable='ElasticsearchAdditionalAvailabilitySearch'");
-    $dbh->do("UPDATE systempreferences SET value='title,author,subject,title-series,local-classification,publyear,subject-genre-form' WHERE variable='ElasticsearchDefaultAutoCompleteIndexFields'");
-    $dbh->do(q{UPDATE systempreferences SET value='245$b, 260$ab, 264$ab, 300$a' WHERE variable='AdditionalFieldsInZ3950ResultSearch'});
-    $dbh->do(q{UPDATE systempreferences SET value='https://koha-community.org/manual' WHERE variable='KohaManualBaseURL'});
+    $dbh->do(
+        "UPDATE systempreferences SET value='NOT homebranch:eBib' WHERE variable='ElasticsearchAdditionalAvailabilitySearch'"
+    );
+    $dbh->do(
+        "UPDATE systempreferences SET value='title,author,subject,title-series,local-classification,publyear,subject-genre-form' WHERE variable='ElasticsearchDefaultAutoCompleteIndexFields'"
+    );
+    $dbh->do(
+        q{UPDATE systempreferences SET value='245$b, 260$ab, 264$ab, 300$a' WHERE variable='AdditionalFieldsInZ3950ResultSearch'}
+    );
+    $dbh->do(
+        q{UPDATE systempreferences SET value='https://koha-community.org/manual' WHERE variable='KohaManualBaseURL'});
     $dbh->do(q{UPDATE systempreferences SET value='1' WHERE variable='OPACFineNoRenewalsIncludeCredits'});
     $dbh->do(q{UPDATE systempreferences SET value='0' WHERE variable='OPACReportProblem'});
-    $dbh->do(q{UPDATE systempreferences SET value='address,zipcode,city,email,phone' WHERE variable='PrefillGuaranteeField'});
+    $dbh->do(
+        q{UPDATE systempreferences SET value='address,zipcode,city,email,phone' WHERE variable='PrefillGuaranteeField'}
+    );
     $dbh->do(q{UPDATE systempreferences SET value='0' WHERE variable='PreserveSerialNotes'});
     $dbh->do(q{UPDATE systempreferences SET value='0.07|0.19|0.00' WHERE variable='TaxRates'});
     $dbh->do(q{UPDATE systempreferences SET value='OFF' WHERE variable='itemBarcodeInputFilter'});
     $dbh->do(q{UPDATE systempreferences SET value='1' WHERE variable='TrapHoldsOnOrder'});
     $dbh->do(q{UPDATE systempreferences SET value='no_charge' WHERE variable='ClaimReturnedChargeFee'});
-    $dbh->do(q{UPDATE systempreferences SET value='[{ "name": "ElasticsearchSuggester", "enabled": 1}, { "name": "AuthorityFile"}, { "name": "ExplodedTerms"}, { "name": "LibrisSpellcheck"}]' WHERE variable='OPACdidyoumean'});
+    $dbh->do(
+        q{UPDATE systempreferences SET value='[{ "name": "ElasticsearchSuggester", "enabled": 1}, { "name": "AuthorityFile"}, { "name": "ExplodedTerms"}, { "name": "LibrisSpellcheck"}]' WHERE variable='OPACdidyoumean'}
+    );
     $dbh->do(q{INSERT IGNORE INTO authorised_value_categories(category_name) VALUES ('MARC-FIELD-336-SELECT')});
     $dbh->do(q{INSERT IGNORE INTO authorised_value_categories(category_name) VALUES ('MARC-FIELD-337-SELECT')});
     $dbh->do(q{INSERT IGNORE INTO authorised_value_categories(category_name) VALUES ('MARC-FIELD-338-SELECT')});
     $dbh->do(q{DELETE FROM authorised_values WHERE category ='MARC-FIELD-336-SELECT'});
     $dbh->do(q{DELETE FROM authorised_values WHERE category ='MARC-FIELD-337-SELECT'});
     $dbh->do(q{DELETE FROM authorised_values WHERE category ='MARC-FIELD-338-SELECT'});
-    $dbh->do(q{INSERT INTO authorised_values(category,authorised_value,lib) VALUES 
+    $dbh->do(
+        q{INSERT INTO authorised_values(category,authorised_value,lib) VALUES 
               ('MARC-FIELD-336-SELECT','cod','Computerdaten'),
               ('MARC-FIELD-336-SELECT','cop','Computerprogramm'),
               ('MARC-FIELD-336-SELECT','crd','kartografischer Datensatz'),
@@ -1175,28 +1230,44 @@ sub updateSimpleVariables {
               ('MARC-FIELD-338-SELECT','vf','Videokassette'),
               ('MARC-FIELD-338-SELECT','vr','Videobandspule'),
               ('MARC-FIELD-338-SELECT','vz','Sonstige Videodatenträger'),
-              ('MARC-FIELD-338-SELECT','zu','nicht spezifiziert')});
-    $dbh->do(q{UPDATE marc_subfield_structure SET value_builder='marc21_field_rda.pl' WHERE tagfield IN ('336','337','338') AND tagsubfield='a' AND frameworkcode = ''});
-    $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='2' AND frameworkcode = ''});
-    $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='a' AND frameworkcode = ''});
-    $dbh->do(q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='b' AND frameworkcode = ''});
-    
-    $dbh->do(q{UPDATE z3950servers SET host='https://services.dnb.de', port=443 WHERE host = 'services.dnb.de' AND port=80});
-    $dbh->do(q{UPDATE z3950servers SET host='https://services.dnb.de', port=443 WHERE host = 'dnbsearch.lmscloud.net' AND port=80});
-    
-    $dbh->do(q{UPDATE systempreferences SET value = CONCAT_WS('|', IF(value = '', NULL, value), 'autorenew_checkouts') WHERE variable = 'BorrowerUnwantedField' AND value NOT LIKE '%autorenew_checkouts%'});
+              ('MARC-FIELD-338-SELECT','zu','nicht spezifiziert')}
+    );
+    $dbh->do(
+        q{UPDATE marc_subfield_structure SET value_builder='marc21_field_rda.pl' WHERE tagfield IN ('336','337','338') AND tagsubfield='a' AND frameworkcode = ''}
+    );
+    $dbh->do(
+        q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='2' AND frameworkcode = ''}
+    );
+    $dbh->do(
+        q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='a' AND frameworkcode = ''}
+    );
+    $dbh->do(
+        q{UPDATE marc_subfield_structure SET hidden='0' WHERE tagfield IN ('336','337','338') AND tagsubfield='b' AND frameworkcode = ''}
+    );
+
+    $dbh->do(
+        q{UPDATE z3950servers SET host='https://services.dnb.de', port=443 WHERE host = 'services.dnb.de' AND port=80});
+    $dbh->do(
+        q{UPDATE z3950servers SET host='https://services.dnb.de', port=443 WHERE host = 'dnbsearch.lmscloud.net' AND port=80}
+    );
+
+    $dbh->do(
+        q{UPDATE systempreferences SET value = CONCAT_WS('|', IF(value = '', NULL, value), 'autorenew_checkouts') WHERE variable = 'BorrowerUnwantedField' AND value NOT LIKE '%autorenew_checkouts%'}
+    );
 }
 
 sub updateSidebarLinks {
     my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable like 'OpacDetailBookShopLinkContent%' or variable = 'OpacDetailBookShopLinkContent'");
+    my $sth = $dbh->prepare(
+        "SELECT value,variable FROM systempreferences WHERE variable like 'OpacDetailBookShopLinkContent%' or variable = 'OpacDetailBookShopLinkContent'"
+    );
     $sth->execute;
-    while ( my ($value,$variable) = $sth->fetchrow ) {
+    while ( my ( $value, $variable ) = $sth->fetchrow ) {
         my $origvalue = $value;
         $value =~ s/<li>\s*<a role="menuitem"/<a class="dropdown-item"/gs;
         $value =~ s/<\/li>//gs;
         if ( $origvalue ne $value ) {
-            $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
+            $dbh->do( "UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable );
             print "Updated value of variable $variable\n";
         }
     }
@@ -1216,89 +1287,83 @@ sub replaceWhitespaceInPhraseSearchKeepingTTSyntax {
 }
 
 sub replaceModifierList {
-    my $index = shift;
+    my $index        = shift;
     my $modifierlist = shift;
     my $searchstring = shift;
-    my $quotionMark = '';
-    
+    my $quotionMark  = '';
+
     if ( $searchstring =~ s/^\s*"(.*)"$/$1/ ) {
         $quotionMark = '"';
-    }
-    elsif ( $searchstring =~ s/^\s*&quot;(.*)&quot;$/$1/ ) {
+    } elsif ( $searchstring =~ s/^\s*&quot;(.*)&quot;$/$1/ ) {
         $quotionMark = '&quot;';
-    }
-    elsif ( $searchstring =~ s/^\s*'(.*)'$/$1/ ) {
+    } elsif ( $searchstring =~ s/^\s*'(.*)'$/$1/ ) {
         $quotionMark = "'";
     }
-    
+
     my %modifier;
-    
+
     # print "Index ($index), modifier ($modifierlist), search ($searchstring) $quotionMark\n";
     # print "Modifier: \n";
-    foreach my $mod( grep { $_ =~ s/(^\s+|\s+$)//; $_ ne '' } split(/(,|%2C)/,$modifierlist) ) {
-        $modifier{$mod}=1;
+    foreach my $mod ( grep { $_ =~ s/(^\s+|\s+$)//; $_ ne '' } split( /(,|%2C)/, $modifierlist ) ) {
+        $modifier{$mod} = 1;
     }
-    
+
     $index = 'ocn' if ( $index eq 'lcn' && $searchstring =~ /^\s*(sfb|kab|ssd|asb)/ );
-    
-    if ( ((defined $modifier{ltrn} && defined $modifier{rtrn}) || defined $modifier{lrtrn} ) && (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) && defined $modifier{ext} ) {
+
+    if (   ( ( defined $modifier{ltrn} && defined $modifier{rtrn} ) || defined $modifier{lrtrn} )
+        && ( defined $modifier{phr} || defined $modifier{'first-in-subfield'} )
+        && defined $modifier{ext} )
+    {
         $searchstring = replaceWhitespaceInPhraseSearchKeepingTTSyntax($searchstring);
         $searchstring = '(*' . $searchstring . '*)';
         $index .= '.phrase';
-    }
-    elsif ( defined $modifier{rtrn} && (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) ) {
+    } elsif ( defined $modifier{rtrn} && ( defined $modifier{phr} || defined $modifier{'first-in-subfield'} ) ) {
         $searchstring = '(' . replaceWhitespaceInPhraseSearchKeepingTTSyntax($searchstring) . '*)';
         $index .= '.phrase';
-    }
-    elsif ( defined $modifier{ltrn} && (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) ) {
+    } elsif ( defined $modifier{ltrn} && ( defined $modifier{phr} || defined $modifier{'first-in-subfield'} ) ) {
         $searchstring =~ replaceWhitespaceInPhraseSearchKeepingTTSyntax($searchstring);
         $searchstring = '(*' . $searchstring . ')';
         $index .= '.phrase';
-    }
-    elsif ( (defined $modifier{phr} || defined $modifier{'first-in-subfield'}) && defined $modifier{ext} ) {
+    } elsif ( ( defined $modifier{phr} || defined $modifier{'first-in-subfield'} ) && defined $modifier{ext} ) {
         $searchstring = "($searchstring)";
         $index .= '.phrase';
-    }
-    elsif ( defined $modifier{'first-in-subfield'} ) {
+    } elsif ( defined $modifier{'first-in-subfield'} ) {
         $searchstring = replaceWhitespaceInPhraseSearchKeepingTTSyntax($searchstring);
         $searchstring = '(*' . $searchstring . '*)';
         $index .= '.phrase';
-    }
-    elsif ( defined $modifier{phr} ) {
+    } elsif ( defined $modifier{phr} ) {
         $searchstring = "($searchstring)";
+
         #$index .= '.phrase';
-    }
-    elsif ( defined $modifier{lrtrn} || (defined $modifier{rtrn} && defined $modifier{ltrn}) ) {
+    } elsif ( defined $modifier{lrtrn} || ( defined $modifier{rtrn} && defined $modifier{ltrn} ) ) {
         $searchstring = "(*$searchstring*)";
-    }
-    elsif ( defined $modifier{rtrn} ) {
+    } elsif ( defined $modifier{rtrn} ) {
         $searchstring = "($searchstring*)";
-    }
-    elsif ( defined $modifier{ltrn} ) {
+    } elsif ( defined $modifier{ltrn} ) {
         $searchstring = "(*$searchstring)";
-    }
-    elsif ( (defined $modifier{'st-numeric'} || defined $modifier{'st-date-normalized'} || defined $modifier{'st-date'}) || defined $modifier{ge} || defined $modifier{gt} || defined $modifier{le} || defined $modifier{lt} ) {
+    } elsif (
+        ( defined $modifier{'st-numeric'} || defined $modifier{'st-date-normalized'} || defined $modifier{'st-date'} )
+        || defined $modifier{ge}
+        || defined $modifier{gt}
+        || defined $modifier{le}
+        || defined $modifier{lt} )
+    {
         if ( defined $modifier{ge} ) {
             $searchstring = "(>=$searchstring)";
-        }
-        elsif ( defined $modifier{gt} ) {
+        } elsif ( defined $modifier{gt} ) {
             $searchstring = "(>$searchstring)";
-        }
-        elsif ( defined $modifier{le} ) {
+        } elsif ( defined $modifier{le} ) {
             $searchstring = "(<=$searchstring)";
-        }
-        elsif ( defined $modifier{lt} ) {
+        } elsif ( defined $modifier{lt} ) {
             $searchstring = "(<$searchstring)";
-        }
-        else {
+        } else {
             $searchstring = "($searchstring)";
         }
-    }
-    elsif( $quotionMark || $searchstring =~ /\s/ ) {
+    } elsif ( $quotionMark || $searchstring =~ /\s/ ) {
         $searchstring = "($searchstring)";
     }
-    
-    if ($index eq 'kw') {
+
+    if ( $index eq 'kw' ) {
         return "$searchstring";
     }
     $searchstring =~ s/^\(kw/( kw/;
@@ -1307,13 +1372,15 @@ sub replaceModifierList {
 
 sub updateQuery {
     my $query = shift;
-    
+
     $query = uri_unescape($query);
     $query =~ s/(\s+(and|or|not)\s+)/uc($1)/seg;
     $query =~ s/=/:/sg;
-   #$query =~ s/(^|\W|\()([a-zA-Z][a-z0-9A-Z-]*)(((\,|%2[Cc])(wrdl|ext|phr|rtrn|lrtrn|ltrn|st-numeric|gt|ge|lt|le|eq|st-date-normalized|st-date|startswithnt|first-in-subfield))*)([:=]|%3[Aa])\s*(["][^"]+["]|&quot;(?:(?!("|&quot;)).)*&quot;|['][^']+[']|[^\s\(\)]+)/$1.replaceModifierList($2,$3,$8)/eg;
-    $query =~ s/(^|\W|\()([a-zA-Z][a-z0-9A-Z-]*)(((\,|%2[Cc])(wrdl|ext|phr|rtrn|lrtrn|ltrn|st-numeric|gt|ge|lt|le|eq|st-date-normalized|st-date|startswithnt|first-in-subfield))*)([:=]|%3[Aa])\s*(["][^"]+["]|&quot;(?:(?!("|&quot;)).)*&quot;|['][^']+[']|([^\s\(\)]+(\s+(?:(?!("|&quot;|AND|OR|NOT|\)|\s)).)+)*))/$1.replaceModifierList($2,$3,$8)/eg;
-    
+
+    #$query =~ s/(^|\W|\()([a-zA-Z][a-z0-9A-Z-]*)(((\,|%2[Cc])(wrdl|ext|phr|rtrn|lrtrn|ltrn|st-numeric|gt|ge|lt|le|eq|st-date-normalized|st-date|startswithnt|first-in-subfield))*)([:=]|%3[Aa])\s*(["][^"]+["]|&quot;(?:(?!("|&quot;)).)*&quot;|['][^']+[']|[^\s\(\)]+)/$1.replaceModifierList($2,$3,$8)/eg;
+    $query =~
+        s/(^|\W|\()([a-zA-Z][a-z0-9A-Z-]*)(((\,|%2[Cc])(wrdl|ext|phr|rtrn|lrtrn|ltrn|st-numeric|gt|ge|lt|le|eq|st-date-normalized|st-date|startswithnt|first-in-subfield))*)([:=]|%3[Aa])\s*(["][^"]+["]|&quot;(?:(?!("|&quot;)).)*&quot;|['][^']+[']|([^\s\(\)]+(\s+(?:(?!("|&quot;|AND|OR|NOT|\)|\s)).)+)*))/$1.replaceModifierList($2,$3,$8)/eg;
+
     # rtrn : right truncation
     # ltrn : left truncation
     # lrtrn : left and right truncation
@@ -1328,78 +1395,87 @@ sub updateQuery {
 
 sub updateSystematikBrowserExcludes {
     my $updatedSystematikBrowserExcludes = 0;
-	my $updateExcludes = {};
-    my $dbh = C4::Context->dbh;
+    my $updateExcludes                   = {};
+    my $dbh                              = C4::Context->dbh;
     my $sth = $dbh->prepare(q{SELECT classification, exclude FROM browser WHERE exclude <> ''});
     $sth->execute;
-    while ( my ($classification,$exclude) = $sth->fetchrow ) {
-        if ( ! exists($updateExcludes->{$exclude}) ) {
+    while ( my ( $classification, $exclude ) = $sth->fetchrow ) {
+        if ( !exists( $updateExcludes->{$exclude} ) ) {
             $updateExcludes->{$exclude} = updateQuery($exclude);
         }
         if ( $exclude ne $updateExcludes->{$exclude} ) {
-            $dbh->do("UPDATE browser SET exclude=? WHERE classification=? AND exclude=?", undef, $updateExcludes->{$exclude}, $classification, $exclude);
+            $dbh->do(
+                "UPDATE browser SET exclude=? WHERE classification=? AND exclude=?", undef,
+                $updateExcludes->{$exclude}, $classification, $exclude
+            );
             $updatedSystematikBrowserExcludes++;
         }
     }
-    print "$updatedSystematikBrowserExcludes taxonomy browser exclude values updated.\n" if ($updatedSystematikBrowserExcludes);
+    print "$updatedSystematikBrowserExcludes taxonomy browser exclude values updated.\n"
+        if ($updatedSystematikBrowserExcludes);
 }
 
 sub updateEntryPages {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable like 'OpacEntryPage%'");
     $sth->execute;
-    while ( my ($value,$variable) = $sth->fetchrow ) {
-        my $origvalue = $value;
+    while ( my ( $value, $variable ) = $sth->fetchrow ) {
+        my $origvalue     = $value;
         my $imageAltAdded = 0;
-        ($value,$imageAltAdded) = replaceEntryPageContent($value);
-    
+        ( $value, $imageAltAdded ) = replaceEntryPageContent($value);
+
         if ( $origvalue ne $value ) {
-            $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
-            print "Updated value of variable $variable.", ($imageAltAdded ? " $imageAltAdded image alt attributes added." : ""), "\n";
+            $dbh->do( "UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable );
+            print "Updated value of variable $variable.",
+                ( $imageAltAdded ? " $imageAltAdded image alt attributes added." : "" ), "\n";
         }
     }
-    
-    $sth = $dbh->prepare("SELECT idnew,lang,content FROM opac_news WHERE lang like 'OpacNavRight_%' OR lang like 'OpacMainPageLeftPanel_%' OR lang like 'OpacMainUserBlock_%' OR lang like 'OpacLoginInstructions_%' OR lang like 'opacheader_%'");
+
+    $sth = $dbh->prepare(
+        "SELECT idnew,lang,content FROM opac_news WHERE lang like 'OpacNavRight_%' OR lang like 'OpacMainPageLeftPanel_%' OR lang like 'OpacMainUserBlock_%' OR lang like 'OpacLoginInstructions_%' OR lang like 'opacheader_%'"
+    );
     $sth->execute;
-    while ( my ($id,$name,$value) = $sth->fetchrow ) {
-        my $origvalue = $value;
+    while ( my ( $id, $name, $value ) = $sth->fetchrow ) {
+        my $origvalue     = $value;
         my $imageAltAdded = 0;
-        ($value,$imageAltAdded) = replaceEntryPageContent($value);
-        
+        ( $value, $imageAltAdded ) = replaceEntryPageContent($value);
+
         if ( $name =~ /^OpacLoginInstructions/i ) {
             $value =~ s/^(\s*<!--\s*Script deactivate (?:(?!-->).)*-->)?\s*<br\s*\/?>\s*//si;
         }
-    
+
         if ( $origvalue ne $value ) {
-            $dbh->do("UPDATE opac_news SET content=? WHERE idnew=? AND lang=?", undef, $value, $id, $name);
-            print "Updated content of new content $name.", ($imageAltAdded ? " $imageAltAdded image alt attributes added." : ""), "\n";
+            $dbh->do( "UPDATE opac_news SET content=? WHERE idnew=? AND lang=?", undef, $value, $id, $name );
+            print "Updated content of new content $name.",
+                ( $imageAltAdded ? " $imageAltAdded image alt attributes added." : "" ), "\n";
         }
     }
 }
 
 sub updateOverwrittenOPACBrowserTemplates {
     my $instance = shift;
-    
+
     my $directory = "/var/lib/koha/$instance/opac-tmpl-custom/bootstrap/*/modules/opac-browser*.tt";
-    my @files = glob $directory;
-    
-    foreach my $filename(@files) {
+    my @files     = glob $directory;
+
+    foreach my $filename (@files) {
         my $content;
         {
-            local( $/ ); # undefine the record seperator
-            open(my $rh,'<:encoding(UTF-8)', $filename) or carp "Error opening $filename $!";
+            local ($/);    # undefine the record seperator
+            open( my $rh, '<:encoding(UTF-8)', $filename ) or carp "Error opening $filename $!";
             $content = <$rh>;
             close $rh;
         }
-        if ( $content ) {
-            my ($changedcontent,$imageAltAdded) = replaceEntryPageContent($content);
+        if ($content) {
+            my ( $changedcontent, $imageAltAdded ) = replaceEntryPageContent($content);
             if ( $changedcontent && $changedcontent ne $content ) {
+
                 # my $difftext = diff \$content, \$changedcontent, { STYLE => "Unified" };
                 # print "Updated local template $filename\n";
                 # print $difftext;
-                
-                local( $/ ); # undefine the record seperator
-                open(my $wh,'>:encoding(UTF-8)', $filename) or carp "Error writing $filename $!";
+
+                local ($/);    # undefine the record seperator
+                open( my $wh, '>:encoding(UTF-8)', $filename ) or carp "Error writing $filename $!";
                 print $wh $changedcontent;
                 close $wh;
             }
@@ -1409,27 +1485,35 @@ sub updateOverwrittenOPACBrowserTemplates {
 
 sub updateVariablesInNewsTexts {
     my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare("SELECT branchcode, lang, content FROM opac_news WHERE title like 'OpacNavRight%' OR title like 'OpacMainPageLeftPanel%' OR title like 'OpacMainUserBlock%'");
+    my $sth = $dbh->prepare(
+        "SELECT branchcode, lang, content FROM opac_news WHERE title like 'OpacNavRight%' OR title like 'OpacMainPageLeftPanel%' OR title like 'OpacMainUserBlock%'"
+    );
     $sth->execute;
-    while ( my ($branchcode,$lang,$content) = $sth->fetchrow ) {
-        my $origvalue = $content;
+    while ( my ( $branchcode, $lang, $content ) = $sth->fetchrow ) {
+        my $origvalue     = $content;
         my $imageAltAdded = 0;
-        ($content,$imageAltAdded) = replaceEntryPageContent($content);
-    
+        ( $content, $imageAltAdded ) = replaceEntryPageContent($content);
+
         if ( $origvalue ne $content ) {
-            $dbh->do("UPDATE opac_news SET content=? WHERE lang=? and branchcode=?", undef, $content, $lang, $branchcode);
-            print "Updated opac_news $lang.", ($imageAltAdded ? " $imageAltAdded image alt attributes added." : ""), "\n";
+            $dbh->do(
+                "UPDATE opac_news SET content=? WHERE lang=? and branchcode=?", undef, $content, $lang,
+                $branchcode
+            );
+            print "Updated opac_news $lang.", ( $imageAltAdded ? " $imageAltAdded image alt attributes added." : "" ),
+                "\n";
         }
     }
 }
 
 sub replaceEntryPageContent {
     my $value = shift;
-    
+
     # $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(span(10))([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"col-lg-8 entry-page-col")."$7"/eg;
     # $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(span(2))([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"col-lg-4 entry-page-col")."$7"/eg;
-    $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(span([1-9][0-2]?))([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"col-lg-$5 entry-page-col")."$7"/eg;
-    $value =~ s/(<div[^>]*class\s*=\s*")(([^"]*)(row-fluid)([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"row entry-page-row")."$6"/eg;
+    $value =~
+        s/(<div[^>]*class\s*=\s*")(([^"]*)(span([1-9][0-2]?))([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"col-lg-$5 entry-page-col")."$7"/eg;
+    $value =~
+        s/(<div[^>]*class\s*=\s*")(([^"]*)(row-fluid)([^"]*))("[^>]*>)/"$1".updateClass($2,$4,"row entry-page-row")."$6"/eg;
 
     # replace spans
     $value =~ s/span([1-9][0-2]?)/col-lg-$1/g;
@@ -1441,37 +1525,38 @@ sub replaceEntryPageContent {
 
     # replace rss feed image
     $value =~ s!<img src="[^"]*feed-icon-16x16.png">!<i class="fa fa-rss" aria-hidden="true"></i>!sg;
-    
+
     $value =~ s!(<a\s+href\s*=\s*)(\")(opac-search\.pl\?q=)([^\"\n]+)(\")!replaceQuery($1,$2,$3,$4,$5)!seg;
     $value =~ s!(<a\s+href\s*=\s*)(\')(opac-search\.pl\?q=)([^\'\n]+)(\')!replaceQuery($1,$2,$3,$4,$5)!seg;
-    $value =~ s!(<a\s+href\s*=\s*)(\")(\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\"\n]+)(\")!replaceQuery($1,$2,$3,$4,$5)!seg;
-    $value =~ s!(<a\s+href\s*=\s*)(\')(\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\'\n]+)(\')!replaceQuery($1,$2,$3,$4,$5)!seg;
+    $value =~
+        s!(<a\s+href\s*=\s*)(\")(\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\"\n]+)(\")!replaceQuery($1,$2,$3,$4,$5)!seg;
+    $value =~
+        s!(<a\s+href\s*=\s*)(\')(\/cgi-bin\/koha\/opac-search\.pl\?q=)([^\'\n]+)(\')!replaceQuery($1,$2,$3,$4,$5)!seg;
 
     $value =~ s!(onclick=\"(javascript:)?changeVisibility)!"class=\"toggleVisibility\" $1"!seg;
-    
+
     my $documentTree = getDocumentTree($value);
-    my $changes = getElementsByName($documentTree, "img", \&addImageAltAttributeFromLegend);
-    my $addedCols = addMissingColOfRowElement($documentTree);
+    my $changes      = getElementsByName( $documentTree, "img", \&addImageAltAttributeFromLegend );
+    my $addedCols    = addMissingColOfRowElement($documentTree);
     $value = getDocumentFromTree($documentTree);
-    
-    return ($value,$changes);
+
+    return ( $value, $changes );
 }
 
 sub replaceQuery {
-    my ($startref,$quotestart,$searchstart,$query,$quoteend) = @_;
-    
+    my ( $startref, $quotestart, $searchstart, $query, $quoteend ) = @_;
+
     $query = $searchstart . updateQuery($query);
     if ( $quotestart eq "'" && $quoteend eq "'" && $query !~ /\'/ ) {
-        return $startref.'"'.$query.'"';
+        return $startref . '"' . $query . '"';
     }
-    return $startref.$quotestart.$query.$quoteend;
+    return $startref . $quotestart . $query . $quoteend;
 }
 
 sub replaceBreadcrumb {
     my ($oldbreadcrumb) = @_;
-    
-    my $newbreadcrumb = '    <nav aria-label="breadcrumb">' . "\n".
-                        '        <ul class="breadcrumb">' . "\n";
+
+    my $newbreadcrumb = '    <nav aria-label="breadcrumb">' . "\n" . '        <ul class="breadcrumb">' . "\n";
     while ( $oldbreadcrumb =~ m{(<li>(.*?)</li>)}g ) {
         $newbreadcrumb .= '                <li class="breadcrumb-item">' . "\n";
         $newbreadcrumb .= '                    ' . removeDivider($2) . "\n";
@@ -1479,38 +1564,38 @@ sub replaceBreadcrumb {
     }
     $newbreadcrumb .= '        </ul>' . "\n";
     $newbreadcrumb .= '    </nav>' . "\n";
-    
+
     # print "$oldbreadcrumb\n$newbreadcrumb\n";
     return $newbreadcrumb;
 }
 
 sub removeDivider {
     my ($dividervalue) = @_;
-    
+
     $dividervalue =~ s!\s*<span class="divider">&rsaquo;</span>\s*!!mg;
-    
+
     return $dividervalue;
 }
 
 sub updateClass {
-    my ($classlist, $oldclass, $newclass) = @_;
-    
-    my @classes = split(/\s+/,$classlist);
+    my ( $classlist, $oldclass, $newclass ) = @_;
+
+    my @classes = split( /\s+/, $classlist );
     my @newclasses;
-    foreach my $class(@classes) {
+    foreach my $class (@classes) {
         if ( $class eq $oldclass ) {
             $class = $newclass;
         }
         push @newclasses, $class;
     }
-    return join(" ",@newclasses);
+    return join( " ", @newclasses );
 }
 
 sub removeLineTrimmed {
-    my $text = shift;
+    my $text         = shift;
     my $replacements = shift;
-    
-    foreach my $repl(@$replacements) {
+
+    foreach my $repl (@$replacements) {
         $text =~ s/[\n][ \t]*\Q$repl\E[ \t]*//g;
     }
     return $text;
@@ -1518,17 +1603,20 @@ sub removeLineTrimmed {
 
 sub updateMoreSearchesContent {
     my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable like 'OpacMoreSearchesContent_%'");
+    my $sth =
+        $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable like 'OpacMoreSearchesContent_%'");
     $sth->execute;
-    while ( my ($value,$variable) = $sth->fetchrow ) {
+    while ( my ( $value, $variable ) = $sth->fetchrow ) {
         my $origvalue = $value;
         $value =~ s/<ul>/<ul class="nav" id="moresearches">/;
         $value =~ s/<li>/<li class="nav-item">/g;
 
         if ( $value !~ m!<a href="/cgi-bin/koha/opac-browse\.pl">! ) {
-            my $replace = q{ [% IF Koha.Preference('SearchEngine') == 'Elasticsearch' && Koha.Preference( 'OpacBrowseSearch' ) == 1 %]<li class="nav-item"><a href="/cgi-bin/koha/opac-browse.pl"><i class="fa fa-search-plus" style="color:#4caf50"></i> Indexsuche</a></li>[% END %]};
+            my $replace =
+                q{ [% IF Koha.Preference('SearchEngine') == 'Elasticsearch' && Koha.Preference( 'OpacBrowseSearch' ) == 1 %]<li class="nav-item"><a href="/cgi-bin/koha/opac-browse.pl"><i class="fa fa-search-plus" style="color:#4caf50"></i> Indexsuche</a></li>[% END %]};
             if ( $variable =~ /_en$/ ) {
-                $replace = q{ [% IF Koha.Preference('SearchEngine') == 'Elasticsearch' && Koha.Preference( 'OpacBrowseSearch' ) == 1 %]<li class="nav-item"><a href="/cgi-bin/koha/opac-browse.pl"><i class="fa fa-search-plus" style="color:#4caf50"></i> Index search</a></li>[% END %]};
+                $replace =
+                    q{ [% IF Koha.Preference('SearchEngine') == 'Elasticsearch' && Koha.Preference( 'OpacBrowseSearch' ) == 1 %]<li class="nav-item"><a href="/cgi-bin/koha/opac-browse.pl"><i class="fa fa-search-plus" style="color:#4caf50"></i> Index search</a></li>[% END %]};
             }
             if ( $value =~ m!<li[^>]*><a href="/cgi-bin/koha/opac-search\.pl">(.|\n)*?</li>! ) {
                 $value =~ s!(<li[^>]*><a href="/cgi-bin/koha/opac-search\.pl">(.|\n)*?</li>)!"$1\n$replace"!e;
@@ -1536,7 +1624,7 @@ sub updateMoreSearchesContent {
         }
 
         if ( $origvalue ne $value ) {
-            $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
+            $dbh->do( "UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable );
             print "Updated value of variable $variable\n";
         }
     }
@@ -1546,26 +1634,27 @@ sub updateIntranetMainUserBlock {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable like 'IntranetmainUserblock'");
     $sth->execute;
-    while ( my ($value,$variable) = $sth->fetchrow ) {
+    while ( my ( $value, $variable ) = $sth->fetchrow ) {
         my $origvalue = $value;
-        $value =~ s/<b>Wichtige Links für Ihre Arbeit:<\/br>(<\/b>)?\r?\n<p>(.+?(?=\<\/p>))<\/p>/'<strong>Wichtige Links für Ihre Arbeit:<\/strong>'.$2/se;
+        $value =~
+            s/<b>Wichtige Links für Ihre Arbeit:<\/br>(<\/b>)?\r?\n<p>(.+?(?=\<\/p>))<\/p>/'<strong>Wichtige Links für Ihre Arbeit:<\/strong>'.$2/se;
 
         if ( $origvalue ne $value ) {
-            $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
+            $dbh->do( "UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable );
             print "Updated value of variable $variable\n";
         }
     }
 }
 
 sub replaceQuotemeta {
-    my $str = shift;
-    my $search = shift;
+    my $str     = shift;
+    my $search  = shift;
     my $replace = shift;
-    
+
     $search = quotemeta $search;
-    
+
     $str =~ s/$search/$replace/e;
-    
+
     return $str;
 }
 
@@ -1573,32 +1662,39 @@ sub updateOPACUserJS {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable = 'OPACUserJS'");
     $sth->execute;
-    while ( my ($value,$variable) = $sth->fetchrow ) {
+    while ( my ( $value, $variable ) = $sth->fetchrow ) {
         my $origvalue = $value;
         my @replace;
         $replace[0] = '$("#availability_facet").hide();';
         $replace[1] = '$("h5#facet-locations").text("Standorte");';
         $replace[2] = '$(".view a:contains(\'MARC\')").hide();';
-        $value = removeLineTrimmed($value,\@replace);
-        
+        $value      = removeLineTrimmed( $value, \@replace );
+
         $value =~ s/\.holdingst/'#holdingst'/eg;
         $value =~ s/[\n][ \t]*\$\("\.link-collection-collapse-toggle"\)\.on\([^}]+\}\);[ \t]*//s;
-        
-        $value = replaceQuotemeta($value,q/$('#wrap').after(/,q/$('#wrapper').after(/);
-        $value = replaceQuotemeta($value,q/$('<div>').attr('class','navbar navbar-fixed-bottom navbar-static-bottom noprint').append(/,q/$('<div>').attr('class','navbar-fixed-bottom navbar-static-bottom noprint').append(/);
-        $value = replaceQuotemeta($value,q/$('<div>').attr('class','navbar-inner').append(/,q/$('<div>').attr('class','navbar-inner').attr('style','background: #f0f3f3; margin-top:20px; margin-left:30px; margin-right:30px; padding-top: 3px').append(/);
-        
+
+        $value = replaceQuotemeta( $value, q/$('#wrap').after(/, q/$('#wrapper').after(/ );
+        $value = replaceQuotemeta(
+            $value,
+            q/$('<div>').attr('class','navbar navbar-fixed-bottom navbar-static-bottom noprint').append(/,
+            q/$('<div>').attr('class','navbar-fixed-bottom navbar-static-bottom noprint').append(/
+        );
+        $value = replaceQuotemeta(
+            $value, q/$('<div>').attr('class','navbar-inner').append(/,
+            q/$('<div>').attr('class','navbar-inner').attr('style','background: #f0f3f3; margin-top:20px; margin-left:30px; margin-right:30px; padding-top: 3px').append(/
+        );
+
         if ( $origvalue ne $value ) {
-            $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
+            $dbh->do( "UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable );
             print "Updated value of variable $variable\n";
         }
     }
-    
+
     $sth = $dbh->prepare("SELECT value,variable FROM systempreferences WHERE variable = 'OPACUserCSS'");
     $sth->execute;
-    while ( my ($value,$variable) = $sth->fetchrow ) {
+    while ( my ( $value, $variable ) = $sth->fetchrow ) {
         my $origvalue = $value;
-        
+
         $value =~ s/\.navbar-inverse \.navbar-inner/'#header-region .navbar'/esg;
         $value =~ s/\.navbar-inverse/'.navbar-expanded'/esg;
         $value =~ s/\.brand/'.navbar-brand'/esg;
@@ -1607,81 +1703,85 @@ sub updateOPACUserJS {
         $value =~ s/((\#translControl1|\.transl1)[^{]+\{[^}]*\s+width:\s*)([0-9]+)%/"${1}100%"/esg;
 
         if ( $origvalue ne $value ) {
-            $dbh->do("UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable);
+            $dbh->do( "UPDATE systempreferences SET value=? WHERE variable=?", undef, $value, $variable );
             print "Updated value of variable $variable\n";
         }
     }
 }
 
 sub rebuildElasticSearchIndex {
-    # Loading Elasticsearch index configuration
-    system "/usr/share/koha/bin/search_tools/rebuild_elasticsearch.pl --reset --biblios --verbose --commit 5000 --processes 4";
-    system "/usr/share/koha/bin/search_tools/rebuild_elasticsearch.pl --reset --authorities --verbose --commit 5000 --processes 4";
-}
 
+    # Loading Elasticsearch index configuration
+    system
+        "/usr/share/koha/bin/search_tools/rebuild_elasticsearch.pl --reset --biblios --verbose --commit 5000 --processes 4";
+    system
+        "/usr/share/koha/bin/search_tools/rebuild_elasticsearch.pl --reset --authorities --verbose --commit 5000 --processes 4";
+}
 
 sub getElementAttributeValues {
     my $value = shift;
-    
-    my $origvalue = $value;
+
+    my $origvalue    = $value;
     my $singlequotes = 0;
     if ( $value =~ s/^"([^"]*)"$/$1/ ) {
         $singlequotes = 0;
-    }
-    elsif ( $value =~ s/^'([^']*)'$/$1/ ) {
+    } elsif ( $value =~ s/^'([^']*)'$/$1/ ) {
         $singlequotes = 1;
+    } elsif ( $value =~ s/^([^\s]+)(['"]?)$/$1/ ) {
+        $singlequotes = 1 if ( $2 && $2 eq "'" );
     }
-    elsif ( $value =~ s/^([^\s]+)(['"]?)$/$1/ ) {
-        $singlequotes = 1 if ($2 && $2 eq "'");
-    }
-    
+
     my $ret = { origvalue => $origvalue, value => $value, singlequotes => $singlequotes, values => {} };
-    if ( $value ) {
-        foreach my $val(split(/\s+/,$value)) {
+    if ($value) {
+        foreach my $val ( split( /\s+/, $value ) ) {
             $ret->{values}->{$val} = 1 if ($val);
         }
     }
-    
+
     return $ret;
 }
 
 sub addElementToDocumentTree {
-    my ($elementTree,$isEnd,$tagname,$attrtext,$follows,$fullcontent) = @_;
-    
+    my ( $elementTree, $isEnd, $tagname, $attrtext, $follows, $fullcontent ) = @_;
+
     my $attributes = {};
-    my $retElem = $elementTree;
-    
+    my $retElem    = $elementTree;
+
     my $attrnum = 0;
     while ( $attrtext =~ s/^\s*([\w\-_]+)\s*=?\s*("[^"]*"|'[^']*'|[^\s]+['"]?)\s*// ) {
-        $attributes->{$1} = getElementAttributeValues($2); 
+        $attributes->{$1} = getElementAttributeValues($2);
         $attributes->{$1}->{attrnumber} = ++$attrnum;
     }
     if ( $follows =~ /^(\s*)\/>/ ) {
-        my $newElement = { name => $tagname, type => 'elem', tree => [], parent => $elementTree, attributes => $attributes, attrcount => $attrnum, ended => 1, attradd => $attrtext, endfound => 0, spaceend => $1 };
-        push @{$elementTree->{tree}}, $newElement;
+        my $newElement = {
+            name      => $tagname, type  => 'elem', tree    => [], parent => $elementTree, attributes => $attributes,
+            attrcount => $attrnum, ended => 1,      attradd => $attrtext, endfound => 0,   spaceend   => $1
+        };
+        push @{ $elementTree->{tree} }, $newElement;
         $follows =~ s/^\s*[\/>]+//;
-        if ( $follows ) {
-            push @{$elementTree->{tree}}, { type => 'text', content => $follows };
+        if ($follows) {
+            push @{ $elementTree->{tree} }, { type => 'text', content => $follows };
         }
-    }
-    elsif (! $isEnd ) {
-        my $newElement = { name => $tagname, type => 'elem', tree => [], parent => $elementTree, attributes => $attributes, attrcount => $attrnum, ended => 0, attradd => $attrtext, endfound => 0, spaceend => '' };
-        push @{$elementTree->{tree}}, $newElement;
+    } elsif ( !$isEnd ) {
+        my $newElement = {
+            name      => $tagname, type  => 'elem', tree    => [], parent => $elementTree, attributes => $attributes,
+            attrcount => $attrnum, ended => 0,      attradd => $attrtext, endfound => 0,   spaceend   => ''
+        };
+        push @{ $elementTree->{tree} }, $newElement;
         $follows =~ s/^\s*[>]//;
-        if ( $follows ) {
-            push @{$newElement->{tree}}, { type => 'text', content => $follows };
+        if ($follows) {
+            push @{ $newElement->{tree} }, { type => 'text', content => $follows };
         }
         $retElem = $newElement;
-    }
-    else {
+    } else {
         my $checkElem = $elementTree;
-        my $found = 0;
+        my $found     = 0;
         while ( $checkElem && $checkElem->{name} ) {
             if ( $checkElem->{name} eq $tagname ) {
                 $checkElem->{endfound} = 1;
-                $found = 1;
-                $retElem = $checkElem;
-                if ( $retElem->{parent}) {
+                $found                 = 1;
+                $retElem               = $checkElem;
+                if ( $retElem->{parent} ) {
                     $retElem = $retElem->{parent};
                 }
                 last;
@@ -1689,12 +1789,12 @@ sub addElementToDocumentTree {
                 $checkElem = $checkElem->{parent};
             }
         }
-        if ( $found==0 && $tagname =~ /^head$/i ) {
-            push @{$retElem->{tree}}, { type => 'text', content => $fullcontent };
+        if ( $found == 0 && $tagname =~ /^head$/i ) {
+            push @{ $retElem->{tree} }, { type => 'text', content => $fullcontent };
         } else {
             $follows =~ s/^\s*[>]//;
             if ( defined($follows) ) {
-                push @{$retElem->{tree}}, { type => 'text', content => $follows };
+                push @{ $retElem->{tree} }, { type => 'text', content => $follows };
             }
         }
     }
@@ -1703,138 +1803,139 @@ sub addElementToDocumentTree {
 
 sub getDocumentTree {
     my ($text) = @_;
-    
+
     my $elementTree = { parent => undef, type => 'root', tree => [] };
-    my $root = $elementTree;
+    my $root        = $elementTree;
     while ( $text =~ s/(<(\/?)(\w+)((\s*[\w\-_]+\s*=?\s*("[^"\n]*"|'[^'\n]*'))*)([^<]+))// ) {
-        push @{$elementTree->{tree}}, { type => 'text', content => $` } if ( $` );
-        $text = $';
-        $elementTree = addElementToDocumentTree($elementTree,$2,$3,$4,$7,$1);
+        push @{ $elementTree->{tree} }, { type => 'text', content => $` } if ($`);
+        $text        = $';
+        $elementTree = addElementToDocumentTree( $elementTree, $2, $3, $4, $7, $1 );
     }
-    push @{$elementTree->{tree}}, { type => 'text', content => $text } if ( $text );
+    push @{ $elementTree->{tree} }, { type => 'text', content => $text } if ($text);
     return $root;
 }
 
 sub getElementsByName {
-    my ($subtree,$name,$function,$returnFirst) = @_;
-    
+    my ( $subtree, $name, $function, $returnFirst ) = @_;
+
     my $ret = 0;
-    
-    if ( exists($subtree->{type}) && $subtree->{type} =~ /^(root|elem)$/ ) {
-        if ( exists($subtree->{name}) && $subtree->{name} =~ /$name/i ) {
-            if ( $returnFirst ) {
+
+    if ( exists( $subtree->{type} ) && $subtree->{type} =~ /^(root|elem)$/ ) {
+        if ( exists( $subtree->{name} ) && $subtree->{name} =~ /$name/i ) {
+            if ($returnFirst) {
                 return $subtree;
-            }
-            elsif ( $function ) {
+            } elsif ($function) {
                 $ret += $function->($subtree);
             }
-        }
-        elsif ( exists($subtree->{tree}) && scalar(@{$subtree->{tree}}) > 0 ) {
-            foreach my $subentry (@{$subtree->{tree}}) {
-                my $elem = getElementsByName($subentry,$name,$function,$returnFirst);
+        } elsif ( exists( $subtree->{tree} ) && scalar( @{ $subtree->{tree} } ) > 0 ) {
+            foreach my $subentry ( @{ $subtree->{tree} } ) {
+                my $elem = getElementsByName( $subentry, $name, $function, $returnFirst );
                 if ( $elem && $returnFirst ) {
                     return $elem;
-                }
-                else {
+                } else {
                     $ret += $elem;
                 }
             }
         }
     }
-    
+
     return $ret;
 }
 
 sub getElementByName {
-    my ($subtree,$name) = @_;
-    return getElementsByName($subtree,$name,undef,1);
+    my ( $subtree, $name ) = @_;
+    return getElementsByName( $subtree, $name, undef, 1 );
 }
 
 sub renameH3Element {
     my ($element) = @_;
 
-    if ( exists($element->{name}) && $element->{name} =~ /h3/i ) {
+    if ( exists( $element->{name} ) && $element->{name} =~ /h3/i ) {
         $element->{name} = 'h2';
     }
     return 0;
 }
 
 sub addMissingColOfRowElement {
-    my ($element,$level) = @_;
-    
-    $level = 0 if (!$level);
+    my ( $element, $level ) = @_;
+
+    $level = 0 if ( !$level );
 
     my $added = 0;
-    if (    exists($element->{type}) && $element->{type} =~ /^(elem)$/ 
-         && exists($element->{name}) && $element->{name} =~ /^(div)$/i
-         && exists($element->{attributes}) 
-         && exists($element->{attributes}->{class}->{values}->{'row'})
-       ) 
+    if (   exists( $element->{type} )
+        && $element->{type} =~ /^(elem)$/
+        && exists( $element->{name} )
+        && $element->{name} =~ /^(div)$/i
+        && exists( $element->{attributes} )
+        && exists( $element->{attributes}->{class}->{values}->{'row'} ) )
     {
         my $hasCol = 0;
-        if ( exists($element->{tree}) && scalar($element->{tree}) > 0 ) {
-            my ($col2,$col3,$col9,$col10,$colother)=([0,undef],[0,undef],[0,undef],[0,undef],0);
-            foreach my $subentry (@{$element->{tree}}) {
-                if (    exists($subentry->{type}) && $element->{type} =~ /^(elem)$/ 
-                     && exists($subentry->{name}) && $element->{name} =~ /^(div)$/i
-                     && exists($subentry->{attributes})
-                   ) 
+        if ( exists( $element->{tree} ) && scalar( $element->{tree} ) > 0 ) {
+            my ( $col2, $col3, $col9, $col10, $colother ) =
+                ( [ 0, undef ], [ 0, undef ], [ 0, undef ], [ 0, undef ], 0 );
+            foreach my $subentry ( @{ $element->{tree} } ) {
+                if (   exists( $subentry->{type} )
+                    && $element->{type} =~ /^(elem)$/
+                    && exists( $subentry->{name} )
+                    && $element->{name} =~ /^(div)$/i
+                    && exists( $subentry->{attributes} ) )
                 {
-                    foreach my $class( keys( %{$subentry->{attributes}->{class}->{values}} ) ) {
+                    foreach my $class ( keys( %{ $subentry->{attributes}->{class}->{values} } ) ) {
                         $hasCol = 1 if ( $class =~ /^\s*col-/ || $class =~ /^\s*entry-page-col/ );
                         if ( $class =~ /^\s*col-lg-(2|3|9|10)/ ) {
                             eval "\$col${1}->[0] += 1; \$col${1}->[1] = \$subentry;";
-                        }
-                        elsif ( $class =~ /^\s*col-/ ) {
+                        } elsif ( $class =~ /^\s*col-/ ) {
                             $colother++;
                         }
                     }
                 }
             }
-            if (! $hasCol ) {
-                my $newElement = { name => 'div', 
-                                   type => 'elem', 
-                                   tree => $element->{tree}, 
-                                   parent => $element, 
-                                   attributes => {}, 
-                                   attrcount => 0, 
-                                   ended => 0, 
-                                   attradd => '', 
-                                   endfound => 1, 
-                                   spaceend => '' };
-                $newElement->{attributes}->{class}->{values}->{'col-lg-12'} = 1;
+            if ( !$hasCol ) {
+                my $newElement = {
+                    name       => 'div',
+                    type       => 'elem',
+                    tree       => $element->{tree},
+                    parent     => $element,
+                    attributes => {},
+                    attrcount  => 0,
+                    ended      => 0,
+                    attradd    => '',
+                    endfound   => 1,
+                    spaceend   => ''
+                };
+                $newElement->{attributes}->{class}->{values}->{'col-lg-12'}      = 1;
                 $newElement->{attributes}->{class}->{values}->{'entry-page-col'} = 1;
-                $newElement->{attributes}->{class}->{value} = "col-lg-12 entry-page-col";
+                $newElement->{attributes}->{class}->{value}                      = "col-lg-12 entry-page-col";
                 $newElement->{attrcount} += 1;
-                $newElement->{attributes}->{class}->{attrnumber} = $newElement->{attrcount};
+                $newElement->{attributes}->{class}->{attrnumber}   = $newElement->{attrcount};
                 $newElement->{attributes}->{class}->{singlequotes} = 0;
-                $newElement->{attributes}->{class}->{origvalue} = "col-lg-12 entry-page-col";
-                $element->{tree} = [$newElement];
+                $newElement->{attributes}->{class}->{origvalue}    = "col-lg-12 entry-page-col";
+                $element->{tree}                                   = [$newElement];
                 $added++;
             } else {
                 if ( $colother == 0 && $col2->[0] == 1 && $col10->[0] == 1 && $col3->[0] == 0 && $col9->[0] == 0 ) {
                     $col2->[1]->{attributes}->{class}->{value} =~ s/col-lg-2/col-lg-4/;
-                    delete($col2->[1]->{attributes}->{class}->{values}->{'col-lg-2'});
+                    delete( $col2->[1]->{attributes}->{class}->{values}->{'col-lg-2'} );
                     $col2->[1]->{attributes}->{class}->{values}->{'col-lg-4'} = 1;
                     $col10->[1]->{attributes}->{class}->{value} =~ s/col-lg-10/col-lg-8/;
-                    delete($col10->[1]->{attributes}->{class}->{values}->{'col-lg-10'});
+                    delete( $col10->[1]->{attributes}->{class}->{values}->{'col-lg-10'} );
                     $col10->[1]->{attributes}->{class}->{values}->{'col-lg-8'} = 1;
                 }
                 if ( $colother == 0 && $col2->[0] == 0 && $col10->[0] == 0 && $col3->[0] == 1 && $col9->[0] == 1 ) {
                     $col3->[1]->{attributes}->{class}->{value} =~ s/col-lg-3/col-lg-5/;
-                    delete($col3->[1]->{attributes}->{class}->{values}->{'col-lg-3'});
+                    delete( $col3->[1]->{attributes}->{class}->{values}->{'col-lg-3'} );
                     $col3->[1]->{attributes}->{class}->{values}->{'col-lg-5'} = 1;
                     $col9->[1]->{attributes}->{class}->{value} =~ s/col-lg-9/col-lg-7/;
-                    delete($col9->[1]->{attributes}->{class}->{values}->{'col-lg-9'});
+                    delete( $col9->[1]->{attributes}->{class}->{values}->{'col-lg-9'} );
                     $col9->[1]->{attributes}->{class}->{values}->{'col-lg-7'} = 1;
                 }
             }
         }
     }
-    if ( exists($element->{tree}) && scalar($element->{tree}) > 0 ) {
+    if ( exists( $element->{tree} ) && scalar( $element->{tree} ) > 0 ) {
         $level++;
-        foreach my $subentry (@{$element->{tree}}) {
-            $added += addMissingColOfRowElement($subentry, $level);
+        foreach my $subentry ( @{ $element->{tree} } ) {
+            $added += addMissingColOfRowElement( $subentry, $level );
         }
     }
     return $added;
@@ -1843,27 +1944,30 @@ sub addMissingColOfRowElement {
 sub addImageAltAttributeFromLegend {
     my ($imageElement) = @_;
 
-    if ( exists($imageElement->{name}) && $imageElement->{name} =~ /img/i ) {
-        if (! exists($imageElement->{attributes}->{alt}) ) {
+    if ( exists( $imageElement->{name} ) && $imageElement->{name} =~ /img/i ) {
+        if ( !exists( $imageElement->{attributes}->{alt} ) ) {
+
             # print "img has no alt attribute\n";
-            
+
             my $parent = $imageElement->{parent};
             my $legend = '';
-            while ( $parent ) {
-                if (    exists($parent->{type}) && $parent->{type} =~ /^(elem)$/ 
-                     && exists($parent->{name}) && $parent->{name} =~ /^(div)$/i
-                     && exists($parent->{attributes}) && exists($parent->{attributes}->{class}->{values}->{'ui-tabs-panel'})
-                   ) 
+            while ($parent) {
+                if (   exists( $parent->{type} )
+                    && $parent->{type} =~ /^(elem)$/
+                    && exists( $parent->{name} )
+                    && $parent->{name} =~ /^(div)$/i
+                    && exists( $parent->{attributes} )
+                    && exists( $parent->{attributes}->{class}->{values}->{'ui-tabs-panel'} ) )
                 {
-                    my $legend = getElementByName($parent,'legend');
+                    my $legend = getElementByName( $parent, 'legend' );
                     if ($legend) {
-                        if ( exists($legend->{tree}) && scalar(@{$legend->{tree}}) > 0 ) {
+                        if ( exists( $legend->{tree} ) && scalar( @{ $legend->{tree} } ) > 0 ) {
                             my $txt = $legend->{tree}->[0]->{content};
                             $txt =~ s/(^\s+|\s+$)//g if ($txt);
-                            $txt =~ s/["']//g if ($txt);
-                            if ( $txt ) {
+                            $txt =~ s/["']//g        if ($txt);
+                            if ($txt) {
                                 $imageElement->{attributes}->{alt}->{values} = $txt;
-                                $imageElement->{attributes}->{alt}->{value} = $txt;
+                                $imageElement->{attributes}->{alt}->{value}  = $txt;
                                 $imageElement->{attrcount} += 1;
                                 $imageElement->{attributes}->{alt}->{attrnumber} = $imageElement->{attrcount};
                                 return 1;
@@ -1879,32 +1983,48 @@ sub addImageAltAttributeFromLegend {
 }
 
 sub getDocumentFromTree {
-    my ($subtree,$level,$txtarr) = @_;
-    
+    my ( $subtree, $level, $txtarr ) = @_;
+
     my $ret = 0;
-    if (! $level ) {
-        $level = 1;
+    if ( !$level ) {
+        $level  = 1;
         $txtarr = [];
     }
-    
-    if ( exists($subtree->{type}) && $subtree->{type} =~ /^(root|elem)$/ && exists($subtree->{name})) {
+
+    if ( exists( $subtree->{type} ) && $subtree->{type} =~ /^(root|elem)$/ && exists( $subtree->{name} ) ) {
         my $txt = '<' . $subtree->{name};
         if ( $subtree->{attrcount} ) {
-            foreach my $attr( sort { 
-                                        if ( defined($subtree->{attributes}->{$a}->{attrnumber}) && defined($subtree->{attributes}->{$b}->{attrnumber}) ) {
-                                            return $subtree->{attributes}->{$a}->{attrnumber} <=> $subtree->{attributes}->{$b}->{attrnumber};
-                                        }
-                                        elsif ( defined($subtree->{attributes}->{$b}->{attrnumber}) ) {
-                                            return -1;
-                                        }
-                                        elsif ( defined($subtree->{attributes}->{$a}->{attrnumber}) ) {
-                                            return 1;
-                                        }
-                                        return 0;
-                                    } keys %{$subtree->{attributes}} ) {
+            foreach my $attr (
+                sort {
+                    if (   defined( $subtree->{attributes}->{$a}->{attrnumber} )
+                        && defined( $subtree->{attributes}->{$b}->{attrnumber} ) )
+                    {
+                        return $subtree->{attributes}->{$a}->{attrnumber}
+                            <=> $subtree->{attributes}->{$b}->{attrnumber};
+                    } elsif ( defined( $subtree->{attributes}->{$b}->{attrnumber} ) ) {
+                        return -1;
+                    } elsif ( defined( $subtree->{attributes}->{$a}->{attrnumber} ) ) {
+                        return 1;
+                    }
+                    return 0;
+                } keys %{ $subtree->{attributes} }
+                )
+            {
                 my $attrquote = '"';
-                $attrquote = "'" if ( ( defined($subtree->{attributes}->{$attr}->{value}) && $subtree->{attributes}->{$attr}->{value} =~ /"/ ) || $subtree->{attributes}->{$attr}->{singlequotes} );
-                $txt .= " $attr=$attrquote" . ( defined($subtree->{attributes}->{$attr}->{value}) ? $subtree->{attributes}->{$attr}->{value} : '') . "$attrquote";
+                $attrquote = "'"
+                    if (
+                    (
+                        defined( $subtree->{attributes}->{$attr}->{value} )
+                        && $subtree->{attributes}->{$attr}->{value} =~ /"/
+                    )
+                    || $subtree->{attributes}->{$attr}->{singlequotes}
+                    );
+                $txt .= " $attr=$attrquote"
+                    . (
+                    defined( $subtree->{attributes}->{$attr}->{value} )
+                    ? $subtree->{attributes}->{$attr}->{value}
+                    : ''
+                    ) . "$attrquote";
             }
         }
         if ( $subtree->{attradd} ) {
@@ -1914,25 +2034,27 @@ sub getDocumentFromTree {
         $txt .= ">";
         push @$txtarr, $txt;
     }
-    if ( exists($subtree->{tree}) && scalar(@{$subtree->{tree}}) > 0 ) {
-        for (my $i=0;$i<scalar(@{$subtree->{tree}});$i++) {
-            getDocumentFromTree($subtree->{tree}->[$i],$level+1,$txtarr);
+    if ( exists( $subtree->{tree} ) && scalar( @{ $subtree->{tree} } ) > 0 ) {
+        for ( my $i = 0 ; $i < scalar( @{ $subtree->{tree} } ) ; $i++ ) {
+            getDocumentFromTree( $subtree->{tree}->[$i], $level + 1, $txtarr );
         }
     }
-    if ( exists($subtree->{type}) && $subtree->{type} =~ /^(root|elem)$/ && exists($subtree->{name}) && $subtree->{endfound} && !$subtree->{ended} ) {
+    if (   exists( $subtree->{type} )
+        && $subtree->{type} =~ /^(root|elem)$/
+        && exists( $subtree->{name} )
+        && $subtree->{endfound}
+        && !$subtree->{ended} )
+    {
         push @$txtarr, '</' . $subtree->{name} . '>';
     }
-    if ( exists($subtree->{type}) && $subtree->{type} =~ /^(text)$/ ) {
+    if ( exists( $subtree->{type} ) && $subtree->{type} =~ /^(text)$/ ) {
         push @$txtarr, $subtree->{content};
     }
-    
+
     if ( $level == 1 ) {
-        return join('',@$txtarr);
+        return join( '', @$txtarr );
     }
 }
-
-
-
 
 # Called individually for each Koha instance of the current host:
 # - Check if epayment methods of LMSCloud origin are activated.
@@ -1954,12 +2076,13 @@ sub getDocumentFromTree {
 #   - do not delete the systempreference 'ActivateCashRegisterTransactionsOnly', because it is not only relevant for epayment.
 
 sub migrate_epayment_to_2105 {
-    my ( $migType ) = @_;    # 'LMSC': migrate the LMSC e-payment solutions (GiroSolution, Epay21, PmPayment, EPayBL)   'KohaPayPal': migrate the standard Koha e-payment solution for PayPal
+    my ($migType) = @_
+        ; # 'LMSC': migrate the LMSC e-payment solutions (GiroSolution, Epay21, PmPayment, EPayBL)   'KohaPayPal': migrate the standard Koha e-payment solution for PayPal
 
     print "migrate_epayment_to_2105 START\n";
 
     sub trace {
-        my ( $logline ) = @_;
+        my ($logline) = @_;
         my $debug = $ENV{'DEBUG_MIGRATE_EPAYMENT'};
 
         print $logline if $debug;
@@ -1968,7 +2091,7 @@ sub migrate_epayment_to_2105 {
     sub read_systempreferences {
         my ( $dbh, $selVariable ) = @_;
         my $retValue = '';
-	    &trace("migrate_epayment_to_2105::read_systempreferences() START selVariable:$selVariable:\n");
+        &trace("migrate_epayment_to_2105::read_systempreferences() START selVariable:$selVariable:\n");
 
         my $sqlStatement = q{
             SELECT value
@@ -1979,20 +2102,20 @@ sub migrate_epayment_to_2105 {
         my $sth = $dbh->prepare($sqlStatement);
         $sth->execute($selVariable);
 
-        if ( my ($value ) = $sth->fetchrow ) {
+        if ( my ($value) = $sth->fetchrow ) {
             $retValue = $value;
         }
 
-        &trace("migrate_epayment_to_2105::read_systempreferences() END; selVariable:$selVariable: retValue:$retValue:\n");
+        &trace(
+            "migrate_epayment_to_2105::read_systempreferences() END; selVariable:$selVariable: retValue:$retValue:\n");
 
         return $retValue;
     }
 
-
     sub delete_systempreferences {
         my ( $dbh, $selVariable ) = @_;
         my $retValue = '';
-	    &trace("migrate_epayment_to_2105::delete_systempreferences() START selVariable:$selVariable:\n");
+        &trace("migrate_epayment_to_2105::delete_systempreferences() START selVariable:$selVariable:\n");
 
         my $sqlStatement = q{
             DELETE
@@ -2003,15 +2126,18 @@ sub migrate_epayment_to_2105 {
         my $sth = $dbh->prepare($sqlStatement);
         $retValue = $sth->execute($selVariable);
 
-        &trace("migrate_epayment_to_2105::delete_systempreferences() END; selVariable:$selVariable: retValue:$retValue:\n");
+        &trace(
+            "migrate_epayment_to_2105::delete_systempreferences() END; selVariable:$selVariable: retValue:$retValue:\n"
+        );
 
         return $retValue;
     }
 
-
     sub update_epaymentsde_preferences {
         my ( $dbh, $payment_type, $library_id, $name, $value ) = @_;
-	    &trace("migrate_epayment_to_2105::update_epaymentsde_preferences() START payment_type:$payment_type: library_id:$library_id: name:$name: value:$value:\n");
+        &trace(
+            "migrate_epayment_to_2105::update_epaymentsde_preferences() START payment_type:$payment_type: library_id:$library_id: name:$name: value:$value:\n"
+        );
 
         my $sqlStatement = q{
             UPDATE koha_plugin_com_lmscloud_epaymentsde_preferences
@@ -2029,10 +2155,13 @@ sub migrate_epayment_to_2105 {
         return $res;
     }
 
-
     sub update_payviapaypal_pay_via_paypal {
         my ( $dbh, $library_id, $active, $user, $pwd, $signature, $charge_description, $threshold ) = @_;
-	    &trace("migrate_epayment_to_2105::update_payviapaypal_pay_via_paypal() START library_id:" . (defined($library_id)?$library_id:'undef') . ": active:$active: user:$user: pwd:$pwd: signature:$signature: signature:$signature: charge_description:$charge_description: threshold:" . (defined($threshold)?$threshold:'undef') . ":\n");
+        &trace(   "migrate_epayment_to_2105::update_payviapaypal_pay_via_paypal() START library_id:"
+                . ( defined($library_id) ? $library_id : 'undef' )
+                . ": active:$active: user:$user: pwd:$pwd: signature:$signature: signature:$signature: charge_description:$charge_description: threshold:"
+                . ( defined($threshold) ? $threshold : 'undef' )
+                . ":\n" );
 
         my $sqlStatement = '';
         my $sth;
@@ -2042,22 +2171,26 @@ sub migrate_epayment_to_2105 {
                 DELETE FROM koha_plugin_com_theke_payviapaypal_pay_via_paypal WHERE library_id = ?;
             };
             $sth = $dbh->prepare($sqlStatement);
-            $res = $sth->execute( $library_id );
+            $res = $sth->execute($library_id);
         } else {
             $sqlStatement = q{
                 DELETE FROM koha_plugin_com_theke_payviapaypal_pay_via_paypal WHERE library_id IS NULL;
             };
             $sth = $dbh->prepare($sqlStatement);
-            $res = $sth->execute(  );
+            $res = $sth->execute();
         }
-        &trace("migrate_epayment_to_2105::update_payviapaypal_pay_via_paypal() 1. sqlStatement:$sqlStatement: res:$res:\n");
+        &trace(
+            "migrate_epayment_to_2105::update_payviapaypal_pay_via_paypal() 1. sqlStatement:$sqlStatement: res:$res:\n"
+        );
 
         $sqlStatement = q{
             INSERT IGNORE INTO koha_plugin_com_theke_payviapaypal_pay_via_paypal (library_id, active, user, pwd, signature, charge_description, threshold)  VALUES ( ?, ?, ?, ?, ?, ?, ?);
         };
         $sth = $dbh->prepare($sqlStatement);
         $res = $sth->execute( $library_id, $active, $user, $pwd, $signature, $charge_description, $threshold );
-        &trace("migrate_epayment_to_2105::update_payviapaypal_pay_via_paypal() 2. sqlStatement:$sqlStatement: res:$res:\n");
+        &trace(
+            "migrate_epayment_to_2105::update_payviapaypal_pay_via_paypal() 2. sqlStatement:$sqlStatement: res:$res:\n"
+        );
 
         if ( defined($library_id) ) {
             $sqlStatement = q{
@@ -2086,17 +2219,20 @@ sub migrate_epayment_to_2105 {
             $sth = $dbh->prepare($sqlStatement);
             $res = $sth->execute( $active, $user, $pwd, $signature, $charge_description, $threshold );
         }
-        &trace("migrate_epayment_to_2105::update_payviapaypal_pay_via_paypal() 3. sqlStatement:$sqlStatement: res:$res:\n");
+        &trace(
+            "migrate_epayment_to_2105::update_payviapaypal_pay_via_paypal() 3. sqlStatement:$sqlStatement: res:$res:\n"
+        );
 
         &trace("migrate_epayment_to_2105::update_payviapaypal_pay_via_paypal() END; res:$res:\n");
 
         return $res;
     }
 
-
     sub update_plugin_data {
         my ( $dbh, $plugin_class, $plugin_key, $plugin_value ) = @_;
-	    &trace("migrate_epayment_to_2105::update_plugin_data() START plugin_class:$plugin_class: plugin_key:$plugin_key: plugin_value:$plugin_value:\n");
+        &trace(
+            "migrate_epayment_to_2105::update_plugin_data() START plugin_class:$plugin_class: plugin_key:$plugin_key: plugin_value:$plugin_value:\n"
+        );
 
         my $sqlStatement = q{
             INSERT IGNORE INTO plugin_data (plugin_class, plugin_key, plugin_value)  VALUES ( ?, ?, ? );
@@ -2120,22 +2256,25 @@ sub migrate_epayment_to_2105 {
         return $res;
     }
 
-
     sub install_koha_plugin {
-        my ( $uploadfilename ) = @_;    # name of the KPZ file
+        my ($uploadfilename) = @_;                                                                # name of the KPZ file
         my $uploaddirname = 'https://orgaknecht.lmscloud.net/updates/koha-21-05/pluginstore';
+
         #my $uploadlocation = '';
-        my $uploadlocation = $uploaddirname . '/' . $uploadfilename;
+        my $uploadlocation  = $uploaddirname . '/' . $uploadfilename;
         my $plugins_enabled = C4::Context->config("enable_plugins");
-        my $plugins_dir = C4::Context->config("pluginsdir");
+        my $plugins_dir     = C4::Context->config("pluginsdir");
         $plugins_dir = ref($plugins_dir) eq 'ARRAY' ? $plugins_dir->[0] : $plugins_dir;
         my ( $tempfile, $tfh );
         my %errors;
         my $res = 'undefinedResult';
 
-        &trace("migrate_epayment_to_2105::install_koha_plugin() START; uploadfilename:$uploadfilename: uploadlocation:$uploadlocation: plugins_enabled:$plugins_enabled:\n");
+        &trace(
+            "migrate_epayment_to_2105::install_koha_plugin() START; uploadfilename:$uploadfilename: uploadlocation:$uploadlocation: plugins_enabled:$plugins_enabled:\n"
+        );
 
-        if ( ! $plugins_enabled ) {
+        if ( !$plugins_enabled ) {
+
             # set <enable_plugins>1</enable_plugins> in /etc/koha/sites/<instancename>/koha-conf.xml
             my $kohaConfFileName = Koha::Config->guess_koha_conf;
             `sed -i.bak -e 's|<enable_plugins>.*</enable_plugins>|<enable_plugins>1</enable_plugins>|g' $kohaConfFileName`;
@@ -2144,7 +2283,10 @@ sub migrate_epayment_to_2105 {
             # 'publish' this modification, otherwise Koha::Plugins->new(), called a few lines below, will fail (i.e. will return undef)
             my $contextNew = C4::Context->new($kohaConfFileName);
             $contextNew->set_context();
-            &trace("migrate_epayment_to_2105::install_koha_plugin() reread the C4::Context context, now getting C4::Context->config(enable_plugins):" . C4::Context->config("enable_plugins") . ":\n");
+            &trace(
+                "migrate_epayment_to_2105::install_koha_plugin() reread the C4::Context context, now getting C4::Context->config(enable_plugins):"
+                    . C4::Context->config("enable_plugins")
+                    . ":\n" );
         }
 
         my $dirname = File::Temp::tempdir( CLEANUP => 1 );
@@ -2156,33 +2298,36 @@ sub migrate_epayment_to_2105 {
 
         &trace("migrate_epayment_to_2105::install_koha_plugin() tempfile:$tempfile:\n");
 
-        $errors{'NOTKPZ'} = 1 if ( $uploadfilename !~ /\.kpz$/i );
+        $errors{'NOTKPZ'}         = 1 if ( $uploadfilename !~ /\.kpz$/i );
         $errors{'NOWRITETEMP'}    = 1 unless ( -w $dirname );
         $errors{'NOWRITEPLUGINS'} = 1 unless ( -w $plugins_dir );
 
-        if ( $uploadlocation ) {
-            my $ua = Mojo::UserAgent->new(max_redirects => 5);
+        if ($uploadlocation) {
+            my $ua = Mojo::UserAgent->new( max_redirects => 5 );
             my $tx = $ua->get($uploadlocation);
             $tx->result->content->asset->move_to($tempfile);
         } else {
             $errors{'EMPTYUPLOAD'} = 1;
         }
 
-        if ( ! %errors ) {
+        if ( !%errors ) {
             my $ae = Archive::Extract->new( archive => $tempfile, type => 'zip' );
             if ( $ae->extract( to => $plugins_dir ) ) {
-                &setUserAndGroup( $plugins_dir );
+                &setUserAndGroup($plugins_dir);
 
-                &trace("migrate_epayment_to_2105::install_koha_plugin() now calling Koha::Plugins->new()->InstallPlugins()\n");
-                $res = Koha::Plugins->new()->InstallPlugins();    # returns total count of plugins currently installed on this hosts
+                &trace(
+                    "migrate_epayment_to_2105::install_koha_plugin() now calling Koha::Plugins->new()->InstallPlugins()\n"
+                );
+                $res = Koha::Plugins->new()->InstallPlugins()
+                    ;    # returns total count of plugins currently installed on this hosts
             } else {
                 $errors{'UZIPFAIL'} = $uploadfilename;
             }
         }
 
-        if ( %errors ) {
+        if (%errors) {
             foreach my $key ( keys %errors ) {
-                &trace("migrate_epayment_to_2105::install_koha_plugin() errors{$key}:" . $errors{$key} . ":\n");
+                &trace( "migrate_epayment_to_2105::install_koha_plugin() errors{$key}:" . $errors{$key} . ":\n" );
             }
         }
 
@@ -2191,104 +2336,133 @@ sub migrate_epayment_to_2105 {
 
     # recursively set user and group to <koha-Instanz-Name>-koha
     sub setUserAndGroup {
-        my ( $dirName ) = @_;
-        my $kohaUserName = substr(C4::Context->config('database'),5) . '-koha';    # e.g. koha_wallenheim -> wallenheim-koha
+        my ($dirName) = @_;
+        my $kohaUserName =
+            substr( C4::Context->config('database'), 5 ) . '-koha';    # e.g. koha_wallenheim -> wallenheim-koha
 
         &trace("migrate_epayment_to_2105::setUserAndGroup() START; dirName:$dirName: kohaUserName:$kohaUserName:\n");
 
         #`chown -R $kohaUserName:$kohaUserName $dirName`;
-        my ($stdoutRes, $stderrRes) = Capture::Tiny::capture {
-            system ( "chown -R $kohaUserName:$kohaUserName $dirName" );
+        my ( $stdoutRes, $stderrRes ) = Capture::Tiny::capture {
+            system("chown -R $kohaUserName:$kohaUserName $dirName");
         };
 
-        &trace("migrate_epayment_to_2105::setUserAndGroup() tried to chown -R $kohaUserName:$kohaUserName $dirName; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n");
-        if ( $stderrRes ) {
-            print STDERR "migrate_epayment_to_2105::setUserAndGroup() tried to chown -R $kohaUserName:$kohaUserName $dirName; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
+        &trace(
+            "migrate_epayment_to_2105::setUserAndGroup() tried to chown -R $kohaUserName:$kohaUserName $dirName; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n"
+        );
+        if ($stderrRes) {
+            print STDERR
+                "migrate_epayment_to_2105::setUserAndGroup() tried to chown -R $kohaUserName:$kohaUserName $dirName; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
         }
     }
 
-# end of migrate_epayment_to_2105 subs
+    # end of migrate_epayment_to_2105 subs
 #################################################################################
 
     my $dbh = C4::Context->dbh;
-    $|=1; # flushes output
+    $| = 1;    # flushes output
     local $dbh->{RaiseError} = 1;
 
     if ( $migType eq 'LMSC' ) {
-        my $lmscPrefCount = 0;
-        my $lmscPrefRead = 0;
-        my $lmscPrefUpdated = 0;
+        my $lmscPrefCount    = 0;
+        my $lmscPrefRead     = 0;
+        my $lmscPrefUpdated  = 0;
         my $lmscPrefToDelete = 0;
-        my $lmscPrefDeleted = 0;
-        my $res = 'noop';
+        my $lmscPrefDeleted  = 0;
+        my $res              = 'noop';
 
         # systempreferences for the LMSC e-payments (GiroSolution, Epay21, PmPayment, EPayBL)
         my $prefLmsc = {};
         $prefLmsc->{migrate} = 0;    # assumption: no epayment type activated, nothing to migrate
 
         $prefLmsc->{pmt}->{epay21}->{pmv}->{Paypage}->{switchName} = 'Epay21PaypageOpacPaymentsEnabled';
-        $prefLmsc->{pmt}->{epay21}->{pmv}->{Paypage}->{variable}->{Epay21PaypageOpacPaymentsEnabled}->{newName} = 'Epay21PaypageOpacPaymentsEnabled';
-        $prefLmsc->{pmt}->{epay21}->{pmv}->{Paypage}->{variable}->{Epay21MandantDesc}->{newName} = 'Epay21PaypageMandantDesc';
-        $prefLmsc->{pmt}->{epay21}->{pmv}->{Paypage}->{variable}->{Epay21OrderDesc}->{newName} = 'Epay21PaypageOrderDesc';
-        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21AccountingSystemInfo}->{newName} = 'Epay21AccountingSystemInfo';
-        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21App}->{newName} = 'Epay21App';
-        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21BasicAuthPw}->{newName} = 'Epay21BasicAuthPw';
-        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21BasicAuthUser}->{newName} = 'Epay21BasicAuthUser';
-        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21Mandant}->{newName} = 'Epay21Mandant';
+        $prefLmsc->{pmt}->{epay21}->{pmv}->{Paypage}->{variable}->{Epay21PaypageOpacPaymentsEnabled}->{newName} =
+            'Epay21PaypageOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{epay21}->{pmv}->{Paypage}->{variable}->{Epay21MandantDesc}->{newName} =
+            'Epay21PaypageMandantDesc';
+        $prefLmsc->{pmt}->{epay21}->{pmv}->{Paypage}->{variable}->{Epay21OrderDesc}->{newName} =
+            'Epay21PaypageOrderDesc';
+        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21AccountingSystemInfo}->{newName}  = 'Epay21AccountingSystemInfo';
+        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21App}->{newName}                   = 'Epay21App';
+        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21BasicAuthPw}->{newName}           = 'Epay21BasicAuthPw';
+        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21BasicAuthUser}->{newName}         = 'Epay21BasicAuthUser';
+        $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21Mandant}->{newName}               = 'Epay21Mandant';
         $prefLmsc->{pmt}->{epay21}->{variable}->{Epay21PaypageWebservicesURL}->{newName} = 'Epay21WebservicesURL';
 
         $prefLmsc->{pmt}->{epaybl}->{pmv}->{Paypage}->{switchName} = 'EpayblPaypageOpacPaymentsEnabled';
-        $prefLmsc->{pmt}->{epaybl}->{pmv}->{Paypage}->{variable}->{EpayblPaypageOpacPaymentsEnabled}->{newName} = 'EPayBLPaypageOpacPaymentsEnabled';
-        $prefLmsc->{pmt}->{epaybl}->{pmv}->{Paypage}->{variable}->{EpayblPaypagePaypageURL}->{newName} = 'EPayBLPaypageURL';
+        $prefLmsc->{pmt}->{epaybl}->{pmv}->{Paypage}->{variable}->{EpayblPaypageOpacPaymentsEnabled}->{newName} =
+            'EPayBLPaypageOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{epaybl}->{pmv}->{Paypage}->{variable}->{EpayblPaypagePaypageURL}->{newName} =
+            'EPayBLPaypageURL';
         $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblAccountingEntryText}->{newName} = 'EPayBLAccountingEntryText';
-        $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblDunningProcedureLabel}->{newName} = 'EPayBLDunningProcedureLabel';
-        $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblMandatorNumber}->{newName} = 'EPayBLMandatorNumber';
-        $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblOperatorNumber}->{newName} = 'EPayBLOperatorNumber';
+        $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblDunningProcedureLabel}->{newName} =
+            'EPayBLDunningProcedureLabel';
+        $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblMandatorNumber}->{newName}        = 'EPayBLMandatorNumber';
+        $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblOperatorNumber}->{newName}        = 'EPayBLOperatorNumber';
         $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblPaypageWebservicesURL}->{newName} = 'EPayBLWebservicesURL';
-        $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblSaltHmacSha256}->{newName} = 'EPayBLSaltHmacSha256';
+        $prefLmsc->{pmt}->{epaybl}->{variable}->{EpayblSaltHmacSha256}->{newName}        = 'EPayBLSaltHmacSha256';
 
-        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Creditcard}->{switchName} = 'GirosolutionCreditcardOpacPaymentsEnabled';
-        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Creditcard}->{variable}->{GirosolutionCreditcardOpacPaymentsEnabled}->{newName} = 'GiroSolutionCreditcardOpacPaymentsEnabled';
-        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Creditcard}->{variable}->{GirosolutionCreditcardProjectId}->{newName} = 'GiroSolutionCreditcardProjectId';
-        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Creditcard}->{variable}->{GirosolutionCreditcardProjectPwd}->{newName} = 'GiroSolutionCreditcardProjectPwd';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Creditcard}->{switchName} =
+            'GirosolutionCreditcardOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Creditcard}->{variable}->{GirosolutionCreditcardOpacPaymentsEnabled}
+            ->{newName} = 'GiroSolutionCreditcardOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Creditcard}->{variable}->{GirosolutionCreditcardProjectId}->{newName}
+            = 'GiroSolutionCreditcardProjectId';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Creditcard}->{variable}->{GirosolutionCreditcardProjectPwd}->{newName}
+            = 'GiroSolutionCreditcardProjectPwd';
         $prefLmsc->{pmt}->{girosolution}->{pmv}->{Giropay}->{switchName} = 'GirosolutionGiropayOpacPaymentsEnabled';
-        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Giropay}->{variable}->{GirosolutionGiropayOpacPaymentsEnabled}->{newName} = 'GiroSolutionGiropayOpacPaymentsEnabled';
-        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Giropay}->{variable}->{GirosolutionGiropayProjectId}->{newName} = 'GiroSolutionGiropayProjectId';
-        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Giropay}->{variable}->{GirosolutionGiropayProjectPwd}->{newName} = 'GiroSolutionGiropayProjectPwd';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Giropay}->{variable}->{GirosolutionGiropayOpacPaymentsEnabled}
+            ->{newName} = 'GiroSolutionGiropayOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Giropay}->{variable}->{GirosolutionGiropayProjectId}->{newName} =
+            'GiroSolutionGiropayProjectId';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Giropay}->{variable}->{GirosolutionGiropayProjectPwd}->{newName} =
+            'GiroSolutionGiropayProjectPwd';
         $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{switchName} = 'GirosolutionPaypageOpacPaymentsEnabled';
-        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageOpacPaymentsEnabled}->{newName} = 'GiroSolutionPaypageOpacPaymentsEnabled';
-        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageOrderDesc}->{newName} = 'GiroSolutionPaypageOrderDesc';
-        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageOrganizationName}->{newName} = 'GiroSolutionPaypageOrganizationName';
-        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypagePaytypesTestmode}->{newName} = 'GiroSolutionPaypagePaytypesTestmode';
-        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageProjectId}->{newName} = 'GiroSolutionPaypageProjectId';
-        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageProjectPwd}->{newName} = 'GiroSolutionPaypageProjectPwd';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageOpacPaymentsEnabled}
+            ->{newName} = 'GiroSolutionPaypageOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageOrderDesc}->{newName} =
+            'GiroSolutionPaypageOrderDesc';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageOrganizationName}->{newName}
+            = 'GiroSolutionPaypageOrganizationName';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypagePaytypesTestmode}->{newName}
+            = 'GiroSolutionPaypagePaytypesTestmode';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageProjectId}->{newName} =
+            'GiroSolutionPaypageProjectId';
+        $prefLmsc->{pmt}->{girosolution}->{pmv}->{Paypage}->{variable}->{GirosolutionPaypageProjectPwd}->{newName} =
+            'GiroSolutionPaypageProjectPwd';
         $prefLmsc->{pmt}->{girosolution}->{variable}->{GirosolutionMerchantId}->{newName} = 'GiroSolutionMerchantId';
-        $prefLmsc->{pmt}->{girosolution}->{variable}->{GirosolutionRemittanceInfo}->{newName} = 'GiroSolutionRemittanceInfo';
+        $prefLmsc->{pmt}->{girosolution}->{variable}->{GirosolutionRemittanceInfo}->{newName} =
+            'GiroSolutionRemittanceInfo';
 
         $prefLmsc->{pmt}->{pmpayment}->{pmv}->{Paypage}->{switchName} = 'PmpaymentPaypageOpacPaymentsEnabled';
-        $prefLmsc->{pmt}->{pmpayment}->{pmv}->{Paypage}->{variable}->{PmpaymentPaypageOpacPaymentsEnabled}->{newName} = 'PmPaymentPaypageOpacPaymentsEnabled';
+        $prefLmsc->{pmt}->{pmpayment}->{pmv}->{Paypage}->{variable}->{PmpaymentPaypageOpacPaymentsEnabled}->{newName} =
+            'PmPaymentPaypageOpacPaymentsEnabled';
         $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentAccountingRecord}->{newName} = 'PmPaymentAccountingRecord';
-        $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentAgs}->{newName} = 'PmPaymentAgs';
-        $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentPaypageWebservicesURL}->{newName} = 'PmPaymentWebservicesURL';
-        $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentProcedure}->{newName} = 'PmPaymentProcedure';
+        $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentAgs}->{newName}              = 'PmPaymentAgs';
+        $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentPaypageWebservicesURL}->{newName} =
+            'PmPaymentWebservicesURL';
+        $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentProcedure}->{newName}      = 'PmPaymentProcedure';
         $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentRemittanceInfo}->{newName} = 'PmPaymentRemittanceInfo';
         $prefLmsc->{pmt}->{pmpayment}->{variable}->{PmpaymentSaltHmacSha256}->{newName} = 'PmPaymentSaltHmacSha256';
 
-
-        $prefLmsc->{epaymentbase}->{variable}->{ActivateCashRegisterTransactionsOnly}->{newName} = 'EpaymentBaseActivateCashRegisterTransactionsOnly';
-        $prefLmsc->{epaymentbase}->{variable}->{PaymentsOnlineCashRegisterManagerCardnumber}->{newName} = 'EpaymentBaseOnlineCashRegisterManagerCardnumber';
-        $prefLmsc->{epaymentbase}->{variable}->{PaymentsOnlineCashRegisterName}->{newName} = 'EpaymentBaseOnlineCashRegisterName';
+        $prefLmsc->{epaymentbase}->{variable}->{ActivateCashRegisterTransactionsOnly}->{newName} =
+            'EpaymentBaseActivateCashRegisterTransactionsOnly';
+        $prefLmsc->{epaymentbase}->{variable}->{PaymentsOnlineCashRegisterManagerCardnumber}->{newName} =
+            'EpaymentBaseOnlineCashRegisterManagerCardnumber';
+        $prefLmsc->{epaymentbase}->{variable}->{PaymentsOnlineCashRegisterName}->{newName} =
+            'EpaymentBaseOnlineCashRegisterName';
 
         $prefLmsc->{paypal}->{switchName} = 'EnablePayPalOpacPayments';
 
-
         # check if at least 1 LMSC epayment of 18.05 is enabled
-        foreach my $pmnttype (sort keys %{$prefLmsc->{pmt}} ) {
-            foreach my $pmntvariant (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{pmv}} ) {
-                my $value = &read_systempreferences($dbh, $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{switchName});
+        foreach my $pmnttype ( sort keys %{ $prefLmsc->{pmt} } ) {
+            foreach my $pmntvariant ( sort keys %{ $prefLmsc->{pmt}->{$pmnttype}->{pmv} } ) {
+                my $value =
+                    &read_systempreferences( $dbh, $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{switchName} );
                 $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{switchValue} = $value;
-                if ( $value ) {
+                if ($value) {
                     $prefLmsc->{migrate} = 1;
+
                     # last;
                 }
             }
@@ -2297,89 +2471,108 @@ sub migrate_epayment_to_2105 {
         # check if the standard Koha PayPal epayment of 18.05 is enabled.
         # In this case do not delete systempreferences 'PaymentsOnlineCashRegisterName' and 'PaymentsOnlineCashRegisterManagerCardnumber'.
         {
-            my $value = &read_systempreferences($dbh, $prefLmsc->{paypal}->{switchName});
+            my $value = &read_systempreferences( $dbh, $prefLmsc->{paypal}->{switchName} );
             $prefLmsc->{paypal}->{switchValue} = $value;
         }
 
         # read complete LMSC epayment configuration of 18.05
-        foreach my $pmnttype (sort keys %{$prefLmsc->{pmt}} ) {
+        foreach my $pmnttype ( sort keys %{ $prefLmsc->{pmt} } ) {
             &trace("migrate_epayment_to_2105 loop A1 pmnttype:$pmnttype:\n");
-            foreach my $pmntvariant (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{pmv}} ) {
+            foreach my $pmntvariant ( sort keys %{ $prefLmsc->{pmt}->{$pmnttype}->{pmv} } ) {
                 &trace("migrate_epayment_to_2105 loop A2 pmnttype:$pmnttype: pmntvariant:$pmntvariant:\n");
-                foreach my $variable (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}} ) {
-                    &trace("migrate_epayment_to_2105 loop A3 pmnttype:$pmnttype: pmntvariant:$pmntvariant: variable:$variable:\n");
+                foreach my $variable ( sort keys %{ $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable} } )
+                {
+                    &trace(
+                        "migrate_epayment_to_2105 loop A3 pmnttype:$pmnttype: pmntvariant:$pmntvariant: variable:$variable:\n"
+                    );
                     $lmscPrefCount += 1;
-                    my $value = &read_systempreferences($dbh, $variable);
-                    if ( ! $value && $variable =~ /OpacPaymentsEnabled$/ ) {
+                    my $value = &read_systempreferences( $dbh, $variable );
+                    if ( !$value && $variable =~ /OpacPaymentsEnabled$/ ) {
                         $value = '0';
                     }
                     $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable}->{value} = $value;
-                    &trace("migrate_epayment_to_2105 loop A3 prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable}->{value}:$prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable}->{value}:\n");
+                    &trace(
+                        "migrate_epayment_to_2105 loop A3 prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable}->{value}:$prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable}->{value}:\n"
+                    );
                     if ( defined($value) ) {
                         $lmscPrefRead += 1;
                     }
                 }
             }
-            foreach my $variable (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{variable}} ) {
+            foreach my $variable ( sort keys %{ $prefLmsc->{pmt}->{$pmnttype}->{variable} } ) {
                 &trace("migrate_epayment_to_2105 loop B2 pmnttype:$pmnttype: variable:$variable:\n");
                 $lmscPrefCount += 1;
-                my $value = &read_systempreferences($dbh, $variable);
+                my $value = &read_systempreferences( $dbh, $variable );
                 $prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable}->{value} = $value;
-                &trace("migrate_epayment_to_2105 loop B2 prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable}->{value}:$prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable}->{value}:\n");
+                &trace(
+                    "migrate_epayment_to_2105 loop B2 prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable}->{value}:$prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable}->{value}:\n"
+                );
                 if ( defined($value) ) {
                     $lmscPrefRead += 1;
                 }
             }
         }
-        foreach my $variable (sort keys %{$prefLmsc->{epaymentbase}->{variable}} ) {
+        foreach my $variable ( sort keys %{ $prefLmsc->{epaymentbase}->{variable} } ) {
             &trace("migrate_epayment_to_2105 loop C1 variable:$variable:\n");
             $lmscPrefCount += 1;
-            my $value = &read_systempreferences($dbh, $variable);
+            my $value = &read_systempreferences( $dbh, $variable );
             $prefLmsc->{epaymentbase}->{variable}->{$variable}->{value} = $value;
-            &trace("migrate_epayment_to_2105 loop C1 prefLmsc->{epaymentbase}->{variable}->{$variable}->{value}:$prefLmsc->{epaymentbase}->{variable}->{$variable}->{value}:\n");
+            &trace(
+                "migrate_epayment_to_2105 loop C1 prefLmsc->{epaymentbase}->{variable}->{$variable}->{value}:$prefLmsc->{epaymentbase}->{variable}->{$variable}->{value}:\n"
+            );
             if ( defined($value) ) {
                 $lmscPrefRead += 1;
             }
         }
+
         #&trace("migrate_epayment_to_2105 prefLmsc:" . Dumper($prefLmsc) . ":\n");
-
-
 
         # only if at least 1 LMSC epayment of 18.05 is enabled, we migrate the (complete) LMSC epayment configuration
         if ( $prefLmsc->{migrate} ) {
+
             # install the plugin E-Payments-DE
-            &install_koha_plugin( 'koha-plugin-e-payments-de-v1.0.0.kpz' );
+            &install_koha_plugin('koha-plugin-e-payments-de-v1.0.0.kpz');
 
             # store LMSC epayment configuration in 21.05
-            foreach my $pmnttype (sort keys %{$prefLmsc->{pmt}} ) {
+            foreach my $pmnttype ( sort keys %{ $prefLmsc->{pmt} } ) {
                 &trace("migrate_epayment_to_2105 loop G1 pmnttype:$pmnttype:\n");
-                foreach my $pmntvariant (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{pmv}} ) {
+                foreach my $pmntvariant ( sort keys %{ $prefLmsc->{pmt}->{$pmnttype}->{pmv} } ) {
                     &trace("migrate_epayment_to_2105 loop G2 pmnttype:$pmnttype: pmntvariant:$pmntvariant:\n");
-                    foreach my $variable (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}} ) {
-                        my $name = $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable}->{newName};
-                        my $value = $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable}->{value};
-                        &trace("migrate_epayment_to_2105 loop G3 pmnttype:$pmnttype: pmntvariant:$pmntvariant: variable:$variable: name:$name: value:$value:\n");
+                    foreach
+                        my $variable ( sort keys %{ $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable} } )
+                    {
+                        my $name =
+                            $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable}->{newName};
+                        my $value =
+                            $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable}->{value};
+                        &trace(
+                            "migrate_epayment_to_2105 loop G3 pmnttype:$pmnttype: pmntvariant:$pmntvariant: variable:$variable: name:$name: value:$value:\n"
+                        );
                         my $res = &update_epaymentsde_preferences( $dbh, $pmnttype, 'default', $name, $value );
                         if ( $res eq '1' ) {
                             $lmscPrefUpdated += 1;
                         }
                     }
                 }
-                foreach my $variable (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{variable}} ) {
-                    my $name = $prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable}->{newName};
+                foreach my $variable ( sort keys %{ $prefLmsc->{pmt}->{$pmnttype}->{variable} } ) {
+                    my $name  = $prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable}->{newName};
                     my $value = $prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable}->{value};
-                    &trace("migrate_epayment_to_2105 loop G2 pmnttype:$pmnttype: variable:$variable: name:$name: value:$value:\n");
+                    &trace(
+                        "migrate_epayment_to_2105 loop G2 pmnttype:$pmnttype: variable:$variable: name:$name: value:$value:\n"
+                    );
                     my $res = &update_epaymentsde_preferences( $dbh, $pmnttype, 'default', $name, $value );
                     if ( $res eq '1' ) {
                         $lmscPrefUpdated += 1;
                     }
                 }
             }
-            foreach my $variable (sort keys %{$prefLmsc->{epaymentbase}->{variable}} ) {
+            foreach my $variable ( sort keys %{ $prefLmsc->{epaymentbase}->{variable} } ) {
                 &trace("migrate_epayment_to_2105 loop H1 variable:$variable:\n");
-                my $name = $prefLmsc->{epaymentbase}->{variable}->{$variable}->{newName};
+                my $name  = $prefLmsc->{epaymentbase}->{variable}->{$variable}->{newName};
                 my $value = $prefLmsc->{epaymentbase}->{variable}->{$variable}->{value};
-                &trace("migrate_epayment_to_2105 loop H1 prefLmsc->{epaymentbase}->{variable}->{$variable}:$variable: name:$name: value:$value:\n");
+                &trace(
+                    "migrate_epayment_to_2105 loop H1 prefLmsc->{epaymentbase}->{variable}->{$variable}:$variable: name:$name: value:$value:\n"
+                );
                 my $res = &update_epaymentsde_preferences( $dbh, 'epaymentbase', 'default', $name, $value );
                 if ( $res eq '1' ) {
                     $lmscPrefUpdated += 1;
@@ -2389,31 +2582,38 @@ sub migrate_epayment_to_2105 {
         }
 
         # In any case we delete the 18.05 system preferences for e-payment, obsolete in 21.05 (exception: ActivateCashRegisterTransactionsOnly, PaymentsMinimumPatronAge)
-        foreach my $pmnttype (sort keys %{$prefLmsc->{pmt}} ) {
+        foreach my $pmnttype ( sort keys %{ $prefLmsc->{pmt} } ) {
             &trace("migrate_epayment_to_2105 loop J1 pmnttype:$pmnttype:\n");
-            foreach my $pmntvariant (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{pmv}} ) {
+            foreach my $pmntvariant ( sort keys %{ $prefLmsc->{pmt}->{$pmnttype}->{pmv} } ) {
                 &trace("migrate_epayment_to_2105 loop J2 pmnttype:$pmnttype: pmntvariant:$pmntvariant:\n");
-                foreach my $variable (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}} ) {
-                    &trace("migrate_epayment_to_2105 loop J3 pmnttype:$pmnttype: pmntvariant:$pmntvariant: variable:$variable:\n");
+                foreach my $variable ( sort keys %{ $prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable} } )
+                {
+                    &trace(
+                        "migrate_epayment_to_2105 loop J3 pmnttype:$pmnttype: pmntvariant:$pmntvariant: variable:$variable:\n"
+                    );
                     $lmscPrefToDelete += 1;
-                    my $delRes = &delete_systempreferences($dbh, $variable);
-                    &trace("migrate_epayment_to_2105 loop J3 prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable} deleted:$delRes:\n");
+                    my $delRes = &delete_systempreferences( $dbh, $variable );
+                    &trace(
+                        "migrate_epayment_to_2105 loop J3 prefLmsc->{pmt}->{$pmnttype}->{pmv}->{$pmntvariant}->{variable}->{$variable} deleted:$delRes:\n"
+                    );
                     if ( defined($delRes) && $delRes == 1 ) {
                         $lmscPrefDeleted += 1;
                     }
                 }
             }
-            foreach my $variable (sort keys %{$prefLmsc->{pmt}->{$pmnttype}->{variable}} ) {
+            foreach my $variable ( sort keys %{ $prefLmsc->{pmt}->{$pmnttype}->{variable} } ) {
                 &trace("migrate_epayment_to_2105 loop B2 pmnttype:$pmnttype: variable:$variable:\n");
                 $lmscPrefToDelete += 1;
-                my $delRes = &delete_systempreferences($dbh, $variable);
-                &trace("migrate_epayment_to_2105 loop B2 prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable} deleted:$delRes:\n");
+                my $delRes = &delete_systempreferences( $dbh, $variable );
+                &trace(
+                    "migrate_epayment_to_2105 loop B2 prefLmsc->{pmt}->{$pmnttype}->{variable}->{$variable} deleted:$delRes:\n"
+                );
                 if ( defined($delRes) && $delRes == 1 ) {
-                        $lmscPrefDeleted += 1;
-                    }
+                    $lmscPrefDeleted += 1;
+                }
             }
         }
-        foreach my $variable (sort keys %{$prefLmsc->{epaymentbase}->{variable}} ) {
+        foreach my $variable ( sort keys %{ $prefLmsc->{epaymentbase}->{variable} } ) {
             &trace("migrate_epayment_to_2105 loop C1 variable:$variable:\n");
             if ( $variable eq 'ActivateCashRegisterTransactionsOnly' ) {
                 next;
@@ -2422,6 +2622,7 @@ sub migrate_epayment_to_2105 {
                 next;
             }
             if ( $prefLmsc->{paypal}->{switchValue} ) {
+
                 # PayPal requires also in 21.05 the systempreferences 'PaymentsOnlineCashRegisterName' and 'PaymentsOnlineCashRegisterManagerCardnumber'
                 if ( $variable eq 'PaymentsOnlineCashRegisterName' ) {
                     next;
@@ -2431,102 +2632,118 @@ sub migrate_epayment_to_2105 {
                 }
             }
             $lmscPrefToDelete += 1;
-            my $delRes = &delete_systempreferences($dbh, $variable);
-            &trace("migrate_epayment_to_2105 loop C1 prefLmsc->{epaymentbase}->{variable}->{$variable} deleted:$delRes:\n");
+            my $delRes = &delete_systempreferences( $dbh, $variable );
+            &trace(
+                "migrate_epayment_to_2105 loop C1 prefLmsc->{epaymentbase}->{variable}->{$variable} deleted:$delRes:\n"
+            );
             if ( defined($delRes) && $delRes == 1 ) {
                 $lmscPrefDeleted += 1;
             }
         }
 
-
-        &trace("migrate_epayment_to_2105 End lmscPrefCount:$lmscPrefCount: lmscPrefRead:$lmscPrefRead: lmscPrefUpdated:$lmscPrefUpdated: lmscPrefToDelete:$lmscPrefToDelete: lmscPrefDeleted:$lmscPrefDeleted: res:$res:\n");
+        &trace(
+            "migrate_epayment_to_2105 End lmscPrefCount:$lmscPrefCount: lmscPrefRead:$lmscPrefRead: lmscPrefUpdated:$lmscPrefUpdated: lmscPrefToDelete:$lmscPrefToDelete: lmscPrefDeleted:$lmscPrefDeleted: res:$res:\n"
+        );
 
     }
 
-
     if ( $migType eq 'KohaPayPal' ) {
-        my $paypalPrefCount = 0;
-        my $paypalPrefRead = 0;
-        my $paypalPrefUpdated = 0;
+        my $paypalPrefCount    = 0;
+        my $paypalPrefRead     = 0;
+        my $paypalPrefUpdated  = 0;
         my $paypalPrefToDelete = 0;
-        my $paypalPrefDeleted = 0;
-        my $res = 'noop';
+        my $paypalPrefDeleted  = 0;
+        my $res                = 'noop';
 
         # systempreferences for the LMSC e-payments (GiroSolution, Epay21, PmPayment, EPayBL)
         my $prefPaypal = {};
         $prefPaypal->{migrate} = 0;    # assumption: no PayPal activated, nothing to migrate
 
         $prefPaypal->{paypal}->{switchName} = 'EnablePayPalOpacPayments';
-        $prefPaypal->{paypal}->{variable}->{EnablePayPalOpacPayments}->{newName} = 'NoDirectEquivalentButIAmHereForDeletionOfMeIn1805Systempreferences';
+        $prefPaypal->{paypal}->{variable}->{EnablePayPalOpacPayments}->{newName} =
+            'NoDirectEquivalentButIAmHereForDeletionOfMeIn1805Systempreferences';
         $prefPaypal->{paypal}->{variable}->{PayPalChargeDescription}->{newName} = 'charge_description';
-        $prefPaypal->{paypal}->{variable}->{PayPalPwd}->{newName} = 'pwd';
-        $prefPaypal->{paypal}->{variable}->{PayPalSandboxMode}->{newName} = 'plugin_data.plugin_key';    # to be stored in plugin_data.plugin_key where plugin_class = 'Koha::Plugin::Com::Theke::PayViaPayPal'
+        $prefPaypal->{paypal}->{variable}->{PayPalPwd}->{newName}               = 'pwd';
+        $prefPaypal->{paypal}->{variable}->{PayPalSandboxMode}->{newName}       = 'plugin_data.plugin_key'
+            ;    # to be stored in plugin_data.plugin_key where plugin_class = 'Koha::Plugin::Com::Theke::PayViaPayPal'
         $prefPaypal->{paypal}->{variable}->{PayPalSignature}->{newName} = 'signature';
-        $prefPaypal->{paypal}->{variable}->{PayPalUser}->{newName} = 'user';
+        $prefPaypal->{paypal}->{variable}->{PayPalUser}->{newName}      = 'user';
 
         # check if the standard Koha PayPal epayment of 18.05 is enabled.
         {
-            my $value = &read_systempreferences($dbh, $prefPaypal->{paypal}->{switchName});
+            my $value = &read_systempreferences( $dbh, $prefPaypal->{paypal}->{switchName} );
             $prefPaypal->{paypal}->{switchValue} = $value;
-            if ( $value ) {
+            if ($value) {
                 $prefPaypal->{migrate} = 1;
             }
         }
 
-
         # read complete PayPal epayment configuration of 18.05
-        foreach my $variable (sort keys %{$prefPaypal->{paypal}->{variable}} ) {
+        foreach my $variable ( sort keys %{ $prefPaypal->{paypal}->{variable} } ) {
             &trace("migrate_epayment_to_2105 loop PPA1 variable:$variable:\n");
             $paypalPrefCount += 1;
-            my $value = &read_systempreferences($dbh, $variable);
+            my $value = &read_systempreferences( $dbh, $variable );
             $prefPaypal->{paypal}->{variable}->{$variable}->{value} = $value;
-            &trace("migrate_epayment_to_2105 loop PPA1 prefPaypal->{paypal}->{variable}->{$variable}->{value}:$prefPaypal->{paypal}->{variable}->{$variable}->{value}:\n");
+            &trace(
+                "migrate_epayment_to_2105 loop PPA1 prefPaypal->{paypal}->{variable}->{$variable}->{value}:$prefPaypal->{paypal}->{variable}->{$variable}->{value}:\n"
+            );
             if ( defined($value) ) {
                 $paypalPrefRead += 1;
             }
         }
+
         #&trace("migrate_epayment_to_2105 prefPaypal:" . Dumper($prefPaypal) . ":\n");
 
         # only if PayPal epayment of 18.05 is enabled, we migrate the PayPal specific epayment configuration for the pay_via_paypal plugin.
         # But we continue to use systempreferences 'ActivateCashRegisterTransactionsOnly', 'PaymentsMinimumPatronAge', 'PaymentsOnlineCashRegisterName' and 'PaymentsOnlineCashRegisterManagerCardnumber' also in the pay_via_paypal plugin.
         if ( $prefPaypal->{migrate} ) {
+
             # install the plugin Pay-Via-PayPal, supplied by Theke Solutions and sligthly modified by LMSCloud
-            &install_koha_plugin( 'koha-plugin-pay-via-paypal-v2.3.7_lmsc.kpz' );
+            &install_koha_plugin('koha-plugin-pay-via-paypal-v2.3.7_lmsc.kpz');
 
             # store PayPal epayment configuration in 21.05 plugin DB table koha_plugin_com_theke_payviapaypal_pay_via_paypal
             {
-                my $library_id = undef;
-                my $active = 1;
-                my $user = $prefPaypal->{paypal}->{variable}->{PayPalUser}->{value};
-                my $pwd = $prefPaypal->{paypal}->{variable}->{PayPalPwd}->{value};
-                my $signature = $prefPaypal->{paypal}->{variable}->{PayPalSignature}->{value};
+                my $library_id         = undef;
+                my $active             = 1;
+                my $user               = $prefPaypal->{paypal}->{variable}->{PayPalUser}->{value};
+                my $pwd                = $prefPaypal->{paypal}->{variable}->{PayPalPwd}->{value};
+                my $signature          = $prefPaypal->{paypal}->{variable}->{PayPalSignature}->{value};
                 my $charge_description = $prefPaypal->{paypal}->{variable}->{PayPalChargeDescription}->{value};
-                my $threshold = undef;
+                my $threshold          = undef;
 
-                my $res = &update_payviapaypal_pay_via_paypal( $dbh, $library_id, $active, $user, $pwd, $signature, $charge_description, $threshold );
+                my $res = &update_payviapaypal_pay_via_paypal(
+                    $dbh, $library_id, $active, $user, $pwd, $signature,
+                    $charge_description, $threshold
+                );
 
                 if ( $res eq '1' ) {
                     $paypalPrefUpdated += 1;
                 }
             }
             $res = update_plugin_data( $dbh, 'Koha::Plugin::Com::Theke::PayViaPayPal', 'useBaseURL', '1' );
-            $res += update_plugin_data( $dbh, 'Koha::Plugin::Com::Theke::PayViaPayPal', 'PayPalSandboxMode', $prefPaypal->{paypal}->{variable}->{PayPalSandboxMode}->{value} );
+            $res += update_plugin_data(
+                $dbh, 'Koha::Plugin::Com::Theke::PayViaPayPal', 'PayPalSandboxMode',
+                $prefPaypal->{paypal}->{variable}->{PayPalSandboxMode}->{value}
+            );
         }
 
         # In any case we delete the 18.05 system preferences for PayPal epayment, obsolete in 21.05.
         # No, this will be done by the standard Koha updateDatabase.pl, so we skip it here.
-#        foreach my $variable (sort keys %{$prefPaypal->{paypal}->{variable}} ) {
-#            &trace("migrate_epayment_to_2105 loop PPB1 variable:$variable:\n");
-#            $paypalPrefToDelete += 1;
-#            my $delRes = &delete_systempreferences($dbh, $variable);
-#            &trace("migrate_epayment_to_2105 loop PPB1 prefPaypal->{paypal}->{variable}->{$variable} deleted:$delRes:\n");
-#            if ( defined($delRes) && $delRes == 1 ) {
-#                    $paypalPrefDeleted += 1;
-#                }
-#        }
+        #        foreach my $variable (sort keys %{$prefPaypal->{paypal}->{variable}} ) {
+        #            &trace("migrate_epayment_to_2105 loop PPB1 variable:$variable:\n");
+        #            $paypalPrefToDelete += 1;
+        #            my $delRes = &delete_systempreferences($dbh, $variable);
+        #            &trace("migrate_epayment_to_2105 loop PPB1 prefPaypal->{paypal}->{variable}->{$variable} deleted:$delRes:\n");
+        #            if ( defined($delRes) && $delRes == 1 ) {
+        #                    $paypalPrefDeleted += 1;
+        #                }
+        #        }
 
-        &trace("migrate_epayment_to_2105 End paypalPrefCount:$paypalPrefCount: paypalPrefRead:$paypalPrefRead: paypalPrefUpdated:$paypalPrefUpdated: paypalPrefToDelete:$paypalPrefToDelete: paypalPrefDeleted:$paypalPrefDeleted: res:$res:\n");
-        print "migrate_epayment_to_2105 End paypalPrefCount:$paypalPrefCount: paypalPrefRead:$paypalPrefRead: paypalPrefUpdated:$paypalPrefUpdated: paypalPrefToDelete:$paypalPrefToDelete: paypalPrefDeleted:$paypalPrefDeleted: res:$res:\n";
+        &trace(
+            "migrate_epayment_to_2105 End paypalPrefCount:$paypalPrefCount: paypalPrefRead:$paypalPrefRead: paypalPrefUpdated:$paypalPrefUpdated: paypalPrefToDelete:$paypalPrefToDelete: paypalPrefDeleted:$paypalPrefDeleted: res:$res:\n"
+        );
+        print
+            "migrate_epayment_to_2105 End paypalPrefCount:$paypalPrefCount: paypalPrefRead:$paypalPrefRead: paypalPrefUpdated:$paypalPrefUpdated: paypalPrefToDelete:$paypalPrefToDelete: paypalPrefDeleted:$paypalPrefDeleted: res:$res:\n";
 
         print "migrate_epayment_to_2105 END\n";
     }
@@ -2539,12 +2756,11 @@ sub migrateIllbackends {
     print "migrateIllbackends START\n";
 
     sub traceILL {
-        my ( $logline ) = @_;
+        my ($logline) = @_;
         my $debug = $ENV{'DEBUG_MIGRATE_ILLBACKENDS'};
 
         print $logline if $debug;
     }
-
 
     # In version 21.05 koha-conf.xml has to contain non-empty XML elements <branch> and <prefix> within XML element <interlibrary_loans>, even if not used.
     # Otherwise the staff interface will not display the hit list of illrequests.
@@ -2556,8 +2772,9 @@ sub migrateIllbackends {
     my $s3 = `grep '    <prefix>' $kohaConfFileName`;
     &traceILL("migrateIllbackends s1:$s1: s2:$s2: s3:$s3:\n");
 
-    if ( ! (length($s1) && length($s2) && length($s3)) ) {
-        my $sedcommand = "sed -i.bak -e 's|    <!-- How should we treat staff comments|    <!-- At least one <branch> block is required. -->\\
+    if ( !( length($s1) && length($s2) && length($s3) ) ) {
+        my $sedcommand =
+            "sed -i.bak -e 's|    <!-- How should we treat staff comments|    <!-- At least one <branch> block is required. -->\\
      <branch>\\
          <!-- The code of this branch -->\\
          <code>DummyCode</code>\\
@@ -2567,14 +2784,14 @@ sub migrateIllbackends {
      <!-- How should we treat staff comments|g' $kohaConfFileName";
 
         &traceILL("migrateIllbackends is now calling sedcommand:$sedcommand:\n");
-        my ($stdoutRes, $stderrRes) = Capture::Tiny::capture { system ( $sedcommand ); };
+        my ( $stdoutRes, $stderrRes ) = Capture::Tiny::capture { system($sedcommand); };
 
         &traceILL("migrateIllbackends after calling sedcommand; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n");
-        if ( $stderrRes ) {
-            print STDERR "migrateIllbackends called sedcommand:$sedcommand: and got stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
+        if ($stderrRes) {
+            print STDERR
+                "migrateIllbackends called sedcommand:$sedcommand: and got stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
         }
     }
-
 
     # Replacing the locally existing LMSCloud ILL backend directory trees by current version from 'master' branch.
     my $shellcommand = '
@@ -2646,11 +2863,12 @@ sub migrateIllbackends {
     ';
 
     &traceILL("migrateIllbackends is now calling shellcommand:$shellcommand:\n");
-    my ($stdoutRes, $stderrRes) = Capture::Tiny::capture { system ( $shellcommand ); };
+    my ( $stdoutRes, $stderrRes ) = Capture::Tiny::capture { system($shellcommand); };
 
     &traceILL("migrateIllbackends after calling shellcommand; stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n");
-    if ( $stderrRes ) {
-        print STDERR "migrateIllbackends called shellcommand:$shellcommand: and got stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
+    if ($stderrRes) {
+        print STDERR
+            "migrateIllbackends called shellcommand:$shellcommand: and got stdoutRes:$stdoutRes: stderrRes:$stderrRes:\n";
     }
     &traceILL("migrateIllbackends END\n");
 
@@ -2659,26 +2877,25 @@ sub migrateIllbackends {
 
 sub createSIPEnabledFile {
     my $instance = shift;
-    my $libfile = "/var/lib/koha/$instance/sip.enabled" ;
-    
+    my $libfile  = "/var/lib/koha/$instance/sip.enabled";
+
     if ( -f "/etc/koha/sites/$instance/SIPconfig.xml" ) {
-		print "Found SIP config file for instance $instance.\n";
-		if ( ! -f $libfile )  {
-			open(my $fh, ">", $libfile);
-			close($fh);
-			my ($login,$pass,$uid,$gid) = getpwnam("$instance-koha");
-			chown $uid, $gid, $libfile;
-			chmod 0644, $libfile;
-			print "Enabled SIP creating the file $libfile.\n";
-		}
+        print "Found SIP config file for instance $instance.\n";
+        if ( !-f $libfile ) {
+            open( my $fh, ">", $libfile );
+            close($fh);
+            my ( $login, $pass, $uid, $gid ) = getpwnam("$instance-koha");
+            chown $uid, $gid, $libfile;
+            chmod 0644, $libfile;
+            print "Enabled SIP creating the file $libfile.\n";
+        }
     }
 }
 
 sub updateGermanLetterTemplates {
     my $templates = ();
-    
-    my $text = 
-q{[% USE Price %]
+
+    my $text = q{[% USE Price %]
 [% PROCESS 'accounts.inc' %]
 <table>
 [% IF ( LibraryName ) %]
@@ -2751,11 +2968,13 @@ q{[% USE Price %]
 </tfoot>
 </table>
 };
-    push @$templates, ['circulation','ACCOUNT_CREDIT','','Quittung für Anwendung von Guthaben',1,'Quittung für Anwendung von Guthaben',$text,'print','default'];
+    push @$templates,
+        [
+        'circulation', 'ACCOUNT_CREDIT', '', 'Quittung für Anwendung von Guthaben', 1,
+        'Quittung für Anwendung von Guthaben', $text, 'print', 'default'
+        ];
 
-    
-    $text = 
-q{[% USE Price %]
+    $text = q{[% USE Price %]
 [% PROCESS 'accounts.inc' %]
 <table>
   [% IF ( LibraryName ) %]
@@ -2820,10 +3039,13 @@ q{[% USE Price %]
   </tfoot>
 </table>
 };
-    push @$templates, ['circulation','ACCOUNT_DEBIT','','Quittung für offene / teilbezahlte Gebühren',1,'Quittung für offene / teilbezahlte Gebühren',$text,'print','default'];
+    push @$templates,
+        [
+        'circulation', 'ACCOUNT_DEBIT', '', 'Quittung für offene / teilbezahlte Gebühren', 1,
+        'Quittung für offene / teilbezahlte Gebühren', $text, 'print', 'default'
+        ];
 
-    $text = 
-q{<!DOCTYPE html>
+    $text = q{<!DOCTYPE html>
 <html>
 <head>
 <title>Elektronische Zahlungsquittung</title>
@@ -2879,10 +3101,13 @@ Mit freundlichen Grüßen<br />
 </body>
 </html>
 };
-    push @$templates, ['circulation','ACCOUNT_PAYMENT','','Quittung für Gebührenzahlung',1,'Quittung für Gebührenzahlung',$text,'email','default'];
+    push @$templates,
+        [
+        'circulation', 'ACCOUNT_PAYMENT', '', 'Quittung für Gebührenzahlung', 1, 'Quittung für Gebührenzahlung',
+        $text, 'email', 'default'
+        ];
 
-    $text = 
-q{<!DOCTYPE html>
+    $text = q{<!DOCTYPE html>
 <html>
 <head>
 <title>Elektronische Zahlungsquittung</title>
@@ -2932,10 +3157,13 @@ Mit freundlichen Grüßen<br />
 </body>
 </html>
 };
-    push @$templates, ['circulation','ACCOUNT_WRITEOFF','','Quittung für Gebührenerlass',1,'Quittung für Gebührenerlass',$text,'email','default'];
-    
-    $text = 
-q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+    push @$templates,
+        [
+        'circulation', 'ACCOUNT_WRITEOFF', '', 'Quittung für Gebührenerlass', 1, 'Quittung für Gebührenerlass',
+        $text, 'email', 'default'
+        ];
+
+    $text = q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
 
 [% IF checkout.auto_renew_error %]
 Der Titel [% biblio.title %] konnte nicht korrekt verlängert werden.
@@ -2957,10 +3185,13 @@ Der Titel [% biblio.title %] wurde korrekt verlängert und ist nun am [% checkou
 
 [% END %]
 };
-    push @$templates, ['circulation','AUTO_RENEWALS','','Automatische Verlängerung der Ausleihfrist',0,'Automatische Verlängerung der Ausleihfrist',$text,'email','default'];
-    
-    $text = 
-q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+    push @$templates,
+        [
+        'circulation', 'AUTO_RENEWALS', '', 'Automatische Verlängerung der Ausleihfrist', 0,
+        'Automatische Verlängerung der Ausleihfrist', $text, 'email', 'default'
+        ];
+
+    $text = q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
         [% IF error %]
              [% error %] Medien wurden nicht verlängert.
         [% END %]
@@ -2988,10 +3219,13 @@ q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
             [% END %]
         [% END %]
 };
-    push @$templates, ['circulation','AUTO_RENEWALS_DGST','','Automatische Verlängerung der Ausleihfrist',0,'Automatische Verlängerung der Ausleihfrist',$text,'email','default'];
-    
-    $text = 
-q{<h3>[% branch.branchname %]</h3>
+    push @$templates,
+        [
+        'circulation', 'AUTO_RENEWALS_DGST', '', 'Automatische Verlängerung der Ausleihfrist', 0,
+        'Automatische Verlängerung der Ausleihfrist', $text, 'email', 'default'
+        ];
+
+    $text = q{<h3>[% branch.branchname %]</h3>
 Rückgabequittung für<br />
 [% borrower.title %] [% borrower.firstname %] [% borrower.initials %] [% borrower.surname %] <br />
 ([% borrower.cardnumber %]) <br />
@@ -3010,10 +3244,10 @@ Barcode: [% item.barcode %] <br />
 <hr />
 <<branches.opac_info>>
 };
-    push @$templates, ['circulation','CHECKINSLIP','','Rückgabequittung',1,'Rückgabequittung',$text,'print','default'];
-    
-    $text = 
-q{<!DOCTYPE html>
+    push @$templates,
+        [ 'circulation', 'CHECKINSLIP', '', 'Rückgabequittung', 1, 'Rückgabequittung', $text, 'print', 'default' ];
+
+    $text = q{<!DOCTYPE html>
 <html>
 <head>
 <title>Erinnerung an abholbereite Medien</title>
@@ -3064,10 +3298,13 @@ Mit freundlichen Grüßen<br />
 </body>
 </html>
 };
-    push @$templates, ['circulation','HOLD_REMINDER','','Erinnerung an abholbereite Medien',1,'Erinnerung an abholbereite Medien',$text,'email','default'];
-    
-    $text = 
-q{Sehr geehrte Damen und Herren,
+    push @$templates,
+        [
+        'circulation', 'HOLD_REMINDER', '', 'Erinnerung an abholbereite Medien', 1,
+        'Erinnerung an abholbereite Medien', $text, 'email', 'default'
+        ];
+
+    $text = q{Sehr geehrte Damen und Herren,
 
 wir würden gerne eine Fernleihbestellung für den folgenden Titel anfragen:
 
@@ -3088,10 +3325,13 @@ Vielen Dank und mit freundlichen Grüßen
 [% branch.branchillemail %]
 [% branch.branchreplyto %]
 };
-    push @$templates, ['ill','ILL_PARTNER_REQ','','Fernleihbestellung bei Partnerbibliotheken',0,'Fernleihbestellung',$text,'email','default'];
-    
-    $text = 
-q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+    push @$templates,
+        [
+        'ill',   'ILL_PARTNER_REQ', '', 'Fernleihbestellung bei Partnerbibliotheken', 0, 'Fernleihbestellung', $text,
+        'email', 'default'
+        ];
+
+    $text = q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
 
 Ihre Fernleihbestellung mit der Bestellnummer [% illrequest.illrequest_id %] für folgenden Titel:
 
@@ -3112,25 +3352,35 @@ Vielen Dank und mit freundlichen Grüßen
 [% branch.branchillemail %]
 [% branch.branchreplyto %]
 };
-    push @$templates, ['ill','ILL_PICKUP_READY','','Abholbernachrichtigung einer Fernleihbestellung',0,'Fernleihbestellung zur Abholung bereit',$text,'email','default'];
-    
-    $text = 
-q{Die/der anfragende Benutzer/in wünscht für die Bestellanfrage für Fernleihbestellung Nummer [% illrequest.illrequest_id %] eine Stornierung und hat dazu den folgenden Hinweis mitgegeben:
+    push @$templates,
+        [
+        'ill', 'ILL_PICKUP_READY', '', 'Abholbernachrichtigung einer Fernleihbestellung', 0,
+        'Fernleihbestellung zur Abholung bereit', $text, 'email', 'default'
+        ];
+
+    $text =
+        q{Die/der anfragende Benutzer/in wünscht für die Bestellanfrage für Fernleihbestellung Nummer [% illrequest.illrequest_id %] eine Stornierung und hat dazu den folgenden Hinweis mitgegeben:
 
 [% ill_full_metadata %]
 };
-    push @$templates, ['ill','ILL_REQUEST_CANCEL','','Stornierung einer Fernleihbestellung',0,'Stornierung einer Fernleihbestellung',$text,'email','default'];
+    push @$templates,
+        [
+        'ill', 'ILL_REQUEST_CANCEL', '', 'Stornierung einer Fernleihbestellung', 0,
+        'Stornierung einer Fernleihbestellung', $text, 'email', 'default'
+        ];
 
-    $text = 
-q{Die/der anfragende Benutzer/in hat die Bestellanfrage für Fernleihbestellung Nummer [% illrequest.illrequest_id %] geändert:
+    $text =
+        q{Die/der anfragende Benutzer/in hat die Bestellanfrage für Fernleihbestellung Nummer [% illrequest.illrequest_id %] geändert:
 
 [% ill_full_metadata %]
 };
-    push @$templates, ['ill','ILL_REQUEST_MODIFIED','','Änderung einer Fernleihbestellung',0,'Änderung einer Fernleihbestellung',$text,'email','default'];
+    push @$templates,
+        [
+        'ill', 'ILL_REQUEST_MODIFIED', '', 'Änderung einer Fernleihbestellung', 0,
+        'Änderung einer Fernleihbestellung', $text, 'email', 'default'
+        ];
 
-
-    $text = 
-q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+    $text = q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
 
 Ihre gewünschte Fernleihbestellung mit der Bestellnummer [% illrequest.illrequest_id %] für folgenden Titel:
 
@@ -3151,10 +3401,13 @@ Mit freundlichen Grüßen
 [% branch.branchillemail %]
 [% branch.branchreplyto %]
 };
-    push @$templates, ['ill','ILL_REQUEST_UNAVAIL','','Fernleihbestellung nicht lieferbar',0,'Fernleihbestellung nicht lieferbar',$text,'email','default'];
-    
-    $text = 
-q{<!DOCTYPE html>
+    push @$templates,
+        [
+        'ill', 'ILL_REQUEST_UNAVAIL', '', 'Fernleihbestellung nicht lieferbar', 0,
+        'Fernleihbestellung nicht lieferbar', $text, 'email', 'default'
+        ];
+
+    $text = q{<!DOCTYPE html>
 <html>
 <head>
 <title>Erinnerung an abholbereite Medien</title>
@@ -3191,21 +3444,26 @@ q{<!DOCTYPE html>
 </body>
 </html>
 };
-    push @$templates, ['suggestions','NEW_SUGGESTION','','Anschaffungsvorschlag eingereicht',1,'Anschaffungsvorschlag eingereicht',$text,'email','default'];
+    push @$templates,
+        [
+        'suggestions', 'NEW_SUGGESTION', '', 'Anschaffungsvorschlag eingereicht', 1,
+        'Anschaffungsvorschlag eingereicht', $text, 'email', 'default'
+        ];
 
-
-    $text = 
-q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
+    $text = q{Guten Tag [% borrower.firstname %] [% borrower.surname %],
 
 folgender Anschaffungsvorschlag wurde Ihnen zugewiesen: [% suggestion.title %].
 
 Vielen Dank
 [% branch.branchname %]
 };
-    push @$templates, ['suggestions','NOTIFY_MANAGER','','Anschaffungsvorschlag zugewiesen',0,'Anschaffungsvorschlag zugewiesen',$text,'email','default'];
+    push @$templates,
+        [
+        'suggestions', 'NOTIFY_MANAGER', '', 'Anschaffungsvorschlag zugewiesen', 0,
+        'Anschaffungsvorschlag zugewiesen', $text, 'email', 'default'
+        ];
 
-    $text = 
-q{Es liegt ein neuer Problembericht vor.
+    $text = q{Es liegt ein neuer Problembericht vor.
     
 Benutzername: <<problem_reports.username>>
 
@@ -3215,10 +3473,13 @@ Titel: <<problem_reports.title>>
 
 Nachricht: <<problem_reports.content>>
 };
-    push @$templates, ['members','PROBLEM_REPORT','','Neuer Problembericht',0,'Neuer Problembericht',$text,'email','default'];
+    push @$templates,
+        [
+        'members', 'PROBLEM_REPORT', '', 'Neuer Problembericht', 0, 'Neuer Problembericht', $text, 'email',
+        'default'
+        ];
 
-    $text = 
-q{[% PROCESS "accounts.inc" %]
+    $text = q{[% PROCESS "accounts.inc" %]
 <table>
 [% IF ( LibraryName ) %]
  <tr>
@@ -3283,10 +3544,9 @@ q{[% PROCESS "accounts.inc" %]
 </tfoot>
 </table>
 };
-    push @$templates, ['pos','RECEIPT','','Kassenbon',1,'Kassenbon',$text,'print','default'];
+    push @$templates, [ 'pos', 'RECEIPT', '', 'Kassenbon', 1, 'Kassenbon', $text, 'print', 'default' ];
 
-    $text = 
-q{Rotationsbestände - Report für [% branch.name %]:
+    $text = q{Rotationsbestände - Report für [% branch.name %]:
 
 [% IF branch.items.size %][% branch.items.size %] Medien müssen in dieser Zweigstelle bearbeitet werden.
 [% ELSE %]Keine Medien zur Bearbeitung in dieser Zweigstelle.
@@ -3301,34 +3561,47 @@ Aufenthaltsbibliothek: [% item.branch.branchname %] [% item.branch.branchcode %]
 
 [% END %][% END %]
 };
-    push @$templates, ['circulation','SR_SLIP','','Rotationsbestand-Bericht',0,'Rotationsbestand-Bericht',$text,'email','default'];
-    
-    my $dbh = C4::Context->dbh;
-    my $sth1 = $dbh->prepare("UPDATE letter SET name = ?, is_html = ?, title = ?, content = ? WHERE module = ? AND code = ? AND branchcode = '' AND message_transport_type = ? AND lang = ?");
-    my $sth2 = $dbh->prepare("INSERT INTO letter (module,code,branchcode,name,is_html,title,content,message_transport_type,lang) VALUES (?,?,?,?,?,?,?,?,?)");
-    
+    push @$templates,
+        [
+        'circulation', 'SR_SLIP', '', 'Rotationsbestand-Bericht', 0, 'Rotationsbestand-Bericht', $text, 'email',
+        'default'
+        ];
+
+    my $dbh  = C4::Context->dbh;
+    my $sth1 = $dbh->prepare(
+        "UPDATE letter SET name = ?, is_html = ?, title = ?, content = ? WHERE module = ? AND code = ? AND branchcode = '' AND message_transport_type = ? AND lang = ?"
+    );
+    my $sth2 = $dbh->prepare(
+        "INSERT INTO letter (module,code,branchcode,name,is_html,title,content,message_transport_type,lang) VALUES (?,?,?,?,?,?,?,?,?)"
+    );
+
     foreach my $template (@$templates) {
-        my($count) = $dbh->selectrow_array("SELECT COUNT(*) FROM letter WHERE module = ? AND code = ? AND branchcode = '' AND message_transport_type = ? AND lang = ?",
-                                           undef,
-                                           $template->[0], $template->[1], $template->[7],$template->[8]);
-        
+        my ($count) = $dbh->selectrow_array(
+            "SELECT COUNT(*) FROM letter WHERE module = ? AND code = ? AND branchcode = '' AND message_transport_type = ? AND lang = ?",
+            undef,
+            $template->[0], $template->[1], $template->[7], $template->[8]
+        );
+
         if ( $count == 1 ) {
-            $sth1->execute($template->[3], $template->[4], $template->[5], $template->[6], $template->[0], $template->[1], $template->[7], $template->[8]);
-        }
-        elsif ( $count == 0 ) {
-            $sth2->execute($template->[0], $template->[1], $template->[2], $template->[3], $template->[4], $template->[5], $template->[6], $template->[7], $template->[8]);
-        }
-        else {
-            print "Muliple templates found for update: (", join(", ",@$template), "\n";
+            $sth1->execute(
+                $template->[3], $template->[4], $template->[5], $template->[6], $template->[0],
+                $template->[1], $template->[7], $template->[8]
+            );
+        } elsif ( $count == 0 ) {
+            $sth2->execute(
+                $template->[0], $template->[1], $template->[2], $template->[3], $template->[4],
+                $template->[5], $template->[6], $template->[7], $template->[8]
+            );
+        } else {
+            print "Muliple templates found for update: (", join( ", ", @$template ), "\n";
         }
     }
 }
 
 sub updateReports {
     my $updates = ();
-    
-    my $sqltext = 
-q{SELECT
+
+    my $sqltext = q{SELECT
  *
 FROM
  (SELECT
@@ -3359,10 +3632,9 @@ WHERE
  AND s.branch=@TargetBranch COLLATE utf8mb4_unicode_ci
 GROUP BY i.itemtype 
 };
-    push @$updates, ['A0050 Anzahl Ausleihen (inkl. VL) pro Medientyp in ausgewähltem Zeitraum',$sqltext];
-    
-    $sqltext = 
-q{SELECT
+    push @$updates, [ 'A0050 Anzahl Ausleihen (inkl. VL) pro Medientyp in ausgewähltem Zeitraum', $sqltext ];
+
+    $sqltext = q{SELECT
 *
 FROM
 (SELECT
@@ -3380,10 +3652,9 @@ WHERE dateexpiry >= @StartDate and dateenrolled <= @EndDate
 AND branchcode=@TargetBranch COLLATE utf8mb4_unicode_ci
 GROUP BY zipcode
 };
-    push @$updates, ['B0312-zw Aktive Nutzer nach Sitzkommune und Alter auswerten (für BZSH)',$sqltext];
-    
-$sqltext = 
-q{SELECT
+    push @$updates, [ 'B0312-zw Aktive Nutzer nach Sitzkommune und Alter auswerten (für BZSH)', $sqltext ];
+
+    $sqltext = q{SELECT
 *
 FROM
 (SELECT
@@ -3401,10 +3672,9 @@ WHERE dateexpiry >= @StartDate and dateenrolled <= @EndDate
 AND branchcode=@TargetBranch COLLATE utf8mb4_unicode_ci
 GROUP BY zipcode
 };
-    push @$updates, ['B0312-zw Aktive Nutzer nach Sitzkommune und Alter auswerten (für BZSH)',$sqltext];
-    
-    $sqltext = 
-q{SELECT
+    push @$updates, [ 'B0312-zw Aktive Nutzer nach Sitzkommune und Alter auswerten (für BZSH)', $sqltext ];
+
+    $sqltext = q{SELECT
 *
 FROM
 (SELECT
@@ -3423,10 +3693,9 @@ AND branchcode=@TargetBranch COLLATE utf8mb4_unicode_ci
 GROUP BY zipcode
 };
 
-    push @$updates, ['B0312-zw Aktive Nutzer nach Sitzkommune und Alter auswerten (für BZSH)',$sqltext];
-    
-    $sqltext = 
-q{SELECT
+    push @$updates, [ 'B0312-zw Aktive Nutzer nach Sitzkommune und Alter auswerten (für BZSH)', $sqltext ];
+
+    $sqltext = q{SELECT
 adt.description AS "Kostenart",
 act.description AS "Zahlungsart",
 FORMAT(SUM(a.amount-a.amountoutstanding),2) AS 'Betrag in Euro',
@@ -3447,10 +3716,10 @@ GROUP BY
 a.debit_type_code, a.credit_type_code, i.itype, ityp.description
 ORDER BY 1,2,3
 };
-    push @$updates, ['G0150 Beglichene Gebühren in ausgewähltem Zeitraum summiert nach Gebührenart und Medientyp',$sqltext];
-        
-    $sqltext = 
-q{SELECT
+    push @$updates,
+        [ 'G0150 Beglichene Gebühren in ausgewähltem Zeitraum summiert nach Gebührenart und Medientyp', $sqltext ];
+
+    $sqltext = q{SELECT
     *
 FROM
     (
@@ -3606,10 +3875,9 @@ FROM
 WHERE  notf.category = c.categorycode
 GROUP BY c.description
 };
-    push @$updates, ['G0010 Benachrichtigungsgebühren nach Art für ausgewählten Zeitraum',$sqltext];
+    push @$updates, [ 'G0010 Benachrichtigungsgebühren nach Art für ausgewählten Zeitraum', $sqltext ];
 
-    $sqltext = 
-q{SELECT 
+    $sqltext = q{SELECT 
  '<b>Summe gesamt</b>' AS 'Einnahme von', 
  '<b>Summe gesamt</b>' AS 'Gebühr erhoben von', 
  '<b>Betrag gesamt</b>' AS Betrag,
@@ -3707,10 +3975,9 @@ WHERE
  AND DATE(op.created_on) BETWEEN @FromDate AND @ToDate
 GROUP BY c.branchcode, p.branchcode, c.debit_type_code, g.description
 };
-    push @$updates, ['G0100-zw Einnahmenverrechnung zwischen Zweigstellen',$sqltext];
-    
-    $sqltext = 
-q{SELECT accountlines_id AS 'Vorgangsnr.', 
+    push @$updates, [ 'G0100-zw Einnahmenverrechnung zwischen Zweigstellen', $sqltext ];
+
+    $sqltext = q{SELECT accountlines_id AS 'Vorgangsnr.', 
        DATE_FORMAT(date,'%d.%m.%Y') AS 'Datum', 
        date, FORMAT(amount,2,'de_DE') AS 'Betrag',
        FORMAT(amountoutstanding,2,'de_DE') AS 'Betrag offen', 
@@ -3727,10 +3994,9 @@ LEFT JOIN account_credit_types ON (accountlines.credit_type_code = account_credi
 WHERE date >= TIMESTAMP(<<Von|date>>) AND date <= TIMESTAMP(<<bis|date>>,'23:59:59')
 ORDER BY date, accountlines_id
 };
-    push @$updates, ['G0140 Gebührenvorgänge - Einzelauflistung für einen auswählbaren Zeitraum',$sqltext];
-    
-    $sqltext = 
-q{SELECT
+    push @$updates, [ 'G0140 Gebührenvorgänge - Einzelauflistung für einen auswählbaren Zeitraum', $sqltext ];
+
+    $sqltext = q{SELECT
        adt.description AS "Kostenart",
        act.description AS "Zahlungsart",
        FORMAT(SUM(a.amount-a.amountoutstanding),2) AS 'Betrag in Euro',
@@ -3749,10 +4015,11 @@ WHERE branchcode=<<Auswahl Zweigstelle|branches>>
 GROUP BY a.debit_type_code, a.credit_type_code, i.itype, ityp.description
 ORDER BY 1,2,3
 };
-    push @$updates, ['G0150 Beglichene Gebühren in ausgewähltem Zeitraum summiert nach Gebührenart und Medientyp',$sqltext];
-    
-    $sqltext = 
-q{SELECT CONCAT('<a href=\"/cgi-bin/koha/members/boraccount.pl?borrowernumber=',borrowers.borrowernumber,'\" target="_blank">', borrowers.borrowernumber, '</a>') AS borrowernumber,
+    push @$updates,
+        [ 'G0150 Beglichene Gebühren in ausgewähltem Zeitraum summiert nach Gebührenart und Medientyp', $sqltext ];
+
+    $sqltext =
+        q{SELECT CONCAT('<a href=\"/cgi-bin/koha/members/boraccount.pl?borrowernumber=',borrowers.borrowernumber,'\" target="_blank">', borrowers.borrowernumber, '</a>') AS borrowernumber,
     borrowers.cardnumber AS Ausweisnummer,
     borrowers.firstname AS Vorname,
     borrowers.surname AS Nachname,
@@ -3768,10 +4035,9 @@ AND credit_type_code IN ('WRITEOFF','CANCELLATION','DISCOUNT','FORGIVEN')
 AND date BETWEEN TIMESTAMP(<<Von|date>>) AND TIMESTAMP(<<bis|date>>,'23:59:59')
 ORDER BY accountlines.credit_type_code
 };
-    push @$updates, ['G0200 Gebührenerlass / Storno mit Grund für einen wählbaren Zeitraum',$sqltext];
-    
-    $sqltext = 
-q{SELECT
+    push @$updates, [ 'G0200 Gebührenerlass / Storno mit Grund für einen wählbaren Zeitraum', $sqltext ];
+
+    $sqltext = q{SELECT
 *
 FROM
 (
@@ -3824,39 +4090,42 @@ WHERE (date(dateaccessioned) BETWEEN @StartDate AND @EndDate) AND (itype is null
 
 ORDER BY Zugangsdatum
 };
-    push @$updates, ['K0030 Zugangsbuch',$sqltext];
-    
-    my $dbh = C4::Context->dbh;
+    push @$updates, [ 'K0030 Zugangsbuch', $sqltext ];
+
+    my $dbh  = C4::Context->dbh;
     my $sth1 = $dbh->prepare("UPDATE saved_sql SET savedsql = ? WHERE TRIM(report_name) = BINARY ?");
-    
+
     foreach my $update (@$updates) {
-        $sth1->execute($update->[1], $update->[0]);
+        $sth1->execute( $update->[1], $update->[0] );
     }
 }
 
 sub updateMarcMappings {
-    my $schema = Koha::Database->new->schema;
+    my $schema   = Koha::Database->new->schema;
     my $dbix_map = {
+
         # Koha to MARC mappings are found in only three tables
-        biblio => 'Biblio',
+        biblio      => 'Biblio',
         biblioitems => 'Biblioitem',
-        items => 'Item',
+        items       => 'Item',
     };
     my @cols;
     foreach my $tbl ( sort keys %{$dbix_map} ) {
         push @cols,
             map { "$tbl.$_" } $schema->source( $dbix_map->{$tbl} )->columns;
     }
-    my $kohafields = Koha::MarcSubfieldStructures->search({
-        frameworkcode => q{},
-        kohafield => { '>', '' },
-    });
+    my $kohafields = Koha::MarcSubfieldStructures->search(
+        {
+            frameworkcode => q{},
+            kohafield     => { '>', '' },
+        }
+    );
     my @loop_data;
     my $checkmapping = {};
-    foreach my $col ( @cols ) {
+    foreach my $col (@cols) {
         my $found;
         my $readonly = $col =~ /\.(biblio|biblioitem|item)number$/;
-        foreach my $row ( $kohafields->search({ kohafield => $col }) ) {
+        foreach my $row ( $kohafields->search( { kohafield => $col } ) ) {
             $found = 1;
             push @loop_data, {
                 kohafield    => $col,
@@ -3865,29 +4134,31 @@ sub updateMarcMappings {
                 liblibrarian => $row->liblibrarian,
                 readonly     => $readonly,
             };
-            $checkmapping->{$row->tagfield .'#'.$row->tagsubfield}->{$col} = 1;
+            $checkmapping->{ $row->tagfield . '#' . $row->tagsubfield }->{$col} = 1;
         }
         push @loop_data, {
-                kohafield    => $col,
-                readonly     => $readonly,
+            kohafield => $col,
+            readonly  => $readonly,
         } if !$found;
     }
 
     my $addmappings = [
-                           [ "024", "a", "biblioitems.ean" ],
-                           [ "245", "b", "biblio.subtitle" ],
-                           [ "245", "h", "biblio.medium" ],
-                           [ "245", "n", "biblio.part_number" ],
-                           [ "245", "p", "biblio.part_name" ],
-                           [ "264", "a", "biblioitems.place" ],
-                           [ "264", "c", "biblio.copyrightdate" ],
-                      ];
-    foreach my $addmapping ( @$addmappings ) {
-        if ( ! exists( $checkmapping->{$addmapping->[0] .'#'.$addmapping->[1]} ) ) {
-            my $rs = Koha::MarcSubfieldStructures->search({ tagfield => $addmapping->[0], tagsubfield => $addmapping->[1] });
-            if( $rs->count ) {
-                print "Add Koha-Marc-Mapping: ", $addmapping->[0], '$', $addmapping->[1], ' => ', $addmapping->[2], "\n";
-                $rs->update({ kohafield => $addmapping->[2] });
+        [ "024", "a", "biblioitems.ean" ],
+        [ "245", "b", "biblio.subtitle" ],
+        [ "245", "h", "biblio.medium" ],
+        [ "245", "n", "biblio.part_number" ],
+        [ "245", "p", "biblio.part_name" ],
+        [ "264", "a", "biblioitems.place" ],
+        [ "264", "c", "biblio.copyrightdate" ],
+    ];
+    foreach my $addmapping (@$addmappings) {
+        if ( !exists( $checkmapping->{ $addmapping->[0] . '#' . $addmapping->[1] } ) ) {
+            my $rs = Koha::MarcSubfieldStructures->search(
+                { tagfield => $addmapping->[0], tagsubfield => $addmapping->[1] } );
+            if ( $rs->count ) {
+                print "Add Koha-Marc-Mapping: ", $addmapping->[0], '$', $addmapping->[1], ' => ', $addmapping->[2],
+                    "\n";
+                $rs->update( { kohafield => $addmapping->[2] } );
             }
         }
     }
@@ -3895,29 +4166,29 @@ sub updateMarcMappings {
 
 sub fixCatalogRecordsWithControlCharacters {
     print "Fix catalog record data containing control characters.\n";
-    my $metadata = Koha::Biblio::Metadatas->search( { }, { order_by => { -asc => 'biblionumber' } } );
+    my $metadata = Koha::Biblio::Metadatas->search( {}, { order_by => { -asc => 'biblionumber' } } );
     while ( my $bibrecord = $metadata->next() ) {
         try {
             my $record = $bibrecord->record;
-        }
-        catch {
+        } catch {
             if ( $_->isa('Koha::Exceptions::Metadata::Invalid') ) {
                 my $xmlstring = $bibrecord->metadata;
-                
+
                 my $fixed = 0;
-                if ( $xmlstring ) {
+                if ($xmlstring) {
                     $xmlstring =~ tr/\x00-\x08\x0B\x0C\x0E-\x19//d;
                     if ( $xmlstring ne $bibrecord->metadata ) {
-                        my $replcnt = length($bibrecord->metadata)-length($xmlstring);
+                        my $replcnt = length( $bibrecord->metadata ) - length($xmlstring);
                         if ( $replcnt > 0 ) {
                             $bibrecord->metadata($xmlstring)->store();
-                            print "Updated catalog record ", $bibrecord->biblionumber, ". $replcnt control charcaters removed.\n";
+                            print "Updated catalog record ", $bibrecord->biblionumber,
+                                ". $replcnt control charcaters removed.\n";
                             $fixed = 1;
                         }
                     }
                 }
-                if ( ! $fixed ) {
-                    print $bibrecord->biblionumber,"\n";
+                if ( !$fixed ) {
+                    print $bibrecord->biblionumber, "\n";
                     print "Error loading metadata record ", $_->full_message, "\n";
                 }
             }

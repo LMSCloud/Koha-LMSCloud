@@ -198,8 +198,8 @@ const checkError = function (response) {
             (/input|select|textarea|button|object/.test(nodeName)
                 ? !element.disabled
                 : "a" === nodeName
-                ? element.href || isTabIndexNotNaN
-                : isTabIndexNotNaN) &&
+                  ? element.href || isTabIndexNotNaN
+                  : isTabIndexNotNaN) &&
             // the element and all of its ancestors must be visible
             visible(element)
         );
@@ -224,26 +224,31 @@ if (typeof enquire == "object") {
     enquire.register("screen and (min-width:992px)", {
         match: function () {
             facetMenu("show");
-            furtherOfferingsMenu( "show" );
+            furtherOfferingsMenu("show");
         },
         unmatch: function () {
             facetMenu("hide");
-            furtherOfferingsMenu( "hide" );
+            furtherOfferingsMenu("hide");
         },
     });
 }
 
-function furtherOfferingsMenu( action ){
-    if( action == "show" ){
-        $(".further-offerings-menu-collapse-toggle").unbind("click", furtherOfferingsHandler )
+function furtherOfferingsMenu(action) {
+    if (action == "show") {
+        $(".further-offerings-menu-collapse-toggle").unbind(
+            "click",
+            furtherOfferingsHandler
+        );
         $(".further-offerings-menu-collapse").show();
     } else {
-        $(".further-offerings-menu-collapse-toggle").bind("click", furtherOfferingsHandler ).removeClass("further-offerings-menu-open");
+        $(".further-offerings-menu-collapse-toggle")
+            .bind("click", furtherOfferingsHandler)
+            .removeClass("further-offerings-menu-open");
         $(".further-offerings-menu-collapse").hide();
     }
 }
 
-var furtherOfferingsHandler = function(e){
+var furtherOfferingsHandler = function (e) {
     e.preventDefault();
     $(this).toggleClass("further-offerings-menu-open");
     $(".further-offerings-menu-collapse").toggle();
@@ -267,20 +272,23 @@ var facetHandler = function (e) {
     $(".menu-collapse").toggle();
 };
 
-function setPlaceholder(){
-    let search_placeholder = $("#masthead_search option:selected").data("placeholder");
-    $("#translControl1").attr("placeholder", search_placeholder );
+function setPlaceholder() {
+    let search_placeholder = $("#masthead_search option:selected").data(
+        "placeholder"
+    );
+    $("#translControl1").attr("placeholder", search_placeholder);
 }
 
 $(document).ready(function () {
     //check if sticky element is stuck, if so add floating class
-    if ( $('.sticky').length ) {
-      const observer = new IntersectionObserver(
-        ([e]) => e.target.classList.toggle('floating', e.intersectionRatio < 1),
-        {threshold: [1]}
-      );
+    if ($(".sticky").length) {
+        const observer = new IntersectionObserver(
+            ([e]) =>
+                e.target.classList.toggle("floating", e.intersectionRatio < 1),
+            { threshold: [1] }
+        );
 
-      observer.observe(document.querySelector('.sticky'));
+        observer.observe(document.querySelector(".sticky"));
     }
     $("html").removeClass("no-js").addClass("js");
     $(".close").click(function () {
@@ -312,25 +320,29 @@ $(document).ready(function () {
     $(".loginModal-trigger").on("click", function (e) {
         e.preventDefault();
         var button = $(this);
-        var context = button.data('return');
-        if ( context ) {
+        var context = button.data("return");
+        if (context) {
             let return_url = window.location.pathname;
             let params = window.location.search;
-            var tab = button.data('tab');
-            if ( tab ) {
-                params = params ? params + '&tab=' + tab : '?tab=' + tab;
+            var tab = button.data("tab");
+            if (tab) {
+                params = params ? params + "&tab=" + tab : "?tab=" + tab;
             }
             return_url += params;
-            $('#modalAuth').append('<input type="hidden" name="return" value="'+return_url+'" />');
+            $("#modalAuth").append(
+                '<input type="hidden" name="return" value="' +
+                    return_url +
+                    '" />'
+            );
         }
         $("#loginModal").modal("show");
     });
     $("#loginModal").on("shown.bs.modal", function () {
         $("#muserid").focus();
     });
-    
+
     $(".link-collection-collapse-toggle").unbind("click");
-    $(".link-collection-collapse-toggle").on("click",function(e){
+    $(".link-collection-collapse-toggle").on("click", function (e) {
         e.preventDefault();
         $(this).toggleClass("menu-open");
         $($(this).attr("href")).toggle();
@@ -375,7 +387,7 @@ $(document).ready(function () {
     });
 
     setPlaceholder();
-    $("#masthead_search").on("change", function(){
+    $("#masthead_search").on("change", function () {
         setPlaceholder();
     });
 });

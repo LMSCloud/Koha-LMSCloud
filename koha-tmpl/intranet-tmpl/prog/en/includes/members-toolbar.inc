@@ -6,24 +6,28 @@
 [% USE AuthorisedValues %]
 [% USE NoticeTemplates %]
 [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
-    <div id="notice_sent_dialog_member" class="dialog alert" style="display:none;" >
+    <div id="notice_sent_dialog_member" class="dialog alert" style="display:none;">
         Letter "<span class="letter-name"></span>" successfully created as notice to <span class="patrons-length"></span> patron(s).
         <span class="letter-email"><br /><span class="letter-email-count"></span> patron(s) notified by email.</span>
-        <span class="letter-print"><br />Print notices created for <span class="letter-print-count"></span> patron(s). <a href="/cgi-bin/koha/tools/download-files.pl" target="_blank">Click here to download the notices for printing.</a></span>
+        <span class="letter-print"
+            ><br />Print notices created for <span class="letter-print-count"></span> patron(s). <a href="/cgi-bin/koha/tools/download-files.pl" target="_blank">Click here to download the notices for printing.</a></span
+        >
     </div>
 [% END %]
 [% USE scalar %]
 <div id="toolbar" class="btn-toolbar">
     [% IF CAN_user_borrowers_edit_borrowers %]
-        <a id="editpatron" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=edit_form&amp;destination=circ&amp;borrowernumber=[% patron.borrowernumber | html %]"><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a>
+        <a id="editpatron" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=edit_form&amp;destination=circ&amp;borrowernumber=[% patron.borrowernumber | html %]"
+            ><i class="fa-solid fa-pencil" aria-hidden="true"></i> Edit</a
+        >
     [% END %]
-    [% SET guarantee_categories = Categories.limited( can_be_guarantee => 1 ).unblessed  %]
+    [% SET guarantee_categories = Categories.limited( can_be_guarantee => 1 ).unblessed %]
     [% IF CAN_user_borrowers_edit_borrowers %]
         [% IF patron.is_adult AND Koha.Preference("borrowerRelationship") %]
             [% IF patron.is_family_card %]
-            <a id="addchild" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantor_id=[% patron.borrowernumber | html %]"><i class="fa fa-plus"></i> Add family card member</a>
+                <a id="addchild" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantor_id=[% patron.borrowernumber | html %]"><i class="fa fa-plus"></i> Add family card member</a>
             [% ELSE %]
-            <a id="addchild" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantor_id=[% patron.borrowernumber | html %]"><i class="fa fa-plus"></i> Add guarantee</a>
+                <a id="addchild" class="btn btn-default" href="/cgi-bin/koha/members/memberentry.pl?op=add&amp;guarantor_id=[% patron.borrowernumber | html %]"><i class="fa fa-plus"></i> Add guarantee</a>
             [% END %]
         [% END %]
         <a id="changepassword" class="btn btn-default" href="/cgi-bin/koha/members/member-password.pl?member=[% patron.borrowernumber | html %]"><i class="fa fa-lock"></i> Change password</a>
@@ -31,26 +35,27 @@
     [% END %]
 
     [% IF CAN_user_circulate_circulate_remaining_permissions %]
-    <div class="btn-group">
-        <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa fa-print"></i> Print</button>
+        <div class="btn-group">
+            <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa fa-print"></i> Print</button>
             <ul class="dropdown-menu">
                 <li><a class="dropdown-item printslip" data-code="printsummary" href="#">Print summary</a></li>
                 <li><a class="dropdown-item printslip" data-code="issueslip" href="#">Print slip</a></li>
                 <li><a class="dropdown-item printslip" data-code="issueqslip" href="#">Print quick slip</a></li>
                 [% IF patron.account_balance != 0 %]
-                <li><a class="dropdown-item" id="printfineslip" target="_blank" href="/cgi-bin/koha/members/printnotice.pl?notice=ACCOUNTS_SUMMARY&borrowernumber=[% patron.borrowernumber | uri %]">Print account balance</a></li>
+                    <li><a class="dropdown-item" id="printfineslip" target="_blank" href="/cgi-bin/koha/members/printnotice.pl?notice=ACCOUNTS_SUMMARY&borrowernumber=[% patron.borrowernumber | uri %]">Print account balance</a></li>
                 [% END %]
                 [% IF patron.has_overdues %]
                     <li><a class="dropdown-item" id="print_overdues" href="#">Print overdues</a></li>
                 [% END %]
-                [% IF patron.privacy < 2 %] [%# 2 is the privacy rule "Never" (Delete my history immediately) %]
+                [% IF patron.privacy < 2 %]
+                    [%# 2 is the privacy rule "Never" (Delete my history immediately) %]
                     <li><a class="dropdown-item printslip" data-code="checkinslip" href="#">Print checkin slip</a></li>
                 [% END %]
                 [% FOREACH notice IN Notices.GetTemplates( 'patron_slip' ) %]
                     <li><a class="dropdown-item printslip" data-code="[% notice.code | html %]" href="#">Print [% notice.name | html %]</a></li>
                 [% END %]
             </ul>
-    </div>
+        </div>
     [% END %]
 
     [% IF ( CAN_user_reserveforothers ) %]
@@ -67,10 +72,14 @@
 
     [% IF CAN_user_borrowers_edit_borrowers %]
         <div class="btn-group">
-        <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown">More <span class="caret"></span></button>
+            <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown">More <span class="caret"></span></button>
             <ul class="dropdown-menu dropdown-menu-end">
                 [% IF CAN_user_borrowers_edit_borrowers %]
-                    <li><a class="dropdown-item" id="renewpatron" href="/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% patron.borrowernumber | html %]&amp;destination=[% destination | html %]&amp;reregistration=y">[% IF ( IsFamilyCard ) %]Renew family card[% ELSE %]Renew patron[% END %]</a></li>
+                    <li
+                        ><a class="dropdown-item" id="renewpatron" href="/cgi-bin/koha/members/setstatus.pl?borrowernumber=[% patron.borrowernumber | html %]&amp;destination=[% destination | html %]&amp;reregistration=y"
+                            >[% IF ( IsFamilyCard ) %]Renew family card[% ELSE %]Renew patron[% END %]</a
+                        ></li
+                    >
                 [% ELSE %]
                     <li data-bs-toggle="tooltip" data-bs-placement="left" title="You are not authorized to renew patrons">
                         <a class="dropdown-item disabled" aria-disabled="true" id="renewpatron" href="#">Renew patron</a>
@@ -92,9 +101,9 @@
                 [% IF CAN_user_borrowers_edit_borrowers && useDischarge %]
                     <li><a class="dropdown-item" href="/cgi-bin/koha/members/discharge.pl?borrowernumber=[% patron.borrowernumber | uri %]">Discharge</a></li>
                 [% END %]
-                
+
                 [% IF (CAN_user_circulate_send_adhoc_notices && Koha.Preference('AdhocNoticesLetterCodes') ) %]
-                    <li><a class="dropdown-item" id="send_notice_letter_select" href="#selectAdhocNoticeLetter" >Send notice</a></li>
+                    <li><a class="dropdown-item" id="send_notice_letter_select" href="#selectAdhocNoticeLetter">Send notice</a></li>
                 [% END %]
 
                 [% IF Koha.Preference('RESTOAuth2ClientCredentials') %]
@@ -173,35 +182,24 @@
                     <h3 id="selectAdhocNoticeLetter_label">Send Notice</h3>
                 </div>
                 <div class="modal-body">
-                    <p>
-                        Please select the letter that will be used to create notices to the selected patron. Please be aware that patrons might be charged for notices depending on the defined notice fee rules.
-                    </p>
-                    <p>
-                        Number of selected patrons: <span id="selectAdhocNoticeLetterPatronCount"></span>
-                    </p>
+                    <p> Please select the letter that will be used to create notices to the selected patron. Please be aware that patrons might be charged for notices depending on the defined notice fee rules. </p>
+                    <p> Number of selected patrons: <span id="selectAdhocNoticeLetterPatronCount"></span> </p>
                     <p id="adhocNoticeLetterSelection">
                         <label for="adhocNoticeLetterSelection_letter">Select letter: </label>
-                        <select name="adhocNoticeLetterSelection_letter" id="adhocNoticeLetterSelection_letter">
-                        </select>
+                        <select name="adhocNoticeLetterSelection_letter" id="adhocNoticeLetterSelection_letter"> </select>
                     </p>
                     <p>
-                        <label>
-                            Prefer Email notification if an email address is available: <input type="checkbox" id="preferEmail" name="preferEmail" value="yes" checked>
-                        </label>
+                        <label> Prefer Email notification if an email address is available: <input type="checkbox" id="preferEmail" name="preferEmail" value="yes" checked /> </label>
                     </p>
                     <p>
-                        <label>
-                            Do not charge patrons despite of possible configured notice fee rules: <input type="checkbox" id="dontCharge" name="dontCharge" value="yes">
-                        </label>
+                        <label> Do not charge patrons despite of possible configured notice fee rules: <input type="checkbox" id="dontCharge" name="dontCharge" value="yes" /> </label>
                     </p>
                     <p style="display:[% IF ( Koha.Preference('NoticeBcc') ) %]unset[% ELSE %]none[% END %]">
-                        <label>
-                            Send a copy of the message to the configured email address of the library: <input type="checkbox" id="noBccEmail" name="noBccEmail" value="yes">
-                        </label>
+                        <label> Send a copy of the message to the configured email address of the library: <input type="checkbox" id="noBccEmail" name="noBccEmail" value="yes" /> </label>
                     </p>
                 </div>
                 <div class="modal-footer">
-                    <input id="send_notice_submit" type="submit" class="submit" value="Create notices">
+                    <input id="send_notice_submit" type="submit" class="submit" value="Create notices" />
                 </div>
             </form>
         </div>
@@ -214,7 +212,7 @@
         <div class="modal-content modal-lg">
             <form method="post" action="/cgi-bin/koha/circ/add_message.pl" id="message_form" name="message_f">
                 [% INCLUDE 'csrf-token.inc' %]
-                <input type="hidden" name="op" value="cud-add_message">
+                <input type="hidden" name="op" value="cud-add_message" />
                 <div class="modal-header">
                     <h1 class="modal-title">Leave a message</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -261,11 +259,11 @@
 
                             <li class="form-group form-row" id="subject_form" style="display: none;">
                                 <label for="borrower_subject" class="col-form-label">Subject:</label>
-                                <input type="text" size="60" name="borrower_subject" class="form-control" id="borrower_subject"/>
+                                <input type="text" size="60" name="borrower_subject" class="form-control" id="borrower_subject" />
                             </li>
                             <li class="form-group form-row">
                                 <label for="borrower_message" class="col-form-label" style="display: none;">Body:</label>
-                                <textarea cols="65" rows="5" name="borrower_message" class="form-control" id="borrower_message" ></textarea>
+                                <textarea cols="65" rows="5" name="borrower_message" class="form-control" id="borrower_message"></textarea>
                             </li>
                         </ol>
                     </fieldset>
