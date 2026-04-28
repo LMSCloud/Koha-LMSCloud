@@ -27,20 +27,30 @@ export function useRulesFetcher(options) {
     } = options;
 
     const lastRulesKey = ref(null);
+    const lastPickupKey = ref(null);
     const lastHolidaysLibrary = ref(null);
 
-    watchEffect(
+    watch(
         () => {
             const patronId = bookingPatron.value?.patron_id;
             const biblio =
                 typeof biblionumber === "object"
                     ? biblionumber.value
                     : biblionumber;
+            return { patronId, biblio };
+        },
+        ({ patronId, biblio }) => {
+            if (!patronId || !biblio) return;
+            const key = `${biblio}|${patronId}`;
+            if (lastPickupKey.value === key) return;
+            lastPickupKey.value = key;
+            store.fetchPickupLocations(biblio, patronId);
+        },
+        { immediate: true, flush: "post" }
+    );
 
-            if (patronId && biblio) {
-                store.fetchPickupLocations(biblio, patronId);
-            }
-
+    watchEffect(
+        () => {
             const patron = bookingPatron.value;
             const derivedItemTypeId =
                 bookingItemtypeId.value ??
