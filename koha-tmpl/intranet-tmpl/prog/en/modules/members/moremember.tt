@@ -755,6 +755,7 @@
         [% END %]
 
         [% INCLUDE modals/cancel_booking.inc %]
+        [% INCLUDE modals/convert_to_checkout.inc %]
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
@@ -851,7 +852,7 @@
                 $("#guarantees_finesandcharges-tab").click();
             });
 
-            $("#cancellation-reason").comboBox({
+            $("#cancelBookingModal #cancellation-reason").comboBox({
                 displayProperty: 'name',
                 placeholder: _("Select or type a reason"),
                 context: 'modal',
@@ -860,7 +861,46 @@
     </script>
     [% Asset.js("js/checkouts.js") | $raw %]
     [% Asset.js("js/additional-fields.js") | $raw %]
-    [% Asset.js("js/tables/bookings.js") | $raw %]
+    [% Asset.js("js/convert_to_checkout_modal.js") | $raw %]
+    [% Asset.js("js/bookings-common.js", type => "module") | $raw %]
+    <script>
+        function ensureBookingsTable() {
+            var tableEl = document.getElementById('bookings_table');
+            if (!tableEl) return;
+            if (window.__embedded_bookings_table_init_done) return;
+
+            if (typeof window.createBookingsTable !== 'function') {
+                setTimeout(ensureBookingsTable, 50);
+                return;
+            }
+
+            window.__embedded_bookings_table_init_done = true;
+            window.createBookingsTable('#bookings_table', window.table_settings_bookings_table, {
+                additionalFilters: { patron_id: window.patron_borrowernumber },
+                columnFiltersEnabled: false,
+                quickTogglesEnabled: true,
+                columnOptions: {
+                    showActions: true,
+                    showEditAction: false,
+                    showDeleteAction: true,
+                    showStatus: true,
+                    showCreationDate: false,
+                    showBookingDates: false,
+                    showStartEndDates: true,
+                    showPickupLibrary: true,
+                    showBiblioTitle: true,
+                    showItemData: true,
+                    showPatron: false,
+                    patronOptions: { display_cardnumber: false, url: false }
+                }
+            });
+        }
+
+        $(document).on('shown.bs.tab', 'a[data-tabname="bookings"]', ensureBookingsTable);
+
+        // Also init immediately in case bookings tab is already active
+        $(document).ready(function() { ensureBookingsTable(); });
+    </script>
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]
