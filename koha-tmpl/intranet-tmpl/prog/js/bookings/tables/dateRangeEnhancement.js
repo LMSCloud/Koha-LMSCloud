@@ -36,15 +36,14 @@ export function enhanceDateRangeFilters(
         )
         .each(function (_relativeIndex, el) {
             const $th = $(el);
-            const actualColumnIndex = $th.data("th-id");
+            const columnInfo = dataTable.column($th[0]);
+            const actualColumnIndex = columnInfo.index();
             if (
                 actualColumnIndex === undefined ||
                 $th.find('input[type="text"]').length === 0
             ) {
                 return;
             }
-
-            const columnInfo = dataTable.column(actualColumnIndex);
             const columnData = columnInfo.dataSrc();
             const apiFieldName = mapColumnDataToApiField(columnData);
             const inputId = "date_range_col_" + actualColumnIndex;
