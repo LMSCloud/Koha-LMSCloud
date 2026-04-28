@@ -5,10 +5,20 @@ module.exports = {
     useTabs: false,
     overrides: [
         {
-            files: "*.vue",
+            files: ["*.js", "*.ts", "*.vue"],
             options: {
-                semi: false,
-            }
-        }
-    ]
-}
+                trailingComma: "es5",
+                arrowParens: "avoid",
+            },
+        },
+        {
+            files: ["*.tt", "*.inc"],
+            options: {
+                printWidth: 240,
+                htmlWhitespaceSensitivity: "strict",
+                parser: "template-toolkit",
+                plugins: ["@koha-community/prettier-plugin-template-toolkit"],
+            },
+        },
+    ],
+};
