@@ -971,10 +971,12 @@ subtest 'update() tests' => sub {
           ->status_is(200, 'Patron updated successfully');
 
         # Put back the RO attributes
-        $newpatron->{patron_id} = $unauthorized_patron->to_api({ user => $authorized_patron })->{patron_id};
-        $newpatron->{restricted} = $unauthorized_patron->to_api({ user => $authorized_patron })->{restricted};
-        $newpatron->{expired} = $unauthorized_patron->to_api({ user => $authorized_patron })->{expired};
-        $newpatron->{anonymized} = $unauthorized_patron->to_api({ user => $authorized_patron })->{anonymized};
+        my $ro_api = $unauthorized_patron->to_api({ user => $authorized_patron });
+        $newpatron->{patron_id} = $ro_api->{patron_id};
+        $newpatron->{restricted} = $ro_api->{restricted};
+        $newpatron->{expired} = $ro_api->{expired};
+        $newpatron->{anonymized} = $ro_api->{anonymized};
+        $newpatron->{restriction_comment} = $ro_api->{restriction_comment};
 
         my $got = $result->tx->res->json;
         my $updated_on_got = delete $got->{updated_on};
