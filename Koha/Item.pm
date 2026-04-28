@@ -2068,14 +2068,16 @@ sub effective_not_for_loan_status {
 
   my $bookable = $item->effective_bookable;
 
-Returns the effective bookability of the current item, be that item or itemtype level
+Returns the effective bookability of the current item, walking the fallback chain:
+item-level bookable (if set), then itemtype-level, then parent itemtype chain.
 
 =cut
 
 sub effective_bookable {
     my ($self) = @_;
 
-    return $self->bookable // $self->itemtype->bookable;
+    return $self->bookable if defined $self->bookable;
+    return $self->itemtype->effective_bookable;
 }
 
 =head3 orders

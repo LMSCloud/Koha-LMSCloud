@@ -202,6 +202,23 @@ sub parent {
 
 }
 
+=head3 effective_bookable
+
+    Returns the effective bookability of this itemtype, walking the parent chain.
+
+    If this itemtype is bookable, returns 1. Otherwise, if it has a parent,
+    delegates to the parent's effective_bookable. Returns 0 if no ancestor is bookable.
+
+=cut
+
+sub effective_bookable {
+    my ($self) = @_;
+
+    return 1 if $self->bookable;
+    my $parent = $self->parent;
+    return $parent ? $parent->effective_bookable : 0;
+}
+
 =head3 children_with_localization
 
     Returns the ItemType objects of the children of this type or undef.
