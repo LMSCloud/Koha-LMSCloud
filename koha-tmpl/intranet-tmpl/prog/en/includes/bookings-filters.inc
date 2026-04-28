@@ -10,7 +10,7 @@
     - branchcode: Selected branch code
 %]
 
-<form id="[% form_id || 'bookingsf' %]">
+<form id="[% form_id || 'bookingsf' | html %]">
     <fieldset class="brief">
         <h4>Refine results</h4>
         <ol>

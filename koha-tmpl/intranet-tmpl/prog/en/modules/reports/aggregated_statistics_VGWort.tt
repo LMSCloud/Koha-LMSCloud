@@ -9,7 +9,7 @@
 <title>Koha &rsaquo; Reports &rsaquo; Aggregated statistics &rsaquo; VG WORT Export</title>
 [% INCLUDE 'doc-head-close.inc' %]
 [% INCLUDE 'greybox.inc' %]
-[% Asset.css("css/datatables.css") %]
+[% Asset.css("css/datatables.css") | $raw %]
 
 </head>
 
@@ -24,7 +24,7 @@
             <a href="/cgi-bin/koha/reports/reports-home.pl">Reports</a>
         [% END %]
         [% WRAPPER breadcrumb_item %]
-            <a href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=[% statisticstype %]">Aggregated statistics</a>
+            <a href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=[% statisticstype | uri %]">Aggregated statistics</a>
         [% END %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
             <span>VG WORT Export</span>
@@ -37,19 +37,21 @@
         <div class="col-md-10 order-md-2 order-sm-1">
             <main>
 
-                <h1>[% statisticstypedesignation %] [% name %]</h1>
+                <h1>[% statisticstypedesignation | html %] [% name | html %]</h1>
                 
                 <div class="page-section">
                     <h4>Report period: [% startdate | $KohaDates %] - [% enddate | $KohaDates %]</h4>
-                    <h4>Library group:[% IF ( selectedgroup == "*" ) %] All library groups[% ELSE %] [% selectedgroupname %][% END %]</h4>
-                    <h4>Library:[% IF ( selectedbranch == "*" ) %] All libraries[% ELSE %] [% selectedbranchname %][% END %]</h4>
+                    <h4>Library group:[% IF ( selectedgroup == "*" ) %] All library groups[% ELSE %] [% selectedgroupname | html %][% END %]</h4>
+                    <h4>Library:[% IF ( selectedbranch == "*" ) %] All libraries[% ELSE %] [% selectedbranchname | html %][% END %]</h4>
                 </div>
                 
                 <br>
                 <form method="post" action="/cgi-bin/koha/svc/vgwort_export">
-                    <input type="hidden" name="aggregatedStatisticsId" value="[% id %]" />
+                    [% INCLUDE 'csrf-token.inc' %]
+                    <input type="hidden" name="op" value="cud-export" />
+                    <input type="hidden" name="aggregatedStatisticsId" value="[% id | html %]" />
                     <button type="submit" name="save_anyway" value="Save anyway" class="btn btn-default btn-primary"><i class="fa fa-download"></i> Download</button>
-                    <!-- <a href="/cgi-bin/koha/svc/vgwort_export?aggregatedStatisticsId=[% id %]" class="btn btn-default btn-xs btn-primary" download><i class="fa fa-download"></i> Download</a>-->
+                    <!-- <a href="/cgi-bin/koha/svc/vgwort_export?aggregatedStatisticsId=[% id | uri %]" class="btn btn-default btn-xs btn-primary" download><i class="fa fa-download"></i> Download</a>-->
                 </form>
                 
                 <div class="dialog message" style="width: 100%; margin-top:2em; margin-bottom:1em; margin-left: 0em; margin-right: 0em;">
@@ -78,7 +80,7 @@
                             <table>
                                 <thead>
                                     <tr>
-                                        <th colspan="4">Year [% yearstat.year %]</th>
+                                        <th colspan="4">Year [% yearstat.year | html %]</th>
                                     </tr>
                                     <tr>
                                         <th>VG WORT media type</th>
@@ -90,12 +92,12 @@
                                 [% FOREACH stat IN yearstat.stats %]
                                     <tbody>
                                         <tr>
-                                            <td>[% stat.mediaType %]</td>
-                                            <td>[% stat.count %]</td>
-                                            <td>[% stat.isscount %]</td>
+                                            <td>[% stat.mediaType | html %]</td>
+                                            <td>[% stat.count | html %]</td>
+                                            <td>[% stat.isscount | html %]</td>
                                             <td>
                                                 [% FOR itype IN stat.itypes %]
-                                                    [% ItemTypes.GetDescription(itype) %] ([% stat.itypeCount.$itype %] titles)<br>
+                                                    [% ItemTypes.GetDescription(itype) | html %] ([% stat.itypeCount.$itype | html %] titles)<br>
                                                 [% END %]
                                             </td>
                                         </tr>

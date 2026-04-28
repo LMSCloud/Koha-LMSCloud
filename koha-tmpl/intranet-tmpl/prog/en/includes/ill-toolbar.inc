@@ -9,7 +9,7 @@
                 </button>
                 <ul class="dropdown-menu" aria-labelledby="ill-backend-dropdown">
                     [% FOREACH backend IN backends %]
-                        <li><a class="dropdown-item" id="[% backend %]BackendNameInDropDown" href="/cgi-bin/koha/ill/ill-requests.pl?method=create&amp;backend=[% backend | uri %]">[% backend | html %]</a></li>
+                        <li><a class="dropdown-item" id="[% backend | html %]BackendNameInDropDown" href="/cgi-bin/koha/ill/ill-requests.pl?method=create&amp;backend=[% backend | uri %]">[% backend | html %]</a></li>
                     [% END %]
                 </ul>
             </div>
@@ -113,9 +113,9 @@
     function updateBackendNamesInDropDown() {
         [% IF backends_available %]
             [% FOREACH backend IN backends %]
-                var linkForCreateIllRequest = document.getElementById('[% backend %]BackendNameInDropDown');
+                var linkForCreateIllRequest = document.getElementById('[% backend | html %]BackendNameInDropDown');
                 if ( linkForCreateIllRequest ) {
-                    linkForCreateIllRequest.innerText = backendNameToDesignation ('[% backend %]');
+                    linkForCreateIllRequest.innerText = backendNameToDesignation ('[% backend | html %]');
                 }
             [% END %]
         [% END %]
@@ -156,7 +156,7 @@
             if ( requestTypeElement ) {
                 requestTypeText = '[% type | html %]';
                 if ( requestTypeText ) {
-                    requestTypeElement.innerText = requestTypeElement.innerText.replace(requestTypeText,mediumTypeToDesignation ('[% type %]', '[% type %]'));
+                    requestTypeElement.innerText = requestTypeElement.innerText.replace(requestTypeText,mediumTypeToDesignation ('[% type | html %]', '[% type | html %]'));
                 }
             }
         [% END %]
@@ -168,12 +168,12 @@
         if ( supplierDetailsHeader ) {
             supplierDetailsHeaderText = supplierDetailsHeader.innerText;
             if ( supplierDetailsHeaderText ) {
-                supplierDetailsHeader.innerText = supplierDetailsHeaderText.replace('[% request.backend %]',backendNameToDesignation ('[% request.backend %]'));
+                supplierDetailsHeader.innerText = supplierDetailsHeaderText.replace('[% request.backend | html %]',backendNameToDesignation ('[% request.backend | html %]'));
             }
         }
         [% FOREACH requestmetadata IN request.metadata %]
             var labeltext = 'undef_labeltext';
-            var requestmetadatakey = '[% requestmetadata.key %]';
+            var requestmetadatakey = '[% requestmetadata.key | html %]';
             if ( requestmetadatakey ) {
                 var labelId = 'labelForMetaData'.concat(requestmetadatakey);
                 var labelHavingLabelId = document.getElementById(labelId);

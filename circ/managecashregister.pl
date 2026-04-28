@@ -106,6 +106,7 @@ elsif ( scalar(@cash_registers)==0 ) {
 #
 ##########################################################
 my $op = $query->param('op') || '';
+$op =~ s/^cud-//;
 my $cash_register_id = $query->param('cash_register_id');
 my $lastTransaction = undef;
 

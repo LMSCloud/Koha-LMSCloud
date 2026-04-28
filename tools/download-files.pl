@@ -58,6 +58,7 @@ $outputdir = File::Spec->catpath( "", $outputdir, "batchprint" );
 
 my $op = $input->param('op');
 $op ||= q{};
+$op =~ s/^cud-//;
 
 if ( $op eq 'download' ) {
     my $content;

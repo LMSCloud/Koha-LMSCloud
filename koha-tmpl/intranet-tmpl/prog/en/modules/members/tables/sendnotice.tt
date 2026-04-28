@@ -1,7 +1,7 @@
 {
-    "letter_created": [% letter_created %],
-    "letter_printed": [% letter_printed %],
-    "letter_mailed": [% letter_mailed %],
+    "letter_created": [% letter_created | html %],
+    "letter_printed": [% letter_printed | html %],
+    "letter_mailed": [% letter_mailed | html %],
     "printedfile": "[% printedfile | html %]",
     "letter": [
         [% FOREACH letter IN letters %]

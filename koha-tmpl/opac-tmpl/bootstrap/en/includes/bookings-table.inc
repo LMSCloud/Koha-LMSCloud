@@ -71,10 +71,10 @@
                 </td>
                 [% IF BOOKING.item %]
                     <td class="item-type">
-                        [% BOOKING.item.itemtype.description %]
+                        [% BOOKING.item.itemtype.description | html %]
                     </td>
                     <td class="barcode">
-                        [% BOOKING.item.barcode %]
+                        [% BOOKING.item.barcode | html %]
                     </td>
                 [% ELSE %]
                     <td>&ndash;</td>

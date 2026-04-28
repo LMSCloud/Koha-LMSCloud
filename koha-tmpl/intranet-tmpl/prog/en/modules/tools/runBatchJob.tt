@@ -41,6 +41,7 @@
                 <div>
                    <h3 for="process_output">Program output</h3>
                    <form name="jobProgress" method="post" action="/cgi-bin/koha/tools/runBatchJob.pl">
+                       [% INCLUDE 'csrf-token.inc' %]
                        <p>
                        [% IF ( status == 'launched' ) %]
                            Batch job launched.
@@ -50,7 +51,7 @@
                            The job ended.
                        [% END %] 
                        </p>
-                       <input type="hidden" name="op" value="progress" />
+                       <input type="hidden" name="op" value="cud-progress" />
                        <input type="hidden" name="cmd" value="" />
                        <p>
                            <div style="border:1px solid black;height:200px;width:100%;overflow-y:scroll;overflow-x:scroll;padding: 5px">
@@ -68,7 +69,8 @@
                 [% END %]
                 <h3 for="process_output">Available batch jobs</h3>
                 <form name="runJob" method="post" action="/cgi-bin/koha/tools/runBatchJob.pl">
-                    <input type="hidden" name="op" value="run" />
+                    [% INCLUDE 'csrf-token.inc' %]
+                    <input type="hidden" name="op" value="cud-run" />
                     <input type="hidden" id="jobcmd" name="cmd" value="" />
                     <table>
                         <thead>
@@ -133,7 +135,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                                 <select id="membership_expiry_form" name="membership_expiry_form">
                                                     <option value="" selected="selected">Default</option>
                                                     [% FOREACH letterloo IN membershipReminderLetters %]
-                                                        <option value="[% letterloo.name %]">[% letterloo.name %]</option>
+                                                        <option value="[% letterloo.name | html %]">[% letterloo.name | html %]</option>
                                                     [% END %]
                                                 </select>
                                             </td>
@@ -183,7 +185,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                                 <select id="overdue_notices_groups" name="overdue_notices_groups" size="5" multiple="multiple">
                                                     <option value="---all---" selected="selected">All</option>
                                                     [% FOREACH categoryloo IN categories %]
-                                                        <option value="[% categoryloo.categorycode %]">[% categoryloo.description %]</option>
+                                                        <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
                                                     [% END %]
                                                 </select>
                                             </td>
@@ -270,7 +272,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                                 <select name="gather_print_notices_letter_code" id="gather_print_notices_letter_code">
                                                     <option value="">All</option>
                                                     [% FOREACH lettertypeloo IN printlettercodes %]
-                                                        <option value="[% lettertypeloo.lettercode %]">[% lettertypeloo.lettercode %]</option>
+                                                        <option value="[% lettertypeloo.lettercode | html %]">[% lettertypeloo.lettercode | html %]</option>
                                                     [% END %]
                                                 </select>
                                             </td>
@@ -326,7 +328,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                                 <select name="delete_patrons_categorycode" id="delete_patrons_categorycode">
                                                     <option value="">All</option>
                                                     [% FOREACH categoryloo IN categories %]
-                                                        <option value="[% categoryloo.categorycode %]">[% categoryloo.description %]</option>
+                                                        <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
                                                     [% END %]
                                                 </select>
                                             </td>
@@ -368,7 +370,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                             <td>
                                                 <select id="juv2adult_from" name="juv2adult_from">
                                                     [% FOREACH categoryloo IN categories %]
-                                                        <option value="[% categoryloo.categorycode %]">[% categoryloo.description %]</option>
+                                                        <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
                                                     [% END %]
                                                 </select>
                                             </td>
@@ -378,7 +380,7 @@ produced by other features of Koha. The message queue must be processed regularl
                                             <td>
                                                 <select id="juv2adult_to" name="juv2adult_to">
                                                     [% FOREACH categoryloo IN categories %]
-                                                        <option value="[% categoryloo.categorycode %]">[% categoryloo.description %]</option>
+                                                        <option value="[% categoryloo.categorycode | html %]">[% categoryloo.description | html %]</option>
                                                     [% END %]
                                                 </select>
                                             </td>
@@ -429,7 +431,7 @@ produced by other features of Koha. The message queue must be processed regularl
      </div> <!-- /.row -->
     
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/tools-menu.js") %]
+    [% Asset.js("js/tools-menu.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
         <script type="text/javascript">
         function start(func) {

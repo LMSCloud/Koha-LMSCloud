@@ -17,11 +17,11 @@
     ></booking-modal-island>
 </div>
 
-[% SET islands = Asset.js("js/vue/dist/islands.esm.js").match('(src="([^"]+)")').1 %] <script src="[% islands %]" type="module">
+[% SET islands = Asset.js("js/vue/dist/islands.esm.js").match('(src="([^"]+)")').1 %] <script src="[% islands | html %]" type="module">
 </script>
 [% SET additional_fields_data = AdditionalFields.with_authorised_values({ tablename => 'bookings' }) %]
 <script type="module">
-    import { hydrate } from "[% islands %]";
+    import { hydrate } from "[% islands | html %]";
     hydrate();
 
     const island = document.querySelector("booking-modal-island");
@@ -49,8 +49,8 @@
                 // Use the new idiomatic interface for additional fields and authorized values
                 // Convert the Perl data structure to JSON using a more reliable method
                 const additionalFieldsData = {
-                    fields: [% To.json(additional_fields_data.fields) %],
-                    authorised_values_by_category: [% To.json(additional_fields_data.authorised_values_by_category) %]
+                    fields: [% To.json(additional_fields_data.fields) | $raw %],
+                    authorised_values_by_category: [% To.json(additional_fields_data.authorised_values_by_category) | $raw %]
                 };
 
                 island.extendedAttributeTypes = JSON.parse(props.extended_attribute_types || JSON.stringify(additionalFieldsData.fields) || "[]");

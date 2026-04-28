@@ -6,7 +6,7 @@
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Update due-dates &rsaquo; Tools &rsaquo; Koha</title>
-[% Asset.css("css/datatables.css") %]
+[% Asset.css("css/datatables.css") | $raw %]
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -35,7 +35,7 @@
 [%        CASE 'wrong_date_format_new_due_date'      %]New due-date has an invalid format.
 [%        CASE 'current_due_date_before_today'       %]Current due-date is earlier than today.
 [%        CASE 'new_due_date_before_today'           %]New due-date is earlier than today.
-[%        CASE %][% errorcode %]
+[%        CASE %][% errorcode | html %]
 [%    END %]
 [% END %]
 
@@ -83,13 +83,13 @@
                     
                     [% IF (itemschanged > 0) %]
                     <div class="dialog message">
-                        Due-dates of [% itemschanged %] items updated.
+                        Due-dates of [% itemschanged | html %] items updated.
                     </div>
                     [% END %]
                     
                     [% FOREACH perror IN processerrors %]
                      <div class="dialog alert">
-                        Setting due-date from [% perror.currentDueDate %] to [% perror.newDueDate %] failed.<br />
+                        Setting due-date from [% perror.currentDueDate | html %] to [% perror.newDueDate | html %] failed.<br />
                         [% PROCESS translate_errorcode errorcode=perror.errorcode %]
                      </div>
                     [% END %]
@@ -102,6 +102,7 @@
                     
                     [% IF ( founddates > 0 ) %]
                     <form id="changeDate" method="post" action="/cgi-bin/koha/tools/duedate_change.pl">
+                        [% INCLUDE 'csrf-token.inc' %]
                         <div class="row">
                             <div class="col-sm-6">
                                 <fieldset class="rows">
@@ -122,13 +123,13 @@
                                             [% FOREACH duedate IN duedates %]
                                             <tr>
                                                 <td>
-                                                    <label><input type="checkbox" name="selected_dates" value="[% duedate.0 | $KohaDates %]" data-date="[% duedate.0 %]"></label>
+                                                    <label><input type="checkbox" name="selected_dates" value="[% duedate.0 | $KohaDates %]" data-date="[% duedate.0 | html %]"></label>
                                                 </td>
-                                                <td>[% duedate.0 %]</td>
-                                                <td>[% duedate.1.count %]</td>
+                                                <td>[% duedate.0 | html %]</td>
+                                                <td>[% duedate.1.count | html %]</td>
                                                 <td>[% countlib = duedate.1.branchcode.size %][% currlib = 0 %]
                                                     [% FOREACH duelibrary IN duedate.1.branchcode.keys %]
-                                                        [% Branches.GetName(duelibrary) %] ([% duedate.1.branchcode.$duelibrary %])[% currlib = currlib + 1 %][% IF (currlib < countlib) %]<br />[% END %]
+                                                        [% Branches.GetName(duelibrary) | html %] ([% duedate.1.branchcode.$duelibrary | html %])[% currlib = currlib + 1 %][% IF (currlib < countlib) %]<br />[% END %]
                                                     [% END %]
                                                 </td>
                                             </tr>
@@ -152,7 +153,7 @@
                                            </li>
                                            <li>
                                                 <label>&nbsp;</label>
-                                                <button type="submit" class="btn btn-default btn-xs btn-primary" name="op" value="update"><i class="fa fa-edit"></i> Update</button>
+                                                <button type="submit" class="btn btn-default btn-xs btn-primary" name="op" value="cud-update"><i class="fa fa-edit"></i> Update</button>
                                            </li>
                                         </ol>
                                     </fieldset>
@@ -279,8 +280,8 @@
         $(document).ready(function() {
             var sel = $('#groups');
             
-            var selectedgroup = "[% selectedgroup %]";
-            var selectedbranch = "[% selectedbranch %]";
+            var selectedgroup = "[% selectedgroup | html %]";
+            var selectedbranch = "[% selectedbranch | html %]";
 
             
             $("#changeDate-actions").css("visibility", "hidden");

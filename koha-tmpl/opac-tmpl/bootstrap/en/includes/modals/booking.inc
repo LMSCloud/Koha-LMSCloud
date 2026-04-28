@@ -1,14 +1,14 @@
 [% USE Branches %]
 [% SET booking_id = BOOKING.booking_id | html %]
 
-<div class="modal" id="[% action %]-[% booking_id %]" tabindex="-1" aria-labelledby="[% action %]-[% booking_id %]-label" aria-hidden="true">
+<div class="modal" id="[% action | html %]-[% booking_id | html %]" tabindex="-1" aria-labelledby="[% action | html %]-[% booking_id | html %]-label" aria-hidden="true">
     <div class="modal-dialog">
-        <form id="[% action %]-form-[% booking_id %]" action="/cgi-bin/koha/opac-bookings.pl" method="post">
+        <form id="[% action | html %]-form-[% booking_id | html %]" action="/cgi-bin/koha/opac-bookings.pl" method="post">
             [% INCLUDE 'csrf-token.inc' %]
-            <input type="hidden" name="op" value="cud-[% action.replace('-', '_') %]">
+            <input type="hidden" name="op" value="cud-[% action.replace('-', '_') | html %]">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h1 class="modal-title" id="[% action %]-[% booking_id %]-label">
+                    <h1 class="modal-title" id="[% action | html %]-[% booking_id | html %]-label">
                         [% SWITCH action %]
                             [% CASE 'change-pickup-location' %]
                                 Change pickup location for booking of <em>[% INCLUDE 'biblio-title.inc' biblio=BOOKING.item.biblio %]</em>
@@ -25,8 +25,8 @@
                     [% SWITCH action %]
                         [% CASE 'change-pickup-location' %]
                             <div class="form-group">
-                                <label for="new-pickup-location-[% booking_id %]">New pickup location:</label>
-                                <select name="new_pickup_location" id="new-pickup-location-[% booking_id %]" class="form-select">
+                                <label for="new-pickup-location-[% booking_id | html %]">New pickup location:</label>
+                                <select name="new_pickup_location" id="new-pickup-location-[% booking_id | html %]" class="form-select">
                                     [% PROCESS options_for_libraries libraries = Branches.pickup_locations({ search_params => { biblio => BOOKING.item.biblio, patron => BOOKING.patron_id }, selected => BOOKING.pickup_library_id }) %]
                                 </select>
                             </div>
@@ -41,7 +41,7 @@
                             <input name="end_date">
                         -->
                             <fieldset class="brief">
-                                <input type="hidden" name="biblio_id" id="biblio-id" value="[% biblio.biblionumber %]">
+                                <input type="hidden" name="biblio_id" id="biblio-id" value="[% biblio.biblionumber | html %]">
                                 <ol>
                                     <li>
                                         <label class="required" for="pickup-library-id">Pickup at:</label>
@@ -55,7 +55,7 @@
                                         <select name="item_id" id="booking-item-id">
                                             <option value="0">Any item</option>
                                             [% FOR item IN biblio.bookable_items %]
-                                                <option value="[% item.itemnumber %]">[% item.barcode %]</option>
+                                                <option value="[% item.itemnumber | html %]">[% item.barcode | html %]</option>
                                             [% END %]
                                         </select>
                                     </li>
@@ -71,10 +71,10 @@
                             </fieldset>
                         [% CASE %]
                     [% END %]
-                    <input type="hidden" name="booking_id" value="[% booking_id %]" />
+                    <input type="hidden" name="booking_id" value="[% booking_id | html %]" />
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" name="[% action.replace('-', '_') %]" value="1" class="btn btn-primary">
+                    <button type="submit" name="[% action.replace('-', '_') | html %]" value="1" class="btn btn-primary">
                         <i class="fa fa-check" aria-hidden="true"></i>&nbsp;
                         [% SWITCH action %]
                             [% CASE 'cancel' %]

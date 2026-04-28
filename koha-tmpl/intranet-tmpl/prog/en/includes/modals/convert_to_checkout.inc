@@ -1,6 +1,8 @@
 <!-- Convert to checkout confirmation modal -->
 <div class="modal" id="convertToCheckoutModal" tabindex="-1" role="dialog" aria-labelledby="convertToCheckoutLabel">
     <form id="convertToCheckoutForm" method="post" action="">
+        [% INCLUDE 'csrf-token.inc' %]
+        <input type="hidden" name="op" value="cud-convert_to_checkout" />
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">

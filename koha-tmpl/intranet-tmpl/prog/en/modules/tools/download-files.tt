@@ -79,8 +79,9 @@
                     </div>
                     
                     <form method="post" action="/cgi-bin/koha/tools/download-files.pl" target="_new" name="downloadfile" enctype="multipart/form-data">
+			[% INCLUDE 'csrf-token.inc' %]
 			<input type="hidden" name="filename" value="">
-			<input type="hidden" name="op" value="download">
+			<input type="hidden" name="op" value="cud-download">
                         <div class="row">
                             <div class="col-sm-4"> 
                                 <fieldset class="brief" id="downloaddates">
@@ -89,7 +90,7 @@
                                     <label for="datelist">Select date </label>
                                     <div class="downloaddatelist" id="datelist">
 					[% i=-1 %][% FOREACH dir IN dirlist %]
-                                        <a href="javascript:showfiles([% (i = i + 1) %])"><div class="listitem">[% dir.displaydate %]</div></a>
+                                        [% SET i = i + 1 %]<a href="javascript:showfiles([% i | uri %])"><div class="listitem">[% dir.displaydate | html %]</div></a>
                                         [% END %]
                                     </div>
 
@@ -118,11 +119,11 @@
     </div> <!-- /.row -->
 
 [% MACRO jsinclude BLOCK %]
-    [% Asset.js("js/tools-menu.js") %]
+    [% Asset.js("js/tools-menu.js") | $raw %]
     <script type="text/javascript">
         var dirs = new Array;
         [% FOREACH dir IN dirlist %]
-        dirs.push( { displaydate: "[% dir.displaydate %]", sortdate: "[% dir.sortdate %]", files: ["[% dir.files.join('","') %]"]} );
+        dirs.push( { displaydate: "[% dir.displaydate | html %]", sortdate: "[% dir.sortdate | html %]", files: ["[% dir.files.join('","') | html %]"]} );
         [% END %]
 
         function showfiles(index) {

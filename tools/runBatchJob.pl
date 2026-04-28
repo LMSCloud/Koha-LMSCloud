@@ -51,6 +51,7 @@ my $dbh       = C4::Context->dbh;
 
 my $cmd = $input->param('cmd') || '';
 my $op  = $input->param('op') || '';
+$op =~ s/^cud-//;
 
 my $runCmd = '';
 

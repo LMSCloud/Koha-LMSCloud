@@ -66,6 +66,8 @@
                 
                 [% IF action == 'upload_file' %]
                     <form id="select_file" class="validated" method="post" enctype="multipart/form-data" novalidate="novalidate">
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-check_update" />
                         <fieldset class="rows">
                              <legend>Select authorised value category and CSV-file</legend>
                              <ol>
@@ -126,6 +128,8 @@
                     <br>
                     <br>
                     <form id="do_update" method="post">
+                        [% INCLUDE 'csrf-token.inc' %]
+                        <input type="hidden" name="op" value="cud-do_update" />
                         <table class="table">
                             <thead>
                                 <tr>
@@ -164,11 +168,11 @@
                                             [% IF rule.action && !rule.error  %]
                                                 [% actionline = actionline+1 %]
                                                 <span style="color: green;"><i class="fa fa-check" aria-hidden="true"></i></span>
-                                                <input type="hidden" name="action_[% actionline %]"           value="[% rule.action.do | html %]">
-                                                <input type="hidden" name="select_[% actionline %]"           value="[% rule.action.old_authorised_value | html %]">
-                                                <input type="hidden" name="authorised_value_[% actionline %]" value="[% rule.action.authorised_value | html %]">
-                                                <input type="hidden" name="lib_[% actionline %]"              value="[% rule.action.lib | html %]">
-                                                <input type="hidden" name="lib_opac_[% actionline %]"         value="[% rule.action.lib_opac | html %]">
+                                                <input type="hidden" name="action_[% actionline | html %]"           value="[% rule.action.do | html %]">
+                                                <input type="hidden" name="select_[% actionline | html %]"           value="[% rule.action.old_authorised_value | html %]">
+                                                <input type="hidden" name="authorised_value_[% actionline | html %]" value="[% rule.action.authorised_value | html %]">
+                                                <input type="hidden" name="lib_[% actionline | html %]"              value="[% rule.action.lib | html %]">
+                                                <input type="hidden" name="lib_opac_[% actionline | html %]"         value="[% rule.action.lib_opac | html %]">
                                             [% ELSE %]
                                                 <span style="color: red;"><i class="fa fa-ban" aria-hidden="true"></i></span>
                                             [% END %]
@@ -212,29 +216,29 @@
                                         </td>
                                         <td style="white-space: nowrap;">
                                             [% IF rule.action && rule.action.do == "update" %]
-                                                [% rule.action.old_authorised_value %]<br>
+                                                [% rule.action.old_authorised_value | html %]<br>
                                             [% ELSIF rule.action %]
-                                                [% rule.action.authorised_value %]
+                                                [% rule.action.authorised_value | html %]
                                             [% ELSE %]
-                                                [% rule.newValue %]
+                                                [% rule.newValue | html %]
                                             [% END %]
                                         </td>
                                         <td style="white-space: nowrap;">
                                             [% IF rule.action && rule.action.do == "update" %]
-                                                [% rule.action.old_lib %]<br>
+                                                [% rule.action.old_lib | html %]<br>
                                             [% ELSIF rule.action %]
-                                                [% rule.action.lib %]
+                                                [% rule.action.lib | html %]
                                             [% ELSE %]
-                                                [% rule.newDescription %]
+                                                [% rule.newDescription | html %]
                                             [% END %]
                                         </td>
                                         <td style="white-space: nowrap;">
                                             [% IF rule.action && rule.action.do == "update" %]
-                                                [% rule.action.old_lib_opac %]<br>
+                                                [% rule.action.old_lib_opac | html %]<br>
                                             [% ELSIF rule.action %]
-                                                [% rule.action.lib_opac %]
+                                                [% rule.action.lib_opac | html %]
                                             [% ELSE %]
-                                                [% rule.newDescriptionOpac %]
+                                                [% rule.newDescriptionOpac | html %]
                                             [% END %]
                                         </td>
                                     </tr>
@@ -244,13 +248,13 @@
                                             After
                                         </td>
                                         <td>
-                                            [% rule.action.authorised_value %]
+                                            [% rule.action.authorised_value | html %]
                                         </td>
                                         <td>
-                                            [% rule.action.lib %]
+                                            [% rule.action.lib | html %]
                                         </td>
                                         <td>
-                                            [% rule.action.lib_opac %]
+                                            [% rule.action.lib_opac | html %]
                                         </td>
                                     </tr>
                                     [% END %]
@@ -258,8 +262,8 @@
                             </tbody>
                         </table>
                         <input type="hidden" name="action" value="do_update">
-                        <input type="hidden" name="category" value="[% category %]">
-                        <input type="hidden" name="actioncount" value="[% actionline %]">
+                        <input type="hidden" name="category" value="[% category | html %]">
+                        <input type="hidden" name="actioncount" value="[% actionline | html %]">
                         <br>
                         [% IF !errors && line_actions && !line_errors %]
                             <input type="submit" class="btn btn-primary" value="Start update">
@@ -277,9 +281,9 @@
                     <p>
                         The authorised value batch update executed:
                         <ul>
-                            <li>[% deleted %] deleted authorised values</li>
-                            <li>[% updated %] updated authorised values</li>
-                            <li>[% created %] new authorised values</li>
+                            <li>[% deleted | html %] deleted authorised values</li>
+                            <li>[% updated | html %] updated authorised values</li>
+                            <li>[% created | html %] new authorised values</li>
                         </ul>
                     </p>
                     <h2>Processed updates</h2>
@@ -314,13 +318,13 @@
                                     [% END %]
                                 </td>
                                 <td>
-                                    [% actionresult.authorised_value %]
+                                    [% actionresult.authorised_value | html %]
                                 </td>
                                 <td>
-                                    [% actionresult.lib %]
+                                    [% actionresult.lib | html %]
                                 </td>
                                 <td>
-                                    [% actionresult.lib_opac %]
+                                    [% actionresult.lib_opac | html %]
                                 </td>
                             </tr>
                             [% END %]

@@ -77,6 +77,7 @@ my $html_output_done = 0;
 our $input = new CGI;
 our $script_name  = '/cgi-bin/koha/reports/aggregated_statistics.pl';
 our $op = $input->param('op') || '';
+$op =~ s/^cud-//;
 
 our $aggregatedstatistics = C4::AggregatedStatistics::AggregatedStatisticsFactory->getAggregatedStatisticsClass(scalar $input->param('statisticstype'),$input);    # creat instance of class derived from AggregatedStatisticsBase
 

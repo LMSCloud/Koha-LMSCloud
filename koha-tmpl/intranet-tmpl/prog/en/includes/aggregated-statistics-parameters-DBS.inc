@@ -48,8 +48,8 @@
         $(document).ready(function() {
             var sel = $('#groups');
             
-            var selectedgroup = "[% additionalparameters.selectedgroup %]";
-            var selectedbranch = "[% additionalparameters.selectedbranch %]";
+            var selectedgroup = "[% additionalparameters.selectedgroup | html %]";
+            var selectedbranch = "[% additionalparameters.selectedbranch | html %]";
             
             $.each(categories, function(code, categ) {
                 sel.append($('<option></option>').val(code).html(categ.name).attr('selected', categ.sel));
