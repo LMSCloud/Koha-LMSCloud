@@ -94,6 +94,22 @@ if ( defined($desk_id) && ( !$userenv_desk || $userenv_desk ne $desk_id ) ) {
     $desk_id = $userenv_desk;
 }
 
+if ( defined($register_id)
+    && ( !$userenv_register_id || $userenv_register_id ne $register_id ) )
+{
+    if ($register_id) {
+        my $register = Koha::Cash::Registers->find($register_id);
+        $session->param( 'register_id',   $register_id );
+        $session->param( 'register_name', $register ? $register->name : '' );
+    } else {
+        # "No register" was explicitly selected - clear register from session
+        $session->clear( [ 'register_id', 'register_name' ] );
+    }
+    push @updated, { updated_register => 1 };
+} else {
+    $register_id = $userenv_register_id;
+}
+
 # store the branchcategory selection for the session
 if ( C4::Context->preference('BookMobileSupportEnabled') and
      defined($branchcategory) and $branchcategory ne $userenv_branchcategory) {

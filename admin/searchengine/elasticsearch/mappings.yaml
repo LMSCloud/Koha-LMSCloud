@@ -3464,7 +3464,7 @@ biblios:
     type: string
   publyear:
     facet_order: 3
-    label: publyear
+    label: Years
     mappings:
       - facet: 1
         marc_field: 008_/7-10
@@ -3876,6 +3876,19 @@ biblios:
       marc_type: unimarc
       sort: 1
       suggestible: 1
+    opac: 1
+    staff_client: 1
+    type: string
+  subject-genre-form:
+    facet_order: 10
+    label: Genres
+    mandatory: ~
+    mappings:
+    - facet: 1
+      marc_field: 655a
+      marc_type: marc21
+      sort: ~
+      suggestible: ''
     opac: 1
     staff_client: 1
     type: string
