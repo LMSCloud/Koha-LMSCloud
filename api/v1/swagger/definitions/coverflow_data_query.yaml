@@ -1,11 +1,11 @@
 type: object
 properties:
-  countItems:
+  count:
     description: number of items in response
     type:
       - integer
       - 'null'
-  totalCount:
+  totalcount:
     description: number of total search results with query string
     type:
       - integer

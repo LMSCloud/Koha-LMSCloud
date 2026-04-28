@@ -30,10 +30,7 @@
       '200':
         description: An object that contains coverflow data in a list of biblios by query string
         schema:
-          type: object
-          additionalProperties: false
-          items:
-            $ref: "../swagger.yaml#/definitions/coverflow_data_query"
+          $ref: "../swagger.yaml#/definitions/coverflow_data_query"
       "400":
         description: |
           Bad request. Possible `error_code` attribute values:
