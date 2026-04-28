@@ -143,10 +143,7 @@ export function getSelectValueString($select) {
 export async function fetchItemTypeFilterOptions() {
     const response = await fetch("/api/v1/item_types?_per_page=-1");
     if (!response.ok) {
-        console.warn(
-            "Failed to fetch item types for filter, status:",
-            response.status
-        );
+        console.warn("Failed to fetch item types for filter, status:", response.status);
         return { options: [], parentMap: {}, groups: [] };
     }
     /** @type {Array<{item_type_id:string, parent_type:string|null, description:string}>} */
@@ -158,8 +155,7 @@ export async function fetchItemTypeFilterOptions() {
     itemTypes
         .filter(it => it.parent_type)
         .forEach(it => {
-            if (!childrenByParent[it.parent_type])
-                childrenByParent[it.parent_type] = [];
+            if (!childrenByParent[it.parent_type]) childrenByParent[it.parent_type] = [];
             childrenByParent[it.parent_type].push(it);
         });
 
@@ -170,19 +166,13 @@ export async function fetchItemTypeFilterOptions() {
     /** @type {ItemTypeGroup[]} */
     const groups = [];
 
-    parents.sort((a, b) =>
-        (a.description || "").localeCompare(b.description || "")
-    );
+    parents.sort((a, b) => (a.description || "").localeCompare(b.description || ""));
 
     parents.forEach(parent => {
-        const children = (childrenByParent[parent.item_type_id] || []).sort(
-            (a, b) => (a.description || "").localeCompare(b.description || "")
-        );
+        const children = (childrenByParent[parent.item_type_id] || [])
+            .sort((a, b) => (a.description || "").localeCompare(b.description || ""));
 
-        const parentOption = {
-            _id: parent.item_type_id,
-            _str: parent.description || parent.item_type_id,
-        };
+        const parentOption = { _id: parent.item_type_id, _str: parent.description || parent.item_type_id };
         options.push(parentOption);
 
         if (children.length > 0) {
