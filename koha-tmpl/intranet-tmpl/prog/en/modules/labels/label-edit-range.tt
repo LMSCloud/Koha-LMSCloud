@@ -10,7 +10,6 @@
     [% END %]</title
 >
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'greybox.inc' %]
 </head>
 <body id="labels_label-home" class="tools labels">
 [% WRAPPER 'header.inc' %]
@@ -31,44 +30,29 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
-                [% INCLUDE 'labels-toolbar.inc' %]
-                <h1>Print barcode range</h1>
-                <form name="add_by_number" action="/cgi-bin/koha/labels/label-edit-batch.pl" method="post">
-                    [% INCLUDE 'csrf-token.inc' %]
-                    <input type="hidden" name="op" value="cud-add" />
-                    <fieldset class="rows">
-                        <ol>
-                            <li>
-                                <label for="from-input">From:</label>
-                                <input type="text" inputmode="numeric" pattern="[0-9]*" name="from" id="from-input" value="0" style="text-align: right;" />
-                            </li>
-                            <li>
-                                <label for="to-input">To:</label>
-                                <input type="text" inputmode="numeric" pattern="[0-9]*" name="to" id="to-input" value="0" style="text-align: right;" />
-                            </li>
-                        </ol>
-                    </fieldset>
-                    <fieldset class="action">
-                        <button type="button" class="btn btn-primary" id="print">Print range</button>
-                    </fieldset>
-                </form>
-            </main>
-        </div>
-        <!-- /.col-md-10.order-md-2 -->
-
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'cat-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
-</div>
-<!-- /.main.container-fluid -->
+[% WRAPPER 'main-container.inc' aside='labels-menu' %]
+    [% INCLUDE 'labels-toolbar.inc' %]
+    <h1>Print barcode range</h1>
+    <form name="add_by_number" action="/cgi-bin/koha/labels/label-edit-batch.pl" method="post">
+        [% INCLUDE 'csrf-token.inc' %]
+        <input type="hidden" name="op" value="cud-add" />
+        <fieldset class="rows">
+            <ol>
+                <li>
+                    <label for="from-input">From:</label>
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" name="from" id="from-input" value="0" style="text-align: right;" />
+                </li>
+                <li>
+                    <label for="to-input">To:</label>
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" name="to" id="to-input" value="0" style="text-align: right;" />
+                </li>
+            </ol>
+        </fieldset>
+        <fieldset class="action">
+            <button type="button" class="btn btn-primary" id="print">Print range</button>
+        </fieldset>
+    </form>
+[% END %]
 
 [% MACRO jsinclude BLOCK %]
     <script>
@@ -76,7 +60,7 @@
             var str = "";
             str += "from=" + document.getElementById("from-input").value + "&";
             str += "to=" + document.getElementById("to-input").value;
-            return GB_showCenter("Export labels", "/cgi-bin/koha/labels/label-print.pl?" + str, 400, 800);
+            location.href = "/cgi-bin/koha/labels/label-print.pl?" + str;
         }
 
         function checkTwoValue(_from, _to, _id) {
@@ -108,7 +92,7 @@
         }
 
         $(document).ready(function () {
-            $('#navmenulist a[href$="/cgi-bin/koha/labels/label-home.pl"]').addClass("current");
+            $('.sidebar_menu a[href$="/cgi-bin/koha/labels/label-home.pl"]').addClass("current");
             $.validator.addMethod(
                 "gt",
                 function (value, element, params) {

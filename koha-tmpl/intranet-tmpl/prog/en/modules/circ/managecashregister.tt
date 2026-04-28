@@ -46,10 +46,7 @@
     [% END #/ WRAPPER sub-header.inc %]
 
 
-    <div class="main container-fluid">
-        <div class="row">
-            <div class="col-md-10 order-md-2 order-sm-1">
-                <main>
+[% WRAPPER 'main-container.inc' aside='circ-cashregister-aside' %]
                     <div id="cash-register-configuration">
                         <h1>
                             Cash register management
@@ -92,7 +89,7 @@
                             <input type="hidden" name="op" value="cud-open" />
                             <input id="journalfrom" type="hidden" name="journalfrom" value="[% journalfrom | html %]">
                             <input id="journalto" type="hidden" name="journalto" value="[% journalto | html %]">
-                            &nbsp;&nbsp;<button class="btn btn-default btn-xs" submit=""><i class="fa fa-money"></i> Open cash register</button>
+                            &nbsp;&nbsp;<button class="btn btn-default btn-xs" submit=""><i class="fa fa-money-bill"></i> Open cash register</button>
                         </form>
                         <div id="toolbar" class="btn-toolbar">
                             <a id="linkfinesreport" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id | uri %]&op=finesreport"><i class="fa fa-balance-scale"></i> Fines overviews</a>
@@ -102,7 +99,7 @@
                         [% IF status == 'manage' %]
                             <div id="toolbar" class="btn-toolbar">
                                 <a id="linkclosecashregister" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id | uri %]&op=doclose"><i class="fa fa-times"></i> Close</a>
-                                <a id="linkpayoutcashregister" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id | uri %]&op=dopayout"><i class="fa fa-money"></i> Cash payment</a>
+                                <a id="linkpayoutcashregister" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id | uri %]&op=dopayout"><i class="fa fa-money-bill"></i> Cash payment</a>
                                 <a id="linkdepositcashregister" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id | uri %]&op=dodeposit"><i class="fa fa-gift"></i> Deposit</a>
                                 <a id="linkadjustcashregister" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id | uri %]&op=doadjust"><i class="fa fa-adjust"></i> Difference posting</a>
                                 <a id="linkshowcashregister" class="btn btn-default btn-xs cashregisterlink" href="/cgi-bin/koha/circ/managecashregister.pl?cash_register_id=[% cash_register.cash_register_id | uri %]&op="><i class="fa fa-list"></i> Cash journal</a>
@@ -461,49 +458,11 @@
                         [% END %]
                         [% debug | html %]
                     </div>
-                </main>
-            </div> <!-- /.col-md-10.order-md-2.order-sm-1 -->
-
-            <div class="col-md-2 order-sm-2 order-md-1">
-                <aside>
-                    [% IF ( status == 'manage' || status == 'close' ) %]
-                    <div class="cashregisterinfo">
-                        <h5>[% cash_register.cash_register_name | html %]</h5>
-                        <ul>
-                            <li class="cashregisterinfoentry">Library: [% Branches.GetName(cash_register.cash_register_branchcode) | html %]</li>
-                            <li>&nbsp;</li>
-                            <li><span class="hint">Balance</span></li>
-                            <li class="cashregisterimportantinfoentry">Cash balance: [% cash_register.cash_register_balance_formatted | html %]</li>
-                            <li class="cashregisterinfoentry">Opening balance: [% cash_register_info.opening_balance_formatted | html %]</li>
-                            <li class="cashregisterinfoentry">Cash receipts: [% cash_register_info.inpayments_amount_formatted | html %]</li>
-                            <li class="cahsregisterinfoentry">Cash payments: [% cash_register_info.payouts_amount_formatted | html %]</li>
-                        [% IF ( lastTransaction ) %]
-                            <li>&nbsp;</li>
-                            <li><span class="hint">Last transaction</span></li>
-                            [% cashaction = lastTransaction.action %]
-                            <li class="cashregisterinfoentry">Action: [% INCLUDE cashActionName %]</li>
-                            <li class="cashregisterinfoentry">Amount: [% lastTransaction.booking_amount_formatted | html %]</li>
-                            <li class="cashregisterinfoentry">Time: [% lastTransaction.booking_time | html %]</li>
-                        [% END %]
-                            <li>&nbsp;</li>
-                            <li><span class="hint">Manager</span></li>
-                            <li class="cashregisterinfoentry">Opened on: [% cash_register_info.opening_booking_time | html %]</li>
-                            <li class="cashregisterinfoentry">Opened by: [% cash_register_info.opening_manager | html %]</li>
-                            [% FOREACH additionalOpener IN cash_register_info.also_used_by_manager %]
-                            <li class="cashregisterinfoentry">Also in use by: [% additionalOpener.name | html %]</li>
-                            [% END %]
-                        </ul>
-                    </div>
-                    [% END %]
-                </aside>
-            </div> <!-- /.col-md-2.order-sm-2.order-md-1 -->
-        </div> <!-- /.row -->
-    </div>
+[% END %]
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
     [% INCLUDE 'calendar.inc' %]
-    [% Asset.js("lib/jquery/plugins/jquery-ui-timepicker-addon.min.js") | $raw %]
     [% Asset.js("lib/jquery/plugins/jquery.insertatcaret.js") | $raw %]
 
     <script type="text/javascript">

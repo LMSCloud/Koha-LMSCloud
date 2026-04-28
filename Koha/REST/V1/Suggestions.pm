@@ -13,7 +13,7 @@ package Koha::REST::V1::Suggestions;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -102,8 +102,10 @@ sub add {
 
                 if ( $max_total and $days_range ) {
 
-                    my $total = Koha::Suggestions->search( { suggestedby => $body->{suggested_by} } )
-                        ->filter_by_suggested_days_range($days_range)->count;
+                    my $total =
+                        Koha::Suggestions->search( { suggestedby => $body->{suggested_by} } )
+                        ->filter_by_suggested_days_range($days_range)
+                        ->count;
 
                     if ( $total >= $max_total ) {
                         return $c->render(

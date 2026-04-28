@@ -15,7 +15,7 @@ package C4::Context;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -107,7 +107,7 @@ sub import {
 
     # Create the default context ($C4::Context::Context)
     # the first time the module is called
-    # (a config file can be optionaly passed)
+    # (a config file can be optionally passed)
 
     # default context already exists?
     return if $context;
@@ -233,6 +233,12 @@ sub _common_config {
 sub config {
     return _common_config( $_[1], 'config' );
 }
+
+=head2 zebraconfig
+
+Missing POD for zebraconfig.
+
+=cut
 
 sub zebraconfig {
     return _common_config( $_[1], 'server' );
@@ -566,17 +572,19 @@ sub _new_Zconn {
     $syntax         = 'xml';
     $elementSetName = 'marcxml';
 
-    my $host       = _common_config( $server, 'listen' )->{content};
+    my $host = _common_config( $server, 'listen' );
+    $host = $host->{content};
     my $serverinfo = _common_config( $server, 'serverinfo' );
     my $user       = $serverinfo->{user};
     my $password   = $serverinfo->{password};
     eval {
         # set options
         my $o = ZOOM::Options->new();
-        $o->option( user                  => $user )     if $user && $password;
-        $o->option( password              => $password ) if $user && $password;
-        $o->option( async                 => 1 )         if $async;
-        $o->option( cqlfile               => _common_config( $server, 'server' )->{cql2rpn} );
+        $o->option( user     => $user )     if $user && $password;
+        $o->option( password => $password ) if $user && $password;
+        $o->option( async    => 1 )         if $async;
+        my $server_conf = _common_config( $server, 'server' );
+        $o->option( cqlfile               => $server_conf->{cql2rpn} );
         $o->option( cclfile               => $serverinfo->{ccl2rpn} );
         $o->option( preferredRecordSyntax => $syntax );
         $o->option( elementSetName        => $elementSetName ) if $elementSetName;
@@ -660,6 +668,31 @@ sub userenv {
     return $context->{userenv};
 }
 
+=head2 set_userenv_from_session
+
+  C4::Context->set_userenv_from_session($session);
+
+A wrapper around set_userenv, filling userenv from $session.
+And adding the session id into userenv!
+
+Called by C4/Auth.pm.
+
+=cut
+
+sub set_userenv_from_session {
+    my ( $class, $session ) = @_;
+    return $class->set_userenv(
+        $session->param('number'),       $session->param('id') // '',
+        $session->param('cardnumber'),   $session->param('firstname'),
+        $session->param('surname'),      $session->param('branch'),
+        $session->param('branchname'),   $session->param('flags'),
+        $session->param('emailaddress'), $session->param('shibboleth'),
+        $session->param('desk_id'),      $session->param('desk_name'),
+        $session->param('register_id'),  $session->param('register_name'),
+        $session->id,                    $session->param('branchcategory'),
+    );
+}
+
 =head2 set_userenv
 
   C4::Context->set_userenv($usernum, $userid, $usercnum,
@@ -682,7 +715,7 @@ sub set_userenv {
         $usernum,      $userid,        $usercnum,   $userfirstname,
         $usersurname,  $userbranch,    $branchname, $userflags,
         $emailaddress, $shibboleth,    $desk_id,    $desk_name,
-        $register_id,  $register_name, $branchcategory
+        $register_id,  $register_name, $session_id, $branchcategory,
     ) = @_;
 
     my $cell = {
@@ -702,6 +735,7 @@ sub set_userenv {
         "desk_name"     => $desk_name,
         "register_id"   => $register_id,
         "register_name" => $register_name,
+        "session_id"    => $session_id,
     };
     $cell->{branchcategory} = $branchcategory if defined $branchcategory;
     $context->{userenv}     = $cell;
@@ -824,6 +858,13 @@ sub interface {
 }
 
 # always returns a string for OK comparison via "eq" or "ne"
+
+=head2 mybranch
+
+Missing POD for mybranch.
+
+=cut
+
 sub mybranch {
     C4::Context->userenv or return '';
     return C4::Context->userenv->{branch} || '';

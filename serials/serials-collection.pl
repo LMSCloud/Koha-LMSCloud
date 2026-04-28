@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI      qw ( -utf8 );
@@ -82,14 +82,16 @@ if ( $op eq 'cud-gennext' && @subscriptionid ) {
             my $pattern   = C4::Serials::Numberpattern::GetSubscriptionNumberpattern( $subscription->{numberpattern} );
             my $frequency = C4::Serials::Frequency::GetSubscriptionFrequency( $subscription->{periodicity} );
             my $expected  = GetNextExpected($subscriptionid);
+
+            ## We generate the next publication date
+            my $nextpublisheddate = GetNextDate( $subscription, $expected->{publisheddate}, $frequency, 1 );
+
             my (
                 $newserialseq,  $newlastvalue1, $newlastvalue2, $newlastvalue3,
                 $newinnerloop1, $newinnerloop2, $newinnerloop3
             ) = GetNextSeq( $subscription, $pattern, $frequency, $expected->{publisheddate}, $count_forward );
 
-            ## We generate the next publication date
-            my $nextpublisheddate = GetNextDate( $subscription, $expected->{publisheddate}, $frequency, 1 );
-            my $planneddate       = $date_received_today ? dt_from_string : $nextpublisheddate;
+            my $planneddate = $date_received_today ? dt_from_string : $nextpublisheddate;
             ## Creating the new issue
             NewIssue(
                 $newserialseq,   $subscriptionid, $subscription->{'biblionumber'},

@@ -15,10 +15,19 @@ package C4::Auth;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(
+        checkauth check_api_auth get_session check_cookie_auth checkpw checkpw_internal checkpw_hash
+        get_all_subpermissions get_cataloguing_page_permissions get_user_subpermissions in_iprange
+        get_template_and_user haspermission create_basic_session
+    );
+}
+
 use Carp qw( croak );
 
 use Digest::MD5 qw( md5_base64 );
@@ -60,27 +69,9 @@ use Koha::Session;
 # use utf8;
 
 use vars qw($ldap $cas $caslogout);
-our ( @ISA, @EXPORT_OK );
-
-#NOTE: The utility of keeping the safe_exit function is that it can be easily re-defined in unit tests and plugins
-sub safe_exit {
-
-    # It's fine for us to "exit" because CGI::Compile (used in Plack::App::WrapCGI) redefines "exit" for us automatically.
-    # Since we only seem to use C4::Auth::safe_exit in a CGI context, we don't actually need PSGI detection at all here.
-    exit;
-}
 
 BEGIN {
     C4::Context->set_remote_address;
-
-    require Exporter;
-    @ISA = qw(Exporter);
-
-    @EXPORT_OK = qw(
-        checkauth check_api_auth get_session check_cookie_auth checkpw checkpw_internal checkpw_hash
-        get_all_subpermissions get_cataloguing_page_permissions get_user_subpermissions in_iprange
-        get_template_and_user haspermission create_basic_session
-    );
 
     $cas       = C4::Context->preference('casAuthentication');
     $caslogout = C4::Context->preference('casLogout');
@@ -121,11 +112,28 @@ C4::Auth - Authenticates Koha users
 =head1 DESCRIPTION
 
 The main function of this module is to provide
-authentification. However the get_template_and_user function has
+authentication. However the get_template_and_user function has
 been provided so that a users login information is passed along
 automatically. This gets loaded into the template.
 
 =head1 FUNCTIONS
+
+=cut
+
+=head2 safe_exit
+
+Missing POD for safe_exit.
+
+NOTE: The utility of keeping the safe_exit function is that it can be easily re-defined in unit tests and plugins
+
+=cut
+
+sub safe_exit {
+
+    # It's fine for us to "exit" because CGI::Compile (used in Plack::App::WrapCGI) redefines "exit" for us automatically.
+    # Since we only seem to use C4::Auth::safe_exit in a CGI context, we don't actually need PSGI detection at all here.
+    exit;
+}
 
 =head2 get_template_and_user
 
@@ -141,7 +149,7 @@ automatically. This gets loaded into the template.
      );
 
 This call passes the C<query>, C<flagsrequired> and C<authnotrequired>
-to C<&checkauth> (in this module) to perform authentification.
+to C<&checkauth> (in this module) to perform authentication.
 See C<&checkauth> for an explanation of these parameters.
 
 The C<template_name> is then used to find the correct template for
@@ -302,15 +310,7 @@ sub get_template_and_user {
                 auth_error  => $auth_error,
             );
 
-            print $in->{query}->header(
-                {
-                    type              => 'text/html',
-                    charset           => 'utf-8',
-                    cookie            => $cookie,
-                    'X-Frame-Options' => 'SAMEORIGIN'
-                }
-                ),
-                $template->output;
+            C4::Output::output_html_with_http_headers( $in->{query}, $cookie, $template->output );
             safe_exit;
         }
     }
@@ -489,9 +489,6 @@ sub get_template_and_user {
         GoogleJackets                => C4::Context->preference("GoogleJackets"),
         OpenLibraryCovers            => C4::Context->preference("OpenLibraryCovers"),
         KohaAdminEmailAddress        => "" . C4::Context->preference("KohaAdminEmailAddress"),
-        LoginFirstname               => ( C4::Context->userenv ? C4::Context->userenv->{"firstname"} : "Bel" ),
-        LoginSurname                 => C4::Context->userenv ? C4::Context->userenv->{"surname"}      : "Inconnu",
-        emailaddress                 => C4::Context->userenv ? C4::Context->userenv->{"emailaddress"} : undef,
         TagsEnabled                  => C4::Context->preference("TagsEnabled"),
         hide_marc                    => C4::Context->preference("hide_marc"),
         item_level_itypes            => C4::Context->preference('item-level_itypes'),
@@ -618,7 +615,6 @@ sub get_template_and_user {
             OpacCloud              => C4::Context->preference("OpacCloud"),
             OpacKohaUrl            => C4::Context->preference("OpacKohaUrl"),
             OpacPasswordChange     => C4::Context->preference("OpacPasswordChange"),
-            OpacRenewCard          => $opac_renew_card,
             OPACPatronDetails      => C4::Context->preference("OPACPatronDetails"),
             OPACPrivacy            => C4::Context->preference("OPACPrivacy"),
             OPACFinesTab           => C4::Context->preference("OPACFinesTab"),
@@ -655,6 +651,7 @@ sub get_template_and_user {
             PatronSelfRegistration                => C4::Context->preference("PatronSelfRegistration"),
             PatronSelfRegistrationDefaultCategory => C4::Context->preference("PatronSelfRegistrationDefaultCategory"),
             useDischarge                          => C4::Context->preference('useDischarge'),
+            OpacRenewCard                         => $opac_renew_card,
         );
 
         $template->param( OpacPublic => '1' ) if ( $user || C4::Context->preference("OpacPublic") );
@@ -751,7 +748,7 @@ user has authenticated, C<&checkauth> restarts the original script
 The login page is provided using a HTML::Template, which is set in the
 systempreferences table or at the top of this file. The variable C<$type>
 selects which template to use, either the opac or the intranet
-authentification template.
+authentication template.
 
 C<&checkauth> returns a user ID, a cookie, and a session ID. The
 cookie should be sent back to the browser; it verifies that the user
@@ -1019,7 +1016,7 @@ sub checkauth {
     if ($logout) {
 
         # voluntary logout the user
-        # check wether the user was using their shibboleth session or a local one
+        # check whether the user was using their shibboleth session or a local one
         my $shibSuccess = C4::Context->userenv ? C4::Context->userenv->{'shibboleth'} : undef;
         if ($session) {
             $session->delete();
@@ -1276,7 +1273,7 @@ sub checkauth {
                             : Koha::Cash::Registers->search(
                             { branch => $branchcode, branch_default => 1 },
                             { rows   => 1 }
-                        )->single;
+                            )->single;
                         $register_id   = $register->id   if ($register);
                         $register_name = $register->name if ($register);
                     }
@@ -1340,37 +1337,28 @@ sub checkauth {
                         $is_sco_user = 1;
                     }
 
-                    $session->param( 'number',        $borrowernumber );
-                    $session->param( 'id',            $userid );
-                    $session->param( 'cardnumber',    $cardnumber );
-                    $session->param( 'firstname',     $firstname );
-                    $session->param( 'surname',       $surname );
-                    $session->param( 'branch',        $branchcode );
-                    $session->param( 'branchname',    $branchname );
-                    $session->param( 'desk_id',       $desk_id );
-                    $session->param( 'desk_name',     $desk_name );
-                    $session->param( 'flags',         $userflags );
-                    $session->param( 'emailaddress',  $emailaddress );
-                    $session->param( 'ip',            $session->remote_addr() );
-                    $session->param( 'lasttime',      time() );
-                    $session->param( 'interface',     $type );
-                    $session->param( 'shibboleth',    $shibSuccess );
-                    $session->param( 'register_id',   $register_id );
-                    $session->param( 'register_name', $register_name );
-                    $session->param( 'sco_user',      $is_sco_user );
+                    $session->param( 'number',         $borrowernumber );
+                    $session->param( 'id',             $userid );
+                    $session->param( 'cardnumber',     $cardnumber );
+                    $session->param( 'firstname',      $firstname );
+                    $session->param( 'surname',        $surname );
+                    $session->param( 'branch',         $branchcode );
+                    $session->param( 'branchname',     $branchname );
+                    $session->param( 'branchcategory', '*' );
+                    $session->param( 'desk_id',        $desk_id );
+                    $session->param( 'desk_name',      $desk_name );
+                    $session->param( 'flags',          $userflags );
+                    $session->param( 'emailaddress',   $emailaddress );
+                    $session->param( 'ip',             $session->remote_addr() );
+                    $session->param( 'lasttime',       time() );
+                    $session->param( 'interface',      $type );
+                    $session->param( 'shibboleth',     $shibSuccess );
+                    $session->param( 'register_id',    $register_id );
+                    $session->param( 'register_name',  $register_name );
+                    $session->param( 'sco_user',       $is_sco_user );
                 }
                 $session->param( 'cas_ticket', $cas_ticket ) if $cas_ticket;
-                C4::Context->set_userenv(
-                    $session->param('number'),       $session->param('id'),
-                    $session->param('cardnumber'),   $session->param('firstname'),
-                    $session->param('surname'),      $session->param('branch'),
-                    $session->param('branchname'),   $session->param('flags'),
-                    $session->param('emailaddress'), $session->param('shibboleth'),
-                    $session->param('desk_id'),      $session->param('desk_name'),
-                    $session->param('register_id'),  $session->param('register_name'),
-                    $session->param('branchcategory')
-                );
-
+                C4::Context->set_userenv_from_session($session);
             }
 
             # $return: 0 = invalid user
@@ -1421,7 +1409,7 @@ sub checkauth {
         }
     }
 
-    # finished authentification, now respond
+    # finished authentication, now respond
     if ( $auth_state eq 'completed' || $authnotrequired ) {
 
         # successful login
@@ -1539,7 +1527,7 @@ sub checkauth {
         opac_css_override                     => $ENV{'OPAC_CSS_OVERRIDE'},
         too_many_login_attempts               => ( $patron and $patron->account_locked ),
         password_has_expired                  => ( $patron and $patron->password_expired ),
-        is_anonymous_patron                   => ($is_anonymous_patron),
+        is_anonymous_patron                   => ( $patron and $patron->is_anonymous ),
         password_expiration_date              => ( $patron and $patron->password_expiration_date ),
         date_enrolled                         => ( $patron and $patron->dateenrolled ),
         auth_error                            => $auth_error,
@@ -1632,15 +1620,7 @@ sub checkauth {
         return ( undef, undef, undef, undef, $template );
     }
 
-    print $query->header(
-        {
-            type              => 'text/html',
-            charset           => 'utf-8',
-            cookie            => $cookie,
-            'X-Frame-Options' => 'SAMEORIGIN',
-        }
-        ),
-        $template->output;
+    C4::Output::output_html_with_http_headers( $query, $cookie, $template->output );
     safe_exit;
 }
 
@@ -1698,7 +1678,7 @@ sub check_api_auth {
     if ( C4::Context->preference('Version') < $kohaversion ) {
 
         # database in need of version update; assume that
-        # no API should be called while databsae is in
+        # no API should be called while database is in
         # this condition.
         return ( "maintenance", undef, undef );
     }
@@ -1744,7 +1724,7 @@ sub check_api_auth {
             # User / password auth
             unless ( $userid and $password ) {
 
-                # caller did something wrong, fail the authenticateion
+                # caller did something wrong, fail the authentication
                 return ( "failed", undef, undef );
             }
             my $newuserid;
@@ -1843,15 +1823,7 @@ sub check_api_auth {
                 $session->param( 'interface',      'api' );
             }
             $session->param( 'cas_ticket', $cas_ticket );
-            C4::Context->set_userenv(
-                $session->param('number'),       $session->param('id'),
-                $session->param('cardnumber'),   $session->param('firstname'),
-                $session->param('surname'),      $session->param('branch'),
-                $session->param('branchname'),   $session->param('flags'),
-                $session->param('emailaddress'), $session->param('shibboleth'),
-                $session->param('desk_id'),      $session->param('desk_name'),
-                $session->param('register_id'),  $session->param('register_name')
-            );
+            C4::Context->set_userenv_from_session($session);
             return ( "ok", $cookie, $sessionID );
         } else {
             return ( "failed", undef, undef );
@@ -1866,7 +1838,7 @@ sub check_api_auth {
 Given a CGISESSID cookie set during a previous login to Koha, determine
 if the user has the privileges specified by C<$userflags>. C<$userflags>
 is passed unaltered into C<haspermission> and as such accepts all options
-avaiable to that routine with the one caveat that C<check_api_auth> will
+available to that routine with the one caveat that C<check_api_auth> will
 also allow 'undef' to be passed and in such a case the permissions check
 will be skipped altogether.
 
@@ -1914,7 +1886,7 @@ sub check_cookie_auth {
         if ( C4::Context->preference('Version') < $kohaversion ) {
 
             # database in need of version update; assume that
-            # no API should be called while databsae is in
+            # no API should be called while database is in
             # this condition.
             return ( "maintenance", undef );
         }
@@ -1971,16 +1943,8 @@ sub check_cookie_auth {
                     # No need to override the interface, most often set by get_template_and_user
                     C4::Context->interface( $session->param('interface') );
                 }
-                C4::Context->set_userenv(
-                    $session->param('number'),       $session->param('id') // '',
-                    $session->param('cardnumber'),   $session->param('firstname'),
-                    $session->param('surname'),      $session->param('branch'),
-                    $session->param('branchname'),   $session->param('flags'),
-                    $session->param('emailaddress'), $session->param('shibboleth'),
-                    $session->param('desk_id'),      $session->param('desk_name'),
-                    $session->param('register_id'),  $session->param('register_name'),
-                    $session->param('branchcategory')
-                );
+
+                C4::Context->set_userenv_from_session($session);
                 if ( C4::Context->preference('TwoFactorAuthentication') ne 'disabled' ) {
                     return ( "additional-auth-needed", $session )
                         if $session->param('waiting-for-2FA');
@@ -2080,6 +2044,13 @@ sub create_basic_session {
 # (or something similar)
 # Currently it's only passed from C4::SIP::ILS::Patron::check_password, but
 # not having a userenv defined could cause a crash.
+
+=head2 checkpw
+
+Missing POD for checkpw.
+
+=cut
+
 sub checkpw {
     my ( $userid, $password, $query, $type, $no_set_userenv ) = @_;
     $type = 'opac' unless $type;
@@ -2159,8 +2130,7 @@ sub checkpw {
     }
 
     if ( defined $userid && !$patron ) {
-        $patron = Koha::Patrons->find( { userid     => $userid } );
-        $patron = Koha::Patrons->find( { cardnumber => $userid } ) unless $patron;
+        $patron = Koha::Patrons->find_by_identifier($userid);
         push @return, $patron if $check_internal_as_fallback;    # We pass back the patron if authentication fails
     }
 
@@ -2188,6 +2158,12 @@ sub checkpw {
 
     return @return;
 }
+
+=head2 checkpw_internal
+
+Missing POD for checkpw_internal.
+
+=cut
 
 sub checkpw_internal {
     my ( $userid, $password, $no_set_userenv ) = @_;
@@ -2219,6 +2195,12 @@ sub checkpw_internal {
     }
     return 0;
 }
+
+=head2 checkpw_hash
+
+Missing POD for checkpw_hash.
+
+=cut
 
 sub checkpw_hash {
     my ( $password, $stored_hash ) = @_;
@@ -2484,6 +2466,12 @@ sub in_iprange {
     }
     return $result ? 1 : 0;
 }
+
+=head2 getborrowernumber
+
+Missing POD for getborrowernumber.
+
+=cut
 
 sub getborrowernumber {
     my ($userid) = @_;

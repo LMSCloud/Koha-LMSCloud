@@ -13,13 +13,15 @@ package Koha::REST::V1::ILL::Requests;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use Mojo::Base 'Mojolicious::Controller';
 
 use C4::Context;
+use Koha::ILL::Request;
+use Koha::ILL::Request::Config;
 use Koha::ILL::Requests;
 use Koha::ILL::Request::Attributes;
 use Koha::Libraries;
@@ -47,11 +49,90 @@ sub list {
 
     return try {
 
+        # LMS extension: collect each backend's private attribute-type names so we
+        # can rename them to the framework-wide names the shared UI expects
+        # (e.g. ill-list-table.js). A backend opts in by exposing getStringMap via
+        # _backend_capability.
+        my $backendsStringMap = {};
+        my $config            = Koha::ILL::Request::Config->new;
+        my $backends          = $config->available_backends;
+        foreach my $b (@$backends) {
+            my $backend = Koha::ILL::Request->new->load_backend($b);
+            my $map     = $backend->_backend_capability( 'getStringMap', $backend ) || {};
+            $backendsStringMap->{$b} = $map;
+        }
+
         my $reqs = $c->objects->search( Koha::ILL::Requests->new->filter_by_visible );
+
+        foreach my $req ( @{$reqs} ) {
+            my $ill_backend_id = $req->{ill_backend_id};
+            my $attr_type_map  = $backendsStringMap->{$ill_backend_id}->{attrType} or next;
+            my $extended_attrs = $req->{extended_attributes}                       or next;
+            foreach my $frameworkAttrType ( keys %$attr_type_map ) {
+                my $backendAttrType = $attr_type_map->{$frameworkAttrType};
+                next unless $backendAttrType && $backendAttrType ne $frameworkAttrType;
+                foreach my $illattr (@$extended_attrs) {
+                    if ( $illattr->{type} && $illattr->{type} eq $backendAttrType ) {
+                        $illattr->{type} = $frameworkAttrType;
+                        last;
+                    }
+                }
+            }
+        }
 
         return $c->render(
             status  => 200,
             openapi => $reqs,
+        );
+    } catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 patron_list
+
+Controller function that returns a patron's list of ILL requests.
+
+=cut
+
+sub patron_list {
+    my $c = shift->openapi->valid_input or return;
+
+    my $patron = Koha::Patrons->find( $c->param('patron_id') );
+
+    return $c->render_resource_not_found('Patron')
+        unless $patron;
+
+    return try {
+
+        return $c->render(
+            status  => 200,
+            openapi => $c->objects->search( $patron->ill_requests ),
+        );
+    } catch {
+        $c->unhandled_exception($_);
+    };
+}
+
+=head3 public_patron_list
+
+Controller function that returns a patron's list of ILL requests for unprivileged
+access.
+
+=cut
+
+sub public_patron_list {
+    my $c = shift->openapi->valid_input or return;
+
+    return try {
+
+        $c->auth->public( $c->param('patron_id') );
+
+        my $patron = $c->stash('koha.user');
+
+        return $c->render(
+            status  => 200,
+            openapi => $c->objects->search( $patron->ill_requests() ),
         );
     } catch {
         $c->unhandled_exception($_);

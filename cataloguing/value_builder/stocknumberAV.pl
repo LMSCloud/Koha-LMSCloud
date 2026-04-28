@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
@@ -86,7 +86,7 @@ my $launcher = sub {
         }
     );
 
-    # If a prefix is submited, we look for the highest stocknumber with this prefix, and return it incremented
+    # If a prefix is submitted, we look for the highest stocknumber with this prefix, and return it incremented
     $code =~ s/ *$//g;
     if ( $code =~ m/^[a-zA-Z]+$/ ) {
         my $av = Koha::AuthorisedValues->find(

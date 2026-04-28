@@ -256,10 +256,13 @@ var furtherOfferingsHandler = function (e) {
 
 function facetMenu(action) {
     if (action == "show") {
-        $(".menu-collapse-toggle").off("click", facetHandler);
+        $(".menu-collapse-toggle")
+            .removeAttr("aria-expanded")
+            .off("click", facetHandler);
         $(".menu-collapse").show();
     } else {
         $(".menu-collapse-toggle")
+            .attr("aria-expanded", "false")
             .on("click", facetHandler)
             .removeClass("menu-open");
         $(".menu-collapse").hide();
@@ -270,7 +273,13 @@ var facetHandler = function (e) {
     e.preventDefault();
     $(this).toggleClass("menu-open");
     $(".menu-collapse").toggle();
+    setAriaExpandable(e);
 };
+
+function setAriaExpandable(e) {
+    let currentValue = $(e.target).attr("aria-expanded");
+    $(e.target).attr("aria-expanded", currentValue === "false");
+}
 
 function setPlaceholder() {
     let search_placeholder = $("#masthead_search option:selected").data(
@@ -278,6 +287,22 @@ function setPlaceholder() {
     );
     $("#translControl1").attr("placeholder", search_placeholder);
 }
+
+function setAdvancedPlaceholder(selectEl) {
+    var $select = $(selectEl);
+    var $row = $select.closest(".search-term-row");
+    var $input = $row.find("input[name='q']");
+    var ph = $select.find("option:selected").data("placeholder");
+    $input.attr("placeholder", ph || __("Enter search terms"));
+}
+
+$(".advanced-search-terms select[name='idx']").each(function () {
+    setAdvancedPlaceholder(this);
+});
+
+$(".advanced-search-terms").on("change", "select[name='idx']", function () {
+    setAdvancedPlaceholder(this);
+});
 
 $(document).ready(function () {
     //check if sticky element is stuck, if so add floating class

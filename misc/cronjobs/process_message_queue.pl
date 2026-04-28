@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -52,7 +52,7 @@ GetOptions(
     'w|where:s'                => \$where,
     'e|exit-on-plugin-failure' => \$exit_on_plugin_failure,
 );
-my $usage = << 'ENDUSAGE';
+my $usage = <<'ENDUSAGE';
 
 This script processes the message queue in the message_queue database
 table. It sends out the messages in that queue and marks them

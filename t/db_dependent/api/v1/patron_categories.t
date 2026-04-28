@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::NoWarnings;
+use Test::More tests => 2;
 use Test::Mojo;
 
 use t::lib::TestBuilder;
@@ -65,8 +66,11 @@ subtest 'list() tests' => sub {
 
     $t->get_ok("//$userid:$password@/api/v1/patron_categories")->status_is(200);
 
-    $t->get_ok("//$userid:$password@/api/v1/patron_categories?q={\"me.categorycode\":\"TEST\"}")->status_is(200)
-        ->json_has('/0/name')->json_is( '/0/name' => 'Test' )->json_hasnt('/1');
+    $t->get_ok("//$userid:$password@/api/v1/patron_categories?q={\"me.categorycode\":\"TEST\"}")
+        ->status_is(200)
+        ->json_has('/0/name')
+        ->json_is( '/0/name' => 'Test' )
+        ->json_hasnt('/1');
 
     # Off limits search
 
@@ -91,14 +95,18 @@ subtest 'list() tests' => sub {
     my $off_limits_userid = $off_limits_librarian->userid;
 
     $t->get_ok("//$off_limits_userid:$off_limits_password@/api/v1/patron_categories?q={\"me.categorycode\":\"TEST\"}")
-        ->status_is(200)->json_hasnt('/0');
+        ->status_is(200)
+        ->json_hasnt('/0');
 
     # Off limits librarian category has changed to one within limits
 
     $off_limits_librarian->branchcode( $library->branchcode )->store;
 
     $t->get_ok("//$off_limits_userid:$off_limits_password@/api/v1/patron_categories?q={\"me.categorycode\":\"TEST\"}")
-        ->status_is(200)->json_has('/0/name')->json_is( [ $category->to_api ] )->json_hasnt('/1');
+        ->status_is(200)
+        ->json_has('/0/name')
+        ->json_is( [ $category->to_api ] )
+        ->json_hasnt('/1');
 
     $schema->storage->txn_rollback;
 

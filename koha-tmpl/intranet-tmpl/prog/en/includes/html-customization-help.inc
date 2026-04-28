@@ -16,6 +16,8 @@
 
 <div id="IntranetmainUserblock_notes" class="hint customization_note"> Include this content in its own section on the main page of the staff interface </div>
 
+<div id="StaffReportsHome_notes" class="hint customization_note"> Include this content in its own section on the reports home page</div>
+
 <div id="opaccredits_notes" class="hint customization_note"> Include this content in the footer of all pages in the OPAC. </div>
 
 <div id="OpacCustomSearch_notes" class="hint customization_note"> Replace the search box at the top of OPAC pages with this content. </div>
@@ -50,9 +52,11 @@
 
 <div id="PatronSelfRegistrationAdditionalInstructions_notes" class="hint customization_note"> Show the following content on the patron self-registration confirmation page. </div>
 
-<div id="SCOMainUserBlock_notes" class="hint customization_note"> Show this content on the web-based self checkout screen. </div>
+<div id="RoutingListNote" class="hint customization_note"> Include the following note on all routing list slips. </div>
 
-<div id="SelfCheckHelpMessage_notes" class="hint customization_note"> Show this content on the Help page of the web-based self checkout system. </div>
+<div id="SCOMainUserBlock_notes" class="hint customization_note"> Show this content on the web-based self-checkout screen. </div>
+
+<div id="SelfCheckHelpMessage_notes" class="hint customization_note"> Show this content on the Help page of the web-based self-checkout system. </div>
 
 <div id="SelfCheckInMainUserBlock_notes" class="hint customization_note"> Show this content on the self check-in screen. </div>
 
@@ -63,6 +67,8 @@
 <div id="StaffCataloguingHome_notes" class="hint customization_note"> Show this content on the cataloging home page in the staff interface. </div>
 
 <div id="StaffListsHome_notes" class="hint customization_note"> Show this content on the lists home page in the staff interface. </div>
+
+<div id="StaffLoginInstructions_notes" class="hint customization_note"> Show this content on the staff interface login page. </div>
 
 <div id="StaffPatronsHome_notes" class="hint customization_note"> Show this content on the patrons home page in the staff interface. </div>
 

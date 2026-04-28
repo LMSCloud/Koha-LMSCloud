@@ -1,6 +1,7 @@
 [% USE raw %]
 [% USE Koha %]
 [% PROCESS 'i18n.inc' %]
+[% USE AdditionalContents %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title
@@ -44,7 +45,18 @@
     <!-- /.page-section -->
 
     <div id="routingnotes">
-        <p id="generalroutingnote">[% Koha.Preference('RoutingListNote') | $raw %]</p>
+        [%- SET RoutingListNote = AdditionalContents.get( location => "RoutingListNote", lang => lang, library => logged_in_user.branchcode ) -%]
+
+        [% IF ( RoutingListNote.content && RoutingListNote.content.count > 0 ) %]
+            <div id="[% RoutingListNote.location | html %]">
+                [% FOREACH n IN RoutingListNote.content %]
+                    <div class="[% n.lang | html %]_item">
+                        <div class="[% n.lang | html %]_body">[% n.content | $raw %]</div>
+                    </div>
+                [% END %]
+            </div>
+        [% END %]
+
         <p id="routingnote">[% routingnotes | html %]</p>
     </div>
 
@@ -56,18 +68,19 @@
             </fieldset>
         </div>
     </nav>
-
-    [% MACRO jsinclude BLOCK %]
-        <script>
-            $(document).ready(function () {
-                $("#print_slip").on("click", function (e) {
-                    e.preventDefault();
-                    window.print();
-                    self.close();
-                });
-            });
-        </script>
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' popup_window=1 %]
 </div>
+<!-- /.container-fluid -->
+
+[% MACRO jsinclude BLOCK %]
+    <script>
+        $(document).ready(function () {
+            $("#print_slip").on("click", function (e) {
+                e.preventDefault();
+                window.print();
+                self.close();
+            });
+        });
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' popup_window=1 %]

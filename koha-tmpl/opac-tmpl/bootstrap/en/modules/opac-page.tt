@@ -2,17 +2,28 @@
 [% USE Koha %]
 [% USE AdditionalContents %]
 [% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>[% IF page %][% page.title | html %][% ELSE %]Page error[% END %] &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+<title
+    >[% FILTER collapse %]
+        [% IF page %]
+            [% page.title | html %]
+        [% ELSE %]
+            [% t("Page error") | html %]
+        [% END %]
+        &rsaquo; [% PROCESS 'library_name_title' %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
-[% BLOCK cssinclude %][% END %]
+[% BLOCK cssinclude %]
+[% END %]
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='opac-page-' _ page.additional_content_id %]
 [% INCLUDE 'masthead.inc' %]
 
-<div class="main">
+<main class="main">
     [% WRAPPER breadcrumbs %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
             [% IF page %]
@@ -25,37 +36,37 @@
 
     <div class="container-fluid">
         <div class="row">
+            [% SET column_class = "col order-first order-md-first order-lg-2" %]
             [% IF ( OpacNav ||  OpacNavBottom ) %]
+                [% column_class = "col-10 order-first order-md-first order-lg-2" %]
                 <div class="col-lg-2">
-                    <div id="navigation">
-                        [% INCLUDE 'navigation.inc' %]
-                    </div>
+                    <div id="navigation"> [% INCLUDE 'navigation.inc' %] </div>
                 </div>
-                <div class="col-10 order-first order-md-first order-lg-2">
-            [% ELSE %]
-                <div class="col order-first order-md-first order-lg-2">
             [% END %]
 
-            [% IF page %]
-                <div id="page_[% page.additional_content_id | html %]" class="maincontent">
-                    <h1>[% page.title | html %]</h1>
+            <div class="[% column_class | html %]">
+                [% IF page %]
+                    <div id="page_[% page.additional_content_id | html %]" class="maincontent">
+                        <h1>[% page.title | html %]</h1>
 
-                        <div class="page_content">
-                            [% page.content | $raw %]
-                        </div>
-
-                    [% ELSE %]
-
-                        <div class="alert alert-error">
-                            This page does not exist.
-                        </div>
-
-                    [% END %]
-                </div> <!-- /.maincontent -->
-            </div> <!-- / .col -->
-        </div> <!-- /.row -->
-    </div> <!-- /.container-fluid -->
-</div> <!-- /.main -->
+                        <div class="page_content"> [% page.content | $raw %] </div>
+                    </div>
+                    <!-- /.maincontent -->
+                [% ELSE %]
+                    <div class="maincontent">
+                        <div class="alert alert-error"> This page does not exist. </div>
+                    </div>
+                    <!-- /.maincontent -->
+                [% END %]
+            </div>
+            <!-- / .col -->
+        </div>
+        <!-- /.row -->
+    </div>
+    <!-- /.container-fluid -->
+</main>
+<!-- /.main -->
 
 [% INCLUDE 'opac-bottom.inc' %]
-[% BLOCK jsinclude %][% END %]
+[% BLOCK jsinclude %]
+[% END %]

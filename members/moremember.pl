@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 moremember.pl
 
@@ -79,10 +79,6 @@ output_and_exit_if_error(
 
 my $category      = $patron->category;
 my $category_type = $category->category_type;
-
-if ( $patron->borrowernumber eq C4::Context->preference("AnonymousPatron") ) {
-    $template->param( is_anonymous => 1 );
-}
 
 if ( $patron->borrowernumber eq C4::Context->preference("AnonymousPatron") ) {
     $template->param( is_anonymous => 1 );
@@ -200,9 +196,10 @@ my $patron_messages = Koha::Patron::Messages->search(
         'me.borrowernumber' => $patron->borrowernumber,
     },
     {
-        join      => 'manager',
-        '+select' => [ 'manager.surname', 'manager.firstname' ],
-        '+as'     => [ 'manager_surname', 'manager_firstname' ],
+        join       => 'manager',
+        '+select'  => [ 'manager.surname', 'manager.firstname' ],
+        '+as'      => [ 'manager_surname', 'manager_firstname' ],
+        'order_by' => [ 'me.message_type', { -desc => 'me.message_date' }, { -desc => 'me.message_id' } ],
     }
 );
 
@@ -223,7 +220,7 @@ if ( $patron->is_expired || $patron->is_going_to_expire ) {
 my $holds         = Koha::Holds->search( { borrowernumber => $borrowernumber } );    # FIXME must be Koha::Patron->holds
 my $waiting_holds = $holds->waiting;
 $template->param(
-    holds_count  => $holds->count(),
+    holds_count  => $holds->count_holds,
     WaitingHolds => $waiting_holds,
 );
 
@@ -253,19 +250,19 @@ if ( $patron->has_overdues ) {
 }
 my $issues = $patron->checkouts;
 
-my $balance = 0;
-$balance = $patron->account->balance;
-
 my $patron_charge_limits = $patron->is_patron_inside_charge_limits();
 if ( $patron_charge_limits->{noissuescharge}->{charge} > 0 ) {
     $template->param(
         charges       => 1,
         chargesamount => $patron_charge_limits->{noissuescharge}->{charge},
     );
-} elsif ( $balance < 0 ) {
+}
+
+my $credits_balance = $patron->account->outstanding_credits->total_outstanding;
+if ( $credits_balance < 0 ) {
     $template->param(
         credits       => 1,
-        creditsamount => -$balance,
+        creditsamount => -$credits_balance,
     );
 }
 
@@ -307,7 +304,7 @@ my $patron_lists_count = $patron->get_lists_with_patron->count();
 $template->param(
     patron                 => $patron,
     issuecount             => $patron->checkouts->count,
-    holds_count            => $patron->holds->count,
+    holds_count            => $patron->holds->count_holds,
     fines                  => $patron->account->balance,
     translated_language    => $translated_language,
     detailview             => 1,

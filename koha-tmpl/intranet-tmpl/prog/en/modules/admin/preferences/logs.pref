@@ -13,6 +13,12 @@ Logging:
                   0: "Don't log"
             - changes to patron records and patron restrictions.
         -
+            - pref: CardnumberLog
+              choices:
+                  1: Log
+                  0: "Don't log"
+            - changes to patron cardnumbers.
+        -
             - pref: CataloguingLog
               choices:
                   1: Log
@@ -103,11 +109,11 @@ Logging:
                   0: "Don't log"
             - " changes to notice templates."
         -
-            - pref: NewsLog
+            - pref: AdditionalContentLog
               choices:
                   1: Log
                   0: "Don't log"
-            - " changes to news entries and other contents managed in the news tool."
+            - " changes to HTML customizations, news entries, pages, and other content managed in the additional content tools."
         -
             - pref: RecallsLog
               choices:
@@ -119,7 +125,13 @@ Logging:
               choices:
                   1: Log
                   0: "Don't log"
-            - any changes to purchase suggestions (create, modify, delete ).
+            - any changes to purchase suggestions (create, modify, delete).
+        -
+            - pref: TransfersLog
+              choices:
+                  1: Log
+                  0: "Don't log"
+            - item transfers.
 
     Debugging:
         -

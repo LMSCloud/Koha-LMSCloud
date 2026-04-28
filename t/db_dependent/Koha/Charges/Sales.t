@@ -15,11 +15,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 5;
+use Test::NoWarnings;
+use Test::More tests => 6;
 use Test::Exception;
 
 use Koha::Database;
@@ -230,7 +231,7 @@ subtest 'purchase tests' => sub {
     ok( $credit->is_credit, "return is a credit for payment" );
     is( $credit->credit_type_code,      'PURCHASE', "credit_type_code set correctly to 'PURCHASE' for payment" );
     is( $credit->amount * 1,            -5,         "amount is calculated correctly for payment" );
-    is( $credit->amountoutstanding * 1, 0,          "amountoutstanding is set to zero for payment" );
+    is( $credit->amountoutstanding * 1,  0,         "amountoutstanding is set to zero for payment" );
     is( $credit->manager_id,            $staff->borrowernumber, "manager_id set correctionly for payment" );
     is( $credit->register_id,           $cash_register->id,     "register_id set correctly for payment" );
     is( $credit->payment_type,          'CASH',                 "payment_type set correctly for payment" );

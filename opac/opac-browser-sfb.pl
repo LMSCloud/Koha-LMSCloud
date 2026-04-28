@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 opac-browser-sfb.pl
 
@@ -93,7 +93,7 @@ sysn SystematikNumPart
     <target_index>SystematikNumPart:w</target_index>
     <target_index>SystematikNumPart:p</target_index>
   </index_subfields>
-  
+
 C4/Search.pm:
 Add sysc, sysn and sysp as available index names.
 

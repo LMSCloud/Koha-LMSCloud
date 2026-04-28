@@ -12,7 +12,11 @@
         [% t("Koha staff interface") | html %]
     [% END %]</title
 >
-[% Asset.css("css/mainpage.css") | $raw %]
+[% IF ( bidi ) %]
+    [% Asset.css("css/mainpage-rtl.css") | $raw %]
+[% ELSE %]
+    [% Asset.css("css/mainpage.css") | $raw %]
+[% END %]
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 
@@ -172,7 +176,7 @@
 
                         [% IF ( CAN_user_parameters || (CAN_user_plugins && plugins_enabled)) %]
                             <li>
-                                <a class="icon_general icon_administration" href="/cgi-bin/koha/admin/admin-home.pl"><i class="fa fa-fw fa-gears"></i>Koha administration</a>
+                                <a class="icon_general icon_administration" href="/cgi-bin/koha/admin/admin-home.pl"><i class="fa fa-fw fa-gears"></i>Administration</a>
                             </li>
                         [% END %]
                     </ul>
@@ -183,7 +187,7 @@
             <div class="row">
                 <div class="col-sm-12">
                     [%# Following statement must be in one line for translatability %]
-                    [% IF ( CAN_user_tools_moderate_comments  && pendingcomments ) || ( CAN_user_tools_moderate_tags && pendingtags ) || ( CAN_user_borrowers_edit_borrowers && pending_borrower_modifications ) || ( CAN_user_suggestions_suggestions_manage && ( pendingsuggestions || all_pendingsuggestions )) || ( CAN_user_borrowers_edit_borrowers && pending_discharge_requests ) || pending_article_requests || ( Koha.Preference('AllowCheckoutNotes') && CAN_user_circulate_manage_checkout_notes && pending_checkout_notes.count ) || ( ( Koha.Preference('OpacCatalogConcerns') || Koha.Preference('CatalogConcerns') ) && pending_biblio_tickets && CAN_user_editcatalogue_edit_catalogue ) || ( Koha.Preference('OPACReportProblem') && CAN_user_problem_reports && pending_problem_reports.count ) || already_ran_jobs || new_curbside_pickups.count || ( holds_with_cancellation_requests && CAN_user_circulate_circulate_remaining_permissions ) %]
+                    [% IF ( CAN_user_tools_moderate_comments  && pendingcomments ) || ( CAN_user_tools_moderate_tags && pendingtags ) || ( CAN_user_borrowers_edit_borrowers && pending_borrower_modifications ) || ( CAN_user_suggestions_suggestions_manage && ( pendingsuggestions || all_pendingsuggestions )) || ( CAN_user_borrowers_edit_borrowers && pending_discharge_requests ) || pending_article_requests || ( Koha.Preference('AllowCheckoutNotes') && CAN_user_circulate_manage_checkout_notes && pending_checkout_notes.count ) || ( ( Koha.Preference('OpacCatalogConcerns') || Koha.Preference('CatalogConcerns') ) && pending_biblio_tickets && CAN_user_editcatalogue_edit_catalogue ) || ( Koha.Preference('OPACReportProblem') && CAN_user_problem_reports && pending_problem_reports.count ) || already_ran_jobs || new_curbside_pickups.count || ( holds_with_cancellation_requests && CAN_user_circulate_circulate_remaining_permissions ) || self_registered_count %]
                         <div id="area-pending" class="page-section">
                             [% IF pending_article_requests %]
                                 <div class="pending-info" id="article_requests_pending">
@@ -239,6 +243,13 @@
                                 <div class="pending-info" id="catalog_concerns_pending">
                                     <a href="/cgi-bin/koha/cataloguing/concerns.pl">Catalog concerns pending</a>:
                                     <span class="pending-number-link">[% pending_biblio_tickets | html %]</span>
+                                </div>
+                            [% END %]
+
+                            [% IF Koha.Preference('AllowCheckoutNotes') && CAN_user_circulate_manage_checkout_notes && pending_checkout_notes.count %]
+                                <div class="pending-info" id="checkout_notes_pending">
+                                    <a href="/cgi-bin/koha/circ/checkout-notes.pl">Checkout notes pending</a>:
+                                    <span class="pending-number-link">[% pending_checkout_notes.count | html %]</span>
                                 </div>
                             [% END %]
 

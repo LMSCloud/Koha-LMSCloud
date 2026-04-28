@@ -15,10 +15,11 @@
 # A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with Koha; if not, see <http://www.gnu.org/licenses>.
+# with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 5;
+use Test::NoWarnings;
+use Test::More tests => 6;
 use Test::MockModule;
 use CGI qw ( -utf8 );
 use Koha::Cache::Memory::Lite;
@@ -40,7 +41,7 @@ $module_context->mock(
         my ( $self, $pref ) = @_;
         if ($return_undef) {
             return;
-        } elsif ( $pref eq 'language' || $pref eq 'OPACLanguages' ) {
+        } elsif ( $pref eq 'StaffInterfaceLanguages' || $pref eq 'OPACLanguages' ) {
             return join ',', @languages;
         } else {
             return 'XXX';

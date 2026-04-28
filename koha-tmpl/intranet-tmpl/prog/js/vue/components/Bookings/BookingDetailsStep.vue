@@ -1,255 +1,259 @@
 <template>
-  <fieldset class="step-block">
-    <legend class="step-header">
-      {{ stepNumber }}.
-      {{
-        showItemDetailsSelects
-          ? $__("Select Pickup Location and Item Type or Item")
-          : showPickupLocationSelect
-            ? $__("Select Pickup Location")
-            : ""
-      }}
-    </legend>
+    <fieldset class="step-block">
+        <legend class="step-header">
+            {{ stepNumber }}.
+            {{
+                showItemDetailsSelects
+                    ? $__("Select Pickup Location and Item Type or Item")
+                    : showPickupLocationSelect
+                      ? $__("Select Pickup Location")
+                      : ""
+            }}
+        </legend>
 
-    <div
-      v-if="showPickupLocationSelect || showItemDetailsSelects"
-      class="form-group"
-    >
-      <label for="pickup_library_id">{{ $__("Pickup location") }}</label>
-      <v-select
-        v-model="selectedPickupLibraryId"
-        :placeholder="$__('Select a pickup location')"
-        :options="constrainedPickupLocations"
-        label="name"
-        :reduce="l => l.library_id"
-        :loading="loading.pickupLocations"
-        :clearable="true"
-        :disabled="selectsDisabled"
-        :input-id="'pickup_library_id'"
-      >
-        <template #no-options>
-          {{ $__("No pickup locations available.") }}
-        </template>
-        <template #spinner>
-          <span class="sr-only">{{ $__("Loading...") }}</span>
-        </template>
-      </v-select>
-      <span
-        v-if="
-          constrainedFlags.pickupLocations &&
-          (showPickupLocationSelect || showItemDetailsSelects)
-        "
-        class="badge text-bg-warning ms-2"
-      >
-        {{ $__("Options updated") }}
-        <span class="ms-1"
-          >({{ pickupLocationsTotal - pickupLocationsFilteredOut }}/{{
-            pickupLocationsTotal
-          }})</span
+        <div
+            v-if="showPickupLocationSelect || showItemDetailsSelects"
+            class="form-group"
         >
-      </span>
-    </div>
+            <label for="pickup_library_id">{{ $__("Pickup location") }}</label>
+            <v-select
+                v-model="selectedPickupLibraryId"
+                :placeholder="$__('Select a pickup location')"
+                :options="constrainedPickupLocations"
+                label="name"
+                :reduce="l => l.library_id"
+                :loading="loading.pickupLocations"
+                :clearable="true"
+                :disabled="selectsDisabled"
+                :input-id="'pickup_library_id'"
+            >
+                <template #no-options>
+                    {{ $__("No pickup locations available.") }}
+                </template>
+                <template #spinner>
+                    <span class="sr-only">{{ $__("Loading...") }}</span>
+                </template>
+            </v-select>
+            <span
+                v-if="
+                    constrainedFlags.pickupLocations &&
+                    (showPickupLocationSelect || showItemDetailsSelects)
+                "
+                class="badge text-bg-warning ms-2"
+            >
+                {{ $__("Options updated") }}
+                <span class="ms-1"
+                    >({{ pickupLocationsTotal - pickupLocationsFilteredOut }}/{{
+                        pickupLocationsTotal
+                    }})</span
+                >
+            </span>
+        </div>
 
-    <div v-if="showItemDetailsSelects" class="form-group">
-      <label for="booking_itemtype">{{ $__("Item type") }}</label>
-      <v-select
-        v-model="selectedItemtypeId"
-        :options="constrainedItemTypes"
-        label="description"
-        :reduce="t => t.item_type_id"
-        :clearable="true"
-        :disabled="selectsDisabled"
-        :input-id="'booking_itemtype'"
-      >
-        <template #no-options>
-          {{ $__("No item types available.") }}
-        </template>
-      </v-select>
-      <span
-        v-if="constrainedFlags.itemTypes"
-        class="badge text-bg-warning ms-2"
-        >{{ $__("Options updated") }}</span
-      >
-    </div>
+        <div v-if="showItemDetailsSelects" class="form-group">
+            <label for="booking_itemtype">{{ $__("Item type") }}</label>
+            <v-select
+                v-model="selectedItemtypeId"
+                :options="constrainedItemTypes"
+                label="description"
+                :reduce="t => t.item_type_id"
+                :clearable="true"
+                :disabled="selectsDisabled"
+                :input-id="'booking_itemtype'"
+            >
+                <template #no-options>
+                    {{ $__("No item types available.") }}
+                </template>
+            </v-select>
+            <span
+                v-if="constrainedFlags.itemTypes"
+                class="badge text-bg-warning ms-2"
+                >{{ $__("Options updated") }}</span
+            >
+        </div>
 
-    <div v-if="showItemDetailsSelects" class="form-group">
-      <label for="booking_item_id">{{ $__("Item") }}</label>
-      <v-select
-        v-model="selectedItemId"
-        :placeholder="$__('Any item')"
-        :options="constrainedBookableItems"
-        label="external_id"
-        :reduce="i => i.item_id"
-        :clearable="true"
-        :loading="loading.bookableItems"
-        :disabled="selectsDisabled"
-        :input-id="'booking_item_id'"
-      >
-        <template #no-options>
-          {{ $__("No items available.") }}
-        </template>
-        <template #spinner>
-          <span class="sr-only">{{ $__("Loading...") }}</span>
-        </template>
-      </v-select>
-      <span
-        v-if="constrainedFlags.bookableItems"
-        class="badge text-bg-warning ms-2"
-      >
-        {{ $__("Options updated") }}
-        <span class="ms-1"
-          >({{ bookableItemsTotal - bookableItemsFilteredOut }}/{{
-            bookableItemsTotal
-          }})</span
-        >
-      </span>
-    </div>
-  </fieldset>
+        <div v-if="showItemDetailsSelects" class="form-group">
+            <label for="booking_item_id">{{ $__("Item") }}</label>
+            <v-select
+                v-model="selectedItemId"
+                :placeholder="$__('Any item')"
+                :options="constrainedBookableItems"
+                label="external_id"
+                :reduce="i => i.item_id"
+                :clearable="true"
+                :loading="loading.bookableItems"
+                :disabled="selectsDisabled"
+                :input-id="'booking_item_id'"
+            >
+                <template #no-options>
+                    {{ $__("No items available.") }}
+                </template>
+                <template #spinner>
+                    <span class="sr-only">{{ $__("Loading...") }}</span>
+                </template>
+            </v-select>
+            <span
+                v-if="constrainedFlags.bookableItems"
+                class="badge text-bg-warning ms-2"
+            >
+                {{ $__("Options updated") }}
+                <span class="ms-1"
+                    >({{ bookableItemsTotal - bookableItemsFilteredOut }}/{{
+                        bookableItemsTotal
+                    }})</span
+                >
+            </span>
+        </div>
+    </fieldset>
 </template>
 
 <script>
-import { computed } from "vue"
-import vSelect from "vue-select"
-import { $__ } from "../../i18n"
-import { useBookingStore } from "../../stores/bookingStore"
-import { storeToRefs } from "pinia"
+import { computed } from "vue";
+import vSelect from "vue-select";
+import { $__ } from "../../i18n";
+import { useBookingStore } from "../../stores/bookingStore";
+import { storeToRefs } from "pinia";
 
 export default {
-  name: "BookingDetailsStep",
-  components: {
-    vSelect,
-  },
-  props: {
-    stepNumber: {
-      type: Number,
-      required: true,
+    name: "BookingDetailsStep",
+    components: {
+        vSelect,
     },
-    showItemDetailsSelects: {
-      type: Boolean,
-      default: false,
+    props: {
+        stepNumber: {
+            type: Number,
+            required: true,
+        },
+        showItemDetailsSelects: {
+            type: Boolean,
+            default: false,
+        },
+        showPickupLocationSelect: {
+            type: Boolean,
+            default: false,
+        },
+        selectedPatron: {
+            type: Object,
+            default: null,
+        },
+        patronRequired: {
+            type: Boolean,
+            default: false,
+        },
+        // Enable/disable selects based on data readiness from parent
+        detailsEnabled: { type: Boolean, default: true },
+        // v-model values
+        pickupLibraryId: {
+            type: String,
+            default: null,
+        },
+        itemtypeId: {
+            type: [Number, String],
+            default: null,
+        },
+        itemId: {
+            type: [Number, String],
+            default: null,
+        },
+        // Options and constraints
+        constrainedPickupLocations: {
+            type: Array,
+            default: () => [],
+        },
+        constrainedItemTypes: {
+            type: Array,
+            default: () => [],
+        },
+        constrainedBookableItems: {
+            type: Array,
+            default: () => [],
+        },
+        constrainedFlags: {
+            type: Object,
+            default: () => ({
+                pickupLocations: false,
+                itemTypes: false,
+                bookableItems: false,
+            }),
+        },
+        // Statistics for badges
+        pickupLocationsTotal: {
+            type: Number,
+            default: 0,
+        },
+        pickupLocationsFilteredOut: {
+            type: Number,
+            default: 0,
+        },
+        bookableItemsTotal: {
+            type: Number,
+            default: 0,
+        },
+        bookableItemsFilteredOut: {
+            type: Number,
+            default: 0,
+        },
     },
-    showPickupLocationSelect: {
-      type: Boolean,
-      default: false,
-    },
-    selectedPatron: {
-      type: Object,
-      default: null,
-    },
-    patronRequired: {
-      type: Boolean,
-      default: false,
-    },
-    // Enable/disable selects based on data readiness from parent
-    detailsEnabled: { type: Boolean, default: true },
-    // v-model values
-    pickupLibraryId: {
-      type: String,
-      default: null,
-    },
-    itemtypeId: {
-      type: [Number, String],
-      default: null,
-    },
-    itemId: {
-      type: [Number, String],
-      default: null,
-    },
-    // Options and constraints
-    constrainedPickupLocations: {
-      type: Array,
-      default: () => [],
-    },
-    constrainedItemTypes: {
-      type: Array,
-      default: () => [],
-    },
-    constrainedBookableItems: {
-      type: Array,
-      default: () => [],
-    },
-    constrainedFlags: {
-      type: Object,
-      default: () => ({
-        pickupLocations: false,
-        itemTypes: false,
-        bookableItems: false,
-      }),
-    },
-    // Statistics for badges
-    pickupLocationsTotal: {
-      type: Number,
-      default: 0,
-    },
-    pickupLocationsFilteredOut: {
-      type: Number,
-      default: 0,
-    },
-    bookableItemsTotal: {
-      type: Number,
-      default: 0,
-    },
-    bookableItemsFilteredOut: {
-      type: Number,
-      default: 0,
-    },
-  },
-  emits: ["update:pickup-library-id", "update:itemtype-id", "update:item-id"],
-  setup(props, { emit }) {
-    const store = useBookingStore()
-    const { loading } = storeToRefs(store)
-    // Helper to create v-model proxies with minimal repetition
-    const vModelProxy = (prop, event) =>
-      computed({
-        get: () => props[prop],
-        set: value => emit(event, value),
-      })
+    emits: ["update:pickup-library-id", "update:itemtype-id", "update:item-id"],
+    setup(props, { emit }) {
+        const store = useBookingStore();
+        const { loading } = storeToRefs(store);
+        // Helper to create v-model proxies with minimal repetition
+        const vModelProxy = (prop, event) =>
+            computed({
+                get: () => props[prop],
+                set: value => emit(event, value),
+            });
 
-    const selectedPickupLibraryId = vModelProxy(
-      "pickupLibraryId",
-      "update:pickup-library-id"
-    )
-    const selectedItemtypeId = vModelProxy("itemtypeId", "update:itemtype-id")
-    const selectedItemId = vModelProxy("itemId", "update:item-id")
+        const selectedPickupLibraryId = vModelProxy(
+            "pickupLibraryId",
+            "update:pickup-library-id"
+        );
+        const selectedItemtypeId = vModelProxy(
+            "itemtypeId",
+            "update:itemtype-id"
+        );
+        const selectedItemId = vModelProxy("itemId", "update:item-id");
 
-    const selectsDisabled = computed(
-      () =>
-        !props.detailsEnabled || (!props.selectedPatron && props.patronRequired)
-    )
+        const selectsDisabled = computed(
+            () =>
+                !props.detailsEnabled ||
+                (!props.selectedPatron && props.patronRequired)
+        );
 
-    return {
-      selectedPickupLibraryId,
-      selectedItemtypeId,
-      selectedItemId,
-      loading,
-      selectsDisabled,
-    }
-  },
-}
+        return {
+            selectedPickupLibraryId,
+            selectedItemtypeId,
+            selectedItemId,
+            loading,
+            selectsDisabled,
+        };
+    },
+};
 </script>
 
 <style scoped>
 .step-block {
-  margin-bottom: var(--booking-space-lg);
+    margin-bottom: var(--booking-space-lg);
 }
 
 .step-header {
-  font-weight: 600;
-  font-size: var(--booking-text-lg);
-  margin-bottom: calc(var(--booking-space-lg) * 0.75);
-  color: var(--booking-neutral-600);
+    font-weight: 600;
+    font-size: var(--booking-text-lg);
+    margin-bottom: calc(var(--booking-space-lg) * 0.75);
+    color: var(--booking-neutral-600);
 }
 
 .form-group {
-  margin-bottom: var(--booking-space-lg);
+    margin-bottom: var(--booking-space-lg);
 }
 
 .badge {
-  font-size: var(--booking-text-xs);
+    font-size: var(--booking-text-xs);
 }
 
 .text-bg-warning {
-  background-color: var(--booking-warning-bg) !important;
-  color: var(--booking-neutral-600) !important;
+    background-color: var(--booking-warning-bg) !important;
+    color: var(--booking-neutral-600) !important;
 }
 </style>

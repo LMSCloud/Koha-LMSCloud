@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -22,6 +22,7 @@ use CGI qw ( -utf8 );
 use C4::Auth        qw( get_template_and_user );
 use C4::Circulation qw( AddReturn );
 use C4::Output      qw( output_html_with_http_headers );
+use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
 use Koha::Items;
 
 use List::MoreUtils qw( uniq );
@@ -86,6 +87,11 @@ if ( $op eq 'cud-check_in' ) {
                     checkout => $checkout,
                     patron   => $patron
                     };
+
+                # Rebuild holds queue on checkin
+                Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
+                    { biblio_ids => [ $item->biblionumber ] } )
+                    if C4::Context->preference('RealTimeHoldsQueue');
             } else {
                 push @errors,
                     {

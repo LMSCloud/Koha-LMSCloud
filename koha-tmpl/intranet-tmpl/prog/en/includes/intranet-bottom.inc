@@ -8,7 +8,7 @@
     [% SET CookieConsentPopup = AdditionalContents.get( location => "CookieConsentPopup", lang => lang, library => branchcode || default_branch ) %]
     [% USE JSConsents %]
 [% END %]
-        </div>
+
 [% IF ( ( languages_loop ) && ( ! popup_window ) && ( Koha.Preference('StaffLangSelectorMode') == 'both' || Koha.Preference('StaffLangSelectorMode') == 'footer') ) %]
     [% UNLESS ( one_language_enabled ) %]
         <div id="changelanguage" class="navbar navbar-expand navbar-light bg-light">
@@ -22,7 +22,7 @@
                             [% IF ( languages_loo.group_enabled ) %]
                                 [% IF ( languages_loo.plural ) %]
                                     <li class="nav-item dropup">
-                                        <a class="nav-link dropdown-toggle" id="show[% languages_loo.rfc4646_subtag | html %]" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <a class="nav-link dropdown-toggle" id="show[% languages_loo.rfc4646_subtag | html %]" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                             [% IF ( languages_loo.native_description ) %]
                                                 [% languages_loo.native_description | html %]
                                             [% ELSE %]
@@ -41,14 +41,18 @@
                                                 [% IF ( sublanguages_loo.enabled ) %]
                                                     [% IF ( sublanguages_loo.sublanguage_current ) %]
                                                         <li>
-                                                            <a class="nav-link currentlanguage" href="#">
-                                                                [% sublanguages_loo.native_description | html %] [% sublanguages_loo.script_description | html %] [% sublanguages_loo.region_description | html %] [% sublanguages_loo.variant_description | html %] ([% sublanguages_loo.rfc4646_subtag | html %])
+                                                            <a class="nav-link currentlanguage" aria-current="page">
+                                                                [% sublanguages_loo.native_description | html %] [% sublanguages_loo.script_description | html %] [% sublanguages_loo.region_description | html %]
+                                                                [% sublanguages_loo.variant_description | html %]
+                                                                ([% sublanguages_loo.rfc4646_subtag | html %])
                                                             </a>
                                                         </li>
                                                     [% ELSE %]
                                                         <li>
                                                             <a class="dropdown-item" href="/cgi-bin/koha/changelanguage.pl?language=[% sublanguages_loo.rfc4646_subtag | uri %]">
-                                                                [% sublanguages_loo.native_description | html %] [% sublanguages_loo.script_description | html %] [% sublanguages_loo.region_description | html %] [% sublanguages_loo.variant_description | html %] ([% sublanguages_loo.rfc4646_subtag | html %])
+                                                                [% sublanguages_loo.native_description | html %] [% sublanguages_loo.script_description | html %] [% sublanguages_loo.region_description | html %]
+                                                                [% sublanguages_loo.variant_description | html %]
+                                                                ([% sublanguages_loo.rfc4646_subtag | html %])
                                                             </a>
                                                         </li>
                                                     [% END %]
@@ -60,7 +64,7 @@
                                     [% IF ( languages_loo.group_enabled ) %]
                                         [% IF ( languages_loo.current ) %]
                                             <li class="nav-item">
-                                                <a class="nav-link active currentlanguage" aria-current="page" href="#">
+                                                <a class="nav-link active currentlanguage" aria-current="page" aria-disabled="true" tabindex="-1">
                                                     [% IF ( languages_loo.native_description ) %]
                                                         [% languages_loo.native_description | html %]
                                                     [% ELSE %]
@@ -83,10 +87,14 @@
                                 [% END # /IF ( languages_loo.plural ) %]
                             [% END # /IF ( languages_loo.group_enabled ) %]
                         [% END # /FOREACH languages_loo %]
-                    </ul> <!-- /#i18nMenu -->
-                </div> <!-- /.navbar-collapse -->
-            </div> <!-- /.container-fluid -->
-        </div> <!-- /#changelanguage -->
+                    </ul>
+                    <!-- /#i18nMenu -->
+                </div>
+                <!-- /.navbar-collapse -->
+            </div>
+            <!-- /.container-fluid -->
+        </div>
+        <!-- /#changelanguage -->
     [% END # /UNLESS ( one_language_enabled ) %]
 [% END # /IF ( ( languages_loop )... %]
 
@@ -110,7 +118,8 @@
             <button type="button" class="btn btn-primary consentAcceptEssential">Accept essential cookies</button>
             <button type="button" class="btn btn-default" id="consentMoreInfo">More information</button>
         </div>
-    </div> <!-- /#cookieConsentBar -->
+    </div>
+    <!-- /#cookieConsentBar -->
 
     <!-- Cookie consent modal -->
     <div id="cookieConsentModal" class="modal" tabindex="-1" role="dialog" aria-labelledby="cookieConsentModalLabel" aria-hidden="true">
@@ -132,7 +141,7 @@
                         [% FOREACH consent IN consents %]
                             <div class="consentModalItem">
                                 <div class="consentItemCheckbox">
-                                    <input class="consentCheckbox" type="checkbox" name="consentCheckbox" value="[% consent.id | html %]" aria-label="Consent to cookie">
+                                    <input class="consentCheckbox" type="checkbox" name="consentCheckbox" value="[% consent.id | html %]" aria-label="Consent to cookie" />
                                 </div>
                                 <div class="consentItemMeta">
                                     <div class="consentItemName">[% consent.name | html %]</div>
@@ -152,18 +161,30 @@
                         <button type="button" class="btn btn-secondary consentCloseModal">Cancel</button>
                     </div>
                 </div>
-            </div> <!-- /.modal-content -->
-        </div> <!-- /.modal-dialog -->
-    </div>  <!-- /#cookieConsentModal  -->
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+    <!-- /#cookieConsentModal  -->
 [% END %]
 <!-- CookieConsentedJS code that may run -->
 [% IF Koha.Preference( 'CookieConsent' ) && JSConsents.all('staffConsent').size %]
     [% consents = JSConsents.all('staffConsent') %]
     [% FOREACH consent IN consents %]
-        <div class="consentCode" style="display:none" aria-hidden="true" data-consent-id="[% consent.id | html %]" data-consent-code="[% consent.code | html %]" data-consent-match-pattern="[% consent.matchPattern | html %]" data-consent-cookie-domain="[% consent.cookieDomain | html %]" data-consent-cookie-path="[% consent.cookiePath | html %]" data-requires-consent="[% consent.staffConsent ? 'true' : 'false' | html %]"></div>
+        <div
+            class="consentCode"
+            style="display:none"
+            aria-hidden="true"
+            data-consent-id="[% consent.id | html %]"
+            data-consent-code="[% consent.code | html %]"
+            data-consent-match-pattern="[% consent.matchPattern | html %]"
+            data-consent-cookie-domain="[% consent.cookieDomain | html %]"
+            data-consent-cookie-path="[% consent.cookiePath | html %]"
+            data-requires-consent="[% consent.staffConsent ? 'true' : 'false' | html %]"
+        ></div>
     [% END %]
 [% END %]
-<span id="audio-alert"></span>
 [% IF ( footerjs ) %]
     [% INCLUDE js_includes.inc %]
     [% jsinclude | $raw # Parse the page template's JavaScript block if necessary %]
@@ -172,4 +193,6 @@
 [% KohaPlugins.get_plugins_intranet_js | $raw %]
 
 </body>
+<!-- prettier-ignore-start -->
 </html>
+<!-- prettier-ignore-end -->

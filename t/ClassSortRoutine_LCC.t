@@ -6,17 +6,18 @@
 use strict;
 use warnings;
 
-use Test::More tests => 10;
+use Test::NoWarnings;
+use Test::More tests => 11;
 
 BEGIN {
-    use_ok( 'C4::ClassSortRoutine::LCC', qw( get_class_sort_key ) );
+    use_ok('C4::ClassSortRoutine::LCC');
 }
 
 #Obvious cases
 is( C4::ClassSortRoutine::LCC::get_class_sort_key(),           "",    "No arguments returns an empty string" );
 is( C4::ClassSortRoutine::LCC::get_class_sort_key( 'a', 'b' ), "A B", "Arguments 'a','b' return 'A B'" );
 
-#spaces in arguements
+#spaces in arguments
 is( C4::ClassSortRoutine::LCC::get_class_sort_key( ' ', 'b' ),    "B", "Arguments ' ','b' return 'B'" );
 is( C4::ClassSortRoutine::LCC::get_class_sort_key( 'a', ' ' ),    "A", "Arguments 'a',' ' return 'A'" );
 is( C4::ClassSortRoutine::LCC::get_class_sort_key( ' ', '    ' ), "",  "Arguments ' ','    ' return ''" );

@@ -1,0 +1,60 @@
+<template>
+    <fieldset
+        v-if="instancedResource.table.additionalFilters?.length > 0"
+        class="filters"
+    >
+        <template v-if="instancedResource.getTableFilterFormElementsLabel()"
+            >{{ instancedResource.getTableFilterFormElementsLabel()
+            }}{{ " " }}</template
+        >
+        <template
+            v-for="(filter, index) in instancedResource.table.additionalFilters"
+            v-bind:key="index"
+        >
+            <FormElement :resource="filters" :attr="filter" :index="index" />
+        </template>
+        <input
+            @click="
+                instancedResource.filterTable(
+                    filters,
+                    table,
+                    instancedResource.embedded
+                )
+            "
+            id="filterTable"
+            type="button"
+            :value="$__('Filter')"
+        />
+    </fieldset>
+</template>
+
+<script>
+import { ref } from "vue";
+import FormElement from "./FormElement.vue";
+export default {
+    components: { FormElement },
+    props: {
+        instancedResource: Object,
+        table: Object,
+    },
+    setup(props) {
+        const filters = ref(
+            props.instancedResource.getFilterValues
+                ? props.instancedResource.getFilterValues(
+                      props.instancedResource.route.query
+                  )
+                : {}
+        );
+        return {
+            filters,
+        };
+    },
+};
+</script>
+
+<style scoped>
+.filters > input[type="checkbox"],
+.filters > input[type="button"] {
+    margin-left: 1rem;
+}
+</style>

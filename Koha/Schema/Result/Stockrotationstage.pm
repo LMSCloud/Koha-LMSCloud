@@ -61,7 +61,7 @@ Branch this stage relates to
   default_value: 4
   is_nullable: 0
 
-The number of days items shoud occupy this stage
+The number of days items should occupy this stage
 
 =cut
 
@@ -138,17 +138,30 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2021-01-21 13:39:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:qNvTMdYD3BCwd0McGICpFg
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2025-04-28 16:41:47
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:0UaeR7k2y+4wucQqavr8JQ
 
 # We use DBIx::Class::Ordered to handle stages manipulation.
 __PACKAGE__->load_components(qw( Ordered ));
 
 __PACKAGE__->grouping_column('rota_id'); # Our group_id
 
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
+
 sub koha_object_class {
     'Koha::StockRotationStage';
 }
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
     'Koha::StockRotationStages';
 }

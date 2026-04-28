@@ -13,7 +13,7 @@ package Koha::Authority::Type;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -28,6 +28,12 @@ Koha::Authority::Type - Koha Authority Type Object class
 =head1 API
 
 =head2 Class Methods
+
+=cut
+
+=head2 auth_tag_structures
+
+Missing POD for auth_tag_structures.
 
 =cut
 

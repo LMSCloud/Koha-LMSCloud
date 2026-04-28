@@ -67,75 +67,63 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                <h1> Download batch prints </h1>
-                <div class="help"> </div>
+[% WRAPPER 'main-container.inc' aside='tools-menu' %]
+    <h1>Download batch prints</h1>
 
-                <form method="post" action="/cgi-bin/koha/tools/download-files.pl" target="_new" name="downloadfile" enctype="multipart/form-data">
-                    [% INCLUDE 'csrf-token.inc' %]
-                    <input type="hidden" name="filename" value="" />
-                    <input type="hidden" name="op" value="cud-download" />
-                    <div class="row">
-                        <div class="col-sm-4">
-                            <fieldset class="brief" id="downloaddates">
-                                <legend>Date</legend>
+    <div class="page-section">
+        <form method="post" action="/cgi-bin/koha/tools/download-files.pl" target="_new" name="downloadfile" enctype="multipart/form-data">
+            [% INCLUDE 'csrf-token.inc' %]
+            <input type="hidden" name="filename" value="" />
+            <input type="hidden" name="op" value="cud-download" />
+            <div class="row">
+                <div class="col-sm-4">
+                    <fieldset class="brief" id="downloaddates">
+                        <legend>Date</legend>
 
-                                <label for="datelist">Select date </label>
-                                <div class="downloaddatelist" id="datelist">
-                                    [% i=-1 %][% FOREACH dir IN dirlist %]
-                                        [% SET i = i + 1 %]<a href="javascript:showfiles([% i | uri %])"><div class="listitem">[% dir.displaydate | html %]</div></a>
-                                    [% END %]
-                                </div>
-                            </fieldset>
+                        <label for="datelist">Select date</label>
+                        <div class="downloaddatelist" id="datelist">
+                            [% i=-1 %][% FOREACH dir IN dirlist %]
+                                <a href="javascript:showfiles([% (i = i + 1) | uri %])"><div class="listitem">[% dir.displaydate | html %]</div></a>
+                            [% END %]
                         </div>
-                        <div class="col-sm-8">
-                            <fieldset class="brief" id="downloadffiles">
-                                <legend>Files</legend>
+                    </fieldset>
+                </div>
+                <div class="col-sm-8">
+                    <fieldset class="brief" id="downloadffiles">
+                        <legend>Files</legend>
 
-                                <label for="filelist">Select file </label>
-                                <div class="downloadfilelist" id="filelist"> </div>
-                            </fieldset>
-                        </div>
-                    </div>
-                </form>
-            </main>
-        </div>
-        <!-- /.col-md-10.order-md-2.order-sm-1 -->
-
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'tools-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-sm-2.order-md-1 -->
+                        <label for="filelist">Select file</label>
+                        <div class="downloadfilelist" id="filelist"></div>
+                    </fieldset>
+                </div>
+            </div>
+        </form>
     </div>
-    <!-- /.row -->
+[% END #/ WRAPPER main-container.inc %]
 
-    [% MACRO jsinclude BLOCK %]
-        [% Asset.js("js/tools-menu.js") | $raw %]
-        <script type="text/javascript">
-            var dirs = new Array;
-            [% FOREACH dir IN dirlist %]
-            dirs.push( { displaydate: "[% dir.displaydate | html %]", sortdate: "[% dir.sortdate | html %]", files: ["[% dir.files.join('","') | html %]"]} );
-            [% END %]
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") | $raw %]
+    <script type="text/javascript">
+        var dirs = new Array;
+        [% FOREACH dir IN dirlist %]
+        dirs.push( { displaydate: "[% dir.displaydate | html %]", sortdate: "[% dir.sortdate | html %]", files: ["[% dir.files.join('","') | html %]"]} );
+        [% END %]
 
-            function showfiles(index) {
-                var filelist = $("#filelist");
-                $(filelist).empty();
-                for (var k=0; k < dirs[index].files.length; k++) {
-                    $('<a href="javascript:downloadfile(\'' + dirs[index].files[k] + '\',\'' + dirs[index].sortdate + '\')"><div class="listitem">' + dirs[index].files[k] + '</div>').appendTo(filelist);
-                }
-                $("#datelist .selectedlistitem").removeClass("selectedlistitem");
-                $("#datelist .listitem").eq(index).addClass("selectedlistitem");
+        function showfiles(index) {
+            var filelist = $("#filelist");
+            $(filelist).empty();
+            for (var k=0; k < dirs[index].files.length; k++) {
+                $('<a href="javascript:downloadfile(\'' + dirs[index].files[k] + '\',\'' + dirs[index].sortdate + '\')"><div class="listitem">' + dirs[index].files[k] + '</div>').appendTo(filelist);
             }
+            $("#datelist .selectedlistitem").removeClass("selectedlistitem");
+            $("#datelist .listitem").eq(index).addClass("selectedlistitem");
+        }
 
-            function downloadfile(filename, date) {
-                document.downloadfile.elements['filename'].value=filename;
-                document.downloadfile.submit();
-            }
-        </script>
-    [% END %]
+        function downloadfile(filename, date) {
+            document.downloadfile.elements['filename'].value=filename;
+            document.downloadfile.submit();
+        }
+    </script>
+[% END %]
 
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+[% INCLUDE 'intranet-bottom.inc' %]

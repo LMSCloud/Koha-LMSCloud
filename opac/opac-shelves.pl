@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -493,6 +493,11 @@ if ( $op eq 'view' ) {
                         borrowernumber => $loggedinuser,
                     }
                 );
+
+                if ( C4::Context->preference('OPACLocalCoverImages') ) {
+                    $this_item->{has_local_cover_image} =
+                        $this_item->{biblio_object} ? $this_item->{biblio_object}->cover_images->count : 0;
+                }
                 push @items_info, $this_item;
             }
 
@@ -556,6 +561,10 @@ if ( $op eq 'view' ) {
         push @messages, { type => 'error', code => 'does_not_exist' };
     }
 } elsif ( $op eq 'list' ) {
+    my $direction = $query->param('direction') || 'asc';
+    my $sortfield = $query->param('sortfield') || 'shelfname';
+    my $sort_by   = { sortfield => $sortfield, direction => $direction };
+
     my $shelves;
     my ($rows) = (20);
     if ( !$public ) {
@@ -570,7 +579,11 @@ if ( $op eq 'view' ) {
         shelves        => $shelves,
         pagination_bar => pagination_bar(
             q||,   $pager->last_page - $pager->first_page + 1,
-            $page, "page", { op => 'list', public => $public, }
+            $page, "page",
+            {
+                op        => 'list', public => $public, sortfield => $sortfield,
+                direction => $direction,
+            }
         ),
     );
 }

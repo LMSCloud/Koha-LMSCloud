@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -65,7 +65,8 @@ use Koha::SearchEngine;
 use Koha::SearchEngine::Indexer;
 
 my $help;
-my $batch_size        = 10;
+my $batch_size = 10;
+
 my $not_found_retries = {};
 my $max_retries       = $ENV{MAX_RETRIES} || 10;
 

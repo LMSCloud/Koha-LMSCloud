@@ -13,14 +13,15 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use utf8;
 use Encode;
 
-use Test::More tests => 5;
+use Test::NoWarnings;
+use Test::More tests => 6;
 use Test::MockModule;
 use Test::Mojo;
 use Test::Warn;
@@ -83,7 +84,8 @@ subtest 'get() tests' => sub {
         ->status_is(400);
 
     $t->get_ok( "//$userid:$password@/api/v1/authorities/" . $authority->id => { Accept => 'application/json' } )
-        ->status_is(200)->json_is( '/authority_id', $authority->id )
+        ->status_is(200)
+        ->json_is( '/authority_id', $authority->id )
         ->json_is( '/framework_id', $authority->authtypecode );
 
     $t->get_ok( "//$userid:$password@/api/v1/authorities/" . $authority->id => { Accept => 'application/marcxml+xml' } )
@@ -97,7 +99,8 @@ subtest 'get() tests' => sub {
         ->status_is(200);
 
     $t->get_ok( "//$userid:$password@/api/v1/authorities/" . $authority->id => { Accept => 'text/plain' } )
-        ->status_is(200)->content_is(
+        ->status_is(200)
+        ->content_is(
         q|LDR 00079     2200049   4500
 001     1001
 110    _9102
@@ -106,7 +109,8 @@ subtest 'get() tests' => sub {
 
     $authority->delete;
     $t->get_ok( "//$userid:$password@/api/v1/authorities/" . $authority->id => { Accept => 'application/marc' } )
-        ->status_is(404)->json_is( '/error', 'Authority record not found' );
+        ->status_is(404)
+        ->json_is( '/error', 'Authority record not found' );
 
     $schema->storage->txn_rollback;
 };
@@ -148,7 +152,8 @@ subtest 'delete() tests' => sub {
 
     $patron->flags( 2**14 )->store;    # 14 => editauthorities userflag
 
-    $t->delete_ok( "//$userid:$password@/api/v1/authorities/" . $authority->id )->status_is( 204, 'REST3.2.4' )
+    $t->delete_ok( "//$userid:$password@/api/v1/authorities/" . $authority->id )
+        ->status_is( 204, 'REST3.2.4' )
         ->content_is( '', 'REST3.3.4' );
 
     $t->delete_ok( "//$userid:$password@/api/v1/authorities/" . $authority->id )->status_is(404);
@@ -213,7 +218,8 @@ subtest 'post() tests' => sub {
             { 'Content-Type' => 'application/marc-in-json', 'x-authority-type' => 'CORPO_NAME' } => $mij )
         ->status_is(409)
         ->header_exists_not( 'Location', 'Location header is only set when the new resource is created' )
-        ->json_like( '/error' => qr/Duplicate record (\d*)/ )->json_is( '/error_code' => q{duplicate} );
+        ->json_like( '/error' => qr/Duplicate record (\d*)/ )
+        ->json_is( '/error_code' => q{duplicate} );
 
     $t->post_ok(
         "//$userid:$password@/api/v1/authorities" => {
@@ -307,7 +313,8 @@ subtest 'put() tests' => sub {
 
     $t->put_ok( "//$userid:$password@/api/v1/authorities/$authid" =>
             { 'Content-Type' => 'application/marcxml+xml', 'x-authority-type' => $authtypecode } => $marcxml )
-        ->status_is(200)->json_has('/id');
+        ->status_is(200)
+        ->json_has('/id');
 
     $authority  = Koha::Authorities->find($authid);
     $record     = $authority->record;
@@ -317,7 +324,8 @@ subtest 'put() tests' => sub {
 
     $t->put_ok( "//$userid:$password@/api/v1/authorities/$authid" =>
             { 'Content-Type' => 'application/marc-in-json', 'x-authority-type' => $authtypecode } => $mij )
-        ->status_is(200)->json_has('/id');
+        ->status_is(200)
+        ->json_has('/id');
 
     $authority  = Koha::Authorities->find($authid);
     $record     = $authority->record;
@@ -326,7 +334,8 @@ subtest 'put() tests' => sub {
     is( $subfield_a, 'MIJ' );
 
     $t->put_ok( "//$userid:$password@/api/v1/authorities/$authid" =>
-            { 'Content-Type' => 'application/marc', 'x-authority-type' => $authtypecode } => $marc )->status_is(200)
+            { 'Content-Type' => 'application/marc', 'x-authority-type' => $authtypecode } => $marc )
+        ->status_is(200)
         ->json_has('/id');
 
     $authority  = Koha::Authorities->find($authid);

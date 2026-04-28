@@ -74,12 +74,10 @@
                 </span>
             </div>
         [% END %]
-        [% SET table_id = closed ? "closed_subscriptions" : "opened_subscriptions" %]
-
-        <table id="[% table_id | html %]">
+        <table>
             <thead>
                 <tr>
-                    <th class="NoSort noExport"></th>
+                    <th class="no-sort no-export"></th>
                     <th>ISSN</th>
                     <th class="anti-the">Title</th>
                     <th>Notes</th>
@@ -92,7 +90,7 @@
                     [% FOR field IN additional_fields_for_subscription %]
                         <th>[% field.name | html %]</th>
                     [% END %]
-                    <th class="NoSort noExport">Actions</th>
+                    <th class="no-sort no-export">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -204,188 +202,165 @@
     </div>
 [% END # /BLOCK subscriptions_table %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
+[% SET asides = ['serials-menu'] %]
+[% IF done_searched && !mana %][% asides.unshift('serials-advsearch_brief') %][% END %]
+[% WRAPPER 'main-container.inc' asides=asides %]
 
-                [% INCLUDE 'serials-toolbar.inc' %]
+    [% INCLUDE 'serials-toolbar.inc' %]
 
-                [% IF ( mana ) %]
-                    [% IF ( done_searched ) %]
-                        <h1>Mana subscriptions ([% total | html %] found)</h1>
-                    [% ELSE %]
-                        <h1>Mana subscriptions search</h1>
-                    [% END %]
-                [% ELSE %]
-                    [% IF ( done_searched ) %]
-                        [% IF orig_total > total %]
-                            <div class="alert alert-warning">
-                                <p>The search originally produced [% orig_total | html %] results and was limited to [% total | html %].</p>
-                            </div>
-                        [% END %]
-                        <h1>Serials subscriptions ([% total | html %] found)</h1>
-                    [% ELSE %]
-                        <h1>Serials subscriptions search</h1>
-                    [% END %]
-                [% END %]
-
-                [% UNLESS ( done_searched ) %]
-                    [% INCLUDE 'serials-advsearch.inc' %]
-                [% END # /UNLESS ( done_searched ) %]
-
-                [% IF ( done_searched ) %]
-                    [% IF ( total ) %]
-
-                        [% WRAPPER tabs id= "serialstabs" %]
-                            [% WRAPPER tabs_nav %]
-                                [% IF mana %]
-                                    [% WRAPPER tab_item tabname= "mana" bt_active= 1 %]<span>Mana</span> ([% total || 0 | html %])[% END %]
-                                [% ELSE %]
-                                    [% WRAPPER tab_item tabname= "opened" bt_active= 1 %]<span>Open</span> ([% openedsubscriptions.size || 0 | html %])[% END %]
-                                    [% WRAPPER tab_item tabname= "closed" %]<span>Closed</span> ([% closedsubscriptions.size || 0 | html %])[% END %]
-                                [% END %]
-                            [% END # /WRAPPER tabs_nav %]
-                            [% WRAPPER tab_panels %]
-                                [% IF mana %]
-                                    [% WRAPPER tab_panel tabname="mana" bt_active= 1 %]
-                                        [% INCLUDE 'mana/mana-subscription-search-result.inc' %]
-                                    [% END # /WRAPPER tab_panel#mana %]
-                                [% ELSE %]
-                                    [% WRAPPER tab_panel tabname="opened" bt_active= 1 %]
-                                        [% IF openedsubscriptions %]
-                                            [% INCLUDE subscriptions_table subscriptions = openedsubscriptions %]
-                                        [% ELSE %]
-                                            <div class="alert alert-info">
-                                                <p>Your search returned no open subscriptions.</p>
-                                            </div>
-                                        [% END %]
-                                    [% END # /WRAPPER tab_panel#opened %]
-                                    [% WRAPPER tab_panel tabname="closed" %]
-                                        [% IF closedsubscriptions %]
-                                            [% INCLUDE subscriptions_table subscriptions = closedsubscriptions closed = 1 %]
-                                        [% ELSE %]
-                                            <div class="alert alert-info">
-                                                <p>Your search returned no closed subscriptions.</p>
-                                            </div>
-                                        [% END %]
-                                    [% END # /WRAPPER tab_panel#closed %]
-                                [% END # /IF mana %]
-                            [% END # /WRAPPER tab_panels %]
-                        [% END # /WRAPPER tabs#serialstabs %]
-                    [% ELSE %]
-                        <div class="alert alert-info">
-                            <p>Your search returned no results.</p>
-                        </div>
-                    [% END # IF ( total ) %]
-                [% END # /IF done_searched %]
-            </main>
-        </div>
-        <!-- /.col-md-10.order-md-2 -->
-
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% IF ( done_searched ) %]
-                    [% UNLESS ( mana ) %]
-                        [% INCLUDE 'serials-advsearch.inc' brief=1 %]
-                    [% END # / UNLESS ( mana ) %]
-                [% END # / IF ( done_searched ) %]
-                [% INCLUDE 'serials-menu.inc' %]
-            </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
-
-    [% MACRO jsinclude BLOCK %]
-        [% INCLUDE 'calendar.inc' %]
-        [% INCLUDE 'datatables.inc' %]
-        [% INCLUDE 'columns_settings.inc' %]
-        <script>
-            var subscriptionid = "[% subscriptionid | html %]";
-        </script>
-        [% Asset.js("js/serials-toolbar.js") | $raw %]
-        <script>
-            function itemSelectionBuildEditLink( tab ) {
-                var subscription_ids = new Array();
-                $( "input:checkbox." + tab + ":checked" ).each(function() {
-                    subscription_ids.push( $(this).val() );
-                });
-
-                if (subscription_ids.length > 0) {
-                    var url = "[% edit_action_link | html %]";
-                    url += '&subscriptionid=' + subscription_ids.join('&subscriptionid=');
-                    location.href = url;
-                } else {
-                    return false;
-                }
-            }
-
-            function enableCheckboxActions( tab ){
-                // Enable/disable controls if checkboxes are checked
-                var checked_count = $("input:checkbox." + tab + ":checked").length;
-                if( checked_count > 0 ){
-                    $(".itemselection_actions." + tab ).show();
-                } else {
-                    $(".itemselection_actions." + tab ).hide();
-                }
-            }
-
-            $(document).ready(function() {
-                var osrlt = KohaTable("opened_subscriptions", {
-                    pagingType: "full",
-                    order: [[2, "asc"]],
-                }, null, true);
-
-                var csrlt = KohaTable("closed_subscriptions", {
-                    order: [[2, "asc"]],
-                    pagingType: "full",
-                }, null, true);
-
-                var manarlt = $("#mana_results_datatable").dataTable($.extend(true, {}, dataTablesDefaults, {
-                    "pagingType": "full",
-                    "columnDefs": [
-                        { "orderable": false, "searchable":  false, "targets": [ 'NoSort' ] },
-                        { "type": "anti-the", "targets":  [ 'anti-the'] }
-                    ]
-                }));
-
-                $("#reopensub").click(function(){
-                    return confirm(_("Are you sure you want to reopen this subscription?"));
-                });
-
-                $('.select-all, .clear-all').on('click', function(e) {
-                    e.preventDefault();
-                    var tab = $(this).data("tab");
-                    var checkboxes = $("input:checkbox." + tab );
-                    checkboxes.prop('checked', $(this).hasClass('select-all')).change();
-                    enableCheckboxActions(tab);
-                });
-
-                enableCheckboxActions("opened");
-                enableCheckboxActions("closed");
-
-                $("input[name='subscriptionid'][type='checkbox']").change(function() {
-                    var tab = $(this).attr("class");
-                    enableCheckboxActions( tab );
-                });
-
-                $(".itemselection_action_modify").on("click", function(e){
-                    e.preventDefault();
-                    var tab = $(this).data("tab");
-                    itemSelectionBuildEditLink( tab );
-                });
-
-                [% IF ( mana ) %]
-                    $(".local").hide();
-                    [% FOR field IN additional_fields_for_subscription %]
-                          $("label[for=additional_field_[% field.id | $raw %]], input#additional_field_[% field.id | $raw %]").hide();
-                    [% END %]
-                [% END %]
-            });
-        </script>
+    [% IF ( mana ) %]
+        [% IF ( done_searched ) %]
+            <h1>Mana subscriptions ([% total | html %] found)</h1>
+        [% ELSE %]
+            <h1>Mana subscriptions search</h1>
+        [% END %]
+    [% ELSE %]
+        [% IF ( done_searched ) %]
+            [% IF orig_total > total %]
+                <div class="alert alert-warning">
+                    <p>The search originally produced [% orig_total | html %] results and was limited to [% total | html %].</p>
+                </div>
+            [% END %]
+            <h1>Serials subscriptions ([% total | html %] found)</h1>
+        [% ELSE %]
+            <h1>Serials subscriptions search</h1>
+        [% END %]
     [% END %]
 
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+    [% UNLESS ( done_searched ) %]
+        [% INCLUDE 'serials-advsearch.inc' %]
+    [% END # /UNLESS ( done_searched ) %]
+
+    [% IF ( done_searched ) %]
+        [% IF ( total ) %]
+
+            [% WRAPPER tabs id= "serialstabs" %]
+                [% WRAPPER tabs_nav %]
+                    [% IF mana %]
+                        [% WRAPPER tab_item tabname= "mana" bt_active= 1 %]<span>Mana</span> ([% total || 0 | html %])[% END %]
+                    [% ELSE %]
+                        [% WRAPPER tab_item tabname= "opened" bt_active= 1 %]<span>Open</span> ([% openedsubscriptions.size || 0 | html %])[% END %]
+                        [% WRAPPER tab_item tabname= "closed" %]<span>Closed</span> ([% closedsubscriptions.size || 0 | html %])[% END %]
+                    [% END %]
+                [% END # /WRAPPER tabs_nav %]
+                [% WRAPPER tab_panels %]
+                    [% IF mana %]
+                        [% WRAPPER tab_panel tabname="mana" bt_active= 1 %]
+                            [% INCLUDE 'mana/mana-subscription-search-result.inc' %]
+                        [% END # /WRAPPER tab_panel#mana %]
+                    [% ELSE %]
+                        [% WRAPPER tab_panel tabname="opened" bt_active= 1 %]
+                            [% IF openedsubscriptions %]
+                                [% INCLUDE subscriptions_table subscriptions = openedsubscriptions %]
+                            [% ELSE %]
+                                <div class="alert alert-info">
+                                    <p>Your search returned no open subscriptions.</p>
+                                </div>
+                            [% END %]
+                        [% END # /WRAPPER tab_panel#opened %]
+                        [% WRAPPER tab_panel tabname="closed" %]
+                            [% IF closedsubscriptions %]
+                                [% INCLUDE subscriptions_table subscriptions = closedsubscriptions closed = 1 %]
+                            [% ELSE %]
+                                <div class="alert alert-info">
+                                    <p>Your search returned no closed subscriptions.</p>
+                                </div>
+                            [% END %]
+                        [% END # /WRAPPER tab_panel#closed %]
+                    [% END # /IF mana %]
+                [% END # /WRAPPER tab_panels %]
+            [% END # /WRAPPER tabs#serialstabs %]
+        [% ELSE %]
+            <div class="alert alert-info">
+                <p>Your search returned no results.</p>
+            </div>
+        [% END # IF ( total ) %]
+    [% END # /IF done_searched %]
+[% END %]
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'datatables.inc' %]
+    <script>
+        var subscriptionid = "[% subscriptionid | html %]";
+    </script>
+    [% Asset.js("js/serials-toolbar.js") | $raw %]
+    <script>
+        function itemSelectionBuildEditLink( tab ) {
+            var subscription_ids = new Array();
+            $( "input:checkbox." + tab + ":checked" ).each(function() {
+                subscription_ids.push( $(this).val() );
+            });
+
+            if (subscription_ids.length > 0) {
+                var url = "[% edit_action_link | html %]";
+                url += '&subscriptionid=' + subscription_ids.join('&subscriptionid=');
+                location.href = url;
+            } else {
+                return false;
+            }
+        }
+
+        function enableCheckboxActions( tab ){
+            // Enable/disable controls if checkboxes are checked
+            var checked_count = $("input:checkbox." + tab + ":checked").length;
+            if( checked_count > 0 ){
+                $(".itemselection_actions." + tab ).show();
+            } else {
+                $(".itemselection_actions." + tab ).hide();
+            }
+        }
+
+        $(document).ready(function() {
+            var osrlt = $("#opened_panel table").kohaTable({
+                pagingType: "full",
+                order: [[2, "asc"]],
+            }, null, true);
+
+            var csrlt = $("#closed_panel table").kohaTable({
+                // FIXME sort function of additional_fields!
+                order: [[2, "asc"]],
+                pagingType: "full",
+            }, null, true);
+
+            var manarlt = $("#mana_results_datatable").kohaTable({
+                pagingType: "full",
+            });
+
+            $("#reopensub").click(function(){
+                return confirm(_("Are you sure you want to reopen this subscription?"));
+            });
+
+            $('.select-all, .clear-all').on('click', function(e) {
+                e.preventDefault();
+                var tab = $(this).data("tab");
+                var checkboxes = $("input:checkbox." + tab );
+                checkboxes.prop('checked', $(this).hasClass('select-all')).change();
+                enableCheckboxActions(tab);
+            });
+
+            enableCheckboxActions("opened");
+            enableCheckboxActions("closed");
+
+            $("input[name='subscriptionid'][type='checkbox']").change(function() {
+                var tab = $(this).attr("class");
+                enableCheckboxActions( tab );
+            });
+
+            $(".itemselection_action_modify").on("click", function(e){
+                e.preventDefault();
+                var tab = $(this).data("tab");
+                itemSelectionBuildEditLink( tab );
+            });
+
+            [% IF ( mana ) %]
+                $(".local").hide();
+                [% FOR field IN additional_fields_for_subscription %]
+                      $("label[for=additional_field_[% field.id | $raw %]], input#additional_field_[% field.id | $raw %]").hide();
+                [% END %]
+            [% END %]
+        });
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]

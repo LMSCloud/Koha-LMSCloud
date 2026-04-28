@@ -16,13 +16,14 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # This Koha test module is still a stub!
 # Add more tests here!!!
 
 use Modern::Perl;
-use Test::More tests => 22;
+use Test::NoWarnings;
+use Test::More tests => 23;
 use File::Temp qw(tempfile);
 use utf8;
 
@@ -67,7 +68,7 @@ ok( !column_exists( 'borrowers', 'xxx' ),        'Column xxx does not exist' );
 }
 my @constraint_names = $source->unique_constraint_names();
 my $constraint_name  = $constraint_names[0];
-ok( index_exists( 'borrowers',  $constraint_name ), 'Known contraint does exist' );
+ok( index_exists( 'borrowers',  $constraint_name ), 'Known constraint does exist' );
 ok( !index_exists( 'borrowers', 'xxx' ),            'Constraint xxx does not exist' );
 
 ok( foreign_key_exists( 'borrowers',  'borrowers_ibfk_1' ), 'FK borrowers_ibfk_1 exists' );

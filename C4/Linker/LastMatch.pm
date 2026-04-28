@@ -15,7 +15,7 @@ package C4::Linker::LastMatch;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -23,6 +23,16 @@ use C4::Heading;
 use C4::Linker::Default;    # Use Default for flipping
 
 use base qw(C4::Linker);
+
+=head1 Functions
+
+=cut
+
+=head2 new
+
+Missing POD for new.
+
+=cut
 
 sub new {
     my $class = shift;
@@ -34,11 +44,23 @@ sub new {
     return $self;
 }
 
+=head2 get_link
+
+Missing POD for get_link.
+
+=cut
+
 sub get_link {
     my $self    = shift;
     my $heading = shift;
     return $self->{'default_linker'}->get_link( $heading, 'last' );
 }
+
+=head2 update_cache
+
+Missing POD for update_cache.
+
+=cut
 
 sub update_cache {
     my $self    = shift;
@@ -46,6 +68,12 @@ sub update_cache {
     my $authid  = shift;
     $self->{'default_linker'}->update_cache( $heading, $authid );
 }
+
+=head2 flip_heading
+
+Missing POD for flip_heading.
+
+=cut
 
 sub flip_heading {
     my $self    = shift;

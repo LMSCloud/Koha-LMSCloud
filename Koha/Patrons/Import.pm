@@ -13,7 +13,7 @@ package Koha::Patrons::Import;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Moo;
@@ -268,7 +268,7 @@ LINE: while ( my $borrowerline = <$handle> ) {
         # Remove warning for int datatype that cannot be null
         # Argument "" isn't numeric in numeric eq (==) at /usr/share/perl5/DBIx/Class/Row.pm line 1018
         for my $field (
-            qw( privacy privacy_guarantor_fines privacy_guarantor_checkouts anonymized login_attempts autorenew_checkouts )
+            qw( privacy privacy_guarantor_fines privacy_guarantor_checkouts anonymized login_attempts checkprevcheckout autorenew_checkouts )
             )
         {
             delete $borrower{$field}
@@ -377,9 +377,6 @@ LINE: while ( my $borrowerline = <$handle> ) {
                                 $patron_attributes =
                                     $patron->extended_attributes->merge_and_replace_with($patron_attributes);
                             }
-
-                            # We do not want to filter by branch, maybe we should?
-                            Koha::Patrons->find($borrowernumber)->extended_attributes->delete;
                             $patron->extended_attributes($patron_attributes);
                         }
                         $overwritten++;
@@ -773,9 +770,9 @@ sub format_dates {
     my ( $self, $params ) = @_;
 
     foreach my $date_type (qw(dateofbirth dateenrolled dateexpiry date_renewed)) {
-        my $tempdate = $params->{borrower}->{$date_type} or next();
+        my $tmp_date = $params->{borrower}->{$date_type} or next();
         my $formatted_date =
-            eval { output_pref( { dt => dt_from_string($tempdate), dateonly => 1, dateformat => 'iso' } ); };
+            eval { output_pref( { dt => dt_from_string($tmp_date), dateonly => 1, dateformat => 'iso' } ); };
 
         if ($formatted_date) {
             $params->{borrower}->{$date_type} = $formatted_date;

@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -147,6 +147,7 @@ foreach my $item ( @{$items} ) {
             font_size        => $layout->get_attr('font_size'),
             scale_width      => $layout->get_attr('scale_width'),
             scale_height     => $layout->get_attr('scale_height'),
+            line_height      => $layout->get_attr('line_height'),
             callnum_split    => $layout->get_attr('callnum_split'),
             justify          => $layout->get_attr('text_justify'),
             format_string    => $layout->get_attr('format_string'),
@@ -176,6 +177,7 @@ foreach my $item ( @{$items} ) {
             font_size        => $layout->get_attr('font_size'),
             scale_width      => $layout->get_attr('scale_width'),
             scale_height     => $layout->get_attr('scale_height'),
+            line_height      => $layout->get_attr('line_height'),
             callnum_split    => $layout->get_attr('callnum_split'),
             justify          => $layout->get_attr('text_justify'),
             format_string    => $layout->get_attr('format_string'),
@@ -275,7 +277,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Koha; if not, see <http://www.gnu.org/licenses>.
+along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 DISCLAIMER OF WARRANTY
 

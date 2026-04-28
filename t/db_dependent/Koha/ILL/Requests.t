@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -22,6 +22,7 @@ use File::Basename qw/basename/;
 use C4::Circulation qw( AddIssue AddReturn );
 
 use Koha::Database;
+use Koha::DateUtils qw( dt_from_string );
 use Koha::ILL::Request::Attributes;
 use Koha::ILL::Request::Config;
 use Koha::Biblios;
@@ -41,7 +42,8 @@ use Test::Exception;
 use Test::Deep qw/ cmp_deeply ignore /;
 use Test::Warn;
 
-use Test::More tests => 16;
+use Test::NoWarnings;
+use Test::More tests => 17;
 
 my $schema  = Koha::Database->new->schema;
 my $builder = t::lib::TestBuilder->new;
@@ -50,7 +52,7 @@ use_ok('Koha::ILL::Requests');
 
 subtest 'Basic object tests' => sub {
 
-    plan tests => 24;
+    plan tests => 27;
 
     $schema->storage->txn_begin;
 
@@ -159,7 +161,58 @@ subtest 'Basic object tests' => sub {
         $illrq_obj->status, 'COMP',
         "ILL is not currently marked complete."
     );
-    $illrq_obj->mark_completed;
+
+    my $backend = Test::MockObject->new;
+    $backend->set_isa('Koha::Illbackends::Mock');
+    $backend->set_always( 'name', 'Mock' );
+    $backend->mock( 'capabilities', sub { return 'Mock'; } );
+
+    my $config = Test::MockObject->new;
+    $config->set_always( 'backend_dir', "/tmp" );
+
+    $illrq_obj->_config($config);
+    $illrq_obj->_backend($backend);
+
+    my $cat = Koha::AuthorisedValueCategories->search( { category_name => 'ILL_STATUS_ALIAS' } );
+
+    if ( $cat->count == 0 ) {
+        $cat = $builder->build_object(
+            {
+                class => 'Koha::AuthorisedValueCategory',
+                value => { category_name => 'ILL_STATUS_ALIAS' }
+            }
+        );
+    }
+
+    my $av = $builder->build_object(
+        {
+            class => 'Koha::AuthorisedValues',
+            value => { category => 'ILL_STATUS_ALIAS' }
+        }
+    );
+
+    my $mark_comp_return = $illrq_obj->mark_completed;
+
+    isnt(
+        $illrq_obj->status, 'COMP',
+        "ILL_STATUS_ALIAS is not empty. ILL is not immediately complete."
+    );
+
+    is(
+        $mark_comp_return->{method}, 'mark_completed',
+        "ILL_STATUS_ALIAS is not empty. Rendering 'mark_completed' view"
+    );
+
+    Koha::AuthorisedValues->search( { 'category' => 'ILL_STATUS_ALIAS' } )->delete;
+
+    $mark_comp_return = $illrq_obj->mark_completed;
+
+    is_deeply(
+        $mark_comp_return,
+        { next => 'illview', stage => 'commit' },
+        "ILL_STATUS_ALIAS is empty. Skip 'complete' view and go straight to illview"
+    );
+
     is(
         $illrq_obj->status, 'COMP',
         "ILL is now marked complete."
@@ -808,7 +861,7 @@ subtest 'Backend testing (mocks)' => sub {
 
 subtest 'Backend core methods' => sub {
 
-    plan tests => 20;
+    plan tests => 28;
 
     $schema->storage->txn_begin;
 
@@ -941,6 +994,132 @@ subtest 'Backend core methods' => sub {
         },
         "Backend create: commit stage, permitted, ILLModuleUnmediated disabled."
     );
+
+    # Test backend_create with ILLModuleCopyrightClearance
+    $backend->mock(
+        'create',
+        sub {
+            my ( $self, $params ) = @_;
+            my $request = $params->{request};
+            $request->branchcode( $params->{other}->{branchcode} );
+            $request->store;
+            return {
+                method => 'create',
+                stage  => 'commit',
+            };
+        }
+    );
+
+    Koha::AdditionalContents->search->delete;
+    my $tomorrow  = dt_from_string->add( days =>  1 );
+    my $yesterday = dt_from_string->add( days => -1 );
+
+    my $library_additional_contents = $builder->build_object(
+        {
+            class => 'Koha::AdditionalContents',
+            value => {
+                expirationdate => $tomorrow,
+                published_on   => $yesterday,
+                category       => 'html_customizations',
+                location       => 'ILLModuleCopyrightClearance',
+                branchcode     => $illrq->patron->branchcode,
+            }
+        }
+    );
+    $library_additional_contents->translated_contents(
+        [
+            {
+                lang    => 'default',
+                content => '1',
+            }
+        ]
+    );
+    my $branchcode_before_create = $illrq->branchcode;
+    my $another_library          = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $backend_create_result    = $illrq->backend_create(
+        {
+            stage      => 'form', op => 'cud-create', opac => 1, branchcode => $another_library->branchcode,
+            cardnumber => $illrq->patron->cardnumber
+        }
+    );
+    is( $illrq->branchcode, $another_library->branchcode, "Branchcode is the provided branchcode" );
+
+    my $copyright_content = Koha::AdditionalContents->search_for_display(
+        {
+            category   => 'html_customizations',
+            location   => ['ILLModuleCopyrightClearance'],
+            lang       => 'default',
+            library_id => $illrq->patron->branchcode,
+        }
+    );
+    is( $copyright_content->count, 1 );
+
+    $backend_create_result =
+        $illrq->backend_create( { opac => 1, branchcode => $illrq->patron->branchcode }, $illrq->patron );
+    is(
+        $backend_create_result->{stage}, 'copyrightclearance',
+        'Additional contents found for logged in user\'s library, should be copyrightclearance stage'
+    );
+
+    $backend_create_result = $illrq->backend_create( { opac => 1, branchcode => $illrq->patron->branchcode } );
+    is(
+        $backend_create_result->{stage}, 'commit',
+        'Logged in patron not supplied and could not find additional_contents for all libraries. Dont show copyrightclearance'
+    );
+
+    my $patron_1 = $builder->build_object( { class => 'Koha::Patrons' } );
+    $backend_create_result = $illrq->backend_create( { opac => 1, branchcode => $patron_1->branchcode } );
+    is(
+        $backend_create_result->{stage}, 'commit',
+        'Logged in user\'s branchcode does not match any additional_contents of same branchcode. Dont show copyrightclearance'
+    );
+
+    my $all_libraries_copyright_content = Koha::AdditionalContents->search_for_display(
+        {
+            category   => 'html_customizations',
+            location   => ['ILLModuleCopyrightClearance'],
+            lang       => 'default',
+            library_id => $another_library->branchcode,
+        }
+    );
+    is( $all_libraries_copyright_content->count, 0 );
+
+    my $all_libraries_additional_contents = $builder->build_object(
+        {
+            class => 'Koha::AdditionalContents',
+            value => {
+                expirationdate => $tomorrow,
+                published_on   => $yesterday,
+                category       => 'html_customizations',
+                location       => 'ILLModuleCopyrightClearance',
+                branchcode     => undef,
+            }
+        }
+    );
+    $all_libraries_additional_contents->translated_contents(
+        [
+            {
+                lang    => 'default',
+                content => '1',
+            }
+        ]
+    );
+
+    $backend_create_result = $illrq->backend_create( { opac => 1, branchcode => $illrq->patron->branchcode } );
+    is(
+        $backend_create_result->{stage}, 'copyrightclearance',
+        'Logged in user not supplied, found additional_contents for all libraries. Should show copyrightclearance'
+    );
+
+    $all_libraries_copyright_content = Koha::AdditionalContents->search_for_display(
+        {
+            category   => 'html_customizations',
+            location   => ['ILLModuleCopyrightClearance'],
+            lang       => 'default',
+            library_id => $another_library->branchcode,
+        }
+    );
+    is( $all_libraries_copyright_content->count, 1 );
 
     # backend_renew
     $backend->set_series( 'renew', { stage => 'bar', method => 'renew' } );

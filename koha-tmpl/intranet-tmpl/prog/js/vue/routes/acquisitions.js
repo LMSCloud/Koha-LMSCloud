@@ -1,0 +1,74 @@
+import { markRaw } from "vue";
+
+import Home from "../components/Vendors/Home.vue";
+import ResourceWrapper from "../components/ResourceWrapper.vue";
+
+import { $__ } from "@koha-vue/i18n";
+
+const vendorSearchBreadcrumb = ({ match, query }) => {
+    if (!query || !query.supplier) return match;
+    match.title = $__("Search for vendor: %s").format(query.supplier);
+    match.disabled = true;
+    return match;
+};
+
+export const routes = [
+    {
+        path: "/cgi-bin/koha/acqui/acqui-home.pl",
+        is_default: true,
+        is_base: true,
+        title: $__("Acquisitions"),
+        children: [
+            {
+                path: "",
+                name: "Home",
+                component: markRaw(Home),
+                is_navigation_item: false,
+            },
+            {
+                path: "/cgi-bin/koha/acquisition/vendors",
+                title: $__("Vendors"),
+                icon: "fa fa-shopping-cart",
+                is_end_node: true,
+                breadcrumbFormat: vendorSearchBreadcrumb,
+                resource: "Vendors/VendorResource.vue",
+                children: [
+                    {
+                        path: "",
+                        name: "VendorList",
+                        component: markRaw(ResourceWrapper),
+                        alternateLeftMenu: "AcquisitionsMenu",
+                    },
+                    {
+                        path: ":id",
+                        name: "VendorShow",
+                        component: markRaw(ResourceWrapper),
+                        title: "{name}",
+                        alternateLeftMenu: "VendorMenu",
+                    },
+                    {
+                        path: "add",
+                        name: "VendorFormAdd",
+                        component: markRaw(ResourceWrapper),
+                        title: $__("Add vendor"),
+                        alternateLeftMenu: "none",
+                    },
+                    {
+                        path: "edit/:id",
+                        name: "VendorFormAddEdit",
+                        component: markRaw(ResourceWrapper),
+                        title: "{name}",
+                        breadcrumbFormat: ({ match, params, query }) => {
+                            match.name = "VendorShow";
+                            return match;
+                        },
+                        additionalBreadcrumbs: [
+                            { title: $__("Modify vendor"), disabled: true },
+                        ],
+                        alternateLeftMenu: "VendorMenu",
+                    },
+                ],
+            },
+        ],
+    },
+];

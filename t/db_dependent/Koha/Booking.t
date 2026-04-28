@@ -15,12 +15,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use utf8;
 
-use Test::More tests => 3;
+use Test::More tests => 6;
 use Test::NoWarnings;
 
 use Test::Warn;
@@ -37,8 +37,41 @@ use t::lib::Mocks;
 my $schema  = Koha::Database->new->schema;
 my $builder = t::lib::TestBuilder->new;
 
+for my $notice_code (qw(BOOKING_CONFIRMATION BOOKING_MODIFICATION BOOKING_CANCELLATION)) {
+    my $template = Koha::Notice::Templates->search(
+        {
+            module                 => 'bookings',
+            code                   => $notice_code,
+            message_transport_type => 'email',
+        }
+    )->single;
+
+    if ( !$template ) {
+        my $default_content = Koha::Notice::Template->new(
+            {
+                module                 => 'bookings',
+                code                   => $notice_code,
+                lang                   => 'default',
+                message_transport_type => 'email',
+            }
+        )->get_default();
+
+        Koha::Notice::Template->new(
+            {
+                module                 => 'bookings',
+                code                   => $notice_code,
+                name                   => "$notice_code Test Notice",
+                title                  => "$notice_code Test Notice",
+                content                => $default_content || "Dummy content for $notice_code.",
+                branchcode             => undef,
+                message_transport_type => 'email',
+            }
+        )->store;
+    }
+}
+
 subtest 'Relation accessor tests' => sub {
-    plan tests => 4;
+    plan tests => 6;
 
     subtest 'biblio relation tests' => sub {
         plan tests => 3;
@@ -122,6 +155,90 @@ subtest 'Relation accessor tests' => sub {
         $THE_item->delete;
         $booking = Koha::Bookings->find( $booking->booking_id );
         is( $booking, undef, "The booking is deleted when the item it's attached to is deleted" );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'checkout relation tests' => sub {
+        plan tests => 4;
+        $schema->storage->txn_begin;
+
+        my $patron  = $builder->build_object( { class => "Koha::Patrons" } );
+        my $item    = $builder->build_sample_item( { bookable => 1 } );
+        my $booking = $builder->build_object(
+            {
+                class => 'Koha::Bookings',
+                value => {
+                    patron_id => $patron->borrowernumber,
+                    item_id   => $item->itemnumber,
+                    status    => 'completed'
+                }
+            }
+        );
+
+        my $checkout = $booking->checkout;
+        is( $checkout, undef, "Koha::Booking->checkout returns undef when no checkout exists" );
+
+        my $issue = $builder->build_object(
+            {
+                class => 'Koha::Checkouts',
+                value => {
+                    borrowernumber => $patron->borrowernumber,
+                    itemnumber     => $item->itemnumber,
+                    booking_id     => $booking->booking_id
+                }
+            }
+        );
+
+        $checkout = $booking->checkout;
+        is( ref($checkout),        'Koha::Checkout',     "Koha::Booking->checkout returns a Koha::Checkout object" );
+        is( $checkout->issue_id,   $issue->issue_id,     "Koha::Booking->checkout returns the linked checkout" );
+        is( $checkout->booking_id, $booking->booking_id, "The checkout is properly linked to the booking" );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest 'old_checkout relation tests' => sub {
+        plan tests => 4;
+        $schema->storage->txn_begin;
+
+        my $patron  = $builder->build_object( { class => "Koha::Patrons" } );
+        my $item    = $builder->build_sample_item( { bookable => 1 } );
+        my $booking = $builder->build_object(
+            {
+                class => 'Koha::Bookings',
+                value => {
+                    patron_id => $patron->borrowernumber,
+                    item_id   => $item->itemnumber,
+                    status    => 'completed'
+                }
+            }
+        );
+
+        my $old_checkout = $booking->old_checkout;
+        is( $old_checkout, undef, "Koha::Booking->old_checkout returns undef when no old_checkout exists" );
+
+        my $old_issue = $builder->build_object(
+            {
+                class => 'Koha::Old::Checkouts',
+                value => {
+                    borrowernumber => $patron->borrowernumber,
+                    itemnumber     => $item->itemnumber,
+                    booking_id     => $booking->booking_id
+                }
+            }
+        );
+
+        $old_checkout = $booking->old_checkout;
+        is(
+            ref($old_checkout), 'Koha::Old::Checkout',
+            "Koha::Booking->old_checkout returns a Koha::Old::Checkout object"
+        );
+        is(
+            $old_checkout->issue_id, $old_issue->issue_id,
+            "Koha::Booking->old_checkout returns the linked old_checkout"
+        );
+        is( $old_checkout->booking_id, $booking->booking_id, "The old_checkout is properly linked to the booking" );
 
         $schema->storage->txn_rollback;
     };
@@ -349,7 +466,8 @@ subtest 'store() tests' => sub {
         is( $booking->status,        'cancelled', "Booking is cancelled" );
         is( $second_booking->status, 'cancelled', "Second booking is cancelled" );
 
-        # Test randomness of selection
+        # Test optimal selection - with no future bookings, both items have equal availability
+        # The algorithm should consistently select the same item (deterministic)
         my %seen_items;
         foreach my $i ( 1 .. 10 ) {
             my $new_booking = Koha::Booking->new(
@@ -366,8 +484,8 @@ subtest 'store() tests' => sub {
             $new_booking->delete();
         }
         ok(
-            scalar( keys %seen_items ) > 1,
-            'Multiple different items were selected randomly across bookings, and a cancelled booking is allowed in the selection'
+            scalar( keys %seen_items ) == 1,
+            'Optimal selection is deterministic - same item selected when items have equal future availability, and cancelled bookings are ignored'
         );
     };
 
@@ -640,6 +758,458 @@ subtest 'store() tests' => sub {
         $booking->discard_changes;
         is( $booking->status, $status, 'Booking status is unchanged' );
     };
+
+    $schema->storage->txn_rollback;
+};
+
+subtest '_select_optimal_item() tests' => sub {
+    plan tests => 7;
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => "Koha::Patrons" } );
+    t::lib::Mocks::mock_userenv( { patron => $patron } );
+
+    my $biblio = $builder->build_sample_biblio;
+
+    # Create 3 items with different future booking scenarios
+    my $item1 = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, bookable => 1 } );
+    my $item2 = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, bookable => 1 } );
+    my $item3 = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, bookable => 1 } );
+
+    # Current booking period
+    my $start_date = dt_from_string->truncate( to => 'day' );
+    my $end_date   = $start_date->clone->add( days => 5 );
+
+    # Test 1: With no items, should return undef
+    my $test_booking = Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            pickup_library_id => $item1->homebranch,
+            start_date        => $start_date,
+            end_date          => $end_date
+        }
+    );
+
+    my $empty_items  = Koha::Items->search( { itemnumber => -1 } );         # Empty resultset
+    my $optimal_item = $test_booking->_select_optimal_item($empty_items);
+    is( $optimal_item, undef, 'Returns undef when no items available' );
+
+    # Test 2: With one item, should return that item
+    my $single_items = Koha::Items->search( { itemnumber => $item1->itemnumber } );
+    $optimal_item = $test_booking->_select_optimal_item($single_items);
+    is( $optimal_item->itemnumber, $item1->itemnumber, 'Returns the single available item' );
+
+    # Setup future bookings with different availability windows:
+    # Item1: Next booking in 5 days (short future availability)
+    # Item2: Next booking in 15 days (medium future availability)
+    # Item3: No future bookings (longest future availability - 365 days)
+
+    my $item1_future_start = $end_date->clone->add( days => 6 );
+    Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            item_id           => $item1->itemnumber,
+            pickup_library_id => $item1->homebranch,
+            start_date        => $item1_future_start,
+            end_date          => $item1_future_start->clone->add( days => 3 )
+        }
+    )->store;
+
+    my $item2_future_start = $end_date->clone->add( days => 16 );
+    Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            item_id           => $item2->itemnumber,
+            pickup_library_id => $item2->homebranch,
+            start_date        => $item2_future_start,
+            end_date          => $item2_future_start->clone->add( days => 3 )
+        }
+    )->store;
+
+    # Item3 has no future bookings
+
+    # Test 3: Should select item3 (no future bookings = 365 days)
+    my $all_items = Koha::Items->search(
+        { itemnumber => [ $item1->itemnumber, $item2->itemnumber, $item3->itemnumber ] },
+        { order_by   => { -asc => 'itemnumber' } }
+    );
+    $optimal_item = $test_booking->_select_optimal_item($all_items);
+    is( $optimal_item->itemnumber, $item3->itemnumber, 'Selects item with longest future availability (no bookings)' );
+
+    # Test 4: If item3 is removed, should select item2 (15 days > 5 days)
+    my $two_items = Koha::Items->search(
+        { itemnumber => [ $item1->itemnumber, $item2->itemnumber ] },
+        { order_by   => { -asc => 'itemnumber' } }
+    );
+    $optimal_item = $test_booking->_select_optimal_item($two_items);
+    is(
+        $optimal_item->itemnumber, $item2->itemnumber,
+        'Selects item with longest future availability (15 days vs 5 days)'
+    );
+
+    # Test 5: Test with equal future availability - should return first item
+    my $item4 = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, bookable => 1 } );
+    my $item5 = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, bookable => 1 } );
+
+    # Both items have booking starting 10 days after current booking ends
+    my $equal_future_start = $end_date->clone->add( days => 11 );
+    Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            item_id           => $item4->itemnumber,
+            pickup_library_id => $item4->homebranch,
+            start_date        => $equal_future_start,
+            end_date          => $equal_future_start->clone->add( days => 3 )
+        }
+    )->store;
+
+    Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            item_id           => $item5->itemnumber,
+            pickup_library_id => $item5->homebranch,
+            start_date        => $equal_future_start,
+            end_date          => $equal_future_start->clone->add( days => 3 )
+        }
+    )->store;
+
+    my $equal_items = Koha::Items->search(
+        { itemnumber => [ $item4->itemnumber, $item5->itemnumber ] },
+        { order_by   => { -asc => 'itemnumber' } }
+    );
+    $optimal_item = $test_booking->_select_optimal_item($equal_items);
+    ok(
+        $optimal_item->itemnumber == $item4->itemnumber || $optimal_item->itemnumber == $item5->itemnumber,
+        'Returns an item when future availability is equal'
+    );
+
+    # Test 6: Cancelled future bookings should not affect optimal selection
+    my $item6            = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, bookable => 1 } );
+    my $cancelled_future = $end_date->clone->add( days => 6 );
+    Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            item_id           => $item6->itemnumber,
+            pickup_library_id => $item6->homebranch,
+            start_date        => $cancelled_future,
+            end_date          => $cancelled_future->clone->add( days => 3 ),
+            status            => 'cancelled'
+        }
+    )->store;
+
+    # Item6 should have 365 days availability since cancelled booking is ignored
+    my $with_cancelled = Koha::Items->search(
+        { itemnumber => [ $item1->itemnumber, $item6->itemnumber ] },
+        { order_by   => { -asc => 'itemnumber' } }
+    );
+    $optimal_item = $test_booking->_select_optimal_item($with_cancelled);
+    is(
+        $optimal_item->itemnumber, $item6->itemnumber,
+        'Selects item with cancelled future booking over item with active future booking'
+    );
+
+    # Test 7: Verify iterator is reset after selection
+    $all_items->reset;
+    $optimal_item = $test_booking->_select_optimal_item($all_items);
+    my $count = $all_items->count;
+    is( $count, 3, 'Iterator is properly reset after optimal selection' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest '_assign_item_for_booking() with itemtype_id tests' => sub {
+    plan tests => 6;
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => "Koha::Patrons" } );
+    t::lib::Mocks::mock_userenv( { patron => $patron } );
+
+    my $itemtype1 = $builder->build_object( { class => 'Koha::ItemTypes' } );
+    my $itemtype2 = $builder->build_object( { class => 'Koha::ItemTypes' } );
+
+    my $biblio = $builder->build_sample_biblio;
+
+    # Create items of different types
+    my $item1_type1 =
+        $builder->build_sample_item(
+        { biblionumber => $biblio->biblionumber, bookable => 1, itype => $itemtype1->itemtype } );
+    my $item2_type1 =
+        $builder->build_sample_item(
+        { biblionumber => $biblio->biblionumber, bookable => 1, itype => $itemtype1->itemtype } );
+    my $item3_type2 =
+        $builder->build_sample_item(
+        { biblionumber => $biblio->biblionumber, bookable => 1, itype => $itemtype2->itemtype } );
+
+    my $start_date = dt_from_string->truncate( to => 'day' );
+    my $end_date   = $start_date->clone->add( days => 5 );
+
+    # Test 1: Booking without item_id or itemtype_id should select any available item
+    my $booking = Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            pickup_library_id => $item1_type1->homebranch,
+            start_date        => $start_date,
+            end_date          => $end_date
+        }
+    )->store;
+
+    ok( $booking->item_id, 'Booking assigned an item when no item_id or itemtype_id specified' );
+    my $assigned_item = $booking->item;
+    ok(
+               $assigned_item->itemnumber == $item1_type1->itemnumber
+            || $assigned_item->itemnumber == $item2_type1->itemnumber
+            || $assigned_item->itemnumber == $item3_type2->itemnumber,
+        'Assigned item is one of the available items'
+    );
+
+    # Test 2: Booking with itemtype_id should only select items of that type
+    my $booking_type1 = Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            pickup_library_id => $item1_type1->homebranch,
+            start_date        => $start_date->clone->add( days => 10 ),
+            end_date          => $start_date->clone->add( days => 15 )
+        }
+    );
+
+    # Set transient itemtype filter (simulating API call)
+    $booking_type1->set_itemtype_filter( $itemtype1->itemtype );
+    $booking_type1->store;
+
+    ok( $booking_type1->item_id, 'Booking with itemtype_id assigned an item' );
+    is(
+        $booking_type1->item->itype, $itemtype1->itemtype,
+        'Assigned item matches the specified itemtype'
+    );
+
+    # Test 3: Should select optimal item from filtered itemtype
+    # Create future bookings to test optimal selection within itemtype
+    my $future_start = $end_date->clone->add( days => 20 );
+
+    # Item1 of type1 has a booking soon after (less future availability)
+    Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            item_id           => $item1_type1->itemnumber,
+            pickup_library_id => $item1_type1->homebranch,
+            start_date        => $future_start->clone->add( days => 6 ),
+            end_date          => $future_start->clone->add( days => 10 )
+        }
+    )->store;
+
+    # Item2 of type1 has no future bookings (more future availability)
+    # Item3 is type2, should not be considered
+
+    my $optimal_booking = Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            pickup_library_id => $item1_type1->homebranch,
+            start_date        => $future_start,
+            end_date          => $future_start->clone->add( days => 3 )
+        }
+    );
+    $optimal_booking->set_itemtype_filter( $itemtype1->itemtype );
+    $optimal_booking->store;
+
+    is(
+        $optimal_booking->item->itemnumber, $item2_type1->itemnumber,
+        'Optimal selection works within filtered itemtype (selects item with no future bookings)'
+    );
+
+    # Test 6: Exception when no items of specified type are available
+    # Book both type1 items for an overlapping period
+    my $conflict_start =
+        dt_from_string->add( days => 200 )->truncate( to => 'day' );    # Use far future to avoid conflicts
+    my $conflict_end = $conflict_start->clone->add( days => 5 );
+
+    Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            item_id           => $item1_type1->itemnumber,
+            pickup_library_id => $item1_type1->homebranch,
+            start_date        => $conflict_start,
+            end_date          => $conflict_end
+        }
+    )->store;
+
+    Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            item_id           => $item2_type1->itemnumber,
+            pickup_library_id => $item2_type1->homebranch,
+            start_date        => $conflict_start,
+            end_date          => $conflict_end
+        }
+    )->store;
+
+    my $failing_booking = Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            pickup_library_id => $item1_type1->homebranch,
+            start_date        => $conflict_start->clone->add( days => 2 ),
+            end_date          => $conflict_end->clone->add( days => 2 )
+        }
+    );
+    $failing_booking->set_itemtype_filter( $itemtype1->itemtype );
+
+    throws_ok { $failing_booking->store } 'Koha::Exceptions::Booking::Clash',
+        'Throws exception when no items of specified itemtype are available';
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'Integration test: Full optimal selection workflow' => sub {
+    plan tests => 5;
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => "Koha::Patrons" } );
+    t::lib::Mocks::mock_userenv( { patron => $patron } );
+
+    my $itemtype = $builder->build_object( { class => 'Koha::ItemTypes' } );
+    my $biblio   = $builder->build_sample_biblio;
+
+    # Create 3 items of the same type with different future booking patterns
+    my $item_A = $builder->build_sample_item(
+        { biblionumber => $biblio->biblionumber, bookable => 1, itype => $itemtype->itemtype } );
+    my $item_B = $builder->build_sample_item(
+        { biblionumber => $biblio->biblionumber, bookable => 1, itype => $itemtype->itemtype } );
+    my $item_C = $builder->build_sample_item(
+        { biblionumber => $biblio->biblionumber, bookable => 1, itype => $itemtype->itemtype } );
+
+    # Current booking window
+    my $start = dt_from_string->truncate( to => 'day' );
+    my $end   = $start->clone->add( days => 7 );
+
+    # Setup: Item A has booking in 5 days (short availability)
+    #        Item B has booking in 20 days (long availability)
+    #        Item C has booking in 10 days (medium availability)
+    my $future_A = $end->clone->add( days => 6 );
+    Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            item_id           => $item_A->itemnumber,
+            pickup_library_id => $item_A->homebranch,
+            start_date        => $future_A,
+            end_date          => $future_A->clone->add( days => 3 )
+        }
+    )->store;
+
+    my $future_B = $end->clone->add( days => 21 );
+    Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            item_id           => $item_B->itemnumber,
+            pickup_library_id => $item_B->homebranch,
+            start_date        => $future_B,
+            end_date          => $future_B->clone->add( days => 3 )
+        }
+    )->store;
+
+    my $future_C = $end->clone->add( days => 11 );
+    Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            item_id           => $item_C->itemnumber,
+            pickup_library_id => $item_C->homebranch,
+            start_date        => $future_C,
+            end_date          => $future_C->clone->add( days => 3 )
+        }
+    )->store;
+
+    # Test 1: First "any item" booking should select Item B (longest availability: 20 days)
+    my $booking1 = Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            pickup_library_id => $item_A->homebranch,
+            start_date        => $start,
+            end_date          => $end
+        }
+    );
+    $booking1->set_itemtype_filter( $itemtype->itemtype );
+    $booking1->store;
+
+    is(
+        $booking1->item_id, $item_B->itemnumber,
+        'First booking selects item B (longest future availability: 20 days)'
+    );
+
+    # Test 2: Second booking should select Item C (medium availability: 10 days)
+    #         Item B is now booked, Item A still has shortest (5 days)
+    my $booking2 = Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            pickup_library_id => $item_A->homebranch,
+            start_date        => $start,
+            end_date          => $end
+        }
+    );
+    $booking2->set_itemtype_filter( $itemtype->itemtype );
+    $booking2->store;
+
+    is( $booking2->item_id, $item_C->itemnumber, 'Second booking selects item C (next longest: 10 days)' );
+
+    # Test 3: Third booking should select Item A (only one left, 5 days availability)
+    my $booking3 = Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            pickup_library_id => $item_A->homebranch,
+            start_date        => $start,
+            end_date          => $end
+        }
+    );
+    $booking3->set_itemtype_filter( $itemtype->itemtype );
+    $booking3->store;
+
+    is( $booking3->item_id, $item_A->itemnumber, 'Third booking selects item A (only remaining item)' );
+
+    # Test 4: Fourth booking should fail (all items booked for this period)
+    my $booking4 = Koha::Booking->new(
+        {
+            patron_id         => $patron->borrowernumber,
+            biblio_id         => $biblio->biblionumber,
+            pickup_library_id => $item_A->homebranch,
+            start_date        => $start,
+            end_date          => $end
+        }
+    );
+    $booking4->set_itemtype_filter( $itemtype->itemtype );
+
+    throws_ok { $booking4->store } 'Koha::Exceptions::Booking::Clash',
+        'Fourth booking fails when all items are already booked';
+
+    # Test 5: Verify the algorithm preserved items optimally
+    # Item A (shortest availability) was selected last, preserving it for bookings that specifically need it
+    # This demonstrates that the optimal selection algorithm works as intended:
+    # - Longest availability items are consumed first
+    # - Shortest availability items are preserved for when they're the only option
+    # - This maximizes overall system booking capacity
+
+    my @booking_order  = ( $booking1->item_id,  $booking2->item_id,  $booking3->item_id );
+    my @expected_order = ( $item_B->itemnumber, $item_C->itemnumber, $item_A->itemnumber );
+
+    is_deeply(
+        \@booking_order, \@expected_order,
+        'Items were selected in optimal order: longest availability first (B->C->A)'
+    );
 
     $schema->storage->txn_rollback;
 };

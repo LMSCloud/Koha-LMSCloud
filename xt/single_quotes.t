@@ -15,17 +15,16 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Test::More tests => 2;
 use File::Slurp qw( read_file );
 
-my @files;
+use Koha::Devel::Files;
 
-# OPAC
-push @files, `git ls-files 'koha-tmpl/opac-tmpl/bootstrap/en/*.tt'`;
-push @files, `git ls-files 'koha-tmpl/opac-tmpl/bootstrap/en/*.inc'`;
+my $dev_files = Koha::Devel::Files->new;
+my @files     = $dev_files->ls_tt_files;
 
 # Staff
 push @files, `git ls-files 'koha-tmpl/intranet-tmpl/prog/en/*.tt'`;

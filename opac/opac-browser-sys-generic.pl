@@ -15,12 +15,14 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
+
+=encoding UTF-8
 
 =head1 opac-browser-sys-generic.pl
 
 The script is used to read a classification values of the browser table if used to store
-classification values of the German KAB (Klassifikation für Allgemeinbibliothekn). 
+classification values of the German KAB (Klassifikation für Allgemeinbibliothekn).
 
 =cut
 

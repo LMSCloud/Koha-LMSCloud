@@ -117,6 +117,10 @@ sub do_checkout {
                 if ( $self->{fee_ack} ne 'Y' ) {
                     $chargeerror = 1;
                 }
+            } elsif ( $confirmation eq 'CURRENTISSUE' ) {
+                $self->screen_msg("This item is currently checked out to you.");
+                $noerror = 0 if ($prevcheckout_block_checkout);
+                last         if ($prevcheckout_block_checkout);
             } elsif ( $confirmation eq 'XXPREVISSUE' ) {
                 $self->screen_msg("This item was previously checked out by you");
                 $noerror = 0 if ($prevcheckout_block_checkout);
@@ -149,7 +153,7 @@ sub do_checkout {
     if ( $fee > 0 ) {
         $self->{sip_fee_type} = '06';
         $self->{fee_amount}   = sprintf '%.2f', $fee;
-        if ( $self->{fee_ack} eq 'N' && $noerror ) {
+        if ( $self->{fee_ack} eq 'N' ) {
             $noerror = 0;
 
             # Display a confirmation about issuing charges only if there are no other errors blocking the checkout
@@ -191,7 +195,16 @@ sub do_checkout {
                 $recall_id = $messages->{RECALLED};
             }
         }
-        my $issue = AddIssue( $patron, $barcode, $overridden_duedate, 0, undef, undef, { recall_id => $recall_id } );
+        my $issue = AddIssue(
+            $patron, $barcode,
+            $overridden_duedate,
+            0, undef, undef,
+            {
+                recall_id     => $recall_id,
+                confirmations => [ grep { /^[A-Z_]+$/ } keys %{$needsconfirmation} ],
+                forced        => [ keys %{$issuingimpossible} ]
+            }
+        );
         $self->{due} = $self->duedatefromissue( $issue, $itemnumber );
     }
 

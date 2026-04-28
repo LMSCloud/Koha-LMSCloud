@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use URI::Escape qw( uri_escape uri_unescape );
@@ -76,11 +76,12 @@ my $user     = $input->remote_user;
 my $library_id = C4::Context->userenv->{'branch'};
 my $total_due  = $account->outstanding_debits->total_outstanding;
 
-my $total_paid      = $input->param('paid');
-my $total_collected = $input->param('collected');
+my $total_paid     = $input->param('paid');
+my $total_tendered = $input->param('tendered');
 
 my $selected_lines = $input->param('selected');                           # comes from pay.pl
-my $pay_individual = $input->param('pay_individual');
+# The form is reached via the pay_individual query param on GET, but submits op=cud-pay_individual on POST.
+my $pay_individual = $input->param('pay_individual') || $op eq 'cud-pay_individual';
 my $selected_accts = $input->param('selected_accts');                     # comes from paycollect.pl
 my $payment_note   = uri_unescape scalar $input->param('payment_note');
 my $payment_type   = scalar $input->param('payment_type');
@@ -162,7 +163,8 @@ if ( $total_paid and $total_paid ne '0.00' ) {
             error_over => 1,
             total_due  => $total_due
         );
-    } elsif ( $total_collected < $total_paid
+    } elsif ( defined $total_tendered
+        && $total_tendered < $total_paid
         && !( $writeoff_individual || $type eq 'WRITEOFF' )
         && !( $cancel_individual   || $type eq 'CANCELLATION' ) )
     {

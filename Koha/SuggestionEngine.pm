@@ -15,7 +15,7 @@ package Koha::SuggestionEngine;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -36,7 +36,7 @@ namespace, and provide the following methods:
 B<get_suggestions ($search)> - get suggestions from the plugin for the
 specified search.
 
-These methods may be overriden:
+These methods may be overridden:
 
 B<initialize (%params)> - initialize the plugin
 

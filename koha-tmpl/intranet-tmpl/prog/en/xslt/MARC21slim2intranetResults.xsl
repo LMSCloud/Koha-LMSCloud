@@ -1021,7 +1021,7 @@
     </xsl:call-template>
 
     <xsl:if test="marc:datafield[@tag=856]">
-        <xsl:if test="marc:datafield[@tag=856]/marc:subfield[@code='u']">
+        <xsl:if test="normalize-space(marc:datafield[@tag=856]/marc:subfield[@code='u'])">
         <span class="results_summary online_resources">
             <span class="label">Online resources: </span>
             <xsl:for-each select="marc:datafield[@tag=856 and marc:subfield[@code='u']]">
@@ -1033,7 +1033,7 @@
                             <xsl:with-param name="indicator1" select="@ind1"/>
                             <xsl:with-param name="accessMethod" select="marc:subfield[@code='2']"/>
                         </xsl:call-template>
-                        <xsl:value-of select="marc:subfield[@code='u']"/>
+                        <xsl:value-of select="normalize-space(marc:subfield[@code='u'])"/>
                     </xsl:attribute>
                     <xsl:choose>
                         <xsl:when test="($Show856uAsImage='Results' or $Show856uAsImage='Both') and (substring($SubqText,1,6)='image/' or $SubqText='img' or $SubqText='bmp' or $SubqText='cod' or $SubqText='gif' or $SubqText='ief' or $SubqText='jpe' or $SubqText='jpeg' or $SubqText='jpg' or $SubqText='jfif' or $SubqText='png' or $SubqText='svg' or $SubqText='tif' or $SubqText='tiff' or $SubqText='ras' or $SubqText='cmx' or $SubqText='ico' or $SubqText='pnm' or $SubqText='pbm' or $SubqText='pgm' or $SubqText='ppm' or $SubqText='rgb' or $SubqText='xbm' or $SubqText='xpm' or $SubqText='xwd')">

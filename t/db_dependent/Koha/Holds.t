@@ -15,15 +15,16 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 12;
+use Test::NoWarnings;
+use Test::More tests => 14;
 use Test::Warn;
 
 use C4::Circulation qw( AddIssue );
-use C4::Reserves    qw( AddReserve ModReserve ModReserveCancelAll );
+use C4::Reserves    qw( AddReserve CheckReserves ModReserve ModReserveCancelAll );
 use Koha::AuthorisedValueCategory;
 use Koha::Biblio::ItemGroups;
 use Koha::Database;
@@ -142,48 +143,292 @@ subtest 'cancel' => sub {
     is( $third_hold->discard_changes->priority, 2, 'Third hold should now be second' );
 
     subtest 'charge_cancel_fee parameter' => sub {
-        plan tests => 4;
-        my $patron_category =
-            $builder->build_object( { class => 'Koha::Patron::Categories', value => { reservefee => 0 } } );
-        my $patron = $builder->build_object(
-            { class => 'Koha::Patrons', value => { categorycode => $patron_category->categorycode } } );
-        is( $patron->account->balance, 0, 'A new patron does not have any charges' );
+        plan tests => 18;
+        my $library1 = $builder->build_object( { class => 'Koha::Libraries' } );
+        my $library2 = $builder->build_object( { class => 'Koha::Libraries' } );
+        my $library3 = $builder->build_object( { class => 'Koha::Libraries' } );
 
-        my $hold_info = {
-            branchcode     => $library->branchcode,
-            borrowernumber => $patron->borrowernumber,
-            biblionumber   => $item->biblionumber,
-            priority       => 1,
-            title          => "title for fee",
-            itemnumber     => $item->itemnumber,
-        };
+        my $bib_title = "Test Title";
 
-        # First, test cancelling a reserve when there's no charge configured.
-        t::lib::Mocks::mock_preference( 'ExpireReservesMaxPickUpDelayCharge', 0 );
-        my $reserve_id = C4::Reserves::AddReserve($hold_info);
+        my $borrower =
+            $builder->build_object( { class => "Koha::Patrons", value => { branchcode => $library1->branchcode } } );
+
+        my $itemtype1 = $builder->build_object( { class => 'Koha::ItemTypes', value => {} } );
+        my $itemtype2 = $builder->build_object( { class => 'Koha::ItemTypes', value => {} } );
+        my $itemtype3 = $builder->build_object( { class => 'Koha::ItemTypes', value => {} } );
+        my $itemtype4 = $builder->build_object( { class => 'Koha::ItemTypes', value => {} } );
+
+        my $borrowernumber = $borrower->borrowernumber;
+
+        my $library_A_code = $library1->branchcode;
+
+        my $biblio       = $builder->build_sample_biblio( { itemtype => $itemtype1->itemtype } );
+        my $biblionumber = $biblio->biblionumber;
+        my $item1        = $builder->build_sample_item(
+            {
+                biblionumber  => $biblionumber,
+                itype         => $itemtype1->itemtype,
+                homebranch    => $library_A_code,
+                holdingbranch => $library_A_code
+            }
+        );
+        my $item2 = $builder->build_sample_item(
+            {
+                biblionumber  => $biblionumber,
+                itype         => $itemtype2->itemtype,
+                homebranch    => $library_A_code,
+                holdingbranch => $library_A_code
+            }
+        );
+        my $item3 = $builder->build_sample_item(
+            {
+                biblionumber  => $biblionumber,
+                itype         => $itemtype3->itemtype,
+                homebranch    => $library_A_code,
+                holdingbranch => $library_A_code
+            }
+        );
+
+        my $library_B_code = $library2->branchcode;
+
+        my $biblio2       = $builder->build_sample_biblio( { itemtype => $itemtype4->itemtype } );
+        my $biblionumber2 = $biblio2->biblionumber;
+        my $item4         = $builder->build_sample_item(
+            {
+                biblionumber  => $biblionumber2,
+                itype         => $itemtype4->itemtype,
+                homebranch    => $library_B_code,
+                holdingbranch => $library_B_code
+            }
+        );
+
+        my $library_C_code = $library3->branchcode;
+
+        my $biblio3       = $builder->build_sample_biblio( { itemtype => $itemtype4->itemtype } );
+        my $biblionumber3 = $biblio3->biblionumber;
+        my $item5         = $builder->build_sample_item(
+            {
+                biblionumber  => $biblionumber3,
+                itype         => $itemtype4->itemtype,
+                homebranch    => $library_C_code,
+                holdingbranch => $library_C_code
+            }
+        );
+
+        Koha::CirculationRules->set_rules(
+            {
+                itemtype     => undef,
+                categorycode => undef,
+                branchcode   => undef,
+                rules        => { expire_reserves_charge => undef }
+            }
+        );
+        Koha::CirculationRules->set_rules(
+            {
+                itemtype     => $itemtype1->itemtype,
+                categorycode => undef,
+                branchcode   => undef,
+                rules        => { expire_reserves_charge => '111' }
+            }
+        );
+        Koha::CirculationRules->set_rules(
+            {
+                itemtype     => $itemtype2->itemtype,
+                categorycode => undef,
+                branchcode   => undef,
+                rules        => { expire_reserves_charge => undef }
+            }
+        );
+        Koha::CirculationRules->set_rules(
+            {
+                itemtype     => undef,
+                categorycode => undef,
+                branchcode   => $library_B_code,
+                rules        => { expire_reserves_charge => '444' }
+            }
+        );
+        Koha::CirculationRules->set_rules(
+            {
+                itemtype     => undef,
+                categorycode => undef,
+                branchcode   => $library_C_code,
+                rules        => { expire_reserves_charge => '0' }
+            }
+        );
+
+        t::lib::Mocks::mock_preference( 'ReservesControlBranch', 'ItemHomeLibrary' );
+
+        my $reserve_id;
+        my $account;
+        my $status;
+        my $start_balance;
+
+        # TEST: Hold itemtype1 item
+        $reserve_id = AddReserve(
+            {
+                branchcode     => $library_A_code,
+                borrowernumber => $borrowernumber,
+                biblionumber   => $biblionumber,
+                priority       => 1,
+                itemnumber     => $item1->itemnumber,
+            }
+        );
+
+        $account = Koha::Account->new( { patron_id => $borrowernumber } );
+
+        ($status) = CheckReserves($item1);
+        is( $status, 'Reserved', "Hold for the itemtype1 created" );
+
+        $start_balance = $account->balance();
+
         Koha::Holds->find($reserve_id)->cancel( { charge_cancel_fee => 1 } );
-        is(
-            $patron->account->balance, 0,
-            'ExpireReservesMaxPickUpDelayCharge=0 - The patron should not have been charged'
+
+        ($status) = CheckReserves($item1);
+        is( $status, '', "Hold for the itemtype1 cancelled" );
+
+        is( $account->balance() - $start_balance, 111, "Used circulation rule for itemtype1" );
+
+        # TEST: circulation rule for itemtype2 has 'expire_reserves_charge' set undef, so it should use ExpireReservesMaxPickUpDelayCharge preference
+        t::lib::Mocks::mock_preference( 'ExpireReservesMaxPickUpDelayCharge', 222 );
+
+        $reserve_id = AddReserve(
+            {
+                branchcode     => $library_A_code,
+                borrowernumber => $borrowernumber,
+                biblionumber   => $biblionumber,
+                priority       => 1,
+                itemnumber     => $item2->itemnumber,
+            }
         );
 
-        # Then, test cancelling a reserve when there's no charge desired.
-        t::lib::Mocks::mock_preference( 'ExpireReservesMaxPickUpDelayCharge', 42 );
-        $reserve_id = C4::Reserves::AddReserve($hold_info);
-        Koha::Holds->find($reserve_id)->cancel();    # charge_cancel_fee => 0
-        is(
-            $patron->account->balance, 0,
-            'ExpireReservesMaxPickUpDelayCharge=42, but charge_cancel_fee => 0, The patron should not have been charged'
-        );
+        $account = Koha::Account->new( { patron_id => $borrowernumber } );
 
-        # Finally, test cancelling a reserve when there's a charge desired and configured.
-        t::lib::Mocks::mock_preference( 'ExpireReservesMaxPickUpDelayCharge', 42 );
-        $reserve_id = C4::Reserves::AddReserve($hold_info);
+        ($status) = CheckReserves($item2);
+        is( $status, 'Reserved', "Hold for the itemtype2 created" );
+
+        $start_balance = $account->balance();
+
         Koha::Holds->find($reserve_id)->cancel( { charge_cancel_fee => 1 } );
+
+        ($status) = CheckReserves($item2);
+        is( $status, '', "Hold for the itemtype2 cancelled" );
+
         is(
-            int( $patron->account->balance ), 42,
-            'ExpireReservesMaxPickUpDelayCharge=42 and charge_cancel_fee => 1, The patron should have been charged!'
+            $account->balance() - $start_balance, 222,
+            "Used ExpireReservesMaxPickUpDelayCharge preference as expire_reserves_charge set to undef"
         );
+
+        # TEST: no circulation rules for itemtype3, it should use ExpireReservesMaxPickUpDelayCharge preference
+        t::lib::Mocks::mock_preference( 'ExpireReservesMaxPickUpDelayCharge', 333 );
+
+        $reserve_id = AddReserve(
+            {
+                branchcode     => $library_A_code,
+                borrowernumber => $borrowernumber,
+                biblionumber   => $biblionumber,
+                priority       => 1,
+                itemnumber     => $item3->itemnumber,
+            }
+        );
+
+        $account = Koha::Account->new( { patron_id => $borrowernumber } );
+
+        ($status) = CheckReserves($item3);
+        is( $status, 'Reserved', "Hold for the itemtype3 created" );
+
+        $start_balance = $account->balance();
+
+        Koha::Holds->find($reserve_id)->cancel( { charge_cancel_fee => 1 } );
+
+        ($status) = CheckReserves($item3);
+        is( $status, '', "Hold for the itemtype3 cancelled" );
+
+        is(
+            $account->balance() - $start_balance, 333,
+            "Used ExpireReservesMaxPickUpDelayCharge preference as there's no circulation rules for itemtype3"
+        );
+
+        # TEST: circulation rule for itemtype4 with library_B_code
+        t::lib::Mocks::mock_preference( 'ExpireReservesMaxPickUpDelayCharge', 555 );
+
+        $reserve_id = AddReserve(
+            {
+                branchcode     => $library_B_code,
+                borrowernumber => $borrowernumber,
+                biblionumber   => $biblionumber2,
+                priority       => 1,
+                itemnumber     => $item4->itemnumber,
+            }
+        );
+
+        $account = Koha::Account->new( { patron_id => $borrowernumber } );
+
+        ($status) = CheckReserves($item4);
+        is( $status, 'Reserved', "Hold for the itemtype4 created" );
+
+        $start_balance = $account->balance();
+
+        Koha::Holds->find($reserve_id)->cancel( { charge_cancel_fee => 1 } );
+
+        ($status) = CheckReserves($item4);
+        is( $status, '', "Hold for the itemtype4 cancelled" );
+
+        is( $account->balance() - $start_balance, 444, "Used circulation rule for itemtype4 with library_B_code" );
+
+        # TEST: circulation rule for library_C_code that has expire_reserves_charge = 0
+        t::lib::Mocks::mock_preference( 'ExpireReservesMaxPickUpDelayCharge', 777 );
+
+        $reserve_id = AddReserve(
+            {
+                branchcode     => $library_C_code,
+                borrowernumber => $borrowernumber,
+                biblionumber   => $biblionumber3,
+                priority       => 1,
+                itemnumber     => $item5->itemnumber,
+            }
+        );
+
+        $account = Koha::Account->new( { patron_id => $borrowernumber } );
+
+        ($status) = CheckReserves($item5);
+        is( $status, 'Reserved', "Hold for the itemtype5 created" );
+
+        $start_balance = $account->balance();
+
+        Koha::Holds->find($reserve_id)->cancel( { charge_cancel_fee => 1 } );
+
+        ($status) = CheckReserves($item5);
+        is( $status, '', "Hold for the itemtype5 cancelled" );
+
+        is(
+            $account->balance() - $start_balance, 0,
+            "Used circulation rule for itemtype4 with library_C_code even though it's 0"
+        );
+
+        # TEST: charge_cancel_fee is 0
+        $reserve_id = AddReserve(
+            {
+                branchcode     => $library_B_code,
+                borrowernumber => $borrowernumber,
+                biblionumber   => $biblionumber2,
+                priority       => 1,
+                itemnumber     => $item4->itemnumber,
+            }
+        );
+
+        $account = Koha::Account->new( { patron_id => $borrowernumber } );
+
+        ($status) = CheckReserves($item4);
+        is( $status, 'Reserved', "Hold for the itemtype4 created" );
+
+        $start_balance = $account->balance();
+
+        Koha::Holds->find($reserve_id)->cancel( { charge_cancel_fee => 0 } );
+
+        ($status) = CheckReserves($item4);
+        is( $status, '', "Hold for the itemtype4 cancelled" );
+
+        is( $account->balance() - $start_balance, 0, "Patron not charged when charge_cancel_fee is 0" );
     };
 
     subtest 'waiting hold' => sub {
@@ -221,7 +466,8 @@ subtest 'cancel' => sub {
         my $reserve_id = C4::Reserves::AddReserve($hold_info);
         Koha::Holds->find($reserve_id)->cancel;
         my $number_of_logs =
-            $schema->resultset('ActionLog')->search( { module => 'HOLDS', action => 'CANCEL', object => $reserve_id } )
+            $schema->resultset('ActionLog')
+            ->search( { module => 'HOLDS', action => 'CANCEL', object => $reserve_id } )
             ->count;
         is( $number_of_logs, 0, 'Without HoldsLog, Koha::Hold->cancel should not have logged' );
 
@@ -229,7 +475,8 @@ subtest 'cancel' => sub {
         $reserve_id = C4::Reserves::AddReserve($hold_info);
         Koha::Holds->find($reserve_id)->cancel;
         $number_of_logs =
-            $schema->resultset('ActionLog')->search( { module => 'HOLDS', action => 'CANCEL', object => $reserve_id } )
+            $schema->resultset('ActionLog')
+            ->search( { module => 'HOLDS', action => 'CANCEL', object => $reserve_id } )
             ->count;
         is( $number_of_logs, 1, 'With HoldsLog, Koha::Hold->cancel should have logged' );
     };
@@ -583,8 +830,8 @@ subtest 'get_items_that_can_fill' => sub {
     my $item_4 = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, itype => $itype_1->itemtype } )
         ;    # in transfer
     my $item_5 = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, itype => $itype_2->itemtype } );
-    my $lost       = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, itemlost   => 1 } );
-    my $withdrawn  = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, withdrawn  => 1 } );
+    my $lost       = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, itemlost   =>  1 } );
+    my $withdrawn  = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, withdrawn  =>  1 } );
     my $notforloan = $builder->build_sample_item( { biblionumber => $biblio->biblionumber, notforloan => -1 } );
 
     my $patron_1 = $builder->build_object( { class => 'Koha::Patrons' } );
@@ -747,7 +994,7 @@ subtest 'set_waiting+patron_expiration_date' => sub {
         is( $hold->expirationdate,         $patron_expiration_date );
         is( $hold->patron_expiration_date, $patron_expiration_date );
 
-        C4::Reserves::RevertWaitingStatus( { itemnumber => $item->itemnumber } );
+        $hold->revert_found();
 
         $hold = $hold->get_from_storage;
         is( $hold->expirationdate,         $patron_expiration_date );
@@ -788,7 +1035,7 @@ subtest 'set_waiting+patron_expiration_date' => sub {
         is( $hold->expirationdate,         $new_expiration_date );
         is( $hold->patron_expiration_date, $patron_expiration_date );
 
-        C4::Reserves::RevertWaitingStatus( { itemnumber => $item->itemnumber } );
+        $hold->revert_found();
 
         $hold = $hold->get_from_storage;
         is( $hold->expirationdate,         $patron_expiration_date );
@@ -821,6 +1068,95 @@ subtest 'Test Koha::Hold::item_group' => sub {
         $hold->item_group_id, $item_group->id,
         'Koha::Hold::item_group returns the correct item_group'
     );
+};
+
+subtest 'count_holds' => sub {
+    plan tests => 3;
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+        }
+    );
+    my $patron_id = $patron->borrowernumber;
+
+    my $hold1 = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => {
+                borrowernumber => $patron_id,
+                hold_group_id  => undef,
+            },
+        }
+    );
+
+    is( $patron->holds->count_holds, 1, 'Test patron has 1 hold.' );
+
+    my $hold_group = $builder->build_object(
+        {
+            class => 'Koha::HoldGroups',
+        }
+    );
+
+    my $hold2 = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => {
+                borrowernumber => $patron_id,
+                hold_group_id  => $hold_group->hold_group_id,
+            }
+        }
+    );
+    my $hold3 = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => {
+                borrowernumber => $patron_id,
+                hold_group_id  => $hold_group->hold_group_id,
+            }
+        }
+    );
+
+    is( $patron->holds->count_holds, 2, 'Test patron has 2 holds.' );
+
+    my $hold_group2 = $builder->build_object(
+        {
+            class => 'Koha::HoldGroups',
+        }
+    );
+
+    my $hold4 = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => {
+                borrowernumber => $patron_id,
+                hold_group_id  => $hold_group2->hold_group_id,
+            }
+        }
+    );
+    my $hold5 = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => {
+                borrowernumber => $patron_id,
+                hold_group_id  => $hold_group2->hold_group_id,
+            }
+        }
+    );
+    my $hold6 = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => {
+                borrowernumber => $patron_id,
+                hold_group_id  => $hold_group2->hold_group_id,
+            }
+        }
+    );
+
+    is( $patron->holds->count_holds, 3, 'Test patron has 3 holds.' );
+
+    $schema->storage->txn_rollback;
 };
 
 $schema->storage->txn_rollback;

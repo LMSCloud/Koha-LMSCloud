@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # Re-create statistics from issues and old_issues tables
 
@@ -77,7 +77,7 @@ if ( $issues == 1 ) {
                 # Inserting missing issue
                 my $insert =
                     "INSERT INTO statistics (datetime, branch, value, type, other, itemnumber, itemtype, borrowernumber)
-					 VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+                     VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
                 $substh = $dbh->prepare($insert);
                 my $item     = Koha::Items->find( $hashref->{'itemnumber'} );
                 my $itemtype = $item->effective_itemtype;
@@ -119,7 +119,7 @@ if ( $issues == 1 ) {
                     # Inserting missing renewals
                     my $insert =
                         "INSERT INTO statistics (datetime, branch, value, type, other, itemnumber, itemtype, borrowernumber)
-					 VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+                     VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
                     $substh = $dbh->prepare($insert);
                     my $item     = Koha::Items->find( $hashref->{'itemnumber'} );
                     my $itemtype = $item->effective_itemtype;
@@ -164,7 +164,7 @@ if ( $returns == 1 ) {
             # Inserting missing issue
             my $insert =
                 "INSERT INTO statistics (datetime, branch, value, type, other, itemnumber, itemtype, borrowernumber)
-				     VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+                     VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
             $substh = $dbh->prepare($insert);
             my $item     = Koha::Items->find( $hashref->{'itemnumber'} );
             my $itemtype = $item->effective_itemtype;

@@ -34,6 +34,16 @@ my %fields = (
     hold             => undef,
 );
 
+=head1 Functions
+
+=cut
+
+=head2 new
+
+Missing POD for new.
+
+=cut
+
 sub new {
     my $class = shift;
     my $self  = $class->SUPER::new();    # start with an ILS::Transaction object
@@ -45,6 +55,12 @@ sub new {
     @{$self}{ keys %fields } = values %fields;      # copying defaults into object
     return bless $self, $class;
 }
+
+=head2 do_checkin
+
+Missing POD for do_checkin.
+
+=cut
 
 sub do_checkin {
     my $self        = shift;
@@ -156,6 +172,8 @@ sub do_checkin {
     if ( $messages->{NeedsTransfer} ) {
         $self->{item}->destination_loc( $messages->{NeedsTransfer} );
         $self->alert_type('04');    # send to other branch
+        $self->screen_msg( "This item must still be transferred to " . $messages->{NeedsTransfer} . " branch." )
+            if !C4::Context->preference('AutomaticItemReturn');
     }
     if ( $messages->{WasTransfered} ) {    # set into transit so tell unit
         $self->{item}->destination_loc( $item->homebranch );
@@ -202,6 +220,10 @@ sub do_checkin {
         $self->alert( !$return || defined $self->alert_type );
     }
 
+    # If item has been returned let's update the queue after transfers/holds handled above
+    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue( { biblio_ids => [ $item->biblionumber ] } )
+        if $return && C4::Context->preference('RealTimeHoldsQueue');
+
     # Set sort bin based on info in the item associated with the issue, and the
     # mapping from SIP2SortBinMapping
     $self->sort_bin( _get_sort_bin( $item, $branch, $account ) );
@@ -211,6 +233,12 @@ sub do_checkin {
     return { messages => $messages };
 }
 
+=head2 resensitize
+
+Missing POD for resensitize.
+
+=cut
+
 sub resensitize {
     my $self = shift;
     unless ( $self->{item} ) {
@@ -219,6 +247,12 @@ sub resensitize {
     }
     return !$self->{item}->magnetic_media;
 }
+
+=head2 patron_id
+
+Missing POD for patron_id.
+
+=cut
 
 sub patron_id {
     my $self = shift;

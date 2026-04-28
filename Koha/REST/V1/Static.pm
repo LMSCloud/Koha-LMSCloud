@@ -13,7 +13,7 @@ package Koha::REST::V1::Static;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -38,14 +38,14 @@ sub get {
     if ( C4::Context->config("enable_plugins") ) {
         my $path = $c->req->url->path->leading_slash(1);
 
-        return $c->render( status => 400, openapi => { error => 'Endpoint inteded for plugin static files' } )
+        return $c->render( status => 400, openapi => { error => 'Endpoint intended for plugin static files' } )
             unless "$path" =~ /^\/api\/v1\/contrib/;
 
         my $namespace = $path->[3];
 
         my $checkpath = '/api/v1/contrib/' . $namespace . '/static';
 
-        return $c->render( status => 400, openapi => { error => 'Endpoint inteded for plugin static files' } )
+        return $c->render( status => 400, openapi => { error => 'Endpoint intended for plugin static files' } )
             unless "$path" =~ /\Q$checkpath/;
 
         my @plugins = Koha::Plugins->new()->GetPlugins(

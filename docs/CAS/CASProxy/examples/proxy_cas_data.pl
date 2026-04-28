@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 DESCRIPTION
 
@@ -26,7 +26,7 @@
 =head2 PGTIOU
 
 The Proxy Granting Ticket IOU the CAS Server returned to us when we gave him the Service Ticket
-This PGTIOU will allow us to retrive the matching PGTID
+This PGTIOU will allow us to retrieve the matching PGTID
 
 =cut 
 

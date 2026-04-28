@@ -15,7 +15,7 @@ package C4::ILSDI::Services;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -29,6 +29,7 @@ use C4::Context;
 use C4::Auth;
 use CGI qw ( -utf8 );
 use DateTime;
+use C4::Auth;
 use Koha::DateUtils     qw( dt_from_string );
 use C4::AuthoritiesMarc qw( GetAuthorityXML );
 
@@ -252,7 +253,7 @@ sub GetRecords {
         foreach my $item (@items) {
             my %item = %{ $item->unblessed };
 
-            # This hides additionnal XML subfields, we don't need these info
+            # This hides additional XML subfields, we don't need these info
             delete $item{'more_subfields_xml'};
 
             # Display branch names instead of branch codes
@@ -469,8 +470,7 @@ sub GetPatronInfo {
             'streetnumber',       'zipcode',            'city',      'streettype', 'B_address', 'B_city',
             'B_email',            'B_phone',            'B_zipcode', 'address',    'address2',  'altcontactaddress1',
             'altcontactaddress2', 'altcontactaddress3', 'altcontactfirstname', 'altcontactphone', 'altcontactsurname',
-            'altcontactzipcode',
-            'altcontacttitle'
+            'altcontactzipcode'
         );
 
         # and delete them
@@ -493,7 +493,7 @@ sub GetPatronInfo {
 
             my ( $item, $biblio, $biblioitem ) = ( {}, {}, {} );
 
-            # Get additional informations
+            # Get additional information
             if ( $hold->itemnumber ) {    # item level holds
                 $item       = Koha::Items->find( $hold->itemnumber );
                 $biblio     = $item->biblio;

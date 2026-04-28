@@ -17,7 +17,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 request.pl
 
@@ -33,7 +33,7 @@ use Date::Calc      qw( Date_to_Days );
 use C4::Output      qw( output_html_with_http_headers );
 use C4::Auth        qw( get_template_and_user );
 use C4::Reserves
-    qw( RevertWaitingStatus AlterPriority ToggleLowestPriority CanBookBeReserved GetMaxPatronHoldsForRecord CanItemBeReserved IsAvailableForItemLevelRequest );
+    qw( AlterPriority ToggleLowestPriority CanBookBeReserved GetMaxPatronHoldsForRecord CanItemBeReserved IsAvailableForItemLevelRequest GetReserveFee );
 use C4::Items       qw( get_hostitemnumbers_of );
 use C4::Koha        qw( getitemtypeimagelocation );
 use C4::Serials     qw( CountSubscriptionFromBiblionumber );
@@ -102,13 +102,68 @@ if ( $op eq 'cud-move' ) {
     my $last_priority   = $input->param('last_priority');
     my $hold_itemnumber = $input->param('itemnumber');
     if ( $prev_priority == 0 && $next_priority == 1 ) {
-        C4::Reserves::RevertWaitingStatus( { itemnumber => $hold_itemnumber } );
+        my $hold = Koha::Holds->find($reserve_id);
+        $hold->revert_found();
     } else {
         AlterPriority(
             $where,         $reserve_id,     $prev_priority,
             $next_priority, $first_priority, $last_priority
         );
     }
+} elsif ( $op eq 'cud-move_hold_item' or $op eq 'cud-move_hold_biblio' ) {
+    my @hold_ids              = $input->multi_param('move_hold_id');
+    my $original_biblionumber = $input->param('original_biblionumber');
+    my @moving_holds          = Koha::Holds->search(
+        { reserve_id => \@hold_ids },
+        { order_by   => { -asc => 'priority' } }
+    )->as_list;
+
+    my $new_biblionumber = $input->param('new_biblionumber');
+    my $target_biblio    = Koha::Biblios->find($new_biblionumber);
+
+    my %args = (
+        new_biblionumber => $new_biblionumber,
+    );
+
+    # Only pass new_itemnumber if this is an item level move
+    if ( $op eq 'cud-move_hold_item' ) {
+        $args{new_itemnumber} = $input->param('new_itemnumber');
+    }
+
+    my @success_messages;
+    my @error_messages;
+
+    foreach my $hold (@moving_holds) {
+        my $original_biblio = Koha::Biblios->find( $hold->biblionumber );
+
+        my $result = $hold->move_hold( \%args );
+
+        if ( $result->{success} ) {
+            push @success_messages, {
+                hold_id         => $hold->id,
+                success         => 1,
+                original_biblio => $original_biblio,
+                target_biblio   => $target_biblio,
+            };
+        } else {
+            push @error_messages, {
+                hold_id         => $hold->id,
+                success         => 0,
+                original_biblio => $original_biblio,
+                target_biblio   => $target_biblio,
+                error           => $result->{error},
+            };
+        }
+    }
+
+    #Fix the priority on the original record
+    C4::Reserves::FixPriority( { biblionumber => $original_biblionumber } );
+
+    $template->param(
+        hold_move_successes => \@success_messages,
+        hold_move_failures  => \@error_messages,
+    );
+
 } elsif ( $op eq 'cud-cancel' ) {
     my $reserve_id          = $input->param('reserve_id');
     my $cancellation_reason = $input->param("cancellation-reason");
@@ -188,7 +243,7 @@ if ( $borrowernumber_hold && !$op ) {
     # we check the reserves of the user, and if they can reserve a document
     # FIXME At this time we have a simple count of reservs, but, later, we could improve the infos "title" ...
 
-    my $reserves_count = $patron->holds->count;
+    my $reserves_count = $patron->holds->count_holds;
 
     my $new_reserves_count = scalar(@biblionumbers);
 
@@ -212,7 +267,7 @@ if ( $borrowernumber_hold && !$op ) {
         );
     }
 
-    # check if the borrower make the reserv in a different branch
+    # check if the borrower make the reserve in a different branch
     if ( $patron->branchcode ne C4::Context->userenv->{'branch'} ) {
         $diffbranch = 1;
     }
@@ -286,7 +341,8 @@ if (   ( $findborrower && $borrowernumber_hold || $findclub && $club_hold )
 
     if ( $patron && $multi_hold ) {
         my @multi_pickup_locations =
-            Koha::Biblios->search( { biblionumber => \@biblionumbers } )->pickup_locations( { patron => $patron } )
+            Koha::Biblios->search( { biblionumber => \@biblionumbers } )
+            ->pickup_locations( { patron => $patron } )
             ->as_list;
         $template->param( multi_pickup_locations => \@multi_pickup_locations );
     }
@@ -469,7 +525,7 @@ if (   ( $findborrower && $borrowernumber_hold || $findclub && $club_hold )
                 $item->{notforloan} ||= 0;
 
                 # if independent branches is on we need to check if the person can reserve
-                # for branches they arent logged in to
+                # for branches they aren't logged in to
                 if ( C4::Context->preference("IndependentBranches") ) {
                     if ( !C4::Context->preference("canreservefromotherbranches") ) {
 
@@ -597,7 +653,7 @@ if (   ( $findborrower && $borrowernumber_hold || $findclub && $club_hold )
 
             $biblioloopiter{biblioitem} = $biblio->biblioitem;
 
-            # While we can't override an alreay held item, we should be able to override the others
+            # While we can't override an already held item, we should be able to override the others
             # Unless all items are already held
             if ( $num_override > 0 && ( $num_override + $num_alreadyheld ) == scalar( @{ $biblioloopiter{itemloop} } ) )
             {
@@ -634,8 +690,10 @@ if (   ( $findborrower && $borrowernumber_hold || $findclub && $club_hold )
                     )->unblessed
                 }
             };
-            my @reserves =
-                Koha::Holds->search( { biblionumber => $biblionumber }, { order_by => 'priority' } )->as_list;
+            my @reserves = Koha::Holds->search(
+                { 'me.biblionumber' => $biblionumber },
+                { prefetch          => [ 'borrowernumber', 'itemnumber' ], order_by => 'priority' }
+            )->as_list;
             foreach my $res (
                 sort {
                     my $a_found = $a->found() || '';
@@ -684,6 +742,7 @@ if (   ( $findborrower && $borrowernumber_hold || $findclub && $club_hold )
                 $reserve{branchcode}       = $res->branchcode();
                 $reserve{non_priority}     = $res->non_priority();
                 $reserve{object}           = $res;
+                $reserve{hold_group_id}    = $res->hold_group_id;
 
                 if ( $holds_count_per_patron->{ $reserve{'borrowernumber'} } == 1 ) {
                     $reserve{'change_hold_type_allowed'} = 1;
@@ -719,6 +778,11 @@ if (   ( $findborrower && $borrowernumber_hold || $findclub && $club_hold )
         $biblioloopiter{rank}         = $fixedRank;
         $biblioloopiter{reserveloop}  = \@reserveloop;
 
+        # Pass through any reserve charge
+        if ($patron) {
+            $biblioloopiter{reserve_charge} = GetReserveFee( $patron->borrowernumber, $biblionumber );
+        }
+
         if (@reserveloop) {
             $template->param( reserveloop => \@reserveloop );
         }
@@ -748,6 +812,11 @@ if (   ( $findborrower && $borrowernumber_hold || $findclub && $club_hold )
 unless ($multi_hold) {
     my $biblio = Koha::Biblios->find( $biblionumbers[0] );
     $template->param( biblio => $biblio );
+
+    # Pass through any reserve charge for single holds
+    if ($borrowernumber_hold) {
+        $template->param( reserve_charge => GetReserveFee( $borrowernumber_hold, $biblionumbers[0] ) );
+    }
 }
 $template->param( biblionumbers => \@biblionumbers );
 

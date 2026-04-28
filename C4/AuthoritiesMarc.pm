@@ -16,37 +16,13 @@ package C4::AuthoritiesMarc;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
-use MARC::Field;
-
-use C4::Context;
-use C4::Biblio qw( ModBiblio );
-use C4::Search qw( FindDuplicate new_record_from_zebra );
-use C4::AuthoritiesMarc::MARC21;
-use C4::AuthoritiesMarc::UNIMARC;
-use C4::Charset qw( SetUTF8Flag );
-use C4::Log     qw( logaction );
-use Koha::MetadataRecord::Authority;
-use Koha::Authorities;
-use Koha::Authority::MergeRequests;
-use Koha::Authority::Types;
-use Koha::Authority;
-use Koha::Libraries;
-use Koha::RecordProcessor;
-use Koha::SearchEngine;
-use Koha::SearchEngine::Indexer;
-use Koha::SearchEngine::Search;
-
-our ( @ISA, @EXPORT_OK );
+use Modern::Perl;
+use base 'Exporter';
 
 BEGIN {
-
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         GetTagsLabels
         GetAuthMARCFromKohaField
 
@@ -75,6 +51,29 @@ BEGIN {
         compare_fields
     );
 }
+
+use MARC::Field;
+use Scalar::Util qw(blessed);
+use Try::Tiny    qw( try catch );
+
+use C4::Context;
+use C4::Biblio qw( ModBiblio );
+use C4::Search qw( FindDuplicate new_record_from_zebra );
+use C4::AuthoritiesMarc::MARC21;
+use C4::AuthoritiesMarc::UNIMARC;
+use C4::Charset qw( SetUTF8Flag );
+use C4::Log     qw( logaction );
+use Koha::MetadataRecord::Authority;
+use Koha::Authorities;
+use Koha::Authority::MergeRequests;
+use Koha::Authority::Types;
+use Koha::Authority;
+use Koha::Database;
+use Koha::Libraries;
+use Koha::RecordProcessor;
+use Koha::SearchEngine;
+use Koha::SearchEngine::Indexer;
+use Koha::SearchEngine::Search;
 
 =head1 NAME
 
@@ -377,7 +376,6 @@ sub GuessAuthTypeCode {
             '148' => { authtypecode => 'CHRON_TERM' },
             '150' => { authtypecode => 'TOPIC_TERM' },
             '151' => { authtypecode => 'GEOGR_NAME' },
-            '153' => { authtypecode => 'TAXONOMY' },
             '155' => { authtypecode => 'GENRE/FORM' },
             '162' => { authtypecode => 'MED_PERFRM' },
             '180' => { authtypecode => 'GEN_SUBDIV' },
@@ -386,18 +384,18 @@ sub GuessAuthTypeCode {
             '185' => { authtypecode => 'FORM_SUBD' },
         },
 
-        #200 Personal name	700, 701, 702 4-- with embedded 700, 701, 702 600
+        #200 Personal name    700, 701, 702 4-- with embedded 700, 701, 702 600
         #                    604 with embedded 700, 701, 702
-        #210 Corporate or meeting name	710, 711, 712 4-- with embedded 710, 711, 712 601 604 with embedded 710, 711, 712
-        #215 Territorial or geographic name 	710, 711, 712 4-- with embedded 710, 711, 712 601, 607 604 with embedded 710, 711, 712
-        #216 Trademark 	716 [Reserved for future use]
-        #220 Family name 	720, 721, 722 4-- with embedded 720, 721, 722 602 604 with embedded 720, 721, 722
-        #230 Title 	500 4-- with embedded 500 605
-        #240 Name and title (embedded 200, 210, 215, or 220 and 230) 	4-- with embedded 7-- and 500 7--  604 with embedded 7-- and 500 500
-        #245 Name and collective title (embedded 200, 210, 215, or 220 and 235) 	4-- with embedded 7-- and 501 604 with embedded 7-- and 501 7-- 501
-        #250 Topical subject 	606
-        #260 Place access 	620
-        #280 Form, genre or physical characteristics 	608
+        #210 Corporate or meeting name    710, 711, 712 4-- with embedded 710, 711, 712 601 604 with embedded 710, 711, 712
+        #215 Territorial or geographic name     710, 711, 712 4-- with embedded 710, 711, 712 601, 607 604 with embedded 710, 711, 712
+        #216 Trademark     716 [Reserved for future use]
+        #220 Family name     720, 721, 722 4-- with embedded 720, 721, 722 602 604 with embedded 720, 721, 722
+        #230 Title     500 4-- with embedded 500 605
+        #240 Name and title (embedded 200, 210, 215, or 220 and 230)     4-- with embedded 7-- and 500 7--  604 with embedded 7-- and 500 500
+        #245 Name and collective title (embedded 200, 210, 215, or 220 and 235)     4-- with embedded 7-- and 501 604 with embedded 7-- and 501 7-- 501
+        #250 Topical subject     606
+        #260 Place access     620
+        #280 Form, genre or physical characteristics     608
         #
         #
         # Could also be represented with :
@@ -530,7 +528,7 @@ ORDER BY tagfield, display_order, tagsubfield"
 
     while (
         (
-            $tag,           $subfield,     $liblibrarian,,    $libopac, $tab,
+            $tag,           $subfield,     $liblibrarian,     $libopac, $tab,
             $mandatory,     $repeatable,   $authorised_value, $authtypecode,
             $value_builder, $kohafield,    $seealso,          $hidden,
             $isurl,         $defaultvalue, $display_order
@@ -706,7 +704,6 @@ sub AddAuthority {
     $authority->update(
         {
             authtypecode => $authtypecode,
-            marc         => $record->as_usmarc,
             marcxml      => $record->as_xml_record($format),
             heading      => $heading ? $heading->display_form : '',
         }
@@ -739,21 +736,35 @@ sub DelAuthority {
     my $skip_merge        = $params->{skip_merge};
     my $skip_record_index = $params->{skip_record_index} || 0;
 
-    my $dbh = C4::Context->dbh;
+    my $schema = Koha::Database->schema;
+    try {
+        # TODO Make following lines part of transaction? Does merge take too long?
+        # Remove older pending merge requests for $authid to itself. (See bug 22437)
+        my $condition = { authid => $authid, authid_new => [ undef, 0, $authid ], done => 0 };
+        Koha::Authority::MergeRequests->search($condition)->delete;
+        merge( { mergefrom => $authid } ) if !$skip_merge;
 
-    # Remove older pending merge requests for $authid to itself. (See bug 22437)
-    my $condition = { authid => $authid, authid_new => [ undef, 0, $authid ], done => 0 };
-    Koha::Authority::MergeRequests->search($condition)->delete;
+        my $authority = Koha::Authorities->find($authid);
+        $schema->txn_do(
+            sub {
+                $authority->move_to_deleted;    #FIXME We should define 'move' ..
+                $authority->delete;
+            }
+        );
 
-    merge( { mergefrom => $authid } ) if !$skip_merge;
-    $dbh->do( "DELETE FROM auth_header WHERE authid=?", undef, $authid );
-    logaction( "AUTHORITIES", "DELETE", $authid, "authority" ) if C4::Context->preference("AuthoritiesLog");
-    unless ($skip_record_index) {
-        my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::AUTHORITIES_INDEX } );
-        $indexer->index_records( $authid, "recordDelete", "authorityserver", undef );
-    }
-
-    _after_authority_action_hooks( { action => 'delete', authority_id => $authid } );
+        logaction( "AUTHORITIES", "DELETE", $authid, "authority" ) if C4::Context->preference("AuthoritiesLog");
+        unless ($skip_record_index) {
+            my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::AUTHORITIES_INDEX } );
+            $indexer->index_records( $authid, "recordDelete", "authorityserver", undef );
+        }
+        _after_authority_action_hooks( { action => 'delete', authority_id => $authid } );
+    } catch {
+        if ( blessed $_ && $_->can('rethrow') ) {
+            $_->rethrow();
+        } else {
+            die "Deleting authority $authid failed: " . $_;
+        }
+    };
 }
 
 =head2 ModAuthority
@@ -1069,7 +1080,7 @@ sub BuildSummary {
             my $type = 'seefrom';
             $type = ( $marc21controlrefs{ substr $field->subfield('w'), 0, 1 } || '' ) if ( $field->subfield('w') );
             if ( $type eq 'notapplicable' ) {
-                $type = substr $field->subfield('w'), 2, 1;
+                $type = substr $field->subfield('w'), 2, 1 if length( $field->subfield('w') ) > 2;
                 $type = 'earlier' if $type && $type ne 'n';
             }
             if ( $type eq 'subfi' ) {
@@ -1092,7 +1103,7 @@ sub BuildSummary {
             my $type = 'seealso';
             $type = ( $marc21controlrefs{ substr $field->subfield('w'), 0, 1 } || '' ) if ( $field->subfield('w') );
             if ( $type eq 'notapplicable' ) {
-                $type = substr $field->subfield('w'), 2, 1;
+                $type = substr $field->subfield('w'), 2, 1 if length( $field->subfield('w') ) > 2;
                 $type = 'earlier' if $type && $type ne 'n';
             }
             my $linkid = $field->subfield('9');
@@ -1606,8 +1617,25 @@ sub merge {
     my $auth_tag_to_report_to   = $authtypeto   ? $authtypeto->auth_tag_to_report   : '';
 
     my @record_to;
-    @record_to = $MARCto->field($auth_tag_to_report_to)->subfields()
-        if $auth_tag_to_report_to && $MARCto && $MARCto->field($auth_tag_to_report_to);
+
+    my $short_langcode = C4::Context->preference('LanguageToUseOnMerge');
+    if ( $auth_tag_to_report_to && $MARCto && $MARCto->field($auth_tag_to_report_to) ) {
+        my $chosen_field = $MARCto->field($auth_tag_to_report_to);
+        if ( uc( C4::Context->preference('marcflavour') ) eq 'UNIMARC' && $short_langcode ) {
+            foreach my $field ( $MARCto->field($auth_tag_to_report_to) ) {
+                my $subfield = $field->subfield('7');
+                if (
+                    defined $subfield
+                    && (   ( length($subfield) == 2 && $subfield eq $short_langcode )
+                        || ( length($subfield) == 8 && substr( $subfield, 4, 2 ) eq $short_langcode ) )
+                    )
+                {
+                    $chosen_field = $field;
+                }
+            }
+        }
+        @record_to = $chosen_field->subfields();
+    }
 
     # Exceptional: If MARCto and authtypeto exist but $auth_tag_to_report_to
     # is empty, make sure that $9 and $a remain (instead of clearing the
@@ -1655,9 +1683,14 @@ sub merge {
 
     my $biblios = Koha::Biblios->search( { biblionumber => { -in => \@biblionumbers } } );
 
+    my $syspref_include_see_from =
+           C4::Context->preference('IncludeSeeFromInSearches')
+        || C4::Context->preference('IncludeSeeAlsoFromInSearches')
+        || 0;
     while ( my $biblio = $biblios->next ) {
-        my $marcrecord = $biblio->metadata->record;
-        my $update     = 0;
+        my $marcrecord        = $biblio->metadata->record;
+        my $update            = 0;
+        my $reindex_if_needed = 0;
         foreach my $tagfield (@$tags_using_authtype) {
             my $countfrom = 0;    # used in strict mode to remove duplicates
             foreach my $field ( $marcrecord->field($tagfield) ) {
@@ -1733,11 +1766,28 @@ sub merge {
                 if ( $tags_new && @$tags_new ) {
                     $marcrecord->delete_field($field);
                     append_fields_ordered( $marcrecord, $field_to );
+                    $update = 1;
                 } else {
-                    $field->replace_with($field_to);
+
+                    # If there was no real change of the linked bibliographic
+                    # field, there is also no need to make ModBiblio.
+                    # Only a refresh of index could be helpful in case of
+                    # a change in the tracing fields
+                    if ( $field->as_formatted ne $field_to->as_formatted ) {
+                        $field->replace_with($field_to);
+                        $update = 1;
+                    } else {
+                        $reindex_if_needed = 1;
+                    }
                 }
-                $update = 1;
             }
+        }
+        if (  !$update
+            && $reindex_if_needed
+            && $syspref_include_see_from )
+        {
+            my $indexer = Koha::SearchEngine::Indexer->new( { index => $Koha::SearchEngine::BIBLIOS_INDEX } );
+            $indexer->index_records( $biblio->biblionumber, "specialUpdate", "biblioserver" );
         }
         next if !$update;
         ModBiblio( $marcrecord, $biblio->biblionumber, $biblio->frameworkcode, { disable_autolink => 1 } );
@@ -1764,6 +1814,12 @@ sub _merge_newtag {
     my @same_block = grep { /^$prefix/ } @$new_tags;
     return @same_block ? $same_block[0] : $new_tags->[0];
 }
+
+=head2 append_fields_ordered
+
+Missing POD for append_fields_ordered.
+
+=cut
 
 sub append_fields_ordered {
 
@@ -1845,7 +1901,7 @@ __END__
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 Paul POULAIN paul.poulain@free.fr
 Ere Maijala ere.maijala@helsinki.fi

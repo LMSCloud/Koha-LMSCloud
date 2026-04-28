@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # This test file is made to be run by our CI
 # - KOHA_TESTING must be set
@@ -22,7 +22,8 @@
 
 use Modern::Perl;
 
-use Test::More tests => 2;
+use Test::More tests => 3;
+use Test::NoWarnings;
 
 use t::lib::Selenium;
 use C4::Context;
@@ -56,9 +57,12 @@ SKIP: {
         unless $ENV{KOHA_TESTING};
 
     my $dbh = eval { C4::Context->dbh; };
-    skip "Tests won't run if the database does not exist", 2 if $@;
+    skip "Tests won't run if the database does not exist", 3 if $@;
 
     {
+        # Ignore expected warnings
+        # DBD::mysql::db do failed: Table 'koha_kohadev.systempreferences' doesn't exist
+        local $SIG{__WARN__} = sub { };
         my $dup_err;
         local *STDERR;
         open STDERR, ">>", \$dup_err;
@@ -67,6 +71,7 @@ SKIP: {
             SELECT * FROM systempreferences WHERE 1 = 0 |
         );
         close STDERR;
+
         if ($dup_err) {
             skip "Tests won't run if the database is not empty", 2 if $@;
         }
@@ -155,8 +160,8 @@ SKIP: {
     $s->submit_form;
 
     # Get the interface in the correct language
-    C4::Context->set_preference( 'language',      $languages->{$lang} );
-    C4::Context->set_preference( 'opaclanguages', $languages->{$lang} );
+    C4::Context->set_preference( 'StaffInterfaceLanguages', $languages->{$lang} );
+    C4::Context->set_preference( 'opaclanguages',           $languages->{$lang} );
 
     $s->click( { href => '/mainpage.pl', main => 'onboarding-step5' } );
 

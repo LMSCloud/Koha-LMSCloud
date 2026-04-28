@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::NoWarnings;
+use Test::More tests => 2;
 use Test::Mojo;
 
 use t::lib::TestBuilder;
@@ -85,22 +86,26 @@ subtest 'move() tests' => sub {
     $t->put_ok( "//$unauth_userid:$password@/api/v1/rotas/$rota_id/stages/$stage1_id/position" => json => 2 )
         ->status_is(403);
 
-    # Invalid attempt to move a stage on a non-existant rota
+    # Invalid attempt to move a stage on a non-existent rota
     $t->put_ok( "//$auth_userid:$password@/api/v1/rotas/99999999/stages/$stage1_id/position" => json => 2 )
-        ->status_is(404)->json_is( '/error' => "Rota not found" );
+        ->status_is(404)
+        ->json_is( '/error' => "Rota not found" );
 
-    # Invalid attempt to move an non-existant stage
+    # Invalid attempt to move an non-existent stage
     $t->put_ok( "//$auth_userid:$password@/api/v1/rotas/$rota_id/stages/999999999/position" => json => 2 )
-        ->status_is(404)->json_is( '/error' => "Stage not found" );
+        ->status_is(404)
+        ->json_is( '/error' => "Stage not found" );
 
     # Invalid attempt to move stage to current position
     my $curr_position = $stage1->{position};
     $t->put_ok( "//$auth_userid:$password@/api/v1/rotas/$rota_id/stages/$stage1_id/position" => json => $curr_position )
-        ->status_is(400)->json_is( '/error' => "Bad request - new position invalid" );
+        ->status_is(400)
+        ->json_is( '/error' => "Bad request - new position invalid" );
 
     # Invalid attempt to move stage to invalid position
     $t->put_ok( "//$auth_userid:$password@/api/v1/rotas/$rota_id/stages/$stage1_id/position" => json => 99999999 )
-        ->status_is(400)->json_is( '/error' => "Bad request - new position invalid" );
+        ->status_is(400)
+        ->json_is( '/error' => "Bad request - new position invalid" );
 
     # Valid, authorised move
     $t->put_ok( "//$auth_userid:$password@/api/v1/rotas/$rota_id/stages/$stage1_id/position" => json => 2 )

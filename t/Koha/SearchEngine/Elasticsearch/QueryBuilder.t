@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 8;
+use Test::NoWarnings;
+use Test::More tests => 9;
 use t::lib::Mocks;
 
 use_ok('Koha::SearchEngine::Elasticsearch::QueryBuilder');
@@ -283,10 +284,10 @@ subtest 'clean_search_term() tests' => sub {
     is( $res, 'test', 'remove exclamation sign at the end of the line' );
 
     $res = $qb->clean_search_term('test! and more');
-    is( $res, 'test and more', 'remove exclamation sign at with space after it' );
+    is( $res, 'test AND more', 'remove exclamation sign at with space after it' );
 
     $res = $qb->clean_search_term('test! and more (and more!)');
-    is( $res, 'test and more (and more)', 'remove exclamation sign followed by close parentheses' );
+    is( $res, 'test AND more (and more)', 'remove exclamation sign followed by close parentheses' );
 
     $res = $qb->clean_search_term('!test');
     is( $res, '!test', 'exclamation sign left untouched' );
@@ -307,7 +308,7 @@ subtest 'clean_search_term() tests' => sub {
 
     $res = $qb->clean_search_term('test inside regexps /this [a-z]/ and \/not [a-z]\/ and that [a-z] [a TO z]');
     is(
-        $res, 'test inside regexps \/this \[a-z\]\/ and \/not \[a-z\]\/ and that \[a-z\] [a TO z]',
+        $res, 'test inside regexps \/this \[a-z\]\/ AND \/not \[a-z\]\/ AND that \[a-z\] [a TO z]',
         'behaviour with QueryRegexEscapeOptions set to "escape"'
     );
 
@@ -317,7 +318,7 @@ subtest 'clean_search_term() tests' => sub {
         'test inside regexps /this [a-z]/ /this2 [a-z]/ [but] /this3 [a-z]/ and \/not [a-z]\/ and that [a-z] [a TO z]');
     is(
         $res,
-        'test inside regexps /this [a-z]/ /this2 [a-z]/ \[but\] /this3 [a-z]/ and \/not \[a-z\]\/ and that \[a-z\] [a TO z]',
+        'test inside regexps /this [a-z]/ /this2 [a-z]/ \[but\] /this3 [a-z]/ AND \/not \[a-z\]\/ AND that \[a-z\] [a TO z]',
         'behaviour with QueryRegexEscapeOptions set to "dont_escape"'
     );
 

@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 2;
+use Test::NoWarnings;
+use Test::More tests => 3;
 
 use Test::Mojo;
 
@@ -58,43 +59,50 @@ subtest 'set() (authorized user tests)' => sub {
 
     $t->post_ok( "//$userid:$password@/api/v1/patrons/"
             . $patron->id
-            . "/password" => json => { password => $new_password, password_2 => $new_password } )->status_is(200)
+            . "/password" => json => { password => $new_password, password_2 => $new_password } )
+        ->status_is(200)
         ->json_is('');
 
     $t->post_ok( "//$userid:$password@/api/v1/patrons/"
             . $patron->id
-            . "/password" => json => { password => $new_password, password_2 => 'cde' } )->status_is(400)
+            . "/password" => json => { password => $new_password, password_2 => 'cde' } )
+        ->status_is(400)
         ->json_is( { error => 'Passwords don\'t match' } );
 
     t::lib::Mocks::mock_preference( 'minPasswordLength', 5 );
 
     $t->post_ok( "//$userid:$password@/api/v1/patrons/"
             . $patron->id
-            . "/password" => json => { password => $new_password, password_2 => $new_password } )->status_is(400)
+            . "/password" => json => { password => $new_password, password_2 => $new_password } )
+        ->status_is(400)
         ->json_is( { error => 'Password length (3) is shorter than required (5)' } );
 
     $new_password = 'abc   ';
     $t->post_ok( "//$userid:$password@/api/v1/patrons/"
             . $patron->id
-            . "/password" => json => { password => $new_password, password_2 => $new_password } )->status_is(400)
+            . "/password" => json => { password => $new_password, password_2 => $new_password } )
+        ->status_is(400)
         ->json_is( { error => '[Password contains leading/trailing whitespace character(s)]' } );
 
     $new_password = 'abcdefg';
     $t->post_ok( "//$userid:$password@/api/v1/patrons/"
             . $patron->id
-            . "/password" => json => { password => $new_password, password_2 => $new_password } )->status_is(200)
+            . "/password" => json => { password => $new_password, password_2 => $new_password } )
+        ->status_is(200)
         ->json_is('');
 
     t::lib::Mocks::mock_preference( 'RequireStrongPassword', 1 );
     $t->post_ok( "//$userid:$password@/api/v1/patrons/"
             . $patron->id
-            . "/password" => json => { password => $new_password, password_2 => $new_password } )->status_is(400)
+            . "/password" => json => { password => $new_password, password_2 => $new_password } )
+        ->status_is(400)
         ->json_is( { error => '[Password is too weak]' } );
 
     $new_password = 'ABcde123%&';
     $t->post_ok( "//$userid:$password@/api/v1/patrons/"
             . $patron->id
-            . "/password" => json => { password => $new_password, password_2 => $new_password } )->status_is(200)
+            . "/password" => json => { password => $new_password, password_2 => $new_password } )
+        ->status_is(200)
         ->json_is('');
 
     $schema->storage->txn_rollback;

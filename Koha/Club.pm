@@ -15,7 +15,7 @@ package Koha::Club;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -74,6 +74,12 @@ sub club_enrollments {
 }
 
 =head3 club_fields
+
+=cut
+
+=head2 branch
+
+Missing POD for branch.
 
 =cut
 

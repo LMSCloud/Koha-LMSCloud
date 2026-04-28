@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Test::More;
+use Test::NoWarnings;
+use Test::More tests => 6;
 use Test::Exception;
 
 BEGIN { use_ok('Koha::DateTime::Format::RFC3339'); }
@@ -57,5 +58,3 @@ subtest 'invalid date throws an exception' => sub {
     }
     qr/Invalid date format/;
 };
-
-done_testing;

@@ -1,0 +1,287 @@
+<template>
+    <BaseResource
+        v-if="config.settings.not_for_loan_waiting_list_in"
+        :routeAction="routeAction"
+        :instancedResource="this"
+    ></BaseResource>
+</template>
+<script>
+import { inject, onBeforeMount } from "vue";
+import BaseResource from "../BaseResource.vue";
+import { useBaseResource } from "../../composables/base-resource.js";
+import { storeToRefs } from "pinia";
+import { APIClient } from "../../fetch/api-client.js";
+import { $__ } from "@koha-vue/i18n";
+
+export default {
+    props: {
+        routeAction: String,
+    },
+    setup(props) {
+        const PreservationStore = inject("PreservationStore");
+        const { config, itemsRecentlyAddedToWaitingList } =
+            storeToRefs(PreservationStore);
+        const { setError } = inject("mainStore");
+
+        const additionalToolbarButtons = (resource, componentData) => {
+            const { instancedResource } = componentData;
+            const addItemsToWaitingList = (result, itemList) => {
+                let items = [];
+                itemList.barcode_list
+                    .split("\n")
+                    .forEach(barcode => items.push({ barcode }));
+                const client = APIClient.preservation;
+                client.waiting_list_items.createAll(items).then(
+                    result => {
+                        if (result.length) {
+                            if (result.length != items.length) {
+                                instancedResource.setWarning(
+                                    $__(
+                                        "%s new items added. %s items not found."
+                                    ).format(
+                                        result.length,
+                                        items.length - result.length
+                                    ),
+                                    true
+                                );
+                            } else {
+                                instancedResource.setMessage(
+                                    $__("%s new items added.").format(
+                                        result.length
+                                    ),
+                                    true
+                                );
+                            }
+                            instancedResource.itemsRecentlyAddedToWaitingList =
+                                result;
+                            if (instancedResource.$refs.table) {
+                                instancedResource.$refs.table.redraw(
+                                    "/api/v1/preservation/waiting-list/items"
+                                );
+                            } else {
+                                instancedResource.refreshTemplateState();
+                            }
+                        } else {
+                            instancedResource.setWarning($__("No items added"));
+                        }
+                    },
+                    error => {}
+                );
+                itemList = "";
+            };
+            const addItemsToTrain = (result, { train_id_selected_for_add }) => {
+                let item_ids =
+                    instancedResource.itemsRecentlyAddedToWaitingList.map(
+                        i => i.item_id
+                    );
+                instancedResource.router.push({
+                    name: "TrainsFormAddItems",
+                    params: {
+                        train_id: train_id_selected_for_add,
+                        item_ids: item_ids.join(","),
+                    },
+                });
+                instancedResource.itemsRecentlyAddedToWaitingList = [];
+            };
+            return {
+                list: [
+                    {
+                        onClick: () =>
+                            instancedResource.setConfirmationDialog(
+                                {
+                                    title: $__("Add items to waiting list"),
+                                    accept_label: $__("Save"),
+                                    cancel_label: $__("Cancel"),
+                                    inputs: [
+                                        {
+                                            name: "barcode_list",
+                                            type: "textarea",
+                                            label: $__("Barcode list"),
+                                            required: true,
+                                        },
+                                    ],
+                                    size: "modal-lg",
+                                },
+                                addItemsToWaitingList
+                            ),
+                        icon: "plus",
+                        title: $__("Add to waiting list"),
+                    },
+                    instancedResource.itemsRecentlyAddedToWaitingList.length > 0
+                        ? {
+                              onClick: () =>
+                                  instancedResource.setConfirmationDialog(
+                                      {
+                                          title: $__("Add items to a train"),
+                                          accept_label: $__("Save"),
+                                          cancel_label: $__("Cancel"),
+                                          inputs: [
+                                              {
+                                                  name: "train_id_selected_for_add",
+                                                  type: "relationshipSelect",
+                                                  label: $__("Select a train"),
+                                                  required: true,
+                                                  relationshipAPIClient:
+                                                      APIClient.preservation
+                                                          .trains,
+                                                  relationshipOptionLabelAttr:
+                                                      "name",
+                                                  relationshipRequiredKey:
+                                                      "train_id",
+                                              },
+                                          ],
+                                          size: "modal-lg",
+                                      },
+                                      addItemsToTrain
+                                  ),
+                              icon: "plus",
+                              title: $__(
+                                  "Add last %s items to a train".format(
+                                      instancedResource
+                                          .itemsRecentlyAddedToWaitingList
+                                          .length
+                                  )
+                              ),
+                          }
+                        : {},
+                ],
+            };
+        };
+        const defaultToolbarButtons = () => {
+            return {
+                list: [],
+            };
+        };
+
+        const baseResource = useBaseResource({
+            resourceName: "item",
+            nameAttr: "biblio.title",
+            idAttr: "itemnumber",
+            components: {
+                list: "WaitingList",
+            },
+            apiClient: APIClient.preservation.waiting_list_items,
+            table: {
+                resourceTableUrl:
+                    APIClient.preservation.httpClient._baseURL +
+                    "/waiting-list/items",
+            },
+            i18n: {
+                deleteConfirmationMessage: $__(
+                    "Are you sure you want to remove this item from the waiting list?"
+                ),
+                deleteSuccessMessage: $__("Item removed from the waiting list"),
+                displayName: $__("Item"),
+                displayNameLowerCase: $__("item"),
+                displayNamePlural: $__("Items"),
+                editLabel: null,
+                emptyListMessage: $__("There are no items in the waiting list"),
+                newLabel: $__("Add to waiting list"),
+            },
+            config,
+            itemsRecentlyAddedToWaitingList,
+            props,
+            additionalToolbarButtons,
+            defaultToolbarButtons,
+            resourceAttrs: [
+                {
+                    name: "itemnumber",
+                    label: $__("ID"),
+                    type: "text",
+                    hideIn: ["List"],
+                },
+                {
+                    name: "biblio.title",
+                    label: $__("Title"),
+                    type: "text",
+                    tableColumnDefinition: {
+                        data: "biblio.title",
+                        title: $__("Title"),
+                        searchable: true,
+                        orderable: true,
+                        render: function (data, type, row, meta) {
+                            return `<a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=${row.biblio.biblio_id}">${row.biblio.title}</a>`;
+                        },
+                    },
+                },
+                {
+                    name: "biblio.author",
+                    label: $__("Author"),
+                    type: "text",
+                },
+                {
+                    name: "callnumber",
+                    label: $__("Call number"),
+                    type: "text",
+                },
+                {
+                    name: "external_id",
+                    label: $__("Barcode"),
+                    type: "text",
+                },
+            ],
+        });
+
+        const doRemoveItem = (item, dt, event) => {
+            baseResource.setConfirmationDialog(
+                {
+                    title: $__(
+                        "Are you sure you want to remove this item from the waiting list?"
+                    ),
+                    message: item.barcode,
+                    accept_label: $__("Yes, remove"),
+                    cancel_label: $__("No, do not remove"),
+                },
+                () => {
+                    const client = APIClient.preservation;
+                    client.waiting_list_items.delete(item.item_id).then(
+                        success => {
+                            baseResource.setMessage(
+                                $__("Item removed from the waiting list"),
+                                true
+                            );
+                            dt.draw();
+                        },
+                        error => {}
+                    );
+                }
+            );
+        };
+
+        const tableOptions = {
+            url: "/api/v1/preservation/waiting-list/items",
+            options: { embed: "biblio" },
+            add_filters: true,
+            actions: {
+                "-1": [
+                    {
+                        removeItem: {
+                            text: $__("Remove"),
+                            icon: "fa fa-close",
+                            callback: doRemoveItem,
+                        },
+                    },
+                ],
+            },
+        };
+
+        onBeforeMount(() => {
+            if (!config.value.settings.not_for_loan_waiting_list_in) {
+                return setError(
+                    $__("You need to configure this module first.")
+                );
+            }
+        });
+
+        return {
+            ...baseResource,
+            tableOptions,
+        };
+    },
+    emits: ["select-resource"],
+    name: "WaitingListResource",
+    components: {
+        BaseResource,
+    },
+};
+</script>

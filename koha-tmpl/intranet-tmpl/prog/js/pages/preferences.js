@@ -49,7 +49,7 @@ KOHA.Preferences = {
             return;
         }
         KOHA.AJAX.MarkRunning($(form).find(".save-all"), __("Saving..."));
-        const client = APIClient.syspref;
+        const client = APIClient.sysprefs;
         client.sysprefs
             .update_all(sysprefs)
             .then(
@@ -208,14 +208,12 @@ function addConsentDeleteHandler() {
     });
 }
 
-$("table.preferences").dataTable(
-    $.extend(true, {}, dataTablesDefaults, {
-        dom: "t",
-        columnDefs: [{ targets: [-1], orderable: false, searchable: false }],
-        paging: false,
-        fixedHeader: false,
-    })
-);
+$("table.preferences").kohaTable({
+    dom: "t",
+    columnDefs: [{ targets: [-1], orderable: false, searchable: false }],
+    paging: false,
+    fixedHeader: false,
+});
 
 $(".prefs-tab")
     .find("input.preference, textarea.preference")
@@ -245,6 +243,14 @@ $(".sortable").each((i, e) => {
     Sortable.create(e, {
         animation: 150,
         onUpdate: function (e) {
+            $(e.target)
+                .find("li label")
+                .each(function (i) {
+                    let newText = $(this)
+                        .text()
+                        .replace(/\d+\./, i + 1 + ".");
+                    $(this).text(newText);
+                });
             $(e.target).find("input:first").change();
         },
     });

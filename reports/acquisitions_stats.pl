@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -59,6 +59,19 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
         flagsrequired => { reports => '*' },
     }
 );
+
+# Validate line and column
+if (
+    $do_it
+    && (  !$line
+        || $line !~ /^(aqbasket|aqorders|aqbooksellers|items|biblioitems|aqbudgets)\.\w+$/
+        || !$column
+        || $column !~ /^(aqbasket|aqorders|aqbooksellers|items|biblioitems|aqbudgets)\.\w+$/ )
+    )
+{
+    C4::Output::output_error( $input, 'Possible SQL injection' );
+    exit;
+}
 
 our $sep = C4::Context->csv_delimiter( scalar $input->param("sep") );
 
@@ -310,10 +323,12 @@ sub calculate {
     $strsth .= " ORDER BY $line";
 
     my $sth = $dbh->prepare($strsth);
-    if ( (@linefilter) and ( $linefilter[1] ) ) {
+    if ( (@linefilter) and ( $linefilter[0] && $linefilter[1] ) ) {
         $sth->execute( $linefilter[0], $linefilter[1] );
     } elsif ( $linefilter[0] ) {
         $sth->execute( $linefilter[0] );
+    } elsif ( $linefilter[1] ) {
+        $sth->execute( $linefilter[1] );
     } else {
         $sth->execute;
     }
@@ -368,6 +383,8 @@ sub calculate {
         $sth2->execute( $colfilter[0], $colfilter[1] );
     } elsif ( $colfilter[0] ) {
         $sth2->execute( $colfilter[0] );
+    } elsif ( $colfilter[1] ) {
+        $sth2->execute( $colfilter[1] );
     } else {
         $sth2->execute;
     }
@@ -379,8 +396,8 @@ sub calculate {
         }
     }
 
-    my $i         = 0;
-    my $hilighted = -1;
+    my $i           = 0;
+    my $highlighted = -1;
 
     #Initialization of cell values.....
     my %table;
@@ -478,14 +495,14 @@ sub calculate {
             push @loopcell, { value => $value };
         }
         my $r = {
-            rowtitle  => ( $row eq "zzEMPTY" ) ? "NULL" : $row,
-            loopcell  => \@loopcell,
-            hilighted => ( $hilighted > 0 ),
-            totalrow  => $table{$row}->{totalrow}
+            rowtitle    => ( $row eq "zzEMPTY" ) ? "NULL" : $row,
+            loopcell    => \@loopcell,
+            highlighted => ( $highlighted > 0 ),
+            totalrow    => $table{$row}->{totalrow}
         };
         $r->{totalrow} = sprintf( "%.2f", $r->{totalrow} ) if ( $r->{totalrow} and grep /$process/, ( 3, 4, 5 ) );
         push @looprow, $r;
-        $hilighted = -$hilighted;
+        $highlighted = -$highlighted;
     }
 
     foreach my $col (@loopcol) {

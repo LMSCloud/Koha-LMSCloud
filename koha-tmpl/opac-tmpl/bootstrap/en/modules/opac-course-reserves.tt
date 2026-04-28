@@ -21,7 +21,7 @@
 [% INCLUDE 'bodytag.inc' bodyid='opac-course-reserves' %]
 [% INCLUDE 'masthead.inc' %]
 
-<div class="main">
+<main class="main">
     [% WRAPPER breadcrumbs %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
             <span>Course reserves</span>
@@ -32,7 +32,7 @@
         <div class="row">
             <div class="col order-first order-md-first order-lg-2">
                 <div id="courses" class="maincontent">
-                    <h1>Courses reserves</h1>
+                    <h1>Course reserves</h1>
 
                     <table id="course_reserves_table" class="table table-bordered table-striped table-condensed">
                         <caption class="sr-only">Courses</caption>
@@ -45,7 +45,7 @@
                                 <th>[% tp('Semester', 'Term') | html %]</th>
                                 <th>Instructors</th>
                                 <th>Notes</th>
-                                <th></th>
+                                <th class="dtr-control-col"></th>
                             </tr>
                         </thead>
 
@@ -78,12 +78,11 @@
         <!-- / .row -->
     </div>
     <!-- / .container-fluid -->
-</div>
+</main>
 <!-- / .main -->
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
     [% INCLUDE 'datatables.inc' %]
-    [% INCLUDE 'columns_settings.inc' %]
     <script>
         $(document).ready(function() {
             table_settings = [% TablesSettings.GetTableSettings( 'opac', 'course_list', 'course_reserves_table', 'json' ) | $raw %]

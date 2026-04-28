@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 # *************************************************************
 #                       SAMPLE NOTICES
 # *************************************************************
@@ -2336,6 +2336,101 @@ tables:
           lang: default
           content:
             - "[% item.biblio.title %] [% checkout.date_due | $KohaDates %]"
+
+        - module: circulation
+          code: CLAIM_LEVEL1
+          branchcode: ""
+          name: "Overdue claim notice (level 1)"
+          is_html: 0
+          title: "First overdue claim notice"
+          message_transport_type: email
+          lang: default
+          content:
+            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - ""
+            - "The following items are overdue (claim level 1):"
+            - ""
+            - "<item>\"<<biblio.title>>\" <<items.barcode>> due <<issues.date_due>></item>"
+            - ""
+            - "Please return or renew them as soon as possible."
+            - ""
+            - "<<branches.branchname>>"
+
+        - module: circulation
+          code: CLAIM_LEVEL2
+          branchcode: ""
+          name: "Overdue claim notice (level 2)"
+          is_html: 0
+          title: "Second overdue claim notice"
+          message_transport_type: email
+          lang: default
+          content:
+            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - ""
+            - "Despite a previous reminder, the following items remain overdue (claim level 2):"
+            - ""
+            - "<item>\"<<biblio.title>>\" <<items.barcode>> due <<issues.date_due>></item>"
+            - ""
+            - "A claim fee applies. Please return or renew them without further delay."
+            - ""
+            - "<<branches.branchname>>"
+
+        - module: circulation
+          code: CLAIM_LEVEL3
+          branchcode: ""
+          name: "Overdue claim notice (level 3)"
+          is_html: 0
+          title: "Third overdue claim notice"
+          message_transport_type: email
+          lang: default
+          content:
+            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - ""
+            - "The following items are still overdue (claim level 3):"
+            - ""
+            - "<item>\"<<biblio.title>>\" <<items.barcode>> due <<issues.date_due>></item>"
+            - ""
+            - "An additional claim fee has been charged to your account."
+            - ""
+            - "<<branches.branchname>>"
+
+        - module: circulation
+          code: CLAIM_LEVEL4
+          branchcode: ""
+          name: "Overdue claim notice (level 4)"
+          is_html: 0
+          title: "Fourth overdue claim notice"
+          message_transport_type: email
+          lang: default
+          content:
+            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - ""
+            - "The following items remain overdue (claim level 4):"
+            - ""
+            - "<item>\"<<biblio.title>>\" <<items.barcode>> due <<issues.date_due>></item>"
+            - ""
+            - "This is a formal reminder. Further steps may follow if the items are not returned."
+            - ""
+            - "<<branches.branchname>>"
+
+        - module: circulation
+          code: CLAIM_LEVEL5
+          branchcode: ""
+          name: "Overdue claim notice (level 5)"
+          is_html: 0
+          title: "Final overdue claim notice"
+          message_transport_type: email
+          lang: default
+          content:
+            - "Dear <<borrowers.firstname>> <<borrowers.surname>>,"
+            - ""
+            - "Final notice: the following items are still not returned (claim level 5):"
+            - ""
+            - "<item>\"<<biblio.title>>\" <<items.barcode>> due <<issues.date_due>></item>"
+            - ""
+            - "The outstanding debt may be forwarded to a collection agency."
+            - ""
+            - "<<branches.branchname>>"
 
         - module: circulation
           code: AUTO_RENEWALS_DGST

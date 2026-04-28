@@ -1,17 +1,31 @@
-/* keep tidy */
+function _ifDocumentAvailable(callback) {
+    if (typeof document !== "undefined" && document.getElementById) {
+        callback();
+    }
+}
+
 class Dialog {
     constructor(options = {}) {}
 
+    _appendMessage(type, message) {
+        _ifDocumentAvailable(() => {
+            const messagesContainer = document.getElementById("messages");
+            if (!messagesContainer) {
+                return;
+            }
+
+            const htmlString =
+                `<div class="alert alert-${type}">%s</div>`.format(message);
+            messagesContainer.insertAdjacentHTML("beforeend", htmlString);
+        });
+    }
+
     setMessage(message) {
-        $("#messages").append(
-            '<div class="alert alert-info">%s</div>'.format(message)
-        );
+        this._appendMessage("info", message);
     }
 
     setError(error) {
-        $("#messages").append(
-            '<div class="alert alert-warning">%s</div>'.format(error)
-        );
+        this._appendMessage("warning", error);
     }
 }
 
@@ -23,7 +37,18 @@ class HttpClient {
             "Content-Type": "application/json;charset=utf-8",
             "X-Requested-With": "XMLHttpRequest",
         };
-        this.csrf_token = $('meta[name="csrf-token"]').attr("content");
+        this.csrf_token = this._getCsrfToken(options);
+    }
+
+    _getCsrfToken(options) {
+        let token = null;
+        _ifDocumentAvailable(() => {
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            if (metaTag) {
+                token = metaTag.getAttribute("content");
+            }
+        });
+        return token !== null ? token : options.csrfToken || null;
     }
 
     async _fetchJSON(
@@ -43,6 +68,11 @@ class HttpClient {
                 const is_json = response.headers
                     .get("content-type")
                     ?.includes("application/json");
+
+                if (return_response || !is_json) {
+                    return response;
+                }
+
                 if (!response.ok) {
                     return response.text().then(text => {
                         let message;
@@ -57,9 +87,6 @@ class HttpClient {
                         }
                         throw new Error(message);
                     });
-                }
-                if (return_response || !is_json) {
-                    return response;
                 }
                 return response.json();
             })
@@ -81,10 +108,16 @@ class HttpClient {
     }
 
     get(params = {}) {
-        return this._fetchJSON(params.endpoint, params.headers, {
-            ...params.options,
-            method: "GET",
-        });
+        return this._fetchJSON(
+            params.endpoint,
+            params.headers,
+            {
+                ...params.options,
+                method: "GET",
+            },
+            params.return_response ?? false,
+            params.mark_submitting ?? false
+        );
     }
 
     getAll(params = {}) {
@@ -96,10 +129,16 @@ class HttpClient {
                 ...(params.params && params.params),
                 ...(params.query && { q: JSON.stringify(params.query) }),
             });
-        return this._fetchJSON(url, params.headers, {
-            ...params.options,
-            method: "GET",
-        });
+        return this._fetchJSON(
+            url,
+            params.headers,
+            {
+                ...params.options,
+                method: "GET",
+            },
+            params.return_response ?? false,
+            params.mark_submitting ?? false
+        );
     }
 
     post(params = {}) {
@@ -118,8 +157,8 @@ class HttpClient {
                 body,
                 method: "POST",
             },
-            false,
-            true
+            params.return_response ?? false,
+            params.mark_submitting ?? true
         );
     }
 
@@ -139,8 +178,8 @@ class HttpClient {
                 body,
                 method: "PUT",
             },
-            false,
-            true
+            params.return_response ?? false,
+            params.mark_submitting ?? true
         );
     }
 
@@ -155,8 +194,8 @@ class HttpClient {
                 ...params.options,
                 method: "DELETE",
             },
-            true,
-            true
+            params.return_response ?? true,
+            params.mark_submitting ?? true
         );
     }
 }

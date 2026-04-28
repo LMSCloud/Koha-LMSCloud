@@ -15,23 +15,28 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 38;
+use Test::More tests => 46;
+use Test::NoWarnings;
 use Test::Exception;
 use Test::Warn;
 use Time::Fake;
 
+use Koha::ArticleRequests;
+use Koha::AuthUtils;
 use Koha::CirculationRules;
 use Koha::Database;
-use Koha::DateUtils qw(dt_from_string);
-use Koha::ArticleRequests;
-use Koha::Patrons;
+use Koha::DateUtils    qw(dt_from_string);
 use Koha::List::Patron qw(AddPatronList AddPatronsToList);
 use Koha::Notice::Templates;
+use Koha::Patron::Debarments qw(AddDebarment);
 use Koha::Patron::Relationships;
+use Koha::Patrons;
+
+use C4::Auth;
 use C4::Circulation qw( AddIssue AddReturn );
 
 use t::lib::TestBuilder;
@@ -39,6 +44,9 @@ use t::lib::Mocks;
 
 my $schema  = Koha::Database->new->schema;
 my $builder = t::lib::TestBuilder->new;
+
+# Disable LMS CashRegister to prevent branchcode FK issues in tests
+t::lib::Mocks::mock_preference( 'ActivateCashRegisterTransactionsOnly', 0 );
 
 subtest 'Accessor tests' => sub {
     plan tests => 9;
@@ -371,7 +379,7 @@ subtest 'is_active' => sub {
 
 subtest 'add_guarantor() tests' => sub {
 
-    plan tests => 6;
+    plan tests => 7;
 
     $schema->storage->txn_begin;
 
@@ -398,16 +406,16 @@ subtest 'add_guarantor() tests' => sub {
 
     is( $guarantors->count, 1, 'No guarantors added' );
 
-    {
-        local *STDERR;
-        open STDERR, '>', '/dev/null';
-        throws_ok {
-            $patron_1->add_guarantor( { guarantor_id => $patron_2->borrowernumber, relationship => 'father2' } );
-        }
-        'Koha::Exceptions::Patron::Relationship::DuplicateRelationship',
-            'Exception is thrown for duplicated relationship';
-        close STDERR;
-    }
+    warning_like(
+        sub {
+            throws_ok {
+                $patron_1->add_guarantor( { guarantor_id => $patron_2->borrowernumber, relationship => 'father2' } );
+            }
+            'Koha::Exceptions::Patron::Relationship::DuplicateRelationship',
+                'Exception is thrown for duplicated relationship';
+        },
+        qr{Duplicate entry.* for key '(borrower_relationships\.)?guarantor_guarantee_idx'}
+    );
 
     $schema->storage->txn_rollback;
 };
@@ -1796,7 +1804,7 @@ subtest 'force_password_reset_when_set_by_staff tests' => sub {
     $patron->delete()->store()->discard_changes();
     is(
         $patron->password_expired, 0,
-        "Patron forced into changing password but patron is self registered, password not expired."
+        "Patron forced into changing password but patron is self-registered, password not expired."
     );
 
     $schema->storage->txn_rollback;
@@ -2619,93 +2627,78 @@ subtest 'get_lists_with_patron() tests' => sub {
     $schema->storage->txn_rollback;
 };
 
-subtest 'guarantor requirements tests' => sub {
+subtest 'can_be_guaranteed_by() tests' => sub {
 
-    plan tests => 6;
+    plan tests => 5;
 
     $schema->storage->txn_begin;
 
     my $branchcode = $builder->build( { source => 'Branch' } )->{branchcode};
-    my $child_category =
-        $builder->build( { source => 'Category', value => { category_type => 'C', can_be_guarantee => 1 } } )
-        ->{categorycode};
-    my $patron_category =
-        $builder->build( { source => 'Category', value => { category_type => 'A', can_be_guarantee => 0 } } )
-        ->{categorycode};
-
-    t::lib::Mocks::mock_preference( 'ChildNeedsGuarantor', 0 );
+    my $guarantee_category =
+        $builder->build(
+        { source => 'Category', value => { categorycode => "GUARANTEE", category_type => 'C', can_be_guarantee => 1 } }
+        );
+    my $guarantor_category =
+        $builder->build(
+        { source => 'Category', value => { categorycode => "GUARANTOR", category_type => 'A', can_be_guarantee => 0 } }
+        );
 
     my $child = Koha::Patron->new(
         {
             branchcode   => $branchcode,
-            categorycode => $child_category,
+            categorycode => $guarantee_category->{categorycode},
             contactname  => ''
         }
     );
-    $child->store();
-
-    ok(
-        Koha::Patrons->find( $child->id ),
-        'Child patron can be stored without guarantor when ChildNeedsGuarantor is off.'
-    );
-
-    t::lib::Mocks::mock_preference( 'ChildNeedsGuarantor', 1 );
-
-    my $child2 = Koha::Patron->new(
-        {
-            branchcode   => $branchcode,
-            categorycode => $child_category,
-            contactname  => ''
-        }
-    );
-    my $child3 = $builder->build_object(
+    my $child2 = $builder->build_object(
         {
             class => 'Koha::Patrons',
-            value => { categorycode => $child_category }
+            value => { categorycode => $guarantee_category->{categorycode} }
         }
     );
     my $patron = $builder->build_object(
         {
             class => 'Koha::Patrons',
-            value => { categorycode => $patron_category }
+            value => { categorycode => $guarantor_category->{categorycode} }
+        }
+    );
+    my $patron2 = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { categorycode => $guarantor_category->{categorycode} }
         }
     );
 
-    throws_ok { $child2->store(); }
+    my @guarantors;
+    my $contactname = "";
+    my $category    = Koha::Patron::Categories->find( $guarantee_category->{categorycode} );
+
+    t::lib::Mocks::mock_preference( 'ChildNeedsGuarantor', 0 );
+
+    lives_ok { $child->can_be_guaranteed_by( \@guarantors ); }
+    'Validation passes when ChildNeedsGuarantor syspref is disabled';
+
+    t::lib::Mocks::mock_preference( 'ChildNeedsGuarantor', 1 );
+
+    throws_ok { $child->can_be_guaranteed_by( \@guarantors ); }
     'Koha::Exceptions::Patron::Relationship::NoGuarantor',
         'Exception thrown when guarantor is required but not provided.';
 
-    my @guarantors = ( $patron, $child3 );
-    throws_ok { $child2->store( { guarantors => \@guarantors } ); }
+    @guarantors = ( $patron, $child2 );
+    throws_ok { $child->can_be_guaranteed_by( \@guarantors ); }
     'Koha::Exceptions::Patron::Relationship::InvalidRelationship',
         'Exception thrown when child patron is added as guarantor.';
 
-    #test ModMember
-    @guarantors = ($patron);
-    $child2->store( { guarantors => \@guarantors } )->discard_changes();
-
-    t::lib::Mocks::mock_preference( 'borrowerRelationship', '' );
-
-    my $relationship = Koha::Patron::Relationship->new(
-        {
-            guarantor_id => $patron->borrowernumber,
-            guarantee_id => $child2->borrowernumber,
-            relationship => ''
-        }
-    );
-    $relationship->store();
-
-    ok( $child2->store(), 'Child patron can be modified and stored when guarantor is stored' );
-
-    @guarantors = ($child3);
-    throws_ok { $child2->store( { guarantors => \@guarantors } ); }
+    t::lib::Mocks::mock_preference( 'borrowerRelationship', 'parent' );
+    $child2->add_guarantor( { guarantor_id => $patron->id, relationship => 'parent' } );
+    @guarantors = ($patron2);
+    throws_ok { $patron->can_be_guaranteed_by( \@guarantors ); }
     'Koha::Exceptions::Patron::Relationship::InvalidRelationship',
-        'Exception thrown when child patron is modified and child patron is added as guarantor.';
+        'Exception thrown when trying to add a guarantor to a guarantor.';
 
-    $relationship->delete;
-    throws_ok { $child2->store(); }
-    'Koha::Exceptions::Patron::Relationship::NoGuarantor',
-        'Exception thrown when guarantor is deleted.';
+    @guarantors = ($patron);
+    lives_ok { $child->can_be_guaranteed_by( \@guarantors ); }
+    'Validation passes when valid guarantors are passed in array';
 
     $schema->storage->txn_rollback;
 };
@@ -2947,6 +2940,131 @@ subtest 'is_patron_inside_charge_limits() tests' => sub {
     $schema->storage->txn_rollback;
 };
 
+subtest 'is_patron_inside_charge_limits - edge cases for empty string and zero' => sub {
+    plan tests => 14;
+
+    $schema->storage->txn_begin;
+
+    my $patron_category = $builder->build(
+        {
+            source => 'Category',
+            value  => {
+                categorycode                           => 'TEST_CAT',
+                category_type                          => 'P',
+                enrolmentfee                           => 0,
+                noissuescharge                         => undef,
+                noissueschargeguarantees               => undef,
+                noissueschargeguarantorswithguarantees => undef
+            }
+        }
+    );
+
+    my $patron = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { categorycode => $patron_category->{categorycode} }
+        }
+    );
+
+    my $child = $builder->build_object( { class => 'Koha::Patrons' } );
+    $child->add_guarantor( { guarantor_id => $patron->borrowernumber, relationship => 'parent' } );
+
+    # Add some charges to the child
+    my $fee = $builder->build_object(
+        {
+            class => 'Koha::Account::Lines',
+            value => {
+                borrowernumber    => $child->borrowernumber,
+                amountoutstanding => 5.50,
+                debit_type_code   => 'OVERDUE',
+            }
+        }
+    )->store;
+
+    # Test 1: Empty string values should be treated as "not set"
+    # Empty string is the default value in sysprefs for these preferences
+    t::lib::Mocks::mock_preference( 'NoIssuesChargeGuarantees',               '' );
+    t::lib::Mocks::mock_preference( 'NoIssuesChargeGuarantorsWithGuarantees', '' );
+
+    my $patron_borrowing_status = $patron->is_patron_inside_charge_limits();
+
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantees}->{limit}, '',
+        "Empty string limit is preserved in return value"
+    );
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantees}->{charge}, 0,
+        "Charges should be 0 when limit is empty string (calculation skipped)"
+    );
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantees}->{overlimit}, 0,
+        "Patron should not be overlimit when preference is empty string"
+    );
+
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{limit}, '',
+        "Empty string limit is preserved for guarantors preference"
+    );
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{charge}, 0,
+        "Guarantors charges should be 0 when limit is empty string (calculation skipped)"
+    );
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{overlimit}, 0,
+        "Patron should not be overlimit when guarantors preference is empty string"
+    );
+
+    # Test 2: Zero values should trigger calculation but not block
+    t::lib::Mocks::mock_preference( 'NoIssuesChargeGuarantees',               0 );
+    t::lib::Mocks::mock_preference( 'NoIssuesChargeGuarantorsWithGuarantees', 0 );
+
+    $patron_borrowing_status = $patron->is_patron_inside_charge_limits();
+
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantees}->{limit}, 0,
+        "Zero limit is preserved in return value"
+    );
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantees}->{charge}, 5.50,
+        "Charges should be calculated when limit is 0 (valid number)"
+    );
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantees}->{overlimit}, 0,
+        "Patron should not be overlimit when limit is 0 (0 means no blocking)"
+    );
+
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{limit}, 0,
+        "Zero limit is preserved for guarantors preference"
+    );
+
+    # Note: This will be 5.50 because the child is included in guarantor debt calculation
+    ok(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{charge} > 0,
+        "Guarantors charges should be calculated when limit is 0 (valid number)"
+    );
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantorsWithGuarantees}->{overlimit}, 0,
+        "Patron should not be overlimit when guarantors limit is 0 (0 means no blocking)"
+    );
+
+    # Test 3: Verify that a small positive number triggers calculation and can block
+    t::lib::Mocks::mock_preference( 'NoIssuesChargeGuarantees', 5.00 );
+
+    $patron_borrowing_status = $patron->is_patron_inside_charge_limits();
+
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantees}->{charge}, 5.50,
+        "Charges are calculated with positive limit"
+    );
+    is(
+        $patron_borrowing_status->{NoIssuesChargeGuarantees}->{overlimit}, 1,
+        "Patron is correctly marked overlimit when charges exceed limit"
+    );
+
+    $schema->storage->txn_rollback;
+};
+
 subtest 'Scrub the note fields' => sub {
     plan tests => 4;
 
@@ -3035,4 +3153,415 @@ subtest 'preferred_name' => sub {
     $patron->preferred_name("Preferred again")->store();
     is( $patron->preferred_name, "Preferred again", "Preferred name set on update when passed" );
 
+};
+
+subtest 'ill_requests() tests' => sub {
+
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    my $reqs_rs = $patron->ill_requests();
+    is( ref($reqs_rs),   'Koha::ILL::Requests', 'Returned object type is correct' );
+    is( $reqs_rs->count, 0,                     'No linked ILL requests for the patron' );
+
+    # add two requests
+    $builder->build_object( { class => 'Koha::ILL::Requests', value => { borrowernumber => $patron->id } } );
+    $builder->build_object( { class => 'Koha::ILL::Requests', value => { borrowernumber => $patron->id } } );
+
+    $reqs_rs = $patron->ill_requests();
+    is( $reqs_rs->count, 2, 'Two linked ILL requests for the patron' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'can_place_holds() tests' => sub {
+
+    plan tests => 7;
+
+    subtest "'expired' tests" => sub {
+
+        plan tests => 4;
+
+        $schema->storage->txn_begin;
+
+        t::lib::Mocks::mock_preference( 'BlockExpiredPatronOpacActions', 'hold' );
+
+        my $patron = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => { dateexpiry => \'DATE_ADD(NOW(), INTERVAL -1 DAY)' }
+            }
+        );
+
+        my $result = $patron->can_place_holds();
+        ok( !$result, 'expired, cannot place holds' );
+
+        my $messages = $result->messages();
+        is( $messages->[0]->type,    'error' );
+        is( $messages->[0]->message, 'expired' );
+
+        ok( $patron->can_place_holds( { overrides => { expired => 1 } } ), "Override works for 'expired'" );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest "'debt_limit' tests" => sub {
+
+        plan tests => 7;
+
+        $schema->storage->txn_begin;
+
+        # Add a patron, making sure it is not (yet) expired
+        my $patron = $builder->build_object( { class => 'Koha::Patrons', } );
+        $patron->account->add_debit( { amount => 10, interface => 'opac', type => 'ACCOUNT' } );
+
+        t::lib::Mocks::mock_preference( 'maxoutstanding', undef );
+
+        ok( $patron->can_place_holds(), "No 'maxoutstanding', can place holds" );
+
+        t::lib::Mocks::mock_preference( 'maxoutstanding', '5' );
+
+        my $result = $patron->can_place_holds();
+        ok( !$result, 'debt, cannot place holds' );
+
+        my $messages = $result->messages();
+        is( $messages->[0]->type,                         'error' );
+        is( $messages->[0]->message,                      'debt_limit' );
+        is( $messages->[0]->payload->{total_outstanding}, 10 );
+        is( $messages->[0]->payload->{max_outstanding},   5 );
+
+        ok( $patron->can_place_holds( { overrides => { debt_limit => 1 } } ), "Override works for 'debt_limit'" );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest "'bad_address' tests" => sub {
+
+        plan tests => 4;
+
+        $schema->storage->txn_begin;
+
+        # Add a patron, making sure it is not (yet) expired
+        my $patron = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => {
+                    gonenoaddress => 1,
+                }
+            }
+        );
+
+        my $result = $patron->can_place_holds();
+        ok( !$result, 'flagged for bad address, cannot place holds' );
+
+        my $messages = $result->messages();
+        is( $messages->[0]->type,    'error' );
+        is( $messages->[0]->message, 'bad_address' );
+
+        ok( $patron->can_place_holds( { overrides => { bad_address => 1 } } ), "Override works for 'bad_address'" );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest "'card_lost' tests" => sub {
+
+        plan tests => 4;
+
+        $schema->storage->txn_begin;
+
+        # Add a patron, making sure it is not (yet) expired
+        my $patron = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => {
+                    lost => 1,
+                }
+            }
+        );
+
+        my $result = $patron->can_place_holds();
+        ok( !$result, 'flagged for lost card, cannot place holds' );
+
+        my $messages = $result->messages();
+        is( $messages->[0]->type,    'error' );
+        is( $messages->[0]->message, 'card_lost' );
+
+        ok( $patron->can_place_holds( { overrides => { card_lost => 1 } } ), "Override works for 'card_lost'" );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest "'restricted' tests" => sub {
+
+        plan tests => 4;
+
+        $schema->storage->txn_begin;
+
+        # Add a patron, making sure it is not (yet) expired
+        my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+        AddDebarment( { borrowernumber => $patron->borrowernumber } );
+        $patron->discard_changes();
+
+        my $result = $patron->can_place_holds();
+        ok( !$result, 'restricted, cannot place holds' );
+
+        my $messages = $result->messages();
+        is( $messages->[0]->type,    'error' );
+        is( $messages->[0]->message, 'restricted' );
+
+        ok( $patron->can_place_holds( { overrides => { restricted => 1 } } ), "Override works for 'restricted'" );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest "'hold_limit' tests" => sub {
+
+        plan tests => 5;
+
+        $schema->storage->txn_begin;
+
+        # Add a patron, making sure it is not (yet) expired
+        my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+        # Add a hold
+        $builder->build_object( { class => 'Koha::Holds', value => { borrowernumber => $patron->borrowernumber } } );
+
+        t::lib::Mocks::mock_preference( 'maxreserves', undef );
+
+        ok( $patron->can_place_holds(), "No 'maxreserves', can place holds" );
+
+        t::lib::Mocks::mock_preference( 'maxreserves', 1 );
+
+        my $result = $patron->can_place_holds();
+        ok( !$result, 'hold limit reached, cannot place holds' );
+
+        my $messages = $result->messages();
+        is( $messages->[0]->type,    'error' );
+        is( $messages->[0]->message, 'hold_limit' );
+
+        ok( $patron->can_place_holds( { overrides => { hold_limit => 1 } } ), "Override works for 'hold_limit'" );
+
+        $schema->storage->txn_rollback;
+    };
+
+    subtest "'no_short_circuit' tests" => sub {
+
+        plan tests => 9;
+
+        $schema->storage->txn_begin;
+
+        # Create a patron with multiple issues
+        my $patron = $builder->build_object(
+            {
+                class => 'Koha::Patrons',
+                value => {
+                    dateexpiry    => \'DATE_ADD(NOW(), INTERVAL -1 DAY)',    # expired
+                    gonenoaddress => 1,                                      # bad address
+                    lost          => 1,                                      # card lost
+                }
+            }
+        );
+
+        # Add debt
+        $patron->account->add_debit( { amount => 10, interface => 'opac', type => 'ACCOUNT' } );
+
+        # Add restriction
+        AddDebarment( { borrowernumber => $patron->borrowernumber } );
+        $patron->discard_changes();
+
+        # Mock preferences
+        t::lib::Mocks::mock_preference( 'BlockExpiredPatronOpacActions', 'hold' );
+        t::lib::Mocks::mock_preference( 'maxoutstanding',                '5' );
+
+        # Test short-circuit behavior (default)
+        my $result = $patron->can_place_holds();
+        ok( !$result, 'patron cannot place holds' );
+        my $messages = $result->messages();
+        is( scalar @$messages, 1, 'short-circuit: only one error message returned' );
+
+        # Test no_short_circuit behavior
+        $result = $patron->can_place_holds( { no_short_circuit => 1 } );
+        ok( !$result, 'patron still cannot place holds with no_short_circuit' );
+        $messages = $result->messages();
+        is( scalar @$messages, 5, 'no_short_circuit: all error messages collected' );
+
+        # Verify we got all expected error types
+        my %message_types = map { $_->message => 1 } @$messages;
+        ok( $message_types{expired},     "'expired' error included" );
+        ok( $message_types{debt_limit},  "'debt_limit' error included" );
+        ok( $message_types{bad_address}, "'bad_address' error included" );
+        ok( $message_types{card_lost},   "'card_lost' error included" );
+        ok( $message_types{restricted},  "'restricted' error included" );
+
+        $schema->storage->txn_rollback;
+    };
+};
+
+subtest 'is_anonymous' => sub {
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    t::lib::Mocks::mock_preference( 'AnonymousPatron', '' );
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    is( $patron->is_anonymous, 0, 'is_anonymous returns 0 if pref is empty' );
+
+    t::lib::Mocks::mock_preference( 'AnonymousPatron', $patron->borrowernumber );
+
+    is( $patron->is_anonymous, 1, q{is_anonymous returns 1 if pref is equal to patron's id} );
+
+    t::lib::Mocks::mock_preference( 'AnonymousPatron', $patron->borrowernumber + 1 );
+
+    is( $patron->is_anonymous, 0, q{is_anonymous returns 0 if pref is not equal to patron's id} );
+
+    $schema->storage->txn_rollback;
+
+};
+
+subtest 'has_2fa_enabled() tests' => sub {
+    plan tests => 3;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    # Test patron without 2FA
+    is( $patron->has_2fa_enabled, 0, 'has_2fa_enabled returns 0 when no secret is set' );
+
+    # Test patron with empty secret
+    $patron->secret('')->store;
+    is( $patron->has_2fa_enabled, 0, 'has_2fa_enabled returns 0 when secret is empty string' );
+
+    # Test patron with 2FA enabled
+    $patron->secret('some_secret_value')->store;
+    is( $patron->has_2fa_enabled, 1, 'has_2fa_enabled returns 1 when secret is set' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'reset_2fa() tests' => sub {
+    plan tests => 6;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+
+    # Set up patron with 2FA enabled
+    $patron->set(
+        {
+            secret      => 'test_secret_123',
+            auth_method => 'two-factor',
+        }
+    )->store;
+
+    # Verify 2FA is enabled
+    is( $patron->has_2fa_enabled, 1,            '2FA is enabled before reset' );
+    is( $patron->auth_method,     'two-factor', 'auth_method is two-factor before reset' );
+
+    # Test reset_2fa method
+    my $result = $patron->reset_2fa;
+
+    # Verify method returns patron object for chaining
+    isa_ok( $result, 'Koha::Patron', 'reset_2fa returns Koha::Patron object' );
+    is( $result->borrowernumber, $patron->borrowernumber, 'returned object is the same patron' );
+
+    # Verify 2FA has been reset
+    $patron->discard_changes;
+    is( $patron->has_2fa_enabled, 0,          '2FA is disabled after reset' );
+    is( $patron->auth_method,     'password', 'auth_method is password after reset' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest "create_hold_group, hold_groups, visual_hold_group_id tests" => sub {
+
+    plan tests => 13;
+
+    $schema->storage->txn_begin;
+
+    my $patron = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $hold1  = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => { hold_group_id => undef, found => undef, borrowernumber => $patron->borrowernumber }
+        }
+    );
+    my $hold2 = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => { hold_group_id => undef, found => undef, borrowernumber => $patron->borrowernumber }
+        }
+    );
+    my $hold3 = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => { hold_group_id => undef, found => undef, borrowernumber => $patron->borrowernumber }
+        }
+    );
+
+    my $hold4 = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => { hold_group_id => undef, found => undef, borrowernumber => $patron->borrowernumber }
+        }
+    );
+    my $hold5 = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => { hold_group_id => undef, found => undef, borrowernumber => $patron->borrowernumber }
+        }
+    );
+
+    my $hold6 = $builder->build_object(
+        {
+            class => 'Koha::Holds',
+            value => { hold_group_id => undef, found => undef, borrowernumber => $patron->borrowernumber }
+        }
+    );
+
+    my $patron_hold_groups = $patron->hold_groups;
+    is( $patron_hold_groups->count, 0, 'Patron does not have any hold groups' );
+
+    # Create 1st hold group
+    $patron->create_hold_group( [ $hold1->reserve_id, $hold2->reserve_id, $hold3->reserve_id ] );
+    is( $patron_hold_groups->count, 1, 'Patron has one hold group' );
+
+    my $hold_group = $patron->hold_groups->as_list->[0];
+    is( $hold_group->visual_hold_group_id, 1,                                       'Visual hold group id is 1' );
+    is( $hold_group->hold_group_id,        $hold1->get_from_storage->hold_group_id, 'hold1 added to hold_group' );
+    is( $hold_group->hold_group_id,        $hold2->get_from_storage->hold_group_id, 'hold2 added to hold_group' );
+    is( $hold_group->hold_group_id,        $hold3->get_from_storage->hold_group_id, 'hold3 added to hold_group' );
+
+    # Create 2nd hold group
+    $patron->create_hold_group( [ $hold4->reserve_id, $hold5->reserve_id ] );
+    is( $patron_hold_groups->count, 2, 'Patron has two hold groups' );
+
+    my $second_hold_group = $patron->hold_groups->as_list->[1];
+    is( $second_hold_group->visual_hold_group_id, 2, 'Visual hold group id is 2' );
+    is(
+        $second_hold_group->hold_group_id, $hold4->get_from_storage->hold_group_id,
+        'hold4 added to second hold_group'
+    );
+    is(
+        $second_hold_group->hold_group_id, $hold5->get_from_storage->hold_group_id,
+        'hold5 added to second hold_group'
+    );
+
+    $hold3->get_from_storage->fill();
+    is( $patron->get_from_storage->hold_groups->count, 1, 'Patron only has one hold group again' );
+
+    $hold4->get_from_storage->cancel();
+    is( $patron->get_from_storage->hold_groups->count, 0, 'Patron does not have any hold groups again' );
+
+    # Create 3rd hold group
+    $patron->create_hold_group( [ $hold5->reserve_id, $hold6->reserve_id ] );
+    my $third_hold_group = $patron->hold_groups->as_list->[0];
+    is( $third_hold_group->visual_hold_group_id, 1, 'Visual hold group id is 1' );
+
+    $schema->storage->txn_rollback;
 };

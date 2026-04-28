@@ -15,7 +15,7 @@ package C4::Linker::Default;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -23,6 +23,16 @@ use MARC::Field;
 use C4::Heading;
 
 use base qw(C4::Linker);
+
+=head1 Functions
+
+=cut
+
+=head2 get_link
+
+Missing POD for get_link.
+
+=cut
 
 sub get_link {
     my $self        = shift;
@@ -82,6 +92,12 @@ sub get_link {
     return $self->SUPER::_handle_auth_limit($authid), $fuzzy, $match_count;
 }
 
+=head2 update_cache
+
+Missing POD for update_cache.
+
+=cut
+
 sub update_cache {
     my $self        = shift;
     my $heading     = shift;
@@ -96,6 +112,12 @@ sub update_cache {
     $self->{'cache'}->{ $search_form . $auth_type . $thesaurus }->{'authid'} = $authid;
     $self->{'cache'}->{ $search_form . $auth_type . $thesaurus }->{'fuzzy'}  = $fuzzy;
 }
+
+=head2 flip_heading
+
+Missing POD for flip_heading.
+
+=cut
 
 sub flip_heading {
     my $self    = shift;

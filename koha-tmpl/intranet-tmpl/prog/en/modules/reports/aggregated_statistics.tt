@@ -4,9 +4,13 @@
 [% USE Asset %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Koha &rsaquo; Reports &rsaquo; Aggregated statistics[% IF ( add_form or copy_form ) %][% IF ( modify ) %] &rsaquo; Modify aggregated statistics[% ELSE %] &rsaquo; Add aggregated statistics[% END %][% END %][% IF ( add_validate or copy_validate) %] &rsaquo; Aggregated statistics added[% END %][% IF ( delete_confirm ) %] &rsaquo; Confirm deletion[% END %]</title>
+<title
+    >Koha &rsaquo; Reports &rsaquo; Aggregated
+    statistics[% IF ( add_form or copy_form ) %][% IF ( modify ) %]&rsaquo; Modify aggregated statistics[% ELSE %]&rsaquo; Add aggregated statistics[% END %][% END %][% IF ( add_validate or copy_validate) %]
+        &rsaquo; Aggregated statistics added
+    [% END %][% IF ( delete_confirm ) %]&rsaquo; Confirm deletion[% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'greybox.inc' %]
 [% Asset.css("css/datatables.css") | $raw %]
 </head>
 
@@ -34,7 +38,7 @@
                 [% END %]
             [% END %]
         [% ELSE %]
-            [% IF ( delete_confirm ) %] 
+            [% IF ( delete_confirm ) %]
                 [% WRAPPER breadcrumb_item bc_active= 1 %]
                     <span>Confirm deletion</span>
                 [% END %]
@@ -47,219 +51,219 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
+[% WRAPPER 'main-container.inc' aside='reports-menu' %]
+    [% IF ( no_op_set ) %]
+        <h1>Aggregated statistics</h1>
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% IF ( no_op_set ) %]
-                    <h1>Aggregated statistics</h1>
-                    <form id="selectstatisticstype" method="get" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
-                        <p>
-                            Select a statistics type:
-                            <select name="statisticstype" id="astype" style="width:20em;">
+        <form id="selectstatisticstype" method="get" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
+            <fieldset class="rows">
+                <ol>
+                    <li>
+                        <label for="astype">Select a statistics type:</label>
+                        <select name="statisticstype" id="astype" style="width:20em;">
                             [% FOREACH statisticstypeloo IN statisticstypeloop %]
-                                [% IF ( statisticstypeloo.selected ) %][% selected_statisticstype_value = statisticstypeloo.type %]<option value="[% statisticstypeloo.type | html %]" selected="selected">[% statisticstypeloo.designation | html %]</option>[% ELSE %]<option value="[% statisticstypeloo.type | html %]">[% statisticstypeloo.designation | html %]</option>[% END %]
+                                [% IF ( statisticstypeloo.selected ) %]
+                                    [% selected_statisticstype_value = statisticstypeloo.type %]<option value="[% statisticstypeloo.type | html %]" selected="selected">[% statisticstypeloo.designation | html %]</option>
+                                [% ELSE %]
+                                    <option value="[% statisticstypeloo.type | html %]">[% statisticstypeloo.designation | html %]</option>
+                                [% END %]
                             [% END %]
-                            </select>
-                        </p>
-                        <div id="toolbar" class="btn-toolbar">
-                            <input type="hidden" id="op" name="op" value="add_form" >
-                            <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value | html %]" />
-                            <button type="submit" class="btn btn-default btn-xs" id="newaggregatedstatistics"><i class="fa fa-plus"></i> New statistics for [% selected_statisticstype_value | html %]</button>
-                        </div>
-                    </form>
+                        </select>
+                    </li>
+                </ol>
+            </fieldset>
+            <div id="toolbar" class="btn-toolbar">
+                <input type="hidden" id="op" name="op" value="add_form" />
+                <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value | html %]" />
+                <button type="submit" class="btn btn-primary" id="newaggregatedstatistics"><i class="fa fa-plus"></i> New statistics for [% selected_statisticstype_value | html %]</button>
+            </div>
+        </form>
 
-                    <h2>Available aggregated statistics</h4>
+        <div class="page-section">
+            <h2>Available aggregated statistics</h2>
 
-                    [% IF hits %]
-                        <table id="hitstable">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Description</th>
-                                    <th class="title-string" >From</th>
-                                    <th class="title-string" >To</th>
-                                    <th class="nosort">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            [% FOREACH hit IN hits %]
-                                <tr>
-                                    <td>[% hit.name | html %]</td>
-                                    <td>[% hit.description | html %]</td>
-                                    <td><span title="[% hit.startdate | html %]">[% hit.startdate | $KohaDates %]</span></td>
-                                    <td><span title="[% hit.enddate | html %]">[% hit.enddate | $KohaDates %]</span></td>
-
-                                    <td class="actions">
-                                        <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
-                                            [% INCLUDE 'csrf-token.inc' %]
-                                            <input type="hidden" name="op" value="cud-copy_form" />
-                                            <input type="hidden" name="statisticstype" value="[% hit.type | html %]" />
-                                            <input type="hidden" name="name" value="[% hit.name | html %]" />
-                                            <input type="hidden" name="description" value="[% hit.description | html %]" />
-                                            <input type="hidden" name="startdate" value="[% hit.startdate | html %]" />
-                                            <input type="hidden" name="enddate" value="[% hit.enddate | html %]" />
-                                            <button class="btn btn-default btn-xs"><i class="fa fa-clone"></i> Copy</button>
-                                        </form>
-
-                                        <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
-                                            [% INCLUDE 'csrf-token.inc' %]
-                                            <input type="hidden" name="op" value="cud-add_form" />
-                                            <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value | html %]" />
-                                            <input type="hidden" name="name" value="[% hit.name | html %]" />
-                                            <input type="hidden" name="description" value="[% hit.description | html %]" />
-                                            <input type="hidden" name="startdate" value="[% hit.startdate | html %]" />
-                                            <input type="hidden" name="enddate" value="[% hit.enddate | html %]" />
-                                            <button class="btn btn-default btn-xs"><i class="fa fa-gears"></i> Parameters</button>
-                                        </form>
-
-                                        <a class="btn btn-default btn-xs" href="/cgi-bin/koha/reports/aggregated_statistics.pl?op=delete_confirm&amp;statisticstype=[% hit.type | uri %]&amp;name=[% hit.name | uri %]"><i class="fa fa-trash"></i> Delete</a>
-
-                                        <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
-                                            [% INCLUDE 'csrf-token.inc' %]
-                                            <input type="hidden" name="op" value="cud-eval_form" />
-                                            <input type="hidden" name="id" value="[% hit.id | html %]" />
-                                            <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value | html %]" />
-                                            <input type="hidden" name="name" value="[% hit.name | html %]" />
-                                            <input type="hidden" name="description" value="[% hit.description | html %]" />
-                                            <input type="hidden" name="startdate" value="[% hit.startdate | html %]" />
-                                            <input type="hidden" name="enddate" value="[% hit.enddate | html %]" />
-                                            <button class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            [% END %]
-                            </tbody>
-                        </table>
-                    [% ELSE %]
-                        <div class="dialog message">
-                            [% IF ( statisticstype ) %]
-                                <p>There are no aggregated statistics of this type.</p>
-                            [% ELSE %]
-                                <p>There were no aggregated statistics created.</p>
-                            [% END %]
-                        </div>
-                    [% END %]
-                [% END %]
-
-                [% IF add_form or copy_form %]
-                    <h1>[% IF ( modify ) %]Modify aggregated statistics for [% statisticstype | html %][% ELSE %]Add aggregated statistics for [% statisticstype | html %][% END %]</h1>
-                    <form id="add_aggregated_statistics" name="Aform" method="post" enctype="multipart/form-data" class="validate">
-                        [% INCLUDE 'csrf-token.inc' %]
-                        [% IF add_form %]
-                            <input type="hidden" name="op" id="op" value="cud-add_validate" />
-                        [% ELSE %]
-                            <input type="hidden" name="op" id="op" value="cud-copy_validate" />
-                        [% END %]
-
-                        <input type="hidden" name="checked" value="0" />
-                        [% IF ( modify ) %]
-                            <input type="hidden" name="add" value="0" />
-                        [% ELSE %]
-                            <input type="hidden" name="add" value="1" />
-                        [% END %]
-
-                        <fieldset class="rows">
-                            <legend>Standard parameters</legend>
-                            <input type="hidden" name="id" value="[% id | html %]" />
-                            <ol>
-                                <li>
-                                    <span class="label">Statistics type:</span>
-                                    <input type="hidden" id="astype" name="statisticstype" value="[% statisticstype | html %]" />
-                                    [% statisticstypedesignation | html %]
-                                </li>
-                                <li>
-                                    <label for="name" class="required">Name:</label>
-                                    [% IF adding OR copying %]
-                                        <input type="text" id="name" name="name" size="30" maxlength="250" value="" required="required"/>
-                                    [% ELSE %]
-                                        <input type="text" id="name" name="name" size="30" maxlength="250" value="[% name | html %]" required="required"/>
-                                    [% END %]
-                                    <span class="required">Required</span>
-                                </li>
-                                <li>
-                                    <label for="description" class="required">Description:</label>
-                                    <input type="text" id="description" name="description" size="70" maxlength="255" value="[% description | html %]" required="required" />
-                                    <span class="required">Required</span>
-                                </li>
-                                <li>
-                                    <label for="startdate" class="required">From:</label>
-                                    <input type="text"  class="flatpickr" id="startdate" name="startdate" size="10" maxlength="10" value="[% startdate | $KohaDates %]" required="required" />
-                                        <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
-                                    <span class="required">Required</span>
-                                </li>
-                                <li>
-                                    <label for="enddate" class="required">To:</label>
-                                    <input type="text" class="flatpickr" id="enddate" name="enddate" size="10" maxlength="10" value="[% enddate | html %]" required="required" />
-                                        <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
-                                    <span class="required">Required</span>
-                                </li>
-                            </ol>
-                        </fieldset>
-
-                        [% IF ( statisticstype == 'DBS' ) %]
-                        [% PROCESS 'aggregated-statistics-parameters-DBS.inc' %]
-                        [% END %]
-                        
-                        [% IF ( statisticstype == 'VGWort' ) %]
-                        [% PROCESS 'aggregated-statistics-parameters-VGWort.inc' %]
-                        [% END %]
-
-                        <fieldset class="action">
-                            <input type="submit" id="submit_form" value="Submit" class="button" /> 
-                            <a class="cancel" href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=[% statisticstype | uri %]">Cancel</a>
-                        </fieldset>
-                        <input type="hidden" name="searchfield" value="[% searchfield | html %]" />
-                    </form>
-                [% END %]
-
-
-                [% IF ( delete_confirm ) %]
-                    <div class="dialog alert">
-                        <h3>Delete aggregated statistics?</h3>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Description</th>
-                                    <th>From</th>
-                                    <th>To</th>
-                                </tr>
-                            </thead>
+            [% IF hits %]
+                <table id="hitstable">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th class="title-string">From</th>
+                            <th class="title-string">To</th>
+                            <th class="nosort">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        [% FOREACH hit IN hits %]
                             <tr>
                                 <td>[% hit.name | html %]</td>
                                 <td>[% hit.description | html %]</td>
-                                <td>[% hit.startdate | html %]</td>
-                                <td>[% hit.enddate | html %]</td>
+                                <td><span title="[% hit.startdate | html %]">[% hit.startdate | $KohaDates %]</span></td>
+                                <td><span title="[% hit.enddate | html %]">[% hit.enddate | $KohaDates %]</span></td>
+
+                                <td class="actions">
+                                    <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
+                                        [% INCLUDE 'csrf-token.inc' %]
+                                        <input type="hidden" name="op" value="cud-copy_form" />
+                                        <input type="hidden" name="statisticstype" value="[% hit.type | html %]" />
+                                        <input type="hidden" name="name" value="[% hit.name | html %]" />
+                                        <input type="hidden" name="description" value="[% hit.description | html %]" />
+                                        <input type="hidden" name="startdate" value="[% hit.startdate | html %]" />
+                                        <input type="hidden" name="enddate" value="[% hit.enddate | html %]" />
+                                        <button class="btn btn-default btn-xs"><i class="fa fa-clone"></i> Copy</button>
+                                    </form>
+
+                                    <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
+                                        [% INCLUDE 'csrf-token.inc' %]
+                                        <input type="hidden" name="op" value="cud-add_form" />
+                                        <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value | html %]" />
+                                        <input type="hidden" name="name" value="[% hit.name | html %]" />
+                                        <input type="hidden" name="description" value="[% hit.description | html %]" />
+                                        <input type="hidden" name="startdate" value="[% hit.startdate | html %]" />
+                                        <input type="hidden" name="enddate" value="[% hit.enddate | html %]" />
+                                        <button class="btn btn-default btn-xs"><i class="fa fa-gears"></i> Parameters</button>
+                                    </form>
+
+                                    <a class="btn btn-default btn-xs" href="/cgi-bin/koha/reports/aggregated_statistics.pl?op=delete_confirm&amp;statisticstype=[% hit.type | uri %]&amp;name=[% hit.name | uri %]"
+                                        ><i class="fa fa-trash"></i> Delete</a
+                                    >
+
+                                    <form method="post" action="/cgi-bin/koha/reports/aggregated_statistics.pl">
+                                        [% INCLUDE 'csrf-token.inc' %]
+                                        <input type="hidden" name="op" value="cud-eval_form" />
+                                        <input type="hidden" name="id" value="[% hit.id | html %]" />
+                                        <input type="hidden" name="statisticstype" value="[% selected_statisticstype_value | html %]" />
+                                        <input type="hidden" name="name" value="[% hit.name | html %]" />
+                                        <input type="hidden" name="description" value="[% hit.description | html %]" />
+                                        <input type="hidden" name="startdate" value="[% hit.startdate | html %]" />
+                                        <input type="hidden" name="enddate" value="[% hit.enddate | html %]" />
+                                        <button class="btn btn-default btn-xs"><i class="fa fa-pencil"></i> Edit</button>
+                                    </form>
+                                </td>
                             </tr>
-                        </table>
-
-                        <form action="[% action | html %]" method="post">
-                            [% INCLUDE 'csrf-token.inc' %]
-                            <input type="hidden" name="op" value="cud-delete_confirmed">
-                            <input type="hidden" name="statisticstype" value="[% hit.type | html %]" />
-                            <input type="hidden" name="name" value="[% hit.name | html %]" />
-                            <button type="submit" class="approve"><i class="fa fa-check"></i> Yes, delete</button>
-                        </form>
-
-                        <form action="[% action | html %]" method="post">
-                            [% INCLUDE 'csrf-token.inc' %]
-                            <input type="hidden" name="op" value="cud-delete_cancelled" />
-                            <input type="hidden" name="statisticstype" value="[% hit.type | html %]" />
-                            <button type="submit" class="deny"><i class="fa fa-times"></i> No, do not delete</button>
-                        </form>
-                    </div>
-                [% END %]
-            </main>
+                        [% END %]
+                    </tbody>
+                </table>
+            [% ELSE %]
+                <div class="dialog message">
+                    [% IF ( statisticstype ) %]
+                        <p>There are no aggregated statistics of this type.</p>
+                    [% ELSE %]
+                        <p>There were no aggregated statistics created.</p>
+                    [% END %]
+                </div>
+            [% END %]
         </div>
-        
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'reports-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-sm-2.order-md-1 -->
-    </div>
+    [% END %]
+
+    [% IF add_form or copy_form %]
+        <h1>[% IF ( modify ) %]Modify aggregated statistics for [% statisticstype | html %][% ELSE %]Add aggregated statistics for [% statisticstype | html %][% END %]</h1>
+        <form id="add_aggregated_statistics" name="Aform" method="post" enctype="multipart/form-data" class="validate">
+            [% INCLUDE 'csrf-token.inc' %]
+            [% IF add_form %]
+                <input type="hidden" name="op" id="op" value="cud-add_validate" />
+            [% ELSE %]
+                <input type="hidden" name="op" id="op" value="cud-copy_validate" />
+            [% END %]
+
+            <input type="hidden" name="checked" value="0" />
+            [% IF ( modify ) %]
+                <input type="hidden" name="add" value="0" />
+            [% ELSE %]
+                <input type="hidden" name="add" value="1" />
+            [% END %]
+
+            <fieldset class="rows">
+                <legend>Standard parameters</legend>
+                <input type="hidden" name="id" value="[% id | html %]" />
+                <ol>
+                    <li>
+                        <span class="label">Statistics type:</span>
+                        <input type="hidden" id="astype" name="statisticstype" value="[% statisticstype | html %]" />
+                        [% statisticstypedesignation | html %]
+                    </li>
+                    <li>
+                        <label for="name" class="required">Name:</label>
+                        [% IF adding OR copying %]
+                            <input type="text" id="name" name="name" size="30" maxlength="250" value="" required="required" />
+                        [% ELSE %]
+                            <input type="text" id="name" name="name" size="30" maxlength="250" value="[% name | html %]" required="required" />
+                        [% END %]
+                        <span class="required">Required</span>
+                    </li>
+                    <li>
+                        <label for="description" class="required">Description:</label>
+                        <input type="text" id="description" name="description" size="70" maxlength="255" value="[% description | html %]" required="required" />
+                        <span class="required">Required</span>
+                    </li>
+                    <li>
+                        <label for="startdate" class="required">From:</label>
+                        <input type="text" class="flatpickr" id="startdate" name="startdate" size="10" maxlength="10" value="[% startdate | $KohaDates %]" required="required" />
+                        <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
+                        <span class="required">Required</span>
+                    </li>
+                    <li>
+                        <label for="enddate" class="required">To:</label>
+                        <input type="text" class="flatpickr" id="enddate" name="enddate" size="10" maxlength="10" value="[% enddate | html %]" required="required" />
+                        <span class="hint">[% INCLUDE 'date-format.inc' %]</span>
+                        <span class="required">Required</span>
+                    </li>
+                </ol>
+            </fieldset>
+
+            [% IF ( statisticstype == 'DBS' ) %]
+                [% PROCESS 'aggregated-statistics-parameters-DBS.inc' %]
+            [% END %]
+
+            [% IF ( statisticstype == 'VGWort' ) %]
+                [% PROCESS 'aggregated-statistics-parameters-VGWort.inc' %]
+            [% END %]
+
+            <fieldset class="action">
+                <input type="submit" id="submit_form" value="Submit" class="button" />
+                <a class="cancel" href="/cgi-bin/koha/reports/aggregated_statistics.pl?statisticstype=[% statisticstype | uri %]">Cancel</a>
+            </fieldset>
+            <input type="hidden" name="searchfield" value="[% searchfield | html %]" />
+        </form>
+    [% END %]
+
+    [% IF ( delete_confirm ) %]
+        <div class="dialog alert">
+            <h3>Delete aggregated statistics?</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>From</th>
+                        <th>To</th>
+                    </tr>
+                </thead>
+                <tr>
+                    <td>[% hit.name | html %]</td>
+                    <td>[% hit.description | html %]</td>
+                    <td>[% hit.startdate | html %]</td>
+                    <td>[% hit.enddate | html %]</td>
+                </tr>
+            </table>
+
+            <form action="[% action | html %]" method="post">
+                [% INCLUDE 'csrf-token.inc' %]
+                <input type="hidden" name="op" value="cud-delete_confirmed" />
+                <input type="hidden" name="statisticstype" value="[% hit.type | html %]" />
+                <input type="hidden" name="name" value="[% hit.name | html %]" />
+                <button type="submit" class="approve"><i class="fa fa-check"></i> Yes, delete</button>
+            </form>
+
+            <form action="[% action | html %]" method="post">
+                [% INCLUDE 'csrf-token.inc' %]
+                <input type="hidden" name="op" value="cud-cancel" />
+                <input type="hidden" name="statisticstype" value="[% hit.type | html %]" />
+                <button type="submit" class="deny"><i class="fa fa-times"></i> No, do not delete</button>
+            </form>
+        </div>
+    [% END %]
+[% END #/ WRAPPER main-container.inc %]
 
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]

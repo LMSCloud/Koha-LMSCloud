@@ -144,10 +144,10 @@ mark a category as family card (linked borrowers via the guarantor relationship 
 
 =head2 checkprevcheckout
 
-  data_type: 'varchar'
+  data_type: 'enum'
   default_value: 'inherit'
+  extra: {list => ["yes","no","inherit"]}
   is_nullable: 0
-  size: 7
 
 produce a warning for this patron category if this item has previously been checked out to this patron if 'yes', not if 'no', defer to syspref setting if 'inherit'.
 
@@ -230,6 +230,14 @@ define maximum amount that the guarantees of a patron in this category can have 
 
 define maximum amount that the guarantors with guarantees of a patron in this category can have outstanding before checkouts are blocked
 
+=head2 enforce_expiry_notice
+
+  data_type: 'tinyint'
+  default_value: 0
+  is_nullable: 0
+
+enforce the patron expiry notice for this category
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -276,10 +284,10 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", default_value => 0, is_nullable => 0 },
   "checkprevcheckout",
   {
-    data_type => "varchar",
+    data_type => "enum",
     default_value => "inherit",
+    extra => { list => ["yes", "no", "inherit"] },
     is_nullable => 0,
-    size => 7,
   },
   "can_place_ill_in_opac",
   { data_type => "tinyint", default_value => 1, is_nullable => 0 },
@@ -303,6 +311,8 @@ __PACKAGE__->add_columns(
   { data_type => "integer", is_nullable => 1 },
   "noissueschargeguarantorswithguarantees",
   { data_type => "integer", is_nullable => 1 },
+  "enforce_expiry_notice",
+  { data_type => "tinyint", default_value => 0, is_nullable => 0 },
 );
 
 =head1 PRIMARY KEY
@@ -410,8 +420,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:54
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:Vyz1L0WCxytQdu3xGE2XGQ
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-14 11:43:59
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:9HBgLoj8ejgFcGMv9VkX3g
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration
 
@@ -429,6 +439,12 @@ __PACKAGE__->add_columns(
     '+exclude_from_local_holds_priority'      => { is_boolean => 1 },
     '+require_strong_password'                => { is_boolean => 1 },
     '+force_password_reset_when_set_by_staff' => { is_boolean => 1 },
+    '+family_card'                            => { is_boolean => 1 },
+    '+enforce_expiry_notice'                  => { is_boolean => 1 },
+    '+hidelostitems'                          => { is_boolean => 1 },
+    '+overduenoticerequired'                  => { is_boolean => 1 },
+    '+reset_password'                         => { is_boolean => 1 },
+    '+change_password'                        => { is_boolean => 1 },
 );
 
 1;

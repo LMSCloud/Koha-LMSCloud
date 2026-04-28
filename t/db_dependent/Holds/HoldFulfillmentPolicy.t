@@ -5,7 +5,8 @@ use Modern::Perl;
 use C4::Context;
 use Koha::CirculationRules;
 
-use Test::More tests => 11;
+use Test::NoWarnings;
+use Test::More tests => 12;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
@@ -183,7 +184,7 @@ $reserve_id = AddReserve(
 is( $status, q{}, "Hold where pickup ne home, pickup ne holding not targeted" );
 Koha::Holds->find($reserve_id)->cancel;
 
-# With hold_fulfillment_policy = any, hold should be pikcup up reguardless of matching home or holding branch
+# With hold_fulfillment_policy = any, hold should be picked regardless of matching home or holding branch
 $dbh->do("DELETE FROM circulation_rules");
 Koha::CirculationRules->set_rules(
     {

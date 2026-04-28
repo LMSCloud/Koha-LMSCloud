@@ -37,79 +37,66 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' aside='circ-menu' %]
 
-                [% INCLUDE 'members-toolbar.inc' %]
+    [% INCLUDE 'members-toolbar.inc' %]
 
-                <h1>Statistics for [% INCLUDE 'patron-title.inc' %]</h1>
-                [% IF ( datas.size ) %]
-                    <div class="page-section">
-                        <table id="statistics">
-                            <thead>
-                                <tr>
-                                    [% FOREACH cn IN column_names %]
-                                        <th>
-                                            [% SWITCH cn %]
-                                            [% CASE 'itype' %]
-                                                <span>Item type</span>
-                                            [% CASE 'ccode' %]
-                                                <span>Collection</span>
-                                            [% CASE 'location' %]
-                                                <span>Shelving location</span>
-                                            [% CASE 'homebranch' %]
-                                                <span>Home library</span>
-                                            [% CASE 'holdingbranch' %]
-                                                <span>Holding library</span>
-                                            [% CASE %]
-                                                <span>[% cn | html %]</span>
-                                            [% END %]
-                                        </th>
-                                    [% END %]
-                                    <th>Total checkouts as of yesterday</th>
-                                    <th>Today's checkouts</th>
-                                    <th>Today's checkins</th>
-                                    <th>Total checkouts</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                [% FOREACH r IN datas %]
-                                    <tr>
-                                        [% FOREACH c IN r %]
-                                            <td>[% c | html %]</td>
-                                        [% END %]
-                                    </tr>
+    <h1>Statistics for [% INCLUDE 'patron-title.inc' %]</h1>
+    [% IF ( datas.size ) %]
+        <div class="page-section">
+            <table id="statistics">
+                <thead>
+                    <tr>
+                        [% FOREACH cn IN column_names %]
+                            <th>
+                                [% SWITCH cn %]
+                                [% CASE 'itype' %]
+                                    <span>Item type</span>
+                                [% CASE 'ccode' %]
+                                    <span>Collection</span>
+                                [% CASE 'location' %]
+                                    <span>Shelving location</span>
+                                [% CASE 'homebranch' %]
+                                    <span>Home library</span>
+                                [% CASE 'holdingbranch' %]
+                                    <span>Holding library</span>
+                                [% CASE %]
+                                    <span>[% cn | html %]</span>
                                 [% END %]
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td colspan="[% column_names.size | html %]">TOTAL</td>
-                                    <td>[% count_total_precedent_state | html %]</td>
-                                    <td>[% count_total_issues | html %]</td>
-                                    <td>[% count_total_issues_returned | html %]</td>
-                                    <td>[% count_total_actual_state | html %]</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                    <!-- /.page-section -->
-                [% ELSE %]
-                    <div class="alert alert-info">There are no statistics for this patron.</div>
-                [% END %]
-            </main>
-        </div>
-        <!-- /.col-md-10.order-md-2 -->
+                            </th>
+                        [% END %]
+                        <th>Total checkouts as of yesterday</th>
+                        <th>Today's checkouts</th>
+                        <th>Today's checkins</th>
+                        <th>Total checkouts</th>
+                    </tr>
+                </thead>
 
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'circ-menu.inc' %] </aside>
+                <tbody>
+                    [% FOREACH r IN datas %]
+                        <tr>
+                            [% FOREACH c IN r %]
+                                <td>[% c | html %]</td>
+                            [% END %]
+                        </tr>
+                    [% END %]
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="[% column_names.size | html %]">TOTAL</td>
+                        <td>[% count_total_precedent_state | html %]</td>
+                        <td>[% count_total_issues | html %]</td>
+                        <td>[% count_total_issues_returned | html %]</td>
+                        <td>[% count_total_actual_state | html %]</td>
+                    </tr>
+                </tfoot>
+            </table>
         </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
+        <!-- /.page-section -->
+    [% ELSE %]
+        <div class="alert alert-info">There are no statistics for this patron.</div>
+    [% END %]
+[% END %]
 
     [% MACRO jsinclude BLOCK %]
         [% INCLUDE 'str/members-menu.inc' %]

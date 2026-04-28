@@ -309,7 +309,7 @@ This module provides methods for creating, retrieving, and otherwise manipulatin
     Invoking the I<new> method constructs a new template object containing the default values for a template.
     The following parameters are optionally accepted as key => value pairs:
 
-        C<profile_id>           A valid profile id to be assciated with this template. NOTE: The profile must exist in the database and B<not> be assigned to another template.
+        C<profile_id>           A valid profile id to be associated with this template. NOTE: The profile must exist in the database and B<not> be assigned to another template.
         C<template_code>        A template code. ie. 'Avery 5160 | 1 x 2-5/8'
         C<template_desc>        A readable description of the template. ie. '3 columns, 10 rows of labels'
         C<page_width>           The width of the page measured in the units supplied by the units parameter in this template.
@@ -373,7 +373,7 @@ CM      = SI Centimeters (28.3464567 points per)
 =head2 delete()
 
     Invoking the delete method attempts to delete the template from the database. The method returns -1 upon failure. Errors are logged to the Apache log.
-    NOTE: This method may also be called as a function and passed a key/value pair simply deleteing that template from the database. See the example below.
+    NOTE: This method may also be called as a function and passed a key/value pair simply deleting that template from the database. See the example below.
 
     examples:
         C<my $exitstat = $template->delete(); # to delete the record behind the $template object>
@@ -411,6 +411,10 @@ CM      = SI Centimeters (28.3464567 points per)
     examples:
         C<my ($row_count, $col_count, $llx, $lly) = $template->get_label_position($start_label);>
 
+=head2 get_next_label_pos
+
+Missing POD for get_next_label_pos.
+
 =head1 AUTHOR
 
 Chris Nighswonger <cnighswonger AT foundations DOT edu>
@@ -434,7 +438,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Koha; if not, see <http://www.gnu.org/licenses>.
+along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 DISCLAIMER OF WARRANTY
 

@@ -16,23 +16,24 @@ package C4::External::BakerTaylor;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
+
+use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(availability content_cafe_url image_url link_url http_jacket_link);
+}
 
 use XML::Simple;
 use LWP::Simple qw( get );
 
 use C4::Context;
 
-use Modern::Perl;
-
 use vars qw(%EXPORT_TAGS $VERSION);
-our ( @ISA, @EXPORT_OK );
 
 BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    $VERSION   = 3.07.00.049;
-    @EXPORT_OK = qw(availability content_cafe_url image_url link_url http_jacket_link);
+    $VERSION = 3.07.00.049;
 }
 
 # These variables are plack safe: they are initialized each time
@@ -46,7 +47,7 @@ sub _initialize {
         "https://contentcafe2.btol.com/ContentCafe/Jacket.aspx?UserID=$user&Password=$pass&Options=Y&Return=T&Type=S&Value=";
     $agent = "Koha/$VERSION [en] (Linux)";
 
-    #"Mozilla/4.76 [en] (Win98; U)",	#  if for some reason you want to go stealth, you might prefer this
+    #"Mozilla/4.76 [en] (Win98; U)",    #  if for some reason you want to go stealth, you might prefer this
 }
 
 sub image_url {
@@ -122,6 +123,22 @@ The settings for this module are controlled by System Preferences:
 These can be overridden for testing purposes using the initialize function.
 
 =head1 FUNCTIONS
+
+=head2 image_url
+
+Missing POD for image_url.
+
+=head2 link_url
+
+Missing POD for link_url.
+
+=head2 content_cafe_url
+
+Missing POD for content_cafe_url.
+
+=head2 http_jacket_link
+
+Missing POD for http_jacket_link.
 
 =head2 availability($isbn);
 

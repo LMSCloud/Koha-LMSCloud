@@ -1,17 +1,26 @@
 [% USE raw %]
 [% USE Koha %]
+[% USE Price %]
 [% USE AdditionalContents %]
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% SET OpacNav = AdditionalContents.get( location => "OpacNav", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% SET OpacNavBottom = AdditionalContents.get( location => "OpacNavBottom", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Discharge &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Discharge") | html %]
+        &rsaquo; [% PROCESS 'library_name_title' %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
-[% BLOCK cssinclude %][% END %]
+[% BLOCK cssinclude %]
+[% END %]
 </head>
 <body id="opac-discharge" class="scrollto">
 [% INCLUDE 'masthead.inc' %]
 
-<div class="main">
+<main class="main">
     [% WRAPPER breadcrumbs %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
             <span>Discharge</span>
@@ -21,50 +30,69 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-lg-2">
-                <div id="navigation">
-                    [% INCLUDE 'navigation.inc' IsPatronPage=1 %]
-                </div>
+                <div id="navigation"> [% INCLUDE 'navigation.inc' IsPatronPage=1 %] </div>
             </div>
             <div class="col-10 order-first order-md-first order-lg-2">
                 <div id="discharge" class="maincontent">
                     <h1>Discharge</h1>
                     [% FOR message IN messages %]
                         <div class="alert alert-[% message.type | html %]">
-                        [% IF message.code == "unable_to_generate_pdf" %]
-                            An error occurs when generating the pdf file.
-                            Please contact the staff to resolve this problem.
-                        [% END %]
+                            [% IF message.code == "unable_to_generate_pdf" %]
+                                An error occurs when generating the pdf file. Please contact the staff to resolve this problem.
+                            [% END %]
                         </div>
                     [% END %]
 
                     [% IF success %]
                         <p>Your discharge request has been sent. Your discharge will be available on this page within a few days.</p>
                     [% ELSIF available %]
-                        <a href="/cgi-bin/koha/opac-discharge.pl?op=get">Get your discharge</a></li>
+                        <p><a href="/cgi-bin/koha/opac-discharge.pl?op=get">Get your discharge</a></p>
                     [% ELSIF pending %]
                         <p>Your discharge will be available on this page within a few days.</p>
-                    [% ELSIF has_issues %]
-                        <p>You cannot be discharged, you have checked out items. Please return items before asking for a discharge.</p>
                     [% ELSIF not messages %]
                         <h2>What is a discharge?</h2>
-                        <p>This document certifies that you have returned all borrowed items. It is sometimes asked during a file transfer from a school to another. The discharge is sent by us to your school. You will also find it available on your reader account.</p>
+                        <p
+                            >This document certifies that you have returned all borrowed items. It is sometimes asked during a file transfer from a school to another. The discharge is sent by us to your school. You will also find it
+                            available on your reader account.</p
+                        >
                         <p><strong>Warning</strong>: This request is only valid if you are in good standing with the library. Once the application is made, you can not borrow library materials.</p>
-                        [% IF has_checkouts %]
-                            <div class="alert alert-info">You cannot be discharged, you have checked out items. Please return items before asking for a discharge.</div>
-                        [% ELSE %]
+                        [% IF can_be_discharged %]
                             <form action="/cgi-bin/koha/opac-discharge.pl" method="post">
                                 [% INCLUDE 'csrf-token.inc' %]
                                 <input type="hidden" name="op" value="cud-request" />
                                 <button class="btn btn-primary" type="submit">Ask for a discharge</button>
                             </form>
-                        [% END %]
+                        [% ELSE %]
+                            [% IF failure %]
+                                <p>There was an error during the discharge process</p>
+                            [% END %]
+                            <div class="alert alert-info"
+                                >You cannot be discharged because:
+                                <ul>
+                                    [% IF discharge_problems.checkouts > 1 %]
+                                        <li>You have [% discharge_problems.checkouts | html %] items checked out. Please return them before reapplying.</li>
+                                    [% ELSIF discharge_problems.checkouts == 1 %]
+                                        <li>You currently have an item checked out. Please return it before reapplying.</li>
+                                    [% END %]
 
+                                    [% IF discharge_problems.debt %]
+                                        <li>You have unpaid charges of [% discharge_problems.debt | $Price %]. Please pay them before reapplying.</li>
+                                    [% END %]
+                                </ul>
+                            </div>
+                        [% END %]
                     [% END %]
-                </div> <!-- / #discharge -->
-            </div> <!-- / .col-10 -->
-        </div> <!-- / .row -->
-    </div>  <!-- / .container-fluid -->
-</div> <!-- / .main -->
+                </div>
+                <!-- / #discharge -->
+            </div>
+            <!-- / .col-10 -->
+        </div>
+        <!-- / .row -->
+    </div>
+    <!-- / .container-fluid -->
+</main>
+<!-- / .main -->
 
 [% INCLUDE 'opac-bottom.inc' %]
-[% BLOCK jsinclude %][% END %]
+[% BLOCK jsinclude %]
+[% END %]

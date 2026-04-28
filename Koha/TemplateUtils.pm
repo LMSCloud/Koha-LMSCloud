@@ -15,23 +15,20 @@ package Koha::TemplateUtils;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw( process_tt );
+}
 
 use Carp qw( croak );
 use Try::Tiny;
 use Template;
 
 use C4::Context;
-
-use vars qw(@ISA @EXPORT_OK);
-
-BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw( process_tt );
-}
 
 =head1 NAME
 
@@ -63,6 +60,7 @@ sub process_tt {
             {
                 EVAL_PERL   => 0,
                 ABSOLUTE    => 0,
+                RELATIVE    => 0,
                 PLUGIN_BASE => 'Koha::Template::Plugin',
                 COMPILE_EXT => $use_template_cache ? '.ttc'                                    : '',
                 COMPILE_DIR => $use_template_cache ? C4::Context->config('template_cache_dir') : '',

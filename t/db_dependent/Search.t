@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -26,7 +26,8 @@ require C4::Context;
 # work around spurious wide character warnings
 use open ':std', ':encoding(utf8)';
 
-use Test::More tests => 3;
+use Test::NoWarnings;
+use Test::More tests => 5;
 use Test::MockModule;
 use Test::Warn;
 use t::lib::Mocks;
@@ -169,6 +170,8 @@ $contextmodule->mock(
             return q{};
         } elsif ( $pref eq 'COinSinOPACResults' ) {
             return q{};
+        } elsif ( $pref eq 'FacetSortingLocale' ) {
+            return 'default';
         } else {
             warn
                 "The syspref $pref was requested but I don't know what to say; this indicates that the test requires updating"
@@ -231,6 +234,100 @@ sub mock_GetMarcSubfieldStructure {
         );
     }
 }
+
+subtest 'searchResults branch-specific counts for Bug 37883' => sub {
+    plan tests => 8;
+
+    use C4::Search qw( searchResults );
+
+    my $record = MARC::Record->new();
+    $record->add_fields(
+        [ '001', '123' ],
+        [ '245', ' ', ' ', a => 'Test record for branch counting' ],
+        [ '999', ' ', ' ', c => '123', d => '123' ],
+
+        # Available item from CPL
+        [
+            '952', ' ', ' ',
+            a   => 'CPL',        # homebranch
+            b   => 'CPL',        # holdingbranch
+            p   => 'TEST001',    # barcode
+            y   => 'BK',         # itemtype
+            '9' => '1001',       # itemnumber
+            '0' => '0',          # withdrawn
+            '1' => '0',          # itemlost
+            '4' => '0',          # damaged
+            '7' => '0',          # notforloan
+            q   => '',           # onloan
+        ],
+
+        # Withdrawn item from CPL
+        [
+            '952', ' ', ' ',
+            a   => 'CPL',        # homebranch
+            b   => 'CPL',        # holdingbranch
+            p   => 'TEST002',    # barcode
+            y   => 'BK',         # itemtype
+            '9' => '1002',       # itemnumber
+            '0' => '1',          # withdrawn = yes
+            '1' => '0',          # itemlost
+            '4' => '0',          # damaged
+            '7' => '0',          # notforloan
+            q   => '',           # onloan
+        ],
+
+        # Available item from MPL
+        [
+            '952', ' ', ' ',
+            a   => 'MPL',        # homebranch
+            b   => 'MPL',        # holdingbranch
+            p   => 'TEST003',    # barcode
+            y   => 'BK',         # itemtype
+            '9' => '1003',       # itemnumber
+            '0' => '0',          # withdrawn
+            '1' => '0',          # itemlost
+            '4' => '0',          # damaged
+            '7' => '0',          # notforloan
+            q   => '',           # onloan
+        ],
+    );
+
+    # Mock userenv for CPL branch
+    my $context_mock = Test::MockModule->new('C4::Context');
+    $context_mock->mock(
+        'userenv',
+        sub {
+            return {
+                branchcode => 'CPL',
+                branch     => 'CPL',
+                number     => 123,
+            };
+        }
+    );
+
+    my @results = searchResults(
+        { interface => 'intranet' },
+        'test query',
+        1,     # total hits
+        10,    # results per page
+        0,     # offset
+        0,     # scan
+        [ $record->as_xml() ]
+    );
+
+    # Test that new branch count fields exist in search results
+    ok( defined $results[0]->{branchavailablecount}, 'branchavailablecount exists' );
+    ok( defined $results[0]->{branchonloancount},    'branchonloancount exists' );
+    ok( defined $results[0]->{branchothercount},     'branchothercount  exists' );
+    ok( defined $results[0]->{branchtotalcount},     'branchtotalcount  exists' );
+
+    is( $results[0]->{branchavailablecount}, 1, 'Branch available count: 1 available item at CPL' );
+    is( $results[0]->{branchothercount},     1, 'Branch other count: 1 withdrawn item at CPL' );
+    is( $results[0]->{branchtotalcount},     2, 'Branch total count: 2 items total at CPL' );
+
+    # Test that global counts still include all items from all branches
+    is( $results[0]->{availablecount}, 2, 'Global available count: 2 items available at all branches' );
+};
 
 sub run_marc21_search_tests {
 
@@ -1155,12 +1252,12 @@ sub run_unimarc_search_tests {
         ['mainentry'], ['and'], [''], ['contains'],
         ['wil'], 0, 10, '', '', 1
     );
-    is( $count, 11, 'UNIMARC authorities: hits on mainentry contains "wil"' );
+    is( $count, 11, 'UNIMARC authorities: hits on mainentry contains the search term' );
     ( $auths, $count ) = SearchAuthorities(
         ['match'], ['and'], [''], ['contains'],
         ['wil'],   0, 10, '', '', 1
     );
-    is( $count, 11, 'UNIMARC authorities: hits on match contains "wil"' );
+    is( $count, 11, 'UNIMARC authorities: hits on match contains the search term' );
     ( $auths, $count ) = SearchAuthorities(
         ['mainentry'], ['and'], [''], ['contains'],
         ['michel'],    0, 20, '', '', 1

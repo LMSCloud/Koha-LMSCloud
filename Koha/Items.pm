@@ -15,7 +15,7 @@ package Koha::Items;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Array::Utils    qw( array_minus );
@@ -462,6 +462,7 @@ sub batch_update {
 
     my ( @modified_itemnumbers, $modified_fields );
     my $i;
+    my @errors;
     my $schema = Koha::Database->new->schema;
     while ( my $item = $self->next ) {
 
@@ -593,6 +594,9 @@ sub batch_update {
                 }
             )
         } catch {
+            push @errors, {
+                error => eval { $_->{error} } || "$_",
+            };
             warn $_
         };
 
@@ -615,8 +619,17 @@ sub batch_update {
         }
     }
 
-    return ( { modified_itemnumbers => \@modified_itemnumbers, modified_fields => $modified_fields }, $self );
+    return (
+        { modified_itemnumbers => \@modified_itemnumbers, modified_fields => $modified_fields, errors => \@errors },
+        $self
+    );
 }
+
+=head2 apply_regex
+
+Missing POD for apply_regex.
+
+=cut
 
 sub apply_regex {
 

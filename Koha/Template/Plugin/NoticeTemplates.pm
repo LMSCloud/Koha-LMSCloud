@@ -15,7 +15,7 @@ package Koha::Template::Plugin::NoticeTemplates;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -23,6 +23,29 @@ use Template::Plugin;
 use base qw( Template::Plugin );
 
 use Koha::Notice::Templates;
+use C4::Context;
+use C4::Letters qw( GetLettersAvailableForALibrary );
+
+=head1 NAME
+
+Koha::Template::Plugin::NoticeTemplates - TT Plugin for notice templates
+
+=head1 SYNOPSIS
+
+[% USE NoticeTemplates %]
+
+[% NoticeTemplates.GetByModule('members') %]
+
+[% NoticeTemplates.GetByModuleForLibrary('members') %]
+
+=head1 ROUTINES
+
+=head2 GetByModule
+
+In a template, you can get notice templates by module with
+[% letters = NoticeTemplates.GetByModule( 'members' ) %]
+
+=cut
 
 sub GetByModule {
     my ( $self, $module ) = @_;
@@ -37,22 +60,24 @@ sub GetByModule {
     );
 }
 
-=head1 NAME
+=head2 GetByModuleForLibrary
 
-Koha::Template::Plugin::NoticeTemplates - TT Plugin for notice templates
+In a template, you can get notice templates by module, limited to only templates for all libraries or for the user's logged-in branch, with
+[% letters = NoticeTemplates.GetByModuleForLibrary( 'add_message' ) %]
 
-=head1 SYNOPSIS
+=cut
 
-[% USE NoticeTemplates %]
+sub GetByModuleForLibrary {
+    my ( $self, $module ) = @_;
+    my $branchcode = C4::Context->userenv ? C4::Context->userenv->{'branch'} // '' : '';
 
-[% NoticeTemplates.GetByModule('members') %]
-
-=head1 ROUTINES
-
-=head2 GetByModule
-
-In a template, you can get notice templates by module with
-[% letters = NoticeTemplates.GetByModule( 'members' ) %]
+    return C4::Letters::GetLettersAvailableForALibrary(
+        {
+            branchcode => $branchcode,
+            module     => $module,
+        }
+    );
+}
 
 =head1 AUTHOR
 

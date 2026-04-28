@@ -31,6 +31,7 @@
         description: An object that contains coverflow data in a list of biblios by query string
         schema:
           type: object
+          additionalProperties: false
           items:
             $ref: "../swagger.yaml#/definitions/coverflow_data_query"
       "400":

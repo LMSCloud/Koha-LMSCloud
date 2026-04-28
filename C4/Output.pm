@@ -19,38 +19,34 @@ package C4::Output;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # NOTE: I'm pretty sure this module is deprecated in favor of
 # templates.
 
 use Modern::Perl;
-
-use HTML::Entities;
-use Scalar::Util qw( looks_like_number );
-use URI::Escape;
-
-use C4::Auth qw( get_template_and_user );
-use C4::Context;
-use C4::Templates;
-use Koha::Token;
-
-use utf8;
-
-our ( @ISA, @EXPORT_OK );
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         is_ajax
         ajax_fail
         setlanguagecookie getlanguagecookie pagination_bar parametrized_url
         output_html_with_http_headers output_ajax_with_http_headers output_with_http_headers
         output_and_exit_if_error output_and_exit output_error
+        redirect_if_opac_suppressed
     );
 }
+
+use HTML::Entities;
+use Scalar::Util qw( looks_like_number );
+use URI::Escape;
+
+use utf8;
+
+use C4::Auth qw( get_template_and_user );
+use C4::Context;
+use C4::Templates;
 
 =head1 NAME
 
@@ -112,13 +108,19 @@ sub pagination_bar {
 
     # navigation bar useful only if more than one page to display !
     if ( $nb_pages > 1 ) {
+        $pagination_bar = '<ul class="pagination output">';
 
         # link to first page?
         if ( $current_page > 1 ) {
             $pagination_bar .=
-                "\n" . '&nbsp;' . '<a href="' . $url . '1' . $url_suffix . '"rel="start">' . '&lt;&lt;' . '</a>';
-        } else {
-            $pagination_bar .= "\n" . '&nbsp;<span class="inactive">&lt;&lt;</span>';
+                  "\n"
+                . ''
+                . '<li class="page-item"><a class="page-link output first" href="'
+                . $url . '1'
+                . $url_suffix
+                . '"rel="start">'
+                . '<i class="fa fa-fw fa-angle-double-left"></i> '
+                . '</a></li>';
         }
 
         # link on previous page ?
@@ -126,9 +128,15 @@ sub pagination_bar {
             my $previous = $current_page - 1;
 
             $pagination_bar .=
-                "\n" . '&nbsp;' . '<a href="' . $url . $previous . $url_suffix . '" rel="prev">' . '&lt;' . '</a>';
-        } else {
-            $pagination_bar .= "\n" . '&nbsp;<span class="inactive">&lt;</span>';
+                  "\n"
+                . ''
+                . '<li class="page-item"><a class="page-link output previous" href="'
+                . $url
+                . $previous
+                . $url_suffix
+                . '" rel="prev">'
+                . '<i class="fa fa-fw fa-angle-left"></i> '
+                . '</a></li>';
         }
 
         my $min_to_display      = $current_page - $pages_around;
@@ -146,20 +154,26 @@ sub pagination_bar {
                 if ( defined $last_displayed_page
                     and $last_displayed_page != $page_number - 1 )
                 {
-                    $pagination_bar .= "\n" . '&nbsp;<span class="inactive">...</span>';
+                    $pagination_bar .= "\n" . '<li class="page-item disabled"><a class="page-link">...</a></li>';
                 }
 
                 if ( $page_number == $current_page ) {
-                    $pagination_bar .= "\n" . '&nbsp;' . '<span class="currentPage">' . $page_number . '</span>';
+                    $pagination_bar .=
+                          "\n"
+                        . ''
+                        . '<li class="page-item active" aria-current="page"><a class="page-link" href="#">'
+                        . $page_number
+                        . '</a></li>';
                 } else {
                     $pagination_bar .=
                           "\n"
-                        . '&nbsp;'
-                        . '<a href="'
+                        . ''
+                        . '<li class="page-item"><a class="page-link" href="'
                         . $url
                         . $page_number
                         . $url_suffix . '">'
-                        . $page_number . '</a>';
+                        . $page_number
+                        . '</a></li>';
                 }
                 $last_displayed_page = $page_number;
             }
@@ -169,19 +183,26 @@ sub pagination_bar {
         if ( $current_page < $nb_pages ) {
             my $next = $current_page + 1;
 
-            $pagination_bar .=
-                "\n" . '&nbsp;<a href="' . $url . $next . $url_suffix . '" rel="next">' . '&gt;' . '</a>';
-        } else {
-            $pagination_bar .= "\n" . '&nbsp;<span class="inactive">&gt;</span>';
+            $pagination_bar .= "\n"
+                . '<li class="page-item"><a class="page-link output next" href="'
+                . $url
+                . $next
+                . $url_suffix
+                . '" rel="next"><i class="fa fa-fw fa-angle-right"></i></a></li>';
         }
 
         # link to last page?
         if ( $current_page != $nb_pages ) {
-            $pagination_bar .=
-                "\n" . '&nbsp;<a href="' . $url . $nb_pages . $url_suffix . '" rel="last">' . '&gt;&gt;' . '</a>';
-        } else {
-            $pagination_bar .= "\n" . '&nbsp;<span class="inactive">&gt;&gt;</span>';
+            $pagination_bar .= "\n"
+                . '<li class="page-item"><a class="page-link output last" href="'
+                . $url
+                . $nb_pages
+                . $url_suffix
+                . '" rel="last">'
+                . ' <i class="fa fa-fw fa-angle-double-right"></i></a></li>';
         }
+
+        $pagination_bar .= "\n" . '</ul>';
     }
 
     return $pagination_bar;
@@ -260,14 +281,29 @@ sub output_with_http_headers {
 
     if ( $content_type ne 'zip' && !( $extra_options->{no_encoding} ) ) {
         $data =~ s/\&amp\;amp\; /\&amp\; /g;
+        binmode( STDOUT, ":encoding($characterset)" );
+        print $query->header($options), $data;
+    } else {
+        print $query->header($options), $data;
     }
-    print $query->header($options), $data;
 }
+
+=item output_html_with_http_headers
+
+Missing POD for output_html_with_http_headers.
+
+=cut
 
 sub output_html_with_http_headers {
     my ( $query, $cookie, $data, $status, $extra_options ) = @_;
     output_with_http_headers( $query, $cookie, $data, 'html', $status, $extra_options );
 }
+
+=item output_ajax_with_http_headers
+
+Missing POD for output_ajax_with_http_headers.
+
+=cut
 
 sub output_ajax_with_http_headers {
     my ( $query, $js ) = @_;
@@ -279,6 +315,12 @@ sub output_ajax_with_http_headers {
         -expires         => '-1d',
     ), $js;
 }
+
+=item is_ajax
+
+Missing POD for is_ajax.
+
+=cut
 
 sub is_ajax {
     my $x_req = $ENV{HTTP_X_REQUESTED_WITH};
@@ -357,6 +399,12 @@ sub output_and_exit {
     exit;
 }
 
+=item output_error
+
+Missing POD for output_error.
+
+=cut
+
 sub output_error {
     my ( $query, $error ) = @_;
     my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
@@ -375,6 +423,12 @@ sub output_error {
     output_with_http_headers $query, $cookie, $template->output, 'html', '404 Not Found';
 }
 
+=item parametrized_url
+
+Missing POD for parametrized_url.
+
+=cut
+
 sub parametrized_url {
     my $url  = shift || '';    # ie page.pl?ln={LANG}
     my $vars = shift || {};    # ie { LANG => en }
@@ -387,7 +441,44 @@ sub parametrized_url {
     return $ret;
 }
 
-END { }                         # module clean-up code here (global destructor)
+=item redirect_if_opac_suppressed
+
+    redirect_if_opac_suppressed( $query, $biblio )
+        if C4::Context->preference('OpacSuppression');
+
+For a given I<Koha::Biblio> object, it handles redirection if it is suppressed
+from the OPAC.
+
+=cut
+
+sub redirect_if_opac_suppressed {
+    my ( $query, $biblio ) = @_;
+
+    # redirect to opac-blocked info page or 404?
+    my $redirect_url;
+    if ( C4::Context->preference("OpacSuppressionRedirect") ) {
+        $redirect_url = "/cgi-bin/koha/opac-blocked.pl";
+    } else {
+        $redirect_url = "/cgi-bin/koha/errors/404.pl";
+    }
+    if ( $biblio->opac_suppressed() ) {
+
+        # if OPAC suppression by IP address
+        if ( C4::Context->preference('OpacSuppressionByIPRange') ) {
+            my $IPAddress = $ENV{'REMOTE_ADDR'};
+            my $IPRange   = C4::Context->preference('OpacSuppressionByIPRange');
+            if ( $IPAddress !~ /^$IPRange/ ) {
+                print $query->redirect($redirect_url);
+                C4::Auth::safe_exit();
+            }
+        } else {
+            print $query->redirect($redirect_url);
+            C4::Auth::safe_exit();
+        }
+    }
+}
+
+END { }    # module clean-up code here (global destructor)
 
 1;
 __END__
@@ -396,6 +487,6 @@ __END__
 
 =head1 AUTHOR
 
-Koha Development Team <http://koha-community.org/>
+Koha Development Team <https://koha-community.org/>
 
 =cut

@@ -15,7 +15,7 @@ package Koha::AuthorisedValues;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -34,6 +34,12 @@ Koha::AuthorisedValues - Koha Authorised value Object set class
 =head1 API
 
 =head2 Class Methods
+
+=cut
+
+=head2 search_by_marc_field
+
+Missing POD for search_by_marc_field.
 
 =cut
 
@@ -58,6 +64,12 @@ sub search_by_marc_field {
     );
 }
 
+=head2 search_by_koha_field
+
+Missing POD for search_by_koha_field.
+
+=cut
+
 sub search_by_koha_field {
     my ( $self, $params ) = @_;
     my $frameworkcode = $params->{frameworkcode} || '';
@@ -80,6 +92,12 @@ sub search_by_koha_field {
     );
 }
 
+=head2 find_by_koha_field
+
+Missing POD for find_by_koha_field.
+
+=cut
+
 sub find_by_koha_field {
     my ( $self, $params ) = @_;
     my $frameworkcode    = $params->{frameworkcode} || '';
@@ -99,6 +117,12 @@ sub find_by_koha_field {
     );
     return $av->count ? $av->next : undef;
 }
+
+=head2 get_description_by_koha_field
+
+Missing POD for get_description_by_koha_field.
+
+=cut
 
 sub get_description_by_koha_field {
     my ( $self, $params ) = @_;
@@ -122,6 +146,12 @@ sub get_description_by_koha_field {
     $memory_cache->set_in_cache( $cache_key, $descriptions );
     return $descriptions;
 }
+
+=head2 get_descriptions_by_koha_field
+
+Missing POD for get_descriptions_by_koha_field.
+
+=cut
 
 sub get_descriptions_by_koha_field {
     my ( $self, $params ) = @_;
@@ -177,6 +207,12 @@ sub get_descriptions_by_marc_field {
     return $descriptions;
 }
 
+=head2 categories
+
+Missing POD for categories.
+
+=cut
+
 sub categories {
     my ($self) = @_;
     my $rs = $self->_resultset->search(
@@ -197,6 +233,12 @@ sub categories {
 sub _type {
     return 'AuthorisedValue';
 }
+
+=head2 object_class
+
+Missing POD for object_class.
+
+=cut
 
 sub object_class {
     return 'Koha::AuthorisedValue';

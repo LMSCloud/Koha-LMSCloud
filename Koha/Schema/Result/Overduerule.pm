@@ -66,10 +66,9 @@ foreign key from the letter table to define which notice should be sent as the f
 
 =head2 debarred1
 
-  data_type: 'varchar'
+  data_type: 'tinyint'
   default_value: 0
   is_nullable: 1
-  size: 1
 
 is the patron restricted when the first notice is sent (1 for yes, 0 for no)
 
@@ -82,10 +81,9 @@ number of days after the item is overdue that the second notice is sent
 
 =head2 debarred2
 
-  data_type: 'varchar'
+  data_type: 'tinyint'
   default_value: 0
   is_nullable: 1
-  size: 1
 
 is the patron restricted when the second notice is sent (1 for yes, 0 for no)
 
@@ -114,7 +112,7 @@ foreign key from the letter table to define which notice should be sent as the t
 
 =head2 debarred3
 
-  data_type: 'integer'
+  data_type: 'tinyint'
   default_value: 0
   is_nullable: 1
 
@@ -180,11 +178,11 @@ __PACKAGE__->add_columns(
   "letter1",
   { data_type => "varchar", is_nullable => 1, size => 20 },
   "debarred1",
-  { data_type => "varchar", default_value => 0, is_nullable => 1, size => 1 },
+  { data_type => "tinyint", default_value => 0, is_nullable => 1 },
   "delay2",
   { data_type => "integer", is_nullable => 1 },
   "debarred2",
-  { data_type => "varchar", default_value => 0, is_nullable => 1, size => 1 },
+  { data_type => "tinyint", default_value => 0, is_nullable => 1 },
   "letter2",
   { data_type => "varchar", is_nullable => 1, size => 20 },
   "delay3",
@@ -192,7 +190,7 @@ __PACKAGE__->add_columns(
   "letter3",
   { data_type => "varchar", is_nullable => 1, size => 20 },
   "debarred3",
-  { data_type => "integer", default_value => 0, is_nullable => 1 },
+  { data_type => "tinyint", default_value => 0, is_nullable => 1 },
   "delay4",
   { data_type => "integer", is_nullable => 1 },
   "letter4",
@@ -253,8 +251,8 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:55
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:NvJi6L9fVbm/iOh1tKN6tQ
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-05-06 11:42:17
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:mvdKCo41L9qxBjJNSP4Jxg
 
 sub koha_object_class {
     'Koha::OverdueRule';

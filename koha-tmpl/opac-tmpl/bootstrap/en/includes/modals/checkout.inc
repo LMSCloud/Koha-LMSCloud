@@ -3,7 +3,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title" id="checkoutModalLabel">Self checkout</h1>
+                <h1 class="modal-title" id="checkoutModalLabel">Self-checkout</h1>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -11,23 +11,22 @@
                 <div id="availabilityResult"></div>
                 <div class="form-group">
                     <label for="checkout_barcode">Enter item barcode: </label>
-                    <input type="text" name="checkout_barcode" id="checkout_barcode" required="required"></input>
+                    <input type="text" name="checkout_barcode" id="checkout_barcode" required="required" />
                 </div>
                 <table id="checkoutsTable" class="table table-bordered table-striped" style="width:100%;">
                     <thead>
-                      <tr>
-                          <th>Barcode</th>
-                          <th>Title</th>
-                          <th>Call number</th>
-                          <th>Due date</th>
-                      </tr>
+                        <tr>
+                            <th>Barcode</th>
+                            <th>Title</th>
+                            <th>Call number</th>
+                            <th>Due date</th>
+                        </tr>
                     </thead>
-                    <tbody>
-                    </tbody>
+                    <tbody> </tbody>
                     <tfoot>
-                      <tr>
-                        <td colspan="4" class="text-right"><span id="checkoutsCount"></span> items checked out</td>
-                      </tr>
+                        <tr>
+                            <td colspan="4" class="text-right"><span id="checkoutsCount"></span> items checked out</td>
+                        </tr>
                     </tfoot>
                 </table>
             </div>

@@ -13,10 +13,11 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
+use Test::NoWarnings;
 use Test::More;    #See plan tests => \d+ below
 use LWP::UserAgent;
 
@@ -28,7 +29,7 @@ if ($@) {
 } elsif ( not defined $intranet ) {
     plan skip_all => "Tests skip. You must set env. variable KOHA_INTRANET_URL to do tests\n";
 } else {
-    plan tests => 1;
+    plan tests => 2;
 }
 
 $intranet =~ s#/$##;

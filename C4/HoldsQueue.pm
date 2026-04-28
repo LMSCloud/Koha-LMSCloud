@@ -15,32 +15,15 @@ package C4::HoldsQueue;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # FIXME: expand perldoc, explain intended logic
 
-use strict;
-use warnings;
-
-use C4::Context;
-use C4::Circulation qw( GetBranchItemRule );
-use Koha::DateUtils qw( dt_from_string );
-use Koha::Hold::HoldsQueueItems;
-use Koha::Items;
-use Koha::Libraries;
-use Koha::Logger;
-use Koha::Patrons;
-
-use List::Util         qw( shuffle );
-use List::MoreUtils    qw( any );
-use Algorithm::Munkres qw();
-
-our ( @ISA, @EXPORT_OK );
+use Modern::Perl;
+use base 'Exporter';
 
 BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         CreateQueue
         GetHoldsQueueItems
 
@@ -51,6 +34,21 @@ BEGIN {
         update_queue_for_biblio
     );
 }
+
+use C4::Context;
+use C4::Circulation qw( GetBranchItemRule );
+use Koha::DateUtils qw( dt_from_string );
+use Koha::Hold::HoldsQueueItems;
+use Koha::HoldGroup;
+use Koha::Items;
+use Koha::Libraries;
+use Koha::Logger;
+use Koha::Patrons;
+
+use List::Util         qw( shuffle );
+use List::MoreUtils    qw( any );
+use Algorithm::Munkres qw();
+use Parallel::ForkManager;
 
 =head1 FUNCTIONS
 
@@ -250,6 +248,9 @@ that have one or more unfilled hold requests.
 sub GetBibsWithPendingHoldRequests {
     my $dbh = C4::Context->dbh;
 
+    my $skip_non_target_holds_query     = Koha::HoldGroup::skip_non_target_holds_query('sql');
+    my $skip_non_target_holds_query_sql = $skip_non_target_holds_query ? " $skip_non_target_holds_query" : '';
+
     my $bib_query = "SELECT DISTINCT biblionumber
                      FROM reserves
                      WHERE found IS NULL
@@ -257,12 +258,12 @@ sub GetBibsWithPendingHoldRequests {
                      AND reservedate <= CURRENT_DATE()
                      AND suspend = 0
                      AND reserve_id NOT IN (SELECT reserve_id FROM hold_fill_targets)
+                     $skip_non_target_holds_query_sql
                      ";
     my $sth = $dbh->prepare($bib_query);
 
     $sth->execute();
     my $biblionumbers = $sth->fetchall_arrayref();
-
     return [ map { $_->[0] } @$biblionumbers ];
 }
 
@@ -294,6 +295,9 @@ sub GetPendingHoldRequestsForBib {
 
     my $dbh = C4::Context->dbh;
 
+    my $skip_non_target_holds_query     = Koha::HoldGroup::skip_non_target_holds_query('sql');
+    my $skip_non_target_holds_query_sql = $skip_non_target_holds_query ? " $skip_non_target_holds_query" : '';
+
     my $request_query = "SELECT biblionumber, borrowernumber, itemnumber, priority, reserve_id, reserves.branchcode,
                                 reservedate, reservenotes, borrowers.branchcode AS borrowerbranch, itemtype, item_level_hold, item_group_id
                          FROM reserves
@@ -304,6 +308,7 @@ sub GetPendingHoldRequestsForBib {
                          AND reservedate <= CURRENT_DATE()
                          AND suspend = 0 ";
     $request_query .= "AND reserve_id NOT IN (SELECT reserve_id FROM hold_fill_targets) " if $unallocated;
+    $request_query .= $skip_non_target_holds_query_sql;
     $request_query .= "ORDER BY priority";
     my $sth = $dbh->prepare($request_query);
     $sth->execute($biblionumber);
@@ -716,7 +721,7 @@ RETRY:
 sub MapItemsToHoldRequests {
     my ( $hold_requests, $available_items, $branches_to_use, $transport_cost_matrix ) = @_;
 
-    # handle trival cases
+    # handle trivial cases
     return unless scalar(@$hold_requests) > 0;
     return unless scalar(@$available_items) > 0;
 
@@ -737,51 +742,104 @@ sub MapItemsToHoldRequests {
     my $num_items_remaining = scalar(@$available_items);
 
     # Look for Local Holds Priority matches first
-    if ( C4::Context->preference('LocalHoldsPriority') ) {
+
+    my $LocalHoldsPriority = C4::Context->preference('LocalHoldsPriority');
+    if ( $LocalHoldsPriority ne 'None' ) {
         my $LocalHoldsPriorityPatronControl = C4::Context->preference('LocalHoldsPriorityPatronControl');
         my $LocalHoldsPriorityItemControl   = C4::Context->preference('LocalHoldsPriorityItemControl');
-
         foreach my $request (@$hold_requests) {
             last if $num_items_remaining == 0;
             my $patron = Koha::Patrons->find( $request->{borrowernumber} );
             next if $patron->category->exclude_from_local_holds_priority;
+            if ( $LocalHoldsPriority eq 'GiveLibrary' || $LocalHoldsPriority eq 'GiveLibraryAndGroup' ) {
+                my $local_hold_match;
+                foreach my $item (@$available_items) {
+                    next if $item->{_object}->exclude_from_local_holds_priority;
 
-            my $local_hold_match;
-            foreach my $item (@$available_items) {
-                next if $item->{_object}->exclude_from_local_holds_priority;
+                    next unless _can_item_fill_request( $item, $request, $libraries );
 
-                next unless _can_item_fill_request( $item, $request, $libraries );
+                    next if $request->{itemnumber} && $request->{itemnumber} != $item->{itemnumber};
 
-                next if $request->{itemnumber} && $request->{itemnumber} != $item->{itemnumber};
+                    my $local_holds_priority_item_branchcode = $item->{$LocalHoldsPriorityItemControl};
 
-                my $local_holds_priority_item_branchcode = $item->{$LocalHoldsPriorityItemControl};
+                    my $local_holds_priority_patron_branchcode =
+                          ( $LocalHoldsPriorityPatronControl eq 'PickupLibrary' ) ? $request->{branchcode}
+                        : ( $LocalHoldsPriorityPatronControl eq 'HomeLibrary' )   ? $request->{borrowerbranch}
+                        :                                                           undef;
 
-                my $local_holds_priority_patron_branchcode =
-                      ( $LocalHoldsPriorityPatronControl eq 'PickupLibrary' ) ? $request->{branchcode}
-                    : ( $LocalHoldsPriorityPatronControl eq 'HomeLibrary' )   ? $request->{borrowerbranch}
-                    :                                                           undef;
+                    $local_hold_match =
+                        $local_holds_priority_item_branchcode eq $local_holds_priority_patron_branchcode;
 
-                $local_hold_match = $local_holds_priority_item_branchcode eq $local_holds_priority_patron_branchcode;
+                    if ($local_hold_match) {
+                        if (    exists $items_by_itemnumber{ $item->{itemnumber} }
+                            and not exists $allocated_items{ $item->{itemnumber} }
+                            and not $request->{allocated} )
+                        {
+                            $item_map{ $item->{itemnumber} } = {
+                                borrowernumber => $request->{borrowernumber},
+                                biblionumber   => $request->{biblionumber},
+                                holdingbranch  => $item->{holdingbranch},
+                                pickup_branch  => $request->{branchcode}
+                                    || $request->{borrowerbranch},
+                                reserve_id   => $request->{reserve_id},
+                                item_level   => $request->{item_level_hold},
+                                reservedate  => $request->{reservedate},
+                                reservenotes => $request->{reservenotes},
+                            };
+                            $allocated_items{ $item->{itemnumber} }++;
+                            $request->{allocated} = 1;
+                            $num_items_remaining--;
+                        }
+                    }
+                }
+            }
+        }
 
-                if ($local_hold_match) {
-                    if (    exists $items_by_itemnumber{ $item->{itemnumber} }
-                        and not exists $allocated_items{ $item->{itemnumber} }
-                        and not $request->{allocated} )
-                    {
-                        $item_map{ $item->{itemnumber} } = {
-                            borrowernumber => $request->{borrowernumber},
-                            biblionumber   => $request->{biblionumber},
-                            holdingbranch  => $item->{holdingbranch},
-                            pickup_branch  => $request->{branchcode}
-                                || $request->{borrowerbranch},
-                            reserve_id   => $request->{reserve_id},
-                            item_level   => $request->{item_level_hold},
-                            reservedate  => $request->{reservedate},
-                            reservenotes => $request->{reservenotes},
-                        };
-                        $allocated_items{ $item->{itemnumber} }++;
-                        $request->{allocated} = 1;
-                        $num_items_remaining--;
+        # Look for local group matches if no library matches were found
+        if ( $LocalHoldsPriority eq 'GiveLibraryGroup' || $LocalHoldsPriority eq 'GiveLibraryAndGroup' ) {
+            my $local_hold_group_match;
+            foreach my $request (@$hold_requests) {
+                last if $num_items_remaining == 0;
+                my $patron = Koha::Patrons->find( $request->{borrowernumber} );
+                next if $patron->category->exclude_from_local_holds_priority;
+                foreach my $item (@$available_items) {
+                    next if $item->{_object}->exclude_from_local_holds_priority;
+
+                    next unless _can_item_fill_request( $item, $request, $libraries );
+
+                    next if $request->{itemnumber} && $request->{itemnumber} != $item->{itemnumber};
+
+                    my $local_holds_priority_item_branchcode = $item->{$LocalHoldsPriorityItemControl};
+
+                    my $local_holds_priority_patron_branchcode =
+                          ( $LocalHoldsPriorityPatronControl eq 'PickupLibrary' ) ? $request->{branchcode}
+                        : ( $LocalHoldsPriorityPatronControl eq 'HomeLibrary' )   ? $request->{borrowerbranch}
+                        :                                                           undef;
+
+                    $local_hold_group_match =
+                        Koha::Libraries->find( { branchcode => $local_holds_priority_item_branchcode } )
+                        ->validate_hold_sibling( { branchcode => $local_holds_priority_patron_branchcode } );
+
+                    if ($local_hold_group_match) {
+                        if (    exists $items_by_itemnumber{ $item->{itemnumber} }
+                            and not exists $allocated_items{ $item->{itemnumber} }
+                            and not $request->{allocated} )
+                        {
+                            $item_map{ $item->{itemnumber} } = {
+                                borrowernumber => $request->{borrowernumber},
+                                biblionumber   => $request->{biblionumber},
+                                holdingbranch  => $item->{holdingbranch},
+                                pickup_branch  => $request->{branchcode}
+                                    || $request->{borrowerbranch},
+                                reserve_id   => $request->{reserve_id},
+                                item_level   => $request->{item_level_hold},
+                                reservedate  => $request->{reservedate},
+                                reservenotes => $request->{reservenotes},
+                            };
+                            $allocated_items{ $item->{itemnumber} }++;
+                            $request->{allocated} = 1;
+                            $num_items_remaining--;
+                        }
                     }
                 }
             }
@@ -1018,6 +1076,12 @@ sub _can_item_fill_request {
 
 =cut
 
+=head2 CreatePicklistFromItemMap
+
+Missing POD for CreatePicklistFromItemMap.
+
+=cut
+
 sub CreatePicklistFromItemMap {
     my $item_map = shift;
 
@@ -1099,6 +1163,12 @@ sub _trim {
     $_[0];
 }
 
+=head2 load_branches_to_pull_from
+
+Missing POD for load_branches_to_pull_from.
+
+=cut
+
 sub load_branches_to_pull_from {
     my $use_transport_cost_matrix = shift;
 
@@ -1123,6 +1193,12 @@ sub load_branches_to_pull_from {
 
     return \@branches_to_use;
 }
+
+=head2 least_cost_branch
+
+Missing POD for least_cost_branch.
+
+=cut
 
 sub least_cost_branch {
 
@@ -1230,7 +1306,8 @@ sub update_queue_for_biblio {
         $dbh->do("DELETE FROM hold_fill_targets WHERE biblionumber=$biblio_id");
     }
 
-    my $hold_requests = GetPendingHoldRequestsForBib( { biblionumber => $biblio_id } );
+    my $hold_requests =
+        GetPendingHoldRequestsForBib( { biblionumber => $biblio_id, unallocated => $args->{unallocated} } );
     $result->{requests} = scalar( @{$hold_requests} );
 
     # No need to check anything else if there are no holds to fill

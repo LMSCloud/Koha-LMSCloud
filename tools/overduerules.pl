@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
@@ -36,7 +36,6 @@ my $dbh = C4::Context->dbh;
 
 my @patron_categories = Koha::Patron::Categories->search( { overduenoticerequired => { '>' => 0 } } )->as_list;
 my @category_codes    = map { $_->categorycode } @patron_categories;
-
 our @rule_params = qw(delay letter debarred);
 
 # blank_row($category_code) - return true if the entire row is blank.

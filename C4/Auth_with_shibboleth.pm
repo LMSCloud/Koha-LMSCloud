@@ -15,9 +15,14 @@ package C4::Auth_with_shibboleth;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(shib_ok logout_shib login_shib_url checkpw_shib get_login_shib);
+}
 
 use C4::Context;
 use Koha::AuthUtils qw( get_script_name );
@@ -30,15 +35,8 @@ use List::MoreUtils qw( any );
 
 use Koha::Logger;
 
-our ( @ISA, @EXPORT_OK );
-
-BEGIN {
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(shib_ok logout_shib login_shib_url checkpw_shib get_login_shib);
-}
-
 # Check that shib config is not malformed
+
 sub shib_ok {
     my $config = _get_shib_config();
 
@@ -157,7 +155,7 @@ sub _autocreate {
                 module      => 'members',
                 letter_code => 'WELCOME',
                 branchcode  => $patron->branchcode,
-                ,
+
                 lang   => $patron->lang || 'default',
                 tables => {
                     'branches'  => $patron->branchcode,
@@ -368,9 +366,13 @@ Note: The minimum you need here is a <matchpoint> block, containing a valid colu
 
 It should be as simple as that; you should now be able to login via shibboleth in the opac.
 
-If you need more help configuring your B<S>ervice B<P>rovider to authenticate against a chosen B<Id>entity B<P>rovider then it might be worth taking a look at the community wiki L<page|http://wiki.koha-community.org/wiki/Shibboleth_Configuration>
+If you need more help configuring your B<S>ervice B<P>rovider to authenticate against a chosen B<Id>entity B<P>rovider then it might be worth taking a look at the community wiki L<page|https://wiki.koha-community.org/wiki/Shibboleth_Configuration>
 
 =head1 FUNCTIONS
+
+=head2 shib_ok
+
+Missing POD for shib_ok.
 
 =head2 logout_shib
 

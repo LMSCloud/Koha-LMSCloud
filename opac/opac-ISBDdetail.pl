@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -42,7 +42,7 @@ use Modern::Perl;
 
 use C4::Auth qw( get_template_and_user );
 use C4::Context;
-use C4::Output qw( parametrized_url output_html_with_http_headers );
+use C4::Output qw( parametrized_url output_html_with_http_headers redirect_if_opac_suppressed );
 use CGI        qw ( -utf8 );
 use C4::Biblio qw(
     CountItemsIssued

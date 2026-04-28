@@ -29,44 +29,30 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' aside='serials-menu' %]
+    <h1>Alert subscribers for <em>[% bibliotitle | html %]</em></h1>
+    <p> <span class="label">Subscription:</span> <a href="subscription-detail.pl?subscriptionid=[% subscriptionid | uri %]">[% bibliotitle | html %] #[% subscriptionid | html %]</a> </p>
 
-                <h1>Alert subscribers for <em>[% bibliotitle | html %]</em></h1>
-                <p> <span class="label">Subscription:</span> <a href="subscription-detail.pl?subscriptionid=[% subscriptionid | uri %]">[% bibliotitle | html %] #[% subscriptionid | html %]</a> </p>
-
-                <div class="page-section">
-                    [% IF subscribers.count %]
-                        <table>
-                            <tr>
-                                <th>Patron name</th>
-                            </tr>
-                            [% FOREACH subscriber IN subscribers %]
-                                <tr>
-                                    <td>
-                                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% subscriber.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' patron=subscriber %]</a>
-                                    </td>
-                                </tr>
-                            [% END %]
-                        </table>
-                    [% ELSE %]
-                        <p>There are no patrons subscribed to this subscription serial alert.</p>
-                    [% END %]
-                </div>
-                <!-- /.page-section -->
-            </main>
-        </div>
-        <!-- /.col-md-10.order-md-2 -->
-
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'serials-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
+    <div class="page-section">
+        [% IF subscribers.count %]
+            <table>
+                <tr>
+                    <th>Patron name</th>
+                </tr>
+                [% FOREACH subscriber IN subscribers %]
+                    <tr>
+                        <td>
+                            <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% subscriber.borrowernumber | uri %]">[% INCLUDE 'patron-title.inc' patron=subscriber %]</a>
+                        </td>
+                    </tr>
+                [% END %]
+            </table>
+        [% ELSE %]
+            <p>There are no patrons subscribed to this subscription serial alert.</p>
+        [% END %]
     </div>
-    <!-- /.row -->
+    <!-- /.page-section -->
+[% END %]
 
     [% INCLUDE 'intranet-bottom.inc' %]
 </div>

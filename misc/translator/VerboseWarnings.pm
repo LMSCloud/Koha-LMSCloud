@@ -1,8 +1,18 @@
 package VerboseWarnings;
 
 use Modern::Perl;
+use base 'Exporter';
 
-###############################################################################
+BEGIN {
+    our @EXPORT_OK = qw(
+        pedantic_p
+        warn_additional
+        warn_normal
+        warn_pedantic
+        error_additional
+        error_normal
+    );
+}
 
 =head1 NAME
 
@@ -123,5 +133,3 @@ sub warned {
 }
 
 1;
-
-###############################################################################

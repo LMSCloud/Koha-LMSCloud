@@ -460,8 +460,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:54
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ghqnRsKHxkIBKVWdwW+Prw
+# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-14 11:43:59
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:7on5aBIcgTRWQA3VgL5m5w
 
 =head2 patron
 
@@ -511,17 +511,28 @@ __PACKAGE__->has_many(
 
     return {
         "$args->{foreign_alias}.record_id" => { -ident => "$args->{self_alias}.accountlines_id" },
-
-        "$args->{foreign_alias}.field_id" =>
-            { -in => \'(SELECT id FROM additional_fields WHERE tablename LIKE "accountlines:%")' },
+        "$args->{foreign_alias}.record_table" => __PACKAGE__->table,
     };
   },
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
     'Koha::Account::Lines';
 }
+
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
+
 sub koha_object_class {
     'Koha::Account::Line';
 }

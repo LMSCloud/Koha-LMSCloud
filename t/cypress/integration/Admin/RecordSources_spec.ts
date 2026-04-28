@@ -12,10 +12,10 @@ describe("Breadcrumbs tests", () => {
         cy.visit("/cgi-bin/koha/admin/admin-home.pl");
         cy.contains("Record sources").click();
         cy.get("#breadcrumbs").contains("Administration");
-        cy.get(".item-last").contains("Record sources");
+        cy.get(".breadcrumb-item").eq(2).contains("Record sources");
         // use the 'New' button
         cy.contains("New record source").click();
-        cy.get(".current").contains("Add record source");
+        cy.get('[aria-current="page"]').contains("Add record source");
         cy.get("#breadcrumbs")
             .contains("Record sources")
             .should("have.attr", "href")
@@ -40,7 +40,7 @@ describe("Record sources CRUD tests", () => {
             statusCode: 201,
             body: {},
         });
-        cy.get("#record_source_edit").contains("Submit").click();
+        cy.get("#record_sources_add").contains("Submit").click();
 
         cy.get("main div[class='alert alert-info']").contains(
             "Record source created!"
@@ -178,7 +178,7 @@ describe("Record sources CRUD tests", () => {
                 can_be_edited: false,
             },
         });
-        cy.get("#record_source_edit").contains("Submit").click();
+        cy.get("#record_sources_add").contains("Submit").click();
     });
 
     it("Delete", () => {
@@ -218,7 +218,7 @@ describe("Record sources CRUD tests", () => {
             .contains("Delete")
             .click();
         cy.get(".alert-warning.confirmation h1").contains(
-            "Are you sure you want to delete this record source?"
+            "Are you sure you want to remove this record source?"
         );
         cy.contains("Source 2");
         cy.contains("No, do not delete").click();
@@ -229,7 +229,7 @@ describe("Record sources CRUD tests", () => {
         cy.contains("Source 2");
         cy.contains("Yes, delete").click();
         cy.get("main div[class='alert alert-info']").contains(
-            "Record source 'Source 2' deleted"
+            "Record source Source 2 deleted"
         );
     });
 });

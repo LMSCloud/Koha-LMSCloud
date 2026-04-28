@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
@@ -193,22 +193,25 @@ sub calculate {
     foreach my $i ( 0 .. scalar @$filters ) {
         my %cell;
         if ( @$filters[$i] ) {
-            if    ( $i == 0 )            { $cell{crit} = "Cat code";        $cell{filter} = @$filters[$i]; }
-            elsif ( $i == 1 )            { $cell{crit} = "ZIP/Postal code"; $cell{filter} = @$filters[$i]; }
-            elsif ( $i == 2 )            { $cell{crit} = "Branch code";     $cell{filter} = @$filters[$i]; }
-            elsif ( $i == 3 || $i == 4 ) { $cell{crit} = "Date of birth";   $cell{filter} = @$filters[$i]; }
-            elsif ( $i == 5 )            { $cell{crit} = "Sex";             $cell{filter} = @$filters[$i]; }
-            elsif ( $i == 6 )            { $cell{crit} = "Sort1";           $cell{filter} = @$filters[$i]; }
-            elsif ( $i == 7 )            { $cell{crit} = "Sort2";           $cell{filter} = @$filters[$i]; }
-            else                         { $cell{crit} = "Unknown"; }
+            if    ( $i == 0 ) { $cell{crit} = "Cat code";        $cell{filter} = @$filters[$i]; }
+            elsif ( $i == 1 ) { $cell{crit} = "ZIP/Postal code"; $cell{filter} = @$filters[$i]; }
+            elsif ( $i == 2 ) { $cell{crit} = "Branch code";     $cell{filter} = @$filters[$i]; }
+            elsif ( $i == 3 ) { $cell{crit} = "Date of birth1";  $cell{filter} = @$filters[$i]; }
+            elsif ( $i == 4 ) { $cell{crit} = "Date of birth2";  $cell{filter} = @$filters[$i]; }
+            elsif ( $i == 5 ) { $cell{crit} = "Sex";             $cell{filter} = @$filters[$i]; }
+            elsif ( $i == 6 ) { $cell{crit} = "Sort1";           $cell{filter} = @$filters[$i]; }
+            elsif ( $i == 7 ) { $cell{crit} = "Sort2";           $cell{filter} = @$filters[$i]; }
+            else              { $cell{crit} = "Unknown"; }
 
             push @loopfilter, \%cell;
         }
     }
     foreach my $type ( keys %$attr_filters ) {
         if ( $attr_filters->{$type} ) {
+            my $patron_attribute_type = Koha::Patron::Attribute::Types->find($type);
             push @loopfilter, {
-                crit   => "Attribute $type",
+                crit   => "PA_CLASS",
+                label  => $patron_attribute_type->description,
                 filter => $attr_filters->{$type}
             };
         }
@@ -322,7 +325,7 @@ sub calculate {
     #Initialization of cell values.....
     my %table;
 
-    #	warn "init table";
+    #    warn "init table";
     foreach my $row (@loopline) {
         foreach my $col (@loopcol) {
             my $rowtitle = $row->{rowtitle} // '';
@@ -415,7 +418,7 @@ sub calculate {
     my $emptycol;
     while ( my ( $row, $col, $value ) = $dbcalc->fetchrow ) {
 
-        #		warn "filling table $row / $col / $value ";
+        #        warn "filling table $row / $col / $value ";
         $emptycol = 1         if ( !defined($col) );
         $col      = "zzEMPTY" if ( !defined($col) );
         $row      = "zzEMPTY" if ( !defined($row) );
@@ -456,10 +459,10 @@ sub calculate {
 
             $total += $table{$rowtitle}->{$coltitle} || 0;
 
-            #			warn "value added ".$table{$row->{rowtitle}}->{$col->{coltitle}}. "for line ".$row->{rowtitle};
+            #            warn "value added ".$table{$row->{rowtitle}}->{$col->{coltitle}}. "for line ".$row->{rowtitle};
         }
 
-        #		warn "summ for column ".$col->{coltitle}."  = ".$total;
+        #        warn "summ for column ".$col->{coltitle}."  = ".$total;
         push @loopfooter, { 'totalcol' => $total };
     }
 
@@ -470,7 +473,7 @@ sub calculate {
     $globalline{looprow} = \@looprow;
     $globalline{loopcol} = \@loopcol;
 
-    # 	# the foot (totals by borrower type)
+    #     # the foot (totals by borrower type)
     $globalline{loopfooter} = \@loopfooter;
     $globalline{total}      = $grantotal;
     $globalline{line}       = ($line_attribute_type)   ? $line_attribute_type   : $line;

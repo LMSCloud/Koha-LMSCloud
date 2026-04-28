@@ -13,19 +13,20 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use DateTime;
 use Time::HiRes qw/gettimeofday time/;
-use Test::More tests => 2;
+use Test::NoWarnings;
+use Test::More tests => 3;
 use C4::Members;
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Database;
 
 use t::lib::TestBuilder;
-use t::lib::Mocks qw( mock_preference );
+use t::lib::Mocks;
 
 my $schema = Koha::Database->new->schema;
 $schema->storage->txn_begin;
@@ -44,6 +45,12 @@ subtest 'Tests for CalcDateDue related to dateexpiry' => sub {
 };
 
 sub can_book_be_issued {
+    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    t::lib::Mocks::mock_userenv(
+        {
+            branchcode => $library->branchcode,
+        }
+    );
     my $item   = $builder->build_sample_item;
     my $patron = $builder->build_object(
         {

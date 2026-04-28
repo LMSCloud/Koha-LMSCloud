@@ -52,25 +52,26 @@
             </fieldset>
         </div>
     </nav>
-
-    [% MACRO jsinclude BLOCK %]
-        <script>
-            function GetIt(aqbooksellerid, name) {
-                opener.document.f.aqbooksellerid.value = aqbooksellerid;
-                opener.document.f.aqbooksellername.value = name;
-                window.close();
-            }
-
-            $(document).ready(function () {
-                $(".select_vendor").on("click", function (e) {
-                    e.preventDefault();
-                    var vendorname = $(this).data("vendorname");
-                    var vendorid = $(this).data("vendorid");
-                    GetIt(vendorid, vendorname);
-                });
-            });
-        </script>
-    [% END %]
-
-    [% INCLUDE 'intranet-bottom.inc' popup_window=1 %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% MACRO jsinclude BLOCK %]
+    <script>
+        function GetIt(aqbooksellerid, name) {
+            opener.document.f.aqbooksellerid.value = aqbooksellerid;
+            opener.document.f.aqbooksellername.value = name;
+            window.close();
+        }
+
+        $(document).ready(function () {
+            $(".select_vendor").on("click", function (e) {
+                e.preventDefault();
+                var vendorname = $(this).data("vendorname");
+                var vendorid = $(this).data("vendorid");
+                GetIt(vendorid, vendorname);
+            });
+        });
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' popup_window=1 %]

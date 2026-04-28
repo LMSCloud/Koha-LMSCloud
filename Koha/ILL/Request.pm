@@ -15,7 +15,7 @@ package Koha::ILL::Request;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -449,18 +449,23 @@ Returns the installed I<Koha::Plugin> corresponding to the given backend_id or u
 sub get_backend_plugin {
     my ( $self, $backend_id ) = @_;
 
-    my $koha_plugins    = Koha::Plugins->new();
-    my @backend_plugins = $koha_plugins
-        ? Koha::Plugins->new()->GetPlugins(
-        {
-            method   => 'ill_backend',
-            metadata => { name => $backend_id },
-            all      => 1,
-        }
-        )
-        : ();
+    if ( !$self->{_plugin} ) {
+        my $koha_plugins    = Koha::Plugins->new();
+        my @backend_plugins = $koha_plugins
+            ? Koha::Plugins->new()->GetPlugins(
+            {
+                method   => 'ill_backend',
+                metadata => { name => $backend_id },
+                all      => 1,
+            }
+            )
+            : ();
 
-    return $backend_plugins[0];
+        $self->{_plugin} = $backend_plugins[0]
+            if scalar @backend_plugins;
+    }
+
+    return $self->{_plugin};
 }
 
 =head3 load_backend
@@ -483,16 +488,20 @@ sub load_backend {
         logger => Koha::ILL::Request::Logger->new
     };
 
-    # Find plugin implementing the backend for the request
-    my $backend_plugin = $self->get_backend_plugin($backend_name);
+    my $plugin;
+    if ( $backend_name ne 'Standard' ) {
+
+        # Find plugin implementing the backend for the request
+        $plugin = $self->get_backend_plugin($backend_name);
+    }
 
     if ( $backend_name eq 'Standard' ) {
 
         # Load the Standard core backend
         $self->{_my_backend} = Koha::ILL::Backend::Standard->new($backend_params);
-    } elsif ($backend_plugin) {
+    } elsif ($plugin) {
 
-        $self->{_my_backend} = $backend_plugin->new_ill_backend($backend_params);
+        $self->{_my_backend} = $plugin->new_ill_backend($backend_params);
     } elsif ($backend_name) {
 
         # Fallback to loading through backend_dir config
@@ -901,17 +910,39 @@ Mark a request as completed (status = COMP).
 =cut
 
 sub mark_completed {
-    my ($self) = @_;
-    $self->status('COMP')->store;
-    $self->completed( dt_from_string() )->store;
-    return {
-        error   => 0,
-        status  => '',
-        message => '',
-        method  => 'mark_completed',
-        stage   => 'commit',
-        next    => 'illview',
-    };
+    my ( $self, $params ) = @_;
+
+    my $stage = $params->{stage};
+
+    my $status_aliases_exist = Koha::AuthorisedValues->search( { category => 'ILL_STATUS_ALIAS' } )->count;
+
+    if ( ( !$stage || $stage eq 'init' ) && $status_aliases_exist ) {
+        return {
+            method => 'mark_completed',
+        };
+    } elsif ( !$stage || $stage eq 'complete' ) {
+
+        $self->status('COMP');
+        $self->status_alias( $params->{status_alias} ) if $params->{status_alias};
+        $self->completed( dt_from_string() );
+        $self->after_completed();
+        $self->store;
+        return {
+            stage => 'commit',
+            next  => 'illview',
+        };
+    } else {
+
+        # Invalid stage, return error.
+        return {
+            error   => 1,
+            status  => 'unknown_stage',
+            message => '',
+            method  => 'confirm',
+            stage   => $params->{stage},
+            value   => {},
+        };
+    }
 }
 
 =head2 backend_illview
@@ -1044,17 +1075,18 @@ pass it $params, as it does not yet have any other data associated with it.
 =cut
 
 sub backend_create {
-    my ( $self, $params ) = @_;
+    my ( $self, $params, $loggedin_patron ) = @_;
 
     # Establish whether we need to do a generic copyright clearance.
     if ( $params->{opac} ) {
 
+        my $patron_branchcode = $loggedin_patron ? $loggedin_patron->branchcode : undef;
         my $copyright_content = Koha::AdditionalContents->search_for_display(
             {
-                category   => 'html_customizations',
-                location   => ['ILLModuleCopyrightClearance'],
-                lang       => $params->{lang},
-                library_id => $params->{branchcode},
+                category => 'html_customizations',
+                location => ['ILLModuleCopyrightClearance'],
+                lang     => $params->{lang},
+                $patron_branchcode ? ( library_id => $patron_branchcode ) : (),
             }
         );
 
@@ -1075,7 +1107,8 @@ sub backend_create {
         } elsif ( defined $params->{stage}
             && $params->{stage} eq 'copyrightclearance' )
         {
-            $params->{stage} = 'init';
+            $params->{copyrightclearance_confirmed} = 1;
+            $params->{stage}                        = 'init';
         }
     }
 
@@ -1094,16 +1127,12 @@ sub backend_create {
     # ... complex case: commit!
 
     # Do we still have space for an ILL or should we queue?
-    my $permitted = $self->check_limits( { patron => $self->patron }, { librarycode => $self->branchcode } );
-
-    # Now augment our committed request.
-
-    $result->{permitted} = $permitted;    # Queue request?
-
-    # This involves...
-
-    # ...Updating status!
-    $self->status('QUEUED')->store unless ($permitted);
+    my $permitted = 1;
+    if ( $self->patron ) {
+        $permitted = $self->check_limits( { patron => $self->patron }, { librarycode => $self->branchcode } );
+        $result->{permitted} = $permitted;
+        $self->status('QUEUED')->store unless ($permitted);
+    }
 
     ## Handle Unmediated ILLs
 
@@ -1156,21 +1185,36 @@ sub expand_template {
     my ( $self, $params ) = @_;
     my $backend = $self->_backend->name;
 
+    my $auto_priority  = C4::Context->preference("AutoILLBackendPriority");
+    my $unauth_request = C4::Context->preference("ILLOpacUnauthenticatedRequest");
+    my $method         = $params->{method} // q{};
+    my $template_name  = "ill/backends/Standard/$method.inc";
+
+    if ( $backend eq 'Standard' || ( $method eq 'edititem' && $auto_priority ) ) {
+        $params->{template}      = $template_name;
+        $params->{opac_template} = $template_name;
+        return $params;
+    }
+
+    if ( $params->{error} && $params->{status} eq 'failed_captcha' && $auto_priority && $unauth_request ) {
+        $params->{template}      = $template_name;
+        $params->{opac_template} = $template_name;
+        $params->{stage}         = 'form';
+        return $params;
+    }
+
+    my $plugin = $self->get_backend_plugin( $self->_backend->name );
+
     # Generate path to file to load
     my $backend_dir;
     my $backend_tmpl;
 
-    my $backend_plugin = $self->get_backend_plugin( $self->_backend->name );
-    if ($backend_plugin) {
+    if ($plugin) {
 
         # New way of loading backends: Through plugins
-        $backend_dir  = $backend_plugin->bundle_path;
+        $backend_dir  = $plugin->bundle_path;
         $backend_tmpl = $backend_dir;
 
-    } elsif ( $backend eq 'Standard' ) {
-
-        # Check for core Standard backend
-        $backend_tmpl = dirname(__FILE__) . '/Backend';
     } else {
 
         # Old way of loading backends: Through backend_dir config
@@ -1178,14 +1222,13 @@ sub expand_template {
         $backend_tmpl = join "/", $backend_dir, $backend;
     }
 
-    my $intra_tmpl = join "/", $backend_tmpl, "intra-includes",
-        ( $params->{method} // q{} ) . ".inc";
-    my $opac_tmpl = join "/", $backend_tmpl, "opac-includes",
-        ( $params->{method} // q{} ) . ".inc";
+    my $intra_tmpl = join "/", $backend_tmpl, "intra-includes", "$method.inc";
+    my $opac_tmpl  = join "/", $backend_tmpl, "opac-includes",  "$method.inc";
 
     # Set files to load
     $params->{template}      = $intra_tmpl;
     $params->{opac_template} = $opac_tmpl;
+
     return $params;
 }
 
@@ -1263,6 +1306,90 @@ sub get_type_disclaimer_value {
     my $attr = $self->extended_attributes->find( { type => 'type_disclaimer_value' } );
     return if !$attr;
     return $attr->value;
+}
+
+=head3 set_copyright_clearance_confirmed
+
+    $request->set_copyright_clearance_confirmed(1);
+
+Sets the copyright clearance confirmation status for the request.
+
+=cut
+
+sub set_copyright_clearance_confirmed {
+    my ( $self, $confirmed ) = @_;
+
+    # Normalize to boolean: 0 or 1
+    my $value = $confirmed ? 1 : 0;
+
+    $self->add_or_update_attributes( { copyrightclearance_confirmed => $value } );
+
+    return $self;
+}
+
+=head3 add_or_update_attributes
+
+    $request->add_or_update_attributes({
+        title => 'Book Title',
+        author => 'Author Name',
+        isbn => '1234567890'
+    });
+
+Adds new attributes or updates existing ones. More efficient than extended_attributes()
+for updating existing attributes as it avoids duplicate key errors.
+
+=cut
+
+sub add_or_update_attributes {
+    my ( $self, $attributes ) = @_;
+
+    return unless $attributes && ref($attributes) eq 'HASH';
+
+    my $schema = $self->_result->result_source->schema;
+    $schema->txn_do(
+        sub {
+            while ( my ( $type, $value ) = each %{$attributes} ) {
+
+                # Skip undefined or empty values
+                next unless defined $value && $value ne '';
+
+                my $attr = $self->extended_attributes->find( { type => $type } );
+
+                if ($attr) {
+
+                    # Update existing attribute only if value changed
+                    $attr->update( { value => $value } ) if $attr->value ne $value;
+                } else {
+
+                    # Create new attribute
+                    Koha::ILL::Request::Attribute->new(
+                        {
+                            illrequest_id => $self->id,
+                            type          => $type,
+                            value         => $value,
+                            backend       => $self->backend,
+                        }
+                    )->store;
+                }
+            }
+        }
+    );
+
+    return $self;
+}
+
+=head3 get_copyright_clearance_confirmed
+
+    my $confirmed = $request->get_copyright_clearance_confirmed;
+
+Returns 1 if copyright clearance has been confirmed, 0 otherwise.
+
+=cut
+
+sub get_copyright_clearance_confirmed {
+    my ($self) = @_;
+    my $attr = $self->extended_attributes->find( { type => 'copyrightclearance_confirmed' } );
+    return $attr ? ( $attr->value ? 1 : 0 ) : 0;
 }
 
 =head3 get_type_disclaimer_date
@@ -1945,6 +2072,56 @@ sub attach_processors {
     }
 }
 
+=head3 add_unauthenticated_data
+
+    add_unauthenticated_data($metadata);
+
+Adds unauthenticated data as I<Koha::ILL::Request::Attributes>
+
+=cut
+
+sub add_unauthenticated_data {
+    my ( $self, $metadata ) = @_;
+
+    my $extended_attributes = $self->extended_attributes(
+        [
+            {
+                type  => 'unauthenticated_first_name',
+                value => $metadata->{'unauthenticated_first_name'},
+            },
+            {
+                type  => 'unauthenticated_last_name',
+                value => $metadata->{'unauthenticated_last_name'},
+            },
+            {
+                type  => 'unauthenticated_email',
+                value => $metadata->{'unauthenticated_email'},
+            },
+        ]
+    );
+}
+
+=head3 unauth_request_data_error
+
+    unauth_request_data_error($metadata);
+
+Checks if unauthenticated request data errored, returns error_code if so, else 0
+
+=cut
+
+sub unauth_request_data_error {
+    my ($metadata) = @_;
+
+    return 0 unless C4::Context->preference("ILLOpacUnauthenticatedRequest");
+    return 'missing_unauth_data'
+        unless $metadata->{unauthenticated_first_name}
+        && $metadata->{unauthenticated_last_name}
+        && $metadata->{unauthenticated_email};
+
+    return 'failed_captcha' if $metadata->{failed_captcha};
+    return 0;
+}
+
 =head3 append_to_note
 
     append_to_note("Some text");
@@ -2054,6 +2231,58 @@ sub store {
     return $ret;
 }
 
+=head3 after_completed
+
+    $request->after_completed;
+
+Actions to be done after the request has been completed
+
+=cut
+
+sub after_completed {
+    my ($self) = @_;
+
+    C4::Stats::UpdateStats(
+        {
+            borrowernumber => $self->borrowernumber // undef,
+            branch         => $self->branchcode,
+            categorycode   => $self->patron ? $self->patron->categorycode : undef,
+            ccode          => undef,
+            illrequest_id  => $self->illrequest_id,
+            itemnumber     => undef,
+            itemtype       => undef,
+            location       => undef,
+            type           => 'illreq_comp',
+        }
+    );
+}
+
+=head3 after_created
+
+    $request->after_created;
+
+Actions to be done after the request has been fully created
+
+=cut
+
+sub after_created {
+    my ($self) = @_;
+
+    C4::Stats::UpdateStats(
+        {
+            borrowernumber => $self->borrowernumber // undef,
+            branch         => $self->branchcode,
+            categorycode   => $self->patron ? $self->patron->categorycode : undef,
+            ccode          => undef,
+            illrequest_id  => $self->illrequest_id,
+            itemnumber     => undef,
+            itemtype       => undef,
+            location       => undef,
+            type           => 'illreq_created',
+        }
+    );
+}
+
 =head3 requested_partners
 
     my $partners_string = $request->requested_partners;
@@ -2090,6 +2319,20 @@ sub TO_JSON {
     my $object = $self->SUPER::TO_JSON();
 
     return $object;
+}
+
+=head3 public_read_list
+
+This method returns the list of publicly readable database fields for both API and UI output purposes
+
+=cut
+
+sub public_read_list {
+    return [
+        qw(
+            illrequest_id backend status status_alias extended_attributes placed updated
+        )
+    ];
 }
 
 =head2 Internal methods
@@ -2213,11 +2456,31 @@ Patron object
 sub can_patron_place_ill_in_opac {
     my ( $self, $patron ) = @_;
 
+    return 1 if C4::Context->preference('ILLOpacUnauthenticatedRequest') && !$patron;
+
     return 0
-        unless $patron->_result->categorycode->can_place_ill_in_opac
+        unless $patron
+        && $patron->_result->categorycode->can_place_ill_in_opac
         && !( $patron->is_expired
         && $patron->category->effective_BlockExpiredPatronOpacActions_contains('ill_request') );
     return 1;
+}
+
+=head3 get_history_check_requests
+
+    $self->get_history_check_requests();
+
+Returns a list of history check requests for this request
+
+=cut
+
+sub get_history_check_requests {
+    my ($self) = @_;
+
+    my $historycheck_attribute = $self->extended_attributes->find( { 'type' => 'historycheck_requests' } );
+    return unless $historycheck_attribute;
+
+    return Koha::ILL::Requests->search( { 'me.illrequest_id' => [ split qr{\|}, $historycheck_attribute->value ] } );
 }
 
 =head3 get_op_param_deprecation

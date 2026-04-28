@@ -37,33 +37,19 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' aside='tools-menu' %]
+    [% IF page %]
+        <h1>[% page.title | html %]</h1>
 
-                [% IF page %]
-                    <h1>[% page.title | html %]</h1>
-
-                    <div class="page"> [% page.content | $raw %] </div>
-                [% ELSE %]
-                    <div class="alert alert-warning"> This page does not exist. </div>
-                [% END %]
-            </main>
-        </div>
-        <!-- /.col-md-10.order-md-2 -->
-
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'tools-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
-
-    [% MACRO jsinclude BLOCK %]
-        [% Asset.js("js/tools-menu.js") | $raw %]
+        <div class="page"> [% page.content | $raw %] </div>
+    [% ELSE %]
+        <div class="alert alert-warning"> This page does not exist. </div>
     [% END %]
+[% END %]
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/tools-menu.js") | $raw %]
+[% END %]
 
     [% INCLUDE 'intranet-bottom.inc' %]
 </div>

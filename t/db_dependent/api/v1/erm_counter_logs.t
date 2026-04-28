@@ -15,11 +15,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use Test::NoWarnings;
+use Test::More tests => 4;
 use Test::Mojo;
 
 use t::lib::TestBuilder;
@@ -78,11 +79,13 @@ subtest 'list() tests' => sub {
     );
 
     # Two counter_logs created, they should both be returned
-    $t->get_ok("//$userid:$password@/api/v1/erm/counter_logs")->status_is(200)
+    $t->get_ok("//$userid:$password@/api/v1/erm/counter_logs")
+        ->status_is(200)
         ->json_is( [ $counter_log->to_api, $another_counter_log->to_api, ] );
 
     # Return 2 counter logs with patron embedded
-    $t->get_ok( "//$userid:$password@/api/v1/erm/counter_logs/" => { 'x-koha-embed' => 'patron' } )->status_is(200)
+    $t->get_ok( "//$userid:$password@/api/v1/erm/counter_logs/" => { 'x-koha-embed' => 'patron' } )
+        ->status_is(200)
         ->json_is(
         [
             { %{ $counter_log->to_api }, patron => $counter_log->patron->to_api( { user => $librarian } ) },
@@ -94,7 +97,8 @@ subtest 'list() tests' => sub {
         );
 
     # Warn on unsupported query parameter
-    $t->get_ok("//$userid:$password@/api/v1/erm/counter_logs?blah=blah")->status_is(400)
+    $t->get_ok("//$userid:$password@/api/v1/erm/counter_logs?blah=blah")
+        ->status_is(400)
         ->json_is( [ { path => '/query/blah', message => 'Malformed query string' } ] );
 
     # Unauthorized access

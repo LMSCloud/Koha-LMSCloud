@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 stockrotation.pl
 
@@ -473,7 +473,9 @@ sub process_rota {
 
     if ($rota) {
 
-        $rota->title( $sub_rota->{title} )->cyclical( $sub_rota->{cyclical} )->description( $sub_rota->{description} )
+        $rota->title( $sub_rota->{title} )
+            ->cyclical( $sub_rota->{cyclical} )
+            ->description( $sub_rota->{description} )
             ->store;
 
     } else {

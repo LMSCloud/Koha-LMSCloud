@@ -15,7 +15,7 @@ package Koha::Plugins::Base;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -34,6 +34,12 @@ use Koha::Cache::Memory::Lite;
 =head1 NAME
 
 Koha::Plugins::Base - Base Module for plugins
+
+=cut
+
+=head2 new
+
+Missing POD for new.
 
 =cut
 
@@ -62,7 +68,7 @@ sub new {
                 warn "Plugin $class failed during installation!";
             }
         } catch {
-            Koha::Exceptions::Plugin::InstallDied->throw( plugin_class => $class );
+            Koha::Exceptions::Plugin::InstallDied->throw( plugin_class => $class, install_error => "$_" );
         };
     } elsif ( $self->can('upgrade') ) {
         if ( _version_compare( $plugin_version, $database_version ) == 1 ) {
@@ -73,7 +79,7 @@ sub new {
                     warn "Plugin $class failed during upgrade!";
                 }
             } catch {
-                Koha::Exceptions::Plugin::UpgradeDied->throw( plugin_class => $class );
+                Koha::Exceptions::Plugin::UpgradeDied->throw( plugin_class => $class, upgrade_error => "$_" );
             };
         }
     } elsif ( $plugin_version ne $database_version ) {
@@ -150,7 +156,7 @@ Then name of the plugin method used. For example 'tool' or 'report'.
 =item B<PLUGIN_PATH>
 
 The URL path to the plugin. It can be used in templates in order to localize
-ressources like images in html tags, or other templates.
+resources like images in html tags, or other templates.
 
 =item B<PLUGIN_DIR>
 
@@ -190,6 +196,12 @@ sub get_template {
 
     return $template;
 }
+
+=head2 get_metadata
+
+Missing POD for get_metadata.
+
+=cut
 
 sub get_metadata {
     my ( $self, $args ) = @_;
@@ -255,8 +267,8 @@ Note: this is a wrapper function for C4::Output::output_with_http_headers
 =cut
 
 sub output_html {
-    my ( $self, $data, $status, $extra_options ) = @_;
-    output_with_http_headers( $self->{cgi}, undef, $data, 'html', $status, $extra_options );
+    my ( $self, $data, $status, $extra_options, $cookie ) = @_;
+    output_with_http_headers( $self->{cgi}, $cookie, $data, 'html', $status, $extra_options );
 }
 
 =head2 bundle_path
@@ -332,7 +344,7 @@ sub _version_compare {
         push( @v1, 0 ) unless defined( $v1[$i] );
         push( @v2, 0 ) unless defined( $v2[$i] );
 
-        # Strip letters before comparing, supresses 'Argument "v1" isn't numeric in int' warning
+        # Strip letters before comparing, suppresses 'Argument "v1" isn't numeric in int' warning
         $v1[$i] =~ s/^v//g;
         $v2[$i] =~ s/^v//g;
 
@@ -347,7 +359,7 @@ sub _version_compare {
 
 =head2 is_enabled
 
-Method that returns wether the plugin is enabled or not
+Method that returns whether the plugin is enabled or not
 
 $plugin->enable
 

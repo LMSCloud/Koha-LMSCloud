@@ -15,14 +15,15 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # Testing private routine C4::Serials::_handle_seqno of ModSerialStatus
 
 use Modern::Perl;
 use Data::Dumper qw/Dumper/;
 
-use Test::More tests => 8;
+use Test::NoWarnings;
+use Test::More tests => 9;
 
 use C4::Serials;
 

@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 #-----------------------------------
 
 =head1 NAME
@@ -42,9 +42,9 @@ cronlogaction( { info => $command_line_options } );
 
 GetOptions( 'h|hours=s' => \$hours, );
 
-my $usage = << 'ENDUSAGE';
+my $usage = <<'ENDUSAGE';
 cart_to_shelf.pl: This cron script will set any item of the location CART ( Shelving Cart ) to it's original shelving location
-                 after the given numer of hours has passed.
+                 after the given number of hours has passed.
 
 This script takes the following parameters :
 

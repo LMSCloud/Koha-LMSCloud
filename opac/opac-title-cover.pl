@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 DESCRIPTION
 
@@ -38,8 +38,7 @@ use MARC::File::USMARC;
 use MARC::Record;
 
 use C4::Context;
-use C4::Debug;
-use C4::Output qw(:html :ajax pagination_bar);
+use C4::Output qw( output_ajax_with_http_headers );
 use C4::Search;
 use C4::Charset;
 use C4::Koha;

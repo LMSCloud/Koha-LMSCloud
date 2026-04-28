@@ -25,7 +25,7 @@
         [% ELSE %]
             [% t("New label layout") | html %]
         [% END %]
-        &rsaquo; [% t("Layouts") | html %] &rsaquo; [% t("Label creator") | html %] &rsaquo; [% t("Cataloging") | html %] &rsaquo; [% t("Koha") | html %]
+        &rsaquo; [% t("Label layouts") | html %] &rsaquo; [% t("Label creator") | html %] &rsaquo; [% t("Cataloging") | html %] &rsaquo; [% t("Koha") | html %]
     [% END %]</title
 >
 [% INCLUDE 'doc-head-close.inc' %]
@@ -55,7 +55,7 @@
             <a href="/cgi-bin/koha/labels/label-home.pl">Label creator</a>
         [% END %]
         [% WRAPPER breadcrumb_item %]
-            <a href="/cgi-bin/koha/labels/label-manage.pl?label_element=layout">Layouts</a>
+            <a href="/cgi-bin/koha/labels/label-manage.pl?label_element=layout">Label layouts</a>
         [% END %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
             [% IF ( layout_id ) %]
@@ -67,214 +67,200 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
+[% WRAPPER 'main-container.inc' aside='labels-menu' %]
+    [% INCLUDE 'labels-toolbar.inc' %]
 
-                [% INCLUDE 'labels-toolbar.inc' %]
+    [% IF ( layout_id ) %]
+        <h1>Edit label layout [% layout_id | html %]</h1>
+    [% ELSE %]
+        <h1>New label layout</h1>
+    [% END %]
 
-                [% IF ( layout_id ) %]
-                    <h1>Edit label layout [% layout_id | html %]</h1>
-                [% ELSE %]
-                    <h1>New label layout</h1>
-                [% END %]
-
-                <form name="input" action="/cgi-bin/koha/labels/label-edit-layout.pl" method="post">
-                    <fieldset class="rows">
+    <form name="input" action="/cgi-bin/koha/labels/label-edit-layout.pl" method="post">
+        <fieldset class="rows">
+            <ol>
+                <li>
+                    <label for="layout_name">Layout name: </label>
+                    <input type="text" name="layout_name" id="layout_name" size="20" value="[% layout_name | html %]" />
+                </li>
+                <li>
+                    <label for="barcode_type">Choose barcode type (encoding): </label>
+                    <select name="barcode_type" id="barcode_type">
+                        [% FOREACH barcode_type IN barcode_types %]
+                            [% IF ( barcode_type.selected ) %]
+                                <option value="[% barcode_type.type | html %]" selected="selected">[% barcode_type.name | html %]</option>
+                            [% ELSE %]
+                                <option value="[% barcode_type.type | html %]">[% barcode_type.name | html %]</option>
+                            [% END %]
+                        [% END %]
+                    </select>
+                </li>
+                <li>
+                    <label for="printing_type">Choose layout type: </label>
+                    <select name="printing_type" id="printing_type">
+                        [% FOREACH label_type IN label_types %]
+                            [% IF ( label_type.selected ) %]
+                                <option value="[% label_type.type | html %]" selected="selected">[% PROCESS translate_label_types type=label_type.type %]</option>
+                            [% ELSE %]
+                                <option value="[% label_type.type | html %]">[% PROCESS translate_label_types type=label_type.type %]</option>
+                            [% END %]
+                        [% END %]
+                    </select>
+                </li>
+                <li>
+                    <fieldset>
+                        <legend>Bibliographic data to print</legend>
                         <ol>
-                            <li>
-                                <label for="layout_name">Layout name: </label>
-                                <input type="text" name="layout_name" id="layout_name" size="20" value="[% layout_name | html %]" />
-                            </li>
-                            <li>
-                                <label for="barcode_type">Choose barcode type (encoding): </label>
-                                <select name="barcode_type" id="barcode_type">
-                                    [% FOREACH barcode_type IN barcode_types %]
-                                        [% IF ( barcode_type.selected ) %]
-                                            <option value="[% barcode_type.type | html %]" selected="selected">[% barcode_type.name | html %]</option>
-                                        [% ELSE %]
-                                            <option value="[% barcode_type.type | html %]">[% barcode_type.name | html %]</option>
-                                        [% END %]
-                                    [% END %]
-                                </select>
-                            </li>
-                            <li>
-                                <label for="printing_type">Choose layout type: </label>
-                                <select name="printing_type" id="printing_type">
-                                    [% FOREACH label_type IN label_types %]
-                                        [% IF ( label_type.selected ) %]
-                                            <option value="[% label_type.type | html %]" selected="selected">[% PROCESS translate_label_types type=label_type.type %]</option>
-                                        [% ELSE %]
-                                            <option value="[% label_type.type | html %]">[% PROCESS translate_label_types type=label_type.type %]</option>
-                                        [% END %]
-                                    [% END %]
-                                </select>
-                            </li>
-                            <li>
-                                <fieldset>
-                                    <legend>Bibliographic data to print</legend>
-                                    <ol>
-                                        <li class="radio"
-                                            >[% IF ( layout_string ) %]
-                                                <input type="radio" name="layout_choice" id="layout_choice_order" value="layout_table" checked="checked" /><label for="layout_choice_order">Choose order of text fields to print</label>
-                                            [% ELSE %]
-                                                <input type="radio" name="layout_choice" id="layout_choice_order" value="layout_table" /><label for="layout_choice_order">Choose order of text fields to print</label>
-                                            [% END %]
-                                            <div id="layout_table">
-                                                <p>
-                                                    [% FOREACH text_field IN fields %]
-                                                        <select name="[% text_field.field_name | html %]" id="[% text_field.field_name |url %]">
-                                                            <option value=""></option>
-                                                            [% FOREACH orde IN [1..field_count] %]
-                                                                [% IF ( orde == text_field.order ) %]
-                                                                    <option value="[% orde | html %]" selected="1">[% orde | html %]</option>
-                                                                [% ELSE %]
-                                                                    <option value="[% orde | html %]">[% orde | html %]</option>
-                                                                [% END %]
-                                                            [% END %] </select
-                                                        >&nbsp;<label for="[% text_field.field_name |url %]">[% text_field.field_label | html %]</label>
-
-                                                        &nbsp;&nbsp;
+                            <li class="radio"
+                                >[% IF ( layout_string ) %]
+                                    <input type="radio" name="layout_choice" id="layout_choice_order" value="layout_table" checked="checked" /><label for="layout_choice_order">Choose order of text fields to print</label>
+                                [% ELSE %]
+                                    <input type="radio" name="layout_choice" id="layout_choice_order" value="layout_table" /><label for="layout_choice_order">Choose order of text fields to print</label>
+                                [% END %]
+                                <div id="layout_table">
+                                    <p>
+                                        [% FOREACH text_field IN fields %]
+                                            <select name="[% text_field.field_name | html %]" id="[% text_field.field_name |url %]">
+                                                <option value=""></option>
+                                                [% FOREACH orde IN [1..field_count] %]
+                                                    [% IF ( orde == text_field.order ) %]
+                                                        <option value="[% orde | html %]" selected="1">[% orde | html %]</option>
+                                                    [% ELSE %]
+                                                        <option value="[% orde | html %]">[% orde | html %]</option>
                                                     [% END %]
-                                                </p>
-                                            </div>
-                                        </li>
-                                        [% UNLESS ( layout_string ) %]
-                                            <li class="radio"><input type="radio" id="layout_choice_list" name="layout_choice" value="layout_string" checked="checked" /> <label for="layout_choice_list">List fields</label></li>
-                                        [% ELSE %]
-                                            <li class="radio"><input type="radio" id="layout_choice_list" name="layout_choice" value="layout_string" /> <label for="layout_choice_list">List fields</label></li>
+                                                [% END %] </select
+                                            >&nbsp;<label for="[% text_field.field_name |url %]">[% text_field.field_label | html %]</label>
+
+                                            &nbsp;&nbsp;
                                         [% END %]
-                                        <li>
-                                            <fieldset id="layout_string" class="brief">
-                                                <label for="format_string">Data fields</label>
-                                                <input type="text" name="format_string" id="format_string" size="80" value="[% format_string | html %]" />
-                                                <div class="hint">
-                                                    <p>Enter a comma separated list of fields to print. You may include any <em>Koha field</em> or MARC subfield.</p>
-                                                    <p>See online help for advanced options</p>
-                                                    <p>ex: barcode, itemcallnumber, title, "050a 050b", 300a </p>
-                                                    <p>Fields homebranch_description, holdingbranch_description, ccode_description, location_description and permanent_location_description show description instead of code.</p>
-                                                </div>
-                                            </fieldset></li
-                                        >
-                                    </ol>
-                                </fieldset>
+                                    </p>
+                                </div>
                             </li>
+                            [% UNLESS ( layout_string ) %]
+                                <li class="radio"><input type="radio" id="layout_choice_list" name="layout_choice" value="layout_string" checked="checked" /> <label for="layout_choice_list">List fields</label></li>
+                            [% ELSE %]
+                                <li class="radio"><input type="radio" id="layout_choice_list" name="layout_choice" value="layout_string" /> <label for="layout_choice_list">List fields</label></li>
+                            [% END %]
                             <li>
-                                <label for="guidebox">Draw guide boxes: </label>
-                                [% IF ( guidebox ) %]
-                                    <input type="checkbox" name="guidebox" id="guidebox" value="1" checked="checked" />
-                                [% ELSE %]
-                                    <input type="checkbox" name="guidebox" id="guidebox" value="1" />
-                                [% END %]
-                            </li>
-                            <li>
-                                <label for="callnum_split">Split call numbers: </label>
-                                [% IF ( callnum_split ) %]
-                                    <input type="checkbox" name="callnum_split" id="callnum_split" value="1" checked="checked" />
-                                [% ELSE %]
-                                    <input type="checkbox" name="callnum_split" id="callnum_split" value="1" />
-                                [% END %]
-                            </li>
-                            <li>
-                                <label for="text_justify">Text justification: </label>
-                                <select name="text_justify" id="text_justify">
-                                    [% FOREACH text_justification_type IN text_justification_types %]
-                                        [% IF ( text_justification_type.selected ) %]
-                                            <option value="[% text_justification_type.type | html %]" selected="selected">[% PROCESS translate_justification_types type=text_justification_type.type %]</option>
-                                        [% ELSE %]
-                                            <option value="[% text_justification_type.type | html %]">[% PROCESS translate_justification_types type=text_justification_type.type %]</option>
-                                        [% END %]
-                                    [% END %]
-                                </select>
-                            </li>
-                            <li>
-                                <label for="font">Font: </label>
-                                <select name="font" id="font">
-                                    [% FOREACH font_type IN font_types %]
-                                        [% IF ( font_type.selected ) %]
-                                            <option value="[% font_type.type | html %]" selected="selected">[% font_type.name | html %]</option>
-                                        [% ELSE %]
-                                            <option value="[% font_type.type | html %]">[% font_type.name | html %]</option>
-                                        [% END %]
-                                    [% END %]
-                                </select>
-                            </li>
-                            <li>
-                                <label for="font_size">Font size: </label>
-                                <input type="text" name="font_size" id="font_size" size="2" value="[% font_size | html %]" />
-                            </li>
-                            <li>
-                                <label for="scale_width">Barcode width: </label>
-                                <input type="text" name="scale_width" id="scale_width" size="2" value="[% scale_width | html %]" />
-                            </li>
-                            <li>
-                                <label for="scale_height">Barcode height: </label>
-                                <input type="text" name="scale_height" id="scale_height" size="2" value="[% scale_height | html %]" />
-                            </li>
-                            <li>
-                                <label for="oblique_title">Oblique title: </label>
-                                [% IF ( oblique_title ) %]
-                                    <input type="checkbox" name="oblique_title" id="oblique_title" value="1" checked="checked" />
-                                [% ELSE %]
-                                    <input type="checkbox" name="oblique_title" id="oblique_title" value="1" />
-                                [% END %]
-                            </li>
-                            <li>
-                                <label for="line_height">Line height: </label>
-                                <input type="number" name="line_height" id="line_height" min="0.0" max="99.99" step="0.1" value="[% line_height | html %]" />
-                            </li>
+                                <fieldset id="layout_string" class="brief">
+                                    <label for="format_string">Data fields</label>
+                                    <input type="text" name="format_string" id="format_string" size="80" value="[% format_string | html %]" />
+                                    <div class="hint">
+                                        <p>Enter a comma separated list of fields to print. You may include any <em>Koha field</em> or MARC subfield.</p>
+                                        <p>See online help for advanced options</p>
+                                        <p>ex: barcode, itemcallnumber, title, "050a 050b", 300a </p>
+                                        <p>Fields homebranch_description, holdingbranch_description, ccode_description, location_description and permanent_location_description show description instead of code.</p>
+                                    </div>
+                                </fieldset></li
+                            >
                         </ol>
                     </fieldset>
-                    <fieldset class="action">
-                        [% INCLUDE 'csrf-token.inc' %]
-                        <input type="hidden" name="op" value="cud-save" />
-                        <input type="hidden" name="layout_id" value="[% layout_id | html %]" />
-                        <input type="submit" class="btn btn-primary" value="Save" />
-                        <a class="cancel" href="/cgi-bin/koha/labels/label-manage.pl?label_element=layout">Cancel</a>
-                    </fieldset>
-                </form>
-            </main>
-        </div>
-        <!-- /.col-md-10.order-md-2 -->
+                </li>
+                <li>
+                    <label for="guidebox">Draw guide boxes: </label>
+                    [% IF ( guidebox ) %]
+                        <input type="checkbox" name="guidebox" id="guidebox" value="1" checked="checked" />
+                    [% ELSE %]
+                        <input type="checkbox" name="guidebox" id="guidebox" value="1" />
+                    [% END %]
+                </li>
+                <li>
+                    <label for="callnum_split">Split call numbers: </label>
+                    [% IF ( callnum_split ) %]
+                        <input type="checkbox" name="callnum_split" id="callnum_split" value="1" checked="checked" />
+                    [% ELSE %]
+                        <input type="checkbox" name="callnum_split" id="callnum_split" value="1" />
+                    [% END %]
+                </li>
+                <li>
+                    <label for="text_justify">Text justification: </label>
+                    <select name="text_justify" id="text_justify">
+                        [% FOREACH text_justification_type IN text_justification_types %]
+                            [% IF ( text_justification_type.selected ) %]
+                                <option value="[% text_justification_type.type | html %]" selected="selected">[% PROCESS translate_justification_types type=text_justification_type.type %]</option>
+                            [% ELSE %]
+                                <option value="[% text_justification_type.type | html %]">[% PROCESS translate_justification_types type=text_justification_type.type %]</option>
+                            [% END %]
+                        [% END %]
+                    </select>
+                </li>
+                <li>
+                    <label for="font">Font: </label>
+                    <select name="font" id="font">
+                        [% FOREACH font_type IN font_types %]
+                            [% IF ( font_type.selected ) %]
+                                <option value="[% font_type.type | html %]" selected="selected">[% font_type.name | html %]</option>
+                            [% ELSE %]
+                                <option value="[% font_type.type | html %]">[% font_type.name | html %]</option>
+                            [% END %]
+                        [% END %]
+                    </select>
+                </li>
+                <li>
+                    <label for="font_size">Font size: </label>
+                    <input type="text" name="font_size" id="font_size" size="2" value="[% font_size | html %]" />
+                </li>
+                <li>
+                    <label for="scale_width">Barcode width: </label>
+                    <input type="text" name="scale_width" id="scale_width" size="2" value="[% scale_width | html %]" />
+                </li>
+                <li>
+                    <label for="scale_height">Barcode height: </label>
+                    <input type="text" name="scale_height" id="scale_height" size="2" value="[% scale_height | html %]" />
+                </li>
+                <li>
+                    <label for="oblique_title">Oblique title: </label>
+                    [% IF ( oblique_title ) %]
+                        <input type="checkbox" name="oblique_title" id="oblique_title" value="1" checked="checked" />
+                    [% ELSE %]
+                        <input type="checkbox" name="oblique_title" id="oblique_title" value="1" />
+                    [% END %]
+                </li>
+                <li>
+                    <label for="line_height">Line height: </label>
+                    <input type="number" name="line_height" id="line_height" min="0.0" max="99.99" step="0.1" value="[% line_height | html %]" />
+                </li>
+            </ol>
+        </fieldset>
+        <fieldset class="action">
+            [% INCLUDE 'csrf-token.inc' %]
+            <input type="hidden" name="op" value="cud-save" />
+            <input type="hidden" name="layout_id" value="[% layout_id | html %]" />
+            <input type="submit" class="btn btn-primary" value="Save" />
+            <a class="cancel" href="/cgi-bin/koha/labels/label-manage.pl?label_element=layout">Cancel</a>
+        </fieldset>
+    </form>
+[% END %]
 
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'cat-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
-
-    [% MACRO jsinclude BLOCK %]
-        <script>
-            $(document).ready(function () {
-                $('#navmenulist a[href$="/cgi-bin/koha/labels/label-home.pl"]').addClass("current");
-                $("input[name='layout_choice']").change(function () {
-                    layout_method();
-                });
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("js/labels-menu.js") | $raw %]
+    <script>
+        $(document).ready(function () {
+            $('.sidebar_menu a[href$="/cgi-bin/koha/labels/label-home.pl"]').addClass("current");
+            $("input[name='layout_choice']").change(function () {
                 layout_method();
-                $("#font").on("change", function () {
-                    checkOblique();
-                });
             });
-            function layout_method() {
-                if ($("input[name='layout_choice']:checked").val() == "layout_string") {
-                    $("#layout_table").hide();
-                    $("#layout_string").show();
-                } else {
-                    $("#layout_table").show();
-                    $("#layout_string").hide();
-                }
+            layout_method();
+            $("#font").on("change", function () {
+                checkOblique();
+            });
+        });
+        function layout_method() {
+            if ($("input[name='layout_choice']:checked").val() == "layout_string") {
+                $("#layout_table").hide();
+                $("#layout_string").show();
+            } else {
+                $("#layout_table").show();
+                $("#layout_string").hide();
             }
-            function checkOblique() {
-                var font = document.getElementById("font");
-                var selectedfont = font.options[font.selectedIndex].value;
-                if (selectedfont.match("I$") || selectedfont.match("O$")) {
-                    document.getElementById("oblique_title").disabled = true;
-                } else {
-                    document.getElementById("oblique_title").disabled = false;
-                }
+        }
+        function checkOblique() {
+            var font = document.getElementById("font");
+            var selectedfont = font.options[font.selectedIndex].value;
+            if (selectedfont.match("I$") || selectedfont.match("O$")) {
+                document.getElementById("oblique_title").disabled = true;
+            } else {
+                document.getElementById("oblique_title").disabled = false;
             }
         </script>
     [% END %]

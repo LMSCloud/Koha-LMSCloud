@@ -13,18 +13,19 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use MARC::Record;
-use Test::More tests => 3;
+use Test::NoWarnings;
+use Test::More tests => 4;
 use Test::Warn;
 
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
 use Koha::Database;
-use C4::Matcher qw( GetMatcherList GetMatcherId );
+use C4::Matcher;
 
 my $schema  = Koha::Database->new->schema;
 my $builder = t::lib::TestBuilder->new;
@@ -59,7 +60,7 @@ subtest 'GetMatcherList' => sub {
     ok( $testmatcher = C4::Matcher->new( 'blue', 0 ), 'testing matcher new' );
 
     $testmatcher->threshold(1000);
-    is( $testmatcher->threshold(), 1000, 'testing threshhold accessor method' );
+    is( $testmatcher->threshold(), 1000, 'testing threshold accessor method' );
 
     $testmatcher->_id(53);
     is( $testmatcher->_id(), 53, 'testing _id accessor' );

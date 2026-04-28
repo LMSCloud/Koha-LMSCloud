@@ -13,7 +13,7 @@ package Koha::REST::V1::Biblios;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -220,6 +220,11 @@ sub get_public {
 
         my $schema = $biblio->metadata->schema // C4::Context->preference("marcflavour");
         my $patron = $c->stash('koha.user');
+
+        # Check if the bibliographic record is suppressed in OPAC
+        if ( C4::Context->preference('OpacSuppression') && $biblio->opac_suppressed ) {
+            return $c->render_resource_not_found("Bibliographic record");
+        }
 
         # Check if the bibliographic record should be hidden for unprivileged access
         # unless there's a logged in user, and there's an exception for it's category
@@ -630,6 +635,9 @@ sub get_items_public {
         $c->param('biblio_id'),
         { prefetch => ['items'] }
     );
+    my $bookable_only = $c->param('bookable');
+
+    $c->req->params->remove('bookable');
 
     return $c->render_resource_not_found("Bibliographic record")
         unless $biblio;
@@ -639,7 +647,8 @@ sub get_items_public {
         my $patron = $c->stash('koha.user');
 
         my $items_rs = $biblio->items->filter_by_visible_in_opac( { patron => $patron } );
-        my $items    = $c->objects->search($items_rs);
+        $items_rs = $items_rs->filter_by_bookable if $bookable_only;
+        my $items = $c->objects->search($items_rs);
         return $c->render(
             status  => 200,
             openapi => $items

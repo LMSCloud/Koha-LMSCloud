@@ -1,5 +1,6 @@
 [% USE raw %]
 [% USE Koha %]
+[% SET admin = Koha.Preference('ReplytoDefault') || Koha.Preference('KohaAdminEmailAddress') %]
 [% PROCESS 'i18n.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title
@@ -18,8 +19,8 @@
 
 [% WRAPPER 'sub-header.inc' %]
     [% WRAPPER breadcrumbs %]
-        [% WRAPPER breadcrumb_item %]
-            <a href="#" aria-current="page"> [% tx("Error {error_number}", {error_number = errno }) | html %] </a>
+        [% WRAPPER breadcrumb_item bc_active = 1 %]
+            [% tx("Error {error_number}", {error_number = errno }) | html %]
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
@@ -51,6 +52,8 @@
         <!-- /.col-md-8 -->
     </div>
     <!-- /.row -->
+</div>
+<!-- /.main.container-fluid -->
 
     [% INCLUDE 'intranet-bottom.inc' %]
 </div>

@@ -6,10 +6,11 @@
 use strict;
 use warnings;
 
-use Test::More tests => 2;
+use Test::NoWarnings;
+use Test::More tests => 3;
 
 BEGIN {
-    use_ok( 'C4::AuthoritiesMarc::UNIMARC', qw( default_auth_type_location ) );
+    use_ok('C4::AuthoritiesMarc::UNIMARC');
 }
 
 my @test = C4::AuthoritiesMarc::UNIMARC::default_auth_type_location();

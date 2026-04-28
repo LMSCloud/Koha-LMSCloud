@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -209,10 +209,10 @@ if ( $op and $op eq 'cud-serialchangestatus' ) {
         my ( $plan_date, $pub_date );
 
         if ( defined $planneddates[$i] && $planneddates[$i] ne 'XXX' ) {
-            $plan_date = $planneddates[$i];
+            $plan_date = $planneddates[$i] || undef;
         }
         if ( defined $publisheddates[$i] && $publisheddates[$i] ne 'XXX' ) {
-            $pub_date = $publisheddates[$i];
+            $pub_date = $publisheddates[$i] || undef;
         }
 
         if ( $serialids[$i] && $serialids[$i] eq 'NEW' ) {

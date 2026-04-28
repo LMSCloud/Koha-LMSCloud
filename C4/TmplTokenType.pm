@@ -15,10 +15,10 @@ package C4::TmplTokenType;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-require Exporter;
+use base 'Exporter';
 
 ###############################################################################
 
@@ -40,13 +40,8 @@ The predefined constants are
 use vars qw( $_text $_text_parametrized $_cdata
     $_tag $_decl $_pi $_directive $_comment $_null $_unknown );
 
-our ( @ISA, @EXPORT_OK );
-
 BEGIN {
-
-    require Exporter;
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
+    our @EXPORT_OK = qw(
         TEXT
         TEXT_PARAMETRIZED
         CDATA
@@ -76,6 +71,12 @@ BEGIN {
     $_comment           = &$new( 6, 'COMMENT' );
     $_unknown           = &$new( 7, 'UNKNOWN' );
 }
+
+=head2 to_string
+
+Missing POD for to_string.
+
+=cut
 
 sub to_string {
     my $this = shift;

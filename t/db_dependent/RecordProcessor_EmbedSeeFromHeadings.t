@@ -15,15 +15,15 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
-use strict;
-use warnings;
+use Modern::Perl;
 use File::Spec;
 use MARC::Record;
 use Koha::MetadataRecord::Authority;
 
-use Test::More;
+use Test::NoWarnings;
+use Test::More tests => 5;
 use Test::MockModule;
 use Test::MockObject;
 
@@ -112,5 +112,3 @@ subtest "EmbedSeeFromHeadings should skip holdings fields" => sub {
 
     is_deeply( $result, $record_copy, 'Holdings fields not processed to introduce See-from heading' );
 };
-
-done_testing();

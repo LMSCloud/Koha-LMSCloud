@@ -2,7 +2,8 @@
 
 use Modern::Perl;
 
-use Test::More tests => 14;
+use Test::NoWarnings;
+use Test::More tests => 15;
 use C4::Context;
 use C4::Acquisition qw( NewBasket GetOrders GetOrder TransferOrder SearchOrders ModReceiveOrder CancelReceipt );
 use C4::Biblio;
@@ -84,7 +85,7 @@ $order = Koha::Acquisition::Orders->find( $order->{ordernumber} );
 is( $order->items->count,         1, "1 item in basket1's order" );
 is( scalar GetOrders($basketno2), 0, "0 order in basket2" );
 
-# Transfering order to basket2
+# Transferring order to basket2
 my $newordernumber = TransferOrder( $ordernumber, $basketno2 );
 is( scalar GetOrders($basketno1), 0, "0 order in basket1" );
 is( scalar GetOrders($basketno2), 1, "1 order in basket2" );

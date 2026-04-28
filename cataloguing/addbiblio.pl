@@ -1,4 +1,4 @@
-#!/usr/bin/perl 
+#!/usr/bin/perl
 
 # Copyright 2000-2002 Katipo Communications
 # Copyright 2004-2010 BibLibre
@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use CGI;
@@ -52,7 +52,7 @@ use Koha::Biblios;
 use Koha::ItemTypes;
 use Koha::Libraries;
 
-use Koha::BiblioFrameworks;
+use Koha::Biblio::Metadata::Extractor::MARC::MARC21;
 use Koha::Patrons;
 use Koha::UI::Form::Builder::Biblio;
 
@@ -644,6 +644,7 @@ if ($hostbiblionumber) {
 if ($parentbiblio) {
     my $marcflavour = C4::Context->preference('marcflavour');
     $record = MARC::Record->new();
+    $record->leader('     naa a22      i 4500');
     SetMarcUnicodeFlag( $record, $marcflavour );
     my $parent    = Koha::Biblios->find($parentbiblio);
     my $hostfield = $parent->generate_marc_host_field;
@@ -830,7 +831,12 @@ if ( $op eq "cud-addbiblio" ) {
 
 } else {
 
-    #----------------------------------------------------------------------------
+    if ( $biblio && C4::Context->preference('marcflavour') eq 'MARC21' ) {
+        my $fixed_length_info =
+            Koha::Biblio::Metadata::Extractor::MARC->new( { biblio => $biblio } )->check_fixed_length;
+        $template->param( marc21_fixlen => $fixed_length_info ) if @{ $fixed_length_info->{failed} };
+    }
+
     # If we're in a duplication case, we have to set to "" the biblionumber
     # as we'll save the biblio as a new one.
     $template->param(

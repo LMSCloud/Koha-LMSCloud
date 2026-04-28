@@ -15,7 +15,7 @@ package Koha::Exception;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -60,6 +60,8 @@ Generic exception.
 =head2 full_message
 
 Generic method for exception stringifying.
+
+=head2 description
 
 =cut
 

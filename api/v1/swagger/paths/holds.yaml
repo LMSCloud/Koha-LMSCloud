@@ -106,6 +106,8 @@
             - biblio
             - deleted_biblio
             - pickup_library
+            - item
+            - patron
         collectionFormat: csv
     produces:
       - application/json
@@ -199,7 +201,7 @@
               type:
                 - string
                 - "null"
-            item_type:
+            item_type_id:
               description: Limit hold on one itemtype (ignored for item-level holds)
               type:
                 - string
@@ -222,6 +224,12 @@
           type: string
           enum:
             - any
+            - bad_address
+            - card_lost
+            - debt_limit
+            - expired
+            - hold_limit
+            - restricted
         collectionFormat: csv
     consumes:
       - application/json
@@ -248,6 +256,18 @@
         description: Borrower not found
         schema:
           $ref: "../swagger.yaml#/definitions/error"
+      "409":
+        description: |
+          Conflict. Possible `error_code` attribute values:
+
+            * `bad_address`
+            * `card_lost`
+            * `debt_limit`
+            * `expired`
+            * `hold_limit`
+            * `restricted`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
       "500":
         description: |
           Internal server error. Possible `error_code` attribute values:
@@ -262,6 +282,125 @@
     x-koha-authorization:
       permissions:
         reserveforothers: "1"
+"/holds/suspension_bulk":
+  post:
+    x-mojo-to: Holds#suspend_bulk
+    operationId: suspendHoldBulk
+    tags:
+      - holds
+    summary: Suspend the holds
+    parameters:
+      - name: body
+        in: body
+        description: Hold ids
+        required: true
+        schema:
+          type: object
+          properties:
+            end_date:
+              description: Date the hold suspension expires
+              type: string
+              format: date
+            hold_ids:
+              type: array
+              items:
+                type: integer
+          additionalProperties: false
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    responses:
+      "201":
+        description: Holds suspended
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Hold not allowed
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Hold not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        reserveforothers: place_holds
+"/holds/cancellation_bulk":
+  delete:
+    x-mojo-to: Holds#delete_bulk
+    operationId: deleteHolds
+    tags:
+      - holds
+    summary: Cancel holds
+    parameters:
+      - name: body
+        in: body
+        description: Hold ids
+        required: true
+        schema:
+          type: object
+          properties:
+            cancellation_reason:
+              description: Cancellation reason
+              type: string
+            hold_ids:
+              type: array
+              items:
+                type: integer
+          additionalProperties: false
+    produces:
+      - application/json
+    responses:
+      "204":
+        description: Holds deleted
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Hold not allowed
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Hold not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        reserveforothers: place_holds
 "/holds/{hold_id}":
   patch:
     x-mojo-to: Holds#edit
@@ -763,3 +902,58 @@
     x-koha-authorization:
       permissions:
         reserveforothers: place_holds
+"/holds/{hold_id}/lowest_priority":
+  put:
+    x-mojo-to: Holds#lowest_priority
+    operationId: toggleLowestPriority
+    tags:
+      - holds
+    summary: Toggle holds lowest priority
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/hold_id_pp"
+      - name: body
+        in: body
+        description: An integer representing the new priority to be set for the hold
+        required: false
+        schema:
+          type: integer
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: Toggle the holds lowest priority value
+        schema:
+          type: integer
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "401":
+        description: Authentication required
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "403":
+        description: Access forbidden
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Hold not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "409":
+        description: Unable to perform action on hold
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: |
+          Internal server error. Possible `error_code` attribute values:
+          * `internal_server_error`
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "503":
+        description: Under maintenance
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+    x-koha-authorization:
+      permissions:
+        reserveforothers: modify_holds_priority

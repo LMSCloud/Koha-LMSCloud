@@ -63,156 +63,142 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                [% INCLUDE 'messages.inc' %]
-                <h2>Barcode image generator</h2>
+[% WRAPPER 'main-container.inc' aside='cat-menu' %]
+    <h2>Barcode image generator</h2>
 
-                <form action="/cgi-bin/koha/svc/barcode" id="barcodegen" method="get">
-                    <fieldset class="brief">
-                        <div class="row">
-                            <div class="col-sm-6">
-                                <ol>
-                                    <li>
-                                        <label for="type">Barcode type:</label>
-                                        <select name="type" id="type">
-                                            <option value="Code39">Code39</option>
-                                            <option value="COOP2of5">COOP2of5</option>
-                                            <option value="EAN13">EAN13</option>
-                                            <option value="EAN8">EAN8</option>
-                                            <option value="IATA2of5">IATA2of5</option>
-                                            <option value="Industrial2of5">Industrial2of5</option>
-                                            <option value="ITF">ITF</option>
-                                            <option value="Matrix2of5">Matrix2of5</option>
-                                            <option value="NW7">NW7</option>
-                                            <option value="QRcode">QRcode</option>
-                                            <option value="UPCA">UPCA</option>
-                                            <option value="UPCE">UPCE</option>
-                                        </select>
-                                    </li>
-                                    <li class="qrcode">
-                                        <label for="modulesize">QR Code module size:</label>
-                                        <input name="modulesize" id="modulesize" type="range" min="1" max="10" value="3" />
-                                        <span id="modulesize_text">3</span>
-                                        <div class="hint">Module size refers to the pixel dimensions of each black or white square in the generated QR code.</div>
-                                    </li>
-                                    <li class="bcode">
-                                        <label for="notext">Hide text <input type="checkbox" id="notext" name="notext" value="1" /></label>
-                                    </li>
-                                    <li class="bcode">
-                                        <label for="height">Barcode height:</label>
-                                        <input type="text" id="height" name="height" value="50" />
-                                    </li>
-                                    <li>
-                                        <label class="bcode" for="barcode">Barcode: </label>
-                                        <label class="qrcode" for="barcode">Text, URL, or barcode, etc: </label>
-                                        <input type="text" name="barcode" id="barcode" size="50" />
-                                        <div class="hint qrcode">Actual dimensions of the QR code depend on the amount of characters being encoded.</div>
-                                        <div class="hint bcode">Barcode text must be numeric (0-9)</div>
-                                    </li>
-                                </ol>
-                                <fieldset class="action">
-                                    <input type="submit" class="btn btn-primary" value="Show barcode" />
-                                </fieldset>
-                            </div>
-                            <div class="col-sm-6">
-                                <div id="barcode_container">
-                                    <img id="barcode_image" />
-                                    <textarea readonly="readonly" rows="5" cols="40" id="urltext"></textarea>
-                                </div>
-                            </div>
-                        </div>
+    <form action="/cgi-bin/koha/svc/barcode" id="barcodegen" method="get">
+        <fieldset class="brief">
+            <div class="row">
+                <div class="col-sm-6">
+                    <ol>
+                        <li>
+                            <label for="type">Barcode type:</label>
+                            <select name="type" id="type">
+                                <option value="Code39">Code39</option>
+                                <option value="COOP2of5">COOP2of5</option>
+                                <option value="EAN13">EAN13</option>
+                                <option value="EAN8">EAN8</option>
+                                <option value="IATA2of5">IATA2of5</option>
+                                <option value="Industrial2of5">Industrial2of5</option>
+                                <option value="ITF">ITF</option>
+                                <option value="Matrix2of5">Matrix2of5</option>
+                                <option value="NW7">NW7</option>
+                                <option value="QRcode">QRcode</option>
+                                <option value="UPCA">UPCA</option>
+                                <option value="UPCE">UPCE</option>
+                            </select>
+                        </li>
+                        <li class="qrcode">
+                            <label for="modulesize">QR Code module size:</label>
+                            <input name="modulesize" id="modulesize" type="range" min="1" max="10" value="3" />
+                            <span id="modulesize_text">3</span>
+                            <div class="hint">Module size refers to the pixel dimensions of each black or white square in the generated QR code.</div>
+                        </li>
+                        <li class="bcode">
+                            <label for="notext">Hide text <input type="checkbox" id="notext" name="notext" value="1" /></label>
+                        </li>
+                        <li class="bcode">
+                            <label for="height">Barcode height:</label>
+                            <input type="text" id="height" name="height" value="50" />
+                        </li>
+                        <li>
+                            <label class="bcode" for="barcode">Barcode: </label>
+                            <label class="qrcode" for="barcode">Text, URL, or barcode, etc: </label>
+                            <input type="text" name="barcode" id="barcode" size="50" />
+                            <div class="hint qrcode">Actual dimensions of the QR code depend on the amount of characters being encoded.</div>
+                            <div class="hint bcode">Barcode text must be numeric (0-9)</div>
+                        </li>
+                    </ol>
+                    <fieldset class="action">
+                        <input type="submit" class="btn btn-primary" value="Show barcode" />
                     </fieldset>
-                </form>
-            </main>
-        </div>
-        <!-- /.col-md-10.order-md-2 -->
+                </div>
+                <div class="col-sm-6">
+                    <div id="barcode_container">
+                        <img id="barcode_image" />
+                        <textarea readonly="readonly" rows="5" cols="40" id="urltext"></textarea>
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+    </form>
+[% END %]
 
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside> [% INCLUDE 'cat-menu.inc' %] </aside>
-        </div>
-        <!-- /.col-md-2.order-md-1 -->
-    </div>
-    <!-- /.row -->
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("lib/jquery/plugins/humanmsg.js") | $raw %]
+    <script>
+        var base_url = "[% Koha.Preference('staffClientBaseURL') | html %]";
 
-    [% MACRO jsinclude BLOCK %]
-        [% Asset.js("lib/jquery/plugins/humanmsg.js") | $raw %]
-        <script>
-            var base_url = "[% Koha.Preference('staffClientBaseURL') | html %]";
-
-            function showBarcodeText( path, dimensions ){
-                var params = new URLSearchParams( path );
-                var tag = '<img src="' + path + '" alt="' + params.get("barcode") + '" width="' + dimensions.width + '" height="' + dimensions.height + '" />';
-                $("#urltext").show().text( tag );
-                if( Number( dimensions.width  ) > 250 ){
-                    $("#urltext").css("width", dimensions.width )
-                }
+        function showBarcodeText( path, dimensions ){
+            var params = new URLSearchParams( path );
+            var tag = '<img src="' + path + '" alt="' + params.get("barcode") + '" width="' + dimensions.width + '" height="' + dimensions.height + '" />';
+            $("#urltext").show().text( tag );
+            if( Number( dimensions.width  ) > 250 ){
+                $("#urltext").css("width", dimensions.width )
             }
+        }
 
-            function showBarcode( barcodeform ){
-                if( $("#barcode").val() == "" ){
-                    $("#barcode_container").hide();
-                } else {
-                    var url = barcodeform.attr("action");
-                    var params = barcodeform.serialize();
-                    $("#barcode_container").show();
-                    $("#barcode_image").attr("src", url + "?" + params );
-                }
+        function showBarcode( barcodeform ){
+            if( $("#barcode").val() == "" ){
+                $("#barcode_container").hide();
+            } else {
+                var url = barcodeform.attr("action");
+                var params = barcodeform.serialize();
+                $("#barcode_container").show();
+                $("#barcode_image").attr("src", url + "?" + params );
             }
+        }
 
-            function showQrcodeOptions( type ){
-                if( type.val() == "QRcode" ){
-                    $(".qrcode").show().find("input,range").prop("disabled", false );
-                    $(".bcode").hide().find("input").prop("disabled", true );
-                } else {
-                    $(".qrcode").hide().find("input,range").prop("disabled", true );
-                    $(".bcode").show().find("input").prop("disabled", false );
-                }
+        function showQrcodeOptions( type ){
+            if( type.val() == "QRcode" ){
+                $(".qrcode").show().find("input,range").prop("disabled", false );
+                $(".bcode").hide().find("input").prop("disabled", true );
+            } else {
+                $(".qrcode").hide().find("input,range").prop("disabled", true );
+                $(".bcode").show().find("input").prop("disabled", false );
             }
-            $(document).ready(function(){
-                showQrcodeOptions( $("#type") );
-                showBarcode( $("#barcodegen") );
-                $("#type").on("change", function(){
-                    showQrcodeOptions( $(this) );
-                })
-                $("#barcodegen").on("change submit", function(e){
-                    e.preventDefault();
-                    showBarcode( $(this) );
-                });
-                $("#modulesize").on("input", function(){
-                    $("#modulesize_text").text( $(this).val() );
-                });
-                $("#urltext").on("click", function(){
-                    $(this).select();
-                    var text = $(this).text();
-                    navigator.clipboard.writeText( text ).then(function() {
-                        /* clipboard successfully set */
-                        humanMsg.displayAlert( _("HTML copied to the clipboard") );
-                    }, function() {
-                        /* clipboard write failed */
-                        humanMsg.displayAlert( _("Could not copy HTML automatically to the clipboard") );
-                    });
-                });
-                $("#barcode_image")[0].onload = function (){
-                    showBarcodeText( this.src, { width: this.width, height: this.height } );
-                }
-                $("#barcode_image")[0].onerror = function(){
-                    var barcodetype = $("#type").val();
-                    if( barcodetype !== "QRcode" ){
-                        if( Number.isNaN( Number( $("#barcode").val() ) ) ){
-                            humanMsg.displayAlert( _("Barcodes of type %s must be numeric").format( barcodetype ) );
-                        } else {
-                            humanMsg.displayAlert( _("There was an unknown error generating the barcode image. Please check that your barcode is correct for the barcode type" ) );
-                        }
-                    } else {
-                        humanMsg.displayAlert( _("There was an unknown error generating the barcode image") );
-                    }
-                }
+        }
+        $(document).ready(function(){
+            showQrcodeOptions( $("#type") );
+            showBarcode( $("#barcodegen") );
+            $("#type").on("change", function(){
+                showQrcodeOptions( $(this) );
+            })
+            $("#barcodegen").on("change submit", function(e){
+                e.preventDefault();
+                showBarcode( $(this) );
             });
-        </script>
-    [% END %]
+            $("#modulesize").on("input", function(){
+                $("#modulesize_text").text( $(this).val() );
+            });
+            $("#urltext").on("click", function(){
+                $(this).select();
+                var text = $(this).text();
+                navigator.clipboard.writeText( text ).then(function() {
+                    /* clipboard successfully set */
+                    humanMsg.displayAlert( _("HTML copied to the clipboard") );
+                }, function() {
+                    /* clipboard write failed */
+                    humanMsg.displayAlert( _("Could not copy HTML automatically to the clipboard") );
+                });
+            });
+            $("#barcode_image")[0].onload = function (){
+                showBarcodeText( this.src, { width: this.width, height: this.height } );
+            }
+            $("#barcode_image")[0].onerror = function(){
+                var barcodetype = $("#type").val();
+                if( barcodetype !== "QRcode" ){
+                    if( Number.isNaN( Number( $("#barcode").val() ) ) ){
+                        humanMsg.displayAlert( _("Barcodes of type %s must be numeric").format( barcodetype ) );
+                    } else {
+                        humanMsg.displayAlert( _("There was an unknown error generating the barcode image. Please check that your barcode is correct for the barcode type" ) );
+                    }
+                } else {
+                    humanMsg.displayAlert( _("There was an unknown error generating the barcode image") );
+                }
+            }
+        });
+    </script>
+[% END %]
 
-    [% INCLUDE 'intranet-bottom.inc' %]
-</div>
+[% INCLUDE 'intranet-bottom.inc' %]

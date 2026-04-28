@@ -13,7 +13,7 @@ package Koha::SearchField;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -28,6 +28,12 @@ Koha::SearchField - Koha SearchField Object class
 =head1 API
 
 =head2 Class Methods
+
+=cut
+
+=head2 add_to_search_marc_maps
+
+Missing POD for add_to_search_marc_maps.
 
 =cut
 

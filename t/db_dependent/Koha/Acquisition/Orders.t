@@ -15,11 +15,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use Test::NoWarnings;
+use Test::More tests => 4;
 use Test::Exception;
 
 use t::lib::TestBuilder;
@@ -177,8 +178,12 @@ subtest 'filter_by_obsolete and cancel' => sub {
 
     # First make order 1 obsolete by removing biblio, and order 3 by status problem.
     my $date = Koha::DateUtils::dt_from_string->subtract( days => 7 );
-    $order_1->orderstatus('ordered')->quantity(2)->quantityreceived(0)->datecancellationprinted(undef)
-        ->entrydate($date)->store;
+    $order_1->orderstatus('ordered')
+        ->quantity(2)
+        ->quantityreceived(0)
+        ->datecancellationprinted(undef)
+        ->entrydate($date)
+        ->store;
     Koha::Biblios->find( $order_1->biblionumber )->delete;
     $order_1->discard_changes;
     $order_2->orderstatus('ordered')->quantity(3)->quantityreceived(0)->datecancellationprinted(undef)->store;

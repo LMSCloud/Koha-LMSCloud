@@ -15,7 +15,7 @@ package Koha::Booking;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -42,6 +42,22 @@ Koha::Booking - Koha Booking object class
 =head1 API
 
 =head2 Class methods
+
+=head3 set_itemtype_filter
+
+    $booking->set_itemtype_filter($itemtype_id);
+
+Sets a transient itemtype filter for item selection. This is used when
+creating "any item" bookings to filter items by type before optimal selection.
+This value is not persisted to the database.
+
+=cut
+
+sub set_itemtype_filter {
+    my ( $self, $itemtype_id ) = @_;
+    $self->{_itemtype_filter} = $itemtype_id;
+    return $self;
+}
 
 =head3 biblio
 
@@ -278,17 +294,28 @@ sub _assign_item_for_booking {
     my $checkouts =
         $biblio->current_checkouts->search( { date_due => { '>=' => $dtf->format_datetime($start_date) } } );
 
-    my $bookable_items = $biblio->bookable_items->search(
-        {
-            itemnumber => [
-                '-and' => { '-not_in' => $existing_bookings->_resultset->get_column('item_id')->as_query },
-                { '-not_in' => $checkouts->_resultset->get_column('itemnumber')->as_query }
-            ]
-        },
-        { order_by => \'RAND()', rows => 1 }
-    );
+    # Build search conditions for bookable items
+    my $item_search_conditions = {
+        itemnumber => [
+            '-and' => { '-not_in' => $existing_bookings->_resultset->get_column('item_id')->as_query },
+            { '-not_in' => $checkouts->_resultset->get_column('itemnumber')->as_query }
+        ]
+    };
 
-    my $itemnumber = $bookable_items->single->itemnumber;
+    # Filter by itemtype if specified (for "any item" bookings)
+    if ( $self->{_itemtype_filter} ) {
+        $item_search_conditions->{itype} = $self->{_itemtype_filter};
+    }
+
+    my $bookable_items = $biblio->bookable_items->search($item_search_conditions);
+
+    # Use optimal selection instead of random selection
+    my $optimal_item = $self->_select_optimal_item($bookable_items);
+
+    Koha::Exceptions::Booking::Clash->throw("No available items found for booking")
+        unless $optimal_item;
+
+    my $itemnumber = $optimal_item->itemnumber;
     return $self->item_id($itemnumber);
 }
 
@@ -502,6 +529,89 @@ sub _check_date_range_constraints {
     return;
 }
 
+=head3 _select_optimal_item
+
+    my $item_id = $self->_select_optimal_item($available_items);
+
+Selects the optimal item from a set of available items by choosing the item
+with the longest future availability after the booking ends.
+
+This maximizes future booking opportunities by preserving items with shorter
+future availability for bookings that specifically need them.
+
+=cut
+
+sub _select_optimal_item {
+    my ( $self, $available_items ) = @_;
+
+    return unless $available_items && $available_items->count > 0;
+
+    # If only one item available, return it immediately
+    return $available_items->next if $available_items->count == 1;
+
+    my $check_date = dt_from_string( $self->end_date )->add( days => 1 );
+    my $dtf        = Koha::Database->new->schema->storage->datetime_parser;
+
+    # Get item IDs from the available items
+    my @item_ids = map { $_->itemnumber } $available_items->as_list;
+
+    # Find the item with the latest (furthest in future) next booking start date
+    # Items with no future bookings will have NULL and sort first (most desirable)
+    my $search_conditions = {
+        item_id    => { '-in'     => \@item_ids },
+        start_date => { '>='      => $dtf->format_datetime($check_date) },
+        status     => { '-not_in' => [ 'cancelled', 'completed' ] }
+    };
+
+    # Exclude current booking if we're editing
+    if ( $self->in_storage ) {
+        $search_conditions->{booking_id} = { '!=' => $self->booking_id };
+    }
+
+    # Query to find the earliest future booking for each item
+    my $rs = Koha::Bookings->search(
+        $search_conditions,
+        {
+            select   => [ 'item_id', { min => 'start_date', -as => 'next_booking_start' } ],
+            as       => [ 'item_id', 'next_booking_start' ],
+            group_by => ['item_id'],
+        }
+    );
+
+    # Get items that have future bookings, sorted by next booking date (desc = later is better)
+    my %next_booking_by_item;
+    while ( my $row = $rs->next ) {
+        $next_booking_by_item{ $row->get_column('item_id') } = $row->get_column('next_booking_start');
+    }
+
+    # Find the best item: items without future bookings first, then by latest next booking
+    my $best_item_id;
+    my $latest_next_booking;
+
+    foreach my $item_id (@item_ids) {
+        my $next_booking = $next_booking_by_item{$item_id};
+
+        # Items with no future bookings are best (infinite availability)
+        if ( !defined $next_booking ) {
+            $best_item_id = $item_id;
+            last;
+        }
+
+        # Otherwise, prefer items with later (further in future) next bookings
+        if ( !defined $latest_next_booking || $next_booking gt $latest_next_booking ) {
+            $latest_next_booking = $next_booking;
+            $best_item_id        = $item_id;
+        }
+    }
+
+    # Return the optimal item
+    return Koha::Items->find($best_item_id) if $best_item_id;
+
+    # Fallback: shouldn't reach here, but return first available item
+    $available_items->reset;
+    return $available_items->next;
+}
+
 =head3 _send_notice
 
     $self->_send_notice();
@@ -519,6 +629,7 @@ sub _send_notice {
 
     my $branch = C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
     $branch //= $self->pickup_library_id;
+    $branch = undef if $branch && !Koha::Libraries->find($branch);
     my $patron = $self->patron;
 
     my $letter = C4::Letters::GetPreparedLetter(

@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 4;
+use Test::NoWarnings;
+use Test::More tests => 5;
 use Test::MockModule;
 use Test::MockObject;
 use Test::Warn;
@@ -145,7 +146,7 @@ subtest 'checkpw_ldap tests' => sub {
     warning_is {
         $ret = C4::Auth_with_ldap::checkpw_ldap( 'hola', password => 'hey' );
     }
-    'LDAP connexion failed',
+    'LDAP connection failed',
         'checkpw_ldap prints correct warning if LDAP conexion fails';
     is( $ret, 0, 'checkpw_ldap returns 0 if LDAP conexion fails' );
 

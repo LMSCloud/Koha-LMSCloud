@@ -18,7 +18,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -204,6 +204,9 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 
 my $lang = C4::Languages::getlanguage($cgi);
 
+my $userenv_branch = C4::Context->userenv->{'branch'} || '';
+$template->param( userbranch => $userenv_branch );
+
 if ( C4::Context->preference("marcflavour") eq "UNIMARC" ) {
     $template->param( 'UNIMARC' => 1 );
 }
@@ -264,7 +267,8 @@ $template->param( advancedsearchesloop => $advancedsearchesloop );
 
 $template->param( searchid => scalar $cgi->param('searchid'), );
 
-my $default_sort_by = C4::Context->default_catalog_sort_by;
+my $default_sort_by     = C4::Context->default_catalog_sort_by;
+my @sanitized_operators = grep { $_ ne 'cud-login' } $cgi->multi_param('op');
 
 # The following should only be loaded if we're bringing up the advanced search template
 if ( $template_type eq 'advsearch' ) {
@@ -275,8 +279,9 @@ if ( $template_type eq 'advsearch' ) {
     my $expanded = $cgi->param('expanded_options');
     if ( $cgi->param('edit_search') ) {
         @operands  = $cgi->multi_param('q');
-        @operators = $cgi->multi_param('op');
+        @operators = @sanitized_operators;
         @indexes   = $cgi->multi_param('idx');
+        $expanded  = 1;                          # Force expanded options when editing search
         $template->param(
             sort => scalar $cgi->param('sort_by'),
         );
@@ -348,7 +353,15 @@ if ( $template_type eq 'advsearch' ) {
     {
         $expanded = C4::Context->preference("expandedSearchOption") || 0
             if !defined($expanded) || $expanded !~ /^0|1$/;
-        $template->param( expanded_options => $expanded );
+
+        # Force expanded options if weight_search_submitted or whole_record are present
+        $expanded = 1 if $cgi->param('weight_search_submitted') || $cgi->param('whole_record');
+
+        $template->param(
+            expanded_options        => $expanded,
+            weight_search_submitted => scalar $cgi->param('weight_search_submitted'),
+            whole_record            => scalar $cgi->param('whole_record'),
+        );
     }
 
     $template->param( virtualshelves => C4::Context->preference("virtualshelves") );
@@ -388,7 +401,7 @@ unless (@servers) {
 
 # operators include boolean and proximity operators and are used
 # to evaluate multiple operands
-my @operators = map uri_unescape($_), $cgi->multi_param('op');
+my @operators = map uri_unescape($_), @sanitized_operators;
 
 # indexes are query qualifiers, like 'title', 'author', etc. They
 # can be single or multiple parameters separated by comma: kw,right-Truncation
@@ -471,7 +484,9 @@ my $count            = C4::Context->preference('numSearchResults')         || 20
 my $results_per_page = $params->{'count'}                                  || $count;
 my $offset           = $params->{'offset'}                                 || 0;
 my $whole_record     = $params->{'whole_record'}                           || 0;
-my $weight_search    = $params->{'advsearch'} ? $params->{'weight_search'} || 0 : 1;
+my $weight_search    = $params->{'weight_search_submitted'}
+    ? ( $params->{'weight_search'} ? 1 : 0 )    # Form was submitted, use actual checkbox value
+    : 1;                                        # Form not submitted
 $offset = 0 if $offset < 0;
 my $page = $cgi->param('page') || 1;
 
@@ -496,7 +511,13 @@ for ( my $i = 0 ; $i < @operands ; $i++ ) {
     )
     = $builder->build_query_compat(
     \@operators, \@operands, \@indexes, \@limits,
-    \@sort_by,   $scan,      $lang, { weighted_fields => $weight_search, whole_record => $whole_record }
+    \@sort_by,
+    $scan, $lang,
+    {
+        weighted_fields         => $weight_search,
+        whole_record            => $whole_record,
+        weight_search_submitted => $params->{'weight_search_submitted'}
+    }
     );
 
 $template->param( search_query => $query ) if C4::Context->preference('DumpSearchQueryTemplate');
@@ -598,7 +619,13 @@ for ( my $i = 0 ; $i < @servers ; $i++ ) {
                 )
                 = $builder->build_query_compat(
                 \@operators, \@operands, \@indexes, \@limits,
-                \@sort_by,   $scan,      $lang, { weighted_fields => $weight_search, whole_record => $whole_record }
+                \@sort_by,
+                $scan, $lang,
+                {
+                    weighted_fields         => $weight_search,
+                    whole_record            => $whole_record,
+                    weight_search_submitted => $params->{'weight_search_submitted'}
+                }
                 );
             my $quoted_results_hashref;
             eval {

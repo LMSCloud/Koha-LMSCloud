@@ -13,7 +13,7 @@ package Koha::Acquisition::Order::Claim;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -29,7 +29,21 @@ Koha::Acquisition::Order::Claim - Koha Claim Object class
 
 =head2 Class methods
 
+
+=head3 to_api_mapping
+
+This method returns the mapping for representing a Koha::Patron object
+on the API.
+
 =cut
+
+sub to_api_mapping {
+    return {
+        id          => 'order_claim_id',
+        ordernumber => 'order_id',
+        claimed_on  => 'date_claimed',
+    };
+}
 
 =head2 Internal methods
 

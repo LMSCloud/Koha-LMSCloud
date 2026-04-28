@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # Main object of this unit test is the Breeding module and its subroutines
 # A start has been made to define tests for subroutines of Z3950Search.
@@ -24,10 +24,11 @@
 
 use Modern::Perl;
 use File::Temp qw/tempfile/;
-use Test::More tests => 5;
+use Test::NoWarnings;
+use Test::More tests => 6;
 use Test::Warn;
 
-use t::lib::Mocks qw( mock_preference );
+use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 use C4::Context;
@@ -131,14 +132,14 @@ sub test_build_translate_query {
     is( $queries[0] =~ /$str/, 1, 'First Z39.50 query contains ISBN' );
 
     #SRU query should contain translation for ISBN
-    my $server = { sru_fields => 'isbn=ie-es-bee-en,srchany=overal' };
+    my $server = { sru_fields => 'isbn=ie-es-bee-en,srchany=overall' };
     my $squery = C4::Breeding::_translate_query( $server, $queries[1] );
     is( $squery =~ /ie-es-bee-en/, 1, 'SRU query has translated ISBN index' );
 
     #Another try with fallback to any
-    $server = { sru_fields => 'srchany=overal' };
+    $server = { sru_fields => 'srchany=overall' };
     $squery = C4::Breeding::_translate_query( $server, $queries[1] );
-    is( $squery =~ /overal/, 1, 'SRU query fallback to translated any' );
+    is( $squery =~ /overall/, 1, 'SRU query fallback to translated any' );
 
     #Another try even without any
     $server = { sru_fields => 'this,is,bad,input' };
@@ -169,7 +170,7 @@ sub test_build_translate_query {
     );
 
     #SRU revisited
-    $server = { sru_fields => 'isbn=nb,title=dc.title,srchany=overal' };
+    $server = { sru_fields => 'isbn=nb,title=dc.title,srchany=overall' };
     $squery = C4::Breeding::_translate_query( $server, $queries[1] );
     is( $squery =~ /dc.title/ && $squery =~ / and / && $squery =~ /nb=/, 1, 'SRU query with two parameters' );
 
@@ -294,12 +295,12 @@ sub test_add_custom_field_rowdata {
 
     is( $returned_row->{title}, "Just a title", "_add_rowdata returns the title of a biblio" );
     is(
-        $returned_row->{addnumberfields}[0], "245\$a",
+        $returned_row->{addnumberfields}[1], "245",
         "_add_rowdata returns the field number chosen in the AdditionalFieldsInZ3950ResultSearch preference"
     );
 
-    # Test repeatble tags,the trailing whitespace is a normal side-effect of _add_custom_field_row_data
-    is_deeply( \$returned_row->{"035\$a"}, \[ "First 035 ", "Second 035 " ], "_add_rowdata supports repeatable tags" );
+    # Test repeatable tags
+    is_deeply( $returned_row->{"035"}, [ "[a]First 035", "[a]Second 035" ], "_add_rowdata supports repeatable tags" );
 
     warning_is { C4::Breeding::_add_custom_field_rowdata( $row, $biblio, undef ) } undef,
         'no warn from add_custom_field_rowdata when pref_newtags undef';

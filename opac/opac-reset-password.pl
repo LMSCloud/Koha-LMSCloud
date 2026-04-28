@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -45,8 +45,7 @@ if ( $op eq 'cud-update' ) {
     my $newpassword     = $query->param('newpassword');
     my $confirmpassword = $query->param('confirmpassword');
 
-    my $patron = Koha::Patrons->find( { userid => $userid } );
-    $patron = Koha::Patrons->find( { cardnumber => $userid } ) unless $patron;
+    my $patron = Koha::Patrons->find_by_identifier($userid);
 
     if ( $patron && $patron->password_expiration_date ) {
         if ( $patron->account_locked ) {

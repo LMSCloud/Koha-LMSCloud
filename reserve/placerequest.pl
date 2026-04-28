@@ -18,7 +18,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -29,27 +29,29 @@ use C4::Auth     qw( checkauth );
 
 use Koha::Items;
 use Koha::Patrons;
+use Koha::HoldGroup;
 
 my $input = CGI->new();
 
 checkauth( $input, 0, { reserveforothers => 'place_holds' }, 'intranet' );
 
-my @reqbib         = $input->multi_param('reqbib');
-my @biblionumbers  = $input->multi_param('biblionumber');
-my @holdable_bibs  = $input->multi_param('holdable_bibs');
-my $borrowernumber = $input->param('borrowernumber');
-my $notes          = $input->param('notes');
-my $branch         = $input->param('pickup');
-my $startdate      = $input->param('reserve_date') || '';
-my @rank           = $input->multi_param('rank-request');
-my $title          = $input->param('title');
-my @checkitems     = $input->multi_param('checkitem');
-my $item_group_id  = $input->param('item_group_id');
-my $expirationdate = $input->param('expiration_date');
-my $itemtype       = $input->param('itemtype') || undef;
-my $non_priority   = $input->param('non_priority');
-my $op             = $input->param('op') || q{};
-my $multi_holds    = $input->param('multi_holds');
+my @reqbib           = $input->multi_param('reqbib');
+my @biblionumbers    = $input->multi_param('biblionumber');
+my @holdable_bibs    = $input->multi_param('holdable_bibs');
+my $borrowernumber   = $input->param('borrowernumber');
+my $notes            = $input->param('notes');
+my $branch           = $input->param('pickup');
+my $startdate        = $input->param('reserve_date') || '';
+my @rank             = $input->multi_param('rank-request');
+my $title            = $input->param('title');
+my @checkitems       = $input->multi_param('checkitem');
+my $item_group_id    = $input->param('item_group_id');
+my $expirationdate   = $input->param('expiration_date');
+my $itemtype         = $input->param('itemtype') || undef;
+my $non_priority     = $input->param('non_priority');
+my $op               = $input->param('op') || q{};
+my $multi_holds      = $input->param('multi_holds');
+my $hold_group_param = $input->param('hold_group') || undef;
 
 my $patron = Koha::Patrons->find($borrowernumber);
 
@@ -66,6 +68,8 @@ foreach my $bibnum (@holdable_bibs) {
 
 if ( $op eq 'cud-placerequest' && $patron ) {
     my %failed_holds;
+    my @successful_hold_ids;
+
     foreach my $biblionumber ( keys %bibinfos ) {
 
         my $can_override = C4::Context->preference('AllowHoldPolicyOverride');
@@ -88,7 +92,7 @@ if ( $op eq 'cud-placerequest' && $patron ) {
                     if ( $can_item_be_reserved eq 'OK'
                         || ( $can_item_be_reserved ne 'itemAlreadyOnHold' && $can_override ) )
                     {
-                        AddReserve(
+                        my $reserve_id = AddReserve(
                             {
                                 branchcode       => $item_pickup_location,
                                 borrowernumber   => $patron->borrowernumber,
@@ -105,6 +109,7 @@ if ( $op eq 'cud-placerequest' && $patron ) {
                             }
                         );
 
+                        push @successful_hold_ids, $reserve_id;
                         $hold_priority++;
 
                     } else {
@@ -116,7 +121,7 @@ if ( $op eq 'cud-placerequest' && $patron ) {
         } elsif ( @biblionumbers > 1 || $multi_holds ) {
             my $bibinfo = $bibinfos{$biblionumber};
             if ( $can_override || CanBookBeReserved( $patron->borrowernumber, $biblionumber )->{status} eq 'OK' ) {
-                AddReserve(
+                my $reserve_id = AddReserve(
                     {
                         branchcode       => $bibinfo->{pickup},
                         borrowernumber   => $patron->borrowernumber,
@@ -132,13 +137,14 @@ if ( $op eq 'cud-placerequest' && $patron ) {
                         non_priority     => $non_priority,
                     }
                 );
+                push @successful_hold_ids, $reserve_id;
             }
         } else {
 
             # place a request on 1st available
             for ( my $i = 0 ; $i < $holds_to_place_count ; $i++ ) {
                 if ( $can_override || CanBookBeReserved( $patron->borrowernumber, $biblionumber )->{status} eq 'OK' ) {
-                    AddReserve(
+                    my $reserve_id = AddReserve(
                         {
                             branchcode       => $branch,
                             borrowernumber   => $patron->borrowernumber,
@@ -155,10 +161,13 @@ if ( $op eq 'cud-placerequest' && $patron ) {
                             item_group_id    => $item_group_id,
                         }
                     );
+                    push @successful_hold_ids, $reserve_id;
                 }
             }
         }
     }
+
+    $patron->create_hold_group( \@successful_hold_ids ) if $hold_group_param;
 
     my $redirect_url     = URI->new("request.pl");
     my @failed_hold_msgs = ();

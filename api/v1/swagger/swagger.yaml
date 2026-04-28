@@ -16,10 +16,14 @@ definitions:
     $ref: ./definitions/authorised_values.yaml
   authorised_value_category:
     $ref: ./definitions/authorised_value_category.yaml
+  circulation_rules:
+    $ref: ./definitions/circulation_rules.yaml
   identity_provider:
     $ref: ./definitions/identity_provider.yaml
   identity_provider_domain:
     $ref: ./definitions/identity_provider_domain.yaml
+  additional_content:
+    $ref: ./definitions/additional_content.yaml
   basket:
     $ref: ./definitions/basket.yaml
   booking:
@@ -114,6 +118,8 @@ definitions:
     $ref: ./definitions/fund.yaml
   hold:
     $ref: ./definitions/hold.yaml
+  hold_group:
+    $ref: ./definitions/hold_group.yaml
   holds:
     $ref: ./definitions/holds.yaml
   ill_backend:
@@ -206,6 +212,16 @@ definitions:
     $ref: ./definitions/vendor.yaml
   vendor_issue:
     $ref: ./definitions/vendor_issue.yaml
+  vendors_config:
+    $ref: ./definitions/vendors_config.yaml
+  file_transport:
+    $ref: ./definitions/file_transport.yaml
+  sip2_account:
+    $ref: ./definitions/sip2_account.yaml
+  sip2_institution:
+    $ref: ./definitions/sip2_institution.yaml
+  sip2_system_preference_override:
+    $ref: ./definitions/sip2_system_preference_override.yaml
   zksha_illrequest:
     $ref: ./definitions/zksha_illrequest.yaml
   zkshp_illrequest:
@@ -231,6 +247,8 @@ paths:
     $ref: ./paths/acquisitions_vendors.yaml#/~1acquisitions~1vendors
   "/acquisitions/vendors/{vendor_id}":
     $ref: "./paths/acquisitions_vendors.yaml#/~1acquisitions~1vendors~1{vendor_id}"
+  /acquisitions/vendors/config:
+    $ref: ./paths/acquisitions_vendors_config.yaml#/~1acquisitions~1vendors~1config
   "/acquisitions/vendors/{vendor_id}/issues":
     $ref: "./paths/acquisitions_vendor_issues.yaml#/~1acquisitions~1vendors~1{vendor_id}~1issues"
   /advanced_editor/macros:
@@ -311,6 +329,8 @@ paths:
     $ref: "./paths/bzshid_mapping.yaml#/~1bzsh~1id_mapping"
   "/bzsh/order_status":
     $ref: "./paths/bzsh_order_status.yaml#/~1bzsh~1order_status"
+  /cash_registers:
+    $ref: "./paths/cash_registers.yaml#/~1cash_registers"
   "/cash_registers/{cash_register_id}/cashups":
     $ref: "./paths/cash_registers.yaml#/~1cash_registers~1{cash_register_id}~1cashups"
   "/cashups/{cashup_id}":
@@ -343,6 +363,10 @@ paths:
     $ref: ./paths/config_smtp_servers.yaml#/~1config~1smtp_servers
   "/config/smtp_servers/{smtp_server_id}":
     $ref: "./paths/config_smtp_servers.yaml#/~1config~1smtp_servers~1{smtp_server_id}"
+  /config/file_transports:
+    $ref: ./paths/config_file_transports.yaml#/~1config~1file_transports
+  "/config/file_transports/{file_transport_id}":
+    $ref: "./paths/config_file_transports.yaml#/~1config~1file_transports~1{file_transport_id}"
   "/deleted/biblios":
     $ref: "./paths/deleted_biblios.yaml#/~1deleted~1biblios"
   "/deleted/biblios/{biblio_id}":
@@ -423,12 +447,18 @@ paths:
     $ref: ./paths/erm_usage_titles.yaml#/~1erm~1usage_titles
   /erm/users:
     $ref: ./paths/erm_users.yaml#/~1erm~1users
+  /erm/extended_attribute_types:
+    $ref: ./paths/erm_extended_attribute_types.yaml#/~1erm~1extended_attribute_types
   "/bzsh/external_order":
     $ref: "./paths/external_order.yaml#/~1bzsh~1external_order"
   /extended_attribute_types:
     $ref: ./paths/extended_attribute_types.yaml#/~1extended_attribute_types
   /holds:
     $ref: ./paths/holds.yaml#/~1holds
+  "/holds/suspension_bulk":
+    $ref: "./paths/holds.yaml#/~1holds~1suspension_bulk"
+  "/holds/cancellation_bulk":
+    $ref: "./paths/holds.yaml#/~1holds~1cancellation_bulk"
   "/holds/{hold_id}":
     $ref: "./paths/holds.yaml#/~1holds~1{hold_id}"
   "/holds/{hold_id}/pickup_location":
@@ -439,6 +469,8 @@ paths:
     $ref: "./paths/holds.yaml#/~1holds~1{hold_id}~1priority"
   "/holds/{hold_id}/suspension":
     $ref: "./paths/holds.yaml#/~1holds~1{hold_id}~1suspension"
+  "/holds/{hold_id}/lowest_priority":
+    $ref: "./paths/holds.yaml#/~1holds~1{hold_id}~1lowest_priority"
   /ill/backends:
     $ref: ./paths/ill_backends.yaml#/~1ill~1backends
   "/ill/backends/{ill_backend_id}":
@@ -501,6 +533,10 @@ paths:
     $ref: "./paths/patrons_account.yaml#/~1patrons~1{patron_id}~1account~1credits"
   "/patrons/{patron_id}/account/debits":
     $ref: "./paths/patrons_account.yaml#/~1patrons~1{patron_id}~1account~1debits"
+  "/patrons/{patron_id}/account/credits/{credit_id}":
+    $ref: "./paths/patrons_account.yaml#/~1patrons~1{patron_id}~1account~1credits~1{credit_id}"
+  "/patrons/{patron_id}/account/debits/{debit_id}":
+    $ref: "./paths/patrons_account.yaml#/~1patrons~1{patron_id}~1account~1debits~1{debit_id}"
   "/patrons/{patron_id}/extended_attributes":
     $ref: "./paths/patrons_extended_attributes.yaml#/~1patrons~1{patron_id}~1extended_attributes"
   "/patrons/{patron_id}/extended_attributes/{extended_attribute_id}":
@@ -515,6 +551,12 @@ paths:
     $ref: "./paths/patrons_password.yaml#/~1patrons~1{patron_id}~1password~1expiration_date"
   "/patrons/{patron_id}/recalls":
     $ref: "./paths/patrons_recalls.yaml#/~1patrons~1{patron_id}~1recalls"
+  "/patrons/{patron_id}/ill/requests":
+    $ref: "./paths/patrons.yaml#/~1patrons~1{patron_id}~1ill~1requests"
+  "/patrons/{patron_id}/hold_groups":
+    $ref: "./paths/patrons_hold_groups.yaml#/~1patrons~1{patron_id}~1hold_groups"
+  "/patrons/{patron_id}/hold_groups/{hold_group_id}":
+    $ref: "./paths/patrons_hold_groups.yaml#/~1patrons~1{patron_id}~1hold_groups~1{hold_group_id}"
   /patron_categories:
     $ref: ./paths/patron_categories.yaml#/~1patron_categories
   /preservation/config:
@@ -539,6 +581,8 @@ paths:
     $ref: ./paths/preservation_waiting_list.yaml#/~1preservation~1waiting-list~1items
   "/preservation/waiting-list/items/{item_id}":
     $ref: "./paths/preservation_waiting_list.yaml#/~1preservation~1waiting-list~1items~1{item_id}"
+  /public/additional_contents:
+    $ref: ./paths/additional_contents.yaml#/~1public~1additional_contents
   "/public/biblios/{biblio_id}":
     $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}"
   /public/extended_attribute_types:
@@ -593,6 +637,8 @@ paths:
     $ref: "./paths/public_patrons.yaml#/~1public~1patrons~1{patron_id}~1guarantors~1can_see_checkouts"
   "/public/patrons/{patron_id}/holds/{hold_id}":
     $ref: "./paths/public_patrons.yaml#/~1public~1patrons~1{patron_id}~1holds~1{hold_id}"
+  "/public/patrons/{patron_id}/ill/requests":
+    $ref: "./paths/public_patrons.yaml#/~1public~1patrons~1{patron_id}~1ill~1requests"
   "/public/patrons/{patron_id}/password":
     $ref: "./paths/public_patrons.yaml#/~1public~1patrons~1{patron_id}~1password"
   "/public/tickets":
@@ -619,6 +665,18 @@ paths:
     $ref: "./paths/rotas.yaml#/~1rotas~1{rota_id}"
   "/rotas/{rota_id}/stages/{stage_id}/position":
     $ref: "./paths/rotas.yaml#/~1rotas~1{rota_id}~1stages~1{stage_id}~1position"
+  /sip2/accounts:
+    $ref: ./paths/sip2_accounts.yaml#/~1sip2~1accounts
+  "/sip2/accounts/{sip_account_id}":
+    $ref: "./paths/sip2_accounts.yaml#/~1sip2~1accounts~1{sip_account_id}"
+  /sip2/institutions:
+    $ref: ./paths/sip2_institutions.yaml#/~1sip2~1institutions
+  "/sip2/institutions/{sip_institution_id}":
+    $ref: "./paths/sip2_institutions.yaml#/~1sip2~1institutions~1{sip_institution_id}"
+  /sip2/system_preference_overrides:
+    $ref: ./paths/sip2_system_preference_overrides.yaml#/~1sip2~1system_preference_overrides
+  "/sip2/system_preference_overrides/{sip_system_preference_override_id}":
+    $ref: "./paths/sip2_system_preference_overrides.yaml#/~1sip2~1system_preference_overrides~1{sip_system_preference_override_id}"
   /suggestions:
     $ref: ./paths/suggestions.yaml#/~1suggestions
   "/suggestions/{suggestion_id}":
@@ -822,12 +880,30 @@ parameters:
     name: erm_usage_data_provider_id
     required: true
     type: integer
+  credit_id_pp:
+    description: Internal credit identifier
+    in: path
+    name: credit_id
+    required: true
+    type: integer
   data_type_pp:
     description: ERM custom report data type
     in: path
     name: data_type
     required: true
     type: string
+  debit_id_pp:
+    description: Internal debit identifier
+    in: path
+    name: debit_id
+    required: true
+    type: integer
+  file_transport_id_pp:
+    description: File transport internal identifier
+    in: path
+    name: file_transport_id
+    required: true
+    type: integer
   fund_id_pp:
     description: Fund id
     in: path
@@ -1024,6 +1100,24 @@ parameters:
     name: seen
     required: false
     type: integer
+  sip_account_id_pp:
+    description: SIP2 account internal identifier
+    in: path
+    name: sip_account_id
+    required: true
+    type: integer
+  sip_institution_id_pp:
+    description: SIP2 institution internal identifier
+    in: path
+    name: sip_institution_id
+    required: true
+    type: integer
+  sip_system_preference_override_id_pp:
+    description: SIP2 system preference override internal identifier
+    in: path
+    name: sip_system_preference_override_id
+    required: true
+    type: integer
   smtp_server_id_pp:
     description: SMTP server internal identifier
     in: path
@@ -1059,7 +1153,7 @@ info:
   version: "1"
   license:
     name: "GPL v3,"
-    url: http://www.gnu.org/licenses/gpl.txt
+    url: https://www.gnu.org/licenses/gpl.txt
   contact:
     name: Koha Development Team
     url: https://koha-community.org/
@@ -1185,6 +1279,9 @@ info:
     context; If it is not included in the request, then the request context
     will default to using your api comsumer"s assigned home library.
 tags:
+  - description: "Manage additional contents\n"
+    x-displayName: Additional contents
+    name: additional_contents
   - description: "Manage additional fields\n"
     name: additional_fields
     x-displayName: Additional fields
@@ -1233,9 +1330,27 @@ tags:
   - description: "Manage patron clubs\n"
     name: clubs
     x-displayName: Clubs
+  - description: "Manage EDI files\n"
+    name: edi_files
+    x-displayName: EDI files
   - description: "Manage ERM agreements\n"
     name: erm_agreements
     x-displayName: ERM agreements
+  - description: "Manage ERM configuration\n"
+    name: erm_config
+    x-displayName: ERM configuration
+  - description: "Manage ERM counter files\n"
+    name: erm_counter_files
+    x-displayName: ERM counter files
+  - description: "Manage ERM counter logs\n"
+    name: erm_counter_logs
+    x-displayName: ERM counter logs
+  - description: "Retrieve counter registry data\n"
+    name: erm_counter_registry
+    x-displayName: ERM counter registry
+  - description: "Manage ERM saved reports\n"
+    name: erm_default_usage_reports
+    x-displayName: ERM saved reports
   - description: "Manage ERM docuemnts\n"
     name: erm_documents
     x-displayName: ERM documents
@@ -1251,6 +1366,27 @@ tags:
   - description: "Manage ERM licences\n"
     name: erm_licences
     x-displayName: ERM licences
+  - description: "Retrieve SUSHI service data\n"
+    name: erm_sushi_service
+    x-displayName: ERM SUSHI services
+  - description: "Manage ERM usage data providers\n"
+    name: erm_usage_data_providers
+    x-displayName: ERM usage data providers
+  - description: "Manage ERM usage databases\n"
+    name: erm_usage_databases
+    x-displayName: ERM usage databases
+  - description: "Manage ERM usage items\n"
+    name: erm_usage_items
+    x-displayName: ERM usage items
+  - description: "Manage ERM usage platforms\n"
+    name: erm_usage_platforms
+    x-displayName: ERM usage platforms
+  - description: "Manage ERM usage titles\n"
+    name: erm_usage_titles
+    x-displayName: ERM usage titles
+  - description: "Manage ERM usage reports\n"
+    name: erm_usage_reports
+    x-displayName: ERM usage reports
   - description: "Manage ERM users\n"
     name: erm_users
     x-displayName: ERM users
@@ -1260,6 +1396,9 @@ tags:
   - description: "Manage holds\n"
     name: holds
     x-displayName: Holds
+  - description: "Manage hold groups\n"
+    name: hold_groups
+    x-displayName: Hold groups
   - description: "Manage identity providers\n"
     name: identity_providers
     x-displayName: Identity providers
@@ -1314,29 +1453,47 @@ tags:
   - description: "Manage patrons\n"
     name: patrons
     x-displayName: Patrons
+  - description: "Manage preservation tasks\n"
+    name: preservation
+    x-displayName: Preservation
   - description: "Manage purchase suggestions\n"
     name: suggestions
     x-displayName: Purchase suggestions
   - description: "Manage quotes\n"
     name: quotes
     x-displayName: Quotes
+  - description: "Manage recalls\n"
+    name: recalls
+    x-displayName: Recalls
   - description: "Manage return claims\n"
     name: return_claims
     x-displayName: Return claims
-  - description: "Manage rotas\n"
-    name: rotas
+  - description: "Manage stock rotation\n"
+    name: stockrotation
     x-displayName: Rotas
   - description: "Manage search filters"
     name: search_filters
     x-displayName: Search filters
+  - description: "Manage SIP2 accounts"
+    name: sip2_accounts
+    x-displayName: SIP2 Accounts
+  - description: "Manage SIP2 institutions"
+    name: sip2_institutions
+    x-displayName: SIP2 Institutions
+  - description: "Manage SIP2 system preference overrides"
+    name: sip2_system_preference_overrides
+    x-displayName: SIP2 System preference overrides
   - description: "Manage SMTP servers configurations\n"
     name: smtp_servers
     x-displayName: SMTP servers
+  - description: "Manage file transport configurations\n"
+    name: file_transports
+    x-displayName: File transports
   - description: "Manage tickets\n"
     name: tickets
     x-displayName: Tickets
   - description: "Manage transfer limits\n"
-    name: transfer
+    name: transfer_limits
     x-displayName: Transfer limits
   - description: "Handle two factor authentication flows\n"
     name: 2fa
@@ -1344,3 +1501,39 @@ tags:
   - description: "Manage vendors for the acquisitions module\n"
     name: vendors
     x-displayName: Vendors
+  - description: "Manage vendors configuration\n"
+    name: vendors_config
+    x-displayName: Vendors configuration
+  - description: "LMS: BZSH acquisitions order/catalog updates\n"
+    name: BZSH
+    x-displayName: BZSH
+  - description: "LMS: BZSH order status\n"
+    name: bzsh_order_status
+    x-displayName: BZSH order status
+  - description: "LMS: BZSH external order submission\n"
+    name: external_order
+    x-displayName: BZSH external order
+  - description: "LMS: BZSH ID mapping\n"
+    name: bzshid_mapping
+    x-displayName: BZSH ID mapping
+  - description: "LMS: Coverflow data by biblionumber\n"
+    name: coverflow_data_biblionumber
+    x-displayName: Coverflow data (biblio)
+  - description: "LMS: Coverflow data for nearby items\n"
+    name: coverflow_data_nearby_items
+    x-displayName: Coverflow data (nearby)
+  - description: "LMS: Coverflow data by query\n"
+    name: coverflow_data_query
+    x-displayName: Coverflow data (query)
+  - description: "LMS: Generated cover images\n"
+    name: generated_cover
+    x-displayName: Generated cover
+  - description: "LMS: ZKSHA ILL requests\n"
+    name: zksha_illrequests
+    x-displayName: ZKSHA ILL requests
+  - description: "LMS: ZKSHP ILL requests\n"
+    name: zkshp_illrequests
+    x-displayName: ZKSHP ILL requests
+  - description: "LMS: ALV ILL requests\n"
+    name: alv_illrequests
+    x-displayName: ALV ILL requests

@@ -48,6 +48,18 @@ our $field_delimiter  = '|';    # Protocol Default
 
 our $last_response = '';
 
+=head2 y_or_n
+
+Missing POD for y_or_n.
+
+=cut
+
+=head2 timestamp
+
+Missing POD for timestamp.
+
+=cut
+
 sub timestamp {
     my $time = $_[0] || time();
     if ( ref $time eq 'DateTime' ) {
@@ -64,6 +76,13 @@ sub timestamp {
 # add_field(field_id, value)
 #    return constructed field value
 #
+
+=head2 add_field
+
+Missing POD for add_field.
+
+=cut
+
 sub add_field {
     my ( $field_id, $value, $server ) = @_;
 
@@ -97,6 +116,13 @@ sub add_field {
 #    constructed field value, otherwise return the empty string.
 #    NOTE: if zero is a valid value for your field, don't use maybe_add!
 #
+
+=head2 maybe_add
+
+Missing POD for maybe_add.
+
+=cut
+
 sub maybe_add {
     my ( $fid, $value, $server ) = @_;
 
@@ -117,6 +143,12 @@ sub maybe_add {
         ? add_field( $fid, $value )
         : '';
 }
+
+=head2 should_hide
+
+Missing POD for should_hide.
+
+=cut
 
 sub should_hide {
     my ( $field_id, $value, $server ) = @_;
@@ -141,6 +173,13 @@ sub should_hide {
 # or a string of four spaces if the count is invalid for some
 # reason
 #
+
+=head2 add_count
+
+Missing POD for add_count.
+
+=cut
+
 sub add_count {
     my ( $label, $count ) = @_;
 
@@ -169,10 +208,23 @@ sub add_count {
 # that the user's not permitted to renew.  I assume that the ILS has
 # real positive tests.
 #
+
+=head2 denied
+
+Missing POD for denied.
+
+=cut
+
 sub denied {
     my $bool = shift;
     return boolspace( !$bool );
 }
+
+=head2 sipbool
+
+Missing POD for sipbool.
+
+=cut
 
 sub sipbool {
     my $bool = shift;
@@ -182,6 +234,13 @@ sub sipbool {
 #
 # boolspace: ' ' is false, 'Y' is true. (don't ask)
 #
+
+=head2 boolspace
+
+Missing POD for boolspace.
+
+=cut
+
 sub boolspace {
     my $bool = shift;
     return $bool ? 'Y' : ' ';
@@ -197,6 +256,12 @@ sub boolspace {
 # If $file is set, then it's a file handle: write to it, otherwise
 # just write to the default destination.
 #
+
+=head2 write_msg
+
+Missing POD for write_msg.
+
+=cut
 
 sub write_msg {
     my ( $self, $msg, $server ) = @_;
@@ -230,6 +295,12 @@ sub write_msg {
     $last_response = $msg;
 }
 
+=head2 siplog
+
+Missing POD for siplog.
+
+=cut
+
 sub siplog {
     my ( $level, $mask, @args ) = @_;
 
@@ -249,8 +320,6 @@ sub siplog {
     } else {
         $message = $mask;
     }
-
-    $message = remove_password_from_message($message);
 
     $message = remove_password_from_message($message);
 

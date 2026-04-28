@@ -1,5 +1,6 @@
 use Modern::Perl;
-use Test::More;
+use Test::NoWarnings;
+use Test::More tests => 5;
 
 use YAML::XS;
 use Template;
@@ -71,4 +72,3 @@ is_deeply(
         }
     ]
 );
-done_testing;

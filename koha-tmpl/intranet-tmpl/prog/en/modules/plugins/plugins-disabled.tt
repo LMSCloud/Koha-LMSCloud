@@ -40,6 +40,7 @@
             [% END %]
         </div>
     </div>
-
-    [% INCLUDE 'intranet-bottom.inc' %]
 </div>
+<!-- /.container-fluid -->
+
+[% INCLUDE 'intranet-bottom.inc' %]

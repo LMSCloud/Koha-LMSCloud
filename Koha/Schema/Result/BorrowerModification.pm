@@ -100,9 +100,8 @@ patron/borrower's middle name
 
 =head2 streetnumber
 
-  data_type: 'varchar'
+  data_type: 'tinytext'
   is_nullable: 1
-  size: 10
 
 =head2 streettype
 
@@ -175,9 +174,8 @@ patron/borrower's middle name
 =head2 B_streetnumber
 
   accessor: 'b_streetnumber'
-  data_type: 'varchar'
+  data_type: 'tinytext'
   is_nullable: 1
-  size: 10
 
 =head2 B_streettype
 
@@ -366,6 +364,12 @@ patron/borrower's middle name
   is_nullable: 1
   size: 80
 
+=head2 altcontacttitle
+
+  data_type: 'varchar'
+  is_nullable: 1
+  size: 255
+
 =head2 altcontactfirstname
 
   data_type: 'varchar'
@@ -373,12 +377,6 @@ patron/borrower's middle name
   size: 255
 
 =head2 altcontactsurname
-
-  data_type: 'varchar'
-  is_nullable: 1
-  size: 255
-
-=head2 altcontacttitle
 
   data_type: 'varchar'
   is_nullable: 1
@@ -497,7 +495,7 @@ __PACKAGE__->add_columns(
   "pronouns",
   { data_type => "longtext", is_nullable => 1 },
   "streetnumber",
-  { data_type => "varchar", is_nullable => 1, size => 10 },
+  { data_type => "tinytext", is_nullable => 1 },
   "streettype",
   { data_type => "varchar", is_nullable => 1, size => 50 },
   "address",
@@ -525,12 +523,7 @@ __PACKAGE__->add_columns(
   "phonepro",
   { data_type => "mediumtext", is_nullable => 1 },
   "B_streetnumber",
-  {
-    accessor => "b_streetnumber",
-    data_type => "varchar",
-    is_nullable => 1,
-    size => 10,
-  },
+  { accessor => "b_streetnumber", data_type => "tinytext", is_nullable => 1 },
   "B_streettype",
   {
     accessor => "b_streettype",
@@ -610,11 +603,11 @@ __PACKAGE__->add_columns(
   { data_type => "varchar", is_nullable => 1, size => 80 },
   "sort2",
   { data_type => "varchar", is_nullable => 1, size => 80 },
+  "altcontacttitle",
+  { data_type => "varchar", is_nullable => 1, size => 255 },
   "altcontactfirstname",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "altcontactsurname",
-  { data_type => "varchar", is_nullable => 1, size => 255 },
-  "altcontacttitle",
   { data_type => "varchar", is_nullable => 1, size => 255 },
   "altcontactaddress1",
   { data_type => "varchar", is_nullable => 1, size => 255 },
@@ -663,8 +656,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("verification_token", "borrowernumber");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:54
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ZRLX3lgGYFSQKZ8r6gmRHQ
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-04-16 15:52:45
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:PCVkSd4pEwKiImYbB0kvyw
 
 sub koha_object_class {
     'Koha::Patron::Modification';

@@ -5,7 +5,7 @@
             <option value="[% l.branchcode | html %]" selected="selected">[% l.branchname | html %]</option>
         [% ELSE %]
             <option value="[% l.branchcode | html %]">[% l.branchname | html %]</option>
-        [% END%]
+        [% END %]
     [% END %]
 [% END %]
 
@@ -35,28 +35,26 @@
     [%- this_biblio_href | url %][% biblionumber | url -%]
 [%- END %]
 
-[% # BOOTSTRAP TAB WRAPPER USAGE                                                                         %]
-[% #     [ WRAPPER tabs id= "tabs_container_id" ]                                                        %]
-[% #         [ WRAPPER tabs_nav ]                                                                        %]
-[% #             [ WRAPPER tab_item tabname= "tab_name_1" bt_active= 1 ] <span>Tab text 1</span> [ END ] %]
-[% #             [ WRAPPER tab_item tabname= "tab_name_2" ] <span>Tab text 2</span> [ END ]              %]
-[% #             ...                                                                                     %]
-[% #         [ END ]                                                                                     %]
-[% #         [ WRAPPER tab_panels ]                                                                      %]
-[% #             [ WRAPPER tab_panel tabname="tab_name_1" bt_active= 1 ] Panel contents 1 [ END ]        %]
-[% #             [ WRAPPER tab_panel tabname="tab_name_2" ] Panel contents 2 [ END ]                     %]
-[% #             ...                                                                                     %]
-[% #         [ END ]                                                                                     %]
-[% #     [ END ]                                                                                         %]
+[%# BOOTSTRAP TAB WRAPPER USAGE                                                                         %]
+[%#     [ WRAPPER tabs id= "tabs_container_id" ]                                                        %]
+[%#         [ WRAPPER tabs_nav ]                                                                        %]
+[%#             [ WRAPPER tab_item tabname= "tab_name_1" bt_active= 1 ] <span>Tab text 1</span> [ END ] %]
+[%#             [ WRAPPER tab_item tabname= "tab_name_2" ] <span>Tab text 2</span> [ END ]              %]
+[%#             ...                                                                                     %]
+[%#         [ END ]                                                                                     %]
+[%#         [ WRAPPER tab_panels ]                                                                      %]
+[%#             [ WRAPPER tab_panel tabname="tab_name_1" bt_active= 1 ] Panel contents 1 [ END ]        %]
+[%#             [ WRAPPER tab_panel tabname="tab_name_2" ] Panel contents 2 [ END ]                     %]
+[%#             ...                                                                                     %]
+[%#         [ END ]                                                                                     %]
+[%#     [ END ]                                                                                         %]
 
 [% BLOCK tabs %]
-    [% IF ( id ) %]
-        <div id="[% id | html %]" class="toptabs">
+    [% IF id %]
+        <div id="[% id | html %]" class="toptabs"> [% content | $raw %] </div>
     [% ELSE %]
-        <div class="toptabs">
+        <div class="toptabs"> [% content | $raw %] </div>
     [% END %]
-        [% content | $raw %]
-    </div>
 [% END %]
 
 [% BLOCK tabs_nav %]
@@ -79,64 +77,66 @@
         [% ELSE %]
             [% SET our_tab_id = tabname %]
         [% END %]
-        <a href="#[% tabname | uri %]_panel" class="[% link_class | html %]" id="[% our_tab_id | html %]-tab" data-bs-toggle="tab" data-bs-target="#[% tabname | html %]_panel" data-tabname="[% tabname | uri %]" aria-controls="[% tabname | uri %]_panel" role="tab" aria-selected="[% aria_selected | html %]">
+        <a
+            href="#[% tabname | uri %]_panel"
+            class="[% link_class | html %]"
+            id="[% our_tab_id | html %]-tab"
+            data-bs-toggle="tab"
+            data-bs-target="#[% tabname | html %]_panel"
+            data-tabname="[% tabname | uri %]"
+            aria-controls="[% tabname | uri %]_panel"
+            role="tab"
+            aria-selected="[% aria_selected | html %]"
+        >
             [% content | $raw %]
         </a>
     </li>
 [% END %]
 
 [% BLOCK tab_panels %]
-    [% IF ( id ) %]
-        <div class="tab-content" id="[% id | html %]_content">
-    [% ELSE %]
-        <div class="tab-content">
-    [% END %]
-        [% content | $raw %]
-    </div>
+    <div class="tab-content" [% IF id %]id="[% id | html %]_content"[% END %]> [% content | $raw %] </div>
 [% END %]
 
 [% BLOCK tab_panel %]
     [% IF ( bt_active ) %]
-        <div role="tabpanel" class="tab-pane show active" id="[% tabname | html %]_panel" aria-labelledby="[% tabname | html %]-tab">
+        <div role="tabpanel" class="tab-pane show active" id="[% tabname | html %]_panel" aria-labelledby="[% tabname | html %]-tab"> [% content| $raw %] </div>
     [% ELSE %]
-        <div role="tabpanel" class="tab-pane" id="[% tabname | html %]_panel" aria-labelledby="[% tabname | html %]-tab">
+        <div role="tabpanel" class="tab-pane" id="[% tabname | html %]_panel" aria-labelledby="[% tabname | html %]-tab"> [% content| $raw %] </div>
     [% END %]
-        [% content| $raw %]
-    </div>
 [% END %]
 
-[% # BOOTSTRAP BREADCRUMBS WRAPPER USAGE                                       %]
-[% #    [ WRAPPER breadcrumbs ]                                                %]
-[% #        [ Home breadcrumb automatically included ]                         %]
-[% #        [ WRAPPER breadcrumb_item ]                                        %]
-[% #            <a href="/cgi-bin/koha/module/module-home.pl"> Module </a>     %]
-[% #        [ END ]                                                            %]
+[%# BOOTSTRAP BREADCRUMBS WRAPPER USAGE                                       %]
+[%#    [ WRAPPER breadcrumbs ]                                                %]
+[%#        [ Home breadcrumb automatically included ]                         %]
+[%#        [ WRAPPER breadcrumb_item ]                                        %]
+[%#            <a href="/cgi-bin/koha/module/module-home.pl"> Module </a>     %]
+[%#        [ END ]                                                            %]
 
-[% #        [ IF op == 'add_form' ]                                            %]
-[% #            [ WRAPPER breadcrumb_item ]                                    %]
-[% #                <a href="/cgi-bin/koha/module/page.pl"> Module page </a>   %]
-[% #            [ END ]                                                        %]
-[% #            [ WRAPPER breadcrumb_item bc_active = 1 ]                      %]
-[% #                <span>Add form</span>                                      %]
-[% #            [ END ]                                                        %]
+[%#        [ IF op == 'add_form' ]                                            %]
+[%#            [ WRAPPER breadcrumb_item ]                                    %]
+[%#                <a href="/cgi-bin/koha/module/page.pl"> Module page </a>   %]
+[%#            [ END ]                                                        %]
+[%#            [ WRAPPER breadcrumb_item bc_active = 1 ]                      %]
+[%#                <span>Add form</span>                                      %]
+[%#            [ END ]                                                        %]
 
-[% #        [ ELSIF op == 'delete_confirm' ]                                   %]
-[% #            [ WRAPPER breadcrumb_item ]                                    %]
-[% #                <a href="/cgi-bin/koha/module/page.pl"> Module page </a>   %]
-[% #            [ END ]                                                        %]
-[% #            [ WRAPPER breadcrumb_item bc_active = 1 ]                      %]
-[% #                <span>Confirm deletion</span>                              %]
-[% #            [ END ]                                                        %]
+[%#        [ ELSIF op == 'delete_confirm' ]                                   %]
+[%#            [ WRAPPER breadcrumb_item ]                                    %]
+[%#                <a href="/cgi-bin/koha/module/page.pl"> Module page </a>   %]
+[%#            [ END ]                                                        %]
+[%#            [ WRAPPER breadcrumb_item bc_active = 1 ]                      %]
+[%#                <span>Confirm deletion</span>                              %]
+[%#            [ END ]                                                        %]
 
-[% #        [ ELSE ]                                                           %]
-[% #            [ WRAPPER breadcrumb_item bc_active = 1 ]                      %]
-[% #                <span>Module page</span>                                   %]
-[% #            [ END ]                                                        %]
-[% #        [ END #/IF op = add_form ]                                         %]
+[%#        [ ELSE ]                                                           %]
+[%#            [ WRAPPER breadcrumb_item bc_active = 1 ]                      %]
+[%#                <span>Module page</span>                                   %]
+[%#            [ END ]                                                        %]
+[%#        [ END #/IF op = add_form ]                                         %]
 
-[% #    [ END #/ WRAPPER breadcrumbs ]                                         %]
+[%#    [ END #/ WRAPPER breadcrumbs ]                                         %]
 
-[% # Used to build breadcrumb navigation nav %]
+[%# Used to build breadcrumb navigation nav %]
 [% BLOCK breadcrumbs %]
     <nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumbs">
         <ol class="breadcrumb">
@@ -159,14 +159,10 @@
 [% BLOCK breadcrumb_item %]
     [% IF ( bc_active ) %]
         <li class="breadcrumb-item active">
-            <a href="#" aria-current="page">
-                [% content | $raw %]
-            </a>
+            <a aria-current="page" aria-disabled="true" tabindex="-1"> [% content | $raw %] </a>
         </li>
     [% ELSE %]
-        <li class="breadcrumb-item">
-            [% content | $raw %]
-        </li>
+        <li class="breadcrumb-item"> [% content | $raw %] </li>
     [% END %]
 [% END %]
 

@@ -13,7 +13,7 @@ package Koha::REST::Plugin::Objects;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -28,6 +28,12 @@ Koha::REST::Plugin::Objects
 =head1 API
 
 =head2 Helper methods
+
+=cut
+
+=head2 register
+
+Missing POD for register.
 
 =cut
 
@@ -153,7 +159,7 @@ controller, and thus shouldn't be called twice in it.
         'objects.search_rs' => sub {
             my ( $c, $result_set, $query_fixers ) = @_;
 
-            my $args       = $c->validation->output;
+            my $args       = $c->req->params->to_hash;
             my $attributes = {};
 
             $query_fixers //= [];
@@ -211,40 +217,26 @@ controller, and thus shouldn't be called twice in it.
             );
 
             my $query_params;
-            if (   defined $reserved_params->{q}
-                || defined $reserved_params->{query} )
-            {
+
+            my $q_param = $reserved_params->{q};
+            my $q_body  = $c->req->json;
+
+            if ( $q_param || $q_body ) {
 
                 my @query_params_array;
 
                 my $json = JSON->new;
 
-                # query in request body, JSON::Validator already decoded it
-                if ( $reserved_params->{query} ) {
-                    my $query = $json->encode( $reserved_params->{query} );
-                    foreach my $qf ( @{$query_fixers} ) {
-                        $query = $qf->($query);
-                    }
-                    push @query_params_array, $json->decode($query);
-                }
+                # The q parameter can be an array if multiple passed
+                $q_param = [$q_param]
+                    unless ref($q_param) eq 'ARRAY';
 
-                if ( ref( $reserved_params->{q} ) eq 'ARRAY' ) {
+                # Encode the already decoded request body and add it for processing
+                push @{$q_param}, $json->encode($q_body)
+                    if $q_body;
 
-                    # q is defined as multi => JSON::Validator generates an array
-                    foreach my $q ( @{ $reserved_params->{q} } ) {
-                        if ($q) {    # skip if exists but is empty
-                            foreach my $qf ( @{$query_fixers} ) {
-                                $q = $qf->($q);
-                            }
-                            push @query_params_array, $json->decode($q);
-                        }
-                    }
-                } else {
-
-                    # objects.search called outside OpenAPI context
-                    # might be a hashref
-                    if ( $reserved_params->{q} ) {
-                        my $q = $reserved_params->{q};
+                foreach my $q ( @{$q_param} ) {
+                    if ($q) {    # skip if exists but is empty
                         foreach my $qf ( @{$query_fixers} ) {
                             $q = $qf->($q);
                         }
@@ -260,8 +252,8 @@ controller, and thus shouldn't be called twice in it.
             }
 
             # request sequence id (i.e. 'draw' Datatables parameter)
-            $c->res->headers->add( 'x-koha-request-id' => $reserved_params->{'x-koha-request-id'} )
-                if $reserved_params->{'x-koha-request-id'};
+            $c->res->headers->add( 'x-koha-request-id' => $c->stash('koha.request_id') )
+                if $c->stash('koha.request_id');
 
             # If search_limited exists, use it
             $result_set = $result_set->search_limited,

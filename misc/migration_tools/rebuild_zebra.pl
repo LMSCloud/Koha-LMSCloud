@@ -13,22 +13,27 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Koha::Script;
-use C4::Context;
-use Getopt::Long        qw( GetOptions );
-use Fcntl               qw( LOCK_EX LOCK_NB LOCK_UN );
-use File::Temp          qw( tempdir );
-use File::Path          qw( mkpath rmtree );
-use C4::Biblio          qw( GetXmlBiblio );
-use C4::AuthoritiesMarc qw( GetAuthority GetAuthorityXML );
-use C4::Items           qw( Item2Marc );
-use Koha::RecordProcessor;
-use Koha::Caches;
+use Getopt::Long qw( GetOptions );
+use Fcntl        qw( LOCK_EX LOCK_NB LOCK_UN );
+use File::Temp   qw( tempdir );
+use File::Path   qw( mkpath rmtree );
+use Parallel::ForkManager;
+use POSIX qw/ceil/;
 use XML::LibXML;
+
+use C4::Context;
+use C4::AuthoritiesMarc qw( GetAuthority GetAuthorityXML );
+use C4::Biblio          qw( GetXmlBiblio );
+use C4::Items           qw( Item2Marc );
+use Koha::Authorities;
+use Koha::Biblios;
+use Koha::Caches;
+use Koha::RecordProcessor;
+use Koha::Script;
 
 use constant LOCK_FILENAME => 'rebuild..LCK';
 
@@ -65,6 +70,8 @@ my $run_user      = ( getpwuid($<) )[0];
 my $wait_for_lock = 0;
 my $use_flock;
 my $table        = 'biblioitems';
+my $forks        = 0;
+my $chunk_size   = 100000;
 my $is_memcached = Koha::Caches->get_instance->memcached_cache;
 
 my $verbose_logging  = 0;
@@ -93,6 +100,7 @@ my $result           = GetOptions(
     'run-as-root'   => \$run_as_root,
     'wait-for-lock' => \$wait_for_lock,
     't|table:s'     => \$table,
+    'processes:i'   => \$forks,
 );
 
 if ( not $result or $want_help ) {
@@ -244,8 +252,19 @@ my $dbh;
 # We have chosen to exit immediately by default if we cannot obtain the lock
 # to prevent the potential for a infinite backlog from cron invocations, but an
 # option (wait-for-lock) is provided to let the program wait for the lock.
-# See http://bugs.koha-community.org/bugzilla3/show_bug.cgi?id=11078 for details.
+# See https://bugs.koha-community.org/bugzilla3/show_bug.cgi?id=11078 for details.
 if ($daemon_mode) {
+
+    $SIG{TERM} = sub {
+        $dbh->disconnect if $dbh;
+        exit 0;
+    };
+
+    $SIG{INT} = sub {
+        $dbh->disconnect if $dbh;
+        exit 0;
+    };
+
     while (1) {
 
         # For incremental updates, skip the update if the updates are locked
@@ -522,11 +541,41 @@ sub select_all_biblios {
     return $sth;
 }
 
+sub export_marc_records {
+    my ( $record_type, $directory, $nosanitize ) = @_;
+    my $pm              = Parallel::ForkManager->new($forks);
+    my @original_params = ( $offset, $length );
+    $offset ||= 0;
+    $length ||= ( $record_type eq 'biblio' ? Koha::Biblios->count : Koha::Authorities->count );
+    my $chunk_size = $forks ? ceil( $length / $forks ) : $length;
+    my ( $seq, $num_records_exported ) = ( undef, 0 );
+    while ( $chunk_size > 0 ) {
+
+        # If you use forks, ->start forks after getting process slot
+        unless ( $pm->start ) {
+
+            # Child code (or parent when forks parameter is absent)
+            $length = $chunk_size;
+            my $sth = select_all_records($record_type);
+            export_marc_records_from_sth( $record_type, $sth, "$directory", $nosanitize, $seq );
+            $pm->finish;    # exit for child only
+        }
+        $offset               += $chunk_size;
+        $num_records_exported += $chunk_size;
+        $seq++;
+        $chunk_size = $length - $num_records_exported if $num_records_exported + $chunk_size > $length;
+    }
+    $pm->wait_all_children;
+    ( $offset, $length ) = @original_params;    # restore for a potential second run (with -a -b)
+    return $num_records_exported;
+}
+
 sub export_marc_records_from_sth {
-    my ( $record_type, $sth, $directory, $nosanitize ) = @_;
+    my ( $record_type, $sth, $directory, $nosanitize, $seq ) = @_;
+    $seq ||= q{};
 
     my $num_exported = 0;
-    open my $fh, '>:encoding(UTF-8) ', "$directory/exported_records" or die $!;
+    open my $fh, '>:encoding(UTF-8)', "$directory/exported_records$seq" or die $!;
 
     print {$fh} $marcxml_open;
 
@@ -990,7 +1039,7 @@ Parameters:
     --where                 let you specify a WHERE query, like itemtype='BOOK'
                             or something like that
 
-    --run-as-root           explicitily allow script to run as 'root' user
+    --run-as-root           explicitly allow script to run as 'root' user
 
     --wait-for-lock         when not running in daemon mode, the default
                             behavior is to abort a rebuild if the rebuild
@@ -1000,6 +1049,10 @@ Parameters:
 
     --table                 specify a table (can be items, biblioitems, biblio, biblio_metadata) to retrieve biblionumber to index.
                             biblioitems is the default value.
+
+    --processes             specify the number of processes (forks) for
+                            parallel exporting authority or biblio records
+                            (does not apply to the indexing step)
 
     --help or -h            show this message.
 _USAGE_

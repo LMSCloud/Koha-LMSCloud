@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::NoWarnings;
+use Test::More tests => 2;
 use Test::Mojo;
 
 use t::lib::TestBuilder;
@@ -101,7 +102,8 @@ subtest 'import record matches tests' => sub {
             . $del_import_batch_id
             . "/records/"
             . $del_match_id
-            . "/matches/chosen" => json => { candidate_match_id => $match_1->candidate_match_id } )->status_is(404)
+            . "/matches/chosen" => json => { candidate_match_id => $match_1->candidate_match_id } )
+        ->status_is(404)
         ->json_is( '/error' => "Match not found" );
 
     # Valid, authorised update

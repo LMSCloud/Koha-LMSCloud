@@ -25,10 +25,11 @@
 [% SET SelfCheckInMainUserBlock = AdditionalContents.get( location => "SelfCheckInMainUserBlock", lang => lang, library => logged_in_user.branchcode || default_branch, blocktitle => 0 ) %]
 [% INCLUDE 'doc-head-open.inc' %]
 [% SET OpacLangSelectorMode = Koha.Preference('OpacLangSelectorMode') %]
-<title>Self check-in &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha [% END %]</title>
+<title>Self check-in &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha[% END %]</title>
 
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Koha" /> <!-- leave this for stats -->
+<meta name="generator" content="Koha" />
+<!-- leave this for stats -->
 
 [% IF ( Koha.Preference('OpacFavicon') ) %]
     <link rel="shortcut icon" href="[% Koha.Preference('OpacFavicon') | url %]" type="image/x-icon" />
@@ -43,16 +44,28 @@
 [% ELSE %]
     [% Asset.css("css/sco.css") | $raw %]
 [% END %]
-[% IF ( Koha.Preference('OPACUserCSS') ) %]<style>[% Koha.Preference('OPACUserCSS') | $raw %]</style>[% END %]
+[% IF ( Koha.Preference('OPACUserCSS') ) %]
+    <!-- prettier-ignore-start -->
+    <style>[% Koha.Preference('OPACUserCSS') | $raw %]</style>
+    <!-- prettier-ignore-end -->
+[% END %]
 [% IF Branches.GetBranchSpecificCSS( Branches.GetLoggedInBranchcode() || default_branch) %]
+    <!-- prettier-ignore-start -->
     <style>
         [% Branches.GetBranchSpecificCSS( Branches.GetLoggedInBranchcode() || default_branch) | $raw %]
     </style>
+    <!-- prettier-ignore-end -->
 [% END %]
-[% IF ( Koha.Preference('SelfCheckInUserCSS') ) %]<style>[% Koha.Preference('SelfCheckInUserCSS') | $raw %]</style>[% END %]
+[% IF ( Koha.Preference('SelfCheckInUserCSS') ) %]
+    <!-- prettier-ignore-start -->
+    <style>[% Koha.Preference('SelfCheckInUserCSS') | $raw %]</style>
+    <!-- prettier-ignore-end -->
+[% END %]
 <script>
     var Koha = {};
-    function _(s) { return s } // dummy function for gettext
+    function _(s) {
+        return s;
+    } // dummy function for gettext
 </script>
 [% IF lang && lang != 'en' %]
     [% Asset.js(lang _ '/js/locale_data.js') | $raw %]
@@ -61,9 +74,10 @@
 [% Asset.js('js/i18n.js') | $raw %]
 </head>
 <body id="sci_main" class="sci">
+<div id="wrapper">
     [% INCLUDE 'masthead-sci.inc' %]
 
-    <div class="main">
+    <main class="main">
         <div class="container-fluid">
             <div class="row">
                 <div class="col order-first order-md-first order-lg-2">
@@ -87,30 +101,30 @@
                         [%# We have results from a check-in attempt %]
                         <div id="checkins" class="sci_results_list">
                             [% IF ( success && success.size > 0 || errors && errors.size > 0 ) %]
-                                    <table id="sci_bcheckins_table" class="table table-bordered table-striped dataTable no-footer">
-                                        <caption><h2>Results</h2></caption>
-                                        <thead>
-                                            <th>Barcode</th>
-                                            <th>Status</th>
-                                        </thead>
-                                        <tbody>
-                                            [% FOREACH success_line IN success %]
-                                                <tr>
-                                                    <td>[% success_line.barcode | html %]</td>
-                                                    <td>Checked in</td>
-                                                </tr>
-                                            [% END %]
-                                            [% FOREACH error IN errors %]
-                                                <tr>
-                                                    <td>[% error.barcode | html %]</td>
-                                                    <td>Not checked in [% PROCESS error_message messages=error.messages %]</td>
-                                                </tr>
-                                            [% END %]
-                                        </tbody>
-                                    </table>
-                                    <div>
-                                        <a href="/cgi-bin/koha/sci/sci-main.pl" id="sci_finish_button" class="btn btn-primary" role="button"><i class="fa fa-check" aria-hidden="true"></i> Finish</a>
-                                    </div>
+                                <table id="sci_bcheckins_table" class="table table-bordered table-striped dataTable no-footer">
+                                    <caption><h2>Results</h2></caption>
+                                    <thead>
+                                        <th>Barcode</th>
+                                        <th>Status</th>
+                                    </thead>
+                                    <tbody>
+                                        [% FOREACH success_line IN success %]
+                                            <tr>
+                                                <td>[% success_line.barcode | html %]</td>
+                                                <td>Checked in</td>
+                                            </tr>
+                                        [% END %]
+                                        [% FOREACH error IN errors %]
+                                            <tr>
+                                                <td>[% error.barcode | html %]</td>
+                                                <td>Not checked in [% PROCESS error_message messages=error.messages %]</td>
+                                            </tr>
+                                        [% END %]
+                                    </tbody>
+                                </table>
+                                <div>
+                                    <a href="/cgi-bin/koha/sci/sci-main.pl" id="sci_finish_button" class="btn btn-primary" role="button"><i class="fa fa-check" aria-hidden="true"></i> Finish</a>
+                                </div>
                             [% ELSE %]
                                 <div class="alert alert-warning">
                                     <p>Your request included no check-ins.</p>
@@ -131,11 +145,10 @@
                                         <input id="barcode_input" name="barcode_input" size="20" type="text" class="focus form-control" autocomplete="off" />
                                     </div>
                                     <div class="col-auto">
-                                        <button id="sci_append_button" type="submit" class="btn btn-primary">
-                                            Submit
-                                        </button>
+                                        <button id="sci_append_button" type="submit" class="btn btn-primary"> Submit </button>
                                     </div>
-                                </div> <!-- /.row -->
+                                </div>
+                                <!-- /.row -->
                                 <div class="row">
                                     <div class="col">
                                         <div class="sci_input_append">
@@ -144,188 +157,190 @@
                                                 <thead>
                                                     <th class="barcodes_column">Barcode</th>
                                                 </thead>
-                                                <tbody>
-                                                </tbody>
-                                            </table> <!-- /#sci_barcodes_table -->
-                                        </div> <!-- .sci_input_append -->
+                                                <tbody> </tbody>
+                                            </table>
+                                            <!-- /#sci_barcodes_table -->
+                                        </div>
+                                        <!-- .sci_input_append -->
                                         <input type="hidden" name="op" value="cud-check_in" />
                                         <div id="button_bar">
-                                            <button id="sci_checkin_button" type="submit" class="btn btn-primary" style="display: none;">
-                                                <i class="fa fa-check-square" aria-hidden="true"></i> <span>Check in</span>
-                                            </button>
-                                            <a href="/cgi-bin/koha/sci/sci-main.pl" class="btn btn-danger" role="button" style="display: none;" id="sci_refresh_button">
-                                                <i class="fa fa-times" aria-hidden="true"></i> <span>Cancel</span>
-                                            </a>
-                                        </div> <!-- /#button_bar -->
-                                    </div> <!-- /.col -->
-                                </div> <!-- /.row -->
-                            </form> <!-- /#scan_form -->
-                        </div> <!-- / #new_checkins -->
+                                            <button id="sci_checkin_button" type="submit" class="btn btn-primary" style="display: none;"> <i class="fa fa-check-square" aria-hidden="true"></i> <span>Check in</span> </button>
+                                            <a href="/cgi-bin/koha/sci/sci-main.pl" class="btn btn-danger" role="button" style="display: none;" id="sci_refresh_button"> <i class="fa fa-times" aria-hidden="true"></i> <span>Cancel</span> </a>
+                                        </div>
+                                        <!-- /#button_bar -->
+                                    </div>
+                                    <!-- /.col -->
+                                </div>
+                                <!-- /.row -->
+                            </form>
+                            <!-- /#scan_form -->
+                        </div>
+                        <!-- / #new_checkins -->
                     [% END # /IF ( nopermission ) %]
 
                     [% IF ( SelfCheckInMainUserBlock ) %]
-                        <div id="scimainuserblock">
-                            [% PROCESS koha_news_block news => SelfCheckInMainUserBlock %]
-                        </div>
+                        <div id="scimainuserblock"> [% PROCESS koha_news_block news => SelfCheckInMainUserBlock %] </div>
                     [% END %]
-                </div> <!-- / #masthead -->
-            </div> <!-- / .row -->
-        </div> <!-- / .container-fluid -->
-
-</div> <!-- / .main -->
-
-[% # Help modal %]
-<div id="helpModal" class="modal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title" id="helpModalLabel">Self check-in help</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div> <!-- /.modal-header -->
-            <div class="modal-body">
-                <ul>
-                    <li>Scan each item or enter its barcode. A list with the entered barcodes will be displayed.</li>
-                    <li>Click the 'Check in' button to confirm.</li>
-                    <li>The operation results will be displayed for each entered barcode.</li>
-                    <li>The 'Finish' button is presented to start over.</li>
-                    <li>At any step, clicking the 'Cancel' button will erase the scanned barcodes and start over.</li>
-                </ul>
-            </div> <!-- /.modal-body -->
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                </div>
+                <!-- / #masthead -->
             </div>
-        </div> <!-- /.modal-content -->
-    </div> <!-- /.modal-dialog -->
-</div> <!-- /#helpModal -->
+            <!-- / .row -->
+        </div>
+        <!-- / .container-fluid -->
+    </main>
+    <!-- / .main -->
 
-</body>
+    [%# Help modal %]
+    <div id="helpModal" class="modal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title" id="helpModalLabel">Self check-in help</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <!-- /.modal-header -->
+                <div class="modal-body">
+                    <ul>
+                        <li>Scan each item or enter its barcode. A list with the entered barcodes will be displayed.</li>
+                        <li>Click the 'Check in' button to confirm.</li>
+                        <li>The operation results will be displayed for each entered barcode.</li>
+                        <li>The 'Finish' button is presented to start over.</li>
+                        <li>At any step, clicking the 'Cancel' button will erase the scanned barcodes and start over.</li>
+                    </ul>
+                </div>
+                <!-- /.modal-body -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+    <!-- /#helpModal -->
 
-[% INCLUDE 'opac-bottom.inc' %]
-[% BLOCK jsinclude %]
-    <script>
+    </body>
 
-        function mungeHistory() {
-            // prevent back button from allowing form resubmission
-            if (history && history.pushState) {
-                history.replaceState(null, document.title, window.location.href);
-            }
-        }
+    [% INCLUDE 'opac-bottom.inc' %]
+    [% BLOCK jsinclude %]
+        <script>
+            function mungeHistory() {
+                        // prevent back button from allowing form resubmission
+                        if (history && history.pushState) {
+                            history.replaceState(null, document.title, window.location.href);
+                        }
+                    }
 
-        function dofocus() {
-            $(".focus:last").select();
-        }
+                    function dofocus() {
+                        $(".focus:last").select();
+                    }
 
-        var barcodes = [];
+                    var barcodes = [];
 
-        $( window ).on( "load", function() {
-            dofocus();
-        });
+                    $( window ).on( "load", function() {
+                        dofocus();
+                    });
 
-        $( window ).on( "unload", function() {
-            mungeHistory();
-        });
+                    $( window ).on( "unload", function() {
+                        mungeHistory();
+                    });
 
-        $(document).ready(function() {
-    // Barcodes scanning table initially hidden
-    $("#sci_barcodes_table").hide();
+                    $(document).ready(function() {
+                // Barcodes scanning table initially hidden
+                $("#sci_barcodes_table").hide();
 
-    // Control the 'append' button behaviour
-    $("#sci_append_button").on('click', function(e) {
-        // Make sure the form is not submitted by the button
-        e.preventDefault();
+                // Control the 'append' button behaviour
+                $("#sci_append_button").on('click', function(e) {
+                    // Make sure the form is not submitted by the button
+                    e.preventDefault();
 
-        var barcode = $('#barcode_input').val().trim(); // Trim whitespace from input
+                    var barcode = $('#barcode_input').val().trim(); // Trim whitespace from input
 
-        if (barcode !== "") {
-            // Properly escape the barcode value by using .text() for display
-            var barcodeHtml = $('<tr style="font-size: initial;"><td></td></tr>');
-            barcodeHtml.find('td').text(barcode).append(
-                $('<input>').attr({
-                    type: 'hidden',
-                    name: 'barcode',
-                    value: barcode
-                })
-            );
+                    if (barcode !== "") {
+                        // Properly escape the barcode value by using .text() for display
+                        var barcodeHtml = $('<tr style="font-size: initial;"><td></td></tr>');
+                        barcodeHtml.find('td').text(barcode).append(
+                            $('<input>').attr({
+                                type: 'hidden',
+                                name: 'barcode',
+                                value: barcode
+                            })
+                        );
 
-            $('#sci_barcodes_table tbody').append(barcodeHtml);
+                        $('#sci_barcodes_table tbody').append(barcodeHtml);
 
-            // Make sure the table is now displayed
-            $("#sci_barcodes_table").show();
-            $('#sci_checkin_button').show();
-            $('#sci_refresh_button').show();
+                        // Make sure the table is now displayed
+                        $("#sci_barcodes_table").show();
+                        $('#sci_checkin_button').show();
+                        $('#sci_refresh_button').show();
 
-            // Add barcode to the array
-            barcodes.push(barcode);
-        }
+                        // Add barcode to the array
+                        barcodes.push(barcode);
+                    }
 
-        // Clear the input and reset the focus
-        $('#barcode_input').val('');
-        dofocus();
-    });
+                    // Clear the input and reset the focus
+                    $('#barcode_input').val('');
+                    dofocus();
+                });
 
-    $(".helpModal-trigger").on("click", function(e) {
-        e.preventDefault();
-        $("#helpModal").modal("show");
-    });
+                $(".helpModal-trigger").on("click", function(e) {
+                    e.preventDefault();
+                    $("#helpModal").modal("show");
+                });
 
-    // Set focus at the beginning
-    dofocus();
-});
-
-
-        var idleTime = 0;
-        $(document).ready(function () {
-            //Increment the idle time counter every second
-            var idleInterval = setInterval(timerIncrement, 1000);
-
-            //Zero the idle timer on mouse movement.
-            $(this).mousemove(function (e) {
-                idleTime = 0;
+                // Set focus at the beginning
+                dofocus();
             });
-            $(this).keypress(function (e) {
-                idleTime = 0;
+
+
+                    var idleTime = 0;
+                    $(document).ready(function () {
+                        //Increment the idle time counter every second
+                        var idleInterval = setInterval(timerIncrement, 1000);
+
+                        //Zero the idle timer on mouse movement.
+                        $(this).mousemove(function (e) {
+                            idleTime = 0;
+                        });
+                        $(this).keypress(function (e) {
+                            idleTime = 0;
+                        });
+                    });
+
+                    function timerIncrement() {
+                        if ( $("#sci_finish_button").is(":visible") || $("#sci_refresh_button").is(":visible") ) {
+                            idleTime = idleTime + 1;
+                            idleTimeout = [% refresh_timeout | html %];
+                            if (idleTime >= idleTimeout ) {
+                                location.href = '/cgi-bin/koha/sci/sci-main.pl';
+                            }
+                        }
+                    }
+
+
+                    function checkBarcodeInput() {
+                        var inputField = document.getElementById("barcode_input");
+                        var button = document.getElementById("sci_append_button");
+
+                        if (inputField.value.trim() === "") {
+                            button.disabled = true;
+                        } else {
+                            button.disabled = false;
+                        }
+                    }
+
+            checkBarcodeInput();
+
+            document.getElementById("barcode_input").addEventListener("input", checkBarcodeInput);
+
+            document.getElementById("sci_append_button").addEventListener("click", function() {
+                setTimeout(checkBarcodeInput, 10);
             });
-        });
-
-        function timerIncrement() {
-            if ( $("#sci_finish_button").is(":visible") || $("#sci_refresh_button").is(":visible") ) {
-                idleTime = idleTime + 1;
-                idleTimeout = [% refresh_timeout | html %];
-                if (idleTime >= idleTimeout ) {
-                    location.href = '/cgi-bin/koha/sci/sci-main.pl';
-                }
-            }
-        }
-
-
-        function checkBarcodeInput() {
-            var inputField = document.getElementById("barcode_input");
-            var button = document.getElementById("sci_append_button");
-
-            if (inputField.value.trim() === "") {
-                button.disabled = true;
-            } else {
-                button.disabled = false;
-            }
-        }
-
-checkBarcodeInput();
-
-document.getElementById("barcode_input").addEventListener("input", checkBarcodeInput);
-
-document.getElementById("sci_append_button").addEventListener("click", function() {
-    setTimeout(checkBarcodeInput, 10);
-});
-
-
-
-
-
-
-
-    </script>
-
-    [% IF ( Koha.Preference('SelfCheckInUserJS') ) %]
-        <script>[% Koha.Preference('SelfCheckInUserJS') | $raw %]</script>
+        </script>
+        [% IF ( Koha.Preference('SelfCheckInUserJS') ) %]
+            <script>
+                [% Koha.Preference('SelfCheckInUserJS') | $raw %]
+            </script>
+        [% END %]
     [% END %]
-[% END %]
+</div>

@@ -101,7 +101,8 @@ $(document).ready(function () {
                     column.render = renders[column.data];
                 }
             });
-            tableDef.ajax.dataSrc = function (data) {
+            tableDef.ajax.dataSrc = function (json) {
+                let data = json.data;
                 var results = data.results.search_results;
                 // The source appears to be returning it's own pagination
                 // data
@@ -248,7 +249,7 @@ $(document).ready(function () {
                     .find(".dt-paging");
                 pagination.toggle(this.api().page.info().pages > 1);
             };
-            KohaTable(service.id, tableDef, table_settings);
+            $("#" + service.id).kohaTable(tableDef, table_settings);
         });
     };
 });

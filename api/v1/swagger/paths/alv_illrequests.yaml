@@ -24,7 +24,7 @@
           items:
             $ref: "../swagger.yaml#/definitions/alv_illrequest"
       '400':
-        description: Bad parameter
+        description: Bad request
         schema:
           $ref: "../swagger.yaml#/definitions/error"
       '401':

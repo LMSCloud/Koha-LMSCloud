@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # wget https://selenium-release.storage.googleapis.com/2.53/selenium-server-standalone-2.53.1.jar # Does not work with 3.4, did not test the ones between
 # sudo apt-get install xvfb firefox-esr
@@ -262,8 +262,9 @@ SKIP: {
         $nb_of_checkouts++;
         like( $driver->get_title(), qr(Checking out to $sample_data->{patron}{surname}) );
         like(
-            $driver->find_element('//a[@href="#checkouts_panel"]')->get_attribute('text'),
-            qr/Checkouts \($nb_of_checkouts\)/
+            $driver->find_element('//a[@href="#checkouts_panel"]/span[@class="checkout_count badge text-bg-info"]')
+                ->get_text(),
+            qr($nb_of_checkouts)
         );
     }
 
@@ -282,7 +283,7 @@ SKIP: {
     $driver->get( $base_url . "/reserve/request.pl?borrowernumber=$borrowernumber&biblionumber=" . $biblionumbers[0] );
     $driver->find_element('//form[@id="hold-request-form"]//button[@type="submit"]')->click;    # Biblio level
     $driver->pause(1000)
-        ; # This seems wrong, since bug 19618 the hold is created async with an AJAX call. Not sure what is happening here but the next statements are exectuted before the hold is created and the count is wrong (still 0)
+        ; # This seems wrong, since bug 19618 the hold is created async with an AJAX call. Not sure what is happening here but the next statements are executed before the hold is created and the count is wrong (still 0)
     my $patron = Koha::Patrons->find($borrowernumber);
     is( $patron->holds->count, 1, );
 

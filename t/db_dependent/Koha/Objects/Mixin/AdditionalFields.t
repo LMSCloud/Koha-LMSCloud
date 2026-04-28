@@ -2,7 +2,8 @@
 
 use Modern::Perl;
 
-use Test::More tests => 12;
+use Test::NoWarnings;
+use Test::More tests => 13;
 
 use Koha::Acquisition::Baskets;    # Koha::Acquisition::Baskets uses the mixin
 use Koha::AdditionalFields;
@@ -41,16 +42,18 @@ my $bar = Koha::AdditionalField->new(
 
 Koha::AdditionalFieldValue->new(
     {
-        field_id  => $foo->id,
-        record_id => $basket1->basketno,
-        value     => 'foo value for basket1',
+        field_id     => $foo->id,
+        record_table => 'aqbasket',
+        record_id    => $basket1->basketno,
+        value        => 'foo value for basket1',
     }
 )->store;
 Koha::AdditionalFieldValue->new(
     {
-        field_id  => $bar->id,
-        record_id => $basket1->basketno,
-        value     => 'bar value for basket1',
+        field_id     => $bar->id,
+        record_table => 'aqbasket',
+        record_id    => $basket1->basketno,
+        value        => 'bar value for basket1',
     }
 )->store;
 
@@ -75,7 +78,7 @@ is_deeply(
     [
         map {
             {
-                # We are bascially removing the 'id' field here
+                # We are basically removing the 'id' field here
                 field_id  => $_->{field_id},
                 record_id => $_->{record_id},
                 value     => $_->{value},

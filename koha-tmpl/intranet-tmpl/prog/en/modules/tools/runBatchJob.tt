@@ -26,11 +26,7 @@
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-            
+[% WRAPPER 'main-container.inc' aside='tools-menu' %]
                 <h1>Run batch jobs</h1>
                 <div class="help">
                    <p>Use this function to run batch jobs ad hoc.</p>
@@ -420,16 +416,8 @@ produced by other features of Koha. The message queue must be processed regularl
                 
                 </form>
             
-            </main>
-        </div> <!-- /.col-md-10.order-md-2.order-sm-1 -->
+[% END %]
 
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'tools-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-sm-2.order-md-1 -->
-     </div> <!-- /.row -->
-    
 [% MACRO jsinclude BLOCK %]
     [% Asset.js("js/tools-menu.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]

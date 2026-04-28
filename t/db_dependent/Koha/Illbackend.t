@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -58,8 +58,8 @@ subtest 'existing_statuses() tests' => sub {
         },
     );
 
-    # Mock Koha::Illrequest::load_backend (to load Mocked Backend)
-    my $illreqmodule = Test::MockModule->new('Koha::Illrequest');
+    # Mock Koha::ILL::Request::load_backend (to load Mocked Backend)
+    my $illreqmodule = Test::MockModule->new('Koha::ILL::Request');
     $illreqmodule->mock(
         'load_backend',
         sub { my $self = shift; $self->{_my_backend} = $backend; return $self }

@@ -15,7 +15,7 @@ package Koha::Filter::MARC::ViewPolicy;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -33,8 +33,7 @@ my $processor = Koha::RecordProcessor->new( { filters => ('ViewPolicy') } );
 
 Filter to remove fields based on the 'Advance constraints'
 settings found when editing a particular subfield definition of
-a MARC bibliographic framework found under the Koha administration
-menu.
+a MARC bibliographic framework found under the administration menu.
 
 =cut
 
@@ -232,9 +231,9 @@ nothing is passed. Valid values include 'opac' or 'intranet'.
 =cut
 
 sub should_hide_marc {
-    my ( $self, $parms ) = @_;
-    my $frameworkcode = $parms->{frameworkcode} // q{};
-    my $interface     = $parms->{interface}     // 'opac';
+    my ( $self, $params ) = @_;
+    my $frameworkcode = $params->{frameworkcode} // q{};
+    my $interface     = $params->{interface}     // 'opac';
     my $hide          = _should_hide_on_interface();
 
     my %shouldhidemarc;
@@ -284,7 +283,7 @@ These should all be installed if the koha-common package is installed or Koha is
 =head1 BUGS AND LIMITATIONS
 
 This is the initial version. Please feel free to report bugs
-at http://bugs.koha-community.org/.
+at https://bugs.koha-community.org/.
 
 =head1 AUTHOR
 
@@ -307,7 +306,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Koha; if not, see <http://www.gnu.org/licenses>.
+along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =cut
 

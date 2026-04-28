@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 1;
+use Test::NoWarnings;
+use Test::More tests => 2;
 use Test::Mojo;
 
 use t::lib::TestBuilder;
@@ -101,12 +102,14 @@ subtest 'list() tests' => sub {
     );
 
     $api_filter = encode_json( { 'me.filename' => $file->filename } );
-    $t->get_ok("//$userid:$password@/api/v1/acquisitions/edifiles?q=$api_filter")->status_is(200)
+    $t->get_ok("//$userid:$password@/api/v1/acquisitions/edifiles?q=$api_filter")
+        ->status_is(200)
         ->json_is( [ $file->to_api ] );
 
     # Warn on unsupported query parameter
     $api_filter = encode_json( { 'me.file_blah' => 'blah' } );
-    $t->get_ok("//$userid:$password@/api/v1/acquisitions/edifiles?file_blah=blah")->status_is(400)
+    $t->get_ok("//$userid:$password@/api/v1/acquisitions/edifiles?file_blah=blah")
+        ->status_is(400)
         ->json_is( [ { path => '/query/file_blah', message => 'Malformed query string' } ] );
 
     # Unauthorized access

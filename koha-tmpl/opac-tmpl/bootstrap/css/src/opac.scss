@@ -378,6 +378,10 @@ th {
     margin: .2rem .2rem .2rem 0;
 }
 
+.langmenu {
+    flex-shrink: 1;
+}
+
 #members {
     flex-shrink: 1;
 
@@ -434,11 +438,13 @@ th {
 }
 
 #loggedinuser-menu {
-    min-width: 300px;
+    line-height: 1.2;
     padding: .5em 1em;
 
     .divider-vertical {
-        margin: 5px 5px;
+        display: block;
+        border: none;
+        margin: 0;
     }
 }
 
@@ -700,13 +706,8 @@ th {
     }
 
     &.active {
-        a:link,
-        a:visited,
-        a:hover,
-        a:active {
-            color: #666;
-            cursor: text;
-            text-decoration: none;
+        a {
+            pointer-events: none;
         }
     }
 }
@@ -985,6 +986,12 @@ div {
     background-color: #333333;
 }
 
+.library-description {
+    & + .library-description {
+        margin-top: .5rem;
+    }
+}
+
 fieldset {
     &.rows {
         clear: left;
@@ -1184,7 +1191,10 @@ fieldset {
     a:hover,
     button {
         font-size: .9rem;
-        white-space: nowrap;
+
+        &:not(.dropdown-item) {
+            white-space: nowrap;
+        }
     }
 
     label {
@@ -1368,6 +1378,7 @@ fieldset {
 }
 
 .close_pagination {
+    color: #006699;
     display: none;
 }
 
@@ -1388,22 +1399,25 @@ fieldset {
 
     li {
         border-top: 1px solid #DDDDDD;
-        color: #999;
+        color: #666;
         font-size: 90%;
         list-style: none;
         padding: 4px;
 
         &.highlight {
+            color: #616161;
             background-color: #DDDDDD;
+            a {
+                color: #006699;
+            }
         }
-
         a {
             padding-left: 0;
         }
     }
 
     .li_pag_index {
-        color: #636363;
+        color: #616161;
         font-size: 90%;
         font-weight: bold;
         padding-right: 10px;
@@ -1490,7 +1504,7 @@ fieldset {
         text-align: center;
 
         a {
-            background-color: #999999;
+            background-color: #767676;
             color: #FFFFFF;
             display: block;
             font-weight: normal;
@@ -2423,7 +2437,7 @@ nav {
 }
 
 .toggle-hold-options {
-    background-color: #EEE;
+    background-color: #F3F3F3;
     clear: both;
     display: block;
     font-weight: bold;
@@ -2706,7 +2720,7 @@ $star-selected: #EDB867;
         height: 28px;
         white-space: nowrap;
 
-        a {
+        span,a {
             font: normal normal normal 20px/1 "Font Awesome 6 Free";
             -webkit-font-smoothing: antialiased;
             margin-right: 2px;
@@ -2737,7 +2751,7 @@ $star-selected: #EDB867;
     }
 
     .br-readonly {
-        a {
+        span, a {
             cursor: default;
         }
     }
@@ -2752,7 +2766,7 @@ $star-selected: #EDB867;
 @media print {
     .br-theme-fontawesome-stars {
         .br-widget {
-            a {
+            span,a {
                 &::after {
                     color: #000000;
                     content: "\f006";
@@ -3017,39 +3031,55 @@ $star-selected: #EDB867;
 }
 
 #patron-virtual-card {
-    width: 100%;
-    min-width: 300px;
-    max-width: 500px;
+    border: 1px solid #BBB;
     border-radius: 15px;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+    box-shadow: 5px 5px 6px rgba( 4, 0, 0, .2 );
+    margin: 1rem 0;
+    padding: 1rem;
+    width: 100%;
+}
+
+#image-container {
+    padding: 0 .5rem;
+}
+
+#patron-image {
+    border-radius: 15px;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    flex-shrink: 1;
+    width: auto;
+}
 
-    #image-container {
+#card-details {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    padding: 0 .5rem;
+}
+
+#barcode-container {
+    margin-bottom: 1rem;
+
+    svg {
+        display: block;
         width: 100%;
-        #patron-image {
-            height: 75%;
-            width: auto;
-            border-radius: 15px;
-            padding: 0.5rem;
-        }
     }
 
-    #barcode-container {
-        width: 100%;
-        padding: 0.25rem 0.5rem 0.25rem 0.5rem;
-        &.qrcode {
-            width: 50%; // Set a smaller width for QR codes
-        }
+    &.qrcode {
+        width: 50%; // Set a smaller width for QR codes
     }
+}
 
-    #lib-container {
-        width: 100%;
-        #patron-lib {
-            padding-left: 0.5rem;
-        }
-    }
+#loginModal .local-login input.show-password-toggle-checkbox {
+    width: inherit;
+    display: inline;
+}
+
+fieldset.brief label.show-password-toggle-label {
+    display: inline;
+    font-weight: normal;
+    padding: 0;
 }
 
 @import "responsive";
@@ -3553,7 +3583,8 @@ table#holdingst .thumbnail {
 } 
 
 a.external-offer-link::after {
-    font-family: 'FontAwesome';
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
     content: " \f08e";
     font-size: xx-small;
 }
@@ -3630,6 +3661,41 @@ a.external-offer-link::after {
                     text-decoration: none;
                 }
             }
+        }
+    }
+}
+
+/* Compat shim for the legacy BS3-style "Impressum / Datenschutz" footer bar
+   that OPACUserJS injects after #wrapper. The JS still uses BS3 classes
+   (.navbar-fixed-bottom, .navbar-inner, .nav.pull-right, .navbar-text);
+   BS5 dropped pull-right and .navbar-inner outright, turned .nav into a
+   flex container, and Koha 25.11 added a "Powered by Koha" footer below
+   that the bar now needs to clear. We can't edit the syspref JS, so
+   restore the BS3 visuals via CSS. */
+.navbar-fixed-bottom.navbar-static-bottom {
+    position: static;
+    margin-bottom: 3rem;
+
+    .navbar-inner {
+        box-shadow: none;
+        min-height: 45px;
+    }
+
+    #formalPageLinks.nav {
+        justify-content: flex-end;
+        margin-bottom: 0;
+    }
+
+    .navbar-text {
+        margin: 0;
+    }
+
+    a {
+        color: $links;
+
+        &:hover,
+        &:focus {
+            color: darken($links, 10%);
         }
     }
 }

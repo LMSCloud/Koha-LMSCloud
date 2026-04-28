@@ -15,7 +15,7 @@ package Koha::Edifact;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use strict;
 use warnings;
@@ -36,7 +36,7 @@ my $separator = {
 sub new {
     my ( $class, $param_hashref ) = @_;
     my $transmission;
-    my $self = ();
+    my $self = {};
 
     if ( $param_hashref->{filename} ) {
         if ( $param_hashref->{transmission} ) {
@@ -280,7 +280,7 @@ Edifact - Edifact message handler
 
 =head2 get_transmission
 
-     This method is useful in debugg:ing. Call on an Edifact object
+     This method is useful in debugging. Call on an Edifact object
      it returns the object's transmission member
 
 =head2 message_type

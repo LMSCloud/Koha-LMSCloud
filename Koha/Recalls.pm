@@ -15,7 +15,7 @@ package Koha::Recalls;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use DateTime;
@@ -185,7 +185,7 @@ sub add_recall {
             { borrowernumber => $checkout->borrowernumber, message_name => 'Recall_Requested' } );
 
         while ( my ( $transport, $letter_code ) = each %{ $messaging_preferences->{transports} } ) {
-            C4::Message->enqueue( $letter, $checkout->patron, $transport );
+            C4::Message->enqueue( $letter, $checkout->patron, $transport, $recall->pickup_library_id );
         }
 
         $item = Koha::Items->find($itemnumber);

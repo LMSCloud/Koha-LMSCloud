@@ -15,7 +15,7 @@ package Koha::ILL::Request::Attribute;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -56,6 +56,16 @@ Returns a Koha::ILL::Request object representing the core request .
 sub request {
     my ($self) = @_;
     return Koha::ILL::Request->_new_from_dbic( $self->_result->illrequest );
+}
+
+=head3 public_read_list
+
+This method returns the list of publicly readable database fields for both API and UI output purposes
+
+=cut
+
+sub public_read_list {
+    return [qw(backend illrequest_id readonly type value)];
 }
 
 =head2 Internal methods

@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # Read configuration variable file if it is present
 [ -r /etc/default/koha-common ] && . /etc/default/koha-common
@@ -294,7 +294,7 @@ while [ $# -gt 0 ]; do
 
 done
 
-if [ "$dev" != "" ]; then adjust_paths_dev_install $dev; fi
+if [ "$dev" != "" ]; then adjust_paths_git_install $dev; fi
 check_koha_conf
 init_template_paths
 PERL_CMD=`which perl`

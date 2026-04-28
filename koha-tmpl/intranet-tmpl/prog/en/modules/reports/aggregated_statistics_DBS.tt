@@ -7,7 +7,6 @@
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Koha &rsaquo; Reports &rsaquo; Aggregated statistics &rsaquo; DBS</title>
 [% INCLUDE 'doc-head-close.inc' %]
-[% INCLUDE 'greybox.inc' %]
 [% Asset.css("css/datatables.css") | $raw %]
 
 </head>
@@ -56,7 +55,7 @@
                         <button class="btn btn-default btn-xs" id="DBSsave" name="DBSsave"><i class="fa fa-save"></i> Save</button>
                     </div>
                     <div class="btn-group">
-                        <button class="btn btn-default btn-xs dropdown-toggle" data-bs-toggle="dropdown" id="DBSdownload" name="DBSdownload"><i class="fa fa-download"></i> Download <span class="caret"></span></button>
+                        <button class="btn btn-default btn-xs dropdown-toggle" data-bs-toggle="dropdown" id="DBSdownload" name="DBSdownload"><i class="fa fa-download"></i> Download</button>
                         <ul class="dropdown-menu">
                             <li><a id="DBSdownload_csv">Comma separated text</a></li>
                             <li><a id="DBSdownload_tab">Tab separated text</a></li>
@@ -1962,7 +1961,7 @@
             $(document).ready(function() {
 
                 $('#DBScalc').click(function() {
-                    $('#op').val("cud-dcv_calc");    // calculate derived class values for display
+                    $('#op').val("dcv_calc");    // calculate derived class values for display
                     $("#DBS_edit").submit();
                     return true;
                 });
@@ -1973,13 +1972,13 @@
                     if (!deleteIt) {
                         return false;
                     }
-                    $('#op').val("cud-dcv_del");    // delete derived class values from database
+                    $('#op').val("dcv_del");    // delete derived class values from database
                     $("#DBS_edit").submit();
                     return true;
                 });
 
                 $('#DBSsave').click(function() {
-                    $('#op').val("cud-dcv_save");    // store derived class values into database
+                    $('#op').val("dcv_save");    // store derived class values into database
                     $("#DBS_edit").submit();
                     return true;
                 });

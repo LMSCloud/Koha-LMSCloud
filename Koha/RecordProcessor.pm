@@ -15,7 +15,7 @@ package Koha::RecordProcessor;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 NAME
 
@@ -37,7 +37,7 @@ B<filter ($record)> - apply the filter and return the result. $record
 may be either a scalar or an arrayref, and the return result will be
 the same type.
 
-These methods may be overriden:
+These methods may be overridden:
 
 B<initialize (%params)> - initialize the filter
 

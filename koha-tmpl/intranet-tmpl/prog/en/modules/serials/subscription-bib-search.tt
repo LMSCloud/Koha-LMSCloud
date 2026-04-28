@@ -58,6 +58,7 @@
             </div>
         </nav>
     </form>
-
-    [% INCLUDE 'intranet-bottom.inc' popup_window=1 %]
 </div>
+<!-- /.main.container-fluid -->
+
+[% INCLUDE 'intranet-bottom.inc' popup_window=1 %]

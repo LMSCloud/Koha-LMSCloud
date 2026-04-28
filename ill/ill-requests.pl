@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Data::Dumper;
@@ -238,6 +238,7 @@ if ($backends_available) {
         # So, init:
         my $request = Koha::Illrequests->find( $params->{illrequest_id} );
         if ( !$request ) { redirect_to_list(); }
+        my $batches = Koha::ILL::Batches->search( undef, { order_by => { -asc => 'name' } } );
         if ( !$params->{stage} ) {
             my $backend_result = {
                 error   => 0,

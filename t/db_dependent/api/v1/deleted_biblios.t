@@ -13,14 +13,15 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use utf8;
 use Encode;
 
-use Test::More tests => 2;
+use Test::NoWarnings;
+use Test::More tests => 3;
 use Test::MockModule;
 use Test::Mojo;
 use Test::Warn;
@@ -85,7 +86,8 @@ subtest 'get() tests' => sub {
 
     $t->get_ok(
         "//$userid:$password@/api/v1/deleted/biblios/" . $biblio->biblionumber => { Accept => 'application/json' } )
-        ->status_is(200)->json_is( '/title', 'The unbearable lightness of being' )
+        ->status_is(200)
+        ->json_is( '/title',  'The unbearable lightness of being' )
         ->json_is( '/author', 'Milan Kundera' );
 
     $t->get_ok( "//$userid:$password@/api/v1/deleted/biblios/"
@@ -99,11 +101,13 @@ subtest 'get() tests' => sub {
         ->status_is(200);
 
     $t->get_ok( "//$userid:$password@/api/v1/deleted/biblios/" . $biblio->biblionumber => { Accept => 'text/plain' } )
-        ->status_is(200)->content_is($formatted);
+        ->status_is(200)
+        ->content_is($formatted);
 
     my $biblio_exist = $builder->build_sample_biblio();
     $t->get_ok( "//$userid:$password@/api/v1/deleted/biblios/"
-            . $biblio_exist->biblionumber => { Accept => 'application/marc' } )->status_is(404)
+            . $biblio_exist->biblionumber => { Accept => 'application/marc' } )
+        ->status_is(404)
         ->json_is( '/error', 'Bibliographic record not found' );
 
     subtest 'marc-in-json encoding tests' => sub {
@@ -216,7 +220,8 @@ subtest 'list() tests' => sub {
 
     my $result =
         $t->get_ok( "//$userid:$password@/api/v1/deleted/biblios?q=$query" => { Accept => 'application/marcxml+xml' } )
-        ->status_is(200)->tx->res->body;
+        ->status_is(200)
+        ->tx->res->body;
 
     my $encoded_title = Encode::encode( "UTF-8", $title_with_diacritics );
     like( $result, qr/\Q$encoded_title/, "The title is not double encoded" );
@@ -248,7 +253,9 @@ subtest 'list() tests' => sub {
     );
 
     $t->get_ok( "//$userid:$password@/api/v1/deleted/biblios?q=$query" => { Accept => 'application/json' } )
-        ->status_is(200)->json_is( '/0/biblio_id' => $old_biblio_1->id )->json_is( '/1/biblio_id' => undef );
+        ->status_is(200)
+        ->json_is( '/0/biblio_id' => $old_biblio_1->id )
+        ->json_is( '/1/biblio_id' => undef );
 
     # DELETE any biblio with ISBN = TOMAS
     Koha::Biblios->search( { 'biblioitem.isbn' => 'TOMAS' }, { join => ['biblioitem'] } )->delete;

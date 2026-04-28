@@ -13,11 +13,12 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 14;
+use Test::NoWarnings;
+use Test::More tests => 15;
 use Test::Exception;
 
 use DateTime;
@@ -30,10 +31,7 @@ use Koha::DateUtils qw( dt_from_string );
 
 BEGIN {
     use_ok('Koha::Calendar');
-    use_ok(
-        'C4::Calendar',
-        qw( insert_exception_holiday insert_week_day_holiday insert_day_month_holiday insert_single_holiday copy_to_branch get_exception_holidays isHoliday )
-    );
+    use_ok('C4::Calendar');
 }
 
 my $schema  = Koha::Database->new->schema;

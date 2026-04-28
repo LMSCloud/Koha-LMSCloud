@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -553,6 +553,7 @@ foreach my $branchcode (@branches) {
     my $branch_email_address = C4::Context->preference('AddressForFailedOverdueNotices')
         || $library->inbound_email_address;
     my @output_chunks;    # may be sent to mail or stdout or csv file.
+    my %already_queued;
 
     $verbose and print "======================================\n";
     $verbose and warn sprintf "branchcode : '%s' using %s\n", $branchcode, $branch_email_address;

@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -189,7 +189,7 @@ $sth->do("DROP TABLE IF EXISTS labels_profile;")   or die "DB ERROR: " . $sth->e
 $sth->do("DROP TABLE IF EXISTS labels_templates;") or die "DB ERROR: " . $sth->errstr . "\n";
 $sth->do("DROP TABLE IF EXISTS printers_profile;") or die "DB ERROR: " . $sth->errstr . "\n";
 
-# Rename temporary tables to permenant names...
+# Rename temporary tables to permanent names...
 
 $sth->do("ALTER TABLE labels_batches_tmp RENAME TO labels_batches;")     or die "DB ERROR: " . $sth->errstr . "\n";
 $sth->do("ALTER TABLE labels_layouts_tmp RENAME TO labels_layouts;")     or die "DB ERROR: " . $sth->errstr . "\n";

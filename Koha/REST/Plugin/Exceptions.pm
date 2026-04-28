@@ -13,7 +13,7 @@ package Koha::REST::Plugin::Exceptions;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -43,7 +43,13 @@ Koha::REST::Plugin::Exceptions
     }
 
 Provides a generic and reusable way to throw unhandled exceptions. This way we
-can centralize the behaviour control (e.g. production vs. development environmet)
+can centralize the behaviour control (e.g. production vs. development environment)
+
+=cut
+
+=head2 register
+
+Missing POD for register.
 
 =cut
 

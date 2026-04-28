@@ -47,15 +47,15 @@ sub SYNTAXERROR_P () { 'syntaxerror-p' }
 
 sub FILENAME () { 'input' }
 
-#sub HANDLE		() {'handle'}
+#sub HANDLE () {'handle'}
 
-#sub READAHEAD		() {'readahead'}
+#sub READAHEAD () {'readahead'}
 sub LINENUM_START () { 'lc_0' }
 sub LINENUM ()       { 'lc' }
 sub CDATA_MODE_P ()  { 'cdata-mode-p' }
 sub CDATA_CLOSE ()   { 'cdata-close' }
 
-#sub PCDATA_MODE_P	() {'pcdata-mode-p'}	# additional submode for CDATA
+#sub PCDATA_MODE_P () {'pcdata-mode-p'}    # additional submode for CDATA
 sub JS_MODE_P () { 'js-mode-p' }    # cdata-mode-p must also be true
 
 sub ALLOW_CFORMAT_P () { 'allow-cformat-p' }
@@ -311,7 +311,7 @@ sub _parametrize_internal {
     # }
     my $s = join( "", map { _formalize $_ } @parts );
 
-    # should both the string and form be $s? maybe only the later? posibly the former....
+    # should both the string and form be $s? maybe only the later? possibly the former....
     # used line number from first token, should suffice
     my $t = C4::TmplToken->new( $s, C4::TmplTokenType::TEXT_PARAMETRIZED, $parts[0]->line_number, $this->filename );
     $t->set_children(@parts);

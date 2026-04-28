@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 
 # *************************************************************
@@ -318,7 +318,7 @@ tables:
           libopac: "Suppress in OPAC"
           repeatable: 0
           mandatory: 0
-          kohafield:
+          kohafield: biblio.opac_suppressed
           tab: 9
           authorised_value: YES_NO
           authtypecode: ""
@@ -4628,7 +4628,7 @@ tables:
           tab: 0
           authorised_value: ""
           authtypecode: ""
-          value_builder: ""
+          value_builder: validate_isbn.pl
           isurl: 0
           hidden: 0
           frameworkcode: ""
@@ -82873,6 +82873,10 @@ tables:
 
 sql_statements:
   - "UPDATE marc_subfield_structure SET maxlength=24 WHERE tagfield='000';"
+  - "UPDATE marc_subfield_structure SET maxlength=16 WHERE tagfield='005';"
+  - "UPDATE marc_subfield_structure SET maxlength=18 WHERE tagfield='006';"
+  # 007 allows length 23 when 007/0 == m (motion picture)
+  - "UPDATE marc_subfield_structure SET maxlength=23 WHERE tagfield='007';"
   - "UPDATE marc_subfield_structure SET maxlength=40 WHERE tagfield='008';"
 
   # Create the ACQ framework based on the default framework, fields 000 and 952 only

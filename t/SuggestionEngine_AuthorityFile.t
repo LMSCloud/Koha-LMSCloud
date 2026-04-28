@@ -13,14 +13,15 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 # This Koha test module uses Test::MockModule to get around the need for known
 # contents in the authority file by returning a single known authority record
 # for every call to SearchAuthorities
 
 use Modern::Perl;
-use Test::More tests => 2;
+use Test::NoWarnings;
+use Test::More tests => 3;
 use Test::MockModule;
 
 use Koha::SuggestionEngine;

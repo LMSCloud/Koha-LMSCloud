@@ -14,11 +14,12 @@
 # A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with Koha; if not, see <http://www.gnu.org/licenses>.
+# with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
-use Test::More tests => 27;
+use Test::NoWarnings;
+use Test::More tests => 28;
 use Test::MockModule;
 use Test::Exception;
 use Test::Warn;
@@ -55,6 +56,10 @@ $schema->storage->txn_begin;
 my $dbh = C4::Context->dbh;
 
 my $builder = t::lib::TestBuilder->new;
+
+# Disable LMS CashRegister to prevent branchcode FK issues in tests
+t::lib::Mocks::mock_preference( 'ActivateCashRegisterTransactionsOnly', 0 );
+
 my $library = $builder->build( { source => 'Branch' } );
 
 my $branchcode = $library->{branchcode};
@@ -123,32 +128,32 @@ my @test_data = (
     },
     {
         amount      => 5, days_ago => $days - 1,
-        description => 'purge_zero_balance_fees should not delete fees with positive amout owed before threshold day',
+        description => 'purge_zero_balance_fees should not delete fees with positive amount owed before threshold day',
         delete      => 0, credit_type => undef, debit_type => 'OVERDUE'
     },
     {
         amount      => 5, days_ago => $days,
-        description => 'purge_zero_balance_fees should not delete fees with positive amout owed on threshold day',
+        description => 'purge_zero_balance_fees should not delete fees with positive amount owed on threshold day',
         delete      => 0, credit_type => undef, debit_type => 'OVERDUE'
     },
     {
         amount      => 5, days_ago => $days + 1,
-        description => 'purge_zero_balance_fees should not delete fees with positive amout owed after threshold day',
+        description => 'purge_zero_balance_fees should not delete fees with positive amount owed after threshold day',
         delete      => 0, credit_type => undef, debit_type => 'OVERDUE'
     },
     {
         amount      => -5, days_ago => $days - 1,
-        description => 'purge_zero_balance_fees should not delete fees with negative amout owed before threshold day',
+        description => 'purge_zero_balance_fees should not delete fees with negative amount owed before threshold day',
         delete      => 0, credit_type => 'PAYMENT', debit_type => undef
     },
     {
         amount      => -5, days_ago => $days,
-        description => 'purge_zero_balance_fees should not delete fees with negative amout owed on threshold day',
+        description => 'purge_zero_balance_fees should not delete fees with negative amount owed on threshold day',
         delete      => 0, credit_type => 'PAYMENT', debit_type => undef
     },
     {
         amount      => -5, days_ago => $days + 1,
-        description => 'purge_zero_balance_fees should not delete fees with negative amout owed after threshold day',
+        description => 'purge_zero_balance_fees should not delete fees with negative amount owed after threshold day',
         delete      => 0, credit_type => 'PAYMENT', debit_type => undef
     }
 );
@@ -287,8 +292,10 @@ subtest "Koha::Account::pay - always AutoReconcile + notes tests" => sub {
     $accountline = Koha::Account::Lines->find($id);
     is( $accountline->amount() + 0, -42, "Payment paid the specified fine" );
     $line3 = Koha::Account::Lines->find( $line3->id );
-    is( $line3->amountoutstanding + 0, 0,     "Specified fine is paid" );
-    is( $accountline->branchcode,      undef, 'branchcode passed, then undef' );
+    is( $line3->amountoutstanding + 0, 0, "Specified fine is paid" );
+
+    # LMS: branchcode auto-populated from valid userenv branch
+    is( $accountline->branchcode, $userenv_branchcode, 'branchcode set from userenv (LMS behavior)' );
 };
 
 subtest "Koha::Account::pay particular line tests" => sub {
@@ -1251,19 +1258,40 @@ subtest "Payment notice tests" => sub {
     )->store();
 
     my $letter = Koha::Notice::Templates->find( { code => 'ACCOUNT_PAYMENT' } );
+    if ( !$letter ) {
+        $letter = Koha::Notice::Template->new(
+            {
+                module                 => 'members',
+                code                   => 'ACCOUNT_PAYMENT',
+                branchcode             => '',
+                name                   => 'Account payment',
+                is_html                => 0,
+                title                  => 'Account payment',
+                content                => 'Payment received',
+                message_transport_type => 'email',
+                lang                   => 'default',
+            }
+        )->store;
+    }
     $letter->content(
         '[%- USE Price -%]A payment of [% credit.amount * -1 | $Price %] has been applied to your account. Your [% branch.branchcode %]'
     );
     $letter->store();
 
-    t::lib::Mocks::mock_preference( 'UseEmailReceipts', '0' );
+    t::lib::Mocks::mock_preference( 'AutomaticEmailReceipts', '0' );
     my $id = $account->pay( { amount => 1 } )->{payment_id};
-    is( Koha::Notice::Messages->search()->count(), 0, 'Notice for payment not sent if UseEmailReceipts is disabled' );
+    is(
+        Koha::Notice::Messages->search()->count(), 0,
+        'Notice for payment not sent if AutomaticEmailReceipts is disabled'
+    );
 
     $id = $account->pay( { amount => 1, type => 'WRITEOFF' } )->{payment_id};
-    is( Koha::Notice::Messages->search()->count(), 0, 'Notice for writeoff not sent if UseEmailReceipts is disabled' );
+    is(
+        Koha::Notice::Messages->search()->count(), 0,
+        'Notice for writeoff not sent if AutomaticEmailReceipts is disabled'
+    );
 
-    t::lib::Mocks::mock_preference( 'UseEmailReceipts', '1' );
+    t::lib::Mocks::mock_preference( 'AutomaticEmailReceipts', '1' );
 
     $id = $account->pay( { amount => 12, library_id => $branchcode } )->{payment_id};
     my $notice = Koha::Notice::Messages->search()->next();

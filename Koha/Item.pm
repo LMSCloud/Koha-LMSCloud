@@ -15,12 +15,14 @@ package Koha::Item;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use List::MoreUtils qw( any );
 use Try::Tiny       qw( catch try );
+
+use Mojo::JSON;
 
 use Koha::Database;
 use Koha::DateUtils qw( dt_from_string output_pref );
@@ -179,12 +181,30 @@ sub store {
 
             # If the field has changed otherwise, we much update
             # the 'on' field
-            elsif (exists $updated_columns{$field}
+            elsif ( exists $updated_columns{$field}
                 && $updated_columns{$field}
                 && !$pre_mod_item->$field )
             {
                 my $field_on = "${field}_on";
                 $self->$field_on(dt_from_string);
+            }
+        }
+
+        my $prevent_withdrawing_of = C4::Context->preference('PreventWithdrawingItemsStatus');
+        my @statuses_to_prevent    = defined $prevent_withdrawing_of ? split( ',', $prevent_withdrawing_of ) : ();
+        my $prevent_onloan         = grep { $_ eq 'checkedout' } @statuses_to_prevent;
+        my $prevent_intransit      = grep { $_ eq 'intransit' } @statuses_to_prevent;
+
+        if ( exists $updated_columns{withdrawn} && $updated_columns{withdrawn} ) {
+            my $transfer = $pre_mod_item->get_transfer;
+            if ( $pre_mod_item->onloan && $prevent_onloan ) {
+                Koha::Exceptions::Item::Transfer::OnLoan->throw( error => "onloan_cannot_withdraw" );
+                return $self->SUPER::store;
+            }
+
+            if ( defined $transfer && $transfer->in_transit && $prevent_intransit ) {
+                Koha::Exceptions::Item::Transfer::InTransit->throw( error => "intransit_cannot_withdraw" );
+                return $self->SUPER::store;
             }
         }
 
@@ -264,13 +284,23 @@ sub delete {
     my $self   = shift;
     my $params = @_ ? shift : {};
 
-    # FIXME check the item has no current issues
-    # i.e. raise the appropriate exception
-
     # Get the item group so we can delete it later if it has no items left
     my $item_group = C4::Context->preference('EnableItemGroups') ? $self->item_group : undef;
 
+    my $serial_item = $self->serial_item;
+
     my $result = $self->SUPER::delete;
+
+    # Delete the serial linked to the item if required
+    if ( $result && $params->{delete_serial_issues} ) {
+        if ($serial_item) {
+            my $serial = Koha::Serials->find( $serial_item->serialid );
+
+            # The serial_item is deleted by cascade when the item is deleted
+            # so we don't need to delete it here
+            $serial->delete;
+        }
+    }
 
     # Delete the item group if it has no items left
     $item_group->delete if ( $item_group && $item_group->items->count == 0 );
@@ -317,6 +347,8 @@ returns 1 if the item is safe to delete,
 
 "book_reserved" if the there are holds aganst the item, or
 
+"item_has_holds" if the item has holds,
+
 "linked_analytics" if the item has linked analytic records.
 
 "last_item_for_hold" if the item is the last one on a record on which a biblio-level hold is placed
@@ -339,6 +371,9 @@ sub safe_to_delete {
     $error //= "book_reserved"
         if $self->holds->filter_by_found->count;
 
+    $error //= "item_has_holds"
+        if $self->holds->count;
+
     $error //= "linked_analytics"
         if C4::Items::GetAnalyticsCount( $self->itemnumber ) > 0;
 
@@ -348,7 +383,7 @@ sub safe_to_delete {
         {
             itemnumber => undef,
         }
-    )->count;
+        )->count;
 
     if ($error) {
         return Koha::Result::Boolean->new(0)->add_message( { message => $error } );
@@ -947,7 +982,7 @@ sub can_article_request {
 
 my $bool = $item->hidden_in_opac({ [ rules => $rules ] })
 
-Returns true if item fields match the hidding criteria defined in $rules.
+Returns true if item fields match the hiding criteria defined in $rules.
 Returns false otherwise.
 
 Takes HASHref that can have the following parameters:
@@ -1045,6 +1080,16 @@ is not passed.
 sub pickup_locations {
     my ( $self, $params ) = @_;
 
+    if ( C4::Context->preference("IndependentBranches")
+        and !C4::Context->preference("canreservefromotherbranches") )
+    {
+        my $userenv = C4::Context->userenv;
+        unless ( C4::Context->IsSuperLibrarian ) {
+            return Koha::Libraries->new()->empty if ( $self->homebranch ne $userenv->{branch} );
+            return Koha::Libraries->search( { branchcode => $self->homebranch } );
+        }
+    }
+
     Koha::Exceptions::MissingParameter->throw( parameter => 'patron' )
         unless exists $params->{patron};
 
@@ -1141,21 +1186,29 @@ sub article_request_type {
 
 =head3 current_holds
 
+    my $holds = $item->current_holds
+
+Return the holds placed on this item.
+Respects the lookahead days in ConfirmFutureHolds pref.
+
 =cut
 
 sub current_holds {
-    my ($self)     = @_;
+    my ( $self, $params ) = @_;
+
     my $attributes = { order_by => 'priority' };
     my $dtf        = Koha::Database->new->schema->storage->datetime_parser;
-    my $params     = {
+    my $days       = $params->{skip_future_holds} ? 0 : C4::Context->preference('ConfirmFutureHolds') || 0;
+    my $dt         = dt_from_string()->add( days => $days );
+    my $s_params   = {
         itemnumber => $self->itemnumber,
         suspend    => 0,
         -or        => [
-            reservedate => { '<=' => $dtf->format_date(dt_from_string) },
+            reservedate => { '<=' => $dtf->format_date($dt) },
             waitingdate => { '!=' => undef },
         ],
     };
-    my $hold_rs = $self->_result->reserves->search( $params, $attributes );
+    my $hold_rs = $self->_result->reserves->search( $s_params, $attributes );
     return Koha::Holds->_new_from_dbic($hold_rs);
 }
 
@@ -1635,7 +1688,8 @@ sub _set_found_trigger {
                             if ($lost_fee_payment) {
                                 my $today = dt_from_string();
                                 my $payment_age_in_days =
-                                    dt_from_string( $lost_fee_payment->created_on )->delta_days($today)
+                                    dt_from_string( $lost_fee_payment->created_on )
+                                    ->delta_days($today)
                                     ->in_units('days');
                                 if ( $payment_age_in_days > $no_refund_if_lost_fee_paid_age ) {
                                     $self->add_message(
@@ -1903,7 +1957,7 @@ sub to_api {
     my $overrides = {};
     $overrides->{effective_item_type_id}        = $self->effective_itemtype;
     $overrides->{effective_not_for_loan_status} = $self->effective_not_for_loan_status;
-    $overrides->{effective_bookable}            = $self->effective_bookable;
+    $overrides->{effective_bookable}            = $self->effective_bookable ? Mojo::JSON->true : Mojo::JSON->false;
 
     return { %$response, %$overrides };
 }
@@ -2262,7 +2316,14 @@ sub add_to_bundle {
 
                     my $branchcode = C4::Context->userenv->{'branch'};
                     my ($success) = C4::Circulation::AddReturn( $bundle_item->barcode, $branchcode );
-                    unless ($success) {
+
+                    if ($success) {
+
+                        # HoldsQueue doesn't seem to mind bundles, not sure if this is correct, but rebuild for now
+                        Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue(
+                            { biblio_ids => [ $self->biblionumber ] } )
+                            if C4::Context->preference('RealTimeHoldsQueue');
+                    } else {
                         Koha::Exceptions::Checkin::FailedCheckin->throw();
                     }
                 }

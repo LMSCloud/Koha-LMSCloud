@@ -1,15 +1,22 @@
 [% USE raw %]
 [% USE Koha %]
 [% USE KohaDates %]
+[% PROCESS 'i18n.inc' %]
+[% PROCESS 'html_helpers.inc' %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Your recalls history &rsaquo; [% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catalog</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Your recalls history") | html %]
+        &rsaquo; [% PROCESS 'library_name_title' %]
+    [% END %]</title
+>
 [% INCLUDE 'doc-head-close.inc' %]
 [% BLOCK cssinclude %]
 [% END %]
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='opac-recalls' bodyclass='scrollto' %]
 [% INCLUDE 'masthead.inc' %]
-<div class="main">
+<main class="main">
     [% WRAPPER breadcrumbs %]
         [% WRAPPER breadcrumb_item %]
             <a href="/cgi-bin/koha/opac-user.pl">[% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a>
@@ -26,7 +33,7 @@
             </div>
             <div class="col-md-12 col-lg-10 order-1 order-lg-2">
                 <div id="recalls" class="maincontent">
-                    <h2>Recalls history</h2>
+                    <h1>Recalls history</h1>
                     [% IF Koha.Preference('UseRecalls') %]
                         [% IF RECALLS.count %]
                             <div id="opac-user-recalls">
@@ -39,8 +46,8 @@
                                             <th>Pickup location</th>
                                             <th>Status</th>
                                             <th>Due date</th>
-                                            <th class="nosort">Modify</th>
-                                            <th></th>
+                                            <th class="no-sort">Modify</th>
+                                            <th class="dtr-control-col"></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -124,7 +131,7 @@
         <!-- /.row -->
     </div>
     <!-- /.container-fluid -->
-</div>
+</main>
 <!-- /#main -->
 
 [% INCLUDE 'opac-bottom.inc' %]

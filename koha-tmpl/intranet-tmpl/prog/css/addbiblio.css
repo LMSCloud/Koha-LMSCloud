@@ -245,7 +245,7 @@ div.item_edit_form ol li {
 }
 
 .item_edit_form .input_marceditor {
-    flex-basis: 50%;
+    flex-basis: 60%;
     float: none;
 }
 
@@ -332,6 +332,16 @@ tbody tr.active td {
     position: absolute;
     top: 50%;
     width: 15em;
+}
+
+#item-template-toolbar div:has(label[for="use_template_for_session"]) {
+    display: flex;
+    align-items: center;
+}
+
+#item-template-toolbar div:has(label[for="use_template_for_session"])::after {
+    content: "|";
+    padding-left: 7px;
 }
 
 #toolbar {

@@ -13,10 +13,11 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 2;
+use Test::NoWarnings;
+use Test::More tests => 3;
 
 use C4::Biblio qw(DelBiblio);
 
@@ -132,7 +133,7 @@ SKIP: {
             # 'Place hold' button exists by default
             $driver->get( $s->opac_base_url . "opac-detail.pl?biblionumber=" . $biblionumber );
             like(
-                $driver->get_title, qr(Details for: $biblio_title),
+                $driver->get_title, qr(Details for $biblio_title),
                 'Correctly in detail page'
             );
 
@@ -204,7 +205,7 @@ SKIP: {
         );
         $driver->find_element('//div[@id="userdetails"]');
         like(
-            $driver->get_title, qr(Your library home),
+            $driver->get_title, qr(Your summary),
             'Patron without permissions should be able to login to the OPAC using the modal'
         );
 
@@ -266,7 +267,7 @@ SKIP: {
             # 'Place hold' button exists by default
             $driver->get( $s->opac_base_url . "opac-detail.pl?biblionumber=" . $biblionumber );
             like(
-                $driver->get_title, qr(Details for: $biblio_title),
+                $driver->get_title, qr(Details for $biblio_title),
                 'Correctly in detail page'
             );
 

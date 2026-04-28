@@ -15,7 +15,7 @@ package C4::Barcodes::hbyymmincr;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -34,8 +34,18 @@ BEGIN {
     @ISA = qw(C4::Barcodes);
 }
 
+=head1 Functions
+
+=cut
+
 # Generates barcode where hb = home branch Code, yymm = year/month catalogued, incr = incremental number,
 # 	increment resets yearly -fbcit
+
+=head2 db_max
+
+Missing POD for db_max.
+
+=cut
 
 sub db_max {
     my $self  = shift;
@@ -68,6 +78,12 @@ sub db_max {
     return ( $max || 0 );
 }
 
+=head2 initial
+
+Missing POD for initial.
+
+=cut
+
 sub initial {
     my $self = shift;
 
@@ -77,6 +93,12 @@ sub initial {
     my $width = WIDTH;
     return $self->branch . substr( $iso, 2, 2 ) . substr( $iso, 5, 2 ) . sprintf( '%' . "$width.$width" . 'd', 1 );
 }
+
+=head2 parse
+
+Missing POD for parse.
+
+=cut
 
 sub parse {    # return 3 parts of barcode: non-incrementing, incrementing, non-incrementing
     my $self    = shift;
@@ -88,6 +110,12 @@ sub parse {    # return 3 parts of barcode: non-incrementing, incrementing, non-
     }
     return ( $1, $2, '' );    # the third part is in anticipation of barcodes that include checkdigits
 }
+
+=head2 branch
+
+Missing POD for branch.
+
+=cut
 
 sub branch {
     my $self = shift;
@@ -102,6 +130,12 @@ sub branch {
 #    return $width;
 #}
 
+=head2 process_head
+
+Missing POD for process_head.
+
+=cut
+
 sub process_head {    # (self,head,whole,specific)
     my ( $self, $head, $whole, $specific ) = @_;
     $specific and return $head;    # if this is built off an existing barcode, just return the head unchanged.
@@ -109,6 +143,12 @@ sub process_head {    # (self,head,whole,specific)
     my $iso = output_pref( { dt => dt_from_string, dateformat => 'iso', dateonly => 1 } );    # like "2008-07-02"
     return $head . substr( $iso, 2, 2 ) . substr( $iso, 5, 2 );
 }
+
+=head2 new_object
+
+Missing POD for new_object.
+
+=cut
 
 sub new_object {
     my $class_or_object = shift;

@@ -13,18 +13,19 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
-use Test::More tests => 2;
+use Test::NoWarnings;
+use Test::More tests => 3;
 
 use MARC::Record;
 use MARC::Field;
 use MARC::File::XML;
-use C4::Heading qw( authorities field new_from_field auth_type search_form );
+use C4::Heading;
 use C4::Linker::Default;
 use Test::MockModule;
-use t::lib::Mocks qw( mock_preference );
+use t::lib::Mocks;
 use t::lib::TestBuilder;
 
 BEGIN {

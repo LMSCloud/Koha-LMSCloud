@@ -15,13 +15,13 @@ package Koha::Plugins;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
 use Array::Utils qw( array_minus );
 use Class::Inspector;
-use List::MoreUtils           qw( any );
+use List::MoreUtils           qw( any none );
 use Module::Load::Conditional qw( can_load );
 use Module::Load;
 use Module::Pluggable search_path => ['Koha::Plugin'],
@@ -33,6 +33,7 @@ use C4::Context;
 use C4::Output;
 
 use Koha::Cache::Memory::Lite;
+use Koha::Exceptions;
 use Koha::Exceptions::Plugin;
 use Koha::Plugins::Datas;
 use Koha::Plugins::Methods;
@@ -268,11 +269,30 @@ sub GetPlugins {
 
 =head2 InstallPlugins
 
-Koha::Plugins::InstallPlugins( [ verbose => 1 ] )
+    my $plugins = Koha::Plugins->new();
+    $plugins->InstallPlugins(
+        {
+          [ verbose => 1,
+            include => ( 'Koha::Plugin::A', ... ),
+            exclude => ( 'Koha::Plugin::X', ... ), ]
+        }
+    );
 
 This method iterates through all plugins physically present on a system.
 For each plugin module found, it will test that the plugin can be loaded,
 and if it can, will store its available methods in the plugin_methods table.
+
+Parameters:
+
+=over 4
+
+=item B<exclude>: A list of class names to exclude from the process.
+
+=item B<include>: A list of class names to limit the process to.
+
+=item B<verbose>: Print useful information.
+
+=back
 
 NOTE: We reload all plugins here as a protective measure in case someone
 has removed a plugin directly from the system without using the UI
@@ -285,6 +305,36 @@ sub InstallPlugins {
 
     my @plugin_classes = $self->plugins();
     my @plugins;
+
+    Koha::Exceptions::BadParameter->throw("Only one of 'include' and 'exclude' can be passed")
+        if ( $params->{exclude} && $params->{include} );
+
+    if ( defined( $params->{include} ) || defined( $params->{exclude} ) ) {
+        my @classes_filters =
+            defined( $params->{include} )
+            ? @{ $params->{include} }
+            : @{ $params->{exclude} };
+
+        # Warn user if the specified classes doesn't exist and return nothing
+        foreach my $class_name (@classes_filters) {
+            unless ( any { $class_name eq $_ } @plugin_classes ) {
+                Koha::Exceptions::BadParameter->throw("$class_name has not been found, try a different name");
+            }
+        }
+
+        # filter things
+        if ( $params->{include} ) {
+            @plugin_classes = grep {
+                my $plugin_class = $_;
+                any { $plugin_class eq $_ } @classes_filters
+            } @plugin_classes;
+        } else {    # exclude
+            @plugin_classes = grep {
+                my $plugin_class = $_;
+                none { $plugin_class eq $_ } @classes_filters
+            } @plugin_classes;
+        }
+    }
 
     foreach my $plugin_class (@plugin_classes) {
         if ( can_load( modules => { $plugin_class => undef }, verbose => $verbose, nocache => 1 ) ) {

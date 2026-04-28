@@ -19,7 +19,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 =head1 returns.pl
 
@@ -44,6 +44,7 @@ use C4::Reserves qw( ModReserve ModReserveAffect CheckReserves );
 use C4::RotatingCollections;
 use C4::Stats qw( UpdateStats );
 use Koha::AuthorisedValues;
+use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
 use Koha::BiblioFrameworks;
 use Koha::Calendar;
 use Koha::Checkouts;
@@ -260,6 +261,14 @@ if ( $op eq 'cud-dotransfer' ) {
     $transfer->transit;
 }
 
+if ( $op eq 'cud-ignore_reserve' ) {
+    my $ignored_item = $query->param('ignoreitem');
+    my $item         = Koha::Items->find($ignored_item);
+    Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue( { biblio_ids => [ $item->biblionumber ] } )
+        if C4::Context->preference('RealTimeHoldsQueue');
+
+}
+
 if ( $transit && $op eq 'cud-transfer' ) {
     my $transfer = Koha::Item::Transfers->find($transit);
     if ($canceltransfer) {
@@ -382,8 +391,13 @@ if ( $barcode && ( $op eq 'cud-checkin' || $op eq 'cud-affect_reserve' ) ) {
     }
 
     # do the return
-    ( $returned, $messages, $issue, $borrower ) = AddReturn( $barcode, $userenv_branch, $exemptfine, $return_date )
-        unless ( $needs_confirm || $bundle_confirm );
+    unless ( $needs_confirm || $bundle_confirm ) {
+        ( $returned, $messages, $issue, $borrower ) = AddReturn( $barcode, $userenv_branch, $exemptfine, $return_date );
+
+        # Rebuild the queue only after handling confirmations
+        Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue->new->enqueue( { biblio_ids => [ $item->biblionumber ] } )
+            if $returned && C4::Context->preference('RealTimeHoldsQueue');
+    }
 
     if ($returned) {
         my $time_now    = dt_from_string()->truncate( to => 'minute' );

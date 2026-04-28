@@ -27,169 +27,153 @@
 [% END #/ WRAPPER sub-header.inc %]
 
 [% BLOCK translate_errorcode %]
-[%    SWITCH errorcode %]
-[%        CASE 'no_params_specified'                 %]Insufficient parameter provided.
-[%        CASE 'current_due_date_not_specified'      %]Due-date to change not provided.
-[%        CASE 'new_due_date_not_specified'          %]New due-date not provided.
-[%        CASE 'wrong_date_format_current_due_date'  %]Current due-date has an invalid format.
-[%        CASE 'wrong_date_format_new_due_date'      %]New due-date has an invalid format.
-[%        CASE 'current_due_date_before_today'       %]Current due-date is earlier than today.
-[%        CASE 'new_due_date_before_today'           %]New due-date is earlier than today.
-[%        CASE %][% errorcode | html %]
-[%    END %]
+    [% SWITCH errorcode %]
+    [% CASE 'no_params_specified' %]
+        Insufficient parameter provided.
+    [% CASE 'current_due_date_not_specified' %]
+        Due-date to change not provided.
+    [% CASE 'new_due_date_not_specified' %]
+        New due-date not provided.
+    [% CASE 'wrong_date_format_current_due_date' %]
+        Current due-date has an invalid format.
+    [% CASE 'wrong_date_format_new_due_date' %]
+        New due-date has an invalid format.
+    [% CASE 'current_due_date_before_today' %]
+        Current due-date is earlier than today.
+    [% CASE 'new_due_date_before_today' %]
+        New due-date is earlier than today.
+    [% CASE %]
+        [% errorcode | html %]
+    [% END %]
 [% END %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-md-10 order-md-2 order-sm-1">
-            <main>
-                <h1>
-                    Update upcoming due-dates of checked-out items
-                </h1>
-                <div class="help">
-                    <p>
-                        Use the update function to change the due-date of checked-out items which are due in the future without renewing them. 
-                        In case of unanticipated closing days or closing periods the function can be used to prevent that patrons receive overdue notices while the library is closed.
-                    </p>
-                    <p>
-                        Please note: only due-dates of non-overdue items can be changed.
-                    </p>
-                    <p>
-                        Select a library or group of libraries. The function lists the due-dates of items of the related branches. To update the due-dates select dates from the list, provide a new date and press change.
-                    </p>
-                </div><!-- help-->
+[% WRAPPER 'main-container.inc' aside='tools-menu' %]
+    <h1>Update upcoming due-dates of checked-out items</h1>
 
-                <div>
-                    <p>
-                    <form method="get" action="/cgi-bin/koha/tools/duedate_change.pl" id="selectlibrary">
-                        <p>
-                            Select a group:
-                            <select name="groupselect" id="groups" style="width:20em;">
-                            <option value="*">All library categories</option>
-                            </select>
-                        </p>
-                        <p>
-                            Select a library :
-                            <select name="branchselect" id="branches" style="width:20em;">
-                            <option value="*">All libraries</option>
-                            </select>
-                        </p>
-                        <p>
-                            <button type="submit" class="btn btn-default btn-xs btn-primary" name="op" value="select"><i class="fa fa-edit"></i> Select</button>
-                        </p>
-                    </form>
-                    </p>
-                    <p>
-                    
-                    [% IF (itemschanged > 0) %]
-                    <div class="dialog message">
-                        Due-dates of [% itemschanged | html %] items updated.
-                    </div>
-                    [% END %]
-                    
-                    [% FOREACH perror IN processerrors %]
-                     <div class="dialog alert">
-                        Setting due-date from [% perror.currentDueDate | html %] to [% perror.newDueDate | html %] failed.<br />
-                        [% PROCESS translate_errorcode errorcode=perror.errorcode %]
-                     </div>
-                    [% END %]
-                    
-                    [% IF ( founddates == 0  && action == "select" ) %]
-                        <div class="dialog message">
-                            No items found that are due today or in the future.
-                        </div>
-                    [% END %]
-                    
-                    [% IF ( founddates > 0 ) %]
-                    <form id="changeDate" method="post" action="/cgi-bin/koha/tools/duedate_change.pl">
-                        [% INCLUDE 'csrf-token.inc' %]
-                        <div class="row">
-                            <div class="col-sm-6">
-                                <fieldset class="rows">
-                                    <legend>Current due-dates of checked-out items:</legend>
-                                    <input type="hidden" name="branchselect" value="[% selectedbranch | html %]"/>
-                                    <input type="hidden" name="groupselect" value="[% selectedgroup | html %]"/>
-                                    <input type="hidden" id="hidden-duedates" name="duedates" value""/>
-                                    <table id="change-duedates-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Select</th>
-                                                <th style="min-width: 6em">Due date</th>
-                                                <th>Number of items due</th>
-                                                <th>Libraries</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            [% FOREACH duedate IN duedates %]
-                                            <tr>
-                                                <td>
-                                                    <label><input type="checkbox" name="selected_dates" value="[% duedate.0 | $KohaDates %]" data-date="[% duedate.0 | html %]"></label>
-                                                </td>
-                                                <td>[% duedate.0 | html %]</td>
-                                                <td>[% duedate.1.count | html %]</td>
-                                                <td>[% countlib = duedate.1.branchcode.size %][% currlib = 0 %]
-                                                    [% FOREACH duelibrary IN duedate.1.branchcode.keys %]
-                                                        [% Branches.GetName(duelibrary) | html %] ([% duedate.1.branchcode.$duelibrary | html %])[% currlib = currlib + 1 %][% IF (currlib < countlib) %]<br />[% END %]
-                                                    [% END %]
-                                                </td>
-                                            </tr>
+    <div class="page-section help">
+        <p>
+            Use the update function to change the due-date of checked-out items which are due in the future without renewing them. In case of unanticipated closing days or closing periods the function can be used to prevent that patrons
+            receive overdue notices while the library is closed.
+        </p>
+        <p>Please note: only due-dates of non-overdue items can be changed.</p>
+        <p>Select a library or group of libraries. The function lists the due-dates of items of the related branches. To update the due-dates select dates from the list, provide a new date and press change.</p>
+    </div>
+
+    <form method="get" action="/cgi-bin/koha/tools/duedate_change.pl" id="selectlibrary">
+        <fieldset class="rows">
+            <ol>
+                <li>
+                    <label for="groups">Select a group:</label>
+                    <select name="groupselect" id="groups" style="width:20em;">
+                        <option value="*">All library categories</option>
+                    </select>
+                </li>
+                <li>
+                    <label for="branches">Select a library:</label>
+                    <select name="branchselect" id="branches" style="width:20em;">
+                        <option value="*">All libraries</option>
+                    </select>
+                </li>
+            </ol>
+            <button type="submit" class="btn btn-primary" name="op" value="select"><i class="fa fa-edit"></i> Select</button>
+        </fieldset>
+    </form>
+
+    [% IF (itemschanged > 0) %]
+        <div class="dialog message">Due-dates of [% itemschanged | html %] items updated.</div>
+    [% END %]
+
+    [% FOREACH perror IN processerrors %]
+        <div class="dialog alert">
+            Setting due-date from [% perror.currentDueDate | html %] to [% perror.newDueDate | html %] failed.<br />
+            [% PROCESS translate_errorcode errorcode=perror.errorcode %]
+        </div>
+    [% END %]
+
+    [% IF ( founddates == 0  && action == "select" ) %]
+        <div class="dialog message">No items found that are due today or in the future.</div>
+    [% END %]
+
+    [% IF ( founddates > 0 ) %]
+        <form id="changeDate" method="post" action="/cgi-bin/koha/tools/duedate_change.pl">
+            [% INCLUDE 'csrf-token.inc' %]
+            <div class="row">
+                <div class="col-sm-6">
+                    <fieldset class="rows">
+                        <legend>Current due-dates of checked-out items:</legend>
+                        <input type="hidden" name="branchselect" value="[% selectedbranch | html %]" />
+                        <input type="hidden" name="groupselect" value="[% selectedgroup | html %]" />
+                        <input type="hidden" id="hidden-duedates" name="duedates" value="" />
+                        <table id="change-duedates-table">
+                            <thead>
+                                <tr>
+                                    <th>Select</th>
+                                    <th style="min-width: 6em">Due date</th>
+                                    <th>Number of items due</th>
+                                    <th>Libraries</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                [% FOREACH duedate IN duedates %]
+                                    <tr>
+                                        <td>
+                                            <label><input type="checkbox" name="selected_dates" value="[% duedate.0 | $KohaDates %]" data-date="[% duedate.0 | html %]" /></label>
+                                        </td>
+                                        <td>[% duedate.0 | html %]</td>
+                                        <td>[% duedate.1.count | html %]</td>
+                                        <td>
+                                            [% countlib = duedate.1.branchcode.size %][% currlib = 0 %]
+                                            [% FOREACH duelibrary IN duedate.1.branchcode.keys %]
+                                                [% Branches.GetName(duelibrary) | html %]
+                                                ([% duedate.1.branchcode.$duelibrary | html %])[% currlib = currlib + 1 %][% IF (currlib < countlib) %]<br />[% END %]
                                             [% END %]
-                                        </tbody>
-                                    </table>
-                                </fieldset>
-                            </div>
-                            <div class="col-sm-6">
-                                <div id="changeDate-actions" class="changeDate-duedates">
-                                    <fieldset class="rows">
-                                        <legend>Selected due-dates to change:</legend>
-                                        <ol>
-                                            <li>
-                                                 <label for="changeDate-duedates-list">Due-dates to change:</label>
-                                                 <ul id="changeDate-duedates-list"></ul>
-                                            </li>
-                                            <li>
-                                                 <label for="new-duedate">New due date:</label>
-                                                 <input type="text" id="new-duedate" name="newduedate" maxlength="10" size="10" class="flatpickr" data-flatpickr-futureinclusive="true"/>
-                                           </li>
-                                           <li>
-                                                <label>&nbsp;</label>
-                                                <button type="submit" class="btn btn-default btn-xs btn-primary" name="op" value="cud-update"><i class="fa fa-edit"></i> Update</button>
-                                           </li>
-                                        </ol>
-                                    </fieldset>
-                                    <div id="change_date_error_message" class="dialog alert">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                    [% END %]
+                                        </td>
+                                    </tr>
+                                [% END %]
+                            </tbody>
+                        </table>
+                    </fieldset>
                 </div>
-            </main>
-        </div> <!-- /.col-md-10.order-md-2.order-sm-1 -->
+                <div class="col-sm-6">
+                    <div id="changeDate-actions" class="changeDate-duedates">
+                        <fieldset class="rows">
+                            <legend>Selected due-dates to change:</legend>
+                            <ol>
+                                <li>
+                                    <label for="changeDate-duedates-list">Due-dates to change:</label>
+                                    <ul id="changeDate-duedates-list"></ul>
+                                </li>
+                                <li>
+                                    <label for="new-duedate">New due date:</label>
+                                    <input type="text" id="new-duedate" name="newduedate" maxlength="10" size="10" class="flatpickr" data-flatpickr-futureinclusive="true" />
+                                </li>
+                                <li>
+                                    <label>&nbsp;</label>
+                                    <button type="submit" class="btn btn-primary" name="op" value="cud-update"><i class="fa fa-edit"></i> Update</button>
+                                </li>
+                            </ol>
+                        </fieldset>
+                        <div id="change_date_error_message" class="dialog alert"></div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    [% END %]
+[% END #/ WRAPPER main-container.inc %]
 
-        <div class="col-md-2 order-sm-2 order-md-1">
-            <aside>
-                [% INCLUDE 'tools-menu.inc' %]
-            </aside>
-        </div> <!-- /.col-md-2.order-sm-2.order-md-1 -->
-     </div> <!-- /.row -->
-     
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'datatables.inc' %]
-    [% Asset.js("lib/jquery/plugins/jquery-ui-timepicker-addon.min.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
-    
     <script type="text/javascript">
         var ERROR_NO_DATE = _("Please enter a valid new due-date.");
-        
+
         var libraries = {};
         var libcodes = new Array();
         [% FOREACH branch IN Branches.all( unfiltered => 1 ) %]
         libraries["[% branch.branchcode FILTER lower | html %]"] = { name: "[% branch.branchname | html %]", category: [] };
         libcodes.push("[% branch.branchcode FILTER lower | html %]");
         [% END %]
-        
+
         var categories = {};
         var selcateg = '[% selcateg | html %]';
         [% FOREACH group IN librarygroups %]
@@ -204,12 +188,12 @@
         if ( selcateg != '' ) {
             categories[selcateg]["sel"] = true;
         }
-        
+
         function resetLibrarySelection() {
             var selgroup = $( "#groups" ).val();
             var libs = new Array();
             var libselect = $("#branches");
-            
+
             if ( selgroup == '*' ) {
                 libcodes.forEach(function(library) {
                     libs.push([library,libraries[library].name]);
@@ -220,17 +204,17 @@
                     libs.push([library,libraries[library].name]);
                 });
             }
-            
+
             $('#branches option[value!="*"]').remove();
-            
+
             $.each(libs, function(idx, value) {
                 libselect.append($('<option></option>').val(value[0]).html(value[1]));
             });
-            
+
         }
-        
+
         var changeDates = new Array();
-        
+
         function addChangeDate(chgDate) {
             if ( changeDates.indexOf(chgDate) === -1 ) {
                 changeDates.push(chgDate);
@@ -242,7 +226,7 @@
                 changeDates.splice(i,1);
             }
         }
-        
+
         function setChangeDateDisplay() {
             var chgDatesHTML = "";
             for (var i=0; i < changeDates.length; i++) {
@@ -256,7 +240,7 @@
                 $("#changeDate-actions").css("visibility", "hidden");
             }
         }
-        
+
         function get_local_dateformat_str(dateformat) {
             var dateformat_str;
             if ( dateformat == 'us' ) {
@@ -276,28 +260,28 @@
             var ret = flatpickr.formatDate(date,get_local_dateformat_str('dmydot'));
             return (ret);
         }
-     
+
         $(document).ready(function() {
             var sel = $('#groups');
-            
+
             var selectedgroup = "[% selectedgroup | html %]";
             var selectedbranch = "[% selectedbranch | html %]";
 
-            
+
             $("#changeDate-actions").css("visibility", "hidden");
-            
+
             $.each(categories, function(code, categ) {
                 sel.append($('<option></option>').val(code).html(categ.name).attr('selected', categ.sel));
             });
-            
+
             sel.val(selectedgroup).change();
             resetLibrarySelection();
-            
+
             sel.on('change', function() {
                 resetLibrarySelection();
             });
             $('#branches').val(selectedbranch).change();
-            
+
             $("#change-duedates-table:has(tbody tr)").dataTable($.extend(true, {}, dataTablesDefaults, {
                 "sDom": 't',
                 "aoColumnDefs": [
@@ -306,7 +290,7 @@
                 ],
                 "bPaginate": false
             }));
-            
+
             $('#changeDate').on('change', 'input[type=checkbox]', function() {
                 if ( this.checked ) {
                     addChangeDate($(this).data('date'));
@@ -316,7 +300,7 @@
                 }
                 setChangeDateDisplay();
             });
-            
+
             $( "#changeDate" ).submit(function( event ) {
                 var newdate = $("#new-duedate").val();
                 if ( newdate == '' ) {

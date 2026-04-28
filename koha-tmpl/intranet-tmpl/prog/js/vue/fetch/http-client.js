@@ -1,11 +1,29 @@
 import { setError, submitting, submitted } from "../messages";
 
+function _ifDocumentAvailable(callback) {
+    if (typeof document !== "undefined" && document.getElementById) {
+        callback();
+    }
+}
+
 class HttpClient {
     constructor(options = {}) {
         this._baseURL = options.baseURL || "";
         this._headers = options.headers || {
             "Content-Type": "application/json;charset=utf-8",
         };
+        this.csrf_token = this._getCsrfToken(options);
+    }
+
+    _getCsrfToken(options) {
+        let token = null;
+        _ifDocumentAvailable(() => {
+            const metaTag = document.querySelector('meta[name="csrf-token"]');
+            if (metaTag) {
+                token = metaTag.getAttribute("content");
+            }
+        });
+        return token !== null ? token : options.csrfToken || null;
     }
 
     async _fetchJSON(
@@ -56,10 +74,16 @@ class HttpClient {
     }
 
     get(params = {}) {
-        return this._fetchJSON(params.endpoint, params.headers, {
-            ...params.options,
-            method: "GET",
-        });
+        return this._fetchJSON(
+            params.endpoint,
+            params.headers,
+            {
+                ...params.options,
+                method: "GET",
+            },
+            params.return_response ?? false,
+            params.mark_submitting ?? false
+        );
     }
 
     getAll(params = {}) {
@@ -71,10 +95,16 @@ class HttpClient {
                 ...(params.params && params.params),
                 ...(params.query && { q: JSON.stringify(params.query) }),
             });
-        return this._fetchJSON(url, params.headers, {
-            ...params.options,
-            method: "GET",
-        });
+        return this._fetchJSON(
+            url,
+            params.headers,
+            {
+                ...params.options,
+                method: "GET",
+            },
+            params.return_response ?? false,
+            params.mark_submitting ?? false
+        );
     }
 
     post(params = {}) {
@@ -83,16 +113,18 @@ class HttpClient {
                 ? params.body
                 : JSON.stringify(params.body)
             : undefined;
+        let csrf_token = { "CSRF-TOKEN": this.csrf_token };
+        let headers = { ...csrf_token, ...params.headers };
         return this._fetchJSON(
             params.endpoint,
-            params.headers,
+            headers,
             {
                 ...params.options,
                 body,
                 method: "POST",
             },
-            false,
-            true
+            params.return_response ?? false,
+            params.mark_submitting ?? true
         );
     }
 
@@ -102,36 +134,46 @@ class HttpClient {
                 ? params.body
                 : JSON.stringify(params.body)
             : undefined;
+        let csrf_token = { "CSRF-TOKEN": this.csrf_token };
+        let headers = { ...csrf_token, ...params.headers };
         return this._fetchJSON(
             params.endpoint,
-            params.headers,
+            headers,
             {
                 ...params.options,
                 body,
                 method: "PUT",
             },
-            false,
-            true
+            params.return_response ?? false,
+            params.mark_submitting ?? true
         );
     }
 
     delete(params = {}) {
+        let csrf_token = { "CSRF-TOKEN": this.csrf_token };
+        let headers = { ...csrf_token, ...params.headers };
         return this._fetchJSON(
             params.endpoint,
-            params.headers,
+            headers,
             {
                 parseResponse: false,
                 ...params.options,
                 method: "DELETE",
             },
-            true,
-            true
+            params.return_response ?? true,
+            params.mark_submitting ?? true
         );
     }
 
     count(params = {}) {
         let res;
-        return this._fetchJSON(params.endpoint, params.headers, {}, 1).then(
+        return this._fetchJSON(
+            params.endpoint,
+            params.headers,
+            {},
+            params.return_response ?? true,
+            params.mark_submitting ?? false
+        ).then(
             response => {
                 if (response) {
                     return response.headers.get("X-Total-Count");

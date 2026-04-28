@@ -13,7 +13,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 
@@ -25,6 +25,9 @@ use t::lib::TestBuilder;
 use Koha::SearchEngine::Elasticsearch::QueryBuilder;
 use Koha::SearchEngine::Elasticsearch::Indexer;
 use Koha::SearchFields;
+
+my $schema = Koha::Database->new()->schema();
+$schema->storage->txn_begin;
 
 my $se = Test::MockModule->new('Koha::SearchEngine::Elasticsearch');
 $se->mock(
@@ -41,7 +44,8 @@ $se->mock(
                 subject              => { type => 'text' },
                 itemnumber           => { type => 'integer' },
                 sortablenumber       => { type => 'integer' },
-                sortablenumber__sort => { type => 'integer' }
+                sortablenumber__sort => { type => 'integer' },
+                'local-number'       => { type => 'integer' },
             }
         };
         $all_mappings{ $self->index } = $mappings;
@@ -122,7 +126,6 @@ SKIP: {
     subtest "_convert_facets" => sub {
         plan tests => 5;
 
-        my $schema = Koha::Database->new()->schema();
         $schema->storage->txn_begin;
         my $builder = t::lib::TestBuilder->new;
 

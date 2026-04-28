@@ -13,6 +13,7 @@
         required: true
         schema:
           type: object
+          additionalProperties: false
           items:
             $ref: "../swagger.yaml#/definitions/external_order"
     consumes:
@@ -24,6 +25,7 @@
         description: The order was stored for stored for further processing.
         schema:
           type: object
+          additionalProperties: false
           properties:
             process_info:
               type: string

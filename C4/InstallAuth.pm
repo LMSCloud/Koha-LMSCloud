@@ -15,29 +15,26 @@ package C4::InstallAuth;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
+use base 'Exporter';
+
+BEGIN {
+    our @EXPORT_OK = qw(
+        checkauth
+        get_template_and_user
+    );
+}
+
 use CGI::Session;
 use File::Spec;
-
-require Exporter;
 
 use C4::Context;
 use C4::Output qw( output_html_with_http_headers );
 use C4::Templates;
 
 use Koha::Session;
-
-our ( @ISA, @EXPORT_OK );
-
-BEGIN {
-    @ISA       = qw(Exporter);
-    @EXPORT_OK = qw(
-        checkauth
-        get_template_and_user
-    );
-}
 
 =head1 NAME
 
@@ -65,12 +62,12 @@ InstallAuth - Authenticates Koha users for Install process
 =head1 DESCRIPTION
 
 The main function of this module is to provide
-authentification. However the get_template_and_user function has
+authentication. However the get_template_and_user function has
 been provided so that a users login information is passed along
 automatically. This gets loaded into the template.
 This package is different from C4::Auth in so far as
 C4::Auth uses many preferences which are supposed NOT to be obtainable when installing the database.
-    
+
 As in C4::Auth, Authentication is based on cookies.
 
 =head1 FUNCTIONS
@@ -87,7 +84,7 @@ As in C4::Auth, Authentication is based on cookies.
     );
 
 This call passes the C<query>, C<flagsrequired> and C<authnotrequired>
-to C<&checkauth> (in this module) to perform authentification.
+to C<&checkauth> (in this module) to perform authentication.
 See C<&checkauth> for an explanation of these parameters.
 
 The C<template_name> is then used to find the correct template for
@@ -222,7 +219,7 @@ user has authenticated, C<&checkauth> restarts the original script
 The login page is provided using a HTML::Template, which is set in the
 systempreferences table or at the top of this file. The variable C<$type>
 selects which template to use, either the opac or the intranet 
-authentification template.
+authentication template.
 
 C<&checkauth> returns a user ID, a cookie, and a session ID. The
 cookie should be sent back to the browser; it verifies that the user
@@ -254,17 +251,7 @@ sub checkauth {
 
     if ($session) {
         if ( $session->param('cardnumber') ) {
-            C4::Context->set_userenv(
-                $session->param('number'),
-                $session->param('id'),
-                $session->param('cardnumber'),
-                $session->param('firstname'),
-                $session->param('surname'),
-                $session->param('branch'),
-                $session->param('branchname'),
-                $session->param('flags'),
-                $session->param('emailaddress')
-            );
+            C4::Context->set_userenv_from_session($session);
             $cookie = $query->cookie(
                 -name     => 'CGISESSID',
                 -value    => $session->id,
@@ -341,7 +328,7 @@ sub checkauth {
         }
     }
 
-    # finished authentification, now respond
+    # finished authentication, now respond
     if ($loggedin) {
 
         # successful login
@@ -412,6 +399,12 @@ sub checkauth {
         $template->output;
     exit;
 }
+
+=head2 checkpw
+
+Missing POD for checkpw.
+
+=cut
 
 sub checkpw {
 

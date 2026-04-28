@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use Test::YAML::Valid;
@@ -23,6 +23,7 @@ use File::Find;
 use FindBin ();
 
 use Test::More;
+use Test::NoWarnings;
 
 my $filebase = "$FindBin::Bin/../koha-tmpl/intranet-tmpl/prog/en/modules/admin/preferences";
 
@@ -35,7 +36,7 @@ sub wanted {
 }
 find( { wanted => \&wanted, no_chdir => 1 }, $filebase );
 
-plan tests => scalar @files;
+plan tests => scalar(@files) + 1;
 
 foreach my $f (@files) {
     chomp $f;
@@ -48,6 +49,7 @@ yaml_valid.t
 
 =head1 DESCRIPTION
 
+=cut
 
 =head1 USAGE
 

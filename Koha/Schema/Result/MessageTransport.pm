@@ -54,7 +54,7 @@ __PACKAGE__->table("message_transports");
   data_type: 'varchar'
   default_value: (empty string)
   is_nullable: 0
-  size: 20
+  size: 50
 
 =head2 branchcode
 
@@ -75,7 +75,7 @@ __PACKAGE__->add_columns(
   "letter_module",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 20 },
   "letter_code",
-  { data_type => "varchar", default_value => "", is_nullable => 0, size => 20 },
+  { data_type => "varchar", default_value => "", is_nullable => 0, size => 50 },
   "branchcode",
   { data_type => "varchar", default_value => "", is_nullable => 0, size => 10 },
 );
@@ -132,12 +132,26 @@ __PACKAGE__->belongs_to(
 # Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-05-09 21:01:19
 # DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:v0JbPeSBKkHyINem9W9vxw
 
+__PACKAGE__->add_columns(
+    '+is_digest' => { is_boolean => 1 },
+);
 
-# You can replace this text with custom content, and it will be preserved on regeneration
+=head2 koha_object_class
+
+Missing POD for koha_object_class.
+
+=cut
 
 sub koha_object_class {
   'Koha::Patron::MessagePreference::Transport';
 }
+
+=head2 koha_objects_class
+
+Missing POD for koha_objects_class.
+
+=cut
+
 sub koha_objects_class {
   'Koha::Patron::MessagePreference::Transports';
 }

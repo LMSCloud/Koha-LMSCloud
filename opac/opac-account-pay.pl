@@ -16,7 +16,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use utf8;
@@ -64,8 +64,12 @@ $logger->debug(
         . ":" );
 
 my $amount_to_pay =
-    Koha::Database->new()->schema()->resultset('Accountline')
-    ->search( { accountlines_id => { -in => \@accountlines } } )->get_column('amountoutstanding')->sum();
+    Koha::Database->new()
+    ->schema()
+    ->resultset('Accountline')
+    ->search( { accountlines_id => { -in => \@accountlines } } )
+    ->get_column('amountoutstanding')
+    ->sum();
 $amount_to_pay = sprintf( "%.2f", $amount_to_pay );
 
 my $active_currency = Koha::Acquisition::Currencies->get_active;

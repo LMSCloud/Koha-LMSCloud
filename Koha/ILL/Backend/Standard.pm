@@ -15,7 +15,7 @@ package Koha::ILL::Backend::Standard;
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use DateTime;
@@ -128,7 +128,9 @@ sub capabilities {
         provides_batch_requests => sub { return 1; },
 
         # We can create ILL requests with data passed from the API
-        create_api => sub { $self->create_api(@_) }
+        create_api => sub { $self->create_api(@_) },
+
+        opac_unauthenticated_ill_requests => sub { return 1; }
     };
     return $capabilities->{$name};
 }
@@ -143,18 +145,24 @@ that we do not consider to be metadata
 
 sub metadata {
     my ( $self, $request ) = @_;
-    my $attrs       = $request->extended_attributes;
-    my $metadata    = {};
-    my @ignore      = ( 'requested_partners', 'type', 'type_disclaimer_value', 'type_disclaimer_date' );
+
+    my @ignore = (
+        'requested_partners', 'type', 'type_disclaimer_value', 'type_disclaimer_date', 'unauthenticated_first_name',
+        'unauthenticated_last_name', 'unauthenticated_email', 'historycheck_requests', 'copyrightclearance_confirmed'
+    );
+
+    # Use database-level filtering instead of manual iteration
+    my $attrs = $request->extended_attributes->search( { type => { '-not_in' => \@ignore } } );
+
     my $core_fields = _get_core_fields();
+    my $metadata    = {};
+
     while ( my $attr = $attrs->next ) {
         my $type = $attr->type;
-        if ( !grep { $_ eq $type } @ignore ) {
-            my $name;
-            $name = $core_fields->{$type} || ucfirst($type);
-            $metadata->{$name} = $attr->value;
-        }
+        my $name = $core_fields->{$type} || ucfirst($type);
+        $metadata->{$name} = $attr->value;
     }
+
     return $metadata;
 }
 
@@ -184,7 +192,15 @@ sub status_graph {
             next_actions   => [],
             ui_method_icon => 'fa-edit',
         },
-
+        UNAUTH => {
+            prev_actions   => [],
+            id             => 'UNAUTH',
+            name           => 'Unauthenticated',
+            ui_method_name => 0,
+            method         => 0,
+            next_actions   => [ 'REQ', 'GENREQ', 'KILL' ],
+            ui_method_icon => 0,
+        },
     };
 }
 
@@ -266,9 +282,6 @@ sub create {
         }
 
         # Received completed details of form.  Validate and create request.
-        ## Validate
-        my ( $brw_count, $brw ) =
-            _validate_borrower( $other->{'cardnumber'} );
         my $result = {
             cwd     => dirname(__FILE__),
             status  => "",
@@ -280,31 +293,39 @@ sub create {
             core    => $core_fields
         };
         my $failed = 0;
-        if ( !$other->{'type'} ) {
-            $result->{status} = "missing_type";
-            $result->{value}  = $params;
-            $failed           = 1;
-        } elsif ( !$other->{'branchcode'} ) {
-            $result->{status} = "missing_branch";
-            $result->{value}  = $params;
-            $failed           = 1;
-        } elsif ( !Koha::Libraries->find( $other->{'branchcode'} ) ) {
-            $result->{status} = "invalid_branch";
-            $result->{value}  = $params;
-            $failed           = 1;
-        } elsif ( $brw_count == 0 ) {
-            $result->{status} = "invalid_borrower";
-            $result->{value}  = $params;
-            $failed           = 1;
-        } elsif ( $brw_count > 1 ) {
 
-            # We must select a specific borrower out of our options.
-            $params->{brw}   = $brw;
-            $result->{value} = $params;
-            $result->{stage} = "borrowers";
-            $result->{error} = 0;
-            $failed          = 1;
+        my $unauthenticated_request =
+            C4::Context->preference("ILLOpacUnauthenticatedRequest") && !$other->{'cardnumber'};
+        if ($unauthenticated_request) {
+            ( $failed, $result ) = _validate_form_params( $other, $result, $params );
+            return $result if $failed;
+            my $unauth_request_error = Koha::ILL::Request::unauth_request_data_error($other);
+            if ($unauth_request_error) {
+                $result->{status} = $unauth_request_error;
+                $result->{value}  = $params;
+                $failed           = 1;
+            }
+        } else {
+            ( $failed, $result ) = _validate_form_params( $other, $result, $params );
+
+            my ( $brw_count, $brw ) =
+                _validate_borrower( $other->{'cardnumber'} );
+
+            if ( $brw_count == 0 ) {
+                $result->{status} = "invalid_borrower";
+                $result->{value}  = $params;
+                $failed           = 1;
+            } elsif ( $brw_count > 1 ) {
+
+                # We must select a specific borrower out of our options.
+                $params->{brw}   = $brw;
+                $result->{value} = $params;
+                $result->{stage} = "borrowers";
+                $result->{error} = 0;
+                $failed          = 1;
+            }
         }
+
         return $result if $failed;
 
         $self->add_request( { request => $params->{request}, other => $other } );
@@ -461,46 +482,8 @@ sub edititem {
         # generate $request_details
         my $request_details = _get_request_details( $params, $other );
 
-        # We do this with a 'dump all and repopulate approach' inside
-        # a transaction, easier than catering for create, update & delete
-        my $dbh    = C4::Context->dbh;
-        my $schema = Koha::Database->new->schema;
-        $schema->txn_do(
-            sub {
-                # Delete all existing attributes for this request
-                $dbh->do(
-                    q|
-                    DELETE FROM illrequestattributes WHERE illrequest_id=?
-                |, undef, $request->id
-                );
-
-                # Insert all current attributes for this request
-                foreach my $attr ( keys %{$request_details} ) {
-                    my $value = $request_details->{$attr};
-                    if ( $value && length $value > 0 ) {
-                        if ( column_exists( 'illrequestattributes', 'backend' ) ) {
-                            my @bind = ( $request->id, 'Standard', $attr, $value, 0 );
-                            $dbh->do(
-                                q|
-                                INSERT INTO illrequestattributes
-                                (illrequest_id, backend, type, value, readonly) VALUES
-                                (?, ?, ?, ?, ?)
-                            |, undef, @bind
-                            );
-                        } else {
-                            my @bind = ( $request->id, $attr, $value, 0 );
-                            $dbh->do(
-                                q|
-                                INSERT INTO illrequestattributes
-                                (illrequest_id, type, value, readonly) VALUES
-                                (?, ?, ?, ?)
-                            |, undef, @bind
-                            );
-                        }
-                    }
-                }
-            }
-        );
+        # Update request attributes using modern ORM method
+        $request->add_or_update_attributes($request_details);
 
         ## -> create response.
         return {
@@ -694,7 +677,7 @@ sub migrate {
         $new_request->updated( dt_from_string() );
         $new_request->store;
 
-        my @default_attributes = (qw/title type author year volume isbn issn article_title article_author pages/);
+        my @default_attributes = (qw/title type author year volume isbn issn eissn article_title article_author pages/);
         my $original_attributes =
             $original_request->extended_attributes->search( { type => { '-in' => \@default_attributes } } );
 
@@ -920,39 +903,42 @@ sub _get_core_fields {
     #        as keys. for example:
     #           [% IF request.metadata.Author %][% request.metadata.Author | html %][% ELSE %]...
     return {
-        article_author  => 'Article author',
-        article_title   => 'Article title',
-        associated_id   => 'Associated ID',
-        author          => 'Author',
-        chapter_author  => 'Chapter author',
-        chapter         => 'Chapter',
-        conference_date => 'Conference date',
-        doi             => 'DOI',
-        editor          => 'Editor',
-        format          => 'Format',
-        genre           => 'Genre',
-        institution     => 'Institution',
-        isbn            => 'ISBN',
-        issn            => 'ISSN',
-        issue           => 'Issue',
-        item_date       => 'Date',
-        language        => 'Language',
-        pages           => 'Pages',
-        pagination      => 'Pagination',
-        paper_author    => 'Paper author',
-        paper_title     => 'Paper title',
-        part_edition    => 'Part / Edition',
-        publication     => 'Publication',
-        published_date  => 'Publication date',
-        published_place => 'Place of publication',
-        publisher       => 'Publisher',
-        sponsor         => 'Sponsor',
-        studio          => 'Studio',
-        title           => 'Title',
-        type            => 'Type',
-        venue           => 'Venue',
-        volume          => 'Volume',
-        year            => 'Year',
+        article_author  => __('Article author'),
+        article_title   => __('Article title'),
+        associated_id   => __('Associated ID'),
+        author          => __('Author'),
+        chapter_author  => __('Chapter author'),
+        chapter         => __('Chapter'),
+        conference_date => __('Conference date'),
+        doi             => __('DOI'),
+        editor          => __('Editor'),
+        eissn           => __('eISSN'),
+        format          => __('Format'),
+        genre           => __('Genre'),
+        institution     => __('Institution'),
+        isbn            => __('ISBN'),
+        issn            => __('ISSN'),
+        issue           => __('Issue'),
+        item_date       => __('Date'),
+        language        => __('Language'),
+        pages           => __('Pages'),
+        pagination      => __('Pagination'),
+        paper_author    => __('Paper author'),
+        paper_title     => __('Paper title'),
+        part_edition    => __('Part / Edition'),
+        publication     => __('Publication'),
+        published_date  => __('Publication date'),
+        published_place => __('Place of publication'),
+        publisher       => __('Publisher'),
+        pubmedid        => __('PubMed ID'),
+        pmid            => __('PubMed ID'),
+        sponsor         => __('Sponsor'),
+        studio          => __('Studio'),
+        title           => __('Title'),
+        type            => __('Type'),
+        venue           => __('Venue'),
+        volume          => __('Volume'),
+        year            => __('Year'),
     };
 }
 
@@ -966,12 +952,15 @@ sub add_request {
 
     my ( $self, $params ) = @_;
 
+    my $unauthenticated_request =
+        C4::Context->preference("ILLOpacUnauthenticatedRequest") && !$params->{other}->{'cardnumber'};
+
     # ...Populate Illrequestattributes
     # generate $request_details
     my $request_details = _get_request_details( $params, $params->{other} );
 
-    my ( $brw_count, $brw ) =
-        _validate_borrower( $params->{other}->{'cardnumber'} );
+    my ( $brw_count, $brw );
+    ( $brw_count, $brw ) = _validate_borrower( $params->{other}->{'cardnumber'} ) unless $unauthenticated_request;
 
     ## Create request
 
@@ -981,9 +970,9 @@ sub add_request {
     # ...Populate Illrequest
     my $request = $params->{request};
     $request->biblio_id($biblionumber) unless $biblionumber == 0;
-    $request->borrowernumber( $brw->borrowernumber );
+    $request->borrowernumber( $brw ? $brw->borrowernumber : undef );
     $request->branchcode( $params->{other}->{branchcode} );
-    $request->status('NEW');
+    $request->status( $unauthenticated_request ? 'UNAUTH' : 'NEW' );
     $request->backend( $params->{other}->{backend} );
     $request->placed( dt_from_string() );
     $request->updated( dt_from_string() );
@@ -1041,8 +1030,7 @@ sub _openurl_to_ill {
         volume  => 'volume',
         isbn    => 'isbn',
         issn    => 'issn',
-        rft_id  => 'doi',
-        id      => 'doi',
+        eissn   => 'eissn',
         doi     => 'doi',
         year    => 'year',
         title   => 'title',
@@ -1080,8 +1068,19 @@ sub _openurl_to_ill {
             # Otherwise, pass it through untransformed and maybe move it
             # to our custom parameters array
             if ( !exists $ignore->{$meta_key} ) {
-                push @{$custom_key},   $meta_key;
-                push @{$custom_value}, $params->{other}->{$meta_key};
+                if ( $meta_key eq 'id' || $meta_key eq 'rft_id' ) {
+                    if ( $params->{other}->{$meta_key} =~ /:/ ) {
+                        my ( $k, $v ) = split /:/, $params->{other}->{$meta_key}, 2;
+                        if ( defined $k && defined $v ) {
+                            $return->{ lc $k } = $v;
+                        }
+                    } else {
+                        $return->{doi} = $params->{other}->{$meta_key};
+                    }
+                } else {
+                    push @{$custom_key},   $meta_key;
+                    push @{$custom_value}, $params->{other}->{$meta_key};
+                }
             } else {
                 $return->{$meta_key} = $params->{other}->{$meta_key};
             }
@@ -1209,6 +1208,35 @@ sub _set_suppression {
     $record->append_fields($new942);
 
     return 1;
+}
+
+=head3 _validate_form_params
+
+    _validate_form_params( $other, $result, $params );
+
+Validate form parameters and return the validation result
+
+=cut
+
+sub _validate_form_params {
+    my ( $other, $result, $params ) = @_;
+
+    my $failed = 0;
+    if ( !$other->{'type'} ) {
+        $result->{status} = "missing_type";
+        $result->{value}  = $params;
+        $failed           = 1;
+    } elsif ( !$other->{'branchcode'} ) {
+        $result->{status} = "missing_branch";
+        $result->{value}  = $params;
+        $failed           = 1;
+    } elsif ( !Koha::Libraries->find( $other->{'branchcode'} ) ) {
+        $result->{status} = "invalid_branch";
+        $result->{value}  = $params;
+        $failed           = 1;
+    }
+
+    return ( $failed, $result );
 }
 
 =head1 AUTHORS

@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Koha; if not, see <http://www.gnu.org/licenses>.
+# along with Koha; if not, see <https://www.gnu.org/licenses>.
 
 use Modern::Perl;
 use File::Basename qw(dirname);
@@ -29,6 +29,8 @@ use Test::Exception;
 use Email::Sender::Failure;
 
 use MARC::Record;
+
+use t::lib::Dates;
 
 use utf8;
 
@@ -163,7 +165,7 @@ is(
 is( $messages->[0]->{status}, 'pending', 'EnqueueLetter stores the status pending correctly' );
 isnt( $messages->[0]->{time_queued}, undef, 'Time queued inserted by default in message_queue table' );
 is(
-    $messages->[0]->{updated_on}, $messages->[0]->{time_queued},
+    t::lib::Dates::compare( $messages->[0]->{updated_on}, $messages->[0]->{time_queued} ), 0,
     'Time status changed equals time queued when created in message_queue table'
 );
 is( $messages->[0]->{failure_code}, '', 'Failure code for successful message correctly empty' );
@@ -223,7 +225,7 @@ isnt(
     $messages->[0]->{updated_on}, $messages->[0]->{time_queued},
     'Time status changed differs from time queued when status changes'
 );
-is( dt_from_string( $messages->[0]->{time_queued} ), $yesterday, 'Time queued remaines inmutable' );
+is( dt_from_string( $messages->[0]->{time_queued} ), $yesterday, 'Time queued remains inmutable' );
 
 # ResendMessage
 my $resent = C4::Letters::ResendMessage( $messages->[0]->{message_id} );

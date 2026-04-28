@@ -48,7 +48,7 @@ the human readable name of the field, for display
 =head2 type
 
   data_type: 'enum'
-  extra: {list => ["","string","date","number","boolean","sum","isbn","stdno","year","callnumber","string_plus","availability","geo_point"]}
+  extra: {list => ["","string","date","number","boolean","sum","isbn","stdno","year","callnumber","geo_point","string_plus","availability"]}
   is_nullable: 0
 
 what type of data this holds, relevant when storing it in the search engine
@@ -117,9 +117,9 @@ __PACKAGE__->add_columns(
         "stdno",
         "year",
         "callnumber",
+        "geo_point",
         "string_plus",
         "availability",
-        "geo_point",
       ],
     },
     is_nullable => 0,
@@ -182,11 +182,13 @@ __PACKAGE__->has_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07049 @ 2026-04-02 13:36:55
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:6dmccPSQ0KHsXhgbyETGFg
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-04-29 09:07:05
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:j34P6Pn0xWZT+wZm+6ywqA
 
 __PACKAGE__->add_columns(
-    '+mandatory' => { is_boolean => 1 },
+    '+mandatory'    => { is_boolean => 1 },
+    '+opac'         => { is_boolean => 1 },
+    '+staff_client' => { is_boolean => 1 },
 );
 
 __PACKAGE__->many_to_many("search_marc_maps", "search_marc_to_fields", "search_marc_map");
