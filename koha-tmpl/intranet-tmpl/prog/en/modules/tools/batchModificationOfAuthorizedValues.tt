@@ -142,7 +142,11 @@
                                 [% actionline=0 %]
                                 [% FOREACH rule IN rules %]
                                     <tr>
-                                        <td style="white-space: nowrap;"[% IF rule.action && rule.action.do == 'update' %]rowspan="2"[% END %]>
+                                        [% IF rule.action && rule.action.do == 'update' %]
+                                        <td style="white-space: nowrap;" rowspan="2">
+                                        [% ELSE %]
+                                        <td style="white-space: nowrap;">
+                                        [% END %]
                                             [% IF rule.action %]
                                                 [% IF rule.action.do == 'add' %]<i class="fa fa-plus" aria-hidden="true"></i> New
                                                 [% ELSIF rule.action.do == 'delete' %]<i class="fa fa-times" aria-hidden="true"></i> Remove
@@ -152,7 +156,11 @@
                                                 No action
                                             [% END %]
                                         </td>
-                                        <td [% IF rule.action && rule.action.do == 'update' %] rowspan="2"[% END %]>
+                                        [% IF rule.action && rule.action.do == 'update' %]
+                                        <td rowspan="2">
+                                        [% ELSE %]
+                                        <td>
+                                        [% END %]
                                             [% IF rule.action && !rule.error  %]
                                                 [% actionline = actionline+1 %]
                                                 <span style="color: green;"><i class="fa fa-check" aria-hidden="true"></i></span>
@@ -166,7 +174,11 @@
                                             [% END %]
                                         </td>
                                         [% IF withError == 1 %]
-                                        <td [% IF rule.action && rule.action.do == 'update' %] rowspan="2"[% END %]>
+                                        [% IF rule.action && rule.action.do == 'update' %]
+                                        <td rowspan="2">
+                                        [% ELSE %]
+                                        <td>
+                                        [% END %]
                                             [% IF withError == 1 && rule.error  %]
                                                 [% IF rule.error.action == "add" &&  rule.error.error == "exists" %]
                                                     <span style="color: red;">The authorised value to add alread exists.</span>

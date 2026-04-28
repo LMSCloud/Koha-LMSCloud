@@ -1,3 +1,4 @@
+[% PROCESS 'html_helpers.inc' %]
 [% PROCESS 'cashregister-fines-macros.inc' %]
 [% USE KohaDates %]
 

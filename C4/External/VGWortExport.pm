@@ -34,6 +34,8 @@ use Data::Dumper;
 use XML::Simple;
 use DateTime;
 
+=encoding UTF-8
+
 =head1 NAME
 
 C4::External::VGWortExport - Functions to create a VGWortExport

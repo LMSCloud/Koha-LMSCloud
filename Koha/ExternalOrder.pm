@@ -24,6 +24,8 @@ use Koha::Database;
 
 use base qw(Koha::Object);
 
+=encoding UTF-8
+
 =head1 NAME
 
 Koha::ExternalOrder - Koha external order Object class

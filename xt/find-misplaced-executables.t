@@ -29,7 +29,7 @@ my @files;
 sub wanted {
     my $name = $File::Find::name;
     # Ignore files in .git, blib and node_modules
-    return if $name =~ m[^\./(.git|blib|node_modules)];
+    return if $name =~ m[^\./(.git|blib|node_modules|merge-analysis)];
     # Ignore directories
     return if -d $name; # Skip dir
 

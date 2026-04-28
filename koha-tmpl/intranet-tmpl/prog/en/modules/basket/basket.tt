@@ -259,7 +259,6 @@
                                                 [% END %]
                                             </td>
                                         </tr>
-                                    [% END %]
 
                                     [% IF BIBLIO_RESULT.HOSTITEMENTRIES || BIBLIO_RESULT.HOSTINFO %]
                                         <tr>

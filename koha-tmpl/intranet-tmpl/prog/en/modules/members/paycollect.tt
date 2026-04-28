@@ -30,7 +30,7 @@
     [% ELSE %]
         Collect payment for [% INCLUDE 'patron-title.inc' no_html = 1 %]
     [% END %] &rsaquo; Patrons &rsaquo; Koha
-</title>
+[% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 

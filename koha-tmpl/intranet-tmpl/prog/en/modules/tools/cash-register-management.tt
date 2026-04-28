@@ -145,7 +145,11 @@
                                 </li>
                                 <li>
                                     <label for="no_branch_restriction">Don't restrict use to associated library: </label>[% IF ( cash_register_no_branch_restriction == 1 ) %][% unrestricted = "checked" %][% END %]
-                                    <input type="checkbox" id="no_branch_restriction" name="cash_register_no_branch_restriction" value="1" [% unrestricted %] />
+                                    [% IF unrestricted %]
+                                    <input type="checkbox" id="no_branch_restriction" name="cash_register_no_branch_restriction" value="1" checked="checked" />
+                                    [% ELSE %]
+                                    <input type="checkbox" id="no_branch_restriction" name="cash_register_no_branch_restriction" value="1" />
+                                    [% END %]
                                 </li>
                                 
                                 [% IF ( cash_register_id ) %]

@@ -21,7 +21,7 @@ use Test::More;
 use File::Slurp qw(read_file);
 
 my @excluded_paths =
-    qw(C4 debian docs etc installer/data install_misc Koha misc selenium t test tmp xt changelanguage.pl build-resources.PL fix-perl-path.PL koha_perl_deps.pl );
+    qw(C4 debian docs etc external installer/data install_misc Koha misc selenium t test tmp xt changelanguage.pl build-resources.PL fix-perl-path.PL koha_perl_deps.pl );
 push @excluded_paths, 'opac';    # We cannot test the OPAC scripts, some can be accessed without authentication
 
 my $grep_cmd = q{git grep -l '#!/usr/bin/perl' -- } . join( ' ', map { qq{':!$_'} } @excluded_paths );

@@ -82,11 +82,11 @@
     }));
 
     const getStatusOptions = [
-        { '_id': 'pending', '_str': _('Pending') },
-        { '_id': 'active', '_str': _('Active') },
-        { '_id': 'expired', '_str': _('Expired') },
-        { '_id': 'cancelled', '_str': _('Cancelled') },
-        { '_id': 'completed', '_str': _('Completed') }
+        { '_id': 'pending', '_str': _("Pending") },
+        { '_id': 'active', '_str': _("Active") },
+        { '_id': 'expired', '_str': _("Expired") },
+        { '_id': 'cancelled', '_str': _("Cancelled") },
+        { '_id': 'completed', '_str': _("Completed") }
     ];
 
     // Initialize empty arrays for dynamic filter options (will be populated from table data)

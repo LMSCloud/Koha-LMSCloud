@@ -193,4 +193,8 @@ sub coverhtml {
     return \@items;
 }
 
+=back
+
+=cut
+
 1;

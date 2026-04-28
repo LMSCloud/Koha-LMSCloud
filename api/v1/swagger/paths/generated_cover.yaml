@@ -25,9 +25,8 @@
       '200':
         description: A base 64 encoded string containing image data
         schema:
-          type:
-            - string
-            - 'null'
+          type: string
+          x-nullable: true
       "400":
         description: |
           Bad request. Possible `error_code` attribute values:

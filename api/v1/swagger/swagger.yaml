@@ -648,6 +648,18 @@ parameters:
     name: advancededitormacro_id
     required: true
     type: integer
+  auth_provider_domain_id_pp:
+    description: Identity provider domain internal identifier
+    in: path
+    name: identity_provider_domain_id
+    required: true
+    type: integer
+  auth_provider_id_pp:
+    description: Identity provider internal identifier
+    in: path
+    name: identity_provider_id
+    required: true
+    type: integer
   agreement_id_pp:
     description: Agreement internal identifier
     in: path
@@ -672,6 +684,12 @@ parameters:
     name: authority_id
     required: true
     type: integer
+  authority_type_header:
+    description: Authority type code. Use when content type is not application/json
+    name: x-authority-type
+    in: header
+    required: false
+    type: string
   booking_id_pp:
     description: Booking identifier
     in: path
@@ -955,6 +973,12 @@ parameters:
     required: false
     schema:
       type: object
+  q_header:
+    description: Query filter sent as a request header
+    in: header
+    name: x-koha-query
+    required: false
+    type: string
   q_param:
     description: Query filter sent as a request parameter
     in: query

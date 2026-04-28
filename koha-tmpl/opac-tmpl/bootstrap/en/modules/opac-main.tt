@@ -146,19 +146,17 @@
                             </div>
                         </div>
                     </div>
-                [% END %]
+                    [% END # /IF koha_new.category %]
+                [% END # /FOREACH koha_new %]
 
-                    [% UNLESS (news_item || koha_news.size == 0 ) %]
-                        <div id="rssnews-container">
-                            <!-- Logged in users have a branch code or it could be explicitly set -->
-                            <a href="[% OPACBaseURL | url %]/cgi-bin/koha/opac-news-rss.pl?branchcode=[% branchcode | uri %]">
-                                <i class="fa fa-rss" aria-hidden="true"></i>
-                                [% IF Branches.all.size == 1 %]
-                                    [% IF branchcode %]
-                                        <span>RSS feed for [% Branches.GetName( branchcode ) | html %] library news</span>
-                                    [% ELSE %]
-                                        <span>RSS feed for library news</span>
-                                    [% END %]
+                [% UNLESS (news_item || koha_news.size == 0 ) %]
+                    <div id="rssnews-container">
+                        <!-- Logged in users have a branch code or it could be explicitly set -->
+                        <a href="[% OPACBaseURL | url %]/cgi-bin/koha/opac-news-rss.pl?branchcode=[% branchcode | uri %]">
+                            <i class="fa fa-rss" aria-hidden="true"></i>
+                            [% IF Branches.all.size == 1 %]
+                                [% IF branchcode %]
+                                    <span>RSS feed for [% Branches.GetName( branchcode ) | html %] library news</span>
                                 [% ELSE %]
                                     <span>RSS feed for library news</span>
                                 [% END %]
@@ -187,7 +185,8 @@
                 </div>
             [% END %]
 
-        [% END # IF koha_news %]
+        [% END # IF single_news_error / ELSIF %]
+        [% END # IF koha_news.size %]
 
         [% UNLESS news_item # Don't show under single news item %]
             [% IF ( daily_quote ) %]

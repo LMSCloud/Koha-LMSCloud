@@ -56,6 +56,8 @@ BEGIN {
 
 my $debugIt = 1;
 
+=encoding UTF-8
+
 =head1 NAME
 
 C4::AggregatedStatistics - Koha functions for dealing with customized statistics

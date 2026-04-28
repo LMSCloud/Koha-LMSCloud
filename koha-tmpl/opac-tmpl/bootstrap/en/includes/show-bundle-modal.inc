@@ -34,7 +34,7 @@
         '        </table>' +
         '      </div>' +
         '      <div class="modal-footer">' +
-        '        <button type="button" class="btn btn-small btn-default bundleItemlistModal_close" data-dismiss="modal" rel="modal:close">' + _('Close') + '</button>' +
+        '        <button type="button" class="btn btn-small btn-default bundleItemlistModal_close" data-dismiss="modal" rel="modal:close">' + _("Close") + '</button>' +
         '      </div>' +
         '    </div>' +
         '  </div>' +

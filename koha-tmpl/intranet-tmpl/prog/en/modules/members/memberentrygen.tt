@@ -52,7 +52,7 @@ fieldset legend.collapsed {
 legend.collapsed i.fa.fa-caret-down::before {
     content: "\f0da";
 }
-[% END %]</style>
+</style>
 </head>
 
 <body id="pat_memberentrygen" class="pat">

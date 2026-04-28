@@ -118,17 +118,21 @@ $(document).ready(function () {
                             orderable: false,
                             render: function (data, type, row, meta) {
                                 // Filter to only show attributes with actual values
-                                const filteredAttributes = (data || []).filter(attr => {
-                                    return attr.record_id == row.booking_id && 
-                                           attr.value != null && 
-                                           attr.value !== "";
-                                });
-                                
+                                const filteredAttributes = (data || []).filter(
+                                    attr => {
+                                        return (
+                                            attr.record_id == row.booking_id &&
+                                            attr.value != null &&
+                                            attr.value !== ""
+                                        );
+                                    }
+                                );
+
                                 // Only render if there are attributes with values
                                 if (filteredAttributes.length === 0) {
                                     return "";
                                 }
-                                
+
                                 return AdditionalFields.renderExtendedAttributesValues(
                                     filteredAttributes,
                                     extended_attribute_types,

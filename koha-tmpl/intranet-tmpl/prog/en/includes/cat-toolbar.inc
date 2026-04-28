@@ -295,6 +295,11 @@
     [% p.intranet_catalog_biblio_enhancements_toolbar_button | $raw %]
 [% END %]
 
+</div>
+
+    <!--Modal for Dublin Core-->
+    <div class="modal" id="exportModal_" tabindex="-1" role="dialog" aria-labelledby="exportLabelexportModal_" aria-hidden="true">
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <h1 class="modal-title" id="exportLabelexportModal_">Exporting to Dublin Core...</h1>
