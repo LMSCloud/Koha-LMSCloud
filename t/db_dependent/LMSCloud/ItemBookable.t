@@ -179,8 +179,8 @@ subtest 'Parent itemtype fallback via effective_bookable' => sub {
         }
     );
     is(
-        $item_on_non_bookable_child->effective_bookable, 0,
-        'Item with NULL bookable on child itype(bookable=0) uses child value, not parent'
+        $item_on_non_bookable_child->effective_bookable, 1,
+        'Item with NULL bookable on child itype(bookable=0) falls through to parent(bookable=1)'
     );
 
     my $item_on_bookable_child = $builder->build_sample_item(
