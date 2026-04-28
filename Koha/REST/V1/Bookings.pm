@@ -100,6 +100,8 @@ sub add {
         # Extract and remove itemtype_id from body (it's not a database column)
         my $itemtype_id = delete $body->{itemtype_id};
 
+        my @extended_attributes = map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
+
         my $booking = Koha::Booking->new_from_api($body);
 
         # Set transient itemtype filter if provided (for server-side optimal selection)
@@ -107,11 +109,8 @@ sub add {
             $booking->set_itemtype_filter($itemtype_id);
         }
 
-        $booking->store;
+        $booking->store( { extended_attributes => \@extended_attributes } );
         $booking->discard_changes;
-
-        my @extended_attributes = map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
-        $booking->extended_attributes( \@extended_attributes );
 
         $c->res->headers->location( $c->req->url->to_string . '/' . $booking->booking_id );
         return $c->render(
@@ -158,6 +157,8 @@ sub update {
         # Extract and remove itemtype_id from body (it's not a database column)
         my $itemtype_id = delete $body->{itemtype_id};
 
+        my @extended_attributes = map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
+
         $booking->set_from_api($body);
 
         # Set transient itemtype filter if provided (for server-side optimal selection)
@@ -165,11 +166,8 @@ sub update {
             $booking->set_itemtype_filter($itemtype_id);
         }
 
-        $booking->store();
+        $booking->store( { extended_attributes => \@extended_attributes } );
         $booking->discard_changes;
-
-        my @extended_attributes = map { { 'id' => $_->{field_id}, 'value' => $_->{value} } } @{$extended_attributes};
-        $booking->extended_attributes( \@extended_attributes );
 
         return $c->render( status => 200, openapi => $c->objects->to_api($booking) );
     } catch {
