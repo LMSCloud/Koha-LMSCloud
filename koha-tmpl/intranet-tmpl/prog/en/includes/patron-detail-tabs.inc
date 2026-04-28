@@ -7,6 +7,12 @@
             <span>Checkouts</span> (<span class="checkout_count">[% issuecount || 0 | html %]</span>)
         [% END %]
 
+        [% IF Koha.Preference('DivibibEnabled') %]
+            [% WRAPPER tab_item tabname= "divibib-issues" %]
+                <span>Onleihe(n)</span>
+            [% END %]
+        [% END %]
+
         [% IF relatives_issues_count %]
             [% WRAPPER tab_item tabname= "relatives-issues" %]
                 <span>Relatives' checkouts</span> ([% relatives_issues_count | html %])
@@ -89,6 +95,23 @@
         [% WRAPPER tab_panel tabname="checkouts" bt_active= 1 %]
             [% INCLUDE "checkouts-table.inc" %]
         [% END # /tab_panel# %]
+
+        [% IF Koha.Preference('DivibibEnabled') %]
+            [% WRAPPER tab_panel tabname="divibib-issues" %]
+                <table id="divibib-issues-table" style="width: 100% !important;">
+                    <thead>
+                        <tr>
+                            <th scope="col">Due date hidden not formatted</th>
+                            <th scope="col">Due date</th>
+                            <th scope="col">Title</th>
+                            <th scope="col">Item type</th>
+                            <th scope="col">Checked out on</th>
+                            <th scope="col">Checked out from</th>
+                        </tr>
+                    </thead>
+                </table>
+            [% END # /tab_panel# %]
+        [% END %]
 
         [% IF relatives_issues_count %]
             [% WRAPPER tab_panel tabname="relatives-issues" %]

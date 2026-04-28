@@ -24,12 +24,14 @@
 [% SET registers = Registers.all( filters => { current_branch => 1 } ) %]
 <title>[% FILTER collapse %]
     [% IF type == 'WRITEOFF' %]
-        Write off an amount for [% INCLUDE 'patron-title.inc' no_html = 1 %]
+        [% tx("Write off an amount for {patron}", patron = "") | html %] [% INCLUDE 'patron-title.inc' no_html = 1 %]
     [% ELSIF type == 'CANCELLATION' %]
-        Cancel an amount for [% INCLUDE 'patron-title.inc' no_html = 1 %]
+        [% tx("Cancel an amount for {patron}", patron = "") | html %] [% INCLUDE 'patron-title.inc' no_html = 1 %]
     [% ELSE %]
-        Collect payment for [% INCLUDE 'patron-title.inc' no_html = 1 %]
-    [% END %] &rsaquo; Patrons &rsaquo; Koha
+        [% tx("Collect payment for {patron}", patron = "") | html %] [% INCLUDE 'patron-title.inc' no_html = 1 %]
+    [% END %] &rsaquo;
+    [% t("Patrons") | html %] &rsaquo;
+    [% t("Koha") | html %]
 [% END %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
@@ -139,9 +141,15 @@
     [% ELSE %]
 
     <ul class="nav nav-pills">
-        <li role="presentation" class="active"><a href="#">Pay</a></li>
-        <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?writeoff_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Write off</a></li>
-        <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?cancel_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Cancel fee</a></li>
+        <li class="nav-item">
+            <a href="#" class="nav-link active" aria-current="page">Pay</a>
+        </li>
+        <li class="nav-item">
+            <a href="/cgi-bin/koha/members/paycollect.pl?writeoff_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]" class="nav-link">Write off</a>
+        </li>
+        <li class="nav-item">
+            <a href="/cgi-bin/koha/members/paycollect.pl?cancel_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]" class="nav-link">Cancel fee</a>
+        </li>
     </ul>
 
     <form name="payindivfine" id="payindivfine" method="post" action="/cgi-bin/koha/members/paycollect.pl">
@@ -260,18 +268,25 @@
 [% ELSIF ( writeoff_individual ) %]
     <ul class="nav nav-pills">
         [% IF (!checkCashRegisterFailed) %]
-        <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?pay_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Pay</a></li>
+        <li class="nav-item">
+            <a href="/cgi-bin/koha/members/paycollect.pl?pay_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]" class="nav-link">Pay</a>
+        </li>
         [% END %]
-        <li role="presentation" class="active"><a href="#">Write off</a></li>
-        <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?cancel_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]">Cancel fee</a></li>
+        <li class="nav-item">
+            <a href="#" class="nav-link active" aria-current="page">Write off</a>
+        </li>
+        <li class="nav-item">
+            <a href="/cgi-bin/koha/members/paycollect.pl?cancel_individual=1&borrowernumber=[% patron.borrowernumber | uri %]&debit_type_code=[% debit_type_code | uri %]&amount=[% amount | uri %]&amountoutstanding=[% amountoutstanding | uri %]&description=[% individual_description | uri %]&itemnumber=[% itemnumber | uri %]&accountlines_id=[% accountlines_id | uri %]&payment_note=[% payment_note | uri %]" class="nav-link">Cancel fee</a>
+        </li>
     </ul>
 
     <form name="woindivfine" id="woindivfine" action="/cgi-bin/koha/members/paycollect.pl" method="post" >
     [% INCLUDE 'csrf-token.inc' %]
     <fieldset class="rows">
     <legend>Write off an individual charge</legend>
+    <input type="hidden" name="op" value="cud-writeoff_individual" />
+    <input type="hidden" name="type" value="[% type | html %]" />
     <input type="hidden" name="borrowernumber" id="borrowernumber" value="[% patron.borrowernumber | html %]" />
-    <input type="hidden" name="writeoff_individual" id="writeoff_individual" value="[% writeoff_individual | html %]" />
     <input type="hidden" name="itemnumber" id="itemnumber" value="[% itemnumber | html %]" />
     <input type="hidden" name="description" id="description" value="[% individual_description | html %]" />
     <input type="hidden" name="debit_type_code" id="debit_type_code" value="[% debit_type_code | html %]" />
@@ -303,9 +318,9 @@
 
             <ol>
                 <li>
-                    <label for="towriteoff">Writeoff amount: </label>
+                    <label for="paid">Writeoff amount: </label>
                     <!-- default to writing off all -->
-                    <input name="towriteoff" id="towriteoff" value="[% amountoutstanding | $Price on_editing => 1 | html %]" type="text" onchange="moneyFormat(document.woindivfine.towriteoff,'writeoff')" required />
+                    <input name="paid" id="amountwrittenoff" value="[% amountoutstanding | $Price on_editing => 1 %]" type="text" />
                 </li>
             </ol>
         </fieldset>
@@ -378,20 +393,38 @@
         <ul class="nav nav-pills">
             [% IF type == 'WRITEOFF' %]
                 [% IF (!checkCashRegisterFailed) %]
-                <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=PAYMENT&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Pay</a></li>
+                <li class="nav-item">
+                    <a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=PAYMENT&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]" class="nav-link">Pay</a>
+                </li>
                 [% END %]
-                <li role="presentation" class="active"><a>Write off</a></li>
-                <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=CANCELLATION&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Cancel fee</a></li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" aria-current="page">Write off</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=CANCELLATION&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]" class="nav-link">Cancel fee</a>
+                </li>
             [% ELSIF type == 'CANCELLATION' %]
                 [% IF (!checkCashRegisterFailed) %]
-                <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=PAYMENT&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Pay</a></li>
+                <li class="nav-item">
+                    <a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=PAYMENT&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]" class="nav-link">Pay</a>
+                </li>
                 [% END %]
-                <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=WRITEOFF&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Write off</a></li>
-                <li role="presentation" class="active"><a>Cancel fee</a></li>
+                <li class="nav-item">
+                    <a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=WRITEOFF&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]" class="nav-link">Write off</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" aria-current="page">Cancel fee</a>
+                </li>
             [% ELSIF (!checkCashRegisterFailed) %]
-                <li role="presentation" class="active"><a>Pay</a></li>
-                <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=WRITEOFF&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Write off</a></li>
-                <li role="presentation"><a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=CANCELLATION&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]">Cancel fee</a></li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" aria-current="page">Pay</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=WRITEOFF&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]" class="nav-link">Write off</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]&type=CANCELLATION&amt=[% amt | uri %]&selected=[% selected_accts | uri %]&notes=[% selected_accts_notes | uri %]" class="nav-link">Cancel fee</a>
+                </li>
             [% END %]
         </ul>
     [% END %]
@@ -519,17 +552,22 @@
      </div> <!-- /.row -->
 
 <!-- Modal -->
-<div id="alert-modal" class="modal">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button aria-label="Close" class="closebtn" data-dismiss="modal" type="button"><span aria-hidden="true">&times;</span></button>
-        <h4 id="alert-modal-title" class="modal-title"></h4>
-      </div>
-      <div id="alert-modal-body" class="modal-body"></div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-      </div>
+<div id="confirm_change_form" class="modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title">The amount collected is more than the outstanding charge</h1>
+            </div>
+            <div class="modal-body">
+                <p>The amount collected from the patron is higher than the amount to be paid.</p>
+                <p>The change to give is <strong><span id="modal_change">0.00</span></strong>.</p>
+                <p>Confirm this payment?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default approve" id="modal_submit" type="button"><i class="fa fa-check"></i> Yes</button>
+                <button class="btn btn-default deny cancel" data-bs-dismiss="modal"><i class="fa fa-times"></i> No</button>
+            </div>
+        </div>
     </div>
   </div>
 </div>
@@ -537,6 +575,7 @@
 [% MACRO jsinclude BLOCK %]
     [% INCLUDE 'str/members-menu.inc' %]
     [% Asset.js("js/members-menu.js") | $raw %]
+    [% Asset.js("js/additional-fields-entry.js") | $raw %]
     [% INCLUDE 'format_price.inc' %]
     <script>
         $(document).ready(function() {
