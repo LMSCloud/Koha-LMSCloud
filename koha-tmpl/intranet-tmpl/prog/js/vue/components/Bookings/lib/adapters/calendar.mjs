@@ -5,8 +5,15 @@ import {
     getCalendarNavigationTarget,
     aggregateMarkersByType,
     deriveEffectiveRules,
+    findFirstBlockingDate,
 } from "../booking/manager.mjs";
-import { toISO, formatYMD, toDayjs, startOfDayTs } from "../booking/date-utils.mjs";
+import {
+    toISO,
+    formatYMD,
+    toDayjs,
+    startOfDayTs,
+    subDays,
+} from "../booking/date-utils.mjs";
 import { calendarLogger as logger } from "../booking/logger.mjs";
 import {
     CONSTRAINT_MODE_END_DATE_ONLY,
@@ -86,6 +93,14 @@ export function applyCalendarHighlighting(instance, highlightingData) {
     clearCalendarHighlighting(instance);
 
     const applyHighlighting = (retryCount = 0) => {
+        // Guard: calendar may have closed between requestAnimationFrame calls
+        if (!instance || !instance.calendarContainer) {
+            logger.debug(
+                "Calendar closed before highlighting could be applied"
+            );
+            return;
+        }
+
         if (retryCount === 0) {
             logger.group("applyCalendarHighlighting");
         }
@@ -552,11 +567,50 @@ export function createOnChange(
 
         if (instance) {
             if (selectedDates.length === 1) {
-                const highlightingData = _calculateConstraintHighlighting(
+                let highlightingData = _calculateConstraintHighlighting(
                     selectedDates[0],
                     effectiveRules,
                     constraintOptions
                 );
+
+                // Clamp highlighting range to actual availability
+                if (
+                    highlightingData &&
+                    Array.isArray(store.bookings) &&
+                    Array.isArray(store.checkouts) &&
+                    Array.isArray(store.bookableItems) &&
+                    store.bookableItems.length > 0
+                ) {
+                    const { firstBlockingDate } = findFirstBlockingDate(
+                        highlightingData.startDate,
+                        highlightingData.targetEndDate,
+                        store.bookings,
+                        store.checkouts,
+                        store.bookableItems,
+                        store.bookingItemId,
+                        store.bookingId,
+                        effectiveRules
+                    );
+
+                    if (firstBlockingDate) {
+                        const clampedEndDate = subDays(
+                            firstBlockingDate,
+                            1
+                        ).toDate();
+                        if (clampedEndDate < highlightingData.targetEndDate) {
+                            const clampedBlockedDates =
+                                highlightingData.blockedIntermediateDates.filter(
+                                    date => date <= clampedEndDate
+                                );
+                            highlightingData = {
+                                ...highlightingData,
+                                targetEndDate: clampedEndDate,
+                                blockedIntermediateDates: clampedBlockedDates,
+                            };
+                        }
+                    }
+                }
+
                 if (highlightingData) {
                     applyCalendarHighlighting(instance, highlightingData);
                     // Compute current visible date range for smarter navigation
@@ -576,7 +630,9 @@ export function createOnChange(
                     if (nav.shouldNavigate && nav.targetDate) {
                         setTimeout(() => {
                             if (instance.jumpToDate) {
-                                instance.jumpToDate(nav.targetDate);
+                                // triggerChange=true is required so flatpickr fires onMonthChange;
+                                // without it the visibleRange watcher never refreshes the unavailableByDate map.
+                                instance.jumpToDate(nav.targetDate, true);
                             } else if (instance.changeMonth) {
                                 // Fallback for older flatpickr builds: first ensure year, then adjust month absolutely
                                 if (
