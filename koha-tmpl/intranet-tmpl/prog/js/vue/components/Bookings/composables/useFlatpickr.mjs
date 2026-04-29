@@ -129,53 +129,42 @@ export function useFlatpickr(elRef, options) {
             ),
         };
 
+        // flatpickr's jumpToDate fires onMonthChange BEFORE redraw(), so reading
+        // the DOM synchronously inside the handler returns the previous month's
+        // day elements. Defer to rAF so the read sees the rebuilt DOM regardless
+        // of which code path triggered the event.
+        const updateVisibleRangeFromDom = instance => {
+            if (!visibleRangeRef || !instance) return;
+            requestAnimationFrame(() => {
+                try {
+                    const visible = getVisibleCalendarDates(instance);
+                    if (visible && visible.length > 0) {
+                        visibleRangeRef.value = {
+                            visibleStartDate: visible[0],
+                            visibleEndDate: visible[visible.length - 1],
+                        };
+                    }
+                } catch (e) {
+                    // non-fatal
+                }
+            });
+        };
+
         fp = flatpickr(elRef.value, {
             ...baseConfig,
             onReady: [
                 function (_selectedDates, _dateStr, instance) {
-                    try {
-                        if (visibleRangeRef && instance) {
-                            const visible = getVisibleCalendarDates(instance);
-                            if (visible && visible.length > 0) {
-                                visibleRangeRef.value = {
-                                    visibleStartDate: visible[0],
-                                    visibleEndDate: visible[visible.length - 1],
-                                };
-                            }
-                        }
-                    } catch (e) {
-                        // non-fatal
-                    }
+                    updateVisibleRangeFromDom(instance);
                 },
             ],
             onMonthChange: [
                 function (_selectedDates, _dateStr, instance) {
-                    try {
-                        if (visibleRangeRef && instance) {
-                            const visible = getVisibleCalendarDates(instance);
-                            if (visible && visible.length > 0) {
-                                visibleRangeRef.value = {
-                                    visibleStartDate: visible[0],
-                                    visibleEndDate: visible[visible.length - 1],
-                                };
-                            }
-                        }
-                    } catch (e) {}
+                    updateVisibleRangeFromDom(instance);
                 },
             ],
             onYearChange: [
                 function (_selectedDates, _dateStr, instance) {
-                    try {
-                        if (visibleRangeRef && instance) {
-                            const visible = getVisibleCalendarDates(instance);
-                            if (visible && visible.length > 0) {
-                                visibleRangeRef.value = {
-                                    visibleStartDate: visible[0],
-                                    visibleEndDate: visible[visible.length - 1],
-                                };
-                            }
-                        }
-                    } catch (e) {}
+                    updateVisibleRangeFromDom(instance);
                 },
             ],
         });
