@@ -463,6 +463,74 @@ function validateTrailPeriodOptimized(
 }
 
 /**
+ * Validate if a booking range [startDate, endDate] would conflict with all available items.
+ * Mirrors the backend's BETWEEN-based overlap detection: a booking range conflicts when an
+ * existing booking overlaps it on either endpoint or wraps it.
+ *
+ * @param {import("dayjs").Dayjs} startDate
+ * @param {import("dayjs").Dayjs} endDate
+ * @param {Object} intervalTree
+ * @param {string|null} selectedItem
+ * @param {number|null} editBookingId
+ * @param {Array<string>} allItemIds
+ * @returns {boolean} True if end date should be blocked due to range overlap conflicts
+ */
+function validateRangeOverlapForEndDate(
+    startDate,
+    endDate,
+    intervalTree,
+    selectedItem,
+    editBookingId,
+    allItemIds
+) {
+    const rangeConflicts = intervalTree.queryRange(
+        startDate.valueOf(),
+        endDate.valueOf(),
+        selectedItem != null ? String(selectedItem) : null
+    );
+
+    const relevantConflicts = editBookingId
+        ? rangeConflicts.filter(c => c.metadata?.booking_id != editBookingId)
+        : rangeConflicts;
+
+    if (selectedItem) {
+        if (relevantConflicts.length > 0) {
+            logger.debug(
+                `End date ${formatYMD(
+                    endDate
+                )} blocked - range overlap for specific item`,
+                { conflicts: relevantConflicts.length }
+            );
+            return true;
+        }
+        return false;
+    }
+
+    if (relevantConflicts.length === 0) return false;
+
+    const itemsWithConflicts = new Set(
+        relevantConflicts.map(c => String(c.itemId))
+    );
+    const allItemsHaveConflicts = allItemIds.every(id =>
+        itemsWithConflicts.has(id)
+    );
+
+    if (allItemsHaveConflicts) {
+        logger.debug(
+            `End date ${formatYMD(
+                endDate
+            )} blocked - all items have range overlaps`,
+            {
+                itemsWithConflicts: itemsWithConflicts.size,
+                totalItems: allItemIds.length,
+            }
+        );
+    }
+
+    return allItemsHaveConflicts;
+}
+
+/**
  * Extracts and validates configuration from circulation rules
  * @param {Object} circulationRules - Raw circulation rules object
  * @param {Date|import('dayjs').Dayjs} todayArg - Optional today value for deterministic tests
@@ -712,10 +780,13 @@ function createDisableFunction(
             }
         } else if (
             selectedDates[0] &&
-            (!selectedDates[1] ||
-                dayjs(selectedDates[1]).isSame(dayjs_date, "day"))
+            dayjs_date.isAfter(
+                dayjs(selectedDates[0]).startOf("day"),
+                "day"
+            )
         ) {
-            // Potential end date - check trail period
+            // Potential end date - any date after the start could become the new end,
+            // whether or not an end is currently selected.
             const start = dayjs(selectedDates[0]).startOf("day");
 
             // Basic end date validations
@@ -750,6 +821,21 @@ function createDisableFunction(
                         "YYYY-MM-DD"
                     )} blocked - trail period conflict (optimized check)`
                 );
+                return true;
+            }
+
+            // Range-overlap check: mirror the backend's BETWEEN-based conflict
+            // detection for the booking range [start, end].
+            if (
+                validateRangeOverlapForEndDate(
+                    start,
+                    dayjs_date,
+                    intervalTree,
+                    selectedItem,
+                    editBookingId,
+                    allItemIds
+                )
+            ) {
                 return true;
             }
         }
@@ -982,6 +1068,122 @@ export function calculateMaxBookingPeriod(
         default:
             return null;
     }
+}
+
+/**
+ * Find the first end date for which a booking range [startDate, candidateEnd] would
+ * conflict with all available items. Mirrors the backend's range-overlap detection,
+ * so it can be used to clamp calendar highlighting to actual availability.
+ *
+ * @param {Date|import('dayjs').Dayjs} startDate
+ * @param {Date|import('dayjs').Dayjs} endDate
+ * @param {Array} bookings
+ * @param {Array} checkouts
+ * @param {Array} bookableItems
+ * @param {string|number|null} selectedItem
+ * @param {number|null} editBookingId
+ * @param {Object} circulationRules
+ * @returns {{ firstBlockingDate: Date|null, reason: string|null }}
+ */
+export function findFirstBlockingDate(
+    startDate,
+    endDate,
+    bookings,
+    checkouts,
+    bookableItems,
+    selectedItem,
+    editBookingId,
+    circulationRules = {}
+) {
+    logger.time("findFirstBlockingDate");
+
+    if (!bookableItems || bookableItems.length === 0) {
+        logger.timeEnd("findFirstBlockingDate");
+        return {
+            firstBlockingDate:
+                startDate instanceof Date ? startDate : toDayjs(startDate).toDate(),
+            reason: "no_items",
+        };
+    }
+
+    const intervalTree = buildIntervalTree(
+        bookings,
+        checkouts,
+        circulationRules
+    );
+    const allItemIds = bookableItems.map(i => String(i.item_id));
+    const normalizedSelectedItem =
+        selectedItem != null ? String(selectedItem) : null;
+    const normalizedEditBookingId =
+        editBookingId != null ? Number(editBookingId) : null;
+
+    const start = toDayjs(startDate).startOf("day");
+    const end = toDayjs(endDate).startOf("day");
+
+    for (
+        let candidateEnd = start.add(1, "day");
+        candidateEnd.isSameOrBefore(end, "day");
+        candidateEnd = candidateEnd.add(1, "day")
+    ) {
+        const rangeConflicts = intervalTree.queryRange(
+            start.valueOf(),
+            candidateEnd.valueOf(),
+            normalizedSelectedItem
+        );
+
+        const relevantConflicts = normalizedEditBookingId
+            ? rangeConflicts.filter(
+                  c => c.metadata?.booking_id != normalizedEditBookingId
+              )
+            : rangeConflicts;
+
+        if (normalizedSelectedItem) {
+            if (relevantConflicts.length > 0) {
+                logger.debug(
+                    "Found first blocking end date (specific item)",
+                    {
+                        candidateEnd: formatYMD(candidateEnd),
+                        conflicts: relevantConflicts.length,
+                    }
+                );
+                logger.timeEnd("findFirstBlockingDate");
+                return {
+                    firstBlockingDate: candidateEnd.toDate(),
+                    reason: relevantConflicts[0]?.type || "conflict",
+                };
+            }
+        } else {
+            const itemsWithConflicts = new Set(
+                relevantConflicts.map(c => String(c.itemId))
+            );
+            const allItemsHaveConflicts = allItemIds.every(id =>
+                itemsWithConflicts.has(id)
+            );
+
+            if (allItemsHaveConflicts) {
+                logger.debug(
+                    "Found first blocking end date (all items have conflicts)",
+                    {
+                        candidateEnd: formatYMD(candidateEnd),
+                        itemsWithConflicts: itemsWithConflicts.size,
+                        totalItems: allItemIds.length,
+                    }
+                );
+                logger.timeEnd("findFirstBlockingDate");
+                return {
+                    firstBlockingDate: candidateEnd.toDate(),
+                    reason: "all_items_have_conflicts",
+                };
+            }
+        }
+    }
+
+    logger.debug("No blocking end date found in range", {
+        start: formatYMD(start),
+        end: formatYMD(end),
+    });
+    logger.timeEnd("findFirstBlockingDate");
+    return { firstBlockingDate: null, reason: null };
 }
 
 /**
