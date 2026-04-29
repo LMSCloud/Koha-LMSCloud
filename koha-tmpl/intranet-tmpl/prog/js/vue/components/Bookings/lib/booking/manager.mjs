@@ -778,65 +778,61 @@ function createDisableFunction(
                 );
                 return true;
             }
-        } else if (
-            selectedDates[0] &&
-            dayjs_date.isAfter(
-                dayjs(selectedDates[0]).startOf("day"),
-                "day"
-            )
-        ) {
-            // Potential end date - any date after the start could become the new end,
-            // whether or not an end is currently selected.
+        } else if (selectedDates[0]) {
             const start = dayjs(selectedDates[0]).startOf("day");
 
-            // Basic end date validations
+            // Dates before the selected start are never selectable.
             if (dayjs_date.isBefore(start, "day")) return true;
 
-            // Use backend-calculated due date when available (respects useDaysMode/calendar)
-            // This correctly calculates the Nth opening day from start, skipping closed days
-            // Fall back to simple maxPeriod arithmetic only if no calculated date
-            if (
-                config.calculatedDueDate &&
-                !config.calculatedDueDate.isBefore(start, "day")
-            ) {
-                if (dayjs_date.isAfter(config.calculatedDueDate, "day")) return true;
-            } else if (maxPeriod > 0) {
-                const maxEndDate = calculateMaxEndDate(start, maxPeriod);
-                if (dayjs_date.isAfter(maxEndDate, "day")) return true;
-            }
+            // Run end-date validations for any date strictly after the start,
+            // whether or not an end is currently selected.
+            if (dayjs_date.isAfter(start, "day")) {
+                // Use backend-calculated due date when available (respects useDaysMode/calendar)
+                // This correctly calculates the Nth opening day from start, skipping closed days
+                // Fall back to simple maxPeriod arithmetic only if no calculated date
+                if (
+                    config.calculatedDueDate &&
+                    !config.calculatedDueDate.isBefore(start, "day")
+                ) {
+                    if (dayjs_date.isAfter(config.calculatedDueDate, "day")) return true;
+                } else if (maxPeriod > 0) {
+                    const maxEndDate = calculateMaxEndDate(start, maxPeriod);
+                    if (dayjs_date.isAfter(maxEndDate, "day")) return true;
+                }
 
-            // Optimized trail period validation using range queries
-            if (
-                validateTrailPeriodOptimized(
-                    dayjs_date,
-                    trailDays,
-                    intervalTree,
-                    selectedItem,
-                    editBookingId,
-                    allItemIds
-                )
-            ) {
-                logger.debug(
-                    `End date ${dayjs_date.format(
-                        "YYYY-MM-DD"
-                    )} blocked - trail period conflict (optimized check)`
-                );
-                return true;
-            }
+                // Optimized trail period validation using range queries
+                if (
+                    validateTrailPeriodOptimized(
+                        dayjs_date,
+                        trailDays,
+                        intervalTree,
+                        selectedItem,
+                        editBookingId,
+                        allItemIds
+                    )
+                ) {
+                    logger.debug(
+                        `End date ${dayjs_date.format(
+                            "YYYY-MM-DD"
+                        )} blocked - trail period conflict (optimized check)`
+                    );
+                    return true;
+                }
 
-            // Range-overlap check: mirror the backend's BETWEEN-based conflict
-            // detection for the booking range [start, end].
-            if (
-                validateRangeOverlapForEndDate(
-                    start,
-                    dayjs_date,
-                    intervalTree,
-                    selectedItem,
-                    editBookingId,
-                    allItemIds
-                )
-            ) {
-                return true;
+                // Range-overlap check: mirror the backend's BETWEEN-based conflict
+                // detection for the booking range [start, end].
+                if (
+                    validateRangeOverlapForEndDate(
+                        start,
+                        dayjs_date,
+                        intervalTree,
+                        selectedItem,
+                        editBookingId,
+                        allItemIds
+                    )
+                ) {
+                    return true;
+                }
             }
         }
 
