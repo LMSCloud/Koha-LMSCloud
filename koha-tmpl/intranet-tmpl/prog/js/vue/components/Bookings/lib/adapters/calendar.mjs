@@ -630,7 +630,9 @@ export function createOnChange(
                     if (nav.shouldNavigate && nav.targetDate) {
                         setTimeout(() => {
                             if (instance.jumpToDate) {
-                                instance.jumpToDate(nav.targetDate);
+                                // triggerChange=true is required so flatpickr fires onMonthChange;
+                                // without it the visibleRange watcher never refreshes the unavailableByDate map.
+                                instance.jumpToDate(nav.targetDate, true);
                             } else if (instance.changeMonth) {
                                 // Fallback for older flatpickr builds: first ensure year, then adjust month absolutely
                                 if (
