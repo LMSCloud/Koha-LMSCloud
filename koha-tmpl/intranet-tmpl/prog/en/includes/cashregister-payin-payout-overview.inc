@@ -1,5 +1,6 @@
 [% PROCESS 'cashregister-fines-macros.inc' %]
 [% USE KohaDates %]
+[% USE raw %]
 
 
 <h2>Revenues and expenditures overview: [% Branches.GetName(sessionbranch) | html %] ([% journalfrom | $KohaDates with_hours => 1 %][% IF (journalfrom != journalto) %] - [% journalto | $KohaDates with_hours => 1 %][% END %])</h2>
