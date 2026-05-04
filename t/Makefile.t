@@ -30,7 +30,9 @@ my @ignored = qw(
     .editorconfig
     .gitignore
     .mailmap
+    .mocharc.json
     .perlcriticrc
+    .prettierignore
     .proverc
     .proverc.dist
     .stylelintrc.json
