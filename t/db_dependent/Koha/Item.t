@@ -2143,7 +2143,7 @@ subtest 'Test for relationship between item and current_branchtransfers' => sub 
 };
 
 subtest 'Tests for relationship between item and item_orders via aqorders_item' => sub {
-    plan tests => 3;
+    plan tests => 5;
 
     $schema->storage->txn_begin;
 
@@ -2161,6 +2161,9 @@ subtest 'Tests for relationship between item and item_orders via aqorders_item' 
             value => {
                 biblionumber       => $biblio->biblionumber,
                 order_internalnote => $order_note,
+                orderstatus        => 'ordered',
+                quantity           => 2,
+                quantityreceived   => 0,
             },
         }
     );
@@ -2185,6 +2188,18 @@ subtest 'Tests for relationship between item and item_orders via aqorders_item' 
     $orders = $item->orders;
     is( $orders->count,                    1,           'One order found by item with the relationship' );
     is( $orders->next->order_internalnote, $order_note, 'Correct order found by item with the relationship' );
+
+    is(
+        $item->orders->filter_by_active->count, 1,
+        '->filter_by_active->count resolves me.quantity (resultset rooted on aqorders)'
+    );
+
+    is(
+        ref( $item->orders ), 'Koha::Acquisition::Orders',
+        '->orders returns a Koha::Acquisition::Orders resultset'
+    );
+
+    $schema->storage->txn_rollback;
 };
 
 subtest 'move_to_biblio() tests' => sub {

@@ -2091,7 +2091,10 @@ Returns a Koha::Acquisition::Orders object
 sub orders {
     my ($self) = @_;
 
-    my $orders = $self->_result->item_orders;
+    my $orders = Koha::Database->new->schema->resultset('Aqorder')->search(
+        { 'aqorders_items.itemnumber' => $self->itemnumber },
+        { join => 'aqorders_items' },
+    );
     return Koha::Acquisition::Orders->_new_from_dbic($orders);
 }
 
