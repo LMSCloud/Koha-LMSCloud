@@ -6,7 +6,7 @@ package Koha::Schema::Result::Browser;
 
 =head1 NAME
 
-Koha::Schema::Result::Browser
+Koha::Schema::Result::Browser - store classification values
 
 =cut
 
@@ -28,11 +28,15 @@ __PACKAGE__->table("browser");
   data_type: 'integer'
   is_nullable: 0
 
+the classification level starting with 1
+
 =head2 classification
 
   data_type: 'varchar'
   is_nullable: 0
   size: 255
+
+the full classifcation value
 
 =head2 description
 
@@ -40,15 +44,21 @@ __PACKAGE__->table("browser");
   is_nullable: 0
   size: 255
 
+the description of a classification value
+
 =head2 number
 
   data_type: 'bigint'
   is_nullable: 0
 
+the count of titles which are assigned to the classication value or level
+
 =head2 endnode
 
   data_type: 'tinyint'
   is_nullable: 0
+
+1 if the classifcation value represents a leafe node
 
 =head2 parent
 
@@ -56,11 +66,15 @@ __PACKAGE__->table("browser");
   is_nullable: 1
   size: 1024
 
+the parent the classification value
+
 =head2 prefix
 
   data_type: 'varchar'
   is_nullable: 1
   size: 40
+
+the prefix part of a the classifcation value
 
 =head2 classval
 
@@ -68,11 +82,15 @@ __PACKAGE__->table("browser");
   is_nullable: 1
   size: 40
 
+the classication group part of the value
+
 =head2 startrange
 
   data_type: 'varchar'
   is_nullable: 1
   size: 20
+
+a numeric value part subordinated to a group
 
 =head2 endrange
 
@@ -80,15 +98,21 @@ __PACKAGE__->table("browser");
   is_nullable: 1
   size: 20
 
+if the classification represents a higher level including a range of numbers it represents the end of the range
+
 =head2 exclude
 
   data_type: 'mediumtext'
   is_nullable: 1
 
+a search string that can be used to extend the query for titles of a classication value (e.g. exclude values that should not be found with a search)
+
 =head2 usesearch
 
   data_type: 'mediumtext'
   is_nullable: 1
+
+a search string to be used when searching for biblio records of the classification entry
 
 =cut
 
@@ -120,8 +144,8 @@ __PACKAGE__->add_columns(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-04-29 09:59:49
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:t5nc6anIPd/5yRKo56Rztg
+# Created by DBIx::Class::Schema::Loader v0.07051 @ 2026-05-05 13:30:49
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:yyZpC2oa18apf7Cp1y/Ejg
 
 
 # You can replace this text with custom content, and it will be preserved on regeneration

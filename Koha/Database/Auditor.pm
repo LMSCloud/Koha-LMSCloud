@@ -65,37 +65,48 @@ sub run {
         die("Filename '$self->{filename}' does not exist\n");
     }
 
-    my $sql_schema = $self->_get_kohastructure();
-    my $db_schema  = $self->_get_db();
+    my ( $sql_schema, $sql_err ) = $self->_get_kohastructure();
+    my ( $db_schema,  $db_err )  = $self->_get_db();
 
-    if ( $sql_schema && $db_schema ) {
-        my $diff = SQL::Translator::Diff->new(
-            {
-                output_db     => 'MySQL',
-                source_schema => $db_schema,
-                target_schema => $sql_schema,
-            }
-        )->compute_differences->produce_diff_sql;
-
-        my $diff_found = 1;
-        my $message    = __(
-            "These commands are only suggestions. They are not a replacement for the database update scripts run during installations and updates.\nReview the database, the atomic update files and the table definitions in kohastructure.sql before running any of the commands below:"
-        );
-        my $title = __("Warning!");
-
-        if ( $diff =~ /No differences found/ ) {
-            $diff_found = 0;
-            $message    = __("The installed database schema is correct.");
-            $title      = __("All is well");
-        }
-
+    if ( !$sql_schema || !$db_schema ) {
+        my $reason =
+              !$sql_schema && !$db_schema ? __("Could not parse kohastructure.sql or the live database schema.")
+            : !$sql_schema                ? __("Could not parse kohastructure.sql.")
+            :                               __("Could not parse the live database schema.");
+        my $detail = $sql_err || $db_err || '';
         return {
-            diff       => $diff,
-            diff_found => $diff_found,
-            message    => $message,
-            title      => $title,
+            diff_found => 0,
+            title      => __("Database audit unavailable"),
+            message    => $detail ? "$reason\n\n$detail" : $reason,
         };
     }
+
+    my $diff = SQL::Translator::Diff->new(
+        {
+            output_db     => 'MySQL',
+            source_schema => $db_schema,
+            target_schema => $sql_schema,
+        }
+    )->compute_differences->produce_diff_sql;
+
+    my $diff_found = 1;
+    my $message    = __(
+        "These commands are only suggestions. They are not a replacement for the database update scripts run during installations and updates.\nReview the database, the atomic update files and the table definitions in kohastructure.sql before running any of the commands below:"
+    );
+    my $title = __("Warning!");
+
+    if ( $diff =~ /No differences found/ ) {
+        $diff_found = 0;
+        $message    = __("The installed database schema is correct.");
+        $title      = __("All is well");
+    }
+
+    return {
+        diff       => $diff,
+        diff_found => $diff_found,
+        message    => $message,
+        title      => $title,
+    };
 }
 
 =head3 _get_db
@@ -109,6 +120,7 @@ sub _get_db {
 
     my $database_name = C4::Context->config("database");
     print sprintf( __("Parsing schema for database %s\n"), $database_name ) if $self->{is_cli};
+
     my $dbh    = C4::Context->dbh;
     my $parser = SQL::Translator->new(
         parser      => 'DBI',
@@ -117,6 +129,20 @@ sub _get_db {
         },
     );
     my $schema = $parser->translate();
+
+    return ( undef, sprintf( __("Could not introspect live database: %s"), $parser->error // '' ) )
+        unless $schema;
+
+    # SQL::Translator's DBI parser silently returns an empty schema when
+    # SHOW CREATE TABLE output contains MariaDB-specific syntax it can't
+    # parse. Treat that as a failure rather than letting run() suggest
+    # creating every table from scratch.
+    return (
+        undef,
+        __(
+            "Live database introspection produced an empty schema (likely a SQL::Translator / MariaDB compatibility issue)"
+        )
+    ) if scalar( $schema->get_tables ) == 0;
 
     #NOTE: Hack the schema to remove autoincrement
     #Otherwise, that difference will cause options for all tables to be reset unnecessarily
@@ -152,7 +178,9 @@ sub _get_kohastructure {
     my $translator = SQL::Translator->new();
     $translator->parser("MySQL");
     my $schema = $translator->translate( $self->{filename} );
-    return $schema;
+    return $schema
+        ? $schema
+        : ( undef, sprintf( __("Could not parse %s: %s"), $self->{filename}, $translator->error // '' ) );
 }
 
 1;
