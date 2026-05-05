@@ -183,8 +183,8 @@ CREATE TABLE `acquisition_import` (
   `payload` longtext NOT NULL default '' COMMENT 'payload of message received from vendor (only if rec_type=="message")',
   `object_reference` int(11) default NULL COMMENT 'reference to base object (acquisition_import.id), e.g. the order item a invoice item refers to',
   PRIMARY KEY  (`id`),
-  KEY `object_item` (`vendor_id` (100), `object_type` (80), `object_number` (150), `rec_type` (80), `object_item_number` (150))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'for backtracking the vendors information on order, delivery, invoice, etc.';
+  KEY `object_item` (`vendor_id`(100), `object_type`(80), `object_number`(150), `rec_type`(80), `object_item_number`(150))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='for backtracking the vendors information on order, delivery, invoice, etc.';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 
@@ -202,7 +202,7 @@ CREATE TABLE `acquisition_import_objects` (
   `koha_object_id` int(11) NOT NULL default 0 COMMENT 'foreign key of the connected Koha record, e.g. value of items.itemnumber',
   PRIMARY KEY  (`id`),
   KEY `acquisition_import_id` (`acquisition_import_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'supplement to table acquisition_import, showing the connection to Koha records automatically created based on vendors information on orders, deliveries, invoices, etc.';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='supplement to table acquisition_import, showing the connection to Koha records automatically created based on vendors information on orders, deliveries, invoices, etc.';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -359,7 +359,7 @@ CREATE TABLE `aggregated_statistics` (
   PRIMARY KEY  (`id`),
   KEY `type` (`type`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'for defining statistic evaluations for different statistic types and selection parameters.';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='for defining statistic evaluations for different statistic types and selection parameters.';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -374,7 +374,7 @@ CREATE TABLE `aggregated_statistics_parameters` (
   `name` varchar(80) NOT NULL default '' COMMENT 'name of the parameter, e.g. "branchcode"',
   `value` mediumtext COMMENT 'value of the parameter, eg. "Zentrale"',
   PRIMARY KEY  (`statistics_id`, `name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'contains additional selection parameters for a record in table aggregated_statistics.';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='contains additional selection parameters for a record in table aggregated_statistics.';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -390,7 +390,7 @@ CREATE TABLE `aggregated_statistics_values` (
   `value` mediumtext COMMENT 'calculated/edited result value',
   `type` varchar(20) NOT NULL default '' COMMENT 'enum of value type, e.g. "text", "bool", "int", "float", "money"',
   PRIMARY KEY  (`statistics_id`, `name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'contains the resulting values for a record in table aggregated_statistics';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='contains the resulting values for a record in table aggregated_statistics';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1837,24 +1837,24 @@ CREATE TABLE `branchtransfers` (
 DROP TABLE IF EXISTS `browser`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `browser` ( -- store classification values
-  `level` int(11) NOT NULL, -- the classification level starting with 1
-  `classification` varchar(255) NOT NULL, -- the full classifcation value
-  `description` varchar(255) NOT NULL, -- the description of a classification value
-  `number` bigint(20) NOT NULL, -- the count of titles which are assigned to the classication value or level
-  `endnode` tinyint(4) NOT NULL, -- 1 if the classifcation value represents a leafe node
-  `parent` varchar(1024), -- the parent the classification value
-  `prefix` varchar(40),  -- the prefix part of a the classifcation value
-  `classval` varchar(40),  -- the classication group part of the value
-  `startrange` varchar(20),  -- a numeric value part subordinated to a group
-  `endrange` varchar(20),  -- if the classification represents a higher level including a range of numbers it represents the end of the range
-  `exclude` mediumtext, -- a search string that can be used to extend the query for titles of a classication value (e.g. exclude values that should not be found with a search)
-  `usesearch` mediumtext, -- a search string to be used when searching for biblio records of the classification entry
+CREATE TABLE `browser` (
+  `level` int(11) NOT NULL COMMENT 'the classification level starting with 1',
+  `classification` varchar(255) NOT NULL COMMENT 'the full classifcation value',
+  `description` varchar(255) NOT NULL COMMENT 'the description of a classification value',
+  `number` bigint(20) NOT NULL COMMENT 'the count of titles which are assigned to the classication value or level',
+  `endnode` tinyint(4) NOT NULL COMMENT '1 if the classifcation value represents a leafe node',
+  `parent` varchar(1024) COMMENT 'the parent the classification value',
+  `prefix` varchar(40) COMMENT 'the prefix part of a the classifcation value',
+  `classval` varchar(40) COMMENT 'the classication group part of the value',
+  `startrange` varchar(20) COMMENT 'a numeric value part subordinated to a group',
+  `endrange` varchar(20) COMMENT 'if the classification represents a higher level including a range of numbers it represents the end of the range',
+  `exclude` mediumtext COMMENT 'a search string that can be used to extend the query for titles of a classication value (e.g. exclude values that should not be found with a search)',
+  `usesearch` mediumtext COMMENT 'a search string to be used when searching for biblio records of the classification entry',
   KEY `browser_by_description` (`description`),
   KEY `browser_by_level` (`level`),
   KEY `browser_by_classification` (`classification`),
   KEY `browser_by_parent` (`parent`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='store classification values';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3717,7 +3717,7 @@ CREATE TABLE `external_order` (
   `last_update`              timestamp     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `external_order_extid`      (`order_type`,`external_order_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'Used for processing external orders';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Used for processing external orders';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -5372,7 +5372,7 @@ CREATE TABLE `old_illcomments` (
   PRIMARY KEY (`illcomment_id`),
   KEY `old_illcomments_bnfk` (`borrowernumber`),
   KEY `old_illcomments_ifk` (`illrequest_id`),
-  CONSTRAINT `old_illcomments_bnfk` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON UPDATE SET NULL ON DELETE SET NULL,
+  CONSTRAINT `old_illcomments_bnfk` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE SET NULL ON UPDATE SET NULL,
   CONSTRAINT `old_illcomments_ifk` FOREIGN KEY (`illrequest_id`) REFERENCES `old_illrequests` (`illrequest_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -5389,8 +5389,8 @@ CREATE TABLE old_illrequestattributes (
     `type` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'API ILL property name',
     `value` mediumtext COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'API ILL property value',
     `readonly` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'Is this attribute read only',
-    PRIMARY KEY  (`illrequest_id`, `type` (191)),
-    CONSTRAINT `old_illrequestattributes_ifk` FOREIGN KEY (illrequest_id) REFERENCES `old_illrequests` (`illrequest_id`) ON UPDATE CASCADE ON DELETE CASCADE
+    PRIMARY KEY  (`illrequest_id`, `type`(191)),
+    CONSTRAINT `old_illrequestattributes_ifk` FOREIGN KEY (illrequest_id) REFERENCES `old_illrequests` (`illrequest_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -5421,9 +5421,9 @@ CREATE TABLE old_illrequests (
     `orderid` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'Backend id attached to request',
     `backend` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'The backend used to create request',
     CONSTRAINT `old_illrequests_bnfk` FOREIGN KEY (`borrowernumber`) REFERENCES `borrowers` (`borrowernumber`) ON DELETE SET NULL ON UPDATE SET NULL,
-    CONSTRAINT `old_illrequests_bcfk2` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON UPDATE SET NULL ON DELETE SET NULL,
-    CONSTRAINT `old_illrequests_safk` FOREIGN KEY (`status_alias`) REFERENCES `authorised_values` (`authorised_value`) ON UPDATE SET NULL ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT 'stores ILL requests that have been completed and after a delay deleted from table illrequests for performance reasons';
+    CONSTRAINT `old_illrequests_bcfk2` FOREIGN KEY (`branchcode`) REFERENCES `branches` (`branchcode`) ON DELETE SET NULL ON UPDATE SET NULL,
+    CONSTRAINT `old_illrequests_safk` FOREIGN KEY (`status_alias`) REFERENCES `authorised_values` (`authorised_value`) ON DELETE SET NULL ON UPDATE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='stores ILL requests that have been completed and after a delay deleted from table illrequests for performance reasons';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
