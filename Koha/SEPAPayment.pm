@@ -226,6 +226,44 @@ sub readCashRegisterConfiguration {
     return $cashRegisterConfig;
 }
 
+sub _setUserenvToSepaCashRegisterManager {
+    my $self = shift;
+
+    my $cardnumber = C4::Context->preference('SepaDirectDebitCashRegisterManagerCardnumber');
+    my $manager    = $cardnumber
+        ? Koha::Patrons->search( { cardnumber => $cardnumber } )->next()
+        : undef;
+
+    if ( !$manager ) {
+        warn "Koha::SEPAPayment: SepaDirectDebitCashRegisterManagerCardnumber ist nicht gesetzt "
+           . "oder der Patron existiert nicht. SEPA-Zahlungen werden unter dem zuletzt aktiven "
+           . "userenv verbucht (vermutlich falsch). Bitte Systempreference setzen.\n";
+        return 0;
+    }
+
+    C4::Context->_new_userenv('');
+    C4::Context->set_userenv(
+        $manager->borrowernumber,
+        $manager->userid,
+        $manager->cardnumber,
+        $manager->firstname,
+        $manager->surname,
+        $manager->branchcode,
+        '',                 # branchname
+        $manager->flags,
+        $manager->email,
+        undef,              # branchprinter
+        undef,              # shibboleth
+        ''                  # branchcategory
+    );
+
+    print STDERR "Koha::SEPAPayment::_setUserenvToSepaCashRegisterManager() userenv gesetzt auf "
+        . "borrowernumber:" . $manager->borrowernumber . ": cardnumber:" . $manager->cardnumber . ":\n"
+        if $self->{verbose} > 0;
+
+    return 1;
+}
+
 sub getErrorMsg {
     my $self = shift;
     print STDERR "Koha::SEPAPayment::getErrorMsg() returns errorMsg:" . (defined($self->{errorMsg})?$self->{errorMsg}:'undef') . ":\n" if $self->{verbose} > 1;
@@ -316,25 +354,11 @@ sub renewMembershipForSepaDirectDebitPatrons {
 
     $patronsRS->reset();
 
+    $self->_setUserenvToSepaCashRegisterManager();
+
     while (my $patronHit = $patronsRS->next() ) {
 
-        C4::Context->_new_userenv('');
-
-        C4::Context->set_userenv(
-            $patronHit->borrowernumber,
-            $patronHit->userid,
-            $patronHit->cardnumber,
-            $patronHit->firstname,
-            $patronHit->surname,
-            $patronHit->branchcode,
-            '',    # branchname
-            $patronHit->flags,
-            $patronHit->email,
-            undef,    # branchprinter
-            undef,    # shibboleth
-            ''    # branchcategory,
-        );
-
+    
         print STDERR "Koha::SEPAPayment::renewMembershipForSepaDirectDebitPatrons calls renew_account for borrowernumber:" . $patronHit->borrowernumber . ": with branchcode:" . $patronHit->branchcode . ": C4::Context->userenv->{'branch'}:" . C4::Context->userenv->{'branch'} . ":\n" if $self->{verbose} > 1;
         my $olddateexpiry = $patronHit->dateexpiry;
         my $newdateexpiry = $patronHit->renew_account;
@@ -346,12 +370,16 @@ sub renewMembershipForSepaDirectDebitPatrons {
     }
 
     print STDERR "Koha::SEPAPayment::renewMembershipForSepaDirectDebitPatrons returns renewMembershipCount:$renewMembershipCount: renewedMembershipCount:$renewedMembershipCount:\n" if $self->{verbose} > 0;
+    C4::Context->_new_userenv('');
     return ( $renewMembershipCount, $renewedMembershipCount);
 }
 
 sub paySelectedFeesForSepaDirectDebitPatrons {
     my $self = shift;
     my ( $params ) = @_;
+
+    # WICHTIG: userenv auf den konfigurierten SEPA-Kassenmanager umschalten
+    $self->_setUserenvToSepaCashRegisterManager();
 
     my $sepaDirectDebitDelayDays  = $params->{sepaDirectDebitDelayDays} || 14;
     my $requestedCollectionDate = dt_from_string->add( days => $sepaDirectDebitDelayDays );    # date the direct debit will be booked by the bank in the borrowers bank account
@@ -1016,11 +1044,14 @@ sub writeSepaDirectDebitFile {
         $xmlwriter->dataElement(        'AmdmntInd' => 'false');                                    # AmendmentIndicator
         $xmlwriter->endTag(           'MndtRltdInf');
         $xmlwriter->endTag(         'DrctDbtTx');
-
-        $xmlwriter->startTag(       'DbtrAgt');                                                     # DebtorAgent
-        $xmlwriter->startTag(         'FinInstnId');                                                # FinancialInstitutionIdentification (mandatory)
+        $xmlwriter->startTag(       'DbtrAgt');                              # DebtorAgent
+        $xmlwriter->startTag(         'FinInstnId');                         # FinancialInstitutionIdentification (mandatory)
         if ( $bic ) {
-        $xmlwriter->dataElement(        'BIC' => $bic);                                             # FinancialInstitutionIdentification.BIC (optional)
+            $xmlwriter->dataElement(    'BIC' => $bic);                      # FinancialInstitutionIdentification.BIC (optional)
+        } else {
+            $xmlwriter->startTag(       'Othr');                             # SEPA-Konvention bei fehlendem BIC
+            $xmlwriter->dataElement(      'Id' => 'NOTPROVIDED');
+            $xmlwriter->endTag(         'Othr');
         }
         $xmlwriter->endTag(           'FinInstnId');
         $xmlwriter->endTag(         'DbtrAgt');
