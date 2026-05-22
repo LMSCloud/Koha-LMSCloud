@@ -58,12 +58,25 @@ export const componentRegistry: Map<string, WebComponentDynamicImport> =
         ],
     ]);
 
+const scheduleIdle: (cb: IdleRequestCallback) => void =
+    typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback.bind(window)
+        : cb =>
+              window.setTimeout(
+                  () =>
+                      cb({
+                          didTimeout: false,
+                          timeRemaining: () => 0,
+                      } as IdleDeadline),
+                  1
+              );
+
 /**
  * Hydrates custom elements by scanning the document and loading only necessary components.
  * @returns {void}
  */
 export function hydrate(): void {
-    window.requestIdleCallback(async () => {
+    scheduleIdle(async () => {
         const pinia = createPinia();
         const storesMatrix = {
             bookingStore: useBookingStore(pinia),

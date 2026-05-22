@@ -34,6 +34,9 @@
         document.addEventListener('click', e => {
             const bookingModalButton = e.target.closest("[data-booking-modal]");
             if (bookingModalButton) {
+                if (bookingModalButton.tagName === 'A') {
+                    e.preventDefault();
+                }
                 const props = bookingModalButton.dataset;
                 island.bookingId = props.booking;
                 island.itemId = props.itemnumber;
@@ -55,6 +58,6 @@
                 island.authorizedValues = JSON.parse(props.authorized_values || JSON.stringify(additionalFieldsData.authorised_values_by_category) || "{}");
                 island.open = true;
             }
-        }, { passive: true });
+        });
     }
 </script>
