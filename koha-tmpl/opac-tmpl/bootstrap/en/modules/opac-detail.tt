@@ -1782,7 +1782,7 @@
                     });
                 }
 
-                if( $(coverSlide).find(".cover-image:visible").length < 1 ){
+                if( $(coverSlide).find(".cover-image:visible,.cover-image[style='display: block;']").length < 1 ){
                     $(coverSlide).remove();
                 } else {
                     // This is a suboptimal workaround; we should do this via load, but
