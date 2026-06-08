@@ -179,11 +179,9 @@ sub store {
                 value     => $self->biblio_id,
             ) unless ( $self->biblio );
 
-            # Skip clash detection when transitioning to a final
-            # status.  During checkout C4::Circulation sets status
-            # to 'completed' and calls ->store; the clash checks
-            # are irrelevant at that point and can produce false
-            # positives.
+            # Skip clash detection when transitioning to a final/terminal
+            # status (cancelled or completed); the checks are irrelevant
+            # at those points and can produce false positives.
             unless ( $self->_is_final_status_transition ) {
 
                 # Throw exception for item level booking clash

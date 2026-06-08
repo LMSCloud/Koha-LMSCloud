@@ -16,7 +16,6 @@
 </head>
 
 <body id="circ_request" class="catalog">
-
 [% WRAPPER 'header.inc' %]
     [% INCLUDE 'cat-search.inc' %]
 [% END %]
@@ -41,7 +40,7 @@
         <h1>Bookings for [% INCLUDE 'biblio-title-head.inc' %]</h1>
         <div class="page-section" id="bookings-timeline"></div>
         <div class="page-section">
-            [% INCLUDE 'additional-filters.inc' filters = [ { id = 'filter-expired', label_show = t('Include expired'), label_hide = t('Exclude expired') }, { id = 'filter-cancelled', label_show = t('Include cancelled'), label_hide = t('Exclude cancelled') }, { id = 'filter-completed', label_show = t('Include completed'), label_hide = t('Exclude completed') },] filter_class = 'bookings' %]
+            [% INCLUDE 'additional-filters.inc' filters = [ { id = 'filter-cancelled', label_show = t('Include cancelled'), label_hide = t('Exclude cancelled') }, { id = 'filter-completed', label_show = t('Include completed'), label_hide = t('Exclude completed') },] filter_class = 'bookings' %]
             <table id="bookings_table"></table>
         </div>
     </div>
@@ -101,7 +100,7 @@
 
                     var bookingsSet = new vis.DataSet();
                     for (booking of bookings[0]){
-                        const isActive = ["new", "pending", "active"].includes(booking.status);
+                        const isActive = ["new", "issued"].includes(booking.status);
                         const patronContent = $patron_to_html(booking.patron, {
                             display_cardnumber: true,
                             url: false
@@ -119,7 +118,7 @@
                             content: !isActive ? `<s>${patronContent}</s>` : patronContent,
                             className: booking.status === "cancelled" ? "cancelled" : "",
                             [% IF CAN_user_circulate_manage_bookings %]
-                            editable: !["cancelled", "completed"].includes(booking.status) ? { remove: true, updateTime: true } : false,
+                            editable: !["cancelled", "issued", "completed"].includes(booking.status) ? { remove: true, updateTime: true } : false,
                             [% ELSE %]
                             editable: false,
                             [% END %]
@@ -204,7 +203,7 @@
                 }
             );
 
-            const additional_filters = AdditionalFilters.init(["filter-expired", "filter-cancelled", "filter-completed"])
+            const additional_filters = AdditionalFilters.init(["filter-cancelled", "filter-completed"])
                 .onChange((filters, { anyFiltersNotApplied }) => {
                     bookings_table.DataTable().ajax.reload();
                 })
@@ -216,7 +215,7 @@
                         }
                     },
                     status: ({ filters, isNotApplied }) => {
-                        const defaults = ["new", "pending", "active"];
+                        const defaults = ["new", "issued"];
                         const filtered = [...defaults];
                         if (isNotApplied(filters['filter-cancelled'])) {
                             filtered.push("cancelled");
@@ -281,6 +280,7 @@
                                 [_("Cancelled"), row.cancellation_reason]
                                     .filter(Boolean)
                                     .join(": "),
+                            issued: () => _("Issued"),
                             completed: () => _("Completed"),
                         };
 
@@ -294,6 +294,7 @@
                             { status: _("Pending"), class: "bg-warning" },
                             { status: _("Active"), class: "bg-primary" },
                             { status: _("Completed"), class: "bg-info" },
+                            { status: _("Issued"), class: "bg-info" },
                             { status: _("New"), class: "bg-success" },
                         ];
 
