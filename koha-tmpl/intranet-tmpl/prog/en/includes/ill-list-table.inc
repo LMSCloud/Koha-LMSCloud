@@ -1,8 +1,13 @@
+[% SET table_id = 'ill-requests' %]
+[% SET table_prefilters = '' %]
+[% SET table_infilter = '' %]
 [% IF patron.borrowernumber %]
-<table id="ill-requests-patron-[% patron.borrowernumber | html %]">
+    [% table_id = 'ill-requests-patron-' _ patron.borrowernumber %]
 [% ELSE %]
-<table id="ill-requests"[% IF prefilters.length > 0 %] data-prefilters="[% prefilters | html %]"[% END %][% IF infilter.length > 0 %] data-infilter="[% infilter | html %]"[% END %]>
+    [% IF prefilters.length > 0 %][% table_prefilters = prefilters %][% END %]
+    [% IF infilter.length > 0 %][% table_infilter = infilter %][% END %]
 [% END %]
+<table id="[% table_id | html %]" data-prefilters="[% table_prefilters | html %]" data-infilter="[% table_infilter | html %]">
     <thead>
         <tr id="ill_requests_header">
             <th scope="col">Request ID</th>
