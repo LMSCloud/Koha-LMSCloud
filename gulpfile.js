@@ -292,6 +292,11 @@ function po_extract_messages() {
     const headers = {
         "Project-Id-Version": "Koha",
         "Content-Type": "text/plain; charset=UTF-8",
+        // Force a clean value: Locale::XGettext emits Content-Transfer-Encoding
+        // as a header line without an interior \n, which gulp-concat-po's pofile
+        // dependency mangles into 8bit" and breaks msgmerge. concatPo merges
+        // these headers over the parsed ones, so this overrides the corruption.
+        "Content-Transfer-Encoding": "8bit",
     };
 
     return merge(perlStream, ttStream)
