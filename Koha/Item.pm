@@ -442,6 +442,10 @@ sub home_library {
     my ($self) = @_;
     my $hb_rs = $self->_result->homebranch;
 
+    # homebranch is a nullable FK (items.homebranch DEFAULT NULL); avoid croaking
+    # in _new_from_dbic when the column is NULL
+    return unless $hb_rs;
+
     return Koha::Library->_new_from_dbic($hb_rs);
 }
 
@@ -465,6 +469,10 @@ sub holding_library {
     my ($self) = @_;
 
     my $hb_rs = $self->_result->holdingbranch;
+
+    # holdingbranch is a nullable FK (items.holdingbranch DEFAULT NULL); avoid
+    # croaking in _new_from_dbic when the column is NULL
+    return unless $hb_rs;
 
     return Koha::Library->_new_from_dbic($hb_rs);
 }
@@ -1561,9 +1569,10 @@ sub _status {
     if ( $self->damaged ) {
         push @statuses, 'damaged';
     }
-    if ( $self->notforloan || $self->item_type->notforloan ) {
 
-        # TODO on a big Koha::Items loop we are going to join with item_type too often, use a cache
+    # TODO on a big Koha::Items loop we are going to join with item_type too often, use a cache
+    my $item_type = $self->item_type;
+    if ( $self->notforloan || ( $item_type && $item_type->notforloan ) ) {
         push @statuses, 'not_for_loan';
     }
     if ( $self->first_hold ) {
