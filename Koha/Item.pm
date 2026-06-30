@@ -2106,7 +2106,7 @@ sub orders {
 
     my $orders = Koha::Database->new->schema->resultset('Aqorder')->search(
         { 'aqorders_items.itemnumber' => $self->itemnumber },
-        { join => 'aqorders_items' },
+        { join                        => 'aqorders_items' },
     );
     return Koha::Acquisition::Orders->_new_from_dbic($orders);
 }
