@@ -777,6 +777,51 @@
 [% IF Koha.Preference('EnableBooking') %]
     [% INCLUDE modals/cancel_booking.inc %]
     [% INCLUDE modals/convert_to_checkout.inc %]
+    [% INCLUDE modals/place_booking.inc %]
+    [% INCLUDE modals/extend_booking.inc %]
+[% END %]
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'select2.inc' %]
+    [% PROCESS 'modal-claims-js' %]
+    <script nonce="[% Koha.CSPNonce | $raw %]" data-tt-allowed="true">
+        /* Set some variable needed in circulation.js */
+        var logged_in_user_borrowernumber = "[% logged_in_user.borrowernumber | html %]";
+        var ClaimReturnedLostValue = "[% Koha.Preference('ClaimReturnedLostValue') | html %]";
+        var ClaimReturnedChargeFee = "[% Koha.Preference('ClaimReturnedChargeFee') | html %]";
+        var ClaimReturnedWarningThreshold = "[% Koha.Preference('ClaimReturnedWarningThreshold') || 0 | html %]";
+        var UnseenRenewals = "[% Koha.Preference('UnseenRenewals') | html %]";
+        var interface = "[% interface | html %]";
+        var theme = "[% theme | html %]";
+        var borrowernumber = "[% patron.borrowernumber | html %]";
+        var branchcode = "[% Branches.GetLoggedInBranchcode() | html %]";
+        var exports_enabled = [% Koha.Preference('ExportCircHistory') ? 1 : 0 | html %];
+        var AllowCirculate = [% (CAN_user_circulate_circulate_remaining_permissions)? 1 : 0 | html %];
+        var AllowRenewalLimitOverride = [% (CAN_user_circulate_override_renewals && Koha.Preference('AllowRenewalLimitOverride') )? 1: 0 | html %];
+        var AllowRenewalOnHoldOverride = [% (CAN_user_circulate_override_renewals && Koha.Preference('AllowRenewalOnHoldOverride') )? 1: 0 | html %];
+        var AllowFineOverrideRenewing = [% (CAN_user_circulate_override_renewals && Koha.Preference('AllowFineOverrideRenewing') )? 1: 0 | html %];
+        var script = "moremember";
+        var relatives_borrowernumbers = new Array();
+        [% FOREACH b IN relatives_borrowernumbers %]
+            relatives_borrowernumbers.push("[% b | html %]");
+        [% END %]
+        var SuspendHoldsIntranet = [% ( Koha.Preference('SuspendHoldsIntranet') ) ? 1 : 0 | html %];
+        var DisplayAddHoldGroups = [% ( Koha.Preference('DisplayAddHoldGroups') ) ? 1 : 0 | html %];
+
+        const LoadCheckoutsTableDelay = 0;
+        const AlwaysLoadCheckoutsTable = [% Koha.Preference('AlwaysLoadCheckoutsTable') | html %];
+
+        table_settings_issues_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'issues-table', 'json' ) | $raw %]
+        table_settings_relatives_issues_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'relatives-issues-table', 'json' ) | $raw %]
+        table_settings_holds_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'holds-table', 'json' ) | $raw %]
+        table_settings_bookings_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'bookings-table', 'json' ) | $raw %]
+        Koha.addPermissions({
+            CAN_user_circulate_manage_bookings: [% CAN_user_circulate_manage_bookings ? 1 : 0 | html %],
+            CAN_user_circulate_circulate_remaining_permissions: [% CAN_user_circulate_circulate_remaining_permissions ? 1 : 0 | html %],
+        });
+        patron_borrowernumber = [% patron.borrowernumber | $raw %]
+
         var amountlimit = "[% Koha.Preference('FineNoRenewals') | html %]";
         var fines = "[% fines | $Price %]";
     </script>
@@ -795,6 +840,7 @@
         </script>
         [% Asset.js("js/additional-filters.js") | $raw %]
         [% Asset.js("js/cancel_booking_modal.js") | $raw %]
+        [% Asset.js("js/extend_booking_modal.js") | $raw %]
         [% Asset.js("js/modals/place_booking.js") | $raw %]
         [% Asset.js("js/bookings/common.js") | $raw %]
         [% Asset.js("js/tables/bookings.js") | $raw %]

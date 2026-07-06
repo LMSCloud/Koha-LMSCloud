@@ -1087,6 +1087,42 @@
 [% END %]
 [% INCLUDE modals/cancel_booking.inc %]
 [% INCLUDE modals/convert_to_checkout.inc %]
+[% INCLUDE modals/place_booking.inc %]
+[% INCLUDE modals/extend_booking.inc %]
+
+[% INCLUDE 'hold-group-modal.inc' %]
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'select2.inc' %]
+    [% PROCESS 'modal-claims.inc' %]
+    [% PROCESS 'modal-claims-js' %]
+    [% INCLUDE 'js-date-format.inc' %]
+    <script nonce="[% Koha.CSPNonce | $raw %]" data-tt-allowed="true">
+        /* Set some variable needed in circulation.js */
+        const LoadCheckoutsTableDelay = [% Koha.Preference('LoadCheckoutsTableDelay') || 0 | html %];
+        const AlwaysLoadCheckoutsTable = [% Koha.Preference('AlwaysLoadCheckoutsTable') || 0 | html %];
+        var logged_in_user_borrowernumber = "[% logged_in_user.borrowernumber | html %]";
+        var ClaimReturnedLostValue = "[% Koha.Preference('ClaimReturnedLostValue') | html %]";
+        var ClaimReturnedChargeFee = "[% Koha.Preference('ClaimReturnedChargeFee') | html %]";
+        var UnseenRenewals = "[% Koha.Preference('UnseenRenewals') | html %]";
+        var ClaimReturnedWarningThreshold = "[% Koha.Preference('ClaimReturnedWarningThreshold') || 0 | html %]";
+        var interface = "[% interface | html %]";
+        var theme = "[% theme | html %]";
+        var borrowernumber = "[% patron.borrowernumber | html %]";
+        var branchcode = "[% branch | html %]";
+        var exports_enabled = [% Koha.Preference('ExportCircHistory') ? 1 : 0 | html %];
+        var AllowRenewalLimitOverride = [% (CAN_user_circulate_override_renewals && Koha.Preference('AllowRenewalLimitOverride') )? 1: 0 | html %];
+        var AllowRenewalOnHoldOverride = [% (CAN_user_circulate_override_renewals && Koha.Preference('AllowRenewalOnHoldOverride') )? 1: 0 | html %];
+        var AllowFineOverrideRenewing = [% (CAN_user_circulate_override_renewals && Koha.Preference('AllowFineOverrideRenewing') )? 1: 0 | html %];
+        var AllowCirculate = [% (CAN_user_circulate_circulate_remaining_permissions)? 1 : 0 | html %];
+        var script = "circulation";
+        var relatives_borrowernumbers = new Array();
+        [% FOREACH b IN relatives_borrowernumbers %]
+            relatives_borrowernumbers.push("[% b | html %]");
+        [% END %]
+        var SuspendHoldsIntranet = [% ( Koha.Preference('SuspendHoldsIntranet') ) ? 1 : 0 | html %];
+        var DisplayAddHoldGroups = [% ( Koha.Preference('DisplayAddHoldGroups') ) ? 1 : 0 | html %];
 
         Koha.addPrefs({
             OnSiteCheckoutAutoCheck: [% Koha.Preference("OnSiteCheckoutAutoCheck") ? 1 : 0 | html %],
@@ -1271,6 +1307,7 @@
         dayjs.extend(window.dayjs_plugin_isSameOrAfter);
         dayjs.extend(window.dayjs_plugin_isSameOrBefore);
     </script>
+    [% Asset.js("js/extend_booking_modal.js") | $raw %]
     [% Asset.js("js/modals/place_booking.js") | $raw %]
     [% Asset.js("js/bookings/common.js") | $raw %]
     [% Asset.js("js/tables/bookings.js") | $raw %]
