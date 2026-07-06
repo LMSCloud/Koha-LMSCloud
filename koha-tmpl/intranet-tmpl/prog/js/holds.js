@@ -1685,9 +1685,13 @@ async function load_patron_holds_table(biblio_id, split_data) {
                             ? `<div>(${__("part of")} <a href="/cgi-bin/koha/reserve/hold-group.pl?hold_group_id=${row.hold_group_id}" class="hold-group">${__("hold group")}</a>)</div>`
                             : "";
 
+                        const non_priority_label = row.non_priority
+                            ? `<br/><i>${__("Non priority hold")}</i>`
+                            : "";
+
                         // Handle status cases
                         if (row.status) {
-                            return `<a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=${row.biblio_id}&itemnumber=${row.item_id}">${row.item.external_id}</a>${group_hold_message}`;
+                            return `<a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=${row.biblio_id}&itemnumber=${row.item_id}">${row.item.external_id}</a>${non_priority_label}${group_hold_message}`;
                         }
 
                         // Handle item level holds
@@ -1697,13 +1701,13 @@ async function load_patron_holds_table(biblio_id, split_data) {
                             const itemLink = `<a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=${row.biblio_id}&itemnumber=${row.item_id}">${barcode.escapeHtml ? barcode.escapeHtml() : barcode}</a>`;
 
                             if (row.item_level_holds_count >= 2) {
-                                return `${__("Only item")} ${itemLink}${group_hold_message}`;
+                                return `${__("Only item")} ${itemLink}${non_priority_label}${group_hold_message}`;
                             }
 
                             return `<select id="change_hold_type" class="change_hold_type ${table_class}" data-id="${row.hold_id}">
                                 <option value="" selected>${__("Only item")} ${barcode}</option>
                                 <option value="">${__("Next available")}</option>
-                            </select>${group_hold_message}`;
+                            </select>${non_priority_label}${group_hold_message}`;
                         }
 
                         // Handle item group
@@ -1712,16 +1716,16 @@ async function load_patron_holds_table(biblio_id, split_data) {
                                 __(
                                     "Next available item from group <strong>%s</strong>"
                                 ).format(row.item_group.description) +
+                                non_priority_label +
                                 group_hold_message
                             );
                         }
 
                         // Default: Next available
                         let message = __("Next available");
-                        if (row.non_priority) {
-                            message += `<br/><i>${__("Non priority hold")}</i>`;
-                        }
-                        return message + group_hold_message;
+                        return (
+                            message + non_priority_label + group_hold_message
+                        );
                     },
                 },
                 {
