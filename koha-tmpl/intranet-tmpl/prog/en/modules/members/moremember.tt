@@ -777,34 +777,8 @@
 [% IF Koha.Preference('EnableBooking') %]
     [% INCLUDE modals/cancel_booking.inc %]
     [% INCLUDE modals/convert_to_checkout.inc %]
-[% END %]
-
-[% MACRO jsinclude BLOCK %]
-    [% INCLUDE 'datatables.inc' %]
-    [% INCLUDE 'select2.inc' %]
-    [% PROCESS 'modal-claims-js' %]
-    <script>
-        /* Set some variable needed in circulation.js */
-        var logged_in_user_borrowernumber = "[% logged_in_user.borrowernumber | html %]";
-        var ClaimReturnedLostValue = "[% Koha.Preference('ClaimReturnedLostValue') | html %]";
-        var ClaimReturnedChargeFee = "[% Koha.Preference('ClaimReturnedChargeFee') | html %]";
-        var ClaimReturnedWarningThreshold = "[% Koha.Preference('ClaimReturnedWarningThreshold') || 0 | html %]";
-        var UnseenRenewals = "[% Koha.Preference('UnseenRenewals') | html %]";
-        var interface = "[% interface | html %]";
-        var theme = "[% theme | html %]";
-        var borrowernumber = "[% patron.borrowernumber | html %]";
-        var branchcode = "[% Branches.GetLoggedInBranchcode() | html %]";
-        var exports_enabled = [% Koha.Preference('ExportCircHistory') ? 1 : 0 | html %];
-        var AllowCirculate = [% (CAN_user_circulate_circulate_remaining_permissions)? 1 : 0 | html %];
-        var AllowRenewalLimitOverride = [% (CAN_user_circulate_override_renewals && Koha.Preference('AllowRenewalLimitOverride') )? 1: 0 | html %];
-        var AllowRenewalOnHoldOverride = [% (CAN_user_circulate_override_renewals && Koha.Preference('AllowRenewalOnHoldOverride') )? 1: 0 | html %];
-        var script = "moremember";
-        var relatives_borrowernumbers = new Array();
-        [% FOREACH b IN relatives_borrowernumbers %]
-            relatives_borrowernumbers.push("[% b | html %]");
-        [% END %]
-        var SuspendHoldsIntranet = [% ( Koha.Preference('SuspendHoldsIntranet') ) ? 1 : 0 | html %];
-        var DisplayAddHoldGroups = [% ( Koha.Preference('DisplayAddHoldGroups') ) ? 1 : 0 | html %];
+        var amountlimit = "[% Koha.Preference('FineNoRenewals') | html %]";
+        var fines = "[% fines | $Price %]";
     </script>
     [% Asset.js("js/pages/circulation.js") | $raw %]
     [% IF Koha.Preference('ClaimReturnedLostValue') || Koha.Preference('BundleLostValue') %]
@@ -813,10 +787,17 @@
     [% Asset.js("js/holds.js") | $raw %]
     [% INCLUDE 'calendar.inc' %]
     [% IF Koha.Preference('EnableBooking') %]
+        [% Asset.js("lib/dayjs/plugin/isSameOrAfter.js") | $raw %]
+        [% Asset.js("lib/dayjs/plugin/isSameOrBefore.js") | $raw %]
+        <script nonce="[% Koha.CSPNonce | $raw %]">
+            dayjs.extend(window.dayjs_plugin_isSameOrAfter);
+            dayjs.extend(window.dayjs_plugin_isSameOrBefore);
+        </script>
+        [% Asset.js("js/additional-filters.js") | $raw %]
         [% Asset.js("js/cancel_booking_modal.js") | $raw %]
-        [% Asset.js("js/convert_to_checkout_modal.js") | $raw %]
-        [% Asset.js("js/additional-fields.js") | $raw %]
-        [% Asset.js("js/bookings-common.js", type => "module") | $raw %]
+        [% Asset.js("js/modals/place_booking.js") | $raw %]
+        [% Asset.js("js/bookings/common.js") | $raw %]
+        [% Asset.js("js/tables/bookings.js") | $raw %]
     [% END %]
     [% Asset.js("js/combobox.js") | $raw %]
     [% INCLUDE 'js-biblio-format.inc' %]
@@ -825,26 +806,21 @@
     [% Asset.js("js/recalls.js") | $raw %]
     [% Asset.js("js/throttledButton.js") | $raw %]
     [% Asset.js("js/hold-group.js") | $raw %]
-    <script>
-        const LoadCheckoutsTableDelay = 0;
-        const AlwaysLoadCheckoutsTable = [% Koha.Preference('AlwaysLoadCheckoutsTable') | html %];
+    <script nonce="[% Koha.CSPNonce | $raw %]">
+        var MSG_CONFIRM_RENEW = _("The patron has a debt of %s").format(fines);
+        MSG_CONFIRM_RENEW += _("Are you sure you want to renew checkout(s)?");
 
-        table_settings_issues_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'issues-table', 'json' ) | $raw %]
-        table_settings_relatives_issues_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'relatives-issues-table', 'json' ) | $raw %]
-        table_settings_holds_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'holds-table', 'json' ) | $raw %]
-        table_settings_bookings_table = [% TablesSettings.GetTableSettings( 'members', 'moremember', 'bookings-table', 'json' ) | $raw %]
-        CAN_user_circulate_manage_bookings = [% CAN_user_circulate_manage_bookings | $raw %]
-        patron_borrowernumber = [% patron.borrowernumber | $raw %]
-
-        function uncheck_sibling(me){
-            nodename=me.getAttribute("name");
-            if (nodename =="barcodes[]"){
-                var Node=me.parentNode.previousSibling;
-                while (Node.nodeName!="TD"){Node=Node.previousSibling}
-                var Nodes=Node.childNodes;
-                for (var i=0;i < Nodes.length;i++){
-                    if (Nodes[i].nodeName=="INPUT" && Nodes[i].getAttribute("type")=="checkbox"){
-                        Nodes[i].checked=false;
+        function uncheck_sibling(me) {
+            nodename = me.getAttribute("name");
+            if (nodename == "barcodes[]") {
+                var Node = me.parentNode.previousSibling;
+                while (Node.nodeName != "TD") {
+                    Node = Node.previousSibling;
+                }
+                var Nodes = Node.childNodes;
+                for (var i = 0; i < Nodes.length; i++) {
+                    if (Nodes[i].nodeName == "INPUT" && Nodes[i].getAttribute("type") == "checkbox") {
+                        Nodes[i].checked = false;
                     }
                 }
             } else {
