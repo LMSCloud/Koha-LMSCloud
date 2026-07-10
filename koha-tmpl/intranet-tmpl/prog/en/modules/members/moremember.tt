@@ -765,6 +765,7 @@
 [% INCLUDE 'hold-group-modal.inc' %]
 [% IF Koha.Preference('EnableBooking') %]
     [% INCLUDE modals/cancel_booking.inc %]
+    [% INCLUDE modals/convert_to_checkout.inc %]
 [% END %]
 
 [% MACRO jsinclude BLOCK %]
