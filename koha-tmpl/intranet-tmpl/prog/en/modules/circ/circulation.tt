@@ -959,7 +959,7 @@
                             <div class="lastchecked">
                                 <p>
                                     <strong>Checked out: </strong>
-                                    [% issue_item_biblio_title_saved || issue.item.biblio.title | html %] (<span class="lastcheckoutbarcode">[% issue_item_barcode_saved || issue.item.barcode | html %]</span>).
+                                    [% (issue_item_biblio_title_saved || issue.item.biblio.title) | html %] (<span class="lastcheckoutbarcode">[% (issue_item_barcode_saved || issue.item.barcode) | html %]</span>).
                                     [% IF issue.item.is_bundle %]
                                         [% SET bundle_items_count = issue.item.bundle_items.count %]
                                         [% tnx('Bundle of {count} item', 'Bundle of {count} items', bundle_items_count, { count = bundle_items_count }) | html %].
