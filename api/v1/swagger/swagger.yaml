@@ -239,6 +239,16 @@ paths:
     $ref: ./paths/acquisitions_funds.yaml#/~1acquisitions~1funds~1owners
   /acquisitions/funds/users:
     $ref: ./paths/acquisitions_funds.yaml#/~1acquisitions~1funds~1users
+  /acquisitionimports:
+    $ref: ./paths/acquisition_imports.yaml#/~1acquisitionimports
+  /acquisitionimports/{id}:
+    $ref: "./paths/acquisition_imports.yaml#/~1acquisitionimports~1{id}"
+  /acquisitionimports/objects:
+    $ref: ./paths/acquisition_imports.yaml#/~1acquisitionimports~1objects
+  /acquisitionimports/objects/{id}:
+    $ref: "./paths/acquisition_imports.yaml#/~1acquisitionimports~1objects~1{id}"
+  /acquisitionimports/joined:
+    $ref: ./paths/acquisition_imports.yaml#/~1acquisitionimports~1joined
   /acquisitions/orders:
     $ref: ./paths/acquisitions_orders.yaml#/~1acquisitions~1orders
   "/acquisitions/orders/{order_id}":

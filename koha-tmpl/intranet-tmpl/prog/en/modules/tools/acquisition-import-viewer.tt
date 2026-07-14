@@ -1,0 +1,642 @@
+[% USE raw %]
+[% USE Asset %]
+[% USE KohaDates %]
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Acquisition Import Viewer &rsaquo; [% 'Tools' | html %] &rsaquo; [% kmain_title | html %]</title>
+[% Asset.css("datatables.css") | $raw %]
+[% INCLUDE 'doc-head-close.inc' %]
+
+<style>
+    #api-error { display: none; }
+    #loading-imports, #loading-objects { padding: 1rem; color: #666; }
+    #dt-imports tbody tr { cursor: pointer; }
+    #dt-imports tbody tr.selected td { background-color: #d9edf7; }
+    .section-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; margin-top: 1.5rem; }
+    .section-header h3 { margin: 0; }
+    #detail-hint { color: #888; font-style: italic; padding: .5rem 0; }
+    #dt-imports thead tr.dt-filter-row th { padding: 2px 4px; background: #f5f5f5; }
+    #dt-imports thead tr.dt-filter-row input,
+    #dt-imports thead tr.dt-filter-row select { width: 100%; min-width: 40px; font-size: .8rem; }
+</style>
+</head>
+
+<body id="tools_acquisition-import-viewer" class="tools">
+
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'cat-search.inc' %]
+[% END %]
+
+<div id="breadcrumbs">
+    <a href="/cgi-bin/koha/mainpage.pl">[% 'Home' | html %]</a>
+    &rsaquo;
+    <a href="/cgi-bin/koha/tools/tools-home.pl">[% 'Tools' | html %]</a>
+    &rsaquo;
+    Acquisition Import Viewer
+</div>
+
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-12">
+
+            <h1>Acquisition Import Viewer</h1>
+
+            <div id="api-error" class="alert alert-danger">
+                <strong>API Error:</strong> <span id="api-error-text"></span>
+            </div>
+
+            <!-- Master: Importdata -->
+            <div class="section-header">
+                <h3>Importdata</h3>
+                <span class="badge badge-secondary" id="count-imports">&hellip;</span>
+            </div>
+            <div id="loading-imports">Loading columns&hellip;</div>
+            <div id="wrap-imports" style="display:none">
+                <table id="dt-imports" class="table table-bordered table-striped" style="width:100%">
+                    <thead><tr></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- Detail: Importobjects -->
+            <div class="section-header">
+                <h3>Importobjects</h3>
+                <span class="badge badge-info" id="selected-import-label" style="display:none"></span>
+                <span class="badge badge-secondary" id="count-objects" style="display:none">&hellip;</span>
+            </div>
+            <div id="detail-hint">&#8592; Click a row in the table above to load objects</div>
+            <div id="loading-objects" style="display:none">Loading columns&hellip;</div>
+            <div id="wrap-objects" style="display:none">
+                <table id="dt-objects" class="table table-bordered table-striped" style="width:100%">
+                    <thead><tr></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Payload Modal (Bootstrap 4) -->
+<div class="modal fade" id="payloadModal" tabindex="-1" role="dialog" aria-labelledby="payloadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="payloadModalLabel">Payload</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="padding:0">
+                <pre id="payload-content" style="margin:0;padding:1rem;max-height:75vh;overflow:auto;white-space:pre-wrap;word-break:break-all;font-size:.8rem;background:#f8f8f8;border:0;border-radius:0"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js("lib/datatables/datatables.min.js") | $raw %]
+    [% Asset.js("js/datatables.js") | $raw %]
+
+<script>
+"use strict";
+
+var dtImports           = null;
+var dtObjects           = null;
+var currentObjectNumber = null;
+
+// Master table filter state — pre-select rec_type=message
+var masterFilterState = { rec_type: 'message' };
+
+// Columns rendered as dropdowns (exact match, no LIKE)
+var masterSelectCols  = { rec_type: true, processingstate: true };
+
+// Columns with date-range filter (from/to date inputs instead of text)
+var masterDateRangeCols = ['object_date', 'processingtime'];
+
+// ---------------------------------------------------------------------------
+// Column header labels
+// ---------------------------------------------------------------------------
+var COLUMN_TITLES = {
+    id:                 'ImportId',
+    vendor_id:          'Vendor',
+    object_type:        'Type',
+    object_number:      'OrderNr/RefNr.',
+    object_date:        'Orderdate',
+    rec_type:           'RecordType',
+    object_item_number: 'ItemNr.',
+    processingstate:    'Status',
+    processingtime:     'Processing Timestamp',
+    object_reference:   'Reference',
+    payload:            'Payload',
+    koha_object_id:     'Koha Object ID',
+    title:              'Title',
+    author:             'Author',
+    publisher:          'Publisher',
+    year:               'Year',
+    datecreated:        'Date Created',
+    barcode:            'Barcode',
+    item_timestamp:     'Item Timestamp'
+};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function debounce(fn, ms) {
+    var t;
+    return function() {
+        clearTimeout(t);
+        var self = this;
+        t = setTimeout(function() { fn.call(self); }, ms);
+    };
+}
+
+// Recursively pretty-print an XML DOM node with indentation
+function _prettyXmlNode(node, level) {
+    var indent = new Array(level + 1).join('  ');
+    var result = '';
+    // Text node
+    if (node.nodeType === 3) {
+        var text = node.textContent.trim();
+        return text ? indent + text + '\n' : '';
+    }
+    // Comment node
+    if (node.nodeType === 8) {
+        return indent + '<!--' + node.textContent + '-->\n';
+    }
+    var tag = node.nodeName;
+    var attrs = '';
+    if (node.attributes) {
+        for (var i = 0; i < node.attributes.length; i++) {
+            attrs += ' ' + node.attributes[i].name + '="' + node.attributes[i].value + '"';
+        }
+    }
+    var children = node.childNodes;
+    if (!children || children.length === 0) {
+        return indent + '<' + tag + attrs + '/>\n';
+    }
+    // Single text child — keep on one line
+    if (children.length === 1 && children[0].nodeType === 3) {
+        var txt = children[0].textContent.trim();
+        if (txt) return indent + '<' + tag + attrs + '>' + txt + '</' + tag + '>\n';
+        return indent + '<' + tag + attrs + '/>\n';
+    }
+    result += indent + '<' + tag + attrs + '>\n';
+    for (var j = 0; j < children.length; j++) {
+        result += _prettyXmlNode(children[j], level + 1);
+    }
+    result += indent + '</' + tag + '>\n';
+    return result;
+}
+
+function formatXml(xml) {
+    try {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(xml.trim(), 'application/xml');
+        if (doc.querySelector('parsererror')) throw new Error('parse error');
+        return _prettyXmlNode(doc.documentElement, 0).trim();
+    } catch (e) {
+        // Fallback: simple line-break formatter
+        var out = xml.replace(/(>)(<)(\/*)/g, '$1\n$2$3');
+        var pad = 0, res = '';
+        out.split('\n').forEach(function(line) {
+            var ind = 0;
+            if (line.match(/.+<\/\w[^>]*>$/))      { ind = 0; }
+            else if (line.match(/^<\/\w/))          { if (pad > 0) pad -= 1; }
+            else if (line.match(/^<\w[^>]*[^\/]>.*$/) && !line.match(/<.*\/>/)) { ind = 1; }
+            res += new Array(pad + 1).join('  ') + line + '\n';
+            pad += ind;
+        });
+        return res.trim();
+    }
+}
+
+// OrderNr/RefNr. renderer — shared by both tables
+// Priority: invoice → basket (item rows) → biblio detail → plain text
+var orderNumberRenderer = function(data, type, row) {
+    if (type !== 'display') return data || '';
+    if (!data) return '';
+    var escaped = $('<span>').text(data).html();
+    if (row.invoiceid) {
+        return '<a href="/cgi-bin/koha/acqui/invoice.pl?invoiceid='
+            + encodeURIComponent(row.invoiceid) + '">' + escaped + '</a>';
+    }
+    if (row.basketno) {
+        return '<a href="/cgi-bin/koha/acqui/basket.pl?basketno='
+            + encodeURIComponent(row.basketno) + '">' + escaped + '</a>';
+    }
+    var bibno = row.item_biblionumber
+        || (row.rec_type === 'title' ? row.koha_object_id : null);
+    if (bibno) {
+        return '<a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber='
+            + encodeURIComponent(bibno) + '">' + escaped + '</a>';
+    }
+    return escaped;
+};
+
+var payloadRenderer = function(data, type) {
+    if (type !== 'display') return '';
+    if (!data) return '';
+    var safe = String(data)
+        .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return '<button type="button" class="btn btn-xs btn-default payload-btn" data-raw="' + safe + '">Payload</button>';
+};
+
+function showApiError(msg) {
+    document.getElementById('api-error-text').textContent = msg;
+    document.getElementById('api-error').style.display = 'block';
+}
+
+function updateBadge(badgeId, filtered, total) {
+    var badge = document.getElementById(badgeId);
+    if (!badge) return;
+    badge.textContent = (filtered !== total)
+        ? new Intl.NumberFormat('de-DE').format(filtered) + ' / ' + new Intl.NumberFormat('de-DE').format(total)
+        : new Intl.NumberFormat('de-DE').format(total);
+}
+
+function fetchDistinct(apiEndpoint, col) {
+    return fetch('/api/v1/' + apiEndpoint + '?_distinct=' + encodeURIComponent(col), {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+    })
+    .then(function(r) { return r.ok ? r.json() : { values: [] }; })
+    .then(function(j) { return j.values || []; })
+    .catch(function() { return []; });
+}
+
+// ---------------------------------------------------------------------------
+// DataTable builder
+//
+// extraDtOptions may contain:
+//   _hiddenCols:   ['col1', ...]  — hidden in table and filter row
+//   _noFilterCols: ['col1', ...]  — visible in table but no filter input
+//
+// filterState    — if provided, a filter row is added to <thead>
+// selectCols     — { colName: true } → dropdown (exact match)
+// dateRangeCols  — ['col1', ...] → two date inputs (from / to)
+// ---------------------------------------------------------------------------
+function buildDataTable(tableId, apiEndpoint, badgeId, getExtraParams,
+                        extraDtOptions, columnRenderers, filterState, selectCols, dateRangeCols) {
+    var loadingId = 'loading-' + (tableId === 'dt-imports' ? 'imports' : 'objects');
+    var wrapId    = 'wrap-'    + (tableId === 'dt-imports' ? 'imports' : 'objects');
+
+    var hiddenCols   = (extraDtOptions && extraDtOptions._hiddenCols)   ? extraDtOptions._hiddenCols   : [];
+    var noFilterCols = (extraDtOptions && extraDtOptions._noFilterCols) ? extraDtOptions._noFilterCols : [];
+    var cleanOpts    = $.extend(true, {}, extraDtOptions || {});
+    delete cleanOpts._hiddenCols;
+    delete cleanOpts._noFilterCols;
+
+    return fetch('/api/v1/' + apiEndpoint + '?_per_page=1&_page=1', {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+    })
+    .then(function(r) {
+        if (!r.ok) throw new Error('API error HTTP ' + r.status);
+        return r.json();
+    })
+    .then(function(json) {
+        var columns = (json.columns && json.columns.length) ? json.columns : ['id'];
+
+        // Fetch distinct values for dropdown columns in parallel
+        var ddCols = [], ddPromises = [];
+        if (filterState !== undefined && selectCols) {
+            columns.forEach(function(c) {
+                if (selectCols[c]) {
+                    ddCols.push(c);
+                    ddPromises.push(fetchDistinct(apiEndpoint, c));
+                }
+            });
+        }
+
+        return Promise.all(ddPromises).then(function(ddResults) {
+            var distinctValues = {};
+            ddCols.forEach(function(c, i) { distinctValues[c] = ddResults[i]; });
+
+            // Header row
+            $('#' + tableId + ' thead tr').html(
+                columns.map(function(c) {
+                    return '<th>' + $('<span>').text(COLUMN_TITLES[c] || c).html() + '</th>';
+                }).join('')
+            );
+
+            // Filter row
+            if (filterState !== undefined) {
+                var filterCells = columns.map(function(c) {
+                    var isHidden   = hiddenCols.indexOf(c)   >= 0;
+                    var noFilter   = noFilterCols.indexOf(c) >= 0;
+                    var style      = isHidden ? ' style="display:none"' : ' style="padding:2px 4px"';
+                    var colEsc     = $('<span>').text(c).html();
+
+                    if (isHidden || noFilter) {
+                        return '<th' + style + '></th>';
+                    }
+
+                    // Date range filter
+                    if (dateRangeCols && dateRangeCols.indexOf(c) >= 0) {
+                        var fromVal = filterState[c + '_from'] || '';
+                        var toVal   = filterState[c + '_to']   || '';
+                        return '<th style="padding:2px 4px">'
+                            + '<div style="display:flex;gap:3px">'
+                            + '<input type="date" class="form-control form-control-sm col-range-input" style="width:98px;min-width:0"'
+                            + ' data-col="' + colEsc + '" data-range="from"'
+                            + ' value="' + fromVal + '" title="From">'
+                            + '<input type="date" class="form-control form-control-sm col-range-input" style="width:98px;min-width:0"'
+                            + ' data-col="' + colEsc + '" data-range="to"'
+                            + ' value="' + toVal + '" title="To">'
+                            + '</div>'
+                            + '</th>';
+                    }
+
+                    // Dropdown (distinct values)
+                    if (distinctValues[c] && distinctValues[c].length) {
+                        var currentVal = filterState[c] !== undefined ? filterState[c] : '';
+                        var opts = '<option value="">– all –</option>';
+                        distinctValues[c].forEach(function(v) {
+                            var sel   = (String(currentVal) === String(v)) ? ' selected' : '';
+                            var vEsc  = $('<span>').text(v).html();
+                            opts += '<option value="' + vEsc + '"' + sel + '>' + vEsc + '</option>';
+                        });
+                        return '<th' + style + '><select'
+                            + ' class="form-control form-control-sm col-filter-input"'
+                            + ' data-col="' + colEsc + '">'
+                            + opts + '</select></th>';
+                    }
+
+                    // Text input
+                    var val = filterState[c] !== undefined ? filterState[c] : '';
+                    var ph  = COLUMN_TITLES[c] || c;
+                    return '<th' + style + '><input type="text"'
+                        + ' class="form-control form-control-sm col-filter-input"'
+                        + ' data-col="' + colEsc + '"'
+                        + ' value="' + $('<span>').text(val).html() + '"'
+                        + ' placeholder="' + $('<span>').text(ph).html() + '&hellip;"></th>';
+                }).join('');
+                $('#' + tableId + ' thead').append('<tr class="dt-filter-row">' + filterCells + '</tr>');
+            }
+
+            document.getElementById(loadingId).style.display = 'none';
+            document.getElementById(wrapId).style.display    = '';
+
+            var dtCols = columns.map(function(c) {
+                var col = { title: COLUMN_TITLES[c] || c, data: c, defaultContent: '' };
+                if (columnRenderers && columnRenderers[c]) col.render = columnRenderers[c];
+                if (hiddenCols.indexOf(c) >= 0) col.visible = false;
+                // Prevent DataTables from inflating date-range columns with leftover space
+                if (dateRangeCols && dateRangeCols.indexOf(c) >= 0) col.width = '205px';
+                return col;
+            });
+
+            var options = $.extend(true, {}, dataTablesDefaults, {
+                processing:    true,
+                serverSide:    true,
+                autoWidth:     false,
+                scrollX:       true,
+                fixedHeader:   false,
+                orderCellsTop: filterState !== undefined,
+                columns:       dtCols,
+                pageLength:    25,
+                ajax: function(dtParams, callback) {
+                    var page       = Math.floor(dtParams.start / dtParams.length) + 1;
+                    var search     = (dtParams.search && dtParams.search.value) ? dtParams.search.value : '';
+                    var orderIdx   = (dtParams.order && dtParams.order[0]) ? dtParams.order[0].column : 0;
+                    var orderDir   = (dtParams.order && dtParams.order[0]) ? dtParams.order[0].dir : 'desc';
+                    var colData    = (dtParams.columns && dtParams.columns[orderIdx])
+                                     ? dtParams.columns[orderIdx].data : columns[0];
+                    var orderParam = (orderDir === 'desc' ? '-' : '+') + colData;
+
+                    var reqData = { _page: page, _per_page: dtParams.length, _order_by: orderParam };
+                    if (search) reqData.q = search;
+                    if (typeof getExtraParams === 'function') $.extend(reqData, getExtraParams());
+
+                    $.ajax({
+                        url: '/api/v1/' + apiEndpoint,
+                        type: 'GET', data: reqData, dataType: 'json',
+                        success: function(data) {
+                            updateBadge(
+                                badgeId,
+                                data.filtered !== undefined ? data.filtered : (data.total || 0),
+                                data.total || 0
+                            );
+                            callback({
+                                draw:            dtParams.draw,
+                                data:            data.data     || [],
+                                recordsTotal:    data.total    || 0,
+                                recordsFiltered: data.filtered !== undefined ? data.filtered : (data.total || 0)
+                            });
+                        },
+                        error: function(xhr) {
+                            showApiError('HTTP ' + xhr.status);
+                            callback({ draw: dtParams.draw, data: [], recordsTotal: 0, recordsFiltered: 0 });
+                        }
+                    });
+                }
+            }, cleanOpts);
+
+            // Force lengthMenu without "All" — overrides whatever dataTablesDefaults sets
+            options.lengthMenu = [[10, 25, 50, 100], ['10', '25', '50', '100']];
+
+            var dt = $('#' + tableId).dataTable(options).DataTable();
+            setTimeout(function() { dt.columns.adjust(); }, 50);
+            return dt;
+        });
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Event handlers
+// ---------------------------------------------------------------------------
+
+$(document).on('click', '.col-filter-input', function(e) { e.stopPropagation(); });
+
+$(document).on('input', 'input.col-filter-input', debounce(function() {
+    var col = $(this).data('col');
+    var val = $(this).val().trim();
+    if (val) masterFilterState[col] = val;
+    else     delete masterFilterState[col];
+    if (dtImports) dtImports.ajax.reload();
+}, 400));
+
+$(document).on('change', 'select.col-filter-input', function() {
+    var col = $(this).data('col');
+    var val = $(this).val();
+    if (val) masterFilterState[col] = val;
+    else     delete masterFilterState[col];
+    if (dtImports) dtImports.ajax.reload();
+});
+
+$(document).on('change', 'input.col-range-input', function() {
+    var col   = $(this).data('col');
+    var range = $(this).data('range'); // 'from' or 'to'
+    var val   = $(this).val();
+    var key   = col + '_' + range;    // e.g. 'object_date_from'
+    if (val) masterFilterState[key] = val;
+    else     delete masterFilterState[key];
+    if (dtImports) dtImports.ajax.reload();
+});
+
+$(document).on('click', '.payload-btn', function(e) {
+    e.stopPropagation();
+    var raw = $(this).attr('data-raw');
+    if (!raw) return;
+    var formatted;
+    try {
+        formatted = JSON.stringify(JSON.parse(raw), null, 2);
+        document.getElementById('payloadModalLabel').textContent = 'Payload (JSON)';
+    } catch (ex) {
+        if (raw.trim().charAt(0) === '<') {
+            formatted = formatXml(raw);
+            document.getElementById('payloadModalLabel').textContent = 'Payload (XML)';
+        } else {
+            formatted = raw;
+            document.getElementById('payloadModalLabel').textContent = 'Payload';
+        }
+    }
+    document.getElementById('payload-content').textContent = formatted;
+    $('#payloadModal').modal('show');
+});
+
+$(document).on('click', '#dt-imports tbody tr', function() {
+    var objectNumber = $(this).data('object-number');
+    if (objectNumber === undefined || objectNumber === '') return;
+
+    $('#dt-imports tbody tr').removeClass('selected');
+    $(this).addClass('selected');
+
+    document.getElementById('detail-hint').style.display = 'none';
+    document.getElementById('selected-import-label').textContent = 'Object ' + objectNumber;
+    document.getElementById('selected-import-label').style.display = '';
+    document.getElementById('count-objects').style.display = '';
+
+    currentObjectNumber = objectNumber;
+    if (dtObjects) {
+        dtObjects.ajax.reload();
+        document.getElementById('wrap-objects').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+});
+
+// ---------------------------------------------------------------------------
+// Initialization
+// ---------------------------------------------------------------------------
+$(function() {
+
+    // Master table (Importdata)
+    buildDataTable(
+        'dt-imports', 'acquisitionimports', 'count-imports',
+        function() {
+            var params = {};
+            Object.keys(masterFilterState).forEach(function(k) {
+                var val = masterFilterState[k];
+                if (!val) return;
+
+                // Date range keys: 'object_date_from' → '_date_from_object_date'
+                var rangeMatch = k.match(/^(.+)_(from|to)$/);
+                if (rangeMatch) {
+                    params['_date_' + rangeMatch[2] + '_' + rangeMatch[1]] = val;
+                    return;
+                }
+
+                if (masterSelectCols[k]) {
+                    // Dropdown → exact match
+                    params[k] = val;
+                } else if (val.indexOf('%') === -1) {
+                    // Text input → LIKE %val%
+                    params[k] = '%' + val + '%';
+                } else {
+                    params[k] = val;
+                }
+            });
+            return params;
+        },
+        {
+            order:         [[0, 'desc']],
+            _hiddenCols:   ['vendor_id'],
+            _noFilterCols: ['payload'],
+            createdRow: function(row, data) {
+                if (data && data.id !== undefined)
+                    $(row).attr('data-id', data.id);
+                if (data && data.object_number !== undefined)
+                    $(row).attr('data-object-number', data.object_number);
+            }
+        },
+        { payload: payloadRenderer, object_number: orderNumberRenderer },
+        masterFilterState,
+        masterSelectCols,
+        masterDateRangeCols
+    ).then(function(dt) {
+        dtImports = dt;
+    }).catch(function(err) {
+        document.getElementById('loading-imports').textContent = 'Error: ' + err.message;
+        showApiError(err.message);
+    });
+
+    // Re-align columns on window resize (fixes scrollX drift)
+    $(window).on('resize', debounce(function() {
+        if (dtImports) dtImports.columns.adjust();
+        if (dtObjects) dtObjects.columns.adjust();
+    }, 150));
+
+    // Detail table (Importobjects)
+    buildDataTable(
+        'dt-objects', 'acquisitionimports/joined', 'count-objects',
+        function() {
+            if (!currentObjectNumber) return {};
+            return { object_number: currentObjectNumber };
+        },
+        { _hiddenCols: ['vendor_id', 'id'] },
+        {
+            object_number: orderNumberRenderer,
+            title: function(data, type, row) {
+                if (type !== 'display') return data || '';
+                if (!data) return '';
+                var escaped = $('<span>').text(data).html();
+                if (row.rec_type === 'title' && row.koha_object_id) {
+                    return '<a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber='
+                        + encodeURIComponent(row.koha_object_id) + '">'
+                        + escaped + '</a>';
+                }
+                return escaped;
+            },
+            koha_object_id: function(data, type, row) {
+                if (type !== 'display') return data || '';
+                if (!data) return '';
+                var id = $('<span>').text(data).html();
+                if (row.rec_type === 'title') {
+                    // Edit bibliographic record
+                    return '<a href="/cgi-bin/koha/cataloguing/addbiblio.pl?biblionumber='
+                        + encodeURIComponent(data) + '">' + id + '</a>';
+                }
+                if (row.rec_type === 'item' && row.item_biblionumber) {
+                    // Edit item
+                    return '<a href="/cgi-bin/koha/cataloguing/additem.pl?biblionumber='
+                        + encodeURIComponent(row.item_biblionumber) + '&itemnumber='
+                        + encodeURIComponent(data) + '">' + id + '</a>';
+                }
+                return id;
+            },
+            author: function(data, type) {
+                if (type !== 'display') return data || '';
+                if (!data) return '';
+                var escaped = $('<span>').text(data).html();
+                // CCL author search: q=au:"Name" — avoids auto-redirect on single hit
+                return '<a href="/cgi-bin/koha/catalogue/search.pl?q=au%3A%22'
+                    + encodeURIComponent(data) + '%22">' + escaped + '</a>';
+            },
+            payload: payloadRenderer
+        }
+    ).then(function(dt) {
+        dtObjects = dt;
+    }).catch(function(err) {
+        document.getElementById('loading-objects').textContent = 'Error: ' + err.message;
+        showApiError(err.message);
+    });
+});
+</script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]
