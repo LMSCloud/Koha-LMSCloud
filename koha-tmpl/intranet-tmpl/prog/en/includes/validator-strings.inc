@@ -18,6 +18,7 @@
             range: $.validator.format(_("Please enter a value between {0} and {1}.")),
             max: $.validator.format(_("Please enter a value less than or equal to {0}.")),
             min: $.validator.format(_("Please enter a value greater than or equal to {0}.")),
+            step: $.validator.format(_("Please enter a multiple of {0}.")),
             phone: $.validator.format(_("Please enter a valid phone number.")),
         });
     });
