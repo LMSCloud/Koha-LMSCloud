@@ -251,7 +251,7 @@ sub writeoff_or_cancel_all {
     my @wo_lines = grep { /^accountlines_id\d+$/ } @params;
 
     my $borrowernumber = $input->param('borrowernumber');
-    my $actiontype     = ( $op =~ /^cud-woall/ ) ? 'WRITEOFF' : 'CANCELLATION';
+    my $actiontype     = ( ( $input->param('op') // q{} ) =~ /^cud-woall/ ) ? 'WRITEOFF' : 'CANCELLATION';
 
     for (@wo_lines) {
         if (/(\d+)/) {
