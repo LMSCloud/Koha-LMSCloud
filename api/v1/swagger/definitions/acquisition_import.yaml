@@ -1,0 +1,55 @@
+---
+type: object
+properties:
+  id:
+    type: integer
+    description: Internally assigned primary identifier
+  vendor_id:
+    type: string
+    description: Identifier of the vendor
+  object_type:
+    type: string
+    description: Type of the object
+  object_number:
+    type: string
+    description: Unique number of the object
+  object_date:
+    type:
+      - string
+      - "null"
+    format: date
+    description: Date associated with the object
+  rec_type:
+    type: string
+    description: Record type
+  object_item_number:
+    type:
+      - string
+      - "null"
+    description: Optional item number of the object
+  processingstate:
+    type: string
+    description: Current processing state
+  processingtime:
+    type: string
+    format: date-time
+    description: Timestamp of processing
+  payload:
+    type: string
+    description: Raw payload data
+  object_reference:
+    type:
+      - integer
+      - "null"
+    description: Reference to another object
+required:
+  - vendor_id
+  - object_type
+  - object_number
+  - object_date
+  - rec_type
+  - processingstate
+  - processingtime
+  - payload
+additionalProperties: false
+
