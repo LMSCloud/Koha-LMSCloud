@@ -1,0 +1,312 @@
+---
+/acquisitionimports:
+  get:
+    x-mojo-to: AcquisitionImports#list
+    operationId: lmscloudListAcquisitionImports
+    tags:
+      - acquisitionimports
+    summary: "Eintraege aus acquisition_import auflisten"
+    produces:
+      - application/json
+    parameters:
+      - name: _page
+        in: query
+        required: false
+        type: integer
+      - name: _per_page
+        in: query
+        required: false
+        type: integer
+      - name: q
+        in: query
+        required: false
+        type: string
+      - name: _order_by
+        in: query
+        required: false
+        type: string
+      - name: _distinct
+        in: query
+        required: false
+        type: string
+        description: "Gibt distinct-Werte fuer die angegebene Spalte zurueck (Dropdown-Befuellung)"
+      - name: rec_type
+        in: query
+        required: false
+        type: string
+      - name: processingstate
+        in: query
+        required: false
+        type: string
+      - name: vendor_id
+        in: query
+        required: false
+        type: string
+      - name: object_type
+        in: query
+        required: false
+        type: string
+      - name: object_number
+        in: query
+        required: false
+        type: string
+      - name: object_item_number
+        in: query
+        required: false
+        type: string
+      - name: _date_from_object_date
+        in: query
+        required: false
+        type: string
+        format: date
+        description: "Orderdate from (DATE(object_date) >= value)"
+      - name: _date_to_object_date
+        in: query
+        required: false
+        type: string
+        format: date
+        description: "Orderdate to (DATE(object_date) <= value)"
+      - name: _date_from_processingtime
+        in: query
+        required: false
+        type: string
+        format: date
+        description: "Processing Timestamp from (DATE(processingtime) >= value)"
+      - name: _date_to_processingtime
+        in: query
+        required: false
+        type: string
+        format: date
+        description: "Processing Timestamp to (DATE(processingtime) <= value)"
+    responses:
+      "200":
+        description: "Liste von Datensaetzen"
+        schema:
+          type: object
+          properties:
+            total:
+              type: integer
+            filtered:
+              type: integer
+            page:
+              type: integer
+            per_page:
+              type: integer
+            columns:
+              type: array
+              items:
+                type: string
+            data:
+              type: array
+              items:
+                type: object
+      "403":
+        description: "Nicht autorisiert"
+        schema:
+          type: object
+      "500":
+        description: "Serverfehler"
+        schema:
+          type: object
+    x-koha-authorization:
+      permissions:
+        acquisition: order_manage
+
+/acquisitionimports/joined:
+  get:
+    x-mojo-to: AcquisitionImports#list_joined
+    operationId: lmscloudListAcquisitionImportsJoined
+    tags:
+      - acquisitionimports
+    summary: "JOIN-Ansicht: acquisition_import mit Objekten, Biblio und Items"
+    produces:
+      - application/json
+    parameters:
+      - name: _page
+        in: query
+        required: false
+        type: integer
+      - name: _per_page
+        in: query
+        required: false
+        type: integer
+      - name: q
+        in: query
+        required: false
+        type: string
+      - name: _order_by
+        in: query
+        required: false
+        type: string
+      - name: object_number
+        in: query
+        required: false
+        type: string
+        description: "Filtert auf acquisition_import.object_number (Join-Schluessel)"
+    responses:
+      "200":
+        description: "JOIN-Ergebnis"
+        schema:
+          type: object
+          properties:
+            total:
+              type: integer
+            filtered:
+              type: integer
+            page:
+              type: integer
+            per_page:
+              type: integer
+            columns:
+              type: array
+              items:
+                type: string
+            data:
+              type: array
+              items:
+                type: object
+      "403":
+        description: "Nicht autorisiert"
+        schema:
+          type: object
+      "500":
+        description: "Serverfehler"
+        schema:
+          type: object
+    x-koha-authorization:
+      permissions:
+        acquisition: order_manage
+
+/acquisitionimports/{id}:
+  get:
+    x-mojo-to: AcquisitionImports#get
+    operationId: lmscloudGetAcquisitionImport
+    tags:
+      - acquisitionimports
+    summary: "Einzelnen Eintrag aus acquisition_import abrufen"
+    produces:
+      - application/json
+    parameters:
+      - name: id
+        in: path
+        required: true
+        type: integer
+    responses:
+      "200":
+        description: "Datensatz gefunden"
+        schema:
+          type: object
+      "403":
+        description: "Nicht autorisiert"
+        schema:
+          type: object
+      "404":
+        description: "Nicht gefunden"
+        schema:
+          type: object
+      "500":
+        description: "Serverfehler"
+        schema:
+          type: object
+    x-koha-authorization:
+      permissions:
+        acquisition: order_manage
+
+/acquisitionimports/objects:
+  get:
+    x-mojo-to: AcquisitionImports#list_objects
+    operationId: lmscloudListAcquisitionImportObjects
+    tags:
+      - acquisitionimports
+    summary: "Eintraege aus acquisitions_import_objects auflisten"
+    produces:
+      - application/json
+    parameters:
+      - name: _page
+        in: query
+        required: false
+        type: integer
+      - name: _per_page
+        in: query
+        required: false
+        type: integer
+      - name: q
+        in: query
+        required: false
+        type: string
+      - name: import_id
+        in: query
+        required: false
+        type: integer
+      - name: _order_by
+        in: query
+        required: false
+        type: string
+    responses:
+      "200":
+        description: "Liste von Datensaetzen"
+        schema:
+          type: object
+          properties:
+            total:
+              type: integer
+            filtered:
+              type: integer
+            page:
+              type: integer
+            per_page:
+              type: integer
+            columns:
+              type: array
+              items:
+                type: string
+            data:
+              type: array
+              items:
+                type: object
+      "403":
+        description: "Nicht autorisiert"
+        schema:
+          type: object
+      "500":
+        description: "Serverfehler"
+        schema:
+          type: object
+    x-koha-authorization:
+      permissions:
+        acquisition: order_manage
+
+/acquisitionimports/objects/{id}:
+  get:
+    x-mojo-to: AcquisitionImports#get_object
+    operationId: lmscloudGetAcquisitionImportObject
+    tags:
+      - acquisitionimports
+    summary: "Einzelnen Eintrag aus acquisitions_import_objects abrufen"
+    produces:
+      - application/json
+    parameters:
+      - name: id
+        in: path
+        required: true
+        type: integer
+    responses:
+      "200":
+        description: "Datensatz gefunden"
+        schema:
+          type: object
+      "403":
+        description: "Nicht autorisiert"
+        schema:
+          type: object
+      "404":
+        description: "Nicht gefunden"
+        schema:
+          type: object
+      "500":
+        description: "Serverfehler"
+        schema:
+          type: object
+    x-koha-authorization:
+      permissions:
+        acquisition: order_manage

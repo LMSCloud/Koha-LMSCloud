@@ -1,0 +1,25 @@
+---
+type: object
+properties:
+  total:
+    type: integer
+    description: "Gesamtanzahl aller Datensaetze"
+  filtered:
+    type: integer
+    description: "Anzahl nach Suchfiltern"
+  page:
+    type: integer
+    description: "Aktuelle Seite"
+  per_page:
+    type: integer
+    description: "Datensaetze pro Seite"
+  columns:
+    type: array
+    description: "Spaltennamen (dynamisch)"
+    items:
+      type: string
+  data:
+    type: array
+    description: "Datensaetze der aktuellen Seite"
+    items:
+      type: object
