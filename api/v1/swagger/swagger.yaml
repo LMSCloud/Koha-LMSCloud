@@ -4,6 +4,12 @@ basePath: /api/v1
 definitions:
   account_line:
     $ref: ./definitions/account_line.yaml
+  acquisition_import:
+    $ref: ./definitions/acquisition_import.yaml
+  acquisition_import_object:
+    $ref: ./definitions/acquisition_import_object.yaml
+  acquisition_import_list:
+    $ref: ./definitions/acquisition_import_list.yaml
   advancededitormacro:
     $ref: ./definitions/advancededitormacro.yaml
   allows_renewal:
