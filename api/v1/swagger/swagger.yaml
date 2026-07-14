@@ -4,6 +4,12 @@ basePath: /api/v1
 definitions:
   account_line:
     $ref: ./definitions/account_line.yaml
+  acquisition_import:
+    $ref: ./definitions/acquisition_import.yaml
+  acquisition_import_object: 
+    $ref: ./definitions/acquisition_import_object.yaml
+  acquisition_import_list:
+    $ref: ./definitions/acquisition_import_list.yaml     
   advancededitormacro:
     $ref: ./definitions/advancededitormacro.yaml
   allows_renewal:
@@ -145,6 +151,24 @@ paths:
     $ref: ./paths/acquisitions_funds.yaml#/~1acquisitions~1funds~1owners
   /acquisitions/funds/users:
     $ref: ./paths/acquisitions_funds.yaml#/~1acquisitions~1funds~1users
+  /acquisitions/imports:
+    $ref: ./paths/acquisitions_imports.yaml#/~1acquisitions~1imports
+  "/acquisitions/imports/{id}":
+    $ref: "./paths/acquisitions_imports.yaml#/~1acquisitions~1imports~1{id}" 
+  /acquisitions/imports/objects:
+    $ref: ./paths/acquisitions_imports_objects.yaml#/~1acquisitions~1imports~1objects
+  "/acquisitions/imports/objects/{id}":
+    $ref: "./paths/acquisitions_imports_objects.yaml#/~1acquisitions~1imports~1objects~1{id}"
+  /acquisitionimports:
+    $ref: ./paths/acquisition_imports.yaml#/~1acquisitionimports
+  /acquisitionimports/{id}:
+    $ref: "./paths/acquisition_imports.yaml#/~1acquisitionimports~1{id}"
+  /acquisitionimports/objects:
+    $ref: ./paths/acquisition_imports.yaml#/~1acquisitionimports~1objects
+  /acquisitionimports/objects/{id}:
+    $ref: "./paths/acquisition_imports.yaml#/~1acquisitionimports~1objects~1{id}"    
+  /acquisitionimports/joined:
+    $ref: ./paths/acquisition_imports.yaml#/~1acquisitionimports~1joined         
   /acquisitions/orders:
     $ref: ./paths/acquisitions_orders.yaml#/~1acquisitions~1orders
   "/acquisitions/orders/{order_id}":
@@ -497,6 +521,12 @@ parameters:
     in: header
     required: false
     type: integer
+  id_pp:
+    description: internal identifier
+    in: path
+    name: id
+    required: true
+    type: integer  
   identity_provider_id_pp:
     description: Identity provider internal identifier
     in: path

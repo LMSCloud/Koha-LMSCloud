@@ -132,6 +132,8 @@
                         <h3>Additional tools</h3>
                     [% END %]
                     <dl>
+                        <dt><a href="/cgi-bin/koha/tools/ekz_import_analyzer.pl">Analyze ekz import</a></dt>
+                        <dd>Debug tool to analyze ekz import</dd>
                         [% IF ( CAN_user_tools_edit_calendar ) %]
                             <dt><a href="/cgi-bin/koha/tools/holidays.pl">Calendar</a></dt>
                             <dd>Define days when the library is closed</dd>
@@ -202,6 +204,13 @@
                         [% IF CAN_user_tools_access_files %]
                             <dt><a href="/cgi-bin/koha/tools/access_files.pl">Access files</a></dt>
                             <dd>Access files stored on the server, like log files or reports</dd>
+                        [% END %]
+ 
+                        [% IF ( CAN_user_acquisition_order_manage ) %]
+                        <dt>
+                            <a href="/cgi-bin/koha/tools/acquisition-import-viewer.pl">Acquisition Import Viewer</a>
+                        </dt>
+                        <dd>Tool to show the Imports of the EKZ Interface.</dd>
                         [% END %]
 
                         [% IF ( Koha.Preference('OPACReportProblem') && CAN_user_problem_reports ) %]
