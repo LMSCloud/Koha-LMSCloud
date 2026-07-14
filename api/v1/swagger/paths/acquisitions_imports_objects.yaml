@@ -1,0 +1,145 @@
+---
+/acquisitions/imports/objects:
+  get:
+    x-mojo-to: AcquisitionImportObjects#list
+    operationId: listAcquisitionImportObjects
+    tags:
+      - acquisition_import_objects
+    summary: List acquisition import objects
+    produces:
+      - application/json
+    parameters:
+      - name: acquisition_import_id
+        in: query
+        required: false
+        type: integer
+        description: Filter by acquisition import ID
+      - $ref: "../swagger.yaml#/parameters/order_by"
+      - $ref: "../swagger.yaml#/parameters/page"
+      - $ref: "../swagger.yaml#/parameters/per_page"
+      - $ref: "../swagger.yaml#/parameters/request_id_header"
+    responses:
+      "200":
+        description: A list of acquisition import objects
+        schema:
+          type: array
+          items:
+            $ref: "../swagger.yaml#/definitions/acquisition_import_object"
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: Internal server error
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+
+  post:
+    x-mojo-to: AcquisitionImportObjects#add
+    operationId: addAcquisitionImportObject
+    tags:
+      - acquisition_import_objects
+    summary: Create a new acquisition import object
+    parameters:
+      - name: body
+        in: body
+        required: true
+        description: Acquisition import object
+        schema:
+          $ref: "../swagger.yaml#/definitions/acquisition_import_object"
+    produces:
+      - application/json
+    responses:
+      "201":
+        description: Acquisition import object created
+        schema:
+          $ref: "../swagger.yaml#/definitions/acquisition_import_object"
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: Internal server error
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+
+"/acquisitions/imports/objects/{id}":
+  get:
+    x-mojo-to: AcquisitionImportObjects#get
+    operationId: getAcquisitionImportObject
+    tags:
+      - acquisition_import_objects
+    summary: Get acquisition import object by ID
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/id_pp"
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: Acquisition import object
+        schema:
+          $ref: "../swagger.yaml#/definitions/acquisition_import_object"
+      "404":
+        description: Not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: Internal server error
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+
+  put:
+    x-mojo-to: AcquisitionImportObjects#update
+    operationId: updateAcquisitionImportObject
+    tags:
+      - acquisition_import_objects
+    summary: Update acquisition import object
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/id_pp"
+      - name: body
+        in: body
+        required: true
+        description: Updated acquisition import object
+        schema:
+          $ref: "../swagger.yaml#/definitions/acquisition_import_object"
+    produces:
+      - application/json
+    responses:
+      "200":
+        description: Acquisition import object updated
+        schema:
+          $ref: "../swagger.yaml#/definitions/acquisition_import_object"
+      "400":
+        description: Bad request
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "404":
+        description: Not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: Internal server error
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+
+  delete:
+    x-mojo-to: AcquisitionImportObjects#delete
+    operationId: deleteAcquisitionImportObject
+    tags:
+      - acquisition_import_objects
+    summary: Delete acquisition import object
+    parameters:
+      - $ref: "../swagger.yaml#/parameters/id_pp"
+    produces:
+      - application/json
+    responses:
+      "204":
+        description: Deleted successfully
+      "404":
+        description: Not found
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
+      "500":
+        description: Internal server error
+        schema:
+          $ref: "../swagger.yaml#/definitions/error"
