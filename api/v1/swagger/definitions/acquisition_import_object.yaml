@@ -1,0 +1,21 @@
+---
+type: object
+properties:
+  id:
+    type: integer
+    description: Internally assigned primary identifier
+  acquisition_import_id:
+    type: integer
+    description: Identifier linking to the acquisition import process
+  koha_object:
+    type: string
+    description: Type of Koha object (e.g. biblio, item, order)
+  koha_object_id:
+    type: integer
+    description: Identifier of the Koha object
+required:
+  - acquisition_import_id
+  - koha_object
+  - koha_object_id
+additionalProperties: false
+
