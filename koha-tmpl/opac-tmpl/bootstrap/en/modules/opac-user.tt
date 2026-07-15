@@ -415,6 +415,10 @@
                                                                         class="item-thumbnail"
                                                                     />
                                                                 [% END %]
+
+                                                                [% IF ( ISSUE.titlecoverurl ) %]
+                                                                    <img src="[% ISSUE.titlecoverurl | html %]" class="ekzcover" title="[% ISSUE.biblionumber | url %]" alt="Cover" />
+                                                                [% END %]
                                                             </td>
                                                         [% END # / IF JacketImages %]
 
@@ -853,6 +857,10 @@
                                                                     alt=""
                                                                     class="item-thumbnail"
                                                                 />
+                                                            [% END %]
+
+                                                            [% IF ( OVERDUE.titlecoverurl ) %]
+                                                                <img src="[% OVERDUE.titlecoverurl | html %]" class="ekzcover" title="[% OVERDUE.biblionumber | url %]" alt="Cover" />
                                                             [% END %]
                                                         </td>
                                                     [% END # /IF jacketcell %]
