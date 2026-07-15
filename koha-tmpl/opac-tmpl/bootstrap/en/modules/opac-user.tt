@@ -748,7 +748,11 @@
                                                         [% INCLUDE 'biblio-title.inc' biblio=ISSUE link=1 %]
                                                         [% IF ISSUE.author %]by [% ISSUE.author | html %][% END %]
                                                     </td>
-                                                    <td>[% ISSUE.itemtype_description | html %]</td>
+                                                    <td>
+                                                        [% IF ( ISSUE.imageurl && !Koha.Preference('OpacNoItemTypeImages') ) %]
+                                                            <img class="itemtype-image" src="[% ISSUE.imageurl | html %]" title="[% ISSUE.description | html %]" alt="[% ISSUE.description | html %]" />
+                                                        [% END %] <span class="itypetext">[% ISSUE.description | html %]</span>
+                                                    </td>
                                                     <td data-order="[% ISSUE.date_due | html %]">[% ISSUE.date_due | $KohaDates %]</td>
                                                     <td data-order="[% ISSUE.issuedate | html %]">[% ISSUE.issuedate | $KohaDates %]</td>
                                                     <td>[% Branches.GetName(ISSUE.branchcode) | html %]</td>
