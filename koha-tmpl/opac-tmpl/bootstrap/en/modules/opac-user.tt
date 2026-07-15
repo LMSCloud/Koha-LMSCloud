@@ -731,7 +731,8 @@
                                         <caption>[% divibib_issues_count | html %] Item(s) checked out</caption>
                                         <thead>
                                             <tr>
-                                                <th class="anti-the">Title</th>
+                                                <th class="no-sort jacketcol">&nbsp;</th>
+                                                <th class="anti-the psort">Title</th>
                                                 <th>Item type</th>
                                                 <th>Author</th>
                                                 <th>Date due</th>
@@ -752,10 +753,12 @@
                                         <tbody>
                                             [% FOREACH ISSUE IN DIVIBIB_ISSUES %]
                                                 <tr>
-                                                    <td>
+                                                    <td class="jacketcell">
                                                         [% IF ISSUE.titlecoverurl %]
                                                             <img src="[% ISSUE.titlecoverurl | html %]" class="ekzcover" alt="Onleihe-Cover" />
                                                         [% END %]
+                                                    </td>
+                                                    <td>
                                                         [% INCLUDE 'biblio-title.inc' biblio=ISSUE link=1 %]
                                                     </td>
                                                     <td>
