@@ -733,9 +733,20 @@
                                             <tr>
                                                 <th class="anti-the">Title</th>
                                                 <th>Item type</th>
+                                                <th>Author</th>
                                                 <th>Date due</th>
                                                 <th>Checked out on</th>
                                                 <th>Checked out from</th>
+                                                [% IF ( show_barcode ) %]
+                                                    <th>Barcode</th>
+                                                [% END %]
+                                                [% IF ( Koha.Preference('OPACMySummaryCallNumber') ) %]
+                                                    <th>Call number</th>
+                                                [% END %]
+                                                [% IF ( OPACFinesTab ) %]
+                                                    <th>Fines</th>
+                                                [% END %]
+                                                <th class="dtr-control-col"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -746,16 +757,28 @@
                                                             <img src="[% ISSUE.titlecoverurl | html %]" class="ekzcover" alt="Onleihe-Cover" />
                                                         [% END %]
                                                         [% INCLUDE 'biblio-title.inc' biblio=ISSUE link=1 %]
-                                                        [% IF ISSUE.author %]by [% ISSUE.author | html %][% END %]
                                                     </td>
                                                     <td>
                                                         [% IF ( ISSUE.imageurl && !Koha.Preference('OpacNoItemTypeImages') ) %]
                                                             <img class="itemtype-image" src="[% ISSUE.imageurl | html %]" title="[% ISSUE.description | html %]" alt="[% ISSUE.description | html %]" />
                                                         [% END %] <span class="itypetext">[% ISSUE.description | html %]</span>
                                                     </td>
+                                                    <td>[% ISSUE.author | html %]</td>
                                                     <td data-order="[% ISSUE.date_due | html %]">[% ISSUE.date_due | $KohaDates %]</td>
                                                     <td data-order="[% ISSUE.issuedate | html %]">[% ISSUE.issuedate | $KohaDates %]</td>
                                                     <td>[% Branches.GetName(ISSUE.branchcode) | html %]</td>
+                                                    [% IF ( show_barcode ) %]
+                                                        <td class="barcode">[% ISSUE.barcode | html %]</td>
+                                                    [% END %]
+                                                    [% IF ( Koha.Preference('OPACMySummaryCallNumber') ) %]
+                                                        <td class="call_no">[% ISSUE.itemcallnumber | html %]</td>
+                                                    [% END %]
+                                                    [% IF ( OPACFinesTab ) %]
+                                                        <td class="fines">
+                                                            [% IF ( ISSUE.charges ) %]<span>Yes</span>[% ELSE %]<span>No</span>[% END %]
+                                                        </td>
+                                                    [% END %]
+                                                    <td></td>
                                                 </tr>
                                             [% END %]
                                         </tbody>
