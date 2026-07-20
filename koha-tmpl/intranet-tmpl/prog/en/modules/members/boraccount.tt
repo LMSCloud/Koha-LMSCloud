@@ -111,7 +111,7 @@
                             <td>[% PROCESS account_type_description account=account %]</td>
                             <td>
                                 [%- IF account.payment_type %][% AuthorisedValues.GetByCode('PAYMENT_TYPE', account.payment_type) | html %][% END %]
-                                [%- IF account.description %][% account.description.replace('^(Writeoff|Fine cancelled)[:]?', '') | html %][% END %]
+                                [%- IF account.description %][% IF account.payment_type %][% ' ' | html %][% END %][% account.description.replace('^(Writeoff|Fine cancelled)[:]?', '') | html %][% END %]
                                 &nbsp;[% IF ( account.itemnumber ) %]
                                     <a href="/cgi-bin/koha/catalogue/moredetail.pl?biblionumber=[% account.item.biblionumber | uri %]&amp;itemnumber=[% account.itemnumber | uri %]">[% account.item.biblio.title | html %]</a>
                                 [% END %]</td
