@@ -19,8 +19,10 @@
 
 use Modern::Perl;
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 use Test::NoWarnings;
+
+use DateTime;
 
 use C4::Circulation qw(
     CanBookBeIssued
@@ -38,6 +40,8 @@ use Koha::Booking;
 use Koha::Checkouts;
 use Koha::Libraries;
 use Koha::Account::Lines;
+use Koha::Calendar;
+use Koha::Caches;
 
 use t::lib::Mocks;
 use t::lib::TestBuilder;
@@ -362,6 +366,57 @@ subtest 'GetTransfers function' => sub {
     # No transfers for a fresh item
     my @transfers = GetTransfers( $item->itemnumber );
     is( scalar @transfers, 0, 'GetTransfers returns empty list for item with no pending transfers' );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'OverdueNoticeCalendar excludes closed days from the overdue delay count' => sub {
+    plan tests => 4;
+
+    $schema->storage->txn_begin;
+
+    # A fresh branch has no repeatable (weekly) holidays, so weekends are open and
+    # only the single special holiday we add below counts as closed.
+    my $branch = $builder->build_object( { class => 'Koha::Libraries' } )->branchcode;
+
+    my $due     = DateTime->new( year => 2026, month => 3, day => 2 );    # checkout due date
+    my $holiday = DateTime->new( year => 2026, month => 3, day => 4 );    # one closed day in between
+    my $run     = DateTime->new( year => 2026, month => 3, day => 6 );    # the day the cron runs
+
+    $schema->resultset('SpecialHoliday')->create(
+        {
+            branchcode  => $branch,
+            day         => 4,
+            month       => 3,
+            year        => 2026,
+            isexception => 0,
+            description => 'test closed day',
+        }
+    );
+    my $cache = Koha::Caches->get_instance();
+    $cache->clear_from_cache( $branch . '_holidays' );
+    Koha::Cache::Memory::Lite->get_instance->flush;
+
+    my $calendar = Koha::Calendar->new( branchcode => $branch );
+
+    is( $calendar->is_holiday($holiday), 1, 'the added special holiday is a closed day' );
+    is( $calendar->is_holiday($run),     0, 'the run day is an open day' );
+
+    # OverdueNoticeCalendar OFF path: raw calendar-day delta (closed day counts).
+    is(
+        $run->delta_days($due)->in_units('days'),
+        4,
+        'OverdueNoticeCalendar off: raw delta counts all 4 days (closed day included)'
+    );
+
+    # OverdueNoticeCalendar ON path: closed day is excluded, so the same span is
+    # only 3 "overdue" days -> the delay is reached a day later, which is why the
+    # notice day shifts past closed days instead of landing on one.
+    is(
+        $calendar->days_between( $due, $run )->in_units('days'),
+        3,
+        'OverdueNoticeCalendar on: days_between excludes the closed day (3 days), delay reached later'
+    );
 
     $schema->storage->txn_rollback;
 };

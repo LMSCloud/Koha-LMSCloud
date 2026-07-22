@@ -19,10 +19,11 @@
 
 use Modern::Perl;
 
-use Test::More tests => 3;
+use Test::More tests => 4;
 use Test::NoWarnings;
 
 use C4::Context;
+use C4::Overdues;
 
 use Koha::Database;
 use Koha::Libraries;
@@ -179,6 +180,50 @@ subtest 'Family card' => sub {
         $child->get_family_card_id, $guarantor->borrowernumber,
         'get_family_card_id returns the family card guarantor borrowernumber'
     );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'GetBranchcodesWithOverdueRules honours BookMobile station/bus rule mode' => sub {
+    plan tests => 6;
+
+    # This is the function that answers the test plan's central question:
+    # "Werden die Regeln der Haltestelle oder die des Bücherbus berücksichtigt?"
+    # It picks which branches the overdue cron iterates, driven by the two
+    # BookMobile sysprefs and the station's mobilebranch pointer.
+    $schema->storage->txn_begin;
+
+    my $bus = $builder->build_object( { class => 'Koha::Libraries', value => { mobilebranch => undef } } )->branchcode;
+    my $station =
+        $builder->build_object( { class => 'Koha::Libraries', value => { mobilebranch => $bus } } )->branchcode;
+
+    # The bus has an overdue rule; the station has none (initially).
+    $builder->build( { source => 'Overduerule', value => { branchcode => $bus, delay1 => 5 } } );
+
+    my $has = sub { my ( $code, @list ) = @_; return scalar grep { $_ eq $code } @list; };
+
+    # Mode A: station rules NOT active -> the bus's rules cover its stations, so
+    # the cron iterates the bus but NOT the station.
+    t::lib::Mocks::mock_preference( 'BookMobileSupportEnabled',            1 );
+    t::lib::Mocks::mock_preference( 'BookMobileStationOverdueRulesActive', 0 );
+    my @a = C4::Overdues::GetBranchcodesWithOverdueRules();
+    ok( $has->( $bus, @a ), 'station-rules OFF: bus (with rules) is processed' );
+    ok( !$has->( $station, @a ), 'station-rules OFF: station is NOT processed (bus rules cover it)' );
+
+    # Mode B: station rules active; the station has no own rules but its bus does,
+    # so the station is pulled in via the UNION and processed in its own right.
+    t::lib::Mocks::mock_preference( 'BookMobileStationOverdueRulesActive', 1 );
+    my @b = C4::Overdues::GetBranchcodesWithOverdueRules();
+    ok( $has->( $bus,     @b ), 'station-rules ON: bus still processed' );
+    ok( $has->( $station, @b ), 'station-rules ON: station processed (bus has rules to inherit)' );
+
+    # Mode C: BookMobile support off entirely -> station is excluded regardless of
+    # the station-rules pref (the pref only matters while support is on).
+    t::lib::Mocks::mock_preference( 'BookMobileSupportEnabled',            0 );
+    t::lib::Mocks::mock_preference( 'BookMobileStationOverdueRulesActive', 1 );
+    my @c = C4::Overdues::GetBranchcodesWithOverdueRules();
+    ok( $has->( $bus, @c ), 'support OFF: bus processed' );
+    ok( !$has->( $station, @c ), 'support OFF: station NOT processed regardless of station-rules pref' );
 
     $schema->storage->txn_rollback;
 };
