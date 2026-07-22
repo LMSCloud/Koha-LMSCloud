@@ -346,7 +346,10 @@ subtest 'EnqueueLetter branchcode propagation' => sub {
     );
 
     my $msg_no_branch = Koha::Notice::Messages->find($message_id_no_branch);
-    is( $msg_no_branch->branchcode, undef, 'Enqueued message without branchcode has NULL branchcode' );
+    is(
+        $msg_no_branch->branchcode, $patron->branchcode,
+        'Enqueued message without branchcode falls back to the patron home branch'
+    );
 
     $schema->storage->txn_rollback;
 };
