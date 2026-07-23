@@ -127,6 +127,7 @@ sub nonAnonymousSub {
                         letter_code => $lettercode,
                         branchcode => $branchcode,
                         tables => \%tables,
+                        objects => { illrequestattributes => $illreqattr },
                         substitute => $substitute,
                         repeat => $repeat,
                         message_transport_type => $lettertemplates->{$transport_type}->{'transportType'},
