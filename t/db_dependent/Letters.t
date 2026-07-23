@@ -1150,9 +1150,9 @@ subtest 'Test SMS handling in SendQueuedMessages' => sub {
     my $patron = Koha::Patrons->find($borrowernumber);
     $dbh->do(
         q|
-        INSERT INTO message_queue(borrowernumber, subject, content, message_transport_type, status, letter_code)
-        VALUES (?, 'subject', 'content', 'sms', 'pending', 'just_a_code')
-        |, undef, $borrowernumber
+        INSERT INTO message_queue(borrowernumber, subject, content, message_transport_type, status, letter_code, branchcode)
+        VALUES (?, 'subject', 'content', 'sms', 'pending', 'just_a_code', ?)
+        |, undef, $borrowernumber, $patron->branchcode
     );
     eval { C4::Letters::SendQueuedMessages(); };
     is( $@, '', 'SendQueuedMessages should not explode if the patron does not have a sms provider set' );

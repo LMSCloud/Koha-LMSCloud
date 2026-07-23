@@ -1126,6 +1126,19 @@ sub EnqueueLetter {
             if ( $limit && length( $params->{letter}->{content} ) > $limit );
     }
 
+    # message_queue.branchcode is NOT NULL with an FK on branches, so an
+    # enqueue without a branch falls back to the patron's home branch,
+    # then to the session branch
+    my $branchcode = $params->{branchcode};
+    if ( !$branchcode && $params->{borrowernumber} ) {
+        my $patron = Koha::Patrons->find( $params->{borrowernumber} );
+        $branchcode = $patron->branchcode if $patron;
+    }
+    if ( !$branchcode ) {
+        my $userenv = C4::Context->userenv;
+        $branchcode = $userenv->{branch} if $userenv && $userenv->{branch};
+    }
+
     my $message = Koha::Notice::Message->new(
         {
             letter_id              => $params->{letter}->{id} || undef,
@@ -1142,7 +1155,7 @@ sub EnqueueLetter {
             reply_address          => $params->{reply_address},
             content_type           => $params->{letter}->{'content-type'},
             failure_code           => $params->{failure_code} || q{},
-            branchcode             => $params->{'branchcode'},
+            branchcode             => $branchcode,
         }
     )->store();
     return $message->id;
