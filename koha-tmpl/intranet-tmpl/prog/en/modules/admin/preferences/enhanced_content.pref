@@ -127,6 +127,39 @@ Enhanced content:
                   above: above the holdings table
                   below: below the holdings table
             - .
+    HeLiMa License Manager:
+        -
+            - pref: HelimaSearchActive
+              choices:
+                  1: Activate
+                  0: "Don't activate"
+            - the HeLiMa license manager search in OPAC. Please activate only if you want to enrich OPAC search results with results of the HeLiMa license manager. You need to contract with a HeLiMa licensor to use this feature.
+            - "The use of the HeLiMa license manager requires a configuration file on the server with the code if the licensor (e.g. hessian + 'LicenseManagerConfig.key', example: /etc/koha/hessianLicenseManagerConfig.key) providing the following data:"
+            - <br>url=[url of the HeLiMa service]
+            - <br>bearer=[a bearer token provided by the licensor].
+        -
+            - In order to use HeLiMa search, configure the HeLiMa customer ID 
+            - pref: HelimaCustomerID
+            - provided by the licensor.
+        -
+            - "Licensor/Provider of the HeLiMa service: "
+            - pref: HelimaLicensor
+              choices:
+                  hessian: State of Hesse
+        -
+            - "Name of the Licensor/Provider of the HeLiMa service: "
+            - pref: HelimaAdditionalOfferName
+            - ". The name is used at the OPAC additional offer view."
+        -
+            - Show a maximum of  
+            - pref: HelimaNumSearchResults
+              class: integer
+            - results of the HeLiMa search per page in the OPAC.
+        -
+            - Limit the HeLiMa search result to the following list of collections.
+            - pref: HeLiMaSearchCollections
+            - ". Separate HeLiMa collection names by |. This parameter is optional. If not provided, hits all collections licensed by the library will be displayed."
+
     Google:
         -
             - pref: GoogleJackets
