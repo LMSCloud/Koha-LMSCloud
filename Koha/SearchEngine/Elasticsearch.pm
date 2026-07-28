@@ -820,12 +820,39 @@ sub marc_records_to_documents {
             $record_document->{'marc_format'} = 'ARRAY';
         } else {
             my @warnings;
-            {
+            my $fullByteLength = 0;
+            foreach my $field( $record->fields() ) {
+                if ( !$field->is_control_field() ) {
+                    foreach my $subfield( $field->subfields() ) {
+                        my $byte_length = length(encode('UTF-8', $subfield->[1]));
+                        if ( $byte_length > 9999 ) {
+                            push @warnings, sprintf("Field length of field %03d\$%1s %d byte long. Longer than the allowed 9999 bytes of the usmarc format.\n",$field->tag(),$subfield->[0],$byte_length);
+                        }
+                        $fullByteLength += $byte_length;
+                    }
+                }
+            }
+            
+            if ( scalar(@warnings) == 0 ) {
                 # Temporarily intercept all warn signals (MARC::Record carps when record length > 99999)
                 local $SIG{__WARN__} = sub {
                     push @warnings, $_[0];
                 };
-                $record_document->{'marc_data'} = encode_base64(encode('UTF-8', $record->as_usmarc()));
+                my $usmarc_record = $record->as_usmarc();
+
+                #NOTE: Try to round-trip the record to prove it will work for retrieval after searching
+                my $decoded_usmarc_record;
+                eval { $decoded_usmarc_record = MARC::Record->new_from_usmarc($usmarc_record); };
+                if ( $@ || $decoded_usmarc_record->warnings() ) {
+
+                    #NOTE: We override the warnings since they're many and misleading
+                    @warnings = (
+                        "Warnings encountered while roundtripping a MARC record to/from USMARC. Failing over to MARCXML.",
+                    );
+                }
+                
+                my $marc_data = encode_base64( encode( 'UTF-8', $usmarc_record ) );
+                $record_document->{'marc_data'} = $marc_data;
             }
             if (@warnings) {
                 # Suppress warnings if record length exceeded
