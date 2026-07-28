@@ -98,7 +98,7 @@
                             <!-- FACETS END -->
                         </div>
                     </div>
-                [% ELSIF ( opacfacets && ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmFriendSearchActive' ) ) ) %]
+                [% ELSIF ( opacfacets && ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmFriendSearchActive' ) || Koha.Preference( 'HelimaSearchActive' ) ) ) %]
                     <div class="col-lg-3">
                         <div id="facetcontainer" class="onlyAdditionalOfferFacets">
                             <!-- FACETS START -->
@@ -108,7 +108,7 @@
                     </div>
                 [% END %]
 
-                [% IF ( total || ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmFriendSearchActive' ) ) ) %]
+                [% IF ( total || ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmFriendSearchActive' ) || Koha.Preference( 'HelimaSearchActive' ) ) ) %]
                     [% IF ( opacfacets ) %]
                         <div class="col-lg-9 order-lg-2 maincontent">
                     [% ELSE %]
@@ -134,13 +134,13 @@
                             <p>(related searches:[% FOREACH relate IN related %] [% relate.related_search | html %][% END %]).</p>
                         [% END %]
                     [% ELSE %]
-                        [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmfriendSearchActive' ) ) %]
+                        [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmfriendSearchActive' ) || Koha.Preference( 'HelimaSearchActive' ) ) %]
                         <h1 id="numresultsAdditionalOffers"></h1>
                         [% END %]
                     [% END # / IF total %]
                 [% END # / IF searchdesc %]
 
-                [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmfriendSearchActive' ) ) %]
+                [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmfriendSearchActive' ) || Koha.Preference( 'HelimaSearchActive' ) ) %]
                     <div id="encyclopediaresults">
                         <div id="encyclopedianumresults"><strong>The search at <span class="encyclopediaprovider"></span> in collection <span class="encyclopediasource"></span> returned <span class="encyclopediasearchhitcount"></span> hits [% IF ( total ) %]<a id="showCatalogHitList" href="javascript:showCatalogHitList()"> - Back to cataloge result list</a>[% END %]</strong></div>
                         <div id="encyclopediaheader" class="toolbar clearfix">
@@ -151,7 +151,7 @@
                             </tbody>
                         </table>
                     </div>
-                [% END # / IF MunzingerEncyclopediaSearchEnabled or BrockhausSearchActive or FilmfriendSearchActive %]
+                [% END # / IF MunzingerEncyclopediaSearchEnabled or BrockhausSearchActive or FilmfriendSearchActive or HelimaSearchActive %]
                 
                 <div id="userresults">
                     [% maxResultCountForDidYouMean = Koha.Preference( 'DidYouMeanMaxResultCount' ) || total %]
@@ -629,6 +629,7 @@
     [% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) ) %][% Asset.js("js/munzinger.js") %][% END %]
     [% IF ( Koha.Preference( 'BrockhausSearchActive' ) ) %][% Asset.js("js/brockhaus.js") %][% END %]
     [% IF ( Koha.Preference( 'FilmfriendSearchActive' ) ) %][% Asset.js("js/filmfriend.js") %][% END %]
+    [% IF ( Koha.Preference( 'HelimaSearchActive' ) ) %][% Asset.js("js/helima.js") %][% END %]
     [% IF ( Koha.Preference('DivibibEnabled') ) %][% INCLUDE 'divibib-js.inc' %][% END %]
     [% Asset.js("js/authtoresults.js") | $raw %]
     [% Asset.js("lib/hc-sticky.js") | $raw %]
@@ -773,6 +774,9 @@
             [% END %]
             [% IF ( Koha.Preference( 'FilmfriendSearchActive' ) ) %]
                 getFilmfriendFacet(query_desc,[% Koha.Preference('FilmfriendNumSearchResults') %], _("Prev &laquo;"), _("Next &raquo;"), _("Read more »"), _("« Read less"), _("by/with "), _("Language: "), _("Subtitle language: ") );
+            [% END %]
+            [% IF ( Koha.Preference( 'HelimaSearchActive' ) ) %]
+                getHeLiMaFacet(query_desc,[% Koha.Preference('HelimaNumSearchResults') or 20 %], "[% Koha.Preference('HelimaAdditionalOfferName') %]", _("Prev &laquo;"), _("Next &raquo;"), _("Read more »"), _("« Read less"), _("by/with"), _("Duration: "), _("suitable for "), _("suitable for grade "));
             [% END %]
 
             $(".moretoggle").click(function(e){
