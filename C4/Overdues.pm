@@ -624,7 +624,15 @@ sub UpdateFine {
     }
 
     if ($accountline) {
-        if ( Koha::Number::Price->new( $accountline->amount )->round != Koha::Number::Price->new($amount)->round ) {
+
+        # A matched OVERDUE line whose status is LOST (item marked lost without an
+        # automatic return) is only identified here to avoid duplicating the charge
+        # when the item later returns; its amount is frozen at loss time and cannot
+        # be re-adjusted (adjust()/overdue_update is only allowed on UNRETURNED
+        # lines), so restrict the increment to still-accruing UNRETURNED fines.
+        if (   $accountline->status eq 'UNRETURNED'
+            && Koha::Number::Price->new( $accountline->amount )->round != Koha::Number::Price->new($amount)->round )
+        {
             $accountline->adjust(
                 {
                     amount    => $amount,
