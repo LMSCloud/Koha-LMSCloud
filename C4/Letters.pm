@@ -468,6 +468,7 @@ sub SendAlerts {
             $sthorders = $dbh->prepare($strsth);
             $sthorders->execute( @$externalid );
             $dataorders = $sthorders->fetchall_arrayref( {} );
+            %loops      = ( aqorders => [ map { $_->{ordernumber} } @$dataorders ] );
         }
 
         if ($type eq 'claimissues') {
@@ -707,6 +708,11 @@ sub GetPreparedLetter {
       or carp( "ERROR: nothing to substitute - all of 'objects', 'tables', 'loops' and 'substitute' are empty" ),
          return;
     my $want_librarian = $params{want_librarian};
+    
+    if ($want_librarian) {
+        my $userenv = C4::Context->userenv;
+        $objects->{librarian} = Koha::Patrons->find( C4::Context->userenv->{number} ) if ($userenv);
+    }
 
     if (%$substitute) {
         while ( my ($token, $val) = each %$substitute ) {
