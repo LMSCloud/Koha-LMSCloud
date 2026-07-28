@@ -1,4 +1,4 @@
-[% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmFriendSearchActive' ) ) %]
+[% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmFriendSearchActive' ) || Koha.Preference( 'HelimaSearchActive' ) ) %]
     <div id="encyclopedia-facets">
         <h2><a href="#abc" class="further-offerings-menu-collapse-toggle">Further offerings</a></h2>
         <ul class="further-offerings-menu-collapse">
@@ -26,7 +26,15 @@
                     </ul>
                 </li>
             [% END %]
+            [% IF ( Koha.Preference( 'HelimaSearchActive' ) ) %]
+                <li id="helima-facet" style="display: none;">
+                    <h3 id="facet-helima">[% Koha.Preference( 'HelimaAdditionalOfferName' ) || 'Hessen-Angebote' %] (<span id="helima-count"></span>&nbsp;hits)</h3>
+                    <ul>
+                        <li> <span class="facet-label"></span> <span class="facet-count"></span> </li>
+                    </ul>
+                </li>
+            [% END %]
         </ul>
     </div>
 [% END %]
-<!-- / #encyclopedia search if MunzingerEncyclopediaSearchEnabled or BrockhausSearchEnabled or FilmFriendSearchActive -->
+<!-- / #encyclopedia search if MunzingerEncyclopediaSearchEnabled or BrockhausSearchEnabled or FilmFriendSearchActive or HelimaSearchActive -->
