@@ -135,6 +135,9 @@ function setFilmfriendCollectionName(facetData, i)  {
     else if ( facetData[i].searchType == "Collection" ) {
         facetElementName = "Sammlungen";
     }
+    else {
+        facetElementName = facetData[i].searchType;
+    }
     facetData[i]['name'] = facetElementName;
     
     return facetElementName;
@@ -246,10 +249,6 @@ function generateFilmfriendEntryPerson(facetID,entryID) {
 
     var rowElement = document.createElement("tr");
     var colElement = document.createElement("td");
-    /*
-    colElement.setAttribute('class','bibliocol');
-    rowElement.appendChild(colElement);
-    */
 
     colElement = document.createElement("td");
     colElement.setAttribute('class','bibliocol');
