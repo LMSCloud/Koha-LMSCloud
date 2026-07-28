@@ -26,6 +26,14 @@
                     </ul>
                 </li>
             [% END %]
+            [% IF ( Koha.Preference( 'HelimaSearchActive' ) ) %]
+                <li id="helima-facet" style="display: none;">
+                    <h3 id="facet-helima">[% Koha.Preference( 'HelimaAdditionalOfferName' ) || 'Hessen-Angebote' %] (<span id="helima-count"></span>&nbsp;hits)</h3>
+                    <ul>
+                        <li> <span class="facet-label"></span> <span class="facet-count"></span> </li>
+                    </ul>
+                </li>
+            [% END %]
         </ul>
     </div>
 [% END %]
