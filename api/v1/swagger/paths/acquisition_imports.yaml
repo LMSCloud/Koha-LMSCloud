@@ -110,7 +110,7 @@
           type: object
     x-koha-authorization:
       permissions:
-        acquisition: order_manage
+        tools: acquisition_import_viewer
 
 /acquisitionimports/joined:
   get:
@@ -175,7 +175,7 @@
           type: object
     x-koha-authorization:
       permissions:
-        acquisition: order_manage
+        tools: acquisition_import_viewer
 
 /acquisitionimports/{id}:
   get:
@@ -210,7 +210,7 @@
           type: object
     x-koha-authorization:
       permissions:
-        acquisition: order_manage
+        tools: acquisition_import_viewer
 
 /acquisitionimports/objects:
   get:
@@ -274,7 +274,7 @@
           type: object
     x-koha-authorization:
       permissions:
-        acquisition: order_manage
+        tools: acquisition_import_viewer
 
 /acquisitionimports/objects/{id}:
   get:
@@ -309,4 +309,4 @@
           type: object
     x-koha-authorization:
       permissions:
-        acquisition: order_manage
+        tools: acquisition_import_viewer

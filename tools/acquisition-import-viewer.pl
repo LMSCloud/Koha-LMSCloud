@@ -10,11 +10,11 @@ acquisition-import-viewer.pl - Staff-Interface-Seite für Acquisition-Import-Tab
 =head1 DESCRIPTION
 
 Rendert die Viewer-Seite für die Tabellen C<acquisition_import> und
-C<acquisition_import_objects>. Die eigentlichen Daten werden im Browser
+C<acquisitions_import_objects>. Die eigentlichen Daten werden im Browser
 per JavaScript direkt über die Koha REST API abgefragt
 (C</api/v1/acquisitionimports/...>).
 
-Erforderliche Berechtigung: C<acquisition → order_manage>
+Erforderliche Berechtigung: C<tools → acquisition_import_viewer>
 
 =cut
 
@@ -31,7 +31,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => 'intranet',
         authnotrequired => 0,
-        flagsrequired   => { acquisition => 'order_manage' },
+        flagsrequired   => { tools => 'acquisition_import_viewer' },
     }
 );
 

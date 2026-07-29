@@ -4,6 +4,7 @@
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Acquisition Import Viewer &rsaquo; [% 'Tools' | html %] &rsaquo; [% kmain_title | html %]</title>
+[% Asset.css("lib/datatables/datatables.css") | $raw %]
 [% INCLUDE 'doc-head-close.inc' %]
 
 <style>
@@ -44,9 +45,9 @@
                 <strong>API Error:</strong> <span id="api-error-text"></span>
             </div>
 
-            <!-- Master: Importdata -->
+            <!-- Master: Import Data -->
             <div class="section-header">
-                <h3>Importdata</h3>
+                <h3>Import Data</h3>
                 <span class="badge badge-secondary" id="count-imports">&hellip;</span>
             </div>
             <div id="loading-imports">Loading columns&hellip;</div>
@@ -57,9 +58,9 @@
                 </table>
             </div>
 
-            <!-- Detail: Importobjects -->
+            <!-- Detail: Import Objects -->
             <div class="section-header">
-                <h3>Importobjects</h3>
+                <h3>Import Objects</h3>
                 <span class="badge badge-info" id="selected-import-label" style="display:none"></span>
                 <span class="badge badge-secondary" id="count-objects" style="display:none">&hellip;</span>
             </div>
@@ -80,14 +81,14 @@
 <div class="modal fade" id="payloadModal" tabindex="-1" role="dialog" aria-labelledby="payloadModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between">
                 <h5 class="modal-title" id="payloadModalLabel">Payload</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="margin-left:auto;order:2">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body" style="padding:0">
-                <pre id="payload-content" style="margin:0;padding:1rem;max-height:75vh;overflow:auto;white-space:pre-wrap;word-break:break-all;font-size:.8rem;background:#f8f8f8;border:0;border-radius:0"></pre>
+                <pre id="payload-content" style="margin:0;padding:1rem;max-height:75vh;overflow:auto;white-space:pre-wrap;word-break:break-all;font-size:1.3rem;background:#f8f8f8;border:0;border-radius:0"></pre>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
