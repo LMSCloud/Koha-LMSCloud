@@ -206,7 +206,7 @@
                         [% END %]
  
                         [% IF ( CAN_user_tools_acquisition_import_viewer ) %]
-                            <dt><a href="/cgi-bin/koha/tools/ekz_import_analyzer.pl">Log-Viewer of ekz-Interface imports</a></dt>
+                            <dt><a href="/cgi-bin/koha/tools/acquisition-import-viewer.pl">Log-Viewer of ekz-Interface imports</a></dt>
                             <dd>Acquisition (ekz) import log viewer</dd>
                         [% END %]
 
