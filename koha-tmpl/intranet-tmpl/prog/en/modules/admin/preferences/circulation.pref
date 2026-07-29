@@ -1147,6 +1147,7 @@ Circulation:
               choices:
                   any_time_is_placed: "any time a hold is placed."
                   not_always: "only if all items are checked out and the record has at least one hold already."
+                  issued_or_reserved: "either if all items are checked out or the record has at least one hold already."
                   any_time_is_collected: "any time a hold is collected."
         -
             - pref: useDefaultReplacementCost

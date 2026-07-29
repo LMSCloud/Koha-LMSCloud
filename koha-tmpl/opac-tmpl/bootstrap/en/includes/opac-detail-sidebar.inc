@@ -6,7 +6,7 @@
         [% IF Koha.Preference( 'opacuserlogin' ) == 1 %]
             [% IF Koha.Preference( 'OPACHoldRequests' ) == 1 %]
                 [% IF ( ReservableItems ) %]
-                    <li><a class="reserve btn btn-link btn-lg" href="/cgi-bin/koha/opac-reserve.pl?biblionumber=[% biblio.biblionumber | html %]"><i class="fa fa-fw fa-bookmark" aria-hidden="true"></i> Place hold</a></li>
+                    <li><a class="reserve btn btn-link btn-lg" href="/cgi-bin/koha/opac-reserve.pl?biblionumber=[% biblio.biblionumber | html %]"><i class="fa fa-fw fa-bookmark" aria-hidden="true"></i> [% IF ( OrderableItems ) %]Place order[% ELSE %]Place hold[% END %]</a></li>
                 [% END %]
             [% END %]
         [% END %]
