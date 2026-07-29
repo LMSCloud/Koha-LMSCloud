@@ -120,7 +120,7 @@ var masterDateRangeCols = ['object_date', 'processingtime'];
 var COLUMN_TITLES = {
     id:                 _("Import ID"),
     vendor_id:          _("Vendor"),
-    object_type:        _("Type"),
+    object_type:        _("Object type"),
     object_number:      _("Order no / Reference no"),
     object_date:        _("Order date"),
     rec_type:           _("Record type"),
