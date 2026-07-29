@@ -13,9 +13,7 @@ return {
               WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'message_transports' AND COLUMN_NAME = 'letter_code'}
         );
         if ( $mt_letter_code && $mt_letter_code !~ /^varchar\(50\)/i ) {
-            $dbh->do(
-                q{ALTER TABLE message_transports MODIFY `letter_code` varchar(50) NOT NULL DEFAULT ''}
-            );
+            $dbh->do(q{ALTER TABLE message_transports MODIFY `letter_code` varchar(50) NOT NULL DEFAULT ''});
             say_success( $out, "Widened message_transports.letter_code to varchar(50)" );
         } else {
             say_info( $out, "message_transports.letter_code already varchar(50) (or table missing), skipping" );

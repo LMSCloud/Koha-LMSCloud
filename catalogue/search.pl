@@ -480,10 +480,10 @@ for ( my $ii = 0 ; $ii < @operands ; ++$ii ) {
 
 # Params that can only have one value
 my $scan             = $params->{'scan'};
-my $count            = C4::Context->preference('numSearchResults')         || 20;
-my $results_per_page = $params->{'count'}                                  || $count;
-my $offset           = $params->{'offset'}                                 || 0;
-my $whole_record     = $params->{'whole_record'}                           || 0;
+my $count            = C4::Context->preference('numSearchResults') || 20;
+my $results_per_page = $params->{'count'}                          || $count;
+my $offset           = $params->{'offset'}                         || 0;
+my $whole_record     = $params->{'whole_record'}                   || 0;
 my $weight_search    = $params->{'weight_search_submitted'}
     ? ( $params->{'weight_search'} ? 1 : 0 )    # Form was submitted, use actual checkbox value
     : 1;                                        # Form not submitted

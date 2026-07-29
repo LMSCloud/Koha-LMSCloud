@@ -200,14 +200,17 @@ subtest 'GetBranchcodesWithOverdueRules honours BookMobile station/bus rule mode
     # The bus has an overdue rule; the station has none (initially).
     $builder->build( { source => 'Overduerule', value => { branchcode => $bus, delay1 => 5 } } );
 
-    my $has = sub { my ( $code, @list ) = @_; return scalar grep { $_ eq $code } @list; };
+    my $has = sub {
+        my ( $code, @list ) = @_;
+        return scalar grep { $_ eq $code } @list;
+    };
 
     # Mode A: station rules NOT active -> the bus's rules cover its stations, so
     # the cron iterates the bus but NOT the station.
     t::lib::Mocks::mock_preference( 'BookMobileSupportEnabled',            1 );
     t::lib::Mocks::mock_preference( 'BookMobileStationOverdueRulesActive', 0 );
     my @a = C4::Overdues::GetBranchcodesWithOverdueRules();
-    ok( $has->( $bus, @a ), 'station-rules OFF: bus (with rules) is processed' );
+    ok( $has->( $bus,      @a ), 'station-rules OFF: bus (with rules) is processed' );
     ok( !$has->( $station, @a ), 'station-rules OFF: station is NOT processed (bus rules cover it)' );
 
     # Mode B: station rules active; the station has no own rules but its bus does,
@@ -222,7 +225,7 @@ subtest 'GetBranchcodesWithOverdueRules honours BookMobile station/bus rule mode
     t::lib::Mocks::mock_preference( 'BookMobileSupportEnabled',            0 );
     t::lib::Mocks::mock_preference( 'BookMobileStationOverdueRulesActive', 1 );
     my @c = C4::Overdues::GetBranchcodesWithOverdueRules();
-    ok( $has->( $bus, @c ), 'support OFF: bus processed' );
+    ok( $has->( $bus,      @c ), 'support OFF: bus processed' );
     ok( !$has->( $station, @c ), 'support OFF: station NOT processed regardless of station-rules pref' );
 
     $schema->storage->txn_rollback;

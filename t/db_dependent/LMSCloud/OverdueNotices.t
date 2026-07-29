@@ -116,7 +116,8 @@ sub queued_odue {
     my ($borrowernumber) = @_;
     return $dbh->selectrow_array(
         q|SELECT COUNT(*) FROM message_queue WHERE borrowernumber = ? AND letter_code = 'ODUE'|,
-        undef, $borrowernumber );
+        undef, $borrowernumber
+    );
 }
 
 sub setup_odue_template {

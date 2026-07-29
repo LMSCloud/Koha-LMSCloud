@@ -51,10 +51,9 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
-my $library_for_fields  = Koha::Libraries->find($branchcode);
-my @additional_fields   = Koha::AdditionalFields->search( { tablename => 'branches' } )->as_list;
-my @additional_field_values =
-    $library_for_fields ? $library_for_fields->get_additional_field_values_for_template : ();
+my $library_for_fields      = Koha::Libraries->find($branchcode);
+my @additional_fields       = Koha::AdditionalFields->search( { tablename => 'branches' } )->as_list;
+my @additional_field_values = $library_for_fields ? $library_for_fields->get_additional_field_values_for_template : ();
 
 $template->param(
     additional_fields       => \@additional_fields,

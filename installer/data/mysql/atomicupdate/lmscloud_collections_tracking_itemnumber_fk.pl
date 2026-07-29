@@ -25,7 +25,8 @@ return {
               WHERE i.itemnumber IS NULL}
         );
         if ($orphans) {
-            say_warning( $out,
+            say_warning(
+                $out,
                 "collections_tracking has $orphans orphaned itemnumber rows; cannot add FK. Clean up before re-running."
             );
             return;

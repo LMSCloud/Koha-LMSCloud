@@ -51,8 +51,7 @@ subtest 'delete_serial_issues honoured when the biblio survives' => sub {
         my $biblio      = $builder->build_sample_biblio;
         my $serial_item = $builder->build_sample_item( { biblionumber => $biblio->id } );
         my $other_item  = $builder->build_sample_item( { biblionumber => $biblio->id } );
-        my $serial      = $builder->build_object(
-            { class => 'Koha::Serials', value => { biblionumber => $biblio->id } } );
+        my $serial = $builder->build_object( { class => 'Koha::Serials', value => { biblionumber => $biblio->id } } );
         $builder->build_object(
             {
                 class => 'Koha::Serial::Items',
@@ -103,7 +102,7 @@ subtest 'delete_serial_issues honoured when the biblio survives' => sub {
     );
 
     is( Koha::Items->find( $serial_item->id ), undef, 'Serial-linked item deleted (option off)' );
-    ok( Koha::Biblios->find( $biblio->id ),    'Biblio survives (option off)' );
+    ok( Koha::Biblios->find( $biblio->id ), 'Biblio survives (option off)' );
     ok(
         Koha::Serials->find( $serial->serialid ),
         'Serial kept when delete_serial_issues is off'
