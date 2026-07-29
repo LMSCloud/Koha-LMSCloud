@@ -129,7 +129,7 @@ subtest 'Bookmobile register-clearing primitives' => sub {
         'BookMobileSupportEnabled syspref is accessible (gates branchcategory persistence in set-library.pl)'
     );
 
-    my $library = $builder->build_object( { class => 'Koha::Libraries' } );
+    my $library  = $builder->build_object( { class => 'Koha::Libraries' } );
     my $register = $builder->build_object(
         {
             class => 'Koha::Cash::Registers',

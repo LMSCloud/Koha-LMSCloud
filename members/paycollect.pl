@@ -79,10 +79,11 @@ my $total_due  = $account->outstanding_debits->total_outstanding;
 my $total_paid     = $input->param('paid');
 my $total_tendered = $input->param('tendered');
 
-my $selected_lines = $input->param('selected');                           # comes from pay.pl
+my $selected_lines = $input->param('selected');    # comes from pay.pl
+
 # The form is reached via the pay_individual query param on GET, but submits op=cud-pay_individual on POST.
 my $pay_individual = $input->param('pay_individual') || $op eq 'cud-pay_individual';
-my $selected_accts = $input->param('selected_accts');                     # comes from paycollect.pl
+my $selected_accts = $input->param('selected_accts');                                  # comes from paycollect.pl
 my $payment_note   = uri_unescape scalar $input->param('payment_note');
 my $payment_type   = scalar $input->param('payment_type');
 my $accountlines_id;

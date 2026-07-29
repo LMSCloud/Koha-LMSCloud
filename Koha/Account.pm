@@ -230,13 +230,14 @@ sub add_credit {
     my $interface     = $params->{interface};
     my $library_id    = $params->{library_id};
     my $cash_register = $params->{cash_register};
+
     # An empty string (e.g. from an unselected form dropdown) is not a valid
     # register_id; treat it as "no register" so it does not violate the FK.
     $cash_register = undef if defined($cash_register) && $cash_register eq q{};
-    my $payment_type  = $params->{payment_type};
-    my $credit_type   = $params->{type} || 'PAYMENT';
-    my $item_id       = $params->{item_id};
-    my $issue_id      = $params->{issue_id};
+    my $payment_type = $params->{payment_type};
+    my $credit_type  = $params->{type} || 'PAYMENT';
+    my $item_id      = $params->{item_id};
+    my $issue_id     = $params->{issue_id};
 
     my $old_issue_id;
     if ($issue_id) {
@@ -517,12 +518,13 @@ sub add_debit {
         Koha::Exceptions::Account::AmountNotPositive->throw( error => 'Debit amount passed is not positive' );
     }
 
-    my $description      = $params->{description} // q{};
-    my $note             = $params->{note}        // q{};
-    my $user_id          = $params->{user_id};
-    my $interface        = $params->{interface};
-    my $library_id       = $params->{library_id};
-    my $cash_register    = $params->{cash_register};
+    my $description   = $params->{description} // q{};
+    my $note          = $params->{note}        // q{};
+    my $user_id       = $params->{user_id};
+    my $interface     = $params->{interface};
+    my $library_id    = $params->{library_id};
+    my $cash_register = $params->{cash_register};
+
     # An empty string (e.g. from an unselected form dropdown) is not a valid
     # register_id; treat it as "no register" so it does not violate the FK.
     $cash_register = undef if defined($cash_register) && $cash_register eq q{};

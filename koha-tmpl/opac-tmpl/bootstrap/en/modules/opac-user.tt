@@ -762,9 +762,7 @@
                                                             <img src="[% ISSUE.titlecoverurl | html %]" class="ekzcover" alt="Onleihe-Cover" />
                                                         [% END %]
                                                     </td>
-                                                    <td>
-                                                        [% INCLUDE 'biblio-title.inc' biblio=ISSUE link=1 %]
-                                                    </td>
+                                                    <td> [% INCLUDE 'biblio-title.inc' biblio=ISSUE link=1 %] </td>
                                                     <td>
                                                         [% IF ( ISSUE.imageurl && !Koha.Preference('OpacNoItemTypeImages') ) %]
                                                             <img class="itemtype-image" src="[% ISSUE.imageurl | html %]" title="[% ISSUE.description | html %]" alt="[% ISSUE.description | html %]" />
@@ -781,9 +779,7 @@
                                                         <td class="call_no">[% ISSUE.itemcallnumber | html %]</td>
                                                     [% END %]
                                                     [% IF ( OPACFinesTab ) %]
-                                                        <td class="fines">
-                                                            [% IF ( ISSUE.charges ) %]<span>Yes</span>[% ELSE %]<span>No</span>[% END %]
-                                                        </td>
+                                                        <td class="fines"> [% IF ( ISSUE.charges ) %]<span>Yes</span>[% ELSE %]<span>No</span>[% END %] </td>
                                                     [% END %]
                                                     <td></td>
                                                 </tr>

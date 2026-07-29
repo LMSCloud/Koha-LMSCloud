@@ -5,7 +5,7 @@ return {
     bug_number  => "LMSCLOUD-split-file-transport-host-port",
     description =>
         "Split legacy 'host:port' values in file_transports.host into host + port (LMS sites stored host:port in vendor_edi_accounts.host before upstream migration in db_revs/250600022.pl)",
-    up          => sub {
+    up => sub {
         my ($args) = @_;
         my ( $dbh, $out ) = @$args{qw(dbh out)};
 
@@ -24,9 +24,7 @@ return {
             return;
         }
 
-        my $update_sth = $dbh->prepare(
-            q{UPDATE file_transports SET host = ?, port = ? WHERE file_transport_id = ?}
-        );
+        my $update_sth = $dbh->prepare(q{UPDATE file_transports SET host = ?, port = ? WHERE file_transport_id = ?});
 
         my $migrated = 0;
         for my $row (@$rows) {
