@@ -149,7 +149,7 @@ Enhanced content:
         -
             - Name of the Licensor/Provider of the HeLiMa service:  
             - pref: HelimaAdditionalOfferName
-            - ". The name is used to in the OPAC view."
+            - ". The name is used at the OPAC additional offer view."
         -
             - Show a maximum of  
             - pref: HelimaNumSearchResults
