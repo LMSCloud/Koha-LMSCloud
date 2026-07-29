@@ -1,13 +1,303 @@
+/**
+ * @file LMSCoverFlow — an OPAC cover-flow / cover-grid widget for Koha.
+ *
+ * A single-file UMD module. Public surface (see the exports at the bottom):
+ *   - createLcfInstance() -> an instance with setGlobals / setConfig / setData /
+ *     setContainer / getConfig / render.
+ *   - ShelfBrowser: wires the opac-detail shelf browser.
+ *   - CoverflowByQuery: a query-driven, paged cover flow.
+ *   - externalSources: an Observable used to coordinate external cover sources.
+ *
+ * Internals are encapsulated inside the UMD factory. The pure, DOM-agnostic
+ * helpers are grouped at the top of the factory and re-exported under the
+ * internal `_internals` key purely so they can be unit-tested (see
+ * t/mocha/unit/LMSCoverFlow.internals.test.mjs); they are not a public API.
+ */
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
     typeof define === 'function' && define.amd ? define(['exports'], factory) :
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.LMSCoverFlow = {}));
 })(this, (function (exports) { 'use strict';
 
+    /*
+     * Pure, DOM-agnostic helpers, grouped up front. They stay inside the UMD
+     * factory so they don't leak to the global scope when this file is loaded as
+     * a classic <script>; they're exposed for direct unit testing only through the
+     * internal `_internals` export at the bottom of this factory.
+     */
+    /**
+     * Extract an lcf item id (the `_<7 digits>` class) from a rendered node.
+     * @param {Element} domNode - node whose second class holds the generated id.
+     * @returns {string} the id class.
+     * @throws {Error} when the second class does not match `_<7 digits>`.
+     */
+    function getLcfItemId(domNode) {
+        const id = domNode?.classList[1];
+        if (!/_[0-9]{7}/.test(id))
+            throw new Error("Id doesn't match pattern.");
+        return id;
+    }
+
+    /**
+     * @param {Object} object
+     * @returns {Array<[string, *]>} the object's own enumerable entries.
+     */
+    function arrFromObjEntries(object) {
+        return Array.from(Object.entries(object));
+    }
+
+    /**
+     * Build `data-*` attribute pairs from an item's `additionalProperties` map.
+     * @param {{additionalProperties?: Object}} currentItem
+     * @returns {Array<[string, *]>|undefined} `['data-<key>', value]` pairs, or
+     *   undefined when the item carries no additionalProperties.
+     */
+    function additionalProperties(currentItem) {
+        if (currentItem.additionalProperties) {
+            const result = [];
+            arrFromObjEntries(currentItem?.additionalProperties).forEach((property) => {
+                const [key, value] = property;
+                result.push([`data-${key}`, value]);
+            });
+            return result;
+        }
+        return undefined;
+    }
+
+    /**
+     * Map each lcf* aspect class to the attribute/value instruction that
+     * applyInstructions() consumes. Instruction shape varies per row
+     * (see describeArgShape).
+     * @param {Object} item - a formatted data item.
+     * @returns {Map<string, *>} aspect class -> instruction.
+     */
+    function attributeInstructionsFor(item) {
+        return new Map([
+            [
+                'lcfItemContainer',
+                additionalProperties(item),
+            ],
+            [
+                'lcfAnchor',
+                ['href', item.referenceToDetailsView],
+            ],
+            [
+                'lcfCoverImage',
+                ['src', item?.coverurl.replaceAll('&amp;', '&')],
+            ],
+            [
+                'lcfMediaTitle',
+                [['textContent', 'data-text'], item.title],
+            ],
+            [
+                'lcfMediaAuthor',
+                ['textContent', item.author],
+            ],
+            [
+                'lcfMediaItemCallNumber',
+                ['textContent', item.itemCallNumber],
+            ],
+            [
+                'lcfMediaISBD',
+                ['textContent', `${item.author}: ${item.title}`],
+            ],
+        ]);
+    }
+
+    /**
+     * Classify an instruction's shape so applyInstructions() can pick a branch.
+     * @param {string|string[]} attribute
+     * @param {*|*[]} data
+     * @returns {[boolean, boolean]} whether attribute and data are arrays.
+     */
+    function describeArgShape(attribute, data) {
+        return [Array.isArray(attribute), Array.isArray(data)];
+    }
+    /**
+     * @param {string} lcfClass
+     * @param {Map<string, *>} map
+     * @returns {*} the instruction registered for the given aspect class.
+     */
+    function instructionsForClass(lcfClass, map) { return map.get(lcfClass); }
+    /**
+     * @param {string} attribute
+     * @returns {boolean} true when the attribute is the special `textContent` sink.
+     */
+    function isTextContent(attribute) { return attribute === 'textContent'; }
+
+    /**
+     * Assign one value to a node, routing the special `textContent` sink to the
+     * property and everything else to a real attribute.
+     * @param {Element} node
+     * @param {string} attr
+     * @param {*} value
+     * @returns {void}
+     */
+    function setAttrOrText(node, attr, value) {
+        if (isTextContent(attr)) {
+            node.textContent = value;
+            return;
+        }
+        node.setAttribute(attr, value);
+    }
+
+    /**
+     * Apply an attribute instruction to a DOM node, handling the four shapes
+     * describeArgShape() distinguishes: paired attribute/value lists, several
+     * attributes sharing one value, several values for one attribute, and the
+     * scalar attribute/textContent case.
+     * @param {Element} currentTag - node to mutate.
+     * @param {[string|string[], *|*[]]} currentInstructions - [attribute, data].
+     * @returns {void}
+     */
+    function applyInstructions(currentTag, currentInstructions) {
+        const node = currentTag;
+        const [attribute, data] = currentInstructions;
+        const [attrIsList, dataIsList] = describeArgShape(attribute, data);
+        // Both lists: currentInstructions is itself a list of [attr, value] pairs.
+        if (attrIsList && dataIsList) {
+            currentInstructions.forEach(([attr, value]) => setAttrOrText(node, attr, value));
+            return;
+        }
+        // Several attributes share one value.
+        if (attrIsList) {
+            attribute.forEach((attr) => setAttrOrText(node, attr, data));
+            return;
+        }
+        // One attribute, several values (last write wins).
+        if (dataIsList) {
+            data.forEach((value) => setAttrOrText(node, attribute, value));
+            return;
+        }
+        // Scalar attribute/value (covers the textContent sink too).
+        setAttrOrText(node, attribute, data);
+    }
+
+    /**
+     * @param {*} p
+     * @returns {boolean} true when `p` is thenable (a Promise-like object).
+     */
+    function isPromise(p) {
+        if (typeof p === 'object' && typeof p.then === 'function') {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Resolve the cover images' shared height: the tallest image, capped at the
+     * configured fallback height. Non-numeric entries are treated as 0.
+     * @param {Array<number|string|null>} lcfCoverImageHeights
+     * @param {{coverImageFallbackHeight: number}} config
+     * @returns {number}
+     */
+    function processHeights(lcfCoverImageHeights, config) {
+        const heights = lcfCoverImageHeights
+            .map((height) => height || 0)
+            .map((height) => (Number.isNaN(+height) ? '' : +height));
+        const coverImagesMaximumHeight = Math.max(...heights);
+        return coverImagesMaximumHeight <= config.coverImageFallbackHeight
+            ? coverImagesMaximumHeight : config.coverImageFallbackHeight;
+    }
+
+    /**
+     * Collect the `.value` of each entry of a settled-promise result set.
+     * @param {Array<{value: *}>} resultsArray
+     * @returns {Array<*>}
+     */
+    function flattenPromiseResults(resultsArray) {
+        const flattenedResults = [];
+        Object.keys(resultsArray).forEach((index) => {
+            flattenedResults.push(resultsArray[index].value);
+        });
+        return flattenedResults;
+    }
+
+    /**
+     * Sum the card widths plus one inter-card gap per card (used for shelf-browser
+     * left-scroll offset). Returns 0 on error.
+     * @param {number[]} offsetWidthArray
+     * @param {number} computedFontSize - the gap size, in px.
+     * @returns {number}
+     */
+    function calculateCoverFlowPlusGaps(offsetWidthArray, computedFontSize) {
+        try {
+            return offsetWidthArray
+                .reduce((accumulator, currentValue) => accumulator + currentValue + computedFontSize)
+                + computedFontSize;
+        }
+        catch (error) {
+            console.trace(`Looks like something went wrong in ${calculateCoverFlowPlusGaps.name} ->`, error);
+            return 0;
+        }
+    }
+
+    /**
+     * @param {number} ms
+     * @returns {Promise<void>} a promise resolving after `ms` milliseconds.
+     */
+    function resyncExecution(ms) {
+        return new Promise((resolve) => {
+            setTimeout(resolve, ms);
+        });
+    }
+
+    /**
+     * Generate a random lcf item id of the form `_<7 digits>` (see getLcfItemId).
+     * @returns {string}
+     */
+    function generateId() {
+        const randomValues = new Uint8Array(16);
+        return `_${window.crypto.getRandomValues(randomValues)
+        .join('')
+        .toString()
+        .substring(2, 9)}`;
+    }
+
+    /**
+     * Whether the shelf browser should be scrolled into view for this render.
+     * Only on the initial shelf open — never when extending with newly-loaded
+     * nearby items, which would otherwise jump the (now taller) page on paging.
+     * @param {{shelfBrowserScrollIntoView?: boolean, shelfBrowserExtendedCoverFlow?: boolean}} config
+     * @returns {boolean}
+     */
+    function shouldScrollShelfBrowserIntoView(config) {
+        return !!config.shelfBrowserScrollIntoView && !config.shelfBrowserExtendedCoverFlow;
+    }
+
+    /* eslint-disable max-len */
+    /**
+     * Build the request URI for the "nearby items" (shelf browser) endpoint.
+     * @param {{endpoint?: string, itemnumber: (number|string), quantity: (number|string)}} params
+     * @returns {string}
+     */
     function nearbyItemsRequestURI({ endpoint, itemnumber, quantity, }) {
         return `${endpoint || '/api/v1/public/coverflow_data_nearby_items/'}${itemnumber}?quantity=${quantity}`;
     }
 
+    /**
+     * Build the request URI for the generated-cover endpoint.
+     * @param {{endpoint?: string, title?: string, author?: string}} params
+     * @returns {string}
+     */
+    function generatedCoverRequestURI({ endpoint, title, author }) {
+        return `${endpoint || '/api/v1/public/generated_cover'}${title ? `?title=${window.encodeURIComponent(title)}` : ''}${author ? `&author=${window.encodeURIComponent(author)}` : ''}`;
+    }
+
+    /**
+     * Build the request URI for the coverflow-by-query endpoint.
+     * @param {{endpoint?: string, query: string, offset: (number|string), maxcount: (number|string)}} params
+     * @returns {string}
+     */
+    function byQueryRequestURI({ endpoint, query, offset, maxcount, }) {
+        return `${endpoint || '/api/v1/public/coverflow_data_query'}?query=${query}&offset=${offset}&maxcount=${maxcount}`;
+    }
+    /* eslint-enable max-len */
+
+    /**
+     * Feature-detect whether the browser's DOMParser can parse `text/html`.
+     * @returns {boolean}
+     */
     function domParserSupport() {
         if (!window.DOMParser)
             return false;
@@ -20,9 +310,15 @@
         }
         return true;
     }
+    /**
+     * Parse an HTML string into a detached DOM container, collapsing whitespace
+     * between tags first. Uses DOMParser when available, else an innerHTML div.
+     * @param {string} coverhtml
+     * @returns {HTMLElement} the parsed container (a <body> or a <div>).
+     */
     function stringToHtml(coverhtml) {
         const sanitizedCoverhtml = coverhtml.replace(/>\s+|\s+</g, (m) => m.trim());
-        if (domParserSupport) {
+        if (domParserSupport()) {
             const domParser = new DOMParser();
             const parsedHtml = domParser.parseFromString(sanitizedCoverhtml, 'text/html');
             return parsedHtml.body;
@@ -31,6 +327,12 @@
         generatedDom.innerHTML = sanitizedCoverhtml;
         return generatedDom;
     }
+    /**
+     * Descend the first-child chain of the seed node, pushing each first child
+     * onto the array, until an element with no element children is reached.
+     * @param {(Node[]|NodeList)} arrayOfDomNodes - seed whose [0] is the current node.
+     * @returns {Node} the deepest first-child leaf.
+     */
     function recursiveArrayPopulation(arrayOfDomNodes) {
         if (arrayOfDomNodes[0].childElementCount === 0) {
             return arrayOfDomNodes[0];
@@ -38,6 +340,11 @@
         arrayOfDomNodes.push(arrayOfDomNodes[0].firstChild);
         return recursiveArrayPopulation(arrayOfDomNodes[0].childNodes);
     }
+    /**
+     * Remove every element child from a node.
+     * @param {Element} parent
+     * @returns {Element} the same node, emptied of element children.
+     */
     function removeChildNodes(parent) {
         while (parent.firstElementChild) {
             parent.removeChild(parent.lastElementChild);
@@ -45,6 +352,11 @@
         return parent;
     }
 
+    /**
+     * Singleton tracking whether the shelf-browser scroll listeners are attached
+     * for each edge, plus the handler references so they can be removed later.
+     * `data` = { left, right, leftHandler, rightHandler }.
+     */
     class EventListeners {
         static instance;
         data;
@@ -57,18 +369,27 @@
             }
             // return EventListeners.instance;
         }
+        /** Mark the left-edge scroll listener as attached. */
         setLeftToTrue() {
             this.data.left = true;
         }
+        /** Mark the left-edge scroll listener as detached. */
         setLeftToFalse() {
             this.data.left = false;
         }
+        /** Mark the right-edge scroll listener as attached. */
         setRightToTrue() {
             this.data.right = true;
         }
+        /** Mark the right-edge scroll listener as detached. */
         setRightToFalse() {
             this.data.right = false;
         }
+        /**
+         * Store the scroll handler reference for one edge.
+         * @param {Function} handler
+         * @param {'left'|'right'} direction
+         */
         setHandler(handler, direction) {
             if (direction === 'left') {
                 this.data.leftHandler = handler;
@@ -77,12 +398,15 @@
                 this.data.rightHandler = handler;
             }
         }
+        /** @returns {{left:boolean,right:boolean,leftHandler:?Function,rightHandler:?Function}} */
         get() {
             return this.data;
         }
+        /** @returns {boolean} whether the left-edge listener is attached. */
         getLeft() {
             return this.data.left;
         }
+        /** @returns {boolean} whether the right-edge listener is attached. */
         getRight() {
             return this.data.right;
         }
@@ -91,7 +415,13 @@
     const instance = new EventListeners();
     Object.freeze(instance);
 
-    /* This method can be used to create a global style tag inside the head */
+    /**
+     * Create (or replace) the shared `<style id="lcfStyle">` tag in <head>,
+     * scoped to this container via its reference class. Rules are added later
+     * through addGlobalStyle().
+     * @param {Container} container
+     * @returns {void}
+     */
     function createStyleTag(container) {
         const lcfStyleReference = document.querySelector(`#lcfStyle.${container.referenceAsClass}`);
         if (lcfStyleReference) {
@@ -111,9 +441,20 @@
         }
     }
 
-    /* This method can be used to append a compositedStyle to the globalStyleTag */
+    /**
+     * Insert a CSS rule into this container's own `<style id="lcfStyle">` tag,
+     * matched by its reference class. (Using getElementById here would always
+     * return the first such tag, so concurrently-rendered instances piled all
+     * their rules into one sheet and left the others empty.) Plain class/element
+     * selectors are scoped to this instance by appending `.<coverFlowId>`; id,
+     * :root, @-rules and attribute selectors are inserted verbatim.
+     * @param {string} selector
+     * @param {string} newStyle - the rule body (declarations).
+     * @param {Container} container
+     * @returns {void}
+     */
     function addGlobalStyle(selector, newStyle, container) {
-        const lcfStyle = document.getElementById('lcfStyle');
+        const lcfStyle = document.querySelector(`#lcfStyle.${container.referenceAsClass}`);
         if (selector.includes('#') || selector.includes(':root')) {
             const compositedStyle = `${selector} {${newStyle}}`;
             lcfStyle.sheet.insertRule(compositedStyle);
@@ -126,6 +467,13 @@
         }
     }
 
+    /**
+     * Inject the base per-instance styles: the `.text-custom-*` font-size scale
+     * and, when enabled, the cover tooltip overlay rules.
+     * @param {Config} config
+     * @param {Container} container
+     * @returns {void}
+     */
     function setGlobalStyles(config, container) {
         let globalStyles = [
             [
@@ -201,6 +549,12 @@
         });
     }
 
+    /**
+     * Inject the loading-spinner styles and its `spin` keyframes.
+     * @param {Config} config
+     * @param {Container} container
+     * @returns {void}
+     */
     function setLoadingAnimation(config, container) {
         const LOADING_ANIMATION = [
             [
@@ -237,6 +591,12 @@
         });
     }
 
+    /**
+     * Inject the 3D flip-card styles (perspective, back face, flip button and
+     * the `popup` keyframes) used when coverFlowFlippableCards is on.
+     * @param {Container} container
+     * @returns {void}
+     */
     function setFlipCards(container) {
         const FLIP_CARDS = [
             [
@@ -353,6 +713,11 @@
         });
     }
 
+    /**
+     * Inject the default hover effect: raise the card with a drop shadow.
+     * @param {Container} container
+     * @returns {void}
+     */
     function setRaiseShadowOnHover(container) {
         const RAISE_SHADOW_ONHOVER = [
             [
@@ -370,6 +735,11 @@
         });
     }
 
+    /**
+     * Inject the `coloredFrame` hover effect: outline the card on hover.
+     * @param {Container} container
+     * @returns {void}
+     */
     function setHighlightOnHover(container) {
         const HIGHLIGHT_ONHOVER = [
             [
@@ -384,11 +754,23 @@
         });
     }
 
+    /**
+     * Describes one DOM "aspect" (node) to build: its tag, its identifying
+     * reference class, the parent it attaches under, and any extra classes.
+     */
     class LcfItemWrapper {
         tag;
         reference;
         parent;
         additionalClasses;
+        /**
+         * @param {(string|Element)} tag - tag name to create, or an existing node
+         *   to reuse (shelf-browser path).
+         * @param {string} reference - the aspect's identifying class (e.g. 'lcfAnchor').
+         * @param {(string|Element)} parent - parent aspect's reference class, or the
+         *   container's root element.
+         * @param {string[]} additionalClasses - extra classes to add to the node.
+         */
         constructor(tag, reference, parent, additionalClasses) {
             this.tag = tag;
             this.reference = reference;
@@ -397,42 +779,37 @@
         }
     }
 
-    class StrategyManager {
-        strategies;
-        constructor() {
-            this.strategies = [];
-        }
-        addStrategy(strategy) {
-            this.strategies = [...this.strategies, strategy];
-        }
-        getStrategy(name) {
-            return this.strategies.find((strategy) => strategy.name === name);
-        }
-    }
-
-    class Strategy {
-        name;
-        handler;
-        constructor(name, handler) {
-            this.name = name;
-            this.handler = handler;
-        }
-        makePlay() {
-            this.handler();
-        }
-    }
-
+    /**
+     * Set the inline `style` attribute on the single element matching
+     * `.<selector>.<coverFlowId>`.
+     * @param {string} selector - class name(s) without the leading dot.
+     * @param {string} newStyle
+     * @param {Container} container
+     * @returns {void}
+     */
     function addInlineStyle(selector, newStyle, container) {
         const targetElement = document.querySelector(`.${selector}.${container.coverFlowId}`);
         targetElement.setAttribute('style', newStyle);
     }
 
-    function appendToDom(newTagWithClasses, 
+    /**
+     * Attach a freshly built aspect node to the DOM. Nested aspects go under the
+     * parent element matched by their domId; top-level items append to the
+     * container — except shelf-browser inserts, which position relative to the
+     * right nav button, or to the item at currentIndex for left inserts.
+     * @param {{lcfItem: Element, aspect: LcfItemWrapper, domId: string}} newTagWithClasses
+     * @param {Container} container
+     * @param {?('left'|'right')} [buttonDirection] - set during shelf-browser extension.
+     * @param {number} [currentIndex] - insert position for left-direction inserts.
+     * @returns {void}
+     */
+    function appendToDom(newTagWithClasses,
     // eslint-disable-next-line max-len
     container, buttonDirection, currentIndex) {
         /* If the aspect.parent references the main container (lmscoverflow), it appends the
           current item to that handle. Otherwise it looks up the parent in the LcfItemWrapperClass
-          and appends to that element based on the context that the index provides. */
+          (matched by the item's domId) and appends to it; currentIndex only positions
+          shelf-browser left-inserts. */
         const lcfNavigationButtonRight = document.querySelector(`.lcfNavigationButtonRight.${container.coverFlowId}`);
         const lcfItemContainers = document.querySelectorAll(`.lcfItemContainer.${container.coverFlowId}`);
         /** If the new tag gets created in the shelfbrowser context, the element needs
@@ -442,7 +819,7 @@
            * if the right is pressed.
            */
         if (newTagWithClasses.aspect.parent !== container.reference) {
-            const parentReference = document.querySelector(`.${newTagWithClasses.aspect.parent}.${newTagWithClasses.index}`);
+            const parentReference = document.querySelector(`.${newTagWithClasses.aspect.parent}.${newTagWithClasses.domId}`);
             parentReference.appendChild(newTagWithClasses.lcfItem);
         }
         else if (newTagWithClasses.aspect.parent === container.reference && buttonDirection) {
@@ -458,6 +835,14 @@
         }
     }
 
+    /**
+     * Wire the scroll-on-press handler and an arrow icon onto a navigation
+     * button aspect (with an accessible label).
+     * @param {{lcfItem: Element}} newTagWithClasses
+     * @param {'left'|'right'} direction
+     * @param {Container} container
+     * @returns {object} the same newTagWithClasses, mutated in place.
+     */
     function createNavigationButton(newTagWithClasses, direction, container) {
         const CONTAINER = container;
         const NEW_TAG_WITH_CLASSES = newTagWithClasses;
@@ -475,10 +860,26 @@
         else {
             NEW_TAG_WITH_CLASSES.lcfItem.onmousedown = scrollContainerToRight;
         }
+        /* Render the arrow as a decorative Font Awesome icon; keep an accessible name on the
+           button since it no longer has text content. */
+        const icon = document.createElement('i');
+        icon.className = direction === 'left' ? 'fa fa-arrow-left' : 'fa fa-arrow-right';
+        icon.setAttribute('aria-hidden', 'true');
+        NEW_TAG_WITH_CLASSES.lcfItem.setAttribute('aria-label', direction === 'left' ? '←' : '→');
+        NEW_TAG_WITH_CLASSES.lcfItem.appendChild(icon);
         return NEW_TAG_WITH_CLASSES;
     }
 
-    function createTagAndSetClasses(aspect, index, textContent, shelfBrowserItem = false) {
+    /**
+     * Build (or reuse) an aspect's DOM node and tag it with its reference class,
+     * its domId class, and any additional classes.
+     * @param {LcfItemWrapper} aspect
+     * @param {string} domId - the item's generated id, or a sentinel ('lcfLoading'/'lcfNavigation').
+     * @param {string} [textContent]
+     * @param {boolean} [shelfBrowserItem=false] - reuse aspect.tag as the node instead of creating one.
+     * @returns {{lcfItem: Element, aspect: LcfItemWrapper, domId: string}}
+     */
+    function createTagAndSetClasses(aspect, domId, textContent, shelfBrowserItem = false) {
         let lcfItem;
         if (shelfBrowserItem === true) {
             lcfItem = aspect.tag;
@@ -487,8 +888,8 @@
             lcfItem = document.createElement(aspect.tag);
         }
         lcfItem.classList.add(aspect.reference);
-        lcfItem.classList.add(index);
-        /* Adds reference and index as classNames to lcfItem. */
+        lcfItem.classList.add(domId);
+        /* Adds the reference and the domId as classNames to lcfItem. */
         if (aspect.additionalClasses) {
             lcfItem.classList.add(...aspect.additionalClasses);
         }
@@ -498,11 +899,24 @@
         return {
             lcfItem,
             aspect,
-            index,
+            domId,
         };
     }
 
+    /**
+     * The horizontally-scrolling cover flow: builds the flex row, its loading
+     * animation, left/right navigation buttons and one card per data item, and
+     * owns that layout's CSS.
+     */
     class DefaultContext {
+        /**
+         * @param {Config} config
+         * @param {Container} container
+         * @param {Object} data - formatted items keyed by domId.
+         * @param {LcfItemWrapper[]} lcfLoadingAspects
+         * @param {LcfItemWrapper[]} lcfItemWrapperAspects - the per-card aspect tree.
+         * @param {LcfItemWrapper[]} lcfNavigationAspects - [leftButton, rightButton].
+         */
         constructor(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects) {
             this.config = config;
             this.container = container;
@@ -547,30 +961,27 @@
                 ],
             ];
         }
-        setShelfBrowserMobile() {
-            this.defaultContext.push([
-                '.lcfItemContainer',
-                `
-            scroll-snap-type: x proximity;
-            `,
-            ]);
-        }
+        /** Inject this context's layout CSS into the shared style sheet. */
         setStyles() {
             this.defaultContext.forEach((style) => {
                 addGlobalStyle(style[0], style[1], this.container);
             });
         }
+        /** Build and append the loading-spinner node. */
         buildLoadingAnimation() {
             this.lcfLoadingAspects.forEach((aspect) => {
                 appendToDom(createTagAndSetClasses(aspect, 'lcfLoading'), this.container);
             });
         }
+        /** Build and append the left scroll button. */
         buildLeftNavigationButton() {
-            appendToDom(createNavigationButton(createTagAndSetClasses(this.lcfNavigationAspects[0], 'lcfNavigation', '←'), 'left', this.container), this.container);
+            appendToDom(createNavigationButton(createTagAndSetClasses(this.lcfNavigationAspects[0], 'lcfNavigation', ''), 'left', this.container), this.container);
         }
+        /** Build and append the right scroll button. */
         buildRightNavigationButton() {
-            appendToDom(createNavigationButton(createTagAndSetClasses(this.lcfNavigationAspects[1], 'lcfNavigation', '→'), 'right', this.container), this.container);
+            appendToDom(createNavigationButton(createTagAndSetClasses(this.lcfNavigationAspects[1], 'lcfNavigation', ''), 'right', this.container), this.container);
         }
+        /** Apply inline positioning styles to the two navigation buttons. */
         setNavigationButtonStyles() {
             const lcfNavigationButtonsBaseStyles = `
     position: sticky;
@@ -594,13 +1005,18 @@
     margin-left: 1rem;
     `, this.container);
         }
+        /**
+         * Build one card per data item. Normally each aspect is created and
+         * appended; under the `#shelfbrowser-testing` harness, cover markup is
+         * parsed from each item's coverhtml and reused as the anchor/image nodes.
+         */
         buildCoverFlow() {
             Array.from(Object.keys(this.data).entries()).forEach((entry) => {
-                const [index, key] = entry;
+                const [numericIndex, domId] = entry;
                 /** The following if statement handles external elements,
                    *  that are provided in the koha-shelfbrowser. */
                 if (document.getElementById('shelfbrowser-testing')) {
-                    const generatedHtml = stringToHtml(this.data[key].coverhtml);
+                    const generatedHtml = stringToHtml(this.data[domId].coverhtml);
                     const newElementsArray = Array.from(generatedHtml.children);
                     recursiveArrayPopulation(newElementsArray);
                     Array.from(newElementsArray.entries()).forEach((domNode) => {
@@ -608,26 +1024,38 @@
                     });
                     this.lcfItemWrapperAspects.forEach((aspect) => {
                         if (aspect.reference === 'lcfAnchor' && newElementsArray[0].tagName === 'A') {
-                            appendToDom(createTagAndSetClasses(new LcfItemWrapper(newElementsArray[0], 'lcfAnchor', 'lcfCoverImageWrapper', [this.container.coverFlowId]), key, '', true), this.container);
+                            appendToDom(createTagAndSetClasses(new LcfItemWrapper(newElementsArray[0], 'lcfAnchor', 'lcfCoverImageWrapper', [this.container.coverFlowId]), domId, '', true), this.container);
                         }
                         else if (aspect.reference === 'lcfCoverImage' && newElementsArray[1].tagName === 'DIV') {
-                            appendToDom(createTagAndSetClasses(new LcfItemWrapper(newElementsArray[1], 'lcfCoverImage', 'lcfAnchor', [this.container.coverFlowId]), key, '', true), this.container);
+                            appendToDom(createTagAndSetClasses(new LcfItemWrapper(newElementsArray[1], 'lcfCoverImage', 'lcfAnchor', [this.container.coverFlowId]), domId, '', true), this.container);
                         }
                         else {
-                            appendToDom(createTagAndSetClasses(aspect, key), this.container);
+                            appendToDom(createTagAndSetClasses(aspect, domId), this.container);
                         }
                     });
                 }
                 else {
                     this.lcfItemWrapperAspects.forEach((aspect) => {
-                        appendToDom(createTagAndSetClasses(aspect, key), this.container, this.config.shelfBrowserButtonDirection, index);
+                        appendToDom(createTagAndSetClasses(aspect, domId), this.container, this.config.shelfBrowserButtonDirection, numericIndex);
                     });
                 }
             });
         }
     }
 
+    /**
+     * The responsive CSS-grid layout (used for recommendation sliders): builds
+     * the same per-item cards as DefaultContext but with a breakpoint-driven grid
+     * and no navigation buttons.
+     */
     class GridContext {
+        /**
+         * @param {Config} config
+         * @param {Container} container
+         * @param {Object} data - formatted items keyed by domId.
+         * @param {LcfItemWrapper[]} lcfLoadingAspects
+         * @param {LcfItemWrapper[]} lcfItemWrapperAspects - the per-card aspect tree.
+         */
         constructor(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects) {
             this.config = config;
             this.container = container;
@@ -753,25 +1181,39 @@
                 ],
             ];
         }
+        /** Inject this context's grid CSS into the shared style sheet. */
         setStyles() {
             this.recommenderGridContext.forEach((style) => {
                 addGlobalStyle(style[0], style[1], this.container);
             });
         }
+        /** Build and append the loading-spinner node. */
         buildLoadingAnimation() {
             this.lcfLoadingAspects.forEach((aspect) => {
                 appendToDom(createTagAndSetClasses(aspect, 'lcfLoading'), this.container);
             });
         }
+        /** Build one card per data item. */
         buildCoverFlow() {
-            Object.keys(this.data).forEach((index) => {
+            Object.keys(this.data).forEach((domId) => {
                 this.lcfItemWrapperAspects.forEach((aspect) => {
-                    appendToDom(createTagAndSetClasses(aspect, index), this.container);
+                    appendToDom(createTagAndSetClasses(aspect, domId), this.container);
                 });
             });
         }
     }
 
+    /**
+     * Assemble the aspect tree for the current config, then render it through the
+     * context that matches coverFlowContext + screen width + shelf-browser flags:
+     * default (horizontal), grid, shelf-browser mobile, or shelf-browser extension.
+     * @param {Object} data - formatted items keyed by domId.
+     * @param {('default'|'grid')} coverFlowContext
+     * @param {Container} container
+     * @param {Config} config
+     * @param {string[]} customClasses - extra classes applied to every aspect.
+     * @returns {void}
+     */
     // eslint-disable-next-line max-len
     function build(data, coverFlowContext, container, config, customClasses) {
         try {
@@ -790,7 +1232,6 @@
                 new LcfItemWrapper('div', 'lcfCoverImageWrapper', 'lcfFlipCardFront', ['card-img-top', container.coverFlowId, ...customClasses]),
                 new LcfItemWrapper('a', 'lcfAnchor', 'lcfCoverImageWrapper', [container.coverFlowId, ...customClasses]),
                 new LcfItemWrapper('img', 'lcfCoverImage', 'lcfAnchor', [container.coverFlowId, ...customClasses]),
-                // new LcfItemWrapper('div', 'lcfCoverHtmlWrapper', 'lcfAnchor', [container.coverFlowId]),
                 new LcfItemWrapper('div', 'lcfCardBody', 'lcfFlipCardFront', ['card-body', 'p-2', 'text-center', container.coverFlowId, ...customClasses]),
                 new LcfItemWrapper('p', 'lcfMediaAuthor', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaAuthor, container.coverFlowId, ...customClasses]),
                 new LcfItemWrapper('p', 'lcfMediaItemCallNumber', 'lcfCardBody', ['card-text', 'text-muted', 'text-truncate', 'font-weight-light', 'mb-0', config.coverFlowCardBodyTextHeights.lcfMediaItemCallNumber, container.coverFlowId, ...customClasses]),
@@ -804,7 +1245,6 @@
                     new LcfItemWrapper('button', 'lcfFlipCardButton', 'lcfItemContainer', ['shadow', container.coverFlowId]),
                 ]);
             }
-            const strategyManager = new StrategyManager();
             const evaluateConfiguration = () => {
                 if (config.coverFlowFlippableCards) {
                     setFlipCards(container);
@@ -819,14 +1259,8 @@
                     setHighlightOnHover(container);
                 }
             };
-            //   const onEntry = (entry) => {
-            //     entry.forEach((change) => {
-            //       if (change.isIntersecting) {
-            //         change.target.style.width = window.screen.availWidth;
-            //       }
-            //     });
-            //   };
-            strategyManager.addStrategy(new Strategy('defaultContextStrategy', () => {
+            /* The default and shelf-browser-mobile contexts render identically. */
+            const buildDefaultContext = () => {
                 createStyleTag(container);
                 setGlobalStyles(config, container);
                 setLoadingAnimation(config, container);
@@ -838,69 +1272,57 @@
                 defaultContext.buildCoverFlow();
                 defaultContext.buildRightNavigationButton();
                 defaultContext.setNavigationButtonStyles();
-            }));
-            strategyManager.addStrategy(new Strategy('gridContextStrategy', () => {
-                createStyleTag(container);
-                setGlobalStyles(config, container);
-                setLoadingAnimation(config, container);
-                evaluateConfiguration();
-                const gridContext = new GridContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects);
-                gridContext.setStyles();
-                gridContext.buildLoadingAnimation();
-                gridContext.buildCoverFlow();
-            }));
-            strategyManager.addStrategy(new Strategy('shelfBrowserExtensionStrategy', () => {
-                const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects);
-                defaultContext.buildCoverFlow();
-            }));
-            strategyManager.addStrategy(new Strategy('shelfBrowserMobileStrategy', () => {
-                // const options = {
-                //   threshold: [1.0],
-                // };
-                // const observer = new IntersectionObserver(onEntry, options);
-                createStyleTag(container);
-                setGlobalStyles(config, container);
-                setLoadingAnimation(config, container);
-                evaluateConfiguration();
-                const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects);
-                defaultContext.setStyles();
-                // defaultContext.setShelfBrowserMobile();
-                defaultContext.buildLoadingAnimation();
-                defaultContext.buildLeftNavigationButton();
-                defaultContext.buildCoverFlow();
-                defaultContext.buildRightNavigationButton();
-                defaultContext.setNavigationButtonStyles();
-                // eslint-disable-next-line max-len
-                // const lcfItemContainers = document.querySelectorAll(`.lcfItemContainer.${container.coverFlowId}`);
-                // lcfItemContainers.forEach((itemContainer) => {
-                //   observer.observe(itemContainer);
-                // });
-            }));
+            };
+            /* context name -> builder. Replaces the old Strategy/StrategyManager
+               classes, which were a full Strategy pattern for a one-shot lookup. */
+            const strategies = {
+                defaultContextStrategy: buildDefaultContext,
+                shelfBrowserMobileStrategy: buildDefaultContext,
+                gridContextStrategy: () => {
+                    createStyleTag(container);
+                    setGlobalStyles(config, container);
+                    setLoadingAnimation(config, container);
+                    evaluateConfiguration();
+                    const gridContext = new GridContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects);
+                    gridContext.setStyles();
+                    gridContext.buildLoadingAnimation();
+                    gridContext.buildCoverFlow();
+                },
+                shelfBrowserExtensionStrategy: () => {
+                    const defaultContext = new DefaultContext(config, container, data, lcfLoadingAspects, lcfItemWrapperAspects, lcfNavigationAspects);
+                    defaultContext.buildCoverFlow();
+                },
+            };
             if (config.shelfBrowserExtendedCoverFlow) {
-                strategyManager.getStrategy('shelfBrowserExtensionStrategy').makePlay();
+                strategies.shelfBrowserExtensionStrategy();
                 return;
             }
             // eslint-disable-next-line max-len
             if (config.coverFlowShelfBrowser && window.screen.width <= (config.gridCoverFlowBreakpoints.s - 1)) {
-                strategyManager.getStrategy('shelfBrowserMobileStrategy').makePlay();
+                strategies.shelfBrowserMobileStrategy();
                 return;
             }
             if (coverFlowContext === 'grid' || (window.screen.width <= (config.gridCoverFlowBreakpoints.s - 1) && config.coverFlowMobileAllowGridForDefault)) {
-                strategyManager.getStrategy('gridContextStrategy').makePlay();
+                strategies.gridContextStrategy();
                 return;
             }
             if ((coverFlowContext === 'default' && window.screen.width >= config.gridCoverFlowBreakpoints.s) || !config.coverFlowMobileAllowGridForDefault) {
-                strategyManager.getStrategy('defaultContextStrategy').makePlay();
+                strategies.defaultContextStrategy();
             }
         }
         catch (error) {
-            console.trace(`Looks like something went wrong in ${this.build.name} ->`, error);
-            // eslint-disable-next-line consistent-return
-            return error;
+            console.trace(`Looks like something went wrong in ${build.name} ->`, error);
         }
     }
 
+    /**
+     * Normalises the caller-supplied options into a complete configuration,
+     * filling every recognised `coverFlow*` / `coverImage*` / `shelfBrowser*` /
+     * `gridCoverFlowBreakpoints` key with its default. This default set is part
+     * of the public contract — keep the names and defaults stable.
+     */
     class Config {
+        /** @param {Object} configuration - the caller's partial options. */
         constructor(configuration) {
             this.config = configuration;
             this.coverImageFallbackHeight = this.config.coverImageFallbackHeight || 210;
@@ -950,6 +1372,11 @@
         }
     }
 
+    /**
+     * Wraps the coverflow's root DOM element and owns its scroll behaviour:
+     * scrollability detection, smooth scrolling, navigation-button references and
+     * the scroll listeners for both default and shelf-browser modes.
+     */
     class Container {
         reference;
         scrollable;
@@ -957,6 +1384,10 @@
         lcfNavigationButtonRight;
         config;
         referenceAsClass;
+        /**
+         * @param {string} element - the container element's id.
+         * @param {Config} config
+         */
         constructor(element, config) {
             this.config = config;
             this.reference = document.getElementById(element);
@@ -965,12 +1396,20 @@
             this.lcfNavigationButtonRight = null;
             this.referenceAsClass = this.reference.id;
         }
+        /** Set `scrollable` when content overflows horizontally (or in shelf-browser mode). */
         isScrollable() {
             if (this.reference.scrollWidth > this.reference.clientWidth
                 || this.config.coverFlowShelfBrowser) {
                 this.scrollable = true;
             }
         }
+        /**
+         * Animate the container's horizontal scroll to a target position via rAF.
+         * @param {Container} container
+         * @param {number} position - target scrollLeft; 0 scrolls back to the start.
+         * @param {?number} time - duration in ms (default 500, or 2000 when position is 0).
+         * @returns {void}
+         */
         static scrollSmoothly(container, position, time) {
             const CONTAINER = container;
             let POSITION = position;
@@ -1004,13 +1443,20 @@
                 }
             });
         }
+        /** @returns {string} the per-instance scoping class (the element id). */
         get coverFlowId() {
             return this.referenceAsClass;
         }
+        /** Cache the current left/right navigation button elements. */
         updateNavigationButtonReferences() {
             this.lcfNavigationButtonLeft = document.querySelector(`.lcfNavigationButtonLeft.${this.coverFlowId}`);
             this.lcfNavigationButtonRight = document.querySelector(`.lcfNavigationButtonRight.${this.coverFlowId}`);
         }
+        /**
+         * Attach scroll listeners: edge-detection handlers in shelf-browser mode
+         * (tracked via the shared EventListeners singleton), or the default
+         * button hide/disable handler otherwise.
+         */
         hideOrShowButton() {
             if (this.config.coverFlowShelfBrowser) {
                 if (this.config.shelfBrowserCurrentEventListeners.getLeft() === false) {
@@ -1028,6 +1474,7 @@
                 this.reference.addEventListener('scroll', this.handleDefaultScrolling);
             }
         }
+        /** Scroll handler: at the left edge, load the previous shelf items. */
         handleShelfBrowserScrollingLeft = () => {
             const container = this.reference;
             if (this.config.coverFlowShelfBrowser) {
@@ -1036,6 +1483,7 @@
                 }
             }
         };
+        /** Scroll handler: at the right edge, load the next shelf items. */
         handleShelfBrowserScrollingRight = () => {
             const container = this.reference;
             const scrollRight = (container.scrollWidth - container.clientWidth - container.scrollLeft);
@@ -1045,6 +1493,11 @@
                 }
             }
         };
+        /**
+         * Load more shelf-browser items for the reached edge and detach that
+         * edge's scroll listener until the new content settles.
+         * @param {?Element} buttonReference - the nav button at the reached edge.
+         */
         handleScrollToEdge = (buttonReference) => {
             if (buttonReference) {
                 const scrollDirection = buttonReference.classList.contains('lcfNavigationButtonLeft') ? 'left' : 'right';
@@ -1060,6 +1513,10 @@
                 }
             }
         };
+        /**
+         * Default-context scroll handler: disable or hide the navigation buttons
+         * at each end according to coverFlowButtonsBehaviour.
+         */
         handleDefaultScrolling = () => {
             const scrollRight = (this.reference.scrollWidth
                 - this.reference.clientWidth
@@ -1093,6 +1550,11 @@
                 }
             }
         };
+        /**
+         * Start an interval that gently auto-scrolls to the right, wrapping back
+         * to the start once the end is reached.
+         * @returns {number} the interval id (clear it to stop auto-scrolling).
+         */
         autoScrollContainer() {
             const scrollRight = () => (this.reference.scrollWidth
                 - this.reference.clientWidth
@@ -1115,16 +1577,22 @@
         }
     }
 
-    function generatedCoverRequestURI({ endpoint, title, author }) {
-        return `${endpoint || '/api/v1/public/generated_cover'}${title ? `?title=${window.encodeURIComponent(title)}` : ''}${author ? `&author=${window.encodeURIComponent(author)}` : ''}`;
-    }
-
     /* eslint-disable max-len */
+    /**
+     * Cover-URL resolution: validates/probes each item's cover URL and falls back
+     * to the configured fallback image or the generated-cover endpoint when a
+     * cover is missing, local-only, or unreachable.
+     */
     class Data {
         config;
+        /** @param {Config} config */
         constructor(config) {
             this.config = config;
         }
+        /**
+         * @param {string} urlInQuestion
+         * @returns {boolean} whether the string is a valid http(s) URL.
+         */
         static isValidUrl(urlInQuestion) {
             let url;
             try {
@@ -1135,6 +1603,12 @@
             }
             return url.protocol === 'http:' || url.protocol === 'https:';
         }
+        /**
+         * fetch() that aborts after a timeout.
+         * @param {RequestInfo} resource
+         * @param {{timeout?: number}} [options] - other fetch options plus timeout (ms).
+         * @returns {Promise<Response>}
+         */
         // eslint-disable-next-line max-len
         async fetchWithTimeout(resource, options = {}) {
             const { timeout = 1000  } = options;
@@ -1147,6 +1621,10 @@
             clearTimeout(id);
             return response;
         }
+        /**
+         * @param {string} resourceInQuestion
+         * @returns {Promise<boolean>} whether a GET for the resource returns ok.
+         */
         async checkIfFileExists(resourceInQuestion) {
             try {
                 const response = await this.fetchWithTimeout(resourceInQuestion, { method: 'GET', mode: 'cors' });
@@ -1157,6 +1635,13 @@
                 return false;
             }
         }
+        /**
+         * Resolve every item's coverurl: keep valid remote URLs, otherwise swap in
+         * the fallback image or a generated cover. Missing/local/unreachable
+         * covers are replaced.
+         * @param {Object[]} localData - raw data items.
+         * @returns {Promise<Object>[]} per-item promises of the resolved item.
+         */
         checkUrls(localData) {
             try {
                 // eslint-disable-next-line max-len
@@ -1185,9 +1670,15 @@
             }
             catch (error) {
                 console.trace(`Looks like a something went wrong in ${this.checkUrls.name} ->`, error);
-                return error;
+                return [];
             }
         }
+        /**
+         * Fetch a URL and return its parsed JSON body (used for generated-cover
+         * data URLs).
+         * @param {string} url
+         * @returns {Promise<*>}
+         */
         static async processDataUrl(url) {
             const response = await fetch(url);
             const result = await response.json();
@@ -1195,121 +1686,37 @@
         }
     }
 
-    function arrFromObjEntries(object) {
-        return Array.from(Object.entries(object));
-    }
-
-    function additionalProperties(currentItem) {
-        if (currentItem.additionalProperties) {
-            const result = [];
-            arrFromObjEntries(currentItem?.additionalProperties).forEach((property) => {
-                const [key, value] = property;
-                result.push([`data-${key}`, value]);
-            });
-            return result;
-        }
-        return undefined;
-    }
-
-    function caseMap(item) {
-        return new Map([
-            [
-                'lcfItemContainer',
-                additionalProperties(item),
-            ],
-            [
-                'lcfAnchor',
-                ['href', item.referenceToDetailsView],
-            ],
-            [
-                'lcfCoverImage',
-                ['src', item?.coverurl.replaceAll('&amp;', '&')],
-            ],
-            [
-                'lcfCoverHtmlWrapper',
-                ['innerHtml', item?.coverhtml || ''],
-            ],
-            [
-                'lcfMediaTitle',
-                [['textContent', 'data-text'], item.title],
-            ],
-            [
-                'lcfMediaAuthor',
-                ['textContent', item.author],
-            ],
-            [
-                'lcfMediaItemCallNumber',
-                ['textContent', item.itemCallNumber],
-            ],
-            [
-                'lcfMediaISBD',
-                ['textContent', `${item.author}: ${item.title}`],
-            ],
-            [
-                'lcfFlipCardButton',
-                ['textContent', '←'],
-            ],
-        ]);
-    }
-
-    function determineStructure(attribute, data) {
-        return [Array.isArray(attribute), Array.isArray(data)];
-    }
-    function getInstructions(lcfClass, map) { return map.get(lcfClass); }
-    function isTextContent(attribute) { return attribute === 'textContent'; }
-
-    function runInstructions(currentTag, currentInstructions) {
-        const aspect = currentTag;
-        const [attribute, data] = currentInstructions;
-        const [hasAttribute, hasData] = determineStructure(attribute, data);
-        const hasTextContent = isTextContent(attribute);
-        if (hasAttribute && hasData) {
-            currentInstructions.forEach((instr) => {
-                const [attr, d] = instr;
-                if (isTextContent(attr)) {
-                    aspect.textContent = d;
-                    return;
-                }
-                aspect.setAttribute(attr, d);
-            });
-        }
-        if (hasAttribute) {
-            attribute.forEach((attr) => {
-                if (isTextContent(attr)) {
-                    aspect.textContent = data;
-                    return;
-                }
-                aspect.setAttribute(attr, data);
-            });
-            return;
-        }
-        if (hasData) {
-            data.forEach((d) => { aspect.setAttribute(attribute, d); });
-            return;
-        }
-        if (hasTextContent) {
-            aspect.textContent = data;
-            return;
-        }
-        aspect.setAttribute(attribute, data);
-    }
-
+    /**
+     * Populate one rendered aspect node with its data-driven attributes: look up
+     * the item by the node's domId, resolve the instruction for its reference
+     * class, and apply it.
+     * @param {Element} node
+     * @param {Object} formattedData - items keyed by domId.
+     * @returns {void}
+     */
     function populateTagAttributes(node, formattedData) {
         try {
             const tag = node;
-            const [reference, index] = tag.classList;
-            const item = formattedData[index];
-            const cases = caseMap(item);
-            const instructions = getInstructions(reference, cases);
+            const [reference, domId] = tag.classList;
+            const item = formattedData[domId];
+            const cases = attributeInstructionsFor(item);
+            const instructions = instructionsForClass(reference, cases);
             if (instructions) {
-                runInstructions(tag, instructions);
+                applyInstructions(tag, instructions);
             }
         }
         catch (error) {
-            console.trace(`Looks like something went wrong in ${this.populateTagAttributes.name} ->`, error);
+            console.trace(`Looks like something went wrong in ${populateTagAttributes.name} ->`, error);
         }
     }
 
+    /**
+     * Build a hidden `.urlHarvester` scratch container holding each item's
+     * coverhtml, so external-source scripts can rewrite it in place.
+     * @param {Object} formattedData - items keyed by domId.
+     * @param {Container} container
+     * @returns {Promise<boolean>} whether the scratch DOM was built.
+     */
     async function urlHarvester(formattedData, container) {
         try {
             const dataArray = arrFromObjEntries(formattedData);
@@ -1331,46 +1738,59 @@
         }
     }
 
-    function getLcfItemId(domNode) {
-        const id = domNode?.classList[1];
-        if (!/_[0-9]{7}/.test(id))
-            throw new Error("Id doesn't match pattern.");
-        return id;
-    }
-
     /* eslint-disable no-underscore-dangle */
+    /**
+     * Minimal observable value: listeners are notified when `value` changes.
+     * Carries a free-form `info` slot used to flag the external cover source in
+     * play. The module-level `externalSources` instance is the public export.
+     */
     class Observable {
         _info;
         _listeners;
         _value;
+        /** @param {*} value - the initial value. */
         constructor(value) {
             this._info = null;
             this._listeners = [];
             this._value = value;
         }
+        /** Call every subscribed listener with the current value. */
         notify() {
             this._listeners.forEach((listener) => listener(this._value));
         }
+        /**
+         * Register a listener invoked on each value change.
+         * @param {function(*):void} listener
+         */
         subscribe(listener) {
             this._listeners.push(listener);
         }
+        /** @returns {*} the current value. */
         get value() {
             return this._value;
         }
+        /** Set the value, notifying listeners only when it actually changes. */
         set value(val) {
             if (val !== this._value) {
                 this._value = val;
                 this.notify();
             }
         }
+        /** @returns {*} the free-form info slot. */
         get info() {
             return this._info;
         }
+        /** Set the free-form info slot (does not notify). */
         set info(info) {
             this._info = info;
         }
     }
 
+    /**
+     * Remove the hidden `.urlHarvester` scratch container, if present.
+     * @param {Container} container
+     * @returns {void}
+     */
     function clearHarvester(container) {
         const harvester = document.querySelector(`.urlHarvester.${container.referenceAsClass}`);
         if (harvester) {
@@ -1378,14 +1798,18 @@
         }
     }
 
-    function resyncExecution(ms) {
-        return new Promise((resolve) => {
-            setTimeout(resolve, ms);
-        });
-    }
-
     const externalSources = new Observable(false);
 
+    /**
+     * Harvest final cover-image URLs from external-source markup: build the
+     * scratch harvester, read each `src` (or, when an async source is registered,
+     * subscribe and wait), normalise it, and write it back onto the data —
+     * falling back to a generated cover when none is found.
+     * @param {Object} formattedData - items keyed by domId (mutated in place).
+     * @param {Container} container
+     * @param {Config} config
+     * @returns {Promise<number>} 1 on success, 0 on failure.
+     */
     async function harvestUrls(formattedData, container, config) {
         try {
             const dataReference = formattedData;
@@ -1401,15 +1825,6 @@
                         const nodeId = getLcfItemId(node);
                         harvesterObservers[nodeId] = new Observable(node.innerHTML);
                         harvesterObservers[nodeId].subscribe((coverurl) => {
-                            //   console.log(coverurl);
-                            //   const aHrefRe = /a href="(.+?)"/g;
-                            //   const hrefs = coverurl.match(aHrefRe);
-                            //   if (hrefs) {
-                            //     const [src] = hrefs;
-                            //     const [, srcString] = src.split('"');
-                            //     harvesterResults.push([nodeId, srcString]);
-                            //     return;
-                            //   }
                             const srcRe = /src="(.+?)"/g;
                             const sources = coverurl.match(srcRe);
                             if (sources) {
@@ -1437,7 +1852,7 @@
                     }, config.coverImageCallbackTimeout);
                     setTimeout(() => {
                         const resultIds = [];
-                        harvesterResults.forEach(async (entry) => {
+                        harvesterResults.forEach((entry) => {
                             const [id, coverurl] = entry;
                             if (coverurl) {
                                 dataReference[id].coverurl = coverurl;
@@ -1475,7 +1890,7 @@
                                 harvesterResults.push([nodeId, undefined]);
                             }
                         }
-                        harvesterResults.forEach(async (entry) => {
+                        harvesterResults.forEach((entry) => {
                             const [id, coverurl] = entry;
                             if (coverurl) {
                                 dataReference[id].coverurl = coverurl;
@@ -1491,34 +1906,32 @@
             }
         }
         catch (error) {
-            console.trace(`Looks like harvesting failed in ${this.harvestUrls.name} ->`, error);
-            return error;
+            console.trace(`Looks like harvesting failed in ${harvestUrls.name} ->`, error);
+            return 0;
         }
         return 1;
     }
 
+    /**
+     * @param {string} container - the container element's id.
+     * @returns {number} the element's computed font-size in px (0 on error).
+     */
     function calculateComputedFontSize(container) {
         try {
             return parseInt(window.getComputedStyle(document.getElementById(container)).fontSize.split('px')[0], 10);
         }
         catch (error) {
-            console.trace(`Looks like somthing went wrong in ${this.calculateComputedFontSize.name} ->`, error);
-            return error;
+            console.trace(`Looks like something went wrong in ${calculateComputedFontSize.name} ->`, error);
+            return 0;
         }
     }
 
-    function calculateCoverFlowPlusGaps(offsetWidthArray, computedFontSize) {
-        try {
-            return offsetWidthArray
-                .reduce((accumulator, currentValue) => accumulator + currentValue + computedFontSize)
-                + computedFontSize;
-        }
-        catch (error) {
-            console.trace(`Looks like somthing went wrong in ${this.calculateCoverFlowPlusGaps.name} ->`, error);
-            return error;
-        }
-    }
-
+    /**
+     * Hide the card-body aspects (author / title / call number) that are turned
+     * off in config.coverFlowCardBody; hide the whole card body when all are off.
+     * @param {{config: Config, containerReference: string}} args
+     * @returns {void}
+     */
     function changeAspectVisibility({ config, containerReference }) {
         if (Object.values(config.coverFlowCardBody).every((setting) => setting === false)) {
             const cardBodies = document.querySelectorAll(`.lcfCardBody.${containerReference}`);
@@ -1537,53 +1950,56 @@
         });
     }
 
-    function isPromise(p) {
-        if (typeof p === 'object' && typeof p.then === 'function') {
-            return true;
-        }
-        return false;
-    }
-
-    function cleanupUrls(config, formattedData) {
+    /**
+     * Finalise cover URLs after harvesting: await any still-pending coverurl
+     * promises and default empty ones to the fallback image.
+     * @param {Config} config
+     * @param {Object} formattedData - items keyed by domId.
+     * @returns {Promise<Object>} the same object with settled coverurls.
+     */
+    async function cleanupUrls(config, formattedData) {
         try {
             const cleanedData = formattedData;
-            arrFromObjEntries(formattedData).forEach(async (entry) => {
+            await Promise.all(arrFromObjEntries(formattedData).map(async (entry) => {
                 const [id, data] = entry;
                 if (isPromise(data.coverurl)) {
-                    const result = await data.coverurl;
-                    cleanedData[id] = { ...data, coverurl: result };
+                    cleanedData[id] = { ...data, coverurl: await data.coverurl };
                     return;
                 }
                 cleanedData[id] = {
                     ...data, coverurl: data.coverurl || config.coverImageFallbackUrl,
                 };
-            });
+            }));
             return cleanedData;
         }
         catch (error) {
-            console.trace(`Looks like something went wrong in in ${this.checkIfFileExists.name} ->`, error);
-            return error;
+            console.trace(`Looks like something went wrong in ${cleanupUrls.name} ->`, error);
+            return formattedData;
         }
     }
 
-    function generateId() {
-        const randomValues = new Uint8Array(16);
-        return `_${window.crypto.getRandomValues(randomValues)
-        .join('')
-        .toString()
-        .substring(2, 9)}`;
-    }
-
+    /**
+     * Re-key the data by a freshly generated domId per item — the id that ties a
+     * card's DOM nodes together.
+     * @param {Object} localData
+     * @returns {Object} items keyed by generated domId ({} on error).
+     */
     function format(localData) {
         try {
             return Object.fromEntries(Object.entries(localData).map(([, v]) => [generateId(), v]));
         }
         catch (error) {
-            console.trace(`Looks like something didn't map properly in ${this.format.name} ->`, error);
-            return error;
+            console.trace(`Looks like something didn't map properly in ${format.name} ->`, error);
+            return {};
         }
     }
 
+    /**
+     * Enable auto-scroll when configured (and not in shelf-browser mode),
+     * pausing while the pointer is over the container.
+     * @param {{config: Config, container: Container}} args
+     * @returns {void}
+     */
     function addAutoScroll({ config, container }) {
         if (config.coverFlowAutoScroll && !config.coverFlowShelfBrowser) {
             let autoScrollId = container.autoScrollContainer();
@@ -1596,6 +2012,12 @@
         }
     }
 
+    /**
+     * Set a card's `data-tooltip` to the item's author / call number / title.
+     * @param {Element} lcfItemContainer
+     * @param {Object} coverFlowEntity
+     * @returns {void}
+     */
     // eslint-disable-next-line max-len
     function addDataTooltip(lcfItemContainer, coverFlowEntity) {
         try {
@@ -1603,14 +2025,27 @@
             itemContainer.dataset.tooltip = `${coverFlowEntity.author ? coverFlowEntity.author : ''} ${coverFlowEntity.itemCallNumber ? coverFlowEntity.itemCallNumber : ''} ${coverFlowEntity.title ? coverFlowEntity.title : ''}`;
         }
         catch (error) {
-            console.trace(`Looks like something went wrong in ${this.addDataTooltip.name} ->`, error);
+            console.trace(`Looks like something went wrong in ${addDataTooltip.name} ->`, error);
         }
     }
 
+    /**
+     * On flippable cards, add the flip button's icon and toggle the flipped
+     * state (card + button) on click.
+     * @param {{id: string, config: Config, containerReference: string}} args
+     * @returns {void}
+     */
     function addFlipCards({ id, config, containerReference }) {
         if (config.coverFlowFlippableCards) {
             try {
                 const lcfFlipCardButton = document.querySelector(`.lcfFlipCardButton.${id}.${containerReference}`);
+                if (lcfFlipCardButton && !lcfFlipCardButton.childElementCount) {
+                    const icon = document.createElement('i');
+                    icon.className = 'fa fa-arrow-left';
+                    icon.setAttribute('aria-hidden', 'true');
+                    lcfFlipCardButton.setAttribute('aria-label', '←');
+                    lcfFlipCardButton.appendChild(icon);
+                }
                 lcfFlipCardButton.addEventListener('click', () => {
                     const innerFlipCard = document.querySelector(`.flipCardInner.${id}.${containerReference}`);
                     innerFlipCard.classList.toggle('cardIsFlipped');
@@ -1618,16 +2053,19 @@
                 });
             }
             catch (error) {
-                console.trace(`Looks like somthing went wrong in ${this.addFlipCards.name} ->`, error);
+                console.trace(`Looks like something went wrong in ${addFlipCards.name} ->`, error);
             }
         }
     }
 
+    /** Loads a single cover image so its natural dimensions become available. */
     class LcfCoverImage {
         coverUrl;
+        /** @param {string} coverUrl */
         constructor(coverUrl) {
             this.coverUrl = coverUrl;
         }
+        /** @returns {Promise<HTMLImageElement>} resolves once the image has loaded. */
         fetch() {
             return new Promise((resolve) => {
                 const coverImage = new Image();
@@ -1637,7 +2075,17 @@
         }
     }
 
+    /**
+     * A single cover-flow item plus its computed image geometry. Image height is
+     * capped at kohaImageMaxHeight, and dimensions are later normalised to the
+     * tallest cover in the row so every card lines up.
+     */
     class LcfEntity {
+        /**
+         * @param {Object} entityData - { id, title, author, coverhtml, biblionumber,
+         *   referenceToDetailsView, itemCallNumber }.
+         * @param {number} coverImageFallbackHeight
+         */
         constructor(entityData, coverImageFallbackHeight) {
             this.id = entityData.id;
             this.title = entityData.title;
@@ -1650,6 +2098,12 @@
             this.kohaImageMaxHeight = 250;
             this.maxHeight = 0;
         }
+        /**
+         * Record the loaded image's dimensions (downscaled to kohaImageMaxHeight
+         * when taller) and derive its aspect ratio and computed width.
+         * @param {number} height - natural image height.
+         * @param {number} width - natural image width.
+         */
         addCoverImageMetadata(height, width) {
             if (height <= this.kohaImageMaxHeight) {
                 this.imageHeight = height;
@@ -1663,12 +2117,18 @@
             this.imageAspectRatio = this.calculateCoverImageAspectRatio();
             this.imageComputedWidth = this.imageHeight / this.imageAspectRatio;
         }
+        /** @returns {number} the current image height/width ratio. */
         calculateCoverImageAspectRatio() {
             return this.imageHeight / this.imageWidth;
         }
+        /**
+         * Record the row's shared target height (applied by updateDimensions).
+         * @param {number} height
+         */
         updateMaxHeight(height) {
             this.maxHeight = height;
         }
+        /** Resize the image to the shared maxHeight, preserving aspect ratio. */
         updateDimensions() {
             this.imageHeight = this.maxHeight;
             this.imageWidth = this.imageHeight / this.imageAspectRatio;
@@ -1676,10 +2136,17 @@
         }
     }
 
+    /**
+     * Wrap each raw {id, entry, image} record in an LcfEntity (attaching image
+     * metadata when an image loaded), as an array of resolved promises.
+     * @param {Config} config
+     * @param {Array<{id: string, entry: Object, image: ?HTMLImageElement}>} lcfCoverFlowEntities
+     * @returns {?Promise<LcfEntity>[]} the entity promises, or null on error.
+     */
     function entityToCoverFlow(config, lcfCoverFlowEntities) {
         const promisedCoverFlowEntities = [];
         try {
-            lcfCoverFlowEntities.forEach(async (entity) => {
+            lcfCoverFlowEntities.forEach((entity) => {
                 const newLcfEntity = new LcfEntity({
                     id: entity.id,
                     title: entity.entry.title,
@@ -1703,30 +2170,19 @@
         }
     }
 
-    function processHeights(lcfCoverImageHeights, config) {
-        const heights = lcfCoverImageHeights
-            .map((height) => height || 0)
-            .map((height) => (Number.isNaN(+height) ? '' : +height));
-        const coverImagesMaximumHeight = Math.max(...heights);
-        return coverImagesMaximumHeight <= config.coverImageFallbackHeight
-            ? coverImagesMaximumHeight : config.coverImageFallbackHeight;
-    }
-
-    function flattenPromiseResults(resultsArray) {
-        const flattenedResults = [];
-        Object.keys(resultsArray).forEach((index) => {
-            flattenedResults.push(resultsArray[index].value);
-        });
-        return flattenedResults;
-    }
-
     /* eslint-disable max-len */
-    /* This promise chain is the main block for displaying covers. The global coverFlowEntities
-       * Object gets flattened to promise level. The mapped imageHeights are used to set a universal
-       * height for all images. Then the card widths are adjusted to the corresponding image widths.
-       * Before the cards are displayed, a loading animation renders to bridge the gap between
-       * awaiting all images and the depending methods for image sizing and so on. */
-    async function settlePromises(config, 
+    /**
+     * The main display step: await all entity promises, pick a shared image
+     * height, size each card to its cover's computed width, hide the loading
+     * animation, reveal the cards, and wire up scrollability/navigation.
+     * @param {Config} config
+     * @param {Container} container
+     * @param {NodeList} currentItemContainers - cards already present (shelf-browser
+     *   extension), excluded from re-sizing.
+     * @param {Promise<LcfEntity>[]} promisedEntities
+     * @returns {Promise<LcfEntity[]|undefined>} the settled entities (undefined on error).
+     */
+    async function settlePromises(config,
     // eslint-disable-next-line max-len
     container, currentItemContainers, promisedEntities) {
         try {
@@ -1753,7 +2209,7 @@
                 lcfItemContainers.forEach((lcfCardBody) => {
                     const lcfItemId = getLcfItemId(lcfCardBody);
                     const lcfItemCurrent = flattenedResults.filter((lcfEntity) => lcfEntity.id === lcfItemId)[0];
-                    /** Updates the imageComputedWid†h property if the tallest image is still
+                    /** Updates the imageComputedWidth property if the tallest image is still
                      * shorter than the coverImageFallbackHeight.   */
                     lcfItemCurrent.updateMaxHeight(initialSetImageHeight || imagesMaxHeight);
                     lcfItemCurrent.updateDimensions();
@@ -1773,7 +2229,7 @@
                 lcfItemContainer.classList.remove('d-none');
             });
             const shelfBrowserReference = document.getElementById('shelfbrowser');
-            if (shelfBrowserReference && config.shelfBrowserScrollIntoView) {
+            if (shelfBrowserReference && shouldScrollShelfBrowserIntoView(config)) {
                 setTimeout(() => shelfBrowserReference.scrollIntoView(), 100);
             }
             container.isScrollable();
@@ -1796,6 +2252,16 @@
         }
     }
 
+    /**
+     * Pre-render step: resolve any promised cover URLs, preload the cover images
+     * to get their dimensions, wrap everything as LcfEntities and hand off to
+     * settlePromises for layout.
+     * @param {Object} data - formatted items keyed by domId.
+     * @param {Config} config
+     * @param {Container} container
+     * @param {NodeList} currentItemContainers - cards already present (shelf-browser extension).
+     * @returns {Promise<LcfEntity[]>} the settled entities ([] on error).
+     */
     async function prepare(data, config, container, currentItemContainers) {
         try {
             let lcfCoverImages = [];
@@ -1837,37 +2303,61 @@
             return await settlePromises(config, container, currentItemContainers, promisedCoverFlowEntities);
         }
         catch (error) {
-            console.trace(`Looks like something went wrong in ${this.prepare.name} ->`, error);
-            return error;
+            console.trace(`Looks like something went wrong in ${prepare.name} ->`, error);
+            return [];
         }
     }
 
     /* eslint-disable max-len */
+    /**
+     * The public cover-flow instance (see createLcfInstance). Holds the caller's
+     * config/data/container element and, on each setter, rebuilds the derived
+     * Config/Data/Container. Call render() to draw.
+     * @constructor
+     */
     function LmsCoverFlow() {
+        /**
+         * Set config, data and container element at once.
+         * @param {Object} configuration
+         * @param {Object[]} data
+         * @param {string} element - the container element's id.
+         */
         this.setGlobals = (configuration, data, element) => {
             this.callerConfiguration = configuration;
             this.callerData = data;
             this.callerContainer = element;
             this.updateGlobals();
         };
+        /** @param {Object} configuration */
         this.setConfig = (configuration) => {
             this.callerConfiguration = configuration;
             this.updateGlobals();
         };
+        /** @returns {Object} the caller-supplied configuration. */
         this.getConfig = () => this.callerConfiguration;
+        /** @param {Object[]} data */
         this.setData = (data) => {
             this.callerData = data;
             this.updateGlobals();
         };
+        /** @param {string} element - the container element's id. */
         this.setContainer = (element) => {
             this.callerContainer = element;
             this.updateGlobals();
         };
+        /** Rebuild the derived Config/Data/Container from the caller values. */
         this.updateGlobals = () => {
             this.config = new Config(this.callerConfiguration);
             this.data = new Data(this.config);
             this.container = new Container(this.callerContainer, this.config);
         };
+        /**
+         * Render the cover flow: resolve/harvest cover URLs, build the DOM for the
+         * chosen context, size and reveal the cards, then wire tooltips, flip
+         * cards and auto-scroll.
+         * @param {('default'|'grid')} [coverFlowContext] - overrides config.coverFlowContext.
+         * @returns {Promise<void>}
+         */
         this.render = async (coverFlowContext) => {
             try {
                 const checkedData = await Promise.all(this.data.checkUrls(this.callerData));
@@ -1875,7 +2365,7 @@
                 if (!(externalSources.info === 'ekz')) {
                     await harvestUrls(formattedData, this.container, this.config);
                 }
-                formattedData = cleanupUrls(this.config, formattedData);
+                formattedData = await cleanupUrls(this.config, formattedData);
                 /** The check for the current card bodies is necessary, to filter
                      * the existing ones out for extension of the coverflow-component
                      * in the shelfbrowser context. */
@@ -1916,9 +2406,19 @@
         };
     }
 
+    /**
+     * Public factory for a cover-flow instance.
+     * @returns {LmsCoverFlow}
+     */
     // eslint-disable-next-line import/no-cycle
     function createLcfInstance() { return new LmsCoverFlow(); }
 
+    /**
+     * Apply a set of option overrides onto a config object, in place.
+     * @param {Object} configuration - mutated and returned.
+     * @param {Object} changes - option -> value overrides.
+     * @returns {Object} the mutated configuration.
+     */
     function overrideConfig(configuration, changes) {
         const modifiedConfiguration = configuration;
         arrFromObjEntries(changes).forEach((change) => {
@@ -1928,8 +2428,21 @@
         return modifiedConfiguration;
     }
 
+    /** Caller overrides applied on top of the shelf-browser default config. */
     const shelfBrowserConfig = new Observable({});
 
+    /**
+     * Render (or extend) the shelf-browser cover flow from a nearby-items API
+     * response, mapping the items to the cover-flow data shape and wiring the
+     * paging callback.
+     * @param {Object} params
+     * @param {Object} params.newlyLoadedItems - the API response (items + prev/next).
+     * @param {boolean} [params.extendedCoverFlow=false] - true when paging, not opening.
+     * @param {?('left'|'right')} [params.buttonDirection=null]
+     * @param {Function} params.loadNewShelfBrowserItems - paging callback.
+     * @param {string} params.coverFlowId - the container element's id.
+     * @returns {void}
+     */
     // eslint-disable-next-line max-len
     function extendCurrentCoverFlow({ newlyLoadedItems, extendedCoverFlow = false, buttonDirection = null, loadNewShelfBrowserItems, coverFlowId, }) {
         const shelfBrowserItems = newlyLoadedItems.items.map((item) => ({
@@ -1968,6 +2481,11 @@
         lmscoverflow.render();
     }
 
+    /**
+     * GET a request URI and return its parsed JSON body.
+     * @param {string} requestURI
+     * @returns {Promise<*>}
+     */
     async function fetchItemData(requestURI) {
         const options = {
             method: 'GET',
@@ -1983,7 +2501,13 @@
         return response.json();
     }
 
-    // import showInfoModal from './showInfoModal';
+    /**
+     * Paging callback: fetch the previous/next nearby item for the given
+     * direction (when one exists) and extend the shelf-browser cover flow with it.
+     * @param {{previousItemNumber: ?number, nextItemNumber: ?number}} nearbyItems
+     * @param {'left'|'right'} buttonDirection
+     * @returns {Promise<void>}
+     */
     async function loadNewShelfBrowserItems(nearbyItems, buttonDirection) {
         const { previousItemNumber, nextItemNumber } = nearbyItems;
         const coverFlowId = 'lmscoverflow';
@@ -2003,12 +2527,22 @@
             resultNext.then((result) => extendCurrentCoverFlow({ newlyLoadedItems: result, ...args }));
         }
         else {
-            // if (!previousItemNumber) { showInfoModal('No previous items!', 1000, 'left'); }
-            // if (!nextItemNumber) { showInfoModal('No following items!', 1000, 'right'); }
             console.trace(`Looks like something went wrong in ${loadNewShelfBrowserItems.name}`);
         }
     }
 
+    /**
+     * Public entry point (exported as `ShelfBrowser`). Wires every
+     * `.lmscoverflow-shelfbrowser` trigger so clicking one opens `#shelfbrowser`,
+     * fetches the item's neighbours, renders the cover flow and builds the
+     * heading with a close control.
+     * @param {Object} params
+     * @param {Object} [params.header] - heading label templates (with a
+     *   `{starting_*}` placeholder each).
+     * @param {Object} [params.configuration] - overrides merged into the
+     *   shelf-browser config via shelfBrowserConfig.
+     * @returns {void}
+     */
     function shelfBrowser({ header = {
         header_browsing: 'Browsing {starting_homebranch} shelves',
         header_location: 'Shelving location: {starting_location}',
@@ -2069,10 +2603,12 @@
         main();
     }
 
-    function byQueryRequestURI({ endpoint, query, offset, maxcount, }) {
-        return `${endpoint || '/api/v1/public/coverflow_data_query'}?query=${query}&offset=${offset}&maxcount=${maxcount}`;
-    }
-
+    /**
+     * Public class (exported as `CoverflowByQuery`). Renders a labelled cover
+     * flow driven by a search query against the coverflow-by-query endpoint,
+     * paging through result windows and optionally coordinating an external
+     * cover source.
+     */
     class CoverflowByQuery {
         id;
         query;
@@ -2084,6 +2620,16 @@
         positions;
         config;
         externalSourceInUse;
+        /**
+         * @param {Object} params
+         * @param {string} params.id - the container element's id.
+         * @param {string} params.query
+         * @param {string} params.label - heading text.
+         * @param {string} [params.endpoint]
+         * @param {number} params.offset - starting result offset.
+         * @param {number} params.maxcount - results per window.
+         * @param {{coce?, openLibrary?, google?, ekz?}} params.externalSourcesInUse
+         */
         constructor({ id, query, label, endpoint, offset, maxcount, externalSourcesInUse, }) {
             const instance = new EventListeners();
             instance.data = {
@@ -2122,6 +2668,11 @@
             };
             this.renderHeader();
         }
+        /**
+         * Fetch the current result window, add each item's detail-view link, and
+         * subscribe to the external cover source when one is in use.
+         * @returns {Promise<void>}
+         */
         async prepareCoverflow() {
             this.data = await fetchItemData(byQueryRequestURI({ query: this.query, offset: this.offset, maxcount: this.maxcount }));
             this.data.items.forEach((item) => {
@@ -2132,6 +2683,11 @@
                 this.subscribeToLoadingState();
             }
         }
+        /**
+         * Register the external cover source: mark ekz (synchronous) via
+         * externalSources.info, or subscribe its callback to run when loading
+         * completes.
+         */
         subscribeToLoadingState() {
             if (this.externalSourceInUse
                 && Object.keys(this.externalSourceInUse).length === 0
@@ -2150,6 +2706,14 @@
                 }
             });
         }
+        /**
+         * Paging callback for the query cover flow: step the offset one window in
+         * the given direction (within bounds) and re-render.
+         * @param {*} nearbyItems - unused; kept for the paging callback signature.
+         * @param {'left'|'right'} buttonDirection
+         * @returns {Promise<void>}
+         * @throws {Error} when there is nothing to load in that direction.
+         */
         async loadPortion(nearbyItems, buttonDirection) {
             this.config = {
                 ...this.config,
@@ -2170,9 +2734,9 @@
             }
             else {
                 throw new Error(`Nothing to load in this direction -> ${buttonDirection}`);
-                //   console.trace(`Looks like something went wrong in ${this.loadPortion.name}`);
             }
         }
+        /** Insert the label heading and wrap the container in a <section>. */
         renderHeader() {
             const coverflowQueryContainer = document.getElementById(this.id);
             const section = document.createElement('section');
@@ -2183,6 +2747,7 @@
             section.appendChild(label);
             section.appendChild(coverflowQueryContainer);
         }
+        /** Render the current result window through a fresh cover-flow instance. */
         render() {
             const lmscoverflow = createLcfInstance();
             lmscoverflow.setGlobals(this.config, this.data.items, this.id);
@@ -2197,6 +2762,31 @@
     exports.ShelfBrowser = shelfBrowser;
     exports.createLcfInstance = createLcfInstance;
     exports.externalSources = externalSources;
+
+    /* Internal test seam — NOT part of the public API. Exposes the pure helpers
+       for direct unit testing without leaking them to the global scope (in the
+       browser they live under window.LMSCoverFlow._internals, nowhere else). */
+    exports._internals = {
+        getLcfItemId,
+        arrFromObjEntries,
+        additionalProperties,
+        attributeInstructionsFor,
+        describeArgShape,
+        instructionsForClass,
+        isTextContent,
+        setAttrOrText,
+        applyInstructions,
+        isPromise,
+        processHeights,
+        flattenPromiseResults,
+        calculateCoverFlowPlusGaps,
+        resyncExecution,
+        generateId,
+        shouldScrollShelfBrowserIntoView,
+        nearbyItemsRequestURI,
+        generatedCoverRequestURI,
+        byQueryRequestURI,
+    };
 
     Object.defineProperty(exports, '__esModule', { value: true });
 
