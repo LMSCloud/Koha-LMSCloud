@@ -787,17 +787,24 @@ SELECT reservefee FROM borrowers LEFT JOIN categories ON borrowers.categorycode 
     my $issue_qry = qq{
 SELECT COUNT(*) FROM items
 LEFT JOIN issues USING (itemnumber)
-WHERE items.biblionumber=? AND issues.issue_id IS NULL
+WHERE items.biblionumber=? 
+      AND issues.issue_id IS NULL 
+      AND (items.itemlost = 0 OR items.itemlost IS NULL)
+      AND (items.withdrawn = 0 OR items.withdrawn IS NULL)
+      AND (items.notforloan = 0 OR items.notforloan IS NULL)
     };
+    if (! C4::Context->preference('AllowHoldsOnDamagedItems') ) {
+        $issue_qry .= ' AND (items.damaged = 0 OR items.damaged IS NULL)';
+    }
     my $holds_qry = qq{
 SELECT COUNT(*) FROM reserves WHERE biblionumber=? AND borrowernumber<>?
     };
-
+    
     my $dbh = C4::Context->dbh;
     my ($fee) = $dbh->selectrow_array( $borquery, undef, ($borrowernumber) );
     $fee += 0;
     my $hold_fee_mode = C4::Context->preference('HoldFeeMode') || 'not_always';
-    if ( $fee and $fee > 0 and $hold_fee_mode eq 'not_always' ) {
+    if ( $fee and $fee > 0 and ( $hold_fee_mode eq 'not_always' or $hold_fee_mode eq 'issued_or_reserved' ) ) {
 
         # This is a reconstruction of the old code:
         # Compare number of items with items issued, and optionally check holds
@@ -808,16 +815,22 @@ SELECT COUNT(*) FROM reserves WHERE biblionumber=? AND borrowernumber<>?
             $issue_qry, undef,
             ($biblionumber)
         );
-        if ( $notissued == 0 ) {
+        ($reserved) = $dbh->selectrow_array(
+            $holds_qry, undef,
+            ( $biblionumber, $borrowernumber )
+        );
+        if ( $hold_fee_mode eq 'issued_or_reserved' ) {
+            unless ( $notissued == 0 or $reserved > 0 ) {
 
-            # all items are issued
-            ($reserved) = $dbh->selectrow_array(
-                $holds_qry, undef,
-                ( $biblionumber, $borrowernumber )
-            );
-            $fee = 0 if $reserved == 0;
-        } else {
-            $fee = 0;
+                # items still available to be checked out OR record has no reserves
+                $fee = 0;
+            }
+        } elsif ( $hold_fee_mode eq 'not_always' ) {
+            unless ( $notissued == 0 and $reserved > 0 ) {
+
+                # items still available to be checked out AND record has no reserves
+                $fee = 0;
+            }
         }
     }
     return $fee;

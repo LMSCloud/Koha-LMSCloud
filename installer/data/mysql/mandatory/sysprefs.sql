@@ -377,7 +377,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('HidePersonalPatronDetailOnCirculation', '0', NULL, 'Hide patrons phone number, email address, street address and city in the circulation page','YesNo'),
 ('hide_marc','0',NULL,'If ON, disables display of MARC fields, subfield codes & indicators (still shows data)','YesNo'),
 ('HoldCancellationRequestSIP','0',NULL,'Option to set holds cancelled via SIP as cancellation requests','YesNo'),
-('HoldFeeMode','not_always','any_time_is_placed|not_always|any_time_is_collected','Set the hold fee mode','Choice'),
+('HoldFeeMode','not_always','any_time_is_placed|not_always|issued_or_reserved|any_time_is_collected','Set the hold fee mode','Choice'),
 ('HoldRatioDefault','3',NULL,'Default value for the hold ratio report','Integer'),
 ('HoldsAutoFill','0',NULL,'If on, librarian will not be asked if hold should be filled, it will be filled automatically','YesNo'),
 ('HoldsAutoFillPrintSlip','0',NULL,'If on, hold slip print dialog will be displayed automatically','YesNo'),

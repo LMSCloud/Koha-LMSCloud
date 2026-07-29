@@ -970,6 +970,23 @@ if (   $enabledNotForLoanStatus
     $template->param( ReservableItems => 1 );
 }
 
+if ( C4::Context->preference( 'HoldFeeMode' ) eq 'issued_or_reserved' && $can_item_be_reserved ) {
+    my $has_holds = $biblio->holds->count > 0;
+    my $available = 0;
+    foreach my $item ( $biblio->items->as_list ) {
+        next if $item->itemlost;
+        next if $item->withdrawn;
+        next if (!C4::Context->preference( 'AllowHoldsOnDamagedItems' ) && $item->damaged);
+        next if $item->notforloan != 0;
+        next if $item->checkout;   # bereits ausgeliehen
+        $available = 1;
+        last;
+    }
+    if ( $available && !$has_holds ) {
+        $template->param( OrderableItems => 1 );
+    }
+}
+
 $template->param(
     BookableItems            => $can_bookings_be_placed,
     itemloop_has_images      => $itemloop_has_images,
