@@ -2339,18 +2339,7 @@
         ShelfBrowser(args);
     </script>
     
-    [% IF ( Koha.Preference('BibtipEnabled') ) %]
-    [% USE BibtipToken %]
-    [% IF ( Koha.Preference('BibtipCatalog') ) %]
-    <script type="text/javascript">
-    //<![CDATA[
-        var BibtipCatalog = "[% Koha.Preference('BibtipCatalog') | html %]";
-    //]]>
-    </script>
-    [% END %]
-    <div id="bibtip_api_token" style="display:none">[% BibtipToken.generate | html %]</div>
-    <script src="https://static.lmscloud.net/js/bibtip_lmscloud_v215.js" type="text/javascript"></script>
-    [% END %]
+    [% INCLUDE 'opac-bibtip.inc' %]
 
     [% IF bundlesEnabled %]
     [% INCLUDE 'show-bundle-modal.inc' %]
