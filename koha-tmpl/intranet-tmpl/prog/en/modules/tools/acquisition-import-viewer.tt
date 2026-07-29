@@ -3,7 +3,7 @@
 [% USE KohaDates %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Acquisition Import Viewer &rsaquo; [% 'Tools' | html %] &rsaquo; [% kmain_title | html %]</title>
+<title>Log-Viewer of ekz-Interface imports &rsaquo; [% 'Tools' | html %] &rsaquo; [% kmain_title | html %]</title>
 [% INCLUDE 'doc-head-close.inc' %]
 
 <style>
@@ -31,14 +31,14 @@
     &rsaquo;
     <a href="/cgi-bin/koha/tools/tools-home.pl">[% 'Tools' | html %]</a>
     &rsaquo;
-    Acquisition Import Viewer
+    Log-Viewer of ekz-Interface imports
 </div>
 
 <div class="main container-fluid">
     <div class="row">
         <div class="col-sm-12">
 
-            <h1>Acquisition Import Viewer</h1>
+            <h1>Log-Viewer of ekz-Interface imports</h1>
 
             <div id="api-error" class="alert alert-danger">
                 <strong>API Error:</strong> <span id="api-error-text"></span>
@@ -46,10 +46,10 @@
 
             <!-- Master: Importdata -->
             <div class="section-header">
-                <h3>Importdata</h3>
+                <h3>Import data</h3>
                 <span class="badge badge-secondary" id="count-imports">&hellip;</span>
             </div>
-            <div id="loading-imports">Loading columns&hellip;</div>
+            <div id="loading-imports">Loading data&hellip;</div>
             <div id="wrap-imports" style="display:none">
                 <table id="dt-imports" class="table table-bordered table-striped" style="width:100%">
                     <thead><tr></tr></thead>
@@ -59,12 +59,12 @@
 
             <!-- Detail: Importobjects -->
             <div class="section-header">
-                <h3>Importobjects</h3>
+                <h3>Import objects</h3>
                 <span class="badge badge-info" id="selected-import-label" style="display:none"></span>
                 <span class="badge badge-secondary" id="count-objects" style="display:none">&hellip;</span>
             </div>
-            <div id="detail-hint">&#8592; Click a row in the table above to load objects</div>
-            <div id="loading-objects" style="display:none">Loading columns&hellip;</div>
+            <div id="detail-hint">&#8592; Click on a row of the table above to view objects</div>
+            <div id="loading-objects" style="display:none">Loading data&hellip;</div>
             <div id="wrap-objects" style="display:none">
                 <table id="dt-objects" class="table table-bordered table-striped" style="width:100%">
                     <thead><tr></tr></thead>
@@ -81,13 +81,11 @@
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="payloadModalLabel">Payload</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="payloadModalLabel">Payload</h4>
             </div>
             <div class="modal-body" style="padding:0">
-                <pre id="payload-content" style="margin:0;padding:1rem;max-height:75vh;overflow:auto;white-space:pre-wrap;word-break:break-all;font-size:.8rem;background:#f8f8f8;border:0;border-radius:0"></pre>
+                <pre id="payload-content" style="margin:0;padding:1rem;max-height:75vh;overflow:auto;white-space:pre-wrap;word-break:break-all;font-size:1.4rem;background:#f8f8f8;border:0;border-radius:0"></pre>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -120,25 +118,25 @@ var masterDateRangeCols = ['object_date', 'processingtime'];
 // Column header labels
 // ---------------------------------------------------------------------------
 var COLUMN_TITLES = {
-    id:                 'ImportId',
-    vendor_id:          'Vendor',
-    object_type:        'Type',
-    object_number:      'OrderNr/RefNr.',
-    object_date:        'Orderdate',
-    rec_type:           'RecordType',
-    object_item_number: 'ItemNr.',
-    processingstate:    'Status',
-    processingtime:     'Processing Timestamp',
-    object_reference:   'Reference',
-    payload:            'Payload',
-    koha_object_id:     'Koha Object ID',
-    title:              'Title',
-    author:             'Author',
-    publisher:          'Publisher',
-    year:               'Year',
-    datecreated:        'Date Created',
-    barcode:            'Barcode',
-    item_timestamp:     'Item Timestamp'
+    id:                 _("Import ID"),
+    vendor_id:          _("Vendor"),
+    object_type:        _("Object type"),
+    object_number:      _("Order no / Reference no"),
+    object_date:        _("Order date"),
+    rec_type:           _("Record type"),
+    object_item_number: _("Item no"),
+    processingstate:    _("Status"),
+    processingtime:     _("Processing time"),
+    object_reference:   _("Reference import ID"),
+    payload:            _("Payload"),
+    koha_object_id:     _("Koha Object ID"),
+    title:              _("Title"),
+    author:             _("Author"),
+    publisher:          _("Publisher"),
+    year:               _("Year"),
+    datecreated:        _("Date created"),
+    barcode:            _("Barcode"),
+    item_timestamp:     _("Item last update")
 };
 
 // ---------------------------------------------------------------------------
