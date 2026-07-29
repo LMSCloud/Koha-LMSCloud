@@ -81,7 +81,7 @@
                                 [% url = BLOCK %][% url | $raw %][% "&amp;count=" _ results_per_page | url %][% END %]
                             [% END %]
                             [% FOREACH facet IN facets_loo.facets %]
-                            [% NEXT IF !facet.facet_label_value %]
+                                [% NEXT IF !facet.facet_label_value %]
                                 [% IF facets_loo.label == 'Collections' %][% SET facet.facet_label_value = AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.ccode', authorised_value => facet.facet_label_value, opac =>1 ) || facet.facet_label_value %][% END %]
                                 [% IF facets_loo.label == 'Languages' %][% SET facet.facet_label_value = Languages.GetByISOCode(lang,facet.facet_label_value) || facet.facet_label_value %][% END %]
                                 [% SET li_class = '' %]

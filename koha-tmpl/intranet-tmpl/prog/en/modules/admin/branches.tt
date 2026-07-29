@@ -429,25 +429,25 @@
                     <div class="hint">Set to 'Yes' to show this library as a search option and on the libraries page in the OPAC.</div>
                 </div>
                 [% IF ( bookmobileactive ) %]
-                <div class="fg-row">
-                    <div class="fg-label">
-                        <label for="mobilebranch">Bookmobile branch: </label>
-                    </div>
-                    <div class="fg-input">
-                        <select name="mobilebranch" id="mobilebranch">
-                            <option value="">None</option>
-                            [% mobilebranches = Branches.all( selected => branch, restrict => 'NoMobileStations' ) %]
-                            [% FOREACH mobilebranchlib IN mobilebranches %]
-                                [% IF (mobilebranchlib.branchcode == library.mobilebranch) %]
-                                    <option value="[% mobilebranchlib.branchcode | html %]" selected="selected">[% mobilebranchlib.branchname | html %]</option>
-                                [% ELSE %]
-                                    <option value="[% mobilebranchlib.branchcode | html %]">[% mobilebranchlib.branchname | html %]</option>
+                    <div class="fg-row">
+                        <div class="fg-label">
+                            <label for="mobilebranch">Bookmobile branch: </label>
+                        </div>
+                        <div class="fg-input">
+                            <select name="mobilebranch" id="mobilebranch">
+                                <option value="">None</option>
+                                [% mobilebranches = Branches.all( selected => branch, restrict => 'NoMobileStations' ) %]
+                                [% FOREACH mobilebranchlib IN mobilebranches %]
+                                    [% IF (mobilebranchlib.branchcode == library.mobilebranch) %]
+                                        <option value="[% mobilebranchlib.branchcode | html %]" selected="selected">[% mobilebranchlib.branchname | html %]</option>
+                                    [% ELSE %]
+                                        <option value="[% mobilebranchlib.branchcode | html %]">[% mobilebranchlib.branchname | html %]</option>
+                                    [% END %]
                                 [% END %]
-                            [% END %]
-                        </select>
+                            </select>
+                        </div>
+                        <div class="hint">If this branch is a bookmobile station, select the associated bookmobile branch</div>
                     </div>
-                    <div class="hint">If this branch is a bookmobile station, select the associated bookmobile branch</div>
-                </div>
                 [% END %]
                 <div class="fg-row wide">
                     <div class="fg-label">

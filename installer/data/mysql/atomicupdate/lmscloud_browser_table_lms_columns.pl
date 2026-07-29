@@ -3,8 +3,9 @@ use Koha::Installer::Output qw(say_info say_success);
 
 return {
     bug_number  => "LMSCLOUD-browser-lms-columns",
-    description => "Restore LMS extensions on browser table (parent/prefix/classval/startrange/endrange/exclude/usesearch + 4 indexes + classification width)",
-    up          => sub {
+    description =>
+        "Restore LMS extensions on browser table (parent/prefix/classval/startrange/endrange/exclude/usesearch + 4 indexes + classification width)",
+    up => sub {
         my ($args) = @_;
         my ( $dbh, $out ) = @$args{qw(dbh out)};
 

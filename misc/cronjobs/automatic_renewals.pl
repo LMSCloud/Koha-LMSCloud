@@ -323,7 +323,8 @@ sub _ProcessRenewals {
                     );
 
                     if ($letter) {
-                        my $library             = Koha::Libraries->find( Koha::Libraries->get_effective_branch( $patron->branchcode ) );
+                        my $library =
+                            Koha::Libraries->find( Koha::Libraries->get_effective_branch( $patron->branchcode ) );
                         my $admin_email_address = $library->from_email_address;
 
                         C4::Letters::EnqueueLetter(

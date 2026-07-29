@@ -26,7 +26,7 @@ use Koha::Database;
 use t::lib::TestBuilder;
 use t::lib::Mocks;
 
-use C4::Reserves qw( IsAvailableForItemLevelRequest ItemsAnyAvailableAndNotRestricted );
+use C4::Reserves    qw( IsAvailableForItemLevelRequest ItemsAnyAvailableAndNotRestricted );
 use C4::Circulation qw( GetBranchItemRule );
 use Koha::Libraries;
 use Koha::CirculationRules;
@@ -299,7 +299,7 @@ subtest 'Pickup branch resolves correctly for each SetPickupLocationOfReservedIt
         }
 
         # L266-273: the LMSCloud override
-        if (   C4::Context->preference('SetPickupLocationOfReservedItems')
+        if ( C4::Context->preference('SetPickupLocationOfReservedItems')
             && !C4::Context->preference('OPACAllowUserToChooseBranch') )
         {
             my $pickUpBranch = C4::Context->preference('SetPickupLocationOfReservedItems');

@@ -630,7 +630,7 @@ sub UpdateFine {
         # when the item later returns; its amount is frozen at loss time and cannot
         # be re-adjusted (adjust()/overdue_update is only allowed on UNRETURNED
         # lines), so restrict the increment to still-accruing UNRETURNED fines.
-        if (   $accountline->status eq 'UNRETURNED'
+        if ( $accountline->status eq 'UNRETURNED'
             && Koha::Number::Price->new( $accountline->amount )->round != Koha::Number::Price->new($amount)->round )
         {
             $accountline->adjust(

@@ -20,7 +20,15 @@
             <th scope="col" data-datatype="related-object" data-related="extended_attributes" data-related-key="type" data-related-value="year,publyear,VerlagJahrSonst" data-related-search-on="value">Year</th>
             <th scope="col" data-datatype="related-object" data-related="extended_attributes" data-related-key="type" data-related-value="pages" data-related-search-on="value">Pages</th>
             <th scope="col">Request type</th>
-            <th scope="col" data-datatype="related-object" data-related="extended_attributes" data-related-key="type" data-related-value="illPartnerLibraryIsil,sendingIllLibraryIsil,BestelltVonSigel,BestelltBeiSigel" data-related-search-on="value">Sigel</th>
+            <th
+                scope="col"
+                data-datatype="related-object"
+                data-related="extended_attributes"
+                data-related-key="type"
+                data-related-value="illPartnerLibraryIsil,sendingIllLibraryIsil,BestelltVonSigel,BestelltBeiSigel"
+                data-related-search-on="value"
+                >Sigel</th
+            >
             <th scope="col">Order ID</th>
             <th scope="col">Patron</th>
             <th scope="col">Bibliographic record ID</th>
@@ -41,6 +49,5 @@
             <th scope="col" class="actions"></th>
         </tr>
     </thead>
-    <tbody id="illview-body">
-    </tbody>
+    <tbody id="illview-body"> </tbody>
 </table>
