@@ -383,6 +383,9 @@
     [%- CASE 'delete_anonymize_patrons' -%]
         <span class="sub_permission delete_anonymize_patrons_subpermission"> Delete old borrowers and anonymize circulation history (deletes borrower checkout history) </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'view_acquisition_import_log' -%]
+        <span class="sub_permission view_acquisition_import_log_subpermission"> View acquisition import log </span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'batch_extend_due_dates' -%]
         <span class="sub_permission batch_extend_due_dates_subpermission"> Perform batch extend due dates </span>
         <span class="permissioncode">([% name | html %])</span>

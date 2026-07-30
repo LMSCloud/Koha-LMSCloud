@@ -4,6 +4,7 @@
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>Log-Viewer of ekz-Interface imports &rsaquo; [% 'Tools' | html %] &rsaquo; [% kmain_title | html %]</title>
+[% Asset.css("lib/datatables/datatables.css") | $raw %]
 [% INCLUDE 'doc-head-close.inc' %]
 
 <style>
@@ -80,9 +81,11 @@
 <div class="modal fade" id="payloadModal" tabindex="-1" role="dialog" aria-labelledby="payloadModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="closebtn" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between">
                 <h4 class="modal-title" id="payloadModalLabel">Payload</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="margin-left:auto;order:2">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
             <div class="modal-body" style="padding:0">
                 <pre id="payload-content" style="margin:0;padding:1rem;max-height:75vh;overflow:auto;white-space:pre-wrap;word-break:break-all;font-size:1.4rem;background:#f8f8f8;border:0;border-radius:0"></pre>
@@ -109,7 +112,7 @@ var currentObjectNumber = null;
 var masterFilterState = { rec_type: 'message' };
 
 // Columns rendered as dropdowns (exact match, no LIKE)
-var masterSelectCols  = { rec_type: true, processingstate: true };
+var masterSelectCols  = { rec_type: true, processingstate: true, object_type: true };
 
 // Columns with date-range filter (from/to date inputs instead of text)
 var masterDateRangeCols = ['object_date', 'processingtime'];
@@ -138,6 +141,39 @@ var COLUMN_TITLES = {
     barcode:            _("Barcode"),
     item_timestamp:     _("Item last update")
 };
+
+// ---------------------------------------------------------------------------
+// Static dropdown options — DB value → translated display label
+// (no API call needed; values are known at build time)
+// ---------------------------------------------------------------------------
+var DROPDOWN_OPTIONS = {
+    object_type: [
+        { value: 'delivery', label: _("Delivery") },
+        { value: 'invoice',  label: _("Invoice")  },
+        { value: 'order',    label: _("Order")     }
+    ],
+    rec_type: [
+        { value: 'item',    label: _("Item")           },
+        { value: 'message', label: _("Import-Message") },
+        { value: 'title',   label: _("Title")          }
+    ],
+    processingstate: [
+        { value: 'delivered',             label: _("Delivered")           },
+        { value: 'invoiced',              label: _("Invoiced")            },
+        { value: 'ordered',               label: _("Ordered")             },
+        { value: 'requested',             label: _("Requested")           },
+        { value: 'requested_and_ordered', label: _("Requested & Ordered") }
+    ]
+};
+
+// Reverse lookup: col → { dbValue: displayLabel } — used by cell renderers
+var ENUM_LABEL = {};
+Object.keys(DROPDOWN_OPTIONS).forEach(function(col) {
+    ENUM_LABEL[col] = {};
+    DROPDOWN_OPTIONS[col].forEach(function(item) {
+        ENUM_LABEL[col][item.value] = item.label;
+    });
+});
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -212,8 +248,22 @@ function formatXml(xml) {
     }
 }
 
+// Cell renderer that translates a raw DB enum value to its display label
+function makeEnumRenderer(col) {
+    return function(data, type) {
+        if (type !== 'display') return data || '';
+        if (!data) return '';
+        var map = ENUM_LABEL[col];
+        if (map && map[data] !== undefined) {
+            return $('<span>').text(map[data]).html();
+        }
+        return $('<span>').text(data).html();
+    };
+}
+
 // OrderNr/RefNr. renderer — shared by both tables
-// Priority: invoice → basket (item rows) → biblio detail → plain text
+// Priority: invoice → basket → plain text
+// (Biblio-Link belongs in the Title column, not here)
 var orderNumberRenderer = function(data, type, row) {
     if (type !== 'display') return data || '';
     if (!data) return '';
@@ -226,12 +276,6 @@ var orderNumberRenderer = function(data, type, row) {
         return '<a href="/cgi-bin/koha/acqui/basket.pl?basketno='
             + encodeURIComponent(row.basketno) + '">' + escaped + '</a>';
     }
-    var bibno = row.item_biblionumber
-        || (row.rec_type === 'title' ? row.koha_object_id : null);
-    if (bibno) {
-        return '<a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber='
-            + encodeURIComponent(bibno) + '">' + escaped + '</a>';
-    }
     return escaped;
 };
 
@@ -241,7 +285,7 @@ var payloadRenderer = function(data, type) {
     var safe = String(data)
         .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
         .replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    return '<button type="button" class="btn btn-xs btn-default payload-btn" data-raw="' + safe + '">Payload</button>';
+    return '<button type="button" class="btn btn-xs btn-default payload-btn" data-raw="' + safe + '">' + _("Show") + '</button>';
 };
 
 function showApiError(msg) {
@@ -300,20 +344,17 @@ function buildDataTable(tableId, apiEndpoint, badgeId, getExtraParams,
     .then(function(json) {
         var columns = (json.columns && json.columns.length) ? json.columns : ['id'];
 
-        // Fetch distinct values for dropdown columns in parallel
-        var ddCols = [], ddPromises = [];
+        // Build dropdown option lists from static map (no API fetch needed)
+        var distinctValues = {};
         if (filterState !== undefined && selectCols) {
             columns.forEach(function(c) {
-                if (selectCols[c]) {
-                    ddCols.push(c);
-                    ddPromises.push(fetchDistinct(apiEndpoint, c));
+                if (selectCols[c] && DROPDOWN_OPTIONS[c]) {
+                    distinctValues[c] = DROPDOWN_OPTIONS[c]; // [{value, label}, ...]
                 }
             });
         }
 
-        return Promise.all(ddPromises).then(function(ddResults) {
-            var distinctValues = {};
-            ddCols.forEach(function(c, i) { distinctValues[c] = ddResults[i]; });
+        return Promise.resolve().then(function() {
 
             // Header row
             $('#' + tableId + ' thead tr').html(
@@ -350,14 +391,15 @@ function buildDataTable(tableId, apiEndpoint, badgeId, getExtraParams,
                             + '</th>';
                     }
 
-                    // Dropdown (distinct values)
+                    // Dropdown (static options — [{value, label}, ...])
                     if (distinctValues[c] && distinctValues[c].length) {
                         var currentVal = filterState[c] !== undefined ? filterState[c] : '';
                         var opts = '<option value="">– all –</option>';
-                        distinctValues[c].forEach(function(v) {
-                            var sel   = (String(currentVal) === String(v)) ? ' selected' : '';
-                            var vEsc  = $('<span>').text(v).html();
-                            opts += '<option value="' + vEsc + '"' + sel + '>' + vEsc + '</option>';
+                        distinctValues[c].forEach(function(item) {
+                            var sel      = (String(currentVal) === String(item.value)) ? ' selected' : '';
+                            var valEsc   = $('<span>').text(item.value).html();
+                            var labelEsc = $('<span>').text(item.label).html();
+                            opts += '<option value="' + valEsc + '"' + sel + '>' + labelEsc + '</option>';
                         });
                         return '<th' + style + '><select'
                             + ' class="form-control form-control-sm col-filter-input"'
@@ -561,7 +603,13 @@ $(function() {
                     $(row).attr('data-object-number', data.object_number);
             }
         },
-        { payload: payloadRenderer, object_number: orderNumberRenderer },
+        {
+            payload:         payloadRenderer,
+            object_number:   orderNumberRenderer,
+            object_type:     makeEnumRenderer('object_type'),
+            rec_type:        makeEnumRenderer('rec_type'),
+            processingstate: makeEnumRenderer('processingstate')
+        },
         masterFilterState,
         masterSelectCols,
         masterDateRangeCols
@@ -587,14 +635,21 @@ $(function() {
         },
         { _hiddenCols: ['vendor_id', 'id'] },
         {
-            object_number: orderNumberRenderer,
+            object_number:   orderNumberRenderer,
+            object_type:     makeEnumRenderer('object_type'),
+            rec_type:        makeEnumRenderer('rec_type'),
+            processingstate: makeEnumRenderer('processingstate'),
             title: function(data, type, row) {
                 if (type !== 'display') return data || '';
                 if (!data) return '';
                 var escaped = $('<span>').text(data).html();
-                if (row.rec_type === 'title' && row.koha_object_id) {
+                // Prefer direct biblio link via koha_object_id, fall back to resolved_biblionumber
+                var bibno = (row.rec_type === 'title')
+                    ? (row.koha_object_id || row.resolved_biblionumber)
+                    : null;
+                if (bibno) {
                     return '<a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber='
-                        + encodeURIComponent(row.koha_object_id) + '">'
+                        + encodeURIComponent(bibno) + '">'
                         + escaped + '</a>';
                 }
                 return escaped;

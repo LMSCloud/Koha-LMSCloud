@@ -213,10 +213,38 @@ sub list {
         }
     }
 
-    # Correlated subquery: invoiceid für Rechnungszeilen (object_type = 'invoice')
+    # Correlated subqueries: invoiceid für Rechnungszeilen + basketno für EKZ-Bestellformate
+    # invID<nr>: EKZ speichert in aqinvoices nur die nackte Zahl, daher Prefix abstreifen.
+    # Bedingung: nur für object_type='invoice' oder invID-Prefix suchen, nicht für Bestell-/Lieferdaten.
     $filter{_extra_select} =
-        q{, (SELECT invoiceid FROM aqinvoices}
-      . q{ WHERE invoicenumber = object_number LIMIT 1) AS invoiceid};
+        q{, (SELECT invoiceid FROM aqinvoices WHERE invoicenumber =}
+      . q{   CASE WHEN object_number LIKE 'invID%' THEN SUBSTRING(object_number,6) ELSE object_number END}
+      . q{   AND (object_type = 'invoice' OR object_number LIKE 'invID%')}
+      . q{   LIMIT 1) AS invoiceid}
+      . q{, COALESCE(}
+      . q{    (SELECT basketno FROM aqbasket WHERE basketname =}
+      . q{       CASE}
+      . q{         WHEN object_number LIKE 'sto.%'  THEN CONCAT('S-', object_number)}
+      . q{         WHEN object_number LIKE 'ser.%'  THEN CONCAT('F-', object_number)}
+      . q{         WHEN object_number LIKE 'delID%' THEN CONCAT('L-', SUBSTRING(object_number,6), '/L-', SUBSTRING(object_number,6))}
+      . q{         WHEN object_number LIKE 'invID%' THEN CONCAT('R-', SUBSTRING(object_number,6), '/R-', SUBSTRING(object_number,6))}
+      . q{         ELSE NULL}
+      . q{       END LIMIT 1),}
+      . q{    (SELECT basketno FROM aqbasket}
+      . q{     WHERE object_type = 'delivery'}
+      . q{       AND basketname LIKE CONCAT('L-', object_number, '/%')}
+      . q{     ORDER BY basketno DESC LIMIT 1),}
+      . q{    (SELECT aqo2.basketno}
+      . q{     FROM acquisition_import ai2}
+      . q{     JOIN acquisition_import_objects ao2 ON ao2.acquisition_import_id = ai2.object_reference}
+      . q{     JOIN aqorders_items aqoi2 ON aqoi2.itemnumber = ao2.koha_object_id}
+      . q{     JOIN aqorders aqo2 ON aqo2.ordernumber = aqoi2.ordernumber}
+      . q{     WHERE ai2.object_number = acquisition_import.object_number}
+      . q{       AND acquisition_import.object_type = 'delivery'}
+      . q{       AND ai2.rec_type = 'item'}
+      . q{       AND ao2.koha_object = 'item'}
+      . q{     LIMIT 1)}
+      . q{  ) AS basketno};
 
     return $c->_list('acquisition_import', %filter);
 }
@@ -348,8 +376,41 @@ sub list_joined {
         LEFT JOIN aqorders aqo
                ON aqo.ordernumber = aqoi.ordernumber
         LEFT JOIN aqinvoices inv
-               ON inv.invoicenumber = ai.object_number
-              AND ai.object_type = 'invoice'
+               ON inv.invoicenumber =
+                  CASE WHEN ai.object_number LIKE 'invID%'
+                       THEN SUBSTRING(ai.object_number,6)
+                       ELSE ai.object_number
+                  END
+              AND (ai.object_type = 'invoice' OR ai.object_number LIKE 'invID%')
+        LEFT JOIN aqbasket bsk
+               ON bsk.basketname =
+                  CASE
+                    WHEN ai.object_number LIKE 'sto.%'  THEN CONCAT('S-', ai.object_number)
+                    WHEN ai.object_number LIKE 'ser.%'  THEN CONCAT('F-', ai.object_number)
+                    WHEN ai.object_number LIKE 'delID%' THEN CONCAT('L-', SUBSTRING(ai.object_number,6), '/L-', SUBSTRING(ai.object_number,6))
+                    WHEN ai.object_number LIKE 'invID%' THEN CONCAT('R-', SUBSTRING(ai.object_number,6), '/R-', SUBSTRING(ai.object_number,6))
+                    WHEN ai.object_type  = 'delivery'   THEN CONCAT('L-', ai.object_number, '/L-', ai.object_number)
+                    ELSE NULL
+                  END
+        LEFT JOIN acquisition_import_objects ao_ref_title
+               ON ao_ref_title.acquisition_import_id = ai.object_reference
+              AND ao_ref_title.koha_object = 'title'
+        LEFT JOIN acquisition_import_objects ao_ref_item
+               ON ao_ref_item.acquisition_import_id = ai.object_reference
+              AND ao_ref_item.koha_object = 'item'
+        LEFT JOIN items i_ref
+               ON i_ref.itemnumber = ao_ref_item.koha_object_id
+        LEFT JOIN aqorders_items aqoi_ref
+               ON aqoi_ref.itemnumber = ao_ref_item.koha_object_id
+        LEFT JOIN aqorders aqo_ref
+               ON aqo_ref.ordernumber = aqoi_ref.ordernumber
+        LEFT JOIN biblio b_extra
+               ON b_extra.biblionumber = COALESCE(
+                      ao_ref_title.koha_object_id,
+                      i_ref.biblionumber
+                  )
+        LEFT JOIN biblio_metadata meta_extra
+               ON meta_extra.biblionumber = b_extra.biblionumber
     };
 
     # Kein object_number übergeben → leeres Ergebnis (noch keine Auswahl im Master)
@@ -405,15 +466,41 @@ sub list_joined {
             ai.processingtime,
             ai.processingstate,
             ao.koha_object_id,
-            b.title,
-            ExtractValue(meta.metadata,'//datafield[\@tag="245"]/subfield[\@code="c"]') AS author,
-            ExtractValue(meta.metadata,'//datafield[\@tag="264"]/subfield[\@code="b"]') AS publisher,
-            ExtractValue(meta.metadata,'//datafield[\@tag="264"]/subfield[\@code="c"]') AS year,
-            b.datecreated,
+            COALESCE(b.title,        b_extra.title)       AS title,
+            COALESCE(
+                ExtractValue(meta.metadata,      '//datafield[\@tag="245"]/subfield[\@code="c"]'),
+                ExtractValue(meta_extra.metadata,'//datafield[\@tag="245"]/subfield[\@code="c"]')
+            ) AS author,
+            COALESCE(
+                ExtractValue(meta.metadata,      '//datafield[\@tag="264"]/subfield[\@code="b"]'),
+                ExtractValue(meta_extra.metadata,'//datafield[\@tag="264"]/subfield[\@code="b"]')
+            ) AS publisher,
+            COALESCE(
+                ExtractValue(meta.metadata,      '//datafield[\@tag="264"]/subfield[\@code="c"]'),
+                ExtractValue(meta_extra.metadata,'//datafield[\@tag="264"]/subfield[\@code="c"]')
+            ) AS year,
+            COALESCE(b.datecreated, b_extra.datecreated) AS datecreated,
             i.barcode,
             i.timestamp AS item_timestamp,
             i.biblionumber AS item_biblionumber,
-            aqo.basketno AS basketno,
+            b_extra.biblionumber AS resolved_biblionumber,
+            COALESCE(
+                aqo.basketno,
+                bsk.basketno,
+                aqo_ref.basketno,
+                (SELECT aqo3.basketno
+                 FROM acquisition_import ai3
+                 JOIN acquisition_import_objects ao3 ON ao3.acquisition_import_id = ai3.id
+                 JOIN aqorders_items aqoi3            ON aqoi3.itemnumber = ao3.koha_object_id
+                 JOIN aqorders aqo3                   ON aqo3.ordernumber = aqoi3.ordernumber
+                 WHERE ai3.object_number = ai.object_number
+                   AND ao3.koha_object = 'item'
+                 LIMIT 1),
+                (SELECT b2.basketno FROM aqbasket b2
+                 WHERE ai.object_type = 'delivery'
+                   AND b2.basketname LIKE CONCAT('L-', ai.object_number, '/%')
+                 ORDER BY b2.basketno DESC LIMIT 1)
+            ) AS basketno,
             inv.invoiceid AS invoiceid
         $join_clause
         $where

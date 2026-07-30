@@ -14,7 +14,7 @@ C<acquisition_import_objects>. Die eigentlichen Daten werden im Browser
 per JavaScript direkt über die Koha REST API abgefragt
 (C</api/v1/acquisitionimports/...>).
 
-Erforderliche Berechtigung: C<acquisition → order_manage>
+Erforderliche Berechtigung: C<tools → view_acquisition_import_log>
 
 =cut
 
@@ -31,7 +31,7 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
         query           => $input,
         type            => 'intranet',
         authnotrequired => 0,
-        flagsrequired   => { acquisition => 'order_manage' },
+        flagsrequired   => { tools => 'view_acquisition_import_log' },
     }
 );
 
