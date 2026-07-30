@@ -582,9 +582,6 @@ Enhanced content:
             - Name of the Bibtip catalog used to request recommendations from Bibtip service:
             - pref: BibtipCatalog
         -
-            - "API key used to authenticate against the Bibtip recommender service. It is used server-side to generate the X-API-Token the OPAC sends to Bibtip:"
-            - pref: BibtipApiKey
-        -
             - pref: BibtipPatronSpecificRecommendations
               choices:
                   1: Enable

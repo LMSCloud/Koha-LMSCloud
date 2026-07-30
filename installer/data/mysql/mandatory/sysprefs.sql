@@ -111,7 +111,6 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('BiblioDefaultView','normal','normal|marc|isbd','Choose the default detail view in the catalog; choose between normal, marc or isbd','Choice'),
 ('BiblioItemtypeInfo','0','0','Control which itemtype info displays for biblio level itemtypes','YesNo'),
 ('BibtexExportAdditionalFields',  '', NULL ,  'Define additional BibTex tags to export from MARC records in YAML format as an associative array with either a marc tag/subfield combination as the value, or a list of tag/subfield combinations.',  'textarea'),
-('BibtipApiKey','',NULL,'API key used to authenticate against the Bibtip recommender service. Used server-side to generate the X-API-Token sent by the OPAC.','Free'),
 ('BibtipCatalog','',NULL,'Bibtip catalog name. Used to request recommendations from Bibtip.','Free'),
 ('BibtipEnabled','0',NULL,'Enable Bibtip recommendations to be displayed in OPAC detail title view.','YesNo'),
 ('BibtipPatronSpecificRecommendations','0',NULL,'Enable patron specific recommendations based on the reading history of a patron using a Bibtip service.','YesNo'),
