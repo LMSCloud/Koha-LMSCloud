@@ -486,6 +486,11 @@
             Delete old borrowers and anonymize circulation history (deletes borrower checkout history)
         </span>
         <span class="permissioncode">([% name | html %])</span>
+    [%- CASE 'acquisition_import_viewer' -%]
+        <span class="sub_permission acquisition_import_viewer_subpermission">
+            Access to Acquisition Import Viewer
+        </span>
+        <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'batch_extend_due_dates' -%]
         <span class="sub_permission batch_extend_due_dates_subpermission">
             Perform batch extend due dates
