@@ -30,6 +30,16 @@
         required: false
         type: string
         description: "Gibt distinct-Werte fuer die angegebene Spalte zurueck (Dropdown-Befuellung)"
+      - name: id
+        in: query
+        required: false
+        type: string
+        description: "Filter auf acquisition_import.id (LIKE-Suche moeglich)"
+      - name: object_reference
+        in: query
+        required: false
+        type: string
+        description: "Filter auf object_reference (Referenz auf andere Import-ID)"
       - name: rec_type
         in: query
         required: false
@@ -110,7 +120,7 @@
           type: object
     x-koha-authorization:
       permissions:
-        acquisition: order_manage
+        tools: view_acquisition_import_log
 
 /acquisitionimports/joined:
   get:
@@ -175,7 +185,7 @@
           type: object
     x-koha-authorization:
       permissions:
-        acquisition: order_manage
+        tools: view_acquisition_import_log
 
 /acquisitionimports/{id}:
   get:
@@ -210,7 +220,7 @@
           type: object
     x-koha-authorization:
       permissions:
-        acquisition: order_manage
+        tools: view_acquisition_import_log
 
 /acquisitionimports/objects:
   get:
@@ -274,7 +284,7 @@
           type: object
     x-koha-authorization:
       permissions:
-        acquisition: order_manage
+        tools: view_acquisition_import_log
 
 /acquisitionimports/objects/{id}:
   get:
@@ -309,4 +319,4 @@
           type: object
     x-koha-authorization:
       permissions:
-        acquisition: order_manage
+        tools: view_acquisition_import_log

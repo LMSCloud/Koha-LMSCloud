@@ -486,9 +486,9 @@
             Delete old borrowers and anonymize circulation history (deletes borrower checkout history)
         </span>
         <span class="permissioncode">([% name | html %])</span>
-    [%- CASE 'acquisition_import_viewer' -%]
-        <span class="sub_permission acquisition_import_viewer_subpermission">
-            Access to Acquisition Import Viewer
+    [%- CASE 'view_acquisition_import_log' -%]
+        <span class="sub_permission view_acquisition_import_log_subpermission">
+            View acquisition import log
         </span>
         <span class="permissioncode">([% name | html %])</span>
     [%- CASE 'batch_extend_due_dates' -%]
