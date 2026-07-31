@@ -394,7 +394,7 @@ function buildDataTable(tableId, apiEndpoint, badgeId, getExtraParams,
                     // Dropdown (static options — [{value, label}, ...])
                     if (distinctValues[c] && distinctValues[c].length) {
                         var currentVal = filterState[c] !== undefined ? filterState[c] : '';
-                        var opts = '<option value="">– all –</option>';
+                        var opts = '<option value="">– ' + _("All") + ' –</option>';
                         distinctValues[c].forEach(function(item) {
                             var sel      = (String(currentVal) === String(item.value)) ? ' selected' : '';
                             var valEsc   = $('<span>').text(item.value).html();
