@@ -465,7 +465,9 @@ sub list_joined {
             ai.object_item_number,
             ai.processingtime,
             ai.processingstate,
-            ao.koha_object_id,
+            COALESCE(ao.koha_object_id,
+                     ao_ref_item.koha_object_id,
+                     ao_ref_title.koha_object_id)         AS koha_object_id,
             COALESCE(b.title,        b_extra.title)       AS title,
             COALESCE(
                 ExtractValue(meta.metadata,      '//datafield[\@tag="245"]/subfield[\@code="c"]'),
@@ -480,9 +482,9 @@ sub list_joined {
                 ExtractValue(meta_extra.metadata,'//datafield[\@tag="264"]/subfield[\@code="c"]')
             ) AS year,
             COALESCE(b.datecreated, b_extra.datecreated) AS datecreated,
-            i.barcode,
-            i.timestamp AS item_timestamp,
-            i.biblionumber AS item_biblionumber,
+            COALESCE(i.barcode,     i_ref.barcode)          AS barcode,
+            COALESCE(i.timestamp,   i_ref.timestamp)        AS item_timestamp,
+            COALESCE(i.biblionumber,i_ref.biblionumber)     AS item_biblionumber,
             b_extra.biblionumber AS resolved_biblionumber,
             COALESCE(
                 aqo.basketno,
