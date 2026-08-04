@@ -36,8 +36,11 @@ use C4::External::EKZ::lib::EkzKohaRecords;
 use Koha::AcquisitionImport::AcquisitionImports;
 use Koha::AcquisitionImport::AcquisitionImportObjects;
 use Koha::Acquisition::Order;
+use Koha::Acquisition::Orders;
 use Koha::Database;
+use Koha::Holds;
 use Koha::Item;
+use Koha::Items;
 use Koha::Logger;
 use Koha::Patrons;
 
@@ -62,11 +65,11 @@ sub readStoFromEkzWsStoList {
     my $ekzCustomerNumber = shift;
     my $selJahr = shift;
     my $selStoId = shift;
-	my $selMitTitel = shift;
+    my $selMitTitel = shift;
     my $selMitKostenstellen = shift;
-	my $selMitEAN = shift;
-	my $selStatusUpdate = shift;
-	my $selErweitert = shift;
+    my $selMitEAN = shift;
+    my $selStatusUpdate = shift;
+    my $selErweitert = shift;
     my $selMitReferenznummer = shift;
     my $refStoListElement = shift;    # for storing the StoListElement of the SOAP request body
 
@@ -85,8 +88,8 @@ sub readStoFromEkzWsStoList {
                                                 ":");
     
     $logger->debug("readStoFromEkzWsStoList() \$refStoListElement:" .  Dumper($refStoListElement) . ":");
-	
-	my $ekzwebservice = C4::External::EKZ::lib::EkzWebServices->new();
+    
+    my $ekzwebservice = C4::External::EKZ::lib::EkzWebServices->new();
     $result = $ekzwebservice->callWsStoList($ekzCustomerNumber, $selJahr, $selStoId, $selMitTitel, $selMitKostenstellen, $selMitEAN, $selStatusUpdate, $selErweitert,$selMitReferenznummer,$refStoListElement);
 
     $logger->info("readStoFromEkzWsStoList() returns result:" .  Dumper($result) . ":");
@@ -144,6 +147,8 @@ sub addReferenznummerToObjectItemNumber {
                     $statusGroup = 'delivered';    # those reference numbers may have records in acquisition_import having processingstate 'invoiced', 'delivered', 'ordered'
                 } elsif ( $statusGroup eq '20' || $statusGroup eq '10' ) {
                     $statusGroup = 'notdelivered';    # those reference numbers may have records in acquisition_import having processingstate 'ordered'
+                } elsif ( $statusGroup eq '85' ) {
+                    $statusGroup = 'cancelled';    # Storno: those reference numbers may have records in acquisition_import having processingstate 'ordered'
                 }
                 if ( ! defined( $titles->{$titel->{'ekzArtikelNummer'}}->{$referenznummer}->{$statusGroup}->{itemCount} ) ) {
                     $titles->{$titel->{'ekzArtikelNummer'}}->{$referenznummer}->{$statusGroup}->{itemCount} = $exemplaranzahl;
@@ -337,8 +342,8 @@ sub genKohaRecords {
                         $minStatusDatum = $statusDatum;
                     }
                     if ( $lastRunDateIsSet ) {
-                        if ( ($titel->{'status'} == 10 || $titel->{'status'} == 20 || $titel->{'status'} == 99) &&    # 'vorbreitet' || 'in nächster Lieferung' || 'Bereits geliefert' (i.e. 'prepared' || 'included in next delivery' || 'delivered')
-                            $statusDatum ge $lastRunDate && 
+                        if ( ($titel->{'status'} == 10 || $titel->{'status'} == 20 || $titel->{'status'} == 99 || $titel->{'status'} == 85) &&    # 'vorbreitet' || 'in nächster Lieferung' || 'Bereits geliefert' || 'Storno' (i.e. 'prepared' || 'included in next delivery' || 'delivered' || 'cancelled')
+                            $statusDatum ge $lastRunDate &&
                             $statusDatum lt $todayDate ) {
                                 $insOrUpd = 1;    # the acquisition_import message record must be inserted or updated
                                 last;
@@ -444,8 +449,8 @@ $logger->info("genKohaRecords() bestellDatum was set from minStatusDatum:$minSta
         foreach my $titel ( @{$stoWithNewState->{'titelRecords'}} ) {
             $logger->info("genKohaRecords() titel ekzArtikelNr:" . $titel->{'ekzArtikelNummer'} . ": isbn:" . $titel->{'isbn'} . ": status:" . $titel->{'status'} . ": statusDatum:" . $titel->{'statusDatum'} . ":");
             if ( !(($lastRunDateIsSet &&
-                    ($titel->{'status'} == 10 || $titel->{'status'} == 20 || $titel->{'status'} == 99) &&    # 'vorbreitet' || 'in nächster Lieferung' || 'Bereits geliefert' (i.e. 'prepared' || 'included in next delivery' || 'delivered')
-                    $titel->{'statusDatum'} ge $lastRunDate && 
+                    ($titel->{'status'} == 10 || $titel->{'status'} == 20 || $titel->{'status'} == 99 || $titel->{'status'} == 85) &&    # 'vorbreitet' || 'in nächster Lieferung' || 'Bereits geliefert' || 'Storno' (i.e. 'prepared' || 'included in next delivery' || 'delivered' || 'cancelled')
+                    $titel->{'statusDatum'} ge $lastRunDate &&
                     $titel->{'statusDatum'} lt $todayDate
                    ) ||
                    (!$lastRunDateIsSet &&
@@ -455,6 +460,103 @@ $logger->info("genKohaRecords() bestellDatum was set from minStatusDatum:$minSta
                   )
                ) {
                 next;
+            }
+
+            # Handle Storno (status 85): cancel holds, cancel orders, delete items+biblio, update acquisition_import
+            if ( $titel->{'status'} == 85 ) {
+                $logger->info("genKohaRecords() titel ekzArtikelNr:" . $titel->{'ekzArtikelNummer'} . ": status 85 (Storno) - cancelling ordered items");
+
+                my $ekzExemplarID = $ekzBestellNr . '-' . $titel->{'ekzArtikelNummer'};
+
+                # Find all ordered acquisition_import item records for this article
+                my $acquisitionImportItems = Koha::AcquisitionImport::AcquisitionImports->new();
+                my @itemRecords = $acquisitionImportItems->_resultset()->search(
+                    {
+                        vendor_id          => "ekz",
+                        object_type        => "order",
+                        object_number      => $ekzBestellNr,
+                        rec_type           => "item",
+                        processingstate    => "ordered",
+                        object_item_number => { 'like' => $ekzExemplarID . '%' }
+                    }
+                )->all();
+
+                $logger->info("genKohaRecords() Storno: found " . scalar(@itemRecords) . " ordered item record(s) for ekzExemplarID:$ekzExemplarID:");
+
+                # Collect unique ordernumbers to avoid cancelling same order multiple times
+                my %cancelledOrders;
+
+                foreach my $itemRecord (@itemRecords) {
+                    my $acquisitionImportIdItem = $itemRecord->get_column('id');
+
+                    # Find the Koha itemnumber from acquisition_import_objects
+                    my $acquisitionImportObject = Koha::AcquisitionImport::AcquisitionImportObjects->new();
+                    my $objectRecord = $acquisitionImportObject->_resultset()->search(
+                        {
+                            acquisition_import_id => $acquisitionImportIdItem,
+                            koha_object           => 'item'
+                        }
+                    )->first();
+
+                    if ( $objectRecord ) {
+                        my $itemnumber = $objectRecord->get_column('koha_object_id');
+                        $logger->info("genKohaRecords() Storno: processing itemnumber:$itemnumber:");
+
+                        # Cancel any holds on this item before order cancellation
+                        # so patron receives HOLD_CANCELLATION notice if template configured
+                        my $holds = Koha::Holds->search({ itemnumber => $itemnumber });
+                        foreach my $hold ( $holds->all() ) {
+                            $logger->info("genKohaRecords() Storno: cancelling hold reserve_id:" . $hold->reserve_id() . " for itemnumber:$itemnumber:");
+                            $hold->cancel({ cancellation_reason => 'EKZ_STORNO' });
+                        }
+
+                        # Find and cancel the aqorder for this item (only once per unique ordernumber)
+                        my $schema = Koha::Database->new()->schema();
+                        my @aqordersItems = $schema->resultset('AqordersItem')->search({ itemnumber => $itemnumber })->all();
+                        foreach my $aqordersItem (@aqordersItems) {
+                            my $ordernumber = $aqordersItem->get_column('ordernumber');
+                            unless ( $cancelledOrders{$ordernumber} ) {
+                                my $order = Koha::Acquisition::Orders->find($ordernumber);
+                                if ( $order && $order->orderstatus() ne 'cancelled' ) {
+                                    $logger->info("genKohaRecords() Storno: cancelling ordernumber:$ordernumber:");
+                                    # cancel() handles: item deletion (safe_delete), biblio deletion,
+                                    # datecancellationprinted, orderstatus='cancelled', cancellationreason
+                                    # reason '1' = 'Nicht lieferbar' (ORDER_CANCELLATION_REASON)
+                                    $order->cancel({ reason => '1', delete_biblio => 1 });
+                                }
+                                $cancelledOrders{$ordernumber} = 1;
+                            }
+                        }
+                    }
+
+                    # Update acquisition_import item record processingstate to 'cancelled'
+                    $itemRecord->update({
+                        processingstate => 'cancelled',
+                        processingtime  => DateTime::Format::MySQL->format_datetime(DateTime->now(time_zone => 'local'))
+                    });
+                }
+
+                # Also update the acquisition_import title record to 'cancelled'
+                my $acquisitionImportTitle = Koha::AcquisitionImport::AcquisitionImports->new();
+                my $titleAcqRecord = $acquisitionImportTitle->_resultset()->search(
+                    {
+                        vendor_id          => "ekz",
+                        object_type        => "order",
+                        object_number      => $ekzBestellNr,
+                        rec_type           => "title",
+                        object_item_number => $titel->{'ekzArtikelNummer'} . '',
+                        processingstate    => "ordered"
+                    }
+                )->first();
+                if ( $titleAcqRecord ) {
+                    $titleAcqRecord->update({
+                        processingstate => 'cancelled',
+                        processingtime  => DateTime::Format::MySQL->format_datetime(DateTime->now(time_zone => 'local'))
+                    });
+                    $logger->info("genKohaRecords() Storno: set acquisition_import title record to 'cancelled' for ekzArtikelNummer:" . $titel->{'ekzArtikelNummer'} . ":");
+                }
+
+                next;    # Skip regular processing for this Storno titel
             }
 
             my $titleHits = { 'count' => 0, 'records' => [] };
