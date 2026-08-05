@@ -27,7 +27,7 @@ var authorByHeLiMa = "by/with ";
 var licensorNameHeLiMa = "Hesse offers";
 var durationHeLiMa = "Duration:";
 var suitableForHeLiMa = "suitable for ";
-var suitableForGradeHeLiMa = "suitable for ";
+var suitableForGradeHeLiMa = "suitable for grade ";
 
 function getHeLiMaFacet(query_desc,maxHitCount,licensorName,prevPageText,nextPageText,readMore,readLess,madeby,durationText,suitableForText,suitableForGradeText) {
     if (!origResultHeaderHeLiMa) {
@@ -152,7 +152,6 @@ function showHeLiMaResult(facetID) {
     }
     $('.encyclopediasource').html(name);
     
-    // $('.encyclopediaprovider').html(' <a class="external-offer-link" href="' + helimaData.results[facetID].searchAtFilmFriend + '"  target="' + targetLinkHeLiMa + '">' + licensorNameHeLiMa + '</a> ' );
     $('.encyclopediaprovider').html(licensorNameHeLiMa);
     $('.encyclopediasearchhitcount').html(' ' + helimaData.results[facetID].hitCount + ' ');
     if ( $('.onlyAdditionalOfferFacets').length > 0 )
@@ -176,7 +175,7 @@ function generateHeLiMaEntry(facetID,entryID,with_image) {
     var hit = helimaData.results[facetID].hits[entryID];
     var rowElement = document.createElement("tr");
     var colElement = document.createElement("td");
-    
+
     colElement = document.createElement("td");
     colElement.setAttribute('class','bibliocol');
     
@@ -188,7 +187,7 @@ function generateHeLiMaEntry(facetID,entryID,with_image) {
             if ( hit.url ) {
                 linkElement = document.createElement("a");
                 linkElement.setAttribute('class','p1');
-                linkElement.setAttribute('target',targetLinkFilmfriend);
+                linkElement.setAttribute('target',targetLinkHeLiMa);
                 linkElement.setAttribute('href',hit.url);
                 linkElement.setAttribute('alt',hit.title);
                 linkElement.setAttribute('title',hit.title);
@@ -212,12 +211,19 @@ function generateHeLiMaEntry(facetID,entryID,with_image) {
         colElement.setAttribute('class','bibliocol');
     }
     
-    var txtElement = document.createElement("a");
-    txtElement.setAttribute('class','title external-offer-link');
-    txtElement.setAttribute('target',targetLinkHeLiMa);
-    txtElement.setAttribute('href',hit.url);
-    txtElement.textContent = hit.title;
-    colElement.appendChild(txtElement);
+    if ( hit.url && hit.url.length > 0 ) {
+        var txtElement = document.createElement("a");
+        txtElement.setAttribute('class','title external-offer-link');
+        txtElement.setAttribute('target',targetLinkHeLiMa);
+        txtElement.setAttribute('href',hit.url);
+        txtElement.textContent = hit.title;
+        colElement.appendChild(txtElement);
+    } else {
+        var txtElement = document.createElement("div");
+        txtElement.setAttribute('class','title');
+        txtElement.textContent = hit.title;
+        colElement.appendChild(txtElement);
+    }
     
     var addDescription = document.createElement("p");
     addDescription.setAttribute('class','description');
@@ -242,6 +248,10 @@ function generateHeLiMaEntry(facetID,entryID,with_image) {
         if ( facetID == "23" &&  hit.topic == 'AUDIOBOOK' /* Tigerbooks */ ) 
         {
             topic.textContent = 'Hörbuch';
+        }
+        else if ( facetID == "23" &&  hit.topic == 'BOOK' /* Tigerbooks */ ) 
+        {
+            topic.textContent = 'Buch';
         }
         if ( hasDesc )
             addDescription.appendChild(document.createTextNode('; '));

@@ -8,8 +8,8 @@ return {
         my ( $dbh, $out ) = @$args{qw(dbh out)};
         $dbh->do( "
             INSERT IGNORE INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `type` ) VALUES
-            ('HelimaAdditionalOfferName','Hessen-Angebote',NULL,'Name of the Licensor/Provider of the HeLiMa service.','Free'),
-            ('HelimaCustomerID','0',NULL,'The customer ID when using the HeLiMa service.','Free'),
+            ('HelimaAdditionalOfferName','Land Hessen',NULL,'Name of the Licensor/Provider of the HeLiMa service.','Free'),
+            ('HelimaCustomerID','',NULL,'The customer ID when using the HeLiMa service.','Free'),
             ('HelimaLicensor','hessian',NULL,'Licensor/provider of the HeLiMa service.','Free'),
             ('HelimaNumSearchResults','20',NULL,'Maximum number of results per page displayed in the OPAC.','Integer'),
             ('HelimaSearchActive','0',NULL,'Activate the HeLiMa license manager search in OPAC.','YesNo'),
