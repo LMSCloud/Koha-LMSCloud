@@ -184,7 +184,7 @@ function generateHeLiMaEntry(facetID,entryID,with_image) {
         divElement.setAttribute('class','coverimages');
         if ( hit.image_url ) {
             var linkElement;
-            if ( hit.url ) {
+            if ( hit.url && hit.url.length > 0 && hit.url != '#' ) {
                 linkElement = document.createElement("a");
                 linkElement.setAttribute('class','p1');
                 linkElement.setAttribute('target',targetLinkHeLiMa);
@@ -211,7 +211,7 @@ function generateHeLiMaEntry(facetID,entryID,with_image) {
         colElement.setAttribute('class','bibliocol');
     }
     
-    if ( hit.url && hit.url.length > 0 ) {
+    if ( hit.url && hit.url.length > 0 && hit.url != '#' ) {
         var txtElement = document.createElement("a");
         txtElement.setAttribute('class','title external-offer-link');
         txtElement.setAttribute('target',targetLinkHeLiMa);
