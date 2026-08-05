@@ -366,7 +366,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('GoogleOpenIDConnectDefaultBranch', '',NULL,'This branch code will be used to create Google OpenID Connect patrons.','Textarea'),
 ('GoogleOpenIDConnectDefaultCategory','',NULL,'This category code will be used to create Google OpenID Connect patrons.','Textarea'),
 ('GoogleOpenIDConnectDomain', '', NULL, 'Restrict Google OpenID Connect to this domain (or subdomains of this domain). Leave blank for all Google domains', 'Free'),
-('HelimaAdditionalOfferName','Land Hessen',NULL,'Name of the Licensor/Provider of the HeLiMa service.','Free'),
+('HelimaAdditionalOfferName','eBibliotheken Hessen',NULL,'Name of the Licensor/Provider of the HeLiMa service.','Free'),
 ('HelimaCustomerID','',NULL,'The customer ID when using the HeLiMa service.','Free'),
 ('HelimaLicensor','hessian',NULL,'Licensor/provider of the HeLiMa service.','Free'),
 ('HelimaNumSearchResults','20',NULL,'Maximum number of results per page displayed in the OPAC.','Integer'),
