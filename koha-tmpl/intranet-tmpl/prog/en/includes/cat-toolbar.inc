@@ -262,24 +262,28 @@
     [% IF ( CAN_user_reserveforothers ) %]
         [% SET items = biblio.items %]
         [% IF Context.Scalar(Context.Scalar(items, "filter_by_for_hold"), "count") %]
+            [% SET orderable = 0 %]
+            [% IF Koha.Preference('HoldFeeMode') == 'issued_or_reserved' && Context.Scalar(Context.Scalar(items, "filter_by_orderable"), "count") && !biblio.holds.count %]
+                [% SET orderable = 1 %]
+            [% END %]
             [% IF ( holdfor ) %]
                 <div class="btn-group">
                     <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fa-solid fa-bookmark"></i>
-                        Place hold
+                        [% IF ( orderable ) %]Place order[% ELSE %]Place hold[% END %]
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblionumber | uri %]">Place hold</a></li>
+                        <li><a class="dropdown-item" href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblionumber | uri %]">[% IF ( orderable ) %]Place order[% ELSE %]Place hold[% END %]</a></li>
                         <li
                             ><a class="dropdown-item" href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblionumber | uri %]&amp;findborrower=[% holdfor_patron.cardnumber | uri %]"
-                                >Place hold for [% INCLUDE 'patron-title.inc' patron => holdfor_patron no_title => 1 %]</a
+                                >[% IF ( orderable ) %]Place order[% ELSE %]Place hold[% END %] for [% INCLUDE 'patron-title.inc' patron => holdfor_patron no_title => 1 %]</a
                             ></li
                         >
                     </ul>
                 </div>
             [% ELSE %]
                 <div class="btn-group"
-                    ><a id="placehold" class="btn btn-default" href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblionumber | html %]" role="button"><i class="fa-solid fa-bookmark"></i> Place hold</a></div
+                    ><a id="placehold" class="btn btn-default" href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblionumber | html %]" role="button"><i class="fa-solid fa-bookmark"></i> [% IF ( orderable ) %]Place order[% ELSE %]Place hold[% END %]</a></div
                 >
             [% END %]
         [% END %]
