@@ -129,6 +129,37 @@ sub filter_by_for_hold {
     }
 }
 
+=head3 filter_by_orderable
+
+    my $filtered_items = $items->filter_by_orderable;
+
+Return the items of the set that are currently available to be checked out
+(not lost, not withdrawn, not notforloan, and with no matching row in the
+issues table).
+
+This mirrors the "not issued" condition used by C4::Reserves::GetReserveFee
+for the HoldFeeMode = issued_or_reserved option, and is used to decide
+whether "Place order" should be offered instead of "Place hold".
+
+=cut
+
+sub filter_by_orderable {
+    my ($self) = @_;
+
+    return $self->search(
+        {
+            itemlost            => 0,
+            withdrawn           => 0,
+            notforloan          => 0,
+            'issue.itemnumber'  => undef,
+            ( C4::Context->preference('AllowHoldsOnDamagedItems') ? () : ( damaged => 0 ) ),
+        },
+        {
+            join => 'issue',
+        }
+    );
+}
+
 =head3 filter_by_visible_in_opac
 
     my $filered_items = $items->filter_by_visible_in_opac(
