@@ -142,12 +142,12 @@ Enhanced content:
             - pref: HelimaCustomerID
             - provided by the licensor.
         -
-            - Licensor/Provider of the HeLiMa service:  
+            - "Licensor/Provider of the HeLiMa service: "
             - pref: HelimaLicensor
               choices:
-                  hessian: "State of Hesse"
+                  hessian: State of Hesse
         -
-            - Name of the Licensor/Provider of the HeLiMa service:  
+            - "Name of the Licensor/Provider of the HeLiMa service: "
             - pref: HelimaAdditionalOfferName
             - ". The name is used at the OPAC additional offer view."
         -
