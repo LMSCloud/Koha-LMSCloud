@@ -1,4 +1,4 @@
-[% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmFriendSearchActive' ) ) %]
+[% IF ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmFriendSearchActive' ) || Koha.Preference( 'HelimaSearchActive' ) ) %]
 <div id="encyclopedia-facets">
     <h2><a href="#abc" class="further-offerings-menu-collapse-toggle">Further offerings</a></h2>
     <ul class="further-offerings-menu-collapse">
