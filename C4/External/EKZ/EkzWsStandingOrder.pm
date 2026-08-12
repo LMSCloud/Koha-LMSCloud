@@ -633,6 +633,7 @@ sub genKohaRecords {
 
                 # Handle Storno (status 85): cancel holds, cancel orders, delete items+biblio, update acquisition_import
                 if ( $titel->{'status'} == 85 ) {
+                    my $keepTitleData = C4::Context->preference('ekzKeepTitleDataOnAutomaticCancellation') // 0;
                     $logger->info("genKohaRecords() titel ekzArtikelNr:" . $titel->{'ekzArtikelNummer'} . ": status 85 (Storno) - cancelling ordered items");
 
                     my $ekzExemplarID = $ekzBestellNr . '-' . $titel->{'ekzArtikelNummer'};
@@ -687,11 +688,15 @@ sub genKohaRecords {
                                 unless ( $cancelledOrders{$ordernumber} ) {
                                     my $order = Koha::Acquisition::Orders->find($ordernumber);
                                     if ( $order && $order->orderstatus() ne 'cancelled' ) {
-                                        $logger->info("genKohaRecords() Storno: cancelling ordernumber:$ordernumber:");
                                         # cancel() handles: item deletion (safe_delete), biblio deletion,
                                         # datecancellationprinted, orderstatus='cancelled', cancellationreason
                                         # reason '1' = 'Nicht lieferbar' (ORDER_CANCELLATION_REASON)
-                                        $order->cancel({ reason => '1', delete_biblio => 1 });
+                                        # delete_biblio controlled by the ekzKeepTitleDataOnAutomaticCancellation syspref
+                                        my %cancelParams = ( reason => '1' );
+                                        $cancelParams{delete_biblio} = 1 unless $keepTitleData;
+                                        $logger->info(
+                                            "genKohaRecords() Storno: cancelling ordernumber:$ordernumber: keepTitleData:$keepTitleData:");
+                                        $order->cancel(\%cancelParams);
                                     }
                                     $cancelledOrders{$ordernumber} = 1;
                                 }
