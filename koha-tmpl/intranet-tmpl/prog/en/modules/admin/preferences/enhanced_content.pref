@@ -569,6 +569,13 @@ Enhanced content:
             - "You may provide a list of MARC record field numbers (separated by '|') "
             - pref: ekzWebServicesOverwriteCatalogDataKeepFields
             - "which will be kept of the overwritten record (for example: 072|852|942). Field content of the listed fields will be removed from the new record first before copying the content of the record to overwrite."
+        -
+            - pref: ekzKeepTitleDataOnAutomaticCancellation
+              choices:
+                  1: Keep
+                  0: Delete
+            - bibliographic title records when EKZ standing order items are automatically cancelled (Storno, status 85). If set to 'Keep', only the order and items are cancelled but the bibliographic record remains in the catalogue.
+            
 
     ekz Cover:
         -
