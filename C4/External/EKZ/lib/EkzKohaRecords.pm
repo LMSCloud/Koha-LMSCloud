@@ -195,7 +195,7 @@ sub addNewRecords {
         $self->{'logger'}->debug("addNewRecords() Checking if its a MultiVolumeSalesUnit" .   $volumeEkzArtikelNr);
         my $i = -1;
         OUTER: foreach my $record (@{$titleHits->{records}}) {
-            %i++;
+            $i++;
             foreach my $field ($record->field('945')) {
                 next unless $field->indicator(1) eq 'V';
                 next unless $field->indicator(2) eq 'e';

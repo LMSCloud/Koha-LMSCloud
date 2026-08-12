@@ -485,6 +485,7 @@ $logger->info("genKohaRecords() bestellDatum was set from minStatusDatum:$minSta
 
                 # Collect unique ordernumbers to avoid cancelling same order multiple times
                 my %cancelledOrders;
+                my $keepTitleData = C4::Context->preference('ekzKeepTitleDataOnAutomaticCancellation') // 0;
 
                 foreach my $itemRecord (@itemRecords) {
                     my $acquisitionImportIdItem = $itemRecord->get_column('id');
@@ -518,11 +519,14 @@ $logger->info("genKohaRecords() bestellDatum was set from minStatusDatum:$minSta
                             unless ( $cancelledOrders{$ordernumber} ) {
                                 my $order = Koha::Acquisition::Orders->find($ordernumber);
                                 if ( $order && $order->orderstatus() ne 'cancelled' ) {
-                                    $logger->info("genKohaRecords() Storno: cancelling ordernumber:$ordernumber:");
                                     # cancel() handles: item deletion (safe_delete), biblio deletion,
                                     # datecancellationprinted, orderstatus='cancelled', cancellationreason
                                     # reason '1' = 'Nicht lieferbar' (ORDER_CANCELLATION_REASON)
-                                    $order->cancel({ reason => '1', delete_biblio => 1 });
+                                    # delete_biblio controlled by KeepTitleDataOnAutomaticCancellation syspref
+                                    my %cancelParams = ( reason => '1' );
+                                    $cancelParams{delete_biblio} = 1 unless $keepTitleData;
+                                    $logger->info("genKohaRecords() Storno: cancelling ordernumber:$ordernumber: keepTitleData:$keepTitleData:");
+                                    $order->cancel(\%cancelParams);
                                 }
                                 $cancelledOrders{$ordernumber} = 1;
                             }
