@@ -506,7 +506,7 @@ $logger->info("genKohaRecords() bestellDatum was set from minStatusDatum:$minSta
                         # Cancel any holds on this item before order cancellation
                         # so patron receives HOLD_CANCELLATION notice if template configured
                         my $holds = Koha::Holds->search({ itemnumber => $itemnumber });
-                        foreach my $hold ( $holds->all() ) {
+                        foreach my $hold ( $holds->as_list() ) {
                             $logger->info("genKohaRecords() Storno: cancelling hold reserve_id:" . $hold->reserve_id() . " for itemnumber:$itemnumber:");
                             $hold->cancel({ cancellation_reason => 'EKZ_STORNO' });
                         }
