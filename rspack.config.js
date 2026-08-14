@@ -4,6 +4,16 @@ const path = require("path");
 const rspack = require("@rspack/core");
 
 // Helper to create base config
+// The booking API adapter is swapped per application at build time so the
+// same store code talks to the staff or OPAC endpoints.
+const bookingApiAlias = application =>
+    path.resolve(
+        __dirname,
+        application === "opac"
+            ? "koha-tmpl/intranet-tmpl/prog/js/vue/lib/booking/adapters/api/opac.js"
+            : "koha-tmpl/intranet-tmpl/prog/js/vue/lib/booking/adapters/api/staff-interface.js"
+    );
+
 const islandsExport = application => {
     const vueDir =
         application === "intranet"
@@ -23,12 +33,7 @@ const islandsExport = application => {
                     "koha-tmpl/intranet-tmpl/prog/js/vue"
                 ),
                 "@cypress": path.resolve(__dirname, "t/cypress"),
-                "@bookingApi": path.resolve(
-                    __dirname,
-                    application === "opac"
-                        ? "koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/adapters/api/opac.js"
-                        : "koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/adapters/api/staff-interface.js"
-                ),
+                "@bookingApi": bookingApiAlias(application),
             },
         },
         experiments: {
