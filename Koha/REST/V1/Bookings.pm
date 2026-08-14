@@ -171,7 +171,14 @@ sub update {
 
         return $c->render( status => 200, openapi => $c->objects->to_api($booking) );
     } catch {
-        $c->unhandled_exception($_);
+        if ( blessed $_ and $_->isa('Koha::Exceptions::Booking::Clash') ) {
+            return $c->render(
+                status  => 400,
+                openapi => { error => "Booking would conflict" }
+            );
+        }
+
+        return $c->unhandled_exception($_);
     };
 }
 
