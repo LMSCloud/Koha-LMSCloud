@@ -1747,13 +1747,11 @@
     </script>
     [% INCLUDE 'js-biblio-format.inc' %]
     [% Asset.js("js/browser.js") | $raw %]
-
-    [% IF Koha.Preference('EnableBooking') %]
-        [% Asset.js("js/modals/place_booking.js") | $raw %]
-    [% END %]
-    <script>
-        var browser;
-        browser = KOHA.browser("[% searchid | html %]", parseInt(biblionumber, 10));
+    <script nonce="[% Koha.CSPNonce | $raw %]">
+        var browser = KOHA.browser(
+            "[% searchid | html %]",
+            parseInt("[% biblionumber | html %]", 10)
+        );
         browser.show();
 
         [% IF bundlesEnabled %]

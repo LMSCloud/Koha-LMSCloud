@@ -294,8 +294,11 @@
         <a id="audit_record" class="btn btn-default" href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% biblionumber | html %]&audit=1" role="button"> <i class="fa-solid fa-stethoscope"></i> Audit</a>
     </div>
 
-    [% IF ( CAN_user_circulate_manage_bookings && biblio.items.filter_by_bookable.count ) %]
-        [% INCLUDE 'modals/booking/button-place.inc' %]
+    [% IF ( Koha.Preference('EnableBooking') && CAN_user_circulate_manage_bookings ) %]
+        [% IF biblio.items.filter_by_bookable.count %]
+            [% INCLUDE 'modals/booking/button-place.inc' %]
+        [% END %]
+        [%# The island also defines window.openBookingModal, which bookings/list.tt needs for editing existing bookings even when no item is currently bookable — do not gate it on bookable items. %]
         [% INCLUDE 'modals/booking/island.inc' %]
     [% END %]
 
@@ -352,5 +355,3 @@
         </div>
     </div>
 </div>
-
-[% INCLUDE modals/place_booking.inc %]

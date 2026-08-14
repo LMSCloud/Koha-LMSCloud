@@ -101,7 +101,6 @@
     [% IF Koha.Preference('EnableBooking') %]
         [% INCLUDE 'calendar.inc' %]
         [% INCLUDE 'select2.inc' %]
-        [% Asset.js("js/modals/place_booking.js") | $raw %]
     [% END %]
 
     [% IF ( Koha.Preference('CatalogConcerns') ) %]

@@ -16,7 +16,9 @@ const { buildSampleObject, buildSampleObjects } = require("./mockData.js");
 const {
     insertSampleBiblio,
     insertSampleHold,
+    insertSampleBooking,
     insertSampleCheckout,
+    insertSampleCirculationRules,
     insertSamplePatron,
     insertObject,
     deleteSampleObjects,
@@ -93,8 +95,14 @@ module.exports = (on, config) => {
         insertSampleHold(args) {
             return insertSampleHold({ ...args, baseUrl, authHeader });
         },
+        insertSampleBooking(args) {
+            return insertSampleBooking({ ...args, baseUrl, authHeader });
+        },
         insertSampleCheckout(args) {
             return insertSampleCheckout({ ...args, baseUrl, authHeader });
+        },
+        insertSampleCirculationRules(args) {
+            return insertSampleCirculationRules(args);
         },
         insertSamplePatron(args) {
             return insertSamplePatron({ ...args, baseUrl, authHeader });
