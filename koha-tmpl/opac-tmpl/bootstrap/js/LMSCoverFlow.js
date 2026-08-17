@@ -1604,36 +1604,36 @@
             return url.protocol === 'http:' || url.protocol === 'https:';
         }
         /**
-         * fetch() that aborts after a timeout.
-         * @param {RequestInfo} resource
-         * @param {{timeout?: number}} [options] - other fetch options plus timeout (ms).
-         * @returns {Promise<Response>}
-         */
-        // eslint-disable-next-line max-len
-        async fetchWithTimeout(resource, options = {}) {
-            const { timeout = 1000  } = options;
-            const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), timeout);
-            const response = await fetch(resource, {
-                ...options,
-                signal: controller.signal,
-            });
-            clearTimeout(id);
-            return response;
-        }
-        /**
+         * Probe a cover URL by loading it as an image, i.e. the same way the
+         * rendered <img> will consume it. A fetch() probe cannot be used here:
+         * cover hosts that send no Access-Control-Allow-Origin header (onleihe.de,
+         * cover.ekz.de) make fetch() reject even though the image displays fine,
+         * so a usable cover would be discarded in favour of the fallback.
          * @param {string} resourceInQuestion
-         * @returns {Promise<boolean>} whether a GET for the resource returns ok.
+         * @param {{timeout?: number}} [options] - abort the probe after timeout ms.
+         * @returns {Promise<boolean>} whether the resource loads as an image.
          */
-        async checkIfFileExists(resourceInQuestion) {
-            try {
-                const response = await this.fetchWithTimeout(resourceInQuestion, { method: 'GET', mode: 'cors' });
-                return response.ok;
-            }
-            catch (error) {
-                console.trace(`Looks like a request failed in ${this.checkIfFileExists.name} ->`, error);
-                return false;
-            }
+        checkIfFileExists(resourceInQuestion, options = {}) {
+            const { timeout = 1000 } = options;
+            return new Promise((resolve) => {
+                const probe = new Image();
+                let timeoutId;
+                const settle = (result) => {
+                    clearTimeout(timeoutId);
+                    probe.onload = null;
+                    probe.onerror = null;
+                    resolve(result);
+                };
+                timeoutId = setTimeout(() => {
+                    settle(false);
+                    /** Cancels the pending download. */
+                    probe.src = '';
+                }, timeout);
+                probe.onload = () => settle(true);
+                probe.onerror = () => settle(false);
+                /** Matches the normalisation applied to the rendered src. */
+                probe.src = resourceInQuestion.replaceAll('&amp;', '&');
+            });
         }
         /**
          * Resolve every item's coverurl: keep valid remote URLs, otherwise swap in
@@ -2065,11 +2065,27 @@
         constructor(coverUrl) {
             this.coverUrl = coverUrl;
         }
-        /** @returns {Promise<HTMLImageElement>} resolves once the image has loaded. */
-        fetch() {
+        /**
+         * A failed or hanging load must still settle: prepare() awaits all of
+         * these together, so one unsettled promise would stall the whole render.
+         * @param {{timeout?: number}} [options] - give up on the load after timeout ms.
+         * @returns {Promise<?HTMLImageElement>} the loaded image, or null when it
+         *   failed to load or timed out.
+         */
+        fetch(options = {}) {
+            const { timeout = 1000 } = options;
             return new Promise((resolve) => {
                 const coverImage = new Image();
-                coverImage.onload = () => resolve(coverImage);
+                let timeoutId;
+                const settle = (result) => {
+                    clearTimeout(timeoutId);
+                    coverImage.onload = null;
+                    coverImage.onerror = null;
+                    resolve(result);
+                };
+                timeoutId = setTimeout(() => settle(null), timeout);
+                coverImage.onload = () => settle(coverImage);
+                coverImage.onerror = () => settle(null);
                 coverImage.src = this.coverUrl.replaceAll('amp;', '');
             });
         }

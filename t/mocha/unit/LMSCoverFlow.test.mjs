@@ -236,4 +236,158 @@ describe("LMSCoverFlow", () => {
             );
         });
     });
+
+    // The cover probe must mirror what an <img> can display, not what fetch() is
+    // allowed to read. Cover hosts such as onleihe.de and cover.ekz.de send no
+    // Access-Control-Allow-Origin header, so the previous fetch()-based existence
+    // check rejected and replaced covers that render perfectly well.
+    describe("remote cover probing", () => {
+        const REMOTE_COVER = "https://www.onleihe.de/cover/12345.jpg";
+        const FALLBACK = "/covers/fallback.png";
+
+        // A fallback distinct from the generated-cover endpoint keeps the
+        // substitution branch off processDataUrl(), so no fetch() is expected at all.
+        const config = {
+            coverImageFallbackHeight: 210,
+            coverImageFallbackUrl: FALLBACK,
+        };
+        const remoteData = [
+            {
+                biblionumber: 33,
+                title: "Gamma",
+                author: "C. Scribe",
+                coverurl: REMOTE_COVER,
+                referenceToDetailsView:
+                    "/cgi-bin/koha/opac-detail.pl?biblionumber=33",
+            },
+        ];
+
+        let realImage;
+        let loads;
+        let fetchCalls;
+        let revertFetch;
+
+        /**
+         * Install an Image stub whose outcome per load is decided by `behaviour`,
+         * dispatching its event asynchronously the way a browser does.
+         * @param {function(string, number): ('load'|'error'|'hang')} behaviour
+         *   receives the src and the 1-based load attempt for that same src.
+         */
+        function stubImage(behaviour) {
+            loads = [];
+            function FakeImage() {}
+            Object.defineProperty(FakeImage.prototype, "src", {
+                set(value) {
+                    this._src = value;
+                    // src = '' is a probe cancelling its own download.
+                    if (!value) return;
+                    loads.push(value);
+                    const attempt = loads.filter(src => src === value).length;
+                    const outcome = behaviour(value, attempt);
+                    if (outcome === "hang") return;
+                    if (outcome === "load") {
+                        this.naturalHeight = 200;
+                        this.naturalWidth = 140;
+                        this.height = 200;
+                        this.width = 140;
+                    }
+                    setTimeout(() => {
+                        const handler =
+                            outcome === "load" ? this.onload : this.onerror;
+                        if (handler) handler();
+                    }, 0);
+                },
+                get() {
+                    return this._src;
+                },
+            });
+            window.Image = FakeImage;
+            global.Image = FakeImage;
+        }
+
+        async function renderData(id, data) {
+            document.body.innerHTML = `<div id="${id}"></div>`;
+            const lcf = mod.createLcfInstance();
+            lcf.setGlobals(config, data, id);
+            await lcf.render();
+            return document.querySelector(`#${id} .lcfCoverImage`);
+        }
+
+        before(() => {
+            realImage = window.Image;
+            // Skip the Babeltheque-style DOM harvester path.
+            mod.externalSources.info = "ekz";
+        });
+
+        beforeEach(() => {
+            // A cover probed over fetch() is a failure: a host without CORS headers
+            // rejects exactly like this, which is what used to discard the cover.
+            // rewire copies globals into module-local bindings when it loads the
+            // module, so fetch has to be replaced via __set__, not on `global` —
+            // otherwise the module keeps the real fetch and reaches the network.
+            fetchCalls = [];
+            revertFetch = mod.__set__("fetch", async resource => {
+                fetchCalls.push(String(resource));
+                throw new TypeError("Failed to fetch");
+            });
+        });
+
+        afterEach(() => {
+            revertFetch();
+        });
+
+        after(() => {
+            window.Image = realImage;
+            global.Image = realImage;
+            mod.externalSources.info = undefined;
+        });
+
+        it("keeps a remote cover whose host sends no CORS headers", async () => {
+            stubImage(() => "load");
+            const image = await renderData("lcf-cors-remote", remoteData);
+            expect(image.getAttribute("src")).to.equal(REMOTE_COVER);
+            expect(fetchCalls, "cover probed without fetch()").to.deep.equal([]);
+        });
+
+        it("probes the same URL it renders, with &amp; normalised", async () => {
+            stubImage(() => "load");
+            const image = await renderData("lcf-cors-amp", [
+                {
+                    ...remoteData[0],
+                    coverurl: "https://www.onleihe.de/c.jpg?a=1&amp;b=2",
+                },
+            ]);
+            expect(image.getAttribute("src")).to.equal(
+                "https://www.onleihe.de/c.jpg?a=1&b=2"
+            );
+            expect(loads).to.include("https://www.onleihe.de/c.jpg?a=1&b=2");
+            expect(loads.join(" ")).to.not.include("&amp;");
+        });
+
+        it("substitutes the fallback when the cover fails to load", async () => {
+            stubImage(src => (src === REMOTE_COVER ? "error" : "load"));
+            const image = await renderData("lcf-cors-error", remoteData);
+            expect(image.getAttribute("src")).to.equal(FALLBACK);
+        });
+
+        it("substitutes the fallback when the probe times out", async () => {
+            stubImage(src => (src === REMOTE_COVER ? "hang" : "load"));
+            const image = await renderData("lcf-cors-timeout", remoteData);
+            expect(image.getAttribute("src")).to.equal(FALLBACK);
+        });
+
+        // prepare() awaits every LcfCoverImage together, so a cover that probes ok
+        // but then stalls must still settle or render() never resolves.
+        it("still finishes rendering when the cover stalls after a successful probe", async () => {
+            stubImage((src, attempt) =>
+                src === REMOTE_COVER && attempt > 1 ? "hang" : "load"
+            );
+            const image = await renderData("lcf-cors-stall", remoteData);
+            expect(image.getAttribute("src")).to.equal(REMOTE_COVER);
+            expect(
+                document.querySelectorAll("#lcf-cors-stall .lcfItemContainer")
+                    .length
+            ).to.equal(remoteData.length);
+        });
+    });
 });
