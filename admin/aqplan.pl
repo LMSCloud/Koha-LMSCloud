@@ -154,7 +154,7 @@ my %labels;
 my @names = $input->multi_param();
 
 # ------------------------------------------------------------
-if ( $op eq 'save' ) {
+if ( $op eq 'cud-save' ) {
 
     #get budgets
     my ( @buds, @auth_values );
