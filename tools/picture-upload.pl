@@ -62,7 +62,6 @@ my $uploadfiletext = $input->param('uploadfiletext') || '';
 my $uploadfile     = $input->upload('uploadfile');
 my $borrowernumber = $input->param('borrowernumber');
 my $op             = $input->param('op') || '';
-$op =~ s/^cud-//;
 
 #FIXME: This code is really in the rough. The variables need to be re-scoped as the two subs depend on global vars to operate.
 #       Other parts of this code could be optimized as well, I think. Perhaps the file upload could be done with YUI's upload
