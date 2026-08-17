@@ -259,7 +259,7 @@ if ( $op eq 'cud-save' ) {
 }
 
 # delete a new claiming fee rule
-elsif ( $op eq 'deleteRule' ) {
+elsif ( $op eq 'cud-deleteRule' ) {
     my $itemtype     = $input->param('itemtype');
     my $categorycode = $input->param('categorycode');
 
@@ -268,7 +268,7 @@ elsif ( $op eq 'deleteRule' ) {
 }
 
 # add a new claiming fee rule
-elsif ( $op eq 'addRule' ) {
+elsif ( $op eq 'cud-addRule' ) {
     my $branchcode = $branch;    # branch
     if ( !$branchcode || $branchcode eq '' ) {
         $branchcode = '*';
@@ -318,7 +318,7 @@ elsif ( $op eq 'addRule' ) {
 }
 
 # clone claiming fee rules
-elsif ( $op eq 'cloneRules' ) {
+elsif ( $op eq 'cud-cloneRules' ) {
 
     # read from branch
     my $frombranch = $input->param('frombranch');
