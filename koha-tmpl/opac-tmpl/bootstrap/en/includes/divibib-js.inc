@@ -19,7 +19,7 @@
                         if ( data.titles[i].resultError ) {
                             message += '<br>';
                             message += _(" The Onleihe provided the following information: ");
-                            message += data.titles[i].resultError;
+                            message += escape_str(data.titles[i].resultError);
                         }
                         showDivibibInavailabilityMessage(title, message);
                     }

@@ -357,7 +357,7 @@ sub _fetch_divibib_data {
             . $response->error_as_HTML
             . "\nResponse-content: "
             . $response->content;
-        $cmd->responseError( $response->error_as_HTML, $response->code );
+        $cmd->responseError( $response->status_line, $response->code );
     }
 
     #use Data::Dumper;

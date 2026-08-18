@@ -72,7 +72,7 @@ subtest 'Brockhaus and Munzinger' => sub {
 };
 
 subtest 'Divibib integration' => sub {
-    plan tests => 3;
+    plan tests => 15;
 
     $schema->storage->txn_begin;
 
@@ -84,6 +84,54 @@ subtest 'Divibib integration' => sub {
         C4::Context->preference('DivibibEnabled'),
         '1',
         'DivibibEnabled syspref is accessible'
+    );
+
+    # The Onleihe reports a rejected request either within the response element
+    # or as a Problem element directly below NCIPMessage.
+    my $problemResponse =
+          q{<?xml version="1.0" encoding="UTF-8" standalone="yes"?>}
+        . q{<NCIPMessage version="2.0" xmlns:ncip="http://www.niso.org/2008/ncip">}
+        . q{<Problem><ProblemType>1005</ProblemType>}
+        . q{<ProblemDetail>Der angeforderte Benutzer ist unbekannt</ProblemDetail>}
+        . q{<Ext><ProblemElement>NCIP: User not found with id 4711</ProblemElement></Ext>}
+        . q{</Problem></NCIPMessage>};
+
+    my @commands = qw(
+        C4::Divibib::NCIP::RequestItem
+        C4::Divibib::NCIP::LookupItem
+        C4::Divibib::NCIP::LookupUser
+    );
+
+    foreach my $command (@commands) {
+        my $cmd = bless { withAccountData => 0 }, $command;
+        $cmd->parseResponse($problemResponse);
+
+        is( $cmd->getResponseOk(), 0, "$command reports a top level Problem as failure" );
+        is(
+            $cmd->getResponseError(), 'Der angeforderte Benutzer ist unbekannt',
+            "$command returns the ProblemDetail of the Onleihe"
+        );
+        is( $cmd->getResponseErrorCode(), '1005', "$command returns the ProblemType of the Onleihe" );
+    }
+
+    # The ProblemElement repeats data of the request and must not be reported.
+    my $problemWithoutDetail = bless {}, 'C4::Divibib::NCIP::RequestItem';
+    $problemWithoutDetail->parseResponse( q{<NCIPMessage><Problem><ProblemType>1005</ProblemType>}
+            . q{<Ext><ProblemElement>NCIP: User not found with id 4711</ProblemElement></Ext>}
+            . q{</Problem></NCIPMessage>} );
+    is( $problemWithoutDetail->getResponseError(), '', 'The ProblemElement of the Ext element is not reported' );
+    is(
+        $problemWithoutDetail->getResponseErrorCode(), '1005',
+        'The ProblemType is reported even without a ProblemDetail'
+    );
+
+    my $requestItem = bless {}, 'C4::Divibib::NCIP::RequestItem';
+    $requestItem->parseResponse(
+        q{<NCIPMessage><RequestItemResponse><ItemId><ItemIdentifierValue>4711</ItemIdentifierValue></ItemId></RequestItemResponse></NCIPMessage>}
+    );
+    is(
+        $requestItem->getResponseError(), 'Incomplete item data',
+        'A response without Locality and without Problem is reported as incomplete item data'
     );
 
     $schema->storage->txn_rollback;

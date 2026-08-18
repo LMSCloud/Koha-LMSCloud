@@ -151,6 +151,49 @@ sub getResponseErrorCode {
     return $self->{'responseErrorCode'};
 }
 
+=head2 _parseProblem
+
+    my $isProblem = $self->_parseProblem($problem);
+
+Stores the ProblemDetail and the ProblemType of a NCIP Problem element as
+response error and returns 1. Returns 0 if no problem data was provided.
+
+The Onleihe reports a rejected request either as a Problem element within the
+response element or as a Problem element directly below NCIPMessage, so both
+variants have to be evaluated.
+
+The ProblemElement of the Ext element is not evaluated because it repeats data
+of the request, which must not be displayed to the patron. The complete
+response of the Onleihe is written to the log by C4::Divibib::NCIPService.
+
+=cut
+
+sub _parseProblem {
+    my $self = shift;
+    my ($problem) = @_;
+
+    return 0 unless ( defined($problem) );
+
+    $problem = $problem->[0] if ( ( reftype($problem) // '' ) eq 'ARRAY' );
+
+    my ( $detail, $code );
+    if ( ( reftype($problem) // '' ) eq 'HASH' ) {
+        $detail = $problem->{'ProblemDetail'};
+        $code   = $problem->{'ProblemType'};
+    } elsif ( !ref($problem) ) {
+        $detail = $problem;
+    }
+
+    $detail = ''  if ( !defined($detail) || ref($detail) );
+    $code   = '0' if ( !defined($code)   || ref($code) );
+
+    $detail =~ s/^\s+|\s+$//g;
+
+    $self->responseError( $detail, $code );
+
+    return 1;
+}
+
 sub parseResponse {
     my $self = shift;
 
@@ -162,13 +205,13 @@ sub parseResponse {
 
     $self->{'responseOk'} = 1;
 
+    return if ( exists( $response->{'Problem'} ) && $self->_parseProblem( $response->{'Problem'} ) );
+
     if (   exists( $response->{'LookupItemResponse'} )
-        && exists( $response->{'LookupItemResponse'}->{'Problem'} ) )
+        && exists( $response->{'LookupItemResponse'}->{'Problem'} )
+        && $self->_parseProblem( $response->{'LookupItemResponse'}->{'Problem'} ) )
     {
-        $self->responseError(
-            $response->{'LookupItemResponse'}->{'Problem'}->{'ProblemDetail'},
-            $response->{'LookupItemResponse'}->{'Problem'}->{'ProblemType'}
-        );
+        return;
     } else {
         if (   exists( $response->{'LookupItemResponse'} )
             && exists( $response->{'LookupItemResponse'}->{'ItemId'} ) )
