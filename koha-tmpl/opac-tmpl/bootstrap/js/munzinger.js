@@ -47,7 +47,11 @@ function getMunzingerFacet(
         url: "/cgi-bin/koha/opac-munzinger.pl",
         method: "POST",
         cache: false,
-        data: { search: query_desc, maxcount: 0 },
+        data: {
+            search: query_desc,
+            maxcount: 0,
+            csrf_token: $('meta[name="csrf-token"]').attr("content"),
+        },
         dataType: "json",
         success: function (data) {
             if (
@@ -78,6 +82,7 @@ function getMunzingerResult(facetID, offset) {
             maxcount: maxHitCountMunzinger,
             offset: offset,
             publication: publication,
+            csrf_token: $('meta[name="csrf-token"]').attr("content"),
         },
         dataType: "json",
         success: function (data) {

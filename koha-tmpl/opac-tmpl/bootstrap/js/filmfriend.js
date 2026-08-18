@@ -53,7 +53,11 @@ function getFilmfriendFacet(
         url: "/cgi-bin/koha/opac-filmfriend.pl",
         method: "POST",
         cache: false,
-        data: { search: query_desc, maxcount: 0 },
+        data: {
+            search: query_desc,
+            maxcount: 0,
+            csrf_token: $('meta[name="csrf-token"]').attr("content"),
+        },
         dataType: "json",
         success: function (data) {
             if (data && data.result && data.result.length > 0) {
@@ -77,6 +81,7 @@ function getFilmfriendResult(facetID, offset) {
             maxcount: maxHitCountFilmfriend,
             offset: offset,
             collection: collection,
+            csrf_token: $('meta[name="csrf-token"]').attr("content"),
         },
         dataType: "json",
         success: function (data) {
