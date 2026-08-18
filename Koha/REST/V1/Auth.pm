@@ -150,6 +150,20 @@ sub authenticate_api_request {
     $c->stash_embed( { spec => $spec } );
     $c->stash_overrides();
     $c->stash_request_id();
+    
+    # A plugin-provided route can opt out of Koha's own Authorization:
+    # Bearer handling below by declaring "x-plugin-owns-auth": true on
+    # that operation in its api_routes.json. Needed for plugins that
+    # implement their own bearer-token scheme (e.g. an OAuth2/OIDC
+    # provider plugin's own /userinfo endpoint): without this, such a
+    # route can never be reached, since the check below unconditionally
+    # treats any Authorization: Bearer header as a Koha-native API key
+    # and throws on mismatch, before the plugin's own controller runs.
+    if ( $params->{is_plugin} && $spec->{'x-plugin-owns-auth'} ) {
+        validate_query_parameters( $c, $spec );
+        return 1;
+    }
+
 
     my $cookie_auth = 0;
 
