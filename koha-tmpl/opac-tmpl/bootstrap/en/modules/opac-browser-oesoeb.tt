@@ -66,7 +66,7 @@
 
             [% IF (LEVEL_LOOP) %]
                 <div class="row entry-page-row">
-                    <div class="col-lg-12 entry-page-col"><strong>[% IF ( LEVEL == 1 ) %]Systematikgruppen[% ELSE %]Sub-groups[% END %]</strong></div>
+                    <div class="col-lg-12 entry-page-col"><strong>[% IF ( LEVEL == 1 ) %]Classification groups[% ELSE %]Sub-groups[% END %]</strong></div>
                 </div>
                 [% FOREACH ENTRY IN LEVEL_LOOP %]
                     <div class="row entry-page-row">
