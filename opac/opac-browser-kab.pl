@@ -55,8 +55,8 @@ my $level  = $query->param('level') || 0;
 my $filter = $query->param('filter');
 
 my $scrubber = C4::Scrubber->new();
-$level = $scrubber->scrub($level) if ( $level );
-$filter = $scrubber->scrub($filter) if ( $filter );
+$level  = $scrubber->scrub($level)  if ($level);
+$filter = $scrubber->scrub($filter) if ($filter);
 
 my (
     $countEntries, $countFolders, $youthcount, $adultcount, $child07count, $child10count, $musiccount, $gamescount,

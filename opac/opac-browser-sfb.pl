@@ -124,11 +124,11 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 );
 
 # the level of browser to display
-my $level  = $query->param('level') || 0;
-my $filter = $query->param('filter');
+my $level    = $query->param('level') || 0;
+my $filter   = $query->param('filter');
 my $scrubber = C4::Scrubber->new();
-$level = $scrubber->scrub($level) if ( $level );
-$filter = $scrubber->scrub($filter) if ( $filter );
+$level  = $scrubber->scrub($level)  if ($level);
+$filter = $scrubber->scrub($filter) if ($filter);
 
 my ( $countEntries, $countFolders, $youthcount, $adultcount, $childcount, $musiccount, $levelEntries ) =
     ( 0, 0, 0, 0, 0, 0, 0 );
