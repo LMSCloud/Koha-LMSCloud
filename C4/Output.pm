@@ -240,6 +240,7 @@ sub output_with_http_headers {
         'json' => 'application/json',
         'xml'  => 'text/xml',
         'zip'  => 'application/zip',
+        'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 
         # NOTE: not using application/atom+xml or application/rss+xml because of
         # Internet Explorer 6; see bug 2078.
@@ -249,6 +250,10 @@ sub output_with_http_headers {
         'txt'                   => 'text/plain',
         'opensearchdescription' => 'application/opensearchdescription+xml',
     );
+
+    # binary formats: must bypass the character-encoding output layer below,
+    # the same way 'zip' already does, or the bytes get corrupted on the way out
+    my %binary_content_types = ( zip => 1, xlsx => 1 );
 
     die "Unknown content type '$content_type'" if ( !defined( $content_type_map{$content_type} ) );
     my $cache_policy = 'no-cache';
@@ -264,7 +269,7 @@ sub output_with_http_headers {
         'Cache-Control'   => $cache_policy,
         'X-Frame-Options' => 'SAMEORIGIN',
     };
-    $options->{charset}                       = $characterset              if ( $content_type ne 'zip' );
+    $options->{charset}                       = $characterset              if ( !$binary_content_types{$content_type} );
     $options->{expires}                       = 'now'                      if $extra_options->{force_no_caching};
     $options->{attachment}                    = $extra_options->{filename} if $extra_options->{filename};
     $options->{'Access-Control-Allow-Origin'} = C4::Context->preference('AccessControlAllowOrigin')
@@ -279,7 +284,7 @@ sub output_with_http_headers {
     # We can't encode here, that will double encode our templates, and xslt
     # We need to fix the encoding as it comes out of the database, or when we pass the variables to templates
 
-    if ( $content_type ne 'zip' && !( $extra_options->{no_encoding} ) ) {
+    if ( !$binary_content_types{$content_type} && !( $extra_options->{no_encoding} ) ) {
         $data =~ s/\&amp\;amp\; /\&amp\; /g;
 
         # Push the encoding layer only when STDOUT does not already carry one:
