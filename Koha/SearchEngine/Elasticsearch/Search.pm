@@ -423,7 +423,10 @@ sub decode_record_from_result {
     if ( $result->{marc_format} eq 'base64ISO2709' ) {
         my $record;
         eval { $record = MARC::Record->new_from_usmarc( decode_base64( $result->{marc_data} ) ); };
-        if ( !$isAuth && !( $record && $record->subfield( '999', 'c' ) ) && exists( $result->{biblioitemnumber} ) ) {
+        if (   !$isAuth
+            && !( $record && $record->subfield( '999', 'c' ) && $record->subfield( '999', 'c' ) =~ /^[0-9]+$/ )
+            && exists( $result->{biblioitemnumber} ) )
+        {
             my $biblio = Koha::Biblios->find( $result->{biblioitemnumber}->[0] );
             $record = $biblio ? $biblio->metadata->record( { embed_items => 1 } ) : undef;
         }
