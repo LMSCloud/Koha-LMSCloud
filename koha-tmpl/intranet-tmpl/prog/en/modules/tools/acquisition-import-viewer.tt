@@ -28,6 +28,7 @@
     #dt-imports thead tr.dt-filter-row select,
     #dt-objects thead tr.dt-filter-row input,
     #dt-objects thead tr.dt-filter-row select { width: 100%; min-width: 40px; font-size: .8rem; }
+    #wrap-imports, #wrap-objects { overflow-x: auto; }
     .payload-modal-body { padding: 0; }
     .payload-modal-body #payload-content {
         margin: 0;
@@ -454,7 +455,6 @@ function buildDataTable(tableId, apiEndpoint, badgeId, getExtraParams,
                 processing:    true,
                 serverSide:    true,
                 autoWidth:     false,
-                scrollX:       true,
                 fixedHeader:   false,
                 orderCellsTop: filterState !== undefined,
                 columns:       dtCols,
@@ -638,12 +638,6 @@ $(function() {
         document.getElementById('loading-imports').textContent = 'Error: ' + err.message;
         showApiError(err.message);
     });
-
-    // Re-align columns on window resize (fixes scrollX drift)
-    $(window).on('resize', debounce(function() {
-        if (dtImports) dtImports.columns.adjust();
-        if (dtObjects) dtObjects.columns.adjust();
-    }, 150));
 
     // Detail table (Importobjects)
     buildDataTable(
