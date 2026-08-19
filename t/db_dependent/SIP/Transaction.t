@@ -25,6 +25,7 @@ use C4::SIP::ILS::Transaction::Checkin;
 use C4::Reserves qw( AddReserve ModReserve ModReserveAffect );
 use Koha::CirculationRules;
 use Koha::Item::Transfer;
+use Koha::Notice::Templates;
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Recalls;
 
@@ -757,6 +758,10 @@ subtest 'cancel_waiting_holds_with_cancellation_requests at checkin' => sub {
         $item->holds->waiting->filter_by_has_cancellation_requests->count, 1,
         'Hold has a cancellation request'
     );
+
+    # The ekz Storno database update seeds a HOLD_CANCELLATION notice, which
+    # collides with the row below on letter_uniq_1
+    Koha::Notice::Templates->search( { module => 'reserves', code => 'HOLD_CANCELLATION' } )->delete;
 
     #Create a HOLD_CANCELLATION notice
     my $template = Koha::Notice::Template->new(
