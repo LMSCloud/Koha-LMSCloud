@@ -1086,7 +1086,7 @@ biblios:
     - facet: ''
       marc_field: 245c
       marc_type: marc21
-      sort: 1
+      sort: 0
       suggestible: ''
     - facet: ''
       marc_field: 249v
@@ -1094,9 +1094,19 @@ biblios:
       sort: 0
       suggestible: ''
     - facet: 1
+      marc_field: 505r
+      marc_type: marc21
+      sort: 1
+      suggestible: 1
+    - facet: 1
       marc_field: 700a
       marc_type: marc21
       sort: 1
+      suggestible: 1
+    - facet: 1
+      marc_field: 900a
+      marc_type: marc21
+      sort: 0
       suggestible: 1
     - facet: 1
       marc_field: 710a
@@ -1130,7 +1140,8 @@ biblios:
       suggestible: ''
     opac: 1
     staff_client: 1
-    type: string
+    type: string_plus
+    weight: 4
   author-in-order:
     label: author-in-order
     mandatory: ~
@@ -3883,7 +3894,8 @@ biblios:
       suggestible: 1
     opac: 1
     staff_client: 1
-    type: string
+    type: string_plus
+    weight: 2
   subject-genre-form:
     facet_order: 10
     label: Genres
@@ -3896,7 +3908,8 @@ biblios:
       suggestible: ''
     opac: 1
     staff_client: 1
-    type: string
+    type: string_plus
+    weight: 3
   subject-name-personal:
     label: subject-name-personal
     mandatory: ~
@@ -4406,7 +4419,8 @@ biblios:
       suggestible: ''
     opac: 1
     staff_client: 1
-    type: string
+    type: string_plus
+    weight: 8
   title-no-punctuation:
     label: title-no-punctuation
     mandatory: ~
@@ -4593,7 +4607,7 @@ biblios:
       suggestible: ''
     opac: 1
     staff_client: 1
-    type: string
+    type: string_plus
   title-uniform:
     label: title-uniform
     mandatory: ~
