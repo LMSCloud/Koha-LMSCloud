@@ -525,14 +525,13 @@ subtest 'build_query tests' => sub {
         "query of identifier is not truncated even if QueryAutoTruncate is set"
     );
 
-    # LMS note: build_query_compat uses a different code path than build_query
-    # for auto-truncation. The compat path truncates unconditionally in _truncate_terms.
-    # This is an LMS divergence — upstream's compat path does not auto-truncate at all.
+    # The compat path routes auto-truncation through _is_safe_to_auto_truncate,
+    # which excludes non-text search fields, so a boolean field keeps its exact term.
     ( undef, $query ) = $qb->build_query_compat( undef, ['onloan:true'] );
     is(
         $query->{query}{bool}{must}[0]{query_string}{query},
-        '(onloan:true*)',
-        "query of boolean type field gets truncated in compat path (LMS auto-truncation behavior)"
+        '(onloan:true)',
+        "query of boolean type field is not truncated in compat path"
     );
 
     subtest 'removal of punctuation surrounded by spaces when autotruncate enabled' => sub {
