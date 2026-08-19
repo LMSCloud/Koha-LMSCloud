@@ -1127,16 +1127,36 @@ sub EnqueueLetter {
     }
 
     # message_queue.branchcode is NOT NULL with an FK on branches, so an
-    # enqueue without a branch falls back to the patron's home branch,
-    # then to the session branch
-    my $branchcode = $params->{branchcode};
-    if ( !$branchcode && $params->{borrowernumber} ) {
+    # enqueue without a branch falls back to the patron's home branch, then to
+    # the session branch, then to the letter's branch, and finally to the first
+    # library. Every candidate is checked against branches: a session branch can
+    # name a row that no longer exists, and an unknown code fails the FK, which
+    # would abort the action the notice belongs to rather than just lose a branch.
+    my $patron_branch;
+    if ( $params->{borrowernumber} ) {
         my $patron = Koha::Patrons->find( $params->{borrowernumber} );
-        $branchcode = $patron->branchcode if $patron;
+        $patron_branch = $patron->branchcode if $patron;
+    }
+    my $userenv = C4::Context->userenv;
+    my $branchcode;
+    for my $candidate (
+        $params->{branchcode}, $patron_branch,
+        ( $userenv ? $userenv->{branch} : undef ),
+        $params->{letter}->{branchcode},
+        )
+    {
+        next unless $candidate;
+        next unless Koha::Libraries->find($candidate);
+        $branchcode = $candidate;
+        last;
     }
     if ( !$branchcode ) {
-        my $userenv = C4::Context->userenv;
-        $branchcode = $userenv->{branch} if $userenv && $userenv->{branch};
+        my $library = Koha::Libraries->search( {}, { order_by => 'branchcode', rows => 1 } )->single;
+        $branchcode = $library->branchcode if $library;
+        Koha::Logger->get->info( "EnqueueLetter: no branch for letter_code "
+                . ( $params->{letter}->{code} || q{} )
+                . "; falling back to "
+                . ( $branchcode // 'none' ) );
     }
 
     my $message = Koha::Notice::Message->new(
