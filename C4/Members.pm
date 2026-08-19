@@ -431,7 +431,10 @@ sub IssueSlip {
             { order_by => [ { -desc => 'date_due' }, { -desc => 'me.timestamp' }, { -desc => 'issuedate' } ] }
         );
         my @checkouts;
-        while ( my $c = $todays_checkouts->next ) {
+
+        # as_list rather than next: the resultset prefetches related rows and
+        # carries an order_by, which DBIC cannot collapse in iterator mode
+        foreach my $c ( $todays_checkouts->as_list ) {
             my $all = $c->unblessed_all_relateds;
             push @checkouts, {
                 biblio      => $all,
@@ -458,7 +461,10 @@ sub IssueSlip {
         );
         my @checkouts;
         my @overdues;
-        while ( my $c = $checkouts->next ) {
+
+        # as_list rather than next: the resultset prefetches related rows and
+        # carries an order_by, which DBIC cannot collapse in iterator mode
+        foreach my $c ( $checkouts->as_list ) {
             my $all = $c->unblessed_all_relateds;
             push @checkouts, {
                 biblio      => $all,
@@ -473,7 +479,10 @@ sub IssueSlip {
             { date_due => { '<=' => $today } },
             { order_by => [ { -desc => 'date_due' }, { -desc => 'me.timestamp' }, { -desc => 'issuedate' } ] }
         );
-        while ( my $o = $overdues->next ) {
+
+        # as_list rather than next: the resultset prefetches related rows and
+        # carries an order_by, which DBIC cannot collapse in iterator mode
+        foreach my $o ( $overdues->as_list ) {
             my $all = $o->unblessed_all_relateds;
             push @overdues, {
                 biblio      => $all,
