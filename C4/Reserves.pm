@@ -793,13 +793,13 @@ WHERE items.biblionumber=?
       AND (items.withdrawn = 0 OR items.withdrawn IS NULL)
       AND (items.notforloan = 0 OR items.notforloan IS NULL)
     };
-    if (! C4::Context->preference('AllowHoldsOnDamagedItems') ) {
+    if ( !C4::Context->preference('AllowHoldsOnDamagedItems') ) {
         $issue_qry .= ' AND (items.damaged = 0 OR items.damaged IS NULL)';
     }
     my $holds_qry = qq{
 SELECT COUNT(*) FROM reserves WHERE biblionumber=? AND borrowernumber<>?
     };
-    
+
     my $dbh = C4::Context->dbh;
     my ($fee) = $dbh->selectrow_array( $borquery, undef, ($borrowernumber) );
     $fee += 0;

@@ -1032,7 +1032,7 @@
             [% END %]
             [% IF ( Koha.Preference( 'HelimaSearchActive' ) ) %]
                 getHeLiMaFacet(query_desc,
-                                [% Koha.Preference('HelimaNumSearchResults') or 20 %], 
+                                [% ( Koha.Preference('HelimaNumSearchResults') or 20 ) | html %], 
                                 "[% Koha.Preference('HelimaAdditionalOfferName') | html %]", 
                                 _("Prev &laquo;"), 
                                 _("Next &raquo;"), 
