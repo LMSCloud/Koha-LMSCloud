@@ -143,6 +143,7 @@ INSERT INTO permissions (module_bit, code, description) VALUES
    (13, 'access_files', 'Access to the files stored on the server'),
    (13, 'upload_general_files', 'Upload any file'),
    (13, 'upload_manage', 'Manage uploaded files'),
+   (13, 'view_acquisition_import_log', 'Access to Acquisition Import Viewer'),
    (15, 'check_expiration', 'Check the expiration of a serial'),
    (15, 'claim_serials', 'Claim missing serials'),
    (15, 'create_subscription', 'Create a new subscription'),
