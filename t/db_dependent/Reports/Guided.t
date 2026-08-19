@@ -131,7 +131,11 @@ subtest 'GetReservedAuthorisedValues' => sub {
         'list'             => 1,
         'cash_registers'   => 1,
         'debit_types'      => 1,
-        'credit_types'     => 1
+        'credit_types'     => 1,
+
+        # LMS reserves branchcategories as well, for reports parameterised by
+        # library group
+        'branchcategories' => 1
     );
 
     my $reserved_authorised_values = GetReservedAuthorisedValues();
@@ -142,7 +146,9 @@ subtest 'GetReservedAuthorisedValues' => sub {
 };
 
 subtest 'IsAuthorisedValueValid' => sub {
-    plan tests => 12;
+
+    # Two fixed assertions plus one per reserved word, which LMS extends
+    plan tests => 2 + scalar keys %{ GetReservedAuthorisedValues() };
     ok(
         IsAuthorisedValueValid('LOC'),
         'User defined authorised value category is valid'
