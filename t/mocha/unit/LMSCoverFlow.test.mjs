@@ -76,11 +76,16 @@ describe("LMSCoverFlow", () => {
     describe("instance API surface", () => {
         it("createLcfInstance() returns an instance exposing the documented methods", () => {
             const lcf = mod.createLcfInstance();
-            ["setGlobals", "setConfig", "getConfig", "setData", "setContainer", "render"].forEach(
-                method => {
-                    expect(lcf[method], method).to.be.a("function");
-                }
-            );
+            [
+                "setGlobals",
+                "setConfig",
+                "getConfig",
+                "setData",
+                "setContainer",
+                "render",
+            ].forEach(method => {
+                expect(lcf[method], method).to.be.a("function");
+            });
         });
 
         it("getConfig() reflects the configuration passed via setGlobals()", () => {
@@ -91,7 +96,9 @@ describe("LMSCoverFlow", () => {
                 [],
                 "lcf-api-test"
             );
-            expect(lcf.getConfig()).to.include({ coverImageFallbackHeight: 123 });
+            expect(lcf.getConfig()).to.include({
+                coverImageFallbackHeight: 123,
+            });
         });
     });
 
@@ -212,8 +219,14 @@ describe("LMSCoverFlow", () => {
 
             const sheetA = document.querySelector("#lcfStyle.lcf-scope-a");
             const sheetB = document.querySelector("#lcfStyle.lcf-scope-b");
-            expect(sheetA && sheetA.sheet.cssRules.length, "container A rules").to.be.above(0);
-            expect(sheetB && sheetB.sheet.cssRules.length, "container B rules").to.be.above(0);
+            expect(
+                sheetA && sheetA.sheet.cssRules.length,
+                "container A rules"
+            ).to.be.above(0);
+            expect(
+                sheetB && sheetB.sheet.cssRules.length,
+                "container B rules"
+            ).to.be.above(0);
         });
 
         // Grid context uses a separate builder (GridContext) than the default
@@ -225,7 +238,9 @@ describe("LMSCoverFlow", () => {
             lcf.setGlobals(config, data, "lcf-grid");
             await lcf.render("grid");
 
-            const cards = document.querySelectorAll("#lcf-grid .lcfItemContainer");
+            const cards = document.querySelectorAll(
+                "#lcf-grid .lcfItemContainer"
+            );
             expect(cards.length, "card count").to.equal(data.length);
 
             const hrefs = [
@@ -346,7 +361,9 @@ describe("LMSCoverFlow", () => {
             stubImage(() => "load");
             const image = await renderData("lcf-cors-remote", remoteData);
             expect(image.getAttribute("src")).to.equal(REMOTE_COVER);
-            expect(fetchCalls, "cover probed without fetch()").to.deep.equal([]);
+            expect(fetchCalls, "cover probed without fetch()").to.deep.equal(
+                []
+            );
         });
 
         it("probes the same URL it renders, with &amp; normalised", async () => {

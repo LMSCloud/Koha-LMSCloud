@@ -47,16 +47,16 @@ describe("LMSCoverFlow internals (_internals helpers)", () => {
     describe("getLcfItemId", () => {
         it("returns the id class (2nd class) when it matches _<7 digits>", () => {
             const getLcfItemId = mod._internals.getLcfItemId;
-            expect(getLcfItemId(nodeWithClasses("lcfItemContainer", "_1234567"))).to.equal(
-                "_1234567"
-            );
+            expect(
+                getLcfItemId(nodeWithClasses("lcfItemContainer", "_1234567"))
+            ).to.equal("_1234567");
         });
 
         it("throws when the id class does not match the pattern", () => {
             const getLcfItemId = mod._internals.getLcfItemId;
-            expect(() => getLcfItemId(nodeWithClasses("lcfItemContainer", "nope"))).to.throw(
-                "Id doesn't match pattern."
-            );
+            expect(() =>
+                getLcfItemId(nodeWithClasses("lcfItemContainer", "nope"))
+            ).to.throw("Id doesn't match pattern.");
         });
     });
 
@@ -71,10 +71,20 @@ describe("LMSCoverFlow internals (_internals helpers)", () => {
 
         it("processHeights caps the tallest image at the fallback height", () => {
             const processHeights = mod._internals.processHeights;
-            expect(processHeights([100, 180, 150], { coverImageFallbackHeight: 210 })).to.equal(180);
-            expect(processHeights([100, 300, 150], { coverImageFallbackHeight: 210 })).to.equal(210);
+            expect(
+                processHeights([100, 180, 150], {
+                    coverImageFallbackHeight: 210,
+                })
+            ).to.equal(180);
+            expect(
+                processHeights([100, 300, 150], {
+                    coverImageFallbackHeight: 210,
+                })
+            ).to.equal(210);
             // null/NaN entries fall back to 0.
-            expect(processHeights([null, 120], { coverImageFallbackHeight: 210 })).to.equal(120);
+            expect(
+                processHeights([null, 120], { coverImageFallbackHeight: 210 })
+            ).to.equal(120);
         });
 
         it("flattenPromiseResults pulls .value out of each entry", () => {
@@ -85,9 +95,12 @@ describe("LMSCoverFlow internals (_internals helpers)", () => {
         });
 
         it("calculateCoverFlowPlusGaps sums widths plus one gap per card", () => {
-            const calculateCoverFlowPlusGaps = mod._internals.calculateCoverFlowPlusGaps;
+            const calculateCoverFlowPlusGaps =
+                mod._internals.calculateCoverFlowPlusGaps;
             // (100 + 200 + 300) widths + 3 gaps of 10 = 630
-            expect(calculateCoverFlowPlusGaps([100, 200, 300], 10)).to.equal(630);
+            expect(calculateCoverFlowPlusGaps([100, 200, 300], 10)).to.equal(
+                630
+            );
         });
 
         it("resyncExecution resolves after the delay", async () => {
@@ -102,17 +115,34 @@ describe("LMSCoverFlow internals (_internals helpers)", () => {
             const id = generateId();
             expect(id).to.match(/^_[0-9]{7}$/);
             // round-trip: an id generated here is accepted by the id reader.
-            expect(getLcfItemId(nodeWithClasses("lcfItemContainer", id))).to.equal(id);
+            expect(
+                getLcfItemId(nodeWithClasses("lcfItemContainer", id))
+            ).to.equal(id);
         });
 
         it("shouldScrollShelfBrowserIntoView scrolls only on the initial open", () => {
             const fn = mod._internals.shouldScrollShelfBrowserIntoView;
             // initial open: flag on, not extending -> scroll
-            expect(fn({ shelfBrowserScrollIntoView: true, shelfBrowserExtendedCoverFlow: false })).to.equal(true);
+            expect(
+                fn({
+                    shelfBrowserScrollIntoView: true,
+                    shelfBrowserExtendedCoverFlow: false,
+                })
+            ).to.equal(true);
             // paging / load-more: extending -> do NOT scroll (page-jump fix)
-            expect(fn({ shelfBrowserScrollIntoView: true, shelfBrowserExtendedCoverFlow: true })).to.equal(false);
+            expect(
+                fn({
+                    shelfBrowserScrollIntoView: true,
+                    shelfBrowserExtendedCoverFlow: true,
+                })
+            ).to.equal(false);
             // feature off -> never scroll
-            expect(fn({ shelfBrowserScrollIntoView: false, shelfBrowserExtendedCoverFlow: false })).to.equal(false);
+            expect(
+                fn({
+                    shelfBrowserScrollIntoView: false,
+                    shelfBrowserExtendedCoverFlow: false,
+                })
+            ).to.equal(false);
             expect(fn({})).to.equal(false);
         });
     });
@@ -120,27 +150,40 @@ describe("LMSCoverFlow internals (_internals helpers)", () => {
     describe("request-URI builders", () => {
         it("nearbyItemsRequestURI uses the default endpoint and appends quantity", () => {
             const nearbyItemsRequestURI = mod._internals.nearbyItemsRequestURI;
-            expect(nearbyItemsRequestURI({ itemnumber: 42, quantity: 7 })).to.equal(
+            expect(
+                nearbyItemsRequestURI({ itemnumber: 42, quantity: 7 })
+            ).to.equal(
                 "/api/v1/public/coverflow_data_nearby_items/42?quantity=7"
             );
             expect(
-                nearbyItemsRequestURI({ endpoint: "/x/", itemnumber: 1, quantity: 2 })
+                nearbyItemsRequestURI({
+                    endpoint: "/x/",
+                    itemnumber: 1,
+                    quantity: 2,
+                })
             ).to.equal("/x/1?quantity=2");
         });
 
         it("generatedCoverRequestURI encodes title/author and omits absent ones", () => {
-            const generatedCoverRequestURI = mod._internals.generatedCoverRequestURI;
-            expect(generatedCoverRequestURI({ title: "A B", author: "C&D" })).to.equal(
+            const generatedCoverRequestURI =
+                mod._internals.generatedCoverRequestURI;
+            expect(
+                generatedCoverRequestURI({ title: "A B", author: "C&D" })
+            ).to.equal(
                 "/api/v1/public/generated_cover?title=A%20B&author=C%26D"
             );
-            expect(generatedCoverRequestURI({})).to.equal("/api/v1/public/generated_cover");
+            expect(generatedCoverRequestURI({})).to.equal(
+                "/api/v1/public/generated_cover"
+            );
         });
 
         it("byQueryRequestURI composes query/offset/maxcount", () => {
             const byQueryRequestURI = mod._internals.byQueryRequestURI;
             expect(
                 byQueryRequestURI({ query: "cats", offset: 0, maxcount: 10 })
-            ).to.equal("/api/v1/public/coverflow_data_query?query=cats&offset=0&maxcount=10");
+            ).to.equal(
+                "/api/v1/public/coverflow_data_query?query=cats&offset=0&maxcount=10"
+            );
         });
     });
 
@@ -148,8 +191,14 @@ describe("LMSCoverFlow internals (_internals helpers)", () => {
         it("describeArgShape flags whether attribute and data are arrays", () => {
             const describeArgShape = mod._internals.describeArgShape;
             expect(describeArgShape("href", "x")).to.deep.equal([false, false]);
-            expect(describeArgShape(["a", "b"], "x")).to.deep.equal([true, false]);
-            expect(describeArgShape("src", ["x", "y"])).to.deep.equal([false, true]);
+            expect(describeArgShape(["a", "b"], "x")).to.deep.equal([
+                true,
+                false,
+            ]);
+            expect(describeArgShape("src", ["x", "y"])).to.deep.equal([
+                false,
+                true,
+            ]);
         });
 
         it("isTextContent recognises the textContent sink", () => {
@@ -161,13 +210,20 @@ describe("LMSCoverFlow internals (_internals helpers)", () => {
         it("instructionsForClass reads an instruction out of the map", () => {
             const instructionsForClass = mod._internals.instructionsForClass;
             const map = new Map([["lcfAnchor", ["href", "/x"]]]);
-            expect(instructionsForClass("lcfAnchor", map)).to.deep.equal(["href", "/x"]);
+            expect(instructionsForClass("lcfAnchor", map)).to.deep.equal([
+                "href",
+                "/x",
+            ]);
             expect(instructionsForClass("missing", map)).to.equal(undefined);
         });
 
         it("additionalProperties builds data-* pairs, or undefined when absent", () => {
             const additionalProperties = mod._internals.additionalProperties;
-            expect(additionalProperties({ additionalProperties: { foo: "bar", n: 1 } })).to.deep.equal([
+            expect(
+                additionalProperties({
+                    additionalProperties: { foo: "bar", n: 1 },
+                })
+            ).to.deep.equal([
                 ["data-foo", "bar"],
                 ["data-n", 1],
             ]);
@@ -175,7 +231,8 @@ describe("LMSCoverFlow internals (_internals helpers)", () => {
         });
 
         it("attributeInstructionsFor maps aspect classes to instructions", () => {
-            const attributeInstructionsFor = mod._internals.attributeInstructionsFor;
+            const attributeInstructionsFor =
+                mod._internals.attributeInstructionsFor;
             const map = attributeInstructionsFor({
                 title: "Alpha",
                 author: "A. Uthor",
@@ -183,11 +240,23 @@ describe("LMSCoverFlow internals (_internals helpers)", () => {
                 referenceToDetailsView: "/detail?biblionumber=11",
                 coverurl: "http://x/c.jpg?a=1&amp;b=2",
             });
-            expect(map.get("lcfAnchor")).to.deep.equal(["href", "/detail?biblionumber=11"]);
+            expect(map.get("lcfAnchor")).to.deep.equal([
+                "href",
+                "/detail?biblionumber=11",
+            ]);
             // &amp; is normalised back to & in the cover src.
-            expect(map.get("lcfCoverImage")).to.deep.equal(["src", "http://x/c.jpg?a=1&b=2"]);
-            expect(map.get("lcfMediaTitle")).to.deep.equal([["textContent", "data-text"], "Alpha"]);
-            expect(map.get("lcfMediaISBD")).to.deep.equal(["textContent", "A. Uthor: Alpha"]);
+            expect(map.get("lcfCoverImage")).to.deep.equal([
+                "src",
+                "http://x/c.jpg?a=1&b=2",
+            ]);
+            expect(map.get("lcfMediaTitle")).to.deep.equal([
+                ["textContent", "data-text"],
+                "Alpha",
+            ]);
+            expect(map.get("lcfMediaISBD")).to.deep.equal([
+                "textContent",
+                "A. Uthor: Alpha",
+            ]);
         });
 
         describe("applyInstructions", () => {
@@ -225,7 +294,10 @@ describe("LMSCoverFlow internals (_internals helpers)", () => {
 
             it("applies paired attribute/value lists (both arrays)", () => {
                 const el = document.createElement("div");
-                applyInstructions(el, [["href", "/x"], ["data-y", "z"]]);
+                applyInstructions(el, [
+                    ["href", "/x"],
+                    ["data-y", "z"],
+                ]);
                 expect(el.getAttribute("href")).to.equal("/x");
                 expect(el.getAttribute("data-y")).to.equal("z");
             });
