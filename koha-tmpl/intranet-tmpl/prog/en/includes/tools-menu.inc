@@ -66,7 +66,7 @@
         </ul>
     [% END # /IF ( CAN_user_tools_items_batchdel... %]
 
-    [% IF ( CAN_user_tools_edit_calendar || CAN_user_tools_manage_csv_profiles || CAN_user_tools_view_system_logs || CAN_user_tools_edit_additional_contents  || CAN_user_tools_schedule_tasks || CAN_user_tools_edit_quotes || ( Koha.ArePluginsEnabled() && CAN_user_plugins_tool )  || CAN_user_tools_upload_general_files || CAN_user_tools_access_files || CAN_user_tools_run_batch_programs || CAN_user_tools_download_batchprint_files ) %]
+    [% IF ( CAN_user_tools_edit_calendar || CAN_user_tools_manage_csv_profiles || CAN_user_tools_view_system_logs || CAN_user_tools_edit_additional_contents  || CAN_user_tools_schedule_tasks || CAN_user_tools_edit_quotes || ( Koha.ArePluginsEnabled() && CAN_user_plugins_tool )  || CAN_user_tools_upload_general_files || CAN_user_tools_access_files || CAN_user_tools_run_batch_programs || CAN_user_tools_download_batchprint_files || CAN_user_tools_view_acquisition_import_log ) %]
         <h5>Additional tools</h5>
         <ul>
             [% IF ( CAN_user_tools_edit_calendar ) %]
@@ -97,6 +97,9 @@
             [% END %]
             [% IF ( CAN_user_tools_access_files ) %]
                 <li><a href="/cgi-bin/koha/tools/access_files.pl">Access files</a></li>
+            [% END %]
+            [% IF ( CAN_user_tools_view_acquisition_import_log ) %]
+                <li><a href="/cgi-bin/koha/tools/acquisition-import-viewer.pl">Log-Viewer of ekz-Interface imports</a></li>
             [% END %]
             [% IF ( Koha.Preference('OPACReportProblem') && CAN_user_problem_reports ) %]
                 <li><a href="/cgi-bin/koha/tools/problem-reports.pl">OPAC problem reports</a></li>
