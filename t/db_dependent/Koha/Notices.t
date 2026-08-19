@@ -104,6 +104,7 @@ my $message = Koha::Notice::Message->new(
         status                 => 'failed',
         letter_code            => 'just_a_code',
         time_queued            => \"NOW()",
+        branchcode             => $library->{branchcode},
     }
 )->store;
 
