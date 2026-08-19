@@ -76,6 +76,8 @@ Set a renewal limit. Only to that limit renewals will be processed.
 After reaching the limit, the auto-renew property of the issue will be
 reset to 0. No further renewals will be processed afterwards.
 For instance a renewal-limit of 1 will only perform one renewal.
+Like every other change this script makes, the reset only happens with
+-c|--confirm.
 
 =back
 
@@ -104,7 +106,7 @@ GetOptions(
     'v|verbose'           => \$verbose,
     'c|confirm'           => \$confirm,
     'b|digest-per-branch' => \$digest_per_branch,
-    'r|renewal-limit:i'   => \$renewals_limit
+    'r|renewal-limit=i'   => \$renewals_limit
 ) || pod2usage(1);
 
 pod2usage(0) if $help;
@@ -188,8 +190,17 @@ DATA_LOOP:
 }
 
 if ($renewals_limit) {
-    my $dbh = C4::Context->dbh;
-    $dbh->do( "UPDATE issues SET auto_renew = 0 WHERE renewals_count >= ? AND auto_renew = 1", undef, $renewals_limit );
+    if ($verbose) {
+        say sprintf "auto_renew %s be reset for checkouts at or above the renewal limit of %s.",
+            $confirm ? 'will' : 'would', $renewals_limit;
+    }
+    if ($confirm) {
+        my $dbh = C4::Context->dbh;
+        $dbh->do(
+            "UPDATE issues SET auto_renew = 0 WHERE renewals_count >= ? AND auto_renew = 1", undef,
+            $renewals_limit
+        );
+    }
 }
 
 cronlogaction( { action => 'End', info => "COMPLETED" } );
