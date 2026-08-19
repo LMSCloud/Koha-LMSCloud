@@ -156,7 +156,7 @@
                         <!-- FACETS END -->
                     </div>
                 </div>
-            [% ELSIF ( opacfacets && ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmFriendSearchActive' ) || Koha.Preference( 'HelimaSearchActive' ) ) ) %]
+            [% ELSIF ( opacfacets && ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmfriendSearchActive' ) || Koha.Preference( 'HelimaSearchActive' ) ) ) %]
                 <div class="col-lg-3">
                     <div id="facetcontainer" class="onlyAdditionalOfferFacets">
                         <!-- FACETS START -->
@@ -169,7 +169,7 @@
             [% SET column_class = "col maincontent" %]
             [% IF ( opacfacets && total ) %]
                 [% column_class = "col-lg-10 maincontent" %]
-            [% ELSIF ( opacfacets && ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmFriendSearchActive' ) || Koha.Preference( 'HelimaSearchActive' ) ) ) %]
+            [% ELSIF ( opacfacets && ( Koha.Preference( 'MunzingerEncyclopediaSearchEnabled' ) || Koha.Preference( 'BrockhausSearchActive' ) || Koha.Preference( 'FilmfriendSearchActive' ) || Koha.Preference( 'HelimaSearchActive' ) ) ) %]
                 [% column_class = "col-lg-9 maincontent" %]
             [% END %]
             <div class="[% column_class | html %]">
