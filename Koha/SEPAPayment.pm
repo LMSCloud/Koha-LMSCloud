@@ -1040,6 +1040,10 @@ sub printSepaNotice {
             'accountlinesFee'     => $accountlineFee0->unblessed,
             'accountlinesPayment' => $accountlinePayment->unblessed,
         },
+        objects => {
+            'accountlinesFee'     => $accountlineFee0,
+            'accountlinesPayment' => $accountlinePayment,
+        },
     );
 
     my $send_notification = sub {
