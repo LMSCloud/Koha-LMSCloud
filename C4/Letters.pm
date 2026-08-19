@@ -2140,12 +2140,6 @@ sub _get_tt_params {
             plural   => 'ticket_updates',
             pk       => 'id',
         },
-        illrequests => {
-            module   => 'Koha::Illrequests',
-            singular => 'illrequest',
-            plural   => 'illrequests',
-            pk       => 'illrequest_id',
-        },
         issues => {
             module   => 'Koha::Checkouts',
             singular => 'checkout',
