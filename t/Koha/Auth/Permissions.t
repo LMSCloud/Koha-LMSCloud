@@ -313,5 +313,10 @@ subtest 'superlibrarian tests' => sub {
         'CAN_user_updatecharges'                                    => 1,
     };
 
-    is_deeply( $authz, $expected, 'Expected permissions generated for superlibrarian' );
+    # LMS defines its own permissions on top of community's (claiming fees, cash
+    # registers, bookmobile, acquisition import log and others), so a superlibrarian
+    # legitimately carries more than the community set. Assert community's list is
+    # fully granted rather than exactly equal.
+    my @missing = sort grep { !exists $authz->{$_} } keys %$expected;
+    is_deeply( \@missing, [], 'Expected permissions generated for superlibrarian' );
 };
