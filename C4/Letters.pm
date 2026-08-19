@@ -2128,11 +2128,17 @@ sub _get_tt_params {
             plural   => 'suggestions',
             pk       => 'suggestionid',
         },
-        illrequests => {
-            module   => 'Koha::Illrequests',
-            singular => 'illrequest',
-            plural   => 'illrequests',
-            pk       => 'illrequest_id',
+        tickets => {
+            module   => 'Koha::Tickets',
+            singular => 'ticket',
+            plural   => 'tickets',
+            pk       => 'id',
+        },
+        ticket_updates => {
+            module   => 'Koha::Ticket::Updates',
+            singular => 'ticket_update',
+            plural   => 'ticket_updates',
+            pk       => 'id',
         },
         issues => {
             module   => 'Koha::Checkouts',
