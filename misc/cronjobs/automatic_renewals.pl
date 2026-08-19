@@ -104,7 +104,7 @@ GetOptions(
     'v|verbose'           => \$verbose,
     'c|confirm'           => \$confirm,
     'b|digest-per-branch' => \$digest_per_branch,
-    'r|renewal-limit:i' => \$renewals_limit
+    'r|renewal-limit:i'   => \$renewals_limit
 ) || pod2usage(1);
 
 pod2usage(0) if $help;
@@ -142,11 +142,10 @@ END_WARN
 $verbose = 1            unless $verbose or $confirm;
 print "Test run only\n" unless $confirm;
 
-my $searchParams =
-    {
-        auto_renew                   => 1,
-        'patron.autorenew_checkouts' => 1,
-    };
+my $searchParams = {
+    auto_renew                   => 1,
+    'patron.autorenew_checkouts' => 1,
+};
 $searchParams->{renewals_count} = { "<=" => $renewals_limit } if ($renewals_limit);
 
 print "getting auto renewals\n" if $verbose;
@@ -190,7 +189,7 @@ DATA_LOOP:
 
 if ($renewals_limit) {
     my $dbh = C4::Context->dbh;
-    $dbh->do("UPDATE issues SET auto_renew = 0 WHERE renewals_count >= ? AND auto_renew = 1",undef,$renewals_limit);
+    $dbh->do( "UPDATE issues SET auto_renew = 0 WHERE renewals_count >= ? AND auto_renew = 1", undef, $renewals_limit );
 }
 
 cronlogaction( { action => 'End', info => "COMPLETED" } );

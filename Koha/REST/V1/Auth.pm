@@ -150,7 +150,7 @@ sub authenticate_api_request {
     $c->stash_embed( { spec => $spec } );
     $c->stash_overrides();
     $c->stash_request_id();
-    
+
     # A plugin-provided route can opt out of Koha's own Authorization:
     # Bearer handling below by declaring "x-plugin-owns-auth": true on
     # that operation in its api_routes.json. Needed for plugins that
@@ -163,7 +163,6 @@ sub authenticate_api_request {
         validate_query_parameters( $c, $spec );
         return 1;
     }
-
 
     my $cookie_auth = 0;
 
