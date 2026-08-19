@@ -15,6 +15,7 @@ use C4::Circulation qw( AddReturn LostItem );
 use C4::Items       qw( ModItemTransfer );
 use C4::Reserves    qw( ModReserve ModReserveAffect CheckReserves );
 use C4::RotatingCollections;
+use Koha::BackgroundJob::BatchUpdateBiblioHoldsQueue;
 use Koha::DateUtils qw( dt_from_string );
 use Koha::Items;
 
