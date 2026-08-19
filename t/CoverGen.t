@@ -24,7 +24,8 @@ use MIME::Base64;
 
 use C4::CoverGen;
 
-use Test::More tests => 5;
+use Test::NoWarnings;
+use Test::More tests => 6;
 use Data::Dumper;
 use Try::Tiny;
 
