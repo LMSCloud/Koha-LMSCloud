@@ -443,7 +443,7 @@ function buildDataTable(tableId, apiEndpoint, badgeId, getExtraParams,
             document.getElementById(wrapId).style.display    = '';
 
             var dtCols = columns.map(function(c) {
-                var col = { title: COLUMN_TITLES[c] || c, data: c, defaultContent: '' };
+                var col = { data: c, defaultContent: '' };
                 if (columnRenderers && columnRenderers[c]) col.render = columnRenderers[c];
                 if (hiddenCols.indexOf(c) >= 0) col.visible = false;
                 // Prevent DataTables from inflating date-range columns with leftover space
