@@ -270,6 +270,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('ekzInvoiceCloseWhenCreated','0',NULL,'If enabled, the ekz invoice synchronisation will automatically close the invoice it has inserted in Koha.','YesNo'),
 ('ekzInvoiceSkipAdditionalCosts','0',NULL,'If enabled, additional costs transferred in invoice data (e.g. handling costs) are ignored, otherwise are added to the item price.','YesNo'),
 ('ekzInvoiceWSLastRunDate','',NULL,'Date of last effective execution of the ekz web service handling invoice information.','Free'),
+('ekzKeepTitleDataOnAutomaticCancellation','0',NULL,'If enabled, bibliographic title records are NOT deleted when EKZ standing order items are automatically cancelled (Storno status 85). Default: disabled (title data is deleted on cancellation).','YesNo'),
 ('ekzLocalServicesEnabled','0',NULL,'Enable/disable the local ekz web services that will create title data and items as required for media ordered online in the media shop of ekz.bibliotheksservice GmbH.','YesNo'),
 ('ekzProcessingNoticesEmailAddress','',NULL,'The handlers of ekz web services will send their processing notices to this e-mail address.','Free'),
 ('ekzSerialOrderWSLastRunDate','',NULL,'Date of last effective execution of the ekz web service handling serial order information.','Free'),
