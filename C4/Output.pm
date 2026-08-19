@@ -281,7 +281,15 @@ sub output_with_http_headers {
 
     if ( $content_type ne 'zip' && !( $extra_options->{no_encoding} ) ) {
         $data =~ s/\&amp\;amp\; /\&amp\; /g;
-        binmode( STDOUT, ":encoding($characterset)" );
+
+        # Push the encoding layer only when STDOUT does not already carry one:
+        # under Plack this sub runs many times per process, and each binmode
+        # would stack another layer. Autoflush so the layer's buffer reaches the
+        # handle before the caller inspects it, which an in-memory STDOUT does
+        # immediately.
+        binmode( STDOUT, ":encoding($characterset)" )
+            unless grep { /^encoding\(/ } PerlIO::get_layers( \*STDOUT );
+        local $| = 1;
         print $query->header($options), $data;
     } else {
         print $query->header($options), $data;
