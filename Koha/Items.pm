@@ -148,10 +148,10 @@ sub filter_by_orderable {
 
     return $self->search(
         {
-            itemlost            => 0,
-            withdrawn           => 0,
-            notforloan          => 0,
-            'issue.itemnumber'  => undef,
+            itemlost           => 0,
+            withdrawn          => 0,
+            notforloan         => 0,
+            'issue.itemnumber' => undef,
             ( C4::Context->preference('AllowHoldsOnDamagedItems') ? () : ( damaged => 0 ) ),
         },
         {

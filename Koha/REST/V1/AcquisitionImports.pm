@@ -39,8 +39,8 @@ sub _columns {
     my ( $self, $table ) = @_;
     return $_col_cache{$table} if exists $_col_cache{$table};
 
-    my $dbh  = C4::Context->dbh;
-    my $sth  = $dbh->prepare('SHOW COLUMNS FROM `' . $table . '`');
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare( 'SHOW COLUMNS FROM `' . $table . '`' );
     $sth->execute;
     my @cols = map { $_->[0] } @{ $sth->fetchall_arrayref };
     $_col_cache{$table} = \@cols;
@@ -58,20 +58,20 @@ sub _list {
     my %extra_filter = %opts_and_filter;
 
     my $dbh      = C4::Context->dbh;
-    my $page     = int( $self->param('_page')     // 1  );
+    my $page     = int( $self->param('_page')     // 1 );
     my $per_page = int( $self->param('_per_page') // 25 );
-    my $q        = $self->param('q')        // '';
+    my $q        = $self->param('q')         // '';
     my $order_by = $self->param('_order_by') // '+id';
 
     # Plausibilitätsgrenzen
-    $page     = 1   if $page     < 1;
+    $page     = 1   if $page < 1;
     $per_page = 1   if $per_page < 1;
     $per_page = 500 if $per_page > 500;
 
     my $offset  = ( $page - 1 ) * $per_page;
     my $columns = $self->_columns($table);
 
-    unless ( @$columns ) {
+    unless (@$columns) {
         return $self->render(
             status  => 404,
             openapi => { error => "Tabelle '$table' nicht gefunden oder hat keine Spalten." }
@@ -84,11 +84,12 @@ sub _list {
     # Volltextsuche
     if ( $q ne '' ) {
         push @conditions, '(' . join( ' OR ', map { "`$_` LIKE ?" } @$columns ) . ')';
-        push @params, ( "%$q%" ) x scalar @$columns;
+        push @params, ("%$q%") x scalar @$columns;
     }
 
     # Zusatzfilter
     for my $key ( sort keys %extra_filter ) {
+
         # Datumsbereich: _date_from_<spalte> → DATE(`spalte`) >= 'YYYY-MM-DD'
         if ( $key =~ /^_date_from_(.+)$/ ) {
             my $col = $1;
@@ -96,9 +97,10 @@ sub _list {
             next unless defined $val && $val =~ /^\d{4}-\d{2}-\d{2}$/;
             next unless grep { $_ eq $col } @$columns;
             push @conditions, "DATE(`$col`) >= ?";
-            push @params, $val;
+            push @params,     $val;
             next;
         }
+
         # Datumsbereich: _date_to_<spalte> → DATE(`spalte`) <= 'YYYY-MM-DD'
         if ( $key =~ /^_date_to_(.+)$/ ) {
             my $col = $1;
@@ -106,23 +108,24 @@ sub _list {
             next unless defined $val && $val =~ /^\d{4}-\d{2}-\d{2}$/;
             next unless grep { $_ eq $col } @$columns;
             push @conditions, "DATE(`$col`) <= ?";
-            push @params, $val;
+            push @params,     $val;
             next;
         }
+
         # Datumsfilter: _date_<spalte> → DATE(`spalte`) = 'YYYY-MM-DD'
         if ( $key =~ /^_date_(.+)$/ ) {
             my $col = $1;
             my $val = $extra_filter{$key};
             next unless defined $val && $val =~ /^\d{4}-\d{2}-\d{2}$/;
-            next unless grep { $_ eq $col } @$columns;   # Injection-Schutz
+            next unless grep { $_ eq $col } @$columns;                   # Injection-Schutz
             push @conditions, "DATE(`$col`) = ?";
-            push @params, $val;
+            push @params,     $val;
             next;
         }
         my $val = $extra_filter{$key};
         next unless defined $val && $val ne '';
-        next unless grep { $_ eq $key } @$columns;   # Injection-Schutz
-        if ( index($val, '%') >= 0 ) {
+        next unless grep { $_ eq $key } @$columns;    # Injection-Schutz
+        if ( index( $val, '%' ) >= 0 ) {
             push @conditions, "`$key` LIKE ?";
         } else {
             push @conditions, "`$key` = ?";
@@ -138,14 +141,13 @@ sub _list {
         $ord_dir = $1 eq '-' ? 'DESC' : 'ASC';
         $ord_col = $2;
     }
+
     # Spaltenname gegen bekannte Spalten prüfen
     $ord_col = $columns->[0] unless grep { $_ eq $ord_col } @$columns;
 
     # Zählabfragen
-    my ($total) = $dbh->selectrow_array("SELECT COUNT(*) FROM `$table`");
-    my ($filtered) = $dbh->selectrow_array(
-        "SELECT COUNT(*) FROM `$table` $where", undef, @params
-    );
+    my ($total)    = $dbh->selectrow_array("SELECT COUNT(*) FROM `$table`");
+    my ($filtered) = $dbh->selectrow_array( "SELECT COUNT(*) FROM `$table` $where", undef, @params );
 
     # Daten holen
     my $rows = $dbh->selectall_arrayref(
@@ -157,7 +159,7 @@ sub _list {
     return $self->render(
         status  => 200,
         openapi => {
-            total    => $total    + 0,
+            total    => $total + 0,
             filtered => $filtered + 0,
             page     => $page,
             per_page => $per_page,
@@ -184,28 +186,27 @@ sub list {
 
     # _distinct-Modus: gibt eindeutige Werte einer Spalte zurück (für Dropdown-Filter)
     my $distinct_col = $c->param('_distinct');
-    if ( $distinct_col ) {
+    if ($distinct_col) {
         return $c->render( status => 400, openapi => { error => 'Ungültige Spalte' } )
             unless grep { $_ eq $distinct_col } @$columns;
-        my $dbh  = C4::Context->dbh;
-        my $vals = $dbh->selectcol_arrayref(
-            "SELECT DISTINCT `$distinct_col` FROM acquisition_import"
-            . " WHERE `$distinct_col` IS NOT NULL AND `$distinct_col` != ''"
-            . " ORDER BY `$distinct_col`"
-        );
+        my $dbh = C4::Context->dbh;
+        my $vals =
+            $dbh->selectcol_arrayref( "SELECT DISTINCT `$distinct_col` FROM acquisition_import"
+                . " WHERE `$distinct_col` IS NOT NULL AND `$distinct_col` != ''"
+                . " ORDER BY `$distinct_col`" );
         return $c->render( status => 200, openapi => { values => $vals || [] } );
     }
 
     my %filter;
 
     # Spaltenfilter: jeden Request-Param der einem Spaltennamen entspricht übernehmen
-    for my $col ( @$columns ) {
+    for my $col (@$columns) {
         my $val = $c->param($col);
         $filter{$col} = $val if defined $val && $val ne '';
     }
 
     # Datumsbereich-Parameter weitergeben
-    for my $col ( @$columns ) {
+    for my $col (@$columns) {
         for my $pfx ( '_date_from_', '_date_to_' ) {
             my $key = $pfx . $col;
             my $val = $c->param($key);
@@ -217,36 +218,36 @@ sub list {
     # invID<nr>: EKZ speichert in aqinvoices nur die nackte Zahl, daher Prefix abstreifen.
     # Bedingung: nur für object_type='invoice' oder invID-Prefix suchen, nicht für Bestell-/Lieferdaten.
     $filter{_extra_select} =
-        q{, (SELECT invoiceid FROM aqinvoices WHERE invoicenumber =}
-      . q{   CASE WHEN object_number LIKE 'invID%' THEN SUBSTRING(object_number,6) ELSE object_number END}
-      . q{   AND (object_type = 'invoice' OR object_number LIKE 'invID%')}
-      . q{   LIMIT 1) AS invoiceid}
-      . q{, COALESCE(}
-      . q{    (SELECT basketno FROM aqbasket WHERE basketname =}
-      . q{       CASE}
-      . q{         WHEN object_number LIKE 'sto.%'  THEN CONCAT('S-', object_number)}
-      . q{         WHEN object_number LIKE 'ser.%'  THEN CONCAT('F-', object_number)}
-      . q{         WHEN object_number LIKE 'delID%' THEN CONCAT('L-', SUBSTRING(object_number,6), '/L-', SUBSTRING(object_number,6))}
-      . q{         WHEN object_number LIKE 'invID%' THEN CONCAT('R-', SUBSTRING(object_number,6), '/R-', SUBSTRING(object_number,6))}
-      . q{         ELSE NULL}
-      . q{       END LIMIT 1),}
-      . q{    (SELECT basketno FROM aqbasket}
-      . q{     WHERE object_type = 'delivery'}
-      . q{       AND basketname LIKE CONCAT('L-', object_number, '/%')}
-      . q{     ORDER BY basketno DESC LIMIT 1),}
-      . q{    (SELECT aqo2.basketno}
-      . q{     FROM acquisition_import ai2}
-      . q{     JOIN acquisition_import_objects ao2 ON ao2.acquisition_import_id = ai2.object_reference}
-      . q{     JOIN aqorders_items aqoi2 ON aqoi2.itemnumber = ao2.koha_object_id}
-      . q{     JOIN aqorders aqo2 ON aqo2.ordernumber = aqoi2.ordernumber}
-      . q{     WHERE ai2.object_number = acquisition_import.object_number}
-      . q{       AND acquisition_import.object_type = 'delivery'}
-      . q{       AND ai2.rec_type = 'item'}
-      . q{       AND ao2.koha_object = 'item'}
-      . q{     LIMIT 1)}
-      . q{  ) AS basketno};
+          q{, (SELECT invoiceid FROM aqinvoices WHERE invoicenumber =}
+        . q{   CASE WHEN object_number LIKE 'invID%' THEN SUBSTRING(object_number,6) ELSE object_number END}
+        . q{   AND (object_type = 'invoice' OR object_number LIKE 'invID%')}
+        . q{   LIMIT 1) AS invoiceid}
+        . q{, COALESCE(}
+        . q{    (SELECT basketno FROM aqbasket WHERE basketname =}
+        . q{       CASE}
+        . q{         WHEN object_number LIKE 'sto.%'  THEN CONCAT('S-', object_number)}
+        . q{         WHEN object_number LIKE 'ser.%'  THEN CONCAT('F-', object_number)}
+        . q{         WHEN object_number LIKE 'delID%' THEN CONCAT('L-', SUBSTRING(object_number,6), '/L-', SUBSTRING(object_number,6))}
+        . q{         WHEN object_number LIKE 'invID%' THEN CONCAT('R-', SUBSTRING(object_number,6), '/R-', SUBSTRING(object_number,6))}
+        . q{         ELSE NULL}
+        . q{       END LIMIT 1),}
+        . q{    (SELECT basketno FROM aqbasket}
+        . q{     WHERE object_type = 'delivery'}
+        . q{       AND basketname LIKE CONCAT('L-', object_number, '/%')}
+        . q{     ORDER BY basketno DESC LIMIT 1),}
+        . q{    (SELECT aqo2.basketno}
+        . q{     FROM acquisition_import ai2}
+        . q{     JOIN acquisition_import_objects ao2 ON ao2.acquisition_import_id = ai2.object_reference}
+        . q{     JOIN aqorders_items aqoi2 ON aqoi2.itemnumber = ao2.koha_object_id}
+        . q{     JOIN aqorders aqo2 ON aqo2.ordernumber = aqoi2.ordernumber}
+        . q{     WHERE ai2.object_number = acquisition_import.object_number}
+        . q{       AND acquisition_import.object_type = 'delivery'}
+        . q{       AND ai2.rec_type = 'item'}
+        . q{       AND ao2.koha_object = 'item'}
+        . q{     LIMIT 1)}
+        . q{  ) AS basketno};
 
-    return $c->_list('acquisition_import', %filter);
+    return $c->_list( 'acquisition_import', %filter );
 }
 
 =head2 get
@@ -332,31 +333,31 @@ Parameter:
 sub list_joined {
     my $c = shift->openapi->valid_input or return;
 
-    my $dbh      = C4::Context->dbh;
-    my $page     = int( $c->param('_page')     // 1  );
-    my $per_page = int( $c->param('_per_page') // 25 );
-    my $q        = $c->param('q')        // '';
-    my $order_by     = $c->param('_order_by')    // '+ai.id';
+    my $dbh           = C4::Context->dbh;
+    my $page          = int( $c->param('_page')     // 1 );
+    my $per_page      = int( $c->param('_per_page') // 25 );
+    my $q             = $c->param('q')         // '';
+    my $order_by      = $c->param('_order_by') // '+ai.id';
     my $object_number = $c->param('object_number');
 
-    $page     = 1   if $page     < 1;
+    $page     = 1   if $page < 1;
     $per_page = 1   if $per_page < 1;
     $per_page = 500 if $per_page > 500;
     my $offset = ( $page - 1 ) * $per_page;
 
     my %valid_order_cols = (
-        id                  => 'ai.id',
-        vendor_id           => 'ai.vendor_id',
-        object_type         => 'ai.object_type',
-        rec_type            => 'ai.rec_type',
-        object_number       => 'ai.object_number',
-        object_item_number  => 'ai.object_item_number',
-        processingtime      => 'ai.processingtime',
-        processingstate     => 'ai.processingstate',
-        koha_object_id      => 'ao.koha_object_id',
-        title               => 'b.title',
-        datecreated         => 'b.datecreated',
-        barcode             => 'i.barcode',
+        id                 => 'ai.id',
+        vendor_id          => 'ai.vendor_id',
+        object_type        => 'ai.object_type',
+        rec_type           => 'ai.rec_type',
+        object_number      => 'ai.object_number',
+        object_item_number => 'ai.object_item_number',
+        processingtime     => 'ai.processingtime',
+        processingstate    => 'ai.processingstate',
+        koha_object_id     => 'ao.koha_object_id',
+        title              => 'b.title',
+        datecreated        => 'b.datecreated',
+        barcode            => 'i.barcode',
     );
 
     my $join_clause = q{
@@ -416,19 +417,21 @@ sub list_joined {
     # Kein object_number übergeben → leeres Ergebnis (noch keine Auswahl im Master)
     unless ( defined $object_number && $object_number ne '' ) {
         my @empty_cols = qw(id vendor_id object_type rec_type object_number object_item_number
-                            processingtime processingstate koha_object_id
-                            title author publisher year datecreated barcode item_timestamp);
+            processingtime processingstate koha_object_id
+            title author publisher year datecreated barcode item_timestamp);
         return $c->render(
             status  => 200,
-            openapi => { total => 0, filtered => 0, page => 1, per_page => $per_page,
-                         columns => \@empty_cols, data => [] }
+            openapi => {
+                total   => 0,            filtered => 0, page => 1, per_page => $per_page,
+                columns => \@empty_cols, data     => []
+            }
         );
     }
 
     my ( @conditions, @params );
 
     push @conditions, 'ai.object_number = ?';
-    push @params, $object_number;
+    push @params,     $object_number;
 
     if ( $q ne '' ) {
         my @search_cols = qw(
@@ -436,7 +439,7 @@ sub list_joined {
             ai.object_number ai.processingstate b.title i.barcode
         );
         push @conditions, '(' . join( ' OR ', map { "$_ LIKE ?" } @search_cols ) . ')';
-        push @params, ( "%$q%" ) x scalar @search_cols;
+        push @params, ("%$q%") x scalar @search_cols;
     }
 
     my $where = @conditions ? 'WHERE ' . join( ' AND ', @conditions ) : '';
@@ -448,14 +451,12 @@ sub list_joined {
             if exists $valid_order_cols{$col};
     }
 
-    my ($total) = $dbh->selectrow_array(
-        "SELECT COUNT(*) $join_clause WHERE ai.object_number = ?", undef, $object_number
-    );
-    my ($filtered) = $dbh->selectrow_array(
-        "SELECT COUNT(*) $join_clause $where", undef, @params
-    );
+    my ($total) =
+        $dbh->selectrow_array( "SELECT COUNT(*) $join_clause WHERE ai.object_number = ?", undef, $object_number );
+    my ($filtered) = $dbh->selectrow_array( "SELECT COUNT(*) $join_clause $where", undef, @params );
 
-    my $rows = $dbh->selectall_arrayref( qq{
+    my $rows = $dbh->selectall_arrayref(
+        qq{
         SELECT
             ai.id,
             ai.vendor_id,
@@ -508,7 +509,8 @@ sub list_joined {
         $where
         ORDER BY $ord_sql
         LIMIT ? OFFSET ?
-    }, { Slice => {} }, @params, $per_page, $offset );
+    }, { Slice => {} }, @params, $per_page, $offset
+    );
 
     my @columns = qw(
         id vendor_id object_type rec_type object_number object_item_number
@@ -519,7 +521,7 @@ sub list_joined {
     return $c->render(
         status  => 200,
         openapi => {
-            total    => $total    + 0,
+            total    => $total + 0,
             filtered => $filtered + 0,
             page     => $page,
             per_page => $per_page,
