@@ -1,9 +1,16 @@
 [% USE raw %]
 [% USE Asset %]
 [% USE KohaDates %]
+[% PROCESS 'i18n.inc' %]
 [% SET footerjs = 1 %]
 [% INCLUDE 'doc-head-open.inc' %]
-<title>Log-Viewer of ekz-Interface imports &rsaquo; [% 'Tools' | html %] &rsaquo; [% kmain_title | html %]</title>
+<title
+    >[% FILTER collapse %]
+        [% t("Log-Viewer of ekz-Interface imports") | html %]
+        &rsaquo; [% t("Tools") | html %]
+        &rsaquo; [% t("Koha") | html %]
+    [% END %]</title
+>
 [% Asset.css("lib/datatables/datatables.css") | $raw %]
 [% INCLUDE 'doc-head-close.inc' %]
 
@@ -12,12 +19,27 @@
     #loading-imports, #loading-objects { padding: 1rem; color: #666; }
     #dt-imports tbody tr { cursor: pointer; }
     #dt-imports tbody tr.selected td { background-color: #d9edf7; }
-    .section-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; margin-top: 1.5rem; }
+    .section-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; }
     .section-header h3 { margin: 0; }
     #detail-hint { color: #888; font-style: italic; padding: .5rem 0; }
-    #dt-imports thead tr.dt-filter-row th { padding: 2px 4px; background: #f5f5f5; }
+    #dt-imports thead tr.dt-filter-row th,
+    #dt-objects thead tr.dt-filter-row th { padding: 2px 4px; background: #f5f5f5; }
     #dt-imports thead tr.dt-filter-row input,
-    #dt-imports thead tr.dt-filter-row select { width: 100%; min-width: 40px; font-size: .8rem; }
+    #dt-imports thead tr.dt-filter-row select,
+    #dt-objects thead tr.dt-filter-row input,
+    #dt-objects thead tr.dt-filter-row select { width: 100%; min-width: 40px; font-size: .8rem; }
+    .payload-modal-body { padding: 0; }
+    .payload-modal-body #payload-content {
+        margin: 0;
+        padding: 1rem;
+        max-height: 75vh;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+        background: #f8f8f8;
+        border: 0;
+        border-radius: 0;
+    }
 </style>
 </head>
 
@@ -27,71 +49,68 @@
     [% INCLUDE 'cat-search.inc' %]
 [% END %]
 
-<div id="breadcrumbs">
-    <a href="/cgi-bin/koha/mainpage.pl">[% 'Home' | html %]</a>
-    &rsaquo;
-    <a href="/cgi-bin/koha/tools/tools-home.pl">[% 'Tools' | html %]</a>
-    &rsaquo;
-    Log-Viewer of ekz-Interface imports
-</div>
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/tools/tools-home.pl">Tools</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Log-Viewer of ekz-Interface imports</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
 
-<div class="main container-fluid">
-    <div class="row">
-        <div class="col-sm-12">
+[% WRAPPER 'main-container.inc' aside='tools-menu' %]
 
-            <h1>Log-Viewer of ekz-Interface imports</h1>
+    <h1>Log-Viewer of ekz-Interface imports</h1>
 
-            <div id="api-error" class="alert alert-danger">
-                <strong>API Error:</strong> <span id="api-error-text"></span>
-            </div>
-
-            <!-- Master: Importdata -->
-            <div class="section-header">
-                <h3>Import data</h3>
-                <span class="badge badge-secondary" id="count-imports">&hellip;</span>
-            </div>
-            <div id="loading-imports">Loading data&hellip;</div>
-            <div id="wrap-imports" style="display:none">
-                <table id="dt-imports" class="table table-bordered table-striped" style="width:100%">
-                    <thead><tr></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-
-            <!-- Detail: Importobjects -->
-            <div class="section-header">
-                <h3>Import objects</h3>
-                <span class="badge badge-info" id="selected-import-label" style="display:none"></span>
-                <span class="badge badge-secondary" id="count-objects" style="display:none">&hellip;</span>
-            </div>
-            <div id="detail-hint">&#8592; Click on a row of the table above to view objects</div>
-            <div id="loading-objects" style="display:none">Loading data&hellip;</div>
-            <div id="wrap-objects" style="display:none">
-                <table id="dt-objects" class="table table-bordered table-striped" style="width:100%">
-                    <thead><tr></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-
-        </div>
+    <div id="api-error" class="alert alert-danger">
+        <strong>API Error:</strong> <span id="api-error-text"></span>
     </div>
-</div>
 
-<!-- Payload Modal (Bootstrap 4) -->
-<div class="modal fade" id="payloadModal" tabindex="-1" role="dialog" aria-labelledby="payloadModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+    <!-- Master: Importdata -->
+    <div class="section-header">
+        <h3>Import data</h3>
+        <span class="badge text-bg-secondary" id="count-imports">&hellip;</span>
+    </div>
+    <div id="loading-imports">Loading data&hellip;</div>
+    <div id="wrap-imports" class="page-section" style="display:none">
+        <table id="dt-imports" style="width:100%">
+            <thead><tr></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Detail: Importobjects -->
+    <div class="section-header">
+        <h3>Import objects</h3>
+        <span class="badge text-bg-info" id="selected-import-label" style="display:none"></span>
+        <span class="badge text-bg-secondary" id="count-objects" style="display:none">&hellip;</span>
+    </div>
+    <div id="detail-hint">&#8592; Click on a row of the table above to view objects</div>
+    <div id="loading-objects" style="display:none">Loading data&hellip;</div>
+    <div id="wrap-objects" class="page-section" style="display:none">
+        <table id="dt-objects" style="width:100%">
+            <thead><tr></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+[% END #/ WRAPPER main-container.inc %]
+
+<!-- Payload modal -->
+<div class="modal fade" id="payloadModal" tabindex="-1" aria-labelledby="payloadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between">
-                <h4 class="modal-title" id="payloadModalLabel">Payload</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="margin-left:auto;order:2">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="modal-header">
+                <h1 class="modal-title" id="payloadModalLabel">Payload</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body" style="padding:0">
-                <pre id="payload-content" style="margin:0;padding:1rem;max-height:75vh;overflow:auto;white-space:pre-wrap;word-break:break-all;font-size:1.4rem;background:#f8f8f8;border:0;border-radius:0"></pre>
+            <div class="modal-body payload-modal-body">
+                <pre id="payload-content"></pre>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
