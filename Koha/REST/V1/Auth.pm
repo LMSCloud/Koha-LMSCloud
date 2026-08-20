@@ -160,6 +160,13 @@ sub authenticate_api_request {
     # treats any Authorization: Bearer header as a Koha-native API key
     # and throws on mismatch, before the plugin's own controller runs.
     if ( $params->{is_plugin} && $spec->{'x-plugin-owns-auth'} ) {
+
+        # Koha identifies no user for such a request and returns before
+        # check_cookie_auth() would have cleared the userenv, so drop whatever
+        # an earlier request in this persistent worker left behind rather than
+        # letting the plugin's controller inherit it.
+        C4::Context->unset_userenv;
+
         validate_query_parameters( $c, $spec );
         return 1;
     }

@@ -19,6 +19,8 @@ use Modern::Perl;
 
 use Mojo::Base 'Mojolicious::Controller';
 
+use C4::Context;
+
 =head1 API
 
 =head2 Methods
@@ -32,6 +34,28 @@ sub bother {
     return $c->render(
         status  => 200,
         openapi => { bothered => Mojo::JSON->true }
+    );
+}
+
+=head3 owns_auth
+
+Used by routes declaring x-plugin-owns-auth. Reports whether a userenv was
+visible to the controller, so tests can assert the request did not inherit one
+left behind by an earlier request in the same process.
+
+=cut
+
+sub owns_auth {
+    my ($c) = @_;
+
+    my $userenv = C4::Context->userenv;
+
+    return $c->render(
+        status  => 200,
+        openapi => {
+            bothered    => Mojo::JSON->true,
+            userenv_set => ( $userenv && $userenv->{number} ) ? Mojo::JSON->true : Mojo::JSON->false,
+        }
     );
 }
 

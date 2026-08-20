@@ -18,7 +18,7 @@
 use Modern::Perl;
 
 use Test::NoWarnings;
-use Test::More tests => 5;
+use Test::More tests => 6;
 use Test::Mojo;
 use Test::Warn;
 use Test::MockModule;
@@ -263,6 +263,79 @@ subtest 'needs_install use case tests' => sub {
         exists $routes->{'/contrib/testplugin/patrons/bother'},
         'Plugin enabled, route defined as C4::Context->needs_install is false'
     );
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'x-plugin-owns-auth tests' => sub {
+
+    plan tests => 14;
+
+    $schema->storage->txn_begin;
+
+    # enable plugins
+    t::lib::Mocks::mock_config( 'enable_plugins', 1 );
+
+    # Silence warnings from unrelated plugins feature
+    my $plugin_mock = Test::MockModule->new('Koha::Plugin::Test');
+    $plugin_mock->mock( 'patron_barcode_transform', undef );
+
+    # remove any existing plugins that might interfere
+    Koha::Plugins::Methods->search->delete;
+    my $plugins = Koha::Plugins->new;
+    $plugins->InstallPlugins;
+
+    my @plugins = $plugins->GetPlugins( { all => 1 } );
+    foreach my $plugin (@plugins) {
+        $plugin->enable;
+    }
+
+    # initialize Koha::REST::V1 after mocking
+    my $t;
+    warning_like { $t = Test::Mojo->new('Koha::REST::V1'); }
+    [
+        qr{Could not load REST API spec bundle: /paths/~0001contrib~0001badass},
+        qr{bother_wrong/put/parameters/0: /oneOf/1 Properties not allowed:},
+        qr{Plugin Koha::Plugin::BadAPIRoute route injection failed: The resulting spec is invalid. Skipping Bad API Route Plugin},
+    ],
+        'Bad plugins raise warning';
+
+    # A bearer token Koha cannot resolve would otherwise abort the request
+    # before the plugin controller runs
+    $t->get_ok(
+        '/api/v1/contrib/testplugin/patrons/bother_owns_auth' => { Authorization => 'Bearer not-a-koha-api-key' } )
+        ->status_is( 200, 'Route owning its auth is reached despite a bearer token Koha cannot resolve' );
+
+    $t->get_ok('/api/v1/contrib/testplugin/patrons/bother_owns_auth')
+        ->status_is( 200, 'Route owning its auth is reached without credentials' );
+
+    # The opt-out is per-operation, it must not leak to the plugin's other routes
+    $t->get_ok( '/api/v1/contrib/testplugin/patrons/bother' => { Authorization => 'Bearer not-a-koha-api-key' } )
+        ->status_is( 401, 'A route without the opt-out still rejects an unresolvable bearer token' );
+
+    # The value is honoured, not merely its presence
+    $t->get_ok( '/api/v1/contrib/testplugin/patrons/bother_owns_auth_disabled' =>
+            { Authorization => 'Bearer not-a-koha-api-key' } )
+        ->status_is( 401, 'x-plugin-owns-auth: false is not an opt-out' );
+
+    # Returning early means x-koha-authorization on the same operation is never
+    # evaluated. Pinned so the trade-off is visible rather than discovered.
+    $t->get_ok( '/api/v1/contrib/testplugin/patrons/bother_owns_auth_and_perms' =>
+            { Authorization => 'Bearer not-a-koha-api-key' } )
+        ->status_is( 200, 'x-koha-authorization is not evaluated on a route owning its auth' );
+
+    # C4::Context is process-global and the REST app never resets it between
+    # requests, so state from an earlier request must not reach the controller
+    C4::Context->set_userenv(
+        42, 'leaked', '42', 'Leaked', 'User', 'LEAKBRANCH', 'Leak Branch', 0,
+        'leaked@example.com'
+    );
+
+    $t->get_ok('/api/v1/contrib/testplugin/patrons/bother_owns_auth')
+        ->status_is( 200, 'Route owning its auth is reached' )
+        ->json_is( '/userenv_set' => Mojo::JSON->false, 'userenv from an earlier request is not inherited' );
+
+    C4::Context->unset_userenv;
 
     $schema->storage->txn_rollback;
 };
