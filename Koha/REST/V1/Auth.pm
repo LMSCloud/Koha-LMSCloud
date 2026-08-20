@@ -174,7 +174,7 @@ sub authenticate_api_request {
         # check_cookie_auth() would have cleared the userenv, so drop whatever
         # an earlier request in this persistent worker left behind rather than
         # letting the plugin's controller inherit it.
-        C4::Context->unset_userenv;
+        C4::Context->_unset_userenv;
         
         validate_query_parameters( $c, $spec );
         return 1;
