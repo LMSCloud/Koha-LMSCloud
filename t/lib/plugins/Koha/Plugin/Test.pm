@@ -332,6 +332,98 @@ sub api_routes {
         }
       }
     }
+  },
+  "/patrons/bother_owns_auth": {
+    "get": {
+      "x-mojo-to": "Test::Controller#owns_auth",
+      "operationId": "BotherPatronOwnsAuth",
+      "tags": ["patrons"],
+      "produces": [
+        "application/json"
+      ],
+      "responses": {
+        "200": {
+          "description": "A bothered patron",
+          "schema": {
+              "type": "object",
+              "properties": {
+                "bothered": {
+                  "description": "If the patron has been bothered",
+                  "type": "boolean"
+                },
+                "userenv_set": {
+                  "description": "If a userenv was visible to the controller",
+                  "type": "boolean"
+                }
+              }
+          }
+        }
+      },
+      "x-plugin-owns-auth": true
+    }
+  },
+  "/patrons/bother_owns_auth_and_perms": {
+    "get": {
+      "x-mojo-to": "Test::Controller#owns_auth",
+      "operationId": "BotherPatronOwnsAuthAndPerms",
+      "tags": ["patrons"],
+      "produces": [
+        "application/json"
+      ],
+      "responses": {
+        "200": {
+          "description": "A bothered patron",
+          "schema": {
+              "type": "object",
+              "properties": {
+                "bothered": {
+                  "description": "If the patron has been bothered",
+                  "type": "boolean"
+                },
+                "userenv_set": {
+                  "description": "If a userenv was visible to the controller",
+                  "type": "boolean"
+                }
+              }
+          }
+        }
+      },
+      "x-plugin-owns-auth": true,
+      "x-koha-authorization": {
+        "permissions": {
+          "borrowers": "1"
+        }
+      }
+    }
+  },
+  "/patrons/bother_owns_auth_disabled": {
+    "get": {
+      "x-mojo-to": "Test::Controller#owns_auth",
+      "operationId": "BotherPatronOwnsAuthDisabled",
+      "tags": ["patrons"],
+      "produces": [
+        "application/json"
+      ],
+      "responses": {
+        "200": {
+          "description": "A bothered patron",
+          "schema": {
+              "type": "object",
+              "properties": {
+                "bothered": {
+                  "description": "If the patron has been bothered",
+                  "type": "boolean"
+                },
+                "userenv_set": {
+                  "description": "If a userenv was visible to the controller",
+                  "type": "boolean"
+                }
+              }
+          }
+        }
+      },
+      "x-plugin-owns-auth": false
+    }
   }
 }
     };
