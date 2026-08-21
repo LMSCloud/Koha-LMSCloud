@@ -37,9 +37,9 @@
                 <div class="row">
                     <div class="span12">
                         [% IF (LinkedRecordData.size == 1) %]
-                            <div class="detail_linked_record_header">The title is part fo the following work</div>
+                            <div class="detail_linked_record_header">The title is part of the following work</div>
                         [% ELSE %]
-                            <div class="detail_linked_record_header">The title is part fo the following works</div>
+                            <div class="detail_linked_record_header">The title is part of the following works</div>
                         [% END %]
                     </div>
                 </div>
