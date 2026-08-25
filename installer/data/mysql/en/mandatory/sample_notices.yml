@@ -2112,6 +2112,51 @@ tables:
             - "Pickup location: <<branches.branchname>>"
 
         - module: reserves
+          code: HOLD_CANCELLATION
+          branchcode: ""
+          name: "Vormerkung storniert (EKZ)"
+          is_html: 1
+          title: "Ihre Vormerkung wurde storniert"
+          message_transport_type: email
+          lang: default
+          content:
+            - "[%- USE KohaDates -%]"
+            - "Guten Tag [% borrowers.firstname %] [% borrowers.surname %],<br>"
+            - "<br>"
+            - "Ihre Vormerkung für das folgende Medium wurde storniert, da der Titel nicht lieferbar ist:<br>"
+            - "<br>"
+            - "Titel: [% biblio.title %]<br>"
+            - "Autor/in: [% biblio.author %]<br>"
+            - "Vorgemerkt am: [% reserves.reservedate | $KohaDates %]<br>"
+            - "<br>"
+            - "Falls Sie Fragen haben, wenden Sie sich bitte an Ihre Bibliothek.<br>"
+            - "<br>"
+            - "Mit freundlichen Grüßen<br>"
+            - "[% branches.branchname %]"
+
+        - module: reserves
+          code: HOLD_CANCELLATION
+          branchcode: ""
+          name: "Vormerkung storniert (EKZ)"
+          is_html: 0
+          title: "Ihre Vormerkung wurde storniert"
+          message_transport_type: print
+          lang: default
+          content:
+            - "Guten Tag [% borrowers.firstname %] [% borrowers.surname %],"
+            - ""
+            - "Ihre Vormerkung für das folgende Medium wurde storniert, da der Titel nicht lieferbar ist:"
+            - ""
+            - "Titel: [% biblio.title %]"
+            - "Autor/in: [% biblio.author %]"
+            - "Vorgemerkt am: [% reserves.reservedate | $KohaDates %]"
+            - ""
+            - "Falls Sie Fragen haben, wenden Sie sich bitte an Ihre Bibliothek."
+            - ""
+            - "Mit freundlichen Grüßen"
+            - "[% branches.branchname %]"
+
+        - module: reserves
           code: HOLD_REMINDER
           branchcode: ""
           name: "Waiting hold reminder"
