@@ -492,7 +492,7 @@ export function getBookingTableColumns(
                             data-title="${escapeAttr(biblioTitle)}"
                             data-patron="${escapeAttr(patronName)}"
                             data-cardnumber="${escapeAttr(row.patron?.cardnumber)}">
-                            <i class="fa fa-check-circle" aria-hidden="true"></i> ${__("Convert to checkout")}
+                            <i class="fa fa-check-circle" aria-hidden="true"></i> ${__("Checkout")}
                         </button>`;
                 }
                 return html;

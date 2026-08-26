@@ -1,4 +1,4 @@
-<!-- Convert to checkout confirmation modal -->
+<!-- Checkout confirmation modal -->
 <div class="modal" id="convertToCheckoutModal" tabindex="-1" role="dialog" aria-labelledby="convertToCheckoutLabel">
     <form id="convertToCheckoutForm" method="post" action="">
         [% INCLUDE 'csrf-token.inc' %]
@@ -6,7 +6,7 @@
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h1 class="modal-title" id="convertToCheckoutLabel">Convert to checkout</h1>
+                    <h1 class="modal-title" id="convertToCheckoutLabel">Check out booked item</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -14,7 +14,7 @@
                     <input type="hidden" name="borrowernumber" id="convert_borrowernumber" />
                     <input type="hidden" name="barcode" id="convert_barcode" />
                     <input type="hidden" name="duedatespec" id="convert_duedatespec" />
-                    <p>Are you sure you want to convert this booking to a checkout?</p>
+                    <p>Are you sure you want to check out this booking?</p>
                     <dl>
                         <dt>Title</dt>
                         <dd id="convert_title"></dd>
@@ -28,7 +28,7 @@
                 </div>
                 <!-- /.modal-body -->
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">Confirm checkout</button>
+                    <button type="submit" class="btn btn-primary">Check out</button>
                     <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
                 </div>
                 <!-- /.modal-footer -->
