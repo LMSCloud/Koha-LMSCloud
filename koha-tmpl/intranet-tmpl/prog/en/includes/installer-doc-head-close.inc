@@ -18,6 +18,7 @@
 [% END %]
 [% Asset.js('js/Gettext.js') | $raw %]
 [% Asset.js('js/i18n.js') | $raw %]
+[% Asset.js('js/stores.js') | $raw %]
 <style id="antiClickjack">
     body {
         display: none !important;

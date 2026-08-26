@@ -24,6 +24,7 @@
 [% END %]
 [% Asset.js('js/Gettext.js') | $raw %]
 [% Asset.js('js/i18n.js') | $raw %]
+[% Asset.js('js/stores.js') | $raw %]
 [% Asset.js("lib/jquery/jquery-3.6.0.min.js") | $raw %]
 [% Asset.js("lib/jquery/jquery-migrate-3.3.2.min.js") | $raw %]
 [% Asset.js("lib/fontfaceobserver/fontfaceobserver.min.js") | $raw %]
