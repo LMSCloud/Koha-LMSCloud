@@ -821,14 +821,32 @@ sub can_be_returned_at {
 
     my $allowreturntobranch = C4::Context->preference("AllowReturnToBranch") || 'anywhere';
 
+    # Bookmobile stations are configured as libraries assigned to a bookmobile
+    # library; compare against the effective branch so an item may be returned
+    # at any station serving its home or holding library
+    my $effective_library = Koha::Libraries->get_effective_branch($library);
+    my $home_library      = Koha::Libraries->get_effective_branch( $self->homebranch );
+    my $holding_library   = Koha::Libraries->get_effective_branch( $self->holdingbranch );
+
+    # An item still in transit has not had its holdingbranch updated yet, so it
+    # must also be returnable at the destination of the dispatched transfer
+    my $transfer_library = '';
+    my $transfer         = $self->get_transfer;
+    $transfer_library = Koha::Libraries->get_effective_branch( $transfer->tobranch )
+        if $transfer && $transfer->datesent;
+
     # Refuse check-in if it does not respect AllowReturnToBranch rules
-    if ( $allowreturntobranch eq 'homebranch' && $library ne $self->homebranch ) {
+    if ( $allowreturntobranch eq 'homebranch' && $effective_library ne $home_library ) {
         return ( 0, $self->homebranch );
-    } elsif ( $allowreturntobranch eq 'holdingbranch' && $library ne $self->holdingbranch ) {
+    } elsif ( $allowreturntobranch eq 'holdingbranch'
+        && $effective_library ne $holding_library
+        && $effective_library ne $transfer_library )
+    {
         return ( 0, $self->holdingbranch );
     } elsif ( $allowreturntobranch eq 'homeorholdingbranch'
-        && $library ne $self->homebranch
-        && $library ne $self->holdingbranch )
+        && $effective_library ne $home_library
+        && $effective_library ne $holding_library
+        && $effective_library ne $transfer_library )
     {
         return ( 0, $self->homebranch );    # FIXME: choice of homebranch is arbitrary
     }

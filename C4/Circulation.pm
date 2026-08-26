@@ -1035,7 +1035,7 @@ sub CanBookBeIssued {
 
         my $patron = Koha::Patrons->find( $issue->get_column('borrowernumber') );
 
-        my ( $can_be_returned, $message ) = CanBookBeReturned( $item_unblessed, C4::Context->userenv->{branch} );
+        my ( $can_be_returned, $message ) = CanBookBeReturned( $item_object, C4::Context->userenv->{branch} );
 
         if ( !$can_be_returned ) {
             $issuingimpossible{RETURN_IMPOSSIBLE} = 1;
@@ -1745,7 +1745,7 @@ sub AddIssue {
 
                 # This book is currently on loan, but not to the person
                 # who wants to borrow it now. mark it returned before issuing to the new borrower
-                my ( $allowed, $message ) = CanBookBeReturned( $item_unblessed, C4::Context->userenv->{branch} );
+                my ( $allowed, $message ) = CanBookBeReturned( $item_object, C4::Context->userenv->{branch} );
                 return unless $allowed;
                 AddReturn( $item_object->barcode, C4::Context->userenv->{'branch'} );
 
