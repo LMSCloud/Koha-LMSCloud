@@ -129,6 +129,7 @@
         let getLocationOptions = [];
         let getItemTypeOptions = [];
     </script>
+    [% Asset.js("js/bookings/common.js") | $raw %]
     [% Asset.js("js/bookings-common.js", type => "module") | $raw %]
     <script>
         let cancel_success = false;

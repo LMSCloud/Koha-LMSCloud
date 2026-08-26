@@ -14,7 +14,7 @@
 export function getBookingsEmbed(variant = "default") {
     switch (variant) {
         case "biblio":
-            return ["item", "patron", "pickup_library", "extended_attributes"];
+            return ["item", "item.checkout", "patron", "pickup_library", "extended_attributes"];
         case "default":
         default:
             return [

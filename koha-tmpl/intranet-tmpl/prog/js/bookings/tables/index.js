@@ -485,6 +485,9 @@ function initKohaTable(
             embed: embed,
             order: order,
             columns: columns,
+            createdRow: function (row, data) {
+                window.BookingsTable.highlightRow(data, row);
+            },
             autoWidth: false,
         },
         tableSettings,

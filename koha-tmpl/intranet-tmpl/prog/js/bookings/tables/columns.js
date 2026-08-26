@@ -46,37 +46,7 @@ import { calculateBookingStatus } from "./features.js";
  * @returns {string}
  */
 function renderStatusBadge(row) {
-    const derived = calculateBookingStatus(
-        row.status,
-        row.start_date,
-        row.end_date
-    );
-    /** @type {Record<string, string>} */
-    const statusTextMap = {
-        expired: __("Expired"),
-        cancelled: __("Cancelled"),
-        pending: __("Pending"),
-        active: __("Active"),
-        completed: __("Completed"),
-        new: __("New"),
-        unknown: __("Unknown"),
-    };
-    let statusText = statusTextMap[derived] || __("Unknown");
-    if (derived === "cancelled" && row.cancellation_reason) {
-        statusText = [__("Cancelled"), row.cancellation_reason].join(": ");
-    }
-    const classMap = [
-        { status: __("Expired"), class: "bg-secondary" },
-        { status: __("Cancelled"), class: "bg-secondary" },
-        { status: __("Pending"), class: "bg-warning" },
-        { status: __("Active"), class: "bg-primary" },
-        { status: __("Completed"), class: "bg-info" },
-        { status: __("New"), class: "bg-success" },
-    ];
-    const badgeClass =
-        classMap.find(m => statusText.startsWith(m.status))?.class ||
-        "bg-secondary";
-    return `<span class="badge rounded-pill ${badgeClass}">${statusText}</span>`;
+    return window.BookingsTable.statusBadge(row);
 }
 
 /**
@@ -85,8 +55,7 @@ function renderStatusBadge(row) {
  * @returns {string|null}
  */
 function renderItemCell(row) {
-    if (!row.item) return null;
-    return escapeAttr(row.item.external_id);
+    return window.BookingsTable.itemContent(row);
 }
 
 /**
