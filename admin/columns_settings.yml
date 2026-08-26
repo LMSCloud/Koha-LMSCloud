@@ -2491,29 +2491,27 @@ modules:
                   cannot_be_modified: 1
 
         bookings-to-collect:
+            default_sort_order: 7
             columns:
                 -
-                  columnname: booking_id
-                  cannot_be_toggled: 1
-                  cannot_be_modified: 1
+                    columnname: booking_id
+                    is_hidden: 1
+                    cannot_be_toggled: 1
+                    cannot_be_modified: 1
                 -
-                  columnname: home_library_id
+                    columnname: pickup_library
                 -
-                  columnname: title
+                    columnname: biblio_title
                 -
-                  columnname: itemdata
+                    columnname: item_barcode
                 -
-                  columnname: callnumber
+                    columnname: item_callnumber
                 -
-                  columnname: location
+                    columnname: item_location
                 -
-                  columnname: patron
+                    columnname: patron
                 -
-                  columnname: pickup_library
-                -
-                  columnname: start_date
-                -
-                  columnname: extended_attributes
+                    columnname: booking_dates
 
   opac:
     biblio-detail:
