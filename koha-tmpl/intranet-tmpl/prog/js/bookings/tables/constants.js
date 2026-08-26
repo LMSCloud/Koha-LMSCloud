@@ -22,6 +22,7 @@ export const BOOKING_TABLE_CONSTANTS = {
         PENDING: "pending",
         ACTIVE: "active",
         EXPIRED: "expired",
+        ISSUED: "issued",
         CANCELLED: "cancelled",
         COMPLETED: "completed",
     },

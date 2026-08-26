@@ -87,10 +87,18 @@ export function enhanceStatusFilter(
             const nowIso = new Date().toISOString();
             switch (selectedValue) {
                 case "active-pending":
+                    // An issued booking is live until the item comes back, at
+                    // which point it becomes completed; only a new booking can
+                    // expire by running past its end date without collection
                     return {
-                        "-and": [
-                            { "me.status": "new" },
-                            { "me.end_date": { ">=": nowIso } },
+                        "-or": [
+                            {
+                                "-and": [
+                                    { "me.status": "new" },
+                                    { "me.end_date": { ">=": nowIso } },
+                                ],
+                            },
+                            { "me.status": "issued" },
                         ],
                     };
                 case "pending":
@@ -103,7 +111,7 @@ export function enhanceStatusFilter(
                 case "active":
                     return {
                         "-and": [
-                            { "me.status": "new" },
+                            { "me.status": { "-in": ["new", "issued"] } },
                             { "me.start_date": { "<=": nowIso } },
                             { "me.end_date": { ">=": nowIso } },
                         ],
@@ -115,6 +123,8 @@ export function enhanceStatusFilter(
                             { "me.end_date": { "<": nowIso } },
                         ],
                     };
+                case "issued":
+                    return { "-and": [{ "me.status": "issued" }] };
                 case "new":
                     return { "-and": [{ "me.status": "new" }] };
                 case "cancelled":

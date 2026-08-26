@@ -131,6 +131,10 @@ export function getStandardStatusOptions() {
             _str: __("Active"),
         },
         {
+            _id: BOOKING_TABLE_CONSTANTS.STATUS_VALUES.ISSUED,
+            _str: __("Issued"),
+        },
+        {
             _id: BOOKING_TABLE_CONSTANTS.STATUS_VALUES.EXPIRED,
             _str: __("Expired"),
         },
