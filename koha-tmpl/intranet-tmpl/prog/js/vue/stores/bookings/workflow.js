@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { formatYMD, addDays } from "../../lib/booking/dates.js";
 import { idsEqual } from "../../utils/functions.js";
 import { calculateMaxBookingPeriod } from "../../lib/booking/availability/predicate.js";
+import { resolveOpacDefaultPickupLibrary } from "../../lib/booking/opac-default-pickup.js";
 
 const CALENDAR_BUFFER_DAYS = 7;
 const DEFAULT_LOOKAHEAD_DAYS = 90;
@@ -12,7 +13,7 @@ const DEFAULT_LOOKAHEAD_DAYS = 90;
 /** @typedef {{start: Date, end: Date}} Viewport */
 /** @typedef {{status: Object, data: Object, draft: Object, availability: Object, validation: Object}} WorkflowSections */
 /** @typedef {{biblionumber?: Id, biblio_id?: Id, bookingId?: Id|null, booking_id?: Id|null, itemId?: Id|null, item_id?: Id|null, patronId?: Id|null, patron_id?: Id|null, patron?: PatronOption|null, pickupLibraryId?: string|null, pickup_library_id?: string|null, itemtypeId?: Id|null, item_type_id?: Id|null, itemtype_id?: Id|null, selectedDateRange?: string[]}} BookingRecord */
-/** @typedef {{booking?: BookingRecord, biblionumber?: Id, bookingId?: Id|null, itemId?: Id|null, patronId?: Id|null, patron?: PatronOption|null, pickupLibraryId?: string|null, itemtypeId?: Id|null, selectedDateRange?: string[], dateRangeConstraint?: string|null, customDateRangeFormula?: ((rules: import('@koha-vue/lib/booking/types/bookings').CirculationRule) => number|null)|null, showPatronSelect?: boolean, showItemDetailsSelects?: boolean, showPickupLocationSelect?: boolean}} BookingSessionInput */
+/** @typedef {{booking?: BookingRecord, biblionumber?: Id, bookingId?: Id|null, itemId?: Id|null, patronId?: Id|null, patron?: PatronOption|null, pickupLibraryId?: string|null, itemtypeId?: Id|null, selectedDateRange?: string[], dateRangeConstraint?: string|null, customDateRangeFormula?: ((rules: import('@koha-vue/lib/booking/types/bookings').CirculationRule) => number|null)|null, showPatronSelect?: boolean, showItemDetailsSelects?: boolean, showPickupLocationSelect?: boolean, opacDefaultBookingLibraryEnabled?: boolean|string|null, opacDefaultBookingLibrary?: string|null}} BookingSessionInput */
 /**
  * @typedef {Object} BookingWorkflow
  * @property {(input: BookingSessionInput) => Promise<boolean>} openForCreate
@@ -45,6 +46,8 @@ export function useBookingWorkflow({
 }) {
     const sessionActive = ref(false);
     const sessionBiblionumber = ref(null);
+    /** @type {{enabled: boolean|string|null, libraryId: string|null}} */
+    let opacDefaultPickup = { enabled: null, libraryId: null };
 
     let transitionGeneration = 0;
     /** @type {AbortController|null} */
@@ -152,12 +155,24 @@ export function useBookingWorkflow({
     }
 
     /**
-     * Apply the patron or item pickup-library default once.
+     * Apply the OPAC, patron or item pickup-library default once.
      *
      * @returns {void}
      */
     function applyPickupLibraryDefault() {
         const locations = data.pickupLocations.value;
+        const opacDefault = resolveOpacDefaultPickupLibrary({
+            enabled: opacDefaultPickup.enabled,
+            libraryId: opacDefaultPickup.libraryId,
+            pickupLocations: locations,
+        });
+        // The OPAC default overrides a stale draft value as well: it is a
+        // fixed library, not a starting suggestion
+        if (opacDefault) {
+            draft.pickupLibraryId.value = opacDefault;
+            return;
+        }
+
         if (
             draft.pickupLibraryId.value &&
             locations.some(location =>
@@ -351,6 +366,10 @@ export function useBookingWorkflow({
             pickupLocationSelectionRequired:
                 input.showPickupLocationSelect ?? false,
         });
+        opacDefaultPickup = {
+            enabled: input.opacDefaultBookingLibraryEnabled ?? null,
+            libraryId: input.opacDefaultBookingLibrary ?? null,
+        };
 
         draft.bookingId.value = input.bookingId ?? null;
         draft.bookingItemId.value = input.itemId ?? null;

@@ -1,64 +1,64 @@
 import { describe, it } from "mocha";
 import { expect } from "chai";
-import { ref } from "vue";
-import { useDefaultPickup } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/composables/useDefaultPickup.mjs";
+import { resolveOpacDefaultPickupLibrary } from "../../../../koha-tmpl/intranet-tmpl/prog/js/vue/lib/booking/opac-default-pickup.js";
 
-function delay(ms = 0) {
-    return new Promise(res => setTimeout(res, ms));
-}
+const LOCATIONS = [{ library_id: "MAIN" }, { library_id: "BR1" }];
 
-describe("useDefaultPickup composable", () => {
-    it("prefers OPAC default when enabled and present", async () => {
-        const bookingPickupLibraryId = ref(null);
-        const bookingPatron = ref(null);
-        const pickupLocations = ref([{ library_id: "MAIN" }, { library_id: "BR1" }]);
-        const bookableItems = ref([]);
-
-        useDefaultPickup({
-            bookingPickupLibraryId,
-            bookingPatron,
-            pickupLocations,
-            bookableItems,
-            opacDefaultBookingLibraryEnabled: true,
-            opacDefaultBookingLibrary: "BR1",
-        });
-        await delay(0);
-        expect(bookingPickupLibraryId.value).to.equal("BR1");
+describe("resolveOpacDefaultPickupLibrary", () => {
+    it("returns the configured library when enabled and offered", () => {
+        expect(
+            resolveOpacDefaultPickupLibrary({
+                enabled: true,
+                libraryId: "BR1",
+                pickupLocations: LOCATIONS,
+            })
+        ).to.equal("BR1");
     });
 
-    it("falls back to patron library if available", async () => {
-        const bookingPickupLibraryId = ref(null);
-        const bookingPatron = ref({ library_id: "MAIN" });
-        const pickupLocations = ref([{ library_id: "MAIN" }]);
-        const bookableItems = ref([]);
-
-        useDefaultPickup({
-            bookingPickupLibraryId,
-            bookingPatron,
-            pickupLocations,
-            bookableItems,
-            opacDefaultBookingLibraryEnabled: false,
-            opacDefaultBookingLibrary: null,
-        });
-        await delay(0);
-        expect(bookingPickupLibraryId.value).to.equal("MAIN");
+    it("accepts the preference as the rendered string '1'", () => {
+        expect(
+            resolveOpacDefaultPickupLibrary({
+                enabled: "1",
+                libraryId: "BR1",
+                pickupLocations: LOCATIONS,
+            })
+        ).to.equal("BR1");
     });
 
-    it("falls back to first item's home library when applicable", async () => {
-        const bookingPickupLibraryId = ref(null);
-        const bookingPatron = ref(null);
-        const pickupLocations = ref([{ library_id: "MAIN" }]);
-        const bookableItems = ref([{ home_library_id: "MAIN" }]);
+    it("returns null when the preference is off", () => {
+        expect(
+            resolveOpacDefaultPickupLibrary({
+                enabled: "0",
+                libraryId: "BR1",
+                pickupLocations: LOCATIONS,
+            })
+        ).to.equal(null);
+    });
 
-        useDefaultPickup({
-            bookingPickupLibraryId,
-            bookingPatron,
-            pickupLocations,
-            bookableItems,
-            opacDefaultBookingLibraryEnabled: false,
-            opacDefaultBookingLibrary: null,
-        });
-        await delay(0);
-        expect(bookingPickupLibraryId.value).to.equal("MAIN");
+    it("returns null when the configured library is not a pickup location", () => {
+        expect(
+            resolveOpacDefaultPickupLibrary({
+                enabled: true,
+                libraryId: "BR9",
+                pickupLocations: LOCATIONS,
+            })
+        ).to.equal(null);
+    });
+
+    it("returns null without a configured library or locations", () => {
+        expect(
+            resolveOpacDefaultPickupLibrary({
+                enabled: true,
+                libraryId: "",
+                pickupLocations: LOCATIONS,
+            })
+        ).to.equal(null);
+        expect(
+            resolveOpacDefaultPickupLibrary({
+                enabled: true,
+                libraryId: "BR1",
+            })
+        ).to.equal(null);
+        expect(resolveOpacDefaultPickupLibrary()).to.equal(null);
     });
 });

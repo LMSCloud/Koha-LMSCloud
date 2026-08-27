@@ -38,10 +38,16 @@
                         :submit-url="submitUrl"
                         :date-range-constraint="dateRangeConstraint"
                         :custom-date-range-formula="customDateRangeFormula"
-            :show-additional-fields="showAdditionalFields"
-            :extended-attributes="extendedAttributes"
-            :extended-attribute-types="extendedAttributeTypes"
-            :authorized-values="authorizedValues"
+                        :show-additional-fields="showAdditionalFields"
+                        :extended-attributes="extendedAttributes"
+                        :extended-attribute-types="extendedAttributeTypes"
+                        :authorized-values="authorizedValues"
+                        :opac-default-booking-library-enabled="
+                            opacDefaultBookingLibraryEnabled
+                        "
+                        :opac-default-booking-library="
+                            opacDefaultBookingLibrary
+                        "
                         @submitted="handleSubmitted"
                     />
                 </div>
@@ -125,6 +131,8 @@ const props = withDefaults(
         customDateRangeFormula?:
             | ((rules: CirculationRule) => number | null)
             | null;
+        opacDefaultBookingLibraryEnabled?: boolean | string | null;
+        opacDefaultBookingLibrary?: string | null;
     }>(),
     {
         open: false,
@@ -148,6 +156,8 @@ const props = withDefaults(
         extendedAttributeTypes: null,
         authorizedValues: null,
         customDateRangeFormula: null,
+        opacDefaultBookingLibraryEnabled: null,
+        opacDefaultBookingLibrary: null,
     }
 );
 

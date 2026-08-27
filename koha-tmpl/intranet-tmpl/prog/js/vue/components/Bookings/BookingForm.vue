@@ -133,6 +133,8 @@ const props = withDefaults(
         customDateRangeFormula?:
             | ((rules: CirculationRule) => number | null)
             | null;
+        opacDefaultBookingLibraryEnabled?: boolean | string | null;
+        opacDefaultBookingLibrary?: string | null;
     }>(),
     {
         active: false,
@@ -154,6 +156,8 @@ const props = withDefaults(
         extendedAttributeTypes: null,
         authorizedValues: null,
         customDateRangeFormula: null,
+        opacDefaultBookingLibraryEnabled: null,
+        opacDefaultBookingLibrary: null,
     }
 );
 
@@ -207,7 +211,12 @@ const stepNumber = computed(() => {
     };
 });
 
-const additionalFieldsInstance = ref<{ getValues: () => unknown[]; clear?: () => void } | null>(null);
+type AdditionalFieldsInstance = {
+    getValues: () => unknown[];
+    clear?: () => void;
+};
+
+const additionalFieldsInstance = ref<AdditionalFieldsInstance | null>(null);
 const hasAdditionalFields = computed(() => {
     if (!props.showAdditionalFields) return false;
     const types = props.extendedAttributeTypes;
@@ -275,6 +284,9 @@ function openSession(): void {
         showPatronSelect: props.showPatronSelect,
         showItemDetailsSelects: props.showItemDetailsSelects,
         showPickupLocationSelect: props.showPickupLocationSelect,
+        opacDefaultBookingLibraryEnabled:
+            props.opacDefaultBookingLibraryEnabled,
+        opacDefaultBookingLibrary: props.opacDefaultBookingLibrary,
     };
 
     if (props.bookingId) {

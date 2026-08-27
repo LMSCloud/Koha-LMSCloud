@@ -1,10 +1,11 @@
 /**
- * Public-API transport adapter for the planned OPAC booking island.
+ * Public-API transport adapter for the OPAC booking island.
  *
  * The shared exports intentionally mirror staff-interface.js. Patron search,
- * holidays, booking creation, and booking updates remain unsupported until the
- * corresponding OPAC workflow and public endpoints land; their deliberate
- * stubs below make that limitation explicit rather than simulating success.
+ * booking creation, and booking updates remain unsupported: an OPAC user books
+ * only for themselves, and the form posts to opac-bookings.pl rather than to a
+ * public endpoint. Their deliberate stubs below make that explicit rather than
+ * simulating success.
  *
  * @module opacBookingApi
  */
@@ -163,13 +164,30 @@ export function fetchCirculationRules(params = {}, options = {}) {
 }
 
 /**
- * Deliberate stub: no public closed-dates endpoint exists yet.
- * The OPAC calendar therefore has no holiday highlighting until that API lands.
+ * Fetch the closed dates of a library from the public API.
  *
- * @returns {Promise<string[]>} Empty closed-date list.
+ * @param {import('../../types/bookings').Id} libraryId Library identifier (branchcode).
+ * @param {string} [from] Start of the range (ISO 8601 date).
+ * @param {string} [to] End of the range (ISO 8601 date).
+ * @param {{signal?: AbortSignal, headers?: Record<string, string>}} [options] Request options.
+ * @returns {Promise<string[]>} Closed dates in YYYY-MM-DD format.
  */
-export async function fetchHolidays() {
-    return [];
+export async function fetchHolidays(libraryId, from, to, options = {}) {
+    if (!libraryId) {
+        return [];
+    }
+
+    const params = new URLSearchParams();
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const query = params.toString();
+
+    return requestJson(
+        `/api/v1/public/libraries/${encodeURIComponent(
+            libraryId
+        )}/closed_dates${query ? `?${query}` : ""}`,
+        options
+    );
 }
 
 /**
