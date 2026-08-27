@@ -265,6 +265,7 @@ sub get_booking_availability {
 
         my $patron;
         if ( defined( my $patron_id = $c->param('patron_id') ) ) {
+            $c->auth->public($patron_id) if $c->stash('is_public');
             $patron = Koha::Patrons->find($patron_id);
             return $c->render_invalid_parameter_value(
                 {

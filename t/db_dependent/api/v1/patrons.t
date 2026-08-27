@@ -18,7 +18,7 @@
 use Modern::Perl;
 
 use Test::NoWarnings;
-use Test::More tests => 8;
+use Test::More tests => 9;
 use Test::MockModule;
 use Test::Mojo;
 use Test::Warn;
@@ -1501,6 +1501,45 @@ subtest 'delete() tests' => sub {
 
         $schema->storage->txn_rollback;
     };
+};
+
+subtest 'get_public() tests' => sub {
+
+    plan tests => 14;
+
+    t::lib::Mocks::mock_preference( 'RESTPublicAPI', 1 );
+    t::lib::Mocks::mock_preference( 'RESTBasicAuth', 1 );
+
+    $schema->storage->txn_begin;
+
+    my $patron          = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $other_patron_id = $builder->build_object( { class => 'Koha::Patrons' } )->borrowernumber;
+    my $password        = 'thePassword123';
+    $patron->set_password( { password => $password, skip_validation => 1 } );
+    my $userid    = $patron->userid;
+    my $patron_id = $patron->borrowernumber;
+
+    $t->get_ok("/api/v1/public/patrons/$patron_id")->status_is(401);
+
+    $t->get_ok("//$userid:$password@/api/v1/public/patrons/$other_patron_id")
+        ->status_is(403)
+        ->json_is( { error => "Unprivileged user cannot access another user's resources" } );
+
+    # The OPAC booking modal keys its whole context off patron_id, so the
+    # public representation must carry it
+    $t->get_ok("//$userid:$password@/api/v1/public/patrons/$patron_id")
+        ->status_is(200)
+        ->json_is( '/patron_id'   => 0 + $patron_id )
+        ->json_is( '/library_id'  => $patron->branchcode )
+        ->json_is( '/category_id' => $patron->categorycode )
+        ->json_is( '/surname'     => $patron->surname );
+
+    # public_read_list stays an allowlist
+    $t->get_ok("//$userid:$password@/api/v1/public/patrons/$patron_id")
+        ->json_hasnt('/cardnumber')
+        ->json_hasnt('/email');
+
+    $schema->storage->txn_rollback;
 };
 
 subtest 'guarantors_can_see_charges() tests' => sub {

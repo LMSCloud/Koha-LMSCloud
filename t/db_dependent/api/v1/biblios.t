@@ -20,7 +20,7 @@ use Modern::Perl;
 use utf8;
 use Encode;
 
-use Test::More tests => 17;
+use Test::More tests => 18;
 use Test::NoWarnings;
 use Test::MockModule;
 use Test::Mojo;
@@ -987,6 +987,91 @@ subtest 'get_booking_availability() tests' => sub {
             "Item's own type overrides a passed item_type_id"
         )->status_is(200)->json_is( "/availability/$lead_day/$inferred_id/blockers/lead" => 1 );
     };
+
+    $schema->storage->txn_rollback;
+};
+
+subtest 'get_booking_availability_public() tests' => sub {
+
+    plan tests => 21;
+
+    $schema->storage->txn_begin;
+
+    # Rule context must be fully under our control
+    Koha::CirculationRules->search( { rule_name => { '-in' => [ 'bookings_lead_period', 'bookings_trail_period' ] } } )
+        ->delete;
+
+    my $password = 'thePassword123';
+    my $patron   = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => { flags => 0 }     # an OPAC patron holds no permissions
+        }
+    );
+    $patron->set_password( { password => $password, skip_validation => 1 } );
+    my $userid = $patron->userid;
+
+    my $biblio = $builder->build_sample_biblio();
+    my $item   = $builder->build_sample_item( { bookable => 1, biblionumber => $biblio->biblionumber } );
+    $builder->build_sample_item( { bookable => 0, biblionumber => $biblio->biblionumber } );
+
+    my $today = dt_from_string->truncate( to => 'day' );
+    my $from  = $today->ymd;
+    my $to    = $today->clone->add( days => 30 )->ymd;
+    my $path  = "/api/v1/public/biblios/" . $biblio->biblionumber . "/booking_availability";
+
+    $t->get_ok( "//$userid:$password@/api/v1/biblios/"
+            . $biblio->biblionumber
+            . "/booking_availability?from_date=$from&to_date=$to" => "The staff route stays behind manage_bookings" )
+        ->status_is(403);
+
+    $t->get_ok("//$userid:$password\@$path?from_date=$from&to_date=$to")
+        ->status_is(200)
+        ->json_is( '/item_ids'     => [ 0 + $item->itemnumber ] )
+        ->json_is( '/availability' => {} );
+
+    my $patron_id = $patron->borrowernumber;
+    $t->get_ok("//$userid:$password\@$path?from_date=$from&to_date=$to&patron_id=$patron_id")
+        ->status_is( 200, 'Own patron_id is accepted' );
+
+    my $other_patron_id = $builder->build_object( { class => 'Koha::Patrons' } )->borrowernumber;
+    $t->get_ok("//$userid:$password\@$path?from_date=$from&to_date=$to&patron_id=$other_patron_id")
+        ->status_is( 403, "Another patron's patron_id is rejected" );
+
+    my $deleted_patron    = $builder->build_object( { class => 'Koha::Patrons' } );
+    my $deleted_patron_id = $deleted_patron->borrowernumber;
+    $deleted_patron->delete;
+    $t->get_ok("//$userid:$password\@$path?from_date=$from&to_date=$to&patron_id=$deleted_patron_id")
+        ->status_is( 403, 'A non-existent patron_id is rejected like any other foreign one' );
+
+    t::lib::Mocks::mock_preference( 'RESTPublicAnonymousRequests', 1 );
+    $t->get_ok("$path?from_date=$from&to_date=$to&patron_id=$patron_id")
+        ->status_is( 401, 'Anonymous callers cannot pass a patron_id' );
+
+    my $booked_day = $today->clone->add( days => 10 )->ymd;
+    $builder->build_object(
+        {
+            class => 'Koha::Bookings',
+            value => {
+                biblio_id  => $biblio->biblionumber,
+                item_id    => $item->itemnumber,
+                start_date => $today->clone->add( days => 10, hours => 12 ),
+                end_date   => $today->clone->add( days => 12, hours => 12 ),
+                status     => 'new',
+            }
+        }
+    );
+
+    $t->get_ok("//$userid:$password\@$path?from_date=$from&to_date=$to")
+        ->status_is(200)
+        ->json_is( "/availability/$booked_day/"
+            . $item->itemnumber => { blockers => { booking => 1 }, confirms => {}, warnings => {} } );
+
+    # The OPAC booking modal narrows the item list through the same public route
+    $t->get_ok( "//$userid:$password@/api/v1/public/biblios/" . $biblio->biblionumber . "/items?bookable=1" )
+        ->status_is(200)
+        ->json_is( '/0/item_id' => 0 + $item->itemnumber )
+        ->json_hasnt('/1');
 
     $schema->storage->txn_rollback;
 };

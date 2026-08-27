@@ -621,6 +621,8 @@ paths:
     $ref: ./paths/extended_attribute_types.yaml#/~1public~1extended_attribute_types
   "/public/items":
     $ref: "./paths/items.yaml#/~1public~1items"
+  "/public/biblios/{biblio_id}/booking_availability":
+    $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}~1booking_availability"
   "/public/biblios/{biblio_id}/bookings":
     $ref: "./paths/biblios.yaml#/~1public~1biblios~1{biblio_id}~1bookings"
   "/public/biblios/{biblio_id}/checkouts":

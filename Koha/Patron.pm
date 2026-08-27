@@ -3893,6 +3893,7 @@ This method returns the list of publicly readable database fields for both API a
 
 sub public_read_list {
     return [
+        'borrowernumber',
         'surname',
         'branchcode',
         'categorycode',
