@@ -1,4 +1,5 @@
 import { Component, defineCustomElement } from "vue";
+export * from "vue";
 import { createPinia } from "pinia";
 import { $__ } from "../i18n";
 
@@ -9,7 +10,7 @@ import { $__ } from "../i18n";
  * @property {Object} [config] - An optional configuration object for the web component.
  * @property {Array<string>} [config.stores] - An optional array of strings representing store names associated with the component.
  */
-type WebComponentDynamicImport = {
+export type WebComponentDynamicImport = {
     importFn: () => Promise<Component>;
     config?: Record<"stores", Array<string>>;
 };
@@ -53,18 +54,43 @@ export type IslandStoreDefinitions = Record<
 export const componentRegistry: Map<string, WebComponentDynamicImport> =
     new Map();
 
-const scheduleIdle: (cb: IdleRequestCallback) => void =
-    typeof window.requestIdleCallback === "function"
-        ? window.requestIdleCallback.bind(window)
-        : cb =>
-              window.setTimeout(
-                  () =>
-                      cb({
-                          didTimeout: false,
-                          timeRemaining: () => 0,
-                      } as IdleDeadline),
-                  1
-              );
+/**
+ * Registers an island component for hydration.
+ *
+ * This allows Koha plugins to provide Vue micro frontends as custom elements.
+ * Plugins should call this function from their intranet_js hook before hydrate()
+ * runs (which is deferred via requestIdleCallback).
+ *
+ * @param {string} name - The custom element tag name (must contain a hyphen per web component spec).
+ * @param {WebComponentDynamicImport} entry - The component import function and optional store configuration.
+ *
+ * @example
+ * // In a plugin's intranet_js output:
+ * import { registerIsland } from "/path/to/islands.esm.js";
+ * registerIsland("plugin-notes-panel", {
+ *     importFn: () => import("/api/v1/contrib/myplugin/static/dist/NotesPanel.js"),
+ *     config: { stores: [] },
+ * });
+ */
+export function registerIsland(
+    name: string,
+    entry: WebComponentDynamicImport
+): void {
+    if (!/^[a-z][a-z0-9]*-[a-z0-9-]*$/.test(name)) {
+        console.warn(
+            `[islands] Invalid custom element name "${name}". ` +
+                `Must be lowercase, contain a hyphen, and start with a letter.`
+        );
+        return;
+    }
+    if (componentRegistry.has(name)) {
+        console.warn(
+            `[islands] Component "${name}" is already registered, skipping.`
+        );
+        return;
+    }
+    componentRegistry.set(name, entry);
+}
 
 /**
  * Schedule island hydration without requiring requestIdleCallback support.
@@ -123,9 +149,19 @@ export function hydrate(storeDefinitions: IslandStoreDefinitions = {}): void {
                 return;
             }
 
-            const component = await importFn();
-            if (customElements.get(name)) {
+            let component = await importFn();
+            if (!component || customElements.get(name)) {
                 return;
+            }
+
+            // ES module default exports may be frozen — create a mutable
+            // shallow clone preserving all property descriptors so that
+            // defineCustomElement can set internal properties like `name`.
+            if (!Object.isExtensible(component)) {
+                component = Object.create(
+                    Object.getPrototypeOf(component),
+                    Object.getOwnPropertyDescriptors(component)
+                );
             }
 
             customElements.define(
