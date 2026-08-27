@@ -119,12 +119,7 @@ const createBaseConfig = (isOpac = false) => ({
                 "koha-tmpl/intranet-tmpl/prog/js/vue"
             ),
             "@cypress": path.resolve(__dirname, "t/cypress"),
-            "@bookingApi": path.resolve(
-                __dirname,
-                isOpac
-                    ? "koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/adapters/api/opac.js"
-                    : "koha-tmpl/intranet-tmpl/prog/js/vue/components/Bookings/lib/adapters/api/staff-interface.js"
-            ),
+            "@bookingApi": bookingApiAlias(isOpac ? "opac" : "intranet"),
         },
     },
     module: {

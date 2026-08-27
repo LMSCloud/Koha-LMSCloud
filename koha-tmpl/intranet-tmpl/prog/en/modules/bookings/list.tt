@@ -238,20 +238,7 @@
 
 
             var bookings_table_url = "/api/v1/biblios/%s/bookings".format(biblionumber);
-            bookings_table = $('#bookings_table').kohaTable({
-                ajax: {
-                    "url": bookings_table_url
-                },
-                embed: [
-                    "item",
-                    "patron",
-                    "pickup_library"
-                ],
-                columns: [{
-                    data: "booking_id",
-                    title: _("Booking ID"),
-                    visible: false
-                },
+            bookings_table = $('#bookings_table').kohaTable(
                 {
                     ajax: {
                         url: bookings_table_url,
