@@ -53,3 +53,10 @@
         }
     }
 }
+
+// The DataTables filter row is too narrow for the calendar glyph
+// .flatpickr-input carries, which overlaps the placeholder text
+.booking-date-range-filter.flatpickr-input {
+    background-image: none;
+    padding-left: 3px;
+}

@@ -234,7 +234,7 @@ export function syncSelectOptions($select, options) {
  */
 export function buildDateRangeInput($th, inputId) {
     const html =
-        '<input type="text" id="' +
+        '<input type="text" class="booking-date-range-filter" id="' +
         inputId +
         '" placeholder="' +
         __("Select date range") +
