@@ -22,6 +22,7 @@
     [% END %]</title
 >
 [% INCLUDE 'doc-head-close.inc' %]
+[% Asset.css("css/bookings.css") | $raw %]
 </head>
 
 <body id="pat_moremember" class="pat">
