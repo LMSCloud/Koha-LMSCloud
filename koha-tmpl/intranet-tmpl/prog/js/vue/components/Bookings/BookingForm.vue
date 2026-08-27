@@ -65,11 +65,23 @@
             :has-selected-dates="selectedDateRange?.length > 0"
             @clear-dates="clearDateRange"
         />
+        <BookingAdditionalFields
+            v-if="hasAdditionalFields"
+            :visible="hasAdditionalFields"
+            :step-number="stepNumber.additionalFields"
+            :has-fields="hasAdditionalFields"
+            :extended-attributes="extendedAttributes"
+            :extended-attribute-types="extendedAttributeTypes"
+            :authorized-values="authorizedValues"
+            :set-error="store.setError"
+            @fields-ready="onAdditionalFieldsReady"
+            @fields-destroyed="onAdditionalFieldsDestroyed"
+        />
     </form>
 </template>
 
 <script setup lang="ts">
-import { computed, inject, onMounted, onUnmounted, watch } from "vue";
+import { computed, inject, onMounted, onUnmounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { $__ } from "@koha-vue/i18n";
 import { formatApiError } from "@fetch/api-error";
@@ -84,6 +96,7 @@ import Alert from "../Alert.vue";
 import BookingDetailsStep from "./BookingDetailsStep.vue";
 import BookingPatronStep from "./BookingPatronStep.vue";
 import BookingPeriodStep from "./BookingPeriodStep.vue";
+import BookingAdditionalFields from "./BookingAdditionalFields.vue";
 import type {
     CirculationRule,
     Id,
@@ -113,6 +126,10 @@ const props = withDefaults(
         submitType?: SubmitType;
         submitUrl?: string;
         dateRangeConstraint?: DateRangeConstraintType;
+        showAdditionalFields?: boolean;
+        extendedAttributes?: unknown[];
+        extendedAttributeTypes?: Record<string, unknown> | null;
+        authorizedValues?: Record<string, unknown> | null;
         customDateRangeFormula?:
             | ((rules: CirculationRule) => number | null)
             | null;
@@ -132,6 +149,10 @@ const props = withDefaults(
         submitType: "api",
         submitUrl: "",
         dateRangeConstraint: null,
+        showAdditionalFields: false,
+        extendedAttributes: () => [],
+        extendedAttributeTypes: null,
+        authorizedValues: null,
         customDateRangeFormula: null,
     }
 );
@@ -177,8 +198,32 @@ const stepNumber = computed(() => {
         props.showItemDetailsSelects || props.showPickupLocationSelect
             ? next++
             : 0;
-    return { patron, details, period: next };
+    const period = next++;
+    return {
+        patron,
+        details,
+        period,
+        additionalFields: hasAdditionalFields.value ? next : 0,
+    };
 });
+
+const additionalFieldsInstance = ref<{ getValues: () => unknown[]; clear?: () => void } | null>(null);
+const hasAdditionalFields = computed(() => {
+    if (!props.showAdditionalFields) return false;
+    const types = props.extendedAttributeTypes;
+    if (!types) return false;
+    // An installation with no booking fields defined sends an empty
+    // collection, which must not raise an empty step
+    return Array.isArray(types)
+        ? types.length > 0
+        : Object.keys(types).length > 0;
+});
+function onAdditionalFieldsReady(instance) {
+    additionalFieldsInstance.value = instance;
+}
+function onAdditionalFieldsDestroyed() {
+    additionalFieldsInstance.value = null;
+}
 
 const isFormSubmission = computed(() => props.submitType === "form-submission");
 let sessionActive = false;
@@ -340,6 +385,9 @@ async function handleSubmit(event: Event): Promise<void> {
         pickup_library_id: selectedPickupLibraryId.value,
         biblio_id: props.biblionumber,
         patron_id: bookingPatron.value?.patron_id,
+        extended_attributes: additionalFieldsInstance.value
+            ? additionalFieldsInstance.value.getValues()
+            : [],
     };
 
     const itemAssignment = store.resolveItemForPeriod({
@@ -366,8 +414,16 @@ async function handleSubmit(event: Event): Promise<void> {
         }
 
         const form = event.currentTarget as HTMLFormElement;
+        const formData = { ...bookingData };
+        if (Array.isArray(formData.extended_attributes)) {
+            // opac-bookings.pl expects the attributes as a JSON string; a bare
+            // array would stringify to [object Object]
+            formData.extended_attributes = JSON.stringify(
+                formData.extended_attributes
+            );
+        }
         const entries: Array<[string, unknown]> = [
-            ...Object.entries(bookingData),
+            ...Object.entries(formData),
             ["csrf_token", csrfToken],
             ["op", "cud-add"],
         ];

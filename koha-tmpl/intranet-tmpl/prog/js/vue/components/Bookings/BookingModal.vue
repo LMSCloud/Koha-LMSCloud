@@ -38,6 +38,10 @@
                         :submit-url="submitUrl"
                         :date-range-constraint="dateRangeConstraint"
                         :custom-date-range-formula="customDateRangeFormula"
+            :show-additional-fields="showAdditionalFields"
+            :extended-attributes="extendedAttributes"
+            :extended-attribute-types="extendedAttributeTypes"
+            :authorized-values="authorizedValues"
                         @submitted="handleSubmitted"
                     />
                 </div>
@@ -114,6 +118,10 @@ const props = withDefaults(
         submitType?: SubmitType;
         submitUrl?: string;
         dateRangeConstraint?: DateRangeConstraintType;
+        showAdditionalFields?: boolean;
+        extendedAttributes?: unknown[];
+        extendedAttributeTypes?: Record<string, unknown> | null;
+        authorizedValues?: Record<string, unknown> | null;
         customDateRangeFormula?:
             | ((rules: CirculationRule) => number | null)
             | null;
@@ -135,6 +143,10 @@ const props = withDefaults(
         submitType: "api",
         submitUrl: "",
         dateRangeConstraint: null,
+        showAdditionalFields: false,
+        extendedAttributes: () => [],
+        extendedAttributeTypes: null,
+        authorizedValues: null,
         customDateRangeFormula: null,
     }
 );

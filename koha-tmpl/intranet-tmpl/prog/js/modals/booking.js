@@ -224,6 +224,16 @@
         targetIsland.endDate = endDate;
         targetIsland.itemtypeId = itemtypeId;
 
+        // Additional fields ride on the trigger as a JSON string
+        const extendedAttributes =
+            source.extended_attributes ?? source.extendedAttributes ?? null;
+        if (extendedAttributes != null) {
+            targetIsland.extendedAttributes =
+                typeof extendedAttributes === "string"
+                    ? JSON.parse(extendedAttributes || "[]")
+                    : extendedAttributes;
+        }
+
         if (biblionumber) {
             targetIsland.biblionumber = biblionumber;
         }
