@@ -2550,6 +2550,29 @@ modules:
             -
               columnname: serial_notes
 
+      bookingst:
+        columns:
+            -
+              columnname: booking_patron
+            -
+              columnname: booking_item
+            -
+              columnname: booking_pickup_library
+            -
+              columnname: booking_start_date
+            -
+              columnname: booking_end_date
+            -
+              columnname: booking_status
+            -
+              columnname: booking_creation_date
+            -
+              columnname: booking_modification_date
+            -
+              columnname: booking_additional_fields
+            -
+              columnname: booking_actions
+
     course_list:
       course_reserves_table:
         columns:
@@ -2593,29 +2616,6 @@ modules:
               columnname: notes
             -
               columnname: link
-
-      bookingst:
-        columns:
-            -
-              columnname: booking_patron
-            -
-              columnname: booking_item
-            -
-              columnname: booking_pickup_library
-            -
-              columnname: booking_start_date
-            -
-              columnname: booking_end_date
-            -
-              columnname: booking_status
-            -
-              columnname: booking_creation_date
-            -
-              columnname: booking_modification_date
-            -
-              columnname: booking_additional_fields
-            -
-              columnname: booking_actions
 
   serials:
     claims:
