@@ -2,7 +2,7 @@ use Modern::Perl;
 use Koha::Installer::Output qw(say_info say_success);
 
 return {
-    bug_number  => "LMSCLOUD-split-file-transport-host-port",
+    bug_number  => "",
     description =>
         "Split legacy 'host:port' values in file_transports.host into host + port (LMS sites stored host:port in vendor_edi_accounts.host before upstream migration in db_revs/250600022.pl)",
     up => sub {

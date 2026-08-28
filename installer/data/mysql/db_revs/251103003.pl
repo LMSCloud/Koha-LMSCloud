@@ -2,7 +2,7 @@ use Modern::Perl;
 use Koha::Installer::Output qw(say_info say_success);
 
 return {
-    bug_number  => "LMSCLOUD-letter-code-fk-widen",
+    bug_number  => "",
     description => "Widen letter_code FK columns (20->50) to match LMS-extended letter.code(50)",
     up          => sub {
         my ($args) = @_;
