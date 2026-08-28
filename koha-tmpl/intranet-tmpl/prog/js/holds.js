@@ -1285,6 +1285,22 @@ $(document).ready(function () {
     }
 });
 
+/**
+ * Today's date as YYYY-MM-DD in the browser's local time zone, for comparing
+ * against the date-only strings the holds API returns.
+ * @returns {string}
+ */
+function today_iso() {
+    const now = new Date();
+    return (
+        now.getFullYear() +
+        "-" +
+        String(now.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(now.getDate()).padStart(2, "0")
+    );
+}
+
 async function load_patron_holds_table(biblio_id, split_data) {
     const { name: split_name, value: split_value } = split_data;
     let table_class = `patron_holds_table_${biblio_id}_${split_value}`;
@@ -1553,6 +1569,15 @@ async function load_patron_holds_table(biblio_id, split_data) {
                     orderable: true,
                     searchable: false,
                     render: function (data, type, row, meta) {
+                        if (data && data < today_iso()) {
+                            return (
+                                '<span class="expiredon"><label>' +
+                                __("Expired:") +
+                                "</label> " +
+                                $date(data) +
+                                "</span>"
+                            );
+                        }
                         return (
                             '<input type="text" class="expirationdate ' +
                             table_class +
