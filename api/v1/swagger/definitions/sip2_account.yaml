@@ -78,6 +78,26 @@ properties:
     type:
     - string
     - 'null'
+  deliver_hold_shelf_patron_with_bg:
+    description: Send the barcode of the patron a hold is waiting for in field BG instead of the owning library
+    type:
+    - boolean
+    - 'null'
+  disable_checkins_with_holds:
+    description: Block checkin if the biblio has other pending holds
+    type:
+    - boolean
+    - 'null'
+  disabled_ccodes_for_checkins:
+    description: Pipe-delimited list of collection codes for which checkin is forbidden
+    type:
+    - string
+    - 'null'
+  disabled_itypes_for_checkins:
+    description: Pipe-delimited list of item types for which checkin is forbidden
+    type:
+    - string
+    - 'null'
   disallow_overpayment:
     description: disallow overpayment
     type:
@@ -141,6 +161,11 @@ properties:
     type:
     - integer
     - 'null'
+  only_local_checkins:
+    description: Restrict checkin to the item's issuing library
+    type:
+    - boolean
+    - 'null'
   overdues_block_checkout:
     description: overdues block checkout
     type:
@@ -165,6 +190,11 @@ properties:
     description: seen on item information
     type:
     - string
+    - 'null'
+  send_patron_class_as_fu:
+    description: Additionally deliver the patron class in field FU
+    type:
+    - boolean
     - 'null'
   send_patron_home_library_in_af:
     description: send patron home library in af
@@ -230,6 +260,11 @@ properties:
       - CR
       - CRLF
       - null
+  use_location_instead_ccode_for_cr:
+    description: Deliver the item shelving location instead of the collection code in field CR
+    type:
+    - boolean
+    - 'null'
 
 additionalProperties: false
 required:

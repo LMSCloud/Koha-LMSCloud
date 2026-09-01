@@ -54,6 +54,10 @@ return {
                     `cv_triggers_alert` tinyint(1) DEFAULT NULL,
                     `da_field_template` varchar(255) DEFAULT NULL,
                     `delimiter` varchar(10) DEFAULT '|',
+                    `deliver_hold_shelf_patron_with_bg` tinyint(1) DEFAULT NULL COMMENT 'Send the barcode of the patron a hold is waiting for in field BG instead of the owning library',
+                    `disable_checkins_with_holds` tinyint(1) DEFAULT NULL COMMENT 'Block checkin if the biblio has other pending holds',
+                    `disabled_ccodes_for_checkins` varchar(1024) DEFAULT NULL COMMENT 'Pipe-delimited list of collection codes for which checkin is forbidden',
+                    `disabled_itypes_for_checkins` varchar(1024) DEFAULT NULL COMMENT 'Pipe-delimited list of item types for which checkin is forbidden',
                     `disallow_overpayment` tinyint(1) DEFAULT NULL,
                     `encoding` varchar(10) DEFAULT NULL,
                     `error_detect` tinyint(1) DEFAULT NULL,
@@ -67,15 +71,18 @@ return {
                     `lost_block_checkout` tinyint(1) DEFAULT NULL COMMENT 'actual tinyint, not boolean',
                     `lost_block_checkout_value` tinyint(1) DEFAULT NULL COMMENT 'actual tinyint, not boolean',
                     `lost_status_for_missing` tinyint(1) DEFAULT NULL COMMENT 'actual tinyint, not boolean',
+                    `only_local_checkins` tinyint(1) DEFAULT NULL COMMENT 'Restrict checkin to the item''s issuing library',
                     `overdues_block_checkout` tinyint(1) DEFAULT NULL,
                     `payment_type_writeoff` varchar(10) DEFAULT NULL,
                     `prevcheckout_block_checkout` tinyint(1) DEFAULT NULL,
                     `register_id` int(11) DEFAULT NULL COMMENT 'Foreign key to cash_registers.id',
                     `seen_on_item_information` varchar(255) DEFAULT NULL,
+                    `send_patron_class_as_fu` tinyint(1) DEFAULT NULL COMMENT 'Additionally deliver the patron class in field FU',
                     `send_patron_home_library_in_af` tinyint(1) DEFAULT NULL,
                     `show_checkin_message` tinyint(1) DEFAULT NULL,
                     `show_outstanding_amount` tinyint(1) DEFAULT NULL,
                     `terminator` enum('CR','CRLF') NOT NULL DEFAULT 'CRLF',
+                    `use_location_instead_ccode_for_cr` tinyint(1) DEFAULT NULL COMMENT 'Deliver the item shelving location instead of the collection code in field CR',
                     PRIMARY KEY(`sip_account_id`),
                     UNIQUE KEY `account_login_id` (`login_id`),
                     KEY `sip_accounts_ibfk_1` (`sip_institution_id`),
@@ -233,6 +240,10 @@ return {
             say_success( $out, "Added new table 'sip_system_preference_overrides'" );
         }
 
+        $dbh->do(
+            q{INSERT IGNORE INTO userflags (bit, flag, flagdesc, defaulton) VALUES (31, 'sip2', 'Manage SIP2 module', 0) }
+        );
+
         my $koha_instance = $ENV{KOHA_CONF} =~ m!^.+/sites/([^/]+)/koha-conf\.xml$! ? $1 : undef;
         unless ($koha_instance) {
             say_warning(
@@ -295,7 +306,7 @@ return {
             next unless $sip_institution;
 
             my $insert_accounts = $dbh->prepare(
-                q{INSERT IGNORE INTO sip_accounts (sip_institution_id, ae_field_template, allow_additional_materials_checkout, allow_empty_passwords, allow_fields, av_field_template, blocked_item_types, checked_in_ok, convert_nonprinting_characters, cr_item_field, ct_always_send, cv_send_00_on_success, cv_triggers_alert, da_field_template, delimiter, disallow_overpayment, encoding, error_detect, format_due_date, hide_fields, holds_block_checkin, holds_get_captured, inhouse_item_types, inhouse_patron_categories, login_id, lost_block_checkout, lost_block_checkout_value, lost_status_for_missing, overdues_block_checkout, payment_type_writeoff, prevcheckout_block_checkout, register_id, seen_on_item_information, send_patron_home_library_in_af, show_checkin_message, show_outstanding_amount, terminator) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?,?,?,?, ?,?,?,?,?,?,?, ?,?,?,?,?)}
+                q{INSERT IGNORE INTO sip_accounts (sip_institution_id, ae_field_template, allow_additional_materials_checkout, allow_empty_passwords, allow_fields, av_field_template, blocked_item_types, checked_in_ok, convert_nonprinting_characters, cr_item_field, ct_always_send, cv_send_00_on_success, cv_triggers_alert, da_field_template, delimiter, deliver_hold_shelf_patron_with_bg, disable_checkins_with_holds, disabled_ccodes_for_checkins, disabled_itypes_for_checkins, disallow_overpayment, encoding, error_detect, format_due_date, hide_fields, holds_block_checkin, holds_get_captured, inhouse_item_types, inhouse_patron_categories, login_id, lost_block_checkout, lost_block_checkout_value, lost_status_for_missing, only_local_checkins, overdues_block_checkout, payment_type_writeoff, prevcheckout_block_checkout, register_id, seen_on_item_information, send_patron_class_as_fu, send_patron_home_library_in_af, show_checkin_message, show_outstanding_amount, terminator, use_location_instead_ccode_for_cr) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}
             );
 
             my $sip_institution_id = $sip_institution->get_column('sip_institution_id');
@@ -315,8 +326,15 @@ return {
             my $cv_triggers_alert     = $SIPconfig->{accounts}->{$account_key}->{cv_triggers_alert};
             my $da_field_template     = $SIPconfig->{accounts}->{$account_key}->{da_field_template};
             my $delimiter             = $SIPconfig->{accounts}->{$account_key}->{delimiter} || '|';
-            my $disallow_overpayment  = $SIPconfig->{accounts}->{$account_key}->{disallow_overpayment};
-            my $encoding              = $SIPconfig->{accounts}->{$account_key}->{encoding};
+            my $deliver_hold_shelf_patron_with_bg =
+                $SIPconfig->{accounts}->{$account_key}->{deliver_hold_shelf_patron_with_BG};
+            my $disable_checkins_with_holds = $SIPconfig->{accounts}->{$account_key}->{disable_checkins_with_holds};
+            my $disabled_ccodes_for_checkins =
+                $SIPconfig->{accounts}->{$account_key}->{disabled_ccodes_for_checkins};
+            my $disabled_itypes_for_checkins =
+                $SIPconfig->{accounts}->{$account_key}->{disabled_itypes_for_checkins};
+            my $disallow_overpayment = $SIPconfig->{accounts}->{$account_key}->{disallow_overpayment};
+            my $encoding             = $SIPconfig->{accounts}->{$account_key}->{encoding};
 
             my $error_detect;
             if ( defined $SIPconfig->{accounts}->{$account_key}->{'error-detect'} ) {
@@ -333,16 +351,20 @@ return {
             my $lost_block_checkout         = $SIPconfig->{accounts}->{$account_key}->{lost_block_checkout};
             my $lost_block_checkout_value   = $SIPconfig->{accounts}->{$account_key}->{lost_block_checkout_value};
             my $lost_status_for_missing     = $SIPconfig->{accounts}->{$account_key}->{lost_status_for_missing};
+            my $only_local_checkins         = $SIPconfig->{accounts}->{$account_key}->{only_local_checkins};
             my $overdues_block_checkout     = $SIPconfig->{accounts}->{$account_key}->{overdues_block_checkout};
             my $payment_type_writeoff       = $SIPconfig->{accounts}->{$account_key}->{payment_type_writeoff};
             my $prevcheckout_block_checkout = $SIPconfig->{accounts}->{$account_key}->{prevcheckout_block_checkout};
             my $register_id                 = $SIPconfig->{accounts}->{$account_key}->{register_id} || undef;
             my $seen_on_item_information    = $SIPconfig->{accounts}->{$account_key}->{seen_on_item_information};
+            my $send_patron_class_as_fu     = $SIPconfig->{accounts}->{$account_key}->{send_patron_class_as_FU};
             my $send_patron_home_library_in_af =
                 $SIPconfig->{accounts}->{$account_key}->{send_patron_home_library_in_af};
             my $show_checkin_message    = $SIPconfig->{accounts}->{$account_key}->{show_checkin_message};
             my $show_outstanding_amount = $SIPconfig->{accounts}->{$account_key}->{show_outstanding_amount};
             my $terminator              = $SIPconfig->{accounts}->{$account_key}->{terminator} || 'CRLF';
+            my $use_location_instead_ccode_for_cr =
+                $SIPconfig->{accounts}->{$account_key}->{use_location_instead_ccode_for_CR};
 
             $insert_accounts->execute(
                 $sip_institution_id,
@@ -360,6 +382,10 @@ return {
                 $cv_triggers_alert,
                 $da_field_template,
                 $delimiter,
+                $deliver_hold_shelf_patron_with_bg,
+                $disable_checkins_with_holds,
+                $disabled_ccodes_for_checkins,
+                $disabled_itypes_for_checkins,
                 $disallow_overpayment,
                 $encoding,
                 $error_detect,
@@ -373,15 +399,18 @@ return {
                 $lost_block_checkout,
                 $lost_block_checkout_value,
                 $lost_status_for_missing,
+                $only_local_checkins,
                 $overdues_block_checkout,
                 $payment_type_writeoff,
                 $prevcheckout_block_checkout,
                 $register_id,
                 $seen_on_item_information,
+                $send_patron_class_as_fu,
                 $send_patron_home_library_in_af,
                 $show_checkin_message,
                 $show_outstanding_amount,
-                $terminator
+                $terminator,
+                $use_location_instead_ccode_for_cr
             );
 
             my $new_account_id = $dbh->last_insert_id( undef, undef, "sip_accounts", "sip_account_id" );
@@ -542,10 +571,6 @@ return {
                 }
             }
         }
-
-        $dbh->do(
-            q{INSERT IGNORE INTO userflags (bit, flag, flagdesc, defaulton) VALUES (31, 'sip2', 'Manage SIP2 module', 0) }
-        );
 
     },
 };

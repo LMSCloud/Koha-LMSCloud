@@ -9,6 +9,7 @@ export const useSIP2Store = defineStore("sip2", () => {
         },
         authorisedValues: {
             av_lost: "LOST",
+            av_ccode: "CCODE",
         },
     });
     const sharedActions = withAuthorisedValueActions(store);

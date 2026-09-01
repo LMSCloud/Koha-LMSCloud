@@ -184,11 +184,59 @@ export default {
                 ),
             },
             {
+                name: "disabled_itypes_for_checkins",
+                type: "relationshipSelect",
+                allowMultipleChoices: true,
+                defaultValue: null,
+                relationshipAPIClient: APIClient.item.item_types,
+                relationshipOptionLabelAttr: "description",
+                relationshipRequiredKey: "item_type_id",
+                label: __("Disabled item types for checkins"),
+                hideIn: ["List"],
+                group: "Details",
+                toolTip: __(
+                    "List of item types for which checkin via SIP is forbidden"
+                ),
+            },
+            {
+                name: "disabled_ccodes_for_checkins",
+                type: "select",
+                allowMultipleChoices: true,
+                avCat: "av_ccode",
+                defaultValue: null,
+                label: __("Disabled collection codes for checkins"),
+                hideIn: ["List"],
+                group: "Details",
+                toolTip: __(
+                    "List of collection codes for which checkin via SIP is forbidden"
+                ),
+            },
+            {
                 name: "checked_in_ok",
                 type: "boolean",
                 label: __("Checked in OK"),
                 hideIn: ["List"],
                 group: "Details",
+            },
+            {
+                name: "only_local_checkins",
+                type: "boolean",
+                label: __("Only local checkins"),
+                hideIn: ["List"],
+                group: "Details",
+                toolTip: __(
+                    "Restrict checkin to items whose issuing library matches the current checkin location"
+                ),
+            },
+            {
+                name: "disable_checkins_with_holds",
+                type: "boolean",
+                label: __("Disable checkins with holds"),
+                hideIn: ["List"],
+                group: "Details",
+                toolTip: __(
+                    "Block checkin if the biblio has other pending holds"
+                ),
             },
             {
                 name: "convert_nonprinting_characters",
@@ -221,6 +269,16 @@ export default {
                 defaultValue: "collection_code",
                 toolTip: __(
                     "Arbitrary item field to be used as the value for the CR field. Defaults to 'collection_code'"
+                ),
+            },
+            {
+                name: "use_location_instead_ccode_for_cr",
+                type: "boolean",
+                label: __("Use location instead of collection code for CR"),
+                hideIn: ["List"],
+                group: "Details",
+                toolTip: __(
+                    "Deliver the item's shelving location instead of its collection code in the CR field, overriding the CR item field setting above"
                 ),
             },
             {
@@ -327,6 +385,16 @@ export default {
                 group: "Details",
                 toolTip: __(
                     "If enabled, items are automatically assigned to holds at SIP check-in; The alerts messages will continue to show, however, to allow items to be put to one side and then captured by a subsequent staff check-in."
+                ),
+            },
+            {
+                name: "deliver_hold_shelf_patron_with_bg",
+                type: "boolean",
+                label: __("Deliver hold shelf patron with BG"),
+                hideIn: ["List"],
+                group: "Details",
+                toolTip: __(
+                    "For items waiting on the hold shelf, send the barcode of the patron the hold is waiting for in the BG field instead of the item's owning library"
                 ),
             },
             {
@@ -446,6 +514,16 @@ export default {
                 group: "Details",
                 toolTip: __(
                     "If set, the item information SIP message will update the datelastseen field for items. For lost items, will either keep them as'lost' or mark them as 'found' depending on the setting"
+                ),
+            },
+            {
+                name: "send_patron_class_as_fu",
+                type: "boolean",
+                label: __("Send patron class as FU"),
+                hideIn: ["List"],
+                group: "Details",
+                toolTip: __(
+                    "Additionally deliver the patron's category/class in the non-standard FU field"
                 ),
             },
             {
@@ -1005,6 +1083,10 @@ export default {
             account.inhouse_patron_categories =
                 account.inhouse_patron_categories?.join(",");
             account.blocked_item_types = account.blocked_item_types?.join("|");
+            account.disabled_itypes_for_checkins =
+                account.disabled_itypes_for_checkins?.join("|");
+            account.disabled_ccodes_for_checkins =
+                account.disabled_ccodes_for_checkins?.join("|");
 
             if (!account.terminator) account.terminator = null;
 
@@ -1044,6 +1126,14 @@ export default {
                 );
                 resource.blocked_item_types = explodeValues(
                     resource.blocked_item_types,
+                    "|"
+                );
+                resource.disabled_itypes_for_checkins = explodeValues(
+                    resource.disabled_itypes_for_checkins,
+                    "|"
+                );
+                resource.disabled_ccodes_for_checkins = explodeValues(
+                    resource.disabled_ccodes_for_checkins,
                     "|"
                 );
                 resource.hide_fields = explodeValues(resource.hide_fields, ",");

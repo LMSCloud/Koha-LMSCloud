@@ -833,7 +833,7 @@ sub handle_checkin {
                 $server
             );
 
-            if ( $server->{account}->{use_location_instead_ccode_for_CR} ) {
+            if ( $server->{account}->{use_location_instead_ccode_for_cr} ) {
                 $resp .= maybe_add( FID_COLLECTION_CODE, $item->location, $server );
             } elsif ( my $CR = $server->{account}->{cr_item_field} ) {
                 $resp .= maybe_add( FID_COLLECTION_CODE, $item->{$CR}, $server );
@@ -1195,7 +1195,7 @@ sub handle_patron_info {
         $resp .= maybe_add( FID_PATRON_BIRTHDATE, $patron->birthdate, $server );
         $resp .= maybe_add( FID_PATRON_CLASS,     $patron->ptype,     $server );
 
-        if ( $server->{account}->{send_patron_class_as_FU} ) {
+        if ( $server->{account}->{send_patron_class_as_fu} ) {
             $resp .= maybe_add( FID_PATRON_CLASS_ALT, $patron->ptype, $server );
         }
 
@@ -1375,8 +1375,6 @@ sub handle_fee_debit {
     my $status;
     my $resp = FEE_DEBIT_RESP;
 
-    my $disallow_overpayment = $server->{account}->{default_fee_debit_type};
-
     $fee_amount     = $fields->{ (FID_FEE_AMT) };
     $fee_account_id = $fields->{ (FID_FEE_ACCOUNT_ID) };
     $inst_id        = $fields->{ (FID_INST_ID) };
@@ -1479,7 +1477,7 @@ sub handle_item_information {
             $resp .= add_field( FID_CURRENCY, $item->fee_currency, $server );
             $resp .= add_field( FID_FEE_AMT,  $i,                  $server );
         }
-        if ( $server->{account}->{deliver_hold_shelf_patron_with_BG} && $item->sip_circulation_status eq '08' ) {
+        if ( $server->{account}->{deliver_hold_shelf_patron_with_bg} && $item->sip_circulation_status eq '08' ) {
             if ( $item->{hold_attached} ) {
                 foreach my $hold ( @{ $item->{hold_attached} } ) {
                     if ( $hold->{itemnumber} == $item->{itemnumber} ) {
