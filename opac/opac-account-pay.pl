@@ -35,6 +35,12 @@ use Koha::Logger;
 my $cgi            = CGI->new;
 my $payment_method = $cgi->param('payment_method');
 my @accountlines   = $cgi->multi_param('accountline');
+my $op             = $cgi->param('op') // q{};
+
+unless ( $op eq 'cud-pay' ) {
+    print $cgi->redirect("/cgi-bin/koha/errors/400.pl");
+    exit;
+}
 
 my $use_plugin = Koha::Plugins::Handler->run(
     {
