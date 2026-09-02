@@ -61,12 +61,22 @@ $op =~ s/^cud-//;
 
 if ( $op eq 'download' ) {
     my $content;
-    my $filename = $input->param('filename');
+    my $filename = $input->param('filename') // q{};
+
+    # the batchprint directory is flat; a filename must not address anything else
+    if ( $filename eq q{} || $filename =~ m{[/\\\0]} || $filename =~ /^\.\.?$/ ) {
+        print $input->redirect('/cgi-bin/koha/errors/400.pl');
+        exit;
+    }
     my $fullname = File::Spec->catfile( $outputdir, $filename );
 
     my $extraoptions = {};
-    my $charset      = `file -i -b $fullname`;
-    my $encoding     = 'UTF-8';
+    my $charset      = q{};
+    if ( open( my $magic, '-|', 'file', '-i', '-b', $fullname ) ) {
+        $charset = <$magic> // q{};
+        close $magic;
+    }
+    my $encoding = 'UTF-8';
 
     if ( $charset =~ /charset=([^\s]+)/ ) {
         $charset = $1;
