@@ -155,6 +155,15 @@ if ( $op eq 'cud-change_pickup_location' ) {
         exit;
     }
 
+    my $is_valid_pickup_location = $new_pickup_location
+        && $booking->biblio->pickup_locations( { patron => $patron } )
+        ->search( { branchcode => $new_pickup_location } )
+        ->count;
+    if ( !$is_valid_pickup_location ) {
+        print $query->redirect('/cgi-bin/koha/errors/403.pl') or croak;
+        exit;
+    }
+
     my $is_updated = $booking->update( { pickup_library_id => $new_pickup_location } );
     if ( !$is_updated ) {
         print $query->redirect('/cgi-bin/koha/errors/500.pl') or croak;
