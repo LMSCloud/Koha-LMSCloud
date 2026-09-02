@@ -275,7 +275,7 @@
                         <li><a class="dropdown-item" href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblionumber | uri %]">[% IF ( orderable ) %]Place order[% ELSE %]Place hold[% END %]</a></li>
                         <li
                             ><a class="dropdown-item" href="/cgi-bin/koha/reserve/request.pl?biblionumber=[% biblionumber | uri %]&amp;findborrower=[% holdfor_patron.cardnumber | uri %]"
-                                >[% IF ( orderable ) %]Place order[% ELSE %]Place hold[% END %] for [% INCLUDE 'patron-title.inc' patron => holdfor_patron no_title => 1 %]</a
+                                >[% IF ( orderable ) %]Place order[% ELSE %]Place hold[% END %] for [% INCLUDE 'patron-title.inc' patron => holdfor_patron no_title => 1 no_html => 1 %]</a
                             ></li
                         >
                     </ul>
