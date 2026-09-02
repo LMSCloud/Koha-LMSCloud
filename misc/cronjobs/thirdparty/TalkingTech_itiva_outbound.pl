@@ -128,7 +128,7 @@ foreach my $type (@types) {
     my $patrons;
     foreach my $issues (@loop) {
         $patrons->{ $issues->{borrowernumber} } ||= Koha::Patrons->find( $issues->{borrowernumber} )
-            if $skip_patrons_with_email;
+            if $skip_patrons_with_email || $skip_patrons_with_field_match;
         next if $skip_patrons_with_email && $patrons->{ $issues->{borrowernumber} }->notice_email_address;
         next
             if $skip_patrons_with_field_match
